@@ -1,0 +1,18 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+
+[packages]
+flask = "*"
+bokeh = "*"
+pandas = "*"
+pymongo = "*"
+flask-pymongo = "*"
+flask-cors = "*"
+galvani = "0.2.0"
+
+[requires]
+python_version = "3"

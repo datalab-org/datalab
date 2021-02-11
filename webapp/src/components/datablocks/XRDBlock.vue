@@ -1,0 +1,50 @@
+<template>
+<!-- think about elegant two-way binding to DataBlockBase... or, just pass all the block data into 
+DataBlockBase as a prop, and save from within DataBlockBase  -->
+	<DataBlockBase :sample_id="sample_id" :block_id="block_id"> 
+		<FileSelectDropdown
+			v-model="filename"
+			:sample_id="sample_id" 
+			:block_id="block_id"
+			:extensions='[".xrdml",".xy"]'
+			updateBlockOnChange
+		/>
+		<div class="row">
+			<div class="col-xl-8 col-lg-9 col-md-11 mx-auto">
+				<BokehPlot :bokehPlotData="bokehPlotData" />
+				<!-- <div v-if="!bokehPlotData" class="alert alert-danger">No bokeh Plot Data is loaded</div> -->
+			</div>
+		</div>
+	</DataBlockBase>
+</template>
+
+
+<script>
+
+import DataBlockBase from "@/components/datablocks/DataBlockBase"
+import FileSelectDropdown from "@/components/FileSelectDropdown"
+import BokehPlot from "@/components/BokehPlot"
+
+import {createComputedSetterForBlockField} from "@/field_utils.js"
+
+export default {
+	props: {
+		sample_id: String,
+		block_id: String,
+	},
+	computed: {
+		bokehPlotData() {
+			return this.$store.state.all_sample_data[this.sample_id]["blocks_obj"][this.block_id].bokeh_plot_data
+		},
+		filename: createComputedSetterForBlockField("filename")
+	},
+	components: {
+		DataBlockBase,
+		FileSelectDropdown,
+		BokehPlot
+	},
+	// mounted() {
+	// 	this.makeBokehPlot()
+	// }	
+}
+</script>

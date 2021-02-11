@@ -1,0 +1,13 @@
+uploads
+.DS_Store
+
+*.sublime-workspace
+*.tmlanguage.cache
+*.tmPreferences.cache
+*.stTheme.cache
+
+*~
+
+node_modules
+
+
