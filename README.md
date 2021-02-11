@@ -1,6 +1,6 @@
 # datalabvue
-*The new and slightly improved data management system
-*Someone think of a good name that isn't taken by Google
+* The new and slightly improved data management system
+* Someone think of a good name that isn't taken by Google
 
 ## Installation:
 Before starting, be warned– the javascript app environment installation will take up at least 300 mb.
