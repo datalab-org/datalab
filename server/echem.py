@@ -141,6 +141,10 @@ def biologic_processing(df):
     if ('time/s' in df.columns) and ('dQ/mA.h' in df.columns):
         df['dt'] = np.diff(df['time/s'], prepend=0)
         df['Current'] = df['dQ/mA.h']/(df['dt']/3600)
+
+    if np.isnan(df['Current'].iloc[0]):
+        df.loc[df.index[0], 'Current'] = 0
+
     def bio_state(x):
         if x > 0:
             return 0
