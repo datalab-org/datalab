@@ -26,7 +26,7 @@ BLOCK_KINDS = { # TODO: think about autogenerating this from DataBlock's blockty
 	"comment": CommentBlock,
 	"image":  ImageBlock,
 	"xrd": XRDBlock,
-	"cycle": DataBlock,
+	"cycle": CycleBlock,
 }
 
 
