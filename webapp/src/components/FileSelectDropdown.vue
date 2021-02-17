@@ -1,5 +1,5 @@
 <template>
-	<div class="form-group form-inline">
+	<div class="input-group form-inline">
 		<label class="mr-4"><b>Select a file:</b></label>
 		<select class="form-control"
 			:value="modelValue"

@@ -2,6 +2,8 @@ import os, random, json
 from simple_bokeh_plot import simple_bokeh_plot, mytheme
 import xrd_utils
 import bokeh
+import echem as ec
+from bokeh.plotting import figure
 
 UPLOAD_PATH = "uploads"
 
@@ -25,19 +27,10 @@ def generate_random_id():
 ############################################################################################################
 
 class DataBlock():
-	''' base class for a data block. Extend this class to make a new type of data block.
-	In many cases, only the following attributes need to be overwritten:
-		blocktype: a short description with no spaces, for use in code
-		description: a short description for use in the UI
-		template_name: the name of the html template that will be used to render the block.
-			In general, the template should extend datablock.html
-		DataBlockForm: this form should be overwritten.
-	 get_html_js() and class DataDataForm will need to be overwritten
-	'''
+	''' base class for a data block.'''
+
 	blocktype = "generic" 
 	description = "Generic Block"
-	template_name = "data_block.html"
-	extensions = [".xrdml", ".xy"]
 
 	def __init__(self, sample_id, dictionary={}, unique_id=None):
 		self.block_id = unique_id or generate_random_id() # this is supposed to be a unique id for use in html and the database. 
@@ -83,7 +76,6 @@ class ImageBlock(DataBlock):
 class XRDBlock(DataBlock):
 	blocktype="xrd"
 	description="Powder XRD"
-	template_name = "blocks/xrd_block.html"
 
 	def generate_xrd_plot(self):
 		if "filename" not in self.data:
@@ -116,4 +108,57 @@ class XRDBlock(DataBlock):
 	def to_db(self):
 		return { key:value for (key, value) in self.data.items() if key != "bokeh_plot_data" } # don't save the bokeh plot in the database
 
- 
+
+class CycleBlock(DataBlock):
+	blocktype="cycle"
+	description="Echem cycle"
+	
+	accepted_files = ['.mpr', '.txt', '.xls', '.xlsx', '.txt', '.res']
+
+	def plot_cycle(self, voltage_label='Voltage', 
+			capacity_label="Capacity", 
+			capacity_units='mAh'):
+
+		if "filename" not in self.data:
+			print('No filename given')
+			return
+
+		filename = self.data["filename"]
+		ext = os.path.splitext(filename)[-1].lower()
+
+		if ext not in self.accepted_files:
+			print('Unrecognised filetype')
+			return
+		directory = os.path.join(UPLOAD_PATH, self.data["sample_id"])
+		
+		if 'cyclenumber' not in self.data:
+			self.data['cyclenumber'] = 1
+		
+		cycle = self.data['cyclenumber']
+
+		# Galvani reads in the raw MPR file then its made into a dataframe
+		df = ec.echem_file_loader(os.path.join(directory, filename))
+		 
+		# Selecting the charge and discharge cycles from the way biologic numbers them
+		# If starts with charge, change how the cycles are numbered.
+		half_cycles = [(2*cycle)-1, 2*cycle]
+		# output_file(output_file_) # Is this needed?
+		 
+		# Plotting with Bokeh!
+		p = figure(plot_width=400, plot_height=400, 
+						x_axis_label='Capacity / mAh', 
+						y_axis_label='Voltage / V')
+
+		# add a line renderer
+		for cycle in half_cycles:
+			mask = df['half cycle'] == cycle
+			p.line(df[mask][capacity_label], df[mask][voltage_label])
+
+		self.data["bokeh_plot_data"] = bokeh.embed.json_item(p, theme=mytheme)
+
+	def to_web(self):
+		self.plot_cycle()
+		return self.data
+
+	def to_db(self):
+		return { key:value for (key, value) in self.data.items() if key != "bokeh_plot_data" } # don't save the bokeh plot in the database

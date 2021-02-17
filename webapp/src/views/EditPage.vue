@@ -104,6 +104,7 @@
 import DataBlockBase from "@/components/datablocks/DataBlockBase"
 import ImageBlock from "@/components/datablocks/ImageBlock"
 import XRDBlock from "@/components/datablocks/XRDBlock"
+import CycleBlock from "@/components/datablocks/CycleBlock"
 import TinyMceInline from "@/components/TinyMceInline"
 import FileSelectDropdown from "@/components/FileSelectDropdown"
 import { getSampleData,addABlock, saveSample, deleteFile } from "@/server_fetch_utils"
@@ -123,7 +124,8 @@ export default {
 				{ id:"test", description:"Test Block" },
 				{ id:"comment", description:"Comment"},
 				{ id:"image", description:"Image Block"},
-				{ id: "xrd", description:"Powder XRD"}
+				{ id: "xrd", description:"Powder XRD"},
+				{ id: "cycle", description:"Echem Block"}
 			],
 			isMenuDropdownVisible: false,
 			// sample_data: {},
@@ -157,6 +159,7 @@ export default {
 			var type = this.blocks[block_id].blocktype;
 			if (type == "image") {return ImageBlock; }
 			if (type == "xrd") { return XRDBlock; }
+			if (type == "cycle") { return CycleBlock}
 			return DataBlockBase;
 		},
 
