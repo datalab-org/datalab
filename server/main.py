@@ -27,6 +27,7 @@ BLOCK_KINDS = { # TODO: think about autogenerating this from DataBlock's blockty
 	"image":  ImageBlock,
 	"xrd": XRDBlock,
 	"cycle": CycleBlock,
+	"generic": DataBlock,
 }
 
 
@@ -236,7 +237,8 @@ def delete_file():
 	if result.matched_count != 1:
 		return jsonify(status="error", message=f"{sample_id} {filename} delete failed. Something went wrong with the db call. File not deleted.",
 			output=result.raw_result), 400
-
+	print(f"removing file: {path}")	
+	# import pdb; pdb.set_trace()
 	os.remove(path)
 
 	return jsonify({"status":"success"}), 200
@@ -301,13 +303,12 @@ def update_block():
 	plot
 	'''
 	request_json = request.get_json()
-	print("update_block called with : " + str(request_json))
+	print("update_block called with : " + str(request_json)[:1000])
 	sample_id = request_json["sample_id"]
 	block_id = request_json["block_id"]
 	block_data = request_json["block_data"]
 	blocktype = block_data["blocktype"]
 
-	import pdb
 	Block = BLOCK_KINDS[blocktype].from_web(block_data)
 
 	return jsonify(status="success", new_block_data=Block.to_web()), 200

@@ -23,6 +23,7 @@
     "vue": "^3.0.0",
     "vue-router": "^4.0.0-0",
     "vue-scrollto": "^2.20.0",
+    "vue3-router-tree": "^0.2.4",
     "vuex": "^4.0.0-rc.2"
   },
   "devDependencies": {

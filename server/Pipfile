@@ -9,10 +9,13 @@ verify_ssl = true
 flask = "*"
 bokeh = "*"
 pandas = "*"
+scipy= "*"
+matplotlib="*"
 pymongo = "*"
 flask-pymongo = "*"
 flask-cors = "*"
-galvani = "0.2.0"
+galvani = "*"
+pyqt5 = "*"
 
 [requires]
 python_version = "3"

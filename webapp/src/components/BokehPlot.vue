@@ -30,12 +30,31 @@ export default {
 				console.log("running startBokehPlot with:");
 				console.log(this.bokehPlotData);
 				var views = await Bokeh.embed.embed_item(this.bokehPlotData, this.unique_id);
-				this.BokehDoc = views[0].model.document // NOTE: BokehDoc is not in data, so this is NONREACTIVE. (we need to be the case or BokehDoc.clear() doesn't work for some reason)
+				this.BokehDoc = views[0].model.document // NOTE: BokehDoc is not in data, so this is NONREACTIVE. (we need this to be the case or BokehDoc.clear() doesn't work for some reason)
 				this.bokeh_views = views
 				console.log("Bokeh Doc:")
 				console.log(this.BokehDoc)
 				this.loading = false
 				this.loaded = true
+
+
+				// add some bootrap styles to bokeh widgets. This is not very elegants
+				var bokehSelectElements = document.querySelectorAll("div.bk-input-group>select");
+				bokehSelectElements.forEach(element => {
+					element.classList.add("form-control", "ml-4")
+					element.classList.remove("bk-input", "bk")
+				});
+				var bokehSelectLabelElements = document.querySelectorAll("div.bk-input-group>label");
+				bokehSelectLabelElements.forEach(element => {
+					element.classList.remove("bk")
+				});
+				var bokehInputGroups = document.querySelectorAll("div.bk-input-group");
+				bokehInputGroups.forEach(element=> {
+					element.classList.add("input-group","form-inline", "col-sm-6")
+					element.classList.remove("bk-input-group","bk")
+
+				});
+
 			}
 		},
 		cleanupBokehPlot() {

@@ -7,6 +7,10 @@ from bokeh.events import DoubleTap
 from bokeh.models.callbacks import CustomJS
 
 
+from bokeh.models.widgets import Select, TextInput
+from bokeh.layouts import column
+
+
 FONTSIZE="14pt"
 TYPEFACE = "Helvetica" # "Lato"
 #SIZES = list(range(6, 22, 3))
@@ -73,6 +77,49 @@ def simple_bokeh_plot(xy_filename, x_label=None, y_label=None):
    p.js_on_event(DoubleTap, CustomJS(args=dict(p=p), code='p.reset.emit()'))
    # show(p)
    return p
+
+def selectable_axes_plot(df, x_options, y_options, x_default=None, y_default=None, **kwargs):
+   source = ColumnDataSource(df)
+
+   if not x_default:
+      x_default = x_options[0]
+      y_default = y_options[0]
+
+   code_x = """
+      var column = cb_obj.value;
+      circle1.glyph.x.field = column;
+      source.change.emit();
+      xaxis.axis_label = column;
+      """
+   code_y = """
+      var column = cb_obj.value;
+      circle1.glyph.y.field = column;
+      source.change.emit();
+      yaxis.axis_label = column;
+      """
+
+   p = figure(sizing_mode="scale_width",aspect_ratio=1.5, x_axis_label=x_default, y_axis_label=y_default,
+      tools=TOOLS, **kwargs)
+
+   circle1 = p.circle(x=x_default, y=y_default, source=source)
+
+   callback_x = CustomJS(args=dict(circle1=circle1, source=source, xaxis=p.xaxis[0]), code=code_x)
+   callback_y = CustomJS(args=dict(circle1=circle1, source=source, yaxis=p.yaxis[0]), code=code_y)
+
+   # Add list boxes for selecting which columns to plot on the x and y axis
+   xaxis_select = Select(title="X axis:", value=x_default, options=x_options)
+   xaxis_select.js_on_change("value",callback_x)
+
+   yaxis_select = Select(title="Y axis:", value=y_default, options=y_options)
+   yaxis_select.js_on_change("value",callback_y)
+
+
+
+   p.js_on_event(DoubleTap, CustomJS(args=dict(p=p), code='p.reset.emit()'))
+   layout = column(p, xaxis_select, yaxis_select)
+   return layout
+
+
 
 if __name__ == "__main__":
    simple_bokeh_plot()

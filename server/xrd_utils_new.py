@@ -22,7 +22,7 @@ def read_xrdml(fn):
 
 
 def convert_to_Q(two_theta,wavelength=0.414581):
-   return 4*np.pi/wavelength*np.sin(two_theta/2*DEGREES)
+	return 4*np.pi/wavelength*np.sin(two_theta/2*DEGREES)
 
 
 

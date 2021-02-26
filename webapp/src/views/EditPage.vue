@@ -25,7 +25,7 @@
 		<span v-if="sample_data_loaded && !savedStatus" class="navbar-text unsaved-warning"> Unsaved changes </span>
 		<span v-if="sample_data_loaded" class="navbar-text mx-2"><i>Last saved: {{ lastModified }}</i></span>
 		<font-awesome-icon icon="save" fixed-width class="nav-item nav-link navbar-icon"
-		@click="saveSample" />
+		@click="saveSample" /> 
 	</div>
 </nav>
 
@@ -72,13 +72,14 @@
 	</div>
 
 
-<!-- data files blocks -->
+<!-- Files block -->
 	<label class="mr-2">Files</label>
 	<div class="card">
 		<div class="card-body overflow-auto" id="filearea">
 			<div class="file-group" v-for="filename in files" :key="filename">
-				<font-awesome-icon icon="times" fixed-width class="delete-file-button"
-										@click="deleteFile($event, filename)" />
+				<a @click="deleteFile($event, filename)">
+					<font-awesome-icon icon="times" fixed-width class="delete-file-button" />
+				</a>
 				<a class="filelink" target="_blank" :href='`http://localhost:5001/files/${sample_id}/${filename.replace(" ","_")}`'>{{ filename }}</a>
 			</div>
 		</div>
@@ -165,11 +166,15 @@ export default {
 
 		saveSample() {
 			// trigger the mce save so that they update the store with their content
+			console.log("save sample clicked!")
 			tinymce.editors.forEach( editor => editor.save() )
 			saveSample(this.sample_id)
 		},
 		deleteFile(event, filename) {
+			console.log(`delete file button clicked!`)
+			console.log(event)
 			deleteFile(this.sample_id, filename)
+			return false
 		},
 		async getSampleData() {
 			await getSampleData(this.sample_id);

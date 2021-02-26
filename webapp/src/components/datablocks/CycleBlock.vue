@@ -1,17 +1,17 @@
 <template>
 	<DataBlockBase :sample_id="sample_id" :block_id="block_id">
 		<div class="form-row col-lg-8">
-		<FileSelectDropdown
-			v-model="filename"
-			:sample_id="sample_id" 
-			:block_id="block_id"
-			:extensions='[".mpr", ".txt", ".xls", ".xlsx", ".txt", ".res"]'
-			updateBlockOnChange
-		/>
+			<FileSelectDropdown
+				v-model="filename"
+				:sample_id="sample_id" 
+				:block_id="block_id"
+				:extensions='[".mpr", ".txt", ".xls", ".xlsx", ".txt", ".res"]'
+				updateBlockOnChange
+			/>
 		</div>
-		<div class="form-row col-md-4 col-lg-5">
+		<div class="form-row col-md-4 col-lg-5 mt-2">
 			<div class="input-group form-inline">
-				<label class="mr-4"><b>Cycle number:</b></label>
+				<label class="mr-2"><b>Cycle number:</b></label>
 				<input type="text" class="form-control" v-model.number="cycle_number" @input="updateBlock">
 			</div>
 		<div v-if="cycle_num_error" class="alert alert-warning">{{ cycle_num_error }}</div>
