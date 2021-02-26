@@ -1,9 +1,15 @@
 import os, random, json
-from simple_bokeh_plot import simple_bokeh_plot, mytheme
+
 import xrd_utils
-import bokeh
 import echem as ec
+
+import bokeh
 from bokeh.plotting import figure
+from bokeh.io import curdoc
+from bokeh.events import DoubleTap
+from bokeh.models.callbacks import CustomJS
+from simple_bokeh_plot import simple_bokeh_plot, mytheme
+import bokeh_plots
 
 UPLOAD_PATH = "uploads"
 
@@ -132,29 +138,40 @@ class CycleBlock(DataBlock):
 		directory = os.path.join(UPLOAD_PATH, self.data["sample_id"])
 		
 		if 'cyclenumber' not in self.data:
-			self.data['cyclenumber'] = 1
+			self.data['cyclenumber'] = -1 # plot all
 		
 		cycle = self.data['cyclenumber']
 
 		# Galvani reads in the raw MPR file then its made into a dataframe
 		df = ec.echem_file_loader(os.path.join(directory, filename))
-		 
+		print(df.columns)
 		# Selecting the charge and discharge cycles from the way biologic numbers them
 		# If starts with charge, change how the cycles are numbered.
 		half_cycles = [(2*cycle)-1, 2*cycle]
 		# output_file(output_file_) # Is this needed?
 		 
 		# Plotting with Bokeh!
-		p = figure(plot_width=400, plot_height=400, 
-						x_axis_label='Capacity / mAh', 
-						y_axis_label='Voltage / V')
+		# p = figure(sizing_mode="scale_width", aspect_ratio=1.5,
+		# 				x_axis_label='Capacity (mAh)', 
+		# 				y_axis_label='Voltage (V)')
 
-		# add a line renderer
-		for cycle in half_cycles:
-			mask = df['half cycle'] == cycle
-			p.line(df[mask][capacity_label], df[mask][voltage_label])
+		# # add a line renderer
+		# if cycle >= 0:
+		# 	for curve in half_cycles:
+		# 		mask = df['half cycle'] == curve
+		# 		p.line(df[mask][capacity_label], df[mask][voltage_label])
+		# else:
+		# 	p.line(df[capacity_label], df[voltage_label])
 
-		self.data["bokeh_plot_data"] = bokeh.embed.json_item(p, theme=mytheme)
+		# p.js_on_event(DoubleTap, CustomJS(args=dict(p=p), code='p.reset.emit()'))
+		# # curdoc().theme = mytheme
+		# self.data["bokeh_plot_data"] = bokeh.embed.json_item(p, theme=mytheme)
+
+		layout = bokeh_plots.selectable_axes_plot(df, x_options=["Capacity","Voltage", "time/s"], y_options=["Capacity","Voltage", "time/s"],
+			x_default="Capacity", y_default="Voltage")
+
+		self.data["bokeh_plot_data"] = bokeh.embed.json_item(layout, theme=mytheme)
+
 
 	def to_web(self):
 		self.plot_cycle()

@@ -4,6 +4,8 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Samples from '../views/Samples.vue'
 import NotFound from '../views/NotFound.vue'
 import EditPage from '../views/EditPage.vue'
+import Test from '@/components/Test.vue'
+import TestTree from '@/components/TestTree.vue'
 
 const routes = [
 	{
@@ -24,6 +26,16 @@ const routes = [
 		path: '/edit/:id',
 		name: 'edit',
 		component: EditPage,
+	},
+	{
+		path: '/test/',
+		name: 'test',
+		component: Test
+	},
+	{
+		path: '/test-tree/',
+		name: 'test-tree',
+		component: TestTree,
 	},
 	{ path: '/404', name: 'notfound', component: NotFound },
 	{ path: '/:pathMatch(.*)*', component: NotFound },

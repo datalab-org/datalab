@@ -76,6 +76,7 @@ export default {
 			})
 		},
 		swapDown() {
+         console.log("swapDown clicked!")
 			this.$store.commit('swapBlockDisplayOrder', {
 				sample_id: this.sample_id,
 				index1: this.displayIndex,
