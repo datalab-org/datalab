@@ -1,0 +1,43 @@
+version: '3'
+
+services:
+
+  app:
+    restart: always
+    build:
+      context: .
+      dockerfile: .docker/app_dockerfile
+    depends_on:
+      - datalab
+    volumes:
+      - ./logs:/var/logs/mongod/
+    ports:
+      - "8080:8080"
+
+  datalab:
+    restart: always
+    build:
+      context: .
+      dockerfile: .docker/datalab_dockerfile
+    depends_on:
+      - mongo
+    volumes:
+      - sockets:/tmp/
+      - ./logs:/app/logs/
+    ports:
+      - "5001:5001"
+
+  mongo:
+    restart: always
+    build:
+      context: .
+      dockerfile: .docker/mongo_dockerfile
+    command: ["mongod", "-f", "/etc/mongod.conf"]
+    volumes:
+      - sockets:/tmp/
+      - ./logs:/var/logs/mongod/
+    ports:
+      - "27017:27017"
+
+volumes:
+    sockets:
