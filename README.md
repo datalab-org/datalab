@@ -5,9 +5,9 @@
 ## 15 Mar 21 Update:
 In this commit, the file system has been completely re-worked. In order to get the new version to run, you will need to create a new collection in your db called "files" (in addition to the "data" collection).
 
-If you don't have any data you want to keep, just delete all the documents in "data" and start over. Things should run. If you want to save old data, you can try activating the pipenv in server and run `python migrate_files_to_files_ObjectId_v2.py`. 
+If you don't have any data you want to keep, just delete all the documents in "data" and start over. Things should run. If you want to save old data, you can try going to `server/`, activating the pipenv (`pipenv shell`) and running `python migrate_files_to_files_ObjectId_v2.py`. 
 
-In order to use use remote filesystems, you will have to (connect to the chem VPN and) mount Grey group data backup servers on your computer. Then, go into `resources.py` and change the folders to the folders you are interested in. The remote access is currently very slow, so I recommend you restrict the folders to be as small as possible- i.e. just your personal folder on each given server. 
+In order to use remote filesystems, you will have to (connect to the chem VPN and) mount Grey group data backup servers on your computer. Then, go into `resources.py` and change the folders to the folders you are interested in. The remote access is currently very slow, so I recommend you restrict the folders to be as small as possible- i.e. just your personal folder on each given server. 
 
 ## Installation:
 Before starting, be warned– the javascript app environment installation will take up at least 300 mb.
