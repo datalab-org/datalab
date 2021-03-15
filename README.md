@@ -10,6 +10,7 @@ If you don't have any data you want to keep, just delete all the documents in "d
 In order to use remote filesystems, you will have to (connect to the chem VPN and) mount Grey group data backup servers on your computer. Then, go into `resources.py` and change the folders to the folders you are interested in. The remote access is currently very slow, so I recommend you restrict the folders to be as small as possible- i.e. just your personal folder on each given server. 
 
 ## Installation:
+
 Before starting, be warned– the javascript app environment installation will take up at least 300 mb.
 Choose where you would like to put the direcotry, and `git clone https://github.com/the-grey-group/datalab.git` 
 
@@ -50,3 +51,12 @@ NOTE: You may have to chage the `MONGO_URI` config in `main.py` depending on you
 `npm run serve`
 
 Similar to the flask development server, this will provide a development environment that serves the web app and automatically reloads it as changes are made to the source.
+
+## Alternative installation with Docker
+
+These instructions assume that both Docker and docker-compose are installed (and that the Docker daemon is running).
+
+Dockerfiles for the web app, server and database can be found in the `.docker` directory.
+- `docker-compose build` will pull each of the base Docker images (`mongo`, `node` and `python:3.8`) and build the corresponding apps on top of them.
+- `docker-compose up` will launch a container for each component, such that the web app can be accessed at `localhost:8080`, the server at `localhost:5001` and the database at `localhost:27017`. The source files for the server and the web app are copied at the build stage, so no hot-reloading will occur by default (so `docker-compose build` will need to be called again).
+- `docker-compose stop` will stop all running containers.

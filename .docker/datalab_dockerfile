@@ -1,0 +1,15 @@
+FROM python:3.8
+SHELL ["/bin/bash", "--login", "-c"]
+
+# Install Pipenv and use it to grab dependencies
+WORKDIR /app
+RUN pip install pipenv
+
+COPY ./server/Pipfile /app
+RUN pipenv install --deploy
+
+# Copy all server code into workdir
+COPY ./server/ /app
+
+# Run flask server
+CMD ["pipenv", "run", "python", "main.py"]
