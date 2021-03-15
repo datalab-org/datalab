@@ -3,7 +3,7 @@
 <div id="dummyDivForModalBackground" :class="{overlay: modalOpaque}"></div>
 
 <div class="modal fade" tabindex="-1" role="dialog" :style="{display: modalDisplayed ? 'block' : 'none' }" :class="{show: modalOpaque}">
-	<div class="modal-dialog" role="document">
+	<div class="modal-dialog" :class="{'modal-lg': isLarge }" role="document">
 		<div class="modal-content">
 			<div class="modal-header">
 				<h5 class="modal-title">
@@ -40,6 +40,10 @@ export default {
 	},
 	props: {
 		modelValue: Boolean,
+		isLarge: {
+			type: Boolean,
+			default: false
+		}
 	},
 	watch: {
 		modelValue(newValue) {

@@ -1,15 +1,21 @@
 <template>
-	<div class="input-group form-inline">
-		<label class="mr-4"><b>Select a file:</b></label>
-		<select class="form-control"
-			:value="modelValue"
-			@input="handleInput">
-
-			<option v-for="filename in available_filenames" :key="filename">
-				{{ filename	}}
-			</option>
-
-		</select>
+	<div class="form-inline">
+		<div class="form-group">
+			<label class="mr-4"><b>Select a file:</b></label>
+			<select class="form-control"
+				:value="modelValue"
+				@input="handleInput">
+		
+				<option v-for="file_id in available_file_ids" :key="file_id" :value="file_id">
+					{{ all_files[file_id].name }}
+				</option>
+			</select>
+		
+			<span v-if="all_files[modelValue] && all_files[modelValue].is_live" class="ml-2">
+				<b>Live</b> (last updated: {{ lastModified }})
+			</span>
+		
+		</div>
 	</div>
 </template>
 
@@ -32,12 +38,25 @@ export default {
 		},
 	},
 	computed: {
-		available_filenames() {
-			let all_files =  this.$store.state.all_sample_data[this.sample_id].files
-			return all_files.filter(file => {
-				return this.extensions.map(extension => file.endsWith(extension)).some(element => element) // check if any elements are true
+		all_files() {
+			return this.$store.state.files
+		},
+		available_file_ids() {
+			let sample_files =  this.$store.state.all_sample_data[this.sample_id].file_ObjectIds
+			return sample_files.filter(file_id => { 
+				let filename = this.all_files[file_id].name
+				return this.extensions.map(extension => filename.endsWith(extension)).some(element => element) // check if the extension is any of the extensions
 			});
 		},
+		lastModified() {
+			const today = new Date()
+			const modifiedDate = new Date(this.all_files[this.modelValue].last_modified)
+
+			if (today.toLocaleDateString("en-GB") == modifiedDate.toLocaleDateString("en-GB")) {
+				return modifiedDate.toLocaleTimeString("en-GB")
+			}
+			return modifiedDate.toLocaleDateString("en-GB")
+		}
 	},
 	methods: {
 		handleInput(event) {

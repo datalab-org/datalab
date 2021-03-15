@@ -8,14 +8,16 @@ import App from './App.vue'
 import router from './router'
 
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faSave, faChevronRight, faArrowUp, faArrowDown, faTimes, faSync} from '@fortawesome/free-solid-svg-icons';
+import { faSave, faChevronRight, faArrowUp, faArrowDown, faTimes, faSync, faFolderOpen, faFolder, faHdd, faLink, faUnlink} from '@fortawesome/free-solid-svg-icons';
+// import { faHdd } from '@fortawesome/free-regular-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
-library.add(faSave, faChevronRight, faArrowUp, faArrowDown, faTimes, faSync)
+library.add(faSave, faChevronRight, faArrowUp, faArrowDown, faTimes, faSync, faFolder, faFolderOpen, faHdd, faLink, faUnlink)
 
 
 // Import TinyMCE
+// eslint-disable-next-line no-unused-vars
 import tinymce from 'tinymce/tinymce';
-tinymce
+
 import 'tinymce/icons/default';
 import 'tinymce/themes/silver';
 import "tinymce/skins/ui/oxide/skin.min.css"
