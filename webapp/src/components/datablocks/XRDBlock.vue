@@ -3,7 +3,7 @@
 DataBlockBase as a prop, and save from within DataBlockBase  -->
 	<DataBlockBase :sample_id="sample_id" :block_id="block_id"> 
 		<FileSelectDropdown
-			v-model="filename"
+			v-model="file_id"
 			:sample_id="sample_id" 
 			:block_id="block_id"
 			:extensions='[".xrdml",".xy"]'
@@ -36,7 +36,7 @@ export default {
 		bokehPlotData() {
 			return this.$store.state.all_sample_data[this.sample_id]["blocks_obj"][this.block_id].bokeh_plot_data
 		},
-		filename: createComputedSetterForBlockField("filename")
+		file_id: createComputedSetterForBlockField("file_id")
 	},
 	components: {
 		DataBlockBase,

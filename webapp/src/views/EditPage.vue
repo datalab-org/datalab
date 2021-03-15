@@ -76,14 +76,22 @@
 	<label class="mr-2">Files</label>
 	<div class="card">
 		<div class="card-body overflow-auto" id="filearea">
-			<div class="file-group" v-for="filename in files" :key="filename">
-				<a @click="deleteFile($event, filename)">
+			<div class="file-group" v-for="file_id in file_ids" :key="file_id">	
+				<a @click="deleteFile($event, file_id)">
 					<font-awesome-icon icon="times" fixed-width class="delete-file-button" />
 				</a>
-				<a class="filelink" target="_blank" :href='`http://localhost:5001/files/${sample_id}/${filename.replace(" ","_")}`'>{{ filename }}</a>
+				<a class="filelink" target="_blank" :href='`http://localhost:5001/${stored_files[file_id].url_path}`'>
+					{{ stored_files[file_id].name }}
+				</a>
+				<font-awesome-icon v-if="stored_files[file_id].is_live==true" class="link-icon" v-show="true" :icon='["fa","link"]' />
+
 			</div>
 		</div>
-		<button id="uppy-trigger" class="btn btn-default btn-sm mb-3 ml-3" type="button">Add files...</button>
+		<div class="row">
+			<button id="uppy-trigger" class="btn btn-default btn-sm mb-3 ml-4" type="button">Upload files...</button><!-- Surrounding divs so that buttons 	don't become full-width in the card -->
+			<button class="btn btn-default btn-sm mb-3 ml-2" type="button" @click="serverFileModalIsOpen = true">Add files from server...</button>
+		</div>
+
 	</div>
 
 	<hr />
@@ -98,6 +106,36 @@
 
 </div>
 
+<!-- Modal for file selection from server -->
+<div class="modal-enclosure">
+	<Modal v-model="serverFileModalIsOpen">
+		<template v-slot:header>
+			Select files to add 
+			<button @click="updateRemoteTree" :disabled="isLoadingRemoteTree" class="ml-4 btn btn-small btn-default">
+				<font-awesome-icon v-show="isLoadingRemoteTree" :icon='["fa","sync"]'
+				class="fa-spin" />
+				Update tree
+			</button>
+		</template>
+	
+		<template v-slot:body>
+			<SelectableFileTree :defaultSearchTerm="sample_id" @update:selectedEntries="selectedRemoteFiles = $event" />
+		</template>
+	
+		<template v-slot:footer>
+			<button 
+				type="button" class="btn btn-info"
+				:disabled='isLoadingRemoteFiles || selectedRemoteFiles.length<1'
+				@click="loadSelectedRemoteFiles"
+			>
+				<font-awesome-icon v-show="isLoadingRemoteFiles" :icon='["fa","sync"]' class="fa-spin" />
+				{{loadFilesButtonValue}}
+			</button>
+			<button type="button" class="btn  btn-secondary" data-dismiss="modal" @click="serverFileModalIsOpen = false">Close</button>
+		</template>
+	</Modal>
+</div>
+
 </template>
 
 <script>
@@ -108,7 +146,10 @@ import XRDBlock from "@/components/datablocks/XRDBlock"
 import CycleBlock from "@/components/datablocks/CycleBlock"
 import TinyMceInline from "@/components/TinyMceInline"
 import FileSelectDropdown from "@/components/FileSelectDropdown"
-import { getSampleData,addABlock, saveSample, deleteFile } from "@/server_fetch_utils"
+import SelectableFileTree from "@/components/SelectableFileTree"
+import Modal from "@/components/Modal"
+
+import { getSampleData,addABlock, saveSample, deleteFileFromSample, fetchRemoteTree, addRemoteFileToSample } from "@/server_fetch_utils"
 
 import setupUppy from '@/file_upload.js'
 
@@ -129,7 +170,10 @@ export default {
 				{ id: "cycle", description:"Echem Block"}
 			],
 			isMenuDropdownVisible: false,
-			// sample_data: {},
+			serverFileModalIsOpen: false,
+			selectedRemoteFiles: [],
+			isLoadingRemoteTree: false,
+			isLoadingRemoteFiles: false, 
 		}
 	},
 	methods: {
@@ -170,16 +214,32 @@ export default {
 			tinymce.editors.forEach( editor => editor.save() )
 			saveSample(this.sample_id)
 		},
-		deleteFile(event, filename) {
+		deleteFile(event, file_id) {
 			console.log(`delete file button clicked!`)
 			console.log(event)
-			deleteFile(this.sample_id, filename)
+			deleteFileFromSample(this.sample_id, file_id)
 			return false
 		},
 		async getSampleData() {
 			await getSampleData(this.sample_id);
 			this.sample_data_loaded = true;
 		},
+		async updateRemoteTree() {
+			this.isLoadingRemoteTree = true
+			await fetchRemoteTree()
+			this.isLoadingRemoteTree = false
+		},
+		async loadSelectedRemoteFiles() {
+			this.isLoadingRemoteFiles = true;
+			var promises = []
+			for (let i = 0; i < this.selectedRemoteFiles.length; i++) {
+				console.log("processing load from remote server for entry")
+				console.log(this.selectedRemoteFiles[i])
+				promises.push(addRemoteFileToSample(this.selectedRemoteFiles[i], this.sample_id))
+			}
+			await Promise.all(promises)
+			this.isLoadingRemoteFiles = false;
+		}
 	},	
 	computed: {
 		sample_data() {
@@ -205,6 +265,18 @@ export default {
 		files() {
 			return this.sample_data.files
 		},
+		file_ids() {
+			return this.sample_data.file_ObjectIds
+		},
+		stored_files() {
+			return this.$store.state.files
+		},
+		loadFilesButtonValue() {
+			const len = this.selectedRemoteFiles.length
+			if (len == 1) { return "Load 1 file" }
+			if (len > 1) { return `Load ${len} files`}
+			return "Load files" 
+		},
 		SampleDescription: createComputedSetterForSampleField("description"),
 		Name: createComputedSetterForSampleField("name"),
 		ChemForm: createComputedSetterForSampleField("chemform"),
@@ -217,7 +289,9 @@ export default {
 		DataBlockBase,
 		ImageBlock,
 		FileSelectDropdown,
-		TinyMceInline
+		TinyMceInline, 
+		Modal,
+		SelectableFileTree
 	},
 	mounted() {
 		// overwrite ctrl-s and cmd-s to save the page
@@ -229,8 +303,10 @@ export default {
 		};
 		document.addEventListener('keydown', this._keyListener.bind(this));
 
+		// start retreiving the file tree
+		this.updateRemoteTree()
 		// setup the uppy instsance
-		setupUppy(this.sample_id, '#uppy-trigger')
+		setupUppy(this.sample_id, '#uppy-trigger', this.stored_files)
 	},
 	beforeUnmount() {
 		document.removeEventListener('keydown', this._keyListener);
@@ -240,6 +316,8 @@ export default {
 
 
 <style scoped>
+
+
 
 .editor-navbar {
   margin-bottom: 1rem;
@@ -275,7 +353,7 @@ export default {
 
 #uppy-trigger {
   scroll-anchor: auto;
-  width: 6rem;
+  width: 8rem;
 }
 
 .file-group {
@@ -288,6 +366,12 @@ export default {
 
 .filelink:hover {
   text-decoration: none;
+}
+
+.link-icon {
+	margin-left: 0.4rem;
+	color: #888;
+	font-size: small;
 }
 
 .delete-file-button {
@@ -325,6 +409,23 @@ label, h6 {
 .navbar-brand {
 	cursor: pointer;
 }
+
+.modal-enclosure >>> .modal-header {
+	padding: 0.5rem 1rem;
+}
+
+.modal-enclosure >>> .modal-dialog {
+	max-width: 95%;
+	min-height: 95vh;
+	margin-top: 2.5vh;
+	margin-bottom: 2.5vh;
+}
+
+.modal-enclosure >>> .modal-content {
+	height: 95vh;
+	/*overflow: scroll;*/
+}
+
 
 </style>
 

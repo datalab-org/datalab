@@ -48,7 +48,7 @@ function fetch_delete(url) {
 function handleResponse(response) {
 	return response.text().then(text => {
 		console.log("fetch was successful")
-		console.log(text);
+		// console.log(text);
 		const data = text && JSON.parse(text);
 		
 		if (!response.ok) {
@@ -106,6 +106,8 @@ export async function getSampleData(sample_id) {
 				"sample_id": sample_id,
 				"sample_data": response_json.sample_data
 			});
+			store.commit('updateFiles', response_json.files_data)
+			
 			return "success"
 		}).catch( error => alert("Error getting sample data: " + error))
 }
@@ -180,17 +182,56 @@ export function deleteBlock(sample_id, block_id) {
 	}).catch( error => alert(`Delete unsuccessful :(\n error: ${error}`));
 }
 
-export function deleteFile(sample_id, filename) {
-	console.log("deleteFile called!")
-	fetch_post(`${SERVER_ADDRESS}/delete-file/`, {
+export function deleteFileFromSample(sample_id, file_id) {
+	console.log("deleteFileFromSample called with sample_id and file_id:")
+	console.log(sample_id)
+	console.log(file_id)
+	fetch_post(`${SERVER_ADDRESS}/delete-file-from-sample/`, {
 		sample_id: sample_id,
-		filename: filename
-		// eslint-disable-next-line no-unused-vars
+		file_id: file_id
 		}).then( function(response_json) {
-			// response_json should always just be {status: "success"}, so we don't actually use it
-			store.commit('removeFilename', {sample_id: sample_id, filename: filename})
+			store.commit('removeFileFromSample', {sample_id: sample_id, file_id: file_id})
+			store.commit('updateFiles', response_json.new_file_obj)
 		}).catch( error => alert(`Delete unsuccessful :(\n error: ${error}`));
 }
+
+export async function fetchRemoteTree() {
+	console.log("fetchRemoteTree called!")
+	return fetch_get(`${SERVER_ADDRESS}/list-remote-directories/`)
+	.then( function (response_json) {
+		store.commit('setRemoteDirectoryTree', response_json)
+	})
+}
+
+export async function addRemoteFileToSample(file_entry, sample_id) {
+	console.log('loadSelectedRemoteFiles')
+	return fetch_post(`${SERVER_ADDRESS}/add-remote-file-to-sample/`, {
+		file_entry: file_entry,
+		sample_id: sample_id,
+	}).then( function(response_json) {
+		//handle response
+		console.log("received remote sample!")
+		console.log(response_json)
+		store.commit('updateFiles', {[response_json.file_id]: response_json.file_information})
+		if (!response_json.is_update) {
+			store.commit('addFileToSample', {sample_id: sample_id, file_id: response_json.file_id})
+		}
+
+	}).catch( error => (`addRemoteFilesToSample unsuccessful. Error: ${error}`))
+}
+
+
+// export async function addRemoteFilesToSample(file_entries, sample_id) {
+// 	console.log('loadSelectedRemoteFiles')
+// 	return fetch_post(`${SERVER_ADDRESS}/add-remote-files-to-sample/`, {
+// 		file_entries: file_entries,
+// 		sample_id: sample_id,
+// 	}).then( function(response_json) {
+// 		//handle response
+// 		console.log("received remote samples!")
+// 		console.log(response_json)
+// 	}).catch( error => (`addRemoteFilesToSample unsuccessful. Error: ${error}`))
+// }
 
 
 

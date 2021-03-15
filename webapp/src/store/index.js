@@ -7,6 +7,8 @@ export default createStore({
 		sample_list: [],
 		saved_status: {},
 		updating: {},
+		remoteDirectoryTree: {},
+		files: {},
 	},
 	mutations: {
 		test_mutation(state, data_val) {
@@ -34,6 +36,24 @@ export default createStore({
 			// Object.assign(state.all_sample_data[payload.sample_id], payload.sample_data)
 			state.all_sample_data[payload.sample_id] = payload.sample_data
 			state.saved_status[payload.sample_id] = true
+		},
+		updateFiles(state, files_data) {
+			// payload should be an object with file ids as key and file data as values
+			// Note: this will overwrite any entries with the same file_ids
+			Object.assign(state.files, files_data)
+		},
+		addFileToSample(state, payload) {
+			state.all_sample_data[payload.sample_id].file_ObjectIds.push(payload.file_id)
+		},
+		removeFileFromSample(state, payload) {
+			var file_ids = state.all_sample_data[payload.sample_id].file_ObjectIds
+			const index = file_ids.indexOf(payload.file_id)
+			if (index > -1) {
+				file_ids.splice(index, 1);
+			}
+		},
+		setRemoteDirectoryTree(state, remoteDirectoryTree) {
+			state.remoteDirectoryTree = remoteDirectoryTree
 		},
 		addABlock(state, payload) {
 			// payload: sample_id, new_block_obj, new_display_order

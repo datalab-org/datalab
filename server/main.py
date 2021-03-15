@@ -1,4 +1,4 @@
-import os, datetime
+import os, datetime, pprint
 from werkzeug.utils import secure_filename
 
 from flask import Flask, request, jsonify, send_from_directory
@@ -6,10 +6,16 @@ from flask.json import JSONEncoder
 from bson import json_util 
 
 from flask_pymongo import PyMongo
+from pymongo import ReturnDocument
+from bson import ObjectId
 
 from flask_cors import CORS
 
 from blocks import * # the data blocks
+
+import remote_filesystems
+
+import file_utils
 
 app = Flask(__name__)
 CORS(app, resources={r'/*': {'origins': '*'}})
@@ -18,7 +24,9 @@ app.config.update(
 	SECRET_KEY='dummy key dont use in production',
 	MONGO_URI='mongodb://localhost:27017/datalabvue',
 	UPLOAD_PATH='uploads',
+	FILE_DIRECTORY="files",
 )
+
 
 
 BLOCK_KINDS = { # TODO: think about autogenerating this from DataBlock's blocktype parameters
@@ -30,7 +38,6 @@ BLOCK_KINDS = { # TODO: think about autogenerating this from DataBlock's blockty
 	"generic": DataBlock,
 }
 
-
 # use a json encoder that can handle pymongo's bson
 class CustomJSONEncoder(JSONEncoder):
 	 def default(self, obj): return json_util.default(obj)
@@ -38,10 +45,28 @@ app.json_encoder = CustomJSONEncoder
 
 mongo = PyMongo(app)
 DATA_COLLECTION = mongo.db.data 
+file_collection = mongo.db.files
 
 @app.route('/')
 def index():
-	return "This is a server"
+	return "Hello, This is a server"
+
+@app.route('/samples/', methods=["GET"])
+def get_sample_list():
+	cursor = DATA_COLLECTION.aggregate(
+		[{"$project": {
+			"_id":0,
+			"sample_id":1,
+			"nblocks":{"$size":"$display_order"},
+			"date":1, 
+			"chemform":1,
+			"name":1
+			}}]
+		)
+	return jsonify({
+		"status":"success",
+		"samples": list(cursor)
+		})
 
 @app.route('/new-sample/', methods=["POST"])
 def create_new_sample():
@@ -69,6 +94,7 @@ def create_new_sample():
 		"blocks": [], # an array of subdocuments
 		"blocks_obj": {},
 		"files": [],
+		"file_ObjectIds": [],
 		"display_order": [], # an array of strings, which are ids for the blocks
 	}
 	
@@ -86,23 +112,6 @@ def create_new_sample():
 			"name": name
 		}
 		}), 200
-
-@app.route('/samples/', methods=["GET"])
-def get_sample_list():
-	cursor = DATA_COLLECTION.aggregate(
-		[{"$project": {
-			"_id":0,
-			"sample_id":1,
-			"nblocks":{"$size":"$display_order"},
-			"date":1, 
-			"chemform":1,
-			"name":1
-			}}]
-		)
-	return jsonify({
-		"status":"success",
-		"samples": list(cursor)
-		})
 
 @app.route('/delete-sample/', methods=["POST"])
 def delete_sample():
@@ -122,6 +131,43 @@ def delete_sample():
 		"status":"success",		
 	}), 200
 
+@app.route('/get_sample_data/<sample_id>', methods=["GET"])
+def get_sample_data(sample_id):
+	# retrieve the entry from the databse:
+	doc = DATA_COLLECTION.find_one_or_404(
+		{"sample_id":sample_id},
+		)
+	# form = NewSampleForm(data=doc)
+	# last_modified = doc["last_modified"] if "last_modified" in doc else None
+
+	# pass all blocks through their Block objects to add any properties needed
+	for block_id, block_data in doc["blocks_obj"].items():
+		blocktype = block_data["blocktype"]
+		Block = BLOCK_KINDS[blocktype].from_db(block_data)
+		doc["blocks_obj"][block_id] = Block.to_web()
+
+	files_data = {}
+	if doc["file_ObjectIds"]:
+		files_cursor = file_collection.find({
+			"_id": {"$in": doc["file_ObjectIds"]} 
+			})
+
+		for f in files_cursor:
+			files_data[str(f["_id"])] = f
+	pprint.pprint(files_data)
+
+	doc["file_ObjectIds"] = [str(x) for x in doc["file_ObjectIds"]] # send string ids, not ObjectId()
+
+	return jsonify({
+		"status": "success",
+		"sample_id": sample_id,
+		"sample_data": doc,
+		"files_data": files_data
+	})
+
+def get_files(file_ObjectIds):
+	pass
+
 @app.route('/save-sample/', methods=['POST'])
 def save_sample():
 	request_json = request.get_json()
@@ -129,6 +175,8 @@ def save_sample():
 	updated_data = request_json["data"]
 
 	del updated_data["_id"]
+	del updated_data["file_ObjectIds"]
+
 	updated_data["last_modified"] = datetime.datetime.now().isoformat()
 
 	for block_id, block_data in updated_data["blocks_obj"].items():
@@ -149,67 +197,100 @@ def save_sample():
 
 	return jsonify(status="success")
 
-@app.route('/get_sample_data/<sample_id>', methods=["GET"])
-def get_sample_data(sample_id):
-	# retrieve the entry from the databse:
-	doc = DATA_COLLECTION.find_one_or_404({"sample_id":sample_id})
-	# form = NewSampleForm(data=doc)
-	# last_modified = doc["last_modified"] if "last_modified" in doc else None
 
-	# pass all blocks through their Block objects to add any properties needed
-	for block_id, block_data in doc["blocks_obj"].items():
-		blocktype = block_data["blocktype"]
-		Block = BLOCK_KINDS[blocktype].from_db(block_data)
-		doc["blocks_obj"][block_id] = Block.to_web()
+# Custom static route for the datafiles
+# @app.route('/files/<sample_id>/<path:filename>')
+# def get_file(sample_id, filename):
+# 	path = os.path.join(app.config['UPLOAD_PATH'], sample_id)
+# 	print("retrieving file: {} from {}".format(filename, path))
+# 	return send_from_directory(path, filename)
+@app.route('/files/<string:file_id>/<string:filename>')
+def get_file(file_id, filename):
+	path = os.path.join(app.config['FILE_DIRECTORY'], file_id)
 
-	return jsonify({
-		"status": "success",
-		"sample_id": sample_id,
-		"sample_data": doc,
-	})
-
-# Custom static data
-@app.route('/files/<sample_id>/<path:filename>')
-def get_file(sample_id, filename):
-	path = os.path.join(app.config['UPLOAD_PATH'], sample_id)
 	print("retrieving file: {} from {}".format(filename, path))
 	return send_from_directory(path, filename)
+
 
 @app.route('/upload-file/', methods=["POST"])
 def upload():
 	'''method to upload files to the server
 	todo: think more about security, size limits, and about nested folders
 	'''
-	print("uploaded files:")
-	print(request.files)
-	print(request.form)
+	# print("uploaded files:")
+	# print(request.files)
+	# print(request.form)
 	if len(request.files) == 0:
 		return jsonify(error="No file in request"), 400
 	if "sample_id" not in request.form == 0:
 		return jsonify(error="No sample id provided in form"), 400
 	sample_id = request.form["sample_id"]
-	DATA_COLLECTION.find_one_or_404({"sample_id": sample_id}) # make sure sample_id is legit! 
+	replace_file_id =  request.form["replace_file"]
 
-	secure_sample_id = secure_filename(sample_id)
-	save_path = os.path.join(app.config['UPLOAD_PATH'], secure_sample_id)
-	print("secure path name: {}".format(save_path))
-
+	is_update = (replace_file_id and replace_file_id != "null")
 	for filekey in request.files: #pretty sure there is just 1 per request
 		file = request.files[filekey] #just a weird thing about the request that comes from uppy. The key is "files[]"
-		filename = secure_filename(file.filename)
-		print("received file: {}".format(filename))
-		# if filename != '':
-		#    file_ext = os.path.splitext(filename)[1]
-		if not os.path.exists(save_path):
-			os.makedirs(save_path)
-		file.save(os.path.join(save_path, filename))
+		if is_update:	
+			file_information = file_utils.update_uploaded_file(file, ObjectId(replace_file_id))
+		else:
+			file_information = file_utils.save_uploaded_file(file, sample_ids=[sample_id])
 
-		DATA_COLLECTION.update_one(
-			{ "sample_id": sample_id },
-			{  "$push": { "files": filename } }
+	return jsonify({
+		"status":"success",
+		"file_id": str(file_information["_id"]),
+		"file_information": file_information,
+		"is_update": is_update # true if update, false if new file
+	}), 201
+
+@app.route('/add-remote-file-to-sample/', methods=["POST"])
+def add_remote_file_to_sample():
+	print("add_remote_file_to_sample called")
+	request_json = request.get_json()
+	sample_id = request_json["sample_id"]
+	file_entry = request_json["file_entry"]
+
+	updated_file_entry = file_utils.add_file_from_remote_directory(file_entry, sample_id)
+
+	return jsonify({
+		"status": "success",
+		"file_id": str(updated_file_entry["_id"]),
+		"file_information": updated_file_entry,
+		}), 201
+
+
+@app.route('/delete-file-from-sample/', methods=["POST"])
+def delete_file_from_sample():
+	''' Remove a file from a sample, but don't delete the actual file (for now) '''
+
+	request_json = request.get_json()
+
+	sample_id = request_json["sample_id"]
+	file_id = ObjectId(request_json["file_id"])
+	print(f"delete_file_from_sample: sample: {sample_id} file: {file_id}")
+	print("deleting file from sample")
+	result = DATA_COLLECTION.update_one(
+		{"sample_id": sample_id},
+		{"$pull": {"file_ObjectIds": file_id }}
+		)
+	if result.modified_count != 1:
+		return jsonify(status="error", message=f"{sample_id} {file_id} delete failed. Something went wrong with the db call to remove file from sample.",
+			output=result.raw_result), 400
+	print("deleting sample from file")
+	updated_file_entry = file_collection.find_one_and_update(
+		{"_id": file_id},
+		{"$pull": { "sample_ids":sample_id }},
+		return_document=ReturnDocument.AFTER
 		)
 
-	return jsonify({"status":"success"}), 201
+	if not updated_file_entry:
+		return jsonify(status="error", 
+			message=f"{sample_id} {file_id} delete failed. Something went wrong with the db call to remove sample from file"), 400
+
+	return jsonify({
+		"status":"success",
+		"new_file_obj": {request_json["file_id"]: updated_file_entry}
+	}), 200
+
 
 @app.route('/delete-file/', methods=["POST"])
 def delete_file():
@@ -231,9 +312,9 @@ def delete_file():
 	print("Deleting path: {}".format(path))
 	result = DATA_COLLECTION.update_one(
 		{ "sample_id": sample_id },
-		{ "$pull": {"files": filename } }
+		{ "$pull": {"files": filename }},
+		return_document=ReturnDocument.AFTER
 	)
-	print(result.raw_result)
 	if result.matched_count != 1:
 		return jsonify(status="error", message=f"{sample_id} {filename} delete failed. Something went wrong with the db call. File not deleted.",
 			output=result.raw_result), 400
@@ -250,8 +331,6 @@ def add_data_block():
 	'''Call with AJAX to add a block to the sample'''
 
 	request_json = request.get_json()
-	print("add-data-block received request:")
-	print(request_json)
 
 	# pull out required arguments from json
 	sample_id = request_json["sample_id"]
@@ -265,10 +344,10 @@ def add_data_block():
 	block = BLOCK_KINDS[block_type](sample_id=sample_id)
 
 	data = block.to_db()
-	print("updating the database with:")
-	print(sample_id)
-	print(data)
-	print(insert_index)
+	# print("updating the database with:")
+	# print(sample_id)
+	# print(data)
+	# print(insert_index)
 
 	#currently, adding to both blocks and blocks_obj to mantain compatibility with 
 	# the old site. The new site only uses blocks_obj
@@ -342,6 +421,17 @@ def delete_block():
 			"message": "Update failed. The sample_id probably incorrect: {}".format(sample_id)
 			}), 400
 	return jsonify({"status":"success"}), 200  # could try to switch to http 204 is "No Content" success with no json
+
+@app.route('/list-remote-directories/', methods=["GET"])
+def list_remote_directories():
+	all_directory_structures = remote_filesystems.get_all_directory_structures()
+	return jsonify(all_directory_structures), 200
+
+@app.route('/list-remote-directories-cached/')
+def list_remote_directories_cached():
+	''' return the most recent cached remote directory tree, without actually tree-ing the remote directory'''
+	pass
+
 
 
 if __name__ == '__main__':

@@ -2,7 +2,7 @@
 	<DataBlockBase :sample_id="sample_id" :block_id="block_id">
 		<div class="form-row col-lg-8">
 			<FileSelectDropdown
-				v-model="filename"
+				v-model="file_id"
 				:sample_id="sample_id" 
 				:block_id="block_id"
 				:extensions='[".mpr", ".txt", ".xls", ".xlsx", ".txt", ".res"]'
@@ -52,7 +52,7 @@ export default {
 		numberOfCycles() {
 			return this.$store.state.all_sample_data[this.sample_id]["blocks_obj"][this.block_id].number_of_cycles
 		},
-		filename: createComputedSetterForBlockField("filename"),
+		file_id: createComputedSetterForBlockField("file_id"),
 		cycle_number: createComputedSetterForBlockField("cyclenumber"),
 	},
 	methods: {
