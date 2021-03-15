@@ -303,8 +303,10 @@ export default {
 		};
 		document.addEventListener('keydown', this._keyListener.bind(this));
 
-		// start retreiving the file tree
-		this.updateRemoteTree()
+		// start retreiving the file tree. Currently commented out so we aren't constantly polling the 
+		// chemistry data servers every time we reload
+		// this.updateRemoteTree()
+
 		// setup the uppy instsance
 		setupUppy(this.sample_id, '#uppy-trigger', this.stored_files)
 	},
