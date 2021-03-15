@@ -1,0 +1,11 @@
+FROM node
+SHELL ["/bin/bash", "--login", "-c"]
+
+WORKDIR /app
+
+# copy repo contents and install deps
+#
+COPY webapp /app/
+
+RUN npm install
+CMD ["npm", "run", "serve"]
