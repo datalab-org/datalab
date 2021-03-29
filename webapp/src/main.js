@@ -8,10 +8,10 @@ import App from './App.vue'
 import router from './router'
 
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faSave, faChevronRight, faArrowUp, faArrowDown, faTimes, faSync, faFolderOpen, faFolder, faHdd, faLink, faUnlink} from '@fortawesome/free-solid-svg-icons';
+import { faSave, faChevronRight, faArrowUp, faArrowDown, faTimes, faSync, faFolderOpen, faFolder, faHdd, faLink, faUnlink, faExclamationCircle} from '@fortawesome/free-solid-svg-icons';
 // import { faHdd } from '@fortawesome/free-regular-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
-library.add(faSave, faChevronRight, faArrowUp, faArrowDown, faTimes, faSync, faFolder, faFolderOpen, faHdd, faLink, faUnlink)
+library.add(faSave, faChevronRight, faArrowUp, faArrowDown, faTimes, faSync, faFolder, faFolderOpen, faHdd, faLink, faUnlink, faExclamationCircle)
 
 
 // Import TinyMCE

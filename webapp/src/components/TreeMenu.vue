@@ -12,7 +12,6 @@
 			<span class="toplevel-name" :class="{'search-match':searchMatched}">
 				{{ entry.name }}
 			</span>
-
 		</div>
 		<div v-else-if='entry.type == "directory"' @click="toggleChildren" >
 			<span :class="{expanded: showChildren}" class="directory-arrow">&#9656;</span>
@@ -41,6 +40,17 @@
 				&#8249; &#8250;
 			</span>
 			<span class="filename" :class="{'search-match':searchMatched}">
+				{{entry.name}}
+			</span>
+		</div>
+
+		<div v-else-if="entry.type == 'error'"
+			class="error-entry alert alert-warning">
+			<font-awesome-icon
+				:icon='["fas","exclamation-circle"]'
+				class="mr-2"
+			/>
+			<span>
 				{{entry.name}}
 			</span>
 		</div>
@@ -202,6 +212,10 @@
 .filename {
 	color: #4a4a4a;
 	margin-right: 10px;
+}
+
+.error-entry {
+	/*color: #b90000;*/
 }
 
 .selected {

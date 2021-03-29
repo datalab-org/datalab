@@ -1,4 +1,8 @@
 <template>
+<div id="nav">
+	<router-link to="/about">About</router-link> |
+	<router-link to="/samples">Samples</router-link>
+</div>
 <div id="tableContainer" class="container">
 	<div class="row">
 		<div class="col-sm-10 mx-auto mb-3">
