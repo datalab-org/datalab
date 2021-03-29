@@ -8,6 +8,7 @@ export default createStore({
 		saved_status: {},
 		updating: {},
 		remoteDirectoryTree: {},
+		remoteDirectoryTreeSecondsSinceLastUpdate: null,
 		files: {},
 	},
 	mutations: {
@@ -54,6 +55,9 @@ export default createStore({
 		},
 		setRemoteDirectoryTree(state, remoteDirectoryTree) {
 			state.remoteDirectoryTree = remoteDirectoryTree
+		},
+		setRemoteDirectoryTreeSecondsSinceLastUpdate(state, secondsSinceLastUpdate) {
+			state.remoteDirectoryTreeSecondsSinceLastUpdate = secondsSinceLastUpdate
 		},
 		addABlock(state, payload) {
 			// payload: sample_id, new_block_obj, new_display_order

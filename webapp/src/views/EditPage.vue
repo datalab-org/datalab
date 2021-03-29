@@ -149,7 +149,7 @@ import FileSelectDropdown from "@/components/FileSelectDropdown"
 import SelectableFileTree from "@/components/SelectableFileTree"
 import Modal from "@/components/Modal"
 
-import { getSampleData,addABlock, saveSample, deleteFileFromSample, fetchRemoteTree, addRemoteFileToSample } from "@/server_fetch_utils"
+import { getSampleData,addABlock, saveSample, deleteFileFromSample, fetchRemoteTree, fetchCachedRemoteTree, addRemoteFileToSample } from "@/server_fetch_utils"
 
 import setupUppy from '@/file_upload.js'
 
@@ -223,6 +223,17 @@ export default {
 		async getSampleData() {
 			await getSampleData(this.sample_id);
 			this.sample_data_loaded = true;
+		},
+		async loadCachedTree() {
+			var response_json = await fetchCachedRemoteTree()
+			// What happens if the reponse is an error? 
+			console.log(`loadCachedTree received, ${response_json.seconds_since_last_update} seconds out of date:`)
+			if (response_json.seconds_since_last_update > 3600) {
+				console.log("cache more than 1 hr out of date. Fetching new sample tree")
+				this.updateRemoteTree()
+			}
+
+			// console.log(response_json)
 		},
 		async updateRemoteTree() {
 			this.isLoadingRemoteTree = true
@@ -303,8 +314,8 @@ export default {
 		};
 		document.addEventListener('keydown', this._keyListener.bind(this));
 
-		// start retreiving the file tree. Currently commented out so we aren't constantly polling the 
-		// chemistry data servers every time we reload
+		// Retreive the cached file tree
+		this.loadCachedTree()
 		// this.updateRemoteTree()
 
 		// setup the uppy instsance
