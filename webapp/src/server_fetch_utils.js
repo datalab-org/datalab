@@ -200,6 +200,16 @@ export async function fetchRemoteTree() {
 	return fetch_get(`${SERVER_ADDRESS}/list-remote-directories/`)
 	.then( function (response_json) {
 		store.commit('setRemoteDirectoryTree', response_json)
+		return response_json
+	})
+}
+
+export async function fetchCachedRemoteTree() {
+	console.log("fetchCachedRemoteTree called!")
+	return fetch_get(`${SERVER_ADDRESS}/list-remote-directories-cached/`)
+	.then( function (response_json) {
+		store.commit('setRemoteDirectoryTree', response_json.cached_dir_structures)
+		return response_json
 	})
 }
 
