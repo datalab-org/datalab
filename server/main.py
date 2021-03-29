@@ -44,8 +44,11 @@ class CustomJSONEncoder(JSONEncoder):
 app.json_encoder = CustomJSONEncoder
 
 mongo = PyMongo(app)
+
 DATA_COLLECTION = mongo.db.data 
-file_collection = mongo.db.files
+FILE_COLLECTION = mongo.db.files
+FILESYSTEMS_COLLECTION = mongo.db.remoteFilesystems
+
 
 @app.route('/')
 def index():
@@ -148,7 +151,7 @@ def get_sample_data(sample_id):
 
 	files_data = {}
 	if doc["file_ObjectIds"]:
-		files_cursor = file_collection.find({
+		files_cursor = FILE_COLLECTION.find({
 			"_id": {"$in": doc["file_ObjectIds"]} 
 			})
 
@@ -276,7 +279,7 @@ def delete_file_from_sample():
 		return jsonify(status="error", message=f"{sample_id} {file_id} delete failed. Something went wrong with the db call to remove file from sample.",
 			output=result.raw_result), 400
 	print("deleting sample from file")
-	updated_file_entry = file_collection.find_one_and_update(
+	updated_file_entry = FILE_COLLECTION.find_one_and_update(
 		{"_id": file_id},
 		{"$pull": { "sample_ids":sample_id }},
 		return_document=ReturnDocument.AFTER
@@ -424,13 +427,25 @@ def delete_block():
 
 @app.route('/list-remote-directories/', methods=["GET"])
 def list_remote_directories():
+	# all_directory_structures = remote_filesystems.get_all_directory_structures()
 	all_directory_structures = remote_filesystems.get_all_directory_structures()
 	return jsonify(all_directory_structures), 200
 
 @app.route('/list-remote-directories-cached/')
 def list_remote_directories_cached():
 	''' return the most recent cached remote directory tree, without actually tree-ing the remote directory'''
-	pass
+	all_directory_structures = remote_filesystems.get_cached_directory_structures()
+	last_update_datetimes = [datetime.datetime.fromisoformat(d["last_updated"]) for d in all_directory_structures if d["last_updated"]]
+	if len(last_update_datetimes):
+		print("Last updates from caches:")
+		print(last_update_datetimes)
+		seconds_since_last_update = (datetime.datetime.now() - min(last_update_datetimes)).total_seconds()
+
+	return jsonify({
+		"cached_dir_structures":all_directory_structures,
+		"seconds_since_last_update": seconds_since_last_update,
+		"ncached_not_found": len(all_directory_structures) - len(last_update_datetimes)
+		}), 200
 
 
 

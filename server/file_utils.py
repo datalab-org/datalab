@@ -12,8 +12,8 @@ from resources import DIRECTORIES, DIRECTORIES_DICT
 
 client = MongoClient("mongodb://localhost:27017/")
 db = client.datalabvue
-file_collection = db.files
-sample_collection = db.data
+FILE_COLLECTION = db.files
+SAMPLE_COLLECTION = db.data
 
 FILE_DIRECTORY = "files"
 
@@ -21,11 +21,11 @@ def get_file_info_by_id(file_id, update_if_live=True):
    '''file_id can be either the string representation or the ObjectId() object. Returns the file information dictionary'''
    print(f"getting file for file_id: {file_id}")
    file_id = ObjectId(file_id)
-   file_info = file_collection.find_one({"_id": file_id})
+   file_info = FILE_COLLECTION.find_one({"_id": file_id})
    if not file_info:
       raise IOError(f"could not find file with id: {file_id} in db")
    
-   if update_if_live:
+   if update_if_live and file_info["is_live"]:
       remote_toplevel_path = DIRECTORIES_DICT[file_info["source_server_name"]]["path"]
       full_remote_path = os.path.join(remote_toplevel_path, file_info["source_path"])
       cached_timestamp = file_info["last_modified_remote_timestamp"]
@@ -42,7 +42,7 @@ def get_file_info_by_id(file_id, update_if_live=True):
       if current_timestamp_on_server > cached_timestamp:
          print("updating file")
          shutil.copy(full_remote_path, file_info["location"])
-         updated_file_info = file_collection.find_one_and_update({"_id": file_info["_id"]}, {
+         updated_file_info = FILE_COLLECTION.find_one_and_update({"_id": file_info["_id"]}, {
             "$set": {
                "size": stat_results.st_size,
                "last_modified": datetime.datetime.now().isoformat(),
@@ -62,7 +62,7 @@ def update_uploaded_file(file, file_id, last_modified=None, size_bytes=None, **a
    
    last_modified = datetime.datetime.now().isoformat()
 
-   updated_file_entry = file_collection.find_one_and_update(
+   updated_file_entry = FILE_COLLECTION.find_one_and_update(
       {"_id": file_id }, # Note, needs to be ObjectID()
       {
          "$set": {
@@ -92,7 +92,7 @@ def save_uploaded_file(file, sample_ids=[], block_ids=[], last_modified=None, si
 
    # validate sample_ids
    for sample_id in sample_ids:
-      if not sample_collection.find_one({"sample_id": sample_id}):
+      if not SAMPLE_COLLECTION.find_one({"sample_id": sample_id}):
          raise ValueError(f"sample_id is invalid: {sample_id}")
 
    filename = secure_filename(file.filename)
@@ -122,7 +122,7 @@ def save_uploaded_file(file, sample_ids=[], block_ids=[], last_modified=None, si
       "version": 1 # increment with each update
    }
 
-   result = file_collection.insert_one(new_file_document)
+   result = FILE_COLLECTION.insert_one(new_file_document)
    if not result.acknowledged:
       raise IOError(f"db operation failed when trying to insert new file. Result: {result}")
 
@@ -133,7 +133,7 @@ def save_uploaded_file(file, sample_ids=[], block_ids=[], last_modified=None, si
    os.makedirs(new_directory)
    file.save(file_location)
 
-   updated_file_entry = file_collection.find_one_and_update({"_id": inserted_id},
+   updated_file_entry = FILE_COLLECTION.find_one_and_update({"_id": inserted_id},
       {"$set": {
          "location": file_location,
          "url_path": file_location,
@@ -143,7 +143,7 @@ def save_uploaded_file(file, sample_ids=[], block_ids=[], last_modified=None, si
 
    # update any referenced sample_ids
    for sample_id in sample_ids:
-      sample_update_result = sample_collection.update_one(
+      sample_update_result = SAMPLE_COLLECTION.update_one(
          {"sample_id": sample_id},
          {"$push": {"file_ObjectIds": inserted_id } }
       )
@@ -187,7 +187,7 @@ def add_file_from_remote_directory(file_entry, sample_id, block_ids=[]):
       "version": 1 # increment with each update
    }
 
-   result = file_collection.insert_one(new_file_document)
+   result = FILE_COLLECTION.insert_one(new_file_document)
    if not result.acknowledged:
       raise IOError(f"db operation failed when trying to insert new file. Result: {result}")
 
@@ -198,7 +198,7 @@ def add_file_from_remote_directory(file_entry, sample_id, block_ids=[]):
    os.makedirs(new_directory)
    remote_file_path = shutil.copy(full_remote_path, new_file_location)
 
-   updated_file_entry = file_collection.find_one_and_update({"_id": inserted_id},
+   updated_file_entry = FILE_COLLECTION.find_one_and_update({"_id": inserted_id},
       {"$set": {
          "location": new_file_location,
          "url_path": new_file_location,
@@ -206,7 +206,7 @@ def add_file_from_remote_directory(file_entry, sample_id, block_ids=[]):
       }
    )
 
-   sample_update_result = sample_collection.update_one(
+   sample_update_result = SAMPLE_COLLECTION.update_one(
          {"sample_id": sample_id},
          {"$push": {"file_ObjectIds": inserted_id}}
       )
@@ -220,13 +220,13 @@ def add_file_from_remote_directory(file_entry, sample_id, block_ids=[]):
 
 
 def retrieve_file_path(file_ObjectId):
-   result = file_collection.find_one({"_id": ObjectId(file_ObjectId)})
+   result = FILE_COLLECTION.find_one({"_id": ObjectId(file_ObjectId)})
    if not result:
       raise(FileNotFoundError, f"The file with file_ObjectId: {file_ObjectId} could not be found in the database")
    return result["location"]
 
 def remove_file_from_sample(sample_id, file_ObjectId):
-   sample_result = sample_collection.update_one(
+   sample_result = SAMPLE_COLLECTION.update_one(
       {"sample_id": ObjectId(file_id)},
       {"$pull": {"file_ObjectIds": ObjectId(file_ObjectId)}}
    )
@@ -234,7 +234,7 @@ def remove_file_from_sample(sample_id, file_ObjectId):
    if sample_result.modified_count < 1:
       raise(IOError, f"failed to remove file_ObjectId (f{file_ObjectId}) from sample (f{sample_id}) db entry: {sample_result.raw_result}")
 
-   file_result = file_collection.update_one(
+   file_result = FILE_COLLECTION.update_one(
       { "_id": ObjectId(file_ObjectId) },
       {"$pull": {"sample_ids": ObjectId(file_ObjectId)}}
    )
