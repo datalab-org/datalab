@@ -49,7 +49,13 @@ export default {
 	data: function () {
 		return { content: this.modelValue}
 	},
-	props: ['modelValue']
+	props: ['modelValue'],
+	emits: ['update:modelValue'],
+	watch: {
+		modelValue() {
+			this.content = this.modelValue;
+		}
+	}
 };
 </script>
 
