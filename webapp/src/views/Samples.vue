@@ -87,8 +87,11 @@ export default {
 		async submitForm() {
 			console.log("new sample form submit triggered")
 
-			await createNewSample(this.sample_id, this.date, this.name)
-			.catch( (error) => {
+			await createNewSample(this.sample_id, this.date, this.name).then( () => {
+					this.modalIsOpen = false
+					document.getElementById(this.sample_id).scrollIntoView({behavior: 'smooth'})
+				}
+			).catch( (error) => {
 				if (error == "sample_id_validation_error") {
 					this.taken_sample_ids.push(this.sample_id)
 				}
@@ -97,8 +100,6 @@ export default {
 				}
 
 			})
-
-			this.modalIsOpen = false
 		}
 	},
 	components: {
