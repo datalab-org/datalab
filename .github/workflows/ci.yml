@@ -36,7 +36,7 @@ jobs:
     - name: Run pre-commit
       run: |
         # Set true for now, until everything can be fixed
-        pipenv run pre-commit run --all-files --show-diff-on-failure || true
+        pre-commit run --all-files --show-diff-on-failure || true
 
   pytest:
     name: Run Python unit tests

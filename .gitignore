@@ -1,6 +1,11 @@
 uploads
 .DS_Store
 
+# Datalab database dirs - these can be removed once we have a better place for them
+files/
+uploads/
+server/
+
 *.sublime-workspace
 *.tmlanguage.cache
 *.tmPreferences.cache
