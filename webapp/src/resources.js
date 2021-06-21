@@ -7,7 +7,7 @@ import CycleBlock from "@/components/datablocks/CycleBlock"
 // note: SynthesisBlock not yet implemented
 
 export const blockKinds = {
-   test: { description:"Test Block", component: DataBlockBase },
+   generic: { description:"Test Block", component: DataBlockBase },
    comment: { description:"Comment", component: DataBlockBase },
    image: { description:"Image Block", component: ImageBlock },
    xrd: { description:"Powder XRD", component: XRDBlock },

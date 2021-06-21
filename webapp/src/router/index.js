@@ -6,7 +6,7 @@ import NotFound from '../views/NotFound.vue'
 import SampleEditPage from '../views/SampleEditPage.vue'
 import Test from '@/components/Test.vue'
 import TestTree from '@/components/TestTree.vue'
-
+import CycleParameterTable from '@/components/CycleParameterTable.vue'
 const routes = [
 	{
 		path: '/about',
@@ -36,6 +36,11 @@ const routes = [
 		path: '/test-tree/',
 		name: 'test-tree',
 		component: TestTree,
+	},
+	{
+		path: '/test-cycle-parameter-table/',
+		name: 'test-cycle-parameter-table',
+		component: CycleParameterTable,
 	},
 	{ path: '/404', name: 'notfound', component: NotFound },
 	{ path: '/:pathMatch(.*)*', component: NotFound },

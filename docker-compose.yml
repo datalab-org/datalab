@@ -7,8 +7,6 @@ services:
     build:
       context: .
       dockerfile: .docker/app_dockerfile
-    depends_on:
-      - server
     volumes:
       - ./logs:/var/logs/mongod/
 
@@ -38,6 +36,9 @@ services:
     volumes:
       - sockets:/tmp/
       - ./logs:/var/logs/mongod/
+
+    ports:
+      - "27017:27017"
 
 volumes:
     sockets:
