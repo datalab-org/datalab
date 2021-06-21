@@ -37,7 +37,6 @@ import "tinymce/plugins/table"
 
 // import 'tinymce/plugins/link';
 import Editor from '@tinymce/tinymce-vue';
-
 import store from './store'
 
 createApp(App).use(store)

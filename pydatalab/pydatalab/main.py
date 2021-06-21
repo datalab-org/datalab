@@ -183,9 +183,14 @@ def create_app(config_override: Dict[str, Any] = None) -> Flask:
 
         # pass all blocks through their Block objects to add any properties needed
         for block_id, block_data in doc["blocks_obj"].items():
-            blocktype = block_data["blocktype"]
-            Block = BLOCK_KINDS[blocktype].from_db(block_data)
-            doc["blocks_obj"][block_id] = Block.to_web()
+            block_type = block_data["blocktype"]
+
+            # temporary fix to not crash server for not implemented blocks.
+            if block_type not in BLOCK_KINDS:
+                doc["blocks_obj"][block_id] = block_data
+            else:
+                Block = BLOCK_KINDS[block_type].from_db(block_data)
+                doc["blocks_obj"][block_id] = Block.to_web()
 
         files_data = {}
         if doc["file_ObjectIds"]:
