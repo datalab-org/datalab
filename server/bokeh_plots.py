@@ -5,10 +5,17 @@ from bokeh.io import curdoc
 
 from bokeh.events import DoubleTap
 from bokeh.models.callbacks import CustomJS
-
-
+from bokeh.models import ColorBar, LogTicker
+from bokeh.models import ColorBar, LogColorMapper
+from bokeh.plotting import figure, output_file, show
 from bokeh.models.widgets import Select, TextInput
 from bokeh.layouts import column
+from bokeh.models import HoverTool, OpenURL, TapTool, LinearColorMapper,ColorBar
+from bokeh.models import HoverTool, OpenURL, TapTool, CustomJS, LinearColorMapper,ColorBar
+
+import matplotlib.pyplot as plt
+import matplotlib 
+import numpy as np
 
 
 FONTSIZE="14pt"
@@ -119,6 +126,85 @@ def selectable_axes_plot(df, x_options, y_options, x_default=None, y_default=Non
    layout = column(p, xaxis_select, yaxis_select)
    return layout
 
+def selectable_axes_plot_colours(df, x_options, y_options, x_default=None, y_default=None, **kwargs):
+   source = ColumnDataSource(df)
+   
+   if not x_default:
+      x_default = x_options[0]
+      y_default = y_options[0]
+   
+   #colormapper = LinearColorMapper(palette="Plasma256",low=df['colour'].min(), high=df['colour'].max())
+
+   code_x = """
+      var column = cb_obj.value;
+      circle1.glyph.x.field = column;
+      source.change.emit();
+      xaxis.axis_label = column;
+      """
+   code_y = """
+      var column = cb_obj.value;
+      circle1.glyph.y.field = column;
+      source.change.emit();
+      yaxis.axis_label = column;
+      """
+
+   p = figure(sizing_mode="scale_width",aspect_ratio=1.5, x_axis_label=x_default, y_axis_label=y_default,
+      tools=TOOLS, **kwargs)
+
+   #color_attr = {'field':'colour', 'transform': colormapper}
+   
+   # grouped = df.groupby("half cycle")
+
+   # for name, group in grouped:
+   #    circle1 = p.line(x=x_default, y=y_default, source=group)
+
+   cmap = plt.get_cmap("plasma")
+   
+   grouped = df.groupby("half cycle")
+
+   a = df['full cycle'].unique()
+   myList = sorted(a)
+   length = len(myList)
+   bruh = np.linspace(0,1,length)
+   newBruh = []
+   for i in bruh:
+      newBruh.extend([i, i])
+   print(newBruh)
+   counter = 0
+   for name, group in grouped:
+      val = newBruh[counter]
+      circle1 = p.line(x=x_default, y=y_default, source=group, line_color=matplotlib.colors.rgb2hex(cmap(val)))
+      counter = counter + 1
+   # colormapper = LinearColorMapper(palette="Plasma256",low=df["full cycle"].min(), high=df["full cycle"].max())
+   
+   
+   # color_attr = {'field':'full cycle', 'transform': colormapper}
+   # p.line(x=x_default, y=y_default, color='red',
+   #        line_color=color_attr)
+
+
+   callback_x = CustomJS(args=dict(circle1=circle1, source=source, xaxis=p.xaxis[0]), code=code_x)
+   callback_y = CustomJS(args=dict(circle1=circle1, source=source, yaxis=p.yaxis[0]), code=code_y)
+
+   # Add list boxes for selecting which columns to plot on the x and y axis
+   xaxis_select = Select(title="X axis:", value=x_default, options=x_options)
+   xaxis_select.js_on_change("value",callback_x)
+
+   yaxis_select = Select(title="Y axis:", value=y_default, options=y_options)
+   yaxis_select.js_on_change("value",callback_y)
+
+   #hover = p.select(type=HoverTool)
+   hovertooltips = [
+   ("Cycle No.","@{full cycle}"),
+   
+ 
+   ]
+
+   p.add_tools(HoverTool(tooltips=hovertooltips))
+
+   p.js_on_event(DoubleTap, CustomJS(args=dict(p=p), code='p.reset.emit()'))
+   layout = column(p, xaxis_select, yaxis_select)
+   return layout
 
 
 if __name__ == "__main__":

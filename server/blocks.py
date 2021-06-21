@@ -2,6 +2,7 @@ import os, random, json
 
 import xrd_utils
 import echem as ec
+import pandas as pd
 
 from bson import ObjectId
 
@@ -141,6 +142,8 @@ class CycleBlock(DataBlock):
 	
 	accepted_file_extensions = ['.mpr', '.txt', '.xls', '.xlsx', '.txt', '.res']
 
+	
+
 	def plot_cycle(self, voltage_label='Voltage', 
 			capacity_label="Capacity", 
 			capacity_units='mAh'):
@@ -152,6 +155,7 @@ class CycleBlock(DataBlock):
 		file_info = get_file_info_by_id(self.data["file_id"], update_if_live=True)
 		filename = file_info["name"]
 		ext = os.path.splitext(filename)[-1].lower()
+		
 
 		if ext not in self.accepted_file_extensions:
 			print('Unrecognized filetype')
@@ -161,40 +165,76 @@ class CycleBlock(DataBlock):
 			self.data['cyclenumber'] = -1 # plot all
 		
 		cycle = self.data['cyclenumber']
+		print(type(cycle))
+		#Check if the type of input given to cycle, the input will always be a string, but should be interpreted differently in the backend:
+		notInt = True
+		try:
+			cycle = int(cycle)
+			notInt = False
+		except:
+			print("That's not an integer number.")
+			notInt = True				
+			 
 
-		# Galvani reads in the raw MPR file then its made into a dataframe
+		
 		df = ec.echem_file_loader(file_info["location"])
-		print(df.columns)
-		# Selecting the charge and discharge cycles from the way biologic numbers them
-		# If starts with charge, change how the cycles are numbered.
+		
 
-		if cycle >= 0:
-			half_cycles = [(2*cycle)-1, 2*cycle]
+		if notInt == False:
+			#implies input is an integer:
+			print(cycle)
+			if cycle >= 0:
+				half_cycles = [(2*cycle)-1, 2*cycle]
+				df = df[df['half cycle'].isin(half_cycles)]
+			
+			
+		else:
+			#implies input is a list
+			myList = cycle.split(',')	#split the parts of the input into separate numbers and ranges
+			for item in myList:
+				if item == '-1':  #if -1 exists, stop looping, we will print all cycles
+					cycle = -1
+					break
+				
+				if item.find('-') == True: #check if item is range
+					print(item)
+					newList = list(item)  #split '2-3' to 2, -, and 3
+					print(newList)
+					upperRange = int(newList[2])
+					lowerRange = int(newList[0])
+					myRange = map(str, list(range(lowerRange, upperRange+1, 1))) #create range from 2 to 3
+					myList.extend(myRange) # add the ints from 2 to 3 to original list
+					myList.remove(item) #remove '2-3' from original list	
+					print(myList)
+				else:
+					continue
+			#We have no created a list of every single cycle mentioned, now convert all items to int
+			myList = list(map(int, myList))
+			print(myList)
+			#list of integers
+			half_cycles = []
+			
+			for item in myList:
+				print(item)
+				half_cycles.extend([(2*item)-1, 2*item])
+
+			for count, cycle in enumerate(myList):
+				idx = df[df['full cycle'] == cycle].index
+				df.loc[idx, 'colour'] = count
+			
 			df = df[df['half cycle'].isin(half_cycles)]
+		#print('my df')	
+		#print(list(df.columns.values))
+		
+		
 
-		# output_file(output_file_) # Is this needed?
-		 
-		# Plotting with Bokeh!
-		# p = figure(sizing_mode="scale_width", aspect_ratio=1.5,
-		# 				x_axis_label='Capacity (mAh)', 
-		# 				y_axis_label='Voltage (V)')
-
-		# # add a line renderer
-		# if cycle >= 0:
-		# 	for curve in half_cycles:
-		# 		mask = df['half cycle'] == curve
-		# 		p.line(df[mask][capacity_label], df[mask][voltage_label])
-		# else:
-		# 	p.line(df[capacity_label], df[voltage_label])
-
-		# p.js_on_event(DoubleTap, CustomJS(args=dict(p=p), code='p.reset.emit()'))
-		# # curdoc().theme = mytheme
-		# self.data["bokeh_plot_data"] = bokeh.embed.json_item(p, theme=mytheme)
-
-		layout = bokeh_plots.selectable_axes_plot(df, x_options=["Capacity","Voltage", "time/s"], y_options=["Capacity","Voltage", "time/s"],
-			x_default="Capacity", y_default="Voltage")
-
+		layout = bokeh_plots.selectable_axes_plot_colours(df, x_options=["Capacity","Voltage", "time/s"], y_options=["Capacity","Voltage", "time/s"],
+		x_default="Capacity", y_default="Voltage")
 		self.data["bokeh_plot_data"] = bokeh.embed.json_item(layout, theme=mytheme)
+
+
+
+
 
 
 	def to_web(self):
