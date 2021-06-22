@@ -74,11 +74,19 @@ export default {
 			// else {
 			// 	this.cycle_num_error="Please enter a number!"
 			// }
-
-			this.cycle_num_error = ""
-			updateBlockFromServer(this.sample_id, this.block_id, 
-			this.$store.state.all_sample_data[this.sample_id]["blocks_obj"][this.block_id])
+			var regex = /^[a-zA-Z!@#$%^&*)(+=._]+$/g
+			if (regex.test(this.cycle_number)) {
+				this.cycle_num_error="Please enter a number!"
+			} 
+	
+			else {
+				this.cycle_num_error = ""
+				updateBlockFromServer(this.sample_id, this.block_id, 
+					this.$store.state.all_sample_data[this.sample_id]["blocks_obj"][this.block_id])
 				
+			}
+
+		
 
 			
 

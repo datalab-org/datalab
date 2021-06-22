@@ -177,7 +177,9 @@ class CycleBlock(DataBlock):
 			notInt = True				
 			 
 
-		def trim_cycle(df, noOfCycles):
+		def trim_cycle(df, noOfCycles, rows):
+			print(len(df))
+			
 			totalRows = len(df)
 			topRowPosition = 0.15*totalRows
 			bottomRowPosition = 0.85*totalRows
@@ -186,7 +188,7 @@ class CycleBlock(DataBlock):
 
 		
 
-			thisdict = {
+			cycledict = {
   				30: 4,
   				20: 3,
   				10: 2,
@@ -195,17 +197,33 @@ class CycleBlock(DataBlock):
 
 			trimValue = 0
 
-			for key, value in thisdict.items():
+			for key, value in cycledict.items():
 				if noOfCycles > key:
-					trimValue = value
+					trimValueCycle = 5
 					break
 				else:
 					continue
 
 			
-			trimDf = trimDf.iloc[::trimValue, :]
+			
 
+			rowsdict = {
+				3000: 3,
+				2000: 2,
+				1000: 1,
+			}
+			trimValueRow = 0
+			for key, value in rowsdict.items():
+				if rows > key:
+					trimValueRow = 5
+					break
+				else:
+					continue
+			
+			trimDf = trimDf.iloc[::(trimValueRow + trimValueCycle), :]
 			df = df.append(trimDf)
+			print(len(df))
+
 			return df
 
 		df = ec.echem_file_loader(file_info["location"])
@@ -227,6 +245,7 @@ class CycleBlock(DataBlock):
 			#implies input is a list
 			myList = cycle.split(',')	#split the parts of the input into separate numbers and ranges
 			print(myList)
+			newList = []
 			for item in myList:
 				if item == '-1':  #if -1 exists, stop looping, we will print all cycles
 					cycle = -1
@@ -236,14 +255,17 @@ class CycleBlock(DataBlock):
 					
 					upperRange =  int(item.split("-")[1])
 					lowerRange = int(item.split("-")[0])
-					
+					print(upperRange)
 					myRange = []
 					myRange = map(str, list(range(lowerRange, upperRange+1, 1))) #create range from 2 to 3
-					myList.extend(myRange) # add the ints from 2 to 3 to original list
-					myList.remove(item) #remove '2-3' from original list	
-					print(myList)
+					
+					newList.extend(myRange) # add the ints from 2 to 3 to original list
+
 				else:
+					newList.extend(item)
 					continue
+			
+			myList = newList
 			#We have no created a list of every single cycle mentioned, now convert all items to int
 			myList = list(map(int, myList))
 			print(myList)
@@ -271,13 +293,16 @@ class CycleBlock(DataBlock):
 		
 		for num in a:
 			mydf = df.loc[df['half cycle'] == num]
+			rows = len(mydf)
 			indexNames = df.loc[df['half cycle'] == num].index
 			#print(indexNames)
 			df = df.drop(indexNames , inplace=False)
 			if cycleNo >= 10:
-				mydf = trim_cycle(mydf, cycleNo)
+				mydf = trim_cycle(mydf, cycleNo, rows)
 			df = df.append(mydf)
-			
+		
+		#Delete excess columns
+		#Analyse no of rows per half cycle
 
 		# #print('my df')
 		# print('Original Df Length')	
