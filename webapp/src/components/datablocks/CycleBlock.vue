@@ -14,8 +14,8 @@
 				<label class="mr-2"><b>Cycle number:</b></label>
 				<input type="text" class="form-control" 
 				v-model="cycle_number" 
-				@keydown.enter="updateBlock"
-				@blur="updateBlock">
+				@keydown.enter="updateBlock2">
+				@blur="updateBlock2">
 			</div>
 		<div v-if="cycle_num_error" class="alert alert-warning">{{ cycle_num_error }}</div>
 		<!-- Insert another div here, if the filled value is a string or something -->
@@ -44,7 +44,7 @@ export default {
 	data() {
 		return {
 			cycle_num_error: "",
-			
+			cycle_number: "",
 		}
 	},
 	props: {
@@ -59,11 +59,42 @@ export default {
 			return this.$store.state.all_sample_data[this.sample_id]["blocks_obj"][this.block_id].number_of_cycles
 		},
 		file_id: createComputedSetterForBlockField("file_id"),
-		cycle_number: createComputedSetterForBlockField("cyclenumber"),
+		all_cycles: createComputedSetterForBlockField("cyclenumber"),
 		
 	},
 	methods: {
-		
+		parseCycleNumber(cycle_number) {
+			let cycle_string = cycle_number.replace(/\s/g, '')
+			var cycle_regex = /^(\d+(-\d+)?,)*(\d+(-\d+)?)$/g
+			if (!cycle_regex.test(cycle_string)) {
+				this.cycle_num_error = "Please enter a valid input!"
+				return false
+			}
+			let cycle_string_sections = cycle_string.split(',')
+			var all_cycles = []
+			for (const section of cycle_string_sections) {
+				let split_section = section.split('-')
+				if (split_section.length == 1) {
+					all_cycles.push(parseInt(split_section[0]))
+				} else {
+					let upper_range = parseInt(split_section[1])
+					let lower_range = parseInt(split_section[0])
+					for (let j = Math.min(lower_range, upper_range); j <= Math.max(lower_range, upper_range); j++) {
+						all_cycles.push(j)
+					}
+				}
+			}
+			return all_cycles
+		},
+		updateBlock2() {
+			this.all_cycles = this.parseCycleNumber(this.cycle_number)
+			if (!this.all_cycles) {
+				return
+			}
+			this.cycle_num_error = this.all_cycles
+			updateBlockFromServer(this.sample_id, this.block_id, 
+				this.$store.state.all_sample_data[this.sample_id]["blocks_obj"][this.block_id])
+		},
 		updateBlock() {
 			// if (this.bruh = True) {
 			// 	this.cycle_num_error = ""
@@ -74,10 +105,24 @@ export default {
 			// else {
 			// 	this.cycle_num_error="Please enter a number!"
 			// }
-			var regex = /^[a-zA-Z!@#$%^&*)(+=._]+$/g
-			if (regex.test(this.cycle_number)) {
-				this.cycle_num_error="Please enter a number!"
-			} 
+			var regex = /[a-zA-Z!@#$%^&*)(+=._]+$/g
+			var regex2 = /^[a-zA-Z!@#$%^&*)(+=._]+$/g
+			var regex3 = /[,-]{2,}/g
+			var regex4 = /[,\s-]{3,}/g
+			//var regex = /^[\d\-\s]*$/g
+			//var regex = /[0-9\-\s]*/g
+			//var cycle_regex = /^(\d+(\-\d+)?,)*(\d+(\-\d+)?)$/g
+			
+			if (regex2.test(this.cycle_number)) {
+				this.cycle_num_error="Please enter a valid input!"	
+			} else if ( regex.test(this.cycle_number)){
+				this.cycle_num_error="Please enter a valid input!"
+			} else if (regex3.test(this.cycle_number)){
+					this.cycle_num_error="Please enter a valid input!"
+			}
+			else if (regex4.test(this.cycle_number)){
+					this.cycle_num_error="Please enter a valid input!"
+			}
 	
 			else {
 				this.cycle_num_error = ""

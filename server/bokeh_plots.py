@@ -61,6 +61,12 @@ style = {'attrs': {
 
 mytheme = Theme(json=style)
 
+def reduce_df_size(df, target_nrows):
+   stride = int(np.round(df.len()/target_nrows))
+   return df.iloc[::stride].copy()
+
+
+
 def simple_bokeh_plot(xy_filename, x_label=None, y_label=None):
 
    df = pd.read_csv(xy_filename, sep='\s+', names=["x_col", "y_col"])

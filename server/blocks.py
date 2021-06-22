@@ -12,7 +12,7 @@ from bokeh.io import curdoc
 from bokeh.events import DoubleTap
 from bokeh.models.callbacks import CustomJS
 from simple_bokeh_plot import simple_bokeh_plot, mytheme
-import bokeh_plots
+import bokeh_plots 
 
 from file_utils import get_file_info_by_id
 
@@ -142,8 +142,51 @@ class CycleBlock(DataBlock):
 	
 	accepted_file_extensions = ['.mpr', '.txt', '.xls', '.xlsx', '.txt', '.res']
 
+	def parse_cycles_to_plot(cycles_string):
+		''' Takes a string in the form:
+			1, 2, 3-4,11
+			and parses it into a list of cycle numbers
+
+		'''
+		notInt = True
+		try:
+			cycles_string = int(cycles_string)
+			notInt = False
+		except:
+			print("That's not an integer number.")
+			notInt = True				
 
 
+		if notInt == False:
+			#implies input is an integer:
+			return cycles_string
+				
+		else:
+			cycles_string = cycles_string.replace(" ", "")
+			#implies input is a list
+			myList = cycles_string.split(',')	#split the parts of the input into separate numbers and ranges
+			print(myList)
+			newList = []
+			for item in myList:
+				if item.find('-') == True: #check if item is range
+					
+					upperRange =  int(item.split("-")[1])
+					lowerRange = int(item.split("-")[0])
+					print(upperRange)
+					myRange = []
+					myRange = map(str, list(range(lowerRange, upperRange+1, 1))) #create range from 2 to 3
+					
+					newList.extend(myRange) # add the ints from 2 to 3 to original list
+
+				else:
+					newList.extend(item)
+					continue
+			
+			myList = newList
+			#We have no created a list of every single cycle mentioned, now convert all items to int
+			myList = list(map(int, myList))
+			return myList
+			
 	def plot_cycle(self, voltage_label='Voltage', 
 			capacity_label="Capacity", 
 			capacity_units='mAh'):
@@ -162,127 +205,28 @@ class CycleBlock(DataBlock):
 			return None
 
 		if 'cyclenumber' not in self.data:
-			self.data['cyclenumber'] = -1 # plot all
+			self.data['cyclenumber'] = "" # plot all
 		
-		cycle = self.data['cyclenumber']
+		cycle_list = self.data['cyclenumber']
+		print(cycle_list)
 		
-		print(type(cycle))
 		#Check if the type of input given to cycle, the input will always be a string, but should be interpreted differently in the backend:
 		notInt = True
-		try:
-			cycle = int(cycle)
-			notInt = False
-		except:
-			print("That's not an integer number.")
-			notInt = True				
-			 
-
-		def trim_cycle(df, noOfCycles, rows):
-			print(len(df))
-			
-			totalRows = len(df)
-			topRowPosition = 0.15*totalRows
-			bottomRowPosition = 0.85*totalRows
-			trimDf = df.iloc[int(round(topRowPosition)):int(round(bottomRowPosition))]
-			df = df.drop(df.index[int(round(topRowPosition)):int(round(bottomRowPosition))])
-
-		
-
-			cycledict = {
-  				30: 4,
-  				20: 3,
-  				10: 2,
-				 
-				}
-
-			trimValue = 0
-
-			for key, value in cycledict.items():
-				if noOfCycles > key:
-					trimValueCycle = 5
-					break
-				else:
-					continue
-
-			
-			
-
-			rowsdict = {
-				3000: 3,
-				2000: 2,
-				1000: 1,
-			}
-			trimValueRow = 0
-			for key, value in rowsdict.items():
-				if rows > key:
-					trimValueRow = 5
-					break
-				else:
-					continue
-			
-			trimDf = trimDf.iloc[::(trimValueRow + trimValueCycle), :]
-			df = df.append(trimDf)
-			print(len(df))
-
-			return df
-
+		half_cycles = []
 		df = ec.echem_file_loader(file_info["location"])
-		
-
-		if notInt == False:
-			#implies input is an integer:
-			print(cycle)
-			#df.to_csv('output.csv', index=False)
-			if cycle >= 0:
-				half_cycles = [(2*cycle)-1, 2*cycle]
-				df = df[df['half cycle'].isin(half_cycles)]
-			# else:
-			# 	listOfCycles = df['half cycle'].unique()
-			# 	listOfCycles = sorted(listOfCycles)
-			# 	#for num in listOfCycles:	
-		else:
-			cycle = cycle.replace(" ", "")
-			#implies input is a list
-			myList = cycle.split(',')	#split the parts of the input into separate numbers and ranges
-			print(myList)
-			newList = []
-			for item in myList:
-				if item == '-1':  #if -1 exists, stop looping, we will print all cycles
-					cycle = -1
-					break
-				
-				if item.find('-') == True: #check if item is range
-					
-					upperRange =  int(item.split("-")[1])
-					lowerRange = int(item.split("-")[0])
-					print(upperRange)
-					myRange = []
-					myRange = map(str, list(range(lowerRange, upperRange+1, 1))) #create range from 2 to 3
-					
-					newList.extend(myRange) # add the ints from 2 to 3 to original list
-
-				else:
-					newList.extend(item)
-					continue
+		print(len(df))
+		for item in cycle_list:
+			print(item)
+			half_cycles.extend([(2*item)-1, 2*item])
 			
-			myList = newList
-			#We have no created a list of every single cycle mentioned, now convert all items to int
-			myList = list(map(int, myList))
-			print(myList)
-			#list of integers
-			half_cycles = []
-			
-			for item in myList:
-				print(item)
-				half_cycles.extend([(2*item)-1, 2*item])
-			
-			for count, cycle in enumerate(myList):
+		for count, cycle in enumerate(cycle_list):
 				idx = df[df['full cycle'] == cycle].index
 				df.loc[idx, 'colour'] = count
 				
 			
-			df = df[df['half cycle'].isin(half_cycles)]
-		
+		df = df[df['half cycle'].isin(half_cycles)]
+
+
 		print('Original Df Length')	
 		print(len(df))
 		print(df.memory_usage(index=True).sum())
@@ -298,31 +242,9 @@ class CycleBlock(DataBlock):
 			#print(indexNames)
 			df = df.drop(indexNames , inplace=False)
 			if cycleNo >= 10:
-				mydf = trim_cycle(mydf, cycleNo, rows)
+				mydf =  bokeh_plots.reduce_df_size(mydf, cycleNo, rows)
 			df = df.append(mydf)
 		
-		#Delete excess columns
-		#Analyse no of rows per half cycle
-
-		# #print('my df')
-		# print('Original Df Length')	
-		# print(len(df))
-		# df.to_csv('output.csv', index=False)
-		# totalRows = len(df)
-		# topRowPosition = 0.15*totalRows
-		# bottomRowPosition = 0.85*totalRows
-		# trimDf = df.iloc[int(round(topRowPosition)):int(round(bottomRowPosition))]
-		# df = df.drop(df.index[int(round(topRowPosition)):int(round(bottomRowPosition))])
-		
-		# print('Original Df Length after trim, trimmed df length')	
-		# print(len(df))
-		# print(len(trimDf))
-
-		# def reduce_df_size(df,target_rows):
-		# 	stride = int(np.round(len(df)/target_rows))
-		# 	return df.iloc[::stride].copy()
-		# trimDf = reduce_df_size(trimDf, 1000)
-		# df = df.append(trimDf)
 
 		print('Modified Df Length')	
 		print(len(df))
