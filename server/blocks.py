@@ -208,23 +208,24 @@ class CycleBlock(DataBlock):
 			self.data['cyclenumber'] = "" # plot all
 		
 		cycle_list = self.data['cyclenumber']
-		print(cycle_list)
+		print(type(cycle_list))
 		
 		#Check if the type of input given to cycle, the input will always be a string, but should be interpreted differently in the backend:
 		notInt = True
 		half_cycles = []
 		df = ec.echem_file_loader(file_info["location"])
 		print(len(df))
-		for item in cycle_list:
-			print(item)
-			half_cycles.extend([(2*item)-1, 2*item])
-			
-		for count, cycle in enumerate(cycle_list):
-				idx = df[df['full cycle'] == cycle].index
-				df.loc[idx, 'colour'] = count
+		print(isinstance(cycle_list, list))
+		if isinstance(cycle_list, list) :
+			for item in cycle_list:
+				print(item)
+				half_cycles.extend([(2*item)-1, 2*item])
+
+			for count, cycle in enumerate(cycle_list):
+					idx = df[df['full cycle'] == cycle].index
+					df.loc[idx, 'colour'] = count
 				
-			
-		df = df[df['half cycle'].isin(half_cycles)]
+			df = df[df['half cycle'].isin(half_cycles)]
 
 
 		print('Original Df Length')	

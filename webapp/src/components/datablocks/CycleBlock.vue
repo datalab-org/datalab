@@ -14,7 +14,7 @@
 				<label class="mr-2"><b>Cycle number:</b></label>
 				<input type="text" class="form-control" 
 				v-model="cycle_number" 
-				@keydown.enter="updateBlock2">
+				@keydown.enter="updateBlock2"
 				@blur="updateBlock2">
 			</div>
 		<div v-if="cycle_num_error" class="alert alert-warning">{{ cycle_num_error }}</div>
@@ -66,7 +66,11 @@ export default {
 		parseCycleNumber(cycle_number) {
 			let cycle_string = cycle_number.replace(/\s/g, '')
 			var cycle_regex = /^(\d+(-\d+)?,)*(\d+(-\d+)?)$/g
-			if (!cycle_regex.test(cycle_string)) {
+			if (cycle_number.match(/^ *$/) !== null){
+				this.cycle_num_error = "Plotting all cycles!"
+				return false
+			}
+			else if (!cycle_regex.test(cycle_string)) {
 				this.cycle_num_error = "Please enter a valid input!"
 				return false
 			}
