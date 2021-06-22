@@ -12,7 +12,10 @@
 		<div class="form-row col-md-4 col-lg-5 mt-2">
 			<div class="input-group form-inline">
 				<label class="mr-2"><b>Cycle number:</b></label>
-				<input type="text" class="form-control" v-model="cycle_number" @input="updateBlock">
+				<input type="text" class="form-control" 
+				v-model="cycle_number" 
+				@keydown.enter="updateBlock"
+				@blur="updateBlock">
 			</div>
 		<div v-if="cycle_num_error" class="alert alert-warning">{{ cycle_num_error }}</div>
 		<!-- Insert another div here, if the filled value is a string or something -->
@@ -25,6 +28,7 @@
 		</div>
 	</DataBlockBase>
 </template>
+
 
 
 <script>
@@ -56,8 +60,10 @@ export default {
 		},
 		file_id: createComputedSetterForBlockField("file_id"),
 		cycle_number: createComputedSetterForBlockField("cyclenumber"),
+		
 	},
 	methods: {
+		
 		updateBlock() {
 			// if (this.bruh = True) {
 			// 	this.cycle_num_error = ""
@@ -68,9 +74,15 @@ export default {
 			// else {
 			// 	this.cycle_num_error="Please enter a number!"
 			// }
+
 			this.cycle_num_error = ""
 			updateBlockFromServer(this.sample_id, this.block_id, 
 			this.$store.state.all_sample_data[this.sample_id]["blocks_obj"][this.block_id])
+				
+
+			
+
+
 		}
 
 	},

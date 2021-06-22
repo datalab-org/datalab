@@ -5,7 +5,7 @@ import echem as ec
 import pandas as pd
 
 from bson import ObjectId
-
+import numpy as np
 import bokeh
 from bokeh.plotting import figure
 from bokeh.io import curdoc
@@ -142,7 +142,7 @@ class CycleBlock(DataBlock):
 	
 	accepted_file_extensions = ['.mpr', '.txt', '.xls', '.xlsx', '.txt', '.res']
 
-	
+
 
 	def plot_cycle(self, voltage_label='Voltage', 
 			capacity_label="Capacity", 
@@ -165,6 +165,7 @@ class CycleBlock(DataBlock):
 			self.data['cyclenumber'] = -1 # plot all
 		
 		cycle = self.data['cyclenumber']
+		
 		print(type(cycle))
 		#Check if the type of input given to cycle, the input will always be a string, but should be interpreted differently in the backend:
 		notInt = True
@@ -176,32 +177,67 @@ class CycleBlock(DataBlock):
 			notInt = True				
 			 
 
+		def trim_cycle(df, noOfCycles):
+			totalRows = len(df)
+			topRowPosition = 0.15*totalRows
+			bottomRowPosition = 0.85*totalRows
+			trimDf = df.iloc[int(round(topRowPosition)):int(round(bottomRowPosition))]
+			df = df.drop(df.index[int(round(topRowPosition)):int(round(bottomRowPosition))])
+
 		
+
+			thisdict = {
+  				30: 4,
+  				20: 3,
+  				10: 2,
+				 
+				}
+
+			trimValue = 0
+
+			for key, value in thisdict.items():
+				if noOfCycles > key:
+					trimValue = value
+					break
+				else:
+					continue
+
+			
+			trimDf = trimDf.iloc[::trimValue, :]
+
+			df = df.append(trimDf)
+			return df
+
 		df = ec.echem_file_loader(file_info["location"])
 		
 
 		if notInt == False:
 			#implies input is an integer:
 			print(cycle)
+			#df.to_csv('output.csv', index=False)
 			if cycle >= 0:
 				half_cycles = [(2*cycle)-1, 2*cycle]
 				df = df[df['half cycle'].isin(half_cycles)]
-			
-			
+			# else:
+			# 	listOfCycles = df['half cycle'].unique()
+			# 	listOfCycles = sorted(listOfCycles)
+			# 	#for num in listOfCycles:	
 		else:
+			cycle = cycle.replace(" ", "")
 			#implies input is a list
 			myList = cycle.split(',')	#split the parts of the input into separate numbers and ranges
+			print(myList)
 			for item in myList:
 				if item == '-1':  #if -1 exists, stop looping, we will print all cycles
 					cycle = -1
 					break
 				
 				if item.find('-') == True: #check if item is range
-					print(item)
-					newList = list(item)  #split '2-3' to 2, -, and 3
-					print(newList)
-					upperRange = int(newList[2])
-					lowerRange = int(newList[0])
+					
+					upperRange =  int(item.split("-")[1])
+					lowerRange = int(item.split("-")[0])
+					
+					myRange = []
 					myRange = map(str, list(range(lowerRange, upperRange+1, 1))) #create range from 2 to 3
 					myList.extend(myRange) # add the ints from 2 to 3 to original list
 					myList.remove(item) #remove '2-3' from original list	
@@ -217,18 +253,56 @@ class CycleBlock(DataBlock):
 			for item in myList:
 				print(item)
 				half_cycles.extend([(2*item)-1, 2*item])
-
+			
 			for count, cycle in enumerate(myList):
 				idx = df[df['full cycle'] == cycle].index
 				df.loc[idx, 'colour'] = count
+				
 			
 			df = df[df['half cycle'].isin(half_cycles)]
-		#print('my df')	
-		#print(list(df.columns.values))
 		
-		
+		print('Original Df Length')	
+		print(len(df))
+		print(df.memory_usage(index=True).sum())
 
-		layout = bokeh_plots.selectable_axes_plot_colours(df, x_options=["Capacity","Voltage", "time/s"], y_options=["Capacity","Voltage", "time/s"],
+		cycleNo = df['full cycle'].nunique()
+		a = df['half cycle'].unique()
+		a = sorted(a)
+		
+		for num in a:
+			mydf = df.loc[df['half cycle'] == num]
+			indexNames = df.loc[df['half cycle'] == num].index
+			#print(indexNames)
+			df = df.drop(indexNames , inplace=False)
+			if cycleNo >= 10:
+				mydf = trim_cycle(mydf, cycleNo)
+			df = df.append(mydf)
+			
+
+		# #print('my df')
+		# print('Original Df Length')	
+		# print(len(df))
+		# df.to_csv('output.csv', index=False)
+		# totalRows = len(df)
+		# topRowPosition = 0.15*totalRows
+		# bottomRowPosition = 0.85*totalRows
+		# trimDf = df.iloc[int(round(topRowPosition)):int(round(bottomRowPosition))]
+		# df = df.drop(df.index[int(round(topRowPosition)):int(round(bottomRowPosition))])
+		
+		# print('Original Df Length after trim, trimmed df length')	
+		# print(len(df))
+		# print(len(trimDf))
+
+		# def reduce_df_size(df,target_rows):
+		# 	stride = int(np.round(len(df)/target_rows))
+		# 	return df.iloc[::stride].copy()
+		# trimDf = reduce_df_size(trimDf, 1000)
+		# df = df.append(trimDf)
+
+		print('Modified Df Length')	
+		print(len(df))
+		print(df.memory_usage(index=True).sum())
+		layout = bokeh_plots.selectable_axes_plot(df, x_options=["Capacity","Voltage", "time/s"], y_options=["Capacity","Voltage", "time/s"],
 		x_default="Capacity", y_default="Voltage")
 		self.data["bokeh_plot_data"] = bokeh.embed.json_item(layout, theme=mytheme)
 

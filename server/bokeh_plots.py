@@ -151,12 +151,6 @@ def selectable_axes_plot_colours(df, x_options, y_options, x_default=None, y_def
    p = figure(sizing_mode="scale_width",aspect_ratio=1.5, x_axis_label=x_default, y_axis_label=y_default,
       tools=TOOLS, **kwargs)
 
-   #color_attr = {'field':'colour', 'transform': colormapper}
-   
-   # grouped = df.groupby("half cycle")
-
-   # for name, group in grouped:
-   #    circle1 = p.line(x=x_default, y=y_default, source=group)
 
    cmap = plt.get_cmap("plasma")
    
@@ -165,22 +159,17 @@ def selectable_axes_plot_colours(df, x_options, y_options, x_default=None, y_def
    a = df['full cycle'].unique()
    myList = sorted(a)
    length = len(myList)
-   bruh = np.linspace(0,1,length)
-   newBruh = []
-   for i in bruh:
-      newBruh.extend([i, i])
-   print(newBruh)
+   numberList = np.linspace(0,1,length)
+   newList = []
+   for i in numberList:
+      newList.extend([i, i])
+   print(newList)
    counter = 0
    for name, group in grouped:
-      val = newBruh[counter]
-      circle1 = p.line(x=x_default, y=y_default, source=group, line_color=matplotlib.colors.rgb2hex(cmap(val)))
+      val = newList[counter]
+      circle1 = p.circle(x=x_default, y=y_default, source=group, line_color=matplotlib.colors.rgb2hex(cmap(val)))
       counter = counter + 1
-   # colormapper = LinearColorMapper(palette="Plasma256",low=df["full cycle"].min(), high=df["full cycle"].max())
-   
-   
-   # color_attr = {'field':'full cycle', 'transform': colormapper}
-   # p.line(x=x_default, y=y_default, color='red',
-   #        line_color=color_attr)
+
 
 
    callback_x = CustomJS(args=dict(circle1=circle1, source=source, xaxis=p.xaxis[0]), code=code_x)
