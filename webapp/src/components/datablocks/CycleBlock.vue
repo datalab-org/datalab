@@ -17,16 +17,39 @@
 				@keydown.enter="updateBlock2"
 				@blur="updateBlock2">
 			</div>
+			<input type="button" value="Plot!" @click="updateBlock2">
+			<input type="button" value="dq/dv analysis!" @click="modeselect">
 		<div v-if="cycle_num_error" class="alert alert-warning">{{ cycle_num_error }}</div>
 		<!-- Insert another div here, if the filled value is a string or something -->
 		</div>
+		<div class="dqdvmode">
+			<div class="slider">
+				<input type="range" v-model="p_spline"  id="p_spline" name="p_spline" min="1" max="5">
+				<label for="volume">Polynomial Spline: {{p_spline }}</label>
+			</div>
+			<div class="slider">
+				<input type="range" v-model="s_spline" id="s_spline" name="s_spline" min="1" max="10">
+				<label for="volume">Log Spline fit: {{ s_spline }}</label>
+			</div>
+			<div class="slider">
+				<input type="range" v-model="polyorder1" id="polyorder1" name="polyorder1" min="1" max="7">
+				<label for="volume">Polynomial order 1: {{ polyorder1 }}</label>
+			</div>
+			<div class="slider">
+				<input type="range" v-model="polyorder2" id="polyorder2" name="polyorder2" min="1" max="7">
+				<label for="volume">Polynomial order 2: {{ polyorder1 }}</label>
+			</div>
+		</div>
+
 		<div class="row">
 			<div class="col-xl-8 col-lg-9 col-md-11 mx-auto">
 				<BokehPlot :bokehPlotData="bokehPlotData" />
 				<!-- <div v-if="!bokehPlotData" class="alert alert-danger">No bokeh Plot Data is loaded</div> -->
 			</div>
 		</div>
+
 	</DataBlockBase>
+
 </template>
 
 
@@ -60,6 +83,12 @@ export default {
 		},
 		file_id: createComputedSetterForBlockField("file_id"),
 		all_cycles: createComputedSetterForBlockField("cyclenumber"),
+		p_spline: createComputedSetterForBlockField("p_spline"),
+		s_spline: createComputedSetterForBlockField("s_spline"),
+		polyorder1: createComputedSetterForBlockField("polyorder1"),
+		polyorder2: createComputedSetterForBlockField("polyorder2"),
+		mode: createComputedSetterForBlockField("plotmode"),
+		
 		
 	},
 	methods: {
@@ -135,18 +164,36 @@ export default {
 				
 			}
 
-		
-
-			
-
-
+		},
+		modeselect(){
+			this.mode = !(this.mode)
+			console.log(this.mode)
+			if (this.mode){
+				document.getElementsByClassName("dqdvmode")[0].style.display = "block"
+			}else{
+				document.getElementsByClassName("dqdvmode")[0].style.display = "none"
+			}
 		}
 
 	},
 	components: {
 		DataBlockBase,
 		FileSelectDropdown,
-		BokehPlot
+		BokehPlot,
 	},	
 }
 </script>
+
+<style scoped>
+.slider {
+	display: inline-block;
+	width: 25%;
+}
+
+.dqdvmode{
+	margin-top: 20px;
+	margin-bottom: 20px;
+	display: none;
+
+}
+</style>

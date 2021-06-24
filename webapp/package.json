@@ -18,6 +18,7 @@
     "@uppy/dashboard": "^1.16.0",
     "@uppy/webcam": "^1.8.4",
     "@uppy/xhr-upload": "^1.6.10",
+    "@vueform/slider": "^1.0.5",
     "bootstrap": "^4.5.3",
     "core-js": "^3.6.5",
     "lodash.debounce": "^4.0.8",
@@ -26,6 +27,7 @@
     "vue-debounce": "^2.6.0",
     "vue-router": "^4.0.0-0",
     "vue-scrollto": "^2.20.0",
+    "vue-slide-bar": "^1.2.0",
     "vue3-router-tree": "^0.2.4",
     "vuex": "^4.0.0-rc.2"
   },

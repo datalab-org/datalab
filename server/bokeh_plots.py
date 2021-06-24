@@ -16,6 +16,7 @@ from bokeh.models import HoverTool, OpenURL, TapTool, CustomJS, LinearColorMappe
 import matplotlib.pyplot as plt
 import matplotlib 
 import numpy as np
+import navani as echem
 
 
 FONTSIZE="14pt"
@@ -132,7 +133,50 @@ def selectable_axes_plot(df, x_options, y_options, x_default=None, y_default=Non
    layout = column(p, xaxis_select, yaxis_select)
    return layout
 
-def selectable_axes_plot_colours(df, x_options, y_options, x_default=None, y_default=None, **kwargs):
+def selectable_axes_plot_dqdv(df, x_options, y_options, x_default="Capacity", y_default="Voltage", **kwargs):
+   source = ColumnDataSource(df)
+   
+   if not x_default:
+      x_default = x_options[0]
+      y_default = y_options[0]
+   
+   #colormapper = LinearColorMapper(palette="Plasma256",low=df['colour'].min(), high=df['colour'].max())
+
+   code_x = """
+      var column = cb_obj.value;
+      circle1.glyph.x.field = column;
+      source.change.emit();
+      xaxis.axis_label = column;
+      """
+   code_y = """
+      var column = cb_obj.value;
+      circle1.glyph.y.field = column;
+      source.change.emit();
+      yaxis.axis_label = column;
+      """
+
+   p = figure(sizing_mode="scale_width",aspect_ratio=1.5, x_axis_label=x_default, y_axis_label=y_default,
+      tools=TOOLS, **kwargs)
+
+   circle1 = p.circle(x=x_default, y=y_default, source=source, size=1)
+
+   callback_x = CustomJS(args=dict(circle1=circle1, source=source, xaxis=p.xaxis[0]), code=code_x)
+   callback_y = CustomJS(args=dict(circle1=circle1, source=source, yaxis=p.yaxis[0]), code=code_y)
+
+   # Add list boxes for selecting which columns to plot on the x and y axis
+   xaxis_select = Select(title="X axis:", value=x_default, options=x_options)
+   xaxis_select.js_on_change("value",callback_x)
+
+   yaxis_select = Select(title="Y axis:", value=y_default, options=y_options)
+   yaxis_select.js_on_change("value",callback_y)
+
+
+
+   p.js_on_event(DoubleTap, CustomJS(args=dict(p=p), code='p.reset.emit()'))
+   layout = column(p, xaxis_select, yaxis_select)
+   return layout
+
+def selectable_axes_plot_colours(df, x_options, y_options, x_default="Voltage", y_default="Capacity", **kwargs):
    source = ColumnDataSource(df)
    
    if not x_default:
@@ -200,6 +244,79 @@ def selectable_axes_plot_colours(df, x_options, y_options, x_default=None, y_def
    p.js_on_event(DoubleTap, CustomJS(args=dict(p=p), code='p.reset.emit()'))
    layout = column(p, xaxis_select, yaxis_select)
    return layout
+
+def selectable_axes_plot_colours_dqdv(df, x_options, y_options, x_default="Capacity", y_default="dqdv", **kwargs):
+   source = ColumnDataSource(df)
+   
+   if not x_default:
+      x_default = x_options[0]
+      y_default = y_options[0]
+   
+   #colormapper = LinearColorMapper(palette="Plasma256",low=df['colour'].min(), high=df['colour'].max())
+
+   code_x = """
+      var column = cb_obj.value;
+      circle1.glyph.x.field = column;
+      source.change.emit();
+      xaxis.axis_label = column;
+      """
+   code_y = """
+      var column = cb_obj.value;
+      circle1.glyph.y.field = column;
+      source.change.emit();
+      yaxis.axis_label = column;
+      """
+
+   p = figure(sizing_mode="scale_width",aspect_ratio=1.5, x_axis_label=x_default, y_axis_label=y_default,
+      tools=TOOLS, **kwargs)
+
+
+   cmap = plt.get_cmap("plasma")
+   
+   grouped = df.groupby("full cycle")
+
+   a = df['full cycle'].unique()
+   myList = sorted(a)
+   length = len(myList)
+   numberList = np.linspace(0,1,length)
+   newList = numberList
+   # for i in numberList:
+   #    newList.extend([i, i])
+   # print(newList)
+   counter = 0
+   #print(len(grouped))
+   for name, group in grouped:
+      val = newList[counter]
+      circle1 = p.circle(x=x_default, y=y_default, size=1.5, source=group, line_color=matplotlib.colors.rgb2hex(cmap(val)))
+      counter = counter + 1
+
+
+
+   callback_x = CustomJS(args=dict(circle1=circle1, source=source, xaxis=p.xaxis[0]), code=code_x)
+   callback_y = CustomJS(args=dict(circle1=circle1, source=source, yaxis=p.yaxis[0]), code=code_y)
+
+   # Add list boxes for selecting which columns to plot on the x and y axis
+   xaxis_select = Select(title="X axis:", value=x_default, options=x_options)
+   xaxis_select.js_on_change("value",callback_x)
+
+   yaxis_select = Select(title="Y axis:", value=y_default, options=y_options)
+   yaxis_select.js_on_change("value",callback_y)
+
+   #hover = p.select(type=HoverTool)
+   hovertooltips = [
+   ("Cycle No.","@{full cycle}"),
+   
+ 
+   ]
+
+   p.add_tools(HoverTool(tooltips=hovertooltips))
+
+   p.js_on_event(DoubleTap, CustomJS(args=dict(p=p), code='p.reset.emit()'))
+   layout = column(p, xaxis_select, yaxis_select)
+   return layout
+
+
+
 
 
 if __name__ == "__main__":
