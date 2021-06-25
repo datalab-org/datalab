@@ -274,6 +274,11 @@ class CycleBlock(DataBlock):
 				polyorder_1,polyorder_2, window_size_1=101,
 				window_size_2=1001,
 				final_smooth=True):
+				
+			print(f"polynomial_spline  {polynomial_spline}")
+			print(f"s_spline  {s_spline}")
+			print(f"polyorder_1  {polyorder_1}")
+			print(f"polyorder_2 {polyorder_2}")
 
 			df = pd.DataFrame({'Capacity': capacity, 'Voltage':voltage})
 			unique_v = df.astype(float).groupby('Voltage').mean().index
@@ -382,7 +387,6 @@ class CycleBlock(DataBlock):
 				return final_df
 			else:
 				cycle_list = list(df['full cycle'].unique())
-				print(f"insidedqdv {s_spline}")
 				full_voltage_list, full_dqdv_list, full_cap_list, full_cyc_list, full_hf_cycle_list =  multi_dqdv_plot(df, cycle_list, 
 							capacity_label='Capacity', 
 							voltage_label='Voltage',

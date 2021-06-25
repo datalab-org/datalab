@@ -37,7 +37,7 @@
 			</div>
 			<div class="slider">
 				<input type="range" v-model="polyorder2" id="polyorder2" name="polyorder2" min="1" max="7">
-				<label for="volume">Polynomial order 2: {{ polyorder1 }}</label>
+				<label for="volume">Polynomial order 2: {{ polyorder2 }}</label>
 			</div>
 		</div>
 
