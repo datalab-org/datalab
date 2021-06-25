@@ -17,19 +17,19 @@
 				@keydown.enter="updateBlock2"
 				@blur="updateBlock2">
 			</div>
-			<input type="button" value="Plot!" @click="updateBlock2">
+			<input type="button"  value="Plot!" @click="updateBlock2">
 			<input type="button" value="dq/dv analysis!" @click="modeselect">
 		<div v-if="cycle_num_error" class="alert alert-warning">{{ cycle_num_error }}</div>
 		<!-- Insert another div here, if the filled value is a string or something -->
 		</div>
-		<div class="dqdvmode">
+		<div class="slider-block">
 			<div class="slider">
 				<input type="range" v-model="p_spline"  id="p_spline" name="p_spline" min="1" max="5">
 				<label for="volume">Polynomial Spline: {{p_spline }}</label>
 			</div>
 			<div class="slider">
-				<input type="range" v-model="s_spline" id="s_spline" name="s_spline" min="1" max="10">
-				<label for="volume">Log Spline fit: {{ s_spline }}</label>
+				<input type="range" v-model="s_spline" id="s_spline" name="s_spline" min="2" max="10">
+				<label for="volume">-ve log Spline fit: {{- s_spline }}</label>
 			</div>
 			<div class="slider">
 				<input type="range" v-model="polyorder1" id="polyorder1" name="polyorder1" min="1" max="7">
@@ -117,6 +117,7 @@ export default {
 					}
 				}
 			}
+			
 			return all_cycles
 		},
 		updateBlock2() {
@@ -124,6 +125,7 @@ export default {
 			if (!this.all_cycles) {
 				return
 			}
+			console.log('parsing')
 			this.cycle_num_error = this.all_cycles
 			updateBlockFromServer(this.sample_id, this.block_id, 
 				this.$store.state.all_sample_data[this.sample_id]["blocks_obj"][this.block_id])
@@ -166,12 +168,13 @@ export default {
 
 		},
 		modeselect(){
+			//Default value for dqdv mode is False, following lines reverses boolean and shows/removes the dqdv slider section accordingly
 			this.mode = !(this.mode)
 			console.log(this.mode)
 			if (this.mode){
-				document.getElementsByClassName("dqdvmode")[0].style.display = "block"
+				document.getElementsByClassName("slider-block")[0].style.display = "block"
 			}else{
-				document.getElementsByClassName("dqdvmode")[0].style.display = "none"
+				document.getElementsByClassName("slider-block")[0].style.display = "none"
 			}
 		}
 
@@ -190,7 +193,7 @@ export default {
 	width: 25%;
 }
 
-.dqdvmode{
+.slider-block{
 	margin-top: 20px;
 	margin-bottom: 20px;
 	display: none;

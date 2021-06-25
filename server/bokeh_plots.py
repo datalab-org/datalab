@@ -273,21 +273,21 @@ def selectable_axes_plot_colours_dqdv(df, x_options, y_options, x_default="Capac
 
    cmap = plt.get_cmap("plasma")
    
-   grouped = df.groupby("full cycle")
+   grouped = df.groupby("half cycle")
 
-   a = df['full cycle'].unique()
+   a = df['half cycle'].unique()
    myList = sorted(a)
    length = len(myList)
    numberList = np.linspace(0,1,length)
-   newList = numberList
-   # for i in numberList:
-   #    newList.extend([i, i])
-   # print(newList)
+   newList = list(numberList)
+   for i in numberList:
+      newList.extend([i, i])
+   print(newList)
    counter = 0
    #print(len(grouped))
    for name, group in grouped:
       val = newList[counter]
-      circle1 = p.circle(x=x_default, y=y_default, size=1.5, source=group, line_color=matplotlib.colors.rgb2hex(cmap(val)))
+      circle1 = p.line(x=x_default, y=y_default, source=group, line_color=matplotlib.colors.rgb2hex(cmap(val)))
       counter = counter + 1
 
 

@@ -233,10 +233,10 @@ class CycleBlock(DataBlock):
 
 		#Function to plot normally
 		def plot_norm(df,cycle_list):
-			half_cycles = []
+			half_cycles = []  #Given input is a list of full cycles, we need to prepare list of half-cycles for detailed plotting
 			print(isinstance(cycle_list, list))
 
-			if isinstance(cycle_list, list) :  #If the input contains a list, print each half-cycle
+			if isinstance(cycle_list, list) :  #If the input contains a list, implies not all cycles are printed so, print each half-cycle
 				for item in cycle_list:
 					print(item)
 					half_cycles.extend([(2*item)-1, 2*item])
@@ -247,11 +247,7 @@ class CycleBlock(DataBlock):
 
 				df = df[df['half cycle'].isin(half_cycles)]
 
-			#If cycle_list is not a list, implies it is empty, implies all cycles must be printed
-
-			print('Original Df Length')	
-			print(len(df))
-			print(df.memory_usage(index=True).sum())
+			
 
 
 			#Find the number of cycles, if it's greater than 10, take out every second row
@@ -273,7 +269,7 @@ class CycleBlock(DataBlock):
 			return df
 
 		#Adapted Navani functions to help plot dqdv
-		def dqdv_single_cycle(capacity, voltage, ncycle,
+		def dqdv_single_cycle(capacity, voltage, ncycle, hf_cycle,
 				polynomial_spline, s_spline,
 				polyorder_1,polyorder_2, window_size_1=101,
 				window_size_2=1001,
@@ -290,13 +286,19 @@ class CycleBlock(DataBlock):
 			dqdv = splev(x_volt, f_smooth, der=1)
 			mycyc = ncycle.max()
 			cyc = np.full(len(x_volt), mycyc)
+			
+			try:
+				mycyc = hf_cycle.max()
+			except:
+				mycyc = hf_cycle
+			hf_cyc = np.full(len(x_volt), mycyc)
 			#print(len(cyc))
 			#print(len(x_volt))
 			smooth_dqdv = savgol_filter(dqdv, window_size_2, polyorder_2)
 			if final_smooth:
-				return x_volt, smooth_dqdv, smooth_cap, cyc
+				return x_volt, smooth_dqdv, smooth_cap, cyc, hf_cyc
 			else:
-				return x_volt, dqdv, smooth_cap, cyc
+				return x_volt, dqdv, smooth_cap, cyc, hf_cyc
 		def multi_dqdv_plot(df, cycle_list, 
 					polynomial_spline, s_spline,
 					polyorder_1,polyorder_2, window_size_1=101,
@@ -309,6 +311,7 @@ class CycleBlock(DataBlock):
 					full_dqdv_list = []
 					full_cap_list = []
 					full_cyc_list = []
+					full_hf_cycle_list = []
 					half_cycles = []
 					myvoltage = []
 					print(f"insidemulti {polynomial_spline}")
@@ -327,9 +330,10 @@ class CycleBlock(DataBlock):
 						try:
 							df_cycle = df[df['half cycle'] == cycle]
 							print(df_cycle['full cycle'].max())
-							myvoltage, dqdv, cap, cyc = dqdv_single_cycle(df_cycle[capacity_label], 
+							myvoltage, dqdv, cap, f_cyc, h_cyc = dqdv_single_cycle(df_cycle[capacity_label], 
 														df_cycle[voltage_label], 
 														df_cycle['full cycle'],
+														cycle,
 														polynomial_spline = polynomial_spline,
 														window_size_1=window_size_1,
 														polyorder_1=polyorder_1,
@@ -345,14 +349,16 @@ class CycleBlock(DataBlock):
 							full_voltage_list.extend(myvoltage)
 							full_dqdv_list.extend(dqdv)
 							full_cap_list.extend(cap)
-							full_cyc_list.extend(cyc)
+							full_cyc_list.extend(f_cyc)
+							full_hf_cycle_list.extend(h_cyc)
+
 							
 							
 							
 							print(f'Printed cycle number {cycle}')
 						except:
 							print('Tried to print unkown cycle')
-					return full_voltage_list, full_dqdv_list, full_cap_list, full_cyc_list
+					return full_voltage_list, full_dqdv_list, full_cap_list, full_cyc_list, full_hf_cycle_list
 			
 
 
@@ -360,7 +366,7 @@ class CycleBlock(DataBlock):
 		def plot_dqdv(df, cycle_list, polynomial_spline, polyorder_1, polyorder_2,s_spline):
 			if isinstance(cycle_list, list) :
 				print(f"insidedqdv {polynomial_spline}")
-				full_voltage_list, full_dqdv_list, full_cap_list, full_cyc_list =  multi_dqdv_plot(df, cycle_list, 
+				full_voltage_list, full_dqdv_list, full_cap_list, full_cyc_list, full_hf_cycle_list =  multi_dqdv_plot(df, cycle_list, 
 							capacity_label='Capacity', 
 							voltage_label='Voltage',
 							polynomial_spline=polynomial_spline, s_spline=s_spline,
@@ -371,13 +377,13 @@ class CycleBlock(DataBlock):
 				
 				print(len(full_cyc_list))
 				print(len(full_cap_list))
-				dict = {'Voltage': full_voltage_list, 'dqdv': full_dqdv_list, 'Capacity': full_cap_list, "full cycle": full_cyc_list }
+				dict = {'Voltage': full_voltage_list, 'dqdv': full_dqdv_list, 'Capacity': full_cap_list, "full cycle": full_cyc_list, "half cycle": full_hf_cycle_list }
 				final_df = pd.DataFrame(dict)
 				return final_df
 			else:
 				cycle_list = list(df['full cycle'].unique())
 				print(f"insidedqdv {s_spline}")
-				full_voltage_list, full_dqdv_list, full_cap_list, full_cyc_list =  multi_dqdv_plot(df, cycle_list, 
+				full_voltage_list, full_dqdv_list, full_cap_list, full_cyc_list, full_hf_cycle_list =  multi_dqdv_plot(df, cycle_list, 
 							capacity_label='Capacity', 
 							voltage_label='Voltage',
 							polynomial_spline=polynomial_spline, s_spline=s_spline,
@@ -386,7 +392,7 @@ class CycleBlock(DataBlock):
 							final_smooth=True)
 				
 				#print(full_voltage_list)
-				dict = {'Voltage': full_voltage_list, 'dqdv': full_dqdv_list, 'Capacity': full_cap_list, "full cycle": full_cyc_list }
+				dict = {'Voltage': full_voltage_list, 'dqdv': full_dqdv_list, 'Capacity': full_cap_list, "full cycle": full_cyc_list, "half cycle": full_hf_cycle_list }
 				final_df = pd.DataFrame(dict)
 				
 				
