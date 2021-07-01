@@ -50,9 +50,11 @@ class DataBlock():
 	defaults= {
 		"p_spline": 5,  
 		"s_spline": 5 ,
-		"polyorder1": 5,  
-		"polyorder2": 5,
-		"plotmode": False
+		"win_size_2": 101,  
+		"win_size_1": 1001,
+		"plotmode-dqdv": False,
+		"plotmode-dvdq": False,
+		
 
 	} # values that are set by default if they are not supplied by the dictionary in init()
 
@@ -231,6 +233,25 @@ class CycleBlock(DataBlock):
 		print(len(df))
 
 
+		def reduce_size(df):
+			#Find the number of cycles, if it's greater than 10, take out every second row
+			cycleNo = df['full cycle'].nunique()
+			a = df['half cycle'].unique()
+			a = sorted(a)
+			print(a)
+			for num in a:
+				mydf = df.loc[df['half cycle'] == num]
+				print(len(mydf))
+				
+				rows = len(mydf)
+				indexNames = df.loc[df['half cycle'] == num].index
+				#print(indexNames)
+				df = df.drop(indexNames , inplace=False)
+				if cycleNo >= 10:
+					mydf =  bokeh_plots.reduce_df_size(mydf, rows)
+				df = df.append(mydf)
+
+			return df		
 		#Function to plot normally
 		def plot_norm(df,cycle_list):
 			half_cycles = []  #Given input is a list of full cycles, we need to prepare list of half-cycles for detailed plotting
@@ -247,23 +268,7 @@ class CycleBlock(DataBlock):
 
 				df = df[df['half cycle'].isin(half_cycles)]
 
-			
-
-
-			#Find the number of cycles, if it's greater than 10, take out every second row
-			cycleNo = df['full cycle'].nunique()
-			a = df['half cycle'].unique()
-			a = sorted(a)
-
-			for num in a:
-				mydf = df.loc[df['half cycle'] == num]
-				rows = len(mydf)
-				indexNames = df.loc[df['half cycle'] == num].index
-				#print(indexNames)
-				df = df.drop(indexNames , inplace=False)
-				if cycleNo >= 10:
-					mydf =  bokeh_plots.reduce_df_size(mydf, cycleNo, rows)
-				df = df.append(mydf)
+		
 
 
 			return df
@@ -271,8 +276,8 @@ class CycleBlock(DataBlock):
 		#Adapted Navani functions to help plot dqdv
 		def dqdv_single_cycle(capacity, voltage, ncycle, hf_cycle,
 				polynomial_spline, s_spline,
-				polyorder_1,polyorder_2, window_size_1=101,
-				window_size_2=1001,
+				window_size_1,
+				window_size_2, polyorder_1=5,polyorder_2=5, 
 				final_smooth=True):
 				
 			print(f"polynomial_spline  {polynomial_spline}")
@@ -306,8 +311,8 @@ class CycleBlock(DataBlock):
 				return x_volt, dqdv, smooth_cap, cyc, hf_cyc
 		def multi_dqdv_plot(df, cycle_list, 
 					polynomial_spline, s_spline,
-					polyorder_1,polyorder_2, window_size_1=101,
-					 window_size_2=1001,
+					 window_size_1,
+					 window_size_2, polyorder_1 = 5,polyorder_2=5,
 					capacity_label='Capacity', 
 					voltage_label='Voltage',
 					final_smooth=True):
@@ -368,15 +373,15 @@ class CycleBlock(DataBlock):
 
 
 		#Function to plot dqdv
-		def plot_dqdv(df, cycle_list, polynomial_spline, polyorder_1, polyorder_2,s_spline):
+		def plot_dqdv(df, cycle_list, polynomial_spline, win_size_1, win_size_2,s_spline):
 			if isinstance(cycle_list, list) :
 				print(f"insidedqdv {polynomial_spline}")
 				full_voltage_list, full_dqdv_list, full_cap_list, full_cyc_list, full_hf_cycle_list =  multi_dqdv_plot(df, cycle_list, 
 							capacity_label='Capacity', 
 							voltage_label='Voltage',
 							polynomial_spline=polynomial_spline, s_spline=s_spline,
-							polyorder_1 = polyorder_1, window_size_1=101,
-							polyorder_2 = polyorder_2, window_size_2=1001,
+							window_size_1 = win_size_1, polyorder_1=5,
+							window_size_2 = win_size_2, polyorder_2=5,
 							final_smooth=True)
 
 				
@@ -391,8 +396,8 @@ class CycleBlock(DataBlock):
 							capacity_label='Capacity', 
 							voltage_label='Voltage',
 							polynomial_spline=polynomial_spline, s_spline=s_spline,
-							polyorder_1 = polyorder_1, window_size_1=101,
-							polyorder_2 = polyorder_2, window_size_2=1001,
+							window_size_1 = win_size_1, polyorder_1=5,
+							window_size_2 = win_size_2, polyorder_2=5,
 							final_smooth=True)
 				
 				#print(full_voltage_list)
@@ -403,46 +408,89 @@ class CycleBlock(DataBlock):
 				return final_df			
 
 
-					
+			#Function to plot dqdv
+		
+		
+		#function to plot dvdq
+		def plot_dvdq(df, cycle_list, polynomial_spline, win_size_1, win_size_2,s_spline):
+			if isinstance(cycle_list, list) :
+				print(f"insidedqdv {polynomial_spline}")
+				full_voltage_list, full_dqdv_list, full_cap_list, full_cyc_list, full_hf_cycle_list =  multi_dqdv_plot(df, cycle_list, 
+							capacity_label='Voltage', 
+							voltage_label='Capacity',
+							polynomial_spline=polynomial_spline, s_spline=s_spline,
+							window_size_1 = win_size_1, polyorder_1=5,
+							window_size_2 = win_size_2, polyorder_2=5,
+							final_smooth=True)
+
+				
+				print(len(full_cyc_list))
+				print(len(full_cap_list))
+				dict = {'Voltage': full_voltage_list, 'dqdv': full_dqdv_list, 'Capacity': full_cap_list, "full cycle": full_cyc_list, "half cycle": full_hf_cycle_list }
+				final_df = pd.DataFrame(dict)
+				return final_df
+			else:
+				cycle_list = list(df['full cycle'].unique())
+				full_voltage_list, full_dqdv_list, full_cap_list, full_cyc_list, full_hf_cycle_list =  multi_dqdv_plot(df, cycle_list, 
+							capacity_label='Voltage', 
+							voltage_label='Capacity',
+							polynomial_spline=polynomial_spline, s_spline=s_spline,
+							window_size_1 = win_size_1, polyorder_1=5,
+							window_size_2 = win_size_2, polyorder_2=5,
+							final_smooth=True)
+				
+				#print(full_voltage_list)
+				dict = {'Voltage': full_voltage_list, 'dqdv': full_dqdv_list, 'Capacity': full_cap_list, "full cycle": full_cyc_list, "half cycle": full_hf_cycle_list }
+				final_df = pd.DataFrame(dict)
+				
+				
+				return final_df			
+
+				
 
 
 		
 			
 
-		
-
+		df = reduce_size(df)
+		#Take variables from vue, assign them to these variable names 'a, b, c, d' - some of them have to be odd numbers, so that is processed
 		print(f"input {self.data['p_spline']}")
-		b = int(self.data['s_spline'])
+		b = float(self.data['s_spline'])
 		a = int(self.data['p_spline'])
-		c = int(self.data['polyorder1'])
-		d = int(self.data['polyorder2'])
+		c = int(self.data['win_size_1'])
+		d = int(self.data['win_size_2'])
 
-		if self.data['plotmode']:    
-			df = plot_dqdv(df, cycle_list,
+		if (c % 2) == 0:
+			c = c+1
+		if (b % 2) == 0:
+			b = b+1
+
+
+		if self.data['plotmode-dqdv']:    
+			dqdv_df = plot_dqdv(df, cycle_list,
 			polynomial_spline=a, 
 			s_spline= 10 ** (-b), 
-			polyorder_1=c, 
-			polyorder_2=d )
-			
-			layout = bokeh_plots.selectable_axes_plot_colours_dqdv(df, x_options=["Capacity","Voltage", "dqdv"], y_options=["Capacity","Voltage", "dqdv"],
-			x_default="Voltage", y_default="dqdv")
-			self.data["bokeh_plot_data"] = bokeh.embed.json_item(layout, theme=mytheme)
-		else:
+			win_size_1=c, 
+			win_size_2=d )
 			df = plot_norm(df,cycle_list)
 			
-			layout = bokeh_plots.selectable_axes_plot_colours(df, x_options=["Capacity","Voltage", "dqdv"], y_options=["Capacity","Voltage", "dqdv"],
-			x_default="Capacity", y_default="Voltage")
+			layout = bokeh_plots.double_axes_plot_dqdv(df, dqdv_df, y_default="Voltage", )
 			self.data["bokeh_plot_data"] = bokeh.embed.json_item(layout, theme=mytheme)
+		elif self.data['plotmode-dvdq']:
+			dvdq_df = plot_dvdq(df, cycle_list,
+			polynomial_spline=a, 
+			s_spline= 10 ** (-b), 
+			win_size_1=c, 
+			win_size_2=d )
+			df = plot_norm(df,cycle_list)
+			
+			
 
 
 
 
 
-
-
-
-
-
+			
 	def to_web(self):
 		self.plot_cycle()
 		return self.data

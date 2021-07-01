@@ -12,11 +12,13 @@ from bokeh.models.widgets import Select, TextInput
 from bokeh.layouts import column
 from bokeh.models import HoverTool, OpenURL, TapTool, LinearColorMapper,ColorBar
 from bokeh.models import HoverTool, OpenURL, TapTool, CustomJS, LinearColorMapper,ColorBar
-
+from bokeh.io import output_file, show
+from bokeh.layouts import gridplot
+from bokeh.plotting import figure
 import matplotlib.pyplot as plt
 import matplotlib 
 import numpy as np
-import navani as echem
+from scipy.signal import find_peaks
 
 
 FONTSIZE="14pt"
@@ -63,7 +65,7 @@ style = {'attrs': {
 mytheme = Theme(json=style)
 
 def reduce_df_size(df, target_nrows):
-   stride = int(np.round(df.len()/target_nrows))
+   stride = int(np.round(len(df)/target_nrows))
    return df.iloc[::stride].copy()
 
 
@@ -315,7 +317,195 @@ def selectable_axes_plot_colours_dqdv(df, x_options, y_options, x_default="Capac
    layout = column(p, xaxis_select, yaxis_select)
    return layout
 
+def double_axes_plot_dqdv(df, dqdv_df, y_default="Voltage", **kwargs):
+   source1 = ColumnDataSource(df)
+   source2 = ColumnDataSource(dqdv_df)
+   
+  
+   
+   #colormapper = LinearColorMapper(palette="Plasma256",low=df['colour'].min(), high=df['colour'].max())
 
+   code_x = """
+      var column = cb_obj.value;
+      circle1.glyph.x.field = column;
+      source.change.emit();
+      xaxis.axis_label = column;
+      """
+   code_y = """
+      var column = cb_obj.value;
+      circle1.glyph.y.field = column;
+      source.change.emit();
+      yaxis.axis_label = column;
+      """
+   
+   #normal plot
+   p1 = figure(aspect_ratio=1.5, x_axis_label="Capacity", y_axis_label=y_default,
+   tools=TOOLS, **kwargs)
+   # circle1 = p1.circle(x='Capacity', y=y_default, source=source1 )
+
+   cmap = plt.get_cmap("plasma")
+   
+   grouped = df.groupby("half cycle")
+
+   a = df['full cycle'].unique()
+   myList = sorted(a)
+   length = len(myList)
+   numberList = np.linspace(0,1,length)
+   newList = []
+   for i in numberList:
+      newList.extend([i, i])
+   print(newList)
+   counter = 0
+   for name, group in grouped:
+      val = newList[counter]
+      circle1 = p1.line(x='Capacity', y=y_default, source=group , line_color=matplotlib.colors.rgb2hex(cmap(val)))
+      counter = counter + 1
+
+
+
+
+
+
+      
+
+
+   #dqdv plot
+   p2 = figure( aspect_ratio=1.5, x_axis_label="dq/dv", y_axis_label=y_default,
+      tools=TOOLS, y_range=p1.y_range, **kwargs)
+   # circle2 = p2.circle(x='dqdv', y=y_default, source=source2)
+      
+
+
+   
+   grouped2 = dqdv_df.groupby("half cycle")
+
+   
+   counter2 = 0
+   #print(len(grouped))
+   for name, group in grouped2:
+      val2 = newList[counter2]
+      circle2 = p2.line(x='dqdv', y=y_default, source=group, line_color=matplotlib.colors.rgb2hex(cmap(val2)))
+      counter2 = counter2 + 1
+
+   #hover = p.select(type=HoverTool)
+   hovertooltips = [
+   ("Cycle No.","@{full cycle}"),
+   
+ 
+   ]
+
+   p1.add_tools(HoverTool(tooltips=hovertooltips))
+   p2.add_tools(HoverTool(tooltips=hovertooltips))
+
+   p1.js_on_event(DoubleTap, CustomJS(args=dict(p=p1), code='p.reset.emit()'))
+   p2.js_on_event(DoubleTap, CustomJS(args=dict(p=p2), code='p.reset.emit()'))
+   layout = gridplot([[p1, p2]], sizing_mode="scale_width", toolbar_location='below')
+   return layout
+
+
+def double_axes_plot_dvdq(df, dvdq_df, x_default="Capacity", **kwargs):
+   source1 = ColumnDataSource(df)
+   source2 = ColumnDataSource(dvdq_df)
+   
+   
+   #colormapper = LinearColorMapper(palette="Plasma256",low=df['colour'].min(), high=df['colour'].max())
+
+   code_x = """
+      var column = cb_obj.value;
+      circle1.glyph.x.field = column;
+      source.change.emit();
+      xaxis.axis_label = column;
+      """
+   code_y = """
+      var column = cb_obj.value;
+      circle1.glyph.y.field = column;
+      source.change.emit();
+      yaxis.axis_label = column;
+      """
+   
+   #normal plot
+   p1 = figure(aspect_ratio=1.5, x_axis_label=x_default, y_axis_label='Voltage',
+   tools=TOOLS, **kwargs)
+   # circle1 = p1.circle(x='Capacity', y=y_default, source=source1 )
+
+   cmap = plt.get_cmap("plasma")
+   
+   grouped = df.groupby("half cycle")
+
+   a = df['full cycle'].unique()
+   myList = sorted(a)
+   length = len(myList)
+   numberList = np.linspace(0,1,length)
+   newList = []
+   for i in numberList:
+      newList.extend([i, i])
+   print(newList)
+   counter = 0
+   for name, group in grouped:
+      val = newList[counter]
+      circle1 = p1.line(x=x_default, y='Voltage', source=group , line_color=matplotlib.colors.rgb2hex(cmap(val)))
+      counter = counter + 1
+      
+
+
+
+
+
+
+      
+
+
+   #dvdq plot
+   p2 = figure( aspect_ratio=1.5, x_axis_label=x_default, y_axis_label="dv/dq",
+      tools=TOOLS, x_range=p1.x_range, **kwargs)
+   # circle2 = p2.circle(x='dqdv', y=y_default, source=source2)
+      
+
+
+   cmap = plt.get_cmap("plasma")
+   
+   grouped2 = dvdq_df.groupby("half cycle")
+
+
+   counter2 = 0
+   #print(len(grouped))
+   for name, group in grouped2:
+      val2 = newList[counter2]
+      circle2 = p2.line(x='Voltage', y='dqdv', source=group, line_color=matplotlib.colors.rgb2hex(cmap(val2)))
+      counter2 = counter2 + 1
+      
+      #Check if half cycle or not
+      if group['dqdv'].mean() > 0:
+         my_dqdv_array = np.array(group['dqdv'])
+
+         peaks, _ = find_peaks(my_dqdv_array, prominence=20)
+
+         my_peaks_df = group.iloc[peaks]
+
+         circle3 = p2.circle(x='Voltage', y='dqdv', source=my_peaks_df )
+      else:
+         my_dqdv_array = np.array(-group['dqdv'])
+
+         peaks, _ = find_peaks(my_dqdv_array, prominence=20)
+
+         my_peaks_df = group.iloc[peaks]
+
+         circle3 = p2.circle(x='Voltage', y='dqdv', source=my_peaks_df )        
+
+   #hover = p.select(type=HoverTool)
+   hovertooltips = [
+   ("Cycle No.","@{full cycle}"),
+   
+ 
+   ]
+
+   p1.add_tools(HoverTool(tooltips=hovertooltips))
+   p2.add_tools(HoverTool(tooltips=hovertooltips))
+
+   p1.js_on_event(DoubleTap, CustomJS(args=dict(p=p1), code='p.reset.emit()'))
+   p2.js_on_event(DoubleTap, CustomJS(args=dict(p=p2), code='p.reset.emit()'))
+   layout = gridplot([[p1, p2]], sizing_mode="scale_width", toolbar_location='below')
+   return layout
 
 
 

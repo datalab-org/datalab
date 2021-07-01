@@ -17,31 +17,36 @@
 				@keydown.enter="updateBlock2"
 				@blur="updateBlock2">
 			</div>
-			<input type="button"  value="Plot!" @click="updateBlock2">
-			<input type="button" value="dq/dv analysis!" @click="modeselect">
+			
 		<div v-if="cycle_num_error" class="alert alert-warning">{{ cycle_num_error }}</div>
 		<!-- Insert another div here, if the filled value is a string or something -->
 		</div>
+		<div class="button-box">
+				<input type="button"  class="btn btn-dark" value="Plot!" @click="updateBlock2" >
+				<input type="button" class="btn btn-dark" id='norm' value="Normal analysis!" @click="normal_modeselect(); color_select()">
+				<input type="button" class="btn btn-dark"  id ='dqdv' value="dq/dv analysis!" @click="dqdv_modeselect(); color_select() ">
+				<input type="button" class="btn btn-dark"  id='dvdq' value="dV/dq analysis!" @click="dvdq_modeselect(); color_select()">
+		</div>
 		<div class="slider-block">
 			<div class="slider">
-				<input type="range" v-model="p_spline"  id="p_spline" name="p_spline" min="1" max="5">
+				<input type="range" v-model="p_spline"  id="p_spline" name="p_spline" min="3" max="9"  step="2">
 				<label for="volume">Polynomial Spline: {{p_spline }}</label>
 			</div>
 			<div class="slider">
-				<input type="range" v-model="s_spline" id="s_spline" name="s_spline" min="2" max="10">
+				<input type="range" v-model="s_spline" id="s_spline" name="s_spline" min="3" max="10" step="0.2">
 				<label for="volume">-ve log Spline fit: {{- s_spline }}</label>
 			</div>
 			<div class="slider">
-				<input type="range" v-model="polyorder1" id="polyorder1" name="polyorder1" min="1" max="7">
-				<label for="volume">Polynomial order 1: {{ polyorder1 }}</label>
+				<input type="range" v-model="win_size_1" id="win_size_1" name="win_size_1" min="501" max="1501">
+				<label for="volume">Window Size 1: {{ win_size_1 }}</label>
 			</div>
 			<div class="slider">
-				<input type="range" v-model="polyorder2" id="polyorder2" name="polyorder2" min="1" max="7">
-				<label for="volume">Polynomial order 2: {{ polyorder2 }}</label>
+				<input type="range" v-model="win_size_2" id="win_size_2" name="win_size_2" min="51" max="151">
+				<label for="volume">Window Size 2: {{ win_size_2 }}</label>
 			</div>
 		</div>
 
-		<div class="row">
+		<div class="row" id='plotarea'>
 			<div class="col-xl-8 col-lg-9 col-md-11 mx-auto">
 				<BokehPlot :bokehPlotData="bokehPlotData" />
 				<!-- <div v-if="!bokehPlotData" class="alert alert-danger">No bokeh Plot Data is loaded</div> -->
@@ -85,9 +90,10 @@ export default {
 		all_cycles: createComputedSetterForBlockField("cyclenumber"),
 		p_spline: createComputedSetterForBlockField("p_spline"),
 		s_spline: createComputedSetterForBlockField("s_spline"),
-		polyorder1: createComputedSetterForBlockField("polyorder1"),
-		polyorder2: createComputedSetterForBlockField("polyorder2"),
-		mode: createComputedSetterForBlockField("plotmode"),
+		win_size_1: createComputedSetterForBlockField("win_size_1"),
+		win_size_2: createComputedSetterForBlockField("win_size_2"),
+		dqdv_mode: createComputedSetterForBlockField("plotmode-dqdv"),
+		dvdq_mode: createComputedSetterForBlockField("plotmode-dvdq"),
 		
 		
 	},
@@ -122,9 +128,9 @@ export default {
 		},
 		updateBlock2() {
 			this.all_cycles = this.parseCycleNumber(this.cycle_number)
-			if (!this.all_cycles) {
-				return
-			}
+			// if (!this.all_cycles) {
+			// 	return
+			// }
 			console.log('parsing')
 			this.cycle_num_error = this.all_cycles
 			updateBlockFromServer(this.sample_id, this.block_id, 
@@ -167,15 +173,81 @@ export default {
 			}
 
 		},
-		modeselect(){
+		dqdv_modeselect(){
+			
+			
 			//Default value for dqdv mode is False, following lines reverses boolean and shows/removes the dqdv slider section accordingly
-			this.mode = !(this.mode)
-			console.log(this.mode)
-			if (this.mode){
+			this.dqdv_mode = !(this.dqdv_mode)
+
+			//if dqdv mode is activated, then dvdq mode HAS to be false
+			if (this.dqdv_mode && this.dvdq_mode){       // When calling the dqdv button, we know user wants dqdv. If both dqdv and dvdq are true, set dvdq to false
+				this.dvdq_mode = !(this.dvdq_mode)
+			}
+
+			console.log(this.dvdq_mode)
+			console.log(this.dqdv_mode)
+			if (this.dqdv_mode){
 				document.getElementsByClassName("slider-block")[0].style.display = "block"
 			}else{
 				document.getElementsByClassName("slider-block")[0].style.display = "none"
 			}
+
+
+			
+		},
+		dvdq_modeselect(){
+			//Default value for dqdv mode is False, following lines reverses boolean and shows/removes the dqdv slider section accordingly
+			this.dvdq_mode = !(this.dvdq_mode)
+
+			//if dqdv mode is activated, then dvdq mode HAS to be false
+			if (this.dvdq_mode && this.dqdv_mode){
+				this.dqdv_mode = !(this.dqdv_mode)
+			}
+			console.log(this.dvdq_mode)
+			console.log(this.dqdv_mode)
+			if (this.dvdq_mode){
+				document.getElementsByClassName("slider-block")[0].style.display = "block"
+			}else{
+				document.getElementsByClassName("slider-block")[0].style.display = "none"
+			}
+		},
+		normal_modeselect(){
+			
+			if (this.dqdv_mode){
+				this.dqdv_mode = !(this.dqdv_mode)
+			}
+			if (this.dvdq_mode){
+				this.dvdq_mode = !(this.dvdq_mode)
+			}
+			console.log(this.dvdq_mode)
+			console.log(this.dqdv_mode)
+		
+			document.getElementsByClassName("slider-block")[0].style.display = "none"
+			
+		},
+		color_select(){
+			var dqdv = document.getElementById('dqdv');
+			var dvdq = document.getElementById('dvdq');
+			var norm = document.getElementById('norm');
+
+			if (this.dqdv_mode){
+				
+				dqdv.style.color = 'green';
+				dvdq.style.color = 'white';
+				norm.style.color = 'white';
+			} 
+			else if (this.dvdq_mode){
+				
+				dqdv.style.color = 'white';
+				dvdq.style.color = 'green';
+				norm.style.color = 'white';
+			} 
+			else {
+				
+				dqdv.style.color = 'white';
+				dvdq.style.color = 'white';
+				norm.style.color = 'green';
+			} 
 		}
 
 	},
@@ -188,9 +260,25 @@ export default {
 </script>
 
 <style scoped>
+
+.button-box {
+	display: block;
+	width: 100%;
+	margin: 10px 0 10px 0;
+	
+}
+
+
+.button-box input{
+	margin-right: 10px;
+}
 .slider {
 	display: inline-block;
 	width: 25%;
+}
+
+.slider label{
+	display: block;
 }
 
 .slider-block{
@@ -198,5 +286,15 @@ export default {
 	margin-bottom: 20px;
 	display: none;
 
+}
+.mx-auto {
+	margin-left: 0 !important;
+	margin-right: 0 !important;
+	max-width: 100%;
+}
+
+#plotarea {
+	max-width: 100% !important;
+	display: block !important;
 }
 </style>
