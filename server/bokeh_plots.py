@@ -204,22 +204,28 @@ def selectable_axes_plot_colours(df, x_options, y_options, x_default="Voltage", 
       tools=TOOLS, **kwargs)
 
 
-   cmap = plt.get_cmap("plasma")
    
-   grouped = df.groupby("half cycle")
+   #Need to group the df into groups of different half cycles and then plot a line through it. Plotting groups of full cycles means the point will
+   #jump from one end to the other when charge --> discharge
 
-   a = df['full cycle'].unique()
-   myList = sorted(a)
+   half_cycle_group = df.groupby("half cycle")
+
+   #We need to colour lines by full-cycles in a gradient
+   cmap = plt.get_cmap("plasma")
+   full_cycle_group = df['full cycle'].unique()
+   myList = sorted(full_cycle_group)
    length = len(myList)
    numberList = np.linspace(0,1,length)
+   #Since we are plotting by half cycle, colour is assigned by half cycle, even though we need full cycle
+   #to get around this, we will assign each pair of half cycle for each full cycle the same cmap value
    newList = []
    for i in numberList:
       newList.extend([i, i])
-   print(newList)
+  
    counter = 0
-   for name, group in grouped:
+   for name, group in half_cycle_group:
       val = newList[counter]
-      circle1 = p.circle(x=x_default, y=y_default, source=group, line_color=matplotlib.colors.rgb2hex(cmap(val)))
+      circle1 = p.line(x=x_default, y=y_default, source=group, line_color=matplotlib.colors.rgb2hex(cmap(val)))
       counter = counter + 1
 
 
@@ -343,20 +349,25 @@ def double_axes_plot_dqdv(df, dqdv_df, y_default="Voltage", **kwargs):
    tools=TOOLS, **kwargs)
    # circle1 = p1.circle(x='Capacity', y=y_default, source=source1 )
 
-   cmap = plt.get_cmap("plasma")
-   
-   grouped = df.groupby("half cycle")
+   #Need to group the df into groups of different half cycles and then plot a line through it. Plotting groups of full cycles means the point will
+   #jump from one end to the other when charge --> discharge
 
-   a = df['full cycle'].unique()
-   myList = sorted(a)
+   half_cycle_group = df.groupby("half cycle")
+
+   #We need to colour lines by full-cycles in a gradient
+   cmap = plt.get_cmap("plasma")
+   full_cycle_group = df['full cycle'].unique()
+   myList = sorted(full_cycle_group)
    length = len(myList)
    numberList = np.linspace(0,1,length)
+   #Since we are plotting by half cycle, colour is assigned by half cycle, even though we need full cycle
+   #to get around this, we will assign each pair of half cycle for each full cycle the same cmap value
    newList = []
    for i in numberList:
       newList.extend([i, i])
-   print(newList)
+  
    counter = 0
-   for name, group in grouped:
+   for name, group in half_cycle_group:
       val = newList[counter]
       circle1 = p1.line(x='Capacity', y=y_default, source=group , line_color=matplotlib.colors.rgb2hex(cmap(val)))
       counter = counter + 1
@@ -428,20 +439,25 @@ def double_axes_plot_dvdq(df, dvdq_df, x_default="Capacity", **kwargs):
    tools=TOOLS, **kwargs)
    # circle1 = p1.circle(x='Capacity', y=y_default, source=source1 )
 
-   cmap = plt.get_cmap("plasma")
-   
-   grouped = df.groupby("half cycle")
+   #Need to group the df into groups of different half cycles and then plot a line through it. Plotting groups of full cycles means the point will
+   #jump from one end to the other when charge --> discharge
 
-   a = df['full cycle'].unique()
-   myList = sorted(a)
+   half_cycle_group = df.groupby("half cycle")
+
+   #We need to colour lines by full-cycles in a gradient
+   cmap = plt.get_cmap("plasma")
+   full_cycle_group = df['full cycle'].unique()
+   myList = sorted(full_cycle_group)
    length = len(myList)
    numberList = np.linspace(0,1,length)
+   #Since we are plotting by half cycle, colour is assigned by half cycle, even though we need full cycle
+   #to get around this, we will assign each pair of half cycle for each full cycle the same cmap value
    newList = []
    for i in numberList:
       newList.extend([i, i])
-   print(newList)
+  
    counter = 0
-   for name, group in grouped:
+   for name, group in half_cycle_group:
       val = newList[counter]
       circle1 = p1.line(x=x_default, y='Voltage', source=group , line_color=matplotlib.colors.rgb2hex(cmap(val)))
       counter = counter + 1

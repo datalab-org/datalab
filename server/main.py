@@ -12,6 +12,7 @@ from bson import ObjectId
 from flask_cors import CORS
 
 from blocks import * # the data blocks
+from echem_block import CycleBlock
 
 import remote_filesystems
 

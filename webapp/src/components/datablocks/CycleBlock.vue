@@ -68,6 +68,7 @@ import BokehPlot from "@/components/BokehPlot"
 import {updateBlockFromServer} from "@/server_fetch_utils.js"
 import {createComputedSetterForBlockField} from "@/field_utils.js"
 
+
 export default {
 	data() {
 		return {
@@ -248,7 +249,8 @@ export default {
 				dvdq.style.color = 'white';
 				norm.style.color = 'green';
 			} 
-		}
+		},
+
 
 	},
 	components: {
