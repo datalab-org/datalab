@@ -2,14 +2,15 @@
   <div>
     <h1>My JSON</h1>
     
-      <table>
-      <tr v-for="b in Object.keys(jsondata['myfile'])" :key="b.id" class="weather-data">
-         <td>{{b}}</td> 
+    <table>
+      <tr v-for="(value, name) in jsondata['techniques'][0]['program']" :key="value.id">
+         <td>{{name}}</td>
+         <td > {{value['I']}}</td> 
+         <td > {{value['I.1']}}</td> 
+         <!-- <td v-for="c in jsondata['techniques'][0]['program']" :key="c.id" > {{c}}</td> -->
+        
       </tr>
-     <tr v-for="a in jsondata['myfile']" :key="a.id" class="weather-data">
-        <td>{{a}}</td> 
-
-      </tr>
+     
 
 
     </table>
@@ -27,33 +28,12 @@ export default {
   data() {
       return {
           jsondata: cycleDescriptionData,
-          validKeys: [ "Number of linked techniques " ],
+
           userInput: this.jsondata
       };
   },
-  methods:{
-    techniqueRemover(){
-      validKeys = [ "Number of linked techniques " ];
-      userInput = this.jsondata
-
-      Object.keys(userInput).forEach((key) => validKeys.includes(key) || delete userInput[key]);
-    }
-  },
-  beforeMount(){
-    this.jsondata = this.techniqueRemover()
-  }
+  
 
 };
 </script>
 
-<style scoped>
-table {
-	display: table;
-}
-table tr {
-	display: table-cell;
-}
-table tr td {
-	display: block;
-}
-</style>
