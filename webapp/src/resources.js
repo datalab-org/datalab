@@ -12,5 +12,5 @@ export const blockKinds = {
    image: { description:"Image Block", component: ImageBlock },
    xrd: { description:"Powder XRD", component: XRDBlock },
    cycle: { description:"Electrochemistry", component: CycleBlock },
-   synthesis: { description: "Materials Synthesis", component:SynthesisBlock },
+   //synthesis: { description: "Materials Synthesis", component:SynthesisBlock },
 }
