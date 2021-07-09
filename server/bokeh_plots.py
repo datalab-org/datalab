@@ -70,113 +70,6 @@ def reduce_df_size(df, target_nrows):
 
 
 
-def simple_bokeh_plot(xy_filename, x_label=None, y_label=None):
-
-   df = pd.read_csv(xy_filename, sep='\s+', names=["x_col", "y_col"])
-   source = ColumnDataSource(df)
-   # source = ColumnDataSource({'x_col': x, 'y_col': y})
-
-   kw = dict()
-   p = figure(sizing_mode="scale_width",aspect_ratio=1.5, tools=TOOLS, **kw)
-
-   p.xaxis.axis_label = x_label
-   p.yaxis.axis_label = y_label
-
-
-   # apply a theme. for some reason, this isn't carrying over 
-   # to components() calls, so use components(theme=mytheme)
-   curdoc().theme = mytheme 
-
-
-   p.circle("x_col", "y_col", source=source)
-   p.toolbar.logo = "grey"
-   p.js_on_event(DoubleTap, CustomJS(args=dict(p=p), code='p.reset.emit()'))
-   # show(p)
-   return p
-
-def selectable_axes_plot(df, x_options, y_options, x_default=None, y_default=None, **kwargs):
-   source = ColumnDataSource(df)
-
-   if not x_default:
-      x_default = x_options[0]
-      y_default = y_options[0]
-
-   code_x = """
-      var column = cb_obj.value;
-      circle1.glyph.x.field = column;
-      source.change.emit();
-      xaxis.axis_label = column;
-      """
-   code_y = """
-      var column = cb_obj.value;
-      circle1.glyph.y.field = column;
-      source.change.emit();
-      yaxis.axis_label = column;
-      """
-
-   p = figure(sizing_mode="scale_width",aspect_ratio=1.5, x_axis_label=x_default, y_axis_label=y_default,
-      tools=TOOLS, **kwargs)
-
-   circle1 = p.circle(x=x_default, y=y_default, source=source)
-
-   callback_x = CustomJS(args=dict(circle1=circle1, source=source, xaxis=p.xaxis[0]), code=code_x)
-   callback_y = CustomJS(args=dict(circle1=circle1, source=source, yaxis=p.yaxis[0]), code=code_y)
-
-   # Add list boxes for selecting which columns to plot on the x and y axis
-   xaxis_select = Select(title="X axis:", value=x_default, options=x_options)
-   xaxis_select.js_on_change("value",callback_x)
-
-   yaxis_select = Select(title="Y axis:", value=y_default, options=y_options)
-   yaxis_select.js_on_change("value",callback_y)
-
-
-
-   p.js_on_event(DoubleTap, CustomJS(args=dict(p=p), code='p.reset.emit()'))
-   layout = column(p, xaxis_select, yaxis_select)
-   return layout
-
-def selectable_axes_plot_dqdv(df, x_options, y_options, x_default="Capacity", y_default="Voltage", **kwargs):
-   source = ColumnDataSource(df)
-   
-   if not x_default:
-      x_default = x_options[0]
-      y_default = y_options[0]
-   
-   #colormapper = LinearColorMapper(palette="Plasma256",low=df['colour'].min(), high=df['colour'].max())
-
-   code_x = """
-      var column = cb_obj.value;
-      circle1.glyph.x.field = column;
-      source.change.emit();
-      xaxis.axis_label = column;
-      """
-   code_y = """
-      var column = cb_obj.value;
-      circle1.glyph.y.field = column;
-      source.change.emit();
-      yaxis.axis_label = column;
-      """
-
-   p = figure(sizing_mode="scale_width",aspect_ratio=1.5, x_axis_label=x_default, y_axis_label=y_default,
-      tools=TOOLS, **kwargs)
-
-   circle1 = p.circle(x=x_default, y=y_default, source=source, size=1)
-
-   callback_x = CustomJS(args=dict(circle1=circle1, source=source, xaxis=p.xaxis[0]), code=code_x)
-   callback_y = CustomJS(args=dict(circle1=circle1, source=source, yaxis=p.yaxis[0]), code=code_y)
-
-   # Add list boxes for selecting which columns to plot on the x and y axis
-   xaxis_select = Select(title="X axis:", value=x_default, options=x_options)
-   xaxis_select.js_on_change("value",callback_x)
-
-   yaxis_select = Select(title="Y axis:", value=y_default, options=y_options)
-   yaxis_select.js_on_change("value",callback_y)
-
-
-
-   p.js_on_event(DoubleTap, CustomJS(args=dict(p=p), code='p.reset.emit()'))
-   layout = column(p, xaxis_select, yaxis_select)
-   return layout
 
 def selectable_axes_plot_colours(df, x_options, y_options, x_default="Voltage", y_default="Capacity", **kwargs):
    source = ColumnDataSource(df)
@@ -253,84 +146,11 @@ def selectable_axes_plot_colours(df, x_options, y_options, x_default="Voltage", 
    layout = column(p, xaxis_select, yaxis_select)
    return layout
 
-def selectable_axes_plot_colours_dqdv(df, x_options, y_options, x_default="Capacity", y_default="dqdv", **kwargs):
-   source = ColumnDataSource(df)
-   
-   if not x_default:
-      x_default = x_options[0]
-      y_default = y_options[0]
-   
-   #colormapper = LinearColorMapper(palette="Plasma256",low=df['colour'].min(), high=df['colour'].max())
-
-   code_x = """
-      var column = cb_obj.value;
-      circle1.glyph.x.field = column;
-      source.change.emit();
-      xaxis.axis_label = column;
-      """
-   code_y = """
-      var column = cb_obj.value;
-      circle1.glyph.y.field = column;
-      source.change.emit();
-      yaxis.axis_label = column;
-      """
-
-   p = figure(sizing_mode="scale_width",aspect_ratio=1.5, x_axis_label=x_default, y_axis_label=y_default,
-      tools=TOOLS, **kwargs)
-
-
-   cmap = plt.get_cmap("plasma")
-   
-   grouped = df.groupby("half cycle")
-
-   a = df['half cycle'].unique()
-   myList = sorted(a)
-   length = len(myList)
-   numberList = np.linspace(0,1,length)
-   newList = list(numberList)
-   for i in numberList:
-      newList.extend([i, i])
-   print(newList)
-   counter = 0
-   #print(len(grouped))
-   for name, group in grouped:
-      val = newList[counter]
-      circle1 = p.line(x=x_default, y=y_default, source=group, line_color=matplotlib.colors.rgb2hex(cmap(val)))
-      counter = counter + 1
-
-
-
-   callback_x = CustomJS(args=dict(circle1=circle1, source=source, xaxis=p.xaxis[0]), code=code_x)
-   callback_y = CustomJS(args=dict(circle1=circle1, source=source, yaxis=p.yaxis[0]), code=code_y)
-
-   # Add list boxes for selecting which columns to plot on the x and y axis
-   xaxis_select = Select(title="X axis:", value=x_default, options=x_options)
-   xaxis_select.js_on_change("value",callback_x)
-
-   yaxis_select = Select(title="Y axis:", value=y_default, options=y_options)
-   yaxis_select.js_on_change("value",callback_y)
-
-   #hover = p.select(type=HoverTool)
-   hovertooltips = [
-   ("Cycle No.","@{full cycle}"),
-   
- 
-   ]
-
-   p.add_tools(HoverTool(tooltips=hovertooltips))
-
-   p.js_on_event(DoubleTap, CustomJS(args=dict(p=p), code='p.reset.emit()'))
-   layout = column(p, xaxis_select, yaxis_select)
-   return layout
-
-def double_axes_plot_dqdv(df, dqdv_df, y_default="Voltage", **kwargs):
+def double_axes_plot(df, df2, y_default, x_axis_label, x,  **kwargs):
    source1 = ColumnDataSource(df)
-   source2 = ColumnDataSource(dqdv_df)
+   source2 = ColumnDataSource(df2)
    
   
-   
-   #colormapper = LinearColorMapper(palette="Plasma256",low=df['colour'].min(), high=df['colour'].max())
-
    code_x = """
       var column = cb_obj.value;
       circle1.glyph.x.field = column;
@@ -345,7 +165,7 @@ def double_axes_plot_dqdv(df, dqdv_df, y_default="Voltage", **kwargs):
       """
    
    #normal plot
-   p1 = figure(aspect_ratio=1.5, x_axis_label="Capacity", y_axis_label=y_default,
+   p1 = figure(aspect_ratio=1.5, x_axis_label=x_axis_label, y_axis_label=y_default,
    tools=TOOLS, **kwargs)
    # circle1 = p1.circle(x='Capacity', y=y_default, source=source1 )
 
@@ -381,21 +201,21 @@ def double_axes_plot_dqdv(df, dqdv_df, y_default="Voltage", **kwargs):
 
 
    #dqdv plot
-   p2 = figure( aspect_ratio=1.5, x_axis_label="dq/dv", y_axis_label=y_default,
+   p2 = figure( aspect_ratio=1.5, x_axis_label=x_axis_label, y_axis_label=y_default,
       tools=TOOLS, y_range=p1.y_range, **kwargs)
    # circle2 = p2.circle(x='dqdv', y=y_default, source=source2)
       
 
 
    
-   grouped2 = dqdv_df.groupby("half cycle")
+   grouped2 = df2.groupby("half cycle")
 
    
    counter2 = 0
    #print(len(grouped))
    for name, group in grouped2:
       val2 = newList[counter2]
-      circle2 = p2.line(x='dqdv', y=y_default, source=group, line_color=matplotlib.colors.rgb2hex(cmap(val2)))
+      circle2 = p2.line(x=x, y=y_default, source=group, line_color=matplotlib.colors.rgb2hex(cmap(val2)))
       counter2 = counter2 + 1
 
    #hover = p.select(type=HoverTool)
@@ -494,7 +314,7 @@ def double_axes_plot_dvdq(df, dvdq_df, x_default="Capacity", **kwargs):
       if group['dqdv'].mean() > 0:
          my_dqdv_array = np.array(group['dqdv'])
 
-         peaks, _ = find_peaks(my_dqdv_array, prominence=20)
+         peaks, _ = find_peaks(my_dqdv_array, prominence=5)
 
          my_peaks_df = group.iloc[peaks]
 
@@ -502,7 +322,7 @@ def double_axes_plot_dvdq(df, dvdq_df, x_default="Capacity", **kwargs):
       else:
          my_dqdv_array = np.array(-group['dqdv'])
 
-         peaks, _ = find_peaks(my_dqdv_array, prominence=20)
+         peaks, _ = find_peaks(my_dqdv_array, prominence=5)
 
          my_peaks_df = group.iloc[peaks]
 
@@ -525,6 +345,4 @@ def double_axes_plot_dvdq(df, dvdq_df, x_default="Capacity", **kwargs):
 
 
 
-if __name__ == "__main__":
-   simple_bokeh_plot()
 
