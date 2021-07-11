@@ -27,12 +27,16 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -U setuptools
-        pip install -r requirements-dev.txt
+        pip install flake8 pre-commit
+
+    - name: Check for syntax errors with flake8
+      run: |
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --exit-zero
 
     - name: Run pre-commit
       run: |
         # Set true for now, until everything can be fixed
-        pre-commit run --all-files --show-diff-on-failure || true
+        pipenv run pre-commit run --all-files --show-diff-on-failure || true
 
   pytest:
     name: Run Python unit tests
@@ -57,12 +61,11 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -U setuptools
-        pip install -e .
-        pip install -r requirements.txt
-        pip install -r requirements-dev.txt
+        pip install pipenv
+        pipenv install --dev
 
     - name: Run all tests
-      run: pytest -rs -vvv --cov-report=xml tests/
+      run: pipenv run pytest -rs -vvv --cov-report=xml tests/
 
     - name: Upload coverage to Codecov
       if: matrix.python-version == 3.8 && github.repository == 'the-grey-group/datalabvue'
@@ -105,12 +108,12 @@ jobs:
         python-version: 3.9
 
     - name: Build the Docker images
-      run: docker-compose build mongo server app
+      run: docker-compose build
 
     - name: Start Docker images
       run: |
-        docker-compose up mongo &
-        docker-compose up server &
-        docker-compose up app &
-        sleep 10;
+        docker-compose up --abort-on-container-exit &
+        # If there are no build errors after 1 minute, then exit successfully.
+        # In future, some additional tests will run here instead.
+        sleep 60
         exit 0
