@@ -11,20 +11,20 @@ In order to use remote filesystems, you will have to (connect to the chem VPN an
 
 ## Installation:
 
-Before starting, be warned– the javascript app environment installation will take up at least 300 mb.
+Before starting, be warned– the javascript app environment installation will take up at least 300 MB.
 Choose where you would like to put the direcotry, and `git clone https://github.com/the-grey-group/datalab.git` 
 
 This repository includes two pieces: a python-based flask server, and a javascript-based vue web application. To install, you will need to install environments for each part.
 
 ### Server
 1. Make sure you have a recent version of python 3 (tested with python 3.8 and above)
-2. install pipenv if you don't have it (`pip install pipenv`)
+2. Install pipenv if you don't have it (`pip install pipenv`)
 4. install MongoDB community edition if you don't have it (https://docs.mongodb.com/manual/installation/)
 	* if on mac, you may want to do this with homebrew
 	* I recommend also installing [MongoDB Compass](https://www.mongodb.com/products/compass), or another GUI client
 5. Setup mongodb to run as a service on your computer (or run manually each time you use the site)
 6. In mongodb, create a Database called "datalabvue" with a collection called "data". You can do this with the mongo shell or in Compass
-7. go into `datalabvue/server` directory and install the python dependencies with pipenv:
+7. go into `pydatalab/pydatalab` directory and install the Python dependencies with pipenv:
 
 	`pipenv install`
   
@@ -57,6 +57,6 @@ Similar to the flask development server, this will provide a development environ
 These instructions assume that both Docker and docker-compose are installed (and that the Docker daemon is running).
 
 Dockerfiles for the web app, server and database can be found in the `.docker` directory.
-- `docker-compose build` will pull each of the base Docker images (`mongo`, `node` and `python:3.8`) and build the corresponding apps on top of them.
+- `docker-compose build` will pull each of the base Docker images (`mongo`, `node` and `python`) and build the corresponding apps on top of them.
 - `docker-compose up` will launch a container for each component, such that the web app can be accessed at `localhost:8080`, the server at `localhost:5001` and the database at `localhost:27017`. The source files for the server and the web app are copied at the build stage, so no hot-reloading will occur by default (so `docker-compose build` will need to be called again).
 - `docker-compose stop` will stop all running containers.
