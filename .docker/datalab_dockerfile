@@ -3,11 +3,11 @@ SHELL ["/bin/bash", "--login", "-c"]
 
 # Copy all server code into workdir
 WORKDIR /app
-COPY ./datalab/ /app
+COPY ./pydatalab/ /app
 
 # Install Pipenv and use it to grab dependencies
 RUN pip install pipenv
 RUN pipenv install --deploy
 
 # Run flask server
-CMD ["pipenv", "run", "python", "datalab/main.py"]
+CMD ["pipenv", "run", "python", "pydatalab/main.py"]

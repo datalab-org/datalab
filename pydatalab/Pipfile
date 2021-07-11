@@ -3,8 +3,6 @@ name = "pypi"
 url = "https://pypi.org/simple"
 verify_ssl = true
 
-[dev-packages]
-
 [packages]
 flask = "*"
 bokeh = "2.2.3"
@@ -16,6 +14,12 @@ flask-pymongo = "*"
 flask-cors = "*"
 galvani = "*"
 pyqt5 = "*"
+pydatalab = {path = "."}
+
+[dev-packages]
+pytest = "*"
+pytest-cov = "*"
+pre-commit = "*"
 
 [requires]
 python_version = "3"
