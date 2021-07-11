@@ -8,22 +8,24 @@ services:
       context: .
       dockerfile: .docker/app_dockerfile
     depends_on:
-      - datalab
+      - server
     volumes:
       - ./logs:/var/logs/mongod/
+
     ports:
       - "8080:8080"
 
-  datalab:
+  server:
     restart: always
     build:
       context: .
-      dockerfile: .docker/datalab_dockerfile
+      dockerfile: .docker/server_dockerfile
     depends_on:
       - mongo
     volumes:
       - sockets:/tmp/
       - ./logs:/app/logs/
+
     ports:
       - "5001:5001"
 
@@ -36,8 +38,6 @@ services:
     volumes:
       - sockets:/tmp/
       - ./logs:/var/logs/mongod/
-    ports:
-      - "27017:27017"
 
 volumes:
     sockets:
