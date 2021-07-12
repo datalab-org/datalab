@@ -12,7 +12,7 @@ In order to use remote filesystems, you will have to (connect to the chem VPN an
 ## Installation:
 
 Before starting, be warned– the javascript app environment installation will take up at least 300 MB.
-Choose where you would like to put the direcotry, and `git clone https://github.com/the-grey-group/datalab.git` 
+Choose where you would like to put the directory, and `git clone https://github.com/the-grey-group/datalabvue.git` 
 
 This repository includes two pieces: a python-based flask server, and a javascript-based vue web application. To install, you will need to install environments for each part.
 
@@ -23,7 +23,7 @@ This repository includes two pieces: a python-based flask server, and a javascri
 	* if on mac, you may want to do this with homebrew
 	* I recommend also installing [MongoDB Compass](https://www.mongodb.com/products/compass), or another GUI client
 5. Setup mongodb to run as a service on your computer (or run manually each time you use the site)
-6. In mongodb, create a Database called "datalabvue" with a collection called "data". You can do this with the mongo shell or in Compass
+6. In mongodb, create a Database called "datalabvue" with a collection called "data" and another called "files". You can do this with the mongo shell or in Compass
 7. go into `pydatalab/pydatalab` directory and install the Python dependencies with pipenv:
 
 	`pipenv install`
