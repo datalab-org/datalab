@@ -5,13 +5,13 @@ from bokeh.io import curdoc
 
 from bokeh.events import DoubleTap
 from bokeh.models.callbacks import CustomJS
-from bokeh.models import ColorBar, LogTicker
-from bokeh.models import ColorBar, LogColorMapper
+from bokeh.models import LogColorMapper, LogTicker
+
 from bokeh.plotting import figure, output_file, show
 from bokeh.models.widgets import Select, TextInput
 from bokeh.layouts import column
-from bokeh.models import HoverTool, OpenURL, TapTool, LinearColorMapper,ColorBar
-from bokeh.models import HoverTool, OpenURL, TapTool, CustomJS, LinearColorMapper,ColorBar
+from bokeh.models import HoverTool, OpenURL, TapTool, LinearColorMapper,ColorBar, CustomJS
+
 from bokeh.io import output_file, show
 from bokeh.layouts import gridplot
 from bokeh.plotting import figure

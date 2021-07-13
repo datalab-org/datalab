@@ -1,12 +1,24 @@
-import os
-import random
+import os, random, json
 
-import bokeh
+import xrd_utils
+import pandas as pd
+
 from bson import ObjectId
-
-from . import xrd_utils
-from .simple_bokeh_plot import simple_bokeh_plot, mytheme
-from .file_utils import get_file_info_by_id
+import numpy as np
+import bokeh
+from bokeh.plotting import figure
+from bokeh.io import curdoc
+from bokeh.events import DoubleTap
+from bokeh.models.callbacks import CustomJS
+from simple_bokeh_plot import simple_bokeh_plot, mytheme
+import bokeh_plots 
+import pandas as pd
+import numpy as np
+from scipy.interpolate import splrep, splev
+from navani import echem as ec
+from file_utils import get_file_info_by_id
+from scipy.signal import savgol_filter
+from scipy.interpolate import splev, splrep
 
 UPLOAD_PATH = "uploads"
 
@@ -123,7 +135,7 @@ class XRDBlock(DataBlock):
 			filename = xrd_utils.convertSinglePattern(file_info["location"]) # should give .xrdml.xy file
 			print(f"the path is now: {filename}")
 		else:
-            filename = os.path.join(directory, filename)
+			filename = os.path.join(directory, filename)
 
 		p = simple_bokeh_plot(filename, x_label="2θ (°)", y_label="intensity (counts)")
 
