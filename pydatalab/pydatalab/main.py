@@ -2,9 +2,6 @@ import datetime
 import os
 import pprint
 
-import file_utils
-import remote_filesystems
-from blocks import *  # the data blocks
 from bson import ObjectId, json_util
 from flask import Flask, jsonify, request, send_from_directory
 from flask.json import JSONEncoder
@@ -12,6 +9,9 @@ from flask_cors import CORS
 from flask_pymongo import PyMongo
 from pymongo import ReturnDocument
 from werkzeug.utils import secure_filename
+
+from pydatalab import file_utils, remote_filesystems
+from pydatalab.blocks import BLOCK_KINDS
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
@@ -23,15 +23,6 @@ app.config.update(
     FILE_DIRECTORY="files",
 )
 
-
-BLOCK_KINDS = {  # TODO: think about autogenerating this from DataBlock's blocktype parameters
-    "test": DataBlock,
-    "comment": CommentBlock,
-    "image": ImageBlock,
-    "xrd": XRDBlock,
-    "cycle": CycleBlock,
-    "generic": DataBlock,
-}
 
 # use a json encoder that can handle pymongo's bson
 class CustomJSONEncoder(JSONEncoder):
