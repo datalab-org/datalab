@@ -4,7 +4,7 @@ import random
 
 import bokeh
 import bokeh_plots
-import echem as ec
+import navani.echem as ec
 import xrd_utils
 from bokeh.events import DoubleTap
 from bokeh.io import curdoc
