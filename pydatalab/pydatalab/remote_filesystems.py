@@ -1,12 +1,11 @@
-import subprocess
+import datetime
 import json
 import os
 import shutil
-import datetime
-
-from resources import DIRECTORIES, DIRECTORIES_DICT
+import subprocess
 
 from pymongo import MongoClient
+from resources import DIRECTORIES, DIRECTORIES_DICT
 
 # from fs.smbfs import SMBFS
 

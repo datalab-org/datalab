@@ -1,15 +1,11 @@
 import pandas as pd
-from bokeh.plotting import figure, ColumnDataSource, show
-from bokeh.themes import built_in_themes, Theme
-from bokeh.io import curdoc
-
 from bokeh.events import DoubleTap
-from bokeh.models.callbacks import CustomJS
-
-
-from bokeh.models.widgets import Select, TextInput
+from bokeh.io import curdoc
 from bokeh.layouts import column
-
+from bokeh.models.callbacks import CustomJS
+from bokeh.models.widgets import Select, TextInput
+from bokeh.plotting import ColumnDataSource, figure, show
+from bokeh.themes import Theme, built_in_themes
 
 FONTSIZE = "14pt"
 TYPEFACE = "Helvetica"  # "Lato"

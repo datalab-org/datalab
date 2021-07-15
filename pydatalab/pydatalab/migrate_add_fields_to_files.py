@@ -3,7 +3,6 @@ import shutil
 
 from pymongo import MongoClient
 
-
 client = MongoClient("mongodb://localhost:27017/")
 db = client.datalabvue
 file_collection = db.files

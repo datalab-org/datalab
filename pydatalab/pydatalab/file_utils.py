@@ -1,14 +1,12 @@
-import os
 import datetime
+import os
 import shutil
 
-from pymongo import MongoClient
-from werkzeug.utils import secure_filename
 from bson.objectid import ObjectId
-
 from flask import jsonify
-
+from pymongo import MongoClient
 from resources import DIRECTORIES, DIRECTORIES_DICT
+from werkzeug.utils import secure_filename
 
 client = MongoClient("mongodb://localhost:27017/")
 db = client.datalabvue
