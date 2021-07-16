@@ -134,7 +134,7 @@ def delete_sample():
     result = DATA_COLLECTION.delete_one({"sample_id": sample_id})
 
     if result.deleted_count != 1:
-        return jsonify({"status": error, "message": "Failed to delete sample from database"}), 400
+        return jsonify({"status": "error", "message": "Failed to delete sample from database"}), 400
     print("Deleted successfully!")
     return (
         jsonify(
