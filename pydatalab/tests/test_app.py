@@ -17,7 +17,8 @@ def client():
 @pytest.mark.dependency()
 def test_empty_samples(client):
     response = client.get("/samples/")
-    assert len(response.json) == 0
+    assert len(response.json["samples"]) == 0
+
     assert response.status_code == 200
 
 
@@ -29,7 +30,7 @@ def test_new_sample(client):
     for key in SAMPLE.keys():
         assert response.json["sample_list_entry"][key] == SAMPLE[key]
 
-@pytest.mark.dependency(depeneds=["test_new_sample"])
+@pytest.mark.dependency(depends=["test_new_sample"])
 def test_get_sample_data(client):
     response = client.get("/get_sample_data/12345")
     assert response.status_code == 200
@@ -61,3 +62,19 @@ def test_save_sample(client):
     assert response.json["status"] == "success"
     for key in SAMPLE.keys():
         assert response.json[key] == updated_sample[key]
+
+
+@pytest.mark.dependency(depends=["test_new_sample"])
+def test_delete_sample(client):
+    response = client.get(
+        f"/delete-sample/{SAMPLE['sample_id']}",
+    )
+    assert response.status_code == 200
+    assert response.json["status"] == "success"
+
+    # Check it was actually deleted
+    response = client.get(
+        f"/get_sample_data/{SAMPLE['sample_id']}",
+    )
+    assert response.status_code == 404
+    assert response.json["status"] == "error"
