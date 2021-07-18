@@ -1,11 +1,11 @@
 import unittest
-
-import pytest
-import mongomock
 from unittest.mock import patch
 
-from pydatalab.main import create_app
+import mongomock
+import pytest
+
 import pydatalab.mongo
+from pydatalab.main import create_app
 
 SAMPLE = {
     "sample_id": "12345",
@@ -13,24 +13,23 @@ SAMPLE = {
     "date": "02-01-1970",
 }
 
-class PyMongoMock(mongomock.MongoClient):
 
+class PyMongoMock(mongomock.MongoClient):
     def init_app(self, app):
         return super().__init__()
-
 
 
 TEST_DATABASE_NAME = "datalabvue-testing"
 MONGO_URI = f"mongodb://localhost:27017/{TEST_DATABASE_NAME}"
 
+
 @pytest.fixture(scope="module")
 def client():
     with patch.object(pydatalab.mongo, "flask_mongo", PyMongoMock()):
-        app = create_app(
-            {"TESTING": True, "MONGO_URI": MONGO_URI}
-        )
+        app = create_app({"TESTING": True, "MONGO_URI": MONGO_URI})
     with app.test_client() as client:
         yield client
+
 
 @pytest.mark.dependency()
 def test_empty_samples(client):
@@ -46,6 +45,7 @@ def test_new_sample(client):
     assert response.json["status"] == "success"
     for key in SAMPLE.keys():
         assert response.json["sample_list_entry"][key] == SAMPLE[key]
+
 
 @pytest.mark.dependency(depends=["test_new_sample"])
 def test_get_sample_data(client):
@@ -68,8 +68,7 @@ def test_save_sample(client):
     updated_sample = SAMPLE.copy()
     updated_sample.update({"description": "This is a newer test sample."})
     response = client.post(
-        "/save-sample/",
-        json={"sample_id": SAMPLE["sample_id"], "data": updated_sample}
+        "/save-sample/", json={"sample_id": SAMPLE["sample_id"], "data": updated_sample}
     )
     assert response.status_code == 200
     assert response.json["status"] == "success"
@@ -86,7 +85,7 @@ def test_save_sample(client):
 def test_delete_sample(client):
     response = client.post(
         f"/delete-sample/",
-        json={"sample_id": SAMPLE['sample_id']},
+        json={"sample_id": SAMPLE["sample_id"]},
     )
     assert response.status_code == 200
     assert response.json["status"] == "success"

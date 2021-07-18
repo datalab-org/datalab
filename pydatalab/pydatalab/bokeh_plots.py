@@ -1,4 +1,5 @@
 import pandas as pd
+
 from bokeh.events import DoubleTap
 from bokeh.io import curdoc
 from bokeh.layouts import column

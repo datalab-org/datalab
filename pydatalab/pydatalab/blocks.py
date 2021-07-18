@@ -2,14 +2,14 @@ import json
 import os
 import random
 
+from bson import ObjectId
+
 import bokeh
 import navani.echem as ec
 from bokeh.events import DoubleTap
 from bokeh.io import curdoc
 from bokeh.models.callbacks import CustomJS
 from bokeh.plotting import figure
-from bson import ObjectId
-
 from pydatalab import bokeh_plots, xrd_utils
 from pydatalab.file_utils import get_file_info_by_id
 from pydatalab.simple_bokeh_plot import mytheme, simple_bokeh_plot
@@ -226,7 +226,5 @@ class CycleBlock(DataBlock):
 
 
 BLOCKS = (DataBlock, CommentBlock, ImageBlock, XRDBlock, CycleBlock)
-BLOCK_KINDS = {
-    block.blocktype: block for block in BLOCKS
-}
+BLOCK_KINDS = {block.blocktype: block for block in BLOCKS}
 BLOCK_KINDS["test"] = DataBlock

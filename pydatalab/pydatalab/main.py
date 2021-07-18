@@ -1,20 +1,19 @@
 import datetime
 import os
-from typing import Dict, Any
 import pprint
+from typing import Any, Dict
 
 from bson import ObjectId, json_util
-from flask import Flask, jsonify, request, send_from_directory, abort
+from pymongo import ReturnDocument
+
+import pydatalab.mongo
+from flask import Flask, abort, jsonify, request, send_from_directory
 from flask.json import JSONEncoder
 from flask_cors import CORS
 from flask_pymongo import PyMongo
-from pymongo import ReturnDocument
-
-from werkzeug.utils import secure_filename
-
 from pydatalab import file_utils, remote_filesystems
 from pydatalab.blocks import BLOCK_KINDS
-import pydatalab.mongo
+from werkzeug.utils import secure_filename
 
 CONFIG = {
     "SECRET_KEY": "dummy key dont use in production",
@@ -231,15 +230,9 @@ def create_app(config_override: Dict[str, Any] = None) -> Flask:
             Block = BLOCK_KINDS[blocktype].from_web(block_data)
             updated_data["blocks_obj"][block_id] = Block.to_db()
 
-        print(
-            "save-sample received request\n\tsample:{}\ndata:{}".format(
-                sample_id, updated_data
-            )
-        )
+        print("save-sample received request\n\tsample:{}\ndata:{}".format(sample_id, updated_data))
 
-        result = DATA_COLLECTION.update_one(
-            {"sample_id": sample_id}, {"$set": updated_data}
-        )
+        result = DATA_COLLECTION.update_one({"sample_id": sample_id}, {"$set": updated_data})
 
         print(result.raw_result)
         if result.matched_count != 1:
@@ -288,13 +281,9 @@ def create_app(config_override: Dict[str, Any] = None) -> Flask:
                 filekey
             ]  # just a weird thing about the request that comes from uppy. The key is "files[]"
             if is_update:
-                file_information = file_utils.update_uploaded_file(
-                    file, ObjectId(replace_file_id)
-                )
+                file_information = file_utils.update_uploaded_file(file, ObjectId(replace_file_id))
             else:
-                file_information = file_utils.save_uploaded_file(
-                    file, sample_ids=[sample_id]
-                )
+                file_information = file_utils.save_uploaded_file(file, sample_ids=[sample_id])
 
         return (
             jsonify(
@@ -315,9 +304,7 @@ def create_app(config_override: Dict[str, Any] = None) -> Flask:
         sample_id = request_json["sample_id"]
         file_entry = request_json["file_entry"]
 
-        updated_file_entry = file_utils.add_file_from_remote_directory(
-            file_entry, sample_id
-        )
+        updated_file_entry = file_utils.add_file_from_remote_directory(file_entry, sample_id)
 
         return (
             jsonify(
@@ -470,9 +457,7 @@ def create_app(config_override: Dict[str, Any] = None) -> Flask:
             return (
                 jsonify(
                     status="error",
-                    message="Update failed. The sample_id probably incorrect: {}".format(
-                        sample_id
-                    ),
+                    message="Update failed. The sample_id probably incorrect: {}".format(sample_id),
                 ),
                 400,
             )
@@ -576,8 +561,7 @@ def create_app(config_override: Dict[str, Any] = None) -> Flask:
                 {
                     "cached_dir_structures": all_directory_structures,
                     "seconds_since_last_update": seconds_since_last_update,
-                    "ncached_not_found": len(all_directory_structures)
-                    - len(last_update_datetimes),
+                    "ncached_not_found": len(all_directory_structures) - len(last_update_datetimes),
                 }
             ),
             200,
