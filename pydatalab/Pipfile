@@ -22,6 +22,7 @@ pytest = "*"
 pytest-cov = "*"
 pytest-dependency = "*"
 pre-commit = "*"
+mongomock = "*"
 
 [requires]
 python_version = "3"

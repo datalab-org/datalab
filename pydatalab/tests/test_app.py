@@ -1,4 +1,11 @@
+import unittest
+
 import pytest
+import mongomock
+from unittest.mock import patch
+
+from pydatalab.main import create_app
+import pydatalab.mongo
 
 SAMPLE = {
     "sample_id": "12345",
@@ -6,11 +13,22 @@ SAMPLE = {
     "date": "02-01-1970",
 }
 
-from pydatalab.main import app
+class PyMongoMock(mongomock.MongoClient):
 
-@pytest.fixture
+    def init_app(self, app):
+        return super().__init__()
+
+
+
+TEST_DATABASE_NAME = "datalabvue-testing"
+MONGO_URI = f"mongodb://localhost:27017/{TEST_DATABASE_NAME}"
+
+@pytest.fixture(scope="module")
 def client():
-    app.config["TESTING"] = True
+    with patch.object(pydatalab.mongo, "flask_mongo", PyMongoMock()):
+        app = create_app(
+            {"TESTING": True, "MONGO_URI": MONGO_URI}
+        )
     with app.test_client() as client:
         yield client
 
@@ -18,7 +36,6 @@ def client():
 def test_empty_samples(client):
     response = client.get("/samples/")
     assert len(response.json["samples"]) == 0
-
     assert response.status_code == 200
 
 
@@ -61,13 +78,15 @@ def test_save_sample(client):
     assert response.status_code == 200
     assert response.json["status"] == "success"
     for key in SAMPLE.keys():
-        assert response.json[key] == updated_sample[key]
+        if key in updated_sample and key in response.json:
+            assert response.json[key] == updated_sample[key]
 
 
 @pytest.mark.dependency(depends=["test_new_sample"])
 def test_delete_sample(client):
-    response = client.get(
-        f"/delete-sample/{SAMPLE['sample_id']}",
+    response = client.post(
+        f"/delete-sample/",
+        json={"sample_id": SAMPLE['sample_id']},
     )
     assert response.status_code == 200
     assert response.json["status"] == "success"
@@ -77,4 +96,3 @@ def test_delete_sample(client):
         f"/get_sample_data/{SAMPLE['sample_id']}",
     )
     assert response.status_code == 404
-    assert response.json["status"] == "error"
