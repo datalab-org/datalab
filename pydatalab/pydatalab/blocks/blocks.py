@@ -223,8 +223,3 @@ class CycleBlock(DataBlock):
         return {
             key: value for (key, value) in self.data.items() if key != "bokeh_plot_data"
         }  # don't save the bokeh plot in the database
-
-
-BLOCKS = (DataBlock, CommentBlock, ImageBlock, XRDBlock, CycleBlock)
-BLOCK_KINDS = {block.blocktype: block for block in BLOCKS}
-BLOCK_KINDS["test"] = DataBlock
