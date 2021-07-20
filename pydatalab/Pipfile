@@ -15,12 +15,14 @@ flask-cors = "*"
 galvani = "*"
 pyqt5 = "*"
 navani = {git = "https://github.com/the-grey-group/navani.git"}
-pydatalab = {path = "."}
+pydatalab = {path = ".", editable = true}
 
 [dev-packages]
 pytest = "*"
 pytest-cov = "*"
+pytest-dependency = "*"
 pre-commit = "*"
+mongomock = "*"
 
 [requires]
 python_version = "3"

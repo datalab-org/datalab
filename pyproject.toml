@@ -6,5 +6,5 @@ line-length = 100
 
 [tool.pytest.ini_options]
 testpaths = [
-    "pydatalab/tests",
+    "./pydatalab/tests",
 ]
