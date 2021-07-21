@@ -3,8 +3,6 @@ name = "pypi"
 url = "https://pypi.org/simple"
 verify_ssl = true
 
-[dev-packages]
-
 [packages]
 flask = "*"
 bokeh = "==2.2.3"
@@ -17,6 +15,14 @@ flask-cors = "*"
 galvani = "*"
 pyqt5 = "*"
 navani = {git = "https://github.com/the-grey-group/navani.git"}
+pydatalab = {path = ".", editable = true}
+
+[dev-packages]
+pytest = "*"
+pytest-cov = "*"
+pytest-dependency = "*"
+pre-commit = "*"
+mongomock = "*"
 
 [requires]
 python_version = "3"

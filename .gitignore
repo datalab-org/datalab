@@ -5,6 +5,7 @@ uploads
 *.tmlanguage.cache
 *.tmPreferences.cache
 *.stTheme.cache
+.vscode
 
 *~
 
@@ -14,7 +15,6 @@ node_modules
 __pycache__/
 *.py[cod]
 *$py.class
-
 
 ## Packaging
 build/
