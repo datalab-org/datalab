@@ -1,24 +1,13 @@
+import numpy as np
+
 import matplotlib
 import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
 from bokeh.events import DoubleTap
-from bokeh.io import curdoc, output_file, show
 from bokeh.layouts import column, gridplot
-from bokeh.models import (
-    ColorBar,
-    CustomJS,
-    HoverTool,
-    LinearColorMapper,
-    LogColorMapper,
-    LogTicker,
-    OpenURL,
-    TapTool,
-)
-from bokeh.models.callbacks import CustomJS
-from bokeh.models.widgets import Select, TextInput
-from bokeh.plotting import ColumnDataSource, figure, output_file, show
-from bokeh.themes import Theme, built_in_themes
+from bokeh.models import CustomJS, HoverTool
+from bokeh.models.widgets import Select
+from bokeh.plotting import ColumnDataSource, figure
+from bokeh.themes import Theme
 from scipy.signal import find_peaks
 
 FONTSIZE = "14pt"
