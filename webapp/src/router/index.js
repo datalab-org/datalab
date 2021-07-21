@@ -3,7 +3,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 // import Test from '../views/Test.vue'
 import Samples from '../views/Samples.vue'
 import NotFound from '../views/NotFound.vue'
-import EditPage from '../views/EditPage.vue'
+import SampleEditPage from '../views/SampleEditPage.vue'
 import Test from '@/components/Test.vue'
 import TestTree from '@/components/TestTree.vue'
 import CycleParameterTable from '@/components/CycleParameterTable.vue'
@@ -25,7 +25,7 @@ const routes = [
 	{
 		path: '/edit/:id',
 		name: 'edit',
-		component: EditPage,
+		component: SampleEditPage,
 	},
 	{
 		path: '/test/',

@@ -78,8 +78,6 @@ def selectable_axes_plot_colours(
         x_default = x_options[0]
         y_default = y_options[0]
 
-    # colormapper = LinearColorMapper(palette="Plasma256",low=df['colour'].min(), high=df['colour'].max())
-
     code_x = """
       var column = cb_obj.value;
       circle1.glyph.x.field = column;

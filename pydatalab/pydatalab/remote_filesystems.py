@@ -1,12 +1,11 @@
 import datetime
 import json
 import os
-import shutil
 import subprocess
 
 from pymongo import MongoClient
 
-from resources import DIRECTORIES, DIRECTORIES_DICT
+from pydatalab.resources import DIRECTORIES
 
 # from fs.smbfs import SMBFS
 
@@ -105,10 +104,7 @@ def get_cached_directory_structures(directories=DIRECTORIES):
                 "type": "toplevel",
                 "last_updated": None,
                 "contents": [
-                    {
-                        "type": "error",
-                        "name": "Cached directory structure not found in the db",
-                    }
+                    {"type": "error", "name": "Cached directory structure not found in the db"}
                 ],
             }
         all_directory_structures.append(wrapped_dir_structure)
