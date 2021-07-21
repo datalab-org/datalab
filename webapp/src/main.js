@@ -37,12 +37,10 @@ import "tinymce/plugins/table"
 
 // import 'tinymce/plugins/link';
 import Editor from '@tinymce/tinymce-vue';
-import vueDebounce from 'vue-debounce'
 import store from './store'
 
 createApp(App).use(store)
 	.use(router)
-	.use(vueDebounce)
 	.component("font-awesome-icon", FontAwesomeIcon)
 	.component("editor", Editor)
 	.mount('#app')
