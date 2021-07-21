@@ -7,7 +7,7 @@ from flask import jsonify
 from pymongo import MongoClient
 from werkzeug.utils import secure_filename
 
-from resources import DIRECTORIES, DIRECTORIES_DICT
+from pydatalab.resources import DIRECTORIES_DICT
 
 client = MongoClient("mongodb://localhost:27017/")
 db = client.datalabvue

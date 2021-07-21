@@ -4,16 +4,16 @@ import pprint
 from typing import Any, Dict
 
 from bson import ObjectId, json_util
-from pymongo import ReturnDocument
-
-import pydatalab.mongo
 from flask import Flask, abort, jsonify, request, send_from_directory
 from flask.json import JSONEncoder
 from flask_cors import CORS
 from flask_pymongo import PyMongo
+from pymongo import ReturnDocument
+from werkzeug.utils import secure_filename
+
+import pydatalab.mongo
 from pydatalab import file_utils, remote_filesystems
 from pydatalab.blocks import BLOCK_KINDS
-from werkzeug.utils import secure_filename
 
 CONFIG = {
     "SECRET_KEY": "dummy key dont use in production",
