@@ -62,9 +62,7 @@ def get_file_info_by_id(file_id, update_if_live=True):
     return file_info
 
 
-def update_uploaded_file(
-    file, file_id, last_modified=None, size_bytes=None, **additional_updates
-):
+def update_uploaded_file(file, file_id, last_modified=None, size_bytes=None, **additional_updates):
     """file is a file object from a flask request.
     last_modified should be an isodate format. if None, the current time will be inserted
     By default, only changes the last_modified, and size_bytes, increments version, and verifies source=remote and is_live=false. (converts )
@@ -97,9 +95,7 @@ def update_uploaded_file(
     return updated_file_entry
 
 
-def save_uploaded_file(
-    file, sample_ids=[], block_ids=[], last_modified=None, size_bytes=None
-):
+def save_uploaded_file(file, sample_ids=[], block_ids=[], last_modified=None, size_bytes=None):
     """file is a file object from a flask request.
     last_modified should be an isodate format. if last_modified is None, the current time will be inserted"""
 
@@ -137,9 +133,7 @@ def save_uploaded_file(
 
     result = FILE_COLLECTION.insert_one(new_file_document)
     if not result.acknowledged:
-        raise IOError(
-            f"db operation failed when trying to insert new file. Result: {result}"
-        )
+        raise IOError(f"db operation failed when trying to insert new file. Result: {result}")
 
     inserted_id = result.inserted_id
 
@@ -177,9 +171,7 @@ def add_file_from_remote_directory(file_entry, sample_id, block_ids=[]):
 
     # generate the remote url
     remote_toplevel_path = DIRECTORIES_DICT[file_entry["toplevel_name"]]["path"]
-    remote_path = os.path.join(
-        file_entry["relative_path"].lstrip("/"), file_entry["name"]
-    )
+    remote_path = os.path.join(file_entry["relative_path"].lstrip("/"), file_entry["name"])
     full_remote_path = os.path.join(remote_toplevel_path, remote_path)
 
     # check that the path is valid and get the last modified time from the server
@@ -192,9 +184,7 @@ def add_file_from_remote_directory(file_entry, sample_id, block_ids=[]):
         "url_path": None,  # the url used to access this file. Important! will be filled in below
         "extension": extension,
         "source": "remote",
-        "size": file_entry[
-            "size"
-        ],  # not actually in bytes at the moment. in human-readable format
+        "size": file_entry["size"],  # not actually in bytes at the moment. in human-readable format
         "sample_ids": [sample_id],
         "blocks": block_ids,
         "last_modified": datetime.datetime.now().isoformat(),  # last_modified is the last modified time of the db entry in isoformat. For last modified file timestamp, see last_modified_remote_timestamp
@@ -210,9 +200,7 @@ def add_file_from_remote_directory(file_entry, sample_id, block_ids=[]):
 
     result = FILE_COLLECTION.insert_one(new_file_document)
     if not result.acknowledged:
-        raise IOError(
-            f"db operation failed when trying to insert new file. Result: {result}"
-        )
+        raise IOError(f"db operation failed when trying to insert new file. Result: {result}")
 
     inserted_id = result.inserted_id
 

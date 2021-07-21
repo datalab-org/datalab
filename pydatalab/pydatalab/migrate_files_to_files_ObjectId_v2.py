@@ -3,6 +3,7 @@ import os
 import shutil
 
 from pymongo import MongoClient
+
 from werkzeug.utils import secure_filename
 
 UPLOAD_PATH = "uploads"  # todo: refactor all config to one file. For now, make sure this matches the config in main.py
@@ -31,9 +32,7 @@ for sample in all_samples:
     for filename in sample["files"]:
 
         extension = os.path.splitext(filename)[1]
-        old_file_location = os.path.join(
-            UPLOAD_PATH, sample_id, secure_filename(filename)
-        )
+        old_file_location = os.path.join(UPLOAD_PATH, sample_id, secure_filename(filename))
         if not os.path.isfile(old_file_location):
             print(f"file not found: {old_file_location}")
             continue
@@ -59,9 +58,7 @@ for sample in all_samples:
 
         result = file_collection.insert_one(new_file_document)
         if not result.acknowledged:
-            raise IOError(
-                f"db operation failed when trying to insert new file. Result: {result}"
-            )
+            raise IOError(f"db operation failed when trying to insert new file. Result: {result}")
 
         inserted_id = result.inserted_id
 

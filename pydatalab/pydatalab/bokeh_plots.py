@@ -5,8 +5,16 @@ import pandas as pd
 from bokeh.events import DoubleTap
 from bokeh.io import curdoc, output_file, show
 from bokeh.layouts import column, gridplot
-from bokeh.models import (ColorBar, CustomJS, HoverTool, LinearColorMapper,
-                          LogColorMapper, LogTicker, OpenURL, TapTool)
+from bokeh.models import (
+    ColorBar,
+    CustomJS,
+    HoverTool,
+    LinearColorMapper,
+    LogColorMapper,
+    LogTicker,
+    OpenURL,
+    TapTool,
+)
 from bokeh.models.callbacks import CustomJS
 from bokeh.models.widgets import Select, TextInput
 from bokeh.plotting import ColumnDataSource, figure, output_file, show
@@ -122,12 +130,8 @@ def selectable_axes_plot_colours(
         )
         counter = counter + 1
 
-    callback_x = CustomJS(
-        args=dict(circle1=circle1, source=source, xaxis=p.xaxis[0]), code=code_x
-    )
-    callback_y = CustomJS(
-        args=dict(circle1=circle1, source=source, yaxis=p.yaxis[0]), code=code_y
-    )
+    callback_x = CustomJS(args=dict(circle1=circle1, source=source, xaxis=p.xaxis[0]), code=code_x)
+    callback_y = CustomJS(args=dict(circle1=circle1, source=source, yaxis=p.yaxis[0]), code=code_y)
 
     # Add list boxes for selecting which columns to plot on the x and y axis
     xaxis_select = Select(title="X axis:", value=x_default, options=x_options)
@@ -167,11 +171,7 @@ def double_axes_plot(df, df2, y_default, x_axis_label, x, **kwargs):
 
     # normal plot
     p1 = figure(
-        aspect_ratio=1.5,
-        x_axis_label=x_axis_label,
-        y_axis_label=y_default,
-        tools=TOOLS,
-        **kwargs
+        aspect_ratio=1.5, x_axis_label=x_axis_label, y_axis_label=y_default, tools=TOOLS, **kwargs
     )
     # circle1 = p1.circle(x='Capacity', y=y_default, source=source1 )
 
@@ -263,11 +263,7 @@ def double_axes_plot_dvdq(df, dvdq_df, x_default="Capacity", **kwargs):
 
     # normal plot
     p1 = figure(
-        aspect_ratio=1.5,
-        x_axis_label=x_default,
-        y_axis_label="Voltage",
-        tools=TOOLS,
-        **kwargs
+        aspect_ratio=1.5, x_axis_label=x_default, y_axis_label="Voltage", tools=TOOLS, **kwargs
     )
     # circle1 = p1.circle(x='Capacity', y=y_default, source=source1 )
 

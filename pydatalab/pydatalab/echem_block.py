@@ -127,9 +127,7 @@ def send_bokeh_norm(df, cycle_list):
 
 
 # Function to plot dqdv
-def send_bokeh_dqdv(
-    df, cycle_list, polynomial_spline, win_size_1, win_size_2, s_spline
-):
+def send_bokeh_dqdv(df, cycle_list, polynomial_spline, win_size_1, win_size_2, s_spline):
     # check if there is a list of cycles
 
     (
@@ -167,9 +165,7 @@ def send_bokeh_dqdv(
 
 
 # function to plot dvdq - essentially uses multi-dqdv-plot but capacity and voltage is flipped
-def send_bokeh_dvdq(
-    df, cycle_list, polynomial_spline, win_size_1, win_size_2, s_spline
-):
+def send_bokeh_dvdq(df, cycle_list, polynomial_spline, win_size_1, win_size_2, s_spline):
 
     (
         full_voltage_list,
@@ -208,9 +204,7 @@ class CycleBlock(DataBlock):
 
     accepted_file_extensions = [".mpr", ".txt", ".xls", ".xlsx", ".txt", ".res"]
 
-    def plot_cycle(
-        self, voltage_label="Voltage", capacity_label="Capacity", capacity_units="mAh"
-    ):
+    def plot_cycle(self, voltage_label="Voltage", capacity_label="Capacity", capacity_units="mAh"):
 
         if "file_id" not in self.data:
             print("No file_id given")

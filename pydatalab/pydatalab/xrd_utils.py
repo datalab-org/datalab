@@ -18,11 +18,7 @@ def convertSinglePattern(fn, directory=".", adjust_baseline=False, overwrite=Fal
     outfn = fn + ".xy"
     if os.path.exists(outfn):
         if overwrite:
-            print(
-                "{} already exists in the directory {}. Overwriting.".format(
-                    outfn, directory
-                )
-            )
+            print("{} already exists in the directory {}. Overwriting.".format(outfn, directory))
         else:
             warnings.warn(
                 "{} already exists in the directory {}. rm or mv it if you wish to convert {}".format(
@@ -49,9 +45,7 @@ def convertSinglePattern(fn, directory=".", adjust_baseline=False, overwrite=Fal
             )
             intensities = intensities - np.min(intensities)
         else:
-            print(
-                "    no intensitites are less than zero, so no baseline adjustment performed"
-            )
+            print("    no intensitites are less than zero, so no baseline adjustment performed")
 
     print("    number of datapoints: {}".format(len(intensities)))
     xystring = toXY(intensities, start, end)
@@ -80,9 +74,7 @@ def getIntensities(s):
     if not match:
         print("the intensitites were not found in the XML file")
         sys.exit(1)
-    out = [
-        float(x) for x in match.group(1).split()
-    ]  # the intensitites as a list of integers
+    out = [float(x) for x in match.group(1).split()]  # the intensitites as a list of integers
     return out
 
 

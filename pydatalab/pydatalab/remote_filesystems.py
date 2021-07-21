@@ -98,9 +98,7 @@ def get_all_directory_structures(directories=DIRECTORIES):
 def get_cached_directory_structures(directories=DIRECTORIES):
     all_directory_structures = []
     for directory in directories:
-        wrapped_dir_structure = FILESYSTEMS_COLLECTION.find_one(
-            {"name": directory["name"]}
-        )
+        wrapped_dir_structure = FILESYSTEMS_COLLECTION.find_one({"name": directory["name"]})
         if not wrapped_dir_structure:
             wrapped_dir_structure = {
                 "name": directory["name"],

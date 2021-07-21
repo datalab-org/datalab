@@ -46,7 +46,5 @@ def get_intensities(s):
     if not match:
         print("the intensitites were not found in the XML file")
         sys.exit(1)
-    out = [
-        float(x) for x in match.group(1).split()
-    ]  # the intensitites as a list of integers
+    out = [float(x) for x in match.group(1).split()]  # the intensitites as a list of integers
     return out

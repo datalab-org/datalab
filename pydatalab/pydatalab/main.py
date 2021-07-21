@@ -26,16 +26,14 @@ app.config.update(
 )
 
 
-BLOCK_KINDS = (
-    {  # TODO: think about autogenerating this from DataBlock's blocktype parameters
-        "test": DataBlock,
-        "comment": CommentBlock,
-        "image": ImageBlock,
-        "xrd": XRDBlock,
-        "cycle": CycleBlock,
-        "generic": DataBlock,
-    }
-)
+BLOCK_KINDS = {  # TODO: think about autogenerating this from DataBlock's blocktype parameters
+    "test": DataBlock,
+    "comment": CommentBlock,
+    "image": ImageBlock,
+    "xrd": XRDBlock,
+    "cycle": CycleBlock,
+    "generic": DataBlock,
+}
 
 # use a json encoder that can handle pymongo's bson
 class CustomJSONEncoder(JSONEncoder):
@@ -148,9 +146,7 @@ def delete_sample():
 
     if result.deleted_count != 1:
         return (
-            jsonify(
-                {"status": error, "message": "Failed to delete sample from database"}
-            ),
+            jsonify({"status": error, "message": "Failed to delete sample from database"}),
             400,
         )
     print("Deleted successfully!")
@@ -221,14 +217,8 @@ def save_sample():
         Block = BLOCK_KINDS[blocktype].from_web(block_data)
         updated_data["blocks_obj"][block_id] = Block.to_db()
 
-    print(
-        "save-sample received request\n\tsample:{}\ndata:{}".format(
-            sample_id, updated_data
-        )
-    )
-    result = DATA_COLLECTION.update_one(
-        {"sample_id": sample_id}, {"$set": updated_data}
-    )
+    print("save-sample received request\n\tsample:{}\ndata:{}".format(sample_id, updated_data))
+    result = DATA_COLLECTION.update_one({"sample_id": sample_id}, {"$set": updated_data})
 
     print(result.raw_result)
     if result.matched_count != 1:
@@ -279,13 +269,9 @@ def upload():
             filekey
         ]  # just a weird thing about the request that comes from uppy. The key is "files[]"
         if is_update:
-            file_information = file_utils.update_uploaded_file(
-                file, ObjectId(replace_file_id)
-            )
+            file_information = file_utils.update_uploaded_file(file, ObjectId(replace_file_id))
         else:
-            file_information = file_utils.save_uploaded_file(
-                file, sample_ids=[sample_id]
-            )
+            file_information = file_utils.save_uploaded_file(file, sample_ids=[sample_id])
 
     return (
         jsonify(
@@ -307,9 +293,7 @@ def add_remote_file_to_sample():
     sample_id = request_json["sample_id"]
     file_entry = request_json["file_entry"]
 
-    updated_file_entry = file_utils.add_file_from_remote_directory(
-        file_entry, sample_id
-    )
+    updated_file_entry = file_utils.add_file_from_remote_directory(file_entry, sample_id)
 
     return (
         jsonify(
@@ -388,9 +372,7 @@ def delete_file():
 
     if not os.path.isfile(path):
         return (
-            jsonify(
-                status="error", message="Delete failed. file not found: {}".format(path)
-            ),
+            jsonify(status="error", message="Delete failed. file not found: {}".format(path)),
             400,
         )
 
@@ -461,17 +443,13 @@ def add_data_block():
         return (
             jsonify(
                 status="error",
-                message="Update failed. The sample_id probably incorrect: {}".format(
-                    sample_id
-                ),
+                message="Update failed. The sample_id probably incorrect: {}".format(sample_id),
             ),
             400,
         )
 
     # get the new display_order:
-    display_order_result = DATA_COLLECTION.find_one(
-        {"sample_id": sample_id}, {"display_order": 1}
-    )
+    display_order_result = DATA_COLLECTION.find_one({"sample_id": sample_id}, {"display_order": 1})
     print("new document: {}".format(display_order_result))
 
     return jsonify(
@@ -571,8 +549,7 @@ def list_remote_directories_cached():
             {
                 "cached_dir_structures": all_directory_structures,
                 "seconds_since_last_update": seconds_since_last_update,
-                "ncached_not_found": len(all_directory_structures)
-                - len(last_update_datetimes),
+                "ncached_not_found": len(all_directory_structures) - len(last_update_datetimes),
             }
         ),
         200,
