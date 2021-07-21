@@ -3,11 +3,11 @@ import os
 import shutil
 
 from bson.objectid import ObjectId
-from flask import jsonify
 from pymongo import MongoClient
-from werkzeug.utils import secure_filename
 
+from flask import jsonify
 from pydatalab.resources import DIRECTORIES_DICT
+from werkzeug.utils import secure_filename
 
 client = MongoClient("mongodb://localhost:27017/")
 db = client.datalabvue
@@ -242,8 +242,7 @@ def retrieve_file_path(file_ObjectId):
 
 def remove_file_from_sample(sample_id, file_ObjectId):
     sample_result = SAMPLE_COLLECTION.update_one(
-        {"sample_id": ObjectId(file_id)},
-        {"$pull": {"file_ObjectIds": ObjectId(file_ObjectId)}},
+        {"sample_id": ObjectId(file_id)}, {"$pull": {"file_ObjectIds": ObjectId(file_ObjectId)}},
     )
 
     if sample_result.modified_count < 1:
@@ -253,8 +252,7 @@ def remove_file_from_sample(sample_id, file_ObjectId):
         )
 
     file_result = FILE_COLLECTION.update_one(
-        {"_id": ObjectId(file_ObjectId)},
-        {"$pull": {"sample_ids": ObjectId(file_ObjectId)}},
+        {"_id": ObjectId(file_ObjectId)}, {"$pull": {"sample_ids": ObjectId(file_ObjectId)}},
     )
 
 
