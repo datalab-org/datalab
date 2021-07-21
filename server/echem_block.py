@@ -10,17 +10,17 @@ import bokeh_plots
 from scipy.signal import savgol_filter 
 from simple_bokeh_plot import  mytheme
 
+DISPLAYED_DATA_POINTS = 1000 # The number of data points to display in the frontend
+
 def reduce_size(df):
 			#Find the number of cycles, if it's greater than 10, take out every second row
 			
 			number_of_cycles = df['full cycle'].nunique()
 			rows = len(df)
 				
-			if number_of_cycles >= 10:
-				df =  bokeh_plots.reduce_df_size(df, rows/2)
+			if number_of_cycles >= 1:
+				df =  bokeh_plots.reduce_df_size(df, DISPLAYED_DATA_POINTS)
 			return df
-
-
 
 
 def multi_dqdv_plot(df, cycle_list, 
