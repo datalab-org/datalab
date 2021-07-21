@@ -1,15 +1,14 @@
 import os
 
 import bokeh
+import bokeh_plots
 import numpy as np
 import pandas as pd
+from blocks import DataBlock
+from file_utils import get_file_info_by_id
 from navani import echem as ec
 from scipy.interpolate import splev, splrep
 from scipy.signal import savgol_filter
-
-import bokeh_plots
-from blocks import DataBlock
-from file_utils import get_file_info_by_id
 from simple_bokeh_plot import mytheme
 
 DISPLAYED_DATA_POINTS = 1000  # The number of data points to display in the frontend

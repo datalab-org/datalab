@@ -2,14 +2,13 @@ import json
 import os
 import random
 
-from bson import ObjectId
-
 import bokeh
-import navani.echem as ec
 from bokeh.events import DoubleTap
 from bokeh.io import curdoc
 from bokeh.models.callbacks import CustomJS
 from bokeh.plotting import figure
+from bson import ObjectId
+
 from pydatalab import bokeh_plots, xrd_utils
 from pydatalab.file_utils import get_file_info_by_id
 from pydatalab.simple_bokeh_plot import mytheme, simple_bokeh_plot
@@ -44,11 +43,25 @@ class DataBlock:
     blocktype = "generic"
     description = "Generic Block"
 
+    defaults = {
+        "p_spline": 5,
+        "s_spline": 5,
+        "win_size_2": 101,
+        "win_size_1": 1001,
+        "plotmode-dqdv": False,
+        "plotmode-dvdq": False,
+    }  # values that are set by default if they are not supplied by the dictionary in init()
+
     def __init__(self, sample_id, dictionary={}, unique_id=None):
         self.block_id = (
             unique_id or generate_random_id()
         )  # this is supposed to be a unique id for use in html and the database.
-        self.data = {"sample_id": sample_id, "blocktype": self.blocktype, "block_id": self.block_id}
+        self.data = {
+            "sample_id": sample_id,
+            "blocktype": self.blocktype,
+            "block_id": self.block_id,
+            **self.defaults,
+        }
 
         # convert ObjectId file_ids to string to make handling them easier when sending to and from web
         if "file_id" in self.data:
@@ -143,80 +156,6 @@ class XRDBlock(DataBlock):
 
     def to_web(self):
         self.generate_xrd_plot()
-        return self.data
-
-    def to_db(self):
-        return {
-            key: value for (key, value) in self.data.items() if key != "bokeh_plot_data"
-        }  # don't save the bokeh plot in the database
-
-
-class CycleBlock(DataBlock):
-    blocktype = "cycle"
-    description = "Echem cycle"
-
-    accepted_file_extensions = [".mpr", ".txt", ".xls", ".xlsx", ".txt", ".res"]
-
-    def plot_cycle(self, voltage_label="Voltage", capacity_label="Capacity", capacity_units="mAh"):
-
-        if "file_id" not in self.data:
-            print("No file_id given")
-            return None
-
-        file_info = get_file_info_by_id(self.data["file_id"], update_if_live=True)
-        filename = file_info["name"]
-        ext = os.path.splitext(filename)[-1].lower()
-
-        if ext not in self.accepted_file_extensions:
-            print("Unrecognized filetype")
-            return None
-
-        if "cyclenumber" not in self.data:
-            self.data["cyclenumber"] = -1  # plot all
-
-        cycle = self.data["cyclenumber"]
-
-        # Galvani reads in the raw MPR file then its made into a dataframe
-        df = ec.echem_file_loader(file_info["location"])
-        print(df.columns)
-        # Selecting the charge and discharge cycles from the way biologic numbers them
-        # If starts with charge, change how the cycles are numbered.
-
-        if cycle >= 0:
-            half_cycles = [(2 * cycle) - 1, 2 * cycle]
-            df = df[df["half cycle"].isin(half_cycles)]
-
-        # output_file(output_file_) # Is this needed?
-
-        # Plotting with Bokeh!
-        # p = figure(sizing_mode="scale_width", aspect_ratio=1.5,
-        # 				x_axis_label='Capacity (mAh)',
-        # 				y_axis_label='Voltage (V)')
-
-        # # add a line renderer
-        # if cycle >= 0:
-        # 	for curve in half_cycles:
-        # 		mask = df['half cycle'] == curve
-        # 		p.line(df[mask][capacity_label], df[mask][voltage_label])
-        # else:
-        # 	p.line(df[capacity_label], df[voltage_label])
-
-        # p.js_on_event(DoubleTap, CustomJS(args=dict(p=p), code='p.reset.emit()'))
-        # # curdoc().theme = mytheme
-        # self.data["bokeh_plot_data"] = bokeh.embed.json_item(p, theme=mytheme)
-
-        layout = bokeh_plots.selectable_axes_plot(
-            df,
-            x_options=["Capacity", "Voltage", "time/s"],
-            y_options=["Capacity", "Voltage", "time/s"],
-            x_default="Capacity",
-            y_default="Voltage",
-        )
-
-        self.data["bokeh_plot_data"] = bokeh.embed.json_item(layout, theme=mytheme)
-
-    def to_web(self):
-        self.plot_cycle()
         return self.data
 
     def to_db(self):
