@@ -16,9 +16,8 @@ Should you wish to just run the apps themselves, the easiest method is to use Do
 ### `pydatalab` server installation
 
 1. Install `pipenv` on your machine.
-    - Detailed instructions for its installation can be found on the [`pipenv` website](https://pipenv.pypa.io/en/latest/install/#installing-pipenv).
-    - We recommend you install `pipenv` from PyPI (with `pip install pipenv`) inside a fresh virtual environment of your choice (created by e.g. conda, virtualenv or otherwise).
-    - If you would rather add it to your system Python distribution, it is advised that you either find the appropriate distribution for your OS release  rather than adding it to your system Python distribution.
+    - Detailed instructions for installing `pipenv`, `pip` and Python itself can be found on the [`pipenv` website](https://pipenv.pypa.io/en/latest/install/#installing-pipenv).
+    - We recommend you install `pipenv` from PyPI (with `pip install pipenv` or `pip install --user pipenv`) for the Python distribution of your choice (in a virtual environment or otherwise). This is distinct from the virtual environment that `pipenv` itself will create for the `pydatalab` package.
 
 1. Set up MongoDB.
     1. Install the free MongoDB community edition (full instructions on the [MongoDB website](https://docs.mongodb.com/manual/installation/)).
