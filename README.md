@@ -33,18 +33,18 @@ Should you wish to just run the apps themselves, the easiest method is to use Do
         - This will create a `pipenv` environment for `pydatalab` and all of its dependencies that is registered within *this folder* only.
 1. Run the server from the `pydatalab` folder with `pipenv run pydatalab/main.py`.
 
-The server should now be accessible at http://localhost:5001/ (there isn't much to see there since this server renders no content, just JSON).
+The server should now be accessible at http://localhost:5001/ (there isn't much to see there since this server renders no content, just JSON). If the server is running, navigating to this website will display "Hello, This is a server".
 
 Should you wish to contribute to/modify the Python code, you may wish to perform these extra steps:
 
 1. From within the `pydatalab` folder, run `pipenv install --dev` to pull the development dependencies (e.g., `pre-commit`, `pytest`).
 1. Run `pre-commit install` to begin using `pre-commit` to check all of your modifications when you run `git commit`.
     - The hooks that run on each commit can be found in the top-level `.pre-commit-config.yml` file.
-1. The tests on the Python code can be run by exexucting `py.test` from the `pydatalab/` folder.
+1. The tests on the Python code can be run by executing `py.test` from the `pydatalab/` folder.
 
 Additional notes:
 
-- If the server is running when the source code is changed, it will generally hot-reload without needing to manually restart the server.
+- If the Flask server is running when the source code is changed, it will generally hot-reload without needing to manually restart the server.
 - You may have to configure the `MONGO_URI` config in `main.py` depending on your MongoDB setup. In the future, this will be accessible via a config file.
 
 ### Web app
@@ -57,7 +57,7 @@ Similar to the Flask development server, this will provide a development environ
 
 Should you wish to contribute to/modify the JavaScript code, please follow the extra steps:
 
-1. Use the built-in Vue linter with `npm run lint`.
+1. You can manually run the built-in Vue linter with `npm run lint` (the development server started with `npm run serve` will also automatically lint the code every with every change and refuse to start if there are any errors).
 
 
 ## Deployment with Docker
