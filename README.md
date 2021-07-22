@@ -33,7 +33,7 @@ Should you wish to just run the apps themselves, the easiest method is to use Do
         - This will create a `pipenv` environment for `pydatalab` and all of its dependencies that is registered within *this folder* only.
 1. Run the server from the `pydatalab` folder with `pipenv run pydatalab/main.py`.
 
-The server should now be accessible at http://localhost:5001/ (there isn't much to see there since this server renders no content, just JSON). If the server is running, navigating to this website will display "Hello, This is a server".
+The server should now be accessible at http://localhost:5001. If the server is running, navigating to this URL will display "Hello, This is a server".
 
 Should you wish to contribute to/modify the Python code, you may wish to perform these extra steps:
 
