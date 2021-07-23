@@ -3,10 +3,9 @@ import os
 import shutil
 
 from bson.objectid import ObjectId
-from pymongo import MongoClient
-
 from flask import jsonify
 from pydatalab.resources import DIRECTORIES_DICT
+from pymongo import MongoClient
 from werkzeug.utils import secure_filename
 
 client = MongoClient("mongodb://localhost:27017/")

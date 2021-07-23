@@ -16,7 +16,6 @@ galvani = "*"
 pyqt5 = "*"
 navani = {git = "https://github.com/the-grey-group/navani.git"}
 pydatalab = {path = ".", editable = true}
-bson = "*"
 
 [dev-packages]
 pytest = "*"

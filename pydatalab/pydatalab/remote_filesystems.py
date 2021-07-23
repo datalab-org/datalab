@@ -6,7 +6,7 @@ import subprocess
 
 from pymongo import MongoClient
 
-from pydatalab.resources import DIRECTORIES, DIRECTORIES_DICT
+from pydatalab.resources import DIRECTORIES
 
 # from fs.smbfs import SMBFS
 

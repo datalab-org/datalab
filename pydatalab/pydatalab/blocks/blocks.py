@@ -1,6 +1,7 @@
 import json
 import os
 import random
+from typing import Callable, Tuple
 
 import bokeh
 from bokeh.events import DoubleTap
@@ -10,6 +11,7 @@ from bokeh.plotting import figure
 from bson import ObjectId
 from pydatalab import bokeh_plots, xrd_utils
 from pydatalab.file_utils import get_file_info_by_id
+from pydatalab.logger import LOGGER
 from pydatalab.simple_bokeh_plot import mytheme, simple_bokeh_plot
 
 UPLOAD_PATH = "uploads"
@@ -46,7 +48,16 @@ class DataBlock:
         {}
     )  # values that are set by default if they are not supplied by the dictionary in init()
 
-    def __init__(self, sample_id, dictionary={}, unique_id=None):
+    plot_functions: Tuple[Callable[[], None]] = tuple()
+
+    def __init__(self, sample_id, dictionary=None, unique_id=None):
+
+        if dictionary is None:
+            dictionary = {}
+
+        LOGGER.debug(
+            f"Creating new block {self.__class__.__name__} for sample ID {sample_id} with data {dictionary}."
+        )
         self.block_id = (
             unique_id or generate_random_id()
         )  # this is supposed to be a unique id for use in html and the database.
@@ -66,19 +77,26 @@ class DataBlock:
         self.data.update(
             dictionary
         )  # this could overwrite blocktype and block_id. I think that's reasonable... maybe
+        LOGGER.debug(f"Initialised block {self.__class__.__name__} for sample ID {sample_id}.")
 
     def to_db(self):
         """returns a dictionary with the data for this
         block, ready to be input into mongodb"""
+        LOGGER.debug(f"Casting block {self.__class__} to database object.")
+
         if "file_id" in self.data:
             dict_for_db = self.data.copy()  # gross, I know
             dict_for_db["file_id"] = ObjectId(dict_for_db["file_id"])
             return dict_for_db
+
+        if "bokeh_plot_data" in self.data:
+            self.data.pop("bokeh_plot_data")
         return self.data
 
     @classmethod
     def from_db(cls, db_entry):
         """create a block from json (dictionary) stored in a db"""
+        LOGGER.debug(f"Loading block {cls.__class__.__name__} from database object.")
         new_block = cls(db_entry["sample_id"], db_entry)
         if "file_id" in new_block.data:
             new_block.data["file_id"] = str(new_block.data["file_id"])
@@ -86,10 +104,13 @@ class DataBlock:
 
     def to_web(self):
         """returns a json-able dictionary to render the block on the web"""
+        for plot in self.plot_functions:
+            plot()
         return self.data
 
     @classmethod
     def from_web(cls, data):
+        LOGGER.debug(f"Loading block {cls.__class__.__name__} from web request.")
         Block = cls(data["sample_id"])
         Block.update_from_web(data)
         return Block
@@ -97,6 +118,7 @@ class DataBlock:
     def update_from_web(self, data):
         """update the object with data received from the website. Only updates fields
         that are specified in the dictionary- other fields are left alone"""
+        LOGGER.debug(f"Updating block {self.__class__.__name__} from web request with data {data}")
         self.data.update(data)
 
         return self
@@ -115,6 +137,10 @@ class ImageBlock(DataBlock):
 class XRDBlock(DataBlock):
     blocktype = "xrd"
     description = "Powder XRD"
+
+    @property
+    def plot_functions(self) -> Tuple[Callable[[], None]]:
+        return (self.generate_xrd_plot,)
 
     def generate_xrd_plot(self):
         if "file_id" not in self.data:
@@ -139,7 +165,7 @@ class XRDBlock(DataBlock):
             )  # should give .xrdml.xy file
             print(f"the path is now: {filename}")
         else:
-            filename = os.path.join(directory, filename)
+            filename = os.path.join(file_info["location"])
 
         p = simple_bokeh_plot(filename, x_label="2θ (°)", y_label="intensity (counts)")
 
@@ -147,12 +173,3 @@ class XRDBlock(DataBlock):
         # self.data["bokeh_script"] = script.replace('<script type="text/javascript">','').replace('</script>','') # this isn't great...
         # self.data["bokeh_div"] = div
         self.data["bokeh_plot_data"] = bokeh.embed.json_item(p, theme=mytheme)
-
-    def to_web(self):
-        self.generate_xrd_plot()
-        return self.data
-
-    def to_db(self):
-        return {
-            key: value for (key, value) in self.data.items() if key != "bokeh_plot_data"
-        }  # don't save the bokeh plot in the database

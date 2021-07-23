@@ -21,12 +21,12 @@
 		<div v-if="cycle_num_error" class="alert alert-warning">{{ cycle_num_error }}</div>
 		<!-- Insert another div here, if the filled value is a string or something -->
 		</div>
-		<div class="button-box">
-				<input type="button"  class="btn btn-dark" value="Plot!" @click="updateBlock2" >
-				<input type="button" class="btn btn-dark" id='norm' value="Normal analysis!" @click="normal_modeselect(); color_select()">
-				<input type="button" class="btn btn-dark"  id ='dqdv' value="dq/dv analysis!" @click="dqdv_modeselect(); color_select() ">
-				<input type="button" class="btn btn-dark"  id='dvdq' value="dV/dq analysis!" @click="dvdq_modeselect(); color_select()">
-		</div>
+    <div class="btn-group">
+        <button type="tab" class="btn btn-dark" style="background-color: lightgrey; color: black" id='replot' @click="updateBlock2">Replot</button>
+        <button type="tab" class="btn btn-dark" id='norm' @click="normal_modeselect(); updateBlock2();">V(Q; t)</button>
+        <button type="tab" class="btn btn-dark" id ='dqdv' @click="dqdv_modeselect(); updateBlock2();">dQ/dV</button>
+        <button type="tab" class="btn btn-dark" id='dvdq' @click="dvdq_modeselect(); updateBlock2();">dV/dQ</button>
+    </div >
 		<div class="slider-block">
 			<div class="slider" >
 				<input type="range" v-model="s_spline" id="s_spline" name="s_spline" min="1" max="10" step="0.2">
@@ -36,17 +36,16 @@
 				<input type="range" v-model="win_size_1" id="win_size_1" name="win_size_1" min="501" max="1501">
 				<label for="volume" > <span  @mouseenter="exp2 = true" @mouseleave="exp2 = false" >Window Size 1:</span>  {{ win_size_1 }}</label>
 			</div>
-			<div class="explaination" v-show="exp1" @mouseover="exp1 = true" @mouseleave="exp1 = false"> 
+			<div class="description" v-show="exp1" @mouseover="exp1 = true" @mouseleave="exp1 = false"> 
 
 			<p>Spline fit: determines how close the spline fits to the real data - less negative value results in a smoother fit with less details preserved</p>
 			</div>
-			<div class="explaination" v-show="exp2"  @mouseover="exp1 = true" @mouseleave="exp1 = false">
+			<div class="description" v-show="exp2"  @mouseover="exp1 = true" @mouseleave="exp1 = false">
 			<p>Window Size: Range of data to be smoothed by Savitzky-Golay filter</p>
 			</div>
 
 		</div>
 		
-
 		<div class="row" id='plotarea'>
 			<div class="col-xl-8 col-lg-9 col-md-11 mx-auto">
 				<BokehPlot :bokehPlotData="bokehPlotData" />
@@ -57,8 +56,6 @@
 	</DataBlockBase>
 
 </template>
-
-
 
 <script>
 
@@ -98,8 +95,6 @@ export default {
 		win_size_2: createComputedSetterForBlockField("win_size_2"),
 		dqdv_mode: createComputedSetterForBlockField("plotmode-dqdv"),
 		dvdq_mode: createComputedSetterForBlockField("plotmode-dvdq"),
-		
-		
 	},
 	methods: {
 		parseCycleNumber(cycle_number) {
@@ -142,8 +137,6 @@ export default {
 		},
 
 		dqdv_modeselect(){
-			
-			
 			//Default value for dqdv mode is False, following lines reverses boolean and shows/removes the dqdv slider section accordingly
 			this.dqdv_mode = !(this.dqdv_mode)
 
@@ -151,17 +144,11 @@ export default {
 			if (this.dqdv_mode && this.dvdq_mode){       // When calling the dqdv button, we know user wants dqdv. If both dqdv and dvdq are true, set dvdq to false
 				this.dvdq_mode = !(this.dvdq_mode)
 			}
-
-			console.log(this.dvdq_mode)
-			console.log(this.dqdv_mode)
 			if (this.dqdv_mode){
 				document.getElementsByClassName("slider-block")[0].style.display = "block"
 			}else{
 				document.getElementsByClassName("slider-block")[0].style.display = "none"
 			}
-
-
-			
 		},
 		dvdq_modeselect(){
 			//Default value for dqdv mode is False, following lines reverses boolean and shows/removes the dqdv slider section accordingly
@@ -193,32 +180,6 @@ export default {
 			document.getElementsByClassName("slider-block")[0].style.display = "none"
 			
 		},
-		color_select(){
-			var dqdv = document.getElementById('dqdv');
-			var dvdq = document.getElementById('dvdq');
-			var norm = document.getElementById('norm');
-
-			if (this.dqdv_mode){
-				
-				dqdv.style.color = 'green';
-				dvdq.style.color = 'white';
-				norm.style.color = 'white';
-			} 
-			else if (this.dvdq_mode){
-				
-				dqdv.style.color = 'white';
-				dvdq.style.color = 'green';
-				norm.style.color = 'white';
-			} 
-			else {
-				
-				dqdv.style.color = 'white';
-				dvdq.style.color = 'white';
-				norm.style.color = 'green';
-			} 
-		},
-   
-
 	},
 	components: {
 		DataBlockBase,
@@ -233,14 +194,18 @@ export default {
 .button-box {
 	display: block;
 	width: 100%;
-	margin: 10px 0 10px 0;
-	
 }
 
-
-.button-box input{
-	margin-right: 10px;
+.btn-group {
+  margin: 1em;
+  margin-left: 0;
 }
+
+.btn-group button {
+  cursor: pointer;
+  margin: 1em;
+}
+
 .slider {
 	display: inline-block;
 	width: 50%;
@@ -273,7 +238,7 @@ export default {
 	display: block !important;
 }
 
-.explaination{
+.description{
 	color: #0c5460;
     background-color: #d1ecf1;
     border-color: #bee5eb;
@@ -284,17 +249,9 @@ export default {
     border-radius: 0.25rem;
 }
 
-
-
-.explaination p{
+.description p{
 	font-family: Avenir, Helvetica, Arial, sans-serif;
 	font-size: 15px;
 }
-
-
-
-
-
-
 
 </style>
