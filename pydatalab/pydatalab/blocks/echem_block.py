@@ -1,8 +1,9 @@
 import os
 from typing import List, Optional
 
-import bokeh
 import numpy as np
+
+import bokeh
 import pandas as pd
 from navani import echem as ec
 from pydatalab import bokeh_plots
@@ -12,7 +13,7 @@ from pydatalab.simple_bokeh_plot import mytheme
 from pydatalab.utils import reduce_df_size
 
 
-def reduce_echem_cycle_sampling(df: pd.DataFrame, num_samples: int = 1000) -> pd.DataFrame:
+def reduce_echem_cycle_sampling(df: pd.DataFrame, num_samples: int = 5000) -> pd.DataFrame:
     """Reduce number of data points per cycle.
 
     Parameters:
@@ -34,7 +35,6 @@ def reduce_echem_cycle_sampling(df: pd.DataFrame, num_samples: int = 1000) -> pd
 
 def compute_gpcl_differential(
     df: pd.DataFrame,
-    cycle_list: Optional[List[int]] = None,
     mode: str = "dQ/dV",
     smoothing: bool = True,
     polynomial_spline: int = 3,
@@ -44,12 +44,10 @@ def compute_gpcl_differential(
     polyorder_1: int = 5,
     polyorder_2: int = 5,
 ) -> pd.DataFrame:
-    """
-    Compute differential dQ/dV and dV/dQ based on the input dataframe.
+    """Compute differential dQ/dV or dV/dQ for the input dataframe.
 
     Args:
         df: The input dataframe containing the raw cycling data.
-        cycle_list: List of cycle indices to process, with `None` indicating all cycles.
         mode: Either 'dQ/dV' or 'dV/dQ'. Invalid inputs will default to 'dQ/dV'.
         smoothing: Whether or not to apply additional smoothing to the output differential curve.
         polynomial_spline: The degree of the B-spline fit used by navani.
@@ -66,122 +64,102 @@ def compute_gpcl_differential(
     """
 
     if mode.lower() == "dv/dq":
-        independent_label = "Voltage"
-        dependent_label = "Capacity"
+        y_label = "Voltage"
+        x_label = "Capacity"
+        yp_label = "dvdq"
     else:
-        independent_label = "Capacity"
-        dependent_label = "Voltage"
+        y_label = "Capacity"
+        x_label = "Voltage"
+        yp_label = "dqdv"
 
-    full_voltage_list = []
-    full_dqdv_list = []
-    full_cap_list = []
-    full_cyc_list = []
-    full_hf_cycle_list = []
-    half_cycles = []
-    voltage_space = []
+    smoothing_parameters = {
+        "polynomial_spline": polynomial_spline,
+        "s_spline": s_spline,
+        "window_size_1": window_size_1 if window_size_1 % 2 else window_size_1 + 1,
+        "window_size_2": window_size_2 if window_size_2 % 2 else window_size_2 + 1,
+        "polyorder_1": polyorder_1,
+        "polyorder_2": polyorder_2,
+        "final_smooth": smoothing,
+    }
 
-    if cycle_list is None:
-        cycle_list = range(len(df["half cycle"]))
+    differential_df = pd.DataFrame()
 
-    for item in cycle_list:
-        half_cycles.extend([(2 * item) - 1, 2 * item])
+    # Loop over distinct half cycles
+    for cycle in df["half cycle"].unique():
+        # Extract all segments corresponding to this half cycle index
+        df_cycle = df[df["half cycle"] == cycle]
 
-    for count, cycle in enumerate(cycle_list):
-        idx = df[df["full cycle"] == cycle].index
-        df.loc[idx, "colour"] = count
+        # Compute the desired derivative
+        x, yp, y = ec.dqdv_single_cycle(
+            df_cycle[y_label], df_cycle[x_label], **smoothing_parameters
+        )
 
-    df = df[df["half cycle"].isin(half_cycles)]
+        # Set up an array per cycle segment that stores the cycle and half-cycle index
+        cycle_index = df_cycle["full cycle"].max()
+        cycle_index_array = np.full(len(x), int(cycle_index), dtype=int)
+        half_cycle_index_array = np.full(len(x), int(cycle), dtype=int)
 
-    for cycle in half_cycles:
-        try:
-            df_cycle = df[df["half cycle"] == cycle]
-
-            voltage_space, dqdv, cap = ec.dqdv_single_cycle(
-                df_cycle[independent_label],
-                df_cycle[dependent_label],
-                polynomial_spline=polynomial_spline,
-                window_size_1=window_size_1 if window_size_1 % 2 else window_size_1 + 1,
-                polyorder_1=polyorder_1,
-                s_spline=s_spline,
-                window_size_2=window_size_2 if window_size_2 % 2 else window_size_2 + 1,
-                polyorder_2=polyorder_2,
-                final_smooth=smoothing,
+        differential_df = differential_df.append(
+            pd.DataFrame(
+                {
+                    x_label: x,
+                    y_label: y,
+                    yp_label: yp,
+                    "full cycle": cycle_index_array,
+                    "half cycle": half_cycle_index_array,
+                }
             )
+        )
 
-            mycyc = df_cycle["full cycle"].max()
-            cyc = np.full(len(voltage_space), mycyc)
-
-            try:
-                mycyc = cycle.max()
-            except AttributeError:
-                mycyc = cycle
-
-            hf_cyc = np.full(len(voltage_space), mycyc)
-
-            full_voltage_list.extend(voltage_space)
-            full_dqdv_list.extend(dqdv)
-            full_cap_list.extend(cap)
-            full_cyc_list.extend(cyc)
-            full_hf_cycle_list.extend(hf_cyc)
-
-            print(f"Printed cycle number {cycle}")
-
-        except ValueError:
-            print(f"Tried to print unknown cycle {cycle}")
-
-    differential_key = "dqdv" if independent_label == "Capacity" else "dvdq"
-
-    return pd.DataFrame(
-        data={
-            "Voltage": full_voltage_list,
-            differential_key: full_dqdv_list,
-            "Capacity": full_cap_list,
-            "full cycle": full_cyc_list,
-            "half cycle": full_hf_cycle_list,
-        }
-    )
+    return differential_df
 
 
-# Function to plot normal cycles
-def process_norm_df(df, cycle_list):
-    """
-    Processes user-input df/file for normal printing. Takes in list of full cycles to print, creates a list of half cycles
+def filter_df_by_cycle_index(
+    df: pd.DataFrame, cycle_list: Optional[List[int]] = None
+) -> pd.DataFrame:
+    """Filters the input dataframe by the chosen rows in the `cycle_list`.
 
     Args:
-        df: Input df from the user-input file
-        cycle_list: User-input field value of the list of cycles they want to print
+        df: The input dataframe to filter. Must have the column "half cycle".
+        cycle_list: The provided list of cycle indices to keep.
 
     Returns:
-        A dataframe with all the data for the selected cycles/half-cycles
+        A dataframe with all the data for the selected cycles.
+
     """
-    half_cycles = (
-        []
-    )  # Given input is a list of full cycles, we need to prepare list of half-cycles for detailed plotting
+    if cycle_list is None:
+        return df
 
-    if isinstance(
-        cycle_list, list
-    ):  # If the input contains a list, implies not all cycles are printed so, print each half-cycle
-        for item in cycle_list:
-            print(item)
-            half_cycles.extend([(2 * item) - 1, 2 * item])
-        for count, cycle in enumerate(cycle_list):
-            idx = df[df["full cycle"] == cycle].index
-            df.loc[idx, "colour"] = count
-
-        df = df[df["half cycle"].isin(half_cycles)]
-    return df
+    try:
+        half_cycles = [i for item in cycle_list for i in [(2 * int(item)) - 1, 2 * int(item)]]
+    except ValueError as exc:
+        raise ValueError(
+            f"Unable to parse `cycle_list` as integers: {cycle_list}. Error: {exc}"
+        ) from exc
+    return df[df["half cycle"].isin(half_cycles)]
 
 
 class CycleBlock(DataBlock):
-    """ "
-    Class that contains functions for processing dfs, creating new dfs with different columns (computing dqdv)
-    , functions that call bokeh functions with relevant dfs
+    """A data block for processing electrochemical cycling data.
+
+    This class that contains functions for processing dataframes created by navani
+    from raw cycler files and plotting them with Bokeh.
+
     """
 
     blocktype = "cycle"
-    description = "Echem cycle"
+    description = "Electrochemical cycling"
 
-    accepted_file_extensions = [".mpr", ".txt", ".xls", ".xlsx", ".txt", ".res"]
+    accepted_file_extensions = (
+        ".mpr",
+        ".txt",
+        ".xls",
+        ".xlsx",
+        ".txt",
+        ".res",
+    )
+
+    cache = {}
 
     defaults = {
         "p_spline": 5,
@@ -190,102 +168,96 @@ class CycleBlock(DataBlock):
         "win_size_1": 1001,
         "plotmode-dqdv": False,
         "plotmode-dvdq": False,
-    }  # values that are set by default if they are not supplied by the dictionary in init()
+    }
 
-    def plot_cycle(
-        self, voltage_label="Voltage", capacity_label="Capacity", capacity_units="mAh"
-    ):
+    def plot_cycle(self):
+        """Plots the electrochemical cycling data from the file ID provided in the request."""
+
+        required_keys = (
+            "Time",
+            "Voltage",
+            "Capacity",
+            "Current",
+            "dqdv",
+            "dvdq",
+            "half cycle",
+            "full cycle",
+        )
 
         if "file_id" not in self.data:
             print("No file_id given")
-            return None
+            return
+        file_id = self.data["file_id"]
 
-        file_info = get_file_info_by_id(self.data["file_id"], update_if_live=True)
+        mode = "normal"
+        if self.data["plotmode-dqdv"]:
+            mode = "dQ/dV"
+        elif self.data["plotmode-dvdq"]:
+            mode = "dV/dQ"
+
+        # User list input
+        cycle_list = self.data.get("cyclenumber", None)
+        if not isinstance(cycle_list, list):
+            cycle_list = None
+
+        if (
+            self.cache.get("bokeh_plot_data", {}).get(file_id, {}).get(mode, None)
+            and cycle_list == self.cache.get("cycle_list", [])
+            and self.cache.get("win_size_1") == self.data["win_size_1"]
+            and self.cache.get("s_spline") == self.data["s_spline"]
+        ):
+            self.data["bokeh_plot_data"] = self.cache["bokeh_plot_data"][file_id][mode]
+            return
+
+        self.cache["cycle_list"] = cycle_list
+        self.cache["win_size_1"] = self.data["win_size_1"]
+        self.cache["s_spline"] = self.data["s_spline"]
+
+        file_info = get_file_info_by_id(file_id, update_if_live=True)
         filename = file_info["name"]
         ext = os.path.splitext(filename)[-1].lower()
 
         if ext not in self.accepted_file_extensions:
             print("Unrecognized filetype")
-            return None
+            return
 
-        if "cyclenumber" not in self.data:
-            self.data["cyclenumber"] = ""  # plot all
+        if file_id in self.cache.get("parsed_file", {}):
+            raw_df = self.cache["parsed_file"][file_id]
+        else:
+            raw_df = ec.echem_file_loader(file_info["location"])
+            if "time/s" in raw_df:
+                # temporary. Navani should give "Time" as a standard field in the future.
+                raw_df["Time"] = raw_df["time/s"]
+            raw_df = raw_df.filter(required_keys)
+            self.cache["parsed_file"] = raw_df
 
-        # User list input
-        cycle_list = self.data["cyclenumber"]
+        df = filter_df_by_cycle_index(raw_df, cycle_list)
 
-        df = ec.echem_file_loader(file_info["location"])
-        if "time/s" in df:
-            df["Time"] = df[
-                "time/s"
-            ]  # temporary. Navani should give "Time" as a standard field in the future.
+        if mode in ("dQ/dV", "dV/dQ"):
+            df = compute_gpcl_differential(
+                df,
+                mode=mode,
+                polynomial_spline=int(self.data["p_spline"]),
+                s_spline=10 ** (-float(self.data["s_spline"])),
+                window_size_1=int(self.data["win_size_1"]),
+                window_size_2=int(self.data["win_size_2"]),
+            )
 
-        # Reduce df size
+        # Reduce df size to ~1000 rows by default
         df = reduce_echem_cycle_sampling(df)
 
-        # Take variables from vue, assign them to these variable names 'a, b, c, d' - some of them have to be odd numbers, so that is processed
+        layout = bokeh_plots.double_axes_echem_plot(df, mode=mode)
 
-        b = float(self.data["s_spline"])
-        a = int(self.data["p_spline"])
-        c = int(self.data["win_size_1"])
-        d = int(self.data["win_size_2"])
+        if "bokeh_plot_data" not in self.cache:
+            self.cache["bokeh_plot_data"] = {}
 
-        # c and b has to be odd
-        if (c % 2) == 0:
-            c = c + 1
-        if (b % 2) == 0:
-            b = b + 1
+        if file_id not in self.cache["bokeh_plot_data"]:
+            self.cache["bokeh_plot_data"][file_id] = {}
 
-        # Empty input/Print all cycles
-        if not isinstance(cycle_list, list) is False:
-            cycle_list = list(df["full cycle"].unique())
+        self.cache["bokeh_plot_data"][file_id][mode] = bokeh.embed.json_item(layout, theme=mytheme)
+        self.data["bokeh_plot_data"] = self.cache["bokeh_plot_data"][file_id][mode]
+        return
 
-        df = process_norm_df(df, cycle_list)
-
-        if self.data["plotmode-dqdv"] or self.data["plotmode-dvdq"]:
-            differential_df = compute_gpcl_differential(
-                df,
-                cycle_list,
-                polynomial_spline=a,
-                s_spline=10 ** (-b),
-                window_size_1=c,
-                window_size_2=d,
-                mode="dQ/dV" if self.data["plotmode-dqdv"] else "dV/dQ",
-            )
-
-        if self.data["plotmode-dqdv"]:
-            layout = bokeh_plots.double_axes_plot_dvdq(
-                df,
-                differential_df,
-                x_default="Capacity",
-            )
-        elif self.data["plotmode-dvdq"]:
-            layout = bokeh_plots.double_axes_plot(
-                df, df2=differential_df, x_options=["Capacity", "Time"], x_default="Capacity"
-            )
-        # Normal plotting mode
-        else:
-            layout = bokeh_plots.selectable_axes_plot_colours(
-                df,
-                x_options=[
-                    "Capacity",
-                    "Voltage",
-                    "Time",
-                ],
-                y_options=[
-                    "Capacity",
-                    "Voltage",
-                    "Time",
-                ],
-            )
-
-        self.data["bokeh_plot_data"] = bokeh.embed.json_item(layout, theme=mytheme)
-
-    def to_web(self):
-        self.plot_cycle()
-        return self.data
-
-    def to_db(self):
-        return {
-            key: value for (key, value) in self.data.items() if key != "bokeh_plot_data"
-        }  # don't save the bokeh plot in the database
+    @property
+    def plot_functions(self):
+        return (self.plot_cycle,)
