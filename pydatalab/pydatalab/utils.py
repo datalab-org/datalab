@@ -19,4 +19,4 @@ def reduce_df_size(df: pd.DataFrame, target_nrows: int) -> pd.DataFrame:
         A copy of the input dataframe with the applied stride.
 
     """
-    return df.iloc[::ceil(len(df) / target_nrows)].copy()
+    return df.iloc[:: ceil(len(df) / target_nrows)].copy()
