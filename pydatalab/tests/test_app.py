@@ -1,10 +1,8 @@
-import unittest
 from unittest.mock import patch
 
 import mongomock
-import pytest
-
 import pydatalab.mongo
+import pytest
 from pydatalab.main import create_app
 
 SAMPLE = {
@@ -84,7 +82,7 @@ def test_save_sample(client):
 @pytest.mark.dependency(depends=["test_new_sample"])
 def test_delete_sample(client):
     response = client.post(
-        f"/delete-sample/",
+        "/delete-sample/",
         json={"sample_id": SAMPLE["sample_id"]},
     )
     assert response.status_code == 200

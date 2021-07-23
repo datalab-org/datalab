@@ -4,10 +4,9 @@ import shutil
 
 from bson.objectid import ObjectId
 from pymongo import MongoClient
-
-from flask import jsonify
-from pydatalab.resources import DIRECTORIES_DICT
 from werkzeug.utils import secure_filename
+
+from pydatalab.resources import DIRECTORIES_DICT
 
 client = MongoClient("mongodb://localhost:27017/")
 db = client.datalabvue
