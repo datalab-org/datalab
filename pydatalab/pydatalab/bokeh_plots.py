@@ -166,20 +166,20 @@ def double_axes_echem_plot(
     if mode:
         if mode == "dQ/dV":
             p2 = figure(
-                x_axis_label="dQ/dV",
+                x_axis_label=mode,
                 y_axis_label="Voltage (V)",
                 y_range=p1.y_range,
                 **common_options,
             )
         else:
             p2 = figure(
-                x_axis_label=x_default, y_axis_label="dV/dQ", x_range=p1.x_range, **common_options
+                x_axis_label=x_default, y_axis_label=mode, x_range=p1.x_range, **common_options
             )
         plots.append(p2)
 
     lines = []
-    half_cycle_group = df.groupby("half cycle")
-    max_half_cycle = df["half cycle"].max()
+    grouped_by_half_cycle = df.groupby("half cycle")
+    max_full_cycle = df["full cycle"].max()
 
     for ind, plot in enumerate(plots):
         x = x_default
@@ -190,13 +190,18 @@ def double_axes_echem_plot(
             else:
                 y = "dvdq"
 
-        for counter, (name, group) in enumerate(half_cycle_group):
-            val = group["half cycle"].iloc[0] / max_half_cycle
+        for counter, (name, group) in enumerate(grouped_by_half_cycle):
+            # trim the end of the colour cycle for visibility on a white background
+            if max_full_cycle <= 1:
+                color_value = 0.5
+            else:
+                color_value = 0.8 * max(0.0, (group["full cycle"].iloc[0] - 1) / (max_full_cycle - 1))
+
             line = plot.line(
                 x=x,
                 y=y,
                 source=group,
-                line_color=matplotlib.colors.rgb2hex(cmap(val)),
+                line_color=matplotlib.colors.rgb2hex(cmap(color_value)),
                 hover_line_width=2,
                 selection_line_width=2,
                 selection_line_color="black",

@@ -34,7 +34,7 @@ function fetch_put(url, body) {
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify(body)
 	};
-	return fetch(url, requestOptions).then(handleResponse);    
+	return fetch(url, requestOptions).then(handleResponse);
 }
 
 // eslint-disable-next-line no-unused-vars
@@ -50,7 +50,7 @@ function handleResponse(response) {
 		console.log("fetch was successful")
 		// console.log(text);
 		const data = text && JSON.parse(text);
-		
+
 		if (!response.ok) {
 			const error = (data && data.message) || response.statusText;
 			return Promise.reject(error);
@@ -107,7 +107,7 @@ export async function getSampleData(sample_id) {
 				"sample_data": response_json.sample_data
 			});
 			store.commit('updateFiles', response_json.files_data)
-			
+
 			return "success"
 		}).catch( error => alert("Error getting sample data: " + error))
 }
@@ -117,7 +117,7 @@ export async function updateBlockFromServer(sample_id, block_id, block_data) {
 	console.log("updateBlockFromServer called with data:")
 	console.log(block_data)
 	store.commit('setBlockUpdating', block_id)
-	await fetch_post(`${SERVER_ADDRESS}/update-block/`, {
+	return fetch_post(`${SERVER_ADDRESS}/update-block/`, {
 		sample_id: sample_id,
 		block_id: block_id,
 		block_data: block_data
@@ -128,8 +128,9 @@ export async function updateBlockFromServer(sample_id, block_id, block_data) {
 			block_data: response_json.new_block_data,
 		})
 	}).catch( error => alert('Error in updateBlockFromServer: ' + error))
-	await new Promise(resolve => setTimeout(resolve, 500)); // wait 0.5 seconds so loading animation isn't too short
-	store.commit('setBlockNotUpdating', block_id)
+	.then( () =>
+		store.commit('setBlockNotUpdating', block_id)
+	)
 }
 
 
@@ -242,11 +243,3 @@ export async function addRemoteFileToSample(file_entry, sample_id) {
 // 		console.log(response_json)
 // 	}).catch( error => (`addRemoteFilesToSample unsuccessful. Error: ${error}`))
 // }
-
-
-
-
-
-
-
-
