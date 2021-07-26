@@ -1,4 +1,4 @@
-import { createStore, createLogger } from 'vuex'
+import { createStore } from 'vuex'
 // import { set } from 'vue'
 
 export default createStore({
@@ -7,6 +7,7 @@ export default createStore({
 		sample_list: [],
 		saved_status: {},
 		updating: {},
+		updatingDelayed: {},
 		remoteDirectoryTree: {},
 		remoteDirectoryTreeSecondsSinceLastUpdate: null,
 		files: {},
@@ -62,10 +63,10 @@ export default createStore({
 		addABlock(state, payload) {
 			// payload: sample_id, new_block_obj, new_display_order
 
-			// I should actually throw an error if this fails! 
+			// I should actually throw an error if this fails!
 			console.assert(payload.sample_id == payload.new_block_obj.sample_id,
-				"The block has a different sample_id (%s) than the sample_id provided to addABlock (%s)", 
-				payload.sample_id, payload.new_block_obj.sample_id) 
+				"The block has a different sample_id (%s) than the sample_id provided to addABlock (%s)",
+				payload.sample_id, payload.new_block_obj.sample_id)
 
 			let new_block_id = payload.new_block_obj.block_id
 			state.all_sample_data[payload.sample_id]["blocks_obj"][new_block_id] = payload.new_block_obj
@@ -125,10 +126,13 @@ export default createStore({
 			state.saved_status[payload.sample_id] = false
 		},
 		setBlockUpdating(state, block_id) {
-			state.updating[block_id] = true
+			state.updating[block_id] = true;
+			state.updatingDelayed[block_id] = true;
 		},
-		setBlockNotUpdating(state, block_id) {
-			state.updating[block_id] = false
+		async setBlockNotUpdating(state, block_id) {
+			state.updating[block_id] = false;
+			await new Promise(resolve => setTimeout(resolve, 500));
+			state.updatingDelayed[block_id] = false; // delayed by 0.5 s, helpful for some animations
 		}
 	},
 	getters: {
@@ -145,5 +149,5 @@ export default createStore({
 	},
 	modules: {
 	},
-	plugins: [createLogger()],
+	plugins: [],
 })

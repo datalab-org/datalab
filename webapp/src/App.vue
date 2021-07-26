@@ -52,9 +52,11 @@ body {
     background-color: #e6e6e6;
     border-color: #adadad;
 }
-.btn-default:active {
+.btn-default:active, .btn-default.active {
     color: #333;
+    font-weight: bold;
     background-color: #e6e6e6;
-    border-color: #adadad;
+    border-color: #000000;
+    border-width: 1px;
 }
 </style>
