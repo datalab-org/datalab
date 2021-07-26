@@ -3,53 +3,84 @@
 		<div class="form-row col-lg-8">
 			<FileSelectDropdown
 				v-model="file_id"
-				:sample_id="sample_id" 
+				:sample_id="sample_id"
 				:block_id="block_id"
 				:extensions='[".mpr", ".txt", ".xls", ".xlsx", ".txt", ".res"]'
 				updateBlockOnChange
 			/>
 		</div>
-		<div class="form-row col-md-4 col-lg-5 mt-2">
+		<div class="form-row col-md-6 col-lg-7 mt-2">
 			<div class="input-group form-inline">
-				<label class="mr-2"><b>Cycle number:</b></label>
-				<input type="text" class="form-control" 
-				v-model="cycle_number" 
-				@keydown.enter="updateBlock2"
-				@blur="updateBlock2">
-			</div>
-			
-		<div v-if="cycle_num_error" class="alert alert-warning">{{ cycle_num_error }}</div>
-		<!-- Insert another div here, if the filled value is a string or something -->
-		</div>
-    <div class="btn-group">
-        <button type="tab" class="btn btn-dark" style="background-color: lightgrey; color: black" id='replot' @click="updateBlock2">Replot</button>
-        <button type="tab" class="btn btn-dark" id='norm' @click="normal_modeselect(); updateBlock2();">V(Q; t)</button>
-        <button type="tab" class="btn btn-dark" id ='dqdv' @click="dqdv_modeselect(); updateBlock2();">dQ/dV</button>
-        <button type="tab" class="btn btn-dark" id='dvdq' @click="dvdq_modeselect(); updateBlock2();">dV/dQ</button>
-    </div >
-		<div class="slider-block">
-			<div class="slider" >
-				<input type="range" v-model="s_spline" id="s_spline" name="s_spline" min="1" max="10" step="0.2">
-				<label  for="volume" > <span @mouseenter="exp1 = true" @mouseleave="exp1 = false" >Spline fit:</span> {{- s_spline }}</label>
-			</div>
-			<div class="slider">
-				<input type="range" v-model="win_size_1" id="win_size_1" name="win_size_1" min="501" max="1501">
-				<label for="volume" > <span  @mouseenter="exp2 = true" @mouseleave="exp2 = false" >Window Size 1:</span>  {{ win_size_1 }}</label>
-			</div>
-			<div class="description" v-show="exp1" @mouseover="exp1 = true" @mouseleave="exp1 = false"> 
-
-			<p>Spline fit: determines how close the spline fits to the real data - less negative value results in a smoother fit with less details preserved</p>
-			</div>
-			<div class="description" v-show="exp2"  @mouseover="exp1 = true" @mouseleave="exp1 = false">
-			<p>Window Size: Range of data to be smoothed by Savitzky-Golay filter</p>
+				<label class="mr-2"><b>Cycles to plot:</b></label>
+				<input 
+					type="text"
+					class="form-control"
+					:class="{'is-invalid': cycle_num_error}"
+					v-model="cyclesString"
+					@keydown.enter="parseCycleString(); updateBlock();"
+					@blur="parseCycleString(); updateBlock();">
+				<label id="listOfCycles" class="ml-3">Showing cycles: {{ parsedCycles }}</label>
 			</div>
 
+			<div v-if="cycle_num_error" class="alert alert-danger mt-2 mx-auto">{{ cycle_num_error }}</div>
 		</div>
-		
-		<div class="row" id='plotarea'>
-			<div class="col-xl-8 col-lg-9 col-md-11 mx-auto">
+
+		<div class="form-row">
+			<div class="col mt-2">
+				<div class="input-group form-inline">
+					<label class="mr-2"><b>Derivative mode:</b></label>
+					<div class="btn-group">
+						<div class="btn btn-default" :class="{active: derivative_mode=='dQ/dV'}" @click="derivative_mode= derivative_mode=='dQ/dV' ? null : 'dQ/dV'; updateBlock();"> d<i>Q</i>/d<i>V</i> </div>
+						<div class="btn btn-default" :class="{active: derivative_mode=='dV/dQ'}" @click="derivative_mode= derivative_mode=='dV/dQ' ? null: 'dV/dQ'; updateBlock();"> d<i>V</i>/d<i>Q</i> </div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div v-show = "derivative_mode" class="row">
+			<div class="col-md slider" style="max-width: 250px" >
+				<input
+					type="range"
+					class="form-control-range"
+					v-model="s_spline"
+					id="s_spline"
+					name="s_spline"
+					min="1"
+					max="10"
+					step="0.2"
+					@change="isReplotButtonDisplayed = true"
+				>
+				<label  @mouseover="showDescription1 = true" @mouseleave="showDescription1 = false" for="s_spline">
+					<span>Spline fit:</span> {{- s_spline }}
+				</label>
+			</div>
+			<div class="col-md slider" style="max-width: 250px">
+				<input
+					type="range"
+					class="form-control-range"
+					v-model="win_size_1"
+					id="win_size_1"
+					name="win_size_1"
+					min="501"
+					max="1501"
+					@change="isReplotButtonDisplayed = true">
+				<label for="win_size_1" @mouseover="showDescription2 = true" @mouseleave="showDescription2 = false">
+					<span>Window Size 1:</span>  {{ win_size_1 }}
+				</label>
+			</div>
+			<button v-show="isReplotButtonDisplayed" class="btn btn-default my-4" @click="updateBlock">Recalculate</button>
+		</div>
+
+		<div class="alert alert-info" v-show="showDescription1">
+			<p>Smoothing parameter that determines how close the spline fits to the real data. Larger values result in a smoother fit with decreased detail.</p>
+		</div>
+		<div class="alert alert-info" v-show="showDescription2">
+			<p>Window size for the Savitzky-Golay filter to apply to the derivatives.</p>
+		</div>
+
+		<div class="row mt-2">
+			<div  class='col mx-auto' :class="{'limited-width': bokehPlotLimitedWidth, blurry: isUpdating}">
 				<BokehPlot :bokehPlotData="bokehPlotData" />
-				<!-- <div v-if="!bokehPlotData" class="alert alert-danger">No bokeh Plot Data is loaded</div> -->
 			</div>
 		</div>
 
@@ -71,9 +102,11 @@ export default {
 	data() {
 		return {
 			cycle_num_error: "",
-			cycle_number: "",
-			exp1 : false,
-			exp2 : false,
+			cyclesString: "",
+			showDescription1 : false,
+			showDescription2 : false,
+			bokehPlotLimitedWidth: true,
+			isReplotButtonDisplayed: false,
 		}
 	},
 	props: {
@@ -87,28 +120,32 @@ export default {
 		numberOfCycles() {
 			return this.$store.state.all_sample_data[this.sample_id]["blocks_obj"][this.block_id].number_of_cycles
 		},
+		parsedCycles() {
+			return this.all_cycles? this.all_cycles : "all";
+		},
+		isUpdating() {
+			return this.$store.state.updating[this.block_id]
+		},
 		file_id: createComputedSetterForBlockField("file_id"),
 		all_cycles: createComputedSetterForBlockField("cyclenumber"),
-		p_spline: createComputedSetterForBlockField("p_spline"),
 		s_spline: createComputedSetterForBlockField("s_spline"),
 		win_size_1: createComputedSetterForBlockField("win_size_1"),
-		win_size_2: createComputedSetterForBlockField("win_size_2"),
-		dqdv_mode: createComputedSetterForBlockField("plotmode-dqdv"),
-		dvdq_mode: createComputedSetterForBlockField("plotmode-dvdq"),
+		derivative_mode: createComputedSetterForBlockField("derivative_mode")
 	},
 	methods: {
-		parseCycleNumber(cycle_number) {
-			let cycle_string = cycle_number.replace(/\s/g, '')
+		parseCycleString() {
+			let cyclesString = this.cyclesString.replace(/\s/g, '')
+                       this.cycle_num_error = null
 			var cycle_regex = /^(\d+(-\d+)?,)*(\d+(-\d+)?)$/g
-			if (cycle_number.match(/^ *$/) !== null){
-				this.cycle_num_error = "Plotting all cycles!"
-				return false
+			if (cyclesString.match(/^ *$/) !== null || cyclesString.toLowerCase() == "all"){
+				this.all_cycles = null
+				return
 			}
-			else if (!cycle_regex.test(cycle_string)) {
-				this.cycle_num_error = "Please enter a valid input!"
-				return false
+			else if (!cycle_regex.test(cyclesString)) {
+				this.cycle_num_error = `Invalid input '${cyclesString}', please enter comma-separated values or hyphen-separated ranges, e.g., '1, 2, 5-10'.`
+				return
 			}
-			let cycle_string_sections = cycle_string.split(',')
+			let cycle_string_sections = cyclesString.split(',')
 			var all_cycles = []
 			for (const section of cycle_string_sections) {
 				let split_section = section.split('-')
@@ -122,136 +159,51 @@ export default {
 					}
 				}
 			}
-			
-			return all_cycles
-		},
-		updateBlock2() {
-			this.all_cycles = this.parseCycleNumber(this.cycle_number)
-			// if (!this.all_cycles) {
-			// 	return
-			// }
-			console.log('parsing')
-			this.cycle_num_error = this.all_cycles
-			updateBlockFromServer(this.sample_id, this.block_id, 
-				this.$store.state.all_sample_data[this.sample_id]["blocks_obj"][this.block_id])
-		},
 
-		dqdv_modeselect(){
-			//Default value for dqdv mode is False, following lines reverses boolean and shows/removes the dqdv slider section accordingly
-			this.dqdv_mode = !(this.dqdv_mode)
-
-			//if dqdv mode is activated, then dvdq mode HAS to be false
-			if (this.dqdv_mode && this.dvdq_mode){       // When calling the dqdv button, we know user wants dqdv. If both dqdv and dvdq are true, set dvdq to false
-				this.dvdq_mode = !(this.dvdq_mode)
-			}
-			if (this.dqdv_mode){
-				document.getElementsByClassName("slider-block")[0].style.display = "block"
-			}else{
-				document.getElementsByClassName("slider-block")[0].style.display = "none"
-			}
+			this.all_cycles = all_cycles
 		},
-		dvdq_modeselect(){
-			//Default value for dqdv mode is False, following lines reverses boolean and shows/removes the dqdv slider section accordingly
-			this.dvdq_mode = !(this.dvdq_mode)
-
-			//if dqdv mode is activated, then dvdq mode HAS to be false
-			if (this.dvdq_mode && this.dqdv_mode){
-				this.dqdv_mode = !(this.dqdv_mode)
-			}
-			console.log(this.dvdq_mode)
-			console.log(this.dqdv_mode)
-			if (this.dvdq_mode){
-				document.getElementsByClassName("slider-block")[0].style.display = "block"
-			}else{
-				document.getElementsByClassName("slider-block")[0].style.display = "none"
-			}
-		},
-		normal_modeselect(){
-			
-			if (this.dqdv_mode){
-				this.dqdv_mode = !(this.dqdv_mode)
-			}
-			if (this.dvdq_mode){
-				this.dvdq_mode = !(this.dvdq_mode)
-			}
-			console.log(this.dvdq_mode)
-			console.log(this.dqdv_mode)
-		
-			document.getElementsByClassName("slider-block")[0].style.display = "none"
-			
+		updateBlock() {
+			updateBlockFromServer(this.sample_id, this.block_id,
+				this.$store.state.all_sample_data[this.sample_id]["blocks_obj"][this.block_id]
+			).then( () => {
+				this.bokehPlotLimitedWidth = this.derivative_mode != 'dQ/dV';
+				this.isReplotButtonDisplayed = false
+			})
 		},
 	},
 	components: {
 		DataBlockBase,
 		FileSelectDropdown,
 		BokehPlot,
-	},	
+	},
 }
 </script>
 
 <style scoped>
 
-.button-box {
-	display: block;
-	width: 100%;
+#listOfCycles {
+	color: grey;
 }
 
-.btn-group {
-  margin: 1em;
-  margin-left: 0;
+.blurry {
+	filter: blur(5px);
 }
 
-.btn-group button {
-  cursor: pointer;
-  margin: 1em;
+.limited-width {
+	max-width: 650px;
 }
 
 .slider {
-	display: inline-block;
-	width: 50%;
+	margin-top: 2rem;
 }
 
-.slider label{
-	display: block;
-
+.btn-default:hover {
+	background-color: #eee;
 }
 
-.slider span{
+.slider span {
 	border-bottom: 2px dotted #0c5460;
-	padding-bottom: 1px;
-}
-
-.slider-block{
-	margin-top: 20px;
-	margin-bottom: 20px;
-	display: none;
-
-}
-.mx-auto {
-	margin-left: 0 !important;
-	margin-right: 0 !important;
-	max-width: 100%;
-}
-
-#plotarea {
-	max-width: 100% !important;
-	display: block !important;
-}
-
-.description{
-	color: #0c5460;
-    background-color: #d1ecf1;
-    border-color: #bee5eb;
-	position: relative;
-    padding: 0.75rem 1rem;
-    margin-bottom: 1rem;
-    border: 1px solid transparent;
-    border-radius: 0.25rem;
-}
-
-.description p{
-	font-family: Avenir, Helvetica, Arial, sans-serif;
-	font-size: 15px;
+	text-decoration: none;
 }
 
 </style>

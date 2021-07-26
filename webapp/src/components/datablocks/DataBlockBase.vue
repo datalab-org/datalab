@@ -1,7 +1,7 @@
 <template>
 	<div :id="block_id" class="data-block">
 		<div class="datablock-header collapsible" :class="{ expanded: isExpanded }">
-			<font-awesome-icon :icon='["fas","chevron-right"]' fixed-width class="collapse-arrow" 
+			<font-awesome-icon :icon='["fas","chevron-right"]' fixed-width class="collapse-arrow"
 					@click="toggleExpandBlock" />
 			<input class="form-control-plaintext block-title" type="text" v-model="BlockTitle">
 			<span class="blocktype-label ml-auto mr-3">{{ blockType }}</span>
@@ -13,7 +13,7 @@
 				@click='swapDown' v-if='displayIndex != displayOrder.length-1'/>
 			<font-awesome-icon :icon='["fas","times"]' class="block-header-icon delete-block-button" @click='deleteThisBlock' />
 		</div>
-	
+
 		<div ref="datablockContent" :style="{'max-height': contentMaxHeight}" class="datablock-content">
 			<slot></slot>
 			<TinyMceInline v-model="BlockDescription"></TinyMceInline>
@@ -40,7 +40,7 @@ export default {
 		block() {
 			return this.$store.getters.getBlockBySampleIDandBlockID(this.sample_id, this.block_id)
 		},
-		blockType() { 
+		blockType() {
 			try {
 				return this.block["blocktype"]
 			} catch {
@@ -55,7 +55,7 @@ export default {
 			return this.displayOrder.indexOf(this.block_id)
 		},
 		isUpdating() {
-			return this.$store.state.updating[this.block_id]
+			return this.$store.state.updatingDelayed[this.block_id]
 		},
 		BlockTitle: createComputedSetterForBlockField('title'),
 		BlockDescription: createComputedSetterForBlockField('freeform_comment'),
@@ -93,10 +93,10 @@ export default {
 
 			}
 			else {
-				requestAnimationFrame( () => { //must be an arrow function so that 'this' is still accessible! 
+				requestAnimationFrame( () => { //must be an arrow function so that 'this' is still accessible!
 					this.contentMaxHeight = content.scrollHeight + "px";
 					requestAnimationFrame( () => {
-						this.contentMaxHeight = "0px";  
+						this.contentMaxHeight = "0px";
 						this.isExpanded = false;
 				})
 			})
@@ -109,7 +109,7 @@ export default {
 		var content =this.$refs.datablockContent
 		content.addEventListener('transitionend', () => {
 			if (this.isExpanded) {
-				this.contentMaxHeight = "none"				
+				this.contentMaxHeight = "none"
 			}
 		});
 
@@ -138,7 +138,7 @@ export default {
 }
 
 .blocktype-label {
-	font-style: italic;	
+	font-style: italic;
 	color: grey;
 }
 
@@ -193,7 +193,7 @@ export default {
 }
 
 .collapse-arrow:hover {
-  color: #7ca7ca;  
+  color: #7ca7ca;
 }
 
 /* expanded is on the parent (the header) */
@@ -230,7 +230,3 @@ export default {
 */
 
 </style>
-
-
-
-

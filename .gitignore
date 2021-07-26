@@ -22,7 +22,7 @@ __pycache__/
 *$py.class
 
 # Ignore any *additional* pipfile/pyprojects that get updated
-pyproject.toml
+pydatalab/pyproject.toml
 Pipfile
 Pipfile.lock
 
