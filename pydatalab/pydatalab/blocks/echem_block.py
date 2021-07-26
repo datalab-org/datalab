@@ -1,9 +1,8 @@
 import os
 from typing import List, Optional
 
-import numpy as np
-
 import bokeh
+import numpy as np
 import pandas as pd
 from navani import echem as ec
 from pydatalab import bokeh_plots
@@ -63,7 +62,7 @@ def compute_gpcl_differential(
 
     """
 
-    if mode.lower() == "dv/dq":
+    if mode.lower().replace("/", "") == "dvdq":
         y_label = "Voltage"
         x_label = "Capacity"
         yp_label = "dvdq"
@@ -166,8 +165,7 @@ class CycleBlock(DataBlock):
         "s_spline": 5,
         "win_size_2": 101,
         "win_size_1": 1001,
-        "plotmode-dqdv": False,
-        "plotmode-dvdq": False,
+        "derivative_mode": None,
     }
 
     def plot_cycle(self):
@@ -187,19 +185,29 @@ class CycleBlock(DataBlock):
         if "file_id" not in self.data:
             print("No file_id given")
             return
+
+        derivative_modes = (None, "dQ/dV", "dV/dQ")
+
+        if self.data["derivative_mode"] not in derivative_modes:
+            print(
+                f"Invalid derivative_mode provided: {self.data['derivative_mode']!r}. "
+                f"Expected one of {derivative_modes}. Falling back to `None`."
+            )
+            self.data["derivative_mode"] = None
+
         file_id = self.data["file_id"]
 
-        mode = "normal"
-        if self.data["plotmode-dqdv"]:
-            mode = "dQ/dV"
-        elif self.data["plotmode-dvdq"]:
-            mode = "dV/dQ"
+        if self.data["derivative_mode"] is None:
+            mode = "normal"
+        else:
+            mode = self.data["derivative_mode"]
 
         # User list input
         cycle_list = self.data.get("cyclenumber", None)
         if not isinstance(cycle_list, list):
             cycle_list = None
 
+        # retrieve bokeh_plot_data from the cache if it has already been generated for a given file, mode, and settings:
         if (
             self.cache.get("bokeh_plot_data", {}).get(file_id, {}).get(mode, None)
             and cycle_list == self.cache.get("cycle_list", [])

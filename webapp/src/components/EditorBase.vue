@@ -25,7 +25,7 @@
       <span v-if="sample_data_loaded && !savedStatus" class="navbar-text unsaved-warning"> Unsaved changes </span>
       <span v-if="sample_data_loaded" class="navbar-text mx-2"><i>Last saved: {{ lastModified }}</i></span>
       <font-awesome-icon icon="save" fixed-width class="nav-item nav-link navbar-icon"
-      @click="saveSample" /> 
+      @click="saveSample" />
    </div>
 </nav>
 
@@ -39,10 +39,10 @@
    <hr />
 </div>
 
-<!-- Display the blocks --> 
+<!-- Display the blocks -->
 <div class="container">
    <div v-for="block_id in sample_data.display_order" :key="block_id">
-      <component :is="getBlockDisplayType(block_id)" 
+      <component :is="getBlockDisplayType(block_id)"
          :sample_id="sample_id"
          :block_id="block_id"
       />
@@ -69,6 +69,7 @@ import setupUppy from '@/file_upload.js'
 import tinymce from 'tinymce/tinymce';
 
 import {blockKinds} from "@/resources.js"
+import NotImplementedBlock from "@/components/datablocks/NotImplementedBlock.vue"
 
 export default {
    data() {
@@ -77,7 +78,7 @@ export default {
          isMenuDropdownVisible: false,
          selectedRemoteFiles: [],
          isLoadingRemoteTree: false,
-         isLoadingRemoteFiles: false, 
+         isLoadingRemoteFiles: false,
       }
    },
    props: {
@@ -109,7 +110,12 @@ export default {
       },
       getBlockDisplayType(block_id){
          var type = this.blocks[block_id].blocktype;
-         return this.blockKinds[type].component
+         if (type in blockKinds) {
+            return this.blockKinds[type].component
+         }
+         else {
+            return NotImplementedBlock
+         }
       },
 
       saveSample() {
@@ -129,7 +135,7 @@ export default {
          this.sample_data_loaded = true;
       },
 
-   }, 
+   },
    computed: {
       sample_data() {
          // console.log("hello, here is the sample data", this.$store.state.all_sample_data)
@@ -165,7 +171,7 @@ export default {
       this.getSampleData();
    },
    components: {
-      TinyMceInline, 
+      TinyMceInline,
       Modal,
       SelectableFileTree,
       FileList,
@@ -173,11 +179,11 @@ export default {
       FileSelectModal,
    },
    mounted() {
-      this.blockKinds = blockKinds // bind blockKinds as a NON-REACTIVE object to the this context so that it is accessible by the template. 
+      this.blockKinds = blockKinds // bind blockKinds as a NON-REACTIVE object to the this context so that it is accessible by the template.
 
       // overwrite ctrl-s and cmd-s to save the page
       this._keyListener = function(e) {
-         if (e.key === "s" && (e.ctrlKey || e.metaKey)) {   
+         if (e.key === "s" && (e.ctrlKey || e.metaKey)) {
             e.preventDefault(); // present "Save Page" from getting triggered.
             this.saveSample();
          }
@@ -208,7 +214,7 @@ export default {
 }
 
 .nav-link {
-  cursor: pointer; 
+  cursor: pointer;
 }
 
 .nav-link:hover {
@@ -249,4 +255,3 @@ export default {
 }
 
 </style>
-
