@@ -69,7 +69,7 @@ def save_directory_structure_to_db(directory_name, dir_structure):
 
 
 def get_cached_directory_structure_from_db(directory_name):
-    return FILESYSTEMS_COLLECTION.find_one({"name": directory["name"]})
+    return FILESYSTEMS_COLLECTION.find_one({"name": directory_name})
 
 
 def get_all_directory_structures(directories=DIRECTORIES):
@@ -115,7 +115,7 @@ def get_cached_directory_structures(directories=DIRECTORIES):
     return all_directory_structures
 
 
-## An alternate way to connect...
+# An alternate way to connect...
 # def connect_to_grey_instrument_fs():
 #    # the server is at smb://diskhost-c.ch.private.cam.ac.uk, but that doesn't seem to work with fs.smbfs. I got the IP using:
 #    # smbutil status diskhost-c.ch.private.cam.ac.uk

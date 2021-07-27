@@ -1,7 +1,5 @@
-import os
 import re
 import sys
-import warnings
 
 import numpy as np
 import pandas as pd
@@ -20,11 +18,11 @@ def read_xrdml(fn):
     intensities = get_intensities(s)
     angles = np.linspace(start, end, num=len(intensities))
 
-    df = pd.DataFrame({"angles": angles, "intensities": intensities})
+    return pd.DataFrame({"angles": angles, "intensities": intensities})
 
 
 def convert_to_Q(two_theta, wavelength=0.414581):
-    return 4 * np.pi / wavelength * np.sin(two_theta / 2 * DEGREES)
+    return 4 * np.pi / wavelength * np.sin(np.radians(two_theta / 2))
 
 
 def get_start_end(s):
