@@ -56,7 +56,6 @@ def create_app(config_override: Dict[str, Any] = None) -> Flask:
 
     DATA_COLLECTION = flask_mongo.db.data
     FILE_COLLECTION = flask_mongo.db.files
-    FILESYSTEMS_COLLECTION = flask_mongo.db.remoteFilesystems
 
     @app.route("/")
     def index():
@@ -120,7 +119,7 @@ def create_app(config_override: Dict[str, Any] = None) -> Flask:
             return (
                 jsonify(
                     status="error",
-                    message=f"Failed to add new block to server.",
+                    message="Failed to add new block to server.",
                     output=result.raw_result,
                 ),
                 400,
@@ -450,9 +449,8 @@ def create_app(config_override: Dict[str, Any] = None) -> Flask:
         result = DATA_COLLECTION.update_one(
             {"sample_id": sample_id},
             {
-                "$push": {"blocks": data},
+                "$push": {"blocks": data, "display_order": display_order_update},
                 "$set": {f"blocks_obj.{block.block_id}": data},
-                "$push": {"display_order": display_order_update},
             },
         )
 
@@ -487,8 +485,6 @@ def create_app(config_override: Dict[str, Any] = None) -> Flask:
         """
         request_json = request.get_json()
         print("update_block called with : " + str(request_json)[:1000])
-        sample_id = request_json["sample_id"]
-        block_id = request_json["block_id"]
         block_data = request_json["block_data"]
         blocktype = block_data["blocktype"]
 

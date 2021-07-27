@@ -3,17 +3,16 @@ import os
 import shutil
 
 from bson.objectid import ObjectId
-from pymongo import MongoClient
 from werkzeug.utils import secure_filename
 
+from pydatalab.main import CONFIG
+from pydatalab.mongo import flask_mongo
 from pydatalab.resources import DIRECTORIES_DICT
 
-client = MongoClient("mongodb://localhost:27017/")
-db = client.datalabvue
-FILE_COLLECTION = db.files
-SAMPLE_COLLECTION = db.data
+FILE_COLLECTION = flask_mongo.db.files
+SAMPLE_COLLECTION = flask_mongo.db.data
 
-FILE_DIRECTORY = "files"
+FILE_DIRECTORY = CONFIG["FILE_DIRECTORY"]
 
 
 def get_file_info_by_id(file_id, update_if_live=True):
@@ -30,7 +29,7 @@ def get_file_info_by_id(file_id, update_if_live=True):
         cached_timestamp = file_info["last_modified_remote_timestamp"]
         try:
             stat_results = os.stat(full_remote_path)
-        except FileNotFoundError as e:
+        except FileNotFoundError:
             print(
                 "when trying to check if live file needs to be updated, could not access remote file"
             )
@@ -61,7 +60,7 @@ def get_file_info_by_id(file_id, update_if_live=True):
     return file_info
 
 
-def update_uploaded_file(file, file_id, last_modified=None, size_bytes=None, **additional_updates):
+def update_uploaded_file(file, file_id, last_modified=None, size_bytes=None):
     """file is a file object from a flask request.
     last_modified should be an isodate format. if None, the current time will be inserted
     By default, only changes the last_modified, and size_bytes, increments version, and verifies source=remote and is_live=false. (converts )
@@ -83,9 +82,6 @@ def update_uploaded_file(file, file_id, last_modified=None, size_bytes=None, **a
     )
 
     if not updated_file_entry:
-        import pdb
-
-        pdb.set_trace()
         raise IOError(f"Issue with db update uploaded file {file.name} id {file_id}")
 
     # overwrite the old file with the new location
@@ -94,11 +90,18 @@ def update_uploaded_file(file, file_id, last_modified=None, size_bytes=None, **a
     return updated_file_entry
 
 
-def save_uploaded_file(file, sample_ids=[], block_ids=[], last_modified=None, size_bytes=None):
+def save_uploaded_file(
+    file, sample_ids=None, block_ids=None, last_modified=None, size_bytes=None
+):
     """file is a file object from a flask request.
     last_modified should be an isodate format. if last_modified is None, the current time will be inserted"""
 
     # validate sample_ids
+    if not sample_ids:
+        sample_ids = []
+    if not block_ids:
+        block_ids = []
+
     for sample_id in sample_ids:
         if not SAMPLE_COLLECTION.find_one({"sample_id": sample_id}):
             raise ValueError(f"sample_id is invalid: {sample_id}")
@@ -164,7 +167,10 @@ def save_uploaded_file(file, sample_ids=[], block_ids=[], last_modified=None, si
     return updated_file_entry
 
 
-def add_file_from_remote_directory(file_entry, sample_id, block_ids=[]):
+def add_file_from_remote_directory(file_entry, sample_id, block_ids=None):
+
+    if not block_ids:
+        block_ids = []
     filename = secure_filename(file_entry["name"])
     extension = os.path.splitext(filename)[1]
 
@@ -174,7 +180,7 @@ def add_file_from_remote_directory(file_entry, sample_id, block_ids=[]):
     full_remote_path = os.path.join(remote_toplevel_path, remote_path)
 
     # check that the path is valid and get the last modified time from the server
-    last_modified_timestamp_from_remote = os.path.getmtime(full_remote_path)
+    remote_timestamp = os.path.getmtime(full_remote_path)
 
     new_file_document = {
         "name": filename,
@@ -192,7 +198,7 @@ def add_file_from_remote_directory(file_entry, sample_id, block_ids=[]):
         "representation": None,
         "source_server_name": file_entry["toplevel_name"],
         "source_path": remote_path,  # this is the relative path from the given source_server_name (server directory)
-        "last_modified_remote_timestamp": last_modified_timestamp_from_remote,  # last modified time as provided from the remote server. May by different than last_modified if the two servers times are not synchrotronized.
+        "last_modified_remote_timestamp": remote_timestamp,  # last modified time as provided from the remote server. May by different than last_modified if the two servers times are not synchrotronized.
         "is_live": True,  # will update (if changes have occured) on access
         "version": 1,  # increment with each update
     }
@@ -206,7 +212,6 @@ def add_file_from_remote_directory(file_entry, sample_id, block_ids=[]):
     new_directory = os.path.join(FILE_DIRECTORY, str(inserted_id))
     new_file_location = os.path.join(new_directory, filename)
     os.makedirs(new_directory)
-    remote_file_path = shutil.copy(full_remote_path, new_file_location)
 
     updated_file_entry = FILE_COLLECTION.find_one_and_update(
         {"_id": inserted_id},
@@ -232,16 +237,16 @@ def add_file_from_remote_directory(file_entry, sample_id, block_ids=[]):
 def retrieve_file_path(file_ObjectId):
     result = FILE_COLLECTION.find_one({"_id": ObjectId(file_ObjectId)})
     if not result:
-        raise (
-            FileNotFoundError,
-            f"The file with file_ObjectId: {file_ObjectId} could not be found in the database",
+        raise FileNotFoundError(
+            f"The file with file_ObjectId: {file_ObjectId} could not be found in the database"
         )
     return result["location"]
 
 
 def remove_file_from_sample(sample_id, file_ObjectId):
     sample_result = SAMPLE_COLLECTION.update_one(
-        {"sample_id": ObjectId(file_id)}, {"$pull": {"file_ObjectIds": ObjectId(file_ObjectId)}}
+        {"sample_id": ObjectId(sample_id)},
+        {"$pull": {"file_ObjectIds": ObjectId(file_ObjectId)}},
     )
 
     if sample_result.modified_count < 1:
@@ -250,8 +255,9 @@ def remove_file_from_sample(sample_id, file_ObjectId):
             f"failed to remove file_ObjectId (f{file_ObjectId}) from sample (f{sample_id}) db entry: {sample_result.raw_result}",
         )
 
-    file_result = FILE_COLLECTION.update_one(
-        {"_id": ObjectId(file_ObjectId)}, {"$pull": {"sample_ids": ObjectId(file_ObjectId)}}
+    FILE_COLLECTION.update_one(
+        {"_id": ObjectId(file_ObjectId)},
+        {"$pull": {"sample_ids": ObjectId(sample_id)}},
     )
 
 

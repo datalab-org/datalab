@@ -3,8 +3,8 @@ import pandas as pd
 from bokeh.events import DoubleTap
 from bokeh.io import curdoc
 from bokeh.models.callbacks import CustomJS
-from bokeh.plotting import ColumnDataSource, figure, show
-from bokeh.themes import Theme, built_in_themes
+from bokeh.plotting import ColumnDataSource, figure
+from bokeh.themes import Theme
 
 FONTSIZE = "14pt"
 TYPEFACE = "Helvetica"  # "Lato"
@@ -51,7 +51,7 @@ mytheme = Theme(json=style)
 
 def simple_bokeh_plot(xy_filename, x_label=None, y_label=None):
 
-    df = pd.read_csv(xy_filename, sep="\s+", names=["x_col", "y_col"])
+    df = pd.read_csv(xy_filename, sep="\\s+", names=["x_col", "y_col"])
     source = ColumnDataSource(df)
     # source = ColumnDataSource({'x_col': x, 'y_col': y})
 
@@ -70,7 +70,3 @@ def simple_bokeh_plot(xy_filename, x_label=None, y_label=None):
     p.js_on_event(DoubleTap, CustomJS(args=dict(p=p), code="p.reset.emit()"))
     # show(p)
     return p
-
-
-if __name__ == "__main__":
-    simple_bokeh_plot()
