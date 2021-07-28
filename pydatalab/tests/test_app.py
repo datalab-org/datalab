@@ -1,8 +1,9 @@
 from unittest.mock import patch
 
 import mongomock
-import pydatalab.mongo
 import pytest
+
+import pydatalab.mongo
 from pydatalab.main import create_app
 
 SAMPLE = {
