@@ -1,9 +1,9 @@
 <template>
   <h3>Test of data tree</h3>
   <!-- 	<div style="border: dashed 2px blue; padding:0.5rem">
-		<tree-menu 
-			:nodes="treeData.nodes" 
-			:depth="0"   
+		<tree-menu
+			:nodes="treeData.nodes"
+			:depth="0"
 			:label="treeData.label"
 		>
 		</tree-menu>
@@ -122,7 +122,7 @@ export default {
 
 .selected-file {
   font-weight: 600;
-  /*	border: solid 1px teal; 
+  /*	border: solid 1px teal;
 	padding: 0.1rem 0.25rem;
 	border-radius: 0.2rem;*/
   display: inline-block;
