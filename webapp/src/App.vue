@@ -1,11 +1,11 @@
 <template>
   <!-- <div id="nav"> -->
-    <!-- <router-link to="/">Home</router-link> | -->
-    <!-- <router-link to="/about">About</router-link> | -->
-    <!-- <router-link to="/test">Test Page</router-link> |  -->
-    <!-- <router-link to="/samples">Samples</router-link> -->
+  <!-- <router-link to="/">Home</router-link> | -->
+  <!-- <router-link to="/about">About</router-link> | -->
+  <!-- <router-link to="/test">Test Page</router-link> |  -->
+  <!-- <router-link to="/samples">Samples</router-link> -->
   <!-- </div> -->
-  <router-view/>
+  <router-view />
 </template>
 
 <style>
@@ -35,28 +35,28 @@ body {
   color: #42b983;
 }
 
-
 /*recover btn-default from bootstrap 3*/
 .btn-default {
-    color: #333;
-    background-color: #fff;
-    border-color: #ccc;
+  color: #333;
+  background-color: #fff;
+  border-color: #ccc;
 }
 .btn-default:focus {
-    color: #333;
-    background-color: #e6e6e6;
-    border-color: #8c8c8c;
+  color: #333;
+  background-color: #e6e6e6;
+  border-color: #8c8c8c;
 }
 .btn-default:hover {
-    color: #333;
-    background-color: #e6e6e6;
-    border-color: #adadad;
+  color: #333;
+  background-color: #e6e6e6;
+  border-color: #adadad;
 }
-.btn-default:active, .btn-default.active {
-    color: #333;
-    font-weight: bold;
-    background-color: #e6e6e6;
-    border-color: #000000;
-    border-width: 1px;
+.btn-default:active,
+.btn-default.active {
+  color: #333;
+  font-weight: bold;
+  background-color: #e6e6e6;
+  border-color: #000000;
+  border-width: 1px;
 }
 </style>

@@ -1,9 +1,8 @@
 module.exports = {
-  configureWebpack: config => {
+  configureWebpack: (config) => {
     config.externals = {
-	...config.externals,
-	"bokeh":"Bokeh",
-    }
+      ...config.externals,
+      bokeh: "Bokeh",
+    };
   },
-}
-
+};
