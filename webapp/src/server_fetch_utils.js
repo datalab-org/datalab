@@ -187,8 +187,8 @@ export function deleteBlock(sample_id, block_id) {
   fetch_post(`${SERVER_ADDRESS}/delete-block/`, {
     sample_id: sample_id,
     block_id: block_id,
-    // eslint-disable-next-line no-unused-vars
   })
+    // eslint-disable-next-line no-unused-vars
     .then(function (response_json) {
       // response_json should always just be {status: "success"}, so we don't actually use it
       store.commit("removeBlockFromDisplay", {
