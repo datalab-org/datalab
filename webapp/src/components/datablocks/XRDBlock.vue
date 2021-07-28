@@ -1,5 +1,5 @@
 <template>
-  <!-- think about elegant two-way binding to DataBlockBase... or, just pass all the block data into 
+  <!-- think about elegant two-way binding to DataBlockBase... or, just pass all the block data into
 DataBlockBase as a prop, and save from within DataBlockBase  -->
   <DataBlockBase :sample_id="sample_id" :block_id="block_id">
     <FileSelectDropdown
