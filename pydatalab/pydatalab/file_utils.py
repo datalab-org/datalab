@@ -9,17 +9,15 @@ from pydatalab.config import CONFIG
 from pydatalab.mongo import flask_mongo
 from pydatalab.resources import DIRECTORIES_DICT
 
-FILE_COLLECTION = flask_mongo.db.files
-SAMPLE_COLLECTION = flask_mongo.db.data
-
 FILE_DIRECTORY = CONFIG["FILE_DIRECTORY"]
 
 
 def get_file_info_by_id(file_id, update_if_live=True):
     """file_id can be either the string representation or the ObjectId() object. Returns the file information dictionary"""
     print(f"getting file for file_id: {file_id}")
+    file_collection = flask_mongo.db.files
     file_id = ObjectId(file_id)
-    file_info = FILE_COLLECTION.find_one({"_id": file_id})
+    file_info = file_collection.find_one({"_id": file_id})
     if not file_info:
         raise IOError(f"could not find file with id: {file_id} in db")
 
@@ -44,7 +42,7 @@ def get_file_info_by_id(file_id, update_if_live=True):
         if current_timestamp_on_server > cached_timestamp:
             print("updating file")
             shutil.copy(full_remote_path, file_info["location"])
-            updated_file_info = FILE_COLLECTION.find_one_and_update(
+            updated_file_info = file_collection.find_one_and_update(
                 {"_id": file_info["_id"]},
                 {
                     "$set": {
@@ -67,8 +65,9 @@ def update_uploaded_file(file, file_id, last_modified=None, size_bytes=None):
     additional_updates can be used to pass other fields to change in (NOT IMPLEMENTED YET)"""
 
     last_modified = datetime.datetime.now().isoformat()
+    file_collection = flask_mongo.db.files
 
-    updated_file_entry = FILE_COLLECTION.find_one_and_update(
+    updated_file_entry = file_collection.find_one_and_update(
         {"_id": file_id},  # Note, needs to be ObjectID()
         {
             "$set": {
@@ -93,6 +92,8 @@ def update_uploaded_file(file, file_id, last_modified=None, size_bytes=None):
 def save_uploaded_file(file, sample_ids=None, block_ids=None, last_modified=None, size_bytes=None):
     """file is a file object from a flask request.
     last_modified should be an isodate format. if last_modified is None, the current time will be inserted"""
+    sample_collection = flask_mongo.db.data
+    file_collection = flask_mongo.db.files
 
     # validate sample_ids
     if not sample_ids:
@@ -101,7 +102,7 @@ def save_uploaded_file(file, sample_ids=None, block_ids=None, last_modified=None
         block_ids = []
 
     for sample_id in sample_ids:
-        if not SAMPLE_COLLECTION.find_one({"sample_id": sample_id}):
+        if not sample_collection.find_one({"sample_id": sample_id}):
             raise ValueError(f"sample_id is invalid: {sample_id}")
 
     filename = secure_filename(file.filename)
@@ -131,7 +132,7 @@ def save_uploaded_file(file, sample_ids=None, block_ids=None, last_modified=None
         "version": 1,  # increment with each update
     }
 
-    result = FILE_COLLECTION.insert_one(new_file_document)
+    result = file_collection.insert_one(new_file_document)
     if not result.acknowledged:
         raise IOError(f"db operation failed when trying to insert new file. Result: {result}")
 
@@ -142,7 +143,7 @@ def save_uploaded_file(file, sample_ids=None, block_ids=None, last_modified=None
     os.makedirs(new_directory)
     file.save(file_location)
 
-    updated_file_entry = FILE_COLLECTION.find_one_and_update(
+    updated_file_entry = file_collection.find_one_and_update(
         {"_id": inserted_id},
         {
             "$set": {
@@ -154,7 +155,7 @@ def save_uploaded_file(file, sample_ids=None, block_ids=None, last_modified=None
 
     # update any referenced sample_ids
     for sample_id in sample_ids:
-        sample_update_result = SAMPLE_COLLECTION.update_one(
+        sample_update_result = sample_collection.update_one(
             {"sample_id": sample_id}, {"$push": {"file_ObjectIds": inserted_id}}
         )
         if sample_update_result.modified_count != 1:
@@ -166,6 +167,8 @@ def save_uploaded_file(file, sample_ids=None, block_ids=None, last_modified=None
 
 
 def add_file_from_remote_directory(file_entry, sample_id, block_ids=None):
+    file_collection = flask_mongo.db.files
+    sample_collection = flask_mongo.db.data
 
     if not block_ids:
         block_ids = []
@@ -201,7 +204,7 @@ def add_file_from_remote_directory(file_entry, sample_id, block_ids=None):
         "version": 1,  # increment with each update
     }
 
-    result = FILE_COLLECTION.insert_one(new_file_document)
+    result = file_collection.insert_one(new_file_document)
     if not result.acknowledged:
         raise IOError(f"db operation failed when trying to insert new file. Result: {result}")
 
@@ -211,7 +214,7 @@ def add_file_from_remote_directory(file_entry, sample_id, block_ids=None):
     new_file_location = os.path.join(new_directory, filename)
     os.makedirs(new_directory)
 
-    updated_file_entry = FILE_COLLECTION.find_one_and_update(
+    updated_file_entry = file_collection.find_one_and_update(
         {"_id": inserted_id},
         {
             "$set": {
@@ -221,7 +224,7 @@ def add_file_from_remote_directory(file_entry, sample_id, block_ids=None):
         },
     )
 
-    sample_update_result = SAMPLE_COLLECTION.update_one(
+    sample_update_result = sample_collection.update_one(
         {"sample_id": sample_id}, {"$push": {"file_ObjectIds": inserted_id}}
     )
     if sample_update_result.modified_count != 1:
@@ -233,7 +236,8 @@ def add_file_from_remote_directory(file_entry, sample_id, block_ids=None):
 
 
 def retrieve_file_path(file_ObjectId):
-    result = FILE_COLLECTION.find_one({"_id": ObjectId(file_ObjectId)})
+    file_collection = flask_mongo.db.files
+    result = file_collection.find_one({"_id": ObjectId(file_ObjectId)})
     if not result:
         raise FileNotFoundError(
             f"The file with file_ObjectId: {file_ObjectId} could not be found in the database"
@@ -242,7 +246,9 @@ def retrieve_file_path(file_ObjectId):
 
 
 def remove_file_from_sample(sample_id, file_ObjectId):
-    sample_result = SAMPLE_COLLECTION.update_one(
+    sample_collection = flask_mongo.db.data
+    file_collection = flask_mongo.db.files
+    sample_result = sample_collection.update_one(
         {"sample_id": ObjectId(sample_id)},
         {"$pull": {"file_ObjectIds": ObjectId(file_ObjectId)}},
     )
@@ -253,7 +259,7 @@ def remove_file_from_sample(sample_id, file_ObjectId):
             f"failed to remove file_ObjectId (f{file_ObjectId}) from sample (f{sample_id}) db entry: {sample_result.raw_result}",
         )
 
-    FILE_COLLECTION.update_one(
+    file_collection.update_one(
         {"_id": ObjectId(file_ObjectId)},
         {"$pull": {"sample_ids": ObjectId(sample_id)}},
     )
