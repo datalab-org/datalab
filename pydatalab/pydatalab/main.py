@@ -13,13 +13,7 @@ from werkzeug.utils import secure_filename
 import pydatalab.mongo
 from pydatalab import file_utils, remote_filesystems
 from pydatalab.blocks import BLOCK_KINDS
-
-CONFIG = {
-    "SECRET_KEY": "dummy key dont use in production",
-    "MONGO_URI": "mongodb://localhost:27017/datalabvue",
-    "UPLOAD_PATH": "uploads",
-    "FILE_DIRECTORY": "files",
-}
+from pydatalab.config import CONFIG
 
 
 # use a json encoder that can handle pymongo's bson
