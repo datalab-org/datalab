@@ -165,7 +165,7 @@ export default {
 
 .selected-file {
   font-weight: 600;
-  /*	border: solid 1px teal; 
+  /*	border: solid 1px teal;
 	padding: 0.1rem 0.25rem;
 	border-radius: 0.2rem;*/
   display: inline-block;

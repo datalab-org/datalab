@@ -74,7 +74,7 @@ export default {
 }
 
 /* styles for the tables.. but they don't work in scoped*/
-/*table { 
+/*table {
 	width: 50%;
 	margin-left: 1rem;
 }
