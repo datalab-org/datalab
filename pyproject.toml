@@ -1,5 +1,6 @@
 [tool.isort]
 profile = "black"
+known_first_party = "pydatalab"
 
 [tool.black]
 line-length = 100

@@ -34,8 +34,6 @@ repos:
       - id: isort
         # Required for isort to be configured via pyproject.toml
         additional_dependencies: ["toml"]
-        # Register pydatalab as a known first-party package
-        args: ["-p pydatalab"]
 
   - repo: https://github.com/pre-commit/mirrors-prettier
     rev: v2.3.2
