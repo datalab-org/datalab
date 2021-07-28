@@ -4,6 +4,7 @@ from typing import Callable, Tuple
 
 import bokeh
 from bson import ObjectId
+
 from pydatalab import xrd_utils
 from pydatalab.file_utils import get_file_info_by_id
 from pydatalab.logger import LOGGER

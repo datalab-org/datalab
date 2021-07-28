@@ -90,9 +90,7 @@ def update_uploaded_file(file, file_id, last_modified=None, size_bytes=None):
     return updated_file_entry
 
 
-def save_uploaded_file(
-    file, sample_ids=None, block_ids=None, last_modified=None, size_bytes=None
-):
+def save_uploaded_file(file, sample_ids=None, block_ids=None, last_modified=None, size_bytes=None):
     """file is a file object from a flask request.
     last_modified should be an isodate format. if last_modified is None, the current time will be inserted"""
 

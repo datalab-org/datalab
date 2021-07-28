@@ -1,9 +1,8 @@
 from typing import Iterable, Optional
 
-import numpy as np
-
 import matplotlib
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 from bokeh.events import DoubleTap
 from bokeh.layouts import column, gridplot
@@ -195,7 +194,9 @@ def double_axes_echem_plot(
             if max_full_cycle <= 1:
                 color_value = 0.5
             else:
-                color_value = 0.8 * max(0.0, (group["full cycle"].iloc[0] - 1) / (max_full_cycle - 1))
+                color_value = 0.8 * max(
+                    0.0, (group["full cycle"].iloc[0] - 1) / (max_full_cycle - 1)
+                )
 
             line = plot.line(
                 x=x,
