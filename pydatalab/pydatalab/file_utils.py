@@ -5,7 +5,7 @@ import shutil
 from bson.objectid import ObjectId
 from werkzeug.utils import secure_filename
 
-from pydatalab.main import CONFIG
+from pydatalab.config import CONFIG
 from pydatalab.mongo import flask_mongo
 from pydatalab.resources import DIRECTORIES_DICT
 
