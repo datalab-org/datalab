@@ -3,19 +3,12 @@
     <div class="form-group">
       <label class="mr-4"><b>Select a file:</b></label>
       <select class="form-control" :value="modelValue" @input="handleInput">
-        <option
-          v-for="file_id in available_file_ids"
-          :key="file_id"
-          :value="file_id"
-        >
+        <option v-for="file_id in available_file_ids" :key="file_id" :value="file_id">
           {{ all_files[file_id].name }}
         </option>
       </select>
 
-      <span
-        v-if="all_files[modelValue] && all_files[modelValue].is_live"
-        class="ml-2"
-      >
+      <span v-if="all_files[modelValue] && all_files[modelValue].is_live" class="ml-2">
         <b>Live</b> (last updated: {{ lastModified }})
       </span>
     </div>
@@ -44,8 +37,7 @@ export default {
       return this.$store.state.files;
     },
     available_file_ids() {
-      let sample_files =
-        this.$store.state.all_sample_data[this.sample_id].file_ObjectIds;
+      let sample_files = this.$store.state.all_sample_data[this.sample_id].file_ObjectIds;
       return sample_files.filter((file_id) => {
         let filename = this.all_files[file_id].name;
         return this.extensions
@@ -55,14 +47,9 @@ export default {
     },
     lastModified() {
       const today = new Date();
-      const modifiedDate = new Date(
-        this.all_files[this.modelValue].last_modified
-      );
+      const modifiedDate = new Date(this.all_files[this.modelValue].last_modified);
 
-      if (
-        today.toLocaleDateString("en-GB") ==
-        modifiedDate.toLocaleDateString("en-GB")
-      ) {
+      if (today.toLocaleDateString("en-GB") == modifiedDate.toLocaleDateString("en-GB")) {
         return modifiedDate.toLocaleTimeString("en-GB");
       }
       return modifiedDate.toLocaleDateString("en-GB");
@@ -75,9 +62,7 @@ export default {
         updateBlockFromServer(
           this.sample_id,
           this.block_id,
-          this.$store.state.all_sample_data[this.sample_id]["blocks_obj"][
-            this.block_id
-          ]
+          this.$store.state.all_sample_data[this.sample_id]["blocks_obj"][this.block_id]
         );
       }
     },

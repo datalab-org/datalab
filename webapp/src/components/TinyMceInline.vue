@@ -30,8 +30,7 @@
         paragraphgroup: {
           icon: 'paragraph',
           tooltip: 'Paragraph format',
-          items:
-            'h1 h2 h3 | bullist numlist | alignleft aligncenter alignright | indent outdent',
+          items: 'h1 h2 h3 | bullist numlist | alignleft aligncenter alignright | indent outdent',
         },
         insertgroup: {
           icon: 'plus',

@@ -12,9 +12,7 @@
           >
             <!-- <span class="contents-blocktype">{{ blocks[block_id].blocktype }} block</span> -->
             <!-- {{ block_id }} -->
-            <span class="contents-blocktitle">{{
-              blocks[block_id].title
-            }}</span>
+            <span class="contents-blocktitle">{{ blocks[block_id].title }}</span>
           </li>
         </ol>
       </div>

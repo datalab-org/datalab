@@ -8,20 +8,13 @@
 		>
 		</tree-menu>
 	</div> -->
-  <button class="btn btn-default my-4" @click="getRemoteTree">
-    Get Remote Tree
-  </button>
+  <button class="btn btn-default my-4" @click="getRemoteTree">Get Remote Tree</button>
   <!-- 	<div style="border: dashed 2px grey; padding:0.5rem; height: 10rem; overflow: auto;">
 		{{ remoteTree }}
 	</div> -->
   <div class="form-row">
     <div class="col-md-4">
-      <input
-        class="form-control"
-        type="text"
-        placeholder="Search"
-        v-model="searchTerm"
-      />
+      <input class="form-control" type="text" placeholder="Search" v-model="searchTerm" />
     </div>
   </div>
 

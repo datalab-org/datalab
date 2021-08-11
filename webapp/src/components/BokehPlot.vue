@@ -1,17 +1,9 @@
 <template>
-  <div v-if="!loaded" class="alert alert-secondary">
-    Data will be displayed here
-  </div>
-  <div v-if="loading" class="alert alert-secondary">
-    Setting up bokeh plot...
-  </div>
+  <div v-if="!loaded" class="alert alert-secondary">Data will be displayed here</div>
+  <div v-if="loading" class="alert alert-secondary">Setting up bokeh plot...</div>
   <!-- <button class="btn btn-dark" @click="startBokehPlot"> Setup plot </button> -->
   <!-- <button class="btn btn-dark" @click="cleanupBokehPlot"> Remove plot </button> -->
-  <div
-    ref="bokehPlotContainer"
-    :id="unique_id"
-    :style="{ height: bokehPlotContainerHeight }"
-  />
+  <div ref="bokehPlotContainer" :id="unique_id" :style="{ height: bokehPlotContainerHeight }" />
 </template>
 
 <script>
@@ -36,10 +28,7 @@ export default {
         this.loading = true;
         console.log("running startBokehPlot with:");
         console.log(this.bokehPlotData);
-        var views = await Bokeh.embed.embed_item(
-          this.bokehPlotData,
-          this.unique_id
-        );
+        var views = await Bokeh.embed.embed_item(this.bokehPlotData, this.unique_id);
         this.BokehDoc = views[0].model.document; // NOTE: BokehDoc is intentionally not kept in data so that this is NONREACTIVE. (we need this to be the case or BokehDoc.clear() doesn't work for some reason)
         this.bokeh_views = views;
         console.log("Bokeh Doc:");
@@ -48,16 +37,12 @@ export default {
         this.loaded = true;
 
         // add some bootrap styles to bokeh widgets. This is not very elegants
-        var bokehSelectElements = document.querySelectorAll(
-          "div.bk-input-group>select"
-        );
+        var bokehSelectElements = document.querySelectorAll("div.bk-input-group>select");
         bokehSelectElements.forEach((element) => {
           element.classList.add("form-control", "ml-4");
           element.classList.remove("bk-input", "bk");
         });
-        var bokehSelectLabelElements = document.querySelectorAll(
-          "div.bk-input-group>label"
-        );
+        var bokehSelectLabelElements = document.querySelectorAll("div.bk-input-group>label");
         bokehSelectLabelElements.forEach((element) => {
           element.classList.remove("bk");
         });

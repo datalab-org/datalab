@@ -8,11 +8,7 @@
           :disabled="isLoadingRemoteTree"
           class="ml-4 btn btn-small btn-default"
         >
-          <font-awesome-icon
-            v-show="isLoadingRemoteTree"
-            :icon="['fa', 'sync']"
-            class="fa-spin"
-          />
+          <font-awesome-icon v-show="isLoadingRemoteTree" :icon="['fa', 'sync']" class="fa-spin" />
           Update tree
         </button>
       </template>
@@ -31,11 +27,7 @@
           :disabled="isLoadingRemoteFiles || selectedRemoteFiles.length < 1"
           @click="loadSelectedRemoteFiles"
         >
-          <font-awesome-icon
-            v-show="isLoadingRemoteFiles"
-            :icon="['fa', 'sync']"
-            class="fa-spin"
-          />
+          <font-awesome-icon v-show="isLoadingRemoteFiles" :icon="['fa', 'sync']" class="fa-spin" />
           {{ loadFilesButtonValue }}
         </button>
         <button
@@ -108,9 +100,7 @@ export default {
         `loadCachedTree received, ${response_json.seconds_since_last_update} seconds out of date:`
       );
       if (response_json.seconds_since_last_update > 3600) {
-        console.log(
-          "cache more than 1 hr out of date. Fetching new sample tree"
-        );
+        console.log("cache more than 1 hr out of date. Fetching new sample tree");
         this.fetchRemoteTree();
       }
     },
@@ -120,9 +110,7 @@ export default {
       for (let i = 0; i < this.selectedRemoteFiles.length; i++) {
         console.log("processing load from remote server for entry");
         console.log(this.selectedRemoteFiles[i]);
-        promises.push(
-          addRemoteFileToSample(this.selectedRemoteFiles[i], this.sample_id)
-        );
+        promises.push(addRemoteFileToSample(this.selectedRemoteFiles[i], this.sample_id));
       }
       await Promise.all(promises);
       this.isLoadingRemoteFiles = false;

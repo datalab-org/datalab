@@ -17,11 +17,7 @@ function fetch_get(url) {
   return fetch(url, requestOptions).then(handleResponse);
 }
 
-function fetch_post(
-  url,
-  body,
-  headers = { "Content-Type": "application/json" }
-) {
+function fetch_post(url, body, headers = { "Content-Type": "application/json" }) {
   const requestOptions = {
     method: "POST",
     headers: headers,
@@ -86,9 +82,7 @@ export function createNewSample(sample_id, date, name) {
 }
 
 export function getSampleList() {
-  return fetch_get("http://localhost:5001/samples").then(function (
-    response_json
-  ) {
+  return fetch_get("http://localhost:5001/samples").then(function (response_json) {
     store.commit("setSampleList", response_json.samples);
   });
 }
@@ -101,9 +95,7 @@ export function deleteSample(sample_id, sample_summary) {
       console.log("delete successful" + response_json);
       store.commit("deleteFromSampleList", sample_summary);
     })
-    .catch((error) =>
-      alert("Sample delete failed for " + sample_id + ": " + error)
-    );
+    .catch((error) => alert("Sample delete failed for " + sample_id + ": " + error));
 }
 
 export async function getSampleData(sample_id) {
@@ -220,9 +212,7 @@ export function deleteFileFromSample(sample_id, file_id) {
 
 export async function fetchRemoteTree() {
   console.log("fetchRemoteTree called!");
-  return fetch_get(`${SERVER_ADDRESS}/list-remote-directories/`).then(function (
-    response_json
-  ) {
+  return fetch_get(`${SERVER_ADDRESS}/list-remote-directories/`).then(function (response_json) {
     store.commit("setRemoteDirectoryTree", response_json);
     return response_json;
   });
@@ -230,15 +220,12 @@ export async function fetchRemoteTree() {
 
 export async function fetchCachedRemoteTree() {
   console.log("fetchCachedRemoteTree called!");
-  return fetch_get(`${SERVER_ADDRESS}/list-remote-directories-cached/`).then(
-    function (response_json) {
-      store.commit(
-        "setRemoteDirectoryTree",
-        response_json.cached_dir_structures
-      );
-      return response_json;
-    }
-  );
+  return fetch_get(`${SERVER_ADDRESS}/list-remote-directories-cached/`).then(function (
+    response_json
+  ) {
+    store.commit("setRemoteDirectoryTree", response_json.cached_dir_structures);
+    return response_json;
+  });
 }
 
 export async function addRemoteFileToSample(file_entry, sample_id) {
