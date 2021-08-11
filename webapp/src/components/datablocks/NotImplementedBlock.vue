@@ -1,8 +1,6 @@
 <template>
   <DataBlockBase>
-    <div class="alert alert-danger">
-      This block type has not been implemented!
-    </div>
+    <div class="alert alert-danger">This block type has not been implemented!</div>
   </DataBlockBase>
 </template>
 

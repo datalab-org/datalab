@@ -9,11 +9,7 @@ import store from "@/store/index.js";
 
 // file-upload loaded
 
-export default function setupUppy(
-  sample_id,
-  trigger_selector,
-  reactive_file_list
-) {
+export default function setupUppy(sample_id, trigger_selector, reactive_file_list) {
   console.log("setupUppy called with: " + trigger_selector);
   var uppy = new Uppy();
   uppy
@@ -66,10 +62,7 @@ export default function setupUppy(
   });
 
   uppy.on("complete", function (result) {
-    console.log(
-      "Upload complete! We’ve uploaded these files:",
-      result.successful
-    );
+    console.log("Upload complete! We’ve uploaded these files:", result.successful);
     console.log("There were errors with these files:", result.failed);
     result.successful.forEach(function (f) {
       console.log("file upload response:");

@@ -7,11 +7,7 @@
         class="collapse-arrow"
         @click="toggleExpandBlock"
       />
-      <input
-        class="form-control-plaintext block-title"
-        type="text"
-        v-model="BlockTitle"
-      />
+      <input class="form-control-plaintext block-title" type="text" v-model="BlockTitle" />
       <span class="blocktype-label ml-auto mr-3">{{ blockType }}</span>
       <font-awesome-icon
         :icon="['fa', 'sync']"
@@ -65,10 +61,7 @@ export default {
   },
   computed: {
     block() {
-      return this.$store.getters.getBlockBySampleIDandBlockID(
-        this.sample_id,
-        this.block_id
-      );
+      return this.$store.getters.getBlockBySampleIDandBlockID(this.sample_id, this.block_id);
     },
     blockType() {
       try {
@@ -118,8 +111,7 @@ export default {
       var content = this.$refs.datablockContent;
       console.log(this.contentMaxHeight);
       if (!this.isExpanded) {
-        this.contentMaxHeight =
-          content.scrollHeight + 2 * this.padding_height + "px";
+        this.contentMaxHeight = content.scrollHeight + 2 * this.padding_height + "px";
         this.isExpanded = true;
       } else {
         requestAnimationFrame(() => {

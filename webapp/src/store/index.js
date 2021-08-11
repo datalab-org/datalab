@@ -46,9 +46,7 @@ export default createStore({
       Object.assign(state.files, files_data);
     },
     addFileToSample(state, payload) {
-      state.all_sample_data[payload.sample_id].file_ObjectIds.push(
-        payload.file_id
-      );
+      state.all_sample_data[payload.sample_id].file_ObjectIds.push(payload.file_id);
     },
     removeFileFromSample(state, payload) {
       var file_ids = state.all_sample_data[payload.sample_id].file_ObjectIds;
@@ -60,10 +58,7 @@ export default createStore({
     setRemoteDirectoryTree(state, remoteDirectoryTree) {
       state.remoteDirectoryTree = remoteDirectoryTree;
     },
-    setRemoteDirectoryTreeSecondsSinceLastUpdate(
-      state,
-      secondsSinceLastUpdate
-    ) {
+    setRemoteDirectoryTreeSecondsSinceLastUpdate(state, secondsSinceLastUpdate) {
       state.remoteDirectoryTreeSecondsSinceLastUpdate = secondsSinceLastUpdate;
     },
     addABlock(state, payload) {
@@ -78,10 +73,8 @@ export default createStore({
       );
 
       let new_block_id = payload.new_block_obj.block_id;
-      state.all_sample_data[payload.sample_id]["blocks_obj"][new_block_id] =
-        payload.new_block_obj;
-      state.all_sample_data[payload.sample_id]["display_order"] =
-        payload.new_display_order;
+      state.all_sample_data[payload.sample_id]["blocks_obj"][new_block_id] = payload.new_block_obj;
+      state.all_sample_data[payload.sample_id]["display_order"] = payload.new_display_order;
 
       state.saved_status[payload.sample_id] = false;
     },
@@ -90,9 +83,7 @@ export default createStore({
       // sample_id, block_id, block_data
       console.log("updating block data with:", payload);
       Object.assign(
-        state.all_sample_data[payload.sample_id]["blocks_obj"][
-          payload.block_id
-        ],
+        state.all_sample_data[payload.sample_id]["blocks_obj"][payload.block_id],
         payload.block_data
       );
       state.saved_status[payload.sample_id] = false;
@@ -100,10 +91,7 @@ export default createStore({
     updateSampleData(state, payload) {
       //requires the following fields in payload:
       // sample_id, block_data
-      Object.assign(
-        state.all_sample_data[payload.sample_id],
-        payload.block_data
-      );
+      Object.assign(state.all_sample_data[payload.sample_id], payload.block_data);
       state.saved_status[payload.sample_id] = false;
     },
     setSaved(state, payload) {
@@ -114,8 +102,7 @@ export default createStore({
     removeBlockFromDisplay(state, payload) {
       // requires the following fields in payload:
       // sample_id, block_id
-      var display_order =
-        state.all_sample_data[payload.sample_id].display_order;
+      var display_order = state.all_sample_data[payload.sample_id].display_order;
       const index = display_order.indexOf(payload.block_id);
       if (index > -1) {
         display_order.splice(index, 1);
@@ -139,12 +126,8 @@ export default createStore({
       // requires the following fields in payload:
       // sample_id, index1, index2
       // Swaps index1 and index2 in sample_id.display_order
-      var display_order =
-        state.all_sample_data[payload.sample_id].display_order;
-      if (
-        payload.index1 < display_order.length &&
-        payload.index2 < display_order.length
-      ) {
+      var display_order = state.all_sample_data[payload.sample_id].display_order;
+      if (payload.index1 < display_order.length && payload.index2 < display_order.length) {
         [display_order[payload.index1], display_order[payload.index2]] = [
           display_order[payload.index2],
           display_order[payload.index1],
@@ -168,11 +151,7 @@ export default createStore({
       return state.all_sample_data[sample_id];
     },
     getBlockBySampleIDandBlockID: (state) => (sample_id, block_id) => {
-      console.log(
-        "getBlockBySampleIDandBlockID called with:",
-        sample_id,
-        block_id
-      );
+      console.log("getBlockBySampleIDandBlockID called with:", sample_id, block_id);
       return state.all_sample_data[sample_id]["blocks_obj"][block_id];
     },
   },

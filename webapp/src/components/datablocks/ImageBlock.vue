@@ -28,9 +28,7 @@ export default {
       // return ''
       console.log("trying to get image_url for file_id:");
       console.log(this.file_id);
-      return `http://localhost:5001/${
-        this.$store.state.files[this.file_id].url_path
-      }`;
+      return `http://localhost:5001/${this.$store.state.files[this.file_id].url_path}`;
     },
   },
   components: {

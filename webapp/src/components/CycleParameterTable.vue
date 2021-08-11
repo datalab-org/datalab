@@ -3,10 +3,7 @@
     <h1>My JSON</h1>
 
     <table>
-      <tr
-        v-for="(value, name) in jsondata['techniques'][0]['program']"
-        :key="value.id"
-      >
+      <tr v-for="(value, name) in jsondata['techniques'][0]['program']" :key="value.id">
         <td>{{ name }}</td>
         <td>{{ value["I"] }}</td>
         <td>{{ value["I.1"] }}</td>

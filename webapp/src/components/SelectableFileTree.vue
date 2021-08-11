@@ -1,16 +1,8 @@
 <template>
   <div class="container-fluid">
     <div class="row">
-      <div
-        class="col-lg-6 col-xl-6 tree-column"
-        style="border-right: 1px solid #ccc"
-      >
-        <input
-          class="form-control"
-          type="text"
-          placeholder="Search"
-          v-model="searchTerm"
-        />
+      <div class="col-lg-6 col-xl-6 tree-column" style="border-right: 1px solid #ccc">
+        <input class="form-control" type="text" placeholder="Search" v-model="searchTerm" />
 
         <TreeMenu
           v-for="toplevel in remoteTree"
@@ -20,9 +12,7 @@
           :selectedEntries="selectedEntries"
           :searchTerm="searchTerm"
           @setSelectedEntry="setSelectedEntry($event, toplevel.name)"
-          @appendToSelectedEntries="
-            appendToSelectedEntries($event, toplevel.name)
-          "
+          @appendToSelectedEntries="appendToSelectedEntries($event, toplevel.name)"
         />
       </div>
 
@@ -51,12 +41,8 @@
           </p>
           <p class="mb-0 ml-4">
             &#8627; <span class="selected-info-name">location:</span>
-            <span class="selected-toplevel">{{
-              selectedEntry.toplevel_name
-            }}</span>
-            <span class="selected-relpath">{{
-              selectedEntry.relative_path
-            }}</span>
+            <span class="selected-toplevel">{{ selectedEntry.toplevel_name }}</span>
+            <span class="selected-relpath">{{ selectedEntry.relative_path }}</span>
           </p>
         </div>
       </div>

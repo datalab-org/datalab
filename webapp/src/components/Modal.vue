@@ -14,12 +14,7 @@
           <h5 class="modal-title">
             <slot name="header"></slot>
           </h5>
-          <button
-            type="button"
-            class="close"
-            data-dismiss="modal"
-            aria-label="Close"
-          >
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
             <span aria-hidden="true" @click="closeModal">&times;</span>
           </button>
         </div>
@@ -28,11 +23,7 @@
         </div>
         <div class="modal-footer">
           <slot name="footer">
-            <input
-              type="submit"
-              class="btn btn-info btn-small"
-              value="Submit"
-            />
+            <input type="submit" class="btn btn-info btn-small" value="Submit" />
             <button
               type="button"
               class="btn btn-secondary"
