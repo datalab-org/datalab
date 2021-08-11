@@ -6,9 +6,7 @@
   <div id="tableContainer" class="container">
     <div class="row">
       <div class="col-sm-10 mx-auto mb-3">
-        <button class="btn btn-default" @click="modalIsOpen = true">
-          Add a sample
-        </button>
+        <button class="btn btn-default" @click="modalIsOpen = true">Add a sample</button>
       </div>
     </div>
     <div class="row">
@@ -26,24 +24,12 @@
         <div class="form-row">
           <div class="form-group col-md-8">
             <label for="sample-id" class="col-form-label">Sample ID:</label>
-            <input
-              v-model="sample_id"
-              type="text"
-              class="form-control"
-              id="sample-id"
-              required
-            />
+            <input v-model="sample_id" type="text" class="form-control" id="sample-id" required />
             <div class="form-error" v-html="sampleIDValidationMessage"></div>
           </div>
           <div class="form-group col-md-4">
             <label for="date" class="col-form-label">Date Created:</label>
-            <input
-              type="date"
-              v-model="date"
-              class="form-control"
-              id="date"
-              required
-            />
+            <input type="date" v-model="date" class="form-control" id="date" required />
           </div>
         </div>
         <div class="form-row">
@@ -99,9 +85,7 @@ export default {
       await createNewSample(this.sample_id, this.date, this.name)
         .then(() => {
           this.modalIsOpen = false;
-          document
-            .getElementById(this.sample_id)
-            .scrollIntoView({ behavior: "smooth" });
+          document.getElementById(this.sample_id).scrollIntoView({ behavior: "smooth" });
         })
         .catch((error) => {
           if (error == "sample_id_validation_error") {

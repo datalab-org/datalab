@@ -26,9 +26,7 @@
             updateBlock();
           "
         />
-        <label id="listOfCycles" class="ml-3"
-          >Showing cycles: {{ parsedCycles }}</label
-        >
+        <label id="listOfCycles" class="ml-3">Showing cycles: {{ parsedCycles }}</label>
       </div>
 
       <div v-if="cycle_num_error" class="alert alert-danger mt-2 mx-auto">
@@ -106,25 +104,19 @@
           <span>Window Size 1:</span> {{ win_size_1 }}
         </label>
       </div>
-      <button
-        v-show="isReplotButtonDisplayed"
-        class="btn btn-default my-4"
-        @click="updateBlock"
-      >
+      <button v-show="isReplotButtonDisplayed" class="btn btn-default my-4" @click="updateBlock">
         Recalculate
       </button>
     </div>
 
     <div class="alert alert-info" v-show="showDescription1">
       <p>
-        Smoothing parameter that determines how close the spline fits to the
-        real data. Larger values result in a smoother fit with decreased detail.
+        Smoothing parameter that determines how close the spline fits to the real data. Larger
+        values result in a smoother fit with decreased detail.
       </p>
     </div>
     <div class="alert alert-info" v-show="showDescription2">
-      <p>
-        Window size for the Savitzky-Golay filter to apply to the derivatives.
-      </p>
+      <p>Window size for the Savitzky-Golay filter to apply to the derivatives.</p>
     </div>
 
     <div class="row mt-2">
@@ -163,14 +155,12 @@ export default {
   },
   computed: {
     bokehPlotData() {
-      return this.$store.state.all_sample_data[this.sample_id]["blocks_obj"][
-        this.block_id
-      ].bokeh_plot_data;
+      return this.$store.state.all_sample_data[this.sample_id]["blocks_obj"][this.block_id]
+        .bokeh_plot_data;
     },
     numberOfCycles() {
-      return this.$store.state.all_sample_data[this.sample_id]["blocks_obj"][
-        this.block_id
-      ].number_of_cycles;
+      return this.$store.state.all_sample_data[this.sample_id]["blocks_obj"][this.block_id]
+        .number_of_cycles;
     },
     parsedCycles() {
       return this.all_cycles ? this.all_cycles : "all";
@@ -189,10 +179,7 @@ export default {
       let cyclesString = this.cyclesString.replace(/\s/g, "");
       this.cycle_num_error = null;
       var cycle_regex = /^(\d+(-\d+)?,)*(\d+(-\d+)?)$/g;
-      if (
-        cyclesString.match(/^ *$/) !== null ||
-        cyclesString.toLowerCase() == "all"
-      ) {
+      if (cyclesString.match(/^ *$/) !== null || cyclesString.toLowerCase() == "all") {
         this.all_cycles = null;
         return;
       } else if (!cycle_regex.test(cyclesString)) {
@@ -224,9 +211,7 @@ export default {
       updateBlockFromServer(
         this.sample_id,
         this.block_id,
-        this.$store.state.all_sample_data[this.sample_id]["blocks_obj"][
-          this.block_id
-        ]
+        this.$store.state.all_sample_data[this.sample_id]["blocks_obj"][this.block_id]
       ).then(() => {
         this.bokehPlotLimitedWidth = this.derivative_mode != "dQ/dV";
         this.isReplotButtonDisplayed = false;

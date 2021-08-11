@@ -32,9 +32,8 @@ export default {
   },
   computed: {
     bokehPlotData() {
-      return this.$store.state.all_sample_data[this.sample_id]["blocks_obj"][
-        this.block_id
-      ].bokeh_plot_data;
+      return this.$store.state.all_sample_data[this.sample_id]["blocks_obj"][this.block_id]
+        .bokeh_plot_data;
     },
     file_id: createComputedSetterForBlockField("file_id"),
   },

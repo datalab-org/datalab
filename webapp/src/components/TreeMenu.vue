@@ -1,28 +1,20 @@
 <template>
   <div class="tree-menu">
     <div v-if="entry.type == 'toplevel'" @click="toggleChildren" class="my-2">
-      <span :class="{ expanded: showChildren }" class="directory-arrow"
-        >&#9656;</span
-      >
+      <span :class="{ expanded: showChildren }" class="directory-arrow">&#9656;</span>
       <font-awesome-icon :icon="['fas', 'hdd']" class="toplevel-icon" />
       <span class="toplevel-name" :class="{ 'search-match': searchMatched }">
         {{ entry.name }}
       </span>
     </div>
     <div v-else-if="entry.type == 'directory'" @click="toggleChildren">
-      <span :class="{ expanded: showChildren }" class="directory-arrow"
-        >&#9656;</span
-      >
+      <span :class="{ expanded: showChildren }" class="directory-arrow">&#9656;</span>
       <font-awesome-icon
         v-show="showChildren"
         :icon="['fas', 'folder-open']"
         class="directory-icon"
       />
-      <font-awesome-icon
-        v-show="!showChildren"
-        :icon="['fas', 'folder']"
-        class="directory-icon"
-      />
+      <font-awesome-icon v-show="!showChildren" :icon="['fas', 'folder']" class="directory-icon" />
       <span class="directory-name" :class="{ 'search-match': searchMatched }">
         {{ entry.name }}
       </span>
@@ -41,10 +33,7 @@
       </span>
     </div>
 
-    <div
-      v-else-if="entry.type == 'error'"
-      class="error-entry alert alert-warning"
-    >
+    <div v-else-if="entry.type == 'error'" class="error-entry alert alert-warning">
       <font-awesome-icon :icon="['fas', 'exclamation-circle']" class="mr-2" />
       <span>
         {{ entry.name }}
@@ -65,11 +54,7 @@
         class="child-list"
         :style="{ 'margin-left': depth * 1.5 + ' rem' }"
       >
-        <li
-          class="child-entry"
-          v-for="childEntry in entry.contents"
-          :key="childEntry.name"
-        >
+        <li class="child-entry" v-for="childEntry in entry.contents" :key="childEntry.name">
           <!-- note: passes selection events up the tree -->
           <tree-menu
             :entry="childEntry"
@@ -106,9 +91,7 @@ export default {
       if (this.searchTerm.trim() == "") {
         return false;
       }
-      var isMatch = this.entry.name
-        .toLowerCase()
-        .includes(this.searchTerm.toLowerCase());
+      var isMatch = this.entry.name.toLowerCase().includes(this.searchTerm.toLowerCase());
       return isMatch;
     },
   },

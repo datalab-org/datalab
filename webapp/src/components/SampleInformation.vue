@@ -4,12 +4,7 @@
     <div class="form-row">
       <div class="form-group col-md-2">
         <label for="sample_id" class="mr-2">Sample ID</label>
-        <input
-          id="sample_id"
-          class="form-control-plaintext"
-          readonly="true"
-          :value="sample_id"
-        />
+        <input id="sample_id" class="form-control-plaintext" readonly="true" :value="sample_id" />
       </div>
       <div class="form-group col-md-7">
         <label for="name" class="mr-2">Name</label>

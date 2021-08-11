@@ -5,7 +5,8 @@
     style="background-color: #0b6093"
   >
     <span class="navbar-brand" @click="scrollToID($event, 'topScrollPoint')"
-      >Flask-dl&nbsp;&nbsp;|&nbsp;&nbsp; {{ sample_id }}
+      >Flask-dl&nbsp;&nbsp;|&nbsp;&nbsp;
+      {{ sample_id }}
     </span>
     <div class="navbar-nav">
       <a class="nav-item nav-link" href="/">Home</a>
@@ -40,10 +41,7 @@
       </div>
     </div>
     <div class="navbar-nav ml-auto">
-      <span
-        v-if="sample_data_loaded && !savedStatus"
-        class="navbar-text unsaved-warning"
-      >
+      <span v-if="sample_data_loaded && !savedStatus" class="navbar-text unsaved-warning">
         Unsaved changes
       </span>
       <span v-if="sample_data_loaded" class="navbar-text mx-2"
@@ -61,10 +59,7 @@
   <!-- The sample-specific information will be put in this slot: -->
   <slot></slot>
 
-  <TableOfContents
-    :display_order="sample_data.display_order"
-    :blocks="blocks"
-  />
+  <TableOfContents :display_order="sample_data.display_order" :blocks="blocks" />
   <FileList :file_ids="file_ids" :stored_files="stored_files" />
 
   <div class="container">
@@ -74,11 +69,7 @@
   <!-- Display the blocks -->
   <div class="container">
     <div v-for="block_id in sample_data.display_order" :key="block_id">
-      <component
-        :is="getBlockDisplayType(block_id)"
-        :sample_id="sample_id"
-        :block_id="block_id"
-      />
+      <component :is="getBlockDisplayType(block_id)" :sample_id="sample_id" :block_id="block_id" />
     </div>
   </div>
 
@@ -93,12 +84,7 @@ import TableOfContents from "@/components/TableOfContents";
 import FileList from "@/components/FileList";
 import Modal from "@/components/Modal";
 import FileSelectModal from "@/components/FileSelectModal";
-import {
-  getSampleData,
-  addABlock,
-  saveSample,
-  deleteFileFromSample,
-} from "@/server_fetch_utils";
+import { getSampleData, addABlock, saveSample, deleteFileFromSample } from "@/server_fetch_utils";
 
 import setupUppy from "@/file_upload.js";
 
@@ -126,15 +112,22 @@ export default {
       // close the dropdown scroll to the new block :)
       this.isMenuDropdownVisible = false;
       var new_block_el = document.getElementById(block_id);
-      new_block_el.scrollIntoView({ behavior: "smooth" });
+      new_block_el.scrollIntoView({
+        behavior: "smooth",
+      });
     },
     scrollToID(event, id) {
       var element = document.getElementById(id);
-      element.scrollIntoView({ behavior: "smooth" });
+      element.scrollIntoView({
+        behavior: "smooth",
+      });
     },
     change_a_block(event, block_id) {
       let sample_id = this.sample_id;
-      let new_data = { block_id: 7, a_new_field: "foo bar" };
+      let new_data = {
+        block_id: 7,
+        a_new_field: "foo bar",
+      };
       console.log(new_data);
       this.$store.commit("updateBlockData", {
         sample_id,

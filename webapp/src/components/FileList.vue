@@ -5,11 +5,7 @@
       <div class="card-body overflow-auto" id="filearea">
         <div class="file-group" v-for="file_id in file_ids" :key="file_id">
           <a @click="deleteFile($event, file_id)">
-            <font-awesome-icon
-              icon="times"
-              fixed-width
-              class="delete-file-button"
-            />
+            <font-awesome-icon icon="times" fixed-width class="delete-file-button" />
           </a>
           <a
             class="filelink"
@@ -27,11 +23,7 @@
         </div>
       </div>
       <div class="row">
-        <button
-          id="uppy-trigger"
-          class="btn btn-default btn-sm mb-3 ml-4"
-          type="button"
-        >
+        <button id="uppy-trigger" class="btn btn-default btn-sm mb-3 ml-4" type="button">
           Upload files...</button
         ><!-- Surrounding divs so that buttons  don't become full-width in the card -->
         <button

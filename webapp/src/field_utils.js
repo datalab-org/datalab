@@ -7,9 +7,9 @@ export function createComputedSetterForBlockField(block_field) {
   return {
     get() {
       if (this.sample_id in store.state.all_sample_data) {
-        return store.state.all_sample_data[this.sample_id]["blocks_obj"][
-          this.block_id
-        ][block_field];
+        return store.state.all_sample_data[this.sample_id]["blocks_obj"][this.block_id][
+          block_field
+        ];
       } else {
         return "";
       }
