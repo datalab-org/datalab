@@ -7,6 +7,7 @@ import Webcam from "@uppy/webcam";
 
 import store from "@/store/index.js";
 
+import {API_URL} from "@/resources.js"
 // file-upload loaded
 
 export default function setupUppy(sample_id, trigger_selector, reactive_file_list) {
@@ -29,7 +30,7 @@ export default function setupUppy(sample_id, trigger_selector, reactive_file_lis
     .use(XHRUpload, {
       //someday, try to upgrade this to Tus
       // headers: {'X-CSRFToken': "{{ csrf_token() }}"},
-      endpoint: "http://localhost:5001/upload-file/",
+      endpoint: `${API_URL}/upload-file/`,
       FormData: true, // send as form
       fieldName: "files[]", // default, think about whether or not to change this
       showProgressDetails: true,

@@ -2,8 +2,7 @@
 // all code using fetch should be collected into this file
 
 import store from "@/store/index.js";
-
-const SERVER_ADDRESS = "http://localhost:5001";
+import {API_URL} from "@/resources.js";
 
 // ****************************************************************************
 // A simple wrapper to simplify response handling for fetch calls
@@ -47,7 +46,7 @@ function fetch_delete(url) {
 function handleResponse(response) {
   return response.text().then((text) => {
     console.log("fetch was successful");
-    // console.log(text);
+    console.log(response);
     const data = text && JSON.parse(text);
 
     if (!response.ok) {
@@ -64,7 +63,7 @@ function handleResponse(response) {
 // ****************************************************************************
 
 export function createNewSample(sample_id, date, name) {
-  return fetch_post(`http://localhost:5001/new-sample/`, {
+  return fetch_post(`${API_URL}/new-sample/`, {
     sample_id: sample_id,
     date: date,
     name: name,
@@ -82,13 +81,13 @@ export function createNewSample(sample_id, date, name) {
 }
 
 export function getSampleList() {
-  return fetch_get("http://localhost:5001/samples").then(function (response_json) {
+  return fetch_get(`${API_URL}/samples`).then(function (response_json) {
     store.commit("setSampleList", response_json.samples);
   });
 }
 
 export function deleteSample(sample_id, sample_summary) {
-  return fetch_post("http://localhost:5001/delete-sample/", {
+  return fetch_post(`${API_URL}/delete-sample/`, {
     sample_id: sample_id,
   })
     .then(function (response_json) {
@@ -99,7 +98,7 @@ export function deleteSample(sample_id, sample_summary) {
 }
 
 export async function getSampleData(sample_id) {
-  return fetch_get(`http://localhost:5001/get_sample_data/${sample_id}`)
+  return fetch_get(`${API_URL}/get_sample_data/${sample_id}`)
     .then((response_json) => {
       console.log(response_json);
       store.commit("createSampleData", {
@@ -118,7 +117,7 @@ export async function updateBlockFromServer(sample_id, block_id, block_data) {
   console.log("updateBlockFromServer called with data:");
   console.log(block_data);
   store.commit("setBlockUpdating", block_id);
-  return fetch_post(`${SERVER_ADDRESS}/update-block/`, {
+  return fetch_post(`${API_URL}/update-block/`, {
     sample_id: sample_id,
     block_id: block_id,
     block_data: block_data,
@@ -136,7 +135,7 @@ export async function updateBlockFromServer(sample_id, block_id, block_data) {
 
 export function addABlock(sample_id, block_kind, index = null) {
   console.log("addABlock called with", sample_id, block_kind);
-  var block_id_promise = fetch_post(`${SERVER_ADDRESS}/add-data-block/`, {
+  var block_id_promise = fetch_post(`${API_URL}/add-data-block/`, {
     sample_id: sample_id,
     block_kind: block_kind,
     index: index,
@@ -158,7 +157,7 @@ export function saveSample(sample_id) {
   console.log("saveSample Called!");
   var sample_data = store.getters.getSample(sample_id);
 
-  fetch_post(`${SERVER_ADDRESS}/save-sample/`, {
+  fetch_post(`${API_URL}/save-sample/`, {
     sample_id: sample_id,
     data: sample_data,
   })
@@ -176,7 +175,7 @@ export function saveSample(sample_id) {
 
 export function deleteBlock(sample_id, block_id) {
   console.log("deleteBlock called!");
-  fetch_post(`${SERVER_ADDRESS}/delete-block/`, {
+  fetch_post(`${API_URL}/delete-block/`, {
     sample_id: sample_id,
     block_id: block_id,
   })
@@ -196,7 +195,7 @@ export function deleteFileFromSample(sample_id, file_id) {
   console.log("deleteFileFromSample called with sample_id and file_id:");
   console.log(sample_id);
   console.log(file_id);
-  fetch_post(`${SERVER_ADDRESS}/delete-file-from-sample/`, {
+  fetch_post(`${API_URL}/delete-file-from-sample/`, {
     sample_id: sample_id,
     file_id: file_id,
   })
@@ -212,15 +211,15 @@ export function deleteFileFromSample(sample_id, file_id) {
 
 export async function fetchRemoteTree() {
   console.log("fetchRemoteTree called!");
-  return fetch_get(`${SERVER_ADDRESS}/list-remote-directories/`).then(function (response_json) {
+  return fetch_get(`${API_URL}/list-remote-directories/`).then(function (response_json) {
     store.commit("setRemoteDirectoryTree", response_json);
     return response_json;
   });
 }
 
 export async function fetchCachedRemoteTree() {
-  console.log("fetchCachedRemoteTree called!");
-  return fetch_get(`${SERVER_ADDRESS}/list-remote-directories-cached/`).then(function (
+  console.log(`fetchCachedRemoteTree called! on ${API_URL}/list-remote-directories-cached/`);
+  return fetch_get(`${API_URL}/list-remote-directories-cached/`).then(function (
     response_json
   ) {
     store.commit("setRemoteDirectoryTree", response_json.cached_dir_structures);
@@ -230,7 +229,7 @@ export async function fetchCachedRemoteTree() {
 
 export async function addRemoteFileToSample(file_entry, sample_id) {
   console.log("loadSelectedRemoteFiles");
-  return fetch_post(`${SERVER_ADDRESS}/add-remote-file-to-sample/`, {
+  return fetch_post(`${API_URL}/add-remote-file-to-sample/`, {
     file_entry: file_entry,
     sample_id: sample_id,
   })
@@ -253,7 +252,7 @@ export async function addRemoteFileToSample(file_entry, sample_id) {
 
 // export async function addRemoteFilesToSample(file_entries, sample_id) {
 // 	console.log('loadSelectedRemoteFiles')
-// 	return fetch_post(`${SERVER_ADDRESS}/add-remote-files-to-sample/`, {
+// 	return fetch_post(`${API_URL}/add-remote-files-to-sample/`, {
 // 		file_entries: file_entries,
 // 		sample_id: sample_id,
 // 	}).then( function(response_json) {

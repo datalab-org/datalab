@@ -10,7 +10,7 @@
           <a
             class="filelink"
             target="_blank"
-            :href="`http://localhost:5001/${stored_files[file_id].url_path}`"
+            :href="`${$API_URL}/${stored_files[file_id].url_path}`"
           >
             {{ stored_files[file_id].name }}
           </a>
@@ -53,6 +53,9 @@ export default {
     setFileSelectModalOpen() {
       this.$store.commit("setFileSelectModalOpenStatus", true);
     },
+  },
+  mounted() {
+    console.log(`mounted the File List. API_URL is ${this.API_URL}`)
   },
 };
 </script>
