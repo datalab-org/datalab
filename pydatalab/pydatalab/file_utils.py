@@ -7,6 +7,7 @@ from werkzeug.utils import secure_filename
 
 from pydatalab.config import CONFIG
 from pydatalab.mongo import flask_mongo
+from pymongo import ReturnDocument
 from pydatalab.resources import DIRECTORIES_DICT
 
 FILE_DIRECTORY = CONFIG["FILE_DIRECTORY"]
@@ -52,6 +53,7 @@ def get_file_info_by_id(file_id, update_if_live=True):
                         "version": file_info["version"] + 1,
                     }
                 },
+                return_document=ReturnDocument.AFTER             
             )
 
             return updated_file_info
@@ -78,6 +80,7 @@ def update_uploaded_file(file, file_id, last_modified=None, size_bytes=None):
             },
             "$inc": {"version": 1},
         },
+        return_document=ReturnDocument.AFTER
     )
 
     if not updated_file_entry:
@@ -151,6 +154,7 @@ def save_uploaded_file(file, sample_ids=None, block_ids=None, last_modified=None
                 "url_path": file_location,
             }
         },
+        return_document=ReturnDocument.AFTER
     )
 
     # update any referenced sample_ids
@@ -222,6 +226,7 @@ def add_file_from_remote_directory(file_entry, sample_id, block_ids=None):
                 "url_path": new_file_location,
             }
         },
+        return_document=ReturnDocument.AFTER
     )
 
     sample_update_result = sample_collection.update_one(
