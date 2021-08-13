@@ -244,12 +244,6 @@ def create_app(config_override: Dict[str, Any] = None) -> Flask:
 
         return jsonify(status="success")
 
-    # Custom static route for the datafiles
-    # @app.route('/files/<sample_id>/<path:filename>')
-    # def get_file(sample_id, filename):
-    # 	path = os.path.join(app.config['UPLOAD_PATH'], sample_id)
-    # 	print("retrieving file: {} from {}".format(filename, path))
-    # 	return send_from_directory(path, filename)
     @app.route("/files/<string:file_id>/<string:filename>")
     def get_file(file_id, filename):
         path = os.path.join(app.config["FILE_DIRECTORY"], file_id)

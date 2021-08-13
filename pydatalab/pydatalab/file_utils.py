@@ -217,6 +217,7 @@ def add_file_from_remote_directory(file_entry, sample_id, block_ids=None):
     new_directory = os.path.join(FILE_DIRECTORY, str(inserted_id))
     new_file_location = os.path.join(new_directory, filename)
     os.makedirs(new_directory)
+    remote_file_path = shutil.copy(full_remote_path, new_file_location)
 
     updated_file_entry = file_collection.find_one_and_update(
         {"_id": inserted_id},
