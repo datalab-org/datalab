@@ -16,6 +16,7 @@
 import DataBlockBase from "@/components/datablocks/DataBlockBase";
 import FileSelectDropdown from "@/components/FileSelectDropdown";
 import { createComputedSetterForBlockField } from "@/field_utils.js";
+import { API_URL } from "@/resources.js"
 
 export default {
   props: {
@@ -28,7 +29,8 @@ export default {
       // return ''
       console.log("trying to get image_url for file_id:");
       console.log(this.file_id);
-      return `http://localhost:5001/${this.$store.state.files[this.file_id].url_path}`;
+      console.log(this.$store.state.files[this.file_id].url_path);
+      return `${API_URL}/${this.$store.state.files[this.file_id].url_path}`;
     },
   },
   components: {

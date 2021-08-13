@@ -3,6 +3,7 @@
 import "bootstrap/dist/css/bootstrap.css";
 // import 'bootstrap-vue/dist/bootstrap-vue.css'
 
+import { API_URL } from "@/resources.js";
 import { createApp } from "vue";
 import App from "./App.vue";
 import router from "./router";
@@ -64,9 +65,13 @@ import "tinymce/plugins/table";
 import Editor from "@tinymce/tinymce-vue";
 import store from "./store";
 
-createApp(App)
-  .use(store)
+const app = createApp(App)
+
+app.use(store)
   .use(router)
   .component("font-awesome-icon", FontAwesomeIcon)
   .component("editor", Editor)
   .mount("#app");
+
+console.log(`initializing app with global variable $API_URL = ${API_URL}`)
+app.config.globalProperties.$API_URL = API_URL
