@@ -60,7 +60,7 @@
   <slot></slot>
 
   <TableOfContents :display_order="sample_data.display_order" :blocks="blocks" />
-  <FileList :file_ids="file_ids" :stored_files="stored_files" />
+  <FileList :sample_id="sample_id" :file_ids="file_ids" :stored_files="stored_files" />
 
   <div class="container">
     <hr />
@@ -84,7 +84,7 @@ import TableOfContents from "@/components/TableOfContents";
 import FileList from "@/components/FileList";
 import Modal from "@/components/Modal";
 import FileSelectModal from "@/components/FileSelectModal";
-import { getSampleData, addABlock, saveSample, deleteFileFromSample } from "@/server_fetch_utils";
+import { getSampleData, addABlock, saveSample } from "@/server_fetch_utils";
 
 import setupUppy from "@/file_upload.js";
 
@@ -150,12 +150,6 @@ export default {
       console.log("save sample clicked!");
       tinymce.editors.forEach((editor) => editor.save());
       saveSample(this.sample_id);
-    },
-    deleteFile(event, file_id) {
-      console.log(`delete file button clicked!`);
-      console.log(event);
-      deleteFileFromSample(this.sample_id, file_id);
-      return false;
     },
     async getSampleData() {
       await getSampleData(this.sample_id);
