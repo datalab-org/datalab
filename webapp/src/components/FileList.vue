@@ -39,6 +39,8 @@
 </template>
 
 <script>
+import { deleteFileFromSample } from "@/server_fetch_utils";
+
 export default {
   data() {
     return {
@@ -46,10 +48,17 @@ export default {
     };
   },
   props: {
+    sample_id: String,
     file_ids: Array,
     stored_files: Object,
   },
   methods: {
+    deleteFile(event, file_id) {
+      console.log(`delete file button clicked!`);
+      console.log(event);
+      deleteFileFromSample(this.sample_id, file_id);
+      return false;
+    },
     setFileSelectModalOpen() {
       this.$store.commit("setFileSelectModalOpenStatus", true);
     },
