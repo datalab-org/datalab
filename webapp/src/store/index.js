@@ -11,6 +11,7 @@ export default createStore({
     remoteDirectoryTree: {},
     remoteDirectoryTreeSecondsSinceLastUpdate: null,
     files: {},
+    fileSelectModalIsOpen: false,
   },
   mutations: {
     test_mutation(state, data_val) {
@@ -143,6 +144,9 @@ export default createStore({
       state.updating[block_id] = false;
       await new Promise((resolve) => setTimeout(resolve, 500));
       state.updatingDelayed[block_id] = false; // delayed by 0.5 s, helpful for some animations
+    },
+    setFileSelectModalOpenStatus(state, isOpen) {
+      state.fileSelectModalIsOpen = isOpen;
     },
   },
   getters: {
