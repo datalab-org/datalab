@@ -14,7 +14,7 @@
     </thead>
     <tbody>
       <tr
-        id="sample_id"
+        :id="sample.sample_id"
         v-for="sample in samples"
         :key="sample.sample_id"
         v-on:click.exact="goToSamplePage(sample.sample_id)"
