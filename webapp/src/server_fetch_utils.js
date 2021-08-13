@@ -2,7 +2,7 @@
 // all code using fetch should be collected into this file
 
 import store from "@/store/index.js";
-import {API_URL} from "@/resources.js";
+import { API_URL } from "@/resources.js";
 
 // ****************************************************************************
 // A simple wrapper to simplify response handling for fetch calls
@@ -219,9 +219,7 @@ export async function fetchRemoteTree() {
 
 export async function fetchCachedRemoteTree() {
   console.log(`fetchCachedRemoteTree called! on ${API_URL}/list-remote-directories-cached/`);
-  return fetch_get(`${API_URL}/list-remote-directories-cached/`).then(function (
-    response_json
-  ) {
+  return fetch_get(`${API_URL}/list-remote-directories-cached/`).then(function (response_json) {
     store.commit("setRemoteDirectoryTree", response_json.cached_dir_structures);
     return response_json;
   });

@@ -7,7 +7,7 @@ import Webcam from "@uppy/webcam";
 
 import store from "@/store/index.js";
 
-import {API_URL} from "@/resources.js"
+import { API_URL } from "@/resources.js";
 // file-upload loaded
 
 export default function setupUppy(sample_id, trigger_selector, reactive_file_list) {

@@ -65,13 +65,14 @@ import "tinymce/plugins/table";
 import Editor from "@tinymce/tinymce-vue";
 import store from "./store";
 
-const app = createApp(App)
+const app = createApp(App);
 
-app.use(store)
+app
+  .use(store)
   .use(router)
   .component("font-awesome-icon", FontAwesomeIcon)
   .component("editor", Editor)
   .mount("#app");
 
-console.log(`initializing app with global variable $API_URL = ${API_URL}`)
-app.config.globalProperties.$API_URL = API_URL
+console.log(`initializing app with global variable $API_URL = ${API_URL}`);
+app.config.globalProperties.$API_URL = API_URL;

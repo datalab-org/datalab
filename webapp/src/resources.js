@@ -6,9 +6,7 @@ import CycleBlock from "@/components/datablocks/CycleBlock";
 // import SynthesisBlock from "@/components/datablocks/SynthesisBlock"
 // note: SynthesisBlock not yet implemented
 
-
-
-export const API_URL = "http://localhost:5001"
+export const API_URL = "http://localhost:5001";
 
 export const blockKinds = {
   generic: { description: "Test Block", component: DataBlockBase },
@@ -18,4 +16,3 @@ export const blockKinds = {
   cycle: { description: "Electrochemistry", component: CycleBlock },
   //synthesis: { description: "Materials Synthesis", component:SynthesisBlock },
 };
-
