@@ -64,7 +64,7 @@ export default {
     },
   },
   mounted() {
-    console.log(`mounted the File List. API_URL is ${this.API_URL}`)
+    console.log(`mounted the File List. API_URL is ${this.API_URL}`);
   },
 };
 </script>

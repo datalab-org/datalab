@@ -161,7 +161,5 @@ export default createStore({
   },
   actions: {},
   modules: {},
-  plugins: [
-    createLogger()
-  ],
+  plugins: [createLogger()],
 });

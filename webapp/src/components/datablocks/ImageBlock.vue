@@ -16,7 +16,7 @@
 import DataBlockBase from "@/components/datablocks/DataBlockBase";
 import FileSelectDropdown from "@/components/FileSelectDropdown";
 import { createComputedSetterForBlockField } from "@/field_utils.js";
-import { API_URL } from "@/resources.js"
+import { API_URL } from "@/resources.js";
 
 export default {
   props: {
