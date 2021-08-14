@@ -50,7 +50,7 @@ coverage.xml
 
 # Envs
 .python-version
-.env
+# .env
 .venv
 env/
 venv/
