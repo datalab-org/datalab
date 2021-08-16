@@ -63,9 +63,6 @@ export default {
       this.$store.commit("setFileSelectModalOpenStatus", true);
     },
   },
-  mounted() {
-    console.log(`mounted the File List. API_URL is ${this.API_URL}`);
-  },
 };
 </script>
 
