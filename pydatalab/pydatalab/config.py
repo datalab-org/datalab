@@ -73,3 +73,5 @@ class ServerConfig(BaseSettings):
 
 
 CONFIG = ServerConfig()
+
+__all__ = ("CONFIG",)

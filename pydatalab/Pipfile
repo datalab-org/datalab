@@ -17,6 +17,8 @@ galvani = "*"
 navani = {git = "https://github.com/the-grey-group/navani.git", editable = true}
 pydantic = "*"
 openpyxl = "*"
+requests-oauthlib = "*"
+python-dotenv = "*"
 
 [dev-packages]
 pytest = "*"

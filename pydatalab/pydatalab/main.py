@@ -27,6 +27,7 @@ def create_app(config_override: Dict[str, Any] = None) -> Flask:
         CONFIG.update(config_override)
 
     app.config.update(CONFIG.dict())
+
     CORS(app, resources={r"/*": {"origins": "*"}})
 
     app.json_encoder = CustomJSONEncoder
