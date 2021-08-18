@@ -1,0 +1,179 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`it renders correctly with 0 samples 1`] = `
+<div>
+  
+  <!--v-if-->
+  <table
+    class="table table-hover table-sm"
+  >
+    <thead>
+      <tr>
+        <th
+          scope="col"
+        >
+          ID
+        </th>
+        <th
+          scope="col"
+        >
+          Sample name
+        </th>
+        <th
+          scope="col"
+        >
+          Formula
+        </th>
+        <th
+          scope="col"
+        >
+          Date
+        </th>
+        <th
+          scope="col"
+        >
+          # of blocks
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      
+      
+    </tbody>
+  </table>
+  
+</div>
+`;
+
+exports[`it renders correctly with some samples 1`] = `
+<div>
+  
+  <!--v-if-->
+  <table
+    class="table table-hover table-sm"
+  >
+    <thead>
+      <tr>
+        <th
+          scope="col"
+        >
+          ID
+        </th>
+        <th
+          scope="col"
+        >
+          Sample name
+        </th>
+        <th
+          scope="col"
+        >
+          Formula
+        </th>
+        <th
+          scope="col"
+        >
+          Date
+        </th>
+        <th
+          scope="col"
+        >
+          # of blocks
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      
+      <tr
+        id="jdb1-1"
+      >
+        <td>
+          jdb1-1
+        </td>
+        <td>
+          This is a test sample
+        </td>
+        <td>
+          In0.333WO3
+        </td>
+        <td>
+          2021-02-17
+        </td>
+        <td>
+          6
+        </td>
+        <button
+          aria-label="delete"
+          class="close"
+          type="button"
+        >
+          <span
+            aria-hidden="true"
+          >
+            ×
+          </span>
+        </button>
+      </tr>
+      <tr
+        id="jdb11-3_e1_s2"
+      >
+        <td>
+          jdb11-3_e1_s2
+        </td>
+        <td>
+          in situ SQUID test
+        </td>
+        <td>
+          NaCoO2
+        </td>
+        <td>
+          2021-02-19
+        </td>
+        <td>
+          1
+        </td>
+        <button
+          aria-label="delete"
+          class="close"
+          type="button"
+        >
+          <span
+            aria-hidden="true"
+          >
+            ×
+          </span>
+        </button>
+      </tr>
+      <tr
+        id="jdb11-3_e1_s3"
+      >
+        <td>
+          jdb11-3_e1_s3
+        </td>
+        <td>
+          another in situ SQUID test
+        </td>
+        <td />
+        <td>
+          2021-02-24
+        </td>
+        <td>
+          1
+        </td>
+        <button
+          aria-label="delete"
+          class="close"
+          type="button"
+        >
+          <span
+            aria-hidden="true"
+          >
+            ×
+          </span>
+        </button>
+      </tr>
+      
+    </tbody>
+  </table>
+  
+</div>
+`;
