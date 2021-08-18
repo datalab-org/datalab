@@ -1,4 +1,4 @@
-from typing import Iterable, Optional
+from typing import Optional, Sequence
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -122,7 +122,7 @@ def selectable_axes_plot(df, x_options, y_options, x_default=None, y_default=Non
 def double_axes_echem_plot(
     df: pd.DataFrame,
     mode: Optional[str] = None,
-    x_options: Iterable[str] = ("Capacity", "Voltage", "Time", "Current"),
+    x_options: Sequence[str] = ("Capacity", "Voltage", "Time", "Current"),
     pick_peaks: bool = True,
     **kwargs,
 ) -> gridplot:
@@ -189,7 +189,7 @@ def double_axes_echem_plot(
             else:
                 y = "dvdq"
 
-        for counter, (name, group) in enumerate(grouped_by_half_cycle):
+        for _, group in grouped_by_half_cycle:
             # trim the end of the colour cycle for visibility on a white background
             if max_full_cycle <= 1:
                 color_value = 0.5
