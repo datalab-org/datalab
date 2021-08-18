@@ -1,15 +1,22 @@
+#!/usr/bin/env python
+
 import datetime
 import os
 import shutil
+from typing import List
 
-from pymongo import MongoClient
+from pymongo import MongoClient, uri_parser
 from werkzeug.utils import secure_filename
 
-UPLOAD_PATH = "uploads"  # todo: refactor all config to one file. For now, make sure this matches the config in main.py
-FILE_DIRECTORY = "files"
+from pydatalab.config import CONFIG
 
-client = MongoClient("mongodb://localhost:27017/")
-db = client.datalabvue
+client = MongoClient(uri_parser.parse_host(CONFIG.MONGO_URI))
+database = uri_parser.parse_uri(CONFIG.MONGO_URI).get("database")
+
+if database is None:
+    raise RuntimeError("Please specify the MongoDB database as part of the MONGO_URI option.")
+
+db = client[database]
 data_collection = db.data
 file_collection = db.files
 
@@ -22,16 +29,16 @@ for sample in all_samples:
     print("processing: {}".format(sample_id))
     print("existing files: {}".format(sample["files"]))
     secure_sample_id = secure_filename(sample_id)
-    original_files_path = os.path.join(UPLOAD_PATH, secure_sample_id)
+    original_files_path = os.path.join(CONFIG.UPLOAD_PATH, secure_sample_id)
 
-    filenames = []
+    filenames: List[str] = []
     # paths = []
     print(f"{sample_id}:")
 
     for filename in sample["files"]:
 
         extension = os.path.splitext(filename)[1]
-        old_file_location = os.path.join(UPLOAD_PATH, sample_id, secure_filename(filename))
+        old_file_location = os.path.join(CONFIG.UPLOAD_PATH, sample_id, secure_filename(filename))
         if not os.path.isfile(old_file_location):
             print(f"file not found: {old_file_location}")
             continue
@@ -61,7 +68,7 @@ for sample in all_samples:
 
         inserted_id = result.inserted_id
 
-        new_directory = os.path.join(FILE_DIRECTORY, str(inserted_id))
+        new_directory = os.path.join(CONFIG.FILE_DIRECTORY, str(inserted_id))
         new_file_location = os.path.join(new_directory, filename)
         os.makedirs(new_directory)
         shutil.copy(old_file_location, new_file_location)

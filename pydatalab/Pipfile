@@ -14,7 +14,7 @@ flask-pymongo = "*"
 flask-cors = "*"
 galvani = "*"
 pyqt5 = "*"
-navani = {git = "https://github.com/the-grey-group/navani.git"}
+navani = {git = "https://github.com/the-grey-group/navani.git", editable = true}
 pydatalab = {path = ".", editable = true}
 
 [dev-packages]
