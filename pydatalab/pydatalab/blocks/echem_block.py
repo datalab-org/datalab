@@ -1,5 +1,5 @@
 import os
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 import bokeh
 import numpy as np
@@ -159,7 +159,7 @@ class CycleBlock(DataBlock):
         ".res",
     )
 
-    cache = {}
+    cache: Dict[str, Any]
 
     defaults = {
         "p_spline": 5,
