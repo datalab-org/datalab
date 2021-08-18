@@ -14,8 +14,6 @@
     "@fortawesome/free-regular-svg-icons": "^5.15.2",
     "@fortawesome/free-solid-svg-icons": "^5.12.0-2",
     "@fortawesome/vue-fontawesome": "^3.0.0-3",
-    "@testing-library/jest-dom": "^5.14.1",
-    "@testing-library/vue": "^6.4.2",
     "@tinymce/tinymce-vue": "^4.0.0",
     "@uppy/core": "^1.16.0",
     "@uppy/dashboard": "^1.16.0",
@@ -28,7 +26,9 @@
     "vue-router": "^4.0.0-0",
     "vuex": "^4.0.0-0"
   },
-  "devDependencies": {
+    "devDependencies": {
+    "@testing-library/jest-dom": "^5.14.1",
+    "@testing-library/vue": "^6.4.2",
     "@vue/cli-plugin-babel": "~4.5.0",
     "@vue/cli-plugin-e2e-cypress": "~4.5.0",
     "@vue/cli-plugin-eslint": "~4.5.0",
@@ -38,7 +38,7 @@
     "@vue/cli-service": "~4.5.0",
     "@vue/compiler-sfc": "^3.2.4",
     "@vue/eslint-config-prettier": "^6.0.0",
-    "@vue/test-utils": "^2.0.0-0",
+    "@vue/test-utils": "^2.0.0-0",  
     "babel-eslint": "^10.1.0",
     "eslint": "^6.7.2",
     "eslint-plugin-prettier": "^3.3.1",
