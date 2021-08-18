@@ -143,7 +143,7 @@ def delete_file():
     secure_sample_id = secure_filename(sample_id)
     secure_fname = secure_filename(filename)
 
-    path = os.path.join(CONFIG.UPLOAD_PATH, secure_sample_id, secure_fname)
+    path = os.path.join(CONFIG.FILE_DIRECTORY, secure_sample_id, secure_fname)
 
     if not os.path.isfile(path):
         return (

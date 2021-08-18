@@ -58,7 +58,8 @@ jobs:
           pipenv install --dev
 
       - name: Run all tests
-        run: pipenv run pytest -rs -vvv --cov-report=xml
+        run: |
+          pipenv run pytest -rs -vvv --cov-report=term --cov-report=xml --cov ./pydatalab/pydatalab pydatalab/tests
 
       - name: Upload coverage to Codecov
         if: matrix.python-version == 3.8 && github.repository == 'the-grey-group/datalabvue'

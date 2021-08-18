@@ -29,7 +29,7 @@ for sample in all_samples:
     print("processing: {}".format(sample_id))
     print("existing files: {}".format(sample["files"]))
     secure_sample_id = secure_filename(sample_id)
-    original_files_path = os.path.join(CONFIG.UPLOAD_PATH, secure_sample_id)
+    original_files_path = os.path.join(CONFIG.FILE_DIRECTORY, secure_sample_id)
 
     filenames: List[str] = []
     # paths = []
@@ -38,7 +38,9 @@ for sample in all_samples:
     for filename in sample["files"]:
 
         extension = os.path.splitext(filename)[1]
-        old_file_location = os.path.join(CONFIG.UPLOAD_PATH, sample_id, secure_filename(filename))
+        old_file_location = os.path.join(
+            CONFIG.FILE_DIRECTORY, sample_id, secure_filename(filename)
+        )
         if not os.path.isfile(old_file_location):
             print(f"file not found: {old_file_location}")
             continue
