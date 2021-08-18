@@ -5,7 +5,5 @@ known_first_party = "pydatalab"
 [tool.black]
 line-length = 100
 
-[tool.pytest.ini_options]
-testpaths = [
-    "./pydatalab/tests",
-]
+[tool.mypy]
+ignore_missing_imports = true

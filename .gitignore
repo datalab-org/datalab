@@ -5,11 +5,13 @@ server/
 
 
 *.sublime-workspace
+*.sublime-project
 *.tmlanguage.cache
 *.tmPreferences.cache
 *.stTheme.cache
 .vscode
 .DS_Store
+vetur.config.js
 
 *~
 
