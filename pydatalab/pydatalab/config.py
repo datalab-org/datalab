@@ -11,10 +11,6 @@ class ServerConfig(BaseSettings):
         "mongodb://localhost:27017/datalabvue", description="The URI for the underlying MongoDB."
     )
 
-    UPLOAD_PATH: Union[str, Path] = Field(
-        "uploads", description="The path under which to place files uploaded to the server."
-    )
-
     FILE_DIRECTORY: Union[str, Path] = Field(
         Path(__file__).parent.joinpath("../files").resolve(),
         description="The path under which to place stored files uploaded to the server.",
