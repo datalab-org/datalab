@@ -137,7 +137,7 @@ def delete_block():
 delete_block.methods = ("POST",)  # type: ignore
 
 ENDPOINTS: Dict[str, Callable] = {
-    "/add-data-block": add_data_block,
-    "/update-block": update_block,
-    "/delete-block": delete_block,
+    "/add-data-block/": add_data_block,
+    "/update-block/": update_block,
+    "/delete-block/": delete_block,
 }

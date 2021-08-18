@@ -1,6 +1,6 @@
 import os
 import random
-from typing import Any, Callable, Dict, Sequence
+from typing import Any, Callable, Dict, Optional, Sequence
 
 import bokeh
 from bson import ObjectId
@@ -43,8 +43,8 @@ class DataBlock:
     # values that are set by default if they are not supplied by the dictionary in init()
     defaults: Dict[str, Any] = {}
     # values cached on the block instance for faster retrieval
-    cache: Dict[str, Any]
-    plot_functions: Sequence[Callable[[], None]]
+    cache: Optional[Dict[str, Any]] = None
+    plot_functions: Optional[Sequence[Callable[[], None]]] = None
 
     def __init__(self, sample_id, dictionary=None, unique_id=None):
 

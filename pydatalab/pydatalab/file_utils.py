@@ -26,9 +26,9 @@ def get_file_info_by_id(file_id, update_if_live=True):
     file_info = File(**file_info)
 
     if update_if_live and file_info.is_live:
-        remote_toplevel_path = DIRECTORIES_DICT[file_info.source_server_name["path"]]
+        remote_toplevel_path = DIRECTORIES_DICT[file_info.source_server_name]["path"]
         full_remote_path = os.path.join(remote_toplevel_path, file_info.source_path)
-        cached_timestamp = file_info.last_modified_remote_timestamp
+        cached_timestamp = file_info.last_modified_remote
         try:
             stat_results = os.stat(full_remote_path)
         except FileNotFoundError:
@@ -38,7 +38,7 @@ def get_file_info_by_id(file_id, update_if_live=True):
             file_info["live_update_error"] = "Could not reach remote server to update"
             return file_info
 
-        current_timestamp_on_server = stat_results.st_mtime
+        current_timestamp_on_server = datetime.datetime.fromtimestamp(stat_results.st_mtime)
         print(
             f"checking if update is necessary. Cached timestamp: {cached_timestamp}. Current timestamp: {current_timestamp_on_server}."
         )
@@ -52,7 +52,7 @@ def get_file_info_by_id(file_id, update_if_live=True):
                     "$set": {
                         "size": stat_results.st_size,
                         "last_modified": datetime.datetime.now().isoformat(),
-                        "last_modified_remote_timestamp": current_timestamp_on_server,
+                        "last_modified_remote": current_timestamp_on_server,
                         "version": file_info.version + 1,
                     }
                 },
@@ -61,7 +61,7 @@ def get_file_info_by_id(file_id, update_if_live=True):
 
             return updated_file_info
 
-    return file_info
+    return file_info.dict()
 
 
 def update_uploaded_file(file, file_id, last_modified=None, size_bytes=None):
@@ -161,7 +161,6 @@ def save_uploaded_file(file, sample_ids=None, block_ids=None, last_modified=None
         {
             "$set": {
                 "location": file_location,
-                "url_path": file_location,
                 "size": os.path.getsize(file_location),
             }
         },
@@ -249,8 +248,6 @@ def add_file_from_remote_directory(file_entry, sample_id, block_ids=None):
         return_document=ReturnDocument.AFTER,
     )
 
-    updated_file_entry = File(**updated_file_entry)
-
     sample_update_result = sample_collection.update_one(
         {"sample_id": sample_id}, {"$push": {"file_ObjectIds": inserted_id}}
     )
@@ -259,7 +256,7 @@ def add_file_from_remote_directory(file_entry, sample_id, block_ids=None):
             f"db operation failed when trying to insert new file ObjectId into sample: {sample_id}"
         )
 
-    return updated_file_entry.dict()
+    return updated_file_entry
 
 
 def retrieve_file_path(file_ObjectId):

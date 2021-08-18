@@ -10,7 +10,7 @@
           <a
             class="filelink"
             target="_blank"
-            :href="`${$API_URL}/${stored_files[file_id].url_path}`"
+            :href="`${$API_URL}/files/${file_id}/${stored_files[file_id].name}`"
           >
             {{ stored_files[file_id].name }}
           </a>
