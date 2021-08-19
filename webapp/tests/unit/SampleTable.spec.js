@@ -16,7 +16,11 @@ beforeEach(() => {
 // jest.mock("@/server_fetch_utils")
 
 test("it renders correctly with 0 samples", () => {
-  fetch.mockResponseOnce(JSON.stringify({ samples: [] }));
+  fetch.mockResponseOnce(
+    JSON.stringify({
+      samples: [],
+    })
+  );
 
   const { getByText, container } = render(SampleTable, {
     global: {
