@@ -69,4 +69,3 @@ test("it renders correctly with some samples", async () => {
 
   expect(container).toMatchSnapshot();
 });
-

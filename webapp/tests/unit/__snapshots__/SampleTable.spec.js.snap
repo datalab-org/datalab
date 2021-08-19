@@ -2,7 +2,7 @@
 
 exports[`it renders correctly with 0 samples 1`] = `
 <div>
-  
+
   <!--v-if-->
   <table
     class="table table-hover table-sm"
@@ -37,17 +37,17 @@ exports[`it renders correctly with 0 samples 1`] = `
       </tr>
     </thead>
     <tbody>
-      
-      
+
+
     </tbody>
   </table>
-  
+
 </div>
 `;
 
 exports[`it renders correctly with some samples 1`] = `
 <div>
-  
+
   <!--v-if-->
   <table
     class="table table-hover table-sm"
@@ -82,7 +82,7 @@ exports[`it renders correctly with some samples 1`] = `
       </tr>
     </thead>
     <tbody>
-      
+
       <tr
         id="jdb1-1"
       >
@@ -171,9 +171,9 @@ exports[`it renders correctly with some samples 1`] = `
           </span>
         </button>
       </tr>
-      
+
     </tbody>
   </table>
-  
+
 </div>
 `;
