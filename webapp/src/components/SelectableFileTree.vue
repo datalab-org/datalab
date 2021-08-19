@@ -79,7 +79,6 @@ export default {
     },
     appendToSelectedEntries(entry, toplevel_name) {
       const index = this.selectedEntries.indexOf(entry);
-      console.log(index2)
       console.log("appending entry:");
       console.log(entry);
       console.log("to list of selected entries:");
