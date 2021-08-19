@@ -84,7 +84,7 @@ jobs:
         working-directory: ./webapp
         run: yarn lint
 
-      - name: Unit/Component test web app
+      - name: Unit and Component test web app
       	working-directory: ./webapp
 	run: yarn test:unit
  
