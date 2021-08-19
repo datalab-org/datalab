@@ -27,12 +27,7 @@
             {{ selectedEntry.name }}
             <span class="selected-size">[{{ selectedEntry.size }}b]</span>
           </p>
-          <button
-            @click="unselectEntry($event, selectedEntry)"
-            type="button"
-            class="close"
-            aria-label="Close"
-          >
+          <button @click="unselectEntry($event, selectedEntry)" type="button" class="close" aria-label="Close">
             <span aria-hidden="true">&times;</span>
           </button>
           <p class="mb-1 ml-4">
