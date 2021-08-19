@@ -27,7 +27,12 @@
             {{ selectedEntry.name }}
             <span class="selected-size">[{{ selectedEntry.size }}b]</span>
           </p>
-          <button @click="unselectEntry($event, selectedEntry)" type="button" class="close" aria-label="Close">
+          <button
+            @click="unselectEntry($event, selectedEntry)"
+            type="button"
+            class="close"
+            aria-label="Close"
+          >
             <span aria-hidden="true">&times;</span>
           </button>
           <p class="mb-1 ml-4">
@@ -74,6 +79,7 @@ export default {
     },
     appendToSelectedEntries(entry, toplevel_name) {
       const index = this.selectedEntries.indexOf(entry);
+      console.log(index2)
       console.log("appending entry:");
       console.log(entry);
       console.log("to list of selected entries:");
