@@ -82,7 +82,7 @@ jobs:
 
       - name: Lint web app
         working-directory: ./webapp
-        run: yarn lint 
+        run: yarn lint
 
       - name: Unit and Component test web app
         working-directory: ./webapp
