@@ -82,11 +82,11 @@ jobs:
 
       - name: Lint web app
         working-directory: ./webapp
-        run: yarn lint
+        run: yarn lint --no-fix
 
       - name: Unit and Component test web app
-      	working-directory: ./webapp
-	run: yarn test:unit
+        working-directory: ./webapp
+        run: yarn test:unit
  
      - name: Build web app
         working-directory: ./webapp
