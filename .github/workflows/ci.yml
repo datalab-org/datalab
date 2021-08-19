@@ -78,15 +78,15 @@ jobs:
 
       - name: Install web app
         working-directory: ./webapp
-        run: yarn install --production
+        run: npm install
 
       - name: Lint web app
         working-directory: ./webapp
-        run: yarn lint --no-fix
- 
-     - name: Build web app
+        run: npm run lint
+
+      - name: Build web app
         working-directory: ./webapp
-        run: yarn build
+        run: npm run build
 
   server:
     name: Test the server
