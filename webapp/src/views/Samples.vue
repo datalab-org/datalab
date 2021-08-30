@@ -8,6 +8,9 @@
     <div class="row">
       <div class="col-sm-10 mx-auto mb-3">
         <button class="btn btn-default" @click="modalIsOpen = true">Add a sample</button>
+        <button class="btn btn-default" @click="loginAPI()">
+          <i class="fab fa-github"></i> Login
+        </button>
       </div>
     </div>
     <div class="row">
@@ -47,7 +50,7 @@
 <script>
 import SampleTable from "@/components/SampleTable.vue";
 import Modal from "@/components/Modal.vue";
-import { createNewSample } from "@/server_fetch_utils.js";
+import { createNewSample, attemptLogin } from "@/server_fetch_utils.js";
 
 export default {
   name: "Samples",
@@ -94,6 +97,17 @@ export default {
           } else {
             alert("Error with creating new sample: " + error);
           }
+        });
+    },
+    async loginAPI() {
+      console.log("Attempting to login via the API");
+
+      await attemptLogin()
+        .then(() => {
+          this.loginAvailable = false;
+        })
+        .catch((error) => {
+          alert("Error logging in via OAuth: " + error);
         });
     },
   },
