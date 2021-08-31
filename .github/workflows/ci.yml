@@ -105,4 +105,4 @@ jobs:
 
       - name: Run end-to-end tests
         working-directory: ./webapp
-        run: yarn test:e2e --mode production --headless
+        run: yarn test:e2e  --headless --url http://localhost:8080
