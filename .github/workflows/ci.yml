@@ -92,18 +92,6 @@ jobs:
         working-directory: ./webapp
         run: yarn build
 
-  server:
-    name: Test the server
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v2.3.4
-
-      - name: Set up Python 3.9
-        uses: actions/setup-python@v2.2.2
-        with:
-          python-version: 3.9
-
       - name: Build the Docker images
         run: docker-compose build
 
@@ -114,3 +102,6 @@ jobs:
           # In future, some additional tests will run here instead.
           sleep 60
           exit 0
+
+      - name: Run end-to-end tests
+        run: yarn test:e2e --mode production --headless
