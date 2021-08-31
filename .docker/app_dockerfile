@@ -2,10 +2,12 @@ FROM node
 SHELL ["/bin/bash", "--login", "-c"]
 
 WORKDIR /app
+CMD ["yarn", "serve"]
 
 # copy repo contents and install deps
 #
-COPY webapp /app/
+COPY webapp/package.json /app/
 
 RUN yarn install
-CMD ["yarn", "serve"]
+
+COPY webapp /app
