@@ -34,8 +34,8 @@
         </div>
         <div class="form-row">
           <div class="form-group col-md-12">
-            <label for="name">Sample Name</label>
-            <input type="text" v-model="name" class="form-control" />
+            <label for="name">Sample Name:</label>
+            <input id="name" type="text" v-model="name" class="form-control" />
           </div>
         </div>
       </template>

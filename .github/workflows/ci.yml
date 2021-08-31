@@ -79,30 +79,28 @@ jobs:
 
       - name: Install web app
         working-directory: ./webapp
-        run: npm install
+        run: yarn install
 
       - name: Lint web app
         working-directory: ./webapp
-        run: npm run lint
+        run: yarn lint --no-fix --max-warnings 0
+
+      - name: Unit and Component test web app
+        working-directory: ./webapp
+        run: yarn test:unit
 
       - name: Build web app
         working-directory: ./webapp
-        run: npm run build
+        run: yarn build
 
-  server:
-    name: Test the server
-    runs-on: ubuntu-latest
+      - name: Build the Docker app image
+        run: docker-compose build app
 
-    steps:
-      - uses: actions/checkout@v2.3.4
+      - name: Build the Docker server image
+        run: docker-compose build server
 
-      - name: Set up Python 3.9
-        uses: actions/setup-python@v2.2.2
-        with:
-          python-version: 3.9
-
-      - name: Build the Docker images
-        run: docker-compose build
+      - name: Build the Docker mongo image
+        run: docker-compose build mongo
 
       - name: Start Docker images
         run: |
@@ -111,3 +109,7 @@ jobs:
           # In future, some additional tests will run here instead.
           sleep 60
           exit 0
+
+      - name: Run end-to-end tests
+        working-directory: ./webapp
+        run: yarn test:e2e  --headless --url http://localhost:8080
