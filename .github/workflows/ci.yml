@@ -92,8 +92,14 @@ jobs:
         working-directory: ./webapp
         run: yarn build
 
-      - name: Build the Docker images
-        run: docker-compose build
+      - name: Build the Docker app image
+        run: docker-compose build app
+
+      - name: Build the Docker server image
+        run: docker-compose build server
+
+      - name: Build the Docker mongo image
+        run: docker-compose build mongo
 
       - name: Start Docker images
         run: |
