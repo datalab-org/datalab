@@ -1,6 +1,9 @@
-from pymongo import MongoClient
+from pymongo import MongoClient, uri_parser
 
-client = MongoClient("mongodb://localhost:27017/")
+from pydatalab.config import CONFIG
+
+client = MongoClient(uri_parser.parse_host(CONFIG.MONGO_URI))
+database = uri_parser.parse_uri(CONFIG.MONGO_URI).get("database")
 db = client.datalabvue
 file_collection = db.files
 

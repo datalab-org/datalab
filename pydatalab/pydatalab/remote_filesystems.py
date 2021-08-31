@@ -3,22 +3,15 @@ import json
 import os
 import subprocess
 
-from pymongo import MongoClient
-
+import pydatalab.mongo
 from pydatalab.resources import DIRECTORIES
 
 # from fs.smbfs import SMBFS
 
 
-client = MongoClient("mongodb://localhost:27017/")
-db = client.datalabvue
-
-FILESYSTEMS_COLLECTION = db["remoteFilesystems"]
-
-
 def get_directory_structure_json(directory_path):
     process = subprocess.Popen(
-        ["tree", "-Jhf", "--timefmt", "%Y-%m-%d %H:%M:%S %Z", directory_path],
+        ["tree", "-Jsf", "--timefmt", "%Y-%m-%d %H:%M:%S %Z", directory_path],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
@@ -53,7 +46,7 @@ def fix_tree_paths(subtree_list, root_path):
 
 
 def save_directory_structure_to_db(directory_name, dir_structure):
-    result = FILESYSTEMS_COLLECTION.update_one(
+    result = pydatalab.mongo.flask_mongo.db.remoteFilesystems.update_one(
         {"name": directory_name},
         {
             "$set": {
@@ -69,7 +62,7 @@ def save_directory_structure_to_db(directory_name, dir_structure):
 
 
 def get_cached_directory_structure_from_db(directory_name):
-    return FILESYSTEMS_COLLECTION.find_one({"name": directory_name})
+    return pydatalab.mongo.flask_mongo.db.remoteFilesystems.find_one({"name": directory_name})
 
 
 def get_all_directory_structures(directories=DIRECTORIES):
@@ -97,7 +90,9 @@ def get_all_directory_structures(directories=DIRECTORIES):
 def get_cached_directory_structures(directories=DIRECTORIES):
     all_directory_structures = []
     for directory in directories:
-        wrapped_dir_structure = FILESYSTEMS_COLLECTION.find_one({"name": directory["name"]})
+        wrapped_dir_structure = pydatalab.mongo.flask_mongo.db.remoteFilesystems.find_one(
+            {"name": directory["name"]}
+        )
         if not wrapped_dir_structure:
             wrapped_dir_structure = {
                 "name": directory["name"],

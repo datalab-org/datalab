@@ -25,12 +25,16 @@ export default {
   },
   computed: {
     file_id: createComputedSetterForBlockField("file_id"),
+    all_files() {
+      return this.$store.state.files;
+    },
     image_url() {
       // return ''
       console.log("trying to get image_url for file_id:");
       console.log(this.file_id);
-      console.log(this.$store.state.files[this.file_id].url_path);
-      return `${API_URL}/${this.$store.state.files[this.file_id].url_path}`;
+      // console.log(this.$store.state.files[this.file_id].url_path);
+
+      return `${API_URL}/files/${this.file_id}/${this.all_files[this.file_id].name}`;
     },
   },
   components: {

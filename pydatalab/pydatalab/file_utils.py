@@ -6,26 +6,29 @@ from bson.objectid import ObjectId
 from pymongo import ReturnDocument
 from werkzeug.utils import secure_filename
 
+import pydatalab.mongo
 from pydatalab.config import CONFIG
-from pydatalab.mongo import flask_mongo
+from pydatalab.models import File
 from pydatalab.resources import DIRECTORIES_DICT
 
-FILE_DIRECTORY = CONFIG["FILE_DIRECTORY"]
+FILE_DIRECTORY = CONFIG.FILE_DIRECTORY
 
 
 def get_file_info_by_id(file_id, update_if_live=True):
     """file_id can be either the string representation or the ObjectId() object. Returns the file information dictionary"""
     print(f"getting file for file_id: {file_id}")
-    file_collection = flask_mongo.db.files
+    file_collection = pydatalab.mongo.flask_mongo.db.files
     file_id = ObjectId(file_id)
     file_info = file_collection.find_one({"_id": file_id})
     if not file_info:
         raise IOError(f"could not find file with id: {file_id} in db")
 
-    if update_if_live and file_info["is_live"]:
-        remote_toplevel_path = DIRECTORIES_DICT[file_info["source_server_name"]]["path"]
-        full_remote_path = os.path.join(remote_toplevel_path, file_info["source_path"])
-        cached_timestamp = file_info["last_modified_remote_timestamp"]
+    file_info = File(**file_info)
+
+    if update_if_live and file_info.is_live:
+        remote_toplevel_path = DIRECTORIES_DICT[file_info.source_server_name]["path"]
+        full_remote_path = os.path.join(remote_toplevel_path, file_info.source_path)
+        cached_timestamp = file_info.last_modified_remote
         try:
             stat_results = os.stat(full_remote_path)
         except FileNotFoundError:
@@ -35,29 +38,30 @@ def get_file_info_by_id(file_id, update_if_live=True):
             file_info["live_update_error"] = "Could not reach remote server to update"
             return file_info
 
-        current_timestamp_on_server = stat_results.st_mtime
+        current_timestamp_on_server = datetime.datetime.fromtimestamp(stat_results.st_mtime)
         print(
             f"checking if update is necessary. Cached timestamp: {cached_timestamp}. Current timestamp: {current_timestamp_on_server}."
         )
         print(f"\tDifference: {current_timestamp_on_server - cached_timestamp} seconds")
         if current_timestamp_on_server > cached_timestamp:
             print("updating file")
-            shutil.copy(full_remote_path, file_info["location"])
+            shutil.copy(full_remote_path, file_info.location)
             updated_file_info = file_collection.find_one_and_update(
-                {"_id": file_info["_id"]},
+                {"_id": file_id},
                 {
                     "$set": {
                         "size": stat_results.st_size,
                         "last_modified": datetime.datetime.now().isoformat(),
-                        "last_modified_remote_timestamp": current_timestamp_on_server,
-                        "version": file_info["version"] + 1,
+                        "last_modified_remote": current_timestamp_on_server,
+                        "version": file_info.version + 1,
                     }
                 },
                 return_document=ReturnDocument.AFTER,
             )
 
             return updated_file_info
-    return file_info
+
+    return file_info.dict()
 
 
 def update_uploaded_file(file, file_id, last_modified=None, size_bytes=None):
@@ -67,14 +71,14 @@ def update_uploaded_file(file, file_id, last_modified=None, size_bytes=None):
     additional_updates can be used to pass other fields to change in (NOT IMPLEMENTED YET)"""
 
     last_modified = datetime.datetime.now().isoformat()
-    file_collection = flask_mongo.db.files
+    file_collection = pydatalab.mongo.flask_mongo.db.files
 
     updated_file_entry = file_collection.find_one_and_update(
         {"_id": file_id},  # Note, needs to be ObjectID()
         {
             "$set": {
                 "last_modified": last_modified,
-                "size_bytes": size_bytes,
+                "size": size_bytes,
                 "source": "remote",
                 "is_live": False,
             },
@@ -86,17 +90,21 @@ def update_uploaded_file(file, file_id, last_modified=None, size_bytes=None):
     if not updated_file_entry:
         raise IOError(f"Issue with db update uploaded file {file.name} id {file_id}")
 
+    updated_file_entry = File(**updated_file_entry)
+
     # overwrite the old file with the new location
     file.save(updated_file_entry["location"])
 
-    return updated_file_entry
+    ret = updated_file_entry.dict()
+    ret.update({"_id": file_id})
+    return ret
 
 
 def save_uploaded_file(file, sample_ids=None, block_ids=None, last_modified=None, size_bytes=None):
     """file is a file object from a flask request.
     last_modified should be an isodate format. if last_modified is None, the current time will be inserted"""
-    sample_collection = flask_mongo.db.data
-    file_collection = flask_mongo.db.files
+    sample_collection = pydatalab.mongo.flask_mongo.db.data
+    file_collection = pydatalab.mongo.flask_mongo.db.files
 
     # validate sample_ids
     if not sample_ids:
@@ -114,28 +122,30 @@ def save_uploaded_file(file, sample_ids=None, block_ids=None, last_modified=None
     if not last_modified:
         last_modified = datetime.datetime.now().isoformat()
 
-    new_file_document = {
-        "name": filename,
-        "original_name": file.filename,  # not escaped
-        "location": None,  # file storage location in datalab. Important! will be filled in below
-        "url_path": None,  # the url used to access this file. Important! will be filled in below
-        "extension": extension,
-        "source": "uploaded",
-        "size": size_bytes,
-        "sample_ids": sample_ids,
-        "blocks": block_ids,
-        "last_modified": last_modified,
-        "time_added": last_modified,
-        "metadata": {},
-        "representation": None,
-        "source_server_name": None,  # not used for source=uploaded
-        "source_path": None,  # not used for source=uploaded
-        "last_modified_remote": None,  # not used for source=uploaded
-        "is_live": False,  # not available for source=uploaded
-        "version": 1,  # increment with each update
-    }
+    new_file_document = File(
+        **{
+            "name": filename,
+            "original_name": file.filename,  # not escaped
+            "location": None,  # file storage location in datalab. Important! will be filled in below
+            "url_path": None,  # the url used to access this file. Important! will be filled in below
+            "extension": extension,
+            "source": "uploaded",
+            "size": size_bytes,
+            "sample_ids": sample_ids,
+            "blocks": block_ids,
+            "last_modified": last_modified,
+            "time_added": last_modified,
+            "metadata": {},
+            "representation": None,
+            "source_server_name": None,  # not used for source=uploaded
+            "source_path": None,  # not used for source=uploaded
+            "last_modified_remote": None,  # not used for source=uploaded
+            "is_live": False,  # not available for source=uploaded
+            "version": 1,  # increment with each update
+        }
+    )
 
-    result = file_collection.insert_one(new_file_document)
+    result = file_collection.insert_one(new_file_document.dict())
     if not result.acknowledged:
         raise IOError(f"db operation failed when trying to insert new file. Result: {result}")
 
@@ -151,11 +161,13 @@ def save_uploaded_file(file, sample_ids=None, block_ids=None, last_modified=None
         {
             "$set": {
                 "location": file_location,
-                "url_path": file_location,
+                "size": os.path.getsize(file_location),
             }
         },
         return_document=ReturnDocument.AFTER,
     )
+
+    updated_file_entry = File(**updated_file_entry)
 
     # update any referenced sample_ids
     for sample_id in sample_ids:
@@ -167,12 +179,14 @@ def save_uploaded_file(file, sample_ids=None, block_ids=None, last_modified=None
                 f"db operation failed when trying to insert new file ObjectId into sample: {sample_id}"
             )
 
-    return updated_file_entry
+    ret = updated_file_entry.dict()
+    ret.update({"_id": inserted_id})
+    return ret
 
 
 def add_file_from_remote_directory(file_entry, sample_id, block_ids=None):
-    file_collection = flask_mongo.db.files
-    sample_collection = flask_mongo.db.data
+    file_collection = pydatalab.mongo.flask_mongo.db.files
+    sample_collection = pydatalab.mongo.flask_mongo.db.data
 
     if not block_ids:
         block_ids = []
@@ -187,28 +201,32 @@ def add_file_from_remote_directory(file_entry, sample_id, block_ids=None):
     # check that the path is valid and get the last modified time from the server
     remote_timestamp = os.path.getmtime(full_remote_path)
 
-    new_file_document = {
-        "name": filename,
-        "original_name": file_entry["name"],  # not escaped
-        "location": None,  # file storage location in datalab. Important! will be filled in below
-        "url_path": None,  # the url used to access this file. Important! will be filled in below
-        "extension": extension,
-        "source": "remote",
-        "size": file_entry["size"],  # not actually in bytes at the moment. in human-readable format
-        "sample_ids": [sample_id],
-        "blocks": block_ids,
-        "last_modified": datetime.datetime.now().isoformat(),  # last_modified is the last modified time of the db entry in isoformat. For last modified file timestamp, see last_modified_remote_timestamp
-        "time_added": datetime.datetime.now().isoformat(),
-        "metadata": {},
-        "representation": None,
-        "source_server_name": file_entry["toplevel_name"],
-        "source_path": remote_path,  # this is the relative path from the given source_server_name (server directory)
-        "last_modified_remote_timestamp": remote_timestamp,  # last modified time as provided from the remote server. May by different than last_modified if the two servers times are not synchrotronized.
-        "is_live": True,  # will update (if changes have occured) on access
-        "version": 1,  # increment with each update
-    }
+    new_file_document = File(
+        **{
+            "name": filename,
+            "original_name": file_entry["name"],  # not escaped
+            "location": None,  # file storage location in datalab. Important! will be filled in below
+            "url_path": None,  # the url used to access this file. Important! will be filled in below
+            "extension": extension,
+            "source": "remote",
+            "size": file_entry[
+                "size"
+            ],  # not actually in bytes at the moment. in human-readable format
+            "sample_ids": [sample_id],
+            "blocks": block_ids,
+            "last_modified": datetime.datetime.now().isoformat(),  # last_modified is the last modified time of the db entry in isoformat. For last modified file timestamp, see last_modified_remote_timestamp
+            "time_added": datetime.datetime.now().isoformat(),
+            "metadata": {},
+            "representation": None,
+            "source_server_name": file_entry["toplevel_name"],
+            "source_path": remote_path,  # this is the relative path from the given source_server_name (server directory)
+            "last_modified_remote": remote_timestamp,  # last modified time as provided from the remote server. May by different than last_modified if the two servers times are not synchrotronized.
+            "is_live": True,  # will update (if changes have occured) on access
+            "version": 1,  # increment with each update
+        }
+    )
 
-    result = file_collection.insert_one(new_file_document)
+    result = file_collection.insert_one(new_file_document.dict())
     if not result.acknowledged:
         raise IOError(f"db operation failed when trying to insert new file. Result: {result}")
 
@@ -242,27 +260,29 @@ def add_file_from_remote_directory(file_entry, sample_id, block_ids=None):
 
 
 def retrieve_file_path(file_ObjectId):
-    file_collection = flask_mongo.db.files
+    file_collection = pydatalab.mongo.flask_mongo.db.files
     result = file_collection.find_one({"_id": ObjectId(file_ObjectId)})
     if not result:
         raise FileNotFoundError(
             f"The file with file_ObjectId: {file_ObjectId} could not be found in the database"
         )
-    return result["location"]
+
+    result = File(**result)
+
+    return result.location
 
 
 def remove_file_from_sample(sample_id, file_ObjectId):
-    sample_collection = flask_mongo.db.data
-    file_collection = flask_mongo.db.files
+    sample_collection = pydatalab.mongo.flask_mongo.db.data
+    file_collection = pydatalab.mongo.flask_mongo.db.files
     sample_result = sample_collection.update_one(
         {"sample_id": ObjectId(sample_id)},
         {"$pull": {"file_ObjectIds": ObjectId(file_ObjectId)}},
     )
 
     if sample_result.modified_count < 1:
-        raise (
-            IOError,
-            f"failed to remove file_ObjectId (f{file_ObjectId}) from sample (f{sample_id}) db entry: {sample_result.raw_result}",
+        raise IOError(
+            f"failed to remove file_ObjectId (f{file_ObjectId}) from sample (f{sample_id}) db entry: {sample_result.raw_result}"
         )
 
     file_collection.update_one(
