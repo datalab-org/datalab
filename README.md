@@ -52,7 +52,7 @@ Additional notes:
 
      ```npm install --global yarn```
 
-    From this point on, the `npm` command is not needed- all package and script management for the webapp is handled using `yarn`.
+    From this point on, the `npm` command is not needed - all package and script management for the webapp is handled using `yarn`.
 1. Navigate to the `webapp/` directory in your local copy of this repository and run `yarn install` (requires ~300 MB of disk space).
 1. Run the webapp from a development server with `yarn serve`. Similar to the Flask development server, this will provide a development environment that serves the web app at `localhost:8080` and automatically reloads it as changes are made to the source code.
 1. Various other scripts are available (see also `webapp/README.md`):
