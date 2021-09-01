@@ -52,10 +52,12 @@ Additional notes:
 
      ```npm install --global yarn```
 
-    From this point on, the `npm` command is not needed- all package and script management for the webapp is handled using `yarn`.
+    From this point on, the `npm` command is not needed - all package and script management for the webapp is handled using `yarn`.
 1. Navigate to the `webapp/` directory in your local copy of this repository and run `yarn install` (requires ~300 MB of disk space).
-1. Run the webapp from a development server with `yarn serve`. Similar to the Flask development server, this will provide a development environment that serves the web app at `localhost:8080` and automatically reloads it as changes are made to the source code.
-1. Various other scripts are available (see also `webapp/README.md`):
+1. Run the webapp from a development server with `yarn serve`. 
+
+Similar to the Flask development server, these steps will provide a development environment that serves the web app at `localhost:8080` (by default) and automatically reloads it as changes are made to the source code.
+Various other development scripts are available through `yarn` (see also the [webapp README](./webapp/README.md)):
     - `yarn lint`: Lint the javascript code using `eslint`, identifying issues and automatically fixing many. This linting process also runs automatically every time the development server reloads.
     - `yarn test:unit`: run the unit/componenet tests using `jest`. These test individual functions or components.
     - `yarn test:e2e`: run end-to-end tests using `cypress`. This will build and serve the app, and launch an instance of Chrome where the tests can be interactively viewed. The tests can also be run without the gui using ```yarn test:e2e --headless```. Note: currently, the tests make requests to the server running on `localhost:5001`.
