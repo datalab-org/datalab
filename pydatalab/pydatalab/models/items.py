@@ -58,3 +58,8 @@ class Item(BaseModel):
             values.pop("_id")
 
         return values
+
+
+def test():
+    print("this is a test")
+    print("test2")
