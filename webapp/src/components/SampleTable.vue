@@ -17,13 +17,13 @@
         :id="sample.sample_id"
         v-for="sample in samples"
         :key="sample.sample_id"
-        v-on:click.exact="goToSamplePage(sample.sample_id)"
-        v-on:click.meta="openSamplePageInNewTab(sample.sample_id)"
-        v-on:click.ctrl="openSamplePageInNewTab(sample.sample_id)"
+        v-on:click.exact="goToEditPage(sample.sample_id)"
+        v-on:click.meta="openEditPageInNewTab(sample.sample_id)"
+        v-on:click.ctrl="openEditPageInNewTab(sample.sample_id)"
       >
         <td>{{ sample.sample_id }}</td>
         <td>{{ sample.name }}</td>
-        <td>{{ sample.chemform }}</td>
+        <td><ChemicalFormula :formula="sample.chemform" /></td>
         <td>{{ sample.date }}</td>
         <td>{{ sample.nblocks }}</td>
         <button type="button" class="close" @click.stop="deleteSample(sample)" aria-label="delete">
@@ -35,6 +35,7 @@
 </template>
 
 <script>
+import ChemicalFormula from "@/components/ChemicalFormula";
 import { getSampleList, deleteSample } from "@/server_fetch_utils.js";
 
 export default {
@@ -49,10 +50,10 @@ export default {
     },
   },
   methods: {
-    goToSamplePage(sample_id) {
+    goToEditPage(sample_id) {
       this.$router.push(`/edit/${sample_id}`);
     },
-    openSamplePageInNewTab(sample_id) {
+    openEditPageInNewTab(sample_id) {
       window.open(`/edit/${sample_id}`, "_blank");
     },
     // should also check response.OK? And retry if
@@ -71,6 +72,9 @@ export default {
   },
   created() {
     this.getSamples();
+  },
+  components: {
+    ChemicalFormula,
   },
 };
 </script>

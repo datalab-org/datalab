@@ -24,7 +24,7 @@
       >
         <td>{{ item.item_id }}</td>
         <td>{{ item.name }}</td>
-        <td>{{ item.chemform }}</td>
+        <td><ChemicalFormula :formula="sample.chemform" /></td>
         <td>{{ item.date_aquired }}</td>
         <td>{{ item.chemical_purity }}</td>
         <td>{{ item.nblocks }}</td>
@@ -34,6 +34,7 @@
 </template>
 
 <script>
+import ChemicalFormula from "@/components/ChemicalFormula";
 import { getStartingMaterialList } from "@/server_fetch_utils.js";
 
 export default {
@@ -62,6 +63,9 @@ export default {
   },
   created() {
     this.getStartingMaterials();
+  },
+  components: {
+    ChemicalFormula,
   },
 };
 </script>
