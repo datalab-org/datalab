@@ -81,9 +81,27 @@ export function createNewSample(sample_id, date, name) {
 }
 
 export function getSampleList() {
-  return fetch_get(`${API_URL}/samples`).then(function (response_json) {
-    store.commit("setSampleList", response_json.samples);
-  });
+  return fetch_get(`${API_URL}/samples`)
+    .then(function (response_json) {
+      store.commit("setSampleList", response_json.samples);
+    })
+    .catch((error) => {
+      console.error("Error when fetching sample list");
+      console.error(error);
+      throw error;
+    });
+}
+
+export function getStartingMaterialList() {
+  return fetch_get(`${API_URL}/starting-materials`)
+    .then(function (response_json) {
+      store.commit("setStartingMaterials", response_json.items);
+    })
+    .catch((error) => {
+      console.error("Error when fetching starting material list");
+      console.error(error);
+      throw error;
+    });
 }
 
 export function deleteSample(sample_id, sample_summary) {

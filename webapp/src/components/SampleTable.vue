@@ -57,9 +57,7 @@ export default {
     },
     // should also check response.OK? And retry if
     getSamples() {
-      getSampleList().catch((error) => {
-        console.error("Fetch error");
-        console.error(error);
+      getSampleList().catch(() => {
         this.isSampleFetchError = true;
       });
     },

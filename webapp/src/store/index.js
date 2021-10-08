@@ -6,6 +6,7 @@ export default createStore({
   state: {
     all_sample_data: {}, // keys: sample_ids, vals: objects containing all data
     sample_list: [],
+    startingMaterials: [],
     saved_status: {},
     updating: {},
     updatingDelayed: {},
@@ -21,6 +22,10 @@ export default createStore({
     setSampleList(state, sample_summaries) {
       // sample_summary is an array of json objects summarizing the available samples
       state.sample_list = sample_summaries;
+    },
+    setStartingMaterials(state, startingMaterialSummaries) {
+      // sample_summary is an array of json objects summarizing the available samples
+      state.startingMaterials = startingMaterialSummaries;
     },
     appendToSampleList(state, sample_summary) {
       //sample should be a json object sumarizing the available samples
