@@ -130,6 +130,7 @@ def create_sample():
         new_sample = Sample(
             **{
                 "sample_id": sample_id,
+                "item_id": sample_id,
                 "name": name,
                 "date": date,
                 "description": "",
@@ -168,6 +169,7 @@ def create_sample():
             {
                 "status": "success",
                 "sample_list_entry": {
+                    "item_id": new_sample.item_id,
                     "sample_id": new_sample.sample_id,
                     "nblocks": 0,
                     "date": new_sample.date,
