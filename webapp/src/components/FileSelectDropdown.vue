@@ -21,7 +21,7 @@ import { updateBlockFromServer } from "@/server_fetch_utils.js";
 export default {
   props: {
     modelValue: String,
-    sample_id: String,
+    item_id: String,
     block_id: String,
     extensions: {
       type: Array, // array of strings, file extensions
@@ -37,7 +37,7 @@ export default {
       return this.$store.state.files;
     },
     available_file_ids() {
-      let sample_files = this.$store.state.all_sample_data[this.sample_id].file_ObjectIds;
+      let sample_files = this.$store.state.all_item_data[this.item_id].file_ObjectIds;
       return sample_files.filter((file_id) => {
         let filename = this.all_files[file_id].name;
         return this.extensions
@@ -60,9 +60,9 @@ export default {
       this.$emit("update:modelValue", event.target.value);
       if (this.updateBlockOnChange) {
         updateBlockFromServer(
-          this.sample_id,
+          this.item_id,
           this.block_id,
-          this.$store.state.all_sample_data[this.sample_id]["blocks_obj"][this.block_id]
+          this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id]
         );
       }
     },

@@ -24,7 +24,7 @@
       >
         <td>{{ item.item_id }}</td>
         <td>{{ item.name }}</td>
-        <td><ChemicalFormula :formula="sample.chemform" /></td>
+        <td><ChemicalFormula :formula="item.chemform" /></td>
         <td>{{ item.date_aquired }}</td>
         <td>{{ item.chemical_purity }}</td>
         <td>{{ item.nblocks }}</td>
@@ -45,7 +45,7 @@ export default {
   },
   computed: {
     startingMaterials() {
-      return this.$store.state.startingMaterials;
+      return this.$store.state.starting_material_list;
     },
   },
   methods: {

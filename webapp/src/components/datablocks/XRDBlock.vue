@@ -1,10 +1,10 @@
 <template>
   <!-- think about elegant two-way binding to DataBlockBase... or, just pass all the block data into
 DataBlockBase as a prop, and save from within DataBlockBase  -->
-  <DataBlockBase :sample_id="sample_id" :block_id="block_id">
+  <DataBlockBase :item_id="item_id" :block_id="block_id">
     <FileSelectDropdown
       v-model="file_id"
-      :sample_id="sample_id"
+      :item_id="item_id"
       :block_id="block_id"
       :extensions="['.xrdml', '.xy']"
       updateBlockOnChange
@@ -27,12 +27,12 @@ import { createComputedSetterForBlockField } from "@/field_utils.js";
 
 export default {
   props: {
-    sample_id: String,
+    item_id: String,
     block_id: String,
   },
   computed: {
     bokehPlotData() {
-      return this.$store.state.all_sample_data[this.sample_id]["blocks_obj"][this.block_id]
+      return this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id]
         .bokeh_plot_data;
     },
     file_id: createComputedSetterForBlockField("file_id"),

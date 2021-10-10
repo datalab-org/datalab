@@ -17,8 +17,9 @@ BLOCKS: Sequence[Type[DataBlock]] = (
     CycleBlock,
     SynthesisBlock,
 )
-BLOCK_KINDS: Dict[str, Type[DataBlock]] = {block.blocktype: block for block in BLOCKS}
-BLOCK_KINDS["test"] = DataBlock
+
+BLOCK_TYPES: Dict[str, Type[DataBlock]] = {block.blocktype: block for block in BLOCKS}
+BLOCK_TYPES["test"] = DataBlock
 
 __all__ = (
     "DataBlock",
@@ -27,6 +28,6 @@ __all__ = (
     "XRDBlock",
     "SynthesisBlock",
     "CycleBlock",
-    "BLOCK_KINDS",
+    "BLOCK_TYPES",
     "BLOCKS",
 )

@@ -25,7 +25,7 @@
         <div class="form-row">
           <div class="form-group col-md-8">
             <label for="sample-id" class="col-form-label">Sample ID:</label>
-            <input v-model="sample_id" type="text" class="form-control" id="sample-id" required />
+            <input v-model="item_id" type="text" class="form-control" id="sample-id" required />
             <div class="form-error" v-html="sampleIDValidationMessage"></div>
           </div>
           <div class="form-group col-md-4">
@@ -53,26 +53,26 @@ export default {
   name: "Samples",
   data() {
     return {
-      sample_id: null,
+      item_id: null,
       date: new Date().toISOString().split("T")[0], // todo: add time zone support...
       name: "",
       modalIsOpen: false,
-      taken_sample_ids: [],
+      taken_item_ids: [],
     };
   },
   computed: {
     sampleIDValidationMessage() {
-      if (this.sample_id == null) {
+      if (this.item_id == null) {
         return "";
       } // Don't throw an error before the user starts typing
 
-      if (this.taken_sample_ids.includes(this.sample_id)) {
-        return `<a href='edit/${this.sample_id}'>${this.sample_id}</a> already in use.`;
+      if (this.taken_item_ids.includes(this.item_id)) {
+        return `<a href='edit/${this.item_id}'>${this.item_id}</a> already in use.`;
       }
-      if (/\s/.test(this.sample_id)) {
+      if (/\s/.test(this.item_id)) {
         return "ID cannot have any spaces";
       }
-      if (this.sample_id.length < 1 || this.sample_id.length > 40) {
+      if (this.item_id.length < 1 || this.item_id.length > 40) {
         return "ID must be between 1 and 40 characters in length";
       }
       return "";
@@ -83,14 +83,14 @@ export default {
     async submitForm() {
       console.log("new sample form submit triggered");
 
-      await createNewSample(this.sample_id, this.date, this.name)
+      await createNewSample(this.item_id, this.date, this.name)
         .then(() => {
           this.modalIsOpen = false;
-          document.getElementById(this.sample_id).scrollIntoView({ behavior: "smooth" });
+          document.getElementById(this.item_id).scrollIntoView({ behavior: "smooth" });
         })
         .catch((error) => {
-          if (error == "sample_id_validation_error") {
-            this.taken_sample_ids.push(this.sample_id);
+          if (error == "item_id_validation_error") {
+            this.taken_item_ids.push(this.item_id);
           } else {
             alert("Error with creating new sample: " + error);
           }

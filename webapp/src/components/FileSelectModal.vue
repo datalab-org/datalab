@@ -15,7 +15,7 @@
 
       <template v-slot:body>
         <SelectableFileTree
-          :defaultSearchTerm="sample_id"
+          :defaultSearchTerm="item_id"
           @update:selectedEntries="selectedRemoteFiles = $event"
         />
       </template>
@@ -61,7 +61,7 @@ export default {
     };
   },
   props: {
-    sample_id: {
+    item_id: {
       type: String,
       required: true,
     },
@@ -110,7 +110,7 @@ export default {
       for (let i = 0; i < this.selectedRemoteFiles.length; i++) {
         console.log("processing load from remote server for entry");
         console.log(this.selectedRemoteFiles[i]);
-        promises.push(addRemoteFileToSample(this.selectedRemoteFiles[i], this.sample_id));
+        promises.push(addRemoteFileToSample(this.selectedRemoteFiles[i], this.item_id));
       }
       await Promise.all(promises);
       this.isLoadingRemoteFiles = false;

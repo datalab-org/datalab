@@ -46,7 +46,7 @@ class DataBlock:
     cache: Optional[Dict[str, Any]] = None
     plot_functions: Optional[Sequence[Callable[[], None]]] = None
 
-    def __init__(self, sample_id, dictionary=None, unique_id=None):
+    def __init__(self, item_id, dictionary=None, unique_id=None):
 
         if dictionary is None:
             dictionary = {}
@@ -55,16 +55,16 @@ class DataBlock:
         self.cache = {}
 
         LOGGER.debug(
-            "Creating new block %s for sample ID %s with data %s.",
+            "Creating new block %s associated with item_id %s with data %s.",
             self.__class__.__name__,
-            sample_id,
+            item_id,
             dictionary,
         )
         self.block_id = (
             unique_id or generate_random_id()
         )  # this is supposed to be a unique id for use in html and the database.
         self.data = {
-            "sample_id": sample_id,
+            "item_id": item_id,
             "blocktype": self.blocktype,
             "block_id": self.block_id,
             **self.defaults,
@@ -79,7 +79,7 @@ class DataBlock:
         self.data.update(
             dictionary
         )  # this could overwrite blocktype and block_id. I think that's reasonable... maybe
-        LOGGER.debug("Initialised block %s for sample ID %s.", self.__class__.__name__, sample_id)
+        LOGGER.debug("Initialised block %s for item ID %s.", self.__class__.__name__, item_id)
 
     def to_db(self):
         """returns a dictionary with the data for this
@@ -99,7 +99,7 @@ class DataBlock:
     def from_db(cls, db_entry):
         """create a block from json (dictionary) stored in a db"""
         LOGGER.debug("Loading block %s from database object.", cls.__class__.__name__)
-        new_block = cls(db_entry["sample_id"], db_entry)
+        new_block = cls(db_entry["item_id"], db_entry)
         if "file_id" in new_block.data:
             new_block.data["file_id"] = str(new_block.data["file_id"])
         return new_block
@@ -114,7 +114,7 @@ class DataBlock:
     @classmethod
     def from_web(cls, data):
         LOGGER.debug("Loading block %s from web request.", cls.__class__.__name__)
-        Block = cls(data["sample_id"])
+        Block = cls(data["item_id"])
         Block.update_from_web(data)
         return Block
 

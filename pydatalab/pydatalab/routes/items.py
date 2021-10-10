@@ -5,8 +5,8 @@ from bson import ObjectId
 from flask import abort, jsonify, request
 from pydantic import ValidationError
 
-from pydatalab.blocks import BLOCK_KINDS
-from pydatalab.models import Sample, StartingMaterial
+from pydatalab.blocks import BLOCK_TYPES
+from pydatalab.models import ITEM_MODELS, Sample, StartingMaterial
 from pydatalab.mongo import flask_mongo
 
 
@@ -23,7 +23,7 @@ def reserialize_blocks(blocks_obj: Dict[str, Dict]) -> Dict[str, Dict]:
     """
     for block_id, block_data in blocks_obj.items():
         blocktype = block_data["blocktype"]
-        blocks_obj[block_id] = BLOCK_KINDS[blocktype].from_db(block_data).to_web()
+        blocks_obj[block_id] = BLOCK_TYPES[blocktype].from_db(block_data).to_web()
 
     return blocks_obj
 
@@ -56,7 +56,7 @@ def dereference_files(file_ids: List[Union[str, ObjectId]]) -> Dict[str, Dict]:
 def get_starting_materials():
     cursor = [
         StartingMaterial(**doc).dict()
-        for doc in flask_mongo.db.data.aggregate(
+        for doc in flask_mongo.db.items.aggregate(
             [
                 {"$match": {"type": "starting_materials"}},
                 {
@@ -77,11 +77,14 @@ def get_starting_materials():
     return jsonify({"status": "success", "items": cursor})
 
 
+get_starting_materials.methods = ("GET",)  # type: ignore
+
+
 def get_samples():
     cursor = [
         # Sample(**doc).dict() # disabling pydantic type checking since it would require returning more fields from mongodb
         doc
-        for doc in flask_mongo.db.data.aggregate(
+        for doc in flask_mongo.db.items.aggregate(
             [
                 {"$match": {"type": "samples"}},
                 {
@@ -107,19 +110,19 @@ get_samples.methods = ("GET",)  # type: ignore
 def create_sample():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
     print(f"creating new samples with: {request_json}")
-    sample_id = request_json["sample_id"]
+    item_id = request_json["item_id"]
     name = request_json["name"]
     date = request_json["date"]
 
-    # check to make sure that sample_id isn't taken already
+    # check to make sure that item_id isn't taken already
     print("Validating sample id...")
-    if flask_mongo.db.data.find_one({"sample_id": sample_id}):
-        print(f"Sample ID '{sample_id}' already exists in database")
+    if flask_mongo.db.items.find_one({"item_id": item_id}):
+        print(f"Sample ID '{item_id}' already exists in database")
         return (
             jsonify(
                 {
                     "status": "error",
-                    "message": "sample_id_validation_error",
+                    "message": "item_id_validation_error",
                 }
             ),
             400,
@@ -129,8 +132,8 @@ def create_sample():
     try:
         new_sample = Sample(
             **{
-                "sample_id": sample_id,
-                "item_id": sample_id,
+                "sample_id": item_id,
+                "item_id": item_id,
                 "name": name,
                 "date": date,
                 "description": "",
@@ -142,22 +145,22 @@ def create_sample():
             }
         )
 
-    except ValidationError as exc:
+    except ValidationError as error:
         return (
             jsonify(
                 status="error",
-                message=f"Unable to create new sample with ID {sample_id}.",
-                output=str(exc),
+                message=f"Unable to create new sample with ID {item_id}.",
+                output=str(error),
             ),
             400,
         )
 
-    result = flask_mongo.db.data.insert_one(new_sample.dict())
+    result = flask_mongo.db.items.insert_one(new_sample.dict())
     if not result.acknowledged:
         return (
             jsonify(
                 status="error",
-                message=f"Failed to add new sample {sample_id} to database.",
+                message=f"Failed to add new sample {item_id} to database.",
                 output=result.raw_result,
             ),
             400,
@@ -189,7 +192,7 @@ def delete_sample():
     sample_id = request_json["sample_id"]
     print(f"received request to delete sample {sample_id}")
 
-    result = flask_mongo.db.data.delete_one({"sample_id": sample_id})
+    result = flask_mongo.db.items.delete_one({"sample_id": sample_id})
 
     if result.deleted_count != 1:
         return (
@@ -215,15 +218,25 @@ def delete_sample():
 delete_sample.methods = ("POST",)  # type: ignore
 
 
-def get_sample_data(sample_id):
+def get_item_data(item_id):
     # retrieve the entry from the databse:
-    doc = flask_mongo.db.data.find_one(
-        {"sample_id": sample_id},
+    doc = flask_mongo.db.items.find_one(
+        {"item_id": item_id},
     )
     if not doc:
         abort(404)
 
-    doc = Sample(**doc)
+    # determine the item type and validate according to the appropriate schema
+    try:
+        Item_Model = ITEM_MODELS[doc["type"]]
+    except KeyError as e:
+        if "type" in doc:
+            print(f"Item with id: {item_id} has invalid type: {doc['type']}")
+        else:
+            print(f"Item with id: {item_id} has no type field in document.")
+        raise e
+
+    doc = Item_Model(**doc)
 
     doc.blocks_obj = reserialize_blocks(doc.blocks_obj)
 
@@ -234,20 +247,20 @@ def get_sample_data(sample_id):
     return jsonify(
         {
             "status": "success",
-            "sample_id": sample_id,
-            "sample_data": doc.dict(),
+            "item_id": item_id,
+            "item_data": doc.dict(),
             "files_data": files_data,
         }
     )
 
 
-get_sample_data.methods = ("GET",)  # type: ignore
+get_item_data.methods = ("GET",)  # type: ignore
 
 
-def save_sample():
+def save_item():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
 
-    sample_id = request_json["sample_id"]
+    item_id = request_json["item_id"]
     updated_data = request_json["data"]
 
     # These keys should not be updated here and cannot be modified by the user through this endpoint
@@ -259,27 +272,30 @@ def save_sample():
 
     for block_id, block_data in updated_data.get("blocks_obj", {}).items():
         blocktype = block_data["blocktype"]
-        block = BLOCK_KINDS[blocktype].from_web(block_data)
+        block = BLOCK_TYPES[blocktype].from_web(block_data)
         updated_data["blocks_obj"][block_id] = block.to_db()
 
-    sample = flask_mongo.db.data.find_one({"sample_id": sample_id})
-    if not sample:
-        (jsonify(status="error", message=f"Unable to find sample {sample_id!r}."), 400)
+    item = flask_mongo.db.items.find_one({"item_id": item_id})
 
-    sample.update(updated_data)
+    if not item:
+        return jsonify(status="error", message=f"Unable to find item: {item_id!r}."), 400
+
+    item_type = item["type"]
+    item.update(updated_data)
+
     try:
-        sample = Sample(**sample).dict()
+        item = ITEM_MODELS[item_type](**item).dict()
     except ValidationError as exc:
         return (
             jsonify(
                 status="error",
-                message=f"Unable to update sample {sample_id!r} with new data.",
+                message=f"Unable to update item {item_id!r} (type = {item_type}) with new data.",
                 output=str(exc),
             ),
             400,
         )
 
-    result = flask_mongo.db.data.update_one({"sample_id": sample_id}, {"$set": updated_data})
+    result = flask_mongo.db.items.update_one({"item_id": item_id}, {"$set": updated_data})
 
     if result.matched_count != 1:
         return (
@@ -294,13 +310,13 @@ def save_sample():
     return jsonify(status="success")
 
 
-save_sample.methods = ("POST",)  # type: ignore
+save_item.methods = ("POST",)  # type: ignore
 
 ENDPOINTS: Dict[str, Callable] = {
     "/samples/": get_samples,
     "/starting-materials/": get_starting_materials,
     "/new-sample/": create_sample,
     "/delete-sample/": delete_sample,
-    "/get_sample_data/<sample_id>": get_sample_data,
-    "/save-sample/": save_sample,
+    "/get_item_data/<item_id>": get_item_data,
+    "/save-item/": save_item,
 }

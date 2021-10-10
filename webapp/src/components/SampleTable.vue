@@ -14,14 +14,14 @@
     </thead>
     <tbody>
       <tr
-        :id="sample.sample_id"
+        :id="sample.item_id"
         v-for="sample in samples"
-        :key="sample.sample_id"
-        v-on:click.exact="goToEditPage(sample.sample_id)"
-        v-on:click.meta="openEditPageInNewTab(sample.sample_id)"
-        v-on:click.ctrl="openEditPageInNewTab(sample.sample_id)"
+        :key="sample.item_id"
+        v-on:click.exact="goToEditPage(sample.item_id)"
+        v-on:click.meta="openEditPageInNewTab(sample.item_id)"
+        v-on:click.ctrl="openEditPageInNewTab(sample.item_id)"
       >
-        <td>{{ sample.sample_id }}</td>
+        <td>{{ sample.item_id }}</td>
         <td>{{ sample.name }}</td>
         <td><ChemicalFormula :formula="sample.chemform" /></td>
         <td>{{ sample.date }}</td>
@@ -50,11 +50,11 @@ export default {
     },
   },
   methods: {
-    goToEditPage(sample_id) {
-      this.$router.push(`/edit/${sample_id}`);
+    goToEditPage(item_id) {
+      this.$router.push(`/edit/${item_id}`);
     },
-    openEditPageInNewTab(sample_id) {
-      window.open(`/edit/${sample_id}`, "_blank");
+    openEditPageInNewTab(item_id) {
+      window.open(`/edit/${item_id}`, "_blank");
     },
     // should also check response.OK? And retry if
     getSamples() {
@@ -63,9 +63,9 @@ export default {
       });
     },
     deleteSample(sample) {
-      if (confirm(`Are you sure you want to delete ${sample.sample_id}?`)) {
+      if (confirm(`Are you sure you want to delete ${sample.item_id}?`)) {
         console.log("deleting...");
-        deleteSample(sample.sample_id, sample);
+        deleteSample(sample.item_id, sample);
       }
       console.log("delete cancelled...");
     },

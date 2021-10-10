@@ -64,8 +64,8 @@ def test_save_bad_sample(client, default_sample_dict):
     updated_sample = default_sample_dict.copy()
     updated_sample.update({"unknown_key": "This should not be allowed in."})
     response = client.post(
-        "/save-sample/",
-        json={"sample_id": default_sample_dict["sample_id"], "data": updated_sample},
+        "/save-item/",
+        json={"item_id": default_sample_dict["item_id"], "data": updated_sample},
     )
     assert response.status_code == 400
     assert response.json["status"] == "error"

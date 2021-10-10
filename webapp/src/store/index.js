@@ -4,9 +4,10 @@ import { createStore } from "vuex";
 
 export default createStore({
   state: {
-    all_sample_data: {}, // keys: sample_ids, vals: objects containing all data
+    all_item_data: {}, // keys: item_ids, vals: objects containing all data
+    all_block_data: {},
     sample_list: [],
-    startingMaterials: [],
+    starting_material_list: [],
     saved_status: {},
     updating: {},
     updatingDelayed: {},
@@ -16,36 +17,32 @@ export default createStore({
     fileSelectModalIsOpen: false,
   },
   mutations: {
-    test_mutation(state, data_val) {
-      state.all_sample_data = data_val;
+    setSampleList(state, sampleSummaries) {
+      // sampleSummaries is an array of json objects summarizing the available samples
+      state.sample_list = sampleSummaries;
     },
-    setSampleList(state, sample_summaries) {
-      // sample_summary is an array of json objects summarizing the available samples
-      state.sample_list = sample_summaries;
+    setStartingMaterialList(state, startingMaterialSummaries) {
+      // startingMaterialSummaries is an array of json objects summarizing the available samples
+      state.starting_material_list = startingMaterialSummaries;
     },
-    setStartingMaterials(state, startingMaterialSummaries) {
-      // sample_summary is an array of json objects summarizing the available samples
-      state.startingMaterials = startingMaterialSummaries;
-    },
-    appendToSampleList(state, sample_summary) {
-      //sample should be a json object sumarizing the available samples
-      state.sample_list.push(sample_summary);
+    appendToSampleList(state, sampleSummary) {
+      // sampleSummary is a json object summarizing the new sample
+      state.sample_list.push(sampleSummary);
     },
     deleteFromSampleList(state, sample_summary) {
       const index = state.sample_list.indexOf(sample_summary);
-      // const index = state.sample_list.map(function(e) { return e.sample_id; }).indexOf(sample_id);
       if (index > -1) {
         state.sample_list.splice(index, 1);
       } else {
         console.log("deleteFromSampleList couldn't find the object");
       }
     },
-    createSampleData(state, payload) {
+    createItemData(state, payload) {
       // payload should have the following fields:
-      // sample_id, sample_data
-      // Object.assign(state.all_sample_data[payload.sample_id], payload.sample_data)
-      state.all_sample_data[payload.sample_id] = payload.sample_data;
-      state.saved_status[payload.sample_id] = true;
+      // item_id, item_data
+      // Object.assign(state.all_sample_data[payload.item_data], payload.item_data)
+      state.all_item_data[payload.item_id] = payload.item_data;
+      state.saved_status[payload.item_id] = true;
     },
     updateFiles(state, files_data) {
       // payload should be an object with file ids as key and file data as values
@@ -53,10 +50,10 @@ export default createStore({
       Object.assign(state.files, files_data);
     },
     addFileToSample(state, payload) {
-      state.all_sample_data[payload.sample_id].file_ObjectIds.push(payload.file_id);
+      state.all_item_data[payload.item_id].file_ObjectIds.push(payload.file_id);
     },
     removeFileFromSample(state, payload) {
-      var file_ids = state.all_sample_data[payload.sample_id].file_ObjectIds;
+      var file_ids = state.all_item_data[payload.item_id].file_ObjectIds;
       const index = file_ids.indexOf(payload.file_id);
       if (index > -1) {
         file_ids.splice(index, 1);
@@ -69,47 +66,47 @@ export default createStore({
       state.remoteDirectoryTreeSecondsSinceLastUpdate = secondsSinceLastUpdate;
     },
     addABlock(state, payload) {
-      // payload: sample_id, new_block_obj, new_display_order
+      // payload: item_id, new_block_obj, new_display_order
 
       // I should actually throw an error if this fails!
       console.assert(
-        payload.sample_id == payload.new_block_obj.sample_id,
-        "The block has a different sample_id (%s) than the sample_id provided to addABlock (%s)",
-        payload.sample_id,
-        payload.new_block_obj.sample_id
+        payload.item_id == payload.new_block_obj.item_id,
+        "The block has a different item_id (%s) than the item_id provided to addABlock (%s)",
+        payload.item_id,
+        payload.new_block_obj.item_id
       );
 
       let new_block_id = payload.new_block_obj.block_id;
-      state.all_sample_data[payload.sample_id]["blocks_obj"][new_block_id] = payload.new_block_obj;
-      state.all_sample_data[payload.sample_id]["display_order"] = payload.new_display_order;
+      state.all_item_data[payload.item_id]["blocks_obj"][new_block_id] = payload.new_block_obj;
+      state.all_item_data[payload.item_id]["display_order"] = payload.new_display_order;
 
-      state.saved_status[payload.sample_id] = false;
+      state.saved_status[payload.item_id] = false;
     },
     updateBlockData(state, payload) {
       // requires the following fields in payload:
-      // sample_id, block_id, block_data
+      // item_id, block_id, block_data
       console.log("updating block data with:", payload);
       Object.assign(
-        state.all_sample_data[payload.sample_id]["blocks_obj"][payload.block_id],
+        state.all_item_data[payload.item_id]["blocks_obj"][payload.block_id],
         payload.block_data
       );
-      state.saved_status[payload.sample_id] = false;
+      state.saved_status[payload.item_id] = false;
     },
-    updateSampleData(state, payload) {
+    updateItemData(state, payload) {
       //requires the following fields in payload:
-      // sample_id, block_data
-      Object.assign(state.all_sample_data[payload.sample_id], payload.block_data);
-      state.saved_status[payload.sample_id] = false;
+      // item_id, block_data
+      Object.assign(state.all_item_data[payload.item_id], payload.block_data);
+      state.saved_status[payload.item_id] = false;
     },
     setSaved(state, payload) {
       // requires the following fields in payload:
-      // sample_id, isSaved
-      state.saved_status[payload.sample_id] = payload.isSaved;
+      // item_id, isSaved
+      state.saved_status[payload.item_id] = payload.isSaved;
     },
     removeBlockFromDisplay(state, payload) {
       // requires the following fields in payload:
-      // sample_id, block_id
-      var display_order = state.all_sample_data[payload.sample_id].display_order;
+      // item_id, block_id
+      var display_order = state.all_item_data[payload.item_id].display_order;
       const index = display_order.indexOf(payload.block_id);
       if (index > -1) {
         display_order.splice(index, 1);
@@ -117,13 +114,13 @@ export default createStore({
     },
     addFile(state, payload) {
       // requires the following fileds in payload:
-      // sample_id, filename
-      state.all_sample_data[payload.sample_id].files.push(payload.filename);
+      // item_id, filename
+      state.all_item_data[payload.item_id].files.push(payload.filename);
     },
     removeFilename(state, payload) {
       // requires the following fields in payload:
-      // sample_id, filename
-      var files = state.all_sample_data[payload.sample_id].files;
+      // item_id, filename
+      var files = state.all_item_data[payload.item_id].files;
       const index = files.indexOf(payload.filename);
       if (index > -1) {
         files.splice(index, 1);
@@ -131,16 +128,16 @@ export default createStore({
     },
     swapBlockDisplayOrder(state, payload) {
       // requires the following fields in payload:
-      // sample_id, index1, index2
-      // Swaps index1 and index2 in sample_id.display_order
-      var display_order = state.all_sample_data[payload.sample_id].display_order;
+      // item_id, index1, index2
+      // Swaps index1 and index2 in item_id.display_order
+      var display_order = state.all_item_data[payload.item_id].display_order;
       if (payload.index1 < display_order.length && payload.index2 < display_order.length) {
         [display_order[payload.index1], display_order[payload.index2]] = [
           display_order[payload.index2],
           display_order[payload.index1],
         ];
       }
-      state.saved_status[payload.sample_id] = false;
+      state.saved_status[payload.item_id] = false;
     },
     setBlockUpdating(state, block_id) {
       state.updating[block_id] = true;
@@ -155,16 +152,7 @@ export default createStore({
       state.fileSelectModalIsOpen = isOpen;
     },
   },
-  getters: {
-    testGetter: (state) => state.all_sample_data,
-    getSample: (state) => (sample_id) => {
-      return state.all_sample_data[sample_id];
-    },
-    getBlockBySampleIDandBlockID: (state) => (sample_id, block_id) => {
-      console.log("getBlockBySampleIDandBlockID called with:", sample_id, block_id);
-      return state.all_sample_data[sample_id]["blocks_obj"][block_id];
-    },
-  },
+  getters: {},
   actions: {},
   modules: {},
   // plugins: [createLogger()],

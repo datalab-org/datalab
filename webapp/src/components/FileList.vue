@@ -48,7 +48,7 @@ export default {
     };
   },
   props: {
-    sample_id: String,
+    item_id: String,
     file_ids: Array,
     stored_files: Object,
   },
@@ -56,7 +56,7 @@ export default {
     deleteFile(event, file_id) {
       console.log(`delete file button clicked!`);
       console.log(event);
-      deleteFileFromSample(this.sample_id, file_id);
+      deleteFileFromSample(this.item_id, file_id);
       return false;
     },
     setFileSelectModalOpen() {

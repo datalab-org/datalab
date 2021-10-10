@@ -2,32 +2,27 @@ from typing import Callable, Dict
 
 from flask import jsonify, request
 
-from pydatalab.blocks import BLOCK_KINDS
+from pydatalab.blocks import BLOCK_TYPES
 from pydatalab.mongo import flask_mongo
 
 
-# TODO: add input data validation
 def add_data_block():
     """Call with AJAX to add a block to the sample"""
 
     request_json = request.get_json()
 
     # pull out required arguments from json
-    sample_id = request_json["sample_id"]
-    block_type = request_json["block_kind"]
+    block_type = request_json["block_type"]
+    item_id = request_json["item_id"]
     insert_index = request_json["index"]
 
-    print(f"Adding a block of type: {block_type} to sample: {sample_id}")
-    if block_type not in BLOCK_KINDS:
+    print(f"Adding a block of type: {block_type} to items: {item_id}")
+    if block_type not in BLOCK_TYPES:
         return jsonify(status="error", message="Invalid block type"), 400
 
-    block = BLOCK_KINDS[block_type](sample_id=sample_id)
+    block = BLOCK_TYPES[block_type](item_id=item_id)
 
     data = block.to_db()
-    # print("updating the database with:")
-    # print(sample_id)
-    # print(data)
-    # print(insert_index)
 
     # currently, adding to both blocks and blocks_obj to mantain compatibility with
     # the old site. The new site only uses blocks_obj
@@ -39,8 +34,8 @@ def add_data_block():
     else:
         display_order_update = block.block_id
 
-    result = flask_mongo.db.data.update_one(
-        {"sample_id": sample_id},
+    result = flask_mongo.db.items.update_one(
+        {"item_id": item_id},
         {
             "$push": {"blocks": data, "display_order": display_order_update},
             "$set": {f"blocks_obj.{block.block_id}": data},
@@ -52,15 +47,13 @@ def add_data_block():
         return (
             jsonify(
                 status="error",
-                message="Update failed. The sample_id probably incorrect: {}".format(sample_id),
+                message="Update failed. The item_id probably incorrect: {}".format(item_id),
             ),
             400,
         )
 
     # get the new display_order:
-    display_order_result = flask_mongo.db.data.find_one(
-        {"sample_id": sample_id}, {"display_order": 1}
-    )
+    display_order_result = flask_mongo.db.items.find_one({"item_id": item_id}, {"display_order": 1})
     print("new document: {}".format(display_order_result))
 
     return jsonify(
@@ -84,7 +77,7 @@ def update_block():
     block_data = request_json["block_data"]
     blocktype = block_data["blocktype"]
 
-    block = BLOCK_KINDS[blocktype].from_web(block_data)
+    block = BLOCK_TYPES[blocktype].from_web(block_data)
 
     return jsonify(status="success", new_block_data=block.to_web()), 200
 
@@ -97,12 +90,12 @@ def delete_block():
     we may consider preserving data by moving it to a different array,
     or simply making it invisible"""
     request_json = request.get_json()
-    sample_id = request_json["sample_id"]
+    item_id = request_json["item_id"]
     block_id = request_json["block_id"]
 
     # print(update)
-    result = flask_mongo.db.data.update_one(
-        {"sample_id": sample_id},
+    result = flask_mongo.db.items.update_one(
+        {"item_id": item_id},
         {
             "$pull": {
                 "blocks": {"block_id": block_id},
@@ -112,7 +105,7 @@ def delete_block():
         },
     )
 
-    print("Removing block: {} , from sample: {}".format(block_id, sample_id))
+    print("Removing block: {} , from sample: {}".format(block_id, item_id))
     print("result:")
     print(result.raw_result)
 
@@ -121,9 +114,7 @@ def delete_block():
             jsonify(
                 {
                     "status": "error",
-                    "message": "Update failed. The sample_id probably incorrect: {}".format(
-                        sample_id
-                    ),
+                    "message": f"Update failed. The item_id probably incorrect: {item_id}",
                 }
             ),
             400,

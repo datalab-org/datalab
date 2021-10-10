@@ -16,9 +16,9 @@ def fixture_default_filepath():
 def fixture_insert_default_sample(client, default_sample):  # pylint: disable=unused-argument
     from pydatalab.mongo import flask_mongo
 
-    flask_mongo.db.data.insert_one(default_sample.dict(exclude_unset=False))
+    flask_mongo.db.items.insert_one(default_sample.dict(exclude_unset=False))
     yield
-    flask_mongo.db.data.delete_one({"sample_id": default_sample.sample_id})
+    flask_mongo.db.items.delete_one({"sample_id": default_sample.sample_id})
 
 
 @pytest.mark.dependency()

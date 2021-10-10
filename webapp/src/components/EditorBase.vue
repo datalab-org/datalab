@@ -6,7 +6,7 @@
   >
     <span class="navbar-brand" @click="scrollToID($event, 'topScrollPoint')"
       >Flask-dl&nbsp;&nbsp;|&nbsp;&nbsp;
-      {{ sample_id }}
+      {{ item_id }}
     </span>
     <div class="navbar-nav">
       <a class="nav-item nav-link" href="/">Home</a>
@@ -60,7 +60,7 @@
   <slot></slot>
 
   <TableOfContents :display_order="sample_data.display_order" :blocks="blocks" />
-  <FileList :sample_id="sample_id" :file_ids="file_ids" :stored_files="stored_files" />
+  <FileList :item_id="item_id" :file_ids="file_ids" :stored_files="stored_files" />
 
   <div class="container">
     <hr />
@@ -69,11 +69,11 @@
   <!-- Display the blocks -->
   <div class="container">
     <div v-for="block_id in sample_data.display_order" :key="block_id">
-      <component :is="getBlockDisplayType(block_id)" :sample_id="sample_id" :block_id="block_id" />
+      <component :is="getBlockDisplayType(block_id)" :item_id="item_id" :block_id="block_id" />
     </div>
   </div>
 
-  <FileSelectModal :sample_id="sample_id" />
+  <FileSelectModal :item_id="item_id" />
 </template>
 
 <script>
@@ -84,7 +84,7 @@ import TableOfContents from "@/components/TableOfContents";
 import FileList from "@/components/FileList";
 import Modal from "@/components/Modal";
 import FileSelectModal from "@/components/FileSelectModal";
-import { getSampleData, addABlock, saveSample } from "@/server_fetch_utils";
+import { getItemData, addABlock, saveItem } from "@/server_fetch_utils";
 
 import setupUppy from "@/file_upload.js";
 
@@ -104,11 +104,11 @@ export default {
     };
   },
   props: {
-    sample_id: String,
+    item_id: String,
   },
   methods: {
     async newBlock(event, blockKind, index = null) {
-      var block_id = await addABlock(this.sample_id, blockKind, index);
+      var block_id = await addABlock(this.item_id, blockKind, index);
       // close the dropdown scroll to the new block :)
       this.isMenuDropdownVisible = false;
       var new_block_el = document.getElementById(block_id);
@@ -123,18 +123,18 @@ export default {
       });
     },
     change_a_block(event, block_id) {
-      let sample_id = this.sample_id;
+      let item_id = this.item_id;
       let new_data = {
         block_id: 7,
         a_new_field: "foo bar",
       };
       console.log(new_data);
       this.$store.commit("updateBlockData", {
-        sample_id,
+        item_id,
         block_id,
         block_data: new_data,
       });
-      // this.$store.state.all_sample_data[sample_id]
+      // this.$store.state.all_item_data[item_id]
     },
     getBlockDisplayType(block_id) {
       var type = this.blocks[block_id].blocktype;
@@ -149,23 +149,23 @@ export default {
       // trigger the mce save so that they update the store with their content
       console.log("save sample clicked!");
       tinymce.editors.forEach((editor) => editor.save());
-      saveSample(this.sample_id);
+      saveItem(this.item_id);
     },
     async getSampleData() {
-      await getSampleData(this.sample_id);
+      await getItemData(this.item_id);
       this.sample_data_loaded = true;
     },
   },
   computed: {
     sample_data() {
-      // console.log("hello, here is the sample data", this.$store.state.all_sample_data)
-      return this.$store.state.all_sample_data[this.sample_id] || {};
+      // console.log("hello, here is the sample data", this.$store.state.all_item_data)
+      return this.$store.state.all_item_data[this.item_id] || {};
     },
     blocks() {
       return this.sample_data.blocks_obj;
     },
     savedStatus() {
-      return this.$store.state.saved_status[this.sample_id];
+      return this.$store.state.saved_status[this.item_id];
     },
     lastModified() {
       // if (!this.sample_data.last_modified) { return "" }
@@ -218,7 +218,7 @@ export default {
     // this.updateRemoteTree()
 
     // setup the uppy instsance
-    setupUppy(this.sample_id, "#uppy-trigger", this.stored_files);
+    setupUppy(this.item_id, "#uppy-trigger", this.stored_files);
   },
   beforeUnmount() {
     document.removeEventListener("keydown", this._keyListener);

@@ -19,7 +19,8 @@ class File(BaseModel):
 
     version: int = Field(1, description="The version/revision number of the file.")
 
-    sample_ids: List[str] = Field(description="A list of sample IDs associated with this file.")
+    # sample_ids: List[str] = Field(description="DEPRECATED A list of sample IDs associated with this file. ")
+    item_ids: List[str] = Field(description="A list of item IDs associated with this file.")
 
     blocks: List[str] = Field(description="A list of block IDs associated with this file.")
 

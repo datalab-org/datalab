@@ -1,6 +1,6 @@
 <template>
-  <EditorBase :sample_id="sample_id">
-    <SampleInformation :sample_id="sample_id" />
+  <EditorBase :item_id="item_id">
+    <SampleInformation :item_id="item_id" />
   </EditorBase>
 </template>
 
@@ -11,7 +11,7 @@ import SampleInformation from "@/components/SampleInformation";
 export default {
   data() {
     return {
-      sample_id: this.$route.params.id,
+      item_id: this.$route.params.id,
     };
   },
   components: {
