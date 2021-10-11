@@ -112,9 +112,9 @@ def save_uploaded_file(file, item_ids=None, block_ids=None, last_modified=None, 
     if not block_ids:
         block_ids = []
 
-    for sample_id in item_ids:
-        if not sample_collection.find_one({"sample_id": sample_id}):
-            raise ValueError(f"sample_id is invalid: {sample_id}")
+    for item_id in item_ids:
+        if not sample_collection.find_one({"item_id": item_id}):
+            raise ValueError(f"item_id is invalid: {item_id}")
 
     filename = secure_filename(file.filename)
     extension = os.path.splitext(filename)[1]
@@ -170,13 +170,13 @@ def save_uploaded_file(file, item_ids=None, block_ids=None, last_modified=None, 
     updated_file_entry = File(**updated_file_entry)
 
     # update any referenced item_ids
-    for sample_id in item_ids:
+    for item_id in item_ids:
         sample_update_result = sample_collection.update_one(
-            {"sample_id": sample_id}, {"$push": {"file_ObjectIds": inserted_id}}
+            {"item_id": item_id}, {"$push": {"file_ObjectIds": inserted_id}}
         )
         if sample_update_result.modified_count != 1:
             raise IOError(
-                f"db operation failed when trying to insert new file ObjectId into sample: {sample_id}"
+                f"db operation failed when trying to insert new file ObjectId into sample: {item_id}"
             )
 
     ret = updated_file_entry.dict()
@@ -184,7 +184,7 @@ def save_uploaded_file(file, item_ids=None, block_ids=None, last_modified=None, 
     return ret
 
 
-def add_file_from_remote_directory(file_entry, sample_id, block_ids=None):
+def add_file_from_remote_directory(file_entry, item_id, block_ids=None):
     file_collection = pydatalab.mongo.flask_mongo.db.files
     sample_collection = pydatalab.mongo.flask_mongo.db.items
 
@@ -212,7 +212,7 @@ def add_file_from_remote_directory(file_entry, sample_id, block_ids=None):
             "size": file_entry[
                 "size"
             ],  # not actually in bytes at the moment. in human-readable format
-            "item_ids": [sample_id],
+            "item_ids": [item_id],
             "blocks": block_ids,
             "last_modified": datetime.datetime.now().isoformat(),  # last_modified is the last modified time of the db entry in isoformat. For last modified file timestamp, see last_modified_remote_timestamp
             "time_added": datetime.datetime.now().isoformat(),
@@ -249,11 +249,11 @@ def add_file_from_remote_directory(file_entry, sample_id, block_ids=None):
     )
 
     sample_update_result = sample_collection.update_one(
-        {"sample_id": sample_id}, {"$push": {"file_ObjectIds": inserted_id}}
+        {"item_id": item_id}, {"$push": {"file_ObjectIds": inserted_id}}
     )
     if sample_update_result.modified_count != 1:
         raise IOError(
-            f"db operation failed when trying to insert new file ObjectId into sample: {sample_id}"
+            f"db operation failed when trying to insert new file ObjectId into sample: {item_id}"
         )
 
     return updated_file_entry
@@ -272,22 +272,22 @@ def retrieve_file_path(file_ObjectId):
     return result.location
 
 
-def remove_file_from_sample(sample_id, file_ObjectId):
+def remove_file_from_sample(item_id, file_ObjectId):
     sample_collection = pydatalab.mongo.flask_mongo.db.items
     file_collection = pydatalab.mongo.flask_mongo.db.files
     sample_result = sample_collection.update_one(
-        {"sample_id": ObjectId(sample_id)},
+        {"item_id": ObjectId(item_id)},
         {"$pull": {"file_ObjectIds": ObjectId(file_ObjectId)}},
     )
 
     if sample_result.modified_count < 1:
         raise IOError(
-            f"failed to remove file_ObjectId (f{file_ObjectId}) from sample (f{sample_id}) db entry: {sample_result.raw_result}"
+            f"failed to remove file_ObjectId (f{file_ObjectId}) from sample (f{item_id}) db entry: {sample_result.raw_result}"
         )
 
     file_collection.update_one(
         {"_id": ObjectId(file_ObjectId)},
-        {"$pull": {"item_ids": ObjectId(sample_id)}},
+        {"$pull": {"item_ids": ObjectId(item_id)}},
     )
 
 

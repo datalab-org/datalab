@@ -116,7 +116,7 @@ export function deleteSample(item_id, sample_summary) {
 }
 
 export async function getItemData(item_id) {
-  return fetch_get(`${API_URL}/get_item_data/${item_id}`)
+  return fetch_get(`${API_URL}/get-item-data/${item_id}`)
     .then((response_json) => {
       console.log(response_json);
       store.commit("createItemData", {

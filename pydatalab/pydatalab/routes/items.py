@@ -115,9 +115,9 @@ def create_sample():
     date = request_json["date"]
 
     # check to make sure that item_id isn't taken already
-    print("Validating sample id...")
+    print("Validating item id...")
     if flask_mongo.db.items.find_one({"item_id": item_id}):
-        print(f"Sample ID '{item_id}' already exists in database")
+        print(f"Item ID '{item_id}' already exists in database")
         return (
             jsonify(
                 {
@@ -127,12 +127,11 @@ def create_sample():
             ),
             400,
         )
-    print("Sample ID is unique, and can be added to the database")
+    print("Item ID is unique, and can be added to the database")
 
     try:
         new_sample = Sample(
             **{
-                "sample_id": item_id,
                 "item_id": item_id,
                 "name": name,
                 "date": date,
@@ -173,7 +172,6 @@ def create_sample():
                 "status": "success",
                 "sample_list_entry": {
                     "item_id": new_sample.item_id,
-                    "sample_id": new_sample.sample_id,
                     "nblocks": 0,
                     "date": new_sample.date,
                     "name": new_sample.name,
@@ -189,10 +187,10 @@ create_sample.methods = ("POST",)  # type: ignore
 
 def delete_sample():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
-    sample_id = request_json["sample_id"]
-    print(f"received request to delete sample {sample_id}")
+    item_id = request_json["item_id"]
+    print(f"received request to delete sample {item_id}")
 
-    result = flask_mongo.db.items.delete_one({"sample_id": sample_id})
+    result = flask_mongo.db.items.delete_one({"item_id": item_id})
 
     if result.deleted_count != 1:
         return (
@@ -317,6 +315,6 @@ ENDPOINTS: Dict[str, Callable] = {
     "/starting-materials/": get_starting_materials,
     "/new-sample/": create_sample,
     "/delete-sample/": delete_sample,
-    "/get_item_data/<item_id>": get_item_data,
+    "/get-item-data/<item_id>": get_item_data,
     "/save-item/": save_item,
 }
