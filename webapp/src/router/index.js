@@ -4,7 +4,7 @@ import { createRouter, createWebHistory } from "vue-router";
 import Samples from "../views/Samples.vue";
 import StartingMaterials from "../views/StartingMaterials.vue";
 import NotFound from "../views/NotFound.vue";
-import SampleEditPage from "../views/SampleEditPage.vue";
+import EditPage from "../views/EditPage.vue";
 import Test from "@/components/Test.vue";
 import TestTree from "@/components/TestTree.vue";
 import CycleParameterTable from "@/components/CycleParameterTable.vue";
@@ -26,7 +26,7 @@ const routes = [
   {
     path: "/edit/:id",
     name: "edit",
-    component: SampleEditPage,
+    component: EditPage,
   },
   {
     path: "/starting-materials",

@@ -25,7 +25,7 @@
         <td>{{ item.item_id }}</td>
         <td>{{ item.name }}</td>
         <td><ChemicalFormula :formula="item.chemform" /></td>
-        <td>{{ item.date_aquired }}</td>
+        <td>{{ $filters.IsoDatetimeToDate(item.date_acquired) }}</td>
         <td>{{ item.chemical_purity }}</td>
         <td>{{ item.nblocks }}</td>
       </tr>

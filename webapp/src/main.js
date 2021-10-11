@@ -76,3 +76,11 @@ app
 
 console.log(`initializing app with global variable $API_URL = ${API_URL}`);
 app.config.globalProperties.$API_URL = API_URL;
+app.config.globalProperties.$filters = {
+  IsoDatetimeToDate(isodatetime) {
+    if (isodatetime) {
+      return isodatetime.substring(0, 10);
+    }
+    return isodatetime; // if isodatetime is null or empty, don't do anything
+  },
+};

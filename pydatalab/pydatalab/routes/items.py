@@ -64,7 +64,7 @@ def get_starting_materials():
                         "_id": 0,
                         "item_id": 1,
                         # "nblocks": {"$size": "$display_order"},
-                        "date_aquired": 1,
+                        "date_acquired": 1,
                         "chemform": 1,
                         "name": 1,
                         "chemical_purity": 1,

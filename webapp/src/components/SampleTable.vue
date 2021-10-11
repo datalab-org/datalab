@@ -24,7 +24,7 @@
         <td>{{ sample.item_id }}</td>
         <td>{{ sample.name }}</td>
         <td><ChemicalFormula :formula="sample.chemform" /></td>
-        <td>{{ sample.date }}</td>
+        <td>{{ $filters.IsoDatetimeToDate(sample.date) }}</td>
         <td>{{ sample.nblocks }}</td>
         <button type="button" class="close" @click.stop="deleteSample(sample)" aria-label="delete">
           <span aria-hidden="true">&times;</span>

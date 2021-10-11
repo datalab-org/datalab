@@ -152,7 +152,15 @@ export default createStore({
       state.fileSelectModalIsOpen = isOpen;
     },
   },
-  getters: {},
+  getters: {
+    getItem: (state) => (item_id) => {
+      return state.all_item_data[item_id];
+    },
+    getBlockByItemIDandBlockID: (state) => (item_id, block_id) => {
+      console.log("getBlockBySampleIDandBlockID called with:", item_id, block_id);
+      return state.all_sample_data[item_id]["blocks_obj"][block_id];
+    },
+  },
   actions: {},
   modules: {},
   // plugins: [createLogger()],

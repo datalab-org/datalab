@@ -10,7 +10,7 @@ import StartingMaterialInformation from "@/components/StartingMaterialInformatio
 
 export const API_URL = process.env.VUE_APP_API_URL; //"http://localhost:5001";
 
-export const blockKinds = {
+export const blockTypes = {
   generic: { description: "Test Block", component: DataBlockBase },
   comment: { description: "Comment", component: DataBlockBase },
   image: { description: "Image Block", component: ImageBlock },
@@ -20,6 +20,14 @@ export const blockKinds = {
 };
 
 export const itemTypes = {
-  samples: { itemInformationComponent: SampleInformation },
-  starting_materials: { itemInformationComponent: StartingMaterialInformation },
+  samples: {
+    itemInformationComponent: SampleInformation,
+    navbarColor: "#0b6093",
+    navbarName: "Sample",
+  },
+  starting_materials: {
+    itemInformationComponent: StartingMaterialInformation,
+    navbarColor: "#349579",
+    navbarName: "Starting Material",
+  },
 };

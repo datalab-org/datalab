@@ -17,8 +17,8 @@ class StartingMaterial(Item):
         alias="Barcode", description="A unique barcode from ChemInventory"
     )
 
-    date_aquired: Optional[datetime.datetime] = Field(
-        alias="Date Acquired", description="The date the item was aquired"
+    date_acquired: Optional[datetime.datetime] = Field(
+        alias="Date Acquired", description="The date the item was acquired"
     )
 
     date_opened: Optional[datetime.datetime] = Field(
@@ -60,7 +60,7 @@ class StartingMaterial(Item):
 
     comment: Optional[str] = Field(alias="Comments")
 
-    @validator("date_aquired", "date_opened", pre=True)
+    @validator("date_acquired", "date_opened", pre=True)
     def cast_to_date(cls, v):
         if isinstance(v, str):
             if v in ["0", " "]:
