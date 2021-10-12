@@ -11932,13 +11932,10 @@ vue-router@^4.0.0-0:
   dependencies:
     "@vue/devtools-api" "^6.0.0-beta.14"
 
-"vue-select-connorshea@https://github.com/jdbocarsly/vue-select#tmp/vue-3-easy-install":
-  version "3.12.1"
-  resolved "https://github.com/jdbocarsly/vue-select#84618aee5193c1656bdad4e6916f6a97bcf2a2d2"
-
-"vue-select@https://github.com/jdbocarsly/vue-select#tmp/vue-3-easy-install":
-  version "3.12.1"
-  resolved "https://github.com/jdbocarsly/vue-select#8901704c9b0de701e81e6000353c1fba0b315494"
+vue-select-jdbocarsly@^3.12.2:
+  version "3.12.2"
+  resolved "https://registry.yarnpkg.com/vue-select-jdbocarsly/-/vue-select-jdbocarsly-3.12.2.tgz#553e73ef37423cc747109a5faa60abfa24c4409d"
+  integrity sha512-R7GPE6GVVdLn0henXEszAbHMOcVNtTGOpY+hH4/hbgX0RK/huOOASsgY+X2SXWuzUr1D/6WsJNwkshXJ3FyhWQ==
 
 vue-style-loader@^4.1.0, vue-style-loader@^4.1.2:
   version "4.1.3"

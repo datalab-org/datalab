@@ -25,8 +25,7 @@
     "tinymce": "^5.6.2",
     "vue": "^3.2.4",
     "vue-router": "^4.0.0-0",
-    "vue-select": "https://github.com/jdbocarsly/vue-select#tmp/vue-3-easy-install",
-    "vue-select-connorshea": "https://github.com/jdbocarsly/vue-select#tmp/vue-3-easy-install",
+    "vue-select-jdbocarsly": "^3.12.2",
     "vuex": "^4.0.0-0"
   },
   "devDependencies": {
