@@ -25,7 +25,8 @@
     "tinymce": "^5.6.2",
     "vue": "^3.2.4",
     "vue-router": "^4.0.0-0",
-    "vue-select-connorshea": "^3.12.1",
+    "vue-select": "https://github.com/jdbocarsly/vue-select#tmp/vue-3-easy-install",
+    "vue-select-connorshea": "https://github.com/jdbocarsly/vue-select#tmp/vue-3-easy-install",
     "vuex": "^4.0.0-0"
   },
   "devDependencies": {
@@ -42,6 +43,7 @@
     "@vue/compiler-sfc": "^3.2.4",
     "@vue/eslint-config-prettier": "^6.0.0",
     "@vue/test-utils": "^2.0.0-0",
+    "babel-core": "7.0.0-bridge.0",
     "babel-eslint": "^10.1.0",
     "cypress": "^8.3.1",
     "eslint": "^6.7.2",

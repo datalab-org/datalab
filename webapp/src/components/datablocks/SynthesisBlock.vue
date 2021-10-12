@@ -52,7 +52,7 @@
 <script>
 import DataBlockBase from "@/components/datablocks/DataBlockBase";
 import { getSampleList } from "@/server_fetch_utils.js";
-import vSelect from "@/../node_modules/vue-select-connorshea/src/index.js";
+import vSelect from "@/../node_modules/vue-select/src/index.js";
 // import Multiselect from "@vueform/multiselect";
 // import {createComputedSetterForBlockField} from "@/field_utils.js"
 
