@@ -13,6 +13,8 @@ class Sample(Item):
 
     date: datetime.datetime = Field(description="The creation timestamp of the item.")
 
+    sample_id: Optional[str] = Field(description="a sample id provided by the user")
+
     chemform: Optional[str] = Field(
         description="A string representation of the chemical formula associated with this sample."
     )
