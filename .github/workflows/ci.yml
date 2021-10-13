@@ -81,10 +81,6 @@ jobs:
         working-directory: ./webapp
         run: yarn install
 
-      - name: Lint web app
-        working-directory: ./webapp
-        run: yarn lint --no-fix --max-warnings 0
-
       - name: Unit and Component test web app
         working-directory: ./webapp
         run: yarn test:unit
