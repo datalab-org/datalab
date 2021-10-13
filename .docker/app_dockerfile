@@ -1,4 +1,4 @@
-FROM node
+FROM node:15.14.0-stretch
 SHELL ["/bin/bash", "--login", "-c"]
 
 WORKDIR /app
