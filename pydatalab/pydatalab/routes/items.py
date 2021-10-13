@@ -226,7 +226,7 @@ def get_item_data(item_id):
 
     # determine the item type and validate according to the appropriate schema
     try:
-        Item_Model = ITEM_MODELS[doc["type"]]
+        ItemModel = ITEM_MODELS[doc["type"]]
     except KeyError as e:
         if "type" in doc:
             print(f"Item with id: {item_id} has invalid type: {doc['type']}")
@@ -234,7 +234,7 @@ def get_item_data(item_id):
             print(f"Item with id: {item_id} has no type field in document.")
         raise e
 
-    doc = Item_Model(**doc)
+    doc = ItemModel(**doc)
 
     doc.blocks_obj = reserialize_blocks(doc.blocks_obj)
 

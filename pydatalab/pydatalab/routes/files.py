@@ -27,7 +27,7 @@ def upload():
     # print(request.form)
     if len(request.files) == 0:
         return jsonify(error="No file in request"), 400
-    if "item_id" not in request.form == 0:
+    if "item_id" not in request.form:
         return jsonify(error="No item id provided in form"), 400
     item_id = request.form["item_id"]
     replace_file_id = request.form["replace_file"]
