@@ -93,7 +93,7 @@ jobs:
         run: docker-compose build app
 
       - name: Build the Docker server image
-        run: docker-compose build server
+        run: docker-compose build api
 
       - name: Build the Docker mongo image
         run: docker-compose build mongo
