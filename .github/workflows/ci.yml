@@ -101,11 +101,7 @@ jobs:
       - name: Start Docker images
         run: |
           docker-compose up --abort-on-container-exit &
-          # If there are no build errors after 1 minute, then exit successfully.
-          # In future, some additional tests will run here instead.
-          sleep 60
-          exit 0
 
       - name: Run end-to-end tests
         working-directory: ./webapp
-        run: yarn test:e2e  --headless --url http://localhost:8080
+        run: yarn test:e2e  --headless --url http://localhost:8081
