@@ -99,7 +99,10 @@ export default {
       console.log(
         `loadCachedTree received, ${response_json.seconds_since_last_update} seconds out of date:`
       );
-      if (response_json.seconds_since_last_update > 3600) {
+      if (
+        response_json.seconds_since_last_update == null ||
+        response_json.seconds_since_last_update > 3600
+      ) {
         console.log("cache more than 1 hr out of date. Fetching new sample tree");
         this.fetchRemoteTree();
       }
