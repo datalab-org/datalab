@@ -6,7 +6,7 @@ from flask import abort, jsonify, request
 from pydantic import ValidationError
 
 from pydatalab.blocks import BLOCK_TYPES
-from pydatalab.models import ITEM_MODELS, Sample, StartingMaterial
+from pydatalab.models import ITEM_MODELS, Sample
 from pydatalab.mongo import flask_mongo
 
 
@@ -54,8 +54,8 @@ def dereference_files(file_ids: List[Union[str, ObjectId]]) -> Dict[str, Dict]:
 
 
 def get_starting_materials():
-    cursor = [
-        StartingMaterial(**doc).dict()
+    items = [
+        doc
         for doc in flask_mongo.db.items.aggregate(
             [
                 {"$match": {"type": "starting_materials"}},
@@ -74,15 +74,14 @@ def get_starting_materials():
             ]
         )
     ]
-    return jsonify({"status": "success", "items": cursor})
+    return jsonify({"status": "success", "items": items})
 
 
 get_starting_materials.methods = ("GET",)  # type: ignore
 
 
 def get_samples():
-    cursor = [
-        # Sample(**doc).dict() # disabling pydantic type checking since it would require returning more fields from mongodb
+    items = [
         doc
         for doc in flask_mongo.db.items.aggregate(
             [
@@ -101,10 +100,57 @@ def get_samples():
             ]
         )
     ]
-    return jsonify({"status": "success", "samples": cursor})
+    return jsonify({"status": "success", "samples": items})
 
 
 get_samples.methods = ("GET",)  # type: ignore
+
+
+def search_items():
+    """Perform free text search on items and return the top results.
+    GET parameters:
+        query: String with the search terms.
+        nresults: Maximum number of  (default 100)
+        types: If None, search all types of items. Otherwise, a list of strings
+               giving the types to consider. (e.g. ["samples","starting_materials"])
+
+    Returns:
+        response list of dictionaries containing the matching items in order of
+        descending match score.
+    """
+    query = request.args.get("query", type=str)
+    nresults = request.args.get("nresults", default=100, type=int)
+    types = request.args.get("types", default=None)
+    if isinstance(types, str):
+        types = types.split(",")  # should figure out how to parse as list automatically
+
+    print("seach_items: types = " + str(types))
+    match_obj = {"$text": {"$search": query}}
+    if types is not None:
+        match_obj["type"] = {"$in": types}
+
+    cursor = flask_mongo.db.items.aggregate(
+        [
+            {"$match": match_obj},
+            {"$sort": {"score": {"$meta": "textScore"}}},
+            {"$limit": nresults},
+            {
+                "$project": {
+                    "_id": 0,
+                    "type": 1,
+                    "item_id": 1,
+                    "name": 1,
+                    "chemform": 1,
+                    # "score": { "$meta": "textScore" }
+                }
+            },
+        ]
+    )
+
+    return jsonify({"status": "success", "items": list(cursor)}), 200
+
+
+search_items.methods = ("GET",)  # type: ignore
 
 
 def create_sample():
@@ -313,6 +359,7 @@ save_item.methods = ("POST",)  # type: ignore
 ENDPOINTS: Dict[str, Callable] = {
     "/samples/": get_samples,
     "/starting-materials/": get_starting_materials,
+    "/search-items/": search_items,
     "/new-sample/": create_sample,
     "/delete-sample/": delete_sample,
     "/get-item-data/<item_id>": get_item_data,

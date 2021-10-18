@@ -12,6 +12,7 @@ import { API_URL } from "@/resources.js";
 function fetch_get(url) {
   const requestOptions = {
     method: "GET",
+    headers: {},
   };
   return fetch(url, requestOptions).then(handleResponse);
 }
@@ -102,6 +103,19 @@ export function getStartingMaterialList() {
       console.error(error);
       throw error;
     });
+}
+
+export function searchItems(query, nresults = 100, types = null) {
+  // construct a url with parameters:
+  var url = new URL(`${API_URL}/search-items/`);
+  var params = { query: query, nresults: nresults, types: types };
+  Object.keys(params).forEach((key) => url.searchParams.append(key, params[key]));
+  console.log(`using to construct url for searchItems: ${url}`);
+  console.log(url);
+  console.log(params);
+  return fetch_get(url).then(function (response_json) {
+    return response_json.items;
+  });
 }
 
 export function deleteSample(item_id, sample_summary) {

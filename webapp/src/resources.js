@@ -24,10 +24,12 @@ export const itemTypes = {
     itemInformationComponent: SampleInformation,
     navbarColor: "#0b6093",
     navbarName: "Sample",
+    lightColor: "#d0ebfb",
   },
   starting_materials: {
     itemInformationComponent: StartingMaterialInformation,
     navbarColor: "#349579",
     navbarName: "Starting Material",
+    lightColor: "#d9f2eb",
   },
 };
