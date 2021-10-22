@@ -67,7 +67,7 @@
 <script>
 import { searchItems } from "@/server_fetch_utils.js";
 import TinyMceInline from "@/components/TinyMceInline";
-import vSelect from "@/../node_modules/vue-select-jdbocarsly/src/index.js";
+import vSelect from "vue-select";
 import ChemicalFormula from "@/components/ChemicalFormula.vue";
 import { itemTypes } from "@/resources.js";
 import { createComputedSetterForItemField } from "@/field_utils.js";

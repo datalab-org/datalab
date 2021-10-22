@@ -65,6 +65,9 @@ import "tinymce/plugins/table";
 import Editor from "@tinymce/tinymce-vue";
 import store from "./store";
 
+// css for vue-select
+import "../node_modules/vue-select/dist/vue-select.css";
+
 const app = createApp(App);
 
 app
