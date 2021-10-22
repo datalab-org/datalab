@@ -11,7 +11,7 @@ services:
     volumes:
       - ./logs:/app/logs/
     ports:
-      - "8081"
+      - "8081:8081"
 
   api:
     restart: always
@@ -23,7 +23,7 @@ services:
     volumes:
       - ./logs:/app/logs/
     ports:
-      - "5001"
+      - "5001:5001"
 
   mongo:
     restart: always

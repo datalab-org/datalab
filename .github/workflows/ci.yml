@@ -100,7 +100,7 @@ jobs:
 
       - name: Start Docker images
         run: |
-          docker-compose up --abort-on-container-exit &
+          docker-compose up --abort-on-container-exit -d
 
       - name: Run end-to-end tests
         working-directory: ./webapp
