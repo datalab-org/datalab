@@ -3,7 +3,6 @@ import DataBlockBase from "@/components/datablocks/DataBlockBase";
 import ImageBlock from "@/components/datablocks/ImageBlock";
 import XRDBlock from "@/components/datablocks/XRDBlock";
 import CycleBlock from "@/components/datablocks/CycleBlock";
-import SynthesisBlock from "@/components/datablocks/SynthesisBlock";
 
 import SampleInformation from "@/components/SampleInformation";
 import StartingMaterialInformation from "@/components/StartingMaterialInformation";
@@ -16,7 +15,6 @@ export const blockTypes = {
   image: { description: "Image Block", component: ImageBlock },
   xrd: { description: "Powder XRD", component: XRDBlock },
   cycle: { description: "Electrochemistry", component: CycleBlock },
-  synthesis: { description: "Materials Synthesis", component: SynthesisBlock },
 };
 
 export const itemTypes = {

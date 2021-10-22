@@ -124,7 +124,6 @@ def search_items():
     if isinstance(types, str):
         types = types.split(",")  # should figure out how to parse as list automatically
 
-    print("seach_items: types = " + str(types))
     match_obj = {"$text": {"$search": query}}
     if types is not None:
         match_obj["type"] = {"$in": types}
@@ -281,7 +280,7 @@ def get_item_data(item_id):
         raise e
 
     doc = ItemModel(**doc)
-
+    print(f"Validated item with pydantic model: {doc}")
     doc.blocks_obj = reserialize_blocks(doc.blocks_obj)
 
     files_data = []

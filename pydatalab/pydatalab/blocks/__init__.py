@@ -1,12 +1,6 @@
 from typing import Dict, Sequence, Type
 
-from pydatalab.blocks.blocks import (
-    CommentBlock,
-    DataBlock,
-    ImageBlock,
-    SynthesisBlock,
-    XRDBlock,
-)
+from pydatalab.blocks.blocks import CommentBlock, DataBlock, ImageBlock, XRDBlock
 from pydatalab.blocks.echem_block import CycleBlock
 
 BLOCKS: Sequence[Type[DataBlock]] = (
@@ -15,7 +9,6 @@ BLOCKS: Sequence[Type[DataBlock]] = (
     ImageBlock,
     XRDBlock,
     CycleBlock,
-    SynthesisBlock,
 )
 
 BLOCK_TYPES: Dict[str, Type[DataBlock]] = {block.blocktype: block for block in BLOCKS}
@@ -26,7 +19,6 @@ __all__ = (
     "CommentBlock",
     "ImageBlock",
     "XRDBlock",
-    "SynthesisBlock",
     "CycleBlock",
     "BLOCK_TYPES",
     "BLOCKS",

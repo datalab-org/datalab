@@ -134,11 +134,6 @@ class CommentBlock(DataBlock):
     description = "Comment"
 
 
-class SynthesisBlock(DataBlock):
-    blocktype = "synthesis"
-    description = "Comment"
-
-
 class ImageBlock(DataBlock):
     blocktype = "image"
     description = "Image"

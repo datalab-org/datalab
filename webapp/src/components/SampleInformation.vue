@@ -24,6 +24,8 @@
 
     <label class="mr-2">Description</label>
     <TinyMceInline v-model="SampleDescription"></TinyMceInline>
+    <label class="mr-2">Synthesis Information</label>
+    <SynthesisInformation :item_id="item_id" />
   </div>
 </template>
 
@@ -31,6 +33,7 @@
 import { createComputedSetterForItemField } from "@/field_utils.js";
 import ChemFormulaInput from "@/components/ChemFormulaInput";
 import TinyMceInline from "@/components/TinyMceInline";
+import SynthesisInformation from "@/components/SynthesisInformation";
 
 export default {
   props: {
@@ -45,6 +48,7 @@ export default {
   components: {
     ChemFormulaInput,
     TinyMceInline,
+    SynthesisInformation,
   },
 };
 </script>
