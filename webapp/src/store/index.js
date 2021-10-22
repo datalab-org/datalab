@@ -1,5 +1,5 @@
 import { createStore } from "vuex";
-import { createLogger } from "vuex";
+// import { createLogger } from "vuex";
 // import { set } from 'vue'
 
 export default createStore({
@@ -163,5 +163,5 @@ export default createStore({
   },
   actions: {},
   modules: {},
-  plugins: [createLogger()],
+  // plugins: [createLogger()],
 });
