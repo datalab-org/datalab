@@ -82,7 +82,7 @@ export function createNewSample(item_id, date, name) {
 }
 
 export function getSampleList() {
-  return fetch_get(`${API_URL}/samples`)
+  return fetch_get(`${API_URL}/samples/`)
     .then(function (response_json) {
       store.commit("setSampleList", response_json.samples);
     })

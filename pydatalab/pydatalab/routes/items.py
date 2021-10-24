@@ -140,7 +140,6 @@ def search_items():
                     "item_id": 1,
                     "name": 1,
                     "chemform": 1,
-                    # "score": { "$meta": "textScore" }
                 }
             },
         ]
