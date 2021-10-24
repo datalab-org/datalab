@@ -94,7 +94,7 @@ export function getSampleList() {
 }
 
 export function getStartingMaterialList() {
-  return fetch_get(`${API_URL}/starting-materials`)
+  return fetch_get(`${API_URL}/starting-materials/`)
     .then(function (response_json) {
       store.commit("setStartingMaterialList", response_json.items);
     })
