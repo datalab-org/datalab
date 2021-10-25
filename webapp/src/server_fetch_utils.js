@@ -12,6 +12,7 @@ import { API_URL } from "@/resources.js";
 function fetch_get(url) {
   const requestOptions = {
     method: "GET",
+    headers: {},
   };
   return fetch(url, requestOptions).then(handleResponse);
 }
@@ -62,18 +63,18 @@ function handleResponse(response) {
 // exported functions
 // ****************************************************************************
 
-export function createNewSample(sample_id, date, name) {
+export function createNewSample(item_id, date, name) {
   return fetch_post(`${API_URL}/new-sample/`, {
-    sample_id: sample_id,
+    item_id: item_id,
     date: date,
     name: name,
   }).then(function (response_json) {
     console.log("received the following data from fetch new-sample:");
     console.log(response_json.sample_list_entry);
-    console.log(`sample_id: ${sample_id}`);
+    console.log(`item_id: ${item_id}`);
     store.commit("appendToSampleList", response_json.sample_list_entry);
     // store.commit('createSampleData', {
-    // 	"sample_id": sample_id,
+    // 	"item_id": item_id,
     // 	"sample_data": response_json.sample_data
     // });
     return "success";
@@ -81,29 +82,60 @@ export function createNewSample(sample_id, date, name) {
 }
 
 export function getSampleList() {
-  return fetch_get(`${API_URL}/samples`).then(function (response_json) {
-    store.commit("setSampleList", response_json.samples);
+  return fetch_get(`${API_URL}/samples/`)
+    .then(function (response_json) {
+      store.commit("setSampleList", response_json.samples);
+    })
+    .catch((error) => {
+      console.error("Error when fetching sample list");
+      console.error(error);
+      throw error;
+    });
+}
+
+export function getStartingMaterialList() {
+  return fetch_get(`${API_URL}/starting-materials/`)
+    .then(function (response_json) {
+      store.commit("setStartingMaterialList", response_json.items);
+    })
+    .catch((error) => {
+      console.error("Error when fetching starting material list");
+      console.error(error);
+      throw error;
+    });
+}
+
+export function searchItems(query, nresults = 100, types = null) {
+  // construct a url with parameters:
+  var url = new URL(`${API_URL}/search-items/`);
+  var params = { query: query, nresults: nresults, types: types };
+  Object.keys(params).forEach((key) => url.searchParams.append(key, params[key]));
+  console.log(`using to construct url for searchItems: ${url}`);
+  console.log(url);
+  console.log(params);
+  return fetch_get(url).then(function (response_json) {
+    return response_json.items;
   });
 }
 
-export function deleteSample(sample_id, sample_summary) {
+export function deleteSample(item_id, sample_summary) {
   return fetch_post(`${API_URL}/delete-sample/`, {
-    sample_id: sample_id,
+    item_id: item_id,
   })
     .then(function (response_json) {
       console.log("delete successful" + response_json);
       store.commit("deleteFromSampleList", sample_summary);
     })
-    .catch((error) => alert("Sample delete failed for " + sample_id + ": " + error));
+    .catch((error) => alert("Sample delete failed for " + item_id + ": " + error));
 }
 
-export async function getSampleData(sample_id) {
-  return fetch_get(`${API_URL}/get_sample_data/${sample_id}`)
+export async function getItemData(item_id) {
+  return fetch_get(`${API_URL}/get-item-data/${item_id}`)
     .then((response_json) => {
       console.log(response_json);
-      store.commit("createSampleData", {
-        sample_id: sample_id,
-        sample_data: response_json.sample_data,
+      store.commit("createItemData", {
+        item_id: item_id,
+        item_data: response_json.item_data,
       });
       store.commit("updateFiles", response_json.files_data);
 
@@ -112,19 +144,18 @@ export async function getSampleData(sample_id) {
     .catch((error) => alert("Error getting sample data: " + error));
 }
 
-export async function updateBlockFromServer(sample_id, block_id, block_data) {
-  // var block = store.getters.getBlockBySampleIDandBlockID(sample_id, block_id)
+export async function updateBlockFromServer(item_id, block_id, block_data) {
   console.log("updateBlockFromServer called with data:");
   console.log(block_data);
   store.commit("setBlockUpdating", block_id);
   return fetch_post(`${API_URL}/update-block/`, {
-    sample_id: sample_id,
+    item_id: item_id,
     block_id: block_id,
     block_data: block_data,
   })
     .then(function (response_json) {
       store.commit("updateBlockData", {
-        sample_id: sample_id,
+        item_id: item_id,
         block_id: block_id,
         block_data: response_json.new_block_data,
       });
@@ -133,17 +164,17 @@ export async function updateBlockFromServer(sample_id, block_id, block_data) {
     .then(() => store.commit("setBlockNotUpdating", block_id));
 }
 
-export function addABlock(sample_id, block_kind, index = null) {
-  console.log("addABlock called with", sample_id, block_kind);
+export function addABlock(item_id, block_type, index = null) {
+  console.log("addABlock called with", item_id, block_type);
   var block_id_promise = fetch_post(`${API_URL}/add-data-block/`, {
-    sample_id: sample_id,
-    block_kind: block_kind,
+    item_id: item_id,
+    block_type: block_type,
     index: index,
   })
     .then(function (response_json) {
       // The payload could probably just be response_json instead of making a new object...
       store.commit("addABlock", {
-        sample_id: sample_id,
+        item_id: item_id,
         new_block_obj: response_json.new_block_obj,
         new_display_order: response_json.new_display_order,
       });
@@ -153,19 +184,18 @@ export function addABlock(sample_id, block_kind, index = null) {
   return block_id_promise;
 }
 
-export function saveSample(sample_id) {
-  console.log("saveSample Called!");
-  var sample_data = store.getters.getSample(sample_id);
-
-  fetch_post(`${API_URL}/save-sample/`, {
-    sample_id: sample_id,
-    data: sample_data,
+export function saveItem(item_id) {
+  console.log("saveItem Called!");
+  var item_data = store.state.all_item_data[item_id];
+  fetch_post(`${API_URL}/save-item/`, {
+    item_id: item_id,
+    data: item_data,
   })
     .then(function (response_json) {
-      if (response_json.status == "success") {
+      if (response_json.status === "success") {
         // this should always be true if you've gotten this far...
         console.log("Save successful!");
-        store.commit("setSaved", { sample_id: sample_id, isSaved: true });
+        store.commit("setSaved", { item_id: item_id, isSaved: true });
       }
     })
     .catch(function (error) {
@@ -173,17 +203,17 @@ export function saveSample(sample_id) {
     });
 }
 
-export function deleteBlock(sample_id, block_id) {
+export function deleteBlock(item_id, block_id) {
   console.log("deleteBlock called!");
   fetch_post(`${API_URL}/delete-block/`, {
-    sample_id: sample_id,
+    item_id: item_id,
     block_id: block_id,
   })
     // eslint-disable-next-line no-unused-vars
     .then(function (response_json) {
       // response_json should always just be {status: "success"}, so we don't actually use it
       store.commit("removeBlockFromDisplay", {
-        sample_id: sample_id,
+        item_id: item_id,
         block_id: block_id,
       });
       // currently, we don't actually delete the block from the store, so it may get re-added to the db on the next save. Fix once new schemas are established
@@ -191,17 +221,17 @@ export function deleteBlock(sample_id, block_id) {
     .catch((error) => alert(`Delete unsuccessful :(\n error: ${error}`));
 }
 
-export function deleteFileFromSample(sample_id, file_id) {
-  console.log("deleteFileFromSample called with sample_id and file_id:");
-  console.log(sample_id);
+export function deleteFileFromSample(item_id, file_id) {
+  console.log("deleteFileFromSample called with item_id and file_id:");
+  console.log(item_id);
   console.log(file_id);
   fetch_post(`${API_URL}/delete-file-from-sample/`, {
-    sample_id: sample_id,
+    item_id: item_id,
     file_id: file_id,
   })
     .then(function (response_json) {
       store.commit("removeFileFromSample", {
-        sample_id: sample_id,
+        item_id: item_id,
         file_id: file_id,
       });
       store.commit("updateFiles", response_json.new_file_obj);
@@ -225,11 +255,11 @@ export async function fetchCachedRemoteTree() {
   });
 }
 
-export async function addRemoteFileToSample(file_entry, sample_id) {
+export async function addRemoteFileToSample(file_entry, item_id) {
   console.log("loadSelectedRemoteFiles");
   return fetch_post(`${API_URL}/add-remote-file-to-sample/`, {
     file_entry: file_entry,
-    sample_id: sample_id,
+    item_id: item_id,
   })
     .then(function (response_json) {
       //handle response
@@ -240,7 +270,7 @@ export async function addRemoteFileToSample(file_entry, sample_id) {
       });
       if (!response_json.is_update) {
         store.commit("addFileToSample", {
-          sample_id: sample_id,
+          item_id: item_id,
           file_id: response_json.file_id,
         });
       }
@@ -248,11 +278,11 @@ export async function addRemoteFileToSample(file_entry, sample_id) {
     .catch((error) => `addRemoteFilesToSample unsuccessful. Error: ${error}`);
 }
 
-// export async function addRemoteFilesToSample(file_entries, sample_id) {
+// export async function addRemoteFilesToSample(file_entries, item_id) {
 // 	console.log('loadSelectedRemoteFiles')
 // 	return fetch_post(`${API_URL}/add-remote-files-to-sample/`, {
 // 		file_entries: file_entries,
-// 		sample_id: sample_id,
+// 		item_id: item_id,
 // 	}).then( function(response_json) {
 // 		//handle response
 // 		console.log("received remote samples!")

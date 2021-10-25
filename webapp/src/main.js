@@ -65,6 +65,9 @@ import "tinymce/plugins/table";
 import Editor from "@tinymce/tinymce-vue";
 import store from "./store";
 
+// css for vue-select
+import "../node_modules/vue-select/dist/vue-select.css";
+
 const app = createApp(App);
 
 app
@@ -76,3 +79,11 @@ app
 
 console.log(`initializing app with global variable $API_URL = ${API_URL}`);
 app.config.globalProperties.$API_URL = API_URL;
+app.config.globalProperties.$filters = {
+  IsoDatetimeToDate(isodatetime) {
+    if (isodatetime) {
+      return isodatetime.substring(0, 10);
+    }
+    return isodatetime; // if isodatetime is null or empty, don't do anything
+  },
+};

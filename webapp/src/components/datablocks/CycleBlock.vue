@@ -1,9 +1,9 @@
 <template>
-  <DataBlockBase :sample_id="sample_id" :block_id="block_id">
+  <DataBlockBase :item_id="item_id" :block_id="block_id">
     <div class="form-row col-lg-8">
       <FileSelectDropdown
         v-model="file_id"
-        :sample_id="sample_id"
+        :item_id="item_id"
         :block_id="block_id"
         :extensions="['.mpr', '.txt', '.xls', '.xlsx', '.txt', '.res']"
         updateBlockOnChange
@@ -150,16 +150,16 @@ export default {
     };
   },
   props: {
-    sample_id: String,
+    item_id: String,
     block_id: String,
   },
   computed: {
     bokehPlotData() {
-      return this.$store.state.all_sample_data[this.sample_id]["blocks_obj"][this.block_id]
+      return this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id]
         .bokeh_plot_data;
     },
     numberOfCycles() {
-      return this.$store.state.all_sample_data[this.sample_id]["blocks_obj"][this.block_id]
+      return this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id]
         .number_of_cycles;
     },
     parsedCycles() {
@@ -209,9 +209,9 @@ export default {
     },
     updateBlock() {
       updateBlockFromServer(
-        this.sample_id,
+        this.item_id,
         this.block_id,
-        this.$store.state.all_sample_data[this.sample_id]["blocks_obj"][this.block_id]
+        this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id]
       ).then(() => {
         this.bokehPlotLimitedWidth = this.derivative_mode != "dQ/dV";
         this.isReplotButtonDisplayed = false;

@@ -1,8 +1,8 @@
 <template>
-  <DataBlockBase :sample_id="sample_id" :block_id="block_id">
+  <DataBlockBase :item_id="item_id" :block_id="block_id">
     <FileSelectDropdown
       v-model="file_id"
-      :sample_id="sample_id"
+      :item_id="item_id"
       :block_id="block_id"
       :extensions="['.png', '.jpg', '.jpeg']"
     />
@@ -20,7 +20,7 @@ import { API_URL } from "@/resources.js";
 
 export default {
   props: {
-    sample_id: String,
+    item_id: String,
     block_id: String,
   },
   computed: {

@@ -33,7 +33,7 @@ def client():
 
 @pytest.fixture(scope="module", name="default_sample")
 def fixture_default_sample():
-    return Sample(**{"sample_id": "12345", "name": "other_sample", "date": "1970-02-01"})
+    return Sample(**{"item_id": "12345", "name": "other_sample", "date": "1970-02-01"})
 
 
 @pytest.fixture(scope="module", name="default_sample_dict")

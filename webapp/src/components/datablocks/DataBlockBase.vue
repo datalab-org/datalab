@@ -61,20 +61,20 @@ export default {
   },
   computed: {
     block() {
-      return this.$store.getters.getBlockBySampleIDandBlockID(this.sample_id, this.block_id);
+      return this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id];
     },
     blockType() {
       try {
-        return this.block["blocktype"];
+        return this.block["blockType"];
       } catch {
         return "Block type not found";
       }
     },
     displayOrder() {
-      return this.$store.state.all_sample_data[this.sample_id].display_order;
+      return this.$store.state.all_item_data[this.item_id].display_order;
     },
     displayIndex() {
-      // var display_order = this.$store.state.all_sample_data[this.sample_id].display_order
+      // var display_order = this.$store.state.all_item_data[this.item_id].display_order
       return this.displayOrder.indexOf(this.block_id);
     },
     isUpdating() {
@@ -83,17 +83,17 @@ export default {
     BlockTitle: createComputedSetterForBlockField("title"),
     BlockDescription: createComputedSetterForBlockField("freeform_comment"),
   },
-  props: ["sample_id", "block_id"],
+  props: ["item_id", "block_id"],
   methods: {
     async updateBlock() {
-      await updateBlockFromServer(this.sample_id, this.block_id, this.block);
+      await updateBlockFromServer(this.item_id, this.block_id, this.block);
     },
     deleteThisBlock() {
-      deleteBlock(this.sample_id, this.block_id);
+      deleteBlock(this.item_id, this.block_id);
     },
     swapUp() {
       this.$store.commit("swapBlockDisplayOrder", {
-        sample_id: this.sample_id,
+        item_id: this.item_id,
         index1: this.displayIndex,
         index2: this.displayIndex - 1,
       });
@@ -101,7 +101,7 @@ export default {
     swapDown() {
       console.log("swapDown clicked!");
       this.$store.commit("swapBlockDisplayOrder", {
-        sample_id: this.sample_id,
+        item_id: this.item_id,
         index1: this.displayIndex,
         index2: this.displayIndex + 1,
       });
