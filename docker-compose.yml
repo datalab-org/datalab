@@ -24,6 +24,8 @@ services:
       - ./logs:/app/logs/
     ports:
       - "5001:5001"
+    environment:
+      - PYDATALAB_MONGO_URI=mongodb://mongo:27017/datalabvue
 
   mongo:
     restart: always
@@ -34,7 +36,7 @@ services:
     volumes:
       - ./logs:/var/logs/mongod/
     ports:
-      - "27017"
+      - "27017:27017"
 
 volumes:
   sockets:
