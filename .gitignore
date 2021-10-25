@@ -3,6 +3,9 @@ files/
 uploads/
 server/
 
+#starting material files
+greyGroup_chemInventory*
+
 
 *.sublime-workspace
 *.sublime-project

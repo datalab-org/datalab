@@ -17,6 +17,7 @@ pyqt5 = "*"
 navani = {git = "https://github.com/the-grey-group/navani.git", editable = true}
 pydatalab = {path = ".", editable = true}
 pydantic = "*"
+openpyxl = "*"
 
 [dev-packages]
 pytest = "*"

@@ -1,14 +1,11 @@
 <template>
-  <!-- <component :is="div" id="chemform" class="form-control" :value="modelValue" v-html="chemFormulaFormat(modelValue)"/> -->
-  <span
+  <ChemicalFormula
     v-show="!editable"
-    @click="handleSpanClick"
     class="form-control"
-    v-html="chemFormulaFormat(internal_chemform)"
-  >
-  </span>
+    :formula="internal_chemform"
+    @click="handleSpanClick"
+  />
   <input
-    id="testId"
     v-show="editable"
     @blur="editable = false"
     ref="input"
@@ -19,6 +16,7 @@
 </template>
 
 <script>
+import ChemicalFormula from "@/components/ChemicalFormula";
 export default {
   data() {
     return {
@@ -54,6 +52,9 @@ export default {
         this.$emit("update:modelValue", value);
       },
     },
+  },
+  components: {
+    ChemicalFormula,
   },
 };
 </script>

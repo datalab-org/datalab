@@ -16,9 +16,9 @@ def fixture_default_filepath():
 def fixture_insert_default_sample(client, default_sample):  # pylint: disable=unused-argument
     from pydatalab.mongo import flask_mongo
 
-    flask_mongo.db.data.insert_one(default_sample.dict(exclude_unset=False))
+    flask_mongo.db.items.insert_one(default_sample.dict(exclude_unset=False))
     yield
-    flask_mongo.db.data.delete_one({"sample_id": default_sample.sample_id})
+    flask_mongo.db.items.delete_one({"item_id": default_sample.item_id})
 
 
 @pytest.mark.dependency()
@@ -32,7 +32,7 @@ def test_upload(
             buffered=True,
             content_type="multipart/form-data",
             data={
-                "sample_id": default_sample.sample_id,
+                "item_id": default_sample.item_id,
                 "file": [(f, default_filepath.name)],
                 "type": "application/octet-stream",
                 "replace_file": "null",
@@ -47,7 +47,7 @@ def test_upload(
 
 @pytest.mark.dependency(depends=["test_upload"])
 def test_get_file_and_delete(client, default_filepath, default_sample):
-    response = client.get(f"/get_sample_data/{default_sample.sample_id}")
+    response = client.get(f"/get-item-data/{default_sample.item_id}")
     assert response.json["status"] == "success"
     assert response.status_code == 200
 
@@ -55,8 +55,8 @@ def test_get_file_and_delete(client, default_filepath, default_sample):
     assert len(response.json["files_data"]) == 1
     file_id = [_id for _id in response.json["files_data"]][0]
 
-    assert "sample_data" in response.json
-    assert file_id in response.json["sample_data"]["file_ObjectIds"]
+    assert "item_data" in response.json
+    assert file_id in response.json["item_data"]["file_ObjectIds"]
 
     assert (
         response.json["files_data"][file_id]["location"]
@@ -73,15 +73,15 @@ def test_get_file_and_delete(client, default_filepath, default_sample):
     delete_response = client.post(
         "/delete-file-from-sample/",
         json={
-            "sample_id": default_sample.sample_id,
+            "item_id": default_sample.item_id,
             "file_id": file_id,
         },
     )
     assert delete_response.json["status"] == "success"
     assert delete_response.status_code == 200
 
-    response = client.get(f"/get_sample_data/{default_sample.sample_id}")
+    response = client.get(f"/get-item-data/{default_sample.item_id}")
     assert response.json["status"] == "success"
     assert response.status_code == 200
-    assert not response.json["sample_data"]["file_ObjectIds"]
+    assert not response.json["item_data"]["file_ObjectIds"]
     assert not response.json["files_data"]

@@ -100,21 +100,21 @@ def update_uploaded_file(file, file_id, last_modified=None, size_bytes=None):
     return ret
 
 
-def save_uploaded_file(file, sample_ids=None, block_ids=None, last_modified=None, size_bytes=None):
+def save_uploaded_file(file, item_ids=None, block_ids=None, last_modified=None, size_bytes=None):
     """file is a file object from a flask request.
     last_modified should be an isodate format. if last_modified is None, the current time will be inserted"""
-    sample_collection = pydatalab.mongo.flask_mongo.db.data
+    sample_collection = pydatalab.mongo.flask_mongo.db.items
     file_collection = pydatalab.mongo.flask_mongo.db.files
 
-    # validate sample_ids
-    if not sample_ids:
-        sample_ids = []
+    # validate item_ids
+    if not item_ids:
+        item_ids = []
     if not block_ids:
         block_ids = []
 
-    for sample_id in sample_ids:
-        if not sample_collection.find_one({"sample_id": sample_id}):
-            raise ValueError(f"sample_id is invalid: {sample_id}")
+    for item_id in item_ids:
+        if not sample_collection.find_one({"item_id": item_id}):
+            raise ValueError(f"item_id is invalid: {item_id}")
 
     filename = secure_filename(file.filename)
     extension = os.path.splitext(filename)[1]
@@ -131,7 +131,7 @@ def save_uploaded_file(file, sample_ids=None, block_ids=None, last_modified=None
             "extension": extension,
             "source": "uploaded",
             "size": size_bytes,
-            "sample_ids": sample_ids,
+            "item_ids": item_ids,
             "blocks": block_ids,
             "last_modified": last_modified,
             "time_added": last_modified,
@@ -169,14 +169,14 @@ def save_uploaded_file(file, sample_ids=None, block_ids=None, last_modified=None
 
     updated_file_entry = File(**updated_file_entry)
 
-    # update any referenced sample_ids
-    for sample_id in sample_ids:
+    # update any referenced item_ids
+    for item_id in item_ids:
         sample_update_result = sample_collection.update_one(
-            {"sample_id": sample_id}, {"$push": {"file_ObjectIds": inserted_id}}
+            {"item_id": item_id}, {"$push": {"file_ObjectIds": inserted_id}}
         )
         if sample_update_result.modified_count != 1:
             raise IOError(
-                f"db operation failed when trying to insert new file ObjectId into sample: {sample_id}"
+                f"db operation failed when trying to insert new file ObjectId into sample: {item_id}"
             )
 
     ret = updated_file_entry.dict()
@@ -184,9 +184,9 @@ def save_uploaded_file(file, sample_ids=None, block_ids=None, last_modified=None
     return ret
 
 
-def add_file_from_remote_directory(file_entry, sample_id, block_ids=None):
+def add_file_from_remote_directory(file_entry, item_id, block_ids=None):
     file_collection = pydatalab.mongo.flask_mongo.db.files
-    sample_collection = pydatalab.mongo.flask_mongo.db.data
+    sample_collection = pydatalab.mongo.flask_mongo.db.items
 
     if not block_ids:
         block_ids = []
@@ -212,7 +212,7 @@ def add_file_from_remote_directory(file_entry, sample_id, block_ids=None):
             "size": file_entry[
                 "size"
             ],  # not actually in bytes at the moment. in human-readable format
-            "sample_ids": [sample_id],
+            "item_ids": [item_id],
             "blocks": block_ids,
             "last_modified": datetime.datetime.now().isoformat(),  # last_modified is the last modified time of the db entry in isoformat. For last modified file timestamp, see last_modified_remote_timestamp
             "time_added": datetime.datetime.now().isoformat(),
@@ -249,11 +249,11 @@ def add_file_from_remote_directory(file_entry, sample_id, block_ids=None):
     )
 
     sample_update_result = sample_collection.update_one(
-        {"sample_id": sample_id}, {"$push": {"file_ObjectIds": inserted_id}}
+        {"item_id": item_id}, {"$push": {"file_ObjectIds": inserted_id}}
     )
     if sample_update_result.modified_count != 1:
         raise IOError(
-            f"db operation failed when trying to insert new file ObjectId into sample: {sample_id}"
+            f"db operation failed when trying to insert new file ObjectId into sample: {item_id}"
         )
 
     return updated_file_entry
@@ -272,26 +272,26 @@ def retrieve_file_path(file_ObjectId):
     return result.location
 
 
-def remove_file_from_sample(sample_id, file_ObjectId):
-    sample_collection = pydatalab.mongo.flask_mongo.db.data
+def remove_file_from_sample(item_id, file_ObjectId):
+    sample_collection = pydatalab.mongo.flask_mongo.db.items
     file_collection = pydatalab.mongo.flask_mongo.db.files
     sample_result = sample_collection.update_one(
-        {"sample_id": ObjectId(sample_id)},
+        {"item_id": ObjectId(item_id)},
         {"$pull": {"file_ObjectIds": ObjectId(file_ObjectId)}},
     )
 
     if sample_result.modified_count < 1:
         raise IOError(
-            f"failed to remove file_ObjectId (f{file_ObjectId}) from sample (f{sample_id}) db entry: {sample_result.raw_result}"
+            f"failed to remove file_ObjectId (f{file_ObjectId}) from sample (f{item_id}) db entry: {sample_result.raw_result}"
         )
 
     file_collection.update_one(
         {"_id": ObjectId(file_ObjectId)},
-        {"$pull": {"sample_ids": ObjectId(sample_id)}},
+        {"$pull": {"item_ids": ObjectId(item_id)}},
     )
 
 
-# def add_file_to_db(file, source, is_live=False, source_server_name=None,source_path=None, sample_ids=[], block_ids=[], size_bytes=None):
+# def add_file_to_db(file, source, is_live=False, source_server_name=None,source_path=None, item_ids=[], block_ids=[], size_bytes=None):
 #    ''' file is a python file object. source should be either "uploaded" or "remote", signifying either a
 #    local upload from the user, or remote server (one of the servers specified in remote_filesystems.py)'''
 #    assert source in ["uploaded", "remote"], f'source: "{source}" is invalid. Must be either "uploaded" or "remote"'
@@ -315,7 +315,7 @@ def remove_file_from_sample(sample_id, file_ObjectId):
 #       "source_path": source_path,
 #       "size": size_bytes,
 #       "representation": None, # could be used to store the data
-#       "samples": sample_ids,# sample_ids of any samples this file is included in.
+#       "samples": item_ids,# item_ids of any samples this file is included in.
 #       "blocks": block_ids, # block_ids of any blocks this file is included in
 #       "metadata": {}, # to store metadata collected from the file
 #       "type": None, # file type

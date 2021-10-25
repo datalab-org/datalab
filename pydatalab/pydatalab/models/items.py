@@ -9,7 +9,7 @@ class Item(BaseModel):
 
     type: str = Field(description="The resource type of the item.")
 
-    date: datetime.datetime = Field(description="The creation timestamp of the item.")
+    item_id: str = Field(description="a unique id for item.")
 
     last_modified: Optional[datetime.datetime] = Field(
         description="The timestamp at which this item was last modified."
@@ -41,7 +41,7 @@ class Item(BaseModel):
         # Do not let arbitrary data be added alongside this sample
         extra = "forbid"
 
-    @validator("date", "last_modified", pre=True)
+    @validator("last_modified", pre=True)
     def cast_to_datetime(cls, v):
         if isinstance(v, str):
             v = datetime.datetime.fromisoformat(v)
