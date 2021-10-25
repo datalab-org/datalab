@@ -6,4 +6,4 @@ client = MongoClient(CONFIG.MONGO_URI)
 
 db = client.datalabvue
 
-response = db.items.create_index({"$**": "text"})
+response = db.items.create_index([("$**", "text")])
