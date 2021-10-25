@@ -1,0 +1,91 @@
+<template>
+  <div class="container">
+    <!-- Sample information -->
+    <div class="form-row">
+      <div class="form-group col-md-2 col-sm-4">
+        <label for="item_id" class="mr-2">Barcode</label>
+        <input id="item_id" class="form-control-plaintext" readonly="true" :value="item_id" />
+      </div>
+      <div class="form-group col-md-6 col-sm-8">
+        <label for="name" class="mr-2">Name</label>
+        <input id="name" :value="item.name" class="form-control-plaintext" readonly="true" />
+      </div>
+      <div class="form-group col-md-2 col-sm-4">
+        <label for="date-opened" class="mr-2">Date acquired</label>
+        <input
+          id="date-opened"
+          :value="$filters.IsoDatetimeToDate(item.date_acquired)"
+          class="form-control-plaintext"
+          readonly="true"
+        />
+      </div>
+      <div class="form-group col-md-2 col-sm-4">
+        <label for="date-opened" class="mr-2">Date opened</label>
+        <input
+          id="date-opened"
+          :value="$filters.IsoDatetimeToDate(item.date_opened)"
+          class="form-control-plaintext"
+          readonly="true"
+        />
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group col-md-2">
+        <label for="chemform" class="mr-2">Chemical formula</label>
+        <span class="form-control-plaintext" readonly="true">
+          <ChemicalFormula :formula="item.chemform" />
+        </span>
+      </div>
+      <div class="form-group col-md-4">
+        <label for="supplier" class="mr-2">Supplier</label>
+        <input
+          id="supplier"
+          :value="item.supplier"
+          class="form-control-plaintext"
+          readonly="true"
+        />
+      </div>
+      <div class="form-group col-md-3">
+        <label for="purity" class="mr-2">Chemical purity</label>
+        <input
+          id="purity"
+          :value="item.chemical_purity"
+          class="form-control-plaintext"
+          readonly="true"
+        />
+      </div>
+    </div>
+
+    <label class="mr-2">Description</label>
+    <TinyMceInline v-model="ItemDescription"></TinyMceInline>
+  </div>
+</template>
+
+<script>
+import { createComputedSetterForItemField } from "@/field_utils.js";
+import TinyMceInline from "@/components/TinyMceInline";
+import ChemicalFormula from "@/components/ChemicalFormula";
+
+export default {
+  props: {
+    item_id: String,
+  },
+  computed: {
+    item() {
+      return this.$store.state.all_item_data[this.item_id];
+    },
+    ItemDescription: createComputedSetterForItemField("description"),
+  },
+  components: {
+    ChemicalFormula,
+    TinyMceInline,
+  },
+};
+</script>
+
+<style scoped>
+label {
+  font-weight: 500;
+  color: #298651;
+}
+</style>

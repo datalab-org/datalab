@@ -27,9 +27,9 @@ def upload():
     # print(request.form)
     if len(request.files) == 0:
         return jsonify(error="No file in request"), 400
-    if "sample_id" not in request.form == 0:
-        return jsonify(error="No sample id provided in form"), 400
-    sample_id = request.form["sample_id"]
+    if "item_id" not in request.form:
+        return jsonify(error="No item id provided in form"), 400
+    item_id = request.form["item_id"]
     replace_file_id = request.form["replace_file"]
 
     is_update = replace_file_id and replace_file_id != "null"
@@ -40,7 +40,7 @@ def upload():
         if is_update:
             file_information = file_utils.update_uploaded_file(file, ObjectId(replace_file_id))
         else:
-            file_information = file_utils.save_uploaded_file(file, sample_ids=[sample_id])
+            file_information = file_utils.save_uploaded_file(file, item_ids=[item_id])
 
     return (
         jsonify(
@@ -61,10 +61,10 @@ upload.methods = ("POST",)  # type: ignore
 def add_remote_file_to_sample():
     print("add_remote_file_to_sample called")
     request_json = request.get_json()
-    sample_id = request_json["sample_id"]
+    item_id = request_json["item_id"]
     file_entry = request_json["file_entry"]
 
-    updated_file_entry = file_utils.add_file_from_remote_directory(file_entry, sample_id)
+    updated_file_entry = file_utils.add_file_from_remote_directory(file_entry, item_id)
 
     return (
         jsonify(
@@ -86,18 +86,18 @@ def delete_file_from_sample():
 
     request_json = request.get_json()
 
-    sample_id = request_json["sample_id"]
+    item_id = request_json["item_id"]
     file_id = ObjectId(request_json["file_id"])
-    print(f"delete_file_from_sample: sample: {sample_id} file: {file_id}")
+    print(f"delete_file_from_sample: sample: {item_id} file: {file_id}")
     print("deleting file from sample")
-    result = pydatalab.mongo.flask_mongo.db.data.update_one(
-        {"sample_id": sample_id}, {"$pull": {"file_ObjectIds": file_id}}
+    result = pydatalab.mongo.flask_mongo.db.items.update_one(
+        {"item_id": item_id}, {"$pull": {"file_ObjectIds": file_id}}
     )
     if result.modified_count != 1:
         return (
             jsonify(
                 status="error",
-                message=f"{sample_id} {file_id} delete failed. Something went wrong with the db call to remove file from sample.",
+                message=f"{item_id} {file_id} delete failed. Something went wrong with the db call to remove file from sample.",
                 output=result.raw_result,
             ),
             400,
@@ -105,7 +105,7 @@ def delete_file_from_sample():
     print("deleting sample from file")
     updated_file_entry = pydatalab.mongo.flask_mongo.db.files.find_one_and_update(
         {"_id": file_id},
-        {"$pull": {"sample_ids": sample_id}},
+        {"$pull": {"item_ids": item_id}},
         return_document=ReturnDocument.AFTER,
     )
 
@@ -113,7 +113,7 @@ def delete_file_from_sample():
         return (
             jsonify(
                 status="error",
-                message=f"{sample_id} {file_id} delete failed. Something went wrong with the db call to remove sample from file",
+                message=f"{item_id} {file_id} delete failed. Something went wrong with the db call to remove sample from file",
             ),
             400,
         )
@@ -133,17 +133,17 @@ delete_file_from_sample.methods = ("POST",)  # type: ignore
 
 
 def delete_file():
-    """delete a data file from the uploads/sample_id folder"""
+    """delete a data file from the uploads/item_id folder"""
 
     request_json = request.get_json()
 
-    sample_id = request_json["sample_id"]
+    item_id = request_json["item_id"]
     filename = request_json["filename"]
 
-    secure_sample_id = secure_filename(sample_id)
+    secure_item_id = secure_filename(item_id)
     secure_fname = secure_filename(filename)
 
-    path = os.path.join(CONFIG.FILE_DIRECTORY, secure_sample_id, secure_fname)
+    path = os.path.join(CONFIG.FILE_DIRECTORY, secure_item_id, secure_fname)
 
     if not os.path.isfile(path):
         return (
@@ -155,8 +155,8 @@ def delete_file():
         )
 
     print("Deleting path: {}".format(path))
-    result = pydatalab.mongo.flask_mongo.db.data.update_one(
-        {"sample_id": sample_id},
+    result = pydatalab.mongo.flask_mongo.db.items.update_one(
+        {"item_id": item_id},
         {"$pull": {"files": filename}},
         return_document=ReturnDocument.AFTER,
     )
@@ -164,7 +164,7 @@ def delete_file():
         return (
             jsonify(
                 status="error",
-                message=f"{sample_id} {filename} delete failed. Something went wrong with the db call. File not deleted.",
+                message=f"{item_id} {filename} delete failed. Something went wrong with the db call. File not deleted.",
                 output=result.raw_result,
             ),
             400,

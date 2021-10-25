@@ -10,7 +10,7 @@ import store from "@/store/index.js";
 import { API_URL } from "@/resources.js";
 // file-upload loaded
 
-export default function setupUppy(sample_id, trigger_selector, reactive_file_list) {
+export default function setupUppy(item_id, trigger_selector, reactive_file_list) {
   console.log("setupUppy called with: " + trigger_selector);
   var uppy = new Uppy();
   uppy
@@ -57,7 +57,7 @@ export default function setupUppy(sample_id, trigger_selector, reactive_file_lis
 
     uppy.setFileMeta(file.id, {
       size: file.size,
-      sample_id: sample_id,
+      item_id: item_id,
       replace_file: matching_file_id,
     });
   });
@@ -76,7 +76,7 @@ export default function setupUppy(sample_id, trigger_selector, reactive_file_lis
       console.log(response_body);
       if (!response_body.is_update) {
         store.commit("addFileToSample", {
-          sample_id: sample_id,
+          item_id: item_id,
           file_id: response_body.file_id,
         });
       }

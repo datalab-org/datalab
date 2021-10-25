@@ -2,11 +2,11 @@
   <div id="topScrollPoint"></div>
   <nav
     class="navbar navbar-expand sticky-top navbar-dark py-0 editor-navbar"
-    style="background-color: #0b6093"
+    :style="{ backgroundColor: navbarColor }"
   >
     <span class="navbar-brand" @click="scrollToID($event, 'topScrollPoint')"
-      >Flask-dl&nbsp;&nbsp;|&nbsp;&nbsp;
-      {{ sample_id }}
+      >{{ itemTypeEntry?.navbarName || "loading..." }}&nbsp;&nbsp;|&nbsp;&nbsp;
+      {{ item_id }}
     </span>
     <div class="navbar-nav">
       <a class="nav-item nav-link" href="/">Home</a>
@@ -29,22 +29,22 @@
           v-show="isMenuDropdownVisible"
         >
           <a
-            v-for="(blockKind, id) in blockKinds"
+            v-for="(blockType, id) in blockTypes"
             :key="id"
             class="dropdown-item"
             href="#"
             @click="newBlock($event, id)"
           >
-            {{ blockKind.description }}
+            {{ blockType.description }}
           </a>
         </div>
       </div>
     </div>
     <div class="navbar-nav ml-auto">
-      <span v-if="sample_data_loaded && !savedStatus" class="navbar-text unsaved-warning">
+      <span v-if="item_data_loaded && !savedStatus" class="navbar-text unsaved-warning">
         Unsaved changes
       </span>
-      <span v-if="sample_data_loaded" class="navbar-text mx-2"
+      <span v-if="item_data_loaded" class="navbar-text mx-2"
         ><i>Last saved: {{ lastModified }}</i></span
       >
       <font-awesome-icon
@@ -56,11 +56,11 @@
     </div>
   </nav>
 
-  <!-- The sample-specific information will be put in this slot: -->
-  <slot></slot>
+  <!-- Item-type header header information goes here -->
+  <component :is="itemTypeEntry?.itemInformationComponent" :item_id="item_id" />
 
-  <TableOfContents :display_order="sample_data.display_order" :blocks="blocks" />
-  <FileList :sample_id="sample_id" :file_ids="file_ids" :stored_files="stored_files" />
+  <TableOfContents :display_order="item_data.display_order" :blocks="blocks" />
+  <FileList :item_id="item_id" :file_ids="file_ids" :stored_files="stored_files" />
 
   <div class="container">
     <hr />
@@ -68,12 +68,12 @@
 
   <!-- Display the blocks -->
   <div class="container">
-    <div v-for="block_id in sample_data.display_order" :key="block_id">
-      <component :is="getBlockDisplayType(block_id)" :sample_id="sample_id" :block_id="block_id" />
+    <div v-for="block_id in item_data.display_order" :key="block_id">
+      <component :is="getBlockDisplayType(block_id)" :item_id="item_id" :block_id="block_id" />
     </div>
   </div>
 
-  <FileSelectModal :sample_id="sample_id" />
+  <FileSelectModal :item_id="item_id" />
 </template>
 
 <script>
@@ -84,31 +84,29 @@ import TableOfContents from "@/components/TableOfContents";
 import FileList from "@/components/FileList";
 import Modal from "@/components/Modal";
 import FileSelectModal from "@/components/FileSelectModal";
-import { getSampleData, addABlock, saveSample } from "@/server_fetch_utils";
+import { getItemData, addABlock, saveItem } from "@/server_fetch_utils";
 
 import setupUppy from "@/file_upload.js";
 
 import tinymce from "tinymce/tinymce";
 
-import { blockKinds } from "@/resources.js";
+import { blockTypes, itemTypes } from "@/resources.js";
 import NotImplementedBlock from "@/components/datablocks/NotImplementedBlock.vue";
 
 export default {
   data() {
     return {
-      sample_data_loaded: false,
+      item_id: this.$route.params.id,
+      item_data_loaded: false,
       isMenuDropdownVisible: false,
       selectedRemoteFiles: [],
       isLoadingRemoteTree: false,
       isLoadingRemoteFiles: false,
     };
   },
-  props: {
-    sample_id: String,
-  },
   methods: {
-    async newBlock(event, blockKind, index = null) {
-      var block_id = await addABlock(this.sample_id, blockKind, index);
+    async newBlock(event, blockType, index = null) {
+      var block_id = await addABlock(this.item_id, blockType, index);
       // close the dropdown scroll to the new block :)
       this.isMenuDropdownVisible = false;
       var new_block_el = document.getElementById(block_id);
@@ -123,23 +121,22 @@ export default {
       });
     },
     change_a_block(event, block_id) {
-      let sample_id = this.sample_id;
+      let item_id = this.item_id;
       let new_data = {
         block_id: 7,
         a_new_field: "foo bar",
       };
       console.log(new_data);
       this.$store.commit("updateBlockData", {
-        sample_id,
+        item_id,
         block_id,
         block_data: new_data,
       });
-      // this.$store.state.all_sample_data[sample_id]
     },
     getBlockDisplayType(block_id) {
       var type = this.blocks[block_id].blocktype;
-      if (type in blockKinds) {
-        return this.blockKinds[type].component;
+      if (type in blockTypes) {
+        return blockTypes[type].component;
       } else {
         return NotImplementedBlock;
       }
@@ -149,27 +146,36 @@ export default {
       // trigger the mce save so that they update the store with their content
       console.log("save sample clicked!");
       tinymce.editors.forEach((editor) => editor.save());
-      saveSample(this.sample_id);
+      saveItem(this.item_id);
     },
     async getSampleData() {
-      await getSampleData(this.sample_id);
-      this.sample_data_loaded = true;
+      await getItemData(this.item_id);
+      this.item_data_loaded = true;
     },
   },
   computed: {
-    sample_data() {
-      // console.log("hello, here is the sample data", this.$store.state.all_sample_data)
-      return this.$store.state.all_sample_data[this.sample_id] || {};
+    itemTypeEntry() {
+      var type = this.$store.state.all_item_data[this.item_id]?.type; // will be null if data not loaded yet
+      if (type in itemTypes) {
+        return itemTypes[type];
+      }
+      return null;
+    },
+    navbarColor() {
+      return this.itemTypeEntry?.navbarColor || "DarkGrey";
+    },
+    item_data() {
+      return this.$store.state.all_item_data[this.item_id] || {};
     },
     blocks() {
-      return this.sample_data.blocks_obj;
+      return this.item_data.blocks_obj;
     },
     savedStatus() {
-      return this.$store.state.saved_status[this.sample_id];
+      return this.$store.state.saved_status[this.item_id];
     },
     lastModified() {
-      // if (!this.sample_data.last_modified) { return "" }
-      const save_date = new Date(this.sample_data.last_modified);
+      // if (!this.item_data.last_modified) { return "" }
+      const save_date = new Date(this.item_data.last_modified);
       // const today = new Date()
       // check if today:
       // if (save_date.toDateString() == today.toDateString()) {
@@ -181,10 +187,10 @@ export default {
       });
     },
     files() {
-      return this.sample_data.files;
+      return this.item_data.files;
     },
     file_ids() {
-      return this.sample_data.file_ObjectIds;
+      return this.item_data.file_ObjectIds;
     },
     stored_files() {
       return this.$store.state.files;
@@ -201,9 +207,10 @@ export default {
     TableOfContents,
     FileSelectModal,
   },
+  beforeMount() {
+    this.blockTypes = blockTypes; // bind blockTypes as a NON-REACTIVE object to the this context so that it is accessible by the template.
+  },
   mounted() {
-    this.blockKinds = blockKinds; // bind blockKinds as a NON-REACTIVE object to the this context so that it is accessible by the template.
-
     // overwrite ctrl-s and cmd-s to save the page
     this._keyListener = function (e) {
       if (e.key === "s" && (e.ctrlKey || e.metaKey)) {
@@ -218,7 +225,7 @@ export default {
     // this.updateRemoteTree()
 
     // setup the uppy instsance
-    setupUppy(this.sample_id, "#uppy-trigger", this.stored_files);
+    setupUppy(this.item_id, "#uppy-trigger", this.stored_files);
   },
   beforeUnmount() {
     document.removeEventListener("keydown", this._keyListener);

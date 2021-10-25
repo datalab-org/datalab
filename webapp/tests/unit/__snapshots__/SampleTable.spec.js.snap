@@ -93,10 +93,29 @@ exports[`it renders correctly with some samples 1`] = `
           This is a test sample
         </td>
         <td>
-          In0.333WO3
+          <span>
+            
+            <span>
+              In
+              <sub>
+                0.333
+              </sub>
+            </span>
+            <span>
+              W
+              <!--v-if-->
+            </span>
+            <span>
+              O
+              <sub>
+                3
+              </sub>
+            </span>
+            
+          </span>
         </td>
         <td>
-          2021-02-17
+          2020-02-17
         </td>
         <td>
           6
@@ -123,7 +142,24 @@ exports[`it renders correctly with some samples 1`] = `
           in situ SQUID test
         </td>
         <td>
-          NaCoO2
+          <span>
+            
+            <span>
+              Na
+              <!--v-if-->
+            </span>
+            <span>
+              Co
+              <!--v-if-->
+            </span>
+            <span>
+              O
+              <sub>
+                2
+              </sub>
+            </span>
+            
+          </span>
         </td>
         <td>
           2021-02-19
@@ -152,12 +188,58 @@ exports[`it renders correctly with some samples 1`] = `
         <td>
           another in situ SQUID test
         </td>
-        <td />
+        <td>
+          <span>
+            
+            <span>
+              
+              <!--v-if-->
+            </span>
+            
+          </span>
+        </td>
         <td>
           2021-02-24
         </td>
         <td>
           1
+        </td>
+        <button
+          aria-label="delete"
+          class="close"
+          type="button"
+        >
+          <span
+            aria-hidden="true"
+          >
+            ×
+          </span>
+        </button>
+      </tr>
+      <tr
+        id="empty_test"
+      >
+        <td>
+          empty_test
+        </td>
+        <td>
+           
+        </td>
+        <td>
+          <span>
+            
+            <span>
+              
+              <!--v-if-->
+            </span>
+            
+          </span>
+        </td>
+        <td>
+          1954-01-01
+        </td>
+        <td>
+          0
         </td>
         <button
           aria-label="delete"

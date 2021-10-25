@@ -1,9 +1,14 @@
 <template>
+  <div id="nav">
+    <router-link to="/about">About</router-link> |
+    <router-link to="/samples">Samples</router-link> |
+    <router-link to="/starting-materials">Starting Materials</router-link>
+  </div>
   <div class="container">
     <div class="row">
       <div class="col-sm-8 mx-auto">
-        <h1>This is an about page</h1>
-        <h5>It doesn't do anything</h5>
+        <h2>About datalab</h2>
+        Datalab is a place to store experimental data and the connections between them.
         <!-- <tiny-mce-inline /> -->
       </div>
     </div>
