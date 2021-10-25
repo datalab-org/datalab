@@ -11,10 +11,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2.3.4
+      - uses: actions/checkout@v2
 
       - name: Set up Python 3.9
-        uses: actions/setup-python@v2.2.2
+        uses: actions/setup-python@v2
         with:
           python-version: 3.9
 
@@ -43,10 +43,10 @@ jobs:
         python-version: [3.8, 3.9]
 
     steps:
-      - uses: actions/checkout@v2.3.4
+      - uses: actions/checkout@v2
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2.2.2
+        uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -63,19 +63,19 @@ jobs:
 
       - name: Upload coverage to Codecov
         if: matrix.python-version == 3.8 && github.repository == 'the-grey-group/datalabvue'
-        uses: codecov/codecov-action@v2.0.2
+        uses: codecov/codecov-action@v2
 
   webapp:
     name: Test the webapp
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2.3.4
+      - uses: actions/checkout@v2
 
       - name: Set up Node
         uses: actions/setup-node@v2
         with:
-          node-version: "14"
+          node-version: "15.14"
 
       - name: Install web app
         working-directory: ./webapp
@@ -100,7 +100,9 @@ jobs:
 
       - name: Start Docker images
         run: |
-          docker-compose up -d
+          docker-compose up --abort-on-container-exit &
+          sleep 60
+          exit 0
 
       - name: Run end-to-end tests
         working-directory: ./webapp
