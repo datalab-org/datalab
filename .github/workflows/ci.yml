@@ -11,10 +11,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2.3.4
+      - uses: actions/checkout@v2
 
       - name: Set up Python 3.9
-        uses: actions/setup-python@v2.2.2
+        uses: actions/setup-python@v2
         with:
           python-version: 3.9
 
@@ -43,10 +43,10 @@ jobs:
         python-version: [3.8, 3.9]
 
     steps:
-      - uses: actions/checkout@v2.3.4
+      - uses: actions/checkout@v2
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2.2.2
+        uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -63,27 +63,23 @@ jobs:
 
       - name: Upload coverage to Codecov
         if: matrix.python-version == 3.8 && github.repository == 'the-grey-group/datalabvue'
-        uses: codecov/codecov-action@v2.0.2
+        uses: codecov/codecov-action@v2
 
   webapp:
     name: Test the webapp
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2.3.4
+      - uses: actions/checkout@v2
 
       - name: Set up Node
         uses: actions/setup-node@v2
         with:
-          node-version: "14"
+          node-version: "15.14"
 
       - name: Install web app
         working-directory: ./webapp
         run: yarn install
-
-      - name: Lint web app
-        working-directory: ./webapp
-        run: yarn lint --no-fix --max-warnings 0
 
       - name: Unit and Component test web app
         working-directory: ./webapp
@@ -97,7 +93,7 @@ jobs:
         run: docker-compose build app
 
       - name: Build the Docker server image
-        run: docker-compose build server
+        run: docker-compose build api
 
       - name: Build the Docker mongo image
         run: docker-compose build mongo
@@ -105,11 +101,9 @@ jobs:
       - name: Start Docker images
         run: |
           docker-compose up --abort-on-container-exit &
-          # If there are no build errors after 1 minute, then exit successfully.
-          # In future, some additional tests will run here instead.
           sleep 60
           exit 0
 
       - name: Run end-to-end tests
         working-directory: ./webapp
-        run: yarn test:e2e  --headless --url http://localhost:8080
+        run: yarn test:e2e  --headless --url http://localhost:8081

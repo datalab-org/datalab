@@ -25,6 +25,7 @@ pytest-cov = "*"
 pytest-dependency = "*"
 pre-commit = "*"
 mongomock = "*"
+gunicorn = "*"
 
 [requires]
 python_version = "3"
