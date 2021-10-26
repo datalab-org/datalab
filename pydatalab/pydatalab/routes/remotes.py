@@ -23,7 +23,9 @@ def list_remote_directories_cached():
         for d in all_directory_structures
         if d["last_updated"]
     ]
-    if len(last_update_datetimes):
+
+    seconds_since_last_update = None
+    if last_update_datetimes:
         print("Last updates from caches:")
         print(last_update_datetimes)
         seconds_since_last_update = (
