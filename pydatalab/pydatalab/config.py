@@ -8,7 +8,8 @@ class ServerConfig(BaseSettings):
     SECRET_KEY: str = Field("dummy key", description="The secret key to use for Flask.")
 
     MONGO_URI: str = Field(
-        "mongodb://localhost:27017/datalabvue", description="The URI for the underlying MongoDB."
+        "mongodb://localhost:27017/datalabvue",
+        description="The URI for the underlying MongoDB.",
     )
 
     FILE_DIRECTORY: Union[str, Path] = Field(
@@ -16,7 +17,9 @@ class ServerConfig(BaseSettings):
         description="The path under which to place stored files uploaded to the server.",
     )
 
-    DEBUG: bool = Field(False, description="Whether to enable debug-level logging in the server.")
+    DEBUG: bool = Field(
+        True, description="Whether to enable debug-level logging in the server."
+    )
 
     class Config:
         env_prefix = "pydatalab_"
