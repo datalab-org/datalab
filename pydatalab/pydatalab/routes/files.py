@@ -13,8 +13,6 @@ from pydatalab.config import CONFIG
 
 def get_file(file_id, filename):
     path = os.path.join(CONFIG.FILE_DIRECTORY, file_id)
-
-    print("retrieving file: {} from {}".format(filename, path))
     return send_from_directory(path, filename)
 
 
@@ -22,9 +20,6 @@ def upload():
     """method to upload files to the server
     todo: think more about security, size limits, and about nested folders
     """
-    # print("uploaded files:")
-    # print(request.files)
-    # print(request.form)
     if len(request.files) == 0:
         return jsonify(error="No file in request"), 400
     if "item_id" not in request.form:
@@ -38,7 +33,9 @@ def upload():
             filekey
         ]  # just a weird thing about the request that comes from uppy. The key is "files[]"
         if is_update:
-            file_information = file_utils.update_uploaded_file(file, ObjectId(replace_file_id))
+            file_information = file_utils.update_uploaded_file(
+                file, ObjectId(replace_file_id)
+            )
         else:
             file_information = file_utils.save_uploaded_file(file, item_ids=[item_id])
 
@@ -59,7 +56,6 @@ upload.methods = ("POST",)  # type: ignore
 
 
 def add_remote_file_to_sample():
-    print("add_remote_file_to_sample called")
     request_json = request.get_json()
     item_id = request_json["item_id"]
     file_entry = request_json["file_entry"]
@@ -88,8 +84,6 @@ def delete_file_from_sample():
 
     item_id = request_json["item_id"]
     file_id = ObjectId(request_json["file_id"])
-    print(f"delete_file_from_sample: sample: {item_id} file: {file_id}")
-    print("deleting file from sample")
     result = pydatalab.mongo.flask_mongo.db.items.update_one(
         {"item_id": item_id}, {"$pull": {"file_ObjectIds": file_id}}
     )
@@ -102,7 +96,6 @@ def delete_file_from_sample():
             ),
             400,
         )
-    print("deleting sample from file")
     updated_file_entry = pydatalab.mongo.flask_mongo.db.files.find_one_and_update(
         {"_id": file_id},
         {"$pull": {"item_ids": item_id}},
@@ -154,7 +147,6 @@ def delete_file():
             400,
         )
 
-    print("Deleting path: {}".format(path))
     result = pydatalab.mongo.flask_mongo.db.items.update_one(
         {"item_id": item_id},
         {"$pull": {"files": filename}},
@@ -169,8 +161,6 @@ def delete_file():
             ),
             400,
         )
-    print(f"removing file: {path}")
-    # import pdb; pdb.set_trace()
     os.remove(path)
 
     return jsonify({"status": "success"}), 200

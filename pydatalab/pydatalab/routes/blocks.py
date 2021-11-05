@@ -16,7 +16,6 @@ def add_data_block():
     item_id = request_json["item_id"]
     insert_index = request_json["index"]
 
-    print(f"Adding a block of type: {block_type} to items: {item_id}")
     if block_type not in BLOCK_TYPES:
         return jsonify(status="error", message="Invalid block type"), 400
 
@@ -42,19 +41,19 @@ def add_data_block():
         },
     )
 
-    print(result.raw_result)
     if result.modified_count < 1:
         return (
             jsonify(
                 status="error",
-                message="Update failed. The item_id probably incorrect: {}".format(item_id),
+                message="Update failed. The {item_id=} is probably incorrect.",
             ),
             400,
         )
 
     # get the new display_order:
-    display_order_result = flask_mongo.db.items.find_one({"item_id": item_id}, {"display_order": 1})
-    print("new document: {}".format(display_order_result))
+    display_order_result = flask_mongo.db.items.find_one(
+        {"item_id": item_id}, {"display_order": 1}
+    )
 
     return jsonify(
         status="success",
@@ -73,7 +72,6 @@ def update_block():
     plot
     """
     request_json = request.get_json()
-    print("update_block called with : " + str(request_json)[:1000])
     block_data = request_json["block_data"]
     blocktype = block_data["blocktype"]
 
@@ -93,7 +91,6 @@ def delete_block():
     item_id = request_json["item_id"]
     block_id = request_json["block_id"]
 
-    # print(update)
     result = flask_mongo.db.items.update_one(
         {"item_id": item_id},
         {
@@ -104,10 +101,6 @@ def delete_block():
             "$unset": {f"blocks_obj.{block_id}": ""},
         },
     )
-
-    print("Removing block: {} , from sample: {}".format(block_id, item_id))
-    print("result:")
-    print(result.raw_result)
 
     if result.modified_count < 1:
         return (

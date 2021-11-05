@@ -4,6 +4,7 @@ from typing import Callable, Dict
 from flask import jsonify
 
 from pydatalab import remote_filesystems
+from pydatalab.logger import LOGGER
 
 
 def list_remote_directories():
@@ -26,8 +27,7 @@ def list_remote_directories_cached():
 
     seconds_since_last_update = None
     if last_update_datetimes:
-        print("Last updates from caches:")
-        print(last_update_datetimes)
+        LOGGER.debug("Last update from cache: %s", last_update_datetimes)
         seconds_since_last_update = (
             datetime.datetime.now() - min(last_update_datetimes)
         ).total_seconds()
@@ -37,7 +37,8 @@ def list_remote_directories_cached():
             {
                 "cached_dir_structures": all_directory_structures,
                 "seconds_since_last_update": seconds_since_last_update,
-                "ncached_not_found": len(all_directory_structures) - len(last_update_datetimes),
+                "ncached_not_found": len(all_directory_structures)
+                - len(last_update_datetimes),
             }
         ),
         200,

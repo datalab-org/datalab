@@ -8,6 +8,7 @@ from werkzeug.utils import secure_filename
 
 import pydatalab.mongo
 from pydatalab.config import CONFIG
+from pydatalab.logger import LOGGER
 from pydatalab.models import File
 from pydatalab.resources import DIRECTORIES_DICT
 
@@ -16,7 +17,7 @@ FILE_DIRECTORY = CONFIG.FILE_DIRECTORY
 
 def get_file_info_by_id(file_id, update_if_live=True):
     """file_id can be either the string representation or the ObjectId() object. Returns the file information dictionary"""
-    print(f"getting file for file_id: {file_id}")
+    LOGGER.debug("getting file for file_id: %s", file_id)
     file_collection = pydatalab.mongo.flask_mongo.db.files
     file_id = ObjectId(file_id)
     file_info = file_collection.find_one({"_id": file_id})
@@ -32,19 +33,24 @@ def get_file_info_by_id(file_id, update_if_live=True):
         try:
             stat_results = os.stat(full_remote_path)
         except FileNotFoundError:
-            print(
+            LOGGER.debug(
                 "when trying to check if live file needs to be updated, could not access remote file"
             )
             file_info["live_update_error"] = "Could not reach remote server to update"
             return file_info
 
-        current_timestamp_on_server = datetime.datetime.fromtimestamp(stat_results.st_mtime)
-        print(
-            f"checking if update is necessary. Cached timestamp: {cached_timestamp}. Current timestamp: {current_timestamp_on_server}."
+        current_timestamp_on_server = datetime.datetime.fromtimestamp(
+            stat_results.st_mtime
         )
-        print(f"\tDifference: {current_timestamp_on_server - cached_timestamp} seconds")
+        LOGGER.debug(
+            "checking if update is necessary. Cached timestamp: %s. Current timestamp: %s.",
+            cached_timestamp,
+            current_timestamp_on_server,
+        )
+        LOGGER.debug(
+            "\tDifference: %s seconds", current_timestamp_on_server - cached_timestamp
+        )
         if current_timestamp_on_server > cached_timestamp:
-            print("updating file")
             shutil.copy(full_remote_path, file_info.location)
             updated_file_info = file_collection.find_one_and_update(
                 {"_id": file_id},
@@ -100,7 +106,9 @@ def update_uploaded_file(file, file_id, last_modified=None, size_bytes=None):
     return ret
 
 
-def save_uploaded_file(file, item_ids=None, block_ids=None, last_modified=None, size_bytes=None):
+def save_uploaded_file(
+    file, item_ids=None, block_ids=None, last_modified=None, size_bytes=None
+):
     """file is a file object from a flask request.
     last_modified should be an isodate format. if last_modified is None, the current time will be inserted"""
     sample_collection = pydatalab.mongo.flask_mongo.db.items
@@ -147,7 +155,9 @@ def save_uploaded_file(file, item_ids=None, block_ids=None, last_modified=None, 
 
     result = file_collection.insert_one(new_file_document.dict())
     if not result.acknowledged:
-        raise IOError(f"db operation failed when trying to insert new file. Result: {result}")
+        raise IOError(
+            f"db operation failed when trying to insert new file. Result: {result}"
+        )
 
     inserted_id = result.inserted_id
 
@@ -195,7 +205,9 @@ def add_file_from_remote_directory(file_entry, item_id, block_ids=None):
 
     # generate the remote url
     remote_toplevel_path = DIRECTORIES_DICT[file_entry["toplevel_name"]]["path"]
-    remote_path = os.path.join(file_entry["relative_path"].lstrip("/"), file_entry["name"])
+    remote_path = os.path.join(
+        file_entry["relative_path"].lstrip("/"), file_entry["name"]
+    )
     full_remote_path = os.path.join(remote_toplevel_path, remote_path)
 
     # check that the path is valid and get the last modified time from the server
@@ -228,7 +240,9 @@ def add_file_from_remote_directory(file_entry, item_id, block_ids=None):
 
     result = file_collection.insert_one(new_file_document.dict())
     if not result.acknowledged:
-        raise IOError(f"db operation failed when trying to insert new file. Result: {result}")
+        raise IOError(
+            f"db operation failed when trying to insert new file. Result: {result}"
+        )
 
     inserted_id = result.inserted_id
 

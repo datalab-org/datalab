@@ -9,11 +9,14 @@ from navani import echem as ec
 from pydatalab import bokeh_plots
 from pydatalab.blocks.blocks import DataBlock
 from pydatalab.file_utils import get_file_info_by_id
+from pydatalab.logger import LOGGER
 from pydatalab.simple_bokeh_plot import mytheme
 from pydatalab.utils import reduce_df_size
 
 
-def reduce_echem_cycle_sampling(df: pd.DataFrame, num_samples: int = 5000) -> pd.DataFrame:
+def reduce_echem_cycle_sampling(
+    df: pd.DataFrame, num_samples: int = 5000
+) -> pd.DataFrame:
     """Reduce number of data points per cycle.
 
     Parameters:
@@ -131,7 +134,9 @@ def filter_df_by_cycle_index(
         return df
 
     try:
-        half_cycles = [i for item in cycle_list for i in [(2 * int(item)) - 1, 2 * int(item)]]
+        half_cycles = [
+            i for item in cycle_list for i in [(2 * int(item)) - 1, 2 * int(item)]
+        ]
     except ValueError as exc:
         raise ValueError(
             f"Unable to parse `cycle_list` as integers: {cycle_list}. Error: {exc}"
@@ -184,15 +189,15 @@ class CycleBlock(DataBlock):
         )
 
         if "file_id" not in self.data:
-            print("No file_id given")
-            return
+            raise RuntimeError("No file_id given")
 
         derivative_modes = (None, "dQ/dV", "dV/dQ")
 
         if self.data["derivative_mode"] not in derivative_modes:
-            print(
-                f"Invalid derivative_mode provided: {self.data['derivative_mode']!r}. "
-                f"Expected one of {derivative_modes}. Falling back to `None`."
+            LOGGER.warning(
+                "Invalid derivative_mode provided: %s. Expected one of %s. Falling back to `None`.",
+                self.data["derivative_mode"],
+                derivative_modes,
             )
             self.data["derivative_mode"] = None
 
@@ -227,8 +232,9 @@ class CycleBlock(DataBlock):
         ext = os.path.splitext(filename)[-1].lower()
 
         if ext not in self.accepted_file_extensions:
-            print("Unrecognized filetype")
-            return
+            raise RuntimeError(
+                f"Unrecognized filetype {ext}, must be one of {self.accepted_file_extensions}"
+            )
 
         if file_id in self.cache.get("parsed_file", {}):
             raw_df = self.cache["parsed_file"][file_id]
@@ -263,7 +269,9 @@ class CycleBlock(DataBlock):
         if file_id not in self.cache["bokeh_plot_data"]:
             self.cache["bokeh_plot_data"][file_id] = {}
 
-        self.cache["bokeh_plot_data"][file_id][mode] = bokeh.embed.json_item(layout, theme=mytheme)
+        self.cache["bokeh_plot_data"][file_id][mode] = bokeh.embed.json_item(
+            layout, theme=mytheme
+        )
         self.data["bokeh_plot_data"] = self.cache["bokeh_plot_data"][file_id][mode]
         return
 
