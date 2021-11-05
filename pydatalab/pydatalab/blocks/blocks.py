@@ -153,16 +153,18 @@ class XRDBlock(DataBlock):
 
     def generate_xrd_plot(self):
         if "file_id" not in self.data:
-            raise RuntimeError("XRDBlock.generate_xrd_plot(): No file set in the DataBlock")
+            LOGGER.warning("XRDBlock.generate_xrd_plot(): No file set in the DataBlock")
+            return
         file_info = get_file_info_by_id(self.data["file_id"], update_if_live=True)
 
         filename = file_info["name"]
         ext = os.path.splitext(filename)[-1].lower()
 
         if ext not in [".xrdml", ".xy"]:
-            raise RuntimeError(
+            LOGGER.warning(
                 "XRDBlock.generate_xrd_plot(): Unsupported file extension (must be .xrdml or .xy)"
             )
+            return
 
         LOGGER.debug(f"The XRD file to plot is found at: {file_info['location']}")
         if ext == ".xrdml":

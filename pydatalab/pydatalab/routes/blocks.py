@@ -45,7 +45,7 @@ def add_data_block():
         return (
             jsonify(
                 status="error",
-                message="Update failed. The {item_id=} is probably incorrect.",
+                message=f"Update failed. {item_id=} is probably incorrect.",
             ),
             400,
         )

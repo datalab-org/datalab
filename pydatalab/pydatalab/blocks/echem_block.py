@@ -185,7 +185,8 @@ class CycleBlock(DataBlock):
         )
 
         if "file_id" not in self.data:
-            raise RuntimeError("No file_id given")
+            LOGGER.warning("No file_id given")
+            return
 
         derivative_modes = (None, "dQ/dV", "dV/dQ")
 
@@ -228,9 +229,10 @@ class CycleBlock(DataBlock):
         ext = os.path.splitext(filename)[-1].lower()
 
         if ext not in self.accepted_file_extensions:
-            raise RuntimeError(
+            LOGGER.warning(
                 f"Unrecognized filetype {ext}, must be one of {self.accepted_file_extensions}"
             )
+            return
 
         if file_id in self.cache.get("parsed_file", {}):
             raw_df = self.cache["parsed_file"][file_id]
