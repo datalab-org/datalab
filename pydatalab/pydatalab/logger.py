@@ -1,5 +1,6 @@
 import logging
-import sys
+from functools import wraps
+from typing import Callable
 
 
 def setup_log():
@@ -15,15 +16,34 @@ def setup_log():
     logging.basicConfig()
     logger = logging.getLogger("pydatalab")
     log_level = logging.INFO
-    stdout_handler = logging.StreamHandler(sys.stdout)
     if CONFIG.DEBUG:
         log_level = logging.DEBUG
     logger.setLevel(log_level)
-    stdout_handler.setLevel(log_level)
-    stdout_handler.setFormatter("%(asctime)s - %(name)s | %(levelname)8s: %(message)s")
-    logger.addHandler(stdout_handler)
     return logger
 
 
 """The main logging object to be imported from elsewhere in the package."""
 LOGGER = setup_log()
+
+
+def logged_route(fn: Callable):
+    """A decorator that enables logging of inputs and
+    outputs when debug mode is enabled.
+
+    """
+
+    @wraps(fn)
+    def wrapped_logged_route(*args, **kwargs):
+        from flask import request
+
+        LOGGER.debug(
+            "Calling %s with request: %s, JSON payload: %s",
+            fn.__name__,
+            request,
+            request.get_json(),
+        )
+        result = fn(*args, **kwargs)
+        LOGGER.debug("%s returned %s", fn.__name__, result)
+        return result
+
+    return wrapped_logged_route

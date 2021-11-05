@@ -5,6 +5,7 @@ from flask_cors import CORS
 
 import pydatalab.mongo
 from pydatalab.config import CONFIG
+from pydatalab.logger import logged_route
 from pydatalab.utils import CustomJSONEncoder
 
 
@@ -46,7 +47,7 @@ def register_endpoints(app):
     from pydatalab.routes import ENDPOINTS  # pylint: disable=import-outside-toplevel
 
     for rule, func in ENDPOINTS.items():
-        app.add_url_rule(rule, func.__name__, func)
+        app.add_url_rule(rule, func.__name__, logged_route(func))
 
 
 if __name__ == "__main__":
