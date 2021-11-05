@@ -17,9 +17,7 @@ class ServerConfig(BaseSettings):
         description="The path under which to place stored files uploaded to the server.",
     )
 
-    DEBUG: bool = Field(
-        True, description="Whether to enable debug-level logging in the server."
-    )
+    DEBUG: bool = Field(True, description="Whether to enable debug-level logging in the server.")
 
     class Config:
         env_prefix = "pydatalab_"

@@ -58,23 +58,17 @@ def save_directory_structure_to_db(directory_name, dir_structure):
         },
         upsert=True,
     )
-    LOGGER.debug(
-        "Result of saving directory structure to the db: %s", result.raw_result
-    )
+    LOGGER.debug("Result of saving directory structure to the db: %s", result.raw_result)
 
 
 def get_cached_directory_structure_from_db(directory_name):
-    return pydatalab.mongo.flask_mongo.db.remoteFilesystems.find_one(
-        {"name": directory_name}
-    )
+    return pydatalab.mongo.flask_mongo.db.remoteFilesystems.find_one({"name": directory_name})
 
 
 def get_all_directory_structures(directories=DIRECTORIES):
     all_directory_structures = []
     for directory in directories:
-        LOGGER.debug(
-            "Retrieving remote directory %s at %s", directory["name"], directory["path"]
-        )
+        LOGGER.debug("Retrieving remote directory %s at %s", directory["name"], directory["path"])
         try:
             dir_structure = get_directory_structure_json(directory["path"])
             save_directory_structure_to_db(directory["name"], dir_structure)
@@ -96,10 +90,8 @@ def get_all_directory_structures(directories=DIRECTORIES):
 def get_cached_directory_structures(directories=DIRECTORIES):
     all_directory_structures = []
     for directory in directories:
-        wrapped_dir_structure = (
-            pydatalab.mongo.flask_mongo.db.remoteFilesystems.find_one(
-                {"name": directory["name"]}
-            )
+        wrapped_dir_structure = pydatalab.mongo.flask_mongo.db.remoteFilesystems.find_one(
+            {"name": directory["name"]}
         )
         if not wrapped_dir_structure:
             wrapped_dir_structure = {

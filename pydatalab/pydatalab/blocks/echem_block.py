@@ -14,9 +14,7 @@ from pydatalab.simple_bokeh_plot import mytheme
 from pydatalab.utils import reduce_df_size
 
 
-def reduce_echem_cycle_sampling(
-    df: pd.DataFrame, num_samples: int = 5000
-) -> pd.DataFrame:
+def reduce_echem_cycle_sampling(df: pd.DataFrame, num_samples: int = 5000) -> pd.DataFrame:
     """Reduce number of data points per cycle.
 
     Parameters:
@@ -134,9 +132,7 @@ def filter_df_by_cycle_index(
         return df
 
     try:
-        half_cycles = [
-            i for item in cycle_list for i in [(2 * int(item)) - 1, 2 * int(item)]
-        ]
+        half_cycles = [i for item in cycle_list for i in [(2 * int(item)) - 1, 2 * int(item)]]
     except ValueError as exc:
         raise ValueError(
             f"Unable to parse `cycle_list` as integers: {cycle_list}. Error: {exc}"
@@ -269,9 +265,7 @@ class CycleBlock(DataBlock):
         if file_id not in self.cache["bokeh_plot_data"]:
             self.cache["bokeh_plot_data"][file_id] = {}
 
-        self.cache["bokeh_plot_data"][file_id][mode] = bokeh.embed.json_item(
-            layout, theme=mytheme
-        )
+        self.cache["bokeh_plot_data"][file_id][mode] = bokeh.embed.json_item(layout, theme=mytheme)
         self.data["bokeh_plot_data"] = self.cache["bokeh_plot_data"][file_id][mode]
         return
 

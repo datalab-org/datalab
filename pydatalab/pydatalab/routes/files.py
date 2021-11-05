@@ -33,9 +33,7 @@ def upload():
             filekey
         ]  # just a weird thing about the request that comes from uppy. The key is "files[]"
         if is_update:
-            file_information = file_utils.update_uploaded_file(
-                file, ObjectId(replace_file_id)
-            )
+            file_information = file_utils.update_uploaded_file(file, ObjectId(replace_file_id))
         else:
             file_information = file_utils.save_uploaded_file(file, item_ids=[item_id])
 

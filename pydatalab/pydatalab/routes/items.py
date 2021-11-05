@@ -41,9 +41,7 @@ def dereference_files(file_ids: List[Union[str, ObjectId]]) -> Dict[str, Dict]:
     """
     results = {
         str(f["_id"]): f
-        for f in flask_mongo.db.files.find(
-            {"_id": {"$in": [ObjectId(_id) for _id in file_ids]}}
-        )
+        for f in flask_mongo.db.files.find({"_id": {"$in": [ObjectId(_id) for _id in file_ids]}})
     }
     if len(results) != len(file_ids):
         raise RuntimeError(
@@ -334,9 +332,7 @@ def save_item():
             400,
         )
 
-    result = flask_mongo.db.items.update_one(
-        {"item_id": item_id}, {"$set": updated_data}
-    )
+    result = flask_mongo.db.items.update_one({"item_id": item_id}, {"$set": updated_data})
 
     if result.matched_count != 1:
         return (

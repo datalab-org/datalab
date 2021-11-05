@@ -51,9 +51,7 @@ def add_data_block():
         )
 
     # get the new display_order:
-    display_order_result = flask_mongo.db.items.find_one(
-        {"item_id": item_id}, {"display_order": 1}
-    )
+    display_order_result = flask_mongo.db.items.find_one({"item_id": item_id}, {"display_order": 1})
 
     return jsonify(
         status="success",

@@ -37,8 +37,7 @@ def list_remote_directories_cached():
             {
                 "cached_dir_structures": all_directory_structures,
                 "seconds_since_last_update": seconds_since_last_update,
-                "ncached_not_found": len(all_directory_structures)
-                - len(last_update_datetimes),
+                "ncached_not_found": len(all_directory_structures) - len(last_update_datetimes),
             }
         ),
         200,

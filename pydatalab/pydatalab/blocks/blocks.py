@@ -79,9 +79,7 @@ class DataBlock:
         self.data.update(
             dictionary
         )  # this could overwrite blocktype and block_id. I think that's reasonable... maybe
-        LOGGER.debug(
-            "Initialised block %s for item ID %s.", self.__class__.__name__, item_id
-        )
+        LOGGER.debug("Initialised block %s for item ID %s.", self.__class__.__name__, item_id)
 
     def to_db(self):
         """returns a dictionary with the data for this
@@ -155,9 +153,7 @@ class XRDBlock(DataBlock):
 
     def generate_xrd_plot(self):
         if "file_id" not in self.data:
-            raise RuntimeError(
-                "XRDBlock.generate_xrd_plot(): No file set in the DataBlock"
-            )
+            raise RuntimeError("XRDBlock.generate_xrd_plot(): No file set in the DataBlock")
         file_info = get_file_info_by_id(self.data["file_id"], update_if_live=True)
 
         filename = file_info["name"]

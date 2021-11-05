@@ -39,17 +39,13 @@ def get_file_info_by_id(file_id, update_if_live=True):
             file_info["live_update_error"] = "Could not reach remote server to update"
             return file_info
 
-        current_timestamp_on_server = datetime.datetime.fromtimestamp(
-            stat_results.st_mtime
-        )
+        current_timestamp_on_server = datetime.datetime.fromtimestamp(stat_results.st_mtime)
         LOGGER.debug(
             "checking if update is necessary. Cached timestamp: %s. Current timestamp: %s.",
             cached_timestamp,
             current_timestamp_on_server,
         )
-        LOGGER.debug(
-            "\tDifference: %s seconds", current_timestamp_on_server - cached_timestamp
-        )
+        LOGGER.debug("\tDifference: %s seconds", current_timestamp_on_server - cached_timestamp)
         if current_timestamp_on_server > cached_timestamp:
             shutil.copy(full_remote_path, file_info.location)
             updated_file_info = file_collection.find_one_and_update(
@@ -106,9 +102,7 @@ def update_uploaded_file(file, file_id, last_modified=None, size_bytes=None):
     return ret
 
 
-def save_uploaded_file(
-    file, item_ids=None, block_ids=None, last_modified=None, size_bytes=None
-):
+def save_uploaded_file(file, item_ids=None, block_ids=None, last_modified=None, size_bytes=None):
     """file is a file object from a flask request.
     last_modified should be an isodate format. if last_modified is None, the current time will be inserted"""
     sample_collection = pydatalab.mongo.flask_mongo.db.items
@@ -155,9 +149,7 @@ def save_uploaded_file(
 
     result = file_collection.insert_one(new_file_document.dict())
     if not result.acknowledged:
-        raise IOError(
-            f"db operation failed when trying to insert new file. Result: {result}"
-        )
+        raise IOError(f"db operation failed when trying to insert new file. Result: {result}")
 
     inserted_id = result.inserted_id
 
@@ -205,9 +197,7 @@ def add_file_from_remote_directory(file_entry, item_id, block_ids=None):
 
     # generate the remote url
     remote_toplevel_path = DIRECTORIES_DICT[file_entry["toplevel_name"]]["path"]
-    remote_path = os.path.join(
-        file_entry["relative_path"].lstrip("/"), file_entry["name"]
-    )
+    remote_path = os.path.join(file_entry["relative_path"].lstrip("/"), file_entry["name"])
     full_remote_path = os.path.join(remote_toplevel_path, remote_path)
 
     # check that the path is valid and get the last modified time from the server
@@ -240,9 +230,7 @@ def add_file_from_remote_directory(file_entry, item_id, block_ids=None):
 
     result = file_collection.insert_one(new_file_document.dict())
     if not result.acknowledged:
-        raise IOError(
-            f"db operation failed when trying to insert new file. Result: {result}"
-        )
+        raise IOError(f"db operation failed when trying to insert new file. Result: {result}")
 
     inserted_id = result.inserted_id
 
