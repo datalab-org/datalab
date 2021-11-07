@@ -56,10 +56,11 @@
     </div>
   </nav>
 
-  <!-- Item-type header header information goes here -->
-  <component :is="itemTypeEntry?.itemInformationComponent" :item_id="item_id" />
+  <!-- Item-type header information goes here -->
+  <component :is="itemTypeEntry?.itemInformationComponent" :item_id="item_id">
+    <TableOfContents :display_order="item_data.display_order" :blocks="blocks" />
+  </component>
 
-  <TableOfContents :display_order="item_data.display_order" :blocks="blocks" />
   <FileList :item_id="item_id" :file_ids="file_ids" :stored_files="stored_files" />
 
   <div class="container">
@@ -68,9 +69,11 @@
 
   <!-- Display the blocks -->
   <div class="container">
+    <!-- <transition-group name="block-list" tag="div"> -->
     <div v-for="block_id in item_data.display_order" :key="block_id">
       <component :is="getBlockDisplayType(block_id)" :item_id="item_id" :block_id="block_id" />
     </div>
+    <!-- </transition-group> -->
   </div>
 
   <FileSelectModal :item_id="item_id" />
@@ -107,7 +110,7 @@ export default {
   methods: {
     async newBlock(event, blockType, index = null) {
       var block_id = await addABlock(this.item_id, blockType, index);
-      // close the dropdown scroll to the new block :)
+      // close the dropdown and scroll to the new block :)
       this.isMenuDropdownVisible = false;
       var new_block_el = document.getElementById(block_id);
       new_block_el.scrollIntoView({
@@ -278,5 +281,9 @@ export default {
 
 .navbar-brand {
   cursor: pointer;
+}
+
+.block-list-move {
+  transition: transform 0.6s ease;
 }
 </style>
