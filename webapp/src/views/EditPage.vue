@@ -32,7 +32,6 @@
             v-for="(blockType, id) in blockTypes"
             :key="id"
             class="dropdown-item"
-            href="#"
             @click="newBlock($event, id)"
           >
             {{ blockType.description }}
@@ -69,11 +68,11 @@
 
   <!-- Display the blocks -->
   <div class="container">
-    <!-- <transition-group name="block-list" tag="div"> -->
-    <div v-for="block_id in item_data.display_order" :key="block_id">
-      <component :is="getBlockDisplayType(block_id)" :item_id="item_id" :block_id="block_id" />
-    </div>
-    <!-- </transition-group> -->
+    <transition-group name="block-list" tag="div">
+      <div v-for="block_id in item_data.display_order" :key="block_id">
+        <component :is="getBlockDisplayType(block_id)" :item_id="item_id" :block_id="block_id" />
+      </div>
+    </transition-group>
   </div>
 
   <FileSelectModal :item_id="item_id" />
@@ -110,7 +109,7 @@ export default {
   methods: {
     async newBlock(event, blockType, index = null) {
       var block_id = await addABlock(this.item_id, blockType, index);
-      // close the dropdown and scroll to the new block :)
+      // close the dropdown and scroll to the new block
       this.isMenuDropdownVisible = false;
       var new_block_el = document.getElementById(block_id);
       new_block_el.scrollIntoView({
@@ -273,17 +272,35 @@ export default {
   width: 8rem;
 }
 
-.delete-file-button {
-  padding-right: 0.5rem;
-  color: gray;
-  cursor: pointer;
-}
-
 .navbar-brand {
   cursor: pointer;
 }
 
-.block-list-move {
-  transition: transform 0.6s ease;
+.block-list-move:not(.block-list-leave-active) {
+  transition: all 0.6s ease;
+}
+
+.block-list-enter-from {
+  opacity: 0;
+  transform: translateX(-100px);
+}
+.block-list-enter-active {
+  transition: all 0.6s ease;
+}
+
+.block-list-leave-to {
+  opacity: 0;
+}
+.block-list-leave-active {
+  transition: opacity 0.4s ease;
+}
+
+.block-list-leave-to {
+  opacity: 0;
+}
+
+.block-list-leave-active {
+  position: absolute;
+  width: 90%;
 }
 </style>

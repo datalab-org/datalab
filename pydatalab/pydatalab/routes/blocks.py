@@ -55,10 +55,12 @@ def add_data_block():
     # get the new display_order:
     display_order_result = flask_mongo.db.items.find_one({"item_id": item_id}, {"display_order": 1})
     print("new document: {}".format(display_order_result))
-
     return jsonify(
         status="success",
         new_block_obj=block.to_web(),
+        new_block_insert_index=insert_index
+        if insert_index
+        else len(display_order_result["display_order"]) - 1,
         new_display_order=display_order_result["display_order"],
     )
 

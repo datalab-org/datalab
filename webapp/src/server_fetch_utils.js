@@ -172,11 +172,10 @@ export function addABlock(item_id, block_type, index = null) {
     index: index,
   })
     .then(function (response_json) {
-      // The payload could probably just be response_json instead of making a new object...
       store.commit("addABlock", {
         item_id: item_id,
         new_block_obj: response_json.new_block_obj,
-        new_display_order: response_json.new_display_order,
+        new_block_insert_index: response_json.new_block_insert_index,
       });
       return response_json.new_block_obj.block_id;
     })
