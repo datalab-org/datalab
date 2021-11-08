@@ -8,6 +8,7 @@ from werkzeug.utils import secure_filename
 
 import pydatalab.mongo
 from pydatalab.config import CONFIG
+from pydatalab.logger import LOGGER
 from pydatalab.models import File
 from pydatalab.resources import DIRECTORIES_DICT
 
@@ -16,7 +17,7 @@ FILE_DIRECTORY = CONFIG.FILE_DIRECTORY
 
 def get_file_info_by_id(file_id, update_if_live=True):
     """file_id can be either the string representation or the ObjectId() object. Returns the file information dictionary"""
-    print(f"getting file for file_id: {file_id}")
+    LOGGER.debug("getting file for file_id: %s", file_id)
     file_collection = pydatalab.mongo.flask_mongo.db.files
     file_id = ObjectId(file_id)
     file_info = file_collection.find_one({"_id": file_id})
@@ -32,19 +33,20 @@ def get_file_info_by_id(file_id, update_if_live=True):
         try:
             stat_results = os.stat(full_remote_path)
         except FileNotFoundError:
-            print(
+            LOGGER.debug(
                 "when trying to check if live file needs to be updated, could not access remote file"
             )
             file_info["live_update_error"] = "Could not reach remote server to update"
             return file_info
 
         current_timestamp_on_server = datetime.datetime.fromtimestamp(stat_results.st_mtime)
-        print(
-            f"checking if update is necessary. Cached timestamp: {cached_timestamp}. Current timestamp: {current_timestamp_on_server}."
+        LOGGER.debug(
+            "checking if update is necessary. Cached timestamp: %s. Current timestamp: %s.",
+            cached_timestamp,
+            current_timestamp_on_server,
         )
-        print(f"\tDifference: {current_timestamp_on_server - cached_timestamp} seconds")
+        LOGGER.debug("\tDifference: %s seconds", current_timestamp_on_server - cached_timestamp)
         if current_timestamp_on_server > cached_timestamp:
-            print("updating file")
             shutil.copy(full_remote_path, file_info.location)
             updated_file_info = file_collection.find_one_and_update(
                 {"_id": file_id},
