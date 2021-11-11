@@ -1,67 +1,70 @@
 <template>
-  <table class="table">
-    <thead>
-      <tr>
-        <th>Component</th>
-        <th>Formula</th>
-        <th>Amount (g)</th>
-      </tr>
-    </thead>
-    <tbody class="borderless">
-      <tr v-for="(constituent, index) in constituents" :key="index">
-        <td style="width: 70%">
-          <vSelect
-            v-model="constituent.item"
-            :options="items"
-            @search="debouncedAsyncSearch"
-            label="name"
-          >
-            <template #no-options="{ searching }">
-              <span v-if="searching"> Sorry, no matches found. </span>
-              <span v-else class="empty-search"> Type a search term... </span>
-            </template>
-            <template v-slot:option="{ type, item_id, name, chemform }">
-              <span
-                class="badge badge-light mr-2"
-                :style="{ backgroundColor: getBadgeColor(type) }"
-              >
-                {{ item_id }}
-              </span>
-              {{ name }}
-              <template v-if="chemform && chemform != ' '">
-                [ <ChemicalFormula :formula="chemform" /> ]
+  <div id="synthesis-information">
+    <label class="mr-2">Synthesis Information</label>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Component</th>
+          <th>Formula</th>
+          <th>Amount (g)</th>
+        </tr>
+      </thead>
+      <tbody class="borderless">
+        <tr v-for="(constituent, index) in constituents" :key="index">
+          <td style="width: 70%">
+            <vSelect
+              v-model="constituent.item"
+              :options="items"
+              @search="debouncedAsyncSearch"
+              label="name"
+            >
+              <template #no-options="{ searching }">
+                <span v-if="searching"> Sorry, no matches found. </span>
+                <span v-else class="empty-search"> Type a search term... </span>
               </template>
-            </template>
-            <template v-slot:selected-option="{ type, item_id, name }">
-              <span
-                class="badge badge-light mr-2"
-                :style="{ backgroundColor: getBadgeColor(type) }"
-                >{{ item_id }}</span
-              >
-              {{ name }}
-            </template>
-          </vSelect>
-        </td>
-        <td style="width: 20%">
-          <ChemicalFormula :formula="constituent.item?.chemform" />
-        </td>
-        <td style="width: 10%">
-          <input v-model="constituent.quantity" />
-        </td>
-      </tr>
-      <label class="mr-2">Synthesis procedure</label>
-      <TinyMceInline v-model="SynthesisDescription"></TinyMceInline>
+              <template v-slot:option="{ type, item_id, name, chemform }">
+                <span
+                  class="badge badge-light mr-2"
+                  :style="{ backgroundColor: getBadgeColor(type) }"
+                >
+                  {{ item_id }}
+                </span>
+                {{ name }}
+                <template v-if="chemform && chemform != ' '">
+                  [ <ChemicalFormula :formula="chemform" /> ]
+                </template>
+              </template>
+              <template v-slot:selected-option="{ type, item_id, name }">
+                <span
+                  class="badge badge-light mr-2"
+                  :style="{ backgroundColor: getBadgeColor(type) }"
+                  >{{ item_id }}</span
+                >
+                {{ name }}
+              </template>
+            </vSelect>
+          </td>
+          <td style="width: 20%">
+            <ChemicalFormula :formula="constituent.item?.chemform" />
+          </td>
+          <td style="width: 10%">
+            <input v-model="constituent.quantity" />
+          </td>
+        </tr>
+        <label class="mr-2">Synthesis procedure</label>
+        <TinyMceInline v-model="SynthesisDescription"></TinyMceInline>
 
-      <a
-        type="button"
-        class="new-component-button ml-2"
-        aria-label="add component"
-        @click="addConstituent"
-      >
-        <span aria-hidden="true">+</span>
-      </a>
-    </tbody>
-  </table>
+        <a
+          type="button"
+          class="new-component-button ml-2"
+          aria-label="add component"
+          @click="addConstituent"
+        >
+          <span aria-hidden="true">+</span>
+        </a>
+      </tbody>
+    </table>
+  </div>
 </template>
 
 <script>
