@@ -23,7 +23,10 @@ def reserialize_blocks(blocks_obj: Dict[str, Dict]) -> Dict[str, Dict]:
     """
     for block_id, block_data in blocks_obj.items():
         blocktype = block_data["blocktype"]
-        blocks_obj[block_id] = BLOCK_TYPES[blocktype].from_db(block_data).to_web()
+        if blocktype not in BLOCK_TYPES:
+            blocks_obj[block_id] = BLOCK_TYPES["notsupported"].from_db(block_data).to_web()
+        else:
+            blocks_obj[block_id] = BLOCK_TYPES[blocktype].from_db(block_data).to_web()
 
     return blocks_obj
 
