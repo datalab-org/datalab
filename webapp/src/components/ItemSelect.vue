@@ -1,5 +1,11 @@
 <template>
-  <vSelect v-model="value" :options="items" @search="debouncedAsyncSearch" label="name">
+  <vSelect
+    v-model="value"
+    :options="items"
+    @search="debouncedAsyncSearch"
+    label="name"
+    :filterable="false"
+  >
     <template #no-options="{ searching }">
       <span v-if="searching"> Sorry, no matches found. </span>
       <span v-else class="empty-search"> Type a search term... </span>
@@ -58,6 +64,9 @@ export default {
       return (itemTypes[itemType]?.navbarName || "").toLowerCase();
     },
     async debouncedAsyncSearch(query, loading) {
+      if (query == "") {
+        return;
+      }
       loading(true);
       const debounceTime = 250; // time after user stops typing before request is sent
       clearTimeout(this.debounceTimeout); // reset the timer
