@@ -1,22 +1,12 @@
-import datetime
 from typing import Any, Dict
 
-from bson import json_util
 from flask import Flask
-from flask.json import JSONEncoder
 from flask_cors import CORS
 
 import pydatalab.mongo
 from pydatalab.config import CONFIG
-
-
-class CustomJSONEncoder(JSONEncoder):
-    """Use a JSON encoder that can handle pymongo's bson."""
-
-    def default(self, obj):
-        if isinstance(obj, datetime.datetime):
-            return datetime.datetime.isoformat(obj)
-        return json_util.default(obj)
+from pydatalab.logger import logged_route
+from pydatalab.utils import CustomJSONEncoder
 
 
 def create_app(config_override: Dict[str, Any] = None) -> Flask:
@@ -57,9 +47,9 @@ def register_endpoints(app):
     from pydatalab.routes import ENDPOINTS  # pylint: disable=import-outside-toplevel
 
     for rule, func in ENDPOINTS.items():
-        app.add_url_rule(rule, func.__name__, func)
+        app.add_url_rule(rule, func.__name__, logged_route(func))
 
 
 if __name__ == "__main__":
     app_ = create_app()
-    app_.run(host="0.0.0.0", debug=True, port=5001)
+    app_.run(host="0.0.0.0", debug=CONFIG.DEBUG, port=5001)
