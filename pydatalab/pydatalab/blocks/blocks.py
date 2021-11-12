@@ -122,7 +122,9 @@ class DataBlock:
         """update the object with data received from the website. Only updates fields
         that are specified in the dictionary- other fields are left alone"""
         LOGGER.debug(
-            "Updating block %s from web request with data %s", self.__class__.__name__, data
+            "Updating block %s from web request with data %s",
+            self.__class__.__name__,
+            data,
         )
         self.data.update(data)
 
@@ -151,26 +153,25 @@ class XRDBlock(DataBlock):
 
     def generate_xrd_plot(self):
         if "file_id" not in self.data:
-            print("XRDBlock.generate_xrd_plot(): No file set in the DataBlock")
-            return None
+            LOGGER.warning("XRDBlock.generate_xrd_plot(): No file set in the DataBlock")
+            return
         file_info = get_file_info_by_id(self.data["file_id"], update_if_live=True)
 
         filename = file_info["name"]
         ext = os.path.splitext(filename)[-1].lower()
 
         if ext not in [".xrdml", ".xy"]:
-            print(
+            LOGGER.warning(
                 "XRDBlock.generate_xrd_plot(): Unsupported file extension (must be .xrdml or .xy)"
             )
-            return None
+            return
 
-        print(f"The XRD file to plot is found at: {file_info['location']}")
+        LOGGER.debug(f"The XRD file to plot is found at: {file_info['location']}")
         if ext == ".xrdml":
-            print("xrdml data received. converting to .xy")
             filename = xrd_utils.convertSinglePattern(
                 file_info["location"]
             )  # should give .xrdml.xy file
-            print(f"the path is now: {filename}")
+            LOGGER.debug("the path is now: %s", filename)
         else:
             filename = os.path.join(file_info["location"])
 

@@ -153,15 +153,13 @@ search_items.methods = ("GET",)  # type: ignore
 
 def create_sample():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
-    print(f"creating new samples with: {request_json}")
+
     item_id = request_json["item_id"]
     name = request_json["name"]
     date = request_json["date"]
 
     # check to make sure that item_id isn't taken already
-    print("Validating item id...")
     if flask_mongo.db.items.find_one({"item_id": item_id}):
-        print(f"Item ID '{item_id}' already exists in database")
         return (
             jsonify(
                 {
@@ -171,7 +169,6 @@ def create_sample():
             ),
             400,
         )
-    print("Item ID is unique, and can be added to the database")
 
     try:
         new_sample = Sample(
@@ -209,7 +206,6 @@ def create_sample():
             400,
         )
 
-    print("sample has been added to the database")
     return (
         jsonify(
             {
@@ -232,7 +228,6 @@ create_sample.methods = ("POST",)  # type: ignore
 def delete_sample():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
     item_id = request_json["item_id"]
-    print(f"received request to delete sample {item_id}")
 
     result = flask_mongo.db.items.delete_one({"item_id": item_id})
 
@@ -241,12 +236,11 @@ def delete_sample():
             jsonify(
                 {
                     "status": "error",
-                    "message": "Failed to delete sample from database",
+                    "message": f"Failed to delete sample with {item_id=} from the database.",
                 }
             ),
             400,
         )
-    print("Deleted successfully!")
     return (
         jsonify(
             {
@@ -271,15 +265,13 @@ def get_item_data(item_id):
     # determine the item type and validate according to the appropriate schema
     try:
         ItemModel = ITEM_MODELS[doc["type"]]
-    except KeyError as e:
+    except KeyError:
         if "type" in doc:
-            print(f"Item with id: {item_id} has invalid type: {doc['type']}")
+            raise KeyError(f"Item {item_id=} has invalid type: {doc['type']}")
         else:
-            print(f"Item with id: {item_id} has no type field in document.")
-        raise e
+            raise KeyError(f"Item {item_id=} has no type field in document.")
 
     doc = ItemModel(**doc)
-    print(f"Validated item with pydantic model: {doc}")
     doc.blocks_obj = reserialize_blocks(doc.blocks_obj)
 
     files_data = []
@@ -320,7 +312,10 @@ def save_item():
     item = flask_mongo.db.items.find_one({"item_id": item_id})
 
     if not item:
-        return jsonify(status="error", message=f"Unable to find item: {item_id!r}."), 400
+        return (
+            jsonify(status="error", message=f"Unable to find item with {item_id=}."),
+            400,
+        )
 
     item_type = item["type"]
     item.update(updated_data)
@@ -331,7 +326,7 @@ def save_item():
         return (
             jsonify(
                 status="error",
-                message=f"Unable to update item {item_id!r} (type = {item_type}) with new data.",
+                message=f"Unable to update item {item_id=} ({item_type=}) with new data {updated_data}",
                 output=str(exc),
             ),
             400,

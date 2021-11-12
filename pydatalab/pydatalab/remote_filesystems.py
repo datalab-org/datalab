@@ -4,6 +4,7 @@ import os
 import subprocess
 
 import pydatalab.mongo
+from pydatalab.logger import LOGGER
 from pydatalab.resources import DIRECTORIES
 
 # from fs.smbfs import SMBFS
@@ -57,8 +58,7 @@ def save_directory_structure_to_db(directory_name, dir_structure):
         },
         upsert=True,
     )
-    print("Result of saving directory structure to the db:")
-    print(result.raw_result)
+    LOGGER.debug("Result of saving directory structure to the db: %s", result.raw_result)
 
 
 def get_cached_directory_structure_from_db(directory_name):
@@ -68,12 +68,12 @@ def get_cached_directory_structure_from_db(directory_name):
 def get_all_directory_structures(directories=DIRECTORIES):
     all_directory_structures = []
     for directory in directories:
-        print(f"Retrieving remote directory {directory['name']} at {directory['path']}")
+        LOGGER.debug("Retrieving remote directory %s at %s", directory["name"], directory["path"])
         try:
             dir_structure = get_directory_structure_json(directory["path"])
             save_directory_structure_to_db(directory["name"], dir_structure)
-        except (json.JSONDecodeError, KeyError):
-            print("Error reading remote filetree json.")
+        except (json.JSONDecodeError, KeyError) as exc:
+            LOGGER.warning("Error reading remote filetree json: %s", exc)
             dir_structure = [{"type": "error", "name": "Could not reach remote server"}]
 
         wrapped_dir_structure = {

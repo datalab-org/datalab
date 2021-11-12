@@ -6,13 +6,14 @@ services:
     build:
       context: .
       dockerfile: .docker/app_dockerfile
+    depends_on:
+      - api
     volumes:
-      - ./logs:/var/logs/mongod/
-
+      - ./logs:/app/logs/
     ports:
-      - "8080:8080"
+      - "8081:8081"
 
-  server:
+  api:
     restart: always
     build:
       context: .
@@ -20,11 +21,11 @@ services:
     depends_on:
       - mongo
     volumes:
-      - sockets:/tmp/
       - ./logs:/app/logs/
-
     ports:
       - "5001:5001"
+    environment:
+      - PYDATALAB_MONGO_URI=mongodb://mongo:27017/datalabvue
 
   mongo:
     restart: always
@@ -33,9 +34,7 @@ services:
       dockerfile: .docker/mongo_dockerfile
     command: ["mongod", "-f", "/etc/mongod.conf"]
     volumes:
-      - sockets:/tmp/
       - ./logs:/var/logs/mongod/
-
     ports:
       - "27017:27017"
 
