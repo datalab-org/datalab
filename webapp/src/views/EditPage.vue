@@ -66,9 +66,9 @@
     </div>
 
     <!-- Display the blocks -->
-    <div class="container">
+    <div class="container block-container">
       <transition-group name="block-list" tag="div">
-        <div v-for="block_id in item_data.display_order" :key="block_id">
+        <div class="block-list-item" v-for="block_id in item_data.display_order" :key="block_id">
           <component :is="getBlockDisplayType(block_id)" :item_id="item_id" :block_id="block_id" />
         </div>
       </transition-group>
@@ -261,46 +261,30 @@ export default {
   color: #ffc845;
 }
 
-/* file block styles */
-#filearea {
-  max-height: 14rem;
-  padding: 0.9rem 1.25rem;
-}
-
-#uppy-trigger {
-  scroll-anchor: auto;
-  width: 8rem;
-}
-
 .navbar-brand {
   cursor: pointer;
 }
 
-.block-list-move:not(.block-list-leave-active) {
-  transition: all 0.6s ease;
+.block-container {
+  padding-bottom: 100px;
+  position: relative;
 }
 
-.block-list-enter-from {
-  opacity: 0;
-  transform: translateX(-100px);
-}
-.block-list-enter-active {
+.block-list-item {
   transition: all 0.6s ease;
+  /*display: inline-block;*/
+  width: 100%;
+  position: relative;
 }
 
+.block-list-enter-from,
 .block-list-leave-to {
   opacity: 0;
-}
-.block-list-leave-active {
-  transition: opacity 0.4s ease;
-}
-
-.block-list-leave-to {
-  opacity: 0;
+  /*transform: translateX(-100px);*/
 }
 
 .block-list-leave-active {
   position: absolute;
-  width: 90%;
+  max-width: calc(100% - 30px);
 }
 </style>
