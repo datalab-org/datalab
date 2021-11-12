@@ -3,10 +3,10 @@
     <label class="mr-2">Synthesis Information</label>
     <table class="table">
       <thead>
-        <tr>
-          <th><label class="subheading">Component </label></th>
-          <th><label class="subheading">Formula </label></th>
-          <th><label class="subheading">Amount (g)</label></th>
+        <tr class="subheading">
+          <th>Component</th>
+          <th>Formula</th>
+          <th>Amount (g)</th>
         </tr>
       </thead>
       <tbody class="borderless">
@@ -33,17 +33,18 @@
         </tr>
       </tbody>
     </table>
-    <a
-      type="button"
-      class="new-component-button ml-2"
-      aria-label="add component"
-      @click="addConstituent"
-    >
-      <span aria-hidden="true">+</span> Add component
-    </a>
-    <br />
 
-    <label class="subheading ml-2">Procedure</label>
+    <div class="row">
+      <a
+        type="button"
+        class="new-component-button ml-2"
+        aria-label="add component"
+        @click="addConstituent"
+      >
+        <span aria-hidden="true">+</span> Add component
+      </a>
+    </div>
+    <span class="subheading ml-2">Procedure</span>
     <TinyMceInline v-model="SynthesisDescription"></TinyMceInline>
   </div>
 </template>
@@ -93,6 +94,7 @@ export default {
   color: #777;
   text-decoration: none;
   padding-left: 2rem;
+  padding-bottom: 1rem;
 }
 
 .new-component-button span {
@@ -100,16 +102,17 @@ export default {
   font-weight: 700;
 }
 
-label.subheading {
+.subheading {
+  color: darkslategrey;
   font-size: small;
-  font-weight: 500;
+  font-weight: 600;
   text-transform: uppercase;
   margin-bottom: 0px;
 }
 
-/*table {
-  margin-bottom: 10rem;
-}*/
+table {
+  margin-bottom: 0rem;
+}
 
 .borderless td,
 .borderless th {
