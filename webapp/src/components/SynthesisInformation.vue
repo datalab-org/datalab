@@ -17,8 +17,6 @@
                 v-if="!selectShown[index]"
                 :icon="['fas', 'search']"
                 class="swap-constituent-icon"
-                @mousedown="isClickingSwapIcon = true"
-                @mouseup="isClickingSwapIcon = false"
                 @click="turnOnRowSelect(index)"
               />
             </transition>
@@ -87,7 +85,6 @@ export default {
       selectedNewConstituent: null,
       selectedChangedConstituent: null,
       selectShown: [],
-      isClickingSwapIcon: false,
     };
   },
   props: {
@@ -107,15 +104,10 @@ export default {
       this.selectShown.push(false);
     },
     turnOnRowSelect(index) {
-      if (this.isClickingSwapIcon) {
-        return;
-      }
-
-      console.log(`called turnOnRowSelect with index ${index}`);
       this.selectShown[index] = true;
       this.selectedChangedConstituent = this.constituents[index].item;
       this.$nextTick(function () {
-        console.log(`showing and focusing for row: ${index}`);
+        // unfortunately this seems to be the "official" way to focus on the select element:
         this.$refs[`select${index}`].$refs.selectComponent.$refs.search.focus();
       });
     },
@@ -127,19 +119,9 @@ export default {
       this.constituents.splice(index, 1);
       this.selectShown.splice(index, 1);
     },
-    hideIfCleared(query, index) {
-      // if the x button is clicked, the query will be cleared. We use this
-      // as a signal that the select on that row should be hidden
-      if (query == "") {
-        this.selectShown[index] = false;
-      }
-    },
   },
   mounted() {
     this.selectShown = new Array(this.constituents.length).fill(false);
-    if (this.constituents.length == 0) {
-      this.addConstituent();
-    }
   },
 };
 </script>

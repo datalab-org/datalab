@@ -9,6 +9,8 @@ import StartingMaterialInformation from "@/components/StartingMaterialInformatio
 
 export const API_URL = process.env.VUE_APP_API_URL; //"http://localhost:5001";
 
+export const debounceTime = 250; // time after user stops typing before request is sent
+
 export const blockTypes = {
   generic: { description: "Test Block", component: DataBlockBase },
   comment: { description: "Comment", component: DataBlockBase },

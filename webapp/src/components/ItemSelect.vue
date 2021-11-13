@@ -24,6 +24,7 @@
 import vSelect from "vue-select";
 import FormattedItemName from "@/components/FormattedItemName.vue";
 import { searchItems } from "@/server_fetch_utils.js";
+import { debounceTime } from "@/resources.js";
 
 export default {
   props: ["modelValue"],
@@ -52,7 +53,6 @@ export default {
       //   return;
       // }
       loading(true);
-      const debounceTime = 250; // time after user stops typing before request is sent
       clearTimeout(this.debounceTimeout); // reset the timer
       // start the timer
       this.debounceTimeout = setTimeout(async () => {
