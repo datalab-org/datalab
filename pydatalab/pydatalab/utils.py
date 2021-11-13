@@ -3,9 +3,12 @@ anywhere in the package.
 
 """
 
+import datetime
 from math import ceil
 
 import pandas as pd
+from bson import json_util
+from flask.json import JSONEncoder
 
 
 def reduce_df_size(df: pd.DataFrame, target_nrows: int) -> pd.DataFrame:
@@ -20,3 +23,12 @@ def reduce_df_size(df: pd.DataFrame, target_nrows: int) -> pd.DataFrame:
 
     """
     return df.iloc[:: ceil(len(df) / target_nrows)].copy()
+
+
+class CustomJSONEncoder(JSONEncoder):
+    """Use a JSON encoder that can handle pymongo's bson."""
+
+    def default(self, obj):
+        if isinstance(obj, datetime.datetime):
+            return datetime.datetime.isoformat(obj)
+        return json_util.default(obj)

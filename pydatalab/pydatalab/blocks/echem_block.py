@@ -9,6 +9,7 @@ from navani import echem as ec
 from pydatalab import bokeh_plots
 from pydatalab.blocks.blocks import DataBlock
 from pydatalab.file_utils import get_file_info_by_id
+from pydatalab.logger import LOGGER
 from pydatalab.simple_bokeh_plot import mytheme
 from pydatalab.utils import reduce_df_size
 
@@ -184,15 +185,16 @@ class CycleBlock(DataBlock):
         )
 
         if "file_id" not in self.data:
-            print("No file_id given")
+            LOGGER.warning("No file_id given")
             return
 
         derivative_modes = (None, "dQ/dV", "dV/dQ")
 
         if self.data["derivative_mode"] not in derivative_modes:
-            print(
-                f"Invalid derivative_mode provided: {self.data['derivative_mode']!r}. "
-                f"Expected one of {derivative_modes}. Falling back to `None`."
+            LOGGER.warning(
+                "Invalid derivative_mode provided: %s. Expected one of %s. Falling back to `None`.",
+                self.data["derivative_mode"],
+                derivative_modes,
             )
             self.data["derivative_mode"] = None
 
@@ -227,7 +229,9 @@ class CycleBlock(DataBlock):
         ext = os.path.splitext(filename)[-1].lower()
 
         if ext not in self.accepted_file_extensions:
-            print("Unrecognized filetype")
+            LOGGER.warning(
+                f"Unrecognized filetype {ext}, must be one of {self.accepted_file_extensions}"
+            )
             return
 
         if file_id in self.cache.get("parsed_file", {}):

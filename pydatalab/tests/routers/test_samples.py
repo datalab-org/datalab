@@ -69,8 +69,8 @@ def test_save_bad_sample(client, default_sample_dict):
     )
     assert response.status_code == 400
     assert response.json["status"] == "error"
-    assert (
-        response.json["message"] == "Unable to update item '12345' (type = samples) with new data."
+    assert response.json["message"].startswith(
+        "Unable to update item item_id='12345' (item_type='samples') with new data"
     )
 
 
