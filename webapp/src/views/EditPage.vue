@@ -241,6 +241,12 @@ export default {
   z-index: 900;
 }
 
+label,
+::v-deep(label) {
+  font-weight: 500;
+  color: v-bind("itemTypeEntry?.labelColor");
+}
+
 .nav-link {
   cursor: pointer;
 }

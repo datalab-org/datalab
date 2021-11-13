@@ -59,7 +59,11 @@
     <label class="mr-2">Description</label>
     <TinyMceInline v-model="ItemDescription"></TinyMceInline>
 
-    <TableOfContents :item_id="item_id" :informationSections="tableOfContentsSections" />
+    <TableOfContents
+      class="mb-3"
+      :item_id="item_id"
+      :informationSections="tableOfContentsSections"
+    />
   </div>
 </template>
 

@@ -23,11 +23,13 @@ export const itemTypes = {
     navbarColor: "#0b6093",
     navbarName: "Sample",
     lightColor: "#d0ebfb",
+    labelColor: "#0b6093",
   },
   starting_materials: {
     itemInformationComponent: StartingMaterialInformation,
     navbarColor: "#349579",
     navbarName: "Starting Material",
     lightColor: "#d9f2eb",
+    labelColor: "#298651",
   },
 };

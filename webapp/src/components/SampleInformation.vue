@@ -26,7 +26,7 @@
 
     <TableOfContents :item_id="item_id" :informationSections="tableOfContentsSections" />
 
-    <SynthesisInformation class="mt-2" :item_id="item_id" />
+    <SynthesisInformation class="mt-3" :item_id="item_id" />
   </div>
 </template>
 
@@ -64,15 +64,3 @@ export default {
   },
 };
 </script>
-
-<style scoped>
-label {
-  font-weight: 500;
-  color: #0b6093;
-}
-
-::v-deep(label) {
-  font-weight: 500;
-  color: #0b6093;
-}
-</style>
