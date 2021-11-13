@@ -1,7 +1,7 @@
 <template>
   <div id="synthesis-information">
-    <label class="mr-2">Synthesis Information</label>
-    <table class="table">
+    <label class="mr-2 pb-2">Synthesis Information</label>
+    <table class="table mb-2">
       <thead>
         <tr class="subheading">
           <th>Component</th>
@@ -11,16 +11,42 @@
       </thead>
       <tbody class="borderless">
         <tr v-for="(constituent, index) in constituents" :key="index">
-          <td style="width: 70%">
-            <ItemSelect v-model="constituent.item" />
+          <td class="first-column" style="width: calc(70% - 1rem)">
+            <transition name="fade">
+              <font-awesome-icon
+                v-if="!selectShown[index]"
+                :icon="['fas', 'search']"
+                class="swap-constituent-icon"
+                @mousedown="isClickingSwapIcon = true"
+                @mouseup="isClickingSwapIcon = false"
+                @click="turnOnRowSelect(index)"
+              />
+            </transition>
+            <ItemSelect
+              class="select-in-row"
+              v-if="selectShown[index]"
+              :ref="`select${index}`"
+              v-model="selectedChangedConstituent"
+              :clearable="false"
+              @option:selected="swapConstituent($event, index)"
+              @search:blur="selectShown[index] = false"
+            />
+            <FormattedItemName
+              v-else
+              :item_id="constituent.item.item_id"
+              :itemType="constituent.item.type"
+              :name="constituent.item.name"
+              @dblclick="turnOnRowSelect(index)"
+            />
           </td>
           <td style="width: 20%">
             <ChemicalFormula :formula="constituent.item?.chemform" />
           </td>
+
           <td style="width: 10%">
             <input v-model="constituent.quantity" />
           </td>
-          <td>
+          <td style="width: 2rem">
             <button
               type="button"
               class="close"
@@ -31,19 +57,11 @@
             </button>
           </td>
         </tr>
+        <tr>
+          <ItemSelect v-model="selectedNewConstituent" @option:selected="addConstituent" />
+        </tr>
       </tbody>
     </table>
-
-    <div class="row">
-      <a
-        type="button"
-        class="new-component-button ml-2"
-        aria-label="add component"
-        @click="addConstituent"
-      >
-        <span aria-hidden="true">+</span> Add component
-      </a>
-    </div>
     <span class="subheading ml-2">Procedure</span>
     <TinyMceInline v-model="SynthesisDescription"></TinyMceInline>
   </div>
@@ -55,12 +73,22 @@ import ChemicalFormula from "@/components/ChemicalFormula.vue";
 import { createComputedSetterForItemField } from "@/field_utils.js";
 
 import ItemSelect from "@/components/ItemSelect.vue";
+import FormattedItemName from "@/components/FormattedItemName.vue";
 
 export default {
   components: {
     TinyMceInline,
     ChemicalFormula,
     ItemSelect,
+    FormattedItemName,
+  },
+  data() {
+    return {
+      selectedNewConstituent: null,
+      selectedChangedConstituent: null,
+      selectShown: [],
+      isClickingSwapIcon: false,
+    };
   },
   props: {
     item_id: String,
@@ -70,17 +98,45 @@ export default {
     SynthesisDescription: createComputedSetterForItemField("synthesis_description"),
   },
   methods: {
-    addConstituent() {
+    addConstituent(selectedItem) {
       this.constituents.push({
-        item: null,
+        item: selectedItem,
         quantity: null,
       });
+      this.selectedNewConstituent = null;
+      this.selectShown.push(false);
+    },
+    turnOnRowSelect(index) {
+      if (this.isClickingSwapIcon) {
+        return;
+      }
+
+      console.log(`called turnOnRowSelect with index ${index}`);
+      this.selectShown[index] = true;
+      this.selectedChangedConstituent = this.constituents[index].item;
+      this.$nextTick(function () {
+        console.log(`showing and focusing for row: ${index}`);
+        this.$refs[`select${index}`].$refs.selectComponent.$refs.search.focus();
+      });
+    },
+    swapConstituent(selectedItem, index) {
+      this.constituents[index].item = selectedItem;
+      this.selectShown[index] = false;
     },
     removeConstituent(index) {
       this.constituents.splice(index, 1);
+      this.selectShown.splice(index, 1);
+    },
+    hideIfCleared(query, index) {
+      // if the x button is clicked, the query will be cleared. We use this
+      // as a signal that the select on that row should be hidden
+      if (query == "") {
+        this.selectShown[index] = false;
+      }
     },
   },
   mounted() {
+    this.selectShown = new Array(this.constituents.length).fill(false);
     if (this.constituents.length == 0) {
       this.addConstituent();
     }
@@ -89,17 +145,34 @@ export default {
 </script>
 
 <style scoped>
-.new-component-button {
-  line-height: 1;
-  color: #777;
-  text-decoration: none;
-  padding-left: 2rem;
-  padding-bottom: 1rem;
+.first-column {
+  position: relative;
 }
 
-.new-component-button span {
-  font-size: 2rem;
-  font-weight: 700;
+.swap-constituent-icon {
+  cursor: pointer;
+  position: absolute;
+  font-size: regular;
+  color: #bbb;
+  float: right;
+  transform: translateY(30%);
+  transition: transform 0.4s ease;
+  width: 1.5rem;
+  left: -1.5rem;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.select-in-row {
+  width: 100%;
 }
 
 .subheading {
@@ -117,9 +190,6 @@ table {
 .borderless td,
 .borderless th {
   border: none;
-}
-.new-component-button:hover {
-  color: #555;
 }
 
 .empty-search {

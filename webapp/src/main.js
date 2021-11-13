@@ -23,6 +23,7 @@ import {
   faUnlink,
   faExclamationCircle,
   faListOl,
+  faSearch,
 } from "@fortawesome/free-solid-svg-icons";
 // import { faHdd } from '@fortawesome/free-regular-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
@@ -39,7 +40,8 @@ library.add(
   faLink,
   faUnlink,
   faExclamationCircle,
-  faListOl
+  faListOl,
+  faSearch
 );
 
 // Import TinyMCE

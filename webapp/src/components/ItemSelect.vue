@@ -5,35 +5,25 @@
     @search="debouncedAsyncSearch"
     label="name"
     :filterable="false"
+    ref="selectComponent"
   >
     <template #no-options="{ searching }">
       <span v-if="searching"> Sorry, no matches found. </span>
       <span v-else class="empty-search"> Type a search term... </span>
     </template>
     <template v-slot:option="{ type, item_id, name, chemform }">
-      <span class="badge badge-light mr-2" :style="{ backgroundColor: getBadgeColor(type) }">
-        {{ item_id }}
-      </span>
-      {{ name }}
-      <template v-if="chemform && chemform != ' '">
-        [ <ChemicalFormula :formula="chemform" /> ]
-      </template>
+      <FormattedItemName :item_id="item_id" :itemType="type" :name="name" :chemform="chemform" />
     </template>
     <template v-slot:selected-option="{ type, item_id, name }">
-      <span class="badge badge-light mr-2" :style="{ backgroundColor: getBadgeColor(type) }">{{
-        item_id
-      }}</span>
-      {{ name }}
+      <FormattedItemName :item_id="item_id" :itemType="type" :name="name" />
     </template>
   </vSelect>
 </template>
 
 <script>
 import vSelect from "vue-select";
-import ChemicalFormula from "@/components/ChemicalFormula.vue";
-
+import FormattedItemName from "@/components/FormattedItemName.vue";
 import { searchItems } from "@/server_fetch_utils.js";
-import { itemTypes } from "@/resources.js";
 
 export default {
   props: ["modelValue"],
@@ -57,16 +47,10 @@ export default {
     },
   },
   methods: {
-    getBadgeColor(itemType) {
-      return itemTypes[itemType]?.lightColor || "LightGrey";
-    },
-    getBadgeName(itemType) {
-      return (itemTypes[itemType]?.navbarName || "").toLowerCase();
-    },
     async debouncedAsyncSearch(query, loading) {
-      if (query == "") {
-        return;
-      }
+      // if (query == "") {
+      //   return;
+      // }
       loading(true);
       const debounceTime = 250; // time after user stops typing before request is sent
       clearTimeout(this.debounceTimeout); // reset the timer
@@ -87,7 +71,7 @@ export default {
   },
   components: {
     vSelect,
-    ChemicalFormula,
+    FormattedItemName,
   },
 };
 </script>
