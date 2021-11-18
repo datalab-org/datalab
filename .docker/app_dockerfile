@@ -2,7 +2,7 @@ FROM node:15.14.0-stretch
 SHELL ["/bin/bash", "--login", "-c"]
 
 WORKDIR /app
-RUN npm install -g http-server
+RUN npm install -g serve
 
 # copy repo contents and install deps
 #
@@ -13,4 +13,4 @@ RUN yarn install
 COPY webapp /app
 
 RUN yarn build
-CMD [ "http-server", "dist", "--port", "8081" ]
+CMD [ "serve", "-s", "dist", "-p", "8081" ]
