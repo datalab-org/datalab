@@ -57,7 +57,7 @@ def add_data_block():
         status="success",
         new_block_obj=block.to_web(),
         new_block_insert_index=insert_index
-        if insert_index
+        if insert_index is None
         else len(display_order_result["display_order"]) - 1,
         new_display_order=display_order_result["display_order"],
     )
