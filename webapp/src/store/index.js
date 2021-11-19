@@ -14,6 +14,7 @@ export default createStore({
     remoteDirectoryTree: {},
     remoteDirectoryTreeSecondsSinceLastUpdate: null,
     files: {},
+    remoteDirectoryTreeIsLoading: false,
     fileSelectModalIsOpen: false,
   },
   mutations: {
@@ -159,6 +160,9 @@ export default createStore({
     },
     setFileSelectModalOpenStatus(state, isOpen) {
       state.fileSelectModalIsOpen = isOpen;
+    },
+    setRemoteDirectoryTreeIsLoading(state, isLoading) {
+      state.remoteDirectoryTreeIsLoading = isLoading;
     },
   },
   getters: {

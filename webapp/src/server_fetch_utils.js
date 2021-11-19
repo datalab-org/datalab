@@ -240,18 +240,36 @@ export function deleteFileFromSample(item_id, file_id) {
 
 export async function fetchRemoteTree() {
   console.log("fetchRemoteTree called!");
-  return fetch_get(`${API_URL}/list-remote-directories/`).then(function (response_json) {
-    store.commit("setRemoteDirectoryTree", response_json);
-    return response_json;
-  });
+  store.commit("setRemoteDirectoryTreeIsLoading", true);
+  return fetch_get(`${API_URL}/list-remote-directories/`)
+    .then(function (response_json) {
+      store.commit("setRemoteDirectoryTree", response_json);
+      store.commit("setRemoteDirectoryTreeIsLoading", false);
+      return response_json;
+    })
+    .catch((error) => {
+      console.error("Error when fetching cached remote tree");
+      console.error(error);
+      store.commit("setRemoteDirectoryTreeIsLoading", false);
+      throw error;
+    });
 }
 
 export async function fetchCachedRemoteTree() {
   console.log(`fetchCachedRemoteTree called! on ${API_URL}/list-remote-directories-cached/`);
-  return fetch_get(`${API_URL}/list-remote-directories-cached/`).then(function (response_json) {
-    store.commit("setRemoteDirectoryTree", response_json.cached_dir_structures);
-    return response_json;
-  });
+  store.commit("setRemoteDirectoryTreeIsLoading", true);
+  return fetch_get(`${API_URL}/list-remote-directories-cached/`)
+    .then(function (response_json) {
+      store.commit("setRemoteDirectoryTree", response_json.cached_dir_structures);
+      store.commit("setRemoteDirectoryTreeIsLoading", false);
+      return response_json;
+    })
+    .catch((error) => {
+      console.error("Error when fetching cached remote tree");
+      console.error(error);
+      store.commit("setRemoteDirectoryTreeIsLoading", false);
+      throw error;
+    });
 }
 
 export async function addRemoteFileToSample(file_entry, item_id) {
