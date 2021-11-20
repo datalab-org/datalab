@@ -2,7 +2,6 @@ version: "3.9"
 
 services:
   app:
-    restart: always
     profiles: ["prod"]
     build:
       context: .
@@ -14,7 +13,6 @@ services:
       - "8081:8081"
 
   app_dev:
-    restart: always
     profiles: ["dev"]
     build:
       context: .
@@ -27,7 +25,6 @@ services:
       - "8081:8081"
 
   api:
-    restart: always
     profiles: ["prod"]
     build:
       context: .
@@ -43,7 +40,6 @@ services:
       - "5001:5001"
 
   api_dev:
-    restart: always
     profiles: ["dev"]
     build:
       context: .
@@ -60,7 +56,6 @@ services:
       - "5001:5001"
 
   mongo:
-    restart: always
     build:
       context: .
       dockerfile: .docker/mongo_dockerfile
