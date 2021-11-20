@@ -1,10 +1,12 @@
 <template>
   <div>
     <span
-      class="item-id-badge badge badge-light mr-2"
+      class="badge badge-light mr-2"
+      :class="{ clickable: enableClick || enableModifiedClick }"
       :style="{ backgroundColor: badgeColor }"
-      @click.meta="openEditPageInNewTab"
-      @click.ctrl="openEditPageInNewTab"
+      @click.exact="enableClick ? openEditPageInNewTab() : null"
+      @click.meta.stop="enableModifiedClick ? openEditPageInNewTab() : null"
+      @click.ctrl.stop="enableModifiedClick ? openEditPageInNewTab() : null"
     >
       {{ item_id }}
     </span>
@@ -23,6 +25,14 @@ export default {
     itemType: String,
     name: String,
     chemform: String,
+    enableClick: {
+      type: Boolean,
+      default: false,
+    },
+    enableModifiedClick: {
+      type: Boolean,
+      default: false,
+    },
   },
   computed: {
     badgeColor() {
@@ -43,7 +53,7 @@ export default {
 </script>
 
 <style scoped>
-.item-id-badge {
+.clickable {
   cursor: pointer;
 }
 </style>

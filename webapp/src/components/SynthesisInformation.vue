@@ -34,6 +34,8 @@
               :item_id="constituent.item.item_id"
               :itemType="constituent.item.type"
               :name="constituent.item.name"
+              enableClick
+              enableModifiedClick
               @dblclick="turnOnRowSelect(index)"
             />
           </td>

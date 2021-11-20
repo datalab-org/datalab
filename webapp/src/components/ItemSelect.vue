@@ -12,10 +12,16 @@
       <span v-else class="empty-search"> Type a search term... </span>
     </template>
     <template v-slot:option="{ type, item_id, name, chemform }">
-      <FormattedItemName :item_id="item_id" :itemType="type" :name="name" :chemform="chemform" />
+      <FormattedItemName
+        :item_id="item_id"
+        :itemType="type"
+        :name="name"
+        :chemform="chemform"
+        enableModifiedClick
+      />
     </template>
     <template v-slot:selected-option="{ type, item_id, name }">
-      <FormattedItemName :item_id="item_id" :itemType="type" :name="name" />
+      <FormattedItemName :item_id="item_id" :itemType="type" :name="name" enableModifiedClick />
     </template>
   </vSelect>
 </template>
