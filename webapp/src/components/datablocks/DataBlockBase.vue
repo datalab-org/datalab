@@ -145,9 +145,7 @@ export default {
 
 <style scoped>
 .data-block {
-  /*outline: 1px dashed blue;*/
   padding-bottom: 18px;
-  scroll-margin-top: 3.5rem;
 }
 
 /* Style the button that is used to open and close the collapsible content */

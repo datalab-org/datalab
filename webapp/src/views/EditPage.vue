@@ -32,7 +32,6 @@
             v-for="(blockType, id) in blockTypes"
             :key="id"
             class="dropdown-item"
-            href="#"
             @click="newBlock($event, id)"
           >
             {{ blockType.description }}
@@ -56,24 +55,27 @@
     </div>
   </nav>
 
-  <!-- Item-type header header information goes here -->
-  <component :is="itemTypeEntry?.itemInformationComponent" :item_id="item_id" />
+  <!-- Item-type header information goes here -->
+  <div class="editor-body">
+    <component :is="itemTypeEntry?.itemInformationComponent" :item_id="item_id" />
 
-  <TableOfContents :display_order="item_data.display_order" :blocks="blocks" />
-  <FileList :item_id="item_id" :file_ids="file_ids" :stored_files="stored_files" />
+    <FileList :item_id="item_id" :file_ids="file_ids" :stored_files="stored_files" />
 
-  <div class="container">
-    <hr />
-  </div>
-
-  <!-- Display the blocks -->
-  <div class="container">
-    <div v-for="block_id in item_data.display_order" :key="block_id">
-      <component :is="getBlockDisplayType(block_id)" :item_id="item_id" :block_id="block_id" />
+    <div class="container">
+      <hr />
     </div>
-  </div>
 
-  <FileSelectModal :item_id="item_id" />
+    <!-- Display the blocks -->
+    <div class="container block-container">
+      <transition-group name="block-list" tag="div">
+        <div class="block-list-item" v-for="block_id in item_data.display_order" :key="block_id">
+          <component :is="getBlockDisplayType(block_id)" :item_id="item_id" :block_id="block_id" />
+        </div>
+      </transition-group>
+    </div>
+
+    <FileSelectModal :item_id="item_id" />
+  </div>
 </template>
 
 <script>
@@ -107,7 +109,7 @@ export default {
   methods: {
     async newBlock(event, blockType, index = null) {
       var block_id = await addABlock(this.item_id, blockType, index);
-      // close the dropdown scroll to the new block :)
+      // close the dropdown and scroll to the new block
       this.isMenuDropdownVisible = false;
       var new_block_el = document.getElementById(block_id);
       new_block_el.scrollIntoView({
@@ -239,6 +241,12 @@ export default {
   z-index: 900;
 }
 
+label,
+::v-deep(label) {
+  font-weight: 500;
+  color: v-bind("itemTypeEntry?.labelColor");
+}
+
 .nav-link {
   cursor: pointer;
 }
@@ -259,24 +267,30 @@ export default {
   color: #ffc845;
 }
 
-/* file block styles */
-#filearea {
-  max-height: 14rem;
-  padding: 0.9rem 1.25rem;
-}
-
-#uppy-trigger {
-  scroll-anchor: auto;
-  width: 8rem;
-}
-
-.delete-file-button {
-  padding-right: 0.5rem;
-  color: gray;
-  cursor: pointer;
-}
-
 .navbar-brand {
   cursor: pointer;
+}
+
+.block-container {
+  padding-bottom: 100px;
+  position: relative;
+}
+
+.block-list-item {
+  transition: all 0.6s ease;
+  /*display: inline-block;*/
+  width: 100%;
+  position: relative;
+}
+
+.block-list-enter-from,
+.block-list-leave-to {
+  opacity: 0;
+  /*transform: translateX(-100px);*/
+}
+
+.block-list-leave-active {
+  position: absolute;
+  max-width: calc(100% - 30px);
 }
 </style>

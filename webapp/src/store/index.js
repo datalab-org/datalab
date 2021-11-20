@@ -14,6 +14,7 @@ export default createStore({
     remoteDirectoryTree: {},
     remoteDirectoryTreeSecondsSinceLastUpdate: null,
     files: {},
+    remoteDirectoryTreeIsLoading: false,
     fileSelectModalIsOpen: false,
   },
   mutations: {
@@ -65,22 +66,31 @@ export default createStore({
     setRemoteDirectoryTreeSecondsSinceLastUpdate(state, secondsSinceLastUpdate) {
       state.remoteDirectoryTreeSecondsSinceLastUpdate = secondsSinceLastUpdate;
     },
-    addABlock(state, payload) {
+    addABlock(state, { item_id, new_block_obj, new_block_insert_index }) {
       // payload: item_id, new_block_obj, new_display_order
 
       // I should actually throw an error if this fails!
       console.assert(
-        payload.item_id == payload.new_block_obj.item_id,
+        item_id == new_block_obj.item_id,
         "The block has a different item_id (%s) than the item_id provided to addABlock (%s)",
-        payload.item_id,
-        payload.new_block_obj.item_id
+        item_id,
+        new_block_obj.item_id
       );
-
-      let new_block_id = payload.new_block_obj.block_id;
-      state.all_item_data[payload.item_id]["blocks_obj"][new_block_id] = payload.new_block_obj;
-      state.all_item_data[payload.item_id]["display_order"] = payload.new_display_order;
-
-      state.saved_status[payload.item_id] = false;
+      console.log(`addABlock called with: ${item_id}, ${new_block_obj}, ${new_block_insert_index}`);
+      let new_block_id = new_block_obj.block_id;
+      state.all_item_data[item_id]["blocks_obj"][new_block_id] = new_block_obj;
+      if (new_block_insert_index) {
+        state.all_item_data[item_id]["display_order"].splice(
+          new_block_insert_index,
+          0,
+          new_block_id
+        );
+      }
+      // if new_block_insert_index is None, then block is inserted at the end
+      else {
+        state.all_item_data[item_id]["display_order"].push(new_block_id);
+      }
+      state.saved_status[item_id] = false;
     },
     updateBlockData(state, payload) {
       // requires the following fields in payload:
@@ -150,6 +160,9 @@ export default createStore({
     },
     setFileSelectModalOpenStatus(state, isOpen) {
       state.fileSelectModalIsOpen = isOpen;
+    },
+    setRemoteDirectoryTreeIsLoading(state, isLoading) {
+      state.remoteDirectoryTreeIsLoading = isLoading;
     },
   },
   getters: {

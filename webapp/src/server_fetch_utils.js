@@ -172,11 +172,10 @@ export function addABlock(item_id, block_type, index = null) {
     index: index,
   })
     .then(function (response_json) {
-      // The payload could probably just be response_json instead of making a new object...
       store.commit("addABlock", {
         item_id: item_id,
         new_block_obj: response_json.new_block_obj,
-        new_display_order: response_json.new_display_order,
+        new_block_insert_index: response_json.new_block_insert_index,
       });
       return response_json.new_block_obj.block_id;
     })
@@ -241,18 +240,36 @@ export function deleteFileFromSample(item_id, file_id) {
 
 export async function fetchRemoteTree() {
   console.log("fetchRemoteTree called!");
-  return fetch_get(`${API_URL}/list-remote-directories/`).then(function (response_json) {
-    store.commit("setRemoteDirectoryTree", response_json);
-    return response_json;
-  });
+  store.commit("setRemoteDirectoryTreeIsLoading", true);
+  return fetch_get(`${API_URL}/list-remote-directories/`)
+    .then(function (response_json) {
+      store.commit("setRemoteDirectoryTree", response_json);
+      store.commit("setRemoteDirectoryTreeIsLoading", false);
+      return response_json;
+    })
+    .catch((error) => {
+      console.error("Error when fetching cached remote tree");
+      console.error(error);
+      store.commit("setRemoteDirectoryTreeIsLoading", false);
+      throw error;
+    });
 }
 
 export async function fetchCachedRemoteTree() {
   console.log(`fetchCachedRemoteTree called! on ${API_URL}/list-remote-directories-cached/`);
-  return fetch_get(`${API_URL}/list-remote-directories-cached/`).then(function (response_json) {
-    store.commit("setRemoteDirectoryTree", response_json.cached_dir_structures);
-    return response_json;
-  });
+  store.commit("setRemoteDirectoryTreeIsLoading", true);
+  return fetch_get(`${API_URL}/list-remote-directories-cached/`)
+    .then(function (response_json) {
+      store.commit("setRemoteDirectoryTree", response_json.cached_dir_structures);
+      store.commit("setRemoteDirectoryTreeIsLoading", false);
+      return response_json;
+    })
+    .catch((error) => {
+      console.error("Error when fetching cached remote tree");
+      console.error(error);
+      store.commit("setRemoteDirectoryTreeIsLoading", false);
+      throw error;
+    });
 }
 
 export async function addRemoteFileToSample(file_entry, item_id) {
