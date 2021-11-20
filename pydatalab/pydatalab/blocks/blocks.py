@@ -131,6 +131,11 @@ class DataBlock:
         return self
 
 
+class NotSupportedBlock(DataBlock):
+    blocktype = "notsupported"
+    description = "Block not supported"
+
+
 class CommentBlock(DataBlock):
     blocktype = "comment"
     description = "Comment"

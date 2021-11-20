@@ -1,7 +1,7 @@
 <template>
   <div class="container">
     <!-- Sample information -->
-    <div class="form-row">
+    <div id="starting-material-information" class="form-row">
       <div class="form-group col-md-2 col-sm-4">
         <label for="item_id" class="mr-2">Barcode</label>
         <input id="item_id" class="form-control-plaintext" readonly="true" :value="item_id" />
@@ -58,6 +58,12 @@
 
     <label class="mr-2">Description</label>
     <TinyMceInline v-model="ItemDescription"></TinyMceInline>
+
+    <TableOfContents
+      class="mb-3"
+      :item_id="item_id"
+      :informationSections="tableOfContentsSections"
+    />
   </div>
 </template>
 
@@ -65,8 +71,17 @@
 import { createComputedSetterForItemField } from "@/field_utils.js";
 import TinyMceInline from "@/components/TinyMceInline";
 import ChemicalFormula from "@/components/ChemicalFormula";
+import TableOfContents from "@/components/TableOfContents";
 
 export default {
+  data() {
+    return {
+      tableOfContentsSections: [
+        { title: "Starting Material Information", targetID: "starting-material-information" },
+        { title: "Table of Contents", targetID: "table-of-contents" },
+      ],
+    };
+  },
   props: {
     item_id: String,
   },
@@ -79,6 +94,7 @@ export default {
   components: {
     ChemicalFormula,
     TinyMceInline,
+    TableOfContents,
   },
 };
 </script>

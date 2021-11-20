@@ -13,6 +13,10 @@ body {
   margin: 0rem !important; /* for some reason, tinymce sets margin 1rem globally :o */
 }
 
+* {
+  scroll-margin-top: 3.5rem;
+}
+
 #app {
   font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;

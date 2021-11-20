@@ -9,6 +9,8 @@ import StartingMaterialInformation from "@/components/StartingMaterialInformatio
 
 export const API_URL = process.env.VUE_APP_API_URL; //"http://localhost:5001";
 
+export const debounceTime = 250; // time after user stops typing before request is sent
+
 export const blockTypes = {
   generic: { description: "Test Block", component: DataBlockBase },
   comment: { description: "Comment", component: DataBlockBase },
@@ -23,11 +25,13 @@ export const itemTypes = {
     navbarColor: "#0b6093",
     navbarName: "Sample",
     lightColor: "#d0ebfb",
+    labelColor: "#0b6093",
   },
   starting_materials: {
     itemInformationComponent: StartingMaterialInformation,
     navbarColor: "#349579",
     navbarName: "Starting Material",
     lightColor: "#d9f2eb",
+    labelColor: "#298651",
   },
 };

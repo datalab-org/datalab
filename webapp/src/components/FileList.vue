@@ -84,4 +84,14 @@ export default {
   color: #888;
   font-size: small;
 }
+
+#filearea {
+  max-height: 14rem;
+  padding: 0.9rem 1.25rem;
+}
+
+#uppy-trigger {
+  scroll-anchor: auto;
+  width: 8rem;
+}
 </style>
