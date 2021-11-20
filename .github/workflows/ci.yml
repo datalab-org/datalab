@@ -75,10 +75,17 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - name: Set up Docker BuildKit
+        uses: docker/setup-buildx-action@v1
+        with:
+          install: true
+
       - name: Set up Node
         uses: actions/setup-node@v2
         with:
           node-version: "15.14"
+          cache: "yarn"
+          cache-dependency-path: ./webapp/yarn.lock
 
       - name: Install web app
         working-directory: ./webapp
@@ -92,21 +99,24 @@ jobs:
         working-directory: ./webapp
         run: yarn build
 
-      - name: Build the Docker app image
-        run: docker-compose build app
-
-      - name: Build the Docker server image
-        run: docker-compose build api
-
-      - name: Build the Docker mongo image
-        run: docker-compose build mongo
+      - name: Build the Docker images
+        env:
+          COMPOSE_DOCKER_CLI_BUILD: 1
+          DOCKER_BUILDKIT: 1
+        run: |
+          docker compose --profile prod build
 
       - name: Start Docker images
+        env:
+          COMPOSE_DOCKER_CLI_BUILD: 1
+          DOCKER_BUILDKIT: 1
+        # Wait for port to open in docker image before next step
         run: |
-          docker-compose up --abort-on-container-exit &
-          sleep 60
-          exit 0
+          docker compose --profile prod up --abort-on-container-exit &
+          sudo apt install -y wait-for-it
+          wait-for-it localhost:8081 -t 120
 
       - name: Run end-to-end tests
         working-directory: ./webapp
-        run: yarn test:e2e  --headless --url http://localhost:8081
+        run: |
+          yarn test:e2e  --headless --url http://localhost:8081
