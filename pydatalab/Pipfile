@@ -15,7 +15,6 @@ flask-cors = "*"
 galvani = "*"
 pyqt5 = "*"
 navani = {git = "https://github.com/the-grey-group/navani.git", editable = true}
-pydatalab = {path = ".", editable = true}
 pydantic = "*"
 openpyxl = "*"
 
@@ -25,7 +24,6 @@ pytest-cov = "*"
 pytest-dependency = "*"
 pre-commit = "*"
 mongomock = "*"
-gunicorn = "*"
 
 [requires]
 python_version = "3"

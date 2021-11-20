@@ -51,15 +51,18 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install latest compatible versions of immediate dependencies
+        working-directory: ./pydatalab
         run: |
           python -m pip install --upgrade pip
           pip install -U setuptools
           pip install pipenv
           pipenv install --dev
+          pipenv run pip install -e .
 
       - name: Run all tests
+        working-directory: ./pydatalab
         run: |
-          pipenv run pytest -rs -vvv --cov-report=term --cov-report=xml --cov ./pydatalab/pydatalab pydatalab/tests
+          pipenv run pytest -rs -vvv --cov-report=term --cov-report=xml --cov ./pydatalab ./tests
 
       - name: Upload coverage to Codecov
         if: matrix.python-version == 3.8 && github.repository == 'the-grey-group/datalabvue'
