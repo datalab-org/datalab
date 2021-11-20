@@ -1,40 +1,71 @@
-version: "3"
+version: "3.9"
 
 services:
   app:
     restart: always
+    profiles: ["prod"]
     build:
       context: .
       dockerfile: .docker/app_dockerfile
-    depends_on:
-      - api
+      target: production
     volumes:
-      - ./logs:/app/logs/
+      - ./logs:/logs
+    ports:
+      - "8081:8081"
+
+  app_dev:
+    restart: always
+    profiles: ["dev"]
+    build:
+      context: .
+      dockerfile: .docker/app_dockerfile
+      target: development
+    volumes:
+      - ./logs:/logs
+      - ./webapp:/app
     ports:
       - "8081:8081"
 
   api:
     restart: always
+    profiles: ["prod"]
     build:
       context: .
       dockerfile: .docker/server_dockerfile
+      target: production
     depends_on:
       - mongo
     volumes:
-      - ./logs:/app/logs/
-    ports:
-      - "5001:5001"
+      - ./logs:/logs
     environment:
       - PYDATALAB_MONGO_URI=mongodb://mongo:27017/datalabvue
+    ports:
+      - "5001:5001"
+
+  api_dev:
+    restart: always
+    profiles: ["dev"]
+    build:
+      context: .
+      dockerfile: .docker/server_dockerfile
+      target: development
+    depends_on:
+      - mongo
+    volumes:
+      - ./logs:/logs
+      - ./pydatalab:/app
+    environment:
+      - PYDATALAB_MONGO_URI=mongodb://mongo:27017/datalabvue
+    ports:
+      - "5001:5001"
 
   mongo:
     restart: always
     build:
       context: .
       dockerfile: .docker/mongo_dockerfile
-    command: ["mongod", "-f", "/etc/mongod.conf"]
     volumes:
-      - ./logs:/var/logs/mongod/
+      - ./logs:/var/logs/mongod
     ports:
       - "27017:27017"
 
