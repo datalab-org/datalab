@@ -1,21 +1,31 @@
-FROM python:3.8
+# syntax=docker/dockerfile:experimental
+FROM python:3.8 as base
 SHELL ["/bin/bash", "--login", "-c"]
+EXPOSE 5001
 RUN apt update && apt install -y tree && apt clean
 
 # Copy all server code into workdir
 WORKDIR /app
-COPY ./pydatalab/ /app
-
-# Install Pipenv and use it to grab dependencies
 RUN pip install pipenv
-RUN pipenv install --deploy --dev
 
-# Launch the server
+COPY Pipfile Pipfile.lock ./
+
+# Create development image using flask's dev server with hot-reload
+FROM base as development
+RUN --mount=type=cache,target=/root/.cache/pip pipenv install --dev
+ENV FLASK_APP "pydatalab.main:create_app()"
+CMD ["pipenv", "run", "flask", "run", "--port", "5001", "--host", "0.0.0.0"]
+
+# Create production image using gunicorn and minimal dependencies
+FROM base as production
+RUN --mount=type=cache,target=/root/.cache/pip pipenv install
+RUN [ "pipenv", "run", "pip", "install", "gunicorn" ]
+COPY ./pydatalab/ ./
 CMD ["pipenv", "run", \
      "gunicorn", \
      "-w", "2", \
-     "--error-logfile", "logs/pydatalab_error.log", \
-     "--access-logfile", "logs/pydatalab_access.log", \
+     "--error-logfile", "/logs/pydatalab_error.log", \
+     "--access-logfile", "/logs/pydatalab_access.log", \
      "-b", "0.0.0.0:5001", \
      "pydatalab.main:create_app()" \
 ]

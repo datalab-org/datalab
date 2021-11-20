@@ -1,16 +1,22 @@
-FROM node:15.14.0-stretch
+# syntax=docker/dockerfile:experimental
+FROM node:15.14.0-stretch as base
 SHELL ["/bin/bash", "--login", "-c"]
 
 WORKDIR /app
 RUN npm install -g serve
 
-# copy repo contents and install deps
-#
-COPY webapp/package.json /app/
+EXPOSE 8081
 
-RUN yarn install
+COPY webapp/package.json webapp/yarn.lock ./
 
-COPY webapp /app
+FROM base as development
+RUN --mount=type=cache,target=/root/.cache/yarn yarn install
+CMD [ "yarn", "serve", "--port", "8081"]
 
+FROM base as production
+
+ENV NODE_ENV production
+RUN --mount=type=cache,target=/root/.cache/yarn yarn install --prod
+COPY webapp ./
 RUN yarn build
 CMD [ "serve", "-s", "dist", "-p", "8081" ]
