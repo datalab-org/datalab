@@ -11,7 +11,7 @@ To run an instance, you will need to install the environments for each component
 Firstly, from the desired folder, clone this repository from GitHub to your local machine with `git clone https://github.com/the-grey-group/datalabvue`.
 
 Alternatively, if you do not wish to contribute to the code, you can simply download the current state as a .zip file from [GitHub](https://github.com/the-grey-group/datalabvue/archive/refs/heads/main.zip).
-Should you wish to just run the apps themselves, the easiest method is to use Docker ([instructions below](#deployment-with-docker).
+Should you wish to just run/deploy the apps themselves, the easiest method is to use Docker ([instructions below](#deployment-with-docker)).
 
 ### `pydatalab` server installation
 
@@ -58,20 +58,28 @@ Additional notes:
 
 Similar to the Flask development server, these steps will provide a development environment that serves the web app at `localhost:8080` (by default) and automatically reloads it as changes are made to the source code.
 Various other development scripts are available through `yarn` (see also the [webapp README](./webapp/README.md)):
-    - `yarn lint`: Lint the javascript code using `eslint`, identifying issues and automatically fixing many. This linting process also runs automatically every time the development server reloads.
-    - `yarn test:unit`: run the unit/componenet tests using `jest`. These test individual functions or components.
-    - `yarn test:e2e`: run end-to-end tests using `cypress`. This will build and serve the app, and launch an instance of Chrome where the tests can be interactively viewed. The tests can also be run without the gui using ```yarn test:e2e --headless```. Note: currently, the tests make requests to the server running on `localhost:5001`.
-    - `yarn build`: Compile an optimized, minimized, version of the app for production.
+
+- `yarn lint`: Lint the javascript code using `eslint`, identifying issues and automatically fixing many. This linting process also runs automatically every time the development server reloads.
+- `yarn test:unit`: run the unit/componenet tests using `jest`. These test individual functions or components.
+- `yarn test:e2e`: run end-to-end tests using `cypress`. This will build and serve the app, and launch an instance of Chrome where the tests can be interactively viewed. The tests can also be run without the gui using ```yarn test:e2e --headless```. Note: currently, the tests make requests to the server running on `localhost:5001`.
+- `yarn build`: Compile an optimized, minimized, version of the app for production.
 
 
 ## Deployment with Docker
 
-These instructions assume that both Docker and docker-compose are installed (and that the Docker daemon is running). See the [Docker website](https://docs.docker.com/compose/install/) for instructions.
+[Docker](https://docs.docker.com/) uses virtualization to allow you to build "images" of your software that are transferrable and deployable as "containers" across multiple systems.
+These instructions assume that Docker is installed (a recent version that includes Compose V2 and BuildKit) and that the Docker daemon is running locally.
+See the [Docker website](https://docs.docker.com/compose/install/) for instructions for your system.
+Note that pulling and building the images can require significant disk space (~5 GB for a full setup), especially when multiple versions of images have been built (you can use `docker system df` to see how much spaace is being used).
 
 Dockerfiles for the web app, server and database can be found in the `.docker` directory.
-- `docker-compose build` will pull each of the base Docker images (`mongo`, `node` and `python`) and build the corresponding apps on top of them.
-- `docker-compose up` will launch a container for each component, such that the web app can be accessed at `localhost:8080`, the server at `localhost:5001` and the database at `localhost:27017`. The source files for the server and the web app are copied at the build stage, so no hot-reloading will occur by default (so `docker-compose build` will need to be called again).
-- `docker-compose stop` will stop all running containers.
+There are separate build targets for `production` and `development` (and corresponding docker-compose profiles `prod` and `dev`).
+The production target will copy the state of the repository on build and use `gunicorn` and `serve` to serve the server and app respectively.
+The development target mounts the repository in the running container and provides hot-reloading servers for both the backend and frontend.
+- `docker compose --profile dev build` will pull each of the base Docker images (`mongo`, `node` and `python`) and build the corresponding apps in development mode on top of them (using `--profile prod` for production deployments).
+- `docker compose --profile dev up` will launch a container for each component, such that the web app can be accessed at `localhost:8081`, the server at `localhost:5001` and the database at `localhost:27017`.
+- Individual containers can be launched with `docker compose up <service name>` for the services `mongo`, `app`, `app_dev`, `api` and `api_dev`.
+- `docker compose stop` will stop all running containers.
 
 ## Note on remote filesystems
 
