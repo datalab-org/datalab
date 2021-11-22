@@ -1,5 +1,7 @@
 # datalab webapp
 
+More detailed instructions can be found in the top-level [README](../README.md).
+
 ## Project setup
 ```
 yarn install
