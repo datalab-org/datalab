@@ -1,4 +1,5 @@
 import logging
+import pprint
 from functools import wraps
 from typing import Callable
 
@@ -27,8 +28,12 @@ LOGGER = setup_log()
 
 
 def logged_route(fn: Callable):
-    """A decorator that enables logging of inputs and
-    outputs when debug mode is enabled.
+    """A decorator that enables logging of inputs (arguments
+    and request body) and outputs (server response) when debug
+    mode is enabled.
+
+    Args:
+        fn: The function to wrap.
 
     """
 
@@ -40,10 +45,13 @@ def logged_route(fn: Callable):
             "Calling %s with request: %s, JSON payload: %s",
             fn.__name__,
             request,
-            request.get_json(),
+            pprint.pprint(request.get_json(), depth=1, width=80, compact=True),
         )
+
         result = fn(*args, **kwargs)
-        LOGGER.debug("%s returned %s", fn.__name__, result)
+        LOGGER.debug(
+            "%s returned %s", fn.__name__, pprint.pprint(result, depth=1, width=80, compact=True)
+        )
         return result
 
     return wrapped_logged_route
