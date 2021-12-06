@@ -83,6 +83,12 @@ The development target mounts the repository in the running container and provid
 
 ## Note on remote filesystems
 
-In order to use remote filesystems, you will have to (connect to the ChemNet VPN and) mount the Grey Group backup servers on your local machine.
-Then, go into `resources.py` and change the paths to the folders you are interested in.
-Remote access is currently very slow, so it is recommended that you restrict the folders to the smallest subset possible, i.e., just your personal folder on each given server.
+This package allows you to attach files from remote filesystems to samples and other entries.
+These filesystems can be configured in the config file with the `REMOTE_FILESYSTEMS` option.
+In practice, these options should be set in a centralised deployment.
+
+
+Currently, there are two mechanisms for accessing remote files:
+
+1. You can mount the filesystem locally and provide the path in your datalab config file. For example, for Cambridge Chemistry users, you will have to (connect to the ChemNet VPN and) mount the Grey Group backup servers on your local machine, then define these folders in your config.
+2. Access over `ssh`: alternatively, you can set up passwordless `ssh` access to a machine (e.g., using `citadel` as a proxy jump), and paths on that remote machine can be configured as separate filesystems. The filesystem metadata will be synced periodically, and any attached files will be downloaded and stored locally (with the file being kept younger than 1 hour old on each access).
