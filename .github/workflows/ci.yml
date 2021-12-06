@@ -112,8 +112,10 @@ jobs:
           DOCKER_BUILDKIT: 1
         # Wait for port to open in docker image before next step
         run: |
+          # Create a named docker network that all containers attach to
+          docker network create nginx
           docker compose --profile prod up --abort-on-container-exit &
-          sudo apt install -y wait-for-it
+          sudo apt install -qq -y wait-for-it
           wait-for-it localhost:8081 -t 120
 
       - name: Run end-to-end tests
