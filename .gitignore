@@ -2,6 +2,7 @@
 files/
 uploads/
 server/
+ssh_config
 
 #starting material files
 greyGroup_chemInventory*
@@ -26,6 +27,7 @@ node_modules
 __pycache__/
 *.py[cod]
 *$py.class
+.mypy_cache
 
 # Ignore any *additional* pipfile/pyprojects that get updated
 pydatalab/pyproject.toml
