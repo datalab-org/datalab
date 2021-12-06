@@ -14,6 +14,7 @@ COPY Pipfile Pipfile.lock ./
 FROM base as development
 RUN --mount=type=cache,target=/root/.cache/pip pipenv install --dev
 ENV FLASK_APP "pydatalab.main:create_app()"
+ENV FLASK_ENV "development"
 CMD ["pipenv", "run", "flask", "run", "--port", "5001", "--host", "0.0.0.0"]
 
 # Create production image using gunicorn and minimal dependencies
@@ -21,6 +22,7 @@ FROM base as production
 RUN --mount=type=cache,target=/root/.cache/pip pipenv install
 RUN [ "pipenv", "run", "pip", "install", "gunicorn" ]
 COPY ./pydatalab/ ./
+
 CMD ["pipenv", "run", \
      "gunicorn", \
      "-w", "2", \
