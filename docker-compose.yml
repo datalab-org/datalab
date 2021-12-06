@@ -11,6 +11,8 @@ services:
       - ./logs:/logs
     ports:
       - "8081:8081"
+    networks:
+      - nginx
 
   app_dev:
     profiles: ["dev"]
@@ -23,6 +25,8 @@ services:
       - ./webapp:/app
     ports:
       - "8081:8081"
+    networks:
+      - nginx
 
   api:
     profiles: ["prod"]
@@ -32,12 +36,14 @@ services:
       target: production
     depends_on:
       - mongo
-    volumes:
-      - ./logs:/logs
     environment:
       - PYDATALAB_MONGO_URI=mongodb://mongo:27017/datalabvue
+    volumes:
+      - ./logs:/logs
     ports:
       - "5001:5001"
+    networks:
+      - nginx
 
   api_dev:
     profiles: ["dev"]
@@ -50,12 +56,15 @@ services:
     volumes:
       - ./logs:/logs
       - ./pydatalab:/app
-    environment:
-      - PYDATALAB_MONGO_URI=mongodb://mongo:27017/datalabvue
     ports:
       - "5001:5001"
+    environment:
+      - PYDATALAB_MONGO_URI=mongodb://mongo:27017/datalabvue
+    networks:
+      - nginx
 
   mongo:
+    restart: always
     build:
       context: .
       dockerfile: .docker/mongo_dockerfile
@@ -64,5 +73,6 @@ services:
     ports:
       - "27017:27017"
 
-volumes:
-  sockets:
+networks:
+  nginx:
+    external: true

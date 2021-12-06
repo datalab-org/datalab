@@ -3,20 +3,23 @@ FROM node:15.14.0-stretch as base
 SHELL ["/bin/bash", "--login", "-c"]
 
 WORKDIR /app
-RUN npm install -g serve
 
 EXPOSE 8081
 
+RUN npm install -g serve
+
 COPY webapp/package.json webapp/yarn.lock ./
 
+# Using a custom node_modules location to avoid mounting it outside of docker
+RUN --mount=type=cache,target=/root/.cache/yarn yarn install --modules-folder /node_modules
+
 FROM base as development
-RUN --mount=type=cache,target=/root/.cache/yarn yarn install
+ENV PATH $PATH:/node_modules/.bin
+COPY webapp/.env .
 CMD [ "yarn", "serve", "--port", "8081"]
 
 FROM base as production
-
 ENV NODE_ENV production
-RUN --mount=type=cache,target=/root/.cache/yarn yarn install --prod
 COPY webapp ./
-RUN yarn build
+RUN /node_modules/.bin/vue-cli-service build
 CMD [ "serve", "-s", "dist", "-p", "8081" ]
