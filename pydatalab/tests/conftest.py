@@ -1,3 +1,4 @@
+from pathlib import Path
 from unittest.mock import patch
 
 import mongomock
@@ -25,7 +26,19 @@ def client():
         "flask_mongo",
         PyMongoMock(connectTimeoutMS=100, serverSelectionTimeoutMS=100),
     ):
-        app = create_app({"TESTING": True, "MONGO_URI": MONGO_URI})
+        example_remote = {
+            "name": "example_data",
+            "hostname": None,
+            "path": Path(__file__).parent.joinpath("../example_data/"),
+        }
+
+        app = create_app(
+            {
+                "TESTING": True,
+                "MONGO_URI": MONGO_URI,
+                "REMOTE_FILESYSTEMS": [example_remote],
+            }
+        )
 
         with app.test_client() as cli:
             yield cli
