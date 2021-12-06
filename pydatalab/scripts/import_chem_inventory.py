@@ -21,7 +21,7 @@ def generate_random_startingmaterial_id():
 client = MongoClient(CONFIG.MONGO_URI)
 
 db = client.datalabvue
-data_collection = db.data
+data_collection = db.items
 
 
 df = pd.read_excel("greyGroup_chemInventory_7Oct21.xlsx")
