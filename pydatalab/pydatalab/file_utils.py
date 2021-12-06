@@ -1,6 +1,8 @@
 import datetime
 import os
 import shutil
+import subprocess
+from typing import Any, Dict, Union
 
 from bson.objectid import ObjectId
 from pymongo import ReturnDocument
@@ -8,15 +10,140 @@ from werkzeug.utils import secure_filename
 
 import pydatalab.mongo
 from pydatalab.config import CONFIG
-from pydatalab.logger import LOGGER
+from pydatalab.logger import LOGGER, logged_route
 from pydatalab.models import File
-from pydatalab.resources import DIRECTORIES_DICT
 
 FILE_DIRECTORY = CONFIG.FILE_DIRECTORY
+DIRECTORIES_DICT = {fs["name"]: fs for fs in CONFIG.REMOTE_FILESYSTEMS}
 
 
-def get_file_info_by_id(file_id, update_if_live=True):
-    """file_id can be either the string representation or the ObjectId() object. Returns the file information dictionary"""
+@logged_route
+def _sync_file_with_remote(remote_path: str, src: str) -> None:
+    """Copy a file from a mounted volume or ssh-able remote to the
+    local file store.
+
+    Arguments:
+        remote_path: The original location of the file.
+        src: The local location of the file.
+
+    """
+    if os.path.isfile(remote_path):
+        shutil.copy(remote_path, src)
+    elif remote_path.startswith("ssh://"):
+        scp_command = f"scp {remote_path.lstrip('ssh://')} {src}"
+
+        LOGGER.debug("Syncing file with '%s'", scp_command)
+        proc = subprocess.Popen(
+            scp_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+        _, stderr = proc.communicate()
+        if stderr:
+            raise RuntimeError(
+                f"scp command {scp_command} raised the the following errors: {stderr!r}"
+            )
+
+    if not os.path.isfile(src):
+        raise RuntimeError("Something went wrong copying {remote_path} to {src}.")
+
+
+@logged_route
+def _check_and_sync_file(file_info: File, file_id: ObjectId) -> File:
+    """For a given file, check if the remote version is newer
+    than the stored version and sync them if so.
+
+    Args:
+        file_info: The `File` metadata object.
+        file_id: The `bson.ObjectId` of the file stored in the database
+            (used to update the file collection).
+
+    Returns:
+        The updated file info, if an update was required,
+        otherwise the old file info.
+
+    """
+    file_collection = pydatalab.mongo.flask_mongo.db.files
+    if not file_info.source_server_name or not file_info.source_path:
+        raise RuntimeError("Attempted to sync file %s with no known remote", file_info)
+
+    if not file_info.last_modified_remote:
+        LOGGER.warning(
+            "Unable to sync file %s, no last modified timestamp. Will use saved version.",
+            file_info.source_path,
+        )
+        return file_info
+
+    cached_timestamp = file_info.last_modified_remote
+    remote = DIRECTORIES_DICT[file_info.source_server_name]
+    full_remote_path = os.path.join(remote["path"], file_info.source_path)
+    if remote["hostname"]:
+        full_remote_path = f'{remote["hostname"]}:{full_remote_path}'
+
+    if full_remote_path.startswith("ssh://"):
+        # For ssh-able remotes, check age of the local file, rather than the last time the remote file was modified
+        remote_timestamp = datetime.datetime.now()
+
+    else:
+        try:
+            stat_results = os.stat(full_remote_path)
+            remote_timestamp = datetime.datetime.fromtimestamp(stat_results.st_mtime)
+        except FileNotFoundError:
+            LOGGER.debug(
+                "Could not access remote file when checking for latest version: %s",
+                full_remote_path,
+            )
+            return file_info
+
+    # file_info.live_update_error = "Could not reach remote server to update
+    if remote_timestamp > cached_timestamp + datetime.timedelta(
+        minutes=CONFIG.REMOTE_CACHE_MAX_AGE
+    ):
+        LOGGER.debug("Updating file %s to latest version", file_info.source_path)
+
+        _sync_file_with_remote(full_remote_path, file_info.location)
+        if file_info.location is not None:
+            new_stat_results = os.stat(file_info.location)
+
+            updated_file_info = file_collection.find_one_and_update(
+                {"_id": file_id},
+                {
+                    "$set": {
+                        "size": new_stat_results.st_size,
+                        "last_modified": datetime.datetime.fromtimestamp(new_stat_results.st_mtime),
+                        "last_modified_remote": remote_timestamp,
+                        "version": file_info.version + 1,
+                    }
+                },
+                return_document=ReturnDocument.AFTER,
+            )
+
+            return File(**updated_file_info)
+
+    LOGGER.debug("File %s is recent enough, not updating", file_info.source_path)
+    return file_info
+
+
+def get_file_info_by_id(
+    file_id: Union[str, ObjectId], update_if_live: bool = True
+) -> Dict[str, Any]:
+    """Query the files collection for the given ID.
+
+    If the `update_if_live` and the file has been updated on the
+    remote since it was added to the database, then the new version
+    will be copied into the local filestore.
+
+    Arguments:
+        file_id: Either the string or ObjectID representatoin of the file ID.
+        update_if_live: Whether or not to update the stored file to a
+            newer version, if it exists.
+
+    Raises:
+        IOError: If the given file ID does not exist in the database.
+
+    Returns:
+        The stored file information as a dictonary. Will be empty if the
+            corresponding file does not exist on disk.
+
+    """
     LOGGER.debug("getting file for file_id: %s", file_id)
     file_collection = pydatalab.mongo.flask_mongo.db.files
     file_id = ObjectId(file_id)
@@ -27,41 +154,7 @@ def get_file_info_by_id(file_id, update_if_live=True):
     file_info = File(**file_info)
 
     if update_if_live and file_info.is_live:
-        remote_toplevel_path = DIRECTORIES_DICT[file_info.source_server_name]["path"]
-        full_remote_path = os.path.join(remote_toplevel_path, file_info.source_path)
-        cached_timestamp = file_info.last_modified_remote
-        try:
-            stat_results = os.stat(full_remote_path)
-        except FileNotFoundError:
-            LOGGER.debug(
-                "when trying to check if live file needs to be updated, could not access remote file"
-            )
-            file_info["live_update_error"] = "Could not reach remote server to update"
-            return file_info
-
-        current_timestamp_on_server = datetime.datetime.fromtimestamp(stat_results.st_mtime)
-        LOGGER.debug(
-            "checking if update is necessary. Cached timestamp: %s. Current timestamp: %s.",
-            cached_timestamp,
-            current_timestamp_on_server,
-        )
-        LOGGER.debug("\tDifference: %s seconds", current_timestamp_on_server - cached_timestamp)
-        if current_timestamp_on_server > cached_timestamp:
-            shutil.copy(full_remote_path, file_info.location)
-            updated_file_info = file_collection.find_one_and_update(
-                {"_id": file_id},
-                {
-                    "$set": {
-                        "size": stat_results.st_size,
-                        "last_modified": datetime.datetime.now().isoformat(),
-                        "last_modified_remote": current_timestamp_on_server,
-                        "version": file_info.version + 1,
-                    }
-                },
-                return_document=ReturnDocument.AFTER,
-            )
-
-            return updated_file_info
+        file_info = _check_and_sync_file(file_info, file_id)
 
     return file_info.dict()
 
@@ -125,26 +218,24 @@ def save_uploaded_file(file, item_ids=None, block_ids=None, last_modified=None, 
         last_modified = datetime.datetime.now().isoformat()
 
     new_file_document = File(
-        **{
-            "name": filename,
-            "original_name": file.filename,  # not escaped
-            "location": None,  # file storage location in datalab. Important! will be filled in below
-            "url_path": None,  # the url used to access this file. Important! will be filled in below
-            "extension": extension,
-            "source": "uploaded",
-            "size": size_bytes,
-            "item_ids": item_ids,
-            "blocks": block_ids,
-            "last_modified": last_modified,
-            "time_added": last_modified,
-            "metadata": {},
-            "representation": None,
-            "source_server_name": None,  # not used for source=uploaded
-            "source_path": None,  # not used for source=uploaded
-            "last_modified_remote": None,  # not used for source=uploaded
-            "is_live": False,  # not available for source=uploaded
-            "version": 1,  # increment with each update
-        }
+        name=filename,
+        original_name=file.filename,  # not escaped
+        location=None,  # file storage location in datalab. Important! will be filled in below
+        url_path=None,  # the url used to access this file. Important! will be filled in below
+        extension=extension,
+        source="uploaded",
+        size=size_bytes,
+        item_ids=item_ids,
+        blocks=block_ids,
+        last_modified=last_modified,
+        time_added=last_modified,
+        metadata={},
+        representation=None,
+        source_server_name=None,  # not used for source=uploaded
+        source_path=None,  # not used for source=uploaded
+        last_modified_remote=None,  # not used for source=uploaded
+        is_live=False,  # not available for source=uploaded
+        version=1,  # increment with each update
     )
 
     result = file_collection.insert_one(new_file_document.dict())
@@ -196,36 +287,49 @@ def add_file_from_remote_directory(file_entry, item_id, block_ids=None):
     extension = os.path.splitext(filename)[1]
 
     # generate the remote url
-    remote_toplevel_path = DIRECTORIES_DICT[file_entry["toplevel_name"]]["path"]
-    remote_path = os.path.join(file_entry["relative_path"].lstrip("/"), file_entry["name"])
-    full_remote_path = os.path.join(remote_toplevel_path, remote_path)
+    host = DIRECTORIES_DICT[file_entry["toplevel_name"]]
 
-    # check that the path is valid and get the last modified time from the server
-    remote_timestamp = os.path.getmtime(full_remote_path)
+    remote_path = os.path.join(file_entry["relative_path"].lstrip("/"), file_entry["name"])
+
+    # If we are dealing with a truly remote host
+    if host["hostname"]:
+        remote_toplevel_path = f'{host["hostname"]}:{host["path"]}'
+        full_remote_path = f"{remote_toplevel_path}/{remote_path}"
+        remote_timestamp = datetime.datetime.fromtimestamp(int(file_entry["time"]))
+
+    # Otherwise we assume the file is mounted locally
+    else:
+        remote_toplevel_path = host["path"]
+        full_remote_path = os.path.join(remote_toplevel_path, remote_path)
+        # check that the path is valid and get the last modified time from the server
+        remote_timestamp = os.path.getmtime(full_remote_path)
 
     new_file_document = File(
-        **{
-            "name": filename,
-            "original_name": file_entry["name"],  # not escaped
-            "location": None,  # file storage location in datalab. Important! will be filled in below
-            "url_path": None,  # the url used to access this file. Important! will be filled in below
-            "extension": extension,
-            "source": "remote",
-            "size": file_entry[
-                "size"
-            ],  # not actually in bytes at the moment. in human-readable format
-            "item_ids": [item_id],
-            "blocks": block_ids,
-            "last_modified": datetime.datetime.now().isoformat(),  # last_modified is the last modified time of the db entry in isoformat. For last modified file timestamp, see last_modified_remote_timestamp
-            "time_added": datetime.datetime.now().isoformat(),
-            "metadata": {},
-            "representation": None,
-            "source_server_name": file_entry["toplevel_name"],
-            "source_path": remote_path,  # this is the relative path from the given source_server_name (server directory)
-            "last_modified_remote": remote_timestamp,  # last modified time as provided from the remote server. May by different than last_modified if the two servers times are not synchrotronized.
-            "is_live": True,  # will update (if changes have occured) on access
-            "version": 1,  # increment with each update
-        }
+        name=filename,
+        original_name=file_entry["name"],  # not escaped
+        # file storage location in datalab. Important! will be filled in below
+        location=None,
+        # the URL used to access this file. Important! will be filled in below
+        url_path=None,
+        extension=extension,
+        source="remote",
+        size=file_entry["size"],
+        item_ids=[item_id],
+        blocks=block_ids,
+        # last_modified is the last modified time of the db entry in isoformat. For last modified file timestamp, see last_modified_remote_timestamp
+        last_modified=datetime.datetime.now().isoformat(),
+        time_added=datetime.datetime.now().isoformat(),
+        metadata={},
+        representation=None,
+        source_server_name=file_entry["toplevel_name"],
+        # this is the relative path from the given source_server_name (server directory)
+        source_path=remote_path,
+        # last modified time as provided from the remote server. May by different than last_modified if the two servers times are not synchrotronized.
+        last_modified_remote=remote_timestamp,
+        # Whether this file will update (if changes have occured) on access
+        is_live=bool(host["hostname"]),
+        # incremented with each update
+        version=1,
     )
 
     result = file_collection.insert_one(new_file_document.dict())
@@ -237,7 +341,7 @@ def add_file_from_remote_directory(file_entry, item_id, block_ids=None):
     new_directory = os.path.join(FILE_DIRECTORY, str(inserted_id))
     new_file_location = os.path.join(new_directory, filename)
     os.makedirs(new_directory)
-    shutil.copy(full_remote_path, new_file_location)
+    _sync_file_with_remote(full_remote_path, new_file_location)
 
     updated_file_entry = file_collection.find_one_and_update(
         {"_id": inserted_id},
@@ -274,71 +378,28 @@ def retrieve_file_path(file_ObjectId):
     return result.location
 
 
-def remove_file_from_sample(item_id, file_ObjectId):
+def remove_file_from_sample(item_id: Union[str, ObjectId], file_id: Union[str, ObjectId]) -> None:
+    """Detach the file at `file_id` from the item at `item_id`.
+
+    Args:
+        item_id: The database ID of the item to alter.
+        file_id: The database ID of the file to remove from the item.
+
+    """
+    item_id, file_id = ObjectId(item_id), ObjectId(file_id)
     sample_collection = pydatalab.mongo.flask_mongo.db.items
     file_collection = pydatalab.mongo.flask_mongo.db.files
     sample_result = sample_collection.update_one(
-        {"item_id": ObjectId(item_id)},
-        {"$pull": {"file_ObjectIds": ObjectId(file_ObjectId)}},
+        {"item_id": item_id},
+        {"$pull": {"file_ObjectIds": file_id}},
     )
 
     if sample_result.modified_count < 1:
         raise IOError(
-            f"failed to remove file_ObjectId (f{file_ObjectId}) from sample (f{item_id}) db entry: {sample_result.raw_result}"
+            f"Failed to remove {file_id!r} from item {item_id!r}. Result: {sample_result.raw_result}"
         )
 
     file_collection.update_one(
-        {"_id": ObjectId(file_ObjectId)},
-        {"$pull": {"item_ids": ObjectId(item_id)}},
+        {"_id": file_id},
+        {"$pull": {"item_ids": item_id}},
     )
-
-
-# def add_file_to_db(file, source, is_live=False, source_server_name=None,source_path=None, item_ids=[], block_ids=[], size_bytes=None):
-#    ''' file is a python file object. source should be either "uploaded" or "remote", signifying either a
-#    local upload from the user, or remote server (one of the servers specified in remote_filesystems.py)'''
-#    assert source in ["uploaded", "remote"], f'source: "{source}" is invalid. Must be either "uploaded" or "remote"'
-
-#    # if the file comes from a remote server, must provide the name of the server and the path on the server
-#    if source == "remote":
-#       assert source_server_name is not None, 'for "remote" source, source_server_name must be provided'
-#       assert source_path is not None, 'for "remote" source, source_path must be provided'
-
-#    if source != "remote":
-#       assert not is_live, 'live mode can only be used with "remote" source.'
-
-#    filename = file.name
-#    extension = os.path.splitext(filename)[1]
-
-#    new_file_document = {
-#       "name": filename,
-#       "location": None, # the location where the file is stored. Important! Will be filled in below
-#       "extension": extension,
-#       "source": source,
-#       "source_path": source_path,
-#       "size": size_bytes,
-#       "representation": None, # could be used to store the data
-#       "samples": item_ids,# item_ids of any samples this file is included in.
-#       "blocks": block_ids, # block_ids of any blocks this file is included in
-#       "metadata": {}, # to store metadata collected from the file
-#       "type": None, # file type
-#       "is_live": bool(is_live) # if true, this file will be updated as it is updated on the remote server.
-#    }
-
-#    result = file_collection.insert_one(new_file_document)
-#    if not result.acknowledged:
-#       raise IOError(f"db operation failed when trying to insert new file. Result: {result}")
-
-#    inserted_id = result.inserted_id
-
-#    file_save_location = os.path.join(FILE_DIRECTORY, str(inserted_id), filename)
-#    file.write()
-
-
-#    return result
-#    print("added")
-
-
-# def save_file_to ():
-
-
-# # def delete_file(file_uid):

@@ -1,5 +1,5 @@
 import datetime
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field, root_validator
 
@@ -9,11 +9,11 @@ class File(BaseModel):
 
     size: Optional[int] = Field(description="The size of the file on disk in bytes.")
 
-    last_modified: Optional[Union[datetime.datetime, str]] = Field(
+    last_modified: datetime.datetime = Field(
         description="The last date/time at which the stored file was modified."
     )
 
-    last_modified_remote: Optional[Union[datetime.datetime, str]] = Field(
+    last_modified_remote: Optional[datetime.datetime] = Field(
         description="The last date/time at which the remote file was modified."
     )
 

@@ -1,7 +1,30 @@
 from pathlib import Path
-from typing import Union
+from typing import Dict, List, Union
 
-from pydantic import BaseSettings, Field
+from pydantic import BaseSettings, Field, root_validator
+
+DEFAULT_REMOTES = [
+    {
+        "name": "bob/Josh_B",
+        "hostname": "ssh://diskhost-c.ch.private.cam.ac.uk",
+        "path": "/zfs/greygroup/instruments/bob/Josh_B",
+    },
+    {
+        "name": "carlos/Jiasi_Li",
+        "hostname": "ssh://diskhost-c.ch.private.cam.ac.uk",
+        "path": "/zfs/greygroup/instruments/carlos/Jiasi_Li",
+    },
+    {
+        "name": "carlos/Josh_Bocarsly",
+        "hostname": "ssh://diskhost-c.ch.private.cam.ac.uk",
+        "path": "/zfs/greygroup/instruments/carlos/Josh_Bocarsly",
+    },
+    {
+        "name": "eve/Josh_Bocarsly",
+        "hostname": "ssh://diskhost-c.ch.private.cam.ac.uk",
+        "path": "/zfs/greygroup/instruments/eve/Josh_Bocarsly",
+    },
+]
 
 
 class ServerConfig(BaseSettings):
@@ -18,6 +41,27 @@ class ServerConfig(BaseSettings):
     )
 
     DEBUG: bool = Field(True, description="Whether to enable debug-level logging in the server.")
+
+    REMOTE_FILESYSTEMS: List[Dict[str, str]] = Field(
+        DEFAULT_REMOTES,
+        descripton="A list of dictionaries describing remote filesystems to be accessible from the server.",
+    )
+
+    REMOTE_CACHE_MAX_AGE: int = Field(
+        60,
+        description="The maximum age, in minutes, of the remote filesystem cache after which it should be invalidated.",
+    )
+
+    REMOTE_CACHE_MIN_AGE: int = Field(
+        1,
+        description="The minimum age, in minutes, of the remote filesystem cache, below which the cache will not be invalidated if an update is manually requested.",
+    )
+
+    @root_validator
+    def validate_cache_ages(cls, values):
+        if values.get("REMOTE_CACHE_MIN_AGE") > values.get("REMOTE_CACHE_MAX_AGE"):
+            raise RuntimeError("The maximum cache age must be greater than the minimum cache age.")
+        return values
 
     class Config:
         env_prefix = "pydatalab_"
