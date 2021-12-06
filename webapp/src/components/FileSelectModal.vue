@@ -47,11 +47,7 @@
 import Modal from "@/components/Modal";
 import SelectableFileTree from "@/components/SelectableFileTree";
 
-import {
-  fetchRemoteTree,
-  fetchCachedRemoteTree,
-  addRemoteFileToSample,
-} from "@/server_fetch_utils";
+import { fetchRemoteTree, addRemoteFileToSample } from "@/server_fetch_utils";
 
 export default {
   data() {
@@ -94,17 +90,22 @@ export default {
   methods: {
     fetchRemoteTree: fetchRemoteTree, // imported directly from server_fetch_utils. Note: automatically sets and usets the remote tree loading status.
     async loadCachedTree() {
-      var response_json = await fetchCachedRemoteTree(); // imported from server_fetch_utils. Note: automatically sets and usets the remote tree loading status.
-      // What happens if the reponse is an error?
-      console.log(
-        `loadCachedTree received, ${response_json.seconds_since_last_update} seconds out of date:`
-      );
-      if (
-        response_json.seconds_since_last_update == null ||
-        response_json.seconds_since_last_update > 3600
-      ) {
-        console.log("cache more than 1 hr out of date. Fetching new sample tree");
-        this.fetchRemoteTree();
+      var response_json = await fetchRemoteTree(false);
+      var oldest_cache_update = null;
+      var seconds_since_oldest_update = null;
+      if ("meta" in response_json) {
+        if ("oldest_cache_update" in response_json.meta) {
+          oldest_cache_update = new Date(response_json.meta.oldest_cache_update);
+          seconds_since_oldest_update = new Date() - oldest_cache_update / 1000;
+          console.log(
+            `loadCachedTree received, oldest dir update was ${seconds_since_oldest_update} s ago`
+          );
+        }
+      }
+
+      if (seconds_since_oldest_update == null || seconds_since_oldest_update > 3600) {
+        console.log("cache is probably more than 1 hr out of date. Fetching new sample tree");
+        this.fetchRemoteTree(true);
       }
     },
     async loadSelectedRemoteFiles() {
