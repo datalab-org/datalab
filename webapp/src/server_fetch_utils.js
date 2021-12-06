@@ -2,22 +2,33 @@
 // all code using fetch should be collected into this file
 
 import store from "@/store/index.js";
-import { API_URL } from "@/resources.js";
+import { API_URL, API_TOKEN } from "@/resources.js";
 
 // ****************************************************************************
 // A simple wrapper to simplify response handling for fetch calls
 // ****************************************************************************
+function construct_headers(additional_headers = null) {
+  let headers = {};
+  if (additional_headers != null) {
+    headers = additional_headers;
+  }
+  if (API_TOKEN != null && API_TOKEN != "") {
+    headers["Authorization"] = API_TOKEN;
+  }
+  return headers;
+}
 
 // eslint-disable-next-line no-unused-vars
 function fetch_get(url) {
   const requestOptions = {
     method: "GET",
-    headers: {},
+    headers: construct_headers(),
   };
   return fetch(url, requestOptions).then(handleResponse);
 }
 
-function fetch_post(url, body, headers = { "Content-Type": "application/json" }) {
+function fetch_post(url, body) {
+  let headers = construct_headers({ "Content-Type": "application/json" });
   const requestOptions = {
     method: "POST",
     headers: headers,
@@ -28,9 +39,10 @@ function fetch_post(url, body, headers = { "Content-Type": "application/json" })
 
 // eslint-disable-next-line no-unused-vars
 function fetch_put(url, body) {
+  let headers = construct_headers({ "Content-Type": "application/json" });
   const requestOptions = {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: headers,
     body: JSON.stringify(body),
   };
   return fetch(url, requestOptions).then(handleResponse);
@@ -38,8 +50,10 @@ function fetch_put(url, body) {
 
 // eslint-disable-next-line no-unused-vars
 function fetch_delete(url) {
+  let headers = construct_headers({ "Content-Type": "application/json" });
   const requestOptions = {
     method: "DELETE",
+    headers: headers,
   };
   return fetch(url, requestOptions).then(handleResponse);
 }
@@ -238,29 +252,16 @@ export function deleteFileFromSample(item_id, file_id) {
     .catch((error) => alert(`Delete unsuccessful :(\n error: ${error}`));
 }
 
-export async function fetchRemoteTree() {
+export async function fetchRemoteTree(invalidate_cache) {
+  var invalidate_cache_param = invalidate_cache ? "1" : "0";
+  var url = new URL(
+    `${API_URL}/list-remote-directories/?invalidate_cache=${invalidate_cache_param}`
+  );
   console.log("fetchRemoteTree called!");
   store.commit("setRemoteDirectoryTreeIsLoading", true);
-  return fetch_get(`${API_URL}/list-remote-directories/`)
+  return fetch_get(url)
     .then(function (response_json) {
       store.commit("setRemoteDirectoryTree", response_json);
-      store.commit("setRemoteDirectoryTreeIsLoading", false);
-      return response_json;
-    })
-    .catch((error) => {
-      console.error("Error when fetching cached remote tree");
-      console.error(error);
-      store.commit("setRemoteDirectoryTreeIsLoading", false);
-      throw error;
-    });
-}
-
-export async function fetchCachedRemoteTree() {
-  console.log(`fetchCachedRemoteTree called! on ${API_URL}/list-remote-directories-cached/`);
-  store.commit("setRemoteDirectoryTreeIsLoading", true);
-  return fetch_get(`${API_URL}/list-remote-directories-cached/`)
-    .then(function (response_json) {
-      store.commit("setRemoteDirectoryTree", response_json.cached_dir_structures);
       store.commit("setRemoteDirectoryTreeIsLoading", false);
       return response_json;
     })

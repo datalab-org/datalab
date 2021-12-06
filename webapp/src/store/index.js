@@ -61,7 +61,7 @@ export default createStore({
       }
     },
     setRemoteDirectoryTree(state, remoteDirectoryTree) {
-      state.remoteDirectoryTree = remoteDirectoryTree;
+      state.remoteDirectoryTree = remoteDirectoryTree.data;
     },
     setRemoteDirectoryTreeSecondsSinceLastUpdate(state, secondsSinceLastUpdate) {
       state.remoteDirectoryTreeSecondsSinceLastUpdate = secondsSinceLastUpdate;

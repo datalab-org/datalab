@@ -37,7 +37,9 @@
           </button>
           <p class="mb-1 ml-4">
             &#8627; <span class="selected-info-name">modified:</span>
-            <span class="selected-modified-time">{{ selectedEntry.time }}</span>
+            <span class="selected-modified-time">{{
+              Date(selectedEntry.time).toLocaleString("en-GB")
+            }}</span>
           </p>
           <p class="mb-0 ml-4">
             &#8627; <span class="selected-info-name">location:</span>
@@ -52,7 +54,6 @@
 
 <script>
 import TreeMenu from "@/components/TreeMenu.vue";
-// import {fetchRemoteTree} from "@/server_fetch_utils.js"
 
 export default {
   props: {
