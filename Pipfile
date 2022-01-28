@@ -1,1 +1,29 @@
-pydatalab/Pipfile
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[packages]
+flask = "*"
+bokeh = "==2.4.2"
+pandas = "*"
+scipy= "*"
+matplotlib="*"
+pymongo = "*"
+flask-pymongo = "*"
+flask-cors = "*"
+galvani = "*"
+pyqt5 = "*"
+navani = {git = "https://github.com/the-grey-group/navani.git", editable = true}
+pydantic = "*"
+openpyxl = "*"
+
+[dev-packages]
+pytest = "*"
+pytest-cov = "*"
+pytest-dependency = "*"
+pre-commit = "*"
+mongomock = "*"
+
+[requires]
+python_version = "3"
