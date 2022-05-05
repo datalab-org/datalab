@@ -48,13 +48,18 @@ Additional notes:
 
 ### Web app
 
-1. If you do not already have it, install the Node Package Manager (`npm`) either from [their website](https://www.npmjs.com/get-npm) or your OS package manager, then use it to install the `yarn` package manager:
+1. If you do not already have it, install node.js and the  Node Package Manager (`npm`). It is recommended not to install node using the official installer, since it is difficult to manage or uninstall, and permissions issues may arise. Intead, it is recommended to install and manage versions using the [node version manager (nvm)][https://github.com/nvm-sh/nvm#installing-and-updating]:
 
-     ```npm install --global yarn```
+    ```nvm install --lts```
+ 
+    This will install the current recommended version of node and nvm.
+ 
+2. Once installed, use it to install the `yarn` package manager:
+    ```npm install --global yarn```
 
     From this point on, the `npm` command is not needed - all package and script management for the webapp is handled using `yarn`.
-1. Navigate to the `webapp/` directory in your local copy of this repository and run `yarn install` (requires ~300 MB of disk space).
-1. Run the webapp from a development server with `yarn serve`.
+3. Navigate to the `webapp/` directory in your local copy of this repository and run `yarn install` (requires ~400 MB of disk space).
+4. Run the webapp from a development server with `yarn serve`.
 
 Similar to the Flask development server, these steps will provide a development environment that serves the web app at `localhost:8080` (by default) and automatically reloads it as changes are made to the source code.
 Various other development scripts are available through `yarn` (see also the [webapp README](./webapp/README.md)):
