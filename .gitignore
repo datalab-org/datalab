@@ -64,3 +64,5 @@ coverage.xml
 env/
 venv/
 ENV/
+.matplotlibrc
+matplotlibrc

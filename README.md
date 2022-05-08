@@ -51,9 +51,9 @@ Additional notes:
 1. If you do not already have it, install node.js and the  Node Package Manager (`npm`). It is recommended not to install node using the official installer, since it is difficult to manage or uninstall, and permissions issues may arise. Intead, it is recommended to install and manage versions using the [node version manager (nvm)][https://github.com/nvm-sh/nvm#installing-and-updating]:
 
     ```nvm install --lts```
- 
+
     This will install the current recommended version of node and nvm.
- 
+
 2. Once installed, use it to install the `yarn` package manager:
     ```npm install --global yarn```
 
