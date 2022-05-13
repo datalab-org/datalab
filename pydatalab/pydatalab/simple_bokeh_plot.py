@@ -50,7 +50,7 @@ mytheme = Theme(json=style)
 
 def simple_bokeh_plot(xy_filename, x_label=None, y_label=None):
 
-    df = pd.read_csv(xy_filename, sep="\\s+", names=["x_col", "y_col"])
+    df = pd.read_csv(xy_filename)
     source = ColumnDataSource(df)
     # source = ColumnDataSource({'x_col': x, 'y_col': y})
 

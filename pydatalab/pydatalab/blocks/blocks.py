@@ -150,7 +150,7 @@ class ImageBlock(DataBlock):
 class XRDBlock(DataBlock):
     blocktype = "xrd"
     description = "Powder XRD"
-    accepted_file_extensions = (".xrdml", ".xy")
+    accepted_file_extensions = (".xrdml", ".xy", ".dat")
 
     @property
     def plot_functions(self):
@@ -165,7 +165,7 @@ class XRDBlock(DataBlock):
         filename = file_info["name"]
         ext = os.path.splitext(filename)[-1].lower()
 
-        if ext not in [".xrdml", ".xy"]:
+        if ext not in self.accepted_file_extensions:
             LOGGER.warning(
                 "XRDBlock.generate_xrd_plot(): Unsupported file extension (must be .xrdml or .xy)"
             )
