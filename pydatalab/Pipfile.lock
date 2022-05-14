@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "546362bc0e55d9fc3eb160f30615d531c2a17e1aa4e82defe391642183bbf51b"
+            "sha256": "51f0eeca6bdc11bad207261228cb69e9385f2b72d56184f9c935e6738371bb84"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -242,7 +242,8 @@
         },
         "navani": {
             "editable": true,
-            "git": "https://github.com/the-grey-group/navani.git"
+            "git": "https://github.com/the-grey-group/navani.git",
+            "ref": "35228411490292435c86d422b57956c0fa9970d6"
         },
         "numpy": {
             "hashes": [
@@ -676,10 +677,11 @@
         },
         "werkzeug": {
             "hashes": [
-                "sha256:1ce08e8093ed67d638d63879fd1ba3735817f7a80de3674d293f5984f25fb6e6",
-                "sha256:72a4b735692dd3135217911cbeaa1be5fa3f62bffb8745c5215420a03dc55255"
+                "sha256:1421ebfc7648a39a5c58c601b154165d05cf47a3cd0ccb70857cbdacf6c8f2b8",
+                "sha256:b863f8ff057c522164b6067c9e28b041161b4be5ba4d0daceeaa50a163822d3c"
             ],
-            "version": "==2.1.2"
+            "index": "pypi",
+            "version": "==2.0.3"
         },
         "zipp": {
             "hashes": [
