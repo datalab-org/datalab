@@ -5,7 +5,7 @@ verify_ssl = true
 
 [packages]
 flask = "*"
-bokeh = "==2.2.3"
+bokeh = "*"
 pandas = "*"
 scipy= "*"
 matplotlib="*"
