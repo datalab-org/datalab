@@ -14,6 +14,7 @@ werkzeug = ">=2.0,<2.1"
 flask-pymongo = "*"
 flask-cors = "*"
 galvani = "*"
+navani = {git = "https://github.com/the-grey-group/navani.git", editable = true}
 pyqt5 = "*"
 pydantic = "*"
 openpyxl = "*"
@@ -27,7 +28,3 @@ mongomock = "*"
 
 [requires]
 python_version = "3"
-
-[packages.navani]
-git = "https://github.com/the-grey-group/navani.git"
-editable = true
