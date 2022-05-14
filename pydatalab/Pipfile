@@ -31,3 +31,6 @@ python_version = "3"
 [packages.navani]
 git = "https://github.com/the-grey-group/navani.git@3237509a46056de0184bd27c67547f2dc462da05"
 editable = true
+
+[packages.3237509a46056de0184bd27c67547f2dc462da05]
+git = "https://github.com/the-grey-group/navani"
