@@ -4,18 +4,17 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [packages]
-flask = "*"
+Flask = "*"
 bokeh = "*"
 pandas = "*"
 scipy = "*"
 matplotlib = "*"
 pymongo = "*"
-werkzeug = ">=2.0,<2.1"
-flask-pymongo = "*"
-flask-cors = "*"
+Werkzeug = ">=2.0,<2.1"
+Flask-PyMongo = "*"
+Flask-Cors = "*"
 galvani = "*"
 navani = {git = "https://github.com/the-grey-group/navani.git", editable = true}
-pyqt5 = "*"
 pydantic = "*"
 openpyxl = "*"
 
