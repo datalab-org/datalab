@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:experimental
-FROM python:3.8 as base
+FROM python:latest as base
 SHELL ["/bin/bash", "--login", "-c"]
 EXPOSE 5001
 RUN apt update && apt install -y tree && apt clean
@@ -12,6 +12,7 @@ COPY Pipfile Pipfile.lock ./
 
 # Create development image using flask's dev server with hot-reload
 FROM base as development
+RUN --mount=type=cache,target=/root/.cache/pip pipenv install
 RUN --mount=type=cache,target=/root/.cache/pip pipenv install --dev
 ENV FLASK_APP "pydatalab.main:create_app()"
 ENV FLASK_ENV "development"
