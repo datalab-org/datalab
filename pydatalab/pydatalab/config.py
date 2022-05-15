@@ -1,7 +1,8 @@
 from pathlib import Path
 from typing import Dict, List, Union
+import os
 
-from pydantic import BaseSettings, Field, root_validator
+from pydantic import BaseModel, BaseSettings, Field, root_validator
 
 DEFAULT_REMOTES = [
     {
@@ -24,6 +25,37 @@ DEFAULT_REMOTES = [
         "hostname": "ssh://diskhost-c.ch.private.cam.ac.uk",
         "path": "/zfs/greygroup/instruments/eve/Josh_Bocarsly",
     },
+]
+
+class OAuthProvider(BaseModel):
+
+    client_id: str = Field(None, description="The client ID for this datalab instance registered with the OAuth provider.")
+    client_secret: str = Field(None, description="The client secret for this datalab instance registered with the OAuth provider.")
+    token_url: str = Field(None, description="The provider's token URL.")
+    base_url: str = Field(None, description="The provider's OAuth base URL.")
+    known_users: List[str] = Field(None, description="A list of known users that will be authenticated for the API after login.")
+    name: str = Field(None)
+
+
+OAUTH_PROVIDERS = [
+    OAuthProvider(
+        client_id=os.environ.get("PYDATALAB_GITHUB_OAUTH_CLIENT_ID"),
+        client_secret=os.environ.get("PYDATALAB_GITHUB_OAUTH_CLIENT_SECRET"),
+        token_url="https://github.com/login/oauth/access_token",
+        base_url="https://github.com/login/oauth/authorize",
+        name="github",
+        known_users=["ml-evs", "jdbocarsly"]
+    ),
+    OAuthProvider(
+        client_id=os.environ.get("PYDATALAB_ORCID_SANDBOX_OAUTH_CLIENT_ID"),
+        client_secret=os.environ.get("PYDATALAB_ORCID_SANDBOX_OAUTH_CLIENT_SECRET"),
+        token_url="https://sandbox.orcid.org/oauth/token?scope=/authenticate",
+        base_url="https://sandbox.orcid.org/oauth/authorize?scope=/authenticate",
+        name="orcid_sandbox",
+        known_users=[
+            "0000-0002-2903-9254" # Sandbox ID for orcid_sandbox@ml-evs.science
+        ],
+    )
 ]
 
 
@@ -56,6 +88,8 @@ class ServerConfig(BaseSettings):
         1,
         description="The minimum age, in minutes, of the remote filesystem cache, below which the cache will not be invalidated if an update is manually requested.",
     )
+
+    OAUTH_PROVIDERS: Dict[str, OAuthProvider] = Field({p.name: p for p in OAUTH_PROVIDERS})
 
     @root_validator
     def validate_cache_ages(cls, values):
