@@ -50,9 +50,11 @@ mytheme = Theme(json=style)
 
 def simple_bokeh_plot(xy_filename, x_label=None, y_label=None):
 
-    df = pd.read_csv(xy_filename)
-    source = ColumnDataSource(df)
-    # source = ColumnDataSource({'x_col': x, 'y_col': y})
+    df = pd.read_csv(xy_filename, sep=r"\s+")
+    # source = ColumnDataSource(df)
+    source = ColumnDataSource(
+        {"x_col": df[df.columns[0]], "y_col": df[df.columns[1]]}
+    )  # plot the first two columns
 
     kw = dict()
     p = figure(sizing_mode="scale_width", aspect_ratio=1.5, tools=TOOLS, **kw)
