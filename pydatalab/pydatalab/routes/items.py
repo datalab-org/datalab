@@ -2,11 +2,12 @@ import datetime
 from typing import Callable, Dict, List, Union
 
 from bson import ObjectId
-from flask import abort, jsonify, request
+from flask import abort, jsonify, request, session
 from pydantic import ValidationError
 
 from pydatalab.blocks import BLOCK_TYPES
 from pydatalab.models import ITEM_MODELS, Sample
+from pydatalab.routes.auth import requires_authentication
 from pydatalab.mongo import flask_mongo
 
 
@@ -353,12 +354,13 @@ def save_item():
 
 save_item.methods = ("POST",)  # type: ignore
 
+
 ENDPOINTS: Dict[str, Callable] = {
-    "/samples/": get_samples,
-    "/starting-materials/": get_starting_materials,
-    "/search-items/": search_items,
-    "/new-sample/": create_sample,
-    "/delete-sample/": delete_sample,
-    "/get-item-data/<item_id>": get_item_data,
-    "/save-item/": save_item,
+    "/samples/": requires_authentication(get_samples),
+    "/starting-materials/": requires_authentication(get_starting_materials),
+    "/search-items/": requires_authentication(search_items),
+    "/new-sample/": requires_authentication(create_sample),
+    "/delete-sample/": requires_authentication(delete_sample),
+    "/get-item-data/<item_id>": requires_authentication(get_item_data),
+    "/save-item/": requires_authentication(save_item),
 }
