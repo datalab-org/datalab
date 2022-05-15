@@ -26,7 +26,6 @@ def _sync_file_with_remote(remote_path: str, src: str) -> None:
     Arguments:
         remote_path: The original location of the file.
         src: The local location of the file.
-k
     """
     if os.path.isfile(remote_path):
         shutil.copy(remote_path, src)
