@@ -9,6 +9,8 @@ class Item(BaseModel):
 
     type: str = Field(description="The resource type of the item.")
 
+    creator: str = Field(description="The creator of the item.")
+
     item_id: str = Field(description="a unique id for item.")
 
     last_modified: Optional[datetime.datetime] = Field(

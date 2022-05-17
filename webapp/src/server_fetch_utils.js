@@ -20,9 +20,10 @@ function construct_headers(additional_headers = null) {
 
 // eslint-disable-next-line no-unused-vars
 function fetch_get(url) {
+  let headers = construct_headers({ "Access-Control-Allow-Origin": "*" });
   const requestOptions = {
     method: "GET",
-    headers: construct_headers(),
+    headers: headers,
   };
   return fetch(url, requestOptions).then(handleResponse);
 }
@@ -91,6 +92,16 @@ export function createNewSample(item_id, date, name) {
     // 	"item_id": item_id,
     // 	"sample_data": response_json.sample_data
     // });
+    return "success";
+  });
+}
+
+export function attemptLogin() {
+  return fetch_get(`${API_URL}/login/`, {
+  }).then(function (response_json) {
+    console.log("received the following data from fetch login:");
+    console.log(response_json);
+    store.commit("setToken", response_json.token);
     return "success";
   });
 }

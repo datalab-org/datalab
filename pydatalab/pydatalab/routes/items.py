@@ -96,6 +96,7 @@ def get_samples():
                         "sample_id": 1,
                         "nblocks": {"$size": "$display_order"},
                         "date": 1,
+                        "creator": 1,
                         "chemform": 1,
                         "name": 1,
                     }
@@ -157,7 +158,10 @@ search_items.methods = ("GET",)  # type: ignore
 def create_sample():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
 
+    breakpoint()
+
     item_id = request_json["item_id"]
+    creator = session["username"]
     name = request_json["name"]
     date = request_json["date"]
 
@@ -176,6 +180,7 @@ def create_sample():
     try:
         new_sample = Sample(
             **{
+                "creator": creator,
                 "item_id": item_id,
                 "name": name,
                 "date": date,

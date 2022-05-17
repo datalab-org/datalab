@@ -6,6 +6,7 @@ from flask import session, redirect, request, jsonify, url_for
 
 from pydatalab.config import CONFIG
 from pydatalab.logger import logged_route
+from pydatalab.mongo import flask_mongo
 
 DEFAULT_OAUTH = "github"
 
@@ -36,7 +37,19 @@ def oauth_callback():
     )
     session["oauth_token"] = token
     session["authenticated"] = True
+
+    if session["oauth_provider"] == "github":
+        identity = {"github_username": oauth.get("https://api.github.com/user").json()["login"]}
+    elif session["oauth_provider"] == "orcid_sandbox":
+        identity = {"orcid": oauth.get("https://sandbox.orcid.org/user").json()["login"]}
+        
+    user = lookup_user(identity)
+
     return redirect(request.args.get("next", url_for("profile")))
+
+
+def lookup_user(identity):
+    return flask_mongo.db.users.find_one(identity)
 
 
 @logged_route
