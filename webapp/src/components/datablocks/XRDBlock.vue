@@ -9,10 +9,33 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
       :extensions="['.xrdml', '.xy', '.dat']"
       updateBlockOnChange
     />
+
+    <div class="form-row col-md-4 col-lg-4 mt-2 mb-2 pl-1">
+      <div class="input-group form-inline">
+        <label class="mr-2"><b>Wavelength (Å):</b></label>
+        <input
+          type="text"
+          class="form-control"
+          :class="{ 'is-invalid': wavelengthParseError }"
+          v-model="wavelength"
+          @keydown.enter="
+            parseWavelength();
+            updateBlock();
+          "
+          @blur="
+            parseWavelength();
+            updateBlock();
+          "
+        />
+        <div v-if="wavelengthParseError" class="alert alert-danger mt-2 mx-auto">
+          {{ wavelengthParseError }}
+        </div>
+      </div>
+    </div>
+
     <div class="row">
-      <div class="col-xl-8 col-lg-9 col-md-11 mx-auto">
+      <div id="bokehPlotContainer" class="col-xl-9 col-lg-10 col-md-11 mx-auto">
         <BokehPlot :bokehPlotData="bokehPlotData" />
-        <!-- <div v-if="!bokehPlotData" class="alert alert-danger">No bokeh Plot Data is loaded</div> -->
       </div>
     </div>
   </DataBlockBase>
@@ -24,8 +47,14 @@ import FileSelectDropdown from "@/components/FileSelectDropdown";
 import BokehPlot from "@/components/BokehPlot";
 
 import { createComputedSetterForBlockField } from "@/field_utils.js";
+import { updateBlockFromServer } from "@/server_fetch_utils.js";
 
 export default {
+  data() {
+    return {
+      wavelengthParseError: "",
+    };
+  },
   props: {
     item_id: String,
     block_id: String,
@@ -35,6 +64,7 @@ export default {
       return this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id]
         .bokeh_plot_data;
     },
+    wavelength: createComputedSetterForBlockField("wavelength"),
     file_id: createComputedSetterForBlockField("file_id"),
   },
   components: {
@@ -42,8 +72,26 @@ export default {
     FileSelectDropdown,
     BokehPlot,
   },
+  methods: {
+    parseWavelength() {
+      if (isNaN(this.wavelength) || isNaN(parseFloat(this.wavelength))) {
+        this.wavelengthParseError = "Please provide a valid number";
+      } else {
+        this.wavelengthParseError = "";
+      }
+    },
+    updateBlock() {
+      updateBlockFromServer(
+        this.item_id,
+        this.block_id,
+        this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id]
+      );
+    },
+  },
   // mounted() {
   // 	this.makeBokehPlot()
   // }
 };
 </script>
+
+<style scoped></style>

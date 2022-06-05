@@ -3,12 +3,14 @@ import random
 from typing import Any, Callable, Dict, Optional, Sequence
 
 import bokeh
+import numpy as np
+import pandas as pd
 from bson import ObjectId
 
 from pydatalab import xrd_utils
+from pydatalab.bokeh_plots import mytheme, selectable_axes_plot
 from pydatalab.file_utils import get_file_info_by_id
 from pydatalab.logger import LOGGER
-from pydatalab.simple_bokeh_plot import mytheme, simple_bokeh_plot
 
 __all__ = ("generate_random_id", "DataBlock")
 
@@ -150,7 +152,9 @@ class ImageBlock(DataBlock):
 class XRDBlock(DataBlock):
     blocktype = "xrd"
     description = "Powder XRD"
-    accepted_file_extensions = (".xrdml", ".xy", ".dat")
+    accepted_file_extensions = (".xrdml", ".xy", ".dat", ".xye")
+
+    defaults = {"wavelength": 1.54060}
 
     @property
     def plot_functions(self):
@@ -171,15 +175,39 @@ class XRDBlock(DataBlock):
             )
             return
 
-        LOGGER.debug(f"The XRD file to plot is found at: {file_info['location']}")
         if ext == ".xrdml":
-            filename = xrd_utils.convertSinglePattern(
-                file_info["location"]
-            )  # should give .xrdml.xy file
-            LOGGER.debug("the path is now: %s", filename)
-        else:
-            filename = os.path.join(file_info["location"])
+            df = xrd_utils.parse_xrdml(file_info["location"])
 
-        p = simple_bokeh_plot(filename, x_label="2θ (°)", y_label="intensity (counts)")
+        elif ext == ".xy":
+            df = pd.read_csv(file_info["location"], sep=r"\s+", names=["twotheta", "intensity"])
+
+        else:
+            df = pd.read_csv(
+                file_info["location"], sep=r"\s+", names=["twotheta", "intensity", "error"]
+            )
+
+        df = df.rename(columns={"twotheta": "2θ (°)"})
+        x_options = ["2θ (°)"]
+        try:
+            wavelength = float(self.data["wavelength"])
+
+            df["Q (Å⁻¹)"] = 4 * np.pi / wavelength * np.sin(np.deg2rad(df["2θ (°)"]) / 2)
+            df["d (Å)"] = 2 * np.pi / df["Q (Å⁻¹)"]
+            x_options += ["Q (Å⁻¹)", "d (Å)"]
+
+        # if no wavelength (or invalid wavelength) is passed, don't convert to Q and d
+        except (ValueError, ZeroDivisionError):
+            pass
+
+        df["sqrt(intensity)"] = np.sqrt(df["intensity"])
+        df["log(intensity)"] = np.log10(df["intensity"])
+
+        p = selectable_axes_plot(
+            df,
+            x_options=x_options,
+            y_options=["intensity", "sqrt(intensity)", "log(intensity)"],
+            plot_line=True,
+            point_size=3,
+        )
 
         self.data["bokeh_plot_data"] = bokeh.embed.json_item(p, theme=mytheme)

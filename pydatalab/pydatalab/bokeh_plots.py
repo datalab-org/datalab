@@ -20,13 +20,15 @@ TOOLS = "box_zoom, reset, tap"
 
 SELECTABLE_CALLBACK_x = """
   var column = cb_obj.value;
-  circle1.glyph.x.field = column;
+  if (circle1) {circle1.glyph.x.field = column;}
+  if (line1) {line1.glyph.x.field = column;}
   source.change.emit();
   xaxis.axis_label = column;
 """
 SELECTABLE_CALLBACK_y = """
   var column = cb_obj.value;
-  circle1.glyph.y.field = column;
+  if (circle1) {circle1.glyph.y.field = column;}
+  if (line1) {line1.glyph.y.field = column;}
   source.change.emit();
   yaxis.axis_label = column;
 """
@@ -50,9 +52,9 @@ style = {
             "axis_label_text_font": TYPEFACE,
             "axis_label_text_font_style": "normal",
             "axis_label_text_font_size": FONTSIZE,
-            "major_tick_in": None,
-            "minor_tick_out": None,
-            "minor_tick_in": None,
+            "major_tick_in": 0,
+            "minor_tick_out": 0,
+            "minor_tick_in": 0,
             "axis_line_color": "#CAC6B6",
             "major_tick_line_color": "#CAC6B6",
             "major_label_text_font_size": FONTSIZE,
@@ -69,7 +71,17 @@ style = {
 mytheme = Theme(json=style)
 
 
-def selectable_axes_plot(df, x_options, y_options, x_default=None, y_default=None, **kwargs):
+def selectable_axes_plot(
+    df,
+    x_options,
+    y_options,
+    x_default=None,
+    y_default=None,
+    plot_points=True,
+    point_size=4,
+    plot_line=True,
+    **kwargs,
+):
     """
     Creates bokeh layout with selectable axis.
 
@@ -98,13 +110,18 @@ def selectable_axes_plot(df, x_options, y_options, x_default=None, y_default=Non
         **kwargs,
     )
 
-    circle1 = p.circle(x=x_default, y=y_default, source=source)
+    circle1 = (
+        p.circle(x=x_default, y=y_default, source=source, size=point_size) if plot_points else None
+    )
+    line1 = p.line(x=x_default, y=y_default, source=source) if plot_line else None
 
     callback_x = CustomJS(
-        args=dict(circle1=circle1, source=source, xaxis=p.xaxis[0]), code=SELECTABLE_CALLBACK_x
+        args=dict(circle1=circle1, line1=line1, source=source, xaxis=p.xaxis[0]),
+        code=SELECTABLE_CALLBACK_x,
     )
     callback_y = CustomJS(
-        args=dict(circle1=circle1, source=source, yaxis=p.yaxis[0]), code=SELECTABLE_CALLBACK_y
+        args=dict(circle1=circle1, line1=line1, source=source, yaxis=p.yaxis[0]),
+        code=SELECTABLE_CALLBACK_y,
     )
 
     # Add list boxes for selecting which columns to plot on the x and y axis
