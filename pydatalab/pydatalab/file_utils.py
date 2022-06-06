@@ -30,7 +30,7 @@ def _sync_file_with_remote(remote_path: str, src: str) -> None:
     if os.path.isfile(remote_path):
         shutil.copy(remote_path, src)
     elif remote_path.startswith("ssh://"):
-        scp_command = f"scp {re.sub('^ssh://', '', remote_path)} {src}"
+        scp_command = f"scp \"{re.sub('^ssh://', '', remote_path)}\" {src}"
 
         LOGGER.debug("Syncing file with '%s'", scp_command)
         proc = subprocess.Popen(
