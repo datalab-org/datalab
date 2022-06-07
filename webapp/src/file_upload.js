@@ -6,6 +6,7 @@ import XHRUpload from "@uppy/xhr-upload";
 import Webcam from "@uppy/webcam";
 
 import store from "@/store/index.js";
+import construct_headers from "@/server_fetch_utils.js";
 
 import { API_URL } from "@/resources.js";
 // file-upload loaded
@@ -13,6 +14,7 @@ import { API_URL } from "@/resources.js";
 export default function setupUppy(item_id, trigger_selector, reactive_file_list) {
   console.log("setupUppy called with: " + trigger_selector);
   var uppy = new Uppy();
+  let headers = construct_headers();
   uppy
     .use(Dashboard, {
       inline: false,
@@ -29,7 +31,7 @@ export default function setupUppy(item_id, trigger_selector, reactive_file_list)
     .use(Webcam, { target: Dashboard })
     .use(XHRUpload, {
       //someday, try to upgrade this to Tus
-      // headers: {'X-CSRFToken': "{{ csrf_token() }}"},
+      headers: headers,
       endpoint: `${API_URL}/upload-file/`,
       FormData: true, // send as form
       fieldName: "files[]", // default, think about whether or not to change this
