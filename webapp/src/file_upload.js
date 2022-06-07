@@ -6,7 +6,7 @@ import XHRUpload from "@uppy/xhr-upload";
 import Webcam from "@uppy/webcam";
 
 import store from "@/store/index.js";
-import construct_headers from "@/server_fetch_utils.js";
+import { construct_headers } from "@/server_fetch_utils.js";
 
 import { API_URL } from "@/resources.js";
 // file-upload loaded
