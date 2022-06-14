@@ -58,6 +58,7 @@ jobs:
           pip install pipenv
           pipenv install --dev
           pipenv run pip install -e .
+          pipenv graph
 
       - name: Run all tests
         working-directory: ./pydatalab

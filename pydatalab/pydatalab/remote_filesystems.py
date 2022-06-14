@@ -229,9 +229,11 @@ def _fix_tree_paths(
             continue
 
         full_path = subtree["name"]
+
         path, filename = os.path.split(full_path)
 
-        relative_path = os.path.relpath(path, start=root_path)
+        escaped_path = path.replace(" ", r"\ ")
+        relative_path = os.path.relpath(escaped_path, start=root_path)
         if relative_path == ".":
             relative_path = "/"
         else:
