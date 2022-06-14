@@ -1,14 +1,37 @@
 import os
 import re
-import sys
 import warnings
 
 import numpy as np
+import pandas as pd
 
 STARTEND_REGEX = (
     r"<startPosition>(\d+\.\d+)</startPosition>\s+<endPosition>(\d+\.\d+)</endPosition>"
 )
 DATA_REGEX = r'<intensities unit="counts">((-?\d+ )+-?\d+)</intensities>'
+
+
+class XrdmlParseError(Exception):
+    pass
+
+
+def parse_xrdml(fn: str) -> pd.DataFrame:
+    with open(fn, "rU") as f:
+        s = f.read()
+
+    start, end = getStartEnd(s)  # extract first and last angle
+    intensities = getIntensities(s)  # extract intensities
+
+    angles = np.linspace(start, end, num=len(intensities))
+
+    df = pd.DataFrame(
+        {
+            "twotheta": angles,
+            "intensity": intensities,
+        }
+    )
+
+    return df
 
 
 def convertSinglePattern(fn, directory=".", adjust_baseline=False, overwrite=False):
@@ -60,11 +83,11 @@ def getStartEnd(s):
     Returns a tuple of floats: (start, end)"""
     match = re.search(STARTEND_REGEX, s)
     if not match:
-        print("the start and end 2theta positions were not found in the XML file")
-        sys.exit(1)
+        raise XrdmlParseError("the start and end 2theta positions were not found in the XML file")
 
     start = float(match.group(1))
     end = float(match.group(2))
+
     return start, end
 
 
@@ -72,8 +95,8 @@ def getIntensities(s):
     """parses an xrdml file in string form to extract the intensities. Returns a list of floats"""
     match = re.search(DATA_REGEX, s)
     if not match:
-        print("the intensitites were not found in the XML file")
-        sys.exit(1)
+        raise XrdmlParseError("the intensitites were not found in the XML file")
+
     out = [float(x) for x in match.group(1).split()]  # the intensitites as a list of integers
     return out
 

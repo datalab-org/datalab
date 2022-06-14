@@ -1,5 +1,6 @@
 import datetime
 import os
+import re
 import shutil
 import subprocess
 from typing import Any, Dict, Union
@@ -25,12 +26,11 @@ def _sync_file_with_remote(remote_path: str, src: str) -> None:
     Arguments:
         remote_path: The original location of the file.
         src: The local location of the file.
-
     """
     if os.path.isfile(remote_path):
         shutil.copy(remote_path, src)
     elif remote_path.startswith("ssh://"):
-        scp_command = f"scp {remote_path.lstrip('ssh://')} {src}"
+        scp_command = f"scp \"{re.sub('^ssh://', '', remote_path)}\" {src}"
 
         LOGGER.debug("Syncing file with '%s'", scp_command)
         proc = subprocess.Popen(
