@@ -7,7 +7,7 @@ import { API_URL, API_TOKEN } from "@/resources.js";
 // ****************************************************************************
 // A simple wrapper to simplify response handling for fetch calls
 // ****************************************************************************
-function construct_headers(additional_headers = null) {
+export function construct_headers(additional_headers = null) {
   let headers = {};
   if (additional_headers != null) {
     headers = additional_headers;
