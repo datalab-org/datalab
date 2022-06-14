@@ -179,8 +179,6 @@ def _get_latest_directory_structure(
             command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
         stdout, stderr = process.communicate()
-
-        # import pdb; pdb.set_trace()
         if stderr:
             raise RuntimeError(f"Remote tree process {command!r} returned: {stderr!r}")
 
@@ -235,9 +233,6 @@ def _fix_tree_paths(
         path, filename = os.path.split(full_path)
 
         escaped_path = path.replace(" ", r"\ ")
-
-        # import pdb; pdb.set_trace()
-
         relative_path = os.path.relpath(escaped_path, start=root_path)
         if relative_path == ".":
             relative_path = "/"
