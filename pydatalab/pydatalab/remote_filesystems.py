@@ -57,7 +57,7 @@ def get_directory_structure(
 
     """
 
-    LOGGER.info(f"Accessing directory structure of {directory}")
+    LOGGER.debug(f"Accessing directory structure of {directory}")
     try:
         cached_dir_structure = _get_cached_directory_structure(directory)
         if cached_dir_structure:
@@ -65,7 +65,7 @@ def get_directory_structure(
             if invalidate_cache and cache_age < datetime.timedelta(
                 minutes=CONFIG.REMOTE_CACHE_MIN_AGE
             ):
-                LOGGER.info(
+                LOGGER.debug(
                     f"Not invalidating cache as its age ({cache_age=}) is less than the configured {CONFIG.REMOTE_CACHE_MIN_AGE=}."
                 )
 
@@ -91,7 +91,7 @@ def get_directory_structure(
                 directory["path"], directory.get("hostname")
             )
             last_updated = _save_directory_structure(directory, dir_structure)
-            LOGGER.info(
+            LOGGER.debug(
                 "Remote filesystems cache miss for '%s': last updated %s",
                 directory["name"],
                 last_updated,
@@ -100,7 +100,7 @@ def get_directory_structure(
         else:
             last_updated = cached_dir_structure["last_updated"]
             dir_structure = cached_dir_structure["contents"]
-            LOGGER.info(
+            LOGGER.debug(
                 "Remote filesystems cache hit for '%s': last updated %s",
                 directory["name"],
                 last_updated,
@@ -188,7 +188,7 @@ def _get_latest_directory_structure(
 
 
     if hostname:
-        LOGGER.info(f"Calling remote {tree_command} on {directory_path}")
+        LOGGER.debug(f"Calling remote {tree_command} on {directory_path}")
         dir_structure = _call_remote_tree(directory_path, hostname)
 
     elif os.path.isdir(directory_path):
