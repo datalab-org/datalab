@@ -57,10 +57,9 @@ class DataBlock:
         self.cache = {}
 
         LOGGER.debug(
-            "Creating new block %s associated with item_id %s with data %s.",
+            "Creating new block '%s' associated with item_id '%s'",
             self.__class__.__name__,
             item_id,
-            dictionary,
         )
         self.block_id = (
             unique_id or generate_random_id()
@@ -124,9 +123,8 @@ class DataBlock:
         """update the object with data received from the website. Only updates fields
         that are specified in the dictionary- other fields are left alone"""
         LOGGER.debug(
-            "Updating block %s from web request with data %s",
+            "Updating block %s from web request",
             self.__class__.__name__,
-            data,
         )
         self.data.update(data)
 
