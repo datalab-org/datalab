@@ -25,6 +25,11 @@ DEFAULT_REMOTES = [
         "path": "/zfs/greygroup/instruments/eve/Josh_Bocarsly",
     },
     {
+        "name": "bob/James_Steele",
+        "hostname": "ssh://diskhost-c.ch.private.cam.ac.uk",
+        "path": "/zfs/greygroup/instruments/bob/James_Steele",
+    },
+    {
         "name": "Diamond Light Source/i11/cy28349-9",
         "hostname": "ssh://ssh.diamond.ac.uk",
         "path": "/dls/i11/data/2022/cy30731-1",
@@ -34,6 +39,7 @@ DEFAULT_REMOTES = [
         "hostname": "ssh://analytical-data-fs.ch.private.cam.ac.uk",
         "path": r"/data/group/analytical-data/general/shares/xray/PXRD/Empyrean\ XRD\ -\ Service\ Data/2022/Grey/JMAS5",
     },
+
 ]
 
 
