@@ -57,6 +57,7 @@ def get_directory_structure(
 
     """
 
+    LOGGER.info(f"Accessing directory structure of {directory}")
     try:
         cached_dir_structure = _get_cached_directory_structure(directory)
         if cached_dir_structure:
@@ -173,18 +174,21 @@ def _get_latest_directory_structure(
 
         """
         command = (
-            f"ssh {hostname} '{' '.join(tree_command)} {directory_path} --timefmt {tree_timefmt}'"
+            f"ssh {hostname} 'PATH=$PATH:~/ {' '.join(tree_command)} {directory_path} --timefmt {tree_timefmt}'"
         )
         process = subprocess.Popen(
             command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
-        stdout, stderr = process.communicate()
+        LOGGER.debug(f"Calling {command}")
+        stdout, stderr = process.communicate(timeout=10)
         if stderr:
             raise RuntimeError(f"Remote tree process {command!r} returned: {stderr!r}")
 
         return json.loads(stdout)
 
+
     if hostname:
+        LOGGER.info(f"Calling remote {tree_command} on {directory_path}")
         dir_structure = _call_remote_tree(directory_path, hostname)
 
     elif os.path.isdir(directory_path):
