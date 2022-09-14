@@ -47,11 +47,16 @@ def logged_route(fn: Callable):
             request,
             pprint.pprint(request.get_json(), depth=1, width=80, compact=True),
         )
-
-        result = fn(*args, **kwargs)
-        LOGGER.debug(
-            "%s returned %s", fn.__name__, pprint.pprint(result, depth=1, width=80, compact=True)
-        )
-        return result
+        try:
+            result = fn(*args, **kwargs)
+            LOGGER.debug(
+                "%s returned %s", fn.__name__, pprint.pprint(result, depth=1, width=80, compact=True)
+            )
+            return result
+        except Exception as exc:
+            LOGGER.error(
+                "%s errored with %s", fn.__name__, exc
+            )
+            raise exc
 
     return wrapped_logged_route
