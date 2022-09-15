@@ -173,9 +173,7 @@ def _get_latest_directory_structure(
             A dictionary of the `tree` output.
 
         """
-        command = (
-            f"ssh {hostname} 'PATH=$PATH:~/ {' '.join(tree_command)} {directory_path} --timefmt {tree_timefmt}'"
-        )
+        command = f"ssh {hostname} 'PATH=$PATH:~/ {' '.join(tree_command)} {directory_path} --timefmt {tree_timefmt}'"
         process = subprocess.Popen(
             command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
@@ -185,7 +183,6 @@ def _get_latest_directory_structure(
             raise RuntimeError(f"Remote tree process {command!r} returned: {stderr!r}")
 
         return json.loads(stdout)
-
 
     if hostname:
         LOGGER.debug(f"Calling remote {tree_command} on {directory_path}")
