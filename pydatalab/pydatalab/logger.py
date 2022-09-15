@@ -83,13 +83,13 @@ def logged_route(fn: Callable):
         try:
             result = fn(*args, **kwargs)
             LOGGER.debug(
-                "%s returned %s", fn.__name__, result,
+                "%s returned %s",
+                fn.__name__,
+                result,
             )
             return result
         except Exception as exc:
-            LOGGER.error(
-                "%s errored with %s", fn.__name__, exc
-            )
+            LOGGER.error("%s errored with %s", fn.__name__, exc)
             raise exc
 
     return wrapped_logged_route

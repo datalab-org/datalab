@@ -1,40 +1,30 @@
+import json
+import logging
+import os
 from pathlib import Path
-from typing import Dict, List, Union
+from typing import Any, Dict, List, Union
 
 from pydantic import BaseSettings, Field, root_validator
 
-DEFAULT_REMOTES = [
-    {
-        "name": "bob/Josh_B",
-        "hostname": "ssh://diskhost-c.ch.private.cam.ac.uk",
-        "path": "/zfs/greygroup/instruments/bob/Josh_B",
-    },
-    {
-        "name": "carlos/Jiasi_Li",
-        "hostname": "ssh://diskhost-c.ch.private.cam.ac.uk",
-        "path": "/zfs/greygroup/instruments/carlos/Jiasi_Li",
-    },
-    {
-        "name": "carlos/Josh_Bocarsly",
-        "hostname": "ssh://diskhost-c.ch.private.cam.ac.uk",
-        "path": "/zfs/greygroup/instruments/carlos/Josh_Bocarsly",
-    },
-    {
-        "name": "eve/Josh_Bocarsly",
-        "hostname": "ssh://diskhost-c.ch.private.cam.ac.uk",
-        "path": "/zfs/greygroup/instruments/eve/Josh_Bocarsly",
-    },
-    {
-        "name": "Diamond Light Source/i11/cy28349-9",
-        "hostname": "ssh://ssh.diamond.ac.uk",
-        "path": "/dls/i11/data/2022/cy30731-1",
-    },
-    {
-        "name": "Empyrean XRD/2022/jmas5",
-        "hostname": "ssh://analytical-data-fs.ch.private.cam.ac.uk",
-        "path": r"/data/group/analytical-data/general/shares/xray/PXRD/Empyrean\ XRD\ -\ Service\ Data/2022/Grey/JMAS5",
-    },
-]
+
+def config_file_settings(settings: BaseSettings) -> Dict[str, Any]:
+    config_file = Path(os.getenv("PYDATALAB_CONFIG_FILE", "/app/config.json"))
+
+    res = {}
+    if config_file.is_file():
+        logging.debug("Loading from config file at %s", config_file)
+        config_file_content = config_file.read_text(encoding=settings.__config__.env_file_encoding)
+
+        try:
+            res = json.loads(config_file_content)
+        except json.JSONDecodeError as json_exc:
+            raise RuntimeError(f"Unable to read JSON config file {config_file}") from json_exc
+
+    else:
+        logging.debug("Unable to load from config file at %s", config_file)
+        res = {}
+
+    return res
 
 
 class ServerConfig(BaseSettings):
@@ -44,7 +34,6 @@ class ServerConfig(BaseSettings):
         "mongodb://localhost:27017/datalabvue",
         description="The URI for the underlying MongoDB.",
     )
-
     FILE_DIRECTORY: Union[str, Path] = Field(
         Path(__file__).parent.joinpath("../files").resolve(),
         description="The path under which to place stored files uploaded to the server.",
@@ -53,7 +42,7 @@ class ServerConfig(BaseSettings):
     DEBUG: bool = Field(True, description="Whether to enable debug-level logging in the server.")
 
     REMOTE_FILESYSTEMS: List[Dict[str, str]] = Field(
-        DEFAULT_REMOTES,
+        [],
         descripton="A list of dictionaries describing remote filesystems to be accessible from the server.",
     )
 
@@ -70,12 +59,24 @@ class ServerConfig(BaseSettings):
     @root_validator
     def validate_cache_ages(cls, values):
         if values.get("REMOTE_CACHE_MIN_AGE") > values.get("REMOTE_CACHE_MAX_AGE"):
-            raise RuntimeError("The maximum cache age must be greater than the minimum cache age.")
+            raise RuntimeError(
+                f"The maximum cache age must be greater than the minimum cache age: {values}"
+            )
         return values
 
     class Config:
         env_prefix = "pydatalab_"
         extra = "allow"
+        env_file_encoding = "utf-8"
+
+        @classmethod
+        def customise_sources(
+            cls,
+            init_settings,
+            env_settings,
+            file_secret_settings,
+        ):
+            return (init_settings, env_settings, config_file_settings, file_secret_settings)
 
     def update(self, mapping):
         for key in mapping:
@@ -83,3 +84,12 @@ class ServerConfig(BaseSettings):
 
 
 CONFIG = ServerConfig()
+
+
+def log_config():
+    from pydatalab.logger import LOGGER
+
+    LOGGER.info("Loaded config with options: %s", CONFIG.dict())
+
+
+log_config()
