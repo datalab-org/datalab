@@ -60,7 +60,9 @@ def get_directory_structure(
     LOGGER.debug(f"Accessing directory structure of {directory}")
     try:
         cached_dir_structure = _get_cached_directory_structure(directory)
+        cache_last_updated = None
         if cached_dir_structure:
+            cache_last_updated = cached_dir_structure["last_updated"]
             cache_age = datetime.datetime.now() - cached_dir_structure["last_updated"]
             if invalidate_cache and cache_age < datetime.timedelta(
                 minutes=CONFIG.REMOTE_CACHE_MIN_AGE
@@ -94,7 +96,7 @@ def get_directory_structure(
             LOGGER.debug(
                 "Remote filesystems cache miss for '%s': last updated %s",
                 directory["name"],
-                last_updated,
+                cache_last_updated,
             )
 
         else:
@@ -173,7 +175,7 @@ def _get_latest_directory_structure(
             A dictionary of the `tree` output.
 
         """
-        command = f"ssh {hostname} 'PATH=$PATH:~/ {' '.join(tree_command)} {directory_path} --timefmt {tree_timefmt}'"
+        command = f"ssh {hostname} 'PATH=$PATH:~/ {' '.join(tree_command)} \"{directory_path}\" --timefmt {tree_timefmt}'"
         process = subprocess.Popen(
             command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )

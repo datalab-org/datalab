@@ -73,7 +73,13 @@ def _check_and_sync_file(file_info: File, file_id: ObjectId) -> File:
         return file_info
 
     cached_timestamp = file_info.last_modified_remote
-    remote = DIRECTORIES_DICT[file_info.source_server_name]
+    remote = DIRECTORIES_DICT.get(file_info.source_server_name, None)
+    if not remote:
+        LOGGER.warning(
+            f"Could not find desired remote for {file_info.source_server_name!r}, cannot sync file"
+        )
+        return file_info
+
     full_remote_path = os.path.join(remote["path"], file_info.source_path)
     if remote["hostname"]:
         full_remote_path = f'{remote["hostname"]}:{full_remote_path}'
@@ -295,7 +301,10 @@ def add_file_from_remote_directory(file_entry, item_id, block_ids=None):
     if host["hostname"]:
         remote_toplevel_path = f'{host["hostname"]}:{host["path"]}'
         full_remote_path = f"{remote_toplevel_path}/{remote_path}"
-        remote_timestamp = datetime.datetime.fromtimestamp(int(file_entry["time"]))
+        if file_entry.get("time") is None:
+            remote_timestamp = None
+        else:
+            remote_timestamp = datetime.datetime.fromtimestamp(int(file_entry["time"]))
 
     # Otherwise we assume the file is mounted locally
     else:
