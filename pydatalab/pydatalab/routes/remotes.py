@@ -24,11 +24,13 @@ def list_remote_directories():
         CONFIG.REMOTE_FILESYSTEMS, invalidate_cache=invalidate_cache
     )
 
-    oldest_update = min(d["last_updated"] for d in all_directory_structures)
     response = {}
-    response["data"] = all_directory_structures
     response["meta"] = {}
-    response["meta"]["oldest_cache_update"] = oldest_update.isoformat()
+    response["meta"]["remotes"] = CONFIG.REMOTE_FILESYSTEMS
+    if all_directory_structures:
+        oldest_update = min(d["last_updated"] for d in all_directory_structures)
+        response["meta"]["oldest_cache_update"] = oldest_update.isoformat()
+        response["data"] = all_directory_structures
     return jsonify(response), 200
 
 
