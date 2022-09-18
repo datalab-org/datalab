@@ -155,43 +155,40 @@ search_items.methods = ("GET",)  # type: ignore
 
 def create_sample():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
+    schema = Sample.schema()
+    missing_keys = set()
+    for k in schema["required"]:
+        if k not in request_json:
+            missing_keys.add(k)
 
-    item_id = request_json["item_id"]
-    name = request_json["name"]
-    date = request_json["date"]
+    if missing_keys:
+        raise ValidationError(
+            f"Request to create sample was thwarted by the lack of required key(s): {missing_keys}"
+        )
+
+    new_sample = {k: request_json[k] for k in schema["properties"] if k in request_json}
 
     # check to make sure that item_id isn't taken already
-    if flask_mongo.db.items.find_one({"item_id": item_id}):
+    if flask_mongo.db.items.find_one({"item_id": request_json["item_id"]}):
         return (
             jsonify(
                 {
                     "status": "error",
-                    "message": "item_id_validation_error",
+                    "message": f"item_id_validation_error: {request_json['item_id']!r} already exists in database.",
                 }
             ),
-            400,
+            409,  # 409: Conflict
         )
 
+    new_sample["date"] = new_sample.get("date", datetime.datetime.now())
     try:
-        new_sample = Sample(
-            **{
-                "item_id": item_id,
-                "name": name,
-                "date": date,
-                "description": "",
-                "blocks": [],  # an array of subdocuments
-                "blocks_obj": {},
-                "files": [],
-                "file_ObjectIds": [],
-                "display_order": [],  # an array of strings, which are ids for the blocks
-            }
-        )
+        new_sample = Sample(**new_sample)
 
     except ValidationError as error:
         return (
             jsonify(
                 status="error",
-                message=f"Unable to create new sample with ID {item_id}.",
+                message=f"Unable to create new sample with ID {new_sample['item_id']}.",
                 output=str(error),
             ),
             400,
@@ -202,7 +199,7 @@ def create_sample():
         return (
             jsonify(
                 status="error",
-                message=f"Failed to add new sample {item_id} to database.",
+                message=f"Failed to add new sample {new_sample.item_id!r} to database.",
                 output=result.raw_result,
             ),
             400,
@@ -220,7 +217,7 @@ def create_sample():
                 },
             }
         ),
-        200,
+        201,  # 201: Created
     )
 
 
