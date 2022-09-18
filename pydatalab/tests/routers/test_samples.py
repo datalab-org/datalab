@@ -13,7 +13,8 @@ def test_empty_samples(client):
 @pytest.mark.dependency(depends=["test_empty_samples"])
 def test_new_sample(client, default_sample_dict):
     response = client.post("/new-sample/", json=default_sample_dict)
-    assert response.status_code == 200, response.json
+    # Test that 201: Created is emitted
+    assert response.status_code == 201, response.json
     assert response.json["status"] == "success"
     for key in default_sample_dict.keys():
         if isinstance(v := default_sample_dict[key], datetime.datetime):
@@ -36,8 +37,11 @@ def test_get_item_data(client, default_sample_dict):
 def test_new_sample_collision(client, default_sample_dict):
     # Try to do the same thing again, expecting an ID collision
     response = client.post("/new-sample/", json=default_sample_dict)
-    assert response.status_code == 400
-    assert response.json["message"] == "item_id_validation_error"
+    # Test that 409: Conflict is returned
+    assert response.status_code == 409
+    assert (
+        response.json["message"] == "item_id_validation_error: '12345' already exists in database."
+    )
 
 
 @pytest.mark.dependency(depends=["test_new_sample"])
