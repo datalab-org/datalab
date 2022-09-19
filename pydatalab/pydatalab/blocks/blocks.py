@@ -199,12 +199,27 @@ class XRDBlock(DataBlock):
 
         df["sqrt(intensity)"] = np.sqrt(df["intensity"])
         df["log(intensity)"] = np.log10(df["intensity"])
+        df["normalized intensity"] = df["intensity"] / np.max(df["intensity"])
+        baseline = np.poly1d(np.polyfit(df["2θ (°)"], df["normalized intensity"], deg=10))(
+            df["2θ (°)"]
+        )
+        df["intensity - baseline"] = df["normalized intensity"] - baseline
+        df["intensity - baseline"] /= np.max(df["intensity - baseline"])
+        df["baseline (NumPy poly1d, deg=10)"] = baseline / np.max(df["intensity - baseline"])
 
         p = selectable_axes_plot(
             df,
             x_options=x_options,
-            y_options=["intensity", "sqrt(intensity)", "log(intensity)"],
+            y_options=[
+                "normalized intensity",
+                "intensity",
+                "sqrt(intensity)",
+                "log(intensity)",
+                "intensity - baseline",
+                "baseline (NumPy poly1d, deg=10)",
+            ],
             plot_line=True,
+            plot_points=False,
             point_size=3,
         )
 
