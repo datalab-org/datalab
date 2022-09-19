@@ -1,4 +1,4 @@
-from typing import Optional, Sequence
+from typing import List, Optional, Sequence, Union
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -8,15 +8,17 @@ from bokeh.events import DoubleTap
 from bokeh.layouts import column, gridplot
 from bokeh.models import CrosshairTool, CustomJS, HoverTool
 from bokeh.models.widgets import Select
+from bokeh.palettes import Dark2
 from bokeh.plotting import ColumnDataSource, figure
 from bokeh.themes import Theme
 from scipy.signal import find_peaks
 
-FONTSIZE = "14pt"
+FONTSIZE = "12pt"
 TYPEFACE = "Helvetica"  # "Lato"
 # SIZES = list(range(6, 22, 3))
 # COLORS = Plasma256
-TOOLS = "box_zoom, reset, tap"
+COLORS = Dark2[8]
+TOOLS = "box_zoom, reset, tap, crosshair"
 
 SELECTABLE_CALLBACK_x = """
   var column = cb_obj.value;
@@ -72,31 +74,34 @@ mytheme = Theme(json=style)
 
 
 def selectable_axes_plot(
-    df,
-    x_options,
-    y_options,
-    x_default=None,
-    y_default=None,
-    plot_points=True,
-    point_size=4,
-    plot_line=True,
+    df: Union[List[pd.DataFrame], pd.DataFrame],
+    x_options: List[str],
+    y_options: List[str],
+    x_default: Optional[str] = None,
+    y_default: Optional[str] = None,
+    plot_points: bool = True,
+    point_size: int = 4,
+    plot_line: bool = True,
+    tools: Union[str, List[str]] = TOOLS,
     **kwargs,
 ):
     """
     Creates bokeh layout with selectable axis.
 
     Args:
-        df: Input df from echem_block.py
-        x_options: Selectable x-axis options
-        y_options: Selectable y-axis options
-        x_default: Default x-axis that is printed at start, None specified means first value in x_options list will be chosen
-        y_default: Default y-axis that is printed at start, None specified means first value in y_options list will be chosen
+        df: Dataframe, or list of dataframes from data block.
+        x_options: Selectable fields to use for the x-values
+        y_options: Selectable fields to use for the y-values
+        x_default: Default x-axis that is printed at start, defaults to first value of `x_options`
+        y_default: Default y-axis that is printed at start, defaults to first value of `y_options`.
+        plot_points: Whether to use plot markers.
+        point_size: The size of markers, if enabled.
+        plot_line: Whether to draw a line between points.
+        tools: A list of Bokeh tools to enable.
 
     Returns:
         Bokeh layout
     """
-    source = ColumnDataSource(df)
-
     if not x_default:
         x_default = x_options[0]
         y_default = y_options[0]
@@ -106,33 +111,52 @@ def selectable_axes_plot(
         aspect_ratio=1.5,
         x_axis_label=x_default,
         y_axis_label=y_default,
-        tools=TOOLS,
+        tools=tools,
         **kwargs,
     )
 
-    circle1 = (
-        p.circle(x=x_default, y=y_default, source=source, size=point_size) if plot_points else None
-    )
-    line1 = p.line(x=x_default, y=y_default, source=source) if plot_line else None
+    if isinstance(df, pd.DataFrame):
+        df = [df]
 
-    callback_x = CustomJS(
-        args=dict(circle1=circle1, line1=line1, source=source, xaxis=p.xaxis[0]),
-        code=SELECTABLE_CALLBACK_x,
-    )
-    callback_y = CustomJS(
-        args=dict(circle1=circle1, line1=line1, source=source, yaxis=p.yaxis[0]),
-        code=SELECTABLE_CALLBACK_y,
-    )
+    for ind, df_ in enumerate(df):
+        source = ColumnDataSource(df_)
 
-    # Add list boxes for selecting which columns to plot on the x and y axis
-    xaxis_select = Select(title="X axis:", value=x_default, options=x_options)
-    xaxis_select.js_on_change("value", callback_x)
+        label = df_.index.name if len(df) > 1 else ""
 
-    yaxis_select = Select(title="Y axis:", value=y_default, options=y_options)
-    yaxis_select.js_on_change("value", callback_y)
+        circles = (
+            p.circle(x=x_default, y=y_default, source=source, size=point_size, color=COLORS[ind])
+            if plot_points
+            else None
+        )
+        lines = (
+            p.line(x=x_default, y=y_default, source=source, color=COLORS[ind], legend_label=label)
+            if plot_line
+            else None
+        )
+
+        callback_x = CustomJS(
+            args=dict(circle1=circles, line1=lines, source=source, xaxis=p.xaxis[0]),
+            code=SELECTABLE_CALLBACK_x,
+        )
+        callback_y = CustomJS(
+            args=dict(circle1=circles, line1=lines, source=source, yaxis=p.yaxis[0]),
+            code=SELECTABLE_CALLBACK_y,
+        )
+
+        # Add list boxes for selecting which columns to plot on the x and y axis
+        xaxis_select = Select(title="X axis:", value=x_default, options=x_options)
+        xaxis_select.js_on_change("value", callback_x)
+
+        yaxis_select = Select(title="Y axis:", value=y_default, options=y_options)
+        yaxis_select.js_on_change("value", callback_y)
+
+    p.legend.click_policy = "hide"
+    if len(df) <= 1:
+        p.legend.visible = False
+
+    layout = column(p, xaxis_select, yaxis_select)
 
     p.js_on_event(DoubleTap, CustomJS(args=dict(p=p), code="p.reset.emit()"))
-    layout = column(p, xaxis_select, yaxis_select)
     return layout
 
 

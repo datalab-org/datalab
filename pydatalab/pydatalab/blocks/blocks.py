@@ -11,6 +11,7 @@ from pydatalab import xrd_utils
 from pydatalab.bokeh_plots import mytheme, selectable_axes_plot
 from pydatalab.file_utils import get_file_info_by_id
 from pydatalab.logger import LOGGER
+from pydatalab.mongo import flask_mongo
 
 __all__ = ("generate_random_id", "DataBlock")
 
@@ -158,40 +159,25 @@ class XRDBlock(DataBlock):
     def plot_functions(self):
         return (self.generate_xrd_plot,)
 
-    def generate_xrd_plot(self):
-        if "file_id" not in self.data:
-            LOGGER.warning("XRDBlock.generate_xrd_plot(): No file set in the DataBlock")
-            return
-        file_info = get_file_info_by_id(self.data["file_id"], update_if_live=True)
+    def load_pattern(self, location: str) -> pd.DataFrame:
 
-        filename = file_info["name"]
-        ext = os.path.splitext(filename)[-1].lower()
-
-        if ext not in self.accepted_file_extensions:
-            LOGGER.warning(
-                "XRDBlock.generate_xrd_plot(): Unsupported file extension (must be .xrdml or .xy)"
-            )
-            return
+        ext = os.path.splitext(location.split("/")[-1])[-1].lower()
 
         if ext == ".xrdml":
-            df = xrd_utils.parse_xrdml(file_info["location"])
+            df = xrd_utils.parse_xrdml(location)
 
         elif ext == ".xy":
-            df = pd.read_csv(file_info["location"], sep=r"\s+", names=["twotheta", "intensity"])
+            df = pd.read_csv(location, sep=r"\s+", names=["twotheta", "intensity"])
 
         else:
-            df = pd.read_csv(
-                file_info["location"], sep=r"\s+", names=["twotheta", "intensity", "error"]
-            )
+            df = pd.read_csv(location, sep=r"\s+", names=["twotheta", "intensity", "error"])
 
         df = df.rename(columns={"twotheta": "2θ (°)"})
-        x_options = ["2θ (°)"]
         try:
             wavelength = float(self.data["wavelength"])
 
             df["Q (Å⁻¹)"] = 4 * np.pi / wavelength * np.sin(np.deg2rad(df["2θ (°)"]) / 2)
             df["d (Å)"] = 2 * np.pi / df["Q (Å⁻¹)"]
-            x_options += ["Q (Å⁻¹)", "d (Å)"]
 
         # if no wavelength (or invalid wavelength) is passed, don't convert to Q and d
         except (ValueError, ZeroDivisionError):
@@ -207,20 +193,70 @@ class XRDBlock(DataBlock):
         df["intensity - baseline"] /= np.max(df["intensity - baseline"])
         df["baseline (NumPy poly1d, deg=10)"] = baseline / np.max(df["intensity - baseline"])
 
-        p = selectable_axes_plot(
-            df,
-            x_options=x_options,
-            y_options=[
-                "normalized intensity",
-                "intensity",
-                "sqrt(intensity)",
-                "log(intensity)",
-                "intensity - baseline",
-                "baseline (NumPy poly1d, deg=10)",
-            ],
-            plot_line=True,
-            plot_points=False,
-            point_size=3,
-        )
+        df.index.name = location.split("/")[-1]
 
-        self.data["bokeh_plot_data"] = bokeh.embed.json_item(p, theme=mytheme)
+        return df
+
+    def generate_xrd_plot(self):
+        file_info = None
+        all_files = None
+        pattern_dfs = None
+
+        if "file_id" not in self.data:
+            LOGGER.warning("XRDBlock.generate_xrd_plot(): No file set in the DataBlock")
+        else:
+            file_info = get_file_info_by_id(self.data["file_id"], update_if_live=True)
+            ext = os.path.splitext(file_info["location"].split("/")[-1])[-1].lower()
+            if ext not in self.accepted_file_extensions:
+                LOGGER.warning(
+                    "XRDBlock.generate_xrd_plot(): Unsupported file extension (must be .xrdml, .xy, .dat), not %s",
+                    ext,
+                )
+                return
+
+            pattern_dfs = [self.load_pattern(file_info["location"])]
+
+        if not file_info:
+
+            item_info = flask_mongo.db.items.find_one(
+                {"item_id": self.data["item_id"]},
+            )
+
+            all_files = [
+                d
+                for d in [
+                    get_file_info_by_id(f, update_if_live=False)
+                    for f in item_info["file_ObjectIds"]
+                ]
+                if any(d["name"].lower().endswith(ext) for ext in self.accepted_file_extensions)
+            ]
+
+            if not all_files:
+                LOGGER.warning(
+                    "XRDBlock.generate_xrd_plot(): Unsupported file extension (must be .xrdml or .xy)"
+                )
+                return
+
+            pattern_dfs = [self.load_pattern(f["location"]) for f in all_files]
+
+        x_options = ["2θ (°)", "Q (Å⁻¹)", "d (Å)"]
+        y_options = [
+            "normalized intensity",
+            "intensity",
+            "sqrt(intensity)",
+            "log(intensity)",
+            "intensity - baseline",
+            "baseline (NumPy poly1d, deg=10)",
+        ]
+
+        if pattern_dfs:
+            p = selectable_axes_plot(
+                pattern_dfs,
+                x_options=x_options,
+                y_options=y_options,
+                plot_line=True,
+                plot_points=True,
+                point_size=3,
+            )
+
+            self.data["bokeh_plot_data"] = bokeh.embed.json_item(p, theme=mytheme)
