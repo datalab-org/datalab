@@ -1,11 +1,12 @@
 import os
 import random
-from typing import Any, Callable, Dict, Optional, Sequence
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 import bokeh
 import numpy as np
 import pandas as pd
 from bson import ObjectId
+from scipy.signal import medfilt
 
 from pydatalab import xrd_utils
 from pydatalab.bokeh_plots import mytheme, selectable_axes_plot
@@ -159,7 +160,7 @@ class XRDBlock(DataBlock):
     def plot_functions(self):
         return (self.generate_xrd_plot,)
 
-    def load_pattern(self, location: str) -> pd.DataFrame:
+    def load_pattern(self, location: str) -> Tuple[pd.DataFrame, List[str]]:
 
         ext = os.path.splitext(location.split("/")[-1])[-1].lower()
 
@@ -186,16 +187,38 @@ class XRDBlock(DataBlock):
         df["sqrt(intensity)"] = np.sqrt(df["intensity"])
         df["log(intensity)"] = np.log10(df["intensity"])
         df["normalized intensity"] = df["intensity"] / np.max(df["intensity"])
-        baseline = np.poly1d(np.polyfit(df["2θ (°)"], df["normalized intensity"], deg=10))(
-            df["2θ (°)"]
+        polyfit_deg = 15
+        polyfit_baseline = np.poly1d(
+            np.polyfit(df["2θ (°)"], df["normalized intensity"], deg=polyfit_deg)
+        )(df["2θ (°)"])
+        df["intensity - polyfit baseline"] = df["normalized intensity"] - polyfit_baseline
+        df["intensity - polyfit baseline"] /= np.max(df["intensity - polyfit baseline"])
+        df[f"baseline (`numpy.polyfit`, deg={polyfit_deg})"] = polyfit_baseline / np.max(
+            df["intensity - polyfit baseline"]
         )
-        df["intensity - baseline"] = df["normalized intensity"] - baseline
-        df["intensity - baseline"] /= np.max(df["intensity - baseline"])
-        df["baseline (NumPy poly1d, deg=10)"] = baseline / np.max(df["intensity - baseline"])
+
+        kernel_size = 101
+        median_baseline = medfilt(df["normalized intensity"], kernel_size=kernel_size)
+        df["intensity - median baseline"] = df["normalized intensity"] - median_baseline
+        df["intensity - median baseline"] /= np.max(df["intensity - median baseline"])
+        df[
+            f"baseline (`scipy.signal.medfilt`, kernel_size={kernel_size})"
+        ] = median_baseline / np.max(df["intensity - median baseline"])
 
         df.index.name = location.split("/")[-1]
 
-        return df
+        y_options = [
+            "normalized intensity",
+            "intensity",
+            "sqrt(intensity)",
+            "log(intensity)",
+            "intensity - median baseline",
+            f"baseline (`scipy.signal.medfilt`, kernel_size={kernel_size})",
+            "intensity - polyfit baseline",
+            f"baseline (`numpy.polyfit`, deg={polyfit_deg})",
+        ]
+
+        return df, y_options
 
     def generate_xrd_plot(self):
         file_info = None
@@ -214,7 +237,8 @@ class XRDBlock(DataBlock):
                 )
                 return
 
-            pattern_dfs = [self.load_pattern(file_info["location"])]
+            pattern_dfs, y_options = self.load_pattern(file_info["location"])
+            pattern_dfs = [pattern_dfs]
 
         if not file_info:
 
@@ -237,17 +261,12 @@ class XRDBlock(DataBlock):
                 )
                 return
 
-            pattern_dfs = [self.load_pattern(f["location"]) for f in all_files]
+            pattern_dfs = []
+            for f in all_files:
+                pattern_df, y_options = self.load_pattern(f["location"])
+                pattern_dfs.append(pattern_df)
 
         x_options = ["2θ (°)", "Q (Å⁻¹)", "d (Å)"]
-        y_options = [
-            "normalized intensity",
-            "intensity",
-            "sqrt(intensity)",
-            "log(intensity)",
-            "intensity - baseline",
-            "baseline (NumPy poly1d, deg=10)",
-        ]
 
         if pattern_dfs:
             p = selectable_axes_plot(
