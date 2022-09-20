@@ -118,6 +118,8 @@ def selectable_axes_plot(
     if isinstance(df, pd.DataFrame):
         df = [df]
 
+    callbacks_x = []
+    callbacks_y = []
     for ind, df_ in enumerate(df):
         source = ColumnDataSource(df_)
 
@@ -134,21 +136,25 @@ def selectable_axes_plot(
             else None
         )
 
-        callback_x = CustomJS(
-            args=dict(circle1=circles, line1=lines, source=source, xaxis=p.xaxis[0]),
-            code=SELECTABLE_CALLBACK_x,
+        callbacks_x.append(
+            CustomJS(
+                args=dict(circle1=circles, line1=lines, source=source, xaxis=p.xaxis[0]),
+                code=SELECTABLE_CALLBACK_x,
+            )
         )
-        callback_y = CustomJS(
-            args=dict(circle1=circles, line1=lines, source=source, yaxis=p.yaxis[0]),
-            code=SELECTABLE_CALLBACK_y,
+        callbacks_y.append(
+            CustomJS(
+                args=dict(circle1=circles, line1=lines, source=source, yaxis=p.yaxis[0]),
+                code=SELECTABLE_CALLBACK_y,
+            )
         )
 
-        # Add list boxes for selecting which columns to plot on the x and y axis
-        xaxis_select = Select(title="X axis:", value=x_default, options=x_options)
-        xaxis_select.js_on_change("value", callback_x)
+    # Add list boxes for selecting which columns to plot on the x and y axis
+    xaxis_select = Select(title="X axis:", value=x_default, options=x_options)
+    xaxis_select.js_on_change("value", *callbacks_x)
 
-        yaxis_select = Select(title="Y axis:", value=y_default, options=y_options)
-        yaxis_select.js_on_change("value", callback_y)
+    yaxis_select = Select(title="Y axis:", value=y_default, options=y_options)
+    yaxis_select.js_on_change("value", *callbacks_y)
 
     p.legend.click_policy = "hide"
     if len(df) <= 1:
