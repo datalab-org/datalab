@@ -1,14 +1,22 @@
 from typing import List, Optional
 
+# Must be imported in this way to allow for easy patching with mongomock
+import pymongo
 from flask_pymongo import PyMongo
-from pymongo import TEXT, MongoClient
-from pymongo.errors import ServerSelectionTimeoutError
+from pymongo.errors import ConnectionFailure
+
+__all__ = (
+    "flask_mongo",
+    "check_mongo_connection",
+    "create_default_indices",
+    "_get_active_mongo_client",
+)
 
 flask_mongo = PyMongo()
 """This is the primary database interface used by the Flask app."""
 
 
-def _get_active_mongo_client(timeoutMS: int = 100) -> MongoClient:
+def _get_active_mongo_client(timeoutMS: int = 100) -> pymongo.MongoClient:
     """Returns a `MongoClient` for the configured `MONGO_URI`,
     raising a `RuntimeError` if not available.
 
@@ -24,18 +32,34 @@ def _get_active_mongo_client(timeoutMS: int = 100) -> MongoClient:
     from pydatalab.logger import LOGGER
 
     try:
-        return MongoClient(
+        return pymongo.MongoClient(
             CONFIG.MONGO_URI,
             connectTimeoutMS=timeoutMS,
             serverSelectionTimeoutMS=timeoutMS,
             connect=True,
         )
-    except ServerSelectionTimeoutError as exc:
+    except ConnectionFailure as exc:
         LOGGER.critical(f"Unable to connect to MongoDB at {CONFIG.MONGO_URI}")
         raise RuntimeError from exc
 
 
-def create_default_indices(client: Optional[MongoClient] = None) -> List[str]:
+def check_mongo_connection() -> None:
+    """Checks that the configured MongoDB is available and returns a
+    `pymongo.MongoClient` for the configured `MONGO_URI`.
+
+    Raises:
+        RuntimeError:
+            If the configured MongoDB is not available.
+
+    """
+    try:
+        cli = _get_active_mongo_client()
+        cli.list_database_names()
+    except Exception as exc:
+        raise RuntimeError from exc
+
+
+def create_default_indices(client: Optional[pymongo.MongoClient] = None) -> List[str]:
     """Creates indices for the configured or passed MongoClient.
 
     Indexes created are:
@@ -63,7 +87,7 @@ def create_default_indices(client: Optional[MongoClient] = None) -> List[str]:
     ret = []
 
     ret += db.items.create_index(
-        [(k, TEXT) for k in fts_fields],
+        [(k, pymongo.TEXT) for k in fts_fields],
         name="item full-text search",
         weights={"item_id": 3, "name": 3, "chemform": 3},
     )
@@ -71,6 +95,3 @@ def create_default_indices(client: Optional[MongoClient] = None) -> List[str]:
     ret += db.items.create_index("item_id", unique=True, name="unique item ID")
 
     return ret
-
-
-__all__ = ("flask_mongo", "create_default_indices", "_get_active_mongo_client")

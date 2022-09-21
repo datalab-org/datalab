@@ -36,9 +36,45 @@ def create_app(config_override: Dict[str, Any] = None) -> Flask:
     flask_mongo.init_app(app)
     register_endpoints(app)
 
+    # Log whether the database is up or not, but do not crash out
+    try:
+        pydatalab.mongo.check_mongo_connection()
+    except RuntimeError:
+        pass
+
     @app.route("/")
     def index():
-        return "Hello, This is a server"
+        from pydatalab.routes import (
+            ENDPOINTS,  # pylint: disable=import-outside-toplevel
+        )
+
+        try:
+            connected = pydatalab.mongo.check_mongo_connection()
+        except RuntimeError:
+            connected = False
+
+        if connected:
+            database_string = (
+                '<p style="color: DarkSeaGreen">✅ Connected to underlying database</p>'
+            )
+        else:
+            database_string = (
+                '<p style="color: FireBrick">❎ Unable to connect to underlying database</p>'
+            )
+
+        return (
+            f"""<h2><marquee width="200px"><p style="color: CornflowerBlue">Welcome to pydatalab</marquee></h2>
+<h4>{database_string}</h4>
+<h3>Available endpoints:</h3>
+<ul>"""
+            + "\n".join(
+                [
+                    f'<li><a href="{endp[0]}"><code><pre>{endp[0]}</pre></code></a></li>'
+                    for endp in ENDPOINTS.items()
+                ]
+            )
+            + "</ul>"
+        )
 
     return app
 
