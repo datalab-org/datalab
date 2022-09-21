@@ -2,28 +2,18 @@ from typing import Callable, Dict
 
 from flask import jsonify
 
-from pydatalab.config import CONFIG
-
 
 def is_ready():
 
-    from pymongo import MongoClient
-    from pymongo.errors import ConnectionFailure
-
-    cli = MongoClient(
-        CONFIG.MONGO_URI,
-        connectTimeoutMS=100,
-    )
+    from pydatalab.mongo import check_mongo_connection
 
     try:
-        if cli.list_database_names():
-            pass
-    except ConnectionFailure:
+        check_mongo_connection()
+    except RuntimeError:
         return (
             jsonify(status="error", message="Unable to connect to MongoDB at specified URI."),
             500,
         )
-
     return (jsonify(status="success", message="Server and database are ready"), 200)
 
 
