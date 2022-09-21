@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:experimental
-FROM python:latest as base
+FROM python:3.10 as base
 SHELL ["/bin/bash", "--login", "-c"]
 EXPOSE 5001
 RUN apt update && apt install -y tree && apt clean
