@@ -105,7 +105,14 @@ def _check_and_sync_file(file_info: File, file_id: ObjectId) -> File:
     ):
         LOGGER.debug("Updating file %s to latest version", file_info.source_path)
 
-        _sync_file_with_remote(full_remote_path, file_info.location)
+        try:
+            _sync_file_with_remote(full_remote_path, file_info.location)
+        except RuntimeError:
+            LOGGER.warning(
+                "Unable to sync file %s with %s on server.", file_info.location, full_remote_path
+            )
+            return file_info
+
         if file_info.location is not None:
             new_stat_results = os.stat(file_info.location)
 
