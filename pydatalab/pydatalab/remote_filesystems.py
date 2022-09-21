@@ -1,5 +1,7 @@
 import datetime
+import functools
 import json
+import multiprocessing
 import os
 import subprocess
 from typing import Any, Dict, List, Optional, Union
@@ -10,7 +12,9 @@ from pydatalab.logger import LOGGER
 
 
 def get_directory_structures(
-    directories: List[Dict[str, str]], invalidate_cache: Optional[bool] = None
+    directories: List[Dict[str, str]],
+    invalidate_cache: Optional[bool] = None,
+    parallel: bool = True,
 ) -> List[Dict[str, Any]]:
     """For all registered top-level directories, call tree either
     locally or remotely to get their directory structures, or access
@@ -18,23 +22,31 @@ def get_directory_structures(
 
     Args:
         directories: The directories to scan.
-        invalidate_cache: If `True`, then the cached directory structure will
+        invalidate_cache: If true, then the cached directory structure will
             be reset, provided the cache was not updated very recently. If `False`,
             the cache will not be reset, even if it is older than the maximum configured
             age.
+        parallel: If true, run each remote scraper in a new process.
 
     Returns:
         A lists of dictionaries for each specified top-level directory.
 
     """
-    return [
-        get_directory_structure(directory, invalidate_cache=invalidate_cache)
-        for directory in directories
-    ]
+    if parallel:
+        return multiprocessing.Pool(min(len(directories), 8)).map(
+            functools.partial(
+                get_directory_structure,
+                invalidate_cache=invalidate_cache,
+            ),
+            directories,
+        )
+    else:
+        return [get_directory_structure(d, invalidate_cache=invalidate_cache) for d in directories]
 
 
 def get_directory_structure(
-    directory: Dict[str, str], invalidate_cache: Optional[bool] = False
+    directory: Dict[str, str],
+    invalidate_cache: Optional[bool] = False,
 ) -> Dict[str, Any]:
     """For the given remote directory, either reconstruct the directory
     structure in full, or access the cached version if is it recent
@@ -58,6 +70,7 @@ def get_directory_structure(
     """
 
     LOGGER.debug(f"Accessing directory structure of {directory}")
+
     try:
         cached_dir_structure = _get_cached_directory_structure(directory)
         cache_last_updated = None
@@ -92,7 +105,10 @@ def get_directory_structure(
             dir_structure = _get_latest_directory_structure(
                 directory["path"], directory.get("hostname")
             )
-            last_updated = _save_directory_structure(directory, dir_structure)
+            last_updated = _save_directory_structure(
+                directory,
+                dir_structure,
+            )
             LOGGER.debug(
                 "Remote filesystems cache miss for '%s': last updated %s",
                 directory["name"],
@@ -249,7 +265,8 @@ def _fix_tree_paths(
 
 
 def _save_directory_structure(
-    directory: Dict[str, Any], dir_structure: List[Dict[str, Any]]
+    directory: Dict[str, Any],
+    dir_structure: List[Dict[str, Any]],
 ) -> datetime.datetime:
     """Upserts the tree structure of each directory to the `remoteFilesystems`
     collection in the database.
@@ -262,9 +279,12 @@ def _save_directory_structure(
         The last updated timestamp.
 
     """
+    collection = pydatalab.mongo._get_active_mongo_client().get_database().remoteFilesystems
+
     last_updated = datetime.datetime.now()
     last_updated = last_updated.replace(microsecond=0)
-    result = pydatalab.mongo.flask_mongo.db.remoteFilesystems.update_one(
+
+    result = collection.update_one(
         {"name": directory["name"]},
         {
             "$set": {
@@ -285,7 +305,9 @@ def _save_directory_structure(
     return last_updated
 
 
-def _get_cached_directory_structure(directory: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def _get_cached_directory_structure(
+    directory: Dict[str, Any],
+) -> Optional[Dict[str, Any]]:
     """Gets the structure of the given directory from the database.
 
     Args:
@@ -295,4 +317,5 @@ def _get_cached_directory_structure(directory: Dict[str, Any]) -> Optional[Dict[
         The stored directory structure.
 
     """
-    return pydatalab.mongo.flask_mongo.db.remoteFilesystems.find_one({"name": directory["name"]})
+    collection = pydatalab.mongo._get_active_mongo_client().get_database().remoteFilesystems
+    return collection.find_one({"name": directory["name"]})
