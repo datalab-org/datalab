@@ -34,7 +34,7 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
         >{{ detailsShown ? "hide measurement details" : "show measurement details" }}</a
       >
     </div>
-    <div v-if="titleShown" class="card">
+    <div v-if="titleShown" class="card mb-2">
       <div class="card-body" style="white-space: pre">
         {{ block.topspin_title }}
       </div>
