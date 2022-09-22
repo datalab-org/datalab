@@ -21,12 +21,23 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
     </div>
 
     <div class="mt-4">
-      <span class="pr-3">
+      <span class="mr-2">
         <Isotope :isotopeString="block.nucleus" /> {{ block.pulse_program_name }}
       </span>
-      <a type="button" class="btn btn-default btn-sm mb-2" @click="detailsShown = !detailsShown">{{
-        detailsShown ? "hide details" : "show details"
+      <a type="button" class="btn btn-default btn-sm mb-2" @click="titleShown = !titleShown">{{
+        titleShown ? "hide title" : "show title"
       }}</a>
+      <a
+        type="button"
+        class="btn btn-default btn-sm mb-2 ml-2"
+        @click="detailsShown = !detailsShown"
+        >{{ detailsShown ? "hide measurement details" : "show measurement details" }}</a
+      >
+    </div>
+    <div v-if="titleShown" class="card">
+      <div class="card-body" style="white-space: pre">
+        {{ block.topspin_title }}
+      </div>
     </div>
     <div class="row">
       <div id="bokehPlotContainer" class="col-xl-8 col-lg-8 col-md-11 mx-auto">
@@ -101,6 +112,7 @@ export default {
     return {
       wavelengthParseError: "",
       detailsShown: false,
+      titleShown: false,
     };
   },
   props: {
