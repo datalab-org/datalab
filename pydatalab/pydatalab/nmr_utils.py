@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 import nmrglue as ng
 import numpy as np
 import pandas as pd
-from goodticks import format_ticks
 from scipy import integrate
 
 ######################################################################################
@@ -119,49 +118,6 @@ def read_topspin_txt(filename, sample_mass_mg=None, nscans=None):
         data["I_per_g_per_scan"] = intensity / float(sample_mass_mg) / float(nscans) * 1000
 
     df = pd.DataFrame(data)
-    return df
-
-
-######################################################################################
-# Functions for plotting NMR data files
-######################################################################################
-
-
-def plot_1d(
-    data,
-    process_number=1,
-    sample_mass_mg=None,
-    fmt="-",
-    normalized=False,
-    plot_raw=False,
-    label=None,
-    offset=0,
-    verbose=False,
-):
-    df = read_bruker_1d(
-        data, process_number=process_number, sample_mass_mg=sample_mass_mg, verbose=verbose
-    )
-
-    if plot_raw:
-        plt.plot(df["ppm"], df["intensity"] + offset, fmt, label=label)
-
-    elif normalized:
-        plt.plot(df["ppm"], df["intensity"] / df["intensity"].max() + offset, fmt, label=label)
-        # plt.ylabel("$I/I_{\rm{max}}$")
-
-    elif sample_mass_mg:
-        plt.plot(df["ppm"], df["intensity_per_scan_per_gram"] + offset, fmt, label=label)
-        plt.ylabel("$I$ (scan$^-1$ g$^-1$)")
-
-    else:
-        plt.plot(df["ppm"], df["intensity_per_scan"] + offset, fmt, label=label)
-        plt.ylabel("$I$ per scan")
-
-    plt.xlabel("chemical shift (ppm)")
-    # plt.gca().invert_xaxis()
-    format_ticks()
-    plt.tight_layout()
-
     return df
 
 
