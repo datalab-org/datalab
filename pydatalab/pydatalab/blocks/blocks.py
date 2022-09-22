@@ -152,12 +152,13 @@ class NMRBlock(DataBlock):
     blocktype = "nmr"
     description = "Simple NMR Block"
     accepted_file_extensions = ".zip"
+    defaults = {"process number": 1}
 
     @property
     def plot_functions(self):
         return (self.generate_nmr_plot,)
 
-    def generate_nmr_plot(self):
+    def read_bruker_nmr_data(self):
         if "file_id" not in self.data:
             LOGGER.warning("XRDBlock.generate_xrd_plot(): No file set in the DataBlock")
             return
@@ -178,7 +179,31 @@ class NMRBlock(DataBlock):
         with zipfile.ZipFile(zip_file_info["location"], "r") as zip_ref:
             zip_ref.extractall(directory_location)
 
-        df = nmr_utils.read_bruker_1d(os.path.join(directory_location, name), verbose=False)
+        df, a_dic, topspin_title = nmr_utils.read_bruker_1d(
+            os.path.join(directory_location, name), verbose=False
+        )
+
+        # all data sorted in a fairly raw way
+        self.data["processed_data"] = df.to_dict()
+        self.data["acquisition_parameters"] = a_dic["acqus"]
+        self.data["processing_parameters"] = a_dic["procs"]
+        self.data["pulse_program"] = a_dic["pprog"]
+
+        # specific things that we might want to pull out for the UI:
+        self.data["nucleus"] = a_dic["acqus"]["NUC1"]
+        self.data["carrier_frequency_MHz"] = a_dic["acqus"]["SFO1"]
+        self.data["carrier_offset_Hz"] = a_dic["acqus"]["O1"]
+        self.data["recycle_delay"] = a_dic["acqus"]["D"][1]
+        self.data["nscans"] = a_dic["acqus"]["NS"]
+
+        self.data["probe_name"] = a_dic["acqus"]["PROBHD"]
+        self.data["pulse_program_name"] = a_dic["acqus"]["PULPROG"]
+        self.data["topspin_title"] = topspin_title
+
+    def generate_nmr_plot(self):
+        self.read_bruker_nmr_data()  # currently calls every time plotting happens, but it should only happen if the file was updated
+
+        df = pd.DataFrame(self.data["processed_data"])
         df["normalized intensity"] = df.intensity / df.intensity.max()
 
         bokeh_layout = selectable_axes_plot(

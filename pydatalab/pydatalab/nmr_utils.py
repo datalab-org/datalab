@@ -60,20 +60,25 @@ def read_bruker_1d(data, process_number=1, verbose=True, sample_mass_mg=None):
     if sample_mass_mg:
         df["intensity_per_scan_per_gram"] = df["intensity_per_scan"] / sample_mass_mg * 1000.0
 
+    try:
+        with open(os.path.join(processed_data_dir, "title"), "r") as f:
+            topspin_title = f.read()
+    except FileNotFoundError:
+        topspin_title = None
+
     if verbose:
         print(f"reading bruker data file. {udic[0]['label']} 1D spectrum, {nscans} scans.")
         if sample_mass_mg:
             print(
                 f'sample mass was provided: {sample_mass_mg:f} mg. "intensity_per_scan_per_gram" column included. '
             )
-        try:
-            with open(os.path.join(processed_data_dir, "title"), "r") as f:
-                print("\nTitle:\n")
-                print(f.read())
-        except FileNotFoundError:
+        if topspin_title:
+            print("\nTitle:\n")
+            print(topspin_title)
+        else:
             print("No title found in scan")
 
-    return df
+    return df, a_dic, topspin_title
 
 
 def read_topspin_txt(filename, sample_mass_mg=None, nscans=None):
