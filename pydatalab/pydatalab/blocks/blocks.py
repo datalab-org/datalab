@@ -1,5 +1,6 @@
 import os
 import random
+import zipfile
 from typing import Any, Callable, Dict, Optional, Sequence
 
 import bokeh
@@ -7,7 +8,7 @@ import numpy as np
 import pandas as pd
 from bson import ObjectId
 
-from pydatalab import xrd_utils
+from pydatalab import nmr_utils, xrd_utils
 from pydatalab.bokeh_plots import mytheme, selectable_axes_plot
 from pydatalab.file_utils import get_file_info_by_id
 from pydatalab.logger import LOGGER
@@ -145,6 +146,55 @@ class ImageBlock(DataBlock):
     blocktype = "image"
     description = "Image"
     accepted_file_extensions = (".png", ".jpeg", ".jpg")
+
+
+class NMRBlock(DataBlock):
+    blocktype = "nmr"
+    description = "Simple NMR Block"
+    accepted_file_extensions = ".zip"
+
+    @property
+    def plot_functions(self):
+        return (self.generate_nmr_plot,)
+
+    def generate_nmr_plot(self):
+        if "file_id" not in self.data:
+            LOGGER.warning("XRDBlock.generate_xrd_plot(): No file set in the DataBlock")
+            return
+
+        zip_file_info = get_file_info_by_id(self.data["file_id"], update_if_live=True)
+        filename = zip_file_info["name"]
+
+        name, ext = os.path.splitext(filename)
+        if ext.lower() not in self.accepted_file_extensions:
+            LOGGER.warning(
+                "NMRBlock.generate_nmr_plot(): Unsupported file extension (must be .zip)"
+            )
+            return
+
+        # unzip:
+        directory_location = zip_file_info["location"] + ".extracted"
+        LOGGER.debug(f"Directory location is: {directory_location}")
+        with zipfile.ZipFile(zip_file_info["location"], "r") as zip_ref:
+            zip_ref.extractall(directory_location)
+
+        df = nmr_utils.read_bruker_1d(os.path.join(directory_location, name), verbose=False)
+        df["normalized intensity"] = df.intensity / df.intensity.max()
+
+        bokeh_layout = selectable_axes_plot(
+            df,
+            x_options=["ppm", "hz"],
+            y_options=[
+                "intensity",
+                "intensity_per_scan",
+                "normalized intensity",
+            ],
+            plot_line=True,
+            point_size=3,
+        )
+        bokeh_layout.children[0].x_range.flipped = True  # flip x axis, per NMR convention
+
+        self.data["bokeh_plot_data"] = bokeh.embed.json_item(bokeh_layout, theme=mytheme)
 
 
 class XRDBlock(DataBlock):
