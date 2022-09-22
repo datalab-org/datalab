@@ -40,6 +40,16 @@ def read_bruker_1d(data, process_number=1, verbose=True, sample_mass_mg=None):
     a_dic, a_data = ng.fileio.bruker.read(data_dir)  # aquisition_data
     p_dic, p_data = ng.fileio.bruker.read_pdata(processed_data_dir)  # processing data
 
+    try:
+        with open(os.path.join(processed_data_dir, "title"), "r") as f:
+            topspin_title = f.read()
+    except FileNotFoundError:
+        topspin_title = None
+
+    if len(p_data.shape) > 1:
+        print("data is more than one dimensional - read failed")
+        return None, a_dic, topspin_title, p_data.shape
+
     nscans = a_dic["acqus"]["NS"]
 
     # create a unit convertor to get the x-axis in ppm units
@@ -60,12 +70,6 @@ def read_bruker_1d(data, process_number=1, verbose=True, sample_mass_mg=None):
     if sample_mass_mg:
         df["intensity_per_scan_per_gram"] = df["intensity_per_scan"] / sample_mass_mg * 1000.0
 
-    try:
-        with open(os.path.join(processed_data_dir, "title"), "r") as f:
-            topspin_title = f.read()
-    except FileNotFoundError:
-        topspin_title = None
-
     if verbose:
         print(f"reading bruker data file. {udic[0]['label']} 1D spectrum, {nscans} scans.")
         if sample_mass_mg:
@@ -78,7 +82,7 @@ def read_bruker_1d(data, process_number=1, verbose=True, sample_mass_mg=None):
         else:
             print("No title found in scan")
 
-    return df, a_dic, topspin_title
+    return df, a_dic, topspin_title, a_data.shape
 
 
 def read_topspin_txt(filename, sample_mass_mg=None, nscans=None):

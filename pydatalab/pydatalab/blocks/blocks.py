@@ -160,7 +160,7 @@ class NMRBlock(DataBlock):
 
     def read_bruker_nmr_data(self):
         if "file_id" not in self.data:
-            LOGGER.warning("XRDBlock.generate_xrd_plot(): No file set in the DataBlock")
+            LOGGER.warning("NMRPlot.read_bruker_nmr_data(): No file set in the DataBlock")
             return
 
         zip_file_info = get_file_info_by_id(self.data["file_id"], update_if_live=True)
@@ -169,7 +169,7 @@ class NMRBlock(DataBlock):
         name, ext = os.path.splitext(filename)
         if ext.lower() not in self.accepted_file_extensions:
             LOGGER.warning(
-                "NMRBlock.generate_nmr_plot(): Unsupported file extension (must be .zip)"
+                "NMRBlock.read_bruker_nmr_data(): Unsupported file extension (must be .zip)"
             )
             return
 
@@ -179,22 +179,35 @@ class NMRBlock(DataBlock):
         with zipfile.ZipFile(zip_file_info["location"], "r") as zip_ref:
             zip_ref.extractall(directory_location)
 
-        df, a_dic, topspin_title = nmr_utils.read_bruker_1d(
-            os.path.join(directory_location, name), verbose=False
+        extracted_directory_name = os.path.join(directory_location, name)
+        available_processes = os.listdir(os.path.join(extracted_directory_name, "pdata"))
+
+        if "selected_process" not in self.data:
+            self.data["selected_process"] = available_processes[0]
+
+        df, a_dic, topspin_title, processed_data_shape = nmr_utils.read_bruker_1d(
+            os.path.join(directory_location, name),
+            process_number=self.data["selected_process"],
+            verbose=False,
         )
 
+        serialized_df = df.to_dict() if (df is not None) else None
+
         # all data sorted in a fairly raw way
-        self.data["processed_data"] = df.to_dict()
+        self.data["processed_data"] = serialized_df
         self.data["acquisition_parameters"] = a_dic["acqus"]
         self.data["processing_parameters"] = a_dic["procs"]
         self.data["pulse_program"] = a_dic["pprog"]
 
         # specific things that we might want to pull out for the UI:
+        self.data["available_processes"] = available_processes
         self.data["nucleus"] = a_dic["acqus"]["NUC1"]
         self.data["carrier_frequency_MHz"] = a_dic["acqus"]["SFO1"]
         self.data["carrier_offset_Hz"] = a_dic["acqus"]["O1"]
         self.data["recycle_delay"] = a_dic["acqus"]["D"][1]
         self.data["nscans"] = a_dic["acqus"]["NS"]
+        self.data["CNST31"] = a_dic["acqus"]["CNST"][31]
+        self.data["processed_data_shape"] = processed_data_shape
 
         self.data["probe_name"] = a_dic["acqus"]["PROBHD"]
         self.data["pulse_program_name"] = a_dic["acqus"]["PULPROG"]
@@ -202,6 +215,9 @@ class NMRBlock(DataBlock):
 
     def generate_nmr_plot(self):
         self.read_bruker_nmr_data()  # currently calls every time plotting happens, but it should only happen if the file was updated
+        if "processed_data" not in self.data or not self.data["processed_data"]:
+            self.data["bokeh_plot_data"] = None
+            return
 
         df = pd.DataFrame(self.data["processed_data"])
         df["normalized intensity"] = df.intensity / df.intensity.max()
