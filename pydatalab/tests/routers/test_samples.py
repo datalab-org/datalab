@@ -92,3 +92,42 @@ def test_delete_sample(client, default_sample_dict):
         f"/get-item-data/{default_sample_dict['item_id']}",
     )
     assert response.status_code == 404
+
+
+@pytest.mark.dependency(depends=["test_delete_sample"])
+def test_create_indices(real_mongo_client):
+    from pydatalab.mongo import create_default_indices
+
+    if real_mongo_client is None:
+        pytest.skip("Skipping FTS tests, not connected to real MongoDB")
+
+    create_default_indices(real_mongo_client)
+    indexes = list(real_mongo_client.get_database().items.list_indexes())
+    expected_index_names = ("_id_", "item full-text search", "item type", "unique item ID")
+    names = [index["name"] for index in indexes]
+
+    assert all(name in names for name in expected_index_names)
+
+
+@pytest.mark.dependency(depends=["test_create_indices"])
+def test_full_text_search(client, real_mongo_client, example_items):
+
+    if real_mongo_client is None:
+        pytest.skip("Skipping FTS tests, not connected to real MongoDB")
+
+    real_mongo_client.get_database().items.insert_many(example_items)
+
+    response = client.get("/search-items/?query=12345&types=samples")
+
+    assert response.status_code == 200
+    assert response.json["status"] == "success"
+    assert len(response.json["items"]) == 1
+    assert response.json["items"][0]["item_id"] == "12345"
+
+    response = client.get("/search-items/?query=new material")
+
+    assert response.status_code == 200
+    assert response.json["status"] == "success"
+    assert len(response.json["items"]) == 2
+    assert response.json["items"][1]["item_id"] == "12345"
+    assert response.json["items"][0]["item_id"] == "material"
