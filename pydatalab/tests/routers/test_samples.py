@@ -121,13 +121,23 @@ def test_full_text_search(client, real_mongo_client, example_items):
 
     assert response.status_code == 200
     assert response.json["status"] == "success"
-    assert len(response.json["items"]) == 1
+    assert len(response.json["items"]) == 2
     assert response.json["items"][0]["item_id"] == "12345"
+    assert response.json["items"][1]["item_id"] == "sample_1"
 
     response = client.get("/search-items/?query=new material")
 
     assert response.status_code == 200
     assert response.json["status"] == "success"
     assert len(response.json["items"]) == 2
-    assert response.json["items"][1]["item_id"] == "12345"
     assert response.json["items"][0]["item_id"] == "material"
+    assert response.json["items"][1]["item_id"] == "12345"
+
+    response = client.get("/search-items/?query=NaNiO2")
+
+    assert response.status_code == 200
+    assert response.json["status"] == "success"
+    assert len(response.json["items"]) == 3
+    assert response.json["items"][0]["item_id"] == "test"
+    assert response.json["items"][1]["item_id"] == "material"
+    assert response.json["items"][2]["item_id"] == "12345"
