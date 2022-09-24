@@ -1,7 +1,7 @@
 version: 2
 updates:
   - package-ecosystem: pip
-    directory: "/"
+    directory: "./pydatalab"
     schedule:
       interval: monthly
     open-pull-requests-limit: 50
