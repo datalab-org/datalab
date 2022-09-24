@@ -62,7 +62,11 @@ def create_default_indices(client: Optional[MongoClient] = None) -> List[str]:
 
     ret = []
 
-    ret += db.items.create_index([(k, TEXT) for k in fts_fields], name="item full-text search")
+    ret += db.items.create_index(
+        [(k, TEXT) for k in fts_fields],
+        name="item full-text search",
+        weights={"item_id": 3, "name": 3, "chemform": 3},
+    )
     ret += db.items.create_index("type", name="item type")
     ret += db.items.create_index("item_id", unique=True, name="unique item ID")
 
