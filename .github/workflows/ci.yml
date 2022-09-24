@@ -37,8 +37,8 @@ jobs:
     runs-on: ubuntu-latest
 
     strategy:
-      fail-fast: true
-      max-parallel: 1
+      fail-fast: false
+      max-parallel: 2
       matrix:
         python-version: [3.8, 3.9]
 
