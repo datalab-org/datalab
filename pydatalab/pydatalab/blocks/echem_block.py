@@ -63,6 +63,11 @@ def compute_gpcl_differential(
         on the reduced cycle list.
 
     """
+    if len(df) < 2:
+        LOGGER.debug(
+            f"compute_gpcl_differential called on dataframe with length {len(df)}, too small to calculate derivatives"
+        )
+        return df
 
     if mode.lower().replace("/", "") == "dvdq":
         y_label = "Voltage"
@@ -87,13 +92,22 @@ def compute_gpcl_differential(
 
     # Loop over distinct half cycles
     for cycle in df["half cycle"].unique():
+
         # Extract all segments corresponding to this half cycle index
         df_cycle = df[df["half cycle"] == cycle]
 
         # Compute the desired derivative
-        x, yp, y = ec.dqdv_single_cycle(
-            df_cycle[y_label], df_cycle[x_label], **smoothing_parameters
-        )
+        try:
+            x, yp, y = ec.dqdv_single_cycle(
+                df_cycle[y_label], df_cycle[x_label], **smoothing_parameters
+            )
+        except TypeError as e:
+            LOGGER.debug(
+                f"""Calculating derivative {mode} of half_cycle {cycle} failed with the following error (likely it is a rest or voltage hold):
+                 {e}
+                Skipping derivative calculation for this half cycle."""
+            )
+            continue
 
         # Set up an array per cycle segment that stores the cycle and half-cycle index
         cycle_index = df_cycle["full cycle"].max()
@@ -247,6 +261,7 @@ class CycleBlock(DataBlock):
         df = filter_df_by_cycle_index(raw_df, cycle_list)
 
         if mode in ("dQ/dV", "dV/dQ"):
+
             df = compute_gpcl_differential(
                 df,
                 mode=mode,
