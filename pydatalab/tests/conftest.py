@@ -37,6 +37,11 @@ def real_mongo_client() -> Union[pymongo.MongoClient, None]:
 
 @pytest.fixture(scope="session")
 def client(real_mongo_client):
+    """Returns a test client for the API. If it exists,
+    connects to a local MongoDB, otherwise uses the
+    mongomock testing backend.
+
+    """
 
     example_remote = {
         "name": "example_data",
@@ -86,26 +91,6 @@ def client(real_mongo_client):
                 yield cli
 
 
-@pytest.fixture(scope="session")
-def real_client():
-    """Useful when testing against local MongoDB instances."""
-    example_remote = {
-        "name": "example_data",
-        "hostname": None,
-        "path": Path(__file__).parent.joinpath("../example_data/"),
-    }
-
-    app = create_app(
-        {
-            "MONGO_URI": MONGO_URI,
-            "REMOTE_FILESYSTEMS": [example_remote],
-        }
-    )
-
-    with app.test_client() as cli:
-        yield cli
-
-
 @pytest.fixture(scope="module", name="default_sample")
 def fixture_default_sample():
     return Sample(**{"item_id": "12345", "name": "other_sample", "date": "1970-02-01"})
@@ -116,15 +101,37 @@ def example_items():
     return [
         d.dict(exclude_unset=False)
         for d in [
-            Sample(**{"item_id": "12345", "name": "new material", "date": "1970-02-01"}),
+            Sample(
+                **{
+                    "item_id": "12345",
+                    "name": "new material",
+                    "description": "NaNiO2",
+                    "date": "1970-02-01",
+                }
+            ),
             Sample(**{"item_id": "56789", "name": "alice", "date": "1970-02-01"}),
-            Sample(**{"item_id": "sample_1", "name": "bob", "date": "1970-02-01"}),
+            Sample(
+                **{
+                    "item_id": "sample_1",
+                    "name": "bob",
+                    "description": "12345",
+                    "date": "1970-02-01",
+                }
+            ),
             Sample(**{"item_id": "sample_2", "name": "other_sample", "date": "1970-02-01"}),
             StartingMaterial(
                 **{
                     "item_id": "material",
                     "chemform": "NaNiO2",
                     "name": "new material",
+                    "date_acquired": "1970-02-01",
+                }
+            ),
+            StartingMaterial(
+                **{
+                    "item_id": "test",
+                    "chemform": "NaNiO2",
+                    "name": "NaNiO2",
                     "date_acquired": "1970-02-01",
                 }
             ),
