@@ -8,7 +8,7 @@ RUN apt update && apt install -y tree && apt clean
 WORKDIR /app
 RUN pip install pipenv
 
-COPY Pipfile Pipfile.lock ./
+COPY pydatalab/Pipfile pydatalab/Pipfile.lock ./
 
 # Create development image using flask's dev server with hot-reload
 FROM base as development
