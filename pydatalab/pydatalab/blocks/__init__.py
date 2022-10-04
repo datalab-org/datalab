@@ -4,6 +4,7 @@ from pydatalab.blocks.blocks import (
     CommentBlock,
     DataBlock,
     ImageBlock,
+    NMRBlock,
     NotSupportedBlock,
     XRDBlock,
 )
@@ -15,6 +16,7 @@ BLOCKS: Sequence[Type[DataBlock]] = (
     ImageBlock,
     XRDBlock,
     CycleBlock,
+    NMRBlock,
     NotSupportedBlock,
 )
 
@@ -27,6 +29,7 @@ __all__ = (
     "ImageBlock",
     "XRDBlock",
     "CycleBlock",
+    "NMRBlock",
     "BLOCK_TYPES",
     "BLOCKS",
 )

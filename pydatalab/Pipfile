@@ -17,6 +17,7 @@ galvani = "*"
 navani = {git = "https://github.com/the-grey-group/navani.git", editable = true}
 pydantic = "*"
 openpyxl = "*"
+nmrglue = "*"
 
 [dev-packages]
 pytest = "*"
