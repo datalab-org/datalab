@@ -1,17 +1,19 @@
 import os
 import random
 import zipfile
-from typing import Any, Callable, Dict, Optional, Sequence
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 import bokeh
 import numpy as np
 import pandas as pd
 from bson import ObjectId
+from scipy.signal import medfilt
 
 from pydatalab import nmr_utils, xrd_utils
 from pydatalab.bokeh_plots import mytheme, selectable_axes_plot
 from pydatalab.file_utils import get_file_info_by_id
 from pydatalab.logger import LOGGER
+from pydatalab.mongo import flask_mongo
 
 __all__ = ("generate_random_id", "DataBlock")
 
@@ -249,40 +251,25 @@ class XRDBlock(DataBlock):
     def plot_functions(self):
         return (self.generate_xrd_plot,)
 
-    def generate_xrd_plot(self):
-        if "file_id" not in self.data:
-            LOGGER.warning("XRDBlock.generate_xrd_plot(): No file set in the DataBlock")
-            return
-        file_info = get_file_info_by_id(self.data["file_id"], update_if_live=True)
+    def load_pattern(self, location: str) -> Tuple[pd.DataFrame, List[str]]:
 
-        filename = file_info["name"]
-        ext = os.path.splitext(filename)[-1].lower()
-
-        if ext not in self.accepted_file_extensions:
-            LOGGER.warning(
-                "XRDBlock.generate_xrd_plot(): Unsupported file extension (must be .xrdml or .xy)"
-            )
-            return
+        ext = os.path.splitext(location.split("/")[-1])[-1].lower()
 
         if ext == ".xrdml":
-            df = xrd_utils.parse_xrdml(file_info["location"])
+            df = xrd_utils.parse_xrdml(location)
 
         elif ext == ".xy":
-            df = pd.read_csv(file_info["location"], sep=r"\s+", names=["twotheta", "intensity"])
+            df = pd.read_csv(location, sep=r"\s+", names=["twotheta", "intensity"])
 
         else:
-            df = pd.read_csv(
-                file_info["location"], sep=r"\s+", names=["twotheta", "intensity", "error"]
-            )
+            df = pd.read_csv(location, sep=r"\s+", names=["twotheta", "intensity", "error"])
 
         df = df.rename(columns={"twotheta": "2θ (°)"})
-        x_options = ["2θ (°)"]
         try:
             wavelength = float(self.data["wavelength"])
 
             df["Q (Å⁻¹)"] = 4 * np.pi / wavelength * np.sin(np.deg2rad(df["2θ (°)"]) / 2)
             df["d (Å)"] = 2 * np.pi / df["Q (Å⁻¹)"]
-            x_options += ["Q (Å⁻¹)", "d (Å)"]
 
         # if no wavelength (or invalid wavelength) is passed, don't convert to Q and d
         except (ValueError, ZeroDivisionError):
@@ -290,13 +277,97 @@ class XRDBlock(DataBlock):
 
         df["sqrt(intensity)"] = np.sqrt(df["intensity"])
         df["log(intensity)"] = np.log10(df["intensity"])
-
-        p = selectable_axes_plot(
-            df,
-            x_options=x_options,
-            y_options=["intensity", "sqrt(intensity)", "log(intensity)"],
-            plot_line=True,
-            point_size=3,
+        df["normalized intensity"] = df["intensity"] / np.max(df["intensity"])
+        polyfit_deg = 15
+        polyfit_baseline = np.poly1d(
+            np.polyfit(df["2θ (°)"], df["normalized intensity"], deg=polyfit_deg)
+        )(df["2θ (°)"])
+        df["intensity - polyfit baseline"] = df["normalized intensity"] - polyfit_baseline
+        df["intensity - polyfit baseline"] /= np.max(df["intensity - polyfit baseline"])
+        df[f"baseline (`numpy.polyfit`, deg={polyfit_deg})"] = polyfit_baseline / np.max(
+            df["intensity - polyfit baseline"]
         )
 
-        self.data["bokeh_plot_data"] = bokeh.embed.json_item(p, theme=mytheme)
+        kernel_size = 101
+        median_baseline = medfilt(df["normalized intensity"], kernel_size=kernel_size)
+        df["intensity - median baseline"] = df["normalized intensity"] - median_baseline
+        df["intensity - median baseline"] /= np.max(df["intensity - median baseline"])
+        df[
+            f"baseline (`scipy.signal.medfilt`, kernel_size={kernel_size})"
+        ] = median_baseline / np.max(df["intensity - median baseline"])
+
+        df.index.name = location.split("/")[-1]
+
+        y_options = [
+            "normalized intensity",
+            "intensity",
+            "sqrt(intensity)",
+            "log(intensity)",
+            "intensity - median baseline",
+            f"baseline (`scipy.signal.medfilt`, kernel_size={kernel_size})",
+            "intensity - polyfit baseline",
+            f"baseline (`numpy.polyfit`, deg={polyfit_deg})",
+        ]
+
+        return df, y_options
+
+    def generate_xrd_plot(self):
+        file_info = None
+        all_files = None
+        pattern_dfs = None
+
+        if "file_id" not in self.data:
+            LOGGER.warning("XRDBlock.generate_xrd_plot(): No file set in the DataBlock")
+        else:
+            file_info = get_file_info_by_id(self.data["file_id"], update_if_live=True)
+            ext = os.path.splitext(file_info["location"].split("/")[-1])[-1].lower()
+            if ext not in self.accepted_file_extensions:
+                LOGGER.warning(
+                    "XRDBlock.generate_xrd_plot(): Unsupported file extension (must be one of %s), not %s",
+                    self.accepted_file_extensions,
+                    ext,
+                )
+                return
+
+            pattern_dfs, y_options = self.load_pattern(file_info["location"])
+            pattern_dfs = [pattern_dfs]
+
+        if not file_info:
+
+            item_info = flask_mongo.db.items.find_one(
+                {"item_id": self.data["item_id"]},
+            )
+
+            all_files = [
+                d
+                for d in [
+                    get_file_info_by_id(f, update_if_live=False)
+                    for f in item_info["file_ObjectIds"]
+                ]
+                if any(d["name"].lower().endswith(ext) for ext in self.accepted_file_extensions)
+            ]
+
+            if not all_files:
+                LOGGER.warning(
+                    "XRDBlock.generate_xrd_plot(): Unsupported file extension (must be .xrdml or .xy)"
+                )
+                return
+
+            pattern_dfs = []
+            for f in all_files:
+                pattern_df, y_options = self.load_pattern(f["location"])
+                pattern_dfs.append(pattern_df)
+
+        x_options = ["2θ (°)", "Q (Å⁻¹)", "d (Å)"]
+
+        if pattern_dfs:
+            p = selectable_axes_plot(
+                pattern_dfs,
+                x_options=x_options,
+                y_options=y_options,
+                plot_line=True,
+                plot_points=True,
+                point_size=3,
+            )
+
+            self.data["bokeh_plot_data"] = bokeh.embed.json_item(p, theme=mytheme)

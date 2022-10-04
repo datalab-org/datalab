@@ -1,10 +1,3 @@
-from pymongo import MongoClient
+from pydatalab.mongo import create_default_indices
 
-from pydatalab.config import CONFIG
-
-client = MongoClient(CONFIG.MONGO_URI)
-
-db = client.datalabvue
-
-response = db.items.create_index([("$**", "text")])
-response = db.items.create_index("type")
+create_default_indices()
