@@ -15,7 +15,7 @@ class AnsiColorHandler(logging.StreamHandler):
         logging.INFO: "46;30m",
         logging.WARNING: "43;30m",
         logging.ERROR: "41;30m",
-        logging.CRITICAL: "111;30m",
+        logging.CRITICAL: "101;30m",
     }
 
     max_width = 320

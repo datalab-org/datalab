@@ -1,12 +1,10 @@
 name: CI tests
 on:
   pull_request:
-    branches-ignore:
-      - dependabot_updates
+
   push:
     branches:
       - main
-      - dependabot_updates
 
 concurrency:
   group: ${{ github.head_ref || github.run_id }}
@@ -23,7 +21,7 @@ jobs:
       - name: Set up Python 3.9
         uses: actions/setup-python@v4
         with:
-          python-version: 3.9
+          python-version: "3.9"
 
       - name: Install dependencies
         run: |
@@ -54,7 +52,7 @@ jobs:
       fail-fast: false
       max-parallel: 2
       matrix:
-        python-version: [3.8, 3.9]
+        python-version: ["3.8", "3.9", "3.10"]
 
     steps:
       - uses: actions/checkout@v3
@@ -80,7 +78,7 @@ jobs:
           pipenv run pytest -rs -vvv --cov-report=term --cov-report=xml --cov ./pydatalab ./tests
 
       - name: Upload coverage to Codecov
-        if: matrix.python-version == 3.8 && github.repository == 'the-grey-group/datalabvue'
+        if: matrix.python-version == '3.10' && github.repository == 'the-grey-group/datalabvue'
         uses: codecov/codecov-action@v3
 
   webapp:
@@ -131,7 +129,7 @@ jobs:
           docker network create nginx
           docker compose --profile prod up --abort-on-container-exit &
           sudo apt install -qq -y wait-for-it
-          wait-for-it localhost:8081 -t 120
+          wait-for-it localhost:8081 -t 240
 
       - name: Run end-to-end tests
         working-directory: ./webapp

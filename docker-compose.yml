@@ -9,8 +9,6 @@ services:
       target: production
     volumes:
       - ./logs:/logs
-    ports:
-      - "8081:8081"
     networks:
       - nginx
 
@@ -27,6 +25,7 @@ services:
       - "8081:8081"
     networks:
       - nginx
+      - default
 
   api:
     profiles: ["prod"]
@@ -35,15 +34,14 @@ services:
       dockerfile: .docker/server_dockerfile
       target: production
     depends_on:
-      - mongo
-    environment:
-      - PYDATALAB_MONGO_URI=mongodb://mongo:27017/datalabvue
+      - database
     volumes:
       - ./logs:/logs
-    ports:
-      - "5001:5001"
     networks:
       - nginx
+      - backend
+    environment:
+      - PYDATALAB_MONGO_URI=mongodb://database:27017/datalabvue
 
   api_dev:
     profiles: ["dev"]
@@ -52,27 +50,28 @@ services:
       dockerfile: .docker/server_dockerfile
       target: development
     depends_on:
-      - mongo
+      - database
     volumes:
       - ./logs:/logs
       - ./pydatalab:/app
     ports:
       - "5001:5001"
-    environment:
-      - PYDATALAB_MONGO_URI=mongodb://mongo:27017/datalabvue
     networks:
       - nginx
+      - backend
 
-  mongo:
-    restart: always
+  database:
     build:
       context: .
       dockerfile: .docker/mongo_dockerfile
     volumes:
       - ./logs:/var/logs/mongod
-    ports:
-      - "27017:27017"
+    networks:
+      - backend
 
 networks:
   nginx:
     external: true
+
+  backend:
+    driver: bridge

@@ -18,6 +18,25 @@ FILE_DIRECTORY = CONFIG.FILE_DIRECTORY
 DIRECTORIES_DICT = {fs["name"]: fs for fs in CONFIG.REMOTE_FILESYSTEMS}
 
 
+def _escape_spaces_scp_path(remote_path: str) -> str:
+    r"""Takes a remote path prefixed by 'ssh://' and encloses
+    the filename in quotes and escapes spaces to allow for
+    scp'ing of files with spaces in the name, e.g., "ssh://hostname:/path to file"
+    becomes 'ssh://hostname:"/path\ to\ file"'.
+
+    Leaves paths without spaces unaltered.
+
+    """
+    protocol, host, path = remote_path.split(":")
+    if " " not in path:
+        return remote_path
+
+    # Escape all spaces, but make sure not to double-escape
+    path = path.replace(r"\ ", " ").replace(" ", r"\ ")
+
+    return f'{protocol}:{host}:"{path}"'
+
+
 @logged_route
 def _sync_file_with_remote(remote_path: str, src: str) -> None:
     """Copy a file from a mounted volume or ssh-able remote to the
@@ -30,7 +49,9 @@ def _sync_file_with_remote(remote_path: str, src: str) -> None:
     if os.path.isfile(remote_path):
         shutil.copy(remote_path, src)
     elif remote_path.startswith("ssh://"):
-        scp_command = f"scp \"{re.sub('^ssh://', '', remote_path)}\" {src}"
+        # Unescape spaces are we are now quoting the whole path
+        remote_path = _escape_spaces_scp_path(remote_path)
+        scp_command = f"scp {re.sub('^ssh://', '', remote_path)} {src}"
 
         LOGGER.debug("Syncing file with '%s'", scp_command)
         proc = subprocess.Popen(
@@ -105,7 +126,14 @@ def _check_and_sync_file(file_info: File, file_id: ObjectId) -> File:
     ):
         LOGGER.debug("Updating file %s to latest version", file_info.source_path)
 
-        _sync_file_with_remote(full_remote_path, file_info.location)
+        try:
+            _sync_file_with_remote(full_remote_path, file_info.location)
+        except RuntimeError:
+            LOGGER.warning(
+                "Unable to sync file %s with %s on server.", file_info.location, full_remote_path
+            )
+            return file_info
+
         if file_info.location is not None:
             new_stat_results = os.stat(file_info.location)
 
