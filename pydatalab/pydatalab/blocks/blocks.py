@@ -232,7 +232,8 @@ class XRDBlock(DataBlock):
             ext = os.path.splitext(file_info["location"].split("/")[-1])[-1].lower()
             if ext not in self.accepted_file_extensions:
                 LOGGER.warning(
-                    "XRDBlock.generate_xrd_plot(): Unsupported file extension (must be .xrdml, .xy, .dat), not %s",
+                    "XRDBlock.generate_xrd_plot(): Unsupported file extension (must be one of %s), not %s",
+                    self.accepted_file_extensions,
                     ext,
                 )
                 return
