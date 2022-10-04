@@ -1,12 +1,10 @@
 name: CI tests
 on:
   pull_request:
-    branches-ignore:
-      - dependabot_updates
+
   push:
     branches:
       - main
-      - dependabot_updates
 
 concurrency:
   group: ${{ github.head_ref || github.run_id }}
