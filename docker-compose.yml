@@ -9,6 +9,8 @@ services:
       target: production
     volumes:
       - ./logs:/logs
+    ports:
+      - "8081:8081"
     networks:
       - nginx
 
@@ -37,6 +39,8 @@ services:
       - database
     volumes:
       - ./logs:/logs
+    ports:
+      - "5001:5001"
     networks:
       - nginx
       - backend
