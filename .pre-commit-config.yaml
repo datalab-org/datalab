@@ -17,6 +17,7 @@ repos:
         exclude: (pydatalab/example_data/)|(.*.snap)
         args: [--markdown-linebreak-ext=md]
       - id: check-yaml
+        args: [--unsafe]
       - id: check-json
       - id: end-of-file-fixer
         exclude: pydatalab/example_data/
