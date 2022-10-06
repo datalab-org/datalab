@@ -25,6 +25,10 @@ pytest-cov = "*"
 pytest-dependency = "*"
 pre-commit = "*"
 mongomock = "*"
+mkdocs = "*"
+mkdocs-material = "*"
+mkdocstrings = { version = "*", extras = ["python-legacy"] }
+mkdocs-awesome-pages-plugin = "*"
 
 [requires]
 python_version = "3"
