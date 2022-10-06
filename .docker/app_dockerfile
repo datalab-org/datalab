@@ -11,7 +11,7 @@ RUN npm install -g serve
 COPY webapp/package.json webapp/yarn.lock ./
 
 # Using a custom node_modules location to avoid mounting it outside of docker
-RUN --mount=type=cache,target=/root/.cache/yarn yarn install --modules-folder /node_modules
+RUN --mount=type=cache,target=/root/.cache/yarn yarn install --frozen-lockfile --modules-folder /node_modules
 
 FROM base as development
 ENV PATH $PATH:/node_modules/.bin
