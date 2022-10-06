@@ -12,15 +12,14 @@ COPY pydatalab/Pipfile pydatalab/Pipfile.lock ./
 
 # Create development image using flask's dev server with hot-reload
 FROM base as development
-RUN --mount=type=cache,target=/root/.cache/pip pipenv install
-RUN --mount=type=cache,target=/root/.cache/pip pipenv install --dev
+RUN --mount=type=cache,target=/root/.cache/pip pipenv sync
 ENV FLASK_APP "pydatalab.main:create_app()"
 ENV FLASK_ENV "development"
 CMD ["pipenv", "run", "flask", "run", "--port", "5001", "--host", "0.0.0.0"]
 
 # Create production image using gunicorn and minimal dependencies
 FROM base as production
-RUN --mount=type=cache,target=/root/.cache/pip pipenv install
+RUN --mount=type=cache,target=/root/.cache/pip pipenv sync
 RUN [ "pipenv", "run", "pip", "install", "gunicorn" ]
 COPY ./pydatalab/ ./
 
