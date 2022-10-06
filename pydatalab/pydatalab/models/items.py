@@ -28,6 +28,14 @@ class Item(BaseModel):
         None, description="Inlined info for the people associated with this item."
     )
 
+    parent_items: List[str] = Field(
+        default=[], description="Items from which this sample is derived"
+    )
+
+    child_items: List[str] = Field(
+        default=[], description="Items that are derived from this sample"
+    )
+
     description: Optional[str] = Field(
         description="A description of the item, either in plain-text or a markup language."
     )
