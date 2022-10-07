@@ -15,6 +15,14 @@ class Item(BaseModel):
         description="The timestamp at which this item was last modified."
     )
 
+    parent_items: List[str] = Field(
+        default=[], description="Items from which this sample is derived"
+    )
+
+    child_items: List[str] = Field(
+        default=[], description="Items that are derived from this sample"
+    )
+
     name: Optional[str] = Field(description="A human-readable/usable name for the item.")
 
     description: Optional[str] = Field(
@@ -39,7 +47,7 @@ class Item(BaseModel):
 
     class Config:
         # Do not let arbitrary data be added alongside this sample
-        extra = "forbid"
+        extra = "allow"
 
     @validator("last_modified", pre=True)
     def cast_to_datetime(cls, v):
