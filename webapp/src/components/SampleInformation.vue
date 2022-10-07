@@ -24,6 +24,8 @@
     <label class="mr-2">Description</label>
     <TinyMceInline v-model="SampleDescription"></TinyMceInline>
 
+    <RelationshipVisualization :item_id="item_id" />
+
     <TableOfContents :item_id="item_id" :informationSections="tableOfContentsSections" />
 
     <SynthesisInformation class="mt-3" :item_id="item_id" />
@@ -36,6 +38,7 @@ import ChemFormulaInput from "@/components/ChemFormulaInput";
 import TinyMceInline from "@/components/TinyMceInline";
 import SynthesisInformation from "@/components/SynthesisInformation";
 import TableOfContents from "@/components/TableOfContents";
+import RelationshipVisualization from "@/components/RelationshipVisualization";
 
 export default {
   props: {
@@ -61,6 +64,7 @@ export default {
     TinyMceInline,
     SynthesisInformation,
     TableOfContents,
+    RelationshipVisualization,
   },
 };
 </script>
