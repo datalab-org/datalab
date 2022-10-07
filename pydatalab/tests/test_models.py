@@ -127,3 +127,24 @@ def test_bad_ids(id):
 
     with pytest.raises(pydantic.ValidationError):
         HumanReadableIdentifier(id)
+
+
+def test_cell_with_inlined_reference():
+    from pydatalab.models.cells import Cell
+    from pydatalab.models.samples import Sample
+
+    anode = Sample(item_id="test_anode", formula="C")
+
+    cell = Cell(
+        item_id="abcd-1-2-3",
+        positive_electrode=[{"item": anode, "quantity": 2}],
+        negative_electrode=[
+            {"item": {"name": "My secret cathode", "formula": "NaCoO2"}, "quantity": 3}
+        ],
+        characteristic_mass=1.2,
+        active_ion="Na+",
+        cell_format="swagelok",
+    )
+
+    assert cell
+    assert Cell(**json.loads(cell.json()))

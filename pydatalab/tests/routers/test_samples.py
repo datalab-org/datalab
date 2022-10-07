@@ -303,3 +303,19 @@ def test_copy_from_sample(client, complicated_sample):
         "starting_material_2",
         "starting_material_3",
     ]
+
+
+@pytest.mark.dependency(depends=["test_copy_from_sample"])
+def test_create_cell(client, default_cell):
+
+    response = client.post("/new-sample/", json=json.loads(default_cell.json()))
+    assert response.status_code == 201, response.json
+    assert response.json["status"] == "success"
+
+
+#    copy_doc = {"item_id": "copy_of_complicated_sample"}
+# copy_request = {"new_sample_data": copy_doc, "copy_from_item_id": default_cell.item_id}
+# response = client.post("/new-sample/", json=copy_request)
+
+# assert response.status_code == 201, response.json
+# assert response.json["status"] == "success"
