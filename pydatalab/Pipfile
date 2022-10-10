@@ -22,6 +22,7 @@ nmrglue = "*"
 python-dotenv = "*"
 pydantic = {extras = ["email"], version = "*"}
 blinker = "*"
+pint = "*"
 
 [dev-packages]
 pytest = "*"

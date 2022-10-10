@@ -1,24 +1,22 @@
+import abc
 import datetime
 from typing import Any, Dict, List, Optional
 
-import bson
-from pydantic import BaseModel, Field, root_validator, validator
+from pydantic import Field, root_validator, validator
 
+from pydatalab.models.entries import Entry
 from pydatalab.models.people import Person, PyObjectId
+from pydatalab.models.utils import JSON_ENCODERS
 
 
-class Item(BaseModel):
+class Item(Entry, abc.ABC):
     """The generic model for data types that will be exposed with their own named endpoints."""
 
     type: str = Field(description="The resource type of the item.")
 
-    item_id: str = Field(description="a unique id for item.")
-
     last_modified: Optional[datetime.datetime] = Field(
         description="The timestamp at which this item was last modified."
     )
-
-    name: Optional[str] = Field(description="A human-readable name for the item.")
 
     creator_ids: List[PyObjectId] = Field(
         [], description="The database IDs of the user(s) who created the item."
@@ -40,9 +38,13 @@ class Item(BaseModel):
         description="A description of the item, either in plain-text or a markup language."
     )
 
-    nblocks: Optional[int] = Field(0, description="The number of blocks attached to this item.")
+    date: Optional[datetime.datetime] = Field(
+        description="A relevant date supplied for the item (e.g., purchase date, synthesis date)"
+    )
 
-    blocks: List[Dict[Any, Any]] = Field([], description="The blocks attached to this item.")
+    item_id: str = Field("A unique, human-readable identifier for the entry.")
+
+    name: Optional[str] = Field(description="A human-readable/usable name for the entry.")
 
     blocks_obj: Dict[str, Any] = Field({}, description="A mapping from block ID to block data.")
 
@@ -50,16 +52,10 @@ class Item(BaseModel):
         [], description="The order in which to display block data in the UI."
     )
 
-    files: Optional[List[str]] = Field(description="Any files attached to this sample.")
-
-    file_ObjectIds: List[str] = Field(
-        [], description="Links to object IDs of files stored within the database."
-    )
-
     class Config:
         # Do not let arbitrary data be added alongside this sample
         # extra = "forbid"
-        json_encoders = {bson.ObjectId: str}
+        json_encoders = JSON_ENCODERS
 
     @validator("last_modified", pre=True)
     def cast_to_datetime(cls, v):
