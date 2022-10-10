@@ -1,9 +1,9 @@
 import datetime
 from typing import Optional
 
-from pydantic import Field
+from pydantic import Field, validator
 
-from pydatalab.models.items import Item, validator
+from pydatalab.models.items import Item
 
 
 class StartingMaterial(Item):
@@ -65,10 +65,7 @@ class StartingMaterial(Item):
         if isinstance(v, str):
             if v in ["0", " "]:
                 return None
-            v = datetime.datetime.fromisoformat(v)
-
         return v
 
     class Config:
-        # extra = "ignore" # extra data will be silently ignored
         allow_population_by_field_name = True
