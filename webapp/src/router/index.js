@@ -8,6 +8,7 @@ import EditPage from "../views/EditPage.vue";
 import Test from "@/components/Test.vue";
 import TestTree from "@/components/TestTree.vue";
 import CycleParameterTable from "@/components/CycleParameterTable.vue";
+import d3TestPlot from "@/components/d3TestPlot.vue";
 const routes = [
   {
     path: "/about",
@@ -42,6 +43,11 @@ const routes = [
     path: "/test-tree/",
     name: "test-tree",
     component: TestTree,
+  },
+  {
+    path: "/test-d3/",
+    name: "test-d3",
+    component: d3TestPlot,
   },
   {
     path: "/test-cycle-parameter-table/",
