@@ -1,14 +1,453 @@
 <template>
   <div>
-    <svg id="force-directed-graph" width="1000" height="800" />
+    <!-- <svg id="force-directed-graph" width="1000" height="800" /> -->
+    <!-- <svg id="cola-graph" width="1000" height="800" /> -->
+    <div id="cy" />
   </div>
 </template>
 
 <script>
-import { ForceGraph } from "@/d3_network_plot.js";
+// import { ForceGraph } from "@/d3_network_plot.js";
+// import { colaNetworkPlot } from "@/colaNetworkPlot.js";
+import { cyNetworkPlot } from "@/cyNetworkPlot.js";
 export default {
   data() {
     return {
+      exampleGraph2: {
+        nodes: [
+          { data: { id: "jmas-1-1", name: "NaNiO2", type: "samples" } },
+          { data: { id: "jmas-2-1", name: "NaNi0.5Mn0.5O2", type: "samples" } },
+          { data: { id: "jmas-1-2", name: "NaNiO2", type: "samples" } },
+          { data: { id: "jmas-2-2", name: "NaNi0.5Mn0.5O2", type: "samples" } },
+          { data: { id: "jmas-1-4a", name: "NaNiO2 (5wt% excess Na2O2)", type: "samples" } },
+          { data: { id: "jmas-1-4b", name: "NaNiO2 (10wt% excess Na2O2)", type: "samples" } },
+          {
+            data: {
+              id: "jmas-1-4a-e1-c1",
+              name: "NaNiO2 Electrode 1 Coin Cell 1 (C/10, 20 cycles, 1.25-3.75V)",
+              type: "samples",
+            },
+          },
+          {
+            data: {
+              id: "jmas-1-4a-e1-c2",
+              name: "NaNiO2 Electrode 1 Coin Cell 2 (C/10, 20 cycles, 1.25-3.75V)",
+              type: "samples",
+            },
+          },
+          {
+            data: {
+              id: "jmas-1-4a-e1-c3",
+              name: "NaNiO2 Electrode 1 Coin Cell 3 (C/10, 20 cycles, 2.0-4.5V)",
+              type: "samples",
+            },
+          },
+          {
+            data: {
+              id: "jmas-3-2-e1-c1",
+              name: "NaNi0.95Ti0.05O2 Electrode 1 Coin Cell 1 (C/10, 20 cycles, 1.25-3.75V)",
+              type: "samples",
+            },
+          },
+          {
+            data: {
+              id: "jmas-3-2-e1-c2",
+              name: "NaNi0.95Ti0.05O2 Electrode 1 Coin Cell 2 (C/10, 20 cycles, 1.25-3.75V)",
+              type: "samples",
+            },
+          },
+          {
+            data: {
+              id: "jmas-3-2-e1-c3",
+              name: "NaNi0.95Ti0.05O2 Electrode 1 Coin Cell 3 (C/10, 20 Cycles, 2-4.5V)",
+              type: "samples",
+            },
+          },
+          { data: { id: "jmas-1-4a-e1", name: "NaNiO2 Electrode", type: "samples" } },
+          { data: { id: "jmas-3-2-e1", name: "NaNi0.95Ti0.05O2 Electrode", type: "samples" } },
+          {
+            data: {
+              id: "jmas-1-4a-e1-c4",
+              name: "jmas-1-4a-e1-c4_NaNiO2_Con10_2V-2p89V-charge-cutoff-data",
+              type: "samples",
+            },
+          },
+          {
+            data: {
+              id: "jmas-1-4a-e1-c7",
+              name: "jmas-1-4a-e1-c7_NaNiO2_Con10_2V-4p5V-2V-discharge-cutoff-data",
+              type: "samples",
+            },
+          },
+          {
+            data: {
+              id: "jmas-3-2-e1-c4",
+              name: "jmas-3-2-e1-c4_NaNi0p95Ti0p05O2_Con10_2V-2.89V_charge_cutoff-data",
+              type: "samples",
+            },
+          },
+          {
+            data: {
+              id: "jmas-3-2-e1-c5",
+              name: "jmas-3-2-e1-c5_NaNi0p95Ti0p05O2_Con10_2V-3p46V_charge_cutoff-data",
+              type: "samples",
+            },
+          },
+          {
+            data: {
+              id: "jmas-3-2-e1-c6",
+              name: "jmas-3-2-e1-c6_NaNi0p95Ti0p05O2_Con10_2V-4p5V_charge_cutoff-data",
+              type: "samples",
+            },
+          },
+          {
+            data: {
+              id: "jmas-3-2-e1-c7",
+              name: "jmas-3-2-e1-c7_NaNi0p95Ti0p05O2_Con10_2V-4p5V-2V-discharge-cutoff-data",
+              type: "samples",
+            },
+          },
+          {
+            data: {
+              id: "jmas-1-4a-e1-c5",
+              name: "jmas-1-4a-e1-c5_NaNiO2_Con10_2V-3p46V-charge-cutoff-data_C02",
+              type: "samples",
+            },
+          },
+          {
+            data: {
+              id: "jmas-1-4a-e1-c6",
+              name: "jmas-1-4a-e1-c6_NaNiO2_Con10_2V-4p5V-charge-cutoff-data_C09",
+              type: "samples",
+            },
+          },
+          {
+            data: {
+              id: "jmas-3-1-e1-c1",
+              name: "NaNi0.95Ti0.05O2 1 Coin Cell 1 (20 cycles, C/10, 1.25-3.75V)",
+              type: "samples",
+            },
+          },
+          {
+            data: {
+              id: "jmas-3-1-e1-c2",
+              name: "NaNi0.95Ti0.05O2 1 Coin Cell 2 (20 cycles, C/10, 1.25-3.75V)",
+              type: "samples",
+            },
+          },
+          {
+            data: {
+              id: "jmas-3-1-e1-c3",
+              name: "NaNi0.95Ti0.05O2 1 Coin Cell 3 (20 cycles, C/10, 2.0-4.5V)",
+              type: "samples",
+            },
+          },
+          {
+            data: {
+              id: "jmas-3-1-e1-c4",
+              name: "NaNi0.95Ti0.05O2 1 Coin Cell 4 (20 cycles, C/10, 2.0-4.5V)",
+              type: "samples",
+            },
+          },
+          { data: { id: "jmas-3-1", name: "NaNi0.95Ti0.05O2", type: "samples" } },
+          { data: { id: "jmas-1-3", name: "NaNiO2", type: "samples" } },
+          { data: { id: "jmas-1-4c", name: "NaNiO2 (15wt% excess Na2O2)", type: "samples" } },
+          { data: { id: "jmas-1-4d", name: "NaNiO2 (20wt% excess Na2O2)", type: "samples" } },
+          { data: { id: "jmas-3-2", name: "NaNi0.95Ti0.05O2", type: "samples" } },
+          {
+            data: {
+              id: "jmas-3-1-e1",
+              name: "NaNi0.95Ti0.05O2 Electrode 1 (700oC Synthesis)",
+              type: "samples",
+            },
+          },
+        ],
+        edges: [
+          { data: { id: "jmas-1-1->ABJ00532", source: "jmas-1-1", target: "ABJ00532", value: 1 } },
+          { data: { id: "jmas-1-1->AB000194", source: "jmas-1-1", target: "AB000194", value: 1 } },
+          { data: { id: "jmas-2-1->AB000192", source: "jmas-2-1", target: "AB000192", value: 1 } },
+          { data: { id: "jmas-2-1->ABJ00532", source: "jmas-2-1", target: "ABJ00532", value: 1 } },
+          { data: { id: "jmas-2-1->AB000049", source: "jmas-2-1", target: "AB000049", value: 1 } },
+          { data: { id: "jmas-1-2->ABJ00044", source: "jmas-1-2", target: "ABJ00044", value: 1 } },
+          { data: { id: "jmas-2-2->ABJ00044", source: "jmas-2-2", target: "ABJ00044", value: 1 } },
+          { data: { id: "jmas-2-2->AB000059", source: "jmas-2-2", target: "AB000059", value: 1 } },
+          {
+            data: {
+              id: "jmas-1-4a-e1-c1->jmas-1-4a-e1",
+              source: "jmas-1-4a-e1-c1",
+              target: "jmas-1-4a-e1",
+              value: 1,
+            },
+          },
+          {
+            data: {
+              id: "jmas-1-4a-e1-c2->jmas-1-4a-e1",
+              source: "jmas-1-4a-e1-c2",
+              target: "jmas-1-4a-e1",
+              value: 1,
+            },
+          },
+          {
+            data: {
+              id: "jmas-1-4a-e1-c3->jmas-1-4a-e1",
+              source: "jmas-1-4a-e1-c3",
+              target: "jmas-1-4a-e1",
+              value: 1,
+            },
+          },
+          {
+            data: {
+              id: "jmas-3-2-e1-c1->jmas-3-2-e1",
+              source: "jmas-3-2-e1-c1",
+              target: "jmas-3-2-e1",
+              value: 1,
+            },
+          },
+          {
+            data: {
+              id: "jmas-3-2-e1-c2->jmas-3-2-e1",
+              source: "jmas-3-2-e1-c2",
+              target: "jmas-3-2-e1",
+              value: 1,
+            },
+          },
+          {
+            data: {
+              id: "jmas-3-2-e1-c3->jmas-3-2-e1",
+              source: "jmas-3-2-e1-c3",
+              target: "jmas-3-2-e1",
+              value: 1,
+            },
+          },
+          {
+            data: {
+              id: "jmas-1-4a-e1->jmas-1-4a",
+              source: "jmas-1-4a-e1",
+              target: "jmas-1-4a",
+              value: 1,
+            },
+          },
+          {
+            data: {
+              id: "jmas-1-4a-e1->ABJ00190",
+              source: "jmas-1-4a-e1",
+              target: "ABJ00190",
+              value: 1,
+            },
+          },
+          {
+            data: {
+              id: "jmas-1-4a-e1->AB000542",
+              source: "jmas-1-4a-e1",
+              target: "AB000542",
+              value: 1,
+            },
+          },
+          {
+            data: {
+              id: "jmas-1-4a-e1->AB000204",
+              source: "jmas-1-4a-e1",
+              target: "AB000204",
+              value: 1,
+            },
+          },
+          {
+            data: {
+              id: "jmas-3-2-e1->ABJ00190",
+              source: "jmas-3-2-e1",
+              target: "ABJ00190",
+              value: 1,
+            },
+          },
+          {
+            data: {
+              id: "jmas-3-2-e1->ABJ00302",
+              source: "jmas-3-2-e1",
+              target: "ABJ00302",
+              value: 1,
+            },
+          },
+          {
+            data: {
+              id: "jmas-3-2-e1->AB000204",
+              source: "jmas-3-2-e1",
+              target: "AB000204",
+              value: 1,
+            },
+          },
+          {
+            data: {
+              id: "jmas-3-2-e1->jmas-3-2",
+              source: "jmas-3-2-e1",
+              target: "jmas-3-2",
+              value: 1,
+            },
+          },
+          {
+            data: {
+              id: "jmas-1-4a-e1-c4->jmas-1-4a-e1",
+              source: "jmas-1-4a-e1-c4",
+              target: "jmas-1-4a-e1",
+              value: 1,
+            },
+          },
+          {
+            data: {
+              id: "jmas-1-4a-e1-c7->jmas-1-4a-e1",
+              source: "jmas-1-4a-e1-c7",
+              target: "jmas-1-4a-e1",
+              value: 1,
+            },
+          },
+          {
+            data: {
+              id: "jmas-3-2-e1-c4->jmas-3-2-e1",
+              source: "jmas-3-2-e1-c4",
+              target: "jmas-3-2-e1",
+              value: 1,
+            },
+          },
+          {
+            data: {
+              id: "jmas-3-2-e1-c5->jmas-3-2-e1",
+              source: "jmas-3-2-e1-c5",
+              target: "jmas-3-2-e1",
+              value: 1,
+            },
+          },
+          {
+            data: {
+              id: "jmas-3-2-e1-c6->jmas-3-2-e1",
+              source: "jmas-3-2-e1-c6",
+              target: "jmas-3-2-e1",
+              value: 1,
+            },
+          },
+          {
+            data: {
+              id: "jmas-3-2-e1-c7->jmas-3-2-e1",
+              source: "jmas-3-2-e1-c7",
+              target: "jmas-3-2-e1",
+              value: 1,
+            },
+          },
+          {
+            data: {
+              id: "jmas-1-4a-e1-c5->jmas-1-4a-e1",
+              source: "jmas-1-4a-e1-c5",
+              target: "jmas-1-4a-e1",
+              value: 1,
+            },
+          },
+          {
+            data: {
+              id: "jmas-1-4a-e1-c6->jmas-1-4a-e1",
+              source: "jmas-1-4a-e1-c6",
+              target: "jmas-1-4a-e1",
+              value: 1,
+            },
+          },
+          {
+            data: {
+              id: "jmas-3-1-e1-c1->jmas-3-1-e1",
+              source: "jmas-3-1-e1-c1",
+              target: "jmas-3-1-e1",
+              value: 1,
+            },
+          },
+          {
+            data: {
+              id: "jmas-3-1-e1-c2->jmas-3-1-e1",
+              source: "jmas-3-1-e1-c2",
+              target: "jmas-3-1-e1",
+              value: 1,
+            },
+          },
+          {
+            data: {
+              id: "jmas-3-1-e1-c3->jmas-3-1-e1",
+              source: "jmas-3-1-e1-c3",
+              target: "jmas-3-1-e1",
+              value: 1,
+            },
+          },
+          {
+            data: {
+              id: "jmas-3-1-e1-c4->jmas-3-1-e1",
+              source: "jmas-3-1-e1-c4",
+              target: "jmas-3-1-e1",
+              value: 1,
+            },
+          },
+          { data: { id: "jmas-3-1->ABJ00044", source: "jmas-3-1", target: "ABJ00044", value: 1 } },
+          { data: { id: "jmas-3-1->AB000318", source: "jmas-3-1", target: "AB000318", value: 1 } },
+          { data: { id: "jmas-1-3->ABJ00044", source: "jmas-1-3", target: "ABJ00044", value: 1 } },
+          { data: { id: "jmas-3-2->AB000318", source: "jmas-3-2", target: "AB000318", value: 1 } },
+          {
+            data: {
+              id: "jmas-3-1-e1->ABJ00190",
+              source: "jmas-3-1-e1",
+              target: "ABJ00190",
+              value: 1,
+            },
+          },
+          {
+            data: {
+              id: "jmas-3-1-e1->ABJ00302",
+              source: "jmas-3-1-e1",
+              target: "ABJ00302",
+              value: 1,
+            },
+          },
+          {
+            data: {
+              id: "jmas-3-1-e1->AB000204",
+              source: "jmas-3-1-e1",
+              target: "AB000204",
+              value: 1,
+            },
+          },
+          {
+            data: {
+              id: "jmas-3-1-e1->jmas-3-1",
+              source: "jmas-3-1-e1",
+              target: "jmas-3-1",
+              value: 1,
+            },
+          },
+        ],
+      },
+      exampleGraph: {
+        nodes: [
+          { id: "test1", name: "A first test sample", type: "samples" },
+          { id: "test2", name: "A second test sample", type: "samples" },
+          { id: "test3", name: "a third test sample", type: "samples" },
+          { id: "dls_test", name: "testing loading xrd pattern from diamond", type: "samples" },
+          { id: "new_xrd_test", name: "", type: "samples" },
+          { id: "12345678910", name: "This is a sample name", type: "samples" },
+          {
+            id: "analytical_server_test",
+            name: "test of chemistry analytical server",
+            type: "samples",
+          },
+          { id: "spaces_test", name: "", type: "samples" },
+          { id: "jmas1-4a_e1_c1", name: "NaNiO2 cycling test", type: "samples" },
+          { id: "jmas1-4a_e1_c2", name: "NaNiO2 cycling test 2", type: "samples" },
+          { id: "jmas1-4a_e1_c3", name: "NaNiO2 cycling test 3", type: "samples" },
+          { id: "jdb1-1", name: "NaCoO2", type: "samples" },
+          { id: "NMR_test", name: "", type: "samples" },
+          { id: "cycling", name: "", type: "samples" },
+        ],
+        links: [
+          { source: "test1", target: "test3", value: 1 },
+          { source: "test1", target: "dls_test", value: 1 },
+          { source: "test2", target: "test1", value: 1 },
+          { source: "test2", target: "jdb1-1", value: 1 },
+          { source: "cycling", target: "test2", value: 1 },
+          { source: "cycling", target: "jdb1-1", value: 1 },
+          { source: "cycling", target: "test1", value: 1 },
+        ],
+      },
       miserables: {
         nodes: [
           { id: "Myriel", group: 1 },
@@ -349,16 +788,24 @@ export default {
     };
   },
   mounted() {
-    ForceGraph(this.miserables, {
-      svgSelector: "svg#force-directed-graph",
-      nodeId: (d) => d.id,
-      nodeGroup: (d) => d.group,
-      nodeTitle: (d) => `${d.id}\n${d.group}`,
-      linkStrokeWidth: (l) => Math.sqrt(l.value),
-      height: 600,
-    });
+    // ForceGraph(this.exampleGraph, {
+    //   svgSelector: "svg#force-directed-graph",
+    //   nodeId: (d) => d.id,
+    //   nodeGroup: (d) => d.group,
+    //   nodeTitle: (d) => `${d.id}\n${d.group}`,
+    //   linkStrokeWidth: (l) => Math.sqrt(l.value),
+    //   height: 600,
+    // });
+    // colaNetworkPlot(this.miserables, { svgSelector: "svg#cola-graph" });
+    cyNetworkPlot();
   },
 };
 </script>
 
-<style></style>
+<style>
+#cy {
+  width: 100%;
+  height: 800px;
+  display: block;
+}
+</style>
