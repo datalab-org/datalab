@@ -8,6 +8,7 @@ from pydantic import ValidationError
 from pydatalab.blocks import BLOCK_TYPES
 from pydatalab.models import ITEM_MODELS, Sample
 from pydatalab.mongo import flask_mongo
+from pydatalab.logger import LOGGER
 
 
 def reserialize_blocks(blocks_obj: Dict[str, Dict]) -> Dict[str, Dict]:
@@ -350,6 +351,34 @@ def save_item():
 
 save_item.methods = ("POST",)  # type: ignore
 
+
+def get_graph(item_id, depth=3):
+    """Generate a graph in cytoscape.js format centered around the item_id specified"""
+
+    def _recursive_graph_search(item_id, depth):
+        LOGGER.debug(f"_recursive_graph_search called with {item_id=}")
+        if depth == 0:
+            return item_id
+
+        parents = flask_mongo.db.items.find_one(
+            {"item_id": item_id}, {"synthesis_constituents.item.item_id": 1, "_id": 0}
+        )
+        LOGGER.debug(parents)
+        return [
+            _recursive_graph_search(d["item"]["item_id"], depth=depth - 1)
+            for d in parents["synthesis_constituents"]
+        ]
+
+    # children = flask_mongo.db.items.find(
+    # {"synthesis_constituents.item.item_id": item_id}, {"item_id": 1}
+    # )
+    return jsonify(_recursive_graph_search(item_id, depth))
+    # return jsonify([parents, list(children)])
+
+
+get_graph.methods = ("GET",)  # type: ignore
+
+
 ENDPOINTS: Dict[str, Callable] = {
     "/samples/": get_samples,
     "/starting-materials/": get_starting_materials,
@@ -358,4 +387,5 @@ ENDPOINTS: Dict[str, Callable] = {
     "/delete-sample/": delete_sample,
     "/get-item-data/<item_id>": get_item_data,
     "/save-item/": save_item,
+    "/get-graph/<item_id>": get_graph,
 }
