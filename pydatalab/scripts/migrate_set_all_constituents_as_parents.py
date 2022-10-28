@@ -2,14 +2,18 @@ from pymongo import MongoClient
 
 from pydatalab.config import CONFIG
 
-client = MongoClient(CONFIG.MONGO_URI)
+# client = MongoClient(CONFIG.MONGO_URI)
+client = MongoClient("mongodb://localhost:27017")
 
-db = client.datalabvue
+
+db = client.datalabvue_backup
 
 
 all_documents = db.items.find()
 
 for document in all_documents:
+    if "synthesis_constituents" not in document:
+        continue
     constituent_ids = [entry["item"]["item_id"] for entry in document["synthesis_constituents"]]
 
     print(
