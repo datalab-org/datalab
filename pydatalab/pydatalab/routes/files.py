@@ -12,7 +12,7 @@ from pydatalab.config import CONFIG
 
 
 def get_file(file_id, filename):
-    path = os.path.join(CONFIG.FILE_DIRECTORY, file_id)
+    path = os.path.join(CONFIG.FILE_DIRECTORY, secure_filename(file_id))
     return send_from_directory(path, filename)
 
 
