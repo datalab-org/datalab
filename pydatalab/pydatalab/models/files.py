@@ -50,3 +50,6 @@ class File(Entry):
     is_live: bool = Field(
         description="Whether or not the file should be watched for future updates."
     )
+
+    class Config:
+        extra = "allow"

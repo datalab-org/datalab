@@ -33,7 +33,7 @@ def get_directory_structures(
 
     """
     if parallel:
-        return multiprocessing.Pool(min(len(directories), 8)).map(
+        return multiprocessing.Pool(max(min(len(directories), 8), 1)).map(
             functools.partial(
                 get_directory_structure,
                 invalidate_cache=invalidate_cache,

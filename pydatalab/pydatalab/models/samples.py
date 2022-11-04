@@ -26,5 +26,6 @@ class Sample(Item):
     )  # type: ignore
 
     class Config:
+        extra = "allow"
         allow_arbitrary_types = True
         json_encoders = JSON_ENCODERS
