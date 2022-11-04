@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional
 from pydantic import Field
 
 from pydatalab.models.entries import Entry
+from pydatalab.models.relationships import TypedRelationship
 from pydatalab.models.utils import JSON_ENCODERS
 
 
@@ -27,6 +28,10 @@ class Item(Entry, abc.ABC):
 
     display_order: List[str] = Field(
         [], description="The order in which to display block data in the UI."
+    )
+
+    relationships: List[TypedRelationship] = Field(
+        [], description="List of relationships between this item and others"
     )
 
     class Config:
