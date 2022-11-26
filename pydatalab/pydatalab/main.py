@@ -1,6 +1,7 @@
 from typing import Any, Dict
 
-from flask import Flask
+from dotenv import dotenv_values
+from flask import Flask, redirect, request, url_for
 from flask_cors import CORS
 
 import pydatalab.mongo
@@ -10,7 +11,7 @@ from pydatalab.utils import CustomJSONEncoder
 
 
 def create_app(config_override: Dict[str, Any] = None) -> Flask:
-    """Create the `Flask` app with the given config.
+    """Create the main `Flask` app with the given config.
 
     Parameters:
         config_override: Config value overrides to use
@@ -27,7 +28,18 @@ def create_app(config_override: Dict[str, Any] = None) -> Flask:
         CONFIG.update(config_override)
 
     app.config.update(CONFIG.dict())
-    CORS(app, resources={r"/*": {"origins": "*"}})
+    app.config.update(dotenv_values())
+
+    if CONFIG.BEHIND_REVERSE_PROXY:
+        # Fix headers for reverse proxied app:
+        # https://flask.palletsprojects.com/en/2.2.x/deploying/proxy_fix/
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)  # type: ignore
+
+    CORS(
+        app,
+        resources={r"/*": {"origins": "*"}},
+        supports_credentials=True,
+    )
 
     app.json_encoder = CustomJSONEncoder
 
@@ -44,6 +56,14 @@ def create_app(config_override: Dict[str, Any] = None) -> Flask:
 
     @app.route("/")
     def index():
+        """Landing page endpoint that renders a rudimentary welcome page based on the currently
+        authenticated user.
+
+        Warning:
+            Does not use a Jinja template, so care must be taken in validating
+            the embedded inputs.
+
+        """
         from pydatalab.routes import (
             ENDPOINTS,  # pylint: disable=import-outside-toplevel
         )

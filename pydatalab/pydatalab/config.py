@@ -2,12 +2,16 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 from pydantic import BaseSettings, Field, root_validator
 
 
 def config_file_settings(settings: BaseSettings) -> Dict[str, Any]:
+    """Returns a dictionary of server settings loaded from the default or specified
+    JSON config file location (via the env var `PYDATALAB_CONFIG_FILE`).
+
+    """
     config_file = Path(os.getenv("PYDATALAB_CONFIG_FILE", "/app/config.json"))
 
     res = {}
@@ -28,6 +32,8 @@ def config_file_settings(settings: BaseSettings) -> Dict[str, Any]:
 
 
 class ServerConfig(BaseSettings):
+    """A model that provides settings for deploying the API."""
+
     SECRET_KEY: str = Field("dummy key", description="The secret key to use for Flask.")
 
     MONGO_URI: str = Field(
@@ -54,6 +60,11 @@ class ServerConfig(BaseSettings):
     REMOTE_CACHE_MIN_AGE: int = Field(
         1,
         description="The minimum age, in minutes, of the remote filesystem cache, below which the cache will not be invalidated if an update is manually requested.",
+    )
+
+    BEHIND_REVERSE_PROXY: bool = Field(
+        False,
+        description="Whether the Flask app is being deployed behind a reverse proxy. If `True`, the reverse proxy middleware described in the Flask docs (https://flask.palletsprojects.com/en/2.2.x/deploying/proxy_fix/) will be attached to the app.",
     )
 
     @root_validator
@@ -87,6 +98,7 @@ CONFIG = ServerConfig()
 
 
 def log_config():
+    """Adds the current server configuration to the log."""
     from pydatalab.logger import LOGGER
 
     LOGGER.info("Loaded config with options: %s", CONFIG.dict())
