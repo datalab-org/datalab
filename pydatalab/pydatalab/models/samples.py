@@ -30,3 +30,6 @@ class Sample(Item):
             v = datetime.datetime.fromisoformat(v)
 
         return v
+
+    class Config:
+        extra = "forbid"

@@ -91,7 +91,7 @@ def test_delete_sample(client, default_sample_dict):
     response = client.get(
         f"/get-item-data/{default_sample_dict['item_id']}",
     )
-    assert response.status_code == 404
+    assert response.status_code == 401
 
 
 @pytest.mark.dependency(depends=["test_delete_sample"])
