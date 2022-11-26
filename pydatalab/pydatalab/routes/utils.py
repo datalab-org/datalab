@@ -3,10 +3,14 @@ from typing import Any, Dict
 from flask_login import current_user
 
 from pydatalab.config import CONFIG
+from pydatalab.login import UserRole
 
 
 def get_default_permissions(user_only: bool = True) -> Dict[str, Any]:
     """Return the MongoDB query terms corresponding to the current user.
+
+    Will return open permissions if a) the `CONFIG.TESTING` parameter is `True`,
+    or b) if the current user is registered as an admin.
 
     Parameters:
         user_only: Whether to exclude items that also have no attached user (`False`),
@@ -16,6 +20,13 @@ def get_default_permissions(user_only: bool = True) -> Dict[str, Any]:
     """
 
     if CONFIG.TESTING:
+        return {}
+
+    if (
+        current_user.is_authenticated
+        and current_user.person is not None
+        and current_user.role == UserRole.ADMIN
+    ):
         return {}
 
     null_perm = {"creator_ids": {"$size": 0}}
