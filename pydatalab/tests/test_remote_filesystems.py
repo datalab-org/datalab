@@ -68,6 +68,8 @@ def test_get_directory_structure_local():
         CONFIG.REMOTE_CACHE_MIN_AGE = 1
         CONFIG.REMOTE_CACHE_MAX_AGE = 60
 
+    assert get_directory_structures([], invalidate_cache=True) == []
+
 
 @pytest.mark.skipif(not TREE_AVAILABLE, reason="`tree` utility not installed locally")
 @mongomock.patch(on_new="create")
