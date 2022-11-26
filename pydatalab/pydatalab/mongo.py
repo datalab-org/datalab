@@ -3,6 +3,7 @@ from typing import List, Optional
 # Must be imported in this way to allow for easy patching with mongomock
 import pymongo
 from flask_pymongo import PyMongo
+from pydantic import BaseModel
 from pymongo.errors import ConnectionFailure
 
 __all__ = (
@@ -10,10 +11,15 @@ __all__ = (
     "check_mongo_connection",
     "create_default_indices",
     "_get_active_mongo_client",
+    "insert_pydantic_model_fork_safe",
 )
 
 flask_mongo = PyMongo()
 """This is the primary database interface used by the Flask app."""
+
+
+def insert_pydantic_model_fork_safe(model: BaseModel, collection: str) -> None:
+    _get_active_mongo_client().get_database()[collection].insert_one(model.dict(by_alias=True))
 
 
 def _get_active_mongo_client(timeoutMS: int = 100) -> pymongo.MongoClient:
