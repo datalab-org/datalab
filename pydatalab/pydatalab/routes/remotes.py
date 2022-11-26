@@ -1,6 +1,7 @@
 from typing import Callable, Dict
 
 from flask import jsonify, request
+from flask_login import current_user
 
 from pydatalab.config import CONFIG
 from pydatalab.remote_filesystems import get_directory_structures
@@ -13,6 +14,18 @@ def list_remote_directories():
     then it will be reconstructed.
 
     """
+    if not current_user.is_authenticated and not CONFIG.TESTING:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "title": "Not Authorized",
+                    "detail": "Listing remote directories requires authentication.",
+                }
+            ),
+            401,
+        )
+
     invalidate_cache = None
     if "invalidate_cache" in request.args:
         invalidate_cache = request.args["invalidate_cache"]

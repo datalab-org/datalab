@@ -1,5 +1,5 @@
 import datetime
-from typing import Any, Callable, Dict, List, Union
+from typing import Callable, Dict, List, Union
 
 from bson import ObjectId
 from flask import jsonify, request
@@ -10,32 +10,7 @@ from pydatalab.blocks import BLOCK_TYPES
 from pydatalab.config import CONFIG
 from pydatalab.models import ITEM_MODELS, Sample
 from pydatalab.mongo import flask_mongo
-
-
-def get_default_permissions(user_only: bool = True) -> Dict[str, Any]:
-    """Return the MongoDB query terms corresponding to the current user.
-
-    Parameters:
-        user_only: Whether to exclude items that also have no attached user (`False`),
-            i.e., public items. This should be set to `False` when reading (and wanting
-            to return public items), but left as `True` when modifying or removing items.
-
-    """
-
-    if CONFIG.TESTING:
-        return {}
-
-    null_perm = {"creator_ids": {"$size": 0}}
-    if current_user.is_authenticated and current_user.person is not None:
-        user_perm = {"creator_ids": {"$in": [current_user.person.immutable_id]}}
-        if user_only:
-            return user_perm
-        return {"$or": [user_perm, null_perm]}
-
-    elif user_only:
-        return {"_id": -1}
-
-    return null_perm
+from pydatalab.routes.utils import get_default_permissions
 
 
 def reserialize_blocks(blocks_obj: Dict[str, Dict]) -> Dict[str, Dict]:
@@ -74,7 +49,6 @@ def dereference_files(file_ids: List[Union[str, ObjectId]]) -> Dict[str, Dict]:
         for f in flask_mongo.db.files.find(
             {
                 "_id": {"$in": [ObjectId(_id) for _id in file_ids]},
-                **get_default_permissions(user_only=True),
             }
         )
     }
