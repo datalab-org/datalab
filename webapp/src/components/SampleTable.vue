@@ -4,12 +4,14 @@
   </div>
   <table class="table table-hover table-sm">
     <thead>
-      <tr>
+      <tr align="center">
         <th scope="col">ID</th>
         <th scope="col">Sample name</th>
         <th scope="col">Formula</th>
         <th scope="col">Date</th>
+        <th scope="col">Creators</th>
         <th scope="col"># of blocks</th>
+        <th scope="col"></th>
       </tr>
     </thead>
     <tbody>
@@ -21,14 +23,26 @@
         v-on:click.meta="openEditPageInNewTab(sample.item_id)"
         v-on:click.ctrl="openEditPageInNewTab(sample.item_id)"
       >
-        <td>{{ sample.item_id }}</td>
-        <td>{{ sample.name }}</td>
+        <td align="left">{{ sample.item_id }}</td>
+        <td align="left">{{ sample.name }}</td>
         <td><ChemicalFormula :formula="sample.chemform" /></td>
-        <td>{{ $filters.IsoDatetimeToDate(sample.date) }}</td>
-        <td>{{ sample.nblocks }}</td>
-        <button type="button" class="close" @click.stop="deleteSample(sample)" aria-label="delete">
-          <span aria-hidden="true">&times;</span>
-        </button>
+        <td align="center">{{ $filters.IsoDatetimeToDate(sample.date) }}</td>
+        <td align="center">
+          <div v-for="creator in sample.creators" :key="creator.display_name">
+            {{ creator.display_name }},
+          </div>
+        </td>
+        <td align="right">{{ sample.nblocks }}</td>
+        <td align="right">
+          <button
+            type="button"
+            class="close"
+            @click.stop="deleteSample(sample)"
+            aria-label="delete"
+          >
+            <span aria-hidden="true" style="color: red">&times;</span>
+          </button>
+        </td>
       </tr>
     </tbody>
   </table>
@@ -63,7 +77,7 @@ export default {
       });
     },
     deleteSample(sample) {
-      if (confirm(`Are you sure you want to delete ${sample.item_id}?`)) {
+      if (confirm(`Are you sure you want to delete sample "${sample.item_id}"?`)) {
         console.log("deleting...");
         deleteSample(sample.item_id, sample);
       }
