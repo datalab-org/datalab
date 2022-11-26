@@ -1,7 +1,10 @@
 import datetime
 from typing import Any, Dict, List, Optional
 
+import bson
 from pydantic import BaseModel, Field, root_validator, validator
+
+from pydatalab.models.people import Person, PyObjectId
 
 
 class Item(BaseModel):
@@ -15,7 +18,15 @@ class Item(BaseModel):
         description="The timestamp at which this item was last modified."
     )
 
-    name: Optional[str] = Field(description="A human-readable/usable name for the item.")
+    name: Optional[str] = Field(description="A human-readable name for the item.")
+
+    creator_ids: List[PyObjectId] = Field(
+        [], description="The database IDs of the user(s) who created the item."
+    )
+
+    creators: Optional[List[Person]] = Field(
+        None, description="Inlined info for the people associated with this item."
+    )
 
     description: Optional[str] = Field(
         description="A description of the item, either in plain-text or a markup language."
@@ -39,7 +50,8 @@ class Item(BaseModel):
 
     class Config:
         # Do not let arbitrary data be added alongside this sample
-        extra = "forbid"
+        # extra = "forbid"
+        json_encoders = {bson.ObjectId: str}
 
     @validator("last_modified", pre=True)
     def cast_to_datetime(cls, v):
