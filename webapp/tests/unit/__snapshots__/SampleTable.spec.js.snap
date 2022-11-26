@@ -8,7 +8,9 @@ exports[`it renders correctly with 0 samples 1`] = `
     class="table table-hover table-sm"
   >
     <thead>
-      <tr>
+      <tr
+        align="center"
+      >
         <th
           scope="col"
         >
@@ -32,8 +34,16 @@ exports[`it renders correctly with 0 samples 1`] = `
         <th
           scope="col"
         >
+          Creators
+        </th>
+        <th
+          scope="col"
+        >
           # of blocks
         </th>
+        <th
+          scope="col"
+        />
       </tr>
     </thead>
     <tbody>
@@ -53,7 +63,9 @@ exports[`it renders correctly with some samples 1`] = `
     class="table table-hover table-sm"
   >
     <thead>
-      <tr>
+      <tr
+        align="center"
+      >
         <th
           scope="col"
         >
@@ -77,8 +89,16 @@ exports[`it renders correctly with some samples 1`] = `
         <th
           scope="col"
         >
+          Creators
+        </th>
+        <th
+          scope="col"
+        >
           # of blocks
         </th>
+        <th
+          scope="col"
+        />
       </tr>
     </thead>
     <tbody>
@@ -86,10 +106,14 @@ exports[`it renders correctly with some samples 1`] = `
       <tr
         id="jdb1-1"
       >
-        <td>
+        <td
+          align="left"
+        >
           jdb1-1
         </td>
-        <td>
+        <td
+          align="left"
+        >
           This is a test sample
         </td>
         <td>
@@ -114,31 +138,50 @@ exports[`it renders correctly with some samples 1`] = `
             
           </span>
         </td>
-        <td>
+        <td
+          align="center"
+        >
           2020-02-17
         </td>
-        <td>
+        <td
+          align="center"
+        >
+          
+          
+        </td>
+        <td
+          align="right"
+        >
           6
         </td>
-        <button
-          aria-label="delete"
-          class="close"
-          type="button"
+        <td
+          align="right"
         >
-          <span
-            aria-hidden="true"
+          <button
+            aria-label="delete"
+            class="close"
+            type="button"
           >
-            ×
-          </span>
-        </button>
+            <span
+              aria-hidden="true"
+              style="color: red;"
+            >
+              ×
+            </span>
+          </button>
+        </td>
       </tr>
       <tr
         id="jdb11-3_e1_s2"
       >
-        <td>
+        <td
+          align="left"
+        >
           jdb11-3_e1_s2
         </td>
-        <td>
+        <td
+          align="left"
+        >
           in situ SQUID test
         </td>
         <td>
@@ -161,31 +204,50 @@ exports[`it renders correctly with some samples 1`] = `
             
           </span>
         </td>
-        <td>
+        <td
+          align="center"
+        >
           2021-02-19
         </td>
-        <td>
+        <td
+          align="center"
+        >
+          
+          
+        </td>
+        <td
+          align="right"
+        >
           1
         </td>
-        <button
-          aria-label="delete"
-          class="close"
-          type="button"
+        <td
+          align="right"
         >
-          <span
-            aria-hidden="true"
+          <button
+            aria-label="delete"
+            class="close"
+            type="button"
           >
-            ×
-          </span>
-        </button>
+            <span
+              aria-hidden="true"
+              style="color: red;"
+            >
+              ×
+            </span>
+          </button>
+        </td>
       </tr>
       <tr
         id="jdb11-3_e1_s3"
       >
-        <td>
+        <td
+          align="left"
+        >
           jdb11-3_e1_s3
         </td>
-        <td>
+        <td
+          align="left"
+        >
           another in situ SQUID test
         </td>
         <td>
@@ -198,31 +260,50 @@ exports[`it renders correctly with some samples 1`] = `
             
           </span>
         </td>
-        <td>
+        <td
+          align="center"
+        >
           2021-02-24
         </td>
-        <td>
+        <td
+          align="center"
+        >
+          
+          
+        </td>
+        <td
+          align="right"
+        >
           1
         </td>
-        <button
-          aria-label="delete"
-          class="close"
-          type="button"
+        <td
+          align="right"
         >
-          <span
-            aria-hidden="true"
+          <button
+            aria-label="delete"
+            class="close"
+            type="button"
           >
-            ×
-          </span>
-        </button>
+            <span
+              aria-hidden="true"
+              style="color: red;"
+            >
+              ×
+            </span>
+          </button>
+        </td>
       </tr>
       <tr
         id="empty_test"
       >
-        <td>
+        <td
+          align="left"
+        >
           empty_test
         </td>
-        <td>
+        <td
+          align="left"
+        >
            
         </td>
         <td>
@@ -235,23 +316,38 @@ exports[`it renders correctly with some samples 1`] = `
             
           </span>
         </td>
-        <td>
+        <td
+          align="center"
+        >
           1954-01-01
         </td>
-        <td>
+        <td
+          align="center"
+        >
+          
+          
+        </td>
+        <td
+          align="right"
+        >
           0
         </td>
-        <button
-          aria-label="delete"
-          class="close"
-          type="button"
+        <td
+          align="right"
         >
-          <span
-            aria-hidden="true"
+          <button
+            aria-label="delete"
+            class="close"
+            type="button"
           >
-            ×
-          </span>
-        </button>
+            <span
+              aria-hidden="true"
+              style="color: red;"
+            >
+              ×
+            </span>
+          </button>
+        </td>
       </tr>
       
     </tbody>
