@@ -1,6 +1,6 @@
 <template>
   <div v-if="isFetchError" class="alert alert-danger">
-    Server Error. Starting material list not retreived.
+    Server Error. Starting material list not retreived. Are you logged in?
   </div>
   <table class="table table-hover table-sm">
     <thead>
