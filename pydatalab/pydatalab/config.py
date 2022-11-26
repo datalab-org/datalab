@@ -67,6 +67,11 @@ class ServerConfig(BaseSettings):
         description="Whether the Flask app is being deployed behind a reverse proxy. If `True`, the reverse proxy middleware described in the Flask docs (https://flask.palletsprojects.com/en/2.2.x/deploying/proxy_fix/) will be attached to the app.",
     )
 
+    GITHUB_ORG_ALLOW_LIST: Optional[List[str]] = Field(
+        None,
+        description="A list of GitHub organization IDs (not names), that the membership of which will be required to register a new datalab account.",
+    )
+
     @root_validator
     def validate_cache_ages(cls, values):
         if values.get("REMOTE_CACHE_MIN_AGE") > values.get("REMOTE_CACHE_MAX_AGE"):
