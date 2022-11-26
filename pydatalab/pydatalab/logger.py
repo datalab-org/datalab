@@ -25,11 +25,16 @@ class AnsiColorHandler(logging.StreamHandler):
         self.formatter = logging.Formatter("%(asctime)s - %(name)s | %(levelname)-8s: %(message)s")
 
     def format(self, record: logging.LogRecord) -> str:
+        from flask_login import current_user
+
+        prefix = "🔓"
+        if current_user and current_user.is_authenticated:
+            prefix = "🔒"
         message: str = super().format(record)
         if len(message) > self.max_width:
             message = message[: self.max_width] + "[...]"
         color = self.LOGLEVEL_COLORS[record.levelno]
-        message = f"\x1b[{color}{message}\x1b[0m"
+        message = f"{prefix} \x1b[{color}{message}\x1b[0m"
         return message
 
 
