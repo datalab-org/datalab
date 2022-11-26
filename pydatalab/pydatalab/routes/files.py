@@ -3,12 +3,14 @@ from typing import Callable, Dict
 
 from bson import ObjectId
 from flask import jsonify, request, send_from_directory
+from flask_login import current_user
 from pymongo import ReturnDocument
 from werkzeug.utils import secure_filename
 
 import pydatalab.mongo
 from pydatalab import file_utils
 from pydatalab.config import CONFIG
+from pydatalab.routes.utils import get_default_permissions
 
 
 def get_file(file_id, filename):
@@ -20,6 +22,19 @@ def upload():
     """method to upload files to the server
     todo: think more about security, size limits, and about nested folders
     """
+
+    if not current_user.is_authenticated and not CONFIG.TESTING:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "title": "Not Authorized",
+                    "detail": "File upload requires login.",
+                }
+            ),
+            401,
+        )
+
     if len(request.files) == 0:
         return jsonify(error="No file in request"), 400
     if "item_id" not in request.form:
@@ -83,16 +98,17 @@ def delete_file_from_sample():
     item_id = request_json["item_id"]
     file_id = ObjectId(request_json["file_id"])
     result = pydatalab.mongo.flask_mongo.db.items.update_one(
-        {"item_id": item_id}, {"$pull": {"file_ObjectIds": file_id}}
+        {"item_id": item_id, **get_default_permissions(user_only=True)},
+        {"$pull": {"file_ObjectIds": file_id}},
     )
     if result.modified_count != 1:
         return (
             jsonify(
                 status="error",
-                message=f"{item_id} {file_id} delete failed. Something went wrong with the db call to remove file from sample.",
+                message=f"Not authorized to perform file removal from sample {item_id=}",
                 output=result.raw_result,
             ),
-            400,
+            401,
         )
     updated_file_entry = pydatalab.mongo.flask_mongo.db.files.find_one_and_update(
         {"_id": file_id},
@@ -146,7 +162,7 @@ def delete_file():
         )
 
     result = pydatalab.mongo.flask_mongo.db.items.update_one(
-        {"item_id": item_id},
+        {"item_id": item_id, **get_default_permissions(user_only=True)},
         {"$pull": {"files": filename}},
         return_document=ReturnDocument.AFTER,
     )

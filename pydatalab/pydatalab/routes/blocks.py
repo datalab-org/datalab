@@ -4,6 +4,7 @@ from flask import jsonify, request
 
 from pydatalab.blocks import BLOCK_TYPES
 from pydatalab.mongo import flask_mongo
+from pydatalab.routes.utils import get_default_permissions
 
 
 def add_data_block():
@@ -34,7 +35,7 @@ def add_data_block():
         display_order_update = block.block_id
 
     result = flask_mongo.db.items.update_one(
-        {"item_id": item_id},
+        {"item_id": item_id, **get_default_permissions(user_only=True)},
         {
             "$push": {"blocks": data, "display_order": display_order_update},
             "$set": {f"blocks_obj.{block.block_id}": data},
@@ -51,7 +52,9 @@ def add_data_block():
         )
 
     # get the new display_order:
-    display_order_result = flask_mongo.db.items.find_one({"item_id": item_id}, {"display_order": 1})
+    display_order_result = flask_mongo.db.items.find_one(
+        {"item_id": item_id, **get_default_permissions(user_only=True)}, {"display_order": 1}
+    )
 
     return jsonify(
         status="success",
@@ -93,7 +96,7 @@ def delete_block():
     block_id = request_json["block_id"]
 
     result = flask_mongo.db.items.update_one(
-        {"item_id": item_id},
+        {"item_id": item_id, **get_default_permissions(user_only=True)},
         {
             "$pull": {
                 "blocks": {"block_id": block_id},

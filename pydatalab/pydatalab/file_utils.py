@@ -232,6 +232,8 @@ def update_uploaded_file(file, file_id, last_modified=None, size_bytes=None):
 def save_uploaded_file(file, item_ids=None, block_ids=None, last_modified=None, size_bytes=None):
     """file is a file object from a flask request.
     last_modified should be an isodate format. if last_modified is None, the current time will be inserted"""
+    from pydatalab.routes.utils import get_default_permissions
+
     sample_collection = pydatalab.mongo.flask_mongo.db.items
     file_collection = pydatalab.mongo.flask_mongo.db.files
 
@@ -242,7 +244,9 @@ def save_uploaded_file(file, item_ids=None, block_ids=None, last_modified=None, 
         block_ids = []
 
     for item_id in item_ids:
-        if not sample_collection.find_one({"item_id": item_id}):
+        if not sample_collection.find_one(
+            {"item_id": item_id, **get_default_permissions(user_only=True)}
+        ):
             raise ValueError(f"item_id is invalid: {item_id}")
 
     filename = secure_filename(file.filename)
@@ -299,7 +303,8 @@ def save_uploaded_file(file, item_ids=None, block_ids=None, last_modified=None, 
     # update any referenced item_ids
     for item_id in item_ids:
         sample_update_result = sample_collection.update_one(
-            {"item_id": item_id}, {"$push": {"file_ObjectIds": inserted_id}}
+            {"item_id": item_id, **get_default_permissions(user_only=True)},
+            {"$push": {"file_ObjectIds": inserted_id}},
         )
         if sample_update_result.modified_count != 1:
             raise IOError(
@@ -312,6 +317,8 @@ def save_uploaded_file(file, item_ids=None, block_ids=None, last_modified=None, 
 
 
 def add_file_from_remote_directory(file_entry, item_id, block_ids=None):
+    from pydatalab.routes.utils import get_default_permissions
+
     file_collection = pydatalab.mongo.flask_mongo.db.files
     sample_collection = pydatalab.mongo.flask_mongo.db.items
 
@@ -392,7 +399,8 @@ def add_file_from_remote_directory(file_entry, item_id, block_ids=None):
     )
 
     sample_update_result = sample_collection.update_one(
-        {"item_id": item_id}, {"$push": {"file_ObjectIds": inserted_id}}
+        {"item_id": item_id, **get_default_permissions(user_only=True)},
+        {"$push": {"file_ObjectIds": inserted_id}},
     )
     if sample_update_result.modified_count != 1:
         raise IOError(
