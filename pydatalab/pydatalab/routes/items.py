@@ -1,13 +1,41 @@
 import datetime
-from typing import Callable, Dict, List, Union
+from typing import Any, Callable, Dict, List, Union
 
 from bson import ObjectId
-from flask import abort, jsonify, request
+from flask import jsonify, request
+from flask_login import current_user
 from pydantic import ValidationError
 
 from pydatalab.blocks import BLOCK_TYPES
+from pydatalab.config import CONFIG
 from pydatalab.models import ITEM_MODELS, Sample
 from pydatalab.mongo import flask_mongo
+
+
+def get_default_permissions(user_only: bool = True) -> Dict[str, Any]:
+    """Return the MongoDB query terms corresponding to the current user.
+
+    Parameters:
+        user_only: Whether to exclude items that also have no attached user (`False`),
+            i.e., public items. This should be set to `False` when reading (and wanting
+            to return public items), but left as `True` when modifying or removing items.
+
+    """
+
+    if CONFIG.TESTING:
+        return {}
+
+    null_perm = {"creator_ids": {"$size": 0}}
+    if current_user.is_authenticated and current_user.person is not None:
+        user_perm = {"creator_ids": {"$in": [current_user.person.immutable_id]}}
+        if user_only:
+            return user_perm
+        return {"$or": [user_perm, null_perm]}
+
+    elif user_only:
+        return {"_id": -1}
+
+    return null_perm
 
 
 def reserialize_blocks(blocks_obj: Dict[str, Dict]) -> Dict[str, Dict]:
@@ -43,7 +71,12 @@ def dereference_files(file_ids: List[Union[str, ObjectId]]) -> Dict[str, Dict]:
     """
     results = {
         str(f["_id"]): f
-        for f in flask_mongo.db.files.find({"_id": {"$in": [ObjectId(_id) for _id in file_ids]}})
+        for f in flask_mongo.db.files.find(
+            {
+                "_id": {"$in": [ObjectId(_id) for _id in file_ids]},
+                **get_default_permissions(user_only=True),
+            }
+        )
     }
     if len(results) != len(file_ids):
         raise RuntimeError(
@@ -56,21 +89,37 @@ def dereference_files(file_ids: List[Union[str, ObjectId]]) -> Dict[str, Dict]:
 
 
 def get_starting_materials():
+
+    if not current_user.is_authenticated and not CONFIG.TESTING:
+        return (
+            jsonify(
+                status="error",
+                message="Authorization required to access chemical inventory.",
+            ),
+            401,
+        )
+
     items = [
         doc
         for doc in flask_mongo.db.items.aggregate(
             [
-                {"$match": {"type": "starting_materials"}},
+                {
+                    "$match": {
+                        "type": "starting_materials",
+                        **get_default_permissions(user_only=False),
+                    }
+                },
                 {
                     "$project": {
                         "_id": 0,
                         "item_id": 1,
-                        # "nblocks": {"$size": "$display_order"},
+                        "nblocks": {"$size": "$display_order"},
                         "date_acquired": 1,
                         "chemform": 1,
                         "name": 1,
                         "chemical_purity": 1,
                         "supplier": 1,
+                        "location": 1,
                     }
                 },
             ]
@@ -83,17 +132,30 @@ get_starting_materials.methods = ("GET",)  # type: ignore
 
 
 def get_samples():
+
     items = [
         doc
         for doc in flask_mongo.db.items.aggregate(
             [
-                {"$match": {"type": "samples"}},
+                {"$match": {"type": "samples", **get_default_permissions(user_only=False)}},
+                {
+                    "$lookup": {
+                        "from": "users",
+                        "localField": "creator_ids",
+                        "foreignField": "_id",
+                        "as": "creators",
+                    }
+                },
                 {
                     "$project": {
                         "_id": 0,
                         "item_id": 1,
+                        "creator_ids": 1,
                         "sample_id": 1,
                         "nblocks": {"$size": "$display_order"},
+                        "creators": {
+                            "display_name": 1,
+                        },
                         "date": 1,
                         "chemform": 1,
                         "name": 1,
@@ -120,13 +182,14 @@ def search_items():
         response list of dictionaries containing the matching items in order of
         descending match score.
     """
+
     query = request.args.get("query", type=str)
     nresults = request.args.get("nresults", default=100, type=int)
     types = request.args.get("types", default=None)
     if isinstance(types, str):
         types = types.split(",")  # should figure out how to parse as list automatically
 
-    match_obj = {"$text": {"$search": query}}
+    match_obj = {"$text": {"$search": query}, **get_default_permissions(user_only=False)}
     if types is not None:
         match_obj["type"] = {"$in": types}
 
@@ -154,6 +217,16 @@ search_items.methods = ("GET",)  # type: ignore
 
 
 def create_sample():
+
+    if not current_user.is_authenticated and not CONFIG.TESTING:
+        return (
+            jsonify(
+                status="error",
+                message="Unable to create new sample without user authentication.",
+            ),
+            401,
+        )
+
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
     schema = Sample.schema()
     missing_keys = set()
@@ -167,6 +240,11 @@ def create_sample():
         )
 
     new_sample = {k: request_json[k] for k in schema["properties"] if k in request_json}
+
+    if CONFIG.TESTING:
+        new_sample["creator_ids"] = []
+    else:
+        new_sample["creator_ids"] = [current_user.person.immutable_id]
 
     # check to make sure that item_id isn't taken already
     if flask_mongo.db.items.find_one({"item_id": request_json["item_id"]}):
@@ -214,6 +292,7 @@ def create_sample():
                     "nblocks": 0,
                     "date": new_sample.date,
                     "name": new_sample.name,
+                    "creator_ids": new_sample.creator_ids,
                 },
             }
         ),
@@ -225,20 +304,23 @@ create_sample.methods = ("POST",)  # type: ignore
 
 
 def delete_sample():
+
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
     item_id = request_json["item_id"]
 
-    result = flask_mongo.db.items.delete_one({"item_id": item_id})
+    result = flask_mongo.db.items.delete_one(
+        {"item_id": item_id, **get_default_permissions(user_only=True)}
+    )
 
     if result.deleted_count != 1:
         return (
             jsonify(
                 {
                     "status": "error",
-                    "message": f"Failed to delete sample with {item_id=} from the database.",
+                    "message": f"Authorization required to attempt to delete sample with {item_id=} from the database.",
                 }
             ),
-            400,
+            401,
         )
     return (
         jsonify(
@@ -254,12 +336,22 @@ delete_sample.methods = ("POST",)  # type: ignore
 
 
 def get_item_data(item_id):
-    # retrieve the entry from the databse:
+
+    # retrieve the entry from the database:
     doc = flask_mongo.db.items.find_one(
-        {"item_id": item_id},
+        {"item_id": item_id, **get_default_permissions(user_only=False)},
     )
-    if not doc:
-        abort(404)
+
+    if not doc or (not current_user.is_authenticated and doc["type"] == "starting_materials"):
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": f"Authorization required to attempt to get sample with {item_id=} from the database.",
+                }
+            ),
+            401,
+        )
 
     # determine the item type and validate according to the appropriate schema
     try:
@@ -291,13 +383,14 @@ get_item_data.methods = ("GET",)  # type: ignore
 
 
 def save_item():
+
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
 
     item_id = request_json["item_id"]
     updated_data = request_json["data"]
 
     # These keys should not be updated here and cannot be modified by the user through this endpoint
-    for k in ("_id", "file_ObjectIds"):
+    for k in ("_id", "file_ObjectIds", "creators", "creator_ids"):
         if k in updated_data:
             del updated_data[k]
 
@@ -310,11 +403,16 @@ def save_item():
 
         updated_data["blocks_obj"][block_id] = block.to_db()
 
-    item = flask_mongo.db.items.find_one({"item_id": item_id})
+    item = flask_mongo.db.items.find_one(
+        {"item_id": item_id, **get_default_permissions(user_only=True)}
+    )
 
     if not item:
         return (
-            jsonify(status="error", message=f"Unable to find item with {item_id=}."),
+            jsonify(
+                status="error",
+                message=f"Unable to find item with appropriate permissions and {item_id=}.",
+            ),
             400,
         )
 
@@ -333,7 +431,10 @@ def save_item():
             400,
         )
 
-    result = flask_mongo.db.items.update_one({"item_id": item_id}, {"$set": updated_data})
+    result = flask_mongo.db.items.update_one(
+        {"item_id": item_id},
+        {"$set": updated_data},
+    )
 
     if result.matched_count != 1:
         return (
@@ -345,7 +446,7 @@ def save_item():
             400,
         )
 
-    return jsonify(status="success")
+    return jsonify(status="success"), 200
 
 
 def search_users():
