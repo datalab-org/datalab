@@ -56,6 +56,9 @@
       </div>
     </div>
 
+    <label for="location" class="mr-2">Location</label>
+    <input id="location" :value="item.location" class="form-control-plaintext" readonly="true" />
+
     <label class="mr-2">Description</label>
     <TinyMceInline v-model="ItemDescription"></TinyMceInline>
 
