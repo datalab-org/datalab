@@ -109,6 +109,7 @@ jobs:
 
       - name: Build the Docker images
         run: |
+          echo "PYDATALAB_TESTING=true" >> pydatalab/.env
           docker compose --profile prod build
 
       - name: Start Docker images
