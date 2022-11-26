@@ -3,16 +3,25 @@ for retrieving the authenticated user for a session and their identities.
 
 """
 
+from enum import Enum
+from functools import lru_cache
 from typing import Dict, List, Literal, Optional, Union
 
 from bson import ObjectId
 from flask_login import LoginManager, UserMixin
 
+from pydatalab.logger import LOGGER
 from pydatalab.models import Person
 from pydatalab.models.people import Identity, IdentityType
 from pydatalab.mongo import flask_mongo
 
 __all__ = ("LOGIN_MANAGER",)
+
+
+class UserRole(str, Enum):
+    USER = "user"
+    ADMIN = "admin"
+    MANAGER = "manager"
 
 
 class LoginUser(UserMixin):
@@ -26,6 +35,7 @@ class LoginUser(UserMixin):
 
     id: str
     person: Person
+    role: UserRole
 
     def __init__(self, _id: Union[str, ObjectId], data: Union[dict, Person, None] = None):
         """Construct the logged in user from a given ID and user data.
@@ -49,11 +59,23 @@ class LoginUser(UserMixin):
             else:
                 self.person = Person(**data)
 
+        role = flask_mongo.db.roles.find_one({"_id": ObjectId(self.id)})
+        if not role:
+            self.role = UserRole.USER
+        else:
+            self.role = UserRole(role["role"])
+
+        if self.role == UserRole.ADMIN:
+            LOGGER.warning(f"User {self.person.display_name} logged in as an admin.")
+
+        LOGGER.warning(f"User {self.person.display_name} logged in as an {self.role}.")
+
     def get_id(self):
         """Returns the database ID of the user."""
         return self.id
 
     @staticmethod
+    @lru_cache(maxsize=1)
     def get_by_id(user_id: Union[str, ObjectId, Dict[Literal["$oid"], str]]) -> "LoginUser":
         """Lookup the user database ID and create a new `LoginUser`
         with the relevant metadata.
