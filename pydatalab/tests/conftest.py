@@ -66,6 +66,7 @@ def client(real_mongo_client):
             {
                 "MONGO_URI": MONGO_URI,
                 "REMOTE_FILESYSTEMS": [example_remote],
+                "TESTING": True,
             }
         )
 

@@ -47,6 +47,10 @@ class ServerConfig(BaseSettings):
 
     DEBUG: bool = Field(True, description="Whether to enable debug-level logging in the server.")
 
+    TESTING: bool = Field(
+        False, description="Whether to run the server in testing mode, i.e., without user auth."
+    )
+
     REMOTE_FILESYSTEMS: List[Dict[str, str]] = Field(
         [],
         descripton="A list of dictionaries describing remote filesystems to be accessible from the server.",
