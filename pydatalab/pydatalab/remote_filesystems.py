@@ -32,6 +32,9 @@ def get_directory_structures(
         A lists of dictionaries for each specified top-level directory.
 
     """
+    if not directories:
+        return []
+
     if parallel:
         return multiprocessing.Pool(min(len(directories), 8)).map(
             functools.partial(
