@@ -36,6 +36,7 @@ export default function setupUppy(item_id, trigger_selector, reactive_file_list)
       FormData: true, // send as form
       fieldName: "files[]", // default, think about whether or not to change this
       showProgressDetails: true,
+      withCredentials: true,
       // getResponseData(responseText, response) {
       // 	console.log("Uppy response text:")
       // 	console.log(responseText)
