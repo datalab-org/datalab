@@ -83,21 +83,36 @@ def create_default_indices(client: Optional[pymongo.MongoClient] = None) -> List
         client = _get_active_mongo_client()
     db = client.get_database()
 
-    fts_fields = set()
+    item_fts_fields = set()
     for model in ITEM_MODELS:
         schema = ITEM_MODELS[model].schema()
         for f in schema["properties"]:
             if schema["properties"][f]["type"] == "string":
-                fts_fields.add(f)
+                item_fts_fields.add(f)
 
     ret = []
 
     ret += db.items.create_index(
-        [(k, pymongo.TEXT) for k in fts_fields],
+        [(k, pymongo.TEXT) for k in item_fts_fields],
         name="item full-text search",
         weights={"item_id": 3, "name": 3, "chemform": 3},
     )
     ret += db.items.create_index("type", name="item type")
     ret += db.items.create_index("item_id", unique=True, name="unique item ID")
+
+    user_fts_fields = {"identities.name", "display_name"}
+
+    ret += db.users.create_index(
+        [
+            ("identities.identifier", pymongo.ASCENDING),
+            ("identities.identity_type", pymongo.ASCENDING),
+        ],
+        unique=True,
+        name="unique user identifiers",
+    )
+    ret += db.users.create_index(
+        [(k, pymongo.TEXT) for k in user_fts_fields],
+        name="user identities full-text search",
+    )
 
     return ret
