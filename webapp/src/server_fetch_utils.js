@@ -23,6 +23,7 @@ function fetch_get(url) {
   const requestOptions = {
     method: "GET",
     headers: construct_headers(),
+    credentials: "include",
   };
   return fetch(url, requestOptions).then(handleResponse);
 }
@@ -33,6 +34,7 @@ function fetch_post(url, body) {
     method: "POST",
     headers: headers,
     body: JSON.stringify(body),
+    credentials: "include",
   };
   return fetch(url, requestOptions).then(handleResponse);
 }
@@ -44,6 +46,7 @@ function fetch_put(url, body) {
     method: "PUT",
     headers: headers,
     body: JSON.stringify(body),
+    credentials: "include",
   };
   return fetch(url, requestOptions).then(handleResponse);
 }
@@ -54,6 +57,7 @@ function fetch_delete(url) {
   const requestOptions = {
     method: "DELETE",
     headers: headers,
+    credentials: "include",
   };
   return fetch(url, requestOptions).then(handleResponse);
 }
@@ -129,6 +133,29 @@ export function searchItems(query, nresults = 100, types = null) {
   console.log(params);
   return fetch_get(url).then(function (response_json) {
     return response_json.items;
+  });
+}
+
+export async function getUserInfo() {
+  return fetch_get(`${API_URL}/get-current-user/`)
+    .then((response_json) => {
+      return response_json;
+    })
+    .catch(() => {
+      return null;
+    });
+}
+
+export function searchUsers(query, nresults = 100) {
+  // construct a url with parameters:
+  var url = new URL(`${API_URL}/search-users/`);
+  var params = { query: query, nresults: nresults };
+  Object.keys(params).forEach((key) => url.searchParams.append(key, params[key]));
+  console.log(`using to construct url for searchUsers: ${url}`);
+  console.log(url);
+  console.log(params);
+  return fetch_get(url).then(function (response_json) {
+    return response_json.users;
   });
 }
 
