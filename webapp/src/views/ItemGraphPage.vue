@@ -5,21 +5,15 @@
     <router-link to="/starting-materials">Starting Materials</router-link> |
     <router-link to="/item-graph">Item graph</router-link>
   </div>
-  <div id="tableContainer" class="container">
-    <div class="row">
-      <div class="col-sm-10 mx-auto">
-        <StartingMaterialTable></StartingMaterialTable>
-      </div>
-    </div>
-  </div>
+
+  <itemGraph />
 </template>
 
 <script>
-import StartingMaterialTable from "@/components/StartingMaterialTable.vue";
-
+import itemGraph from "@/components/itemGraph";
 export default {
   components: {
-    StartingMaterialTable,
+    itemGraph,
   },
 };
 </script>
