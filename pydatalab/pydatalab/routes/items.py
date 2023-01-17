@@ -6,9 +6,10 @@ from flask import abort, jsonify, request
 from pydantic import ValidationError
 
 from pydatalab.blocks import BLOCK_TYPES
+
+# from pydatalab.logger import LOGGER
 from pydatalab.models import ITEM_MODELS, Sample
 from pydatalab.mongo import flask_mongo
-from pydatalab.logger import LOGGER
 
 
 def reserialize_blocks(blocks_obj: Dict[str, Dict]) -> Dict[str, Dict]:
@@ -278,11 +279,36 @@ def get_item_data(item_id):
     if doc.file_ObjectIds:
         files_data = dereference_files(doc.file_ObjectIds)
 
+    # find any documents with relationships that mention this document
+
+    # option 1: use projection (will need post-processing)
+    incoming_relationships = flask_mongo.db.items.find(
+        {"item_id": doc.item_id},
+        {"item_id": 1, "relationships": {"$elemMatch": {"item_id": doc.item_id}}},
+    )
+
+    # option 2: use an aggregation pipeline:
+    # incoming_relationships = flask_mongo.db.items.aggregate(
+    #    [
+    #        {"$match": {"relationships.item_id": doc.item_id}},
+    #        {"$project": {"item_id": 1, "name": 1, "type": 1, "relationship": "$relationships"}},
+    #        {"$unwind": "$relationship"},
+    #        {"$match": {"relationship.item_id": doc.item_id}},
+    #    ]
+    # )
+
+    # temporary hack: front end currently expects legacy parent_items and child_items fields,
+    # so generate them on the fly after passing through the model.
+    return_dict = doc.dict()
+
+    return_dict["parent_items"] = [d["item_id"] for d in return_dict["relationships"]]
+    return_dict["child_items"] = [d["item_id"] for d in incoming_relationships]
+
     return jsonify(
         {
             "status": "success",
             "item_id": item_id,
-            "item_data": doc.dict(),
+            "item_data": return_dict,
             "files_data": files_data,
         }
     )
@@ -352,31 +378,57 @@ def save_item():
 save_item.methods = ("POST",)  # type: ignore
 
 
-def get_graph(item_id, depth=3):
-    """Generate a graph in cytoscape.js format centered around the item_id specified"""
+# def get_graph(item_id, depth=3):
+#     """Generate a graph in cytoscape.js format centered around the item_id specified"""
 
-    def _recursive_graph_search(item_id, depth):
-        LOGGER.debug(f"_recursive_graph_search called with {item_id=}")
-        if depth == 0:
-            return item_id
+#     nodes = []
+#     edges = []
+#     visited_ids = {}
 
-        parents = flask_mongo.db.items.find_one(
-            {"item_id": item_id}, {"synthesis_constituents.item.item_id": 1, "_id": 0}
-        )
-        LOGGER.debug(parents)
-        return [
-            _recursive_graph_search(d["item"]["item_id"], depth=depth - 1)
-            for d in parents["synthesis_constituents"]
-        ]
+#     def _recursive_graph_search(item_id, depth, nodes, edges, visited_ids):
+#         LOGGER.debug(f"_recursive_graph_search called with {item_id=}")
 
-    # children = flask_mongo.db.items.find(
-    # {"synthesis_constituents.item.item_id": item_id}, {"item_id": 1}
-    # )
-    return jsonify(_recursive_graph_search(item_id, depth))
-    # return jsonify([parents, list(children)])
+#         root = flask_mongo.db.items.find_one(
+#             {"item_id": item_id}, {"item_id": 1, "relationships": 1, "name": 1, "type": 1}
+#         )
+
+#         nodes.append(
+#             {
+#                 "data": {
+#                     "id": item_id,
+#                     "name": root["name"],
+#                     "type": root["type"],
+#                 }
+#             }
+#         )
+
+#         visited_ids.add(item_id)
+
+#         if depth == 0:
+#             return
+
+#         for parent_relationship in root["relationships"]:
+#             if parent_relationship["item_id"] in visited_ids:
+#                 continue
+
+#             edges.append({"data": { "id": }})
+#             _recursive_graph_search(
+#                 parent_relationship["item_id"], depth - 1, nodes, edges, visited_ids
+#             )
+
+#         return [
+#             _recursive_graph_search(d["item"]["item_id"], depth=depth - 1)
+#             for d in parents["synthesis_constituents"]
+#         ]
+
+#     # children = flask_mongo.db.items.find(
+#     # {"synthesis_constituents.item.item_id": item_id}, {"item_id": 1}
+#     # )
+#     return jsonify(_recursive_graph_search(item_id, depth))
+#     # return jsonify([parents, list(children)])
 
 
-get_graph.methods = ("GET",)  # type: ignore
+# get_graph.methods = ("GET",)  # type: ignore
 
 
 ENDPOINTS: Dict[str, Callable] = {
@@ -387,5 +439,5 @@ ENDPOINTS: Dict[str, Callable] = {
     "/delete-sample/": delete_sample,
     "/get-item-data/<item_id>": get_item_data,
     "/save-item/": save_item,
-    "/get-graph/<item_id>": get_graph,
+    # "/get-graph/<item_id>": get_graph,
 }

@@ -790,8 +790,9 @@ export function cyNetworkPlot() {
     ],
 
     layout: {
-      name: "cola", // "klay", //"cola",// "dagre",
+      name: "cola", //"klay", //"cola",// "dagre"
       animate: true,
+      infinite: true, // for cola, animate continuously
       // nodeSpacing: () =>  30,
       // flow: { axis: 'y', minSeparation: 70 },
       // edgeJaccardLength: 70,
