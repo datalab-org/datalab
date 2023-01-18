@@ -25,7 +25,7 @@ export default {
       var cy = cytoscape({
         container: document.getElementById("cy"),
         elements: this.graphData,
-        panningEnabled: false,
+        userPanningEnabled: false,
         style: [
           {
             selector: "node",
