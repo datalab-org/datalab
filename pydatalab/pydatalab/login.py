@@ -53,22 +53,23 @@ class LoginUser(UserMixin):
                 raise RuntimeError(f"No user entry found with ID {self.id}")
             else:
                 self.person = data.person
+                self.role = data.role
         else:
             if isinstance(data, Person):
                 self.person = data
             else:
                 self.person = Person(**data)
 
-        role = flask_mongo.db.roles.find_one({"_id": ObjectId(self.id)})
-        if not role:
-            self.role = UserRole.USER
-        else:
-            self.role = UserRole(role["role"])
+            role = flask_mongo.db.roles.find_one({"_id": ObjectId(self.id)})
+            if not role:
+                self.role = UserRole.USER
+            else:
+                self.role = UserRole(role["role"])
 
-        if self.role == UserRole.ADMIN:
-            LOGGER.warning(f"User {self.person.display_name} logged in as an admin.")
+            if self.role == UserRole.ADMIN:
+                LOGGER.warning(f"User {self.person.display_name} logged in as an admin.")
 
-        LOGGER.warning(f"User {self.person.display_name} logged in as an {self.role}.")
+            LOGGER.warning(f"User {self.person.display_name} logged in as an {self.role}.")
 
     def get_id(self):
         """Returns the database ID of the user."""

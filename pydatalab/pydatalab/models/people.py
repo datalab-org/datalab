@@ -108,7 +108,7 @@ class Person(Entry):
         return v
 
     @validator("type", pre=True)
-    def set_default_type(cls):
+    def set_default_type(cls, _):
         return "people"
 
     class Config:
