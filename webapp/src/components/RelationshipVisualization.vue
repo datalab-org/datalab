@@ -48,7 +48,7 @@
         </li>
       </ul>
       <div v-show="activeTab == 'graph'">
-        <itemGraph style="height: 400px" />
+        <ItemGraph style="height: 400px" />
       </div>
       <!--       <div class="alert alert-info" role="alert" v-show="activeTab == 'graph'">
         Graph view not yet implemented
@@ -59,7 +59,7 @@
 
 <script>
 // import FormattedItemName from "@/components/FormattedItemName"
-import itemGraph from "@/components/itemGraph";
+import ItemGraph from "@/components/ItemGraph";
 export default {
   data() {
     return {
@@ -84,7 +84,7 @@ export default {
   },
   components: {
     // FormattedItemName
-    itemGraph,
+    ItemGraph,
   },
 };
 </script>

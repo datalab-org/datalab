@@ -14,7 +14,7 @@ export default createStore({
     remoteDirectoryTree: {},
     remoteDirectoryTreeSecondsSinceLastUpdate: null,
     files: {},
-    itemGraph: {},
+    itemGraphData: {},
     remoteDirectoryTreeIsLoading: false,
     fileSelectModalIsOpen: false,
   },
@@ -166,7 +166,7 @@ export default createStore({
       state.remoteDirectoryTreeIsLoading = isLoading;
     },
     setItemGraph(state, payload) {
-      state.itemGraph = payload;
+      state.itemGraphData = payload;
     },
   },
   getters: {

@@ -17,7 +17,7 @@ cytoscape.use(cola);
 export default {
   computed: {
     graphData() {
-      return this.$store.state.itemGraph;
+      return this.$store.state.itemGraphData;
     },
   },
   methods: {
