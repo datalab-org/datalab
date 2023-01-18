@@ -2,6 +2,7 @@ import cytoscape from "cytoscape";
 import dagre from "cytoscape-dagre";
 import cola from "cytoscape-cola";
 import klay from "cytoscape-klay";
+import { itemTypes } from "@/resources.js";
 
 cytoscape.use(dagre);
 cytoscape.use(cola);
@@ -766,7 +767,7 @@ export function cyNetworkPlot() {
   /* eslint-disable-next-line no-unused-vars */
   var cy = cytoscape({
     container: document.getElementById("cy"), // container to render in
-
+    userPanningEnabled: false,
     elements: graphData,
     style: [
       {
@@ -792,10 +793,30 @@ export function cyNetworkPlot() {
     layout: {
       name: "cola", //"klay", //"cola",// "dagre"
       animate: true,
-      infinite: true, // for cola, animate continuously
+      infinite: false, // for cola, animate continuously
       // nodeSpacing: () =>  30,
       // flow: { axis: 'y', minSeparation: 70 },
       // edgeJaccardLength: 70,
     },
+  });
+
+  // set colors of node according to type
+  cy.nodes().each(function (element) {
+    element.style("background-color", itemTypes[element.data("type")].navbarColor);
+  });
+
+  cy.on("tapdragover", "node", function (evt) {
+    var node = evt.target;
+    node.style("opacity", 0.5);
+  });
+
+  cy.on("tapdragout", "node", function (evt) {
+    var node = evt.target;
+    node.style("opacity", 1);
+  });
+
+  cy.on("click", "node", function (evt) {
+    var node = evt.target;
+    window.open(`/edit/${node.data("id")}`, "_blank");
   });
 }

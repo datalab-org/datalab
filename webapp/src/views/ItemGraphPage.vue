@@ -6,7 +6,7 @@
     <router-link to="/item-graph">Item graph</router-link>
   </div>
 
-  <itemGraph />
+  <itemGraph style="height: 600px" />
 </template>
 
 <script>

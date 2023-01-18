@@ -1,12 +1,10 @@
 <template>
-  <div>
-    <div id="cy" />
-  </div>
+  <div id="cy" />
 </template>
 
 <script>
 import { getItemGraph } from "@/server_fetch_utils.js";
-
+import { itemTypes } from "@/resources.js";
 import cytoscape from "cytoscape";
 // import dagre from "cytoscape-dagre";
 import cola from "cytoscape-cola";
@@ -24,9 +22,10 @@ export default {
   },
   methods: {
     generateCyNetworkPlot() {
-      cytoscape({
+      var cy = cytoscape({
         container: document.getElementById("cy"),
         elements: this.graphData,
+        panningEnabled: false,
         style: [
           {
             selector: "node",
@@ -50,11 +49,32 @@ export default {
         layout: {
           name: "cola", //"klay", //"cola",// "dagre"
           animate: true,
-          infinite: true, // for cola, animate continuously
+          infinite: false, // for cola, animate continuously
           // nodeSpacing: () =>  30,
           // flow: { axis: 'y', minSeparation: 70 },
           // edgeJaccardLength: 70,
         },
+      });
+
+      cy.nodes().each(function (element, i, elements) {
+        console.log(i);
+        console.log(elements);
+        element.style("background-color", itemTypes[element.data("type")].navbarColor);
+      });
+
+      cy.on("tapdragover", "node", function (evt) {
+        var node = evt.target;
+        node.style("opacity", 0.5);
+      });
+
+      cy.on("tapdragout", "node", function (evt) {
+        var node = evt.target;
+        node.style("opacity", 1);
+      });
+
+      cy.on("click", "node", function (evt) {
+        var node = evt.target;
+        window.open(`/edit/${node.data("id")}`, "_blank");
       });
     },
   },
@@ -68,7 +88,7 @@ export default {
 <style>
 #cy {
   width: 100%;
-  height: 600px;
+  height: 800px;
   display: block;
 }
 </style>
