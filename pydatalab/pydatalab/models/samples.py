@@ -1,4 +1,4 @@
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from pydantic import Field
 
@@ -13,6 +13,10 @@ class Sample(Item):
 
     chemform: Optional[str] = Field(
         description="A string representation of the chemical formula associated with this sample."
+    )
+
+    synthesis_constituents: List[dict] = Field(
+        [], description="Dictionary giving amount and details of consituent items"
     )
 
     synthesis_description: Optional[str] = Field(description="Details of the sample synthesis")

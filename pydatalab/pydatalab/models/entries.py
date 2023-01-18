@@ -14,7 +14,7 @@ class Entry(BaseModel, abc.ABC):
 
     """
 
-    type: str = None
+    type: str
     """The resource type of the entry."""
 
     immutable_id: PyObjectId = Field(

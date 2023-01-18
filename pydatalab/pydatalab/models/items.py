@@ -2,7 +2,7 @@ import abc
 import datetime
 from typing import Any, Dict, List, Optional
 
-from pydantic import Field, root_validator, validator
+from pydantic import Field
 
 from pydatalab.models.entries import Entry
 from pydatalab.models.people import Person, PyObjectId
@@ -26,11 +26,11 @@ class Item(Entry, abc.ABC):
         None, description="Inlined info for the people associated with this item."
     )
 
-    parent_items: List[str] = Field(
+    parent_items: List[PyObjectId] = Field(
         default=[], description="Items from which this sample is derived"
     )
 
-    child_items: List[str] = Field(
+    child_items: List[PyObjectId] = Field(
         default=[], description="Items that are derived from this sample"
     )
 
@@ -56,21 +56,3 @@ class Item(Entry, abc.ABC):
         # Do not let arbitrary data be added alongside this sample
         # extra = "forbid"
         json_encoders = JSON_ENCODERS
-
-    @validator("last_modified", pre=True)
-    def cast_to_datetime(cls, v):
-        if isinstance(v, str):
-            v = datetime.datetime.fromisoformat(v)
-
-        return v
-
-    @validator("file_ObjectIds", each_item=True, pre=True)
-    def string_objectids(cls, v):
-        return str(v)
-
-    @root_validator(pre=True)
-    def pop_mongo_objectid(cls, values):
-        if "_id" in values:
-            values.pop("_id")
-
-        return values
