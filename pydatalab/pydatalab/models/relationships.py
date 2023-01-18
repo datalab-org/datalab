@@ -28,10 +28,11 @@ class RelationshipType(str, Enum):
 class KnownType(str, Enum):
     """An enumeration of the types of entry known by this implementation, should be made dynamic in the future."""
 
-    SAMPLE = "sample"
-    BLOCK = "block"
-    FILE = "file"
-    STARTING_MATERIAL = "starting_material"
+    SAMPLES = "samples"
+    BLOCKS = "blocks"
+    FILES = "files"
+    STARTING_MATERIALS = "starting_materials"
+    PEOPLE = "people"
 
 
 class TypedRelationship(BaseModel):

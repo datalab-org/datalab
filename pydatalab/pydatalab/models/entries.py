@@ -1,6 +1,6 @@
 import abc
 import datetime
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field, validator
 
@@ -14,21 +14,27 @@ class Entry(BaseModel, abc.ABC):
 
     """
 
-    type: str = Field(None, description="The resource type of the entry.")
+    type: str = None
+    """The resource type of the entry."""
 
     immutable_id: PyObjectId = Field(
-        None, description="The immutable database ID of the entry.", alias="_id"
+        None,
+        title="Immutable ID",
+        alias="_id",
     )
+    """The immutable database ID of the entry."""
 
-    last_modified: Optional[datetime.datetime] = Field(
-        description="The timestamp at which the entry was last modified."
-    )
+    last_modified: Optional[datetime.datetime] = None
+    """The timestamp at which the entry was last modified."""
 
-    relationships: List[TypedRelationship] = Field(
-        [], description="A list of related entries and their types."
-    )
+    relationships: Optional[List[TypedRelationship]] = None
+    """A list of related entries and their types."""
 
-    revision: int = Field(1, description="The revision number of the entry.")
+    revision: int = 1
+    """The revision number of the entry."""
+
+    revisions: Optional[Dict[int, Any]] = None
+    """An optional mapping from old revision numbers to the model state at that revision."""
 
     @validator("type", pre=True)
     def set_default_type(cls, v):
