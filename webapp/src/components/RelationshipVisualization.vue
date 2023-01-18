@@ -47,16 +47,19 @@
           <span class="contents-blocktitle" @click="openEditPageInNewTab(child)">{{ child }}</span>
         </li>
       </ul>
-      <div class="alert alert-info" role="alert" v-show="activeTab == 'graph'">
-        Graph view not yet implemented
+      <div v-show="activeTab == 'graph'">
+        <ItemGraph style="height: 400px" />
       </div>
+      <!--       <div class="alert alert-info" role="alert" v-show="activeTab == 'graph'">
+        Graph view not yet implemented
+      </div> -->
     </div>
   </div>
 </template>
 
 <script>
 // import FormattedItemName from "@/components/FormattedItemName"
-
+import ItemGraph from "@/components/ItemGraph";
 export default {
   data() {
     return {
@@ -81,6 +84,7 @@ export default {
   },
   components: {
     // FormattedItemName
+    ItemGraph,
   },
 };
 </script>
