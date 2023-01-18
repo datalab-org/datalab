@@ -40,7 +40,7 @@
             @click.stop="deleteSample(sample)"
             aria-label="delete"
           >
-            <span aria-hidden="true" style="color: red">&times;</span>
+            <span aria-hidden="true" style="color: grey">&times;</span>
           </button>
         </td>
       </tr>
