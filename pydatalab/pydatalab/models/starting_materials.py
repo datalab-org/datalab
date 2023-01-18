@@ -68,5 +68,4 @@ class StartingMaterial(Item):
         return v
 
     class Config:
-        extras = "ignore"
         allow_population_by_field_name = True

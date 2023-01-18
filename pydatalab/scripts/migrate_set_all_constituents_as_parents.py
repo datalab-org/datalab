@@ -10,6 +10,8 @@ db = client.datalabvue
 all_documents = db.items.find()
 
 for document in all_documents:
+    if "synthesis_constituents" not in document:
+        continue
     constituent_ids = [entry["item"]["item_id"] for entry in document["synthesis_constituents"]]
 
     print(
