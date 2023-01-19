@@ -14,7 +14,7 @@ export default createStore({
     remoteDirectoryTree: {},
     remoteDirectoryTreeSecondsSinceLastUpdate: null,
     files: {},
-    itemGraphData: {},
+    itemGraphData: null,
     remoteDirectoryTreeIsLoading: false,
     fileSelectModalIsOpen: false,
   },

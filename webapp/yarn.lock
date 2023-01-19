@@ -4317,12 +4317,12 @@ cytoscape-dagre@^2.4.0:
   dependencies:
     dagre "^0.8.5"
 
-cytoscape-klay@^3.1.4:
-  version "3.1.4"
-  resolved "https://registry.yarnpkg.com/cytoscape-klay/-/cytoscape-klay-3.1.4.tgz#0e5bbb5c482b384b2ff2485150173aaecebc324b"
-  integrity sha512-VwPj0VR25GPfy6qXVQRi/MYlZM/zkdvRhHlgqbM//lSvstgM6fhp3ik/uM8Wr8nlhskfqz/M1fIDmR6UckbS2A==
+cytoscape-elk@^2.1.0:
+  version "2.1.0"
+  resolved "https://registry.yarnpkg.com/cytoscape-elk/-/cytoscape-elk-2.1.0.tgz#1d6677daca6963ba81e19548e9d4ea49c68abdcb"
+  integrity sha512-stkKoUTNOqpyP5eMuqatK0EYir2NWGTH+XlY0rxFj0t0HiQPGI4AuSuTPaGbNM1WhVfb0tWJ5TQQ0R0qshACLw==
   dependencies:
-    klayjs "^0.4.1"
+    elkjs "^0.8.1"
 
 cytoscape@^3.23.0:
   version "3.23.0"
@@ -5024,6 +5024,11 @@ elegant-spinner@^1.0.1:
   version "1.0.1"
   resolved "https://registry.npmjs.org/elegant-spinner/-/elegant-spinner-1.0.1.tgz"
   integrity sha1-2wQ1IcldfjA/2PNFvtwzSc+wcp4=
+
+elkjs@^0.8.1:
+  version "0.8.2"
+  resolved "https://registry.yarnpkg.com/elkjs/-/elkjs-0.8.2.tgz#c37763c5a3e24e042e318455e0147c912a7c248e"
+  integrity sha512-L6uRgvZTH+4OF5NE/MBbzQx/WYpru1xCBE9respNj6qznEewGUIfhzmm7horWWxbNO2M0WckQypGctR8lH79xQ==
 
 elliptic@^6.5.3:
   version "6.5.4"
@@ -7831,11 +7836,6 @@ kind-of@^6.0.0, kind-of@^6.0.2:
   version "6.0.3"
   resolved "https://registry.npmjs.org/kind-of/-/kind-of-6.0.3.tgz"
   integrity sha512-dcS1ul+9tmeD95T+x28/ehLgd9mENa3LsvDTtzm3vyBEO7RPptvAD+t44WVXaUjTBRcrpFeFlC8WCruUR456hw==
-
-klayjs@^0.4.1:
-  version "0.4.1"
-  resolved "https://registry.yarnpkg.com/klayjs/-/klayjs-0.4.1.tgz#5bf9fadc7a3e44b94082bba501e7d803076dcfc2"
-  integrity sha512-WUNxuO7O79TEkxCj6OIaK5TJBkaWaR/IKNTakgV9PwDn+mrr63MLHed34AcE2yTaDntgO6l0zGFIzhcoTeroTA==
 
 kleur@^3.0.3:
   version "3.0.3"
@@ -11996,6 +11996,11 @@ wcwidth@^1.0.1:
   integrity sha1-8LDc+RW8X/FSivrbLA4XtTLaL+g=
   dependencies:
     defaults "^1.0.3"
+
+web-worker@^1.2.0:
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/web-worker/-/web-worker-1.2.0.tgz#5d85a04a7fbc1e7db58f66595d7a3ac7c9c180da"
+  integrity sha512-PgF341avzqyx60neE9DD+XS26MMNMoUQRz9NOZwW32nPQrF6p77f1htcnjBSEV8BGMKZ16choqUG4hyI0Hx7mA==
 
 webcola@^3.4.0:
   version "3.4.0"
