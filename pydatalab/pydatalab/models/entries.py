@@ -1,4 +1,3 @@
-import abc
 import datetime
 from typing import Any, Dict, List, Optional
 
@@ -8,7 +7,7 @@ from pydatalab.models.relationships import TypedRelationship
 from pydatalab.models.utils import JSON_ENCODERS, PyObjectId
 
 
-class Entry(BaseModel, abc.ABC):
+class Entry(BaseModel):
     """An Entry is an abstract base class for any model that can be
     deserialized and stored in the database.
 
@@ -36,13 +35,7 @@ class Entry(BaseModel, abc.ABC):
     revisions: Optional[Dict[int, Any]] = None
     """An optional mapping from old revision numbers to the model state at that revision."""
 
-    @validator("type", pre=True)
-    def set_default_type(cls, v):
-        if not v:
-            v = cls.__class__.__name__.lower() + "s"
-        return v
-
     class Config:
         allow_population_by_field_name = True
         json_encoders = JSON_ENCODERS
-        extra = "forbid"
+        extra = "allow"

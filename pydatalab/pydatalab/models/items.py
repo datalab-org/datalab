@@ -1,15 +1,14 @@
-import abc
 import datetime
 from typing import Any, Dict, List, Optional
 
-from pydantic import Field
+from pydantic import Field, root_validator, validator
 
 from pydatalab.models.entries import Entry
 from pydatalab.models.people import Person, PyObjectId
 from pydatalab.models.utils import JSON_ENCODERS
 
 
-class Item(Entry, abc.ABC):
+class Item(Entry):
     """The generic model for data types that will be exposed with their own named endpoints."""
 
     type: str = Field(description="The resource type of the item.")
@@ -52,7 +51,17 @@ class Item(Entry, abc.ABC):
         [], description="The order in which to display block data in the UI."
     )
 
+    files: Optional[List[str]] = Field(description="Any files attached to this sample.")
+
+    file_ObjectIds: List[str] = Field(
+        [], description="Links to object IDs of files stored within the database."
+    )
+
     class Config:
         # Do not let arbitrary data be added alongside this sample
-        # extra = "forbid"
+        extra = "allow"
         json_encoders = JSON_ENCODERS
+
+    @validator("file_ObjectIds", each_item=True, pre=True, allow_reuse=True)
+    def string_objectids(cls, v):
+        return str(v)
