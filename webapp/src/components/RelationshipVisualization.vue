@@ -59,7 +59,7 @@
 
 <script>
 // import FormattedItemName from "@/components/FormattedItemName"
-import ItemGraph from "@/components/ItemGraph";
+import ItemGraph from "@/components/ItemGraph.vue";
 export default {
   data() {
     return {
