@@ -3,6 +3,7 @@
     <router-link to="/about">About</router-link> |
     <router-link to="/samples">Samples</router-link> |
     <router-link to="/starting-materials">Starting Materials</router-link> |
+    <router-link to="/item-graph">Item graph</router-link>
     <div v-if="currentUser != null" class="btn mx-auto normal">
       <b>{{ currentUser }}</b> <i>({{ currentUserID }})</i>
       <a :href="this.api_url + '/logout'" class="btn-link mx-auto text-primary"> (Logout)</a>
@@ -10,7 +11,6 @@
     <div v-else class="btn btn-default mx-auto">
       <a :href="this.api_url + '/login/github'">Login</a>
     </div>
-    <router-link to="/item-graph">Item graph</router-link>
   </div>
   <div id="tableContainer" class="container">
     <div class="row">
