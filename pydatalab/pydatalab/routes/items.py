@@ -365,7 +365,9 @@ def get_item_data(item_id):
     # so generate them on the fly after passing through the model.
     return_dict = doc.dict()
 
-    return_dict["parent_items"] = [d["item_id"] for d in return_dict["relationships"]]
+    return_dict["parent_items"] = (
+        [d["item_id"] for d in return_dict["relationships"]] if return_dict["relationships"] else []
+    )
     return_dict["child_items"] = [d["item_id"] for d in incoming_relationships]
 
     return jsonify(
