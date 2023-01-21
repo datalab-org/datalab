@@ -48,7 +48,7 @@
         </li>
       </ul>
       <div v-show="activeTab == 'graph'">
-        <ItemGraph style="height: 400px" />
+        <ItemGraph :graphData="graphData" style="height: 400px" />
       </div>
       <!--       <div class="alert alert-info" role="alert" v-show="activeTab == 'graph'">
         Graph view not yet implemented
@@ -59,7 +59,9 @@
 
 <script>
 // import FormattedItemName from "@/components/FormattedItemName"
-import ItemGraph from "@/components/ItemGraph.vue";
+import ItemGraph from "@/components/ItemGraph";
+import { getItemGraph } from "@/server_fetch_utils.js";
+
 export default {
   data() {
     return {
@@ -73,6 +75,9 @@ export default {
     children() {
       return this.$store.state.all_item_data[this.item_id]?.child_items;
     },
+    graphData() {
+      return this.$store.state.itemGraphData;
+    },
   },
   methods: {
     openEditPageInNewTab(item_id) {
@@ -81,6 +86,9 @@ export default {
   },
   props: {
     item_id: String,
+  },
+  async mounted() {
+    await getItemGraph();
   },
   components: {
     // FormattedItemName

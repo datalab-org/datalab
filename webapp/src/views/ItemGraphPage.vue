@@ -5,12 +5,30 @@
     <router-link to="/starting-materials">Starting Materials</router-link> |
     <router-link to="/item-graph">Item graph</router-link>
   </div>
-  <ItemGraph style="height: 600px" />
+
+  <div class="container">
+    <ItemGraph :graphData="graphData" style="height: 600px" />
+  </div>
 </template>
 
 <script>
-import ItemGraph from "@/components/ItemGraph.vue";
+import ItemGraph from "@/components/ItemGraph";
+import { getItemGraph } from "@/server_fetch_utils.js";
+
 export default {
+  data() {
+    return {
+      isLoaded: false,
+    };
+  },
+  computed: {
+    graphData() {
+      return this.$store.state.itemGraphData;
+    },
+  },
+  async mounted() {
+    await getItemGraph();
+  },
   components: {
     ItemGraph,
   },
