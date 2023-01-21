@@ -1,21 +1,17 @@
-import datetime
+import abc
 from typing import Any, Dict, List, Optional
 
-from pydantic import Field, root_validator, validator
+from pydantic import Field
 
 from pydatalab.models.entries import Entry
 from pydatalab.models.people import Person, PyObjectId
-from pydatalab.models.utils import JSON_ENCODERS
+from pydatalab.models.utils import JSON_ENCODERS, CustomDateTime
 
 
-class Item(Entry):
+class Item(Entry, abc.ABC):
     """The generic model for data types that will be exposed with their own named endpoints."""
 
     type: str = Field(description="The resource type of the item.")
-
-    last_modified: Optional[datetime.datetime] = Field(
-        description="The timestamp at which this item was last modified."
-    )
 
     creator_ids: List[PyObjectId] = Field(
         [], description="The database IDs of the user(s) who created the item."
@@ -25,19 +21,11 @@ class Item(Entry):
         None, description="Inlined info for the people associated with this item."
     )
 
-    parent_items: List[PyObjectId] = Field(
-        default=[], description="Items from which this sample is derived"
-    )
-
-    child_items: List[PyObjectId] = Field(
-        default=[], description="Items that are derived from this sample"
-    )
-
     description: Optional[str] = Field(
         description="A description of the item, either in plain-text or a markup language."
     )
 
-    date: Optional[datetime.datetime] = Field(
+    date: Optional[CustomDateTime] = Field(
         description="A relevant date supplied for the item (e.g., purchase date, synthesis date)"
     )
 
@@ -53,15 +41,11 @@ class Item(Entry):
 
     files: Optional[List[str]] = Field(description="Any files attached to this sample.")
 
-    file_ObjectIds: List[str] = Field(
+    file_ObjectIds: List[PyObjectId] = Field(
         [], description="Links to object IDs of files stored within the database."
     )
 
     class Config:
-        # Do not let arbitrary data be added alongside this sample
-        extra = "allow"
+        allow_population_by_field_name = True
         json_encoders = JSON_ENCODERS
-
-    @validator("file_ObjectIds", each_item=True, pre=True, allow_reuse=True)
-    def string_objectids(cls, v):
-        return str(v)
+        extra = "allow"

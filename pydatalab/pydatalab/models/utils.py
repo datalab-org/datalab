@@ -6,6 +6,11 @@ from typing_extensions import TypeAlias
 
 
 class PintType(str):
+    """A WIP attempt to create a custom pydantic field type for Pint quantities.
+    The idea would eventually be to use TypeAlias to create physical/dimensionful pydantic fields.
+
+    """
+
     Q = pint.Quantity
 
     def __init__(self, dimensions: str):
@@ -32,6 +37,13 @@ Volume: TypeAlias = PintType("[volume]")  # type: ignore # noqa
 
 
 class PyObjectId(ObjectId):
+    """A container class for a BSON ObjectId that can be used as a Pydantic field type.
+
+    Modified from "Getting started iwth MongoDB and FastAPI":
+    https://www.mongodb.com/developer/languages/python/python-quickstart-fastapi/.
+
+    """
+
     @classmethod
     def __get_validators__(cls):
         yield cls.validate
@@ -47,11 +59,25 @@ class PyObjectId(ObjectId):
         field_schema.update(type="string")
 
 
-def datetime_from_isoformat_or_datetime(value):
-    try:
-        value = datetime.datetime.fromisoformat(value)
-    except TypeError:
-        return value
+class CustomDateTime(datetime.datetime):
+    """A datetime container that is more flexible than the pydantic default."""
+
+    @classmethod
+    def __get_validators__(cls):
+        yield cls.validate
+
+    @classmethod
+    def validate(cls, v):
+        if isinstance(v, str):
+            if v in ["0", " "]:
+                return None
+            return datetime.datetime.fromisoformat(v)
+
+        return v
+
+    @classmethod
+    def __modify_schema__(cls, field_schema):
+        field_schema.update(type="date")
 
 
-JSON_ENCODERS = {pint.Quantity: str, datetime.datetime: datetime_from_isoformat_or_datetime}
+JSON_ENCODERS = {pint.Quantity: str, ObjectId: str}

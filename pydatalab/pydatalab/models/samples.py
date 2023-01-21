@@ -3,7 +3,6 @@ from typing import List, Optional
 from pydantic import Field
 
 from pydatalab.models.items import Item
-from pydatalab.models.utils import JSON_ENCODERS
 
 
 class Sample(Item):
@@ -20,7 +19,3 @@ class Sample(Item):
     )
 
     synthesis_description: Optional[str] = Field(description="Details of the sample synthesis")
-
-    class Config:
-        allow_arbitrary_types = True
-        json_encoders = JSON_ENCODERS

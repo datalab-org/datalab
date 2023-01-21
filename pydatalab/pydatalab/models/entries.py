@@ -1,13 +1,13 @@
-import datetime
+import abc
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field
 
 from pydatalab.models.relationships import TypedRelationship
-from pydatalab.models.utils import JSON_ENCODERS, PyObjectId
+from pydatalab.models.utils import JSON_ENCODERS, CustomDateTime, PyObjectId
 
 
-class Entry(BaseModel):
+class Entry(BaseModel, abc.ABC):
     """An Entry is an abstract base class for any model that can be
     deserialized and stored in the database.
 
@@ -23,7 +23,7 @@ class Entry(BaseModel):
     )
     """The immutable database ID of the entry."""
 
-    last_modified: Optional[datetime.datetime] = None
+    last_modified: Optional[CustomDateTime] = None
     """The timestamp at which the entry was last modified."""
 
     relationships: Optional[List[TypedRelationship]] = None
