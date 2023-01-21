@@ -1,7 +1,7 @@
 import abc
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, root_validator
 
 from pydatalab.models.relationships import TypedRelationship
 from pydatalab.models.utils import JSON_ENCODERS, CustomDateTime, PyObjectId
@@ -35,7 +35,17 @@ class Entry(BaseModel, abc.ABC):
     revisions: Optional[Dict[int, Any]] = None
     """An optional mapping from old revision numbers to the model state at that revision."""
 
+    @root_validator(pre=True)
+    def check_id_names(cls, values):
+        """Slightly upsetting hack: this case *should* be covered by the pydantic setting for
+        populating fields by alias names.
+        """
+        if "_id" in values:
+            values["immutable_id"] = values.pop("_id")
+
+        return values
+
     class Config:
         allow_population_by_field_name = True
         json_encoders = JSON_ENCODERS
-        extra = "allow"
+        extra = "forbid"
