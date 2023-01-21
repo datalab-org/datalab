@@ -63,27 +63,6 @@ class PyObjectId(ObjectId):
         field_schema.update(type="string")
 
 
-class PyObjectIdContainer(list):
-    """A container class for a BSON ObjectId that can be used as a Pydantic field type.
-
-    Modified from "Getting started iwth MongoDB and FastAPI":
-    https://www.mongodb.com/developer/languages/python/python-quickstart-fastapi/.
-
-    """
-
-    @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
-
-    @classmethod
-    def validate(cls, v):
-        return [ObjectId(_) for _ in v]
-
-    @classmethod
-    def __modify_schema__(cls, field_schema):
-        field_schema.update(type="array")
-
-
 class CustomDateTime(datetime.datetime):
     """A datetime container that is more flexible than the pydantic default."""
 
@@ -108,5 +87,4 @@ class CustomDateTime(datetime.datetime):
 JSON_ENCODERS = {
     pint.Quantity: str,
     ObjectId: str,
-    PyObjectIdContainer: lambda v: [str(_) for _ in v],
 }

@@ -5,7 +5,7 @@ from pydantic import Field
 
 from pydatalab.models.entries import Entry
 from pydatalab.models.people import Person
-from pydatalab.models.utils import CustomDateTime, PyObjectId, PyObjectIdContainer
+from pydatalab.models.utils import CustomDateTime, PyObjectId
 
 
 class Item(Entry, abc.ABC):
@@ -41,6 +41,6 @@ class Item(Entry, abc.ABC):
 
     files: Optional[List[str]] = Field(description="Any files attached to this sample.")
 
-    file_ObjectIds: PyObjectIdContainer = Field(
+    file_ObjectIds: List[PyObjectId] = Field(
         [], description="Links to object IDs of files stored within the database."
     )
