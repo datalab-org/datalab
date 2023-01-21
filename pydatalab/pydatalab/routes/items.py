@@ -1,4 +1,5 @@
 import datetime
+import json
 from typing import Callable, Dict, List, Union
 
 from bson import ObjectId
@@ -204,7 +205,7 @@ def create_sample():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
     schema = Sample.schema()
     missing_keys = set()
-    for k in schema["required"]:
+    for k in schema.get("required", []):
         if k not in request_json:
             missing_keys.add(k)
 
@@ -363,7 +364,7 @@ def get_item_data(item_id):
 
     # temporary hack: front end currently expects legacy parent_items and child_items fields,
     # so generate them on the fly after passing through the model.
-    return_dict = doc.dict()
+    return_dict = json.loads(doc.json())
 
     return_dict["parent_items"] = (
         [d["item_id"] for d in return_dict["relationships"]] if return_dict["relationships"] else []
