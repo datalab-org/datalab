@@ -120,7 +120,6 @@ def _check_and_sync_file(file_info: File, file_id: ObjectId) -> File:
             )
             return file_info
 
-    # file_info.live_update_error = "Could not reach remote server to update
     if remote_timestamp > cached_timestamp + datetime.timedelta(
         minutes=CONFIG.REMOTE_CACHE_MAX_AGE
     ):
@@ -144,8 +143,8 @@ def _check_and_sync_file(file_info: File, file_id: ObjectId) -> File:
                         "size": new_stat_results.st_size,
                         "last_modified": datetime.datetime.fromtimestamp(new_stat_results.st_mtime),
                         "last_modified_remote": remote_timestamp,
-                        "version": file_info.version + 1,
-                    }
+                    },
+                    "$inc": {"revision": 1},
                 },
                 return_document=ReturnDocument.AFTER,
             )
@@ -211,7 +210,7 @@ def update_uploaded_file(file, file_id, last_modified=None, size_bytes=None):
                 "source": "remote",
                 "is_live": False,
             },
-            "$inc": {"version": 1},
+            "$inc": {"revision": 1},
         },
         return_document=ReturnDocument.AFTER,
     )
@@ -273,7 +272,7 @@ def save_uploaded_file(file, item_ids=None, block_ids=None, last_modified=None, 
         source_path=None,  # not used for source=uploaded
         last_modified_remote=None,  # not used for source=uploaded
         is_live=False,  # not available for source=uploaded
-        version=1,  # increment with each update
+        revision=1,  # increment with each update
     )
 
     result = file_collection.insert_one(new_file_document.dict())
