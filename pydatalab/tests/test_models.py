@@ -9,10 +9,10 @@ from pydatalab.models.relationships import (
 )
 
 
-def test_generate_schemas():
+@pytest.mark.parametrize("model", ITEM_MODELS.values())
+def test_generate_schemas(model):
     """Test that all item model schemas can be generated."""
-    for type in ITEM_MODELS:
-        assert ITEM_MODELS[type].schema()
+    assert model.schema()
 
 
 def test_relationship_with_custom_type():
