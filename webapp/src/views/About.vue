@@ -2,7 +2,8 @@
   <div id="nav">
     <router-link to="/about">About</router-link> |
     <router-link to="/samples">Samples</router-link> |
-    <router-link to="/starting-materials">Starting Materials</router-link>
+    <router-link to="/starting-materials">Starting Materials</router-link> |
+    <router-link to="/item-graph">Item graph</router-link>
   </div>
   <div class="container">
     <div class="row">

@@ -10,6 +10,7 @@
     <div v-else class="btn btn-default mx-auto">
       <a :href="this.api_url + '/login/github'">Login</a>
     </div>
+    <router-link to="/item-graph">Item graph</router-link>
   </div>
   <div id="tableContainer" class="container">
     <div class="row">

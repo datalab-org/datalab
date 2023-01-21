@@ -323,6 +323,15 @@ export async function addRemoteFileToSample(file_entry, item_id) {
     .catch((error) => `addRemoteFilesToSample unsuccessful. Error: ${error}`);
 }
 
+export async function getItemGraph() {
+  return fetch_get(`${API_URL}/item-graph/`)
+    .then(function (response_json) {
+      console.log("received graph");
+      store.commit("setItemGraph", { nodes: response_json.nodes, edges: response_json.edges });
+    })
+    .catch((error) => `getItemGraph unsuccessful. Error: ${error}`);
+}
+
 // export async function addRemoteFilesToSample(file_entries, item_id) {
 // 	console.log('loadSelectedRemoteFiles')
 // 	return fetch_post(`${API_URL}/add-remote-files-to-sample/`, {
