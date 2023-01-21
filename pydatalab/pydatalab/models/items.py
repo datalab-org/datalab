@@ -4,8 +4,8 @@ from typing import Any, Dict, List, Optional
 from pydantic import Field
 
 from pydatalab.models.entries import Entry
-from pydatalab.models.people import Person, PyObjectId
-from pydatalab.models.utils import JSON_ENCODERS, CustomDateTime
+from pydatalab.models.people import Person
+from pydatalab.models.utils import CustomDateTime, PyObjectId, PyObjectIdContainer
 
 
 class Item(Entry, abc.ABC):
@@ -41,11 +41,6 @@ class Item(Entry, abc.ABC):
 
     files: Optional[List[str]] = Field(description="Any files attached to this sample.")
 
-    file_ObjectIds: List[PyObjectId] = Field(
+    file_ObjectIds: PyObjectIdContainer = Field(
         [], description="Links to object IDs of files stored within the database."
     )
-
-    class Config:
-        allow_population_by_field_name = True
-        json_encoders = JSON_ENCODERS
-        extra = "allow"

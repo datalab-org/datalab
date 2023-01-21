@@ -37,6 +37,33 @@ Volume: TypeAlias = PintType("[volume]")  # type: ignore # noqa
 
 
 class PyObjectId(ObjectId):
+    """A wrapper class for a BSON ObjectId that can be used as a Pydantic field type.
+
+    Modified from "Getting started iwth MongoDB and FastAPI":
+    https://www.mongodb.com/developer/languages/python/python-quickstart-fastapi/.
+
+    """
+
+    @classmethod
+    def __get_validators__(cls):
+        yield cls.validate
+
+    @classmethod
+    def validate(cls, v):
+        if isinstance(v, dict) and "$oid" in v:
+            v = v["$oid"]
+
+        if not ObjectId.is_valid(v):
+            raise ValueError("Invalid ObjectId")
+
+        return ObjectId(v)
+
+    @classmethod
+    def __modify_schema__(cls, field_schema):
+        field_schema.update(type="string")
+
+
+class PyObjectIdContainer(list):
     """A container class for a BSON ObjectId that can be used as a Pydantic field type.
 
     Modified from "Getting started iwth MongoDB and FastAPI":
@@ -50,13 +77,11 @@ class PyObjectId(ObjectId):
 
     @classmethod
     def validate(cls, v):
-        if not ObjectId.is_valid(v):
-            raise ValueError("Invalid ObjectId")
-        return ObjectId(v)
+        return [ObjectId(_) for _ in v]
 
     @classmethod
     def __modify_schema__(cls, field_schema):
-        field_schema.update(type="string")
+        field_schema.update(type="array")
 
 
 class CustomDateTime(datetime.datetime):
@@ -80,4 +105,8 @@ class CustomDateTime(datetime.datetime):
         field_schema.update(type="date")
 
 
-JSON_ENCODERS = {pint.Quantity: str, ObjectId: str}
+JSON_ENCODERS = {
+    pint.Quantity: str,
+    ObjectId: str,
+    PyObjectIdContainer: lambda v: [str(_) for _ in v],
+}
