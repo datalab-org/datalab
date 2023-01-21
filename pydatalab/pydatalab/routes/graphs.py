@@ -26,7 +26,7 @@ def get_graph_cy_format():
         if "relationships" not in document:
             continue
 
-        for relationship in document["relationships"]:
+        for relationship in document.get("relationships", []):
             # only considering child-parent relationships:
             if relationship["relation"] != "parent":
                 continue
