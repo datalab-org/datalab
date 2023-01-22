@@ -99,6 +99,7 @@ def create_default_indices(client: Optional[pymongo.MongoClient] = None) -> List
     )
     ret += db.items.create_index("type", name="item type")
     ret += db.items.create_index("item_id", unique=True, name="unique item ID")
+    ret += db.items.create_index("last_modified", name="last modified")
 
     user_fts_fields = {"identities.name", "display_name"}
 
