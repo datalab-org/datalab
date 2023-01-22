@@ -1,9 +1,9 @@
-import datetime
 from typing import Optional
 
 from pydantic import Field
 
-from pydatalab.models.items import Item, validator
+from pydatalab.models.items import Item
+from pydatalab.models.utils import CustomDateTime
 
 
 class StartingMaterial(Item):
@@ -17,11 +17,11 @@ class StartingMaterial(Item):
         alias="Barcode", description="A unique barcode from ChemInventory"
     )
 
-    date_acquired: Optional[datetime.datetime] = Field(
+    date_acquired: Optional[CustomDateTime] = Field(
         alias="Date Acquired", description="The date the item was acquired"
     )
 
-    date_opened: Optional[datetime.datetime] = Field(
+    date_opened: Optional[CustomDateTime] = Field(
         alias="Date opened", description="The date the container was opened"
     )
 
@@ -60,15 +60,5 @@ class StartingMaterial(Item):
 
     comment: Optional[str] = Field(alias="Comments")
 
-    @validator("date_acquired", "date_opened", pre=True)
-    def cast_to_date(cls, v):
-        if isinstance(v, str):
-            if v in ["0", " "]:
-                return None
-            v = datetime.datetime.fromisoformat(v)
-
-        return v
-
     class Config:
-        extras = "ignore"
         allow_population_by_field_name = True

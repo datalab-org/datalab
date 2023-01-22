@@ -1,23 +1,22 @@
 import datetime
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field, root_validator
+from pydantic import Field
+
+from pydatalab.models.entries import Entry
+from pydatalab.models.utils import CustomDateTime
 
 
-class File(BaseModel):
+class File(Entry):
     """A model for representing a file that has been tracked or uploaded to datalab."""
+
+    type: str = Field("files", const="files", pattern="^files$")
 
     size: Optional[int] = Field(description="The size of the file on disk in bytes.")
 
-    last_modified: datetime.datetime = Field(
-        description="The last date/time at which the stored file was modified."
-    )
-
-    last_modified_remote: Optional[datetime.datetime] = Field(
+    last_modified_remote: Optional[CustomDateTime] = Field(
         description="The last date/time at which the remote file was modified."
     )
-
-    version: int = Field(1, description="The version/revision number of the file.")
 
     item_ids: List[str] = Field(description="A list of item IDs associated with this file.")
 
@@ -32,8 +31,6 @@ class File(BaseModel):
     location: Optional[str] = Field(description="The location of the file on disk.")
 
     url_path: Optional[str] = Field(description="The path to a remote file.")
-
-    type: Optional[str] = Field("files", const="files", pattern="^files$")
 
     source: Optional[str] = Field(
         description="The source of the file, e.g. 'remote' or 'uploaded'."
@@ -54,13 +51,3 @@ class File(BaseModel):
     is_live: bool = Field(
         description="Whether or not the file should be watched for future updates."
     )
-
-    @root_validator(pre=True)
-    def pop_mongo_objectid(cls, values):
-        if "_id" in values:
-            values.pop("_id")
-
-        return values
-
-    class Config:
-        extra = "forbid"
