@@ -5,6 +5,8 @@ import bson
 import bson.errors
 from pydantic import BaseModel, EmailStr, Field, validator
 
+from pydatalab.models.entries import Entry
+
 
 class PyObjectId(bson.ObjectId):
     """Wrapper to allow pydantic to serialize/deserialize
@@ -83,7 +85,7 @@ class Identity(BaseModel):
         return v
 
 
-class Person(BaseModel):
+class Person(Entry):
     """A model that describes an individual and their digital identities."""
 
     type: str = Field("people", const=True)
@@ -91,9 +93,6 @@ class Person(BaseModel):
 
     identities: List[Identity]
     """A list of identities attached to this person, e.g., email addresses, OAuth accounts."""
-
-    immutable_id: PyObjectId = Field(None, title="Immutable ID", alias="_id")
-    """The immutable database ID for person entry."""
 
     display_name: Optional[str]
     """The user-chosen display name."""
@@ -107,6 +106,10 @@ class Person(BaseModel):
         if v is None:
             v = "people"
         return v
+
+    @validator("type", pre=True)
+    def set_default_type(cls, _):
+        return "people"
 
     class Config:
         allow_population_by_field_name = True
