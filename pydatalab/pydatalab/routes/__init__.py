@@ -3,6 +3,7 @@ from typing import Callable, Dict
 from pydatalab.routes.auth import ENDPOINTS as auth_endpoints
 from pydatalab.routes.blocks import ENDPOINTS as blocks_endpoints
 from pydatalab.routes.files import ENDPOINTS as files_endpoints
+from pydatalab.routes.graphs import ENDPOINTS as graphs_endpoints
 from pydatalab.routes.healthcheck import ENDPOINTS as healthcheck_endpoints
 from pydatalab.routes.items import ENDPOINTS as items_endpoints
 from pydatalab.routes.remotes import ENDPOINTS as remotes_endpoints
@@ -14,4 +15,5 @@ ENDPOINTS: Dict[str, Callable] = {
     **remotes_endpoints,
     **healthcheck_endpoints,
     **auth_endpoints,
+    **graphs_endpoints,
 }

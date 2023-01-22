@@ -1,4 +1,5 @@
 import datetime
+import json
 from typing import Callable, Dict, List, Union
 
 from bson import ObjectId
@@ -204,7 +205,7 @@ def create_sample():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
     schema = Sample.schema()
     missing_keys = set()
-    for k in schema["required"]:
+    for k in schema.get("required", []):
         if k not in request_json:
             missing_keys.add(k)
 
@@ -343,11 +344,38 @@ def get_item_data(item_id):
     if doc.file_ObjectIds:
         files_data = dereference_files(doc.file_ObjectIds)
 
+    # find any documents with relationships that mention this document
+
+    # option 1: use projection (will need post-processing)
+    incoming_relationships = flask_mongo.db.items.find(
+        {"item_id": doc.item_id},
+        {"item_id": 1, "relationships": {"$elemMatch": {"item_id": doc.item_id}}},
+    )
+
+    # option 2: use an aggregation pipeline:
+    # incoming_relationships = flask_mongo.db.items.aggregate(
+    #    [
+    #        {"$match": {"relationships.item_id": doc.item_id}},
+    #        {"$project": {"item_id": 1, "name": 1, "type": 1, "relationship": "$relationships"}},
+    #        {"$unwind": "$relationship"},
+    #        {"$match": {"relationship.item_id": doc.item_id}},
+    #    ]
+    # )
+
+    # temporary hack: front end currently expects legacy parent_items and child_items fields,
+    # so generate them on the fly after passing through the model.
+    return_dict = json.loads(doc.json())
+
+    return_dict["parent_items"] = (
+        [d["item_id"] for d in return_dict["relationships"]] if return_dict["relationships"] else []
+    )
+    return_dict["child_items"] = [d["item_id"] for d in incoming_relationships]
+
     return jsonify(
         {
             "status": "success",
             "item_id": item_id,
-            "item_data": doc.dict(),
+            "item_data": return_dict,
             "files_data": files_data,
         }
     )

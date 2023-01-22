@@ -18,7 +18,7 @@ class AnsiColorHandler(logging.StreamHandler):
         logging.CRITICAL: "101;30m",
     }
 
-    max_width = 320
+    max_width = 2000
 
     def __init__(self) -> None:
         super().__init__()
