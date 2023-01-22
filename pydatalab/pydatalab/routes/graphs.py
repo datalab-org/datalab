@@ -7,7 +7,9 @@ from pydatalab.mongo import flask_mongo
 
 def get_graph_cy_format():
 
-    all_documents = flask_mongo.db.items.find()
+    all_documents = flask_mongo.db.items.find(
+        projection={"item_id": 1, "name": 1, "type": 1, "relationships": 1}
+    )
 
     nodes = []
     edges = []
