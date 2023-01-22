@@ -5,7 +5,7 @@ from pydantic import Field
 
 from pydatalab.models.entries import Entry
 from pydatalab.models.people import Person
-from pydatalab.models.utils import CustomDateTime, PyObjectId
+from pydatalab.models.utils import IsoformatDateTime, PyObjectId
 
 
 class Item(Entry, abc.ABC):
@@ -25,7 +25,7 @@ class Item(Entry, abc.ABC):
         description="A description of the item, either in plain-text or a markup language."
     )
 
-    date: Optional[CustomDateTime] = Field(
+    date: Optional[IsoformatDateTime] = Field(
         description="A relevant date supplied for the item (e.g., purchase date, synthesis date)"
     )
 
