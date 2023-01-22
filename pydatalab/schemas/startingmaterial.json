@@ -1,0 +1,253 @@
+{
+  "title": "StartingMaterial",
+  "description": "A model for representing an experimental sample.",
+  "type": "object",
+  "properties": {
+    "type": {
+      "title": "Type",
+      "default": "starting_materials",
+      "const": "starting_materials",
+      "pattern": "^starting_materials$",
+      "type": "string"
+    },
+    "item_id": {
+      "title": "Item Id",
+      "description": "a unique id for item.",
+      "type": "string"
+    },
+    "last_modified": {
+      "title": "Last Modified",
+      "description": "The timestamp at which this item was last modified.",
+      "type": "string",
+      "format": "date-time"
+    },
+    "name": {
+      "title": "Container Name",
+      "description": "name of the chemical",
+      "type": "string"
+    },
+    "creator_ids": {
+      "title": "Creator Ids",
+      "description": "The database IDs of the user(s) who created the item.",
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "creators": {
+      "title": "Creators",
+      "description": "Inlined info for the people associated with this item.",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Person"
+      }
+    },
+    "description": {
+      "title": "Description",
+      "description": "A description of the item, either in plain-text or a markup language.",
+      "type": "string"
+    },
+    "nblocks": {
+      "title": "Nblocks",
+      "description": "The number of blocks attached to this item.",
+      "default": 0,
+      "type": "integer"
+    },
+    "blocks": {
+      "title": "Blocks",
+      "description": "The blocks attached to this item.",
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "blocks_obj": {
+      "title": "Blocks Obj",
+      "description": "A mapping from block ID to block data.",
+      "default": {},
+      "type": "object"
+    },
+    "display_order": {
+      "title": "Display Order",
+      "description": "The order in which to display block data in the UI.",
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "files": {
+      "title": "Files",
+      "description": "Any files attached to this sample.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "file_ObjectIds": {
+      "title": "File Objectids",
+      "description": "Links to object IDs of files stored within the database.",
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "barcode": {
+      "title": "Barcode",
+      "description": "A unique barcode from ChemInventory",
+      "type": "string"
+    },
+    "date_acquired": {
+      "title": "Date Acquired",
+      "description": "The date the item was acquired",
+      "type": "string",
+      "format": "date-time"
+    },
+    "date_opened": {
+      "title": "Date Opened",
+      "description": "The date the container was opened",
+      "type": "string",
+      "format": "date-time"
+    },
+    "CAS": {
+      "title": "Substance Cas",
+      "description": "CAS Registry Number",
+      "type": "string"
+    },
+    "chemical_purity": {
+      "title": "Chemical Purity",
+      "type": "string"
+    },
+    "full_percent": {
+      "title": "Full %",
+      "type": "string"
+    },
+    "size": {
+      "title": "Container Size",
+      "description": "size of the container (see 'size_unit' for the units)",
+      "type": "string"
+    },
+    "size_unit": {
+      "title": "Unit",
+      "description": "units for the 'size' field.",
+      "type": "string"
+    },
+    "chemform": {
+      "title": "Molecular Formula",
+      "description": "A string representation of the chemical formula associated with this sample.",
+      "type": "string"
+    },
+    "molar_mass": {
+      "title": "Molecular Weight",
+      "description": "Mass per formula unit, in g/mol",
+      "type": "number"
+    },
+    "smiles_representation": {
+      "title": "Smiles",
+      "description": "Chemical structure in SMILES notation",
+      "type": "string"
+    },
+    "supplier": {
+      "title": "Supplier",
+      "description": "Manufacturer of the chemical",
+      "type": "string"
+    },
+    "location": {
+      "title": "Location",
+      "description": "Location where chemical is stored",
+      "type": "string"
+    },
+    "comment": {
+      "title": "Comments",
+      "type": "string"
+    }
+  },
+  "required": [
+    "item_id",
+    "name"
+  ],
+  "definitions": {
+    "IdentityType": {
+      "title": "IdentityType",
+      "description": "A string enum representing the supported verifiable identity types.",
+      "enum": [
+        "email",
+        "orcid",
+        "github"
+      ],
+      "type": "string"
+    },
+    "Identity": {
+      "title": "Identity",
+      "description": "A model for identities that can be provided by external systems\nand associated with a given user.",
+      "type": "object",
+      "properties": {
+        "identity_type": {
+          "$ref": "#/definitions/IdentityType"
+        },
+        "identifier": {
+          "title": "Identifier",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "verified": {
+          "title": "Verified",
+          "default": false,
+          "type": "boolean"
+        },
+        "display_name": {
+          "title": "Display Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "identity_type",
+        "identifier",
+        "name"
+      ]
+    },
+    "Person": {
+      "title": "Person",
+      "description": "A model that describes an individual and their digital identities.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "title": "Type",
+          "default": "people",
+          "const": "people",
+          "type": "string"
+        },
+        "identities": {
+          "title": "Identities",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Identity"
+          }
+        },
+        "immutable_id": {
+          "title": "Immutable ID",
+          "type": "string"
+        },
+        "display_name": {
+          "title": "Display Name",
+          "type": "string"
+        },
+        "contact_email": {
+          "title": "Contact Email",
+          "type": "string",
+          "format": "email"
+        }
+      },
+      "required": [
+        "identities"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

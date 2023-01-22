@@ -6,6 +6,7 @@ from invoke import task
 
 @task
 def generate_schemas(_):
+    """This task generates JSONSchemas for all item models used in the project."""
     from pydatalab.models import ITEM_MODELS
 
     schemas_path = pathlib.Path(__file__).parent / "schemas"

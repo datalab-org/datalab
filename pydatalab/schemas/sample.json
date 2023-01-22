@@ -1,0 +1,215 @@
+{
+  "title": "Sample",
+  "description": "A model for representing an experimental sample.",
+  "type": "object",
+  "properties": {
+    "type": {
+      "title": "Type",
+      "default": "samples",
+      "const": "samples",
+      "pattern": "^samples$",
+      "type": "string"
+    },
+    "item_id": {
+      "title": "Item Id",
+      "description": "a unique id for item.",
+      "type": "string"
+    },
+    "last_modified": {
+      "title": "Last Modified",
+      "description": "The timestamp at which this item was last modified.",
+      "type": "string",
+      "format": "date-time"
+    },
+    "name": {
+      "title": "Name",
+      "description": "A human-readable name for the item.",
+      "type": "string"
+    },
+    "creator_ids": {
+      "title": "Creator Ids",
+      "description": "The database IDs of the user(s) who created the item.",
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "creators": {
+      "title": "Creators",
+      "description": "Inlined info for the people associated with this item.",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Person"
+      }
+    },
+    "description": {
+      "title": "Description",
+      "description": "A description of the item, either in plain-text or a markup language.",
+      "type": "string"
+    },
+    "nblocks": {
+      "title": "Nblocks",
+      "description": "The number of blocks attached to this item.",
+      "default": 0,
+      "type": "integer"
+    },
+    "blocks": {
+      "title": "Blocks",
+      "description": "The blocks attached to this item.",
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "blocks_obj": {
+      "title": "Blocks Obj",
+      "description": "A mapping from block ID to block data.",
+      "default": {},
+      "type": "object"
+    },
+    "display_order": {
+      "title": "Display Order",
+      "description": "The order in which to display block data in the UI.",
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "files": {
+      "title": "Files",
+      "description": "Any files attached to this sample.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "file_ObjectIds": {
+      "title": "File Objectids",
+      "description": "Links to object IDs of files stored within the database.",
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "date": {
+      "title": "Date",
+      "description": "The creation timestamp of the item.",
+      "type": "string",
+      "format": "date-time"
+    },
+    "sample_id": {
+      "title": "Sample Id",
+      "description": "a sample id provided by the user",
+      "type": "string"
+    },
+    "chemform": {
+      "title": "Chemform",
+      "description": "A string representation of the chemical formula associated with this sample.",
+      "type": "string"
+    },
+    "synthesis_constituents": {
+      "title": "Synthesis Constituents",
+      "description": "Dictionary giving amount and details of consituent items",
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "synthesis_description": {
+      "title": "Synthesis Description",
+      "description": "Details of the sample synthesis",
+      "type": "string"
+    }
+  },
+  "required": [
+    "item_id",
+    "date"
+  ],
+  "additionalProperties": false,
+  "definitions": {
+    "IdentityType": {
+      "title": "IdentityType",
+      "description": "A string enum representing the supported verifiable identity types.",
+      "enum": [
+        "email",
+        "orcid",
+        "github"
+      ],
+      "type": "string"
+    },
+    "Identity": {
+      "title": "Identity",
+      "description": "A model for identities that can be provided by external systems\nand associated with a given user.",
+      "type": "object",
+      "properties": {
+        "identity_type": {
+          "$ref": "#/definitions/IdentityType"
+        },
+        "identifier": {
+          "title": "Identifier",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "verified": {
+          "title": "Verified",
+          "default": false,
+          "type": "boolean"
+        },
+        "display_name": {
+          "title": "Display Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "identity_type",
+        "identifier",
+        "name"
+      ]
+    },
+    "Person": {
+      "title": "Person",
+      "description": "A model that describes an individual and their digital identities.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "title": "Type",
+          "default": "people",
+          "const": "people",
+          "type": "string"
+        },
+        "identities": {
+          "title": "Identities",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Identity"
+          }
+        },
+        "immutable_id": {
+          "title": "Immutable ID",
+          "type": "string"
+        },
+        "display_name": {
+          "title": "Display Name",
+          "type": "string"
+        },
+        "contact_email": {
+          "title": "Contact Email",
+          "type": "string",
+          "format": "email"
+        }
+      },
+      "required": [
+        "identities"
+      ],
+      "additionalProperties": false
+    }
+  }
+}
