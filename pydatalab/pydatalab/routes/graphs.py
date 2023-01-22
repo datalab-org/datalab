@@ -3,12 +3,14 @@ from typing import Callable, Dict
 from flask import jsonify
 
 from pydatalab.mongo import flask_mongo
+from pydatalab.routes.utils import get_default_permissions
 
 
 def get_graph_cy_format():
 
     all_documents = flask_mongo.db.items.find(
-        projection={"item_id": 1, "name": 1, "type": 1, "relationships": 1}
+        get_default_permissions(user_only=False),
+        projection={"item_id": 1, "name": 1, "type": 1, "relationships": 1},
     )
 
     nodes = []
