@@ -72,6 +72,7 @@ def create_default_indices(client: Optional[pymongo.MongoClient] = None) -> List
         - A text index over all string fields in item models,
         - An index over item type,
         - A unique index over `item_id`.
+        - A text index over user names and identities.
 
     Returns:
         A list of messages returned by each `create_index` call.

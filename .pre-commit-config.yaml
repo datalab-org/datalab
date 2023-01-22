@@ -55,6 +55,6 @@ repos:
       - id: generate-schemas
         name: Regenerate item model JSONSchemas
         description: Check if the current code changes have enacted changes to the resulting JSONSchemas
-        entry: invoke -r pydatalab generate-schemas
+        entry: invoke -r pydatalab dev.generate-schemas
         pass_filenames: false
         language: python

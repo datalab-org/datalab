@@ -3,6 +3,9 @@ import pathlib
 
 from invoke import Collection, task
 
+from pydatalab.models.utils import UserRole
+
+ns = Collection()
 dev = Collection("dev")
 admin = Collection("admin")
 
@@ -32,3 +35,50 @@ def create_mongo_indices(_):
 
 
 admin.add_task(create_mongo_indices)
+
+
+@task
+def change_user_role(_, display_name: str, role: UserRole):
+    """This task takes a user's name and gives them the desired role."""
+    from bson import ObjectId
+
+    from pydatalab.mongo import _get_active_mongo_client
+
+    try:
+        role = getattr(UserRole, role.upper())
+    except AttributeError:
+        raise SystemExit(f"Invalid role: {role!r}. Must be one of {UserRole.__members__}") from None
+
+    matches = list(
+        _get_active_mongo_client().datalabvue.users.find(
+            {"$text": {"$search": display_name}}, projection={"_id": 1, "display_name": 1}
+        )
+    )
+    if len(matches) > 1:
+        raise SystemExit(
+            f"Too many matches for display name {display_name!r}: {[_['display_name'] for _ in matches]}"
+        )
+
+    if len(matches) == 0:
+        raise SystemExit(f"No matches for display name {display_name!r}")
+    user_str = f"{matches[0]['display_name']} ({matches[0]['_id']})"
+    print(f"Found user: {user_str}")
+    user_id = ObjectId(matches[0]["_id"])
+
+    role_results = _get_active_mongo_client().datalabvue.roles.find_one({"_id": user_id})
+    if role_results and role_results["role"] == role:
+        raise SystemExit(
+            f"User {user_str} already has role: {role_results['role']!r}: will not update"
+        )
+
+    _get_active_mongo_client().datalabvue.roles.update_one(
+        {"_id": user_id}, {"$set": {"role": role}}, upsert=True
+    )
+
+    print(f"Updated {display_name} to {role}.")
+
+
+admin.add_task(change_user_role)
+
+ns.add_collection(dev)
+ns.add_collection(admin)
