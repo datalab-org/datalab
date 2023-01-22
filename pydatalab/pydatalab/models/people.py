@@ -8,30 +8,6 @@ from pydantic import BaseModel, EmailStr, Field, validator
 from pydatalab.models.entries import Entry
 
 
-class PyObjectId(bson.ObjectId):
-    """Wrapper to allow pydantic to serialize/deserialize
-    `bson.ObjectId`s to and from strings.
-
-    [1] https://www.mongodb.com/developer/languages/python/python-quickstart-fastapi/
-
-    """
-
-    @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
-
-    @classmethod
-    def validate(cls, v):
-        try:
-            return cls(v)
-        except bson.errors.InvalidId:
-            raise ValueError("Invalid ObjectId")
-
-    @classmethod
-    def __modify_schema__(cls, field_schema):
-        field_schema.update(type="string")
-
-
 class IdentityType(str, Enum):
     """A string enum representing the supported verifiable identity types."""
 

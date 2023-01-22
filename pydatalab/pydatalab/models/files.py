@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional
 from pydantic import Field
 
 from pydatalab.models.entries import Entry
-from pydatalab.models.utils import CustomDateTime
+from pydatalab.models.utils import IsoformatDateTime
 
 
 class File(Entry):
@@ -14,7 +14,7 @@ class File(Entry):
 
     size: Optional[int] = Field(description="The size of the file on disk in bytes.")
 
-    last_modified_remote: Optional[CustomDateTime] = Field(
+    last_modified_remote: Optional[IsoformatDateTime] = Field(
         description="The last date/time at which the remote file was modified."
     )
 

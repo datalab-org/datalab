@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field, root_validator
 
 from pydatalab.models.relationships import TypedRelationship
-from pydatalab.models.utils import JSON_ENCODERS, CustomDateTime, PyObjectId
+from pydatalab.models.utils import JSON_ENCODERS, IsoformatDateTime, PyObjectId
 
 
 class Entry(BaseModel, abc.ABC):
@@ -23,7 +23,7 @@ class Entry(BaseModel, abc.ABC):
     )
     """The immutable database ID of the entry."""
 
-    last_modified: Optional[CustomDateTime] = None
+    last_modified: Optional[IsoformatDateTime] = None
     """The timestamp at which the entry was last modified."""
 
     relationships: Optional[List[TypedRelationship]] = None
