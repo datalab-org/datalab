@@ -63,7 +63,7 @@ class PyObjectId(ObjectId):
         field_schema.update(type="string")
 
 
-class CustomDateTime(datetime.datetime):
+class IsoformatDateTime(datetime.datetime):
     """A datetime container that is more flexible than the pydantic default."""
 
     @classmethod

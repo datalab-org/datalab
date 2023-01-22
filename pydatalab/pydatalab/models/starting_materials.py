@@ -3,7 +3,7 @@ from typing import Optional
 from pydantic import Field
 
 from pydatalab.models.items import Item
-from pydatalab.models.utils import CustomDateTime
+from pydatalab.models.utils import IsoformatDateTime
 
 
 class StartingMaterial(Item):
@@ -17,11 +17,11 @@ class StartingMaterial(Item):
         alias="Barcode", description="A unique barcode from ChemInventory"
     )
 
-    date_acquired: Optional[CustomDateTime] = Field(
+    date_acquired: Optional[IsoformatDateTime] = Field(
         alias="Date Acquired", description="The date the item was acquired"
     )
 
-    date_opened: Optional[CustomDateTime] = Field(
+    date_opened: Optional[IsoformatDateTime] = Field(
         alias="Date opened", description="The date the container was opened"
     )
 
