@@ -10,21 +10,30 @@
       "pattern": "^samples$",
       "type": "string"
     },
-    "item_id": {
-      "title": "Item Id",
-      "description": "a unique id for item.",
+    "immutable_id": {
+      "title": "Immutable ID",
       "type": "string"
     },
     "last_modified": {
       "title": "Last Modified",
-      "description": "The timestamp at which this item was last modified.",
-      "type": "string",
+      "type": "date",
       "format": "date-time"
     },
-    "name": {
-      "title": "Name",
-      "description": "A human-readable name for the item.",
-      "type": "string"
+    "relationships": {
+      "title": "Relationships",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/TypedRelationship"
+      }
+    },
+    "revision": {
+      "title": "Revision",
+      "default": 1,
+      "type": "integer"
+    },
+    "revisions": {
+      "title": "Revisions",
+      "type": "object"
     },
     "creator_ids": {
       "title": "Creator Ids",
@@ -48,20 +57,21 @@
       "description": "A description of the item, either in plain-text or a markup language.",
       "type": "string"
     },
-    "nblocks": {
-      "title": "Nblocks",
-      "description": "The number of blocks attached to this item.",
-      "default": 0,
-      "type": "integer"
+    "date": {
+      "title": "Date",
+      "description": "A relevant date supplied for the item (e.g., purchase date, synthesis date)",
+      "type": "date",
+      "format": "date-time"
     },
-    "blocks": {
-      "title": "Blocks",
-      "description": "The blocks attached to this item.",
-      "default": [],
-      "type": "array",
-      "items": {
-        "type": "object"
-      }
+    "item_id": {
+      "title": "Item Id",
+      "default": "A unique, human-readable identifier for the entry.",
+      "type": "string"
+    },
+    "name": {
+      "title": "Name",
+      "description": "A human-readable/usable name for the entry.",
+      "type": "string"
     },
     "blocks_obj": {
       "title": "Blocks Obj",
@@ -95,17 +105,6 @@
         "type": "string"
       }
     },
-    "date": {
-      "title": "Date",
-      "description": "The creation timestamp of the item.",
-      "type": "string",
-      "format": "date-time"
-    },
-    "sample_id": {
-      "title": "Sample Id",
-      "description": "a sample id provided by the user",
-      "type": "string"
-    },
     "chemform": {
       "title": "Chemform",
       "description": "A string representation of the chemical formula associated with this sample.",
@@ -126,12 +125,69 @@
       "type": "string"
     }
   },
-  "required": [
-    "item_id",
-    "date"
-  ],
   "additionalProperties": false,
   "definitions": {
+    "RelationshipType": {
+      "title": "RelationshipType",
+      "description": "An enumeration of the possible types of relationship between two entries.\n\n```mermaid\nclassDiagram\nclass entryC\nentryC --|> entryA: parent\nentryC ..|> entryD\nentryA <..> entryD: sibling\nentryA --|> entryB : child\n```",
+      "enum": [
+        "parent",
+        "child",
+        "sibling",
+        "is_part_of",
+        "other"
+      ],
+      "type": "string"
+    },
+    "KnownType": {
+      "title": "KnownType",
+      "description": "An enumeration of the types of entry known by this implementation, should be made dynamic in the future.",
+      "enum": [
+        "samples",
+        "blocks",
+        "files",
+        "starting_materials",
+        "people"
+      ],
+      "type": "string"
+    },
+    "TypedRelationship": {
+      "title": "TypedRelationship",
+      "type": "object",
+      "properties": {
+        "description": {
+          "title": "Description",
+          "description": "A description of the relationship.",
+          "type": "string"
+        },
+        "relation": {
+          "description": "The type of relationship between the two items. If the type is 'other', then a human-readable description should be provided.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/RelationshipType"
+            }
+          ]
+        },
+        "type": {
+          "description": "The type of the related resource.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/KnownType"
+            }
+          ]
+        },
+        "item_id": {
+          "title": "Item Id",
+          "description": "The ID of the entry that is related to this entry.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "relation",
+        "type",
+        "item_id"
+      ]
+    },
     "IdentityType": {
       "title": "IdentityType",
       "description": "A string enum representing the supported verifiable identity types.",
@@ -185,16 +241,37 @@
           "const": "people",
           "type": "string"
         },
+        "immutable_id": {
+          "title": "Immutable ID",
+          "type": "string"
+        },
+        "last_modified": {
+          "title": "Last Modified",
+          "type": "date",
+          "format": "date-time"
+        },
+        "relationships": {
+          "title": "Relationships",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/TypedRelationship"
+          }
+        },
+        "revision": {
+          "title": "Revision",
+          "default": 1,
+          "type": "integer"
+        },
+        "revisions": {
+          "title": "Revisions",
+          "type": "object"
+        },
         "identities": {
           "title": "Identities",
           "type": "array",
           "items": {
             "$ref": "#/definitions/Identity"
           }
-        },
-        "immutable_id": {
-          "title": "Immutable ID",
-          "type": "string"
         },
         "display_name": {
           "title": "Display Name",
