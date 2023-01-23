@@ -11,8 +11,8 @@
         <input id="name" class="form-control" v-model="Name" />
       </div>
       <div class="form-group col-md-3">
-        <label for="date" class="mr-2">Date</label>
-        <input v-model="DateCreated" type="date" class="form-control" />
+        <label for="date" class="mr-2">Date Created</label>
+        <input type="datetime-local" v-model="DateCreated" class="form-control" />
       </div>
     </div>
     <div class="form-row">
