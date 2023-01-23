@@ -154,6 +154,11 @@ export default {
       await getItemData(this.item_id);
       this.item_data_loaded = true;
     },
+    leavePageWarningListener(event) {
+      event.preventDefault;
+      return (event.returnValue =
+        "Unsaved changes present. Would you like to leave without saving?");
+    },
   },
   computed: {
     itemTypeEntry() {
@@ -231,6 +236,28 @@ export default {
   },
   beforeUnmount() {
     document.removeEventListener("keydown", this._keyListener);
+  },
+  watch: {
+    // add a warning before leaving page if unsaved
+    savedStatus(newValue) {
+      if (!newValue) {
+        window.addEventListener("beforeunload", this.leavePageWarningListener, true);
+      } else {
+        window.removeEventListener("beforeunload", this.leavePageWarningListener, true);
+      }
+    },
+  },
+  beforeRouteLeave(to, from, next) {
+    // give warning before leaving the page by the vue router (which would not trigger "beforeunload")
+    if (this.savedStatus) {
+      next();
+    } else {
+      if (window.confirm("Unsaved changes present. Would you like to leave without saving?")) {
+        next();
+      } else {
+        next(false);
+      }
+    }
   },
 };
 </script>
