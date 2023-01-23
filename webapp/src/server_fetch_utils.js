@@ -81,11 +81,13 @@ function handleResponse(response) {
 // exported functions
 // ****************************************************************************
 
-export function createNewSample(item_id, date, name) {
+// eslint-disable-next-line no-unused-vars
+export function createNewSample(item_id, date, name, startingData = {}, copyFrom = null) {
   return fetch_post(`${API_URL}/new-sample/`, {
     item_id: item_id,
     date: date,
     name: name,
+    ...startingData,
   }).then(function (response_json) {
     console.log("received the following data from fetch new-sample:");
     console.log(response_json.sample_list_entry);
