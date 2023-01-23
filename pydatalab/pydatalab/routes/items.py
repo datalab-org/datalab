@@ -9,6 +9,7 @@ from pydantic import ValidationError
 
 from pydatalab.blocks import BLOCK_TYPES
 from pydatalab.config import CONFIG
+from pydatalab.logger import LOGGER
 from pydatalab.models import ITEM_MODELS, Sample
 from pydatalab.mongo import flask_mongo
 from pydatalab.routes.utils import get_default_permissions
@@ -191,7 +192,7 @@ def search_items():
 search_items.methods = ("GET",)  # type: ignore
 
 
-def _create_sample(sample_dict: dict) -> tuple[dict, int]:
+def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[dict, int]:
 
     if not current_user.is_authenticated and not CONFIG.TESTING:
         return (
@@ -201,6 +202,23 @@ def _create_sample(sample_dict: dict) -> tuple[dict, int]:
             ),
             401,
         )
+
+    if copy_from_item_id:
+        copied_doc = flask_mongo.db.items.find_one({"item_id": copy_from_item_id})
+        LOGGER.debug(f"Copying from prexisting item {copy_from_item_id} with data:\n{copied_doc}")
+        if not copied_doc:
+            return (
+                dict(
+                    status="error",
+                    message=f"Request to copy sample with id {copy_from_item_id} failed because sample could not be found.",
+                ),
+                404,
+            )
+
+        copied_doc.update(
+            sample_dict
+        )  # the new item_id, name, etc. take precedence over the copied parameters
+        sample_dict = copied_doc
 
     schema = Sample.schema()
     missing_keys = set()
@@ -272,7 +290,9 @@ def _create_sample(sample_dict: dict) -> tuple[dict, int]:
 
 def create_sample():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
-    response, http_code = _create_sample(request_json)
+    response, http_code = _create_sample(
+        request_json["new_sample_data"], request_json["copy_from_item_id"]
+    )
     return jsonify(response), http_code
 
 
