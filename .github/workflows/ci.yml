@@ -122,3 +122,9 @@ jobs:
         working-directory: ./webapp
         run: |
           yarn test:e2e  --headless --url http://localhost:8081
+
+      - name: Archive video from cypress
+        uses: actions/upload-artifact@v3
+        with:
+          name: Cypress video
+          path: /home/runner/work/datalabvue/datalabvue/webapp/cypress/videos/sampleTablePage.spec.js.mp4
