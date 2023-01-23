@@ -28,7 +28,13 @@
         <div class="form-row">
           <div class="col-md-12 form-group">
             <label>(Optional) Copy from:</label>
-            <ItemSelect v-model="selectedItemToCopy" />
+            <ItemSelect
+              :modelValue="selectedItemToCopy"
+              @update:modelValue="
+                selectedItemToCopy = $event;
+                setCopiedName();
+              "
+            />
           </div>
         </div>
         <div class="form-row">
@@ -106,7 +112,10 @@ export default {
         this.selectedItemToCopy && this.selectedItemToCopy.item_id
       )
         .then(() => {
-          this.$emit("update:modelValue", false);
+          // prevent brief flash of error message as item_id now conflicts with an existing item!
+          this.item_id = null;
+
+          this.$emit("update:modelValue", false); // close this modal
           document.getElementById(this.item_id).scrollIntoView({ behavior: "smooth" });
         })
         .catch((error) => {
@@ -116,6 +125,12 @@ export default {
             alert("Error with creating new sample: " + error);
           }
         });
+    },
+    setCopiedName() {
+      if (!this.selectedItemToCopy) {
+        this.name = "";
+      }
+      this.name = `COPY OF ${this.selectedItemToCopy.name}`;
     },
   },
   components: {
