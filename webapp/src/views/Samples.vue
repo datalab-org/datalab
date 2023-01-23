@@ -1,17 +1,6 @@
 <template>
-  <div id="nav">
-    <router-link to="/about">About</router-link> |
-    <router-link to="/samples">Samples</router-link> |
-    <router-link to="/starting-materials">Starting Materials</router-link> |
-    <router-link to="/item-graph">Item graph</router-link>
-    <div v-if="currentUser != null" class="btn mx-auto normal">
-      <b>{{ currentUser }}</b> <i>({{ currentUserID }})</i>
-      <a :href="this.api_url + '/logout'" class="btn-link mx-auto text-primary"> (Logout)</a>
-    </div>
-    <div v-else class="btn btn-default mx-auto">
-      <a :href="this.api_url + '/login/github'">Login</a>
-    </div>
-  </div>
+  <Navbar />
+
   <div id="tableContainer" class="container">
     <div class="row">
       <div class="col-sm-10 mx-auto mb-3">
@@ -20,125 +9,34 @@
     </div>
     <div class="row">
       <div class="col-sm-10 mx-auto">
-        <SampleTable></SampleTable>
+        <SampleTable />
       </div>
     </div>
   </div>
-
-  <form @submit.prevent="submitForm">
-    <Modal v-model="modalIsOpen">
-      <template v-slot:header> Add new sample </template>
-
-      <template v-slot:body>
-        <div class="form-row">
-          <div class="form-group col-md-6">
-            <label for="sample-id" class="col-form-label">Sample ID:</label>
-            <input v-model="item_id" type="text" class="form-control" id="sample-id" required alt=
-            />
-            <div class="form-error" v-html="sampleIDValidationMessage"></div>
-          </div>
-          <div class="form-group col-md-6">
-            <label for="date" class="col-form-label">Date Created:</label>
-            <input type="datetime-local" v-model="date" class="form-control" id="date" required />
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group col-md-12">
-            <label for="name">Sample Name:</label>
-            <input id="name" type="text" v-model="name" class="form-control" />
-          </div>
-        </div>
-      </template>
-    </Modal>
-  </form>
+  <CreateSampleModal v-model="modalIsOpen" />
 </template>
 
 <script>
-import SampleTable from "@/components/SampleTable.vue";
-import Modal from "@/components/Modal.vue";
-import { createNewSample, getUserInfo } from "@/server_fetch_utils.js";
-import { API_URL } from "@/resources.js";
+import Navbar from "@/components/Navbar";
+import SampleTable from "@/components/SampleTable";
+import CreateSampleModal from "@/components/CreateSampleModal";
 
 export default {
   name: "Samples",
   data() {
     return {
-      item_id: null,
-      // @ml-evs: slice away the seconds, milliseconds and time zone from the date
-      date: new Date().toISOString().slice(0, -8), // todo: add time zone support...
-      name: "",
       modalIsOpen: false,
-      loginModalIsOpen: false,
-      taken_item_ids: [],
-      api_url: API_URL,
-      currentUser: null,
-      currentUserID: null,
     };
   },
-  computed: {
-    sampleIDValidationMessage() {
-      if (this.item_id == null) {
-        return "";
-      } // Don't throw an error before the user starts typing
-
-      if (this.taken_item_ids.includes(this.item_id)) {
-        return `<a href='edit/${this.item_id}'>${this.item_id}</a> already in use.`;
-      }
-      if (/\s/.test(this.item_id)) {
-        return "ID cannot have any spaces";
-      }
-      if (this.item_id.length < 1 || this.item_id.length > 40) {
-        return "ID must be between 1 and 40 characters in length";
-      }
-      return "";
-    },
-  },
-  methods: {
-    // this function is passed to the modal to be used on
-    async submitForm() {
-      console.log("new sample form submit triggered");
-
-      await createNewSample(this.item_id, this.date, this.name)
-        .then(() => {
-          this.modalIsOpen = false;
-          document.getElementById(this.item_id).scrollIntoView({ behavior: "smooth" });
-        })
-        .catch((error) => {
-          if (error == "item_id_validation_error") {
-            this.taken_item_ids.push(this.item_id);
-          } else {
-            alert("Error with creating new sample: " + error);
-          }
-        });
-    },
-    async getUser() {
-      let user = await getUserInfo();
-      if (user != null) {
-        this.currentUser = user.display_name;
-        this.currentUserID = user.immutable_id;
-      }
-    },
-  },
   components: {
+    Navbar,
     SampleTable,
-    Modal,
-  },
-  mounted() {
-    this.getUser();
+    CreateSampleModal,
   },
 };
 </script>
 
 <style scoped>
-.form-error {
-  color: red;
-}
-
-/* This uses a vue "deep selector" to apply it to the v-html */
-.form-error >>> a {
-  color: #820000;
-  font-weight: 600;
-}
 .fade {
   opacity: 0;
   transition: opacity 0.15s linear;
