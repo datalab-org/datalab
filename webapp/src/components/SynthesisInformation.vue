@@ -62,8 +62,11 @@
         </tr>
       </tbody>
     </table>
-    <span class="subheading ml-2">Procedure</span>
-    <TinyMceInline v-model="SynthesisDescription"></TinyMceInline>
+    <span id="synthesis-procedure-label" class="subheading ml-2">Procedure</span>
+    <TinyMceInline
+      aria-labelledby="synthesis-procedure-label"
+      v-model="SynthesisDescription"
+    ></TinyMceInline>
   </div>
 </template>
 

@@ -6,6 +6,7 @@
     @click="handleSpanClick"
   />
   <input
+    v-bind="$attrs"
     v-show="editable"
     @blur="editable = false"
     ref="input"
