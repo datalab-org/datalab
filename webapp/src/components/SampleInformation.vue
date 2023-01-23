@@ -18,11 +18,11 @@
     <div class="form-row">
       <div class="form-group col-md-3">
         <label for="chemform" class="mr-2">Chemical formula</label>
-        <ChemFormulaInput v-model="ChemForm" />
+        <ChemFormulaInput id="chemform" v-model="ChemForm" />
       </div>
     </div>
-    <label class="mr-2">Description</label>
-    <TinyMceInline v-model="SampleDescription"></TinyMceInline>
+    <label id="description-label" class="mr-2">Description</label>
+    <TinyMceInline aria-labelledby="description-label" v-model="SampleDescription"></TinyMceInline>
 
     <RelationshipVisualization :item_id="item_id" />
 

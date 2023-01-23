@@ -217,9 +217,22 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
                 404,
             )
 
-        copied_doc.update(
-            sample_dict
-        )  # the new item_id, name, etc. take precedence over the copied parameters
+        # the provided item_id, name, and date take precedence over the copied parameters
+        copied_doc["item_id"] = sample_dict["item_id"]
+        copied_doc["name"] = sample_dict["name"]
+        copied_doc["date"] = sample_dict["date"]
+
+        # any provided constituents will be added to the synthesis information table in
+        # addition to the constituents copied from the copy_from_item_id, avoiding duplicates
+        existing_consituent_ids = [
+            constituent["item"]["item_id"] for constituent in copied_doc["synthesis_constituents"]
+        ]
+        copied_doc["synthesis_constituents"] += [
+            constituent
+            for constituent in sample_dict["synthesis_constituents"]
+            if (constituent["item"]["item_id"] not in existing_consituent_ids)
+        ]
+
         sample_dict = copied_doc
 
     schema = Sample.schema()
@@ -293,7 +306,7 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
 def create_sample():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
     response, http_code = _create_sample(
-        request_json["new_sample_data"], request_json["copy_from_item_id"]
+        request_json["new_sample_data"], request_json.get("copy_from_item_id")
     )
     return jsonify(response), http_code
 
@@ -324,8 +337,8 @@ def create_samples():
             responses=responses,
             http_codes=http_codes,
         ),
-        207,
-    )  # 207: multi-status
+        207,  # 207: multi-status
+    )
 
 
 create_samples.method = ("POST",)  # type: ignore

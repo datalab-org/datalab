@@ -81,7 +81,8 @@ function handleResponse(response) {
 // exported functions
 // ****************************************************************************
 
-export function createNewSample(item_id, date, name) {
+// eslint-disable-next-line no-unused-vars
+export function createNewSample(item_id, date, name, startingData = {}, copyFrom = null) {
   return fetch_post(`${API_URL}/new-sample/`, {
     copy_from_item_id: copyFrom,
     new_sample_data: {
