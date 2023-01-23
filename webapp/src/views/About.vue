@@ -1,10 +1,5 @@
 <template>
-  <div id="nav">
-    <router-link to="/about">About</router-link> |
-    <router-link to="/samples">Samples</router-link> |
-    <router-link to="/starting-materials">Starting Materials</router-link> |
-    <router-link to="/item-graph">Item graph</router-link>
-  </div>
+  <Navbar />
   <div class="container">
     <div class="row">
       <div class="col-sm-8 mx-auto">
@@ -15,6 +10,14 @@
     </div>
   </div>
 </template>
+
+<script>
+import Navbar from "@/components/Navbar";
+
+export default {
+  components: { Navbar },
+};
+</script>
 
 <style scoped>
 h1 {
