@@ -97,6 +97,58 @@ def fixture_default_sample():
     return Sample(**{"item_id": "12345", "name": "other_sample", "date": "1970-02-01"})
 
 
+@pytest.fixture(scope="module", name="complicated_sample")
+def fixture_complicated_sample():
+    from pydatalab.models.samples import Constituent
+
+    return Sample(
+        **{
+            "item_id": "sample_with_synthesis",
+            "name": "complex_sample",
+            "date": "1970-02-01",
+            "chemform": "Na3P",
+            "synthesis_constituents": [
+                Constituent(
+                    **{
+                        "item": {
+                            "item_id": "starting_material_1",
+                            "name": "first Na",
+                            "chemform": "Na",
+                            "type": "starting_materials",
+                        },
+                        "quantity": 1,
+                    }
+                ),
+                Constituent(
+                    **{
+                        "item": {
+                            "item_id": "starting_material_2",
+                            "name": "second Na",
+                            "chemform": "Na",
+                            "type": "starting_materials",
+                        },
+                        "quantity": 2,
+                        "unit": "kg",
+                    }
+                ),
+                Constituent(
+                    **{
+                        "item": {
+                            "item_id": "starting_material_3",
+                            "name": "liquid Na",
+                            "chemform": "Na",
+                            "type": "starting_materials",
+                        },
+                        "quantity": 3,
+                        "unit": "ml",
+                    }
+                ),
+            ],
+            "synthesis_description": "Take one gram of sodium and add 2 kg of...sodium, then 3 ml of liquid sodium(??) <i>et voila</i>, you have some real good sodium!",
+        }
+    )
+
+
 @pytest.fixture(scope="module")
 def example_items():
     return [
