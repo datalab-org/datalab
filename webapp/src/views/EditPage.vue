@@ -38,6 +38,9 @@
           </a>
         </div>
       </div>
+      <a class="nav-item nav-link" :href="this.itemApiUrl" target="_blank">
+        <font-awesome-icon icon="code" fixed-width /> View JSON
+      </a>
     </div>
     <div class="navbar-nav ml-auto">
       <span v-if="item_data_loaded && !savedStatus" class="navbar-text unsaved-warning">
@@ -94,6 +97,7 @@ import tinymce from "tinymce/tinymce";
 
 import { blockTypes, itemTypes } from "@/resources.js";
 import NotImplementedBlock from "@/components/datablocks/NotImplementedBlock.vue";
+import { API_URL } from "@/resources.js";
 
 export default {
   data() {
@@ -216,6 +220,7 @@ export default {
   },
   beforeMount() {
     this.blockTypes = blockTypes; // bind blockTypes as a NON-REACTIVE object to the this context so that it is accessible by the template.
+    this.itemApiUrl = API_URL + "/get-item-data/" + this.item_id;
   },
   mounted() {
     // overwrite ctrl-s and cmd-s to save the page
