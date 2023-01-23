@@ -186,16 +186,16 @@ export default {
     },
     lastModified() {
       // if (!this.item_data.last_modified) { return "" }
-      const save_date = new Date(this.item_data.last_modified);
-      // const today = new Date()
-      // check if today:
-      // if (save_date.toDateString() == today.toDateString()) {
-      //    return "today"
-      // }
-      return save_date.toLocaleTimeString("en-GB", {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
+      let item_date = this.item_data.last_modified;
+      if (item_date == null) {
+        item_date = this.item_data.date;
+      }
+      if (item_date == null) {
+        return "Unknown";
+      }
+
+      const save_date = new Date(item_date);
+      return save_date.toLocaleString("en-GB");
     },
     files() {
       return this.item_data.files;
