@@ -43,26 +43,26 @@ test("it renders correctly with some samples", async () => {
       samples: [
         {
           chemform: "In0.333WO3",
-          date: "2020-02-17",
+          date: "2020-02-17T00:00",
           name: "This is a test sample",
           nblocks: 6,
           item_id: "jdb1-1",
         },
         {
           chemform: "NaCoO2",
-          date: "2021-02-19",
+          date: "2021-02-19T08:00",
           name: "in situ SQUID test",
           nblocks: 1,
           item_id: "jdb11-3_e1_s2",
         },
         {
-          date: "2021-02-24",
+          date: "2021-02-24T09:23",
           name: "another in situ SQUID test",
           nblocks: 1,
           item_id: "jdb11-3_e1_s3",
         },
         {
-          date: "1954-01-01",
+          date: "1954-01-01T22:22",
           name: " ",
           nblocks: 0,
           item_id: "empty_test",

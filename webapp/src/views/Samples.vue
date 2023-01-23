@@ -31,14 +31,15 @@
 
       <template v-slot:body>
         <div class="form-row">
-          <div class="form-group col-md-8">
+          <div class="form-group col-md-6">
             <label for="sample-id" class="col-form-label">Sample ID:</label>
-            <input v-model="item_id" type="text" class="form-control" id="sample-id" required />
+            <input v-model="item_id" type="text" class="form-control" id="sample-id" required alt=
+            />
             <div class="form-error" v-html="sampleIDValidationMessage"></div>
           </div>
-          <div class="form-group col-md-4">
+          <div class="form-group col-md-6">
             <label for="date" class="col-form-label">Date Created:</label>
-            <input type="date" v-model="date" class="form-control" id="date" required />
+            <input type="datetime-local" v-model="date" class="form-control" id="date" required />
           </div>
         </div>
         <div class="form-row">
@@ -63,7 +64,8 @@ export default {
   data() {
     return {
       item_id: null,
-      date: new Date().toISOString().split("T")[0], // todo: add time zone support...
+      // @ml-evs: slice away the seconds, milliseconds and time zone from the date
+      date: new Date().toISOString().slice(0, -8), // todo: add time zone support...
       name: "",
       modalIsOpen: false,
       loginModalIsOpen: false,
