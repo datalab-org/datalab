@@ -177,6 +177,8 @@ export async function getItemData(item_id) {
       store.commit("createItemData", {
         item_id: item_id,
         item_data: response_json.item_data,
+        child_items: response_json.child_items,
+        parent_items: response_json.parent_items,
       });
       store.commit("updateFiles", response_json.files_data);
 

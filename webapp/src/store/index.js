@@ -6,6 +6,8 @@ export default createStore({
   state: {
     all_item_data: {}, // keys: item_ids, vals: objects containing all data
     all_block_data: {},
+    all_item_children: {},
+    all_item_parents: {},
     sample_list: [],
     starting_material_list: [],
     saved_status: {},
@@ -44,6 +46,8 @@ export default createStore({
       // item_id, item_data
       // Object.assign(state.all_sample_data[payload.item_data], payload.item_data)
       state.all_item_data[payload.item_id] = payload.item_data;
+      state.all_item_children[payload.item_id] = payload.child_items;
+      state.all_item_parents[payload.item_id] = payload.parent_items;
       state.saved_status[payload.item_id] = true;
     },
     updateFiles(state, files_data) {
