@@ -191,22 +191,21 @@ def search_items():
 search_items.methods = ("GET",)  # type: ignore
 
 
-def create_sample():
+def _create_sample(sample_dict: dict) -> tuple[dict, int]:
 
     if not current_user.is_authenticated and not CONFIG.TESTING:
         return (
-            jsonify(
+            dict(
                 status="error",
                 message="Unable to create new sample without user authentication.",
             ),
             401,
         )
 
-    request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
     schema = Sample.schema()
     missing_keys = set()
     for k in schema.get("required", []):
-        if k not in request_json:
+        if k not in sample_dict:
             missing_keys.add(k)
 
     if missing_keys:
@@ -214,7 +213,7 @@ def create_sample():
             f"Request to create sample was thwarted by the lack of required key(s): {missing_keys}"
         )
 
-    new_sample = {k: request_json[k] for k in schema["properties"] if k in request_json}
+    new_sample = {k: sample_dict[k] for k in schema["properties"] if k in sample_dict}
 
     if CONFIG.TESTING:
         new_sample["creator_ids"] = []
@@ -222,13 +221,11 @@ def create_sample():
         new_sample["creator_ids"] = [current_user.person.immutable_id]
 
     # check to make sure that item_id isn't taken already
-    if flask_mongo.db.items.find_one({"item_id": request_json["item_id"]}):
+    if flask_mongo.db.items.find_one({"item_id": sample_dict["item_id"]}):
         return (
-            jsonify(
-                {
-                    "status": "error",
-                    "message": f"item_id_validation_error: {request_json['item_id']!r} already exists in database.",
-                }
+            dict(
+                status="error",
+                message=f"item_id_validation_error: {sample_dict['item_id']!r} already exists in database.",
             ),
             409,  # 409: Conflict
         )
@@ -239,7 +236,7 @@ def create_sample():
 
     except ValidationError as error:
         return (
-            jsonify(
+            dict(
                 status="error",
                 message=f"Unable to create new sample with ID {new_sample['item_id']}.",
                 output=str(error),
@@ -250,7 +247,7 @@ def create_sample():
     result = flask_mongo.db.items.insert_one(new_sample.dict())
     if not result.acknowledged:
         return (
-            jsonify(
+            dict(
                 status="error",
                 message=f"Failed to add new sample {new_sample.item_id!r} to database.",
                 output=result.raw_result,
@@ -259,23 +256,57 @@ def create_sample():
         )
 
     return (
-        jsonify(
-            {
-                "status": "success",
-                "sample_list_entry": {
-                    "item_id": new_sample.item_id,
-                    "nblocks": 0,
-                    "date": new_sample.date,
-                    "name": new_sample.name,
-                    "creator_ids": new_sample.creator_ids,
-                },
-            }
-        ),
+        {
+            "status": "success",
+            "sample_list_entry": {
+                "item_id": new_sample.item_id,
+                "nblocks": 0,
+                "date": new_sample.date,
+                "name": new_sample.name,
+                "creator_ids": new_sample.creator_ids,
+            },
+        },
         201,  # 201: Created
     )
 
 
+def create_sample():
+    request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
+    response, http_code = _create_sample(request_json)
+    return jsonify(response), http_code
+
+
 create_sample.methods = ("POST",)  # type: ignore
+
+
+def create_samples():
+    """attempt to create multiple samples at once.
+    Beacuse each may result in success or failure, 207 is returned along with a
+    json field containing all the individual http_codes"""
+
+    request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
+
+    sample_jsons = request_json["sample_jsons"]
+
+    outputs = [_create_sample(sample_json) for sample_json in sample_jsons]
+    responses, http_codes = zip(outputs)
+
+    statuses = [response["status"] for response in responses]
+    nsuccess = statuses.count("success")
+    nerror = statuses.count("error")
+
+    return (
+        jsonify(
+            nsuccess=nsuccess,
+            nerror=nerror,
+            responses=responses,
+            http_codes=http_codes,
+        ),
+        207,
+    )  # 207: multi-status
+
+
+create_samples.method = ("POST",)  # type: ignore
 
 
 def delete_sample():
@@ -451,6 +482,9 @@ def save_item():
     return jsonify(status="success"), 200
 
 
+save_item.methods = ("POST",)  # type: ignore
+
+
 def search_users():
     """Perform free text search on users and return the top results.
     GET parameters:
@@ -488,14 +522,13 @@ def search_users():
     return jsonify({"status": "success", "users": list(cursor)}), 200
 
 
-save_item.methods = ("POST",)  # type: ignore
-
 ENDPOINTS: Dict[str, Callable] = {
     "/samples/": get_samples,
     "/starting-materials/": get_starting_materials,
     "/search-items/": search_items,
     "/search-users/": search_users,
     "/new-sample/": create_sample,
+    "/new-samples/": create_samples,
     "/delete-sample/": delete_sample,
     "/get-item-data/<item_id>": get_item_data,
     "/save-item/": save_item,
