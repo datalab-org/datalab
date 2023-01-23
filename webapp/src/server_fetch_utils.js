@@ -83,17 +83,21 @@ function handleResponse(response) {
 
 export function createNewSample(item_id, date, name) {
   return fetch_post(`${API_URL}/new-sample/`, {
-    item_id: item_id,
-    date: date,
-    name: name,
+    copy_from_item_id: copyFrom,
+    new_sample_data: {
+      item_id: item_id,
+      date: date,
+      name: name,
+      ...startingData,
+    },
   }).then(function (response_json) {
     console.log("received the following data from fetch new-sample:");
     console.log(response_json.sample_list_entry);
     console.log(`item_id: ${item_id}`);
     store.commit("appendToSampleList", response_json.sample_list_entry);
     // store.commit('createSampleData', {
-    // 	"item_id": item_id,
-    // 	"sample_data": response_json.sample_data
+    //  "item_id": item_id,
+    //  "sample_data": response_json.sample_data
     // });
     return "success";
   });
@@ -335,13 +339,13 @@ export async function getItemGraph() {
 }
 
 // export async function addRemoteFilesToSample(file_entries, item_id) {
-// 	console.log('loadSelectedRemoteFiles')
-// 	return fetch_post(`${API_URL}/add-remote-files-to-sample/`, {
-// 		file_entries: file_entries,
-// 		item_id: item_id,
-// 	}).then( function(response_json) {
-// 		//handle response
-// 		console.log("received remote samples!")
-// 		console.log(response_json)
-// 	}).catch( error => (`addRemoteFilesToSample unsuccessful. Error: ${error}`))
+//  console.log('loadSelectedRemoteFiles')
+//  return fetch_post(`${API_URL}/add-remote-files-to-sample/`, {
+//    file_entries: file_entries,
+//    item_id: item_id,
+//  }).then( function(response_json) {
+//    //handle response
+//    console.log("received remote samples!")
+//    console.log(response_json)
+//  }).catch( error => (`addRemoteFilesToSample unsuccessful. Error: ${error}`))
 // }
