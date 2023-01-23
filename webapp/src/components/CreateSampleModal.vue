@@ -40,7 +40,7 @@ export default {
       item_id: null,
       date: new Date().toISOString().split("T")[0], // todo: add time zone support...			}
       name: "",
-      takenItemIds: [],
+      takenItemIds: [], // this holds ids that have been tried, whereas the computed takenSampleIds holds ids in the sample table
     };
   },
   props: {
@@ -48,12 +48,19 @@ export default {
   },
   emits: ["update:modelValue"],
   computed: {
+    takenSampleIds() {
+      if (this.$store.state.sample_list) {
+        return this.$store.state.sample_list.map((x) => x.item_id);
+      } else {
+        return [];
+      }
+    },
     sampleIDValidationMessage() {
       if (this.item_id == null) {
         return "";
       } // Don't throw an error before the user starts typing
 
-      if (this.takenItemIds.includes(this.item_id)) {
+      if (this.takenItemIds.includes(this.item_id) || this.takenSampleIds.includes(this.item_id)) {
         return `<a href='edit/${this.item_id}'>${this.item_id}</a> already in use.`;
       }
       if (/\s/.test(this.item_id)) {
