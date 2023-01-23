@@ -1,9 +1,27 @@
 import datetime
+from enum import Enum
 
 import pint
 from bson.objectid import ObjectId
 from pydantic import ConstrainedStr, parse_obj_as
 from typing_extensions import TypeAlias
+
+
+class ItemType(str, Enum):
+    """An enumeration of the types of items known by this implementation, should be made dynamic in the future."""
+
+    SAMPLES = "samples"
+    STARTING_MATERIALS = "starting_materials"
+
+
+class KnownType(str, Enum):
+    """An enumeration of the types of entry known by this implementation, should be made dynamic in the future."""
+
+    SAMPLES = "samples"
+    STARTING_MATERIALS = "starting_materials"
+    BLOCKS = "blocks"
+    FILES = "files"
+    PEOPLE = "people"
 
 
 class HumanReadableIdentifier(ConstrainedStr):

@@ -1,6 +1,10 @@
 import datetime
+import json
 
 import pytest
+
+from pydatalab.models import Sample
+from pydatalab.models.relationships import RelationshipType, TypedRelationship
 
 
 @pytest.mark.dependency()
@@ -141,3 +145,84 @@ def test_full_text_search(client, real_mongo_client, example_items):
     assert response.json["items"][0]["item_id"] == "test"
     assert response.json["items"][1]["item_id"] == "material"
     assert response.json["items"][2]["item_id"] == "12345"
+
+
+@pytest.mark.dependency(depends=["test_create_indices"])
+def test_new_sample_with_relationships(client, complicated_sample):
+
+    complicated_sample_json = json.loads(complicated_sample.json())
+    response = client.post("/new-sample/", json=complicated_sample_json)
+    # Test that 201: Created is emitted
+    assert response.status_code == 201, response.json
+    assert response.json["status"] == "success"
+
+    assert response.json["sample_list_entry"]["item_id"] == complicated_sample.item_id
+
+    response = client.get(
+        f"/get-item-data/{complicated_sample.item_id}",
+    )
+
+    assert response.json["parent_items"] == [
+        "starting_material_1",
+        "starting_material_2",
+        "starting_material_3",
+    ]
+    assert response.json["child_items"] == []
+    assert [d["item_id"] for d in response.json["item_data"]["relationships"]] == [
+        "starting_material_1",
+        "starting_material_2",
+        "starting_material_3",
+    ]
+    assert len(response.json["item_data"]["relationships"]) == 3
+    assert len(response.json["item_data"]["synthesis_constituents"]) == 3
+
+    # Create a derived sample with new relationships and make sure they are properly interleaved
+    derived_sample = Sample(**response.json["item_data"])
+    derived_sample.item_id = "derived_sample"
+
+    # Remove one constituent ('starting_material_3') and check it
+    # is also removed from the relationships
+    derived_sample.synthesis_constituents = [
+        d for d in derived_sample.synthesis_constituents if d.item.item_id != "starting_material_3"
+    ]
+    derived_sample.relationships.append(
+        TypedRelationship(
+            relation=RelationshipType.SIBLING,
+            item_id=complicated_sample.item_id,
+            type=complicated_sample.type,
+        )
+    )
+    derived_sample.relationships.append(
+        TypedRelationship(
+            relation=RelationshipType.OTHER,
+            item_id="starting_material_1",
+            type="starting_materials",
+            description="This is a new relationship",
+        )
+    )
+    derived_sample_json = json.loads(derived_sample.json())
+
+    response = client.post("/new-sample/", json=derived_sample_json)
+    # Test that 201: Created is emitted
+    assert response.status_code == 201, response.json
+    assert response.json["status"] == "success"
+    assert response.json["sample_list_entry"]["item_id"] == derived_sample.item_id
+
+    response = client.get(
+        f"/get-item-data/{derived_sample.item_id}",
+    )
+
+    assert len(response.json["item_data"]["synthesis_constituents"]) == 2
+    assert response.json["parent_items"] == [
+        "starting_material_1",
+        "starting_material_2",
+        # i.e., "starting_material_3", has been removed
+    ]
+    assert response.json["child_items"] == []
+    assert [d["item_id"] for d in response.json["item_data"]["relationships"]] == [
+        "starting_material_1",
+        "starting_material_2",
+        complicated_sample.item_id,
+        "starting_material_1",
+        # i.e., "starting_material_3", has been removed
+    ]
