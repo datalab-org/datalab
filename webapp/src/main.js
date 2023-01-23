@@ -11,6 +11,7 @@ import router from "./router";
 import { library } from "@fortawesome/fontawesome-svg-core";
 import {
   faSave,
+  faCode,
   faChevronRight,
   faArrowUp,
   faArrowDown,
@@ -29,6 +30,7 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 library.add(
   faSave,
+  faCode,
   faChevronRight,
   faArrowUp,
   faArrowDown,
