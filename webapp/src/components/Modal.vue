@@ -23,7 +23,12 @@
         </div>
         <div class="modal-footer">
           <slot name="footer">
-            <input type="submit" class="btn btn-info btn-small" value="Submit" />
+            <input
+              type="submit"
+              class="btn btn-info btn-small"
+              :disabled="disableSubmit"
+              value="Submit"
+            />
             <button
               type="button"
               class="btn btn-secondary"
@@ -49,6 +54,10 @@ export default {
   },
   props: {
     modelValue: Boolean,
+    disableSubmit: {
+      type: Boolean,
+      default: false,
+    },
     isLarge: {
       type: Boolean,
       default: false,
@@ -56,7 +65,6 @@ export default {
   },
   watch: {
     modelValue(newValue) {
-      // console.log(`isOpen changed from ${oldValue} to ${newValue}`)
       if (newValue) {
         this.openModal();
       }

@@ -1,17 +1,12 @@
 <template>
-  <div id="nav">
-    <router-link to="/about">About</router-link> |
-    <router-link to="/samples">Samples</router-link> |
-    <router-link to="/starting-materials">Starting Materials</router-link> |
-    <router-link to="/item-graph">Item graph</router-link>
-  </div>
-
+  <Navbar />
   <div class="container">
     <ItemGraph :graphData="graphData" style="height: 600px" />
   </div>
 </template>
 
 <script>
+import Navbar from "@/components/Navbar";
 import ItemGraph from "@/components/ItemGraph";
 import { getItemGraph } from "@/server_fetch_utils.js";
 
@@ -30,6 +25,7 @@ export default {
     await getItemGraph();
   },
   components: {
+    Navbar,
     ItemGraph,
   },
 };
