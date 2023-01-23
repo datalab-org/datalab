@@ -25,6 +25,30 @@
             <input id="name" type="text" v-model="name" class="form-control" alt="Optionally provide a meaningful name for this sample that can used for searching."/>
           </div>
         </div>
+        <div class="form-row">
+          <div class="col-md-12 form-group">
+            <label id="copyFromSelectLabel">(Optional) Copy from:</label>
+            <ItemSelect
+              aria-labelledby="copyFromSelectLabel"
+              :modelValue="selectedItemToCopy"
+              @update:modelValue="
+                selectedItemToCopy = $event;
+                setCopiedName();
+              "
+            />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="col-md-12 form-group">
+            <label id="startWithConstituentsLabel">(Optional) Start with constituents:</label>
+            <ItemSelect
+              aria-labelledby="startWithConstituentsLabel"
+              multiple
+              v-model="startingConstituents"
+            />
+            <!-- <ItemSelect v-model="selectedNewConstituent" @option:selected="addConstituent" /> -->
+          </div>
+        </div>
       </template>
     </Modal>
   </form>
@@ -32,15 +56,18 @@
 
 <script>
 import Modal from "@/components/Modal.vue";
+import ItemSelect from "@/components/ItemSelect.vue";
 import { createNewSample } from "@/server_fetch_utils.js";
 export default {
   name: "CreateSampleModal",
   data() {
     return {
       item_id: null,
-      date: new Date().toISOString().split("T")[0], // todo: add time zone support...			}
+      date: new Date().toISOString().split("T")[0], // todo: add time zone support...     }
       name: "",
       takenItemIds: [], // this holds ids that have been tried, whereas the computed takenSampleIds holds ids in the sample table
+      selectedItemToCopy: null,
+      startingConstituents: [],
     };
   },
   props: {
@@ -49,11 +76,9 @@ export default {
   emits: ["update:modelValue"],
   computed: {
     takenSampleIds() {
-      if (this.$store.state.sample_list) {
-        return this.$store.state.sample_list.map((x) => x.item_id);
-      } else {
-        return [];
-      }
+      return this.$store.state.sample_list
+        ? this.$store.state.sample_list.map((x) => x.item_id)
+        : [];
     },
     sampleIDValidationMessage() {
       if (this.item_id == null) {
@@ -76,9 +101,26 @@ export default {
     async submitForm() {
       console.log("new sample form submit triggered");
 
-      await createNewSample(this.item_id, this.date, this.name)
+      const startingSynthesisBlock = this.startingConstituents.map((x) => ({
+        item: x,
+        quantity: null,
+      }));
+
+      await createNewSample(
+        this.item_id,
+        this.date,
+        this.name,
+        {
+          synthesis_constituents: startingSynthesisBlock,
+        },
+        this.selectedItemToCopy && this.selectedItemToCopy.item_id
+      )
         .then(() => {
-          this.$emit("update:modelValue", false);
+          this.item_id = null;
+          this.name = null;
+          this.date = new Date().toISOString().split("T")[0]; // reset the date (is this the most user-friendly behavior?)
+
+          this.$emit("update:modelValue", false); // close this modal
           document.getElementById(this.item_id).scrollIntoView({ behavior: "smooth" });
         })
         .catch((error) => {
@@ -89,9 +131,16 @@ export default {
           }
         });
     },
+    setCopiedName() {
+      if (!this.selectedItemToCopy) {
+        this.name = "";
+      }
+      this.name = `COPY OF ${this.selectedItemToCopy.name}`;
+    },
   },
   components: {
     Modal,
+    ItemSelect,
   },
 };
 </script>
