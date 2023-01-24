@@ -124,6 +124,7 @@ jobs:
           yarn test:e2e  --headless --url http://localhost:8081
 
       - name: Archive video from cypress
+        if: success() || failure()
         uses: actions/upload-artifact@v3
         with:
           name: Cypress video
