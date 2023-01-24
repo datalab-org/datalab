@@ -81,7 +81,7 @@ describe("Sample table page", () => {
     cy.get("tr>td").eq(5).contains(2); // 2 blocks are present
   });
 
-  it("deletes the sample", () => {
+  it("cleanup: delete the sample", () => {
     cy.findByText("editable_sample")
       .parent("tr")
       .within(() => {
