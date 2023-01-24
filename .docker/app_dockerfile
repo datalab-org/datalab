@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:experimental
-FROM node:15.14.0-stretch as base
+FROM node:16-stretch as base
 SHELL ["/bin/bash", "--login", "-c"]
 
 WORKDIR /app
