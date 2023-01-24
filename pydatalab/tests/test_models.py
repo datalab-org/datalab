@@ -12,6 +12,7 @@ from pydatalab.models.relationships import (
     RelationshipType,
     TypedRelationship,
 )
+from pydatalab.models.utils import HumanReadableIdentifier
 
 
 @pytest.mark.parametrize("model", ITEM_MODELS.values())
@@ -93,3 +94,50 @@ def test_custom_and_inherited_items():
         sample_json["last_modified"]
         == datetime.datetime.fromisoformat("2020-01-01 00:00").isoformat()
     )
+
+
+@pytest.mark.parametrize(
+    "id",
+    [
+        "1234",
+        "jmas-1-24-2020-5",
+        "MP2018_TEST_COMMERCIAL",
+        "AAAAAA",
+        111111111,
+    ],
+)
+def test_good_ids(id):
+    """Test good human-readable IDs for validity.
+
+    Has to go via a model to test the validator (see docstring for `HumanReadableIdentifier`).
+
+    """
+
+    class DummyModel(pydantic.BaseModel):
+        id: HumanReadableIdentifier
+
+    assert DummyModel(id=id)
+
+
+@pytest.mark.parametrize(
+    "id",
+    [
+        "MP2018(W/O)",
+        "mp 1 2 3",
+        "lithium & sodium",
+        "me388-123456789-123456789-really-long-descriptive-identifier-that-should-be-the-name-but-is-otherwise-valid",
+        1111111111111111111111111111111111111111111111111,
+    ],
+)
+def test_bad_ids(id):
+    """Test bad human-readable IDs for invalidity.
+
+    Has to go via a model to test the validator (see docstring for `HumanReadableIdentifier`).
+
+    """
+
+    class DummyModel(pydantic.BaseModel):
+        id: HumanReadableIdentifier
+
+    with pytest.raises(pydantic.ValidationError):
+        DummyModel(id=id)
