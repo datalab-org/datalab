@@ -38,6 +38,9 @@
           </a>
         </div>
       </div>
+      <a class="nav-item nav-link" :href="this.itemApiUrl" target="_blank">
+        <font-awesome-icon icon="code" fixed-width /> View JSON
+      </a>
     </div>
     <div class="navbar-nav ml-auto">
       <span v-if="item_data_loaded && !savedStatus" class="navbar-text unsaved-warning">
@@ -94,6 +97,7 @@ import tinymce from "tinymce/tinymce";
 
 import { blockTypes, itemTypes } from "@/resources.js";
 import NotImplementedBlock from "@/components/datablocks/NotImplementedBlock.vue";
+import { API_URL } from "@/resources.js";
 
 export default {
   data() {
@@ -182,16 +186,16 @@ export default {
     },
     lastModified() {
       // if (!this.item_data.last_modified) { return "" }
-      const save_date = new Date(this.item_data.last_modified);
-      // const today = new Date()
-      // check if today:
-      // if (save_date.toDateString() == today.toDateString()) {
-      //    return "today"
-      // }
-      return save_date.toLocaleTimeString("en-GB", {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
+      let item_date = this.item_data.last_modified;
+      if (item_date == null) {
+        item_date = this.item_data.date;
+      }
+      if (item_date == null) {
+        return "Unknown";
+      }
+
+      const save_date = new Date(item_date);
+      return save_date.toLocaleString("en-GB");
     },
     files() {
       return this.item_data.files;
@@ -216,6 +220,7 @@ export default {
   },
   beforeMount() {
     this.blockTypes = blockTypes; // bind blockTypes as a NON-REACTIVE object to the this context so that it is accessible by the template.
+    this.itemApiUrl = API_URL + "/get-item-data/" + this.item_id;
   },
   mounted() {
     // overwrite ctrl-s and cmd-s to save the page
