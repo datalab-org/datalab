@@ -71,7 +71,7 @@ describe("Sample table page", () => {
     });
 
     cy.findByText("Unsaved changes");
-    cy.get(".fa-save").click();
+    cy.wait(100).then(() => cy.get(".fa-save").click());
     cy.contains("Unsaved changes").should("not.exist");
 
     cy.get(".datablock-content div").eq(0).type("The first comment box");

@@ -44,11 +44,14 @@ function verifySample(sample_id, name = null, date = null) {
 }
 
 function deleteSample(sample_id) {
-  cy.findByText(sample_id)
-    .parent("tr")
-    .within(() => {
-      cy.get("button.close").click();
-    });
+  // wait a bit to allow things to settle
+  cy.wait(100).then(() => {
+    cy.findByText(sample_id)
+      .parent("tr")
+      .within(() => {
+        cy.get("button.close").click();
+      });
+  });
 }
 
 describe("Sample table page", () => {
