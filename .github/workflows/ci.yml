@@ -91,7 +91,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v3
         with:
-          node-version: "15.14"
+          node-version: "16.15.0"
           cache: "yarn"
           cache-dependency-path: ./webapp/yarn.lock
 
@@ -124,7 +124,8 @@ jobs:
           yarn test:e2e  --headless --url http://localhost:8081
 
       - name: Archive video from cypress
+        if: success() || failure()
         uses: actions/upload-artifact@v3
         with:
           name: Cypress video
-          path: /home/runner/work/datalabvue/datalabvue/webapp/cypress/videos/sampleTablePage.spec.js.mp4
+          path: /home/runner/work/datalabvue/datalabvue/webapp/cypress/videos/*.cy.js.mp4
