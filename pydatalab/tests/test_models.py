@@ -123,7 +123,7 @@ def test_good_ids(id):
     "id",
     [
         "MP2018(W/O)",
-        "mp 1 2 3",
+        "mp 1 2 3 4 5 6",
         "lithium & sodium",
         "me388-123456789-123456789-really-long-descriptive-identifier-that-should-be-the-name-but-is-otherwise-valid",
         1111111111111111111111111111111111111111111111111,

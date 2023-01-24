@@ -19,8 +19,8 @@ class HumanReadableIdentifier(ConstrainedStr):
 
     """
 
-    min_length = 6
-    max_length = 16
+    min_length = 1
+    max_length = 32
     strip_whitespace = True
     to_lower = False
     strict = False
