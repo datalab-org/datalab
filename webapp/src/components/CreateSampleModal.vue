@@ -27,8 +27,9 @@
         </div>
         <div class="form-row">
           <div class="col-md-12 form-group">
-            <label>(Optional) Copy from:</label>
+            <label id="copyFromSelectLabel">(Optional) Copy from:</label>
             <ItemSelect
+              aria-labelledby="copyFromSelectLabel"
               :modelValue="selectedItemToCopy"
               @update:modelValue="
                 selectedItemToCopy = $event;
@@ -39,9 +40,12 @@
         </div>
         <div class="form-row">
           <div class="col-md-12 form-group">
-            <label>(Optional) Start with constituents:</label>
-            <ItemSelect multiple v-model="startingConstituents" />
-
+            <label id="startWithConstituentsLabel">(Optional) Start with constituents:</label>
+            <ItemSelect
+              aria-labelledby="startWithConstituentsLabel"
+              multiple
+              v-model="startingConstituents"
+            />
             <!-- <ItemSelect v-model="selectedNewConstituent" @option:selected="addConstituent" /> -->
           </div>
         </div>
@@ -112,8 +116,9 @@ export default {
         this.selectedItemToCopy && this.selectedItemToCopy.item_id
       )
         .then(() => {
-          // prevent brief flash of error message as item_id now conflicts with an existing item!
           this.item_id = null;
+          this.name = null;
+          this.date = new Date().toISOString().split("T")[0]; // reset the date (is this the most user-friendly behavior?)
 
           this.$emit("update:modelValue", false); // close this modal
           document.getElementById(this.item_id).scrollIntoView({ behavior: "smooth" });
