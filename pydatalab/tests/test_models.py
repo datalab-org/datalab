@@ -107,16 +107,9 @@ def test_custom_and_inherited_items():
     ],
 )
 def test_good_ids(id):
-    """Test good human-readable IDs for validity.
+    """Test good human-readable IDs for validity."""
 
-    Has to go via a model to test the validator (see docstring for `HumanReadableIdentifier`).
-
-    """
-
-    class DummyModel(pydantic.BaseModel):
-        id: HumanReadableIdentifier
-
-    assert DummyModel(id=id)
+    assert HumanReadableIdentifier(id)
 
 
 @pytest.mark.parametrize(
@@ -130,14 +123,7 @@ def test_good_ids(id):
     ],
 )
 def test_bad_ids(id):
-    """Test bad human-readable IDs for invalidity.
-
-    Has to go via a model to test the validator (see docstring for `HumanReadableIdentifier`).
-
-    """
-
-    class DummyModel(pydantic.BaseModel):
-        id: HumanReadableIdentifier
+    """Test bad human-readable IDs for invalidity."""
 
     with pytest.raises(pydantic.ValidationError):
-        DummyModel(id=id)
+        HumanReadableIdentifier(id)

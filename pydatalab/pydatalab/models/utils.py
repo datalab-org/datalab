@@ -2,22 +2,12 @@ import datetime
 
 import pint
 from bson.objectid import ObjectId
-from pydantic import ConstrainedStr
+from pydantic import ConstrainedStr, parse_obj_as
 from typing_extensions import TypeAlias
 
 
 class HumanReadableIdentifier(ConstrainedStr):
-    """Used to constrain human-readable and URL-safe identifiers for items.
-
-    Note:
-        Currently this custom type can only be used effectively within pydantic
-        models. `.validate()` does not apply all of the necessary constraints
-        and thus cannot be used in a separate 'ID validation' context (unless
-        wrapped in a dummy pydantic model).
-
-        See https://github.com/pydantic/pydantic/discussions/4980 for some context.
-
-    """
+    """Used to constrain human-readable and URL-safe identifiers for items."""
 
     min_length = 1
     max_length = 32
@@ -27,6 +17,18 @@ class HumanReadableIdentifier(ConstrainedStr):
 
     regex = r"^[a-zA-Z0-9_-]+$"
     """A regex to match strings without characters that need URL encoding"""
+
+    def __init__(self, value):
+        self.value = parse_obj_as(type(self), value)
+
+    def __str__(self):
+        return self.value
+
+    def __repr__(self):
+        return self.value
+
+    def __bool__(self):
+        return bool(self.value)
 
 
 class PintType(str):
