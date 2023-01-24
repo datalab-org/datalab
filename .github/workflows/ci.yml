@@ -128,4 +128,4 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: Cypress video
-          path: /home/runner/work/datalabvue/datalabvue/webapp/cypress/videos/sampleTablePage.spec.js.mp4
+          path: /home/runner/work/datalabvue/datalabvue/webapp/cypress/videos/*.cy.js.mp4
