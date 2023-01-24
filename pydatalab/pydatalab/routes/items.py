@@ -122,6 +122,7 @@ def get_samples():
                         "as": "creators",
                     }
                 },
+                {"$sort": {"_id": -1}},
                 {
                     "$project": {
                         "_id": 0,
