@@ -5,7 +5,11 @@ from pydantic import Field
 
 from pydatalab.models.entries import Entry
 from pydatalab.models.people import Person
-from pydatalab.models.utils import IsoformatDateTime, PyObjectId
+from pydatalab.models.utils import (
+    HumanReadableIdentifier,
+    IsoformatDateTime,
+    PyObjectId,
+)
 
 
 class Item(Entry, abc.ABC):
@@ -29,7 +33,7 @@ class Item(Entry, abc.ABC):
         description="A relevant date supplied for the item (e.g., purchase date, synthesis date)"
     )
 
-    item_id: str = Field("A unique, human-readable identifier for the entry.")
+    item_id: HumanReadableIdentifier = Field("A unique, human-readable identifier for the entry.")
 
     name: Optional[str] = Field(description="A human-readable/usable name for the entry.")
 

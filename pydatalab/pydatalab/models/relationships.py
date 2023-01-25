@@ -3,6 +3,8 @@ from typing import Optional
 
 from pydantic import BaseModel, Field, validator
 
+from pydatalab.models.utils import HumanReadableIdentifier
+
 
 class RelationshipType(str, Enum):
     """An enumeration of the possible types of relationship between two entries.
@@ -48,7 +50,9 @@ class TypedRelationship(BaseModel):
 
     type: KnownType = Field(description="The type of the related resource.")
 
-    item_id: str = Field(description="The ID of the entry that is related to this entry.")
+    item_id: HumanReadableIdentifier = Field(
+        description="The ID of the entry that is related to this entry."
+    )
 
     @validator("relation")
     def check_for_description(cls, v, values):
