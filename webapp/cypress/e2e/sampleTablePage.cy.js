@@ -175,7 +175,7 @@ describe("Sample table page", () => {
     const more_ids = [
       "sdlkfjs",
       "w343t",
-      "dfow4_!112",
+      "dfow4_112",
       "_122rwre",
       "56oer09gser9sdfd0s9dr333e",
       "7",
