@@ -48,4 +48,4 @@ class Entry(BaseModel, abc.ABC):
     class Config:
         allow_population_by_field_name = True
         json_encoders = JSON_ENCODERS
-        extra = "forbid"
+        extra = "allow"
