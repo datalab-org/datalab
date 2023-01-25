@@ -10,7 +10,7 @@ class HumanReadableIdentifier(ConstrainedStr):
     """Used to constrain human-readable and URL-safe identifiers for items."""
 
     min_length = 1
-    max_length = 32
+    max_length = 40
     strip_whitespace = True
     to_lower = False
     strict = False
