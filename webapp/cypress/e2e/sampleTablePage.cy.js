@@ -191,6 +191,9 @@ describe("Sample table page", () => {
     cy.go("back");
 
     more_ids.map((id) => verifySample(id));
+
+    cy.wait(1000);
+
     more_ids.map((id) => deleteSample(id));
     more_ids.map((id) => cy.contains(id).should("not.exist"));
 
