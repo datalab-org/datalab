@@ -226,3 +226,47 @@ def test_new_sample_with_relationships(client, complicated_sample):
         "starting_material_1",
         # i.e., "starting_material_3", has been removed
     ]
+
+
+@pytest.mark.dependency(depends=["test_new_sample_with_relationships"])
+def test_saved_sample_has_new_relationships(client, default_sample_dict, complicated_sample):
+    """Create a sample, add a constituent and save it, then make sure
+    it appears in relationship searches, without manually using the Sample
+    model to populate them.
+
+    """
+
+    default_sample_dict["item_id"] = "debug"
+    response = client.post("/new-sample/", json=default_sample_dict)
+
+    assert response.json
+
+    response = client.get(
+        f"/get-item-data/{default_sample_dict['item_id']}",
+    )
+
+    assert response.json
+
+    sample_dict = response.json["item_data"]
+    sample_dict["synthesis_constituents"] = [
+        {
+            "item": {"item_id": complicated_sample.item_id, "type": "samples"},
+            "quantity": 25.2,
+            "unit": "g",
+        }
+    ]
+
+    response = client.post(
+        "/save-item/", json={"item_id": sample_dict["item_id"], "data": sample_dict}
+    )
+
+    # Saving this link *should* add a searchable relationship in the database on both the new and old sample
+    response = client.get(
+        f"/get-item-data/{default_sample_dict['item_id']}",
+    )
+    assert complicated_sample.item_id in response.json["parent_items"]
+
+    response = client.get(
+        f"/get-item-data/{complicated_sample.item_id}",
+    )
+    assert sample_dict["item_id"] in response.json["child_items"]
