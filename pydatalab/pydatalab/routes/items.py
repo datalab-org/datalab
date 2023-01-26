@@ -356,9 +356,9 @@ def get_item_data(item_id):
     incoming_relationships: Dict[RelationshipType, Set[str]] = {}
     for d in relationships_query_results:
         for k in d["relationships"]:
-            if relation := k["relation"] not in incoming_relationships:
-                incoming_relationships[relation] = set()
-            incoming_relationships[relation].add(d["item_id"])
+            if k["relation"] not in incoming_relationships:
+                incoming_relationships[k["relation"]] = set()
+            incoming_relationships[k["relation"]].add(d["item_id"])
 
     # loop over and aggregate all 'inner' relationships presented by this item
     inlined_relationships: Dict[RelationshipType, Set[str]] = {}
@@ -445,7 +445,7 @@ def save_item():
 
     result = flask_mongo.db.items.update_one(
         {"item_id": item_id},
-        {"$set": updated_data},
+        {"$set": item},
     )
 
     if result.matched_count != 1:
