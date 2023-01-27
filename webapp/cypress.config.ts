@@ -10,5 +10,6 @@ export default defineConfig({
     baseUrl: 'http://localhost:8080',
     apiUrl: 'http://localhost:5001',
     experimentalStudio: true,
+    projectId: "4kqx5i",
   },
 })
