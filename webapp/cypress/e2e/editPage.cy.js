@@ -20,6 +20,10 @@ describe("Sample table page", () => {
     cy.findByText("Samples").should("exist");
     cy.findByText("Add a sample").should("exist");
     cy.findByText("# of blocks").should("exist");
+    cy.wait(1000).then((x) => {
+      cy.contains("Server Error. Sample list not retreived.").should("not.exist");
+      expect(consoleSpy).not.to.be.called;
+    });
   });
 
   it("Adds a valid sample", () => {
