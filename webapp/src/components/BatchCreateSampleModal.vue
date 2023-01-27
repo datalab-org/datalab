@@ -6,20 +6,16 @@
       :disableSubmit="Boolean(sampleIDValidationMessage) || !Boolean(item_id)"
     >
       <template v-slot:header> Add new samples </template>
-
       <template v-slot:body>
         <div class="row">
-          <div class="col-md-8 mt-2">
+          <div class="col-md-8 mt-2" @click="templateIsOpen = !templateIsOpen">
             <font-awesome-icon
               :icon="['fas', 'chevron-right']"
               fixed-width
               class="collapse-arrow"
               :class="{ expanded: templateIsOpen }"
-              @click="templateIsOpen = !templateIsOpen"
             />
-            <label class="blue-label ml-2" @click="templateIsOpen = !templateIsOpen">
-              Template:
-            </label>
+            <label class="blue-label collapse-clickable ml-2"> Template: </label>
           </div>
           <label for="batchSampleNRows" class="blue-label col-md-2 col-3 col-form-label text-left">
             Number of rows:
@@ -109,7 +105,8 @@
               <th>Name</th>
               <th style="width: calc(15%)">Date</th>
               <th style="width: calc(22%)">Copy from</th>
-              <th style="width: calc(22%)">Components</th>
+              <th style="width: calc(22%) - 2rem">Components</th>
+              <th style="width: 2rem"></th>
             </tr>
           </thead>
           <tr v-for="(sample, index) in samples" :key="index">
@@ -132,9 +129,16 @@
             <td>
               <ItemSelect v-model="sample.components" multiple :formattedItemNameMaxLength="8" />
             </td>
-            <button type="button" class="close" @click.stop="removeRow(index)" aria-label="delete">
-              <span aria-hidden="true">&times;</span>
-            </button>
+            <td>
+              <button
+                type="button"
+                class="close"
+                @click.stop="removeRow(index)"
+                aria-label="delete"
+              >
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </td>
           </tr>
         </table>
       </template>
@@ -153,7 +157,7 @@ export default {
       item_id: null,
       date: new Date().toISOString().split("T")[0], // todo: add time zone support...     }
       // name: "",
-      nSamples: 2,
+      nSamples: 3,
       samples: [
         {
           item_id: "",
@@ -317,6 +321,11 @@ export default {
 </script>
 
 <style scoped>
+.close {
+  margin-top: 0.2em;
+  color: grey;
+}
+
 .blue-label {
   font-weight: 600;
   color: #0b6093;
@@ -348,6 +357,10 @@ export default {
 
 .collapse-arrow:hover {
   color: #7ca7ca;
+}
+
+.collapse-clickable {
+  cursor: pointer;
 }
 
 .expanded {
