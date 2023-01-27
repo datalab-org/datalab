@@ -206,7 +206,9 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
         )
 
     if copy_from_item_id:
+
         copied_doc = flask_mongo.db.items.find_one({"item_id": copy_from_item_id})
+
         LOGGER.debug(f"Copying from prexisting item {copy_from_item_id} with data:\n{copied_doc}")
         if not copied_doc:
             return (
@@ -224,14 +226,16 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
 
         # any provided constituents will be added to the synthesis information table in
         # addition to the constituents copied from the copy_from_item_id, avoiding duplicates
-        existing_consituent_ids = [
-            constituent["item"]["item_id"] for constituent in copied_doc["synthesis_constituents"]
-        ]
-        copied_doc["synthesis_constituents"] += [
-            constituent
-            for constituent in sample_dict["synthesis_constituents"]
-            if (constituent["item"]["item_id"] not in existing_consituent_ids)
-        ]
+        if copied_doc.get("synthesis_constituents"):
+            existing_consituent_ids = [
+                constituent["item"]["item_id"]
+                for constituent in copied_doc["synthesis_constituents"]
+            ]
+            copied_doc.synthesis_constituents += [
+                constituent
+                for constituent in sample_dict["synthesis_constituents"]
+                if (constituent["item"]["item_id"] not in existing_consituent_ids)
+            ]
 
         sample_dict = copied_doc
 
@@ -305,9 +309,13 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
 
 def create_sample():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
-    response, http_code = _create_sample(
-        request_json["new_sample_data"], request_json.get("copy_from_item_id")
-    )
+    if "new_sample_data" in request_json:
+        response, http_code = _create_sample(
+            request_json["new_sample_data"], request_json.get("copy_from_item_id")
+        )
+    else:
+        response, http_code = _create_sample(request_json)
+
     return jsonify(response), http_code
 
 
