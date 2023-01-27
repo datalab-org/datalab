@@ -11648,10 +11648,10 @@ vue-router@^4.0.0-0:
   dependencies:
     "@vue/devtools-api" "^6.0.0-beta.14"
 
-vue-select@^4.0.0-beta.1:
-  version "4.0.0-beta.1"
-  resolved "https://registry.yarnpkg.com/vue-select/-/vue-select-4.0.0-beta.1.tgz#70f0200d8322b179430fb9ad6ec749970fb946e3"
-  integrity sha512-lI3StIWbshBqvUHGZJds1BTpl2oUivtXFNK7tircBLHyAeXOPTaEyebITtODc7YBg4LkATvLvAqDAA9kzKovag==
+vue-select@^4.0.0-beta.6:
+  version "4.0.0-beta.6"
+  resolved "https://registry.yarnpkg.com/vue-select/-/vue-select-4.0.0-beta.6.tgz#7c250cb7c01280b54a311cb446629801b3c8df98"
+  integrity sha512-K+zrNBSpwMPhAxYLTCl56gaMrWZGgayoWCLqe5rWwkB8aUbAUh7u6sXjIR7v4ckp2WKC7zEEUY27g6h1MRsIHw==
 
 vue-style-loader@^4.1.0, vue-style-loader@^4.1.2:
   version "4.1.3"
