@@ -26,7 +26,7 @@ describe("Sample table page", () => {
     cy.findByText("Add a sample").click();
     cy.findByText("Add new sample").should("exist");
     cy.findByLabelText("Sample ID:").type("editable_sample");
-    cy.findByLabelText("Date Created:").type("1990-01-07");
+    cy.findByLabelText("Date Created:").type("1990-01-07T00:00");
 
     cy.findByLabelText("Sample Name:").type("This is a sample name");
     cy.findByText("Submit").click();

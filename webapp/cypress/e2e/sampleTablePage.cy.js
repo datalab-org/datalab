@@ -6,7 +6,7 @@ Cypress.on("window:before:load", (win) => {
   consoleSpy = cy.spy(win.console, "error");
 });
 
-const TODAY = new Date().toISOString().split("T")[0];
+const TODAY = new Date().toISOString().slice(0, -8);
 
 function createSample(sample_id, name = null, date = null) {
   cy.findByText("Add a sample").click();
@@ -148,22 +148,22 @@ describe("Sample table page", () => {
     verifySample("test1");
     verifySample("test2", "second sample name");
 
-    createSample("test3", "third sample name", "2006-04-25");
+    createSample("test3", "third sample name", "2006-04-25T00:00");
     verifySample("test1");
     verifySample("test2", "second sample name");
-    verifySample("test3", "third sample name", "2006-04-25");
+    verifySample("test3", "third sample name", "2006-04-25T00:00");
 
     createSample("test4");
     verifySample("test1");
     verifySample("test2", "second sample name");
-    verifySample("test3", "third sample name", "2006-04-25");
+    verifySample("test3", "third sample name", "2006-04-25T00:00");
     verifySample("test4");
 
     deleteSample("test2");
     cy.contains("test2").should("not.exist");
     cy.contains("second sample name").should("not.exist");
     verifySample("test1");
-    verifySample("test3", "third sample name", "2006-04-25");
+    verifySample("test3", "third sample name", "2006-04-25T00:00");
     verifySample("test4");
 
     deleteSample("test1");
