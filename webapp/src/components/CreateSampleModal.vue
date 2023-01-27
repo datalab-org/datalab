@@ -116,12 +116,13 @@ export default {
         this.selectedItemToCopy && this.selectedItemToCopy.item_id
       )
         .then(() => {
+          const newId = this.item_id;
           this.item_id = null;
           this.name = null;
           this.date = new Date().toISOString().split("T")[0]; // reset the date (is this the most user-friendly behavior?)
 
           this.$emit("update:modelValue", false); // close this modal
-          document.getElementById(this.item_id).scrollIntoView({ behavior: "smooth" });
+          document.getElementById(newId).scrollIntoView({ behavior: "smooth" });
         })
         .catch((error) => {
           if (error.includes("item_id_validation_error")) {
