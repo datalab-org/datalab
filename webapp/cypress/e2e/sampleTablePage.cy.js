@@ -26,7 +26,7 @@ function verifySample(sample_id, name = null, date = null) {
     cy.findByText(sample_id)
       .parent("tr")
       .within(() => {
-        cy.findByText(date);
+        cy.findByText(date.split("T")[0]);
         if (name) {
           cy.findByText(name);
         }
@@ -35,7 +35,7 @@ function verifySample(sample_id, name = null, date = null) {
     cy.findByText(sample_id)
       .parent("tr")
       .within(() => {
-        cy.findByText(TODAY);
+        cy.findByText(TODAY.split("T")[0]);
         if (name) {
           cy.findByText(name);
         }
@@ -74,7 +74,7 @@ describe("Sample table page", () => {
     // time to respond.
     // Can we wait for the server response instead of hard-coding
     // a wait time in ms?
-    cy.wait(1000).then((x) => {
+    cy.wait(100).then((x) => {
       cy.contains("Server Error. Sample list not retreived.").should("not.exist");
       expect(consoleSpy).not.to.be.called;
     });
@@ -84,7 +84,7 @@ describe("Sample table page", () => {
     cy.findByText("Add a sample").click();
     cy.findByText("Add new sample").should("exist");
     cy.findByLabelText("Sample ID:").type("12345678910");
-    cy.findByLabelText("Date Created:").type("1990-01-07");
+    cy.findByLabelText("Date Created:").type("1990-01-07T00:00");
 
     cy.findByLabelText("Sample Name:").type("This is a sample name");
     cy.findByText("Submit").click();
@@ -276,6 +276,7 @@ describe("Advanced sample creation features", () => {
     cy.get(".vs__dropdown-menu").within(() => {
       cy.findByText("testB").click();
     });
+    cy.wait(1000);
     cy.findByText("Submit").click();
     verifySample("testBcopy", "COPY OF the second test sample");
   });

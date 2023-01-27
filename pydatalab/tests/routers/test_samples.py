@@ -75,11 +75,9 @@ def test_save_bad_sample(client, default_sample_dict):
         "/save-item/",
         json={"item_id": default_sample_dict["item_id"], "data": updated_sample},
     )
-    assert response.status_code == 400
-    assert response.json["status"] == "error"
-    assert response.json["message"].startswith(
-        "Unable to update item item_id='12345' (item_type='samples') with new data"
-    )
+    assert response.status_code == 200
+    response = client.get(f"/get-item-data/{default_sample_dict['item_id']}")
+    assert "unknown_key" not in response.json["item_data"]
 
 
 @pytest.mark.dependency(depends=["test_new_sample"])
