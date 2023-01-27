@@ -3,7 +3,11 @@
     <Modal
       :modelValue="modelValue"
       @update:modelValue="$emit('update:modelValue', $event)"
-      :disableSubmit="Boolean(sampleIDValidationMessage) || !Boolean(item_id)"
+      :disableSubmit="
+        sampleIDValidationMessages.some((el) => {
+          Boolean(el);
+        }) || samples.some((s) => !Boolean(s.item_id))
+      "
     >
       <template v-slot:header> Add new samples </template>
       <template v-slot:body>
@@ -109,37 +113,40 @@
               <th style="width: 2rem"></th>
             </tr>
           </thead>
-          <tr v-for="(sample, index) in samples" :key="index">
-            <td>
-              <input
-                class="form-control"
-                v-model="sample.item_id"
-                @input="this.sampleTemplate.item_id = ''"
-              />
-            </td>
-            <td>
-              <input
-                class="form-control"
-                v-model="sample.name"
-                @input="this.sampleTemplate.name = ''"
-              />
-            </td>
-            <td><input class="form-control" type="date" v-model="sample.date" /></td>
-            <td><ItemSelect v-model="sample.copyFrom" :formattedItemNameMaxLength="8" /></td>
-            <td>
-              <ItemSelect v-model="sample.components" multiple :formattedItemNameMaxLength="8" />
-            </td>
-            <td>
-              <button
-                type="button"
-                class="close"
-                @click.stop="removeRow(index)"
-                aria-label="delete"
-              >
-                <span aria-hidden="true">&times;</span>
-              </button>
-            </td>
-          </tr>
+          <template v-for="(sample, index) in samples" :key="index">
+            <tr>
+              <td>
+                <input
+                  class="form-control"
+                  v-model="sample.item_id"
+                  @input="this.sampleTemplate.item_id = ''"
+                />
+              </td>
+              <td>
+                <input
+                  class="form-control"
+                  v-model="sample.name"
+                  @input="this.sampleTemplate.name = ''"
+                />
+              </td>
+              <td><input class="form-control" type="date" v-model="sample.date" /></td>
+              <td><ItemSelect v-model="sample.copyFrom" :formattedItemNameMaxLength="8" /></td>
+              <td>
+                <ItemSelect v-model="sample.components" multiple :formattedItemNameMaxLength="8" />
+              </td>
+              <td>
+                <button
+                  type="button"
+                  class="close"
+                  @click.stop="removeRow(index)"
+                  aria-label="delete"
+                >
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </td>
+            </tr>
+            <td class="form-error" colspan="3" v-html="sampleIDValidationMessages[index]" />
+          </template>
         </table>
       </template>
     </Modal>
@@ -160,14 +167,21 @@ export default {
       nSamples: 3,
       samples: [
         {
-          item_id: "",
+          item_id: null,
           name: "",
           copyFrom: null,
           components: null,
           date: new Date().toISOString().split("T")[0],
         },
         {
-          item_id: "",
+          item_id: null,
+          name: "",
+          copyFrom: null,
+          components: null,
+          date: new Date().toISOString().split("T")[0],
+        },
+        {
+          item_id: null,
           name: "",
           copyFrom: null,
           components: null,
@@ -199,21 +213,26 @@ export default {
         ? this.$store.state.sample_list.map((x) => x.item_id)
         : [];
     },
-    sampleIDValidationMessage() {
-      if (this.item_id == null) {
-        return "";
-      } // Don't throw an error before the user starts typing
+    sampleIDValidationMessages() {
+      return this.samples.map((sample) => {
+        if (sample.item_id == null) {
+          return "";
+        } // Don't throw an error before the user starts typing
 
-      if (this.takenItemIds.includes(this.item_id) || this.takenSampleIds.includes(this.item_id)) {
-        return `<a href='edit/${this.item_id}'>${this.item_id}</a> already in use.`;
-      }
-      if (/\s/.test(this.item_id)) {
-        return "ID cannot have any spaces";
-      }
-      if (this.item_id.length < 1 || this.item_id.length > 40) {
-        return "ID must be between 1 and 40 characters in length";
-      }
-      return "";
+        if (
+          this.takenItemIds.includes(sample.item_id) ||
+          this.takenSampleIds.includes(sample.item_id)
+        ) {
+          return `<a href='edit/${sample.item_id}'>${sample.item_id}</a> already in use.`;
+        }
+        if (/\s/.test(sample.item_id)) {
+          return "ID cannot have any spaces";
+        }
+        if (sample.item_id.length < 1 || sample.item_id.length > 40) {
+          return "ID must be between 1 and 40 characters in length";
+        }
+        return "";
+      });
     },
   },
   methods: {
@@ -367,6 +386,15 @@ export default {
   -webkit-transform: rotate(90deg);
   -moz-transform: rotate(90deg);
   transform: rotate(90deg);
+}
+
+.form-error {
+  color: red;
+}
+
+:deep(.form-error a) {
+  color: #820000;
+  font-weight: 600;
 }
 
 .modal-enclosure >>> .modal-header {
