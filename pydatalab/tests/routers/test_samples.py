@@ -268,3 +268,38 @@ def test_saved_sample_has_new_relationships(client, default_sample_dict, complic
         f"/get-item-data/{complicated_sample.item_id}",
     )
     assert sample_dict["item_id"] in response.json["child_items"]
+
+
+@pytest.mark.dependency(depends=["test_saved_sample_has_new_relationships"])
+def test_copy_from_sample(client, complicated_sample):
+    """Create a sample, add a constituent and save it, then create a new
+    sample that copies from the old, potentially adding another consituent.
+
+    """
+    complicated_sample.item_id = "new_complicated_sample"
+    complicated_sample_json = json.loads(complicated_sample.json())
+    response = client.post("/new-sample/", json=complicated_sample_json)
+
+    # Test that 201: Created is emitted
+    assert response.status_code == 201, response.json
+    assert response.json["status"] == "success"
+
+    # Now try to directly make a copy that has the same data with a new ID
+    copy_doc = {"item_id": "copy_of_complicated_sample"}
+    copy_request = {"new_sample_data": copy_doc, "copy_from_item_id": complicated_sample.item_id}
+    response = client.post("/new-sample/", json=copy_request)
+
+    assert response.status_code == 201, response.json
+    assert response.json["status"] == "success"
+
+    copy_doc = {"item_id": "copy_of_complicated_sample"}
+
+    response = client.get(
+        f"/get-item-data/{copy_doc['item_id']}",
+    )
+
+    assert response.json["parent_items"] == [
+        "starting_material_1",
+        "starting_material_2",
+        "starting_material_3",
+    ]
