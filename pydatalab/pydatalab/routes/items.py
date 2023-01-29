@@ -133,6 +133,7 @@ def get_samples():
                         "nblocks": {"$size": "$display_order"},
                         "creators": {
                             "display_name": 1,
+                            "contact_email": 1,
                         },
                         "date": 1,
                         "chemform": 1,
@@ -269,7 +270,12 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
         ]
     else:
         new_sample["creator_ids"] = [current_user.person.immutable_id]
-        new_sample["creators"] = [{"display_name": current_user.person.display_name}]
+        new_sample["creators"] = [
+            {
+                "display_name": current_user.person.display_name,
+                "contact_email": current_user.person.contact_email,
+            }
+        ]
 
     # check to make sure that item_id isn't taken already
     if flask_mongo.db.items.find_one({"item_id": sample_dict["item_id"]}):
@@ -315,9 +321,9 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
                 "date": new_sample.date,
                 "name": new_sample.name,
                 "creator_ids": new_sample.creator_ids,
-                "creators": [c.json() for c in new_sample.creators]
+                "creators": [json.loads(c.json()) for c in new_sample.creators]
                 if new_sample.creators
-                else None,
+                else [],
             },
         },
         201,  # 201: Created
