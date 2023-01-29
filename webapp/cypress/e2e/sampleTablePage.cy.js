@@ -276,7 +276,6 @@ describe("Advanced sample creation features", () => {
     cy.get(".vs__dropdown-menu").within(() => {
       cy.findByText("testB").click();
     });
-    cy.wait(1000);
     cy.findByText("Submit").click();
     verifySample("testBcopy", "COPY OF the second test sample");
   });
@@ -288,8 +287,8 @@ describe("Advanced sample creation features", () => {
     cy.findByText("this is a description of testB.");
     cy.findByText("a comment is added here.");
     cy.findByText("a description of the synthesis here");
-    cy.findByText("component3");
-    cy.findByText("component4");
+    cy.findAllByText("component3");
+    cy.findAllByText("component4");
     cy.get("#synthesis-information input").eq(0).should("have.value", "30"); // eq(1) gets the second element that matches
     cy.get("#synthesis-information input").eq(1).should("have.value", "100"); // eq(1) gets the second element that matches
   });
@@ -322,9 +321,9 @@ describe("Advanced sample creation features", () => {
     cy.findByText("this is a description of testB.");
     cy.findByText("a comment is added here.");
     cy.findByText("a description of the synthesis here");
-    cy.findByText("component3");
-    cy.findByText("component4");
-    cy.findByText("component2");
+    cy.findAllByText("component3");
+    cy.findAllByText("component4");
+    cy.findAllByText("component2");
     cy.get("#synthesis-information input").eq(0).should("have.value", "30"); // eq(1) gets the second element that matches
     cy.get("#synthesis-information input").eq(1).should("have.value", "100"); // eq(1) gets the second element that matches
     cy.get("#synthesis-information input").eq(2).should("have.value", ""); // eq(1) gets the second element that matches

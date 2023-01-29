@@ -231,7 +231,7 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
                 constituent["item"]["item_id"]
                 for constituent in copied_doc["synthesis_constituents"]
             ]
-            copied_doc.synthesis_constituents += [
+            copied_doc["synthesis_constituents"] += [
                 constituent
                 for constituent in sample_dict["synthesis_constituents"]
                 if (constituent["item"]["item_id"] not in existing_consituent_ids)
