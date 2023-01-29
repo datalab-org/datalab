@@ -219,10 +219,20 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
                 404,
             )
 
-        # the provided item_id, name, and date take precedence over the copied parameters
-        copied_doc["item_id"] = sample_dict["item_id"]
-        copied_doc["name"] = sample_dict["name"]
-        copied_doc["date"] = sample_dict["date"]
+        # the provided item_id, name, and date take precedence over the copied parameters, if provided
+        try:
+            copied_doc["item_id"] = sample_dict["item_id"]
+        except KeyError:
+            return (
+                dict(
+                    status="error",
+                    message=f"Request to copy sample with id {copy_from_item_id} to new item failed because the target new item_id was not provided.",
+                ),
+                404,
+            )
+
+        copied_doc["name"] = sample_dict.get("name")
+        copied_doc["date"] = sample_dict.get("date")
 
         # any provided constituents will be added to the synthesis information table in
         # addition to the constituents copied from the copy_from_item_id, avoiding duplicates
@@ -233,7 +243,7 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
             ]
             copied_doc["synthesis_constituents"] += [
                 constituent
-                for constituent in sample_dict["synthesis_constituents"]
+                for constituent in sample_dict.get("synthesis_constituents", [])
                 if (constituent["item"]["item_id"] not in existing_consituent_ids)
             ]
 
