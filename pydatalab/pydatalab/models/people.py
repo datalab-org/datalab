@@ -67,7 +67,7 @@ class Person(Entry):
     type: str = Field("people", const=True)
     """The entry type as a string."""
 
-    identities: List[Identity]
+    identities: List[Identity] = Field(default_factory=list)
     """A list of identities attached to this person, e.g., email addresses, OAuth accounts."""
 
     display_name: Optional[str]
@@ -86,11 +86,6 @@ class Person(Entry):
     @validator("type", pre=True)
     def set_default_type(cls, _):
         return "people"
-
-    class Config:
-        allow_population_by_field_name = True
-        extra = "forbid"
-        json_encoders = {bson.ObjectId: str}
 
     @staticmethod
     def new_user_from_identity(
