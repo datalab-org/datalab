@@ -125,18 +125,26 @@ export default {
         this.selectedItemToCopy && this.selectedItemToCopy.item_id
       )
         .then(() => {
+          this.$emit("update:modelValue", false); // close this modal
+          // Disable scroll now that items are added to the top by default
+          // document.getElementById(this.item_id).scrollIntoView({ behavior: "smooth" });
           this.item_id = null;
           this.name = null;
           this.date = this.now(); // reset date to the new current time
-
-          this.$emit("update:modelValue", false); // close this modal
-          document.getElementById(this.item_id).scrollIntoView({ behavior: "smooth" });
         })
         .catch((error) => {
-          if (error.includes("item_id_validation_error")) {
-            this.takenItemIds.push(this.item_id);
-          } else {
-            alert("Error with creating new sample: " + error);
+          let is_item_id_error = false;
+          try {
+            if (error.includes("item_id_validation_error")) {
+              this.takenItemIds.push(this.item_id);
+              is_item_id_error = true;
+            }
+          } catch (e) {
+            console.log("error parsing error message", e);
+          } finally {
+            if (!is_item_id_error) {
+              alert("Error with creating new sample: " + error);
+            }
           }
         });
     },
