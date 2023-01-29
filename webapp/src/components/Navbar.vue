@@ -7,14 +7,25 @@
   </div>
   <div class="row justify-content-center">
     <div v-if="currentUser != null">
-      <b>{{ currentUser }}</b> <i>({{ currentUserID }})</i> &nbsp;<a
-        :href="this.api_url + '/logout'"
-        class="btn btn-default btn-link text-primary"
+      <b>{{ currentUser }}&nbsp;&nbsp;</b>
+      <img
+        :src="
+          'https://www.gravatar.com/avatar/' +
+          md5(this.currentUserInfo.contact_email || this.currentUserInfo.display_name) +
+          '?s=36&d=' +
+          this.gravatar_style
+        "
+        class="avatar"
+        width="36"
+        height="36"
+        :title="this.currentUserInfo.display_name"
+      />
+      &nbsp;&nbsp;<a :href="this.apiUrl + '/logout'" class="btn btn-default btn-link text-primary"
         >Logout</a
       >
     </div>
     <div v-else class="btn btn-default">
-      <a :href="this.api_url + '/login/github'">Login</a>
+      <a :href="this.apiUrl + '/login/github'">Login</a>
     </div>
   </div>
   <div id="nav">
@@ -26,8 +37,9 @@
 </template>
 
 <script>
-import { API_URL, LOGO_URL, HOMEPAGE_URL } from "@/resources.js";
+import { API_URL, LOGO_URL, HOMEPAGE_URL, GRAVATAR_STYLE } from "@/resources.js";
 import { getUserInfo } from "@/server_fetch_utils.js";
+import crypto from "crypto";
 
 export default {
   name: "Navbar",
@@ -37,8 +49,9 @@ export default {
       logo_url: LOGO_URL,
       homepage_url: HOMEPAGE_URL,
       loginModalIsOpen: false,
+      gravatar_style: GRAVATAR_STYLE,
       currentUser: null,
-      currentUserID: null,
+      currentUserInfo: {},
     };
   },
   methods: {
@@ -46,8 +59,17 @@ export default {
       let user = await getUserInfo();
       if (user != null) {
         this.currentUser = user.display_name;
-        this.currentUserID = user.immutable_id;
+        this.currentUserInfo = {
+          display_name: user.display_name || "",
+          immutable_id: user.immutable_id,
+          contact_email: user.contact_email || "",
+        };
+        console.log(this.currentUser, this.currentUserInfo);
       }
+    },
+    md5(value) {
+      // Returns the MD5 hash of the given string.
+      return crypto.createHash("md5").update(value).digest("hex");
     },
   },
   mounted() {
@@ -69,5 +91,13 @@ export default {
 a > .logo-banner:hover {
   filter: alpha(opacity=40);
   opacity: 0.4;
+}
+
+.avatar {
+  border: 2px solid skyblue;
+  border-radius: 50%;
+}
+.avatar:hover {
+  border: 2px solid grey;
 }
 </style>
