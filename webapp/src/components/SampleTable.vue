@@ -29,7 +29,18 @@
         <td align="center">{{ $filters.IsoDatetimeToDate(sample.date) }}</td>
         <td align="center">
           <div v-for="creator in sample.creators" :key="creator.display_name">
-            {{ creator.display_name }},
+            <img
+              :src="
+                'https://www.gravatar.com/avatar/' +
+                md5(creator.contact_email || creator.display_name) +
+                '?s=20&d=' +
+                this.gravatar_style
+              "
+              class="avatar"
+              width="20"
+              height="20"
+              :title="creator.display_name"
+            />
           </div>
         </td>
         <td align="right">{{ sample.nblocks }}</td>
@@ -51,11 +62,14 @@
 <script>
 import ChemicalFormula from "@/components/ChemicalFormula";
 import { getSampleList, deleteSample } from "@/server_fetch_utils.js";
+import crypto from "crypto";
+import { GRAVATAR_STYLE } from "@/resources.js";
 
 export default {
   data() {
     return {
       isSampleFetchError: false,
+      gravatar_style: GRAVATAR_STYLE,
     };
   },
   computed: {
@@ -64,6 +78,10 @@ export default {
     },
   },
   methods: {
+    md5(value) {
+      // Returns the MD5 hash of the given string.
+      return crypto.createHash("md5").update(value).digest("hex");
+    },
     goToEditPage(item_id) {
       this.$router.push(`/edit/${item_id}`);
     },
@@ -92,3 +110,13 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.avatar {
+  border: 2px solid grey;
+  border-radius: 50%;
+}
+.avatar:hover {
+  border: 2px solid skyblue;
+}
+</style>

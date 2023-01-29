@@ -15,6 +15,7 @@ export const API_TOKEN = process.env.VUE_APP_API_TOKEN;
 
 export const LOGO_URL = process.env.VUE_APP_LOGO_URL;
 export const HOMEPAGE_URL = process.env.VUE_APP_HOMEPAGE_URL;
+export const GRAVATAR_STYLE = "robohash";
 
 export const debounceTime = 250; // time after user stops typing before request is sent
 
