@@ -33,6 +33,10 @@ export default createStore({
       // sampleSummary is a json object summarizing the new sample
       state.sample_list.push(sampleSummary);
     },
+    prependToSampleList(state, sampleSummary) {
+      // sampleSummary is a json object summarizing the new sample
+      state.sample_list.unshift(sampleSummary);
+    },
     deleteFromSampleList(state, sample_summary) {
       const index = state.sample_list.indexOf(sample_summary);
       if (index > -1) {
