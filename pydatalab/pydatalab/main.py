@@ -81,10 +81,12 @@ def create_app(config_override: Dict[str, Any] = None) -> Flask:
             the embedded inputs.
 
         """
-        from pydatalab.routes import (
-            ENDPOINTS,  # pylint: disable=import-outside-toplevel
+        from pydatalab.routes import (  # pylint: disable=import-outside-toplevel
+            ENDPOINTS,
+            auth,
         )
-        from pydatalab.routes.auth import OAUTH_PROXIES
+
+        OAUTH_PROXIES = auth.OAUTH_PROXIES
 
         connected = True
         try:
@@ -199,8 +201,9 @@ def create_app(config_override: Dict[str, Any] = None) -> Flask:
 def register_endpoints(app: Flask):
     """Loops through the implemented endpoints, blueprints and error handlers adds them to the app."""
     from pydatalab.errors import ERROR_HANDLERS
-    from pydatalab.routes import ENDPOINTS
-    from pydatalab.routes.auth import OAUTH_BLUEPRINTS
+    from pydatalab.routes import ENDPOINTS, auth
+
+    OAUTH_BLUEPRINTS = auth.OAUTH_BLUEPRINTS
 
     for rule, func in ENDPOINTS.items():
         app.add_url_rule(rule, func.__name__, logged_route(func))
