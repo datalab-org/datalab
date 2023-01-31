@@ -314,14 +314,20 @@ create_sample.methods = ("POST",)  # type: ignore
 
 def create_samples():
     """attempt to create multiple samples at once.
-    Beacuse each may result in success or failure, 207 is returned along with a
+    Because each may result in success or failure, 207 is returned along with a
     json field containing all the individual http_codes"""
 
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
 
     sample_jsons = request_json["sample_jsons"]
+    copy_from_item_ids = request_json.get("copy_from_item_ids")
+    if copy_from_item_ids is None:
+        copy_from_item_ids = [None] * len(sample_jsons)
 
-    outputs = [_create_sample(sample_json) for sample_json in sample_jsons]
+    outputs = [
+        _create_sample(sample_json, copy_from_item_id)
+        for sample_json, copy_from_item_id in zip(sample_jsons, copy_from_item_ids)
+    ]
     responses, http_codes = zip(outputs)
 
     statuses = [response["status"] for response in responses]
