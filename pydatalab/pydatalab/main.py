@@ -201,12 +201,19 @@ def create_app(config_override: Dict[str, Any] = None) -> Flask:
 def register_endpoints(app: Flask):
     """Loops through the implemented endpoints, blueprints and error handlers adds them to the app."""
     from pydatalab.errors import ERROR_HANDLERS
-    from pydatalab.routes import ENDPOINTS, auth
+    from pydatalab.routes import ENDPOINTS, __api_version__, auth
 
     OAUTH_BLUEPRINTS = auth.OAUTH_BLUEPRINTS
 
     for rule, func in ENDPOINTS.items():
-        app.add_url_rule(rule, func.__name__, logged_route(func))
+        major, minor, patch = __api_version__.split(".")
+        versions = ["", f"/v{major}", f"/v{major}.{minor}", f"/v{major}.{minor}.{patch}"]
+        for ver in versions:
+            app.add_url_rule(
+                f"{ver}{rule}",
+                f"{ver}{rule}",
+                logged_route(func),
+            )
 
     for bp in OAUTH_BLUEPRINTS:
         app.register_blueprint(OAUTH_BLUEPRINTS[bp], url_prefix="/login")
