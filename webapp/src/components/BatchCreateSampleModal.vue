@@ -214,10 +214,20 @@ export default {
         : [];
     },
     sampleIDValidationMessages() {
-      return this.samples.map((sample) => {
+      return this.samples.map((sample, index, samples) => {
         if (sample.item_id == null) {
           return "";
         } // Don't throw an error before the user starts typing
+
+        // check that sample id isn't repeated in this table
+        if (
+          samples
+            .slice(0, index)
+            .map((el) => el.item_id)
+            .includes(sample.item_id)
+        ) {
+          return "ID cannot be repeated in this dialogue.";
+        }
 
         if (
           this.takenItemIds.includes(sample.item_id) ||
