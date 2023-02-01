@@ -16,6 +16,7 @@ from flask_login import current_user, login_user
 from flask_login.utils import LocalProxy
 
 from pydatalab.config import CONFIG
+from pydatalab.errors import UserRegistrationForbidden
 from pydatalab.logger import LOGGER
 from pydatalab.login import LoginUser
 from pydatalab.models.people import Identity, IdentityType, Person
@@ -158,7 +159,7 @@ def find_create_or_modify_user(
         # If there is no current authenticated user, make one with the current OAuth identity
         else:
             if not create_account:
-                raise RuntimeError("Cannot make account: given identity was not on allow list.")
+                raise UserRegistrationForbidden
 
             user = Person.new_user_from_identity(identity, use_display_name=True)
             login_user(LoginUser(_id=user.immutable_id, data=user))
