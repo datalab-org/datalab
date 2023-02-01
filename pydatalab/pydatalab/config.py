@@ -4,7 +4,9 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
-from pydantic import BaseSettings, Field, root_validator
+from pydantic import AnyUrl, BaseModel, BaseSettings, Field, root_validator, validator
+
+from pydatalab.models import Person
 
 
 def config_file_settings(settings: BaseSettings) -> Dict[str, Any]:
@@ -29,6 +31,24 @@ def config_file_settings(settings: BaseSettings) -> Dict[str, Any]:
         res = {}
 
     return res
+
+
+class DeploymentMetadata(BaseModel):
+
+    maintainer: Optional[Person]
+    issue_tracker: Optional[AnyUrl]
+    homepage: Optional[AnyUrl]
+    source_repository: Optional[AnyUrl]
+
+    @validator("maintainer")
+    def strip_fields_from_person(cls, v):
+        if not v.contact_email:
+            raise ValueError("Must provide contact email for maintainer.")
+
+        return Person(contact_email=v.contact_email, display_name=v.display_name)
+
+    class Config:
+        extra = "allow"
 
 
 class ServerConfig(BaseSettings):
@@ -74,6 +94,10 @@ class ServerConfig(BaseSettings):
     GITHUB_ORG_ALLOW_LIST: Optional[List[str]] = Field(
         None,
         description="A list of GitHub organization IDs (not names), that the membership of which will be required to register a new datalab account.",
+    )
+
+    DEPLOYMENT_METADATA: Optional[DeploymentMetadata] = Field(
+        None, description="A dictionary containing metadata to serve at `/info`."
     )
 
     @root_validator
