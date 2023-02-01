@@ -54,7 +54,7 @@ def create_app(config_override: Dict[str, Any] = None) -> Flask:
 
     register_endpoints(app)
 
-    pydatalab.mongo.create_default_indices()
+    # pydatalab.mongo.create_default_indices()
 
     @app.route("/logout")
     def logout():
