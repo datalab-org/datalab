@@ -145,7 +145,7 @@ def test_full_text_search(client, real_mongo_client, example_items):
     assert response.json["items"][2]["item_id"] == "12345"
 
 
-@pytest.mark.dependency(depends=["test_create_indices"])
+@pytest.mark.dependency(depends=["test_delete_sample"])
 def test_new_sample_with_relationships(client, complicated_sample):
 
     complicated_sample_json = json.loads(complicated_sample.json())

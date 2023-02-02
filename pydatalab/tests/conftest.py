@@ -12,13 +12,22 @@ from pydatalab.models import Sample, StartingMaterial
 
 
 class PyMongoMock(mongomock.MongoClient):
-    def init_app(self, _):
+    def init_app(self, _, *args, **kwargs):
         return super().__init__()
 
 
 # Must remain as `db` so that calls to flask_mongo.db remain correct
 TEST_DATABASE_NAME = "db"
 MONGO_URI = f"mongodb://localhost:27017/{TEST_DATABASE_NAME}"
+
+
+@pytest.fixture(scope="session")
+def monkeypatch_session():
+    from _pytest.monkeypatch import MonkeyPatch
+
+    m = MonkeyPatch()
+    yield m
+    m.undo()
 
 
 @pytest.fixture(scope="session")
@@ -36,7 +45,7 @@ def real_mongo_client() -> Union[pymongo.MongoClient, None]:
 
 
 @pytest.fixture(scope="session")
-def client(real_mongo_client):
+def client(real_mongo_client, monkeypatch_session):
     """Returns a test client for the API. If it exists,
     connects to a local MongoDB, otherwise uses the
     mongomock testing backend.
@@ -47,6 +56,11 @@ def client(real_mongo_client):
         "name": "example_data",
         "hostname": None,
         "path": Path(__file__).parent.joinpath("../example_data/"),
+    }
+    test_app_config = {
+        "MONGO_URI": MONGO_URI,
+        "REMOTE_FILESYSTEMS": [example_remote],
+        "TESTING": True,
     }
 
     try:
@@ -62,13 +76,7 @@ def client(real_mongo_client):
                 "try dropping it before running the tests if this is desired."
             )
 
-        app = create_app(
-            {
-                "MONGO_URI": MONGO_URI,
-                "REMOTE_FILESYSTEMS": [example_remote],
-                "TESTING": True,
-            }
-        )
+        app = create_app(test_app_config)
 
         with app.test_client() as cli:
             yield cli
@@ -81,12 +89,14 @@ def client(real_mongo_client):
             "flask_mongo",
             PyMongoMock(connectTimeoutMS=100, serverSelectionTimeoutMS=100),
         ):
-            app = create_app(
-                {
-                    "MONGO_URI": MONGO_URI,
-                    "REMOTE_FILESYSTEMS": [example_remote],
-                }
+
+            def mock_mongo_client():
+                return PyMongoMock(connectTimeoutMS=100, serverSelectionTimeoutMS=100)
+
+            monkeypatch_session.setattr(
+                pydatalab.mongo, "_get_active_mongo_client", mock_mongo_client
             )
+            app = create_app(test_app_config)
 
             with app.test_client() as cli:
                 yield cli

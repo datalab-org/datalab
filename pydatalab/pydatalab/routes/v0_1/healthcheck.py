@@ -27,5 +27,5 @@ is_ready.methods = ("GET",)  # type: ignore
 
 ENDPOINTS: Dict[str, Callable] = {
     "/healthcheck/is_alive": is_alive,
-    "/healthcheck/is_ready/": is_ready,
+    "/healthcheck/is_ready": is_ready,
 }
