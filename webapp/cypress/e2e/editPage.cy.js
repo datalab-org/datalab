@@ -20,13 +20,17 @@ describe("Sample table page", () => {
     cy.findByText("Samples").should("exist");
     cy.findByText("Add a sample").should("exist");
     cy.findByText("# of blocks").should("exist");
+    cy.wait(1000).then((x) => {
+      cy.contains("Server Error. Sample list not retreived.").should("not.exist");
+      expect(consoleSpy).not.to.be.called;
+    });
   });
 
   it("Adds a valid sample", () => {
     cy.findByText("Add a sample").click();
     cy.findByText("Add new sample").should("exist");
     cy.findByLabelText("Sample ID:").type("editable_sample");
-    cy.findByLabelText("Date Created:").type("1990-01-07");
+    cy.findByLabelText("Date Created:").type("1990-01-07T00:00");
 
     cy.findByLabelText("Sample Name:").type("This is a sample name");
     cy.contains("Submit").click();

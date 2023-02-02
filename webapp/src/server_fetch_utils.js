@@ -96,7 +96,7 @@ export function createNewSample(item_id, date, name, startingData = {}, copyFrom
     console.log("received the following data from fetch new-sample:");
     console.log(response_json.sample_list_entry);
     console.log(`item_id: ${item_id}`);
-    store.commit("appendToSampleList", response_json.sample_list_entry);
+    store.commit("prependToSampleList", response_json.sample_list_entry);
     // store.commit('createSampleData', {
     //  "item_id": item_id,
     //  "sample_data": response_json.sample_data
@@ -201,6 +201,8 @@ export async function getItemData(item_id) {
       store.commit("createItemData", {
         item_id: item_id,
         item_data: response_json.item_data,
+        child_items: response_json.child_items,
+        parent_items: response_json.parent_items,
       });
       store.commit("updateFiles", response_json.files_data);
 

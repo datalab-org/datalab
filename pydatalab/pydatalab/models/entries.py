@@ -45,7 +45,53 @@ class Entry(BaseModel, abc.ABC):
 
         return values
 
+    def to_reference(self, additional_fields: Optional[List[str]] = None) -> "EntryReference":
+        """Populate an EntryReference model from this entry, selecting additional fields to inline.
+
+        Parameters:
+            additional_fields: A list of fields to inline in the reference.
+
+        """
+        if additional_fields is None:
+            additional_fields = []
+
+        data = {
+            "type": self.type,
+            "item_id": getattr(self, "item_id", None),
+            "immutable_id": getattr(self, "immutable_id", None),
+        }
+        data.update({field: getattr(self, field, None) for field in additional_fields})
+
+        return EntryReference(**data)
+
     class Config:
         allow_population_by_field_name = True
         json_encoders = JSON_ENCODERS
+        extra = "ignore"
+
+
+class EntryReference(BaseModel):
+    """A reference to a database entry by ID and type.
+
+    Can include additional arbitarary metadata useful for
+    inlining the item data.
+
+    """
+
+    type: str
+    immutable_id: Optional[PyObjectId]
+    item_id: Optional[str]
+
+    @root_validator
+    def check_id_fields(cls, values):
+        """Check that only one of the possible identifier fields is provided."""
+        id_fields = ("immutable_id", "item_id")
+        if all(values[f] is None for f in id_fields):
+            raise ValueError(f"Must provide at least one of {id_fields!r}")
+        if sum(1 for f in id_fields if values[f] is not None) > 1:
+            raise ValueError("Must provide only one of {id_fields!r}")
+
+        return values
+
+    class Config:
         extra = "allow"

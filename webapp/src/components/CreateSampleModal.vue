@@ -9,14 +9,22 @@
 
       <template v-slot:body>
         <div class="form-row">
-          <div class="form-group col-md-8">
+          <div class="form-group col-md-6">
             <label for="sample-id" class="col-form-label">Sample ID:</label>
             <input v-model="item_id" type="text" class="form-control" id="sample-id" required />
             <div class="form-error" v-html="sampleIDValidationMessage"></div>
           </div>
-          <div class="form-group col-md-4">
+          <div class="form-group col-md-6">
             <label for="date" class="col-form-label">Date Created:</label>
-            <input type="date" v-model="date" class="form-control" id="date" required />
+            <input
+              type="datetime-local"
+              v-model="date"
+              class="form-control"
+              id="date"
+              :min="agesAgo"
+              :max="oneYearOn()"
+              required
+            />
           </div>
         </div>
         <div class="form-row">
@@ -63,11 +71,12 @@ export default {
   data() {
     return {
       item_id: null,
-      date: new Date().toISOString().split("T")[0], // todo: add time zone support...     }
+      date: this.now(),
       name: "",
       takenItemIds: [], // this holds ids that have been tried, whereas the computed takenSampleIds holds ids in the sample table
       selectedItemToCopy: null,
       startingConstituents: [],
+      agesAgo: new Date("1970-01-01").toISOString().slice(0, -8), // a datetime for the unix epoch start
     };
   },
   props: {
@@ -88,8 +97,8 @@ export default {
       if (this.takenItemIds.includes(this.item_id) || this.takenSampleIds.includes(this.item_id)) {
         return `<a href='edit/${this.item_id}'>${this.item_id}</a> already in use.`;
       }
-      if (/\s/.test(this.item_id)) {
-        return "ID cannot have any spaces";
+      if (!/^[a-zA-Z0-9_-]+$/.test(this.item_id)) {
+        return "ID can only contain alphanumeric characters, dashes ('-') and underscores ('_')";
       }
       if (this.item_id.length < 1 || this.item_id.length > 40) {
         return "ID must be between 1 and 40 characters in length";
@@ -116,22 +125,40 @@ export default {
         this.selectedItemToCopy && this.selectedItemToCopy.item_id
       )
         .then(() => {
-          const newId = this.item_id;
+          this.$emit("update:modelValue", false); // close this modal
+          // Disable scroll now that items are added to the top by default
+          // document.getElementById(this.item_id).scrollIntoView({ behavior: "smooth" });
           this.item_id = null;
           this.name = null;
-          this.date = new Date().toISOString().split("T")[0]; // reset the date (is this the most user-friendly behavior?)
-
-          this.$emit("update:modelValue", false); // close this modal
-          document.getElementById(newId).scrollIntoView({ behavior: "smooth" });
+          this.date = this.now(); // reset date to the new current time
         })
         .catch((error) => {
-          if (error.includes("item_id_validation_error")) {
-            this.takenItemIds.push(this.item_id);
-          } else {
-            alert("Error with creating new sample: " + error);
+          let is_item_id_error = false;
+          try {
+            if (error.includes("item_id_validation_error")) {
+              this.takenItemIds.push(this.item_id);
+              is_item_id_error = true;
+            }
+          } catch (e) {
+            console.log("error parsing error message", e);
+          } finally {
+            if (!is_item_id_error) {
+              alert("Error with creating new sample: " + error);
+            }
           }
         });
     },
+    oneYearOn() {
+      // returns a timestamp 1 year from now
+      let d = new Date();
+      d.setFullYear(d.getFullYear() + 1);
+      return d.toISOString().slice(0, -8);
+    },
+    now() {
+      // returns a timestamp for right now
+      return new Date().toISOString().slice(0, -8);
+    },
+
     setCopiedName() {
       if (!this.selectedItemToCopy) {
         this.name = "";

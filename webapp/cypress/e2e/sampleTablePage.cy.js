@@ -6,7 +6,7 @@ Cypress.on("window:before:load", (win) => {
   consoleSpy = cy.spy(win.console, "error");
 });
 
-const TODAY = new Date().toISOString().split("T")[0];
+const TODAY = new Date().toISOString().slice(0, -8);
 
 function createSample(sample_id, name = null, date = null) {
   cy.findByText("Add a sample").click();
@@ -26,7 +26,7 @@ function verifySample(sample_id, name = null, date = null) {
     cy.findByText(sample_id)
       .parent("tr")
       .within(() => {
-        cy.findByText(date);
+        cy.findByText(date.split("T")[0]);
         if (name) {
           cy.findByText(name);
         }
@@ -35,7 +35,7 @@ function verifySample(sample_id, name = null, date = null) {
     cy.findByText(sample_id)
       .parent("tr")
       .within(() => {
-        cy.findByText(TODAY);
+        cy.findByText(TODAY.split("T")[0]);
         if (name) {
           cy.findByText(name);
         }
@@ -74,7 +74,7 @@ describe("Sample table page", () => {
     // time to respond.
     // Can we wait for the server response instead of hard-coding
     // a wait time in ms?
-    cy.wait(1000).then((x) => {
+    cy.wait(100).then((x) => {
       cy.contains("Server Error. Sample list not retreived.").should("not.exist");
       expect(consoleSpy).not.to.be.called;
     });
@@ -84,7 +84,7 @@ describe("Sample table page", () => {
     cy.findByText("Add a sample").click();
     cy.findByText("Add new sample").should("exist");
     cy.findByLabelText("Sample ID:").type("12345678910");
-    cy.findByLabelText("Date Created:").type("1990-01-07");
+    cy.findByLabelText("Date Created:").type("1990-01-07T00:00");
 
     cy.findByLabelText("Sample Name:").type("This is a sample name");
     cy.contains("Submit").click();
@@ -147,22 +147,22 @@ describe("Sample table page", () => {
     verifySample("test1");
     verifySample("test2", "second sample name");
 
-    createSample("test3", "third sample name", "2006-04-25");
+    createSample("test3", "third sample name", "2006-04-25T00:00");
     verifySample("test1");
     verifySample("test2", "second sample name");
-    verifySample("test3", "third sample name", "2006-04-25");
+    verifySample("test3", "third sample name", "2006-04-25T00:00");
 
     createSample("test4");
     verifySample("test1");
     verifySample("test2", "second sample name");
-    verifySample("test3", "third sample name", "2006-04-25");
+    verifySample("test3", "third sample name", "2006-04-25T00:00");
     verifySample("test4");
 
     deleteSample("test2");
     cy.contains("test2").should("not.exist");
     cy.contains("second sample name").should("not.exist");
     verifySample("test1");
-    verifySample("test3", "third sample name", "2006-04-25");
+    verifySample("test3", "third sample name", "2006-04-25T00:00");
     verifySample("test4");
 
     deleteSample("test1");
@@ -286,8 +286,8 @@ describe("Advanced sample creation features", () => {
     cy.findByText("this is a description of testB.");
     cy.findByText("a comment is added here.");
     cy.findByText("a description of the synthesis here");
-    cy.findByText("component3");
-    cy.findByText("component4");
+    cy.findAllByText("component3");
+    cy.findAllByText("component4");
     cy.get("#synthesis-information input").eq(0).should("have.value", "30"); // eq(1) gets the second element that matches
     cy.get("#synthesis-information input").eq(1).should("have.value", "100"); // eq(1) gets the second element that matches
   });
@@ -320,9 +320,9 @@ describe("Advanced sample creation features", () => {
     cy.findByText("this is a description of testB.");
     cy.findByText("a comment is added here.");
     cy.findByText("a description of the synthesis here");
-    cy.findByText("component3");
-    cy.findByText("component4");
-    cy.findByText("component2");
+    cy.findAllByText("component3");
+    cy.findAllByText("component4");
+    cy.findAllByText("component2");
     cy.get("#synthesis-information input").eq(0).should("have.value", "30"); // eq(1) gets the second element that matches
     cy.get("#synthesis-information input").eq(1).should("have.value", "100"); // eq(1) gets the second element that matches
     cy.get("#synthesis-information input").eq(2).should("have.value", ""); // eq(1) gets the second element that matches

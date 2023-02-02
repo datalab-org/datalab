@@ -70,10 +70,10 @@ export default {
   },
   computed: {
     parents() {
-      return this.$store.state.all_item_data[this.item_id]?.parent_items;
+      return this.$store.state.all_item_parents[this.item_id];
     },
     children() {
-      return this.$store.state.all_item_data[this.item_id]?.child_items;
+      return this.$store.state.all_item_children[this.item_id];
     },
     graphData() {
       return this.$store.state.itemGraphData;

@@ -6,6 +6,9 @@ on:
     branches:
       - main
 
+env:
+  FORCE_COLOR: true
+
 concurrency:
   group: ${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
@@ -90,6 +93,8 @@ jobs:
 
       - name: Set up Node
         uses: actions/setup-node@v3
+        env:
+          FORCE_COLOR: 0
         with:
           node-version: "16.15.0"
           cache: "yarn"
@@ -120,8 +125,10 @@ jobs:
 
       - name: Run end-to-end tests
         working-directory: ./webapp
+        env:
+          CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
         run: |
-          yarn test:e2e  --headless --url http://localhost:8081
+          yarn test:e2e  --headless --url http://localhost:8081 --record
 
       - name: Archive video from cypress
         if: success() || failure()
@@ -129,3 +136,10 @@ jobs:
         with:
           name: Cypress video
           path: /home/runner/work/datalabvue/datalabvue/webapp/cypress/videos/*.cy.js.mp4
+
+      - name: Archive any failure screenshots from Cypress
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: Cypress screenshots
+          path: /home/runner/work/datalabvue/datalabvue/webapp/cypress/screenshots/*/*.png

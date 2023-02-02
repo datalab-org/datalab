@@ -81,10 +81,12 @@ def create_app(config_override: Dict[str, Any] = None) -> Flask:
             the embedded inputs.
 
         """
-        from pydatalab.routes import (
-            ENDPOINTS,  # pylint: disable=import-outside-toplevel
+        from pydatalab.routes import (  # pylint: disable=import-outside-toplevel
+            ENDPOINTS,
+            auth,
         )
-        from pydatalab.routes.auth import OAUTH_PROXIES
+
+        OAUTH_PROXIES = auth.OAUTH_PROXIES
 
         connected = True
         try:
@@ -197,15 +199,27 @@ def create_app(config_override: Dict[str, Any] = None) -> Flask:
 
 
 def register_endpoints(app: Flask):
-    """Loops through the implemented endpoints and blueprints and adds them to the app."""
-    from pydatalab.routes import ENDPOINTS
-    from pydatalab.routes.auth import OAUTH_BLUEPRINTS
+    """Loops through the implemented endpoints, blueprints and error handlers adds them to the app."""
+    from pydatalab.errors import ERROR_HANDLERS
+    from pydatalab.routes import ENDPOINTS, __api_version__, auth
+
+    OAUTH_BLUEPRINTS = auth.OAUTH_BLUEPRINTS
 
     for rule, func in ENDPOINTS.items():
-        app.add_url_rule(rule, func.__name__, logged_route(func))
+        major, minor, patch = __api_version__.split(".")
+        versions = ["", f"/v{major}", f"/v{major}.{minor}", f"/v{major}.{minor}.{patch}"]
+        for ver in versions:
+            app.add_url_rule(
+                f"{ver}{rule}",
+                f"{ver}{rule}",
+                logged_route(func),
+            )
 
     for bp in OAUTH_BLUEPRINTS:
         app.register_blueprint(OAUTH_BLUEPRINTS[bp], url_prefix="/login")
+
+    for exception_type, handler in ERROR_HANDLERS:
+        app.register_error_handler(exception_type, handler)
 
 
 if __name__ == "__main__":

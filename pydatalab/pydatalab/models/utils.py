@@ -1,8 +1,52 @@
 import datetime
+from enum import Enum
 
 import pint
 from bson.objectid import ObjectId
+from pydantic import ConstrainedStr, parse_obj_as
 from typing_extensions import TypeAlias
+
+
+class ItemType(str, Enum):
+    """An enumeration of the types of items known by this implementation, should be made dynamic in the future."""
+
+    SAMPLES = "samples"
+    STARTING_MATERIALS = "starting_materials"
+
+
+class KnownType(str, Enum):
+    """An enumeration of the types of entry known by this implementation, should be made dynamic in the future."""
+
+    SAMPLES = "samples"
+    STARTING_MATERIALS = "starting_materials"
+    BLOCKS = "blocks"
+    FILES = "files"
+    PEOPLE = "people"
+
+
+class HumanReadableIdentifier(ConstrainedStr):
+    """Used to constrain human-readable and URL-safe identifiers for items."""
+
+    min_length = 1
+    max_length = 40
+    strip_whitespace = True
+    to_lower = False
+    strict = False
+
+    regex = r"^[a-zA-Z0-9_-]+$"
+    """A regex to match strings without characters that need URL encoding"""
+
+    def __init__(self, value):
+        self.value = parse_obj_as(type(self), value)
+
+    def __str__(self):
+        return self.value
+
+    def __repr__(self):
+        return self.value
+
+    def __bool__(self):
+        return bool(self.value)
 
 
 class PintType(str):

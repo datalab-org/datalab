@@ -1,7 +1,9 @@
 from enum import Enum
 from typing import Optional
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, root_validator, validator
+
+from pydatalab.models.utils import HumanReadableIdentifier, KnownType, PyObjectId
 
 
 class RelationshipType(str, Enum):
@@ -25,16 +27,6 @@ class RelationshipType(str, Enum):
     OTHER = "other"
 
 
-class KnownType(str, Enum):
-    """An enumeration of the types of entry known by this implementation, should be made dynamic in the future."""
-
-    SAMPLES = "samples"
-    BLOCKS = "blocks"
-    FILES = "files"
-    STARTING_MATERIALS = "starting_materials"
-    PEOPLE = "people"
-
-
 class TypedRelationship(BaseModel):
 
     description: Optional[str] = Field(
@@ -48,7 +40,13 @@ class TypedRelationship(BaseModel):
 
     type: KnownType = Field(description="The type of the related resource.")
 
-    item_id: str = Field(description="The ID of the entry that is related to this entry.")
+    immutable_id: Optional[PyObjectId] = Field(
+        description="The immutable ID of the entry that is related to this entry."
+    )
+
+    item_id: Optional[HumanReadableIdentifier] = Field(
+        description="The ID of the entry that is related to this entry."
+    )
 
     @validator("relation")
     def check_for_description(cls, v, values):
@@ -58,3 +56,14 @@ class TypedRelationship(BaseModel):
             )
 
         return v
+
+    @root_validator
+    def check_id_fields(cls, values):
+        """Check that only one of the possible identifier fields is provided."""
+        id_fields = ("immutable_id", "item_id")
+        if all(values[f] is None for f in id_fields):
+            raise ValueError(f"Must provide at least one of {id_fields!r}")
+        if sum(1 for f in id_fields if values[f] is not None) > 1:
+            raise ValueError("Must provide only one of {id_fields!r}")
+
+        return values

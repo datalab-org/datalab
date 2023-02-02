@@ -1,6 +1,6 @@
 import datetime
 import json
-from typing import Callable, Dict, List, Union
+from typing import Callable, Dict, List, Set, Union
 
 from bson import ObjectId
 from flask import jsonify, request
@@ -11,6 +11,7 @@ from pydatalab.blocks import BLOCK_TYPES
 from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER
 from pydatalab.models import ITEM_MODELS, Sample
+from pydatalab.models.relationships import RelationshipType
 from pydatalab.mongo import flask_mongo
 from pydatalab.routes.utils import get_default_permissions
 
@@ -122,6 +123,7 @@ def get_samples():
                         "as": "creators",
                     }
                 },
+                {"$sort": {"_id": -1}},
                 {
                     "$project": {
                         "_id": 0,
@@ -131,6 +133,7 @@ def get_samples():
                         "nblocks": {"$size": "$display_order"},
                         "creators": {
                             "display_name": 1,
+                            "contact_email": 1,
                         },
                         "date": 1,
                         "chemform": 1,
@@ -205,7 +208,9 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
         )
 
     if copy_from_item_id:
+
         copied_doc = flask_mongo.db.items.find_one({"item_id": copy_from_item_id})
+
         LOGGER.debug(f"Copying from prexisting item {copy_from_item_id} with data:\n{copied_doc}")
         if not copied_doc:
             return (
@@ -217,21 +222,33 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
                 404,
             )
 
-        # the provided item_id, name, and date take precedence over the copied parameters
-        copied_doc["item_id"] = sample_dict["item_id"]
-        copied_doc["name"] = sample_dict["name"]
-        copied_doc["date"] = sample_dict["date"]
+        # the provided item_id, name, and date take precedence over the copied parameters, if provided
+        try:
+            copied_doc["item_id"] = sample_dict["item_id"]
+        except KeyError:
+            return (
+                dict(
+                    status="error",
+                    message=f"Request to copy sample with id {copy_from_item_id} to new item failed because the target new item_id was not provided.",
+                ),
+                404,
+            )
+
+        copied_doc["name"] = sample_dict.get("name")
+        copied_doc["date"] = sample_dict.get("date")
 
         # any provided constituents will be added to the synthesis information table in
         # addition to the constituents copied from the copy_from_item_id, avoiding duplicates
-        existing_consituent_ids = [
-            constituent["item"]["item_id"] for constituent in copied_doc["synthesis_constituents"]
-        ]
-        copied_doc["synthesis_constituents"] += [
-            constituent
-            for constituent in sample_dict["synthesis_constituents"]
-            if (constituent["item"]["item_id"] not in existing_consituent_ids)
-        ]
+        if copied_doc.get("synthesis_constituents"):
+            existing_consituent_ids = [
+                constituent["item"]["item_id"]
+                for constituent in copied_doc["synthesis_constituents"]
+            ]
+            copied_doc["synthesis_constituents"] += [
+                constituent
+                for constituent in sample_dict.get("synthesis_constituents", [])
+                if (constituent["item"]["item_id"] not in existing_consituent_ids)
+            ]
 
         sample_dict = copied_doc
 
@@ -250,8 +267,17 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
 
     if CONFIG.TESTING:
         new_sample["creator_ids"] = []
+        new_sample["creators"] = [
+            {"display_name": "Public testing user", "contact_email": "datalab@odbx.science"}
+        ]
     else:
         new_sample["creator_ids"] = [current_user.person.immutable_id]
+        new_sample["creators"] = [
+            {
+                "display_name": current_user.person.display_name,
+                "contact_email": current_user.person.contact_email,
+            }
+        ]
 
     # check to make sure that item_id isn't taken already
     if flask_mongo.db.items.find_one({"item_id": sample_dict["item_id"]}):
@@ -301,6 +327,9 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
                 "date": new_sample.date,
                 "name": new_sample.name,
                 "creator_ids": new_sample.creator_ids,
+                "creators": [json.loads(c.json()) for c in new_sample.creators]
+                if new_sample.creators
+                else [],
             },
         },
         201,  # 201: Created
@@ -309,9 +338,13 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
 
 def create_sample():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
-    response, http_code = _create_sample(
-        request_json["new_sample_data"], request_json.get("copy_from_item_id")
-    )
+    if "new_sample_data" in request_json:
+        response, http_code = _create_sample(
+            request_json["new_sample_data"], request_json.get("copy_from_item_id")
+        )
+    else:
+        response, http_code = _create_sample(request_json)
+
     return jsonify(response), http_code
 
 
@@ -422,31 +455,37 @@ def get_item_data(item_id):
         files_data = dereference_files(doc.file_ObjectIds)
 
     # find any documents with relationships that mention this document
-
-    # option 1: use projection (will need post-processing)
-    incoming_relationships = flask_mongo.db.items.find(
-        {"item_id": doc.item_id},
-        {"item_id": 1, "relationships": {"$elemMatch": {"item_id": doc.item_id}}},
+    relationships_query_results = flask_mongo.db.items.find(
+        filter={"relationships.item_id": doc.item_id},
+        projection={"item_id": 1, "relationships": {"$elemMatch": {"item_id": doc.item_id}}},
     )
 
-    # option 2: use an aggregation pipeline:
-    # incoming_relationships = flask_mongo.db.items.aggregate(
-    #    [
-    #        {"$match": {"relationships.item_id": doc.item_id}},
-    #        {"$project": {"item_id": 1, "name": 1, "type": 1, "relationship": "$relationships"}},
-    #        {"$unwind": "$relationship"},
-    #        {"$match": {"relationship.item_id": doc.item_id}},
-    #    ]
-    # )
+    # loop over and collect all 'outer' relationships presented by other items
+    incoming_relationships: Dict[RelationshipType, Set[str]] = {}
+    for d in relationships_query_results:
+        for k in d["relationships"]:
+            if k["relation"] not in incoming_relationships:
+                incoming_relationships[k["relation"]] = set()
+            incoming_relationships[k["relation"]].add(d["item_id"])
 
-    # temporary hack: front end currently expects legacy parent_items and child_items fields,
-    # so generate them on the fly after passing through the model.
+    # loop over and aggregate all 'inner' relationships presented by this item
+    inlined_relationships: Dict[RelationshipType, Set[str]] = {}
+    if doc.relationships is not None:
+        inlined_relationships = {
+            relation: {d.item_id for d in doc.relationships if d.relation == relation}
+            for relation in RelationshipType
+        }
+
+    # reunite parents and children from both directions of the relationships field
+    parents = incoming_relationships.get(RelationshipType.CHILD, set()).union(
+        inlined_relationships.get(RelationshipType.PARENT, set())
+    )
+    children = incoming_relationships.get(RelationshipType.PARENT, set()).union(
+        inlined_relationships.get(RelationshipType.CHILD, set())
+    )
+
+    # Must be exported to JSON first to apply the custom pydantic JSON encoders
     return_dict = json.loads(doc.json())
-
-    return_dict["parent_items"] = (
-        [d["item_id"] for d in return_dict["relationships"]] if return_dict["relationships"] else []
-    )
-    return_dict["child_items"] = [d["item_id"] for d in incoming_relationships]
 
     return jsonify(
         {
@@ -454,6 +493,8 @@ def get_item_data(item_id):
             "item_id": item_id,
             "item_data": return_dict,
             "files_data": files_data,
+            "child_items": sorted(children),
+            "parent_items": sorted(parents),
         }
     )
 
@@ -512,7 +553,7 @@ def save_item():
 
     result = flask_mongo.db.items.update_one(
         {"item_id": item_id},
-        {"$set": updated_data},
+        {"$set": item},
     )
 
     if result.matched_count != 1:
