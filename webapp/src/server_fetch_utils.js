@@ -66,6 +66,7 @@ function handleResponse(response) {
   return response.text().then((text) => {
     console.log("fetch was successful");
     console.log(response);
+    console.log(text);
     const data = text && JSON.parse(text);
 
     if (!response.ok) {
@@ -101,6 +102,24 @@ export function createNewSample(item_id, date, name, startingData = {}, copyFrom
     //  "sample_data": response_json.sample_data
     // });
     return "success";
+  });
+}
+
+export function createNewSamples(newSampleDatas, copyFromItemIds = null) {
+  return fetch_post(`${API_URL}/new-samples/`, {
+    copy_from_item_ids: copyFromItemIds,
+    new_sample_datas: newSampleDatas,
+  }).then(function (response_json) {
+    console.log("received the following data from fetch new-samples:");
+    console.log(response_json);
+
+    response_json.responses.forEach((response) => {
+      if (response.status == "success") {
+        store.commit("appendToSampleList", response.sample_list_entry);
+      }
+    });
+
+    return response_json.responses;
   });
 }
 

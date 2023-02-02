@@ -63,4 +63,24 @@ body {
   border-color: #000000;
   border-width: 1px;
 }
+
+.callout {
+  padding: 1.25rem;
+  margin-top: 1.25rem;
+  margin-bottom: 1.25rem;
+  border: 1px solid #e9ecef;
+  border-left-width: 0.25rem;
+  border-radius: 0.25rem;
+}
+.callout-info {
+  border-left-color: #5bc0de;
+}
+
+.callout-warning {
+  border-left-color: #f0ad4e;
+}
+
+.callout-danger {
+  border-left-color: #d9534f;
+}
 </style>

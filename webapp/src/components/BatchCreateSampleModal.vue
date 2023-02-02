@@ -4,150 +4,215 @@
       :modelValue="modelValue"
       @update:modelValue="$emit('update:modelValue', $event)"
       :disableSubmit="
-        sampleIDValidationMessages.some((el) => {
-          Boolean(el);
-        }) || samples.some((s) => !Boolean(s.item_id))
+        sampleIDValidationMessages.some((e) => e) || samples.some((s) => !Boolean(s.item_id))
       "
     >
-      <template v-slot:header> Add new samples </template>
+      <template v-slot:header>
+        <template v-if="beforeSubmit">Add new samples</template>
+        <template v-else>
+          <a role="button" id="back-arrow" @click="beforeSubmit = true">←</a>
+          Samples added
+        </template>
+      </template>
       <template v-slot:body>
-        <div class="row">
-          <div class="col-md-8 mt-2" @click="templateIsOpen = !templateIsOpen">
-            <font-awesome-icon
-              :icon="['fas', 'chevron-right']"
-              fixed-width
-              class="collapse-arrow"
-              :class="{ expanded: templateIsOpen }"
-            />
-            <label class="blue-label collapse-clickable ml-2"> Template: </label>
-          </div>
-          <label for="batchSampleNRows" class="blue-label col-md-2 col-3 col-form-label text-left">
-            Number of rows:
-          </label>
-          <input
-            id="batchSampleNRows"
-            v-model="nSamples"
-            class="form-control col-md-1 col-2"
-            type="number"
-            min="0"
-          />
-        </div>
-
-        <div v-show="templateIsOpen" class="card bg-light mt-4 mx-auto mb-4" style="width: 95%">
-          <table class="table table-sm mb-2">
-            <thead>
-              <tr class="subheading template-subheading">
-                <th style="width: calc(12%)">ID</th>
-                <th>Name</th>
-                <th style="width: calc(15%)">Date</th>
-                <th style="width: calc(22%)">Copy from</th>
-                <th style="width: calc(22%)">Components</th>
-              </tr>
-            </thead>
-            <tbody>
-              <td>
-                <input
-                  class="form-control"
-                  v-model="sampleTemplate.item_id"
-                  @input="applyIdTemplate"
-                  placeholder="ex_{#}"
-                />
-              </td>
-              <td>
-                <input
-                  class="form-control"
-                  @input="applyNameTemplate"
-                  v-model="sampleTemplate.name"
-                  placeholder="Example name {#}"
-                />
-              </td>
-              <td>
-                <input
-                  class="form-control"
-                  type="date"
-                  v-model="sampleTemplate.date"
-                  @input="applyDateTemplate"
-                />
-              </td>
-              <td>
-                <ItemSelect
-                  v-model="sampleTemplate.copyFrom"
-                  @update:modelValue="applyCopyFromTemplate"
-                  :formattedItemNameMaxLength="8"
-                />
-              </td>
-              <td>
-                <ItemSelect
-                  v-model="sampleTemplate.components"
-                  multiple
-                  @update:modelValue="applyComponentsTemplate"
-                  :formattedItemNameMaxLength="8"
-                />
-              </td>
-            </tbody>
-          </table>
-
-          <div class="form-group mt-2 mb-1" style="display: flex">
-            <label for="start-counting" id="start-counting-label" class="px-3 col-form-label-sm">
-              start counting {#} at:
-            </label>
-            <input
-              type="number"
-              id="start-counting"
-              v-model="templateStartNumber"
-              class="form-control form-control-sm"
-              @input="applyIdAndNameTemplates"
-              style="width: 5em"
-            />
-          </div>
-        </div>
-
-        <table class="table mb-2">
-          <thead>
-            <tr class="subheading">
-              <th style="width: calc(12%)">ID</th>
-              <th>Name</th>
-              <th style="width: calc(15%)">Date</th>
-              <th style="width: calc(22%)">Copy from</th>
-              <th style="width: calc(22%) - 2rem">Components</th>
-              <th style="width: 2rem"></th>
-            </tr>
-          </thead>
-          <template v-for="(sample, index) in samples" :key="index">
-            <tr>
-              <td>
-                <input
-                  class="form-control"
-                  v-model="sample.item_id"
-                  @input="this.sampleTemplate.item_id = ''"
-                />
-              </td>
-              <td>
-                <input
-                  class="form-control"
-                  v-model="sample.name"
-                  @input="this.sampleTemplate.name = ''"
-                />
-              </td>
-              <td><input class="form-control" type="date" v-model="sample.date" /></td>
-              <td><ItemSelect v-model="sample.copyFrom" :formattedItemNameMaxLength="8" /></td>
-              <td>
-                <ItemSelect v-model="sample.components" multiple :formattedItemNameMaxLength="8" />
-              </td>
-              <td>
-                <button
-                  type="button"
-                  class="close"
-                  @click.stop="removeRow(index)"
-                  aria-label="delete"
+        <div id="screens-container">
+          <transition name="slide-content-left">
+            <div id="left-screen" v-show="beforeSubmit">
+              <div class="row">
+                <div class="col-md-8 mt-2" @click="templateIsOpen = !templateIsOpen">
+                  <font-awesome-icon
+                    :icon="['fas', 'chevron-right']"
+                    fixed-width
+                    class="collapse-arrow"
+                    :class="{ expanded: templateIsOpen }"
+                  />
+                  <label class="blue-label collapse-clickable ml-2"> Template: </label>
+                </div>
+                <label
+                  for="batchSampleNRows"
+                  class="blue-label col-md-2 col-3 col-form-label text-left mb-2"
                 >
-                  <span aria-hidden="true">&times;</span>
-                </button>
-              </td>
-            </tr>
-            <td class="form-error" colspan="3" v-html="sampleIDValidationMessages[index]" />
-          </template>
-        </table>
+                  Number of rows:
+                </label>
+                <input
+                  id="batchSampleNRows"
+                  v-model="nSamples"
+                  class="form-control col-md-1 col-2"
+                  type="number"
+                  min="0"
+                />
+              </div>
+
+              <div
+                v-show="templateIsOpen"
+                class="card bg-light mt-2 mx-auto mb-4"
+                style="width: 95%"
+              >
+                <table class="table table-sm mb-2">
+                  <thead>
+                    <tr class="subheading template-subheading">
+                      <th style="width: calc(12%)">ID</th>
+                      <th>Name</th>
+                      <th style="width: calc(15%)">Date</th>
+                      <th style="width: calc(22%)">Copy from</th>
+                      <th style="width: calc(22%)">Components</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <td>
+                      <input
+                        class="form-control"
+                        v-model="sampleTemplate.item_id"
+                        @input="applyIdTemplate"
+                        placeholder="ex_{#}"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        class="form-control"
+                        @input="applyNameTemplate"
+                        v-model="sampleTemplate.name"
+                        placeholder="Example name {#}"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        class="form-control"
+                        type="date"
+                        v-model="sampleTemplate.date"
+                        @input="applyDateTemplate"
+                      />
+                    </td>
+                    <td>
+                      <ItemSelect
+                        v-model="sampleTemplate.copyFrom"
+                        @update:modelValue="applyCopyFromTemplate"
+                        :formattedItemNameMaxLength="8"
+                      />
+                    </td>
+                    <td>
+                      <ItemSelect
+                        v-model="sampleTemplate.components"
+                        multiple
+                        @update:modelValue="applyComponentsTemplate"
+                        :formattedItemNameMaxLength="8"
+                      />
+                    </td>
+                  </tbody>
+                </table>
+
+                <div class="form-group mt-2 mb-1" style="display: flex">
+                  <label
+                    for="start-counting"
+                    id="start-counting-label"
+                    class="px-3 col-form-label-sm"
+                  >
+                    start counting {#} at:
+                  </label>
+                  <input
+                    type="number"
+                    id="start-counting"
+                    v-model="templateStartNumber"
+                    class="form-control form-control-sm"
+                    @input="applyIdAndNameTemplates"
+                    style="width: 5em"
+                  />
+                </div>
+              </div>
+
+              <table class="table mb-2">
+                <thead>
+                  <tr class="subheading">
+                    <th style="width: calc(12%)">ID</th>
+                    <th>Name</th>
+                    <th style="width: calc(15%)">Date</th>
+                    <th style="width: calc(22%)">Copy from</th>
+                    <th style="width: calc(22%) - 2rem">Components</th>
+                    <th style="width: 2rem"></th>
+                  </tr>
+                </thead>
+                <template v-for="(sample, index) in samples" :key="index">
+                  <tr>
+                    <td>
+                      <input
+                        class="form-control"
+                        v-model="sample.item_id"
+                        @input="this.sampleTemplate.item_id = ''"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        class="form-control"
+                        v-model="sample.name"
+                        @input="this.sampleTemplate.name = ''"
+                      />
+                    </td>
+                    <td><input class="form-control" type="date" v-model="sample.date" /></td>
+                    <td>
+                      <ItemSelect v-model="sample.copyFrom" :formattedItemNameMaxLength="8" />
+                    </td>
+                    <td>
+                      <ItemSelect
+                        v-model="sample.components"
+                        multiple
+                        :formattedItemNameMaxLength="8"
+                      />
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        class="close"
+                        @click.stop="removeRow(index)"
+                        aria-label="delete"
+                      >
+                        <span aria-hidden="true">&times;</span>
+                      </button>
+                    </td>
+                  </tr>
+                  <td class="form-error" colspan="3" v-html="sampleIDValidationMessages[index]" />
+                </template>
+              </table>
+            </div>
+          </transition>
+          <transition name="slide-content-right">
+            <div id="right-screen" v-show="!beforeSubmit">
+              <div v-for="(response, index) in serverResponses" :key="index">
+                <div class="callout callout-info" v-if="response.status == 'success'">
+                  <a class="item-id-link" :href="`edit/${response.item_id}`">
+                    {{ response.item_id }}
+                  </a>
+                  Successfully created.
+                </div>
+                <div
+                  class="callout callout-danger form-error"
+                  v-if="
+                    response.status == 'error' &&
+                    response.message.includes('item_id_validation_error')
+                  "
+                >
+                  <a :href="`edit/${response.item_id}`">
+                    {{ response.item_id }}
+                  </a>
+                  was not added as it already exists in the database.
+                </div>
+                <div class="callout callout-danger" v-else-if="response.status == 'error'">
+                  {{ response.message }}
+                </div>
+              </div>
+            </div>
+          </transition>
+        </div>
+      </template>
+      <template v-if="!beforeSubmit" v-slot:footer>
+        <button type="button" class="btn btn-info" @click="openEditPagesInNewTabs">Open all</button>
+        <button
+          type="button"
+          class="btn btn-secondary"
+          data-dismiss="modal"
+          @click="$emit('update:modelValue', false)"
+        >
+          Close
+        </button>
       </template>
     </Modal>
   </form>
@@ -156,44 +221,41 @@
 <script>
 import Modal from "@/components/Modal.vue";
 import ItemSelect from "@/components/ItemSelect.vue";
-import { createNewSample } from "@/server_fetch_utils.js";
+import { createNewSamples } from "@/server_fetch_utils.js";
 export default {
   name: "BatchCreateSampleModal",
   data() {
     return {
-      item_id: null,
-      date: new Date().toISOString().split("T")[0], // todo: add time zone support...     }
-      // name: "",
+      beforeSubmit: true,
+
       nSamples: 3,
       samples: [
         {
           item_id: null,
           name: "",
           copyFrom: null,
-          components: null,
+          components: [],
           date: new Date().toISOString().split("T")[0],
         },
         {
           item_id: null,
           name: "",
           copyFrom: null,
-          components: null,
+          components: [],
           date: new Date().toISOString().split("T")[0],
         },
         {
           item_id: null,
           name: "",
           copyFrom: null,
-          components: null,
+          components: [],
           date: new Date().toISOString().split("T")[0],
         },
       ],
       takenItemIds: [], // this holds ids that have been tried, whereas the computed takenSampleIds holds ids in the sample table
-      selectedItemToCopy: null,
-      startingConstituents: [],
-      idTemplate: "",
-      templateStartNumber: 1,
+
       templateIsOpen: true,
+      templateStartNumber: 1,
       sampleTemplate: {
         item_id: "",
         name: "",
@@ -201,6 +263,8 @@ export default {
         components: null,
         date: new Date().toISOString().split("T")[0],
       },
+
+      serverResponses: {}, // after the server responds, store error messages if any
     };
   },
   props: {
@@ -212,6 +276,9 @@ export default {
       return this.$store.state.sample_list
         ? this.$store.state.sample_list.map((x) => x.item_id)
         : [];
+    },
+    someValidationMessagePresent() {
+      return this.sampleIDValidationMessages.some();
     },
     sampleIDValidationMessages() {
       return this.samples.map((sample, index, samples) => {
@@ -226,7 +293,7 @@ export default {
             .map((el) => el.item_id)
             .includes(sample.item_id)
         ) {
-          return "ID cannot be repeated in this dialogue.";
+          return "ID is repeated from an above row.";
         }
 
         if (
@@ -285,39 +352,45 @@ export default {
       }
     },
     async submitForm() {
-      console.log("new sample form submit triggered");
+      console.log("batch sample create form submit triggered");
 
-      const startingSynthesisBlock = this.startingConstituents.map((x) => ({
-        item: x,
-        quantity: null,
-      }));
+      const newSampleDatas = this.samples.map((sample) => {
+        return {
+          item_id: sample.item_id,
+          date: sample.date,
+          name: sample.name,
+          synthesis_constituents: sample.components
+            ? sample.components.map((x) => ({ item: x, quantity: null }))
+            : [],
+        };
+      });
 
-      await createNewSample(
-        this.item_id,
-        this.date,
-        this.name,
-        {
-          synthesis_constituents: startingSynthesisBlock,
-        },
-        this.selectedItemToCopy && this.selectedItemToCopy.item_id
-      )
-        .then(() => {
-          this.item_id = null;
-          this.name = null;
-          this.date = new Date().toISOString().split("T")[0]; // reset the date (is this the most user-friendly behavior?)
+      const copyFromItemIds = this.samples.map((sample) => sample.copyFrom);
 
-          this.$emit("update:modelValue", false); // close this modal
-          document.getElementById(this.item_id).scrollIntoView({ behavior: "smooth" });
+      await createNewSamples(newSampleDatas, copyFromItemIds)
+        .then((responses) => {
+          console.log("samples added");
+          this.serverResponses = responses;
+
+          document
+            .querySelector(".modal-enclosure .modal-content")
+            .scrollTo({ top: 0, behavior: "smooth" });
+          this.beforeSubmit = false;
         })
         .catch((error) => {
-          if (error.includes("item_id_validation_error")) {
-            this.takenItemIds.push(this.item_id);
-          } else {
-            alert("Error with creating new sample: " + error);
-          }
+          console.log("Error with creating new samples: " + error);
+        });
+    },
+    openEditPagesInNewTabs() {
+      this.serverResponses
+        .slice()
+        .reverse()
+        .forEach((response) => {
+          window.open(`/edit/${response.item_id}`, "_blank");
         });
     },
   },
+
   watch: {
     nSamples(newValue, oldValue) {
       if (newValue < oldValue) {
@@ -326,10 +399,10 @@ export default {
       if (newValue > oldValue) {
         for (let i = 0; i < newValue - oldValue; i++) {
           this.samples.push({
-            item_id: "",
+            item_id: null,
             name: "",
             copyFrom: null,
-            components: null,
+            components: [],
             date: new Date().toISOString().split("T")[0],
           });
         }
@@ -350,6 +423,45 @@ export default {
 </script>
 
 <style scoped>
+#screens-container {
+  width: 200%;
+}
+
+#left-screen {
+  width: 50%;
+  padding-right: 1em;
+  padding-left: 1em;
+  display: inline-block;
+  float: left;
+}
+
+#right-screen {
+  width: 50%;
+  padding-left: 1em;
+  display: inline-block;
+  float: left;
+}
+
+.slide-content-left-leave-active,
+.slide-content-left-enter-active {
+  transition: all 1s ease;
+}
+
+.slide-content-left-leave-to,
+.slide-content-left-enter-from {
+  transform: translateX(-100%);
+}
+
+.slide-content-right-leave-active,
+.slide-content-right-enter-active {
+  transition: all 1s ease;
+}
+
+.slide-content-right-leave-from,
+.slide-content-right-enter-to {
+  transform: translateX(-100%);
+}
+
 .close {
   margin-top: 0.2em;
   color: grey;
@@ -398,6 +510,11 @@ export default {
   transform: rotate(90deg);
 }
 
+.item-id-link {
+  color: #0b6093;
+  font-weight: 600;
+}
+
 .form-error {
   color: red;
 }
@@ -421,5 +538,6 @@ export default {
 .modal-enclosure >>> .modal-content {
   height: 90vh;
   overflow: scroll;
+  scroll-behavior: smooth;
 }
 </style>
