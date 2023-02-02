@@ -259,7 +259,7 @@ export default {
       templateIsOpen: true,
       templateStartNumber: 1,
       sampleTemplate: {
-        item_id: "",
+        item_id: null,
         name: "",
         copyFrom: null,
         components: null,
