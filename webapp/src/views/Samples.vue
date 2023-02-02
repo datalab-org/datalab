@@ -8,7 +8,7 @@
           Add a sample
         </button>
         <button class="btn btn-default ml-2" @click="batchCreateSampleModalIsOpen = true">
-          Add samples
+          Add batch of samples
         </button>
       </div>
     </div>
