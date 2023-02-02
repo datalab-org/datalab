@@ -169,7 +169,9 @@
                       </button>
                     </td>
                   </tr>
-                  <td class="form-error" colspan="3" v-html="sampleIDValidationMessages[index]" />
+                  <td colspan="3">
+                    <span class="form-error" v-html="sampleIDValidationMessages[index]" />
+                  </td>
                 </template>
               </table>
             </div>
@@ -365,7 +367,7 @@ export default {
         };
       });
 
-      const copyFromItemIds = this.samples.map((sample) => sample.copyFrom);
+      const copyFromItemIds = this.samples.map((sample) => sample.copyFrom?.item_id);
 
       await createNewSamples(newSampleDatas, copyFromItemIds)
         .then((responses) => {
@@ -398,13 +400,7 @@ export default {
       }
       if (newValue > oldValue) {
         for (let i = 0; i < newValue - oldValue; i++) {
-          this.samples.push({
-            item_id: null,
-            name: "",
-            copyFrom: null,
-            components: [],
-            date: new Date().toISOString().split("T")[0],
-          });
+          this.samples.push({ ...this.sampleTemplate });
         }
         if (this.sampleTemplate.item_id) {
           this.applyIdTemplate();
@@ -444,7 +440,7 @@ export default {
 
 .slide-content-left-leave-active,
 .slide-content-left-enter-active {
-  transition: all 1s ease;
+  transition: all 0.8s ease;
 }
 
 .slide-content-left-leave-to,
@@ -454,7 +450,11 @@ export default {
 
 .slide-content-right-leave-active,
 .slide-content-right-enter-active {
-  transition: all 1s ease;
+  transition: all 0.8s ease;
+}
+
+.slide-content-left-leave-active .form-error {
+  display: none;
 }
 
 .slide-content-right-leave-from,

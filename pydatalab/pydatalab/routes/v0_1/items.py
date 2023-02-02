@@ -211,7 +211,7 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
 
         copied_doc = flask_mongo.db.items.find_one({"item_id": copy_from_item_id})
 
-        LOGGER.debug(f"Copying from prexisting item {copy_from_item_id} with data:\n{copied_doc}")
+        LOGGER.debug(f"Copying from pre-existing item {copy_from_item_id} with data:\n{copied_doc}")
         if not copied_doc:
             return (
                 dict(
@@ -231,7 +231,7 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
                     status="error",
                     message=f"Request to copy sample with id {copy_from_item_id} to new item failed because the target new item_id was not provided.",
                 ),
-                404,
+                400,
             )
 
         copied_doc["name"] = sample_dict.get("name")
@@ -239,16 +239,14 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
 
         # any provided constituents will be added to the synthesis information table in
         # addition to the constituents copied from the copy_from_item_id, avoiding duplicates
-        if copied_doc.get("synthesis_constituents"):
-            existing_consituent_ids = [
-                constituent["item"]["item_id"]
-                for constituent in copied_doc["synthesis_constituents"]
-            ]
-            copied_doc["synthesis_constituents"] += [
-                constituent
-                for constituent in sample_dict.get("synthesis_constituents", [])
-                if (constituent["item"]["item_id"] not in existing_consituent_ids)
-            ]
+        existing_consituent_ids = [
+            constituent["item"]["item_id"] for constituent in copied_doc["synthesis_constituents"]
+        ]
+        copied_doc["synthesis_constituents"] += [
+            constituent
+            for constituent in sample_dict.get("synthesis_constituents", [])
+            if (constituent["item"]["item_id"] not in existing_consituent_ids)
+        ]
 
         sample_dict = copied_doc
 

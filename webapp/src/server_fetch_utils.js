@@ -115,7 +115,7 @@ export function createNewSamples(newSampleDatas, copyFromItemIds = null) {
 
     response_json.responses.forEach((response) => {
       if (response.status == "success") {
-        store.commit("appendToSampleList", response.sample_list_entry);
+        store.commit("prependToSampleList", response.sample_list_entry);
       }
     });
 
