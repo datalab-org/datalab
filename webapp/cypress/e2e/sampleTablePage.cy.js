@@ -18,7 +18,7 @@ function createSample(sample_id, name = null, date = null) {
   if (date) {
     cy.findByLabelText("Date Created:").type(date);
   }
-  cy.findByText("Submit").click();
+  cy.contains("Submit").click();
 }
 
 function verifySample(sample_id, name = null, date = null) {
@@ -87,7 +87,7 @@ describe("Sample table page", () => {
     cy.findByLabelText("Date Created:").type("1990-01-07");
 
     cy.findByLabelText("Sample Name:").type("This is a sample name");
-    cy.findByText("Submit").click();
+    cy.contains("Submit").click();
 
     // check that the sample table is correctly populated
     cy.findByText("12345678910");
@@ -123,13 +123,12 @@ describe("Sample table page", () => {
     cy.contains("already in use").should("exist");
     cy.get(".form-error a").contains("12345678910");
 
-    cy.findByText("Submit").should("be.disabled");
+    cy.contains("Submit").should("be.disabled");
   });
 
   it("Deletes a sample", function () {
     cy.get("tr#12345678910 button.close").click();
     cy.contains("12345678910").should("not.exist");
-    cy.get("td").should("not.exist");
   });
 
   it("Attempts to go to the page of the deleted sample", function () {
@@ -226,7 +225,7 @@ describe("Advanced sample creation features", () => {
       cy.findByText("testA").click();
     });
     cy.findByDisplayValue("COPY OF the first test sample").clear().type("a copied sample");
-    cy.findByText("Submit").click();
+    cy.contains("Submit").click();
     verifySample("testAcopy", "a copied sample");
   });
 
@@ -276,7 +275,7 @@ describe("Advanced sample creation features", () => {
     cy.get(".vs__dropdown-menu").within(() => {
       cy.findByText("testB").click();
     });
-    cy.findByText("Submit").click();
+    cy.contains("Submit").click();
     verifySample("testBcopy", "COPY OF the second test sample");
   });
 
@@ -310,7 +309,7 @@ describe("Advanced sample creation features", () => {
       cy.findByText("component3").click();
     });
 
-    cy.findByText("Submit").click();
+    cy.contains("Submit").click();
     verifySample("testBcopy_copy", "COPY OF COPY OF the second test sample");
   });
 

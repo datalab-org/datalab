@@ -29,7 +29,7 @@ describe("Sample table page", () => {
     cy.findByLabelText("Date Created:").type("1990-01-07");
 
     cy.findByLabelText("Sample Name:").type("This is a sample name");
-    cy.findByText("Submit").click();
+    cy.contains("Submit").click();
 
     cy.findByText("editable_sample");
     cy.findByText("This is a sample name");
