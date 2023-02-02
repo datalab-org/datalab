@@ -23,12 +23,7 @@
         </div>
         <div class="modal-footer">
           <slot name="footer">
-            <input
-              type="submit"
-              class="btn btn-info btn-small"
-              :disabled="disableSubmit"
-              value="Submit"
-            />
+            <input type="submit" class="btn btn-info" :disabled="disableSubmit" value="Submit" />
             <button
               type="button"
               class="btn btn-secondary"
