@@ -199,6 +199,7 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
             dict(
                 status="error",
                 message="Unable to create new sample without user authentication.",
+                item_id=sample_dict["item_id"],
             ),
             401,
         )
@@ -211,6 +212,7 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
                 dict(
                     status="error",
                     message=f"Request to copy sample with id {copy_from_item_id} failed because sample could not be found.",
+                    item_id=sample_dict["item_id"],
                 ),
                 404,
             )
@@ -257,6 +259,7 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
             dict(
                 status="error",
                 message=f"item_id_validation_error: {sample_dict['item_id']!r} already exists in database.",
+                item_id=new_sample["item_id"],
             ),
             409,  # 409: Conflict
         )
@@ -270,6 +273,7 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
             dict(
                 status="error",
                 message=f"Unable to create new sample with ID {new_sample['item_id']}.",
+                item_id=new_sample["item_id"],
                 output=str(error),
             ),
             400,
@@ -281,6 +285,7 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
             dict(
                 status="error",
                 message=f"Failed to add new sample {new_sample.item_id!r} to database.",
+                item_id=new_sample["item_id"],
                 output=result.raw_result,
             ),
             400,
@@ -289,6 +294,7 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
     return (
         {
             "status": "success",
+            "item_id": new_sample.item_id,
             "sample_list_entry": {
                 "item_id": new_sample.item_id,
                 "nblocks": 0,
@@ -319,8 +325,9 @@ def create_samples():
 
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
 
-    sample_jsons = request_json["sample_jsons"]
+    sample_jsons = request_json["new_sample_datas"]
     copy_from_item_ids = request_json.get("copy_from_item_ids")
+
     if copy_from_item_ids is None:
         copy_from_item_ids = [None] * len(sample_jsons)
 
@@ -328,7 +335,7 @@ def create_samples():
         _create_sample(sample_json, copy_from_item_id)
         for sample_json, copy_from_item_id in zip(sample_jsons, copy_from_item_ids)
     ]
-    responses, http_codes = zip(outputs)
+    responses, http_codes = zip(*outputs)
 
     statuses = [response["status"] for response in responses]
     nsuccess = statuses.count("success")
@@ -341,11 +348,11 @@ def create_samples():
             responses=responses,
             http_codes=http_codes,
         ),
-        207,  # 207: multi-status
-    )
+        207,
+    )  # 207: multi-status
 
 
-create_samples.method = ("POST",)  # type: ignore
+create_samples.methods = ("POST",)  # type: ignore
 
 
 def delete_sample():
