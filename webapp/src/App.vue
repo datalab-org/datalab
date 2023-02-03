@@ -17,8 +17,8 @@ body {
   scroll-margin-top: 3.5rem;
 }
 
-#app {
-  font-family: Avenir, Karla, Helvetica, Arial, sans-serif;
+@import url("https://fonts.googleapis.com/css?family=Karla") #app {
+  font-family: Avenir, "Karla", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   /*text-align: center;*/
