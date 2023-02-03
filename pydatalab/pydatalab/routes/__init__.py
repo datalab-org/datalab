@@ -1,3 +1,9 @@
-from pydatalab.routes.v0_1 import ENDPOINTS, __api_version__, auth
+from pydatalab.routes.v0_1 import ENDPOINTS, __api_version__
 
-__all__ = ("ENDPOINTS", "__api_version__", "auth")
+from . import auth
+
+__all__ = (
+    "ENDPOINTS",
+    "__api_version__",
+    "auth",
+)
