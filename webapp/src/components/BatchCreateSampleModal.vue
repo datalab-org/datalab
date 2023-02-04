@@ -1,5 +1,5 @@
 <template>
-  <form class="modal-enclosure" @submit.prevent="submitForm">
+  <form data-testid="batch-modal-container" class="modal-enclosure" @submit.prevent="submitForm">
     <Modal
       :modelValue="modelValue"
       @update:modelValue="$emit('update:modelValue', $event)"
@@ -48,7 +48,7 @@
                 class="card bg-light mt-2 mx-auto mb-4"
                 style="width: 95%"
               >
-                <table class="table table-sm mb-2">
+                <table data-testid="batch-add-table-template" class="table table-sm mb-2">
                   <thead>
                     <tr class="subheading template-subheading">
                       <th style="width: calc(12%)">ID</th>
@@ -120,7 +120,7 @@
                 </div>
               </div>
 
-              <table class="table mb-2">
+              <table data-testid="batch-add-table" class="table mb-2">
                 <thead>
                   <tr class="subheading">
                     <th style="width: calc(12%)">ID</th>
@@ -131,48 +131,50 @@
                     <th style="width: 2rem"></th>
                   </tr>
                 </thead>
-                <template v-for="(sample, index) in samples" :key="index">
-                  <tr>
-                    <td>
-                      <input
-                        class="form-control"
-                        v-model="sample.item_id"
-                        @input="this.sampleTemplate.item_id = ''"
-                      />
+                <tbody>
+                  <template v-for="(sample, index) in samples" :key="index">
+                    <tr>
+                      <td>
+                        <input
+                          class="form-control"
+                          v-model="sample.item_id"
+                          @input="this.sampleTemplate.item_id = ''"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          class="form-control"
+                          v-model="sample.name"
+                          @input="this.sampleTemplate.name = ''"
+                        />
+                      </td>
+                      <td><input class="form-control" type="date" v-model="sample.date" /></td>
+                      <td>
+                        <ItemSelect v-model="sample.copyFrom" :formattedItemNameMaxLength="8" />
+                      </td>
+                      <td>
+                        <ItemSelect
+                          v-model="sample.components"
+                          multiple
+                          :formattedItemNameMaxLength="8"
+                        />
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          class="close"
+                          @click.stop="removeRow(index)"
+                          aria-label="delete"
+                        >
+                          <span aria-hidden="true">&times;</span>
+                        </button>
+                      </td>
+                    </tr>
+                    <td colspan="3">
+                      <span class="form-error" v-html="sampleIDValidationMessages[index]" />
                     </td>
-                    <td>
-                      <input
-                        class="form-control"
-                        v-model="sample.name"
-                        @input="this.sampleTemplate.name = ''"
-                      />
-                    </td>
-                    <td><input class="form-control" type="date" v-model="sample.date" /></td>
-                    <td>
-                      <ItemSelect v-model="sample.copyFrom" :formattedItemNameMaxLength="8" />
-                    </td>
-                    <td>
-                      <ItemSelect
-                        v-model="sample.components"
-                        multiple
-                        :formattedItemNameMaxLength="8"
-                      />
-                    </td>
-                    <td>
-                      <button
-                        type="button"
-                        class="close"
-                        @click.stop="removeRow(index)"
-                        aria-label="delete"
-                      >
-                        <span aria-hidden="true">&times;</span>
-                      </button>
-                    </td>
-                  </tr>
-                  <td colspan="3">
-                    <span class="form-error" v-html="sampleIDValidationMessages[index]" />
-                  </td>
-                </template>
+                  </template>
+                </tbody>
               </table>
             </div>
           </transition>

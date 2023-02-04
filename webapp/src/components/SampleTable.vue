@@ -2,7 +2,7 @@
   <div v-if="isSampleFetchError" class="alert alert-danger">
     Server Error. Sample list not retreived.
   </div>
-  <table class="table table-hover table-sm">
+  <table class="table table-hover table-sm" data-testid="sample-table">
     <thead>
       <tr align="center">
         <th scope="col">ID</th>
