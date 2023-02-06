@@ -34,7 +34,6 @@ mkdocs = "*"
 mkdocs-material = "*"
 mkdocstrings = { version = "*", extras = ["python-legacy"] }
 mkdocs-awesome-pages-plugin = "*"
-invoke = "*"
 
 [requires]
 python_version = "3"

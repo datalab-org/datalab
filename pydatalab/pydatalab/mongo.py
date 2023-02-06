@@ -94,7 +94,7 @@ def create_default_indices(
     for model in ITEM_MODELS:
         schema = ITEM_MODELS[model].schema()
         for f in schema["properties"]:
-            if schema["properties"][f]["type"] == "string":
+            if schema["properties"][f].get("type") == "string":
                 item_fts_fields.add(f)
 
     def create_or_recreate_text_index(collection, fields, weights):
@@ -106,9 +106,12 @@ def create_default_indices(
 
     ret = []
 
-    ret += create_or_recreate_text_index(
-        db.items, item_fts_fields, weights={"item_id": 3, "name": 3, "chemform": 3}
-    )
+    try:
+        ret += create_or_recreate_text_index(
+            db.items, item_fts_fields, weights={"item_id": 3, "name": 3, "chemform": 3}
+        )
+    except Exception:
+        pass
 
     ret += db.items.create_index("type", name="item type", background=background)
     ret += db.items.create_index(
@@ -127,10 +130,13 @@ def create_default_indices(
         name="unique user identifiers",
         background=background,
     )
-    ret += db.users.create_index(
-        [(k, pymongo.TEXT) for k in user_fts_fields],
-        name="user identities full-text search",
-        background=background,
-    )
+    try:
+        ret += db.users.create_index(
+            [(k, pymongo.TEXT) for k in user_fts_fields],
+            name="user identities full-text search",
+            background=background,
+        )
+    except Exception:
+        pass
 
     return ret
