@@ -160,13 +160,13 @@ describe("Batch sample creation", () => {
     cy.get(".vs__dropdown-menu").within(() => {
       cy.findByText("component3").click();
     });
-    cy.get("#synthesis-information input").first().type("30");
+    cy.get("#synthesis-information tbody tr:nth-of-type(1) input").first().type("30");
 
     cy.get("#synthesis-information .vs__search").first().type("component4");
     cy.get(".vs__dropdown-menu").within(() => {
       cy.findByText("component4").click();
     });
-    cy.get("#synthesis-information input").eq(1).type("100"); // eq(1) gets the second element that matches
+    cy.get("#synthesis-information tbody tr:nth-of-type(2) input").eq(0).type("100");
 
     cy.findByText("Add a block").click();
     cy.findByLabelText("Add a block").contains("Comment").click();
@@ -233,8 +233,10 @@ describe("Batch sample creation", () => {
     cy.findByText("a description of the synthesis here");
     cy.findAllByText("component3");
     cy.findAllByText("component4");
-    cy.get("#synthesis-information input").eq(0).should("have.value", "30"); // eq(1) gets the second element that matches
-    cy.get("#synthesis-information input").eq(1).should("have.value", "100"); // eq(1) gets the second element that matches
+    cy.get("#synthesis-information tbody tr:nth-of-type(1) input").eq(0).should("have.value", "30");
+    cy.get("#synthesis-information tbody tr:nth-of-type(2) input")
+      .eq(0)
+      .should("have.value", "100");
     cy.findByText("Home").click();
 
     cy.findByText("baseB_copy2").click();
@@ -245,8 +247,10 @@ describe("Batch sample creation", () => {
     cy.findByText("a description of the synthesis here");
     cy.findAllByText("component3");
     cy.findAllByText("component4");
-    cy.get("#synthesis-information input").eq(0).should("have.value", "30"); // eq(1) gets the second element that matches
-    cy.get("#synthesis-information input").eq(1).should("have.value", "100"); // eq(1) gets the second element that matches
+    cy.get("#synthesis-information tbody tr:nth-of-type(1) input").eq(0).should("have.value", "30");
+    cy.get("#synthesis-information tbody tr:nth-of-type(2) input")
+      .eq(0)
+      .should("have.value", "100");
     cy.findByText("Home").click();
   });
 
@@ -336,8 +340,8 @@ describe("Batch sample creation", () => {
     cy.findByLabelText("Name").should("have.value", "sample with two components");
     cy.get("#synthesis-information table").contains("component1");
     cy.get("#synthesis-information table").contains("component2");
-    cy.get("#synthesis-information input").eq(0).should("have.value", ""); // eq(1) gets the second element that matches
-    cy.get("#synthesis-information input").eq(1).should("have.value", ""); // eq(1) gets the second element that matches
+    cy.get("#synthesis-information tbody tr:nth-of-type(1) input").eq(0).should("have.value", "");
+    cy.get("#synthesis-information tbody tr:nth-of-type(2) input").eq(0).should("have.value", "");
     cy.findByText("Home").click();
 
     cy.contains("test102").click();
@@ -349,8 +353,8 @@ describe("Batch sample creation", () => {
     cy.contains("this is a description of baseA.");
     cy.get("#synthesis-information table").contains("component1");
     cy.get("#synthesis-information table").contains("component2");
-    cy.get("#synthesis-information input").eq(0).should("have.value", ""); // eq(1) gets the second element that matches
-    cy.get("#synthesis-information input").eq(1).should("have.value", ""); // eq(1) gets the second element that matches
+    cy.get("#synthesis-information tbody tr:nth-of-type(1) input").eq(0).should("have.value", "");
+    cy.get("#synthesis-information tbody tr:nth-of-type(2) input").eq(0).should("have.value", "");
     cy.findByText("a comment is added here.");
     cy.findByText("Home").click();
 
@@ -367,8 +371,23 @@ describe("Batch sample creation", () => {
     cy.get("#synthesis-information table").contains("component3");
     cy.get("#synthesis-information table").contains("component4");
 
-    cy.get("#synthesis-information input").eq(0).should("have.value", "30"); // eq(1) gets the second element that matches
-    cy.get("#synthesis-information input").eq(1).should("have.value", "100"); // eq(1) gets the second element that matches
+    cy.get("#synthesis-information tbody tr:nth-of-type(1) td:nth-of-type(3) input").should(
+      "have.value",
+      "30"
+    );
+    cy.get("#synthesis-information tbody tr:nth-of-type(1) td:nth-of-type(4) input").should(
+      "have.value",
+      "g"
+    );
+    cy.get("#synthesis-information tbody tr:nth-of-type(2) td:nth-of-type(3) input").should(
+      "have.value",
+      "100"
+    );
+    cy.get("#synthesis-information tbody tr:nth-of-type(2) td:nth-of-type(4) input").should(
+      "have.value",
+      "g"
+    );
+
     cy.findByText("a comment is added here.");
     cy.findByText("a second comment is added here.");
     cy.findByText("Home").click();
@@ -385,27 +404,36 @@ describe("Batch sample creation", () => {
     cy.get("#synthesis-information table").contains("component3");
     cy.get("#synthesis-information table").contains("component4");
 
-    cy.get("#synthesis-information input").eq(0).should("have.value", "30"); // eq(1) gets the second element that matches
-    cy.get("#synthesis-information input").eq(1).should("have.value", "100"); // eq(1) gets the second element that matches
-    cy.get("#synthesis-information input").eq(2).should("have.value", ""); // eq(1) gets the second element that matches
+    cy.get("#synthesis-information tbody tr:nth-of-type(1) td:nth-of-type(3) input").should(
+      "have.value",
+      "30"
+    );
+    cy.get("#synthesis-information tbody tr:nth-of-type(1) td:nth-of-type(4) input").should(
+      "have.value",
+      "g"
+    );
+    cy.get("#synthesis-information tbody tr:nth-of-type(2) td:nth-of-type(3) input").should(
+      "have.value",
+      "100"
+    );
+    cy.get("#synthesis-information tbody tr:nth-of-type(2) td:nth-of-type(4) input").should(
+      "have.value",
+      "g"
+    );
+    cy.get("#synthesis-information tbody tr:nth-of-type(3) td:nth-of-type(3) input").should(
+      "have.value",
+      ""
+    );
+    cy.get("#synthesis-information tbody tr:nth-of-type(3) td:nth-of-type(4) input").should(
+      "have.value",
+      "g"
+    );
 
     cy.findByText("a description of the synthesis here");
     cy.findByText("a comment is added here.");
     cy.findByText("a second comment is added here.");
 
     cy.findByText("Home").click();
-
-    // cy.findByText("baseB_copy2").click();
-    // cy.findByLabelText("Sample ID").should("have.value", "baseB_copy2");
-    // cy.findByText("this is a description of baseB.");
-    // cy.findByText("a comment is added here.");
-    // cy.findByText("a second comment is added here.");
-    // cy.findByText("a description of the synthesis here");
-    // cy.findAllByText("component3");
-    // cy.findAllByText("component4");
-    // cy.get("#synthesis-information input").eq(0).should("have.value", "30"); // eq(1) gets the second element that matches
-    // cy.get("#synthesis-information input").eq(1).should("have.value", "100"); // eq(1) gets the second element that matches
-    // cy.findByText("Home").click();
   });
 
   it("uses the template id", () => {
@@ -529,9 +557,13 @@ describe("Batch sample creation", () => {
       cy.get("#synthesis-information table").contains("component1");
       cy.get("#synthesis-information table").contains("this component has a name");
 
-      cy.get("#synthesis-information input").eq(0).should("have.value", "30"); // eq(0) gets the first element that matches
-      cy.get("#synthesis-information input").eq(1).should("have.value", "100"); // eq(1) gets the second element that matches
-      cy.get("#synthesis-information input").eq(2).should("have.value", ""); // eq(1) gets the second element that matches
+      cy.get("#synthesis-information tbody tr:nth-of-type(1) input")
+        .eq(0)
+        .should("have.value", "30");
+      cy.get("#synthesis-information tbody tr:nth-of-type(2) input")
+        .eq(0)
+        .should("have.value", "100");
+      cy.get("#synthesis-information tbody tr:nth-of-type(3) input").eq(0).should("have.value", "");
 
       cy.findByText("a comment is added here.");
       cy.findByText("a second comment is added here.");
@@ -644,9 +676,13 @@ describe("Batch sample creation", () => {
       cy.get("#synthesis-information table").contains("component1");
       cy.get("#synthesis-information table").contains("this component has a name");
 
-      cy.get("#synthesis-information input").eq(0).should("have.value", "30"); // eq(0) gets the first element that matches
-      cy.get("#synthesis-information input").eq(1).should("have.value", "100"); // eq(1) gets the second element that matches
-      cy.get("#synthesis-information input").eq(2).should("have.value", ""); // eq(1) gets the second element that matches
+      cy.get("#synthesis-information tbody tr:nth-of-type(1) input")
+        .eq(0)
+        .should("have.value", "30");
+      cy.get("#synthesis-information tbody tr:nth-of-type(2) input")
+        .eq(0)
+        .should("have.value", "100");
+      cy.get("#synthesis-information tbody tr:nth-of-type(3) input").eq(0).should("have.value", "");
 
       cy.findByText("a comment is added here.");
       cy.findByText("a second comment is added here.");

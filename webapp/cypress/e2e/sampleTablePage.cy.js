@@ -252,13 +252,13 @@ describe("Advanced sample creation features", () => {
     cy.get(".vs__dropdown-menu").within(() => {
       cy.findByText("component3").click();
     });
-    cy.get("#synthesis-information input").first().type("30");
+    cy.get("#synthesis-information tbody tr:nth-of-type(1) input").eq(0).type("30");
 
     cy.get("#synthesis-information .vs__search").first().type("component4");
     cy.get(".vs__dropdown-menu").within(() => {
       cy.findByText("component4").click();
     });
-    cy.get("#synthesis-information input").eq(1).type("100"); // eq(1) gets the second element that matches
+    cy.get("#synthesis-information tbody tr:nth-of-type(2) input").eq(0).type("100"); // eq(1) gets the second element that matches
 
     cy.findByLabelText("Procedure").type("a description of the synthesis here");
 
@@ -288,8 +288,10 @@ describe("Advanced sample creation features", () => {
     cy.findByText("a description of the synthesis here");
     cy.findAllByText("component3");
     cy.findAllByText("component4");
-    cy.get("#synthesis-information input").eq(0).should("have.value", "30"); // eq(1) gets the second element that matches
-    cy.get("#synthesis-information input").eq(1).should("have.value", "100"); // eq(1) gets the second element that matches
+    cy.get("#synthesis-information tbody tr:nth-of-type(1) input").eq(0).should("have.value", "30");
+    cy.get("#synthesis-information tbody tr:nth-of-type(2) input")
+      .eq(0)
+      .should("have.value", "100");
   });
 
   it("copies the copied sample, this time with additional components", () => {
@@ -323,9 +325,11 @@ describe("Advanced sample creation features", () => {
     cy.findAllByText("component3");
     cy.findAllByText("component4");
     cy.findAllByText("component2");
-    cy.get("#synthesis-information input").eq(0).should("have.value", "30"); // eq(1) gets the second element that matches
-    cy.get("#synthesis-information input").eq(1).should("have.value", "100"); // eq(1) gets the second element that matches
-    cy.get("#synthesis-information input").eq(2).should("have.value", ""); // eq(1) gets the second element that matches
+    cy.get("#synthesis-information tbody tr:nth-of-type(1) input").eq(0).should("have.value", "30"); // eq(1) gets the second element that matches
+    cy.get("#synthesis-information tbody tr:nth-of-type(2) input")
+      .eq(0)
+      .should("have.value", "100"); // eq(1) gets the second element that matches
+    cy.get("#synthesis-information tbody tr:nth-of-type(3) input").eq(0).should("have.value", ""); // eq(1) gets the second element that matches
   });
 
   it("deletes all samples", () => {
