@@ -65,7 +65,10 @@ def check_mongo_connection() -> None:
         raise RuntimeError from exc
 
 
-def create_default_indices(client: Optional[pymongo.MongoClient] = None) -> List[str]:
+def create_default_indices(
+    client: Optional[pymongo.MongoClient] = None,
+    background: bool = False,
+) -> List[str]:
     """Creates indices for the configured or passed MongoClient.
 
     Indexes created are:
@@ -73,6 +76,9 @@ def create_default_indices(client: Optional[pymongo.MongoClient] = None) -> List
         - An index over item type,
         - A unique index over `item_id`.
         - A text index over user names and identities.
+
+    Parameters:
+        background: If true, indexes will be created as background jobs.
 
     Returns:
         A list of messages returned by each `create_index` call.
@@ -91,16 +97,24 @@ def create_default_indices(client: Optional[pymongo.MongoClient] = None) -> List
             if schema["properties"][f]["type"] == "string":
                 item_fts_fields.add(f)
 
+    def create_or_recreate_text_index(collection, fields, weights):
+        return collection.create_index(
+            [(k, pymongo.TEXT) for k in fields],
+            name=f"{collection.name} full-text search",
+            weights=weights,
+        )
+
     ret = []
 
-    ret += db.items.create_index(
-        [(k, pymongo.TEXT) for k in item_fts_fields],
-        name="item full-text search",
-        weights={"item_id": 3, "name": 3, "chemform": 3},
+    ret += create_or_recreate_text_index(
+        db.items, item_fts_fields, weights={"item_id": 3, "name": 3, "chemform": 3}
     )
-    ret += db.items.create_index("type", name="item type")
-    ret += db.items.create_index("item_id", unique=True, name="unique item ID")
-    ret += db.items.create_index("last_modified", name="last modified")
+
+    ret += db.items.create_index("type", name="item type", background=background)
+    ret += db.items.create_index(
+        "item_id", unique=True, name="unique item ID", background=background
+    )
+    ret += db.items.create_index("last_modified", name="last modified", background=background)
 
     user_fts_fields = {"identities.name", "display_name"}
 
@@ -111,10 +125,12 @@ def create_default_indices(client: Optional[pymongo.MongoClient] = None) -> List
         ],
         unique=True,
         name="unique user identifiers",
+        background=background,
     )
     ret += db.users.create_index(
         [(k, pymongo.TEXT) for k in user_fts_fields],
         name="user identities full-text search",
+        background=background,
     )
 
     return ret
