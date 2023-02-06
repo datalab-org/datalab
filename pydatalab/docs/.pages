@@ -1,5 +1,6 @@
 nav:
     - index.md
-    - design.md
-    - deployment.md
+    - INSTALL.md
+    - design
+    - schemas
     - api_reference
