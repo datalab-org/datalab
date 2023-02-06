@@ -49,6 +49,12 @@ class HumanReadableIdentifier(ConstrainedStr):
         return bool(self.value)
 
 
+class UserRole(str, Enum):
+    USER = "user"
+    ADMIN = "admin"
+    MANAGER = "manager"
+
+
 class PintType(str):
     """A WIP attempt to create a custom pydantic field type for Pint quantities.
     The idea would eventually be to use TypeAlias to create physical/dimensionful pydantic fields.

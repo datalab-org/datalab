@@ -16,6 +16,8 @@ theme:
 repo_name: the-grey-group/datalabvue
 repo_url: https://github.com/the-grey-group/datalabvue
 
+docs_dir: "pydatalab/docs"
+
 extra:
   social:
     - icon: fontawesome/brands/github

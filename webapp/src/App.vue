@@ -17,8 +17,9 @@ body {
   scroll-margin-top: 3.5rem;
 }
 
+@import url("https://fonts.googleapis.com/css?family=Figtree");
 #app {
-  font-family: Avenir, Karla, Helvetica, Arial, sans-serif;
+  font-family: Figtree, Avenir, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   /*text-align: center;*/

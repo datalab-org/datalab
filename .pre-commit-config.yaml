@@ -20,7 +20,7 @@ repos:
         args: [--unsafe]
       - id: check-json
       - id: end-of-file-fixer
-        exclude: pydatalab/example_data/
+        exclude: ^(pydatalab/example_data/|pydatalab/schemas)
       - id: check-added-large-files
         args: [--maxkb=1024]
       - id: check-symlinks
@@ -49,3 +49,12 @@ repos:
     hooks:
       - id: mypy
         additional_dependencies: ["types-all"]
+
+  - repo: local
+    hooks:
+      - id: generate-schemas
+        name: Regenerate item model JSONSchemas
+        description: Check if the current code changes have enacted changes to the resulting JSONSchemas
+        entry: invoke -r pydatalab dev.generate-schemas
+        pass_filenames: false
+        language: python

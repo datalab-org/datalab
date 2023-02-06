@@ -1,0 +1,337 @@
+{
+  "title": "Sample",
+  "description": "A model for representing an experimental sample.",
+  "type": "object",
+  "properties": {
+    "type": {
+      "title": "Type",
+      "default": "samples",
+      "const": "samples",
+      "pattern": "^samples$",
+      "type": "string"
+    },
+    "immutable_id": {
+      "title": "Immutable ID",
+      "type": "string"
+    },
+    "last_modified": {
+      "title": "Last Modified",
+      "type": "date",
+      "format": "date-time"
+    },
+    "relationships": {
+      "title": "Relationships",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/TypedRelationship"
+      }
+    },
+    "revision": {
+      "title": "Revision",
+      "default": 1,
+      "type": "integer"
+    },
+    "revisions": {
+      "title": "Revisions",
+      "type": "object"
+    },
+    "item_id": {
+      "title": "Item Id",
+      "minLength": 1,
+      "maxLength": 40,
+      "pattern": "^[a-zA-Z0-9_-]+$",
+      "type": "string"
+    },
+    "creator_ids": {
+      "title": "Creator Ids",
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "creators": {
+      "title": "Creators",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Person"
+      }
+    },
+    "description": {
+      "title": "Description",
+      "type": "string"
+    },
+    "date": {
+      "title": "Date",
+      "type": "date",
+      "format": "date-time"
+    },
+    "name": {
+      "title": "Name",
+      "type": "string"
+    },
+    "blocks_obj": {
+      "title": "Blocks Obj",
+      "default": {},
+      "type": "object"
+    },
+    "display_order": {
+      "title": "Display Order",
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "files": {
+      "title": "Files",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "file_ObjectIds": {
+      "title": "File Objectids",
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "chemform": {
+      "title": "Chemform",
+      "example": [
+        "Na3P",
+        "LiNiO2@C"
+      ],
+      "type": "string"
+    },
+    "synthesis_constituents": {
+      "title": "Synthesis Constituents",
+      "default": [],
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Constituent"
+      }
+    },
+    "synthesis_description": {
+      "title": "Synthesis Description",
+      "type": "string"
+    }
+  },
+  "required": [
+    "item_id"
+  ],
+  "definitions": {
+    "RelationshipType": {
+      "title": "RelationshipType",
+      "description": "An enumeration of the possible types of relationship between two entries.\n\n```mermaid\nclassDiagram\nclass entryC\nentryC --|> entryA: parent\nentryC ..|> entryD\nentryA <..> entryD: sibling\nentryA --|> entryB : child\n```",
+      "enum": [
+        "parent",
+        "child",
+        "sibling",
+        "is_part_of",
+        "other"
+      ],
+      "type": "string"
+    },
+    "KnownType": {
+      "title": "KnownType",
+      "description": "An enumeration of the types of entry known by this implementation, should be made dynamic in the future.",
+      "enum": [
+        "samples",
+        "starting_materials",
+        "blocks",
+        "files",
+        "people"
+      ],
+      "type": "string"
+    },
+    "TypedRelationship": {
+      "title": "TypedRelationship",
+      "type": "object",
+      "properties": {
+        "description": {
+          "title": "Description",
+          "description": "A description of the relationship.",
+          "type": "string"
+        },
+        "relation": {
+          "description": "The type of relationship between the two items. If the type is 'other', then a human-readable description should be provided.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/RelationshipType"
+            }
+          ]
+        },
+        "type": {
+          "description": "The type of the related resource.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/KnownType"
+            }
+          ]
+        },
+        "immutable_id": {
+          "title": "Immutable Id",
+          "description": "The immutable ID of the entry that is related to this entry.",
+          "type": "string"
+        },
+        "item_id": {
+          "title": "Item Id",
+          "description": "The ID of the entry that is related to this entry.",
+          "minLength": 1,
+          "maxLength": 40,
+          "pattern": "^[a-zA-Z0-9_-]+$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "relation",
+        "type"
+      ]
+    },
+    "IdentityType": {
+      "title": "IdentityType",
+      "description": "A string enum representing the supported verifiable identity types.",
+      "enum": [
+        "email",
+        "orcid",
+        "github"
+      ],
+      "type": "string"
+    },
+    "Identity": {
+      "title": "Identity",
+      "description": "A model for identities that can be provided by external systems\nand associated with a given user.",
+      "type": "object",
+      "properties": {
+        "identity_type": {
+          "$ref": "#/definitions/IdentityType"
+        },
+        "identifier": {
+          "title": "Identifier",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "verified": {
+          "title": "Verified",
+          "default": false,
+          "type": "boolean"
+        },
+        "display_name": {
+          "title": "Display Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "identity_type",
+        "identifier",
+        "name"
+      ]
+    },
+    "Person": {
+      "title": "Person",
+      "description": "A model that describes an individual and their digital identities.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "title": "Type",
+          "default": "people",
+          "const": "people",
+          "type": "string"
+        },
+        "immutable_id": {
+          "title": "Immutable ID",
+          "type": "string"
+        },
+        "last_modified": {
+          "title": "Last Modified",
+          "type": "date",
+          "format": "date-time"
+        },
+        "relationships": {
+          "title": "Relationships",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/TypedRelationship"
+          }
+        },
+        "revision": {
+          "title": "Revision",
+          "default": 1,
+          "type": "integer"
+        },
+        "revisions": {
+          "title": "Revisions",
+          "type": "object"
+        },
+        "identities": {
+          "title": "Identities",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Identity"
+          }
+        },
+        "display_name": {
+          "title": "Display Name",
+          "type": "string"
+        },
+        "contact_email": {
+          "title": "Contact Email",
+          "type": "string",
+          "format": "email"
+        }
+      }
+    },
+    "EntryReference": {
+      "title": "EntryReference",
+      "description": "A reference to a database entry by ID and type.\n\nCan include additional arbitarary metadata useful for\ninlining the item data.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "title": "Type",
+          "type": "string"
+        },
+        "immutable_id": {
+          "title": "Immutable Id",
+          "type": "string"
+        },
+        "item_id": {
+          "title": "Item Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    "Constituent": {
+      "title": "Constituent",
+      "description": "A constituent of a sample.",
+      "type": "object",
+      "properties": {
+        "item": {
+          "$ref": "#/definitions/EntryReference"
+        },
+        "quantity": {
+          "title": "Quantity",
+          "minimum": 0,
+          "type": "number"
+        },
+        "unit": {
+          "title": "Unit",
+          "default": "g",
+          "type": "string"
+        }
+      },
+      "required": [
+        "item",
+        "quantity"
+      ]
+    }
+  }
+}
