@@ -8,7 +8,7 @@ datalab
 
 [![Cypress Cloud](https://img.shields.io/endpoint?url=https://cloud.cypress.io/badge/detailed/4kqx5i/main&style=flat&logo=cypress)](https://cloud.cypress.io/projects/4kqx5i/runs)
 
-[![Documentation Status](https://readthedocs.com/projects/the-grey-group-datalabvue/badge/?version=latest)](https://the-grey-group-datalabvue.readthedocs-hosted.com/en/latest/?badge=latest)
+[![Documentation Status](https://readthedocs.org/projects/the-datalab/badge/?version=latest)](https://the-datalab.readthedocs.io/en/latest/?badge=latest)
 
 </div>
 
