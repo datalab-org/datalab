@@ -202,6 +202,7 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
             dict(
                 status="error",
                 message="Unable to create new sample without user authentication.",
+                item_id=sample_dict["item_id"],
             ),
             401,
         )
@@ -210,12 +211,13 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
 
         copied_doc = flask_mongo.db.items.find_one({"item_id": copy_from_item_id})
 
-        LOGGER.debug(f"Copying from prexisting item {copy_from_item_id} with data:\n{copied_doc}")
+        LOGGER.debug(f"Copying from pre-existing item {copy_from_item_id} with data:\n{copied_doc}")
         if not copied_doc:
             return (
                 dict(
                     status="error",
                     message=f"Request to copy sample with id {copy_from_item_id} failed because sample could not be found.",
+                    item_id=sample_dict["item_id"],
                 ),
                 404,
             )
@@ -229,7 +231,7 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
                     status="error",
                     message=f"Request to copy sample with id {copy_from_item_id} to new item failed because the target new item_id was not provided.",
                 ),
-                404,
+                400,
             )
 
         copied_doc["name"] = sample_dict.get("name")
@@ -237,16 +239,14 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
 
         # any provided constituents will be added to the synthesis information table in
         # addition to the constituents copied from the copy_from_item_id, avoiding duplicates
-        if copied_doc.get("synthesis_constituents"):
-            existing_consituent_ids = [
-                constituent["item"]["item_id"]
-                for constituent in copied_doc["synthesis_constituents"]
-            ]
-            copied_doc["synthesis_constituents"] += [
-                constituent
-                for constituent in sample_dict.get("synthesis_constituents", [])
-                if (constituent["item"]["item_id"] not in existing_consituent_ids)
-            ]
+        existing_consituent_ids = [
+            constituent["item"]["item_id"] for constituent in copied_doc["synthesis_constituents"]
+        ]
+        copied_doc["synthesis_constituents"] += [
+            constituent
+            for constituent in sample_dict.get("synthesis_constituents", [])
+            if (constituent["item"]["item_id"] not in existing_consituent_ids)
+        ]
 
         sample_dict = copied_doc
 
@@ -283,6 +283,7 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
             dict(
                 status="error",
                 message=f"item_id_validation_error: {sample_dict['item_id']!r} already exists in database.",
+                item_id=new_sample["item_id"],
             ),
             409,  # 409: Conflict
         )
@@ -296,6 +297,7 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
             dict(
                 status="error",
                 message=f"Unable to create new sample with ID {new_sample['item_id']}.",
+                item_id=new_sample["item_id"],
                 output=str(error),
             ),
             400,
@@ -307,6 +309,7 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
             dict(
                 status="error",
                 message=f"Failed to add new sample {new_sample.item_id!r} to database.",
+                item_id=new_sample["item_id"],
                 output=result.raw_result,
             ),
             400,
@@ -315,6 +318,7 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
     return (
         {
             "status": "success",
+            "item_id": new_sample.item_id,
             "sample_list_entry": {
                 "item_id": new_sample.item_id,
                 "nblocks": 0,
@@ -347,15 +351,22 @@ create_sample.methods = ("POST",)  # type: ignore
 
 def create_samples():
     """attempt to create multiple samples at once.
-    Beacuse each may result in success or failure, 207 is returned along with a
+    Because each may result in success or failure, 207 is returned along with a
     json field containing all the individual http_codes"""
 
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
 
-    sample_jsons = request_json["sample_jsons"]
+    sample_jsons = request_json["new_sample_datas"]
+    copy_from_item_ids = request_json.get("copy_from_item_ids")
 
-    outputs = [_create_sample(sample_json) for sample_json in sample_jsons]
-    responses, http_codes = zip(outputs)
+    if copy_from_item_ids is None:
+        copy_from_item_ids = [None] * len(sample_jsons)
+
+    outputs = [
+        _create_sample(sample_json, copy_from_item_id)
+        for sample_json, copy_from_item_id in zip(sample_jsons, copy_from_item_ids)
+    ]
+    responses, http_codes = zip(*outputs)
 
     statuses = [response["status"] for response in responses]
     nsuccess = statuses.count("success")
@@ -368,11 +379,11 @@ def create_samples():
             responses=responses,
             http_codes=http_codes,
         ),
-        207,  # 207: multi-status
-    )
+        207,
+    )  # 207: multi-status
 
 
-create_samples.method = ("POST",)  # type: ignore
+create_samples.methods = ("POST",)  # type: ignore
 
 
 def delete_sample():

@@ -18,10 +18,17 @@
         :name="name"
         :chemform="chemform"
         enableModifiedClick
+        :maxLength="formattedItemNameMaxLength"
       />
     </template>
     <template v-slot:selected-option="{ type, item_id, name }">
-      <FormattedItemName :item_id="item_id" :itemType="type" :name="name" enableModifiedClick />
+      <FormattedItemName
+        :item_id="item_id"
+        :itemType="type"
+        :name="name"
+        enableModifiedClick
+        :maxLength="formattedItemNameMaxLength"
+      />
     </template>
   </vSelect>
 </template>
@@ -33,7 +40,13 @@ import { searchItems } from "@/server_fetch_utils.js";
 import { debounceTime } from "@/resources.js";
 
 export default {
-  props: ["modelValue"],
+  props: {
+    modelValue: {},
+    formattedItemNameMaxLength: {
+      type: Number,
+      default: NaN,
+    },
+  },
   emits: ["update:modelValue"],
   data() {
     return {

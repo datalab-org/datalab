@@ -10,7 +10,7 @@
     >
       {{ item_id }}
     </span>
-    {{ name }}
+    {{ shortenedName }}
     <span v-if="chemform && chemform != ' '"> [ <ChemicalFormula :formula="chemform" /> ] </span>
   </div>
 </template>
@@ -33,10 +33,21 @@ export default {
       type: Boolean,
       default: false,
     },
+    maxLength: {
+      type: Number,
+      default: NaN,
+    },
   },
   computed: {
     badgeColor() {
       return itemTypes[this.itemType]?.lightColor || "LightGrey";
+    },
+    shortenedName() {
+      if (this.maxLength && this.maxLength < this.name.length) {
+        return this.name.substring(0, this.maxLength) + "...";
+      } else {
+        return this.name;
+      }
     },
   },
   methods: {
