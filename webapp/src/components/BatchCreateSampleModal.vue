@@ -40,6 +40,7 @@
                   class="form-control col-md-1 col-2"
                   type="number"
                   min="0"
+                  max="100"
                 />
               </div>
 
@@ -78,9 +79,11 @@
                     <td>
                       <input
                         class="form-control"
-                        type="date"
+                        type="datetime-local"
                         v-model="sampleTemplate.date"
                         @input="applyDateTemplate"
+                        :min="epochStart"
+                        :max="oneYearOn"
                       />
                     </td>
                     <td>
@@ -148,7 +151,15 @@
                           @input="this.sampleTemplate.name = ''"
                         />
                       </td>
-                      <td><input class="form-control" type="date" v-model="sample.date" /></td>
+                      <td>
+                        <input
+                          class="form-control"
+                          type="datetime-local"
+                          v-model="sample.date"
+                          :min="epochStart"
+                          :max="oneYearOn"
+                        />
+                      </td>
                       <td>
                         <ItemSelect v-model="sample.copyFrom" :formattedItemNameMaxLength="8" />
                       </td>
@@ -231,7 +242,8 @@ export default {
   data() {
     return {
       beforeSubmit: true,
-
+      epochStart: new Date("1970-01-01").toISOString().slice(0, -8),
+      oneYearOn: this.determineOneYearOn(),
       nSamples: 3,
       samples: [
         {
@@ -239,21 +251,21 @@ export default {
           name: "",
           copyFrom: null,
           components: [],
-          date: new Date().toISOString().split("T")[0],
+          date: this.now(),
         },
         {
           item_id: null,
           name: "",
           copyFrom: null,
           components: [],
-          date: new Date().toISOString().split("T")[0],
+          date: this.now(),
         },
         {
           item_id: null,
           name: "",
           copyFrom: null,
           components: [],
-          date: new Date().toISOString().split("T")[0],
+          date: this.now(),
         },
       ],
       takenItemIds: [], // this holds ids that have been tried, whereas the computed takenSampleIds holds ids in the sample table
@@ -265,7 +277,7 @@ export default {
         name: "",
         copyFrom: null,
         components: null,
-        date: new Date().toISOString().split("T")[0],
+        date: this.now(),
       },
 
       serverResponses: {}, // after the server responds, store error messages if any
@@ -317,6 +329,15 @@ export default {
     },
   },
   methods: {
+    now() {
+      return new Date().toISOString().slice(0, -8);
+    },
+    determineOneYearOn() {
+      // returns a timestamp 1 year from now
+      let d = new Date();
+      d.setFullYear(d.getFullYear() + 1);
+      return d.toISOString().slice(0, -8);
+    },
     applyIdTemplate() {
       this.samples.forEach((sample, i) => {
         sample.item_id = this.sampleTemplate.item_id.replace("{#}", i + this.templateStartNumber);

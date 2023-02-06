@@ -104,7 +104,7 @@ describe("Batch sample creation", () => {
     getBatchAddCell(1, 1).type("baseA");
     getBatchAddCell(2, 1).type("baseB");
     getBatchAddCell(2, 2).type("the name of baseB");
-    getBatchAddCell(2, 3).type("1999-12-31");
+    getBatchAddCell(2, 3).type("1999-12-31T01:00");
     getSubmitButton().click();
     cy.get("[data-testid=batch-modal-container]").contains("a", "baseA");
     cy.get("[data-testid=batch-modal-container]").contains("a", "baseB");
@@ -112,7 +112,7 @@ describe("Batch sample creation", () => {
 
     cy.get("[data-testid=batch-modal-container]").contains("Close").click();
     verifySample("baseA");
-    verifySample("baseB", "the name of baseB", "1999-12-31");
+    verifySample("baseB", "the name of baseB", "1999-12-31T01:00");
   });
 
   it("adds four base samples", () => {
@@ -416,7 +416,7 @@ describe("Batch sample creation", () => {
     getBatchAddCell(1, 2).type("testing 1");
     getBatchAddCell(2, 2).type("testing 1,2");
     getBatchAddCell(3, 2).type("testing 1,2,3");
-    getBatchAddCell(1, 3).type("1992-12-10");
+    getBatchAddCell(1, 3).type("1992-12-10T14:34");
 
     getSubmitButton().click();
 
@@ -426,7 +426,7 @@ describe("Batch sample creation", () => {
     cy.findAllByText("Successfully created.").should("have.length", 3);
 
     cy.get("[data-testid=batch-modal-container]").contains("Close").click();
-    verifySample("test_1", "testing 1", "1992-12-10");
+    verifySample("test_1", "testing 1", "1992-12-10T14:34");
     verifySample("test_2", "testing 1,2");
     verifySample("test_3", "testing 1,2,3");
 
@@ -439,7 +439,7 @@ describe("Batch sample creation", () => {
     cy.contains("Add batch of samples").click();
     getBatchTemplateCell(1).type("test_{{}#{}}");
     getBatchTemplateCell(2).type("this is the test sample #{{}#{}}");
-    getBatchTemplateCell(3).type("1980-02-01");
+    getBatchTemplateCell(3).type("1980-02-01T05:35");
 
     cy.findByLabelText("start counting {#} at:").clear().type(5);
 
@@ -451,9 +451,9 @@ describe("Batch sample creation", () => {
     cy.findAllByText("Successfully created.").should("have.length", 3);
 
     cy.get("[data-testid=batch-modal-container]").contains("Close").click();
-    verifySample("test_5", "this is the test sample #5", "1980-02-01");
-    verifySample("test_6", "this is the test sample #6", "1980-02-01");
-    verifySample("test_7", "this is the test sample #7", "1980-02-01");
+    verifySample("test_5", "this is the test sample #5", "1980-02-01T05:35");
+    verifySample("test_6", "this is the test sample #6", "1980-02-01T05:35");
+    verifySample("test_7", "this is the test sample #7", "1980-02-01T05:35");
 
     deleteSample("test_5");
     deleteSample("test_6");
@@ -464,7 +464,7 @@ describe("Batch sample creation", () => {
     cy.contains("Add batch of samples").click();
     getBatchTemplateCell(1).type("test_{{}#{}}");
     getBatchTemplateCell(2).type("this is the test sample #{{}#{}}");
-    getBatchTemplateCell(3).type("1980-02-01");
+    getBatchTemplateCell(3).type("1980-02-01T23:59");
 
     // select copyFrom sample, check that it is applied correctly
     getBatchTemplateCell(4, ".vs__search").type("baseA");
@@ -509,9 +509,9 @@ describe("Batch sample creation", () => {
 
     getSubmitButton().click();
 
-    verifySample("test_1", "this is the test sample #1", "1980-02-01");
-    verifySample("test_2", "this is the test sample #2", "1980-02-01");
-    verifySample("test_3", "this is the test sample #3", "1980-02-01");
+    verifySample("test_1", "this is the test sample #1", "1980-02-01T00:00");
+    verifySample("test_2", "this is the test sample #2", "1980-02-01T00:00");
+    verifySample("test_3", "this is the test sample #3", "1980-02-01T00:00");
 
     cy.get("[data-testid=batch-modal-container]").contains("a", "test_1");
     cy.get("[data-testid=batch-modal-container]").contains("a", "test_2");
@@ -687,7 +687,7 @@ describe("Batch sample creation", () => {
     getBatchAddError(2).invoke("text").invoke("trim").should("equal", ""); // expect no error
     getBatchAddError(3).invoke("text").invoke("trim").should("equal", ""); // expect no error
 
-    getBatchAddCell(2, 3).type("2000-01-01");
+    getBatchAddCell(2, 3).type("2000-01-01T10:05");
 
     getBatchAddCell(4, 1).clear();
     getBatchAddError(4).invoke("text").invoke("trim").should("not.equal", ""); // expect some error
@@ -712,7 +712,7 @@ describe("Batch sample creation", () => {
     cy.get("[data-testid=batch-modal-container]").contains("Close").click();
 
     verifySample("test101_unique");
-    verifySample("test102_unique", "", "2000-01-01");
+    verifySample("test102_unique", "", "2000-01-01T10:05");
     verifySample("test103_unique");
     verifySample("test101_unique2");
   });
