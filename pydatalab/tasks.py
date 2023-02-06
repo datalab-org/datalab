@@ -80,5 +80,46 @@ def change_user_role(_, display_name: str, role: UserRole):
 
 admin.add_task(change_user_role)
 
+
+@task
+def manually_register_user(
+    _,
+    display_name: str,
+    contact_email: str,
+    orcid: str = None,
+    github_user_id: int = None,
+):
+    from pydatalab.models.people import Identity, Person
+
+    identities = []
+    if github_user_id:
+        identities.append(
+            Identity(identity_type="github", identifier=github_user_id, verified=False)
+        )
+
+    if orcid:
+        identities.append(Identity(identity_type="orcid", identifier=orcid, verified=False))
+
+    if contact_email:
+        identities.append(
+            Identity(
+                identity_type="email", identifier=contact_email, name=contact_email, verified=False
+            )
+        )
+
+    new_user = Person(
+        display_name=display_name,
+        contact_email=contact_email,
+        identities=identities,
+    )
+
+    from pydatalab.mongo import insert_pydantic_model_fork_safe
+
+    insert_pydantic_model_fork_safe(new_user, "users")
+
+
+admin.add_task(manually_register_user)
+
+
 ns.add_collection(dev)
 ns.add_collection(admin)
