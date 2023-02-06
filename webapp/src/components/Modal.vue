@@ -23,12 +23,7 @@
         </div>
         <div class="modal-footer">
           <slot name="footer">
-            <input
-              type="submit"
-              class="btn btn-info btn-small"
-              :disabled="disableSubmit"
-              value="Submit"
-            />
+            <input type="submit" class="btn btn-info" :disabled="disableSubmit" value="Submit" />
             <button
               type="button"
               class="btn btn-secondary"
@@ -110,5 +105,9 @@ export default {
   width: 100%;
   z-index: 10;
   background-color: rgba(0, 0, 0, 0.2);
+}
+
+.btn:disabled {
+  cursor: not-allowed;
 }
 </style>
