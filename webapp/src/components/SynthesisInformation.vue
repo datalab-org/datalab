@@ -135,6 +135,16 @@ export default {
       this.selectShown.splice(index, 1);
     },
   },
+  watch: {
+    // since constituents is an object, the computed setter never fires and
+    // saved status is never updated. So, use a watcher:
+    constituents: {
+      handler() {
+        this.$store.commit("setSaved", { item_id: this.item_id, isSaved: false });
+      },
+      deep: true,
+    },
+  },
   mounted() {
     this.selectShown = new Array(this.constituents.length).fill(false);
   },

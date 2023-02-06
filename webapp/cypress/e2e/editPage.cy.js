@@ -224,8 +224,20 @@ describe("Edit Page", () => {
     cy.get("tr>td").eq(5).contains(2); // 2 blocks are present
   });
 
-  it("cleanup: delete the sample", () => {
+  it("cleanup: delete the samples", () => {
     cy.findByText("editable_sample")
+      .parent("tr")
+      .within(() => {
+        cy.get("button.close").click();
+      });
+
+    cy.findByText("component1")
+      .parent("tr")
+      .within(() => {
+        cy.get("button.close").click();
+      });
+
+    cy.findByText("component2")
       .parent("tr")
       .within(() => {
         cy.get("button.close").click();
