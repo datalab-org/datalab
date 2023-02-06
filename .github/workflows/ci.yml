@@ -27,18 +27,19 @@ jobs:
           python-version: "3.9"
 
       - name: Install dependencies
+        working-directory: ./pydatalab
         run: |
           python -m pip install --upgrade pip
           pip install -U setuptools
-          pip install flake8 pre-commit
-
-      - name: Check for syntax errors with flake8
-        run: |
-          flake8 . --count --select=E9,F63,F7,F82 --show-source
+          pip install pipenv
+          pipenv sync --dev
+          pipenv run pip install invoke
+          pipenv run pip install -e .
 
       - name: Run pre-commit
+        working-directory: ./pydatalab
         run: |
-          pre-commit run --all-files --show-diff-on-failure
+          pipenv run pre-commit run --all-files --show-diff-on-failure
 
   pytest:
     name: Run Python unit tests

@@ -105,7 +105,7 @@ def test_create_indices(real_mongo_client):
 
     create_default_indices(real_mongo_client)
     indexes = list(real_mongo_client.get_database().items.list_indexes())
-    expected_index_names = ("_id_", "item full-text search", "item type", "unique item ID")
+    expected_index_names = ("_id_", "items full-text search", "item type", "unique item ID")
     names = [index["name"] for index in indexes]
 
     assert all(name in names for name in expected_index_names)
