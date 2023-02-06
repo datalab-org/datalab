@@ -5,6 +5,7 @@ datalab
 <div align="center">
 [![GH Actions](https://github.com/the-grey-group/datalab/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/the-grey-group/datalab/actions/workflows/ci.yml)
 [![Cypress Cloud](https://img.shields.io/endpoint?url=https://cloud.cypress.io/badge/detailed/4kqx5i/main&style=flat&logo=cypress)](https://cloud.cypress.io/projects/4kqx5i/runs)
+[![Documentation Status](https://readthedocs.com/projects/the-grey-group-datalabvue/badge/?version=latest)](https://the-grey-group-datalabvue.readthedocs-hosted.com/en/latest/?badge=latest)
 </div>
 
 <!-- datalab logo -->
