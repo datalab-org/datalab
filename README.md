@@ -68,7 +68,7 @@ with contributions and testing performed by other members of the Grey Group.
 This project has received funding from the European Union's Horizon 2020 research and innovation programme under grant agreement 957189 (DOI: [10.3030/957189](https://doi.org/10.3030/957189)), the [Battery Interface Genome - Materials Acceleration Platform (BIG-MAP)](https://www.big-map.eu), as an external stakeholder project.
 
 <div align="center">
-<img src="https://big-map.github.io/big-map-registry/static/img/big-map-white-transparent.png" width=100>
+<img href="https://big-map.org" src="https://big-map.github.io/big-map-registry/static/img/big-map-white-transparent.png" width=100>
 </div>
 
 <!-- funding logos -->
