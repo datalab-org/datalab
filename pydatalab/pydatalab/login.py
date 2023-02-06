@@ -3,7 +3,6 @@ for retrieving the authenticated user for a session and their identities.
 
 """
 
-from enum import Enum
 from functools import lru_cache
 from typing import Dict, List, Literal, Optional, Union
 
@@ -13,15 +12,10 @@ from flask_login import LoginManager, UserMixin
 from pydatalab.logger import LOGGER
 from pydatalab.models import Person
 from pydatalab.models.people import Identity, IdentityType
+from pydatalab.models.utils import UserRole
 from pydatalab.mongo import flask_mongo
 
 __all__ = ("LOGIN_MANAGER",)
-
-
-class UserRole(str, Enum):
-    USER = "user"
-    ADMIN = "admin"
-    MANAGER = "manager"
 
 
 class LoginUser(UserMixin):
