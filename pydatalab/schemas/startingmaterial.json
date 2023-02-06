@@ -35,9 +35,15 @@
       "title": "Revisions",
       "type": "object"
     },
+    "item_id": {
+      "title": "Item Id",
+      "minLength": 1,
+      "maxLength": 40,
+      "pattern": "^[a-zA-Z0-9_-]+$",
+      "type": "string"
+    },
     "creator_ids": {
       "title": "Creator Ids",
-      "description": "The database IDs of the user(s) who created the item.",
       "default": [],
       "type": "array",
       "items": {
@@ -46,7 +52,6 @@
     },
     "creators": {
       "title": "Creators",
-      "description": "Inlined info for the people associated with this item.",
       "type": "array",
       "items": {
         "$ref": "#/definitions/Person"
@@ -54,19 +59,12 @@
     },
     "description": {
       "title": "Description",
-      "description": "A description of the item, either in plain-text or a markup language.",
       "type": "string"
     },
     "date": {
       "title": "Date",
-      "description": "A relevant date supplied for the item (e.g., purchase date, synthesis date)",
       "type": "date",
       "format": "date-time"
-    },
-    "item_id": {
-      "title": "Item Id",
-      "default": "A unique, human-readable identifier for the entry.",
-      "type": "string"
     },
     "name": {
       "title": "Container Name",
@@ -75,13 +73,11 @@
     },
     "blocks_obj": {
       "title": "Blocks Obj",
-      "description": "A mapping from block ID to block data.",
       "default": {},
       "type": "object"
     },
     "display_order": {
       "title": "Display Order",
-      "description": "The order in which to display block data in the UI.",
       "default": [],
       "type": "array",
       "items": {
@@ -90,7 +86,6 @@
     },
     "files": {
       "title": "Files",
-      "description": "Any files attached to this sample.",
       "type": "array",
       "items": {
         "type": "string"
@@ -98,7 +93,6 @@
     },
     "file_ObjectIds": {
       "title": "File Objectids",
-      "description": "Links to object IDs of files stored within the database.",
       "default": [],
       "type": "array",
       "items": {
@@ -176,9 +170,9 @@
     }
   },
   "required": [
+    "item_id",
     "name"
   ],
-  "additionalProperties": false,
   "definitions": {
     "RelationshipType": {
       "title": "RelationshipType",
@@ -197,9 +191,9 @@
       "description": "An enumeration of the types of entry known by this implementation, should be made dynamic in the future.",
       "enum": [
         "samples",
+        "starting_materials",
         "blocks",
         "files",
-        "starting_materials",
         "people"
       ],
       "type": "string"
@@ -229,16 +223,23 @@
             }
           ]
         },
+        "immutable_id": {
+          "title": "Immutable Id",
+          "description": "The immutable ID of the entry that is related to this entry.",
+          "type": "string"
+        },
         "item_id": {
           "title": "Item Id",
           "description": "The ID of the entry that is related to this entry.",
+          "minLength": 1,
+          "maxLength": 40,
+          "pattern": "^[a-zA-Z0-9_-]+$",
           "type": "string"
         }
       },
       "required": [
         "relation",
-        "type",
-        "item_id"
+        "type"
       ]
     },
     "IdentityType": {
@@ -335,11 +336,7 @@
           "type": "string",
           "format": "email"
         }
-      },
-      "required": [
-        "identities"
-      ],
-      "additionalProperties": false
+      }
     }
   }
 }
