@@ -1,4 +1,4 @@
-# Design document: user authentication and authorization
+# User authentication and authorization
 
 Consider the following user stories:
 
