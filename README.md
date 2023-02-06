@@ -2,6 +2,10 @@
 datalab
 </h1>
 
+<div align="center">
+[![datalab](https://img.shields.io/endpoint?url=https://cloud.cypress.io/badge/detailed/4kqx5i/main&style=flat&logo=cypress)](https://cloud.cypress.io/projects/4kqx5i/runs)
+</div>
+
 <!-- datalab logo -->
 
 This repository contains the code for a data management system that consists of
