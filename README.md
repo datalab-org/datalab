@@ -1,5 +1,5 @@
 <h1 align="center">
-datalabvue
+datalab
 </h1>
 
 <!-- datalab logo -->
