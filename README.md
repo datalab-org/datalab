@@ -3,13 +3,14 @@ datalab
 
 <div>
 <a href="https://github.com/the-grey-group/datalab/actions/workflows/ci.yml">
-<img src="https://img.shields.io/github/actions/workflow/status/the-grey-group/datalab/ci.yml">
+<img src="https://img.shields.io/github/actions/workflow/status/the-grey-group/datalab/ci.yml?logo=github">
 </a>
 <a href="https://cloud.cypress.io/projects/4kqx5i/runs">
-<img src="https://img.shields.io/endpoint?url=https://cloud.cypress.io/badge/detailed/4kqx5i/main&style=flat&logo=cypress">
+<img src="https://img.shields.io/endpoint?url=https://cloud.cypress.io/badge/simple/4kqx5i/main&style=flat&logo=cypress">
 </a>
 <a href="https://the-datalab.readthedocs.io/en/latest/?badge=latest">
-<img src="https://readthedocs.org/projects/the-datalab/badge/?version=latest">
+<img
+src="https://img.shields.io/readthedocs/the-datalab?logo=readthedocs&color=blueviolet">
 </a>
 </div>
 
