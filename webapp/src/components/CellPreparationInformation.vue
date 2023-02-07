@@ -1,99 +1,49 @@
 <template>
   <div id="cell-preparation-information">
     <label class="mr-2 pb-2">Cell Construction</label>
-    <table class="table table-sm mb-2" style="width: 80%; margin-left: 15%">
-      <thead>
-        <tr class="subheading">
-          <th style="width: calc(60% - 7rem)">Component</th>
-          <th style="width: 21%">Formula</th>
-          <th style="width: 12%">Amount</th>
-          <th style="width: 7%">Unit</th>
-          <th style="width: 1rem"></th>
-        </tr>
-      </thead>
-      <tbody class="borderless">
-        <tr v-for="(constituent, index) in PosElectrodeConstituents" :key="index">
-          <td class="first-column">
-            <transition name="fade">
-              <font-awesome-icon
-                v-if="!selectShown[index]"
-                :icon="['fas', 'search']"
-                class="swap-constituent-icon"
-                @click="turnOnRowSelect(index)"
-              />
-            </transition>
-            <ItemSelect
-              class="select-in-row"
-              v-if="selectShown[index]"
-              :ref="`select${index}`"
-              v-model="selectedChangedConstituent"
-              :clearable="false"
-              @option:selected="swapConstituent($event, index)"
-              @search:blur="selectShown[index] = false"
-            />
-            <FormattedItemName
-              v-else
-              :item_id="constituent.item.item_id"
-              :itemType="constituent.item.type"
-              :name="constituent.item.name"
-              enableClick
-              enableModifiedClick
-              @dblclick="turnOnRowSelect(index)"
-            />
-          </td>
-          <td>
-            <ChemicalFormula :formula="constituent.item?.chemform" />
-          </td>
-          <td>
-            <input
-              class="form-control quantity-input"
-              :class="{ 'red-border': isNaN(constituent.quantity) }"
-              v-model="constituent.quantity"
-            />
-          </td>
-          <td>
-            <input class="form-control" v-model="constituent.unit" />
-          </td>
 
-          <td>
-            <button
-              type="button"
-              class="close"
-              @click.stop="removeConstituent(index)"
-              aria-label="delete"
-            >
-              <span aria-hidden="true">&times;</span>
-            </button>
-          </td>
-        </tr>
-        <tr>
-          <ItemSelect v-model="selectedNewConstituent" @option:selected="addConstituent" />
-        </tr>
-      </tbody>
-    </table>
-    <span id="synthesis-procedure-label" class="subheading ml-2">Procedure</span>
-    <TinyMceInline
-      aria-labelledby="synthesis-procedure-label"
-      v-model="CellPreparationDescription"
-    ></TinyMceInline>
+    <div class="card ml-5 mt-2 component-card">
+      <div class="card-body form-group pt-2 pb-0 mb-0 pl-5">
+        <label class="cell-component-label" for="pos-electrode-table">Positive electrode</label>
+        <CompactConstituentTable id="pos-electrode-table" v-model="PosElectrodeConstituents" />
+      </div>
+    </div>
+
+    <div class="card ml-5 mt-4 component-card">
+      <div class="card-body form-group pt-2 pb-0 mb-0 pl-5">
+        <label class="cell-component-label" for="eltye-table">Electrolyte</label>
+        <CompactConstituentTable id="eltye-table" v-model="ElectrolyteConstituents" />
+      </div>
+    </div>
+
+    <div class="card ml-5 mt-4 component-card">
+      <div class="card-body form-group pt-2 pb-0 mb-0 pl-5">
+        <label class="cell-component-label" for="neg-electrode-table">Negative electrode</label>
+        <CompactConstituentTable id="neg-electrode-table" v-model="NegElectrodeConstituents" />
+      </div>
+    </div>
+
+    <div class="form-group ml-5 mt-3">
+      <label id="synthesis-procedure-label" class="ml-2">Procedure</label>
+      <TinyMceInline
+        aria-labelledby="synthesis-procedure-label"
+        v-model="CellPreparationDescription"
+      />
+    </div>
   </div>
 </template>
 
 <script>
 import TinyMceInline from "@/components/TinyMceInline";
-import ChemicalFormula from "@/components/ChemicalFormula.vue";
+// import ChemicalFormula from "@/components/ChemicalFormula.vue";
 import { createComputedSetterForItemField } from "@/field_utils.js";
 
-import ItemSelect from "@/components/ItemSelect.vue";
-import FormattedItemName from "@/components/FormattedItemName.vue";
+// import ItemSelect from "@/components/ItemSelect.vue";
+// import FormattedItemName from "@/components/FormattedItemName.vue";
+
+import CompactConstituentTable from "@/components/CompactConstituentTable";
 
 export default {
-  components: {
-    TinyMceInline,
-    ChemicalFormula,
-    ItemSelect,
-    FormattedItemName,
-  },
   data() {
     return {
       selectedNewConstituent: null,
@@ -106,6 +56,8 @@ export default {
   },
   computed: {
     PosElectrodeConstituents: createComputedSetterForItemField("positive_electrode"),
+    ElectrolyteConstituents: createComputedSetterForItemField("electrolyte"),
+    NegElectrodeConstituents: createComputedSetterForItemField("negative_electrode"),
     CellPreparationDescription: createComputedSetterForItemField("cell_preparation_description"),
   },
   methods: {
@@ -148,10 +100,21 @@ export default {
   mounted() {
     this.selectShown = new Array(this.PosElectrodeConstituents.length).fill(false);
   },
+  components: {
+    TinyMceInline,
+    // ChemicalFormula,
+    // ItemSelect,
+    // FormattedItemName,
+    CompactConstituentTable,
+  },
 };
 </script>
 
 <style scoped>
+.component-card {
+  width: 85%;
+}
+
 .first-column {
   position: relative;
 }

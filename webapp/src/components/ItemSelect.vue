@@ -1,4 +1,5 @@
 <template>
+  <!-- See https://github.com/sagalbot/vue-select/issues/1399 for why filterBy is included-->
   <vSelect
     v-model="value"
     :options="items"
@@ -6,6 +7,8 @@
     label="name"
     :filterable="false"
     ref="selectComponent"
+    :createOption="createOption"
+    :filterBy="() => true"
   >
     <template #no-options="{ searching }">
       <span v-if="searching"> Sorry, no matches found. </span>
@@ -86,6 +89,14 @@ export default {
           });
         loading(false);
       }, debounceTime);
+    },
+    createOption(newOption) {
+      return {
+        chemform: "",
+        item_id: "",
+        name: newOption,
+        type: "none",
+      };
     },
   },
   components: {
