@@ -384,6 +384,7 @@ export default {
           item_id: sample.item_id,
           date: sample.date,
           name: sample.name,
+          type: "samples",
           synthesis_constituents: sample.components
             ? sample.components.map((x) => ({ item: x, quantity: null }))
             : [],

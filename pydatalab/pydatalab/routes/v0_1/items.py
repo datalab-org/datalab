@@ -10,7 +10,8 @@ from pydantic import ValidationError
 from pydatalab.blocks import BLOCK_TYPES
 from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER
-from pydatalab.models import ITEM_MODELS, Sample
+from pydatalab.models import ITEM_MODELS
+from pydatalab.models.items import Item
 from pydatalab.models.relationships import RelationshipType
 from pydatalab.mongo import flask_mongo
 from pydatalab.routes.utils import get_default_permissions
@@ -201,7 +202,7 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
         return (
             dict(
                 status="error",
-                message="Unable to create new sample without user authentication.",
+                message="Unable to create new item without user authentication.",
                 item_id=sample_dict["item_id"],
             ),
             401,
@@ -216,7 +217,7 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
             return (
                 dict(
                     status="error",
-                    message=f"Request to copy sample with id {copy_from_item_id} failed because sample could not be found.",
+                    message=f"Request to copy item with id {copy_from_item_id} failed because item could not be found.",
                     item_id=sample_dict["item_id"],
                 ),
                 404,
@@ -229,7 +230,7 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
             return (
                 dict(
                     status="error",
-                    message=f"Request to copy sample with id {copy_from_item_id} to new item failed because the target new item_id was not provided.",
+                    message=f"Request to copy item with id {copy_from_item_id} to new item failed because the target new item_id was not provided.",
                 ),
                 400,
             )
@@ -239,27 +240,37 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
 
         # any provided constituents will be added to the synthesis information table in
         # addition to the constituents copied from the copy_from_item_id, avoiding duplicates
-        existing_consituent_ids = [
-            constituent["item"]["item_id"] for constituent in copied_doc["synthesis_constituents"]
-        ]
-        copied_doc["synthesis_constituents"] += [
-            constituent
-            for constituent in sample_dict.get("synthesis_constituents", [])
-            if (constituent["item"]["item_id"] not in existing_consituent_ids)
-        ]
+        if copied_doc["type"] == "samples":
+            existing_consituent_ids = [
+                constituent["item"]["item_id"]
+                for constituent in copied_doc["synthesis_constituents"]
+            ]
+            copied_doc["synthesis_constituents"] += [
+                constituent
+                for constituent in sample_dict.get("synthesis_constituents", [])
+                if (constituent["item"]["item_id"] not in existing_consituent_ids)
+            ]
+            sample_dict = copied_doc
 
-        sample_dict = copied_doc
+        elif copied_doc["type"] == "cells":
+            for component in ("cathode", "anode", "electrolyte"):
+                if copied_doc.get(component):
+                    existing_consituent_ids = [
+                        constituent["item"]["item_id"] for constituent in copied_doc[component]
+                    ]
+                    copied_doc[component] += [
+                        constituent
+                        for constituent in sample_dict.get(component, [])
+                        if (constituent["item"]["item_id"] not in existing_consituent_ids)
+                    ]
 
-    schema = Sample.schema()
-    missing_keys = set()
-    for k in schema.get("required", []):
-        if k not in sample_dict:
-            missing_keys.add(k)
+            sample_dict = copied_doc
 
-    if missing_keys:
-        raise ValidationError(
-            f"Request to create sample was thwarted by the lack of required key(s): {missing_keys}"
-        )
+    type = sample_dict["type"]
+    if type not in ITEM_MODELS:
+        raise RuntimeError("Invalid type")
+    model = ITEM_MODELS[type]
+    schema = model.schema()
 
     new_sample = {k: sample_dict[k] for k in schema["properties"] if k in sample_dict}
 
@@ -290,25 +301,25 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
 
     new_sample["date"] = new_sample.get("date", datetime.datetime.now())
     try:
-        new_sample = Sample(**new_sample)
+        data_model: Item = model(**new_sample)
 
     except ValidationError as error:
         return (
             dict(
                 status="error",
-                message=f"Unable to create new sample with ID {new_sample['item_id']}.",
+                message=f"Unable to create new item with ID {new_sample['item_id']}.",
                 item_id=new_sample["item_id"],
                 output=str(error),
             ),
             400,
         )
 
-    result = flask_mongo.db.items.insert_one(new_sample.dict())
+    result = flask_mongo.db.items.insert_one(data_model.dict())
     if not result.acknowledged:
         return (
             dict(
                 status="error",
-                message=f"Failed to add new sample {new_sample.item_id!r} to database.",
+                message=f"Failed to add new item {new_sample['item_id']!r} to database.",
                 item_id=new_sample["item_id"],
                 output=result.raw_result,
             ),
@@ -318,16 +329,17 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
     return (
         {
             "status": "success",
-            "item_id": new_sample.item_id,
+            "item_id": data_model.item_id,
             "sample_list_entry": {
-                "item_id": new_sample.item_id,
+                "item_id": data_model.item_id,
                 "nblocks": 0,
-                "date": new_sample.date,
-                "name": new_sample.name,
-                "creator_ids": new_sample.creator_ids,
-                "creators": [json.loads(c.json()) for c in new_sample.creators]
-                if new_sample.creators
+                "date": data_model.date,
+                "name": data_model.name,
+                "creator_ids": data_model.creator_ids,
+                "creators": [json.loads(c.json()) for c in data_model.creators]
+                if data_model.creators
                 else [],
+                "type": data_model.type,
             },
         },
         201,  # 201: Created
