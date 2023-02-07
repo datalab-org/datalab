@@ -5,6 +5,7 @@ from pymongo import MongoClient
 
 from pydatalab.config import CONFIG
 from pydatalab.models import StartingMaterial
+from pydatalab.mongo import upsert_pydantic_model_fork_safe
 
 
 def generate_random_startingmaterial_id():
@@ -18,15 +19,9 @@ def generate_random_startingmaterial_id():
     return "".join(randlist)
 
 
-client = MongoClient(CONFIG.MONGO_URI)
-
-db = client.datalabvue
-data_collection = db.items
-
-
 df = pd.read_excel("greyGroup_chemInventory_7Oct21.xlsx")
-df["type"] = "starting_materials"  # all starting materials will have this as the type
-df["item_id"] = df["Barcode"]  # assign item_id to be the Barcode by default
+
+df["item_id"] = df["Barcode"].strip()  # assign item_id to be the Barcode by default
 
 # some starting materials don't have a barcode. Create a random id for those.
 replacement_dict = {
@@ -52,6 +47,4 @@ starting_materials = [StartingMaterial(**d) for d in ds]
 # update or insert all starting materials
 for starting_material in starting_materials:
     print(f"adding starting material {starting_material.item_id} ({starting_material.name})")
-    result = data_collection.update_one(
-        {"item_id": starting_material.item_id}, {"$set": starting_material.dict()}, upsert=True
-    )
+    upsert_pydantic_model_fork_safe(starting_material, "items")

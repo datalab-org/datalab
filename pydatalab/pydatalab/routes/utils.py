@@ -36,7 +36,4 @@ def get_default_permissions(user_only: bool = True) -> Dict[str, Any]:
             return user_perm
         return {"$or": [user_perm, null_perm]}
 
-    elif user_only:
-        return {"_id": -1}
-
-    return null_perm
+    return {"_id": -1}

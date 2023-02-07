@@ -5,6 +5,7 @@ import pymongo
 from flask_pymongo import PyMongo
 from pydantic import BaseModel
 from pymongo.errors import ConnectionFailure
+from pydatalab.models.entries import Entry
 
 __all__ = (
     "flask_mongo",
@@ -18,8 +19,21 @@ flask_mongo = PyMongo()
 """This is the primary database interface used by the Flask app."""
 
 
-def insert_pydantic_model_fork_safe(model: BaseModel, collection: str) -> None:
+def insert_pydantic_model_fork_safe(model: Entry, collection: str) -> None:
     _get_active_mongo_client().get_database()[collection].insert_one(model.dict(by_alias=True))
+
+def upsert_pydantic_model_fork_safe(model: Entry, collection: str) -> None:
+    model_dict = model.dict(by_alias=True)
+    if model_dict.get("item_id"):
+        _id = model_dict["item_id"]
+        id_field = "item_id"
+    elif model_dict.get("_id"):
+        _id = model_dict["_id"]
+        id_field = "_id"
+    else:
+        raise RuntimeError("Could not find ID to index model over.")
+
+    _get_active_mongo_client().get_database()[collection].update_one({id_field: _id}, {"$set": model_dict}, upsert=True)
 
 
 def _get_active_mongo_client(timeoutMS: int = 100) -> pymongo.MongoClient:
