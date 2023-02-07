@@ -7,6 +7,7 @@ import NMRBlock from "@/components/datablocks/NMRBlock";
 
 import SampleInformation from "@/components/SampleInformation";
 import StartingMaterialInformation from "@/components/StartingMaterialInformation";
+import CellInformation from "@/components/CellInformation";
 
 // Look for values set in .env file. Use defaults if `null` is not explicitly handled elsewhere in the code.
 export const API_URL =
@@ -43,4 +44,22 @@ export const itemTypes = {
     lightColor: "#d9f2eb",
     labelColor: "#298651",
   },
+  cells: {
+    itemInformationComponent: CellInformation,
+    navbarColor: "#946807",
+    navbarName: "Cell",
+    lightColor: "#D1C28F",
+    labelColor: "#946807",
+  },
+};
+
+export const cellFormats = {
+  coin: "coin",
+  pouch: "pouch",
+  in_situ_xrd: "in situ (XRD)",
+  in_situ_nmr: "in situ (NMR)",
+  in_situ_squid: "in situ (SQUID)",
+  swagelok: "swagelok",
+  cylindrical: "cylindrical",
+  other: "other",
 };
