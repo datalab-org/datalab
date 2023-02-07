@@ -1,17 +1,19 @@
 <h1 align="center">
-
 datalab
 
-</h1>
-
-<div align="center">
-
-[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/the-grey-group/datalab/ci.yml)](https://github.com/the-grey-group/datalab/actions/workflows/ci.yml)
-[![Cypress Cloud](https://img.shields.io/endpoint?url=https://cloud.cypress.io/badge/detailed/4kqx5i/main&style=flat&logo=cypress)](https://cloud.cypress.io/projects/4kqx5i/runs)
-[![Documentation Status](https://readthedocs.org/projects/the-datalab/badge/?version=latest)](https://the-datalab.readthedocs.io/en/latest/?badge=latest)
-
+<div>
+<a href="https://github.com/the-grey-group/datalab/actions/workflows/ci.yml">
+<img src="https://img.shields.io/github/actions/workflow/status/the-grey-group/datalab/ci.yml">
+</a>
+<a href="https://cloud.cypress.io/projects/4kqx5i/runs">
+<img src="https://img.shields.io/endpoint?url=https://cloud.cypress.io/badge/detailed/4kqx5i/main&style=flat&logo=cypress">
+</a>
+<a href="https://the-datalab.readthedocs.io/en/latest/?badge=latest">
+<img src="https://readthedocs.org/projects/the-datalab/badge/?version=latest">
+</a>
 </div>
 
+</h1>
 
 
 <!-- datalab logo -->
