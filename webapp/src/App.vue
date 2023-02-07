@@ -40,6 +40,11 @@ body {
   color: #42b983;
 }
 
+/*for form errors*/
+.red-border {
+  border-color: red;
+}
+
 /*recover btn-default from bootstrap 3*/
 .btn-default {
   color: #333;

@@ -90,7 +90,7 @@ class Cell(Item):
                 print(f"\tmolar mass calculated: {mass} g/mol")
 
                 return mass
-            except ValueError:
+            except KeyError:
                 print(f"\tmolar mass calculation failed, returning original value {v}")
 
                 return v
