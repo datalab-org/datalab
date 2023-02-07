@@ -303,3 +303,60 @@ def test_copy_from_sample(client, complicated_sample):
         "starting_material_2",
         "starting_material_3",
     ]
+
+
+@pytest.mark.dependency(depends=["test_copy_from_sample"])
+def test_create_multiple_samples(client, complicated_sample):
+
+    samples = [complicated_sample, complicated_sample.copy()]
+    samples[0].item_id = "another_new_complicated_sample"
+    samples[1].item_id = "additional_new_complicated_sample"
+
+    response = client.post(
+        "/new-samples/", json={"new_sample_datas": [json.loads(s.json()) for s in samples]}
+    )
+    assert response.status_code == 207, response.json
+    assert response.json["nsuccess"] == 2, response.json
+    assert response.json["nerror"] == 0
+
+    samples = [
+        Sample(item_id="one_more_new_complicated_sample"),
+        Sample(item_id="and_again_new_complicated_sample"),
+    ]
+
+    response = client.post(
+        "/new-samples/",
+        json={
+            "new_sample_datas": [json.loads(s.json()) for s in samples],
+            "copy_from_item_ids": [
+                "another_new_complicated_sample",
+                "additional_new_complicated_sample",
+            ],
+        },
+    )
+
+    assert response.status_code == 207, response.json
+    assert response.json["nsuccess"] == 2
+    assert response.json["nerror"] == 0
+
+    response = client.get("/get-item-data/one_more_new_complicated_sample")
+    assert response.status_code == 200
+    assert (
+        response.json["item_data"]["synthesis_constituents"][0]["item"]["item_id"]
+        == "starting_material_1"
+    )
+
+
+@pytest.mark.dependency(depends=["test_create_multiple_samples"])
+def test_create_cell(client, default_cell):
+
+    response = client.post("/new-sample/", json=json.loads(default_cell.json()))
+    assert response.status_code == 201, response.json
+    assert response.json["status"] == "success"
+
+    copy_doc = {"item_id": "copy_of_complicated_cell"}
+    copy_request = {"new_sample_data": copy_doc, "copy_from_item_id": default_cell.item_id}
+    response = client.post("/new-sample/", json=copy_request)
+
+    assert response.status_code == 201, response.json
+    assert response.json["status"] == "success"

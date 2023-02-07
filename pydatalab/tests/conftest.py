@@ -8,16 +8,17 @@ import pytest
 
 import pydatalab.mongo
 from pydatalab.main import create_app
-from pydatalab.models import Sample, StartingMaterial
+from pydatalab.models import Cell, Sample, StartingMaterial
+
+TEST_DATABASE_NAME = "db"
 
 
 class PyMongoMock(mongomock.MongoClient):
     def init_app(self, _, *args, **kwargs):
-        return super().__init__()
+        return super().__init__(MONGO_URI)
 
 
 # Must remain as `db` so that calls to flask_mongo.db remain correct
-TEST_DATABASE_NAME = "db"
 MONGO_URI = f"mongodb://localhost:27017/{TEST_DATABASE_NAME}"
 
 
@@ -104,7 +105,41 @@ def client(real_mongo_client, monkeypatch_session):
 
 @pytest.fixture(scope="module", name="default_sample")
 def fixture_default_sample():
-    return Sample(**{"item_id": "12345", "name": "other_sample", "date": "1970-02-01"})
+    return Sample(
+        **{"item_id": "12345", "name": "other_sample", "date": "1970-02-01", "type": "samples"}
+    )
+
+
+@pytest.fixture(scope="module", name="default_cell")
+def fixture_default_cell(default_sample):
+    return Cell(
+        **{
+            "item_id": "test_cell",
+            "name": "test cell",
+            "date": "1970-02-01",
+            "anode": [
+                {
+                    "item": {"item_id": "test", "chemform": "Li15Si4", "type": "samples"},
+                    "quantity": 2.0,
+                    "unit": "mg",
+                },
+                {
+                    "item": {"item_id": "test", "chemform": "C", "type": "samples"},
+                    "quantity": 2.0,
+                    "unit": "mg",
+                },
+            ],
+            "cathode": [
+                {
+                    "item": {"item_id": "test_cathode", "chemform": "LiCoO2", "type": "samples"},
+                    "quantity": 2000,
+                    "unit": "kg",
+                }
+            ],
+            "cell_format": "swagelok",
+            "type": "cells",
+        }
+    )
 
 
 @pytest.fixture(scope="module", name="complicated_sample")
@@ -117,6 +152,7 @@ def fixture_complicated_sample():
             "name": "complex_sample",
             "date": "1970-02-01",
             "chemform": "Na3P",
+            "type": "samples",
             "synthesis_constituents": [
                 Constituent(
                     **{
@@ -205,3 +241,8 @@ def example_items():
 @pytest.fixture(scope="module", name="default_sample_dict")
 def fixture_default_sample_dict(default_sample):
     return default_sample.dict(exclude_unset=True)
+
+
+@pytest.fixture(scope="module", name="default_cell_dict")
+def fixture_default_cell_dict(default_cell):
+    return default_cell.dict(exclude_unset=True)

@@ -90,6 +90,7 @@ export function createNewSample(item_id, date, name, startingData = {}, copyFrom
       item_id: item_id,
       date: date,
       name: name,
+      type: "samples",
       ...startingData,
     },
   }).then(function (response_json) {
