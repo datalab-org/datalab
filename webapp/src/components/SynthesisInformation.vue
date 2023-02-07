@@ -4,14 +4,16 @@
     <table class="table mb-2">
       <thead>
         <tr class="subheading">
-          <th>Component</th>
-          <th>Formula</th>
-          <th>Amount (g)</th>
+          <th style="width: calc(60% - 2rem)">Component</th>
+          <th style="width: 21%">Formula</th>
+          <th style="width: 12%">Amount</th>
+          <th style="width: 7%">Unit</th>
+          <th style="width: 1rem"></th>
         </tr>
       </thead>
       <tbody class="borderless">
         <tr v-for="(constituent, index) in constituents" :key="index">
-          <td class="first-column" style="width: calc(70% - 1rem)">
+          <td class="first-column">
             <transition name="fade">
               <font-awesome-icon
                 v-if="!selectShown[index]"
@@ -39,14 +41,21 @@
               @dblclick="turnOnRowSelect(index)"
             />
           </td>
-          <td style="width: 20%">
+          <td>
             <ChemicalFormula :formula="constituent.item?.chemform" />
           </td>
-
-          <td style="width: 10%">
-            <input v-model="constituent.quantity" />
+          <td>
+            <input
+              class="form-control quantity-input"
+              :class="{ 'red-border': isNaN(constituent.quantity) }"
+              v-model="constituent.quantity"
+            />
           </td>
-          <td style="width: 2rem">
+          <td>
+            <input class="form-control" v-model="constituent.unit" />
+          </td>
+
+          <td>
             <button
               type="button"
               class="close"
@@ -104,6 +113,7 @@ export default {
       this.constituents.push({
         item: selectedItem,
         quantity: null,
+        unit: "g",
       });
       this.selectedNewConstituent = null;
       this.selectShown.push(false);
@@ -123,6 +133,16 @@ export default {
     removeConstituent(index) {
       this.constituents.splice(index, 1);
       this.selectShown.splice(index, 1);
+    },
+  },
+  watch: {
+    // since constituents is an object, the computed setter never fires and
+    // saved status is never updated. So, use a watcher:
+    constituents: {
+      handler() {
+        this.$store.commit("setSaved", { item_id: this.item_id, isSaved: false });
+      },
+      deep: true,
     },
   },
   mounted() {
@@ -177,6 +197,10 @@ table {
 .borderless td,
 .borderless th {
   border: none;
+}
+
+.red-border {
+  border-color: red;
 }
 
 .empty-search {
