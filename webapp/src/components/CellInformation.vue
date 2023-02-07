@@ -45,8 +45,9 @@
         <input
           id="characteristic-mass"
           class="form-control"
-          type="number"
+          type="text"
           v-model="CharacteristicMass"
+          :class="{ 'red-border': isNaN(CharacteristicMass) }"
         />
       </div>
       <div class="form-group col-xl-2 col-lg-3 col-md-4 ml-3">
@@ -58,8 +59,9 @@
         <input
           id="characteristic-molar-mass"
           class="form-control"
-          type="number"
+          type="text"
           v-model="MolarMass"
+          :class="{ 'red-border': isNaN(MolarMass) }"
         />
       </div>
     </div>
