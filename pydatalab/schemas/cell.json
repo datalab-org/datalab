@@ -120,6 +120,16 @@
       "description": "The characteristic mass of the cell in milligrams. Can be used to normalize capacities.",
       "type": "number"
     },
+    "characteristic_chemical_formula": {
+      "title": "Characteristic Chemical Formula",
+      "description": "The chemical formula of the active material. Can be used to calculated molar mass in g/mol for normalizing capacities.",
+      "type": "string"
+    },
+    "characteristic_molar_mass": {
+      "title": "Characteristic Molar Mass",
+      "description": "The molar mass of the active material, in g/mol. Will be inferred from the chemical formula, or can be supplied if it cannot be supplied",
+      "type": "number"
+    },
     "positive_electrode": {
       "title": "Positive Electrode",
       "default": [],
