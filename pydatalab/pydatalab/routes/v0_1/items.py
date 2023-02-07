@@ -307,7 +307,7 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
         return (
             dict(
                 status="error",
-                message=f"Unable to create new {type} with ID {new_sample['item_id']}.",
+                message=f"Unable to create new item with ID {new_sample['item_id']}.",
                 item_id=new_sample["item_id"],
                 output=str(error),
             ),
@@ -319,7 +319,7 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
         return (
             dict(
                 status="error",
-                message=f"Failed to add new {type} {new_sample['item_id']!r} to database.",
+                message=f"Failed to add new item {new_sample['item_id']!r} to database.",
                 item_id=new_sample["item_id"],
                 output=result.raw_result,
             ),
