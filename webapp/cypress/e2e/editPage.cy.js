@@ -6,7 +6,7 @@ Cypress.on("window:before:load", (win) => {
   consoleSpy = cy.spy(win.console, "error");
 });
 
-describe("Sample table page", () => {
+describe("Edit Page", () => {
   beforeEach(() => {
     cy.visit("/");
   });
@@ -40,23 +40,170 @@ describe("Sample table page", () => {
     cy.get("tr>td").eq(5).contains(0); // 0 blocks are present
   });
 
+  it("Adds a second valid sample, to use as a component", () => {
+    cy.findByText("Add a sample").click();
+    cy.findByText("Add new sample");
+    cy.findByLabelText("Sample ID:").type("component1");
+    cy.findByLabelText("Sample Name:").type("This is a component");
+    cy.contains("Submit").click();
+  });
+
+  it("Adds a third valid sample, to use as a component", () => {
+    cy.findByText("Add a sample").click();
+    cy.findByText("Add new sample");
+    cy.findByLabelText("Sample ID:").type("component2");
+    cy.findByLabelText("Sample Name:").type("This is another component");
+    cy.contains("Submit").click();
+  });
+
   it("Checks editing the sample edit page", () => {
     cy.findByText("editable_sample").click();
     cy.findByLabelText("Sample ID").should("have.value", "editable_sample");
     cy.findByLabelText("Name").should("have.value", "This is a sample name");
     cy.findByLabelText("Chemical formula").type("NaCoO2", { force: true });
+
     cy.findByText("Unsaved changes");
     cy.get(".fa-save").click();
     cy.contains("Unsaved changes").should("not.exist");
-  });
+    cy.contains("Home").click();
 
-  it("verifies the sample table after editing the sample", () => {
     cy.findByText("editable_sample");
     cy.findByText("This is a sample name");
     cy.findByText("1990-01-07");
-    cy.get("tr>td").eq(2).contains("Na"); // sorta check the formula
-    cy.get("tr>td").eq(2).contains("2"); // sorta check the formula
-    cy.get("tr>td").eq(5).contains(0); // 0 blocks are present
+    cy.get("tbody tr:nth-of-type(3)").contains("NaCoO2"); // sorta check the formula
+  });
+
+  it("adds a chemical formula to component1", () => {
+    cy.findByText("component1").click();
+    cy.findByLabelText("Chemical formula").type("Na2O", { force: true });
+
+    cy.findByText("Unsaved changes");
+    cy.wait(100).then(() => cy.get(".fa-save").click());
+    cy.contains("Unsaved changes").should("not.exist");
+  });
+
+  it("adds some synthesis information", () => {
+    cy.findByText("editable_sample").click();
+    cy.get("#synthesis-information .vs__search").first().type("component1");
+    cy.get(".vs__dropdown-menu").contains("component1").click();
+    cy.get("#synthesis-information tbody > tr").should("have.length", 2);
+    cy.findByText("Unsaved changes");
+
+    cy.get("#synthesis-information").contains("component1");
+    cy.get("#synthesis-information").contains("Na2O");
+
+    cy.get("#synthesis-information .vs__search").first().type("component2");
+    cy.get(".vs__dropdown-menu").contains("component2").click();
+
+    cy.get("#synthesis-information").contains("component2");
+
+    cy.get("#synthesis-information tr:nth-of-type(1) td:nth-of-type(3)").type(10);
+    cy.get("#synthesis-information tr:nth-of-type(1) td:nth-of-type(4)").clear().type("mL");
+    cy.get("#synthesis-information tr:nth-of-type(2) td:nth-of-type(3)").type(0.001);
+    cy.get("#synthesis-information tr:nth-of-type(2) td:nth-of-type(4)").clear().type("kg");
+
+    // save the synthesis information and make sure unsaved changes goes away
+    cy.contains("Unsaved changes");
+    cy.wait(100).then(() => cy.get(".fa-save").click());
+    cy.contains("Unsaved changes").should("not.exist");
+
+    cy.get("#synthesis-information tr:nth-of-type(2) td:nth-of-type(4) input")
+      .clear()
+      .type("pints");
+    cy.contains("Unsaved changes");
+    cy.wait(100).then(() => cy.get(".fa-save").click());
+    cy.contains("Unsaved changes").should("not.exist");
+
+    cy.reload();
+
+    cy.get("#synthesis-information tbody tr:nth-of-type(1) td:nth-of-type(3) input").should(
+      "have.value",
+      10
+    );
+    cy.get("#synthesis-information tbody tr:nth-of-type(1) td:nth-of-type(4) input").should(
+      "have.value",
+      "mL"
+    );
+    cy.get("#synthesis-information tbody tr:nth-of-type(2) td:nth-of-type(3) input").should(
+      "have.value",
+      0.001
+    );
+    cy.get("#synthesis-information tbody tr:nth-of-type(2) td:nth-of-type(4) input").should(
+      "have.value",
+      "pints"
+    );
+  });
+
+  it("deletes synthesis components and re-adds them", () => {
+    cy.findByText("editable_sample").click();
+    cy.get("#synthesis-information tbody > tr:nth-of-type(1) .close").click();
+    cy.get("#synthesis-information tbody > tr").should("have.length", 2);
+    cy.get("#synthesis-information tbody > tr:nth-of-type(1) td:nth-of-type(3) input").should(
+      "have.value",
+      0.001
+    );
+    cy.get("#synthesis-information tbody > tr:nth-of-type(1) td:nth-of-type(4) input").should(
+      "have.value",
+      "pints"
+    );
+
+    cy.get("#synthesis-information tbody > tr:nth-of-type(1) .close").click();
+    cy.get("#synthesis-information tbody > tr").should("have.length", 1);
+
+    cy.get("#synthesis-information .vs__search").first().type("component2");
+    cy.get(".vs__dropdown-menu").contains("component2").click();
+    cy.get("#synthesis-information tbody > tr").should("have.length", 2);
+    cy.get("#synthesis-information").contains("component2");
+    cy.get("#synthesis-information tbody > tr:nth-of-type(1) td:nth-of-type(3) input").should(
+      "have.value",
+      ""
+    ); // should be reset, not a previous value
+
+    cy.get("#synthesis-information .vs__search").first().type("component1");
+    cy.get(".vs__dropdown-menu").contains("component1").click();
+    cy.get("#synthesis-information tbody > tr").should("have.length", 3);
+    cy.get("#synthesis-information").contains("component1");
+    cy.get("#synthesis-information").contains("Na2O");
+    cy.get("#synthesis-information tbody > tr:nth-of-type(2) td:nth-of-type(3) input").should(
+      "have.value",
+      ""
+    ); // should be reset, not a previous value
+  });
+
+  it("tries to add a non-numeric value into quantity", () => {
+    cy.findByText("editable_sample").click();
+    cy.get("#synthesis-information tbody > tr:nth-of-type(1) td:nth-of-type(3) input").type(
+      "100.001"
+    );
+    cy.get(
+      "#synthesis-information tbody > tr:nth-of-type(1) td:nth-of-type(3) input.red-border"
+    ).should("not.exist");
+    cy.get("#synthesis-information tbody > tr:nth-of-type(1) td:nth-of-type(3) input")
+      .clear()
+      .type("1");
+    cy.get(
+      "#synthesis-information tbody > tr:nth-of-type(1) td:nth-of-type(3) input.red-border"
+    ).should("not.exist");
+    cy.get("#synthesis-information tbody > tr:nth-of-type(1) td:nth-of-type(3) input")
+      .clear()
+      .type("word");
+    cy.get(
+      "#synthesis-information tbody > tr:nth-of-type(1) td:nth-of-type(3) input.red-border"
+    ).should("exist");
+
+    cy.get("#synthesis-information tbody > tr:nth-of-type(2) td:nth-of-type(3) input")
+      .clear()
+      .type("$");
+    cy.get(
+      "#synthesis-information tbody > tr:nth-of-type(2) td:nth-of-type(3) input.red-border"
+    ).should("exist");
+
+    cy.get("#synthesis-information tbody > tr:nth-of-type(1) td:nth-of-type(3) input")
+      .clear()
+      .type("1");
+    cy.get("#synthesis-information tbody > tr:nth-of-type(2) td:nth-of-type(3) input")
+      .clear()
+      .type("1");
   });
 
   it("Add some blocks to the sample", () => {
@@ -82,11 +229,23 @@ describe("Sample table page", () => {
     cy.get(".datablock-content div").eq(1).type("The second comment box");
 
     cy.findByText("Home").click();
-    cy.get("tr>td").eq(5).contains(2); // 2 blocks are present
+    cy.get("[data-testid=sample-table] tr:nth-of-type(3) > td:nth-of-type(6)").contains(2); // 2 blocks are present
   });
 
-  it("cleanup: delete the sample", () => {
+  it("cleanup: delete the samples", () => {
     cy.findByText("editable_sample")
+      .parent("tr")
+      .within(() => {
+        cy.get("button.close").click();
+      });
+
+    cy.findByText("component1")
+      .parent("tr")
+      .within(() => {
+        cy.get("button.close").click();
+      });
+
+    cy.findByText("component2")
       .parent("tr")
       .within(() => {
         cy.get("button.close").click();
