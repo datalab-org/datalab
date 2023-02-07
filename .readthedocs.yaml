@@ -13,7 +13,7 @@ build:
       # For some reasn the path isn't set
       - "pip install pipenv"
       - "echo $(which python)"
-      - "cd ./pydatalab && $(find /home/docs/checkouts/readthedocs.org/user_builds/the-grey-group-datalabvue -type f -name pipenv | head -n 1) requirements --dev > ./docs/tmp-requirements-docs.txt"
+      - "cd ./pydatalab && $(find /home/docs/checkouts/readthedocs.org/user_builds/the-grey-group-the-datalab -type f -name pipenv | head -n 1) requirements --dev > ./docs/tmp-requirements-docs.txt"
 
 python:
   install:
