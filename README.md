@@ -2,6 +2,8 @@
 
 datalab
 
+</h1>
+
 <div align="center">
 
 [![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/the-grey-group/datalab/ci.yml)](https://github.com/the-grey-group/datalab/actions/workflows/ci.yml)
@@ -10,7 +12,6 @@ datalab
 
 </div>
 
-</h1>
 
 
 <!-- datalab logo -->
