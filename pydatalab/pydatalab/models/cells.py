@@ -6,6 +6,9 @@ from pydantic import BaseModel, Field, validator
 from pydatalab.models.entries import EntryReference
 from pydatalab.models.items import Item
 from pydatalab.models.samples import Constituent
+from pydatalab.molar_mass import calc_molar_mass
+
+# from pydatalab.logger import LOGGER
 
 
 class CellFormat(str, Enum):
@@ -51,6 +54,14 @@ class Cell(Item):
         description="The characteristic mass of the cell in milligrams. Can be used to normalize capacities."
     )
 
+    characteristic_chemical_formula: Optional[str] = Field(
+        description="The chemical formula of the active material. Can be used to calculated molar mass in g/mol for normalizing capacities."
+    )
+
+    characteristic_molar_mass: Optional[float] = Field(
+        description="The molar mass of the active material, in g/mol. Will be inferred from the chemical formula, or can be supplied if it cannot be supplied"
+    )
+
     positive_electrode: List[CellComponent] = Field([])
 
     negative_electrode: List[CellComponent] = Field([])
@@ -68,3 +79,18 @@ class Cell(Item):
             raise ValueError("cell_format_description must be set if cell_format is 'other'")
 
         return v
+
+    @validator("characteristic_molar_mass")
+    def set_molar_mass(cls, v, values):
+        chemical_formula = values.get("characteristic_chemical_formula")
+        print(f"Attempting to calculate chemical formula for chemform {chemical_formula}")
+        if chemical_formula:
+            try:
+                mass = calc_molar_mass(chemical_formula)
+                print(f"\tmolar mass calculated: {mass} g/mol")
+
+                return mass
+            except ValueError:
+                print(f"\tmolar mass calculation failed, returning original value {v}")
+
+                return v
