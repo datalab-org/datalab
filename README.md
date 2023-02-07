@@ -1,5 +1,4 @@
-<h1 align="center">
-datalab
+# <div align="center">datalab</div>
 
 <div>
 <a href="https://github.com/the-grey-group/datalab/actions/workflows/ci.yml">

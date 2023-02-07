@@ -72,6 +72,8 @@ services:
       - ./logs:/var/logs/mongod
     networks:
       - backend
+    ports:
+      - "27017:27017"
 
 networks:
   nginx:

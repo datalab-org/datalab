@@ -34,6 +34,8 @@ body {
 #nav a {
   font-weight: bold;
   color: #2c3e50;
+  border-radius: 5px;
+  padding: 5px;
 }
 
 #nav a.router-link-exact-active {

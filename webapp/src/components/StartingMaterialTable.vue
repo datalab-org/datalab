@@ -1,10 +1,11 @@
 <template>
   <div v-if="isFetchError" class="alert alert-danger">
-    Server Error. Starting material list not retreived. Are you logged in?
+    <font-awesome-icon icon="exclamation-circle" />&nbsp;Inventory could not be retreived. Are you
+    logged in?
   </div>
   <table class="table table-hover table-sm">
     <thead>
-      <tr>
+      <tr align="center">
         <th scope="col">ID</th>
         <th scope="col">Name</th>
         <th scope="col">Formula</th>
@@ -22,7 +23,14 @@
         v-on:click.meta="openEditPageInNewTab(item.item_id)"
         v-on:click.ctrl="openEditPageInNewTab(item.item_id)"
       >
-        <td>{{ item.item_id }}</td>
+        <td>
+          <FormattedItemName
+            :item_id="item.item_id"
+            :itemType="item?.type || 'starting_materials'"
+            enableModifiedClick
+            :maxLength="formattedItemNameMaxLength"
+          />
+        </td>
         <td>{{ item.name }}</td>
         <td><ChemicalFormula :formula="item.chemform" /></td>
         <td>{{ $filters.IsoDatetimeToDate(item.date_acquired) }}</td>
@@ -35,6 +43,7 @@
 
 <script>
 import ChemicalFormula from "@/components/ChemicalFormula";
+import FormattedItemName from "@/components/FormattedItemName";
 import { getStartingMaterialList } from "@/server_fetch_utils.js";
 
 export default {
@@ -66,6 +75,7 @@ export default {
   },
   components: {
     ChemicalFormula,
+    FormattedItemName,
   },
 };
 </script>
