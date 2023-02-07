@@ -6,7 +6,7 @@
         <label for="item_id" class="mr-2">Sample ID</label>
         <input id="item_id" class="form-control-plaintext" readonly="true" :value="item_id" />
       </div>
-      <div class="form-group col-md-6 ml-3">
+      <div class="form-group col-md-6 ml-3 mr-5">
         <label for="name">Name</label>
         <input id="name" class="form-control" v-model="Name" />
       </div>
