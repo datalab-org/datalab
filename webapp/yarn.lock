@@ -2196,7 +2196,16 @@
   resolved "https://registry.npmjs.org/@vue/web-component-wrapper/-/web-component-wrapper-1.3.0.tgz"
   integrity sha512-Iu8Tbg3f+emIIMmI2ycSI8QcEuAUgPTgHwesDU1eKMLE4YC/c/sFbGc70QgMq31ijRftV0R7vCm9co6rldCeOA==
 
-"@vueuse/core@^9.12.0":
+"@vueuse/components@^9.12.0":
+  version "9.12.0"
+  resolved "https://registry.yarnpkg.com/@vueuse/components/-/components-9.12.0.tgz#236e002f2d4a70f0cc7f688ddc14723f5e2a7770"
+  integrity sha512-U468xbr2PISuWepeOU4J8zkVj0aDhiFe230oDhnIm8mHtcS9gM2vSKTB32InxTs6kVma60yAGdqBySkyFNX/+w==
+  dependencies:
+    "@vueuse/core" "9.12.0"
+    "@vueuse/shared" "9.12.0"
+    vue-demi "*"
+
+"@vueuse/core@9.12.0", "@vueuse/core@^9.12.0":
   version "9.12.0"
   resolved "https://registry.yarnpkg.com/@vueuse/core/-/core-9.12.0.tgz#e5b20f901e081c7ae5fe0e5f3af217929034eefe"
   integrity sha512-h/Di8Bvf6xRcvS/PvUVheiMYYz3U0tH3X25YxONSaAUBa841ayMwxkuzx/DGUMCW/wHWzD8tRy2zYmOC36r4sg==
