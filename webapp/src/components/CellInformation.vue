@@ -72,7 +72,7 @@
 
     <TableOfContents :item_id="item_id" :informationSections="tableOfContentsSections" />
 
-    <!-- <SynthesisInformation class="mt-3" :item_id="item_id" /> -->
+    <CellPreparationInformation class="mt-3" :item_id="item_id" />
   </div>
 </template>
 
@@ -80,7 +80,7 @@
 import { createComputedSetterForItemField } from "@/field_utils.js";
 import ChemFormulaInput from "@/components/ChemFormulaInput";
 import TinyMceInline from "@/components/TinyMceInline";
-// import SynthesisInformation from "@/components/SynthesisInformation";
+import CellPreparationInformation from "@/components/CellPreparationInformation";
 import TableOfContents from "@/components/TableOfContents";
 import RelationshipVisualization from "@/components/RelationshipVisualization";
 import { cellFormats } from "@/resources.js";
@@ -94,7 +94,7 @@ export default {
       tableOfContentsSections: [
         { title: "Sample Information", targetID: "sample-information" },
         { title: "Table of Contents", targetID: "table-of-contents" },
-        { title: "Cell Information", targetID: "cell-information" },
+        { title: "Cell Construction", targetID: "cell-preparation-information" },
       ],
       availableCellFormats: cellFormats,
     };
@@ -112,7 +112,7 @@ export default {
   components: {
     ChemFormulaInput,
     TinyMceInline,
-    // SynthesisInformation,
+    CellPreparationInformation,
     TableOfContents,
     RelationshipVisualization,
   },
