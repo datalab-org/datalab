@@ -1,5 +1,5 @@
-site_name: pydatalab
-site_description: Documentation for pydatalab
+site_name: datalab
+site_description: Documentation for datalab
 
 theme:
   name: material
@@ -13,8 +13,8 @@ theme:
   font:
     text: Source Sans Pro
 
-repo_name: the-grey-group/datalabvue
-repo_url: https://github.com/the-grey-group/datalabvue
+repo_name: the-grey-group/datalab
+repo_url: https://github.com/the-grey-group/datalab
 
 docs_dir: "pydatalab/docs"
 
