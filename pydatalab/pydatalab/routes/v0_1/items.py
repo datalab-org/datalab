@@ -129,11 +129,12 @@ def get_samples():
                         "as": "creators",
                     }
                 },
-                {"$sort": {"_id": -1}},
+                {"$sort": {"date": -1}},
                 {
                     "$project": {
                         "_id": 0,
                         "item_id": 1,
+                        "type": 1,
                         "creator_ids": 1,
                         "sample_id": 1,
                         "nblocks": {"$size": "$display_order"},

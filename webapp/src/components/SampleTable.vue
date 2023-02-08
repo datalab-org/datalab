@@ -6,6 +6,7 @@
     <thead>
       <tr align="center">
         <th scope="col">ID</th>
+        <th scope="col">Type</th>
         <th scope="col">Sample name</th>
         <th scope="col">Formula</th>
         <th scope="col">Date</th>
@@ -24,6 +25,7 @@
         v-on:click.ctrl="openEditPageInNewTab(sample.item_id)"
       >
         <td align="left">{{ sample.item_id }}</td>
+        <td aligh="center">{{ stripPlural(sample.type) }}</td>
         <td align="left">{{ sample.name }}</td>
         <td><ChemicalFormula :formula="sample.chemform" /></td>
         <td align="center">{{ $filters.IsoDatetimeToDate(sample.date) }}</td>
@@ -81,6 +83,15 @@ export default {
     md5(value) {
       // Returns the MD5 hash of the given string.
       return crypto.createHash("md5").update(value).digest("hex");
+    },
+    stripPlural(string) {
+      if (typeof string != "string") {
+        return string;
+      }
+      if (string[string.length - 1] == "s") {
+        return string.substr(0, string.length - 1);
+      }
+      return string;
     },
     goToEditPage(item_id) {
       this.$router.push(`/edit/${item_id}`);
