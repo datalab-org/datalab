@@ -3,7 +3,7 @@
 
   <div id="tableContainer" class="container">
     <div class="row">
-      <div class="col-sm-10 mx-auto mb-3">
+      <div class="col-sm-12 mx-auto mb-3">
         <button class="btn btn-default" @click="createSampleModalIsOpen = true">
           Add a sample
         </button>
@@ -13,7 +13,7 @@
       </div>
     </div>
     <div class="row">
-      <div class="col-sm-10 mx-auto">
+      <div class="col-sm-12 mx-auto">
         <SampleTable />
       </div>
     </div>

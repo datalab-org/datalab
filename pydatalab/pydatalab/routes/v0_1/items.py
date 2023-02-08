@@ -115,7 +115,12 @@ def get_samples():
         doc
         for doc in flask_mongo.db.items.aggregate(
             [
-                {"$match": {"type": "samples", **get_default_permissions(user_only=False)}},
+                {
+                    "$match": {
+                        "type": {"$in": ["samples", "cells"]},
+                        **get_default_permissions(user_only=False),
+                    }
+                },
                 {
                     "$lookup": {
                         "from": "users",
@@ -124,11 +129,12 @@ def get_samples():
                         "as": "creators",
                     }
                 },
-                {"$sort": {"_id": -1}},
+                {"$sort": {"date": -1}},
                 {
                     "$project": {
                         "_id": 0,
                         "item_id": 1,
+                        "type": 1,
                         "creator_ids": 1,
                         "sample_id": 1,
                         "nblocks": {"$size": "$display_order"},

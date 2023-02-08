@@ -36,6 +36,8 @@ export const itemTypes = {
     navbarName: "Sample",
     lightColor: "#d0ebfb",
     labelColor: "#0b6093",
+    isCreateable: true,
+    display: "sample",
   },
   starting_materials: {
     itemInformationComponent: StartingMaterialInformation,
@@ -43,6 +45,8 @@ export const itemTypes = {
     navbarName: "Starting Material",
     lightColor: "#d9f2eb",
     labelColor: "#298651",
+    isCreateable: false,
+    display: "starting material",
   },
   cells: {
     itemInformationComponent: CellInformation,
@@ -50,6 +54,8 @@ export const itemTypes = {
     navbarName: "Cell",
     lightColor: "#D1C28F",
     labelColor: "#946807",
+    isCreateable: true,
+    display: "cell",
   },
 };
 
