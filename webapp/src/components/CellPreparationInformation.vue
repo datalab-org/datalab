@@ -2,29 +2,41 @@
   <div id="cell-preparation-information">
     <label class="mr-2 pb-2">Cell Construction</label>
 
-    <div class="card ml-5 mt-2 component-card">
-      <div class="card-body form-group pt-2 pb-0 mb-0 pl-5">
-        <label class="cell-component-label" for="pos-electrode-table">Positive electrode</label>
-        <CompactConstituentTable id="pos-electrode-table" v-model="PosElectrodeConstituents" />
+    <div class="form-group ml-5">
+      <label class="subheading cell-component-label mt-4 pb-1" for="pos-electrode-table"
+        >Positive electrode</label
+      >
+      <div class="card component-card">
+        <div class="card-body pt-2 pb-0 mb-0 pl-5">
+          <CompactConstituentTable id="pos-electrode-table" v-model="PosElectrodeConstituents" />
+        </div>
       </div>
     </div>
 
-    <div class="card ml-5 mt-4 component-card">
-      <div class="card-body form-group pt-2 pb-0 mb-0 pl-5">
-        <label class="cell-component-label" for="eltye-table">Electrolyte</label>
-        <CompactConstituentTable id="eltye-table" v-model="ElectrolyteConstituents" />
+    <div class="form-group ml-5">
+      <label class="subheading cell-component-label mt-4 pb-1" for="electrolyte-table"
+        >Electrolyte</label
+      >
+      <div class="card component-card">
+        <div class="card-body pt-2 pb-0 mb-0 pl-5">
+          <CompactConstituentTable id="electrolyte-table" v-model="ElectrolyteConstituents" />
+        </div>
       </div>
     </div>
 
-    <div class="card ml-5 mt-4 component-card">
-      <div class="card-body form-group pt-2 pb-0 mb-0 pl-5">
-        <label class="cell-component-label" for="neg-electrode-table">Negative electrode</label>
-        <CompactConstituentTable id="neg-electrode-table" v-model="NegElectrodeConstituents" />
+    <div class="form-group ml-5">
+      <label class="subheading cell-component-label mt-4 pb-1" for="neg-electrode-table"
+        >Negative electrode</label
+      >
+      <div class="card component-card">
+        <div class="card-body pt-2 pb-0 mb-0 pl-5">
+          <CompactConstituentTable id="neg-electrode-table" v-model="NegElectrodeConstituents" />
+        </div>
       </div>
     </div>
 
     <div class="form-group ml-5 mt-3">
-      <label id="synthesis-procedure-label" class="ml-2">Procedure</label>
+      <label id="synthesis-procedure-label" class="subheading">Procedure</label>
       <TinyMceInline
         aria-labelledby="synthesis-procedure-label"
         v-model="CellPreparationDescription"
@@ -112,7 +124,7 @@ export default {
 
 <style scoped>
 .component-card {
-  width: 85%;
+  width: 700px;
 }
 
 .first-column {
