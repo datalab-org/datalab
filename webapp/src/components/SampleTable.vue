@@ -4,13 +4,14 @@
   </div>
   <table class="table table-hover table-sm" data-testid="sample-table">
     <thead>
-      <tr align="center">
+      <tr>
         <th scope="col">ID</th>
+        <th scope="col">Type</th>
         <th scope="col">Sample name</th>
         <th scope="col">Formula</th>
-        <th scope="col">Date</th>
-        <th scope="col">Creators</th>
-        <th scope="col"># of blocks</th>
+        <th class="text-center" scope="col">Date</th>
+        <th class="text-center" scope="col">Creators</th>
+        <th class="text-center" scope="col"># of blocks</th>
         <th scope="col"></th>
       </tr>
     </thead>
@@ -24,10 +25,11 @@
         v-on:click.ctrl="openEditPageInNewTab(sample.item_id)"
       >
         <td align="left">{{ sample.item_id }}</td>
+        <td aligh="center">{{ itemTypes[sample.type].display }}</td>
         <td align="left">{{ sample.name }}</td>
         <td><ChemicalFormula :formula="sample.chemform" /></td>
-        <td align="center">{{ $filters.IsoDatetimeToDate(sample.date) }}</td>
-        <td align="center">
+        <td class="text-center">{{ $filters.IsoDatetimeToDate(sample.date) }}</td>
+        <td class="text-center">
           <div v-for="creator in sample.creators" :key="creator.display_name">
             <img
               :src="
@@ -43,8 +45,8 @@
             />
           </div>
         </td>
-        <td align="right">{{ sample.nblocks }}</td>
-        <td align="right">
+        <td class="text-right">{{ sample.nblocks }}</td>
+        <td class="clickable" @click.stop="deleteSample(sample)">
           <button
             type="button"
             class="close"
@@ -63,13 +65,14 @@
 import ChemicalFormula from "@/components/ChemicalFormula";
 import { getSampleList, deleteSample } from "@/server_fetch_utils.js";
 import crypto from "crypto";
-import { GRAVATAR_STYLE } from "@/resources.js";
+import { GRAVATAR_STYLE, itemTypes } from "@/resources.js";
 
 export default {
   data() {
     return {
       isSampleFetchError: false,
       gravatar_style: GRAVATAR_STYLE,
+      itemTypes: itemTypes,
     };
   },
   computed: {
@@ -118,5 +121,9 @@ export default {
 }
 .avatar:hover {
   border: 2px solid skyblue;
+}
+
+.clickable {
+  cursor: pointer;
 }
 </style>
