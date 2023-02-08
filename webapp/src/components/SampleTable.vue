@@ -2,6 +2,11 @@
   <div v-if="isSampleFetchError" class="alert alert-danger">
     Server Error. Sample list not retreived.
   </div>
+
+  <div class="col-lg-3 col-md-4 col-sm-5 col-6 float-right pb-3">
+    <input class="form-control" type="text" placeholder="search" v-model="searchText" />
+  </div>
+
   <table class="table table-hover table-sm" data-testid="sample-table">
     <thead>
       <tr align="center">
@@ -22,6 +27,7 @@
         v-on:click.exact="goToEditPage(sample.item_id)"
         v-on:click.meta="openEditPageInNewTab(sample.item_id)"
         v-on:click.ctrl="openEditPageInNewTab(sample.item_id)"
+        v-show="applySearch(sample)"
       >
         <td align="left">{{ sample.item_id }}</td>
         <td align="left">{{ sample.name }}</td>
@@ -70,6 +76,7 @@ export default {
     return {
       isSampleFetchError: false,
       gravatar_style: GRAVATAR_STYLE,
+      searchText: null,
     };
   },
   computed: {
@@ -100,6 +107,19 @@ export default {
         deleteSample(sample.item_id, sample);
       }
       console.log("delete cancelled...");
+    },
+    applySearch(sample) {
+      if (!this.searchText) {
+        return true;
+      }
+      if (
+        sample.item_id.includes(this.searchText) ||
+        sample.name?.includes(this.searchText) ||
+        sample.chemform?.includes(this.searchText)
+      ) {
+        return true;
+      }
+      return false;
     },
   },
   created() {
