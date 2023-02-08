@@ -115,7 +115,12 @@ def get_samples():
         doc
         for doc in flask_mongo.db.items.aggregate(
             [
-                {"$match": {"type": "samples", **get_default_permissions(user_only=False)}},
+                {
+                    "$match": {
+                        "type": {"$in": ["samples", "cells"]},
+                        **get_default_permissions(user_only=False),
+                    }
+                },
                 {
                     "$lookup": {
                         "from": "users",
