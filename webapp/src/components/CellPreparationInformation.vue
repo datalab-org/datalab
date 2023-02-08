@@ -112,7 +112,7 @@ export default {
 
 <style scoped>
 .component-card {
-  width: 85%;
+  width: 60%;
 }
 
 .first-column {
