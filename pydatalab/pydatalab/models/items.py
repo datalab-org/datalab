@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import Field
 
+from pydatalab.models.collections import CollectionReference
 from pydatalab.models.entries import Entry
 from pydatalab.models.people import Person
 from pydatalab.models.utils import (
@@ -23,6 +24,9 @@ class Item(Entry, abc.ABC):
 
     creators: Optional[List[Person]] = Field(None)
     """Inlined info for the people associated with this item."""
+
+    collections: List[CollectionReference] = Field([])
+    """Inlined info for the collections associated with this item."""
 
     description: Optional[str]
     """A description of the item, either in plain-text or a markup language."""

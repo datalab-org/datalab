@@ -4,7 +4,12 @@ from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field, root_validator
 
 from pydatalab.models.relationships import TypedRelationship
-from pydatalab.models.utils import JSON_ENCODERS, IsoformatDateTime, PyObjectId
+from pydatalab.models.utils import (
+    JSON_ENCODERS,
+    HumanReadableIdentifier,
+    IsoformatDateTime,
+    PyObjectId,
+)
 
 
 class Entry(BaseModel, abc.ABC):
@@ -80,7 +85,7 @@ class EntryReference(BaseModel):
 
     type: str
     immutable_id: Optional[PyObjectId]
-    item_id: Optional[str]
+    item_id: Optional[HumanReadableIdentifier]
 
     @root_validator
     def check_id_fields(cls, values):

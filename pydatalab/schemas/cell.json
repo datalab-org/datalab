@@ -57,6 +57,14 @@
         "$ref": "#/definitions/Person"
       }
     },
+    "collections": {
+      "title": "Collections",
+      "default": [],
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/CollectionReference"
+      }
+    },
     "description": {
       "title": "Description",
       "type": "string"
@@ -328,6 +336,38 @@
         }
       }
     },
+    "CollectionReference": {
+      "title": "CollectionReference",
+      "description": "A reference to a database entry by ID and type.\n\nCan include additional arbitarary metadata useful for\ninlining the item data.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "title": "Type",
+          "default": "collections",
+          "const": "collections",
+          "pattern": "^collections$",
+          "type": "string"
+        },
+        "immutable_id": {
+          "title": "Immutable Id",
+          "type": "string"
+        },
+        "item_id": {
+          "title": "Item Id",
+          "minLength": 1,
+          "maxLength": 40,
+          "pattern": "^[a-zA-Z0-9_-]+$",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
     "CellFormat": {
       "title": "CellFormat",
       "description": "An enumeration.",
@@ -358,6 +398,9 @@
         },
         "item_id": {
           "title": "Item Id",
+          "minLength": 1,
+          "maxLength": 40,
+          "pattern": "^[a-zA-Z0-9_-]+$",
           "type": "string"
         }
       },
