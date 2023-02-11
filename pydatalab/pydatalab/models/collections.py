@@ -4,17 +4,17 @@ from pydantic import Field
 
 from pydatalab.models.entries import Entry, EntryReference
 from pydatalab.models.people import Person
-from pydatalab.models.utils import PyObjectId
+from pydatalab.models.utils import HumanReadableIdentifier, PyObjectId
 
 
 class Collection(Entry):
 
     type: str = Field("collections", const="collections", pattern="^collections$")
 
-    short_name: str = Field(max_length=24)
+    collection_id: HumanReadableIdentifier
     """A short human-readable/usable name for the collection."""
 
-    title: str
+    title: Optional[str]
     """A descriptive title for the collection."""
 
     description: Optional[str]
