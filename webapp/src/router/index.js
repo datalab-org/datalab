@@ -3,8 +3,10 @@ import { createRouter, createWebHistory } from "vue-router";
 // import Test from '../views/Test.vue'
 import Samples from "../views/Samples.vue";
 import StartingMaterials from "../views/StartingMaterials.vue";
+import Collections from "../views/Collections.vue";
 import NotFound from "../views/NotFound.vue";
 import EditPage from "../views/EditPage.vue";
+import CollectionPage from "../views/CollectionPage.vue";
 import Test from "@/components/Test.vue";
 import TestTree from "@/components/TestTree.vue";
 import CycleParameterTable from "@/components/CycleParameterTable.vue";
@@ -34,6 +36,16 @@ const routes = [
     path: "/starting-materials",
     name: "starting-materials",
     component: StartingMaterials,
+  },
+  {
+    path: "/collections",
+    name: "collections",
+    component: Collections,
+  },
+  {
+    path: "/collections/:id",
+    name: "Collection",
+    component: CollectionPage,
   },
   {
     path: "/test/",

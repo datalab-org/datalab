@@ -22,9 +22,9 @@
   <div id="nav">
     <router-link to="/about">About</router-link> |
     <router-link to="/samples">Samples</router-link> |
-    <router-link to="/starting-materials">Inventory</router-link>
-    |
-    <router-link to="/item-graph"
+    <router-link to="/starting-materials">Inventory</router-link> |
+    <router-link to="/collections">Collections</router-link> |
+        <router-link to="/item-graph"
       ><font-awesome-icon icon="project-diagram" />&nbsp;Graph View</router-link
     >
   </div>
