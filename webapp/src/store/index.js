@@ -8,9 +8,12 @@ export default createStore({
     all_block_data: {},
     all_item_children: {},
     all_item_parents: {},
+    all_collection_data: {},
+    all_collection_children: {},
     sample_list: [],
     starting_material_list: [],
     saved_status: {},
+    collection_saved_status: {},
     updating: {},
     updatingDelayed: {},
     remoteDirectoryTree: {},
@@ -29,6 +32,10 @@ export default createStore({
       // startingMaterialSummaries is an array of json objects summarizing the available samples
       state.starting_material_list = startingMaterialSummaries;
     },
+    setCollectionList(state, collectionSummaries) {
+      // sampleSummaries is an array of json objects summarizing the available samples
+      state.collection_list = collectionSummaries;
+    },
     appendToSampleList(state, sampleSummary) {
       // sampleSummary is a json object summarizing the new sample
       state.sample_list.push(sampleSummary);
@@ -37,12 +44,24 @@ export default createStore({
       // sampleSummary is a json object summarizing the new sample
       state.sample_list.unshift(sampleSummary);
     },
-    deleteFromSampleList(state, item_id) {
-      const index = state.sample_list.map((e) => e.item_id).indexOf(item_id);
+    prependToCollectionList(state, collectionSummary) {
+      // sampleSummary is a json object summarizing the new sample
+      state.collection_list.unshift(collectionSummary);
+    },
+    deleteFromSampleList(state, sample_summary) {
+      const index = state.sample_list.indexOf(sample_summary);
       if (index > -1) {
         state.sample_list.splice(index, 1);
       } else {
         console.log(`deleteFromSampleList couldn't find the item with id ${item_id}`);
+      }
+    },
+    deleteFromCollectionList(state, collection_summary) {
+      const index = state.collection_list.indexOf(collection_summary);
+      if (index > -1) {
+        state.collection_list.splice(index, 1);
+      } else {
+        console.log("deleteFromCollectionList couldn't find the object");
       }
     },
     createItemData(state, payload) {
@@ -53,6 +72,14 @@ export default createStore({
       state.all_item_children[payload.item_id] = payload.child_items;
       state.all_item_parents[payload.item_id] = payload.parent_items;
       state.saved_status[payload.item_id] = true;
+    },
+    createCollectionData(state, payload) {
+      // payload should have the following fields:
+      // item_id, item_data
+      // Object.assign(state.all_sample_data[payload.item_data], payload.item_data)
+      state.all_collection_data[payload.collection_id] = payload.data;
+      state.all_collection_children[payload.collection_id] = payload.child_items;
+      state.collection_saved_status[payload.collection_id] = true;
     },
     updateFiles(state, files_data) {
       // payload should be an object with file ids as key and file data as values
@@ -116,6 +143,12 @@ export default createStore({
       // item_id, block_data
       Object.assign(state.all_item_data[payload.item_id], payload.block_data);
       state.saved_status[payload.item_id] = false;
+    },
+    updateCollectionData(state, payload) {
+      //requires the following fields in payload:
+      // item_id, block_data
+      Object.assign(state.all_collection_data[payload.collection_id]);
+      state.collection_saved_status[payload.collection_id] = false;
     },
     setSaved(state, payload) {
       // requires the following fields in payload:

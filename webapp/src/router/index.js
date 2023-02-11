@@ -5,8 +5,10 @@ import Samples from "../views/Samples.vue";
 import SamplesNext from "../views/SamplesNext.vue";
 import StartingMaterials from "../views/StartingMaterials.vue";
 import StartingMaterialsNext from "../views/StartingMaterialsNext.vue";
+import Collections from "../views/Collections.vue";
 import NotFound from "../views/NotFound.vue";
 import EditPage from "../views/EditPage.vue";
+import CollectionPage from "../views/CollectionPage.vue";
 import Test from "@/components/Test.vue";
 import TestTree from "@/components/TestTree.vue";
 import CycleParameterTable from "@/components/CycleParameterTable.vue";
@@ -42,6 +44,16 @@ const routes = [
     path: "/next/starting-materials",
     name: "starting-materials-next",
     component: StartingMaterialsNext,
+  },
+  {
+    path: "/collections",
+    name: "collections",
+    component: Collections,
+  },
+  {
+    path: "/collections/:id",
+    name: "Collection",
+    component: CollectionPage,
   },
   {
     path: "/test/",

@@ -39,3 +39,20 @@ export function createComputedSetterForItemField(item_field) {
     },
   };
 }
+
+export function createComputedSetterForCollectionField(collection_field) {
+  return {
+    get() {
+      if (this.collection_id in store.state.all_collection_data) {
+        return store.state.all_collection_data[this.collection_id][collection_field];
+      }
+    },
+    set(value) {
+      console.log("comp setter called with value:");
+      console.log(value);
+      store.commit("updateCollectionData", {
+        collecction_id: this.collection_id,
+      });
+    },
+  };
+}
