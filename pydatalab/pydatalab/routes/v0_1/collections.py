@@ -1,8 +1,10 @@
 import datetime
+import json
 
 from flask import Blueprint, jsonify, request
 from flask_login import current_user
 from pydantic import ValidationError
+from pymongo.results import UpdateResult
 
 from pydatalab.config import CONFIG
 from pydatalab.models.collections import Collection
@@ -38,7 +40,7 @@ def get_collections():
 
 
 @collection.route("/collections/<collection_id>", methods=["GET"])
-def get_collection(collection_id: str):
+def get_collection(collection_id):
 
     collection = flask_mongo.db.collections.aggregate(
         [
@@ -62,7 +64,13 @@ def get_collection(collection_id: str):
         }
     )
 
-    return jsonify({"status": "success", "samples": list(samples)})
+    return jsonify(
+        {
+            "status": "success",
+            "data": json.loads(collection.json(exclude_unset=True)),
+            "samples": list(samples),
+        }
+    )
 
 
 @collection.route("/collections/", methods=["PUT"])
@@ -70,6 +78,7 @@ def create_collection():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
     data = request_json.get("data", {})
     copy_from_id = request_json.get("copy_from_collection_id", None)
+    starting_members = data.get("starting_members", [])
 
     if not current_user.is_authenticated and not CONFIG.TESTING:
         return (
@@ -137,13 +146,48 @@ def create_collection():
             400,
         )
 
-    data_model.num_items = 0
+    errors = []
+    if starting_members:
+        item_ids = set(d.get("item_id") for d in starting_members)
+        if None in item_ids:
+            item_ids.remove(None)
+
+        results: UpdateResult = flask_mongo.db.items.update_many(
+            {
+                "item_id": {"$in": list(item_ids)},
+                **get_default_permissions(user_only=True),
+            },
+            {
+                "$push": {
+                    "relationships": {"type": "collection", "immutable_id": data_model.immutable_id}
+                }
+            },
+        )
+
+        data_model.num_items = results.modified_count
+
+        if results.modified_count < len(starting_members):
+            errors = [
+                item_id
+                for item_id in starting_members
+                if item_id not in results.raw_result["upserted"]
+            ]
+
+    else:
+        data_model.num_items = 0
+
+    response = {
+        "status": "success",
+        "data": json.loads(data_model.json()),
+    }
+
+    if errors:
+        response["warnings"] = [
+            f"Unable to register {errors} to new collection {data_model.collection_id}"
+        ]
 
     return (
-        {
-            "status": "success",
-            "data": {data_model.json()},
-        },
+        jsonify(response),
         201,  # 201: Created
     )
 
