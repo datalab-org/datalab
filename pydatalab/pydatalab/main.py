@@ -197,13 +197,14 @@ def create_app(config_override: Dict[str, Any] = None) -> Flask:
 def register_endpoints(app: Flask):
     """Loops through the implemented endpoints, blueprints and error handlers adds them to the app."""
     from pydatalab.errors import ERROR_HANDLERS
-    from pydatalab.routes import ENDPOINTS, __api_version__, auth
+    from pydatalab.routes import BLUEPRINTS, ENDPOINTS, __api_version__, auth
 
     OAUTH_BLUEPRINTS = auth.OAUTH_BLUEPRINTS
 
+    major, minor, patch = __api_version__.split(".")
+    versions = ["", f"/v{major}", f"/v{major}.{minor}", f"/v{major}.{minor}.{patch}"]
+
     for rule, func in ENDPOINTS.items():
-        major, minor, patch = __api_version__.split(".")
-        versions = ["", f"/v{major}", f"/v{major}.{minor}", f"/v{major}.{minor}.{patch}"]
         for ver in versions:
             app.add_url_rule(
                 f"{ver}{rule}",
@@ -211,8 +212,12 @@ def register_endpoints(app: Flask):
                 logged_route(func),
             )
 
-    for bp in OAUTH_BLUEPRINTS:
-        app.register_blueprint(OAUTH_BLUEPRINTS[bp], url_prefix="/login")
+    for bp in BLUEPRINTS:
+        for ver in versions:
+            app.register_blueprint(bp, url_prefix=f"{ver}")
+
+    for bp in OAUTH_BLUEPRINTS:  # type: ignore
+        app.register_blueprint(OAUTH_BLUEPRINTS[bp], url_prefix="/login")  # type: ignore
 
     for exception_type, handler in ERROR_HANDLERS:
         app.register_error_handler(exception_type, handler)

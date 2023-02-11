@@ -117,18 +117,14 @@ def get_samples_summary(match: Optional[Dict] = None):
 
     return flask_mongo.db.items.aggregate(
         [
+            {"$match": match},
+            {"$lookup": creators_lookup()},
             {
-                "$match": match,
-                "$lookup": creators_lookup(),
                 "$project": {
                     "_id": 0,
-                    "nblocks": {"$size": "$display_order"},
-                    "creators": {
-                        "display_name": 1,
-                        "contact_email": 1,
-                    },
-                },
-            }
+                }
+            },
+            {"$sort": {"_id": -1}},
         ]
     )
 
@@ -143,7 +139,7 @@ def creators_lookup() -> Dict:
 
 
 def get_samples():
-    return jsonify({"status": "success", "samples": get_samples_summary()})
+    return jsonify({"status": "success", "samples": list(get_samples_summary())})
 
 
 get_samples.methods = ("GET",)  # type: ignore
