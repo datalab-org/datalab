@@ -67,8 +67,9 @@ def get_collection(collection_id):
     return jsonify(
         {
             "status": "success",
+            "collection_id": collection_id,
             "data": json.loads(collection.json(exclude_unset=True)),
-            "samples": list(samples),
+            "child_items": list(samples),
         }
     )
 
