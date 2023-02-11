@@ -1,6 +1,6 @@
 import datetime
 import json
-from typing import Callable, Dict, List, Set, Union
+from typing import Callable, Dict, List, Optional, Set, Union
 
 from bson import ObjectId
 from flask import jsonify, request
@@ -110,47 +110,41 @@ def get_starting_materials():
 get_starting_materials.methods = ("GET",)  # type: ignore
 
 
+def get_samples_summary(match: Optional[Dict] = None):
+    if not match:
+        match = {}
+    match.update(get_default_permissions(user_only=False))
+    match["type"] = "samples"
+
+    return flask_mongo.db.items.aggregate(
+        [
+            {
+                "$match": match,
+                "$lookup": creators_lookup(),
+                "$project": {
+                    "_id": 0,
+                    "nblocks": {"$size": "$display_order"},
+                    "creators": {
+                        "display_name": 1,
+                        "contact_email": 1,
+                    },
+                },
+            }
+        ]
+    )
+
+
+def creators_lookup() -> Dict:
+    return {
+        "from": "users",
+        "localField": "creator_ids",
+        "foreignField": "_id",
+        "as": "creators",
+    }
+
+
 def get_samples():
-    items = [
-        doc
-        for doc in flask_mongo.db.items.aggregate(
-            [
-                {
-                    "$match": {
-                        "type": {"$in": ["samples", "cells"]},
-                        **get_default_permissions(user_only=False),
-                    }
-                },
-                {
-                    "$lookup": {
-                        "from": "users",
-                        "localField": "creator_ids",
-                        "foreignField": "_id",
-                        "as": "creators",
-                    }
-                },
-                {"$sort": {"date": -1}},
-                {
-                    "$project": {
-                        "_id": 0,
-                        "item_id": 1,
-                        "refcode": 1,
-                        "type": 1,
-                        "sample_id": 1,
-                        "nblocks": {"$size": "$display_order"},
-                        "creators": {
-                            "display_name": 1,
-                            "contact_email": 1,
-                        },
-                        "date": 1,
-                        "chemform": 1,
-                        "name": 1,
-                    }
-                },
-            ]
-        )
-    ]
-    return jsonify({"status": "success", "samples": items})
+    return jsonify({"status": "success", "samples": get_samples_summary()})
 
 
 get_samples.methods = ("GET",)  # type: ignore
