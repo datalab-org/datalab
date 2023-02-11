@@ -26,6 +26,9 @@ class Collection(Entry):
     creators: Optional[List[Person]] = Field(None)
     """Inlined info for the people associated with this collection."""
 
+    num_items: Optional[int] = Field(None)
+    """Inlined number of items associated with this collection."""
+
 
 class CollectionReference(EntryReference):
 
