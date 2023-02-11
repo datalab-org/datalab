@@ -94,6 +94,7 @@ def create_default_indices(
         A list of messages returned by each `create_index` call.
 
     """
+    from pydatalab.logger import LOGGER
     from pydatalab.models import ITEM_MODELS
 
     if client is None:
@@ -132,6 +133,12 @@ def create_default_indices(
         weights={"refcode": 3, "item_id": 3, "name": 3, "chemform": 3},
     )
 
+    ret += create_or_recreate_text_index(
+        db.collections,
+        ["collection_id", "title", "description"],
+        weights={"collection_id": 3, "title": 3, "description": 3},
+    )
+
     ret += db.items.create_index("type", name="item type", background=background)
     ret += db.items.create_index(
         "item_id", unique=True, name="unique item ID", background=background
@@ -158,7 +165,7 @@ def create_default_indices(
             name="user identities full-text search",
             background=background,
         )
-    except Exception:
-        pass
+    except Exception as exc:
+        LOGGER.warning("Failed to create text index: %s", exc)
 
     return ret
