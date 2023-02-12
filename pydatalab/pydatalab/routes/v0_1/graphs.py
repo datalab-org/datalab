@@ -9,7 +9,22 @@ from pydatalab.routes.utils import get_default_permissions
 def get_graph_cy_format():
 
     all_documents = flask_mongo.db.items.find(
-        get_default_permissions(user_only=False),
+        {
+            "$and": [
+                {
+                    "$or": [
+                        {"type": "samples"},
+                        {
+                            "$and": [
+                                {"type": "starting_materials"},
+                                {"relationships.0": {"$exists": True}},
+                            ]
+                        },
+                    ]
+                },
+                {**get_default_permissions(user_only=False)},
+            ]
+        },
         projection={"item_id": 1, "name": 1, "type": 1, "relationships": 1},
     )
 
@@ -17,22 +32,14 @@ def get_graph_cy_format():
     edges = []
     for document in all_documents:
 
-        nodes.append(
-            {
-                "data": {
-                    "id": document["item_id"],
-                    "name": document["name"],
-                    "type": document["type"],
-                }
-            }
-        )
-
-        if not document.get("relationships"):
-            continue
-
-        for relationship in document["relationships"]:
+        node_collections = set()
+        for relationship in document.get("relationships", []):
             # only considering child-parent relationships:
-            if relationship["relation"] != "parent":
+            if relationship.get("type") == "collections":
+                node_collections.add(relationship["immutable_id"])
+                continue
+
+            if relationship.get("relation") != "parent":
                 continue
 
             target = document["item_id"]
@@ -47,6 +54,17 @@ def get_graph_cy_format():
                     }
                 }
             )
+
+        nodes.append(
+            {
+                "data": {
+                    "id": document["item_id"],
+                    "name": document["name"],
+                    "type": document["type"],
+                    "collections": list(node_collections),
+                }
+            }
+        )
 
     # We want to filter out all the starting materials that don't have relationships since there are so many of them:
     whitelist = {edge["data"]["source"] for edge in edges}
