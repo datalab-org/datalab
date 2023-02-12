@@ -123,6 +123,11 @@ def get_samples_summary(match: Optional[Dict] = None):
             {
                 "$project": {
                     "_id": 0,
+                    "creators": 1,
+                    "item_id": 1,
+                    "name": 1,
+                    "chemform": 1,
+                    "type": 1,
                 }
             },
             {"$sort": {"_id": -1}},
@@ -566,7 +571,7 @@ def save_item():
     updated_data = request_json["data"]
 
     # These keys should not be updated here and cannot be modified by the user through this endpoint
-    for k in ("_id", "file_ObjectIds", "creators", "creator_ids"):
+    for k in ("_id", "file_ObjectIds", "creators", "creator_ids", "item_id"):
         if k in updated_data:
             del updated_data[k]
 
