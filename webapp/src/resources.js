@@ -70,9 +70,9 @@ export const itemTypes = {
   },
   collections: {
     itemInformationComponent: CollectionInformation,
-    navbarColor: "red",
+    navbarColor: "#563D7C",
     navbarName: "Collection",
-    lightColor: "#d9f2eb",
+    lightColor: "#b38fea",
     labelColor: "#298651",
     display: "collection",
   },

@@ -25,16 +25,14 @@
       v-model="CollectionDescription"
     ></TinyMceInline>
 
-    <RelationshipVisualization :collection_id="collection_id" />
-
-    <TableOfContents :informationSections="tableOfContentsSections" />
+    <CollectionRelationshipVisualization :collection_id="collection_id" />
   </div>
 </template>
 
 <script>
 import { createComputedSetterForCollectionField } from "@/field_utils.js";
 import TinyMceInline from "@/components/TinyMceInline";
-import RelationshipVisualization from "@/components/RelationshipVisualization";
+import CollectionRelationshipVisualization from "@/components/CollectionRelationshipVisualization";
 
 export default {
   props: {
@@ -48,7 +46,7 @@ export default {
   },
   components: {
     TinyMceInline,
-    RelationshipVisualization,
+    CollectionRelationshipVisualization,
   },
 };
 </script>
