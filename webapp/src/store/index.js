@@ -10,6 +10,7 @@ export default createStore({
     all_item_parents: {},
     all_collection_data: {},
     all_collection_children: {},
+    all_collection_parents: {},
     sample_list: [],
     starting_material_list: [],
     saved_status: {},
@@ -79,6 +80,7 @@ export default createStore({
       // Object.assign(state.all_sample_data[payload.item_data], payload.item_data)
       state.all_collection_data[payload.collection_id] = payload.data;
       state.all_collection_children[payload.collection_id] = payload.child_items;
+      state.all_collection_parents[payload.collection_id] = [];
       state.collection_saved_status[payload.collection_id] = true;
     },
     updateFiles(state, files_data) {
@@ -147,13 +149,18 @@ export default createStore({
     updateCollectionData(state, payload) {
       //requires the following fields in payload:
       // item_id, block_data
-      Object.assign(state.all_collection_data[payload.collection_id]);
+      Object.assign(state.all_collection_data[payload.collection_id], payload.block_data);
       state.collection_saved_status[payload.collection_id] = false;
     },
     setSaved(state, payload) {
       // requires the following fields in payload:
       // item_id, isSaved
       state.saved_status[payload.item_id] = payload.isSaved;
+    },
+    setSavedCollection(state, payload) {
+      // requires the following fields in payload:
+      // item_id, isSaved
+      state.collection_saved_status[payload.collection_id] = payload.isSaved;
     },
     removeBlockFromDisplay(state, payload) {
       // requires the following fields in payload:

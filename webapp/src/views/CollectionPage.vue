@@ -25,7 +25,7 @@
         icon="save"
         fixed-width
         class="nav-item nav-link navbar-icon"
-        @click="saveCollection"
+        @click="saveCollectionData"
       />
     </div>
   </nav>
@@ -55,7 +55,7 @@ export default {
     };
   },
   methods: {
-    save() {
+    saveCollectionData() {
       // trigger the mce save so that they update the store with their content
       console.log("save clicked!");
       tinymce.editors.forEach((editor) => editor.save());
@@ -65,15 +65,15 @@ export default {
       await getCollectionData(this.collection_id);
       this.data_loaded = true;
     },
-    /*leavePageWarningListener(event) {*/
-    /*  event.preventDefault;*/
-    /*  return (event.returnValue =*/
-    /*    "Unsaved changes present. Would you like to leave without saving?");*/
-    /*},*/
+    leavePageWarningListener(event) {
+      event.preventDefault;
+      return (event.returnValue =
+        "Unsaved changes present. Would you like to leave without saving?");
+    },
   },
   computed: {
     itemTypeEntry() {
-      return itemTypes["collections"];
+      return itemTypes.collections;
     },
     navbarColor() {
       return this.itemTypeEntry?.navbarColor || "DarkGrey";
@@ -82,7 +82,7 @@ export default {
       return this.$store.state.all_collection_data[this.collection_id] || {};
     },
     savedStatus() {
-      return this.$store.state.collection_saved_status[this.item_id];
+      return this.$store.state.collection_saved_status[this.collection_id];
     },
     lastModified() {
       // if (!this.item_data.last_modified) { return "" }
@@ -99,7 +99,7 @@ export default {
     },
   },
   created() {
-    this.getCollectionData();
+    this.getCollection();
   },
   components: {
     CollectionInformation,
@@ -107,42 +107,41 @@ export default {
   beforeMount() {
     this.collectionApiUrl = API_URL + "/collections/" + this.collection_id;
   },
-  /*mounted() {*/
-  /*  // overwrite ctrl-s and cmd-s to save the page*/
-  /*  this._keyListener = function (e) {*/
-  /*    if (e.key === "s" && (e.ctrlKey || e.metaKey)) {*/
-  /*      e.preventDefault(); // present "Save Page" from getting triggered.*/
-  /*      this.saveSample();*/
-  /*    }*/
-  /*  };*/
-  /*  document.addEventListener("keydown", this._keyListener.bind(this));*/
-
-  /*},*/
-  /*beforeUnmount() {*/
-  /*  document.removeEventListener("keydown", this._keyListener);*/
-  /*},*/
-  /*watch: {*/
-  /*  // add a warning before leaving page if unsaved*/
-  /*  savedStatus(newValue) {*/
-  /*    if (!newValue) {*/
-  /*      window.addEventListener("beforeunload", this.leavePageWarningListener, true);*/
-  /*    } else {*/
-  /*      window.removeEventListener("beforeunload", this.leavePageWarningListener, true);*/
-  /*    }*/
-  /*  },*/
-  /*},*/
-  /*beforeRouteLeave(to, from, next) {*/
-  /*  // give warning before leaving the page by the vue router (which would not trigger "beforeunload")*/
-  /*  if (this.savedStatus) {*/
-  /*    next();*/
-  /*  } else {*/
-  /*    if (window.confirm("Unsaved changes present. Would you like to leave without saving?")) {*/
-  /*      next();*/
-  /*    } else {*/
-  /*      next(false);*/
-  /*    }*/
-  /*  }*/
-  /*},*/
+  mounted() {
+    // overwrite ctrl-s and cmd-s to save the page
+    this._keyListener = function (e) {
+      if (e.key === "s" && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault(); // present "Save Page" from getting triggered.
+        this.saveCollectionData();
+      }
+    };
+    document.addEventListener("keydown", this._keyListener.bind(this));
+  },
+  beforeUnmount() {
+    document.removeEventListener("keydown", this._keyListener);
+  },
+  watch: {
+    // add a warning before leaving page if unsaved
+    savedStatus(newValue) {
+      if (!newValue) {
+        window.addEventListener("beforeunload", this.leavePageWarningListener, true);
+      } else {
+        window.removeEventListener("beforeunload", this.leavePageWarningListener, true);
+      }
+    },
+  },
+  beforeRouteLeave(to, from, next) {
+    // give warning before leaving the page by the vue router (which would not trigger "beforeunload")
+    if (this.savedStatus) {
+      next();
+    } else {
+      if (window.confirm("Unsaved changes present. Would you like to leave without saving?")) {
+        next();
+      } else {
+        next(false);
+      }
+    }
+  },
 };
 </script>
 

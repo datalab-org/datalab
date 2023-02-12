@@ -267,17 +267,16 @@ export async function getItemData(item_id) {
 export async function getCollectionData(collection_id) {
   return fetch_get(`${API_URL}/collections/${collection_id}`)
     .then((response_json) => {
-      console.log(response_json);
+      console.log("get collection", response_json);
       store.commit("createCollectionData", {
         collection_id: collection_id,
         data: response_json.data,
         child_items: response_json.child_items,
       });
-      //store.commit("updateFiles", response_json.files_data);
 
       return "success";
     })
-    .catch((error) => alert("Error getting sample data: " + error));
+    .catch((error) => alert("Error getting collection data: " + error));
 }
 
 export async function updateBlockFromServer(item_id, block_id, block_data) {
@@ -338,17 +337,14 @@ export function saveItem(item_id) {
     });
 }
 
-export function saveCollection(collection_id, data) {
-  console.log("saveItem Called!");
-  fetch_patch(`${API_URL}/collection/`, {
-    collection_id: collection_id,
-    data: data,
-  })
+export function saveCollection(collection_id) {
+  var data = store.state.all_collection_data[collection_id];
+  fetch_patch(`${API_URL}/collections/${collection_id}`, { data: data })
     .then(function (response_json) {
       if (response_json.status === "success") {
         // this should always be true if you've gotten this far...
         console.log("Save successful!");
-        // store.commit("setSaved", { collection_id: collection_id, isSaved: true });
+        store.commit("setSavedCollection", { collection_id: collection_id, isSaved: true });
       }
     })
     .catch(function (error) {

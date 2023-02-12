@@ -18,11 +18,14 @@
 import { itemTypes } from "@/resources.js";
 
 export default {
+  data() {
+    return {
+      itemType: "collections",
+    };
+  },
   props: {
-    item_id: String,
-    itemType: String,
-    name: String,
-    chemform: String,
+    collection_id: String,
+    title: String,
     enableClick: {
       type: Boolean,
       default: false,
@@ -38,7 +41,7 @@ export default {
   },
   computed: {
     badgeColor() {
-      return "LightGrey";
+      return itemTypes[this.itemType]?.lightColor || "LightGrey";
     },
     shortenedName() {
       if (this.maxLength && this.maxLength < this.name.length) {
