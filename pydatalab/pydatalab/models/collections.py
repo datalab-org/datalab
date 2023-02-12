@@ -32,7 +32,7 @@ class Collection(Entry):
 
 class CollectionReference(EntryReference):
 
-    name: str
+    collection_id: Optional[str]
     """An human-readable/usable name for the collection."""
 
     type: str = Field("collections", const="collections", pattern="^collections$")
