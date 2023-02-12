@@ -22,6 +22,7 @@ class KnownType(str, Enum):
     BLOCKS = "blocks"
     FILES = "files"
     PEOPLE = "people"
+    COLLECTIONS = "collections"
 
 
 class HumanReadableIdentifier(ConstrainedStr):

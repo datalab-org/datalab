@@ -34,8 +34,9 @@ class TypedRelationship(BaseModel):
         description="A description of the relationship.",
     )
 
-    relation: RelationshipType = Field(
-        description="The type of relationship between the two items. If the type is 'other', then a human-readable description should be provided."
+    relation: Optional[RelationshipType] = Field(
+        None,
+        description="The type of relationship between the two items. If the type is 'other', then a human-readable description should be provided.",
     )
 
     type: KnownType = Field(description="The type of the related resource.")

@@ -192,7 +192,8 @@
         "starting_materials",
         "blocks",
         "files",
-        "people"
+        "people",
+        "collections"
       ],
       "type": "string"
     },
@@ -236,7 +237,6 @@
         }
       },
       "required": [
-        "relation",
         "type"
       ]
     },
@@ -359,14 +359,11 @@
           "pattern": "^[a-zA-Z0-9_-]+$",
           "type": "string"
         },
-        "name": {
-          "title": "Name",
+        "collection_id": {
+          "title": "Collection Id",
           "type": "string"
         }
-      },
-      "required": [
-        "name"
-      ]
+      }
     },
     "CellFormat": {
       "title": "CellFormat",
