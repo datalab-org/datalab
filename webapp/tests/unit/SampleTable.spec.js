@@ -26,7 +26,7 @@ test("it renders correctly with 0 samples", () => {
     })
   );
 
-  const { getByText, container } = render(SampleTable, {
+  const { getByText } = render(SampleTable, {
     global: {
       plugins: [store],
       mocks: globalPropertiesMock,
@@ -75,7 +75,7 @@ test("it renders correctly with some samples", async () => {
     })
   );
 
-  const { findByText, container } = render(SampleTable, {
+  const { findByText } = render(SampleTable, {
     global: {
       plugins: [store],
       mocks: globalPropertiesMock,
