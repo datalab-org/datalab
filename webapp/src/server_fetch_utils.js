@@ -82,15 +82,14 @@ function handleResponse(response) {
 // exported functions
 // ****************************************************************************
 
-// eslint-disable-next-line no-unused-vars
-export function createNewSample(item_id, date, name, startingData = {}, copyFrom = null) {
+export function createNewItem(item_id, type, date, name, startingData = {}, copyFrom = null) {
   return fetch_post(`${API_URL}/new-sample/`, {
     copy_from_item_id: copyFrom,
     new_sample_data: {
       item_id: item_id,
       date: date,
       name: name,
-      type: "samples",
+      type: type,
       ...startingData,
     },
   }).then(function (response_json) {
@@ -98,10 +97,6 @@ export function createNewSample(item_id, date, name, startingData = {}, copyFrom
     console.log(response_json.sample_list_entry);
     console.log(`item_id: ${item_id}`);
     store.commit("prependToSampleList", response_json.sample_list_entry);
-    // store.commit('createSampleData', {
-    //  "item_id": item_id,
-    //  "sample_data": response_json.sample_data
-    // });
     return "success";
   });
 }

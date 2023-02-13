@@ -161,8 +161,7 @@
     }
   },
   "required": [
-    "item_id",
-    "cell_format"
+    "item_id"
   ],
   "definitions": {
     "RelationshipType": {

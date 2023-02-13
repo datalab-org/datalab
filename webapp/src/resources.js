@@ -9,6 +9,9 @@ import SampleInformation from "@/components/SampleInformation";
 import StartingMaterialInformation from "@/components/StartingMaterialInformation";
 import CellInformation from "@/components/CellInformation";
 
+import SampleCreateModalAddon from "@/components/itemCreateModalAddons/SampleCreateModalAddon";
+import CellCreateModalAddon from "@/components/itemCreateModalAddons/CellCreateModalAddon";
+
 // Look for values set in .env file. Use defaults if `null` is not explicitly handled elsewhere in the code.
 export const API_URL =
   process.env.VUE_APP_API_URL != null ? process.env.VUE_APP_API_URL : "http://localhost:5001";
@@ -32,6 +35,7 @@ export const blockTypes = {
 export const itemTypes = {
   samples: {
     itemInformationComponent: SampleInformation,
+    itemCreateModalAddon: SampleCreateModalAddon,
     navbarColor: "#0b6093",
     navbarName: "Sample",
     lightColor: "#d0ebfb",
@@ -50,6 +54,7 @@ export const itemTypes = {
   },
   cells: {
     itemInformationComponent: CellInformation,
+    itemCreateModalAddon: CellCreateModalAddon,
     navbarColor: "#946807",
     navbarName: "Cell",
     lightColor: "#D1C28F",
