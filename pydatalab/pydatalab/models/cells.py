@@ -40,7 +40,7 @@ class Cell(Item):
 
     type: str = Field("cells", const="cells", pattern="^cells$")
 
-    cell_format: CellFormat = Field(
+    cell_format: Optional[CellFormat] = Field(
         description="The form factor of the cell, e.g., coin, pouch, in situ or otherwise.",
     )
 
