@@ -9,7 +9,7 @@ Cypress.on("window:before:load", (win) => {
 const TODAY = new Date().toISOString().slice(0, -8);
 
 function createSample(sample_id, name = null, date = null) {
-  cy.findByText("Add a sample").click();
+  cy.findByText("Add an item").click();
   cy.findByText("Add new sample").should("exist");
   cy.findByLabelText("Sample ID:").type(sample_id);
   if (name) {
@@ -66,7 +66,7 @@ describe("Sample table page", () => {
   it("Loads the main page without any errors", () => {
     cy.findByText("About").should("exist");
     cy.findByText("Samples").should("exist");
-    cy.findByText("Add a sample").should("exist");
+    cy.findByText("Add an item").should("exist");
     cy.findByText("# of blocks").should("exist");
 
     // Ensure no error messages or console errors. The wait is necessary so that
@@ -81,7 +81,7 @@ describe("Sample table page", () => {
   });
 
   it("Adds a valid sample", () => {
-    cy.findByText("Add a sample").click();
+    cy.findByText("Add an item").click();
     cy.findByText("Add new sample").should("exist");
     cy.findByLabelText("Sample ID:").type("12345678910");
     cy.findByLabelText("Date Created:").type("1990-01-07T00:00");
@@ -115,8 +115,8 @@ describe("Sample table page", () => {
     cy.findByText("1990-01-07");
   });
 
-  it("Attempts to add a sample with the same name", () => {
-    cy.findByText("Add a sample").click();
+  it("Attempts to Add an item with the same name", () => {
+    cy.findByText("Add an item").click();
     cy.findByText("Add new sample").should("exist");
     cy.findByLabelText("Sample ID:").type("12345678910");
 
@@ -218,7 +218,7 @@ describe("Advanced sample creation features", () => {
   });
 
   it("Adds a third sample copied from the first", () => {
-    cy.findByText("Add a sample").click();
+    cy.findByText("Add an item").click();
     cy.findByLabelText("Sample ID:").type("testAcopy");
     cy.findByLabelText("(Optional) Copy from:").type("testA");
     cy.get(".vs__dropdown-menu").within(() => {
@@ -269,7 +269,7 @@ describe("Advanced sample creation features", () => {
   });
 
   it("copies the second sample", () => {
-    cy.findByText("Add a sample").click();
+    cy.findByText("Add an item").click();
     cy.findByLabelText("Sample ID:").type("testBcopy");
     cy.findByLabelText("(Optional) Copy from:").type("testB");
     cy.get(".vs__dropdown-menu").within(() => {
@@ -295,7 +295,7 @@ describe("Advanced sample creation features", () => {
   });
 
   it("copies the copied sample, this time with additional components", () => {
-    cy.findByText("Add a sample").click();
+    cy.findByText("Add an item").click();
     cy.findByLabelText("Sample ID:").type("testBcopy_copy");
     cy.findByLabelText("(Optional) Copy from:").type("testBcopy");
     cy.get(".vs__dropdown-menu").within(() => {

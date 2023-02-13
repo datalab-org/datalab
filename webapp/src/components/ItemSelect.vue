@@ -49,6 +49,10 @@ export default {
       type: Number,
       default: NaN,
     },
+    typesToQuery: {
+      type: Array,
+      default: () => ["samples", "starting_materials", "cells"],
+    },
   },
   emits: ["update:modelValue"],
   data() {
@@ -78,7 +82,7 @@ export default {
       clearTimeout(this.debounceTimeout); // reset the timer
       // start the timer
       this.debounceTimeout = setTimeout(async () => {
-        await searchItems(query, 100, ["samples", "starting_materials"])
+        await searchItems(query, 100, this.typesToQuery)
           .then((items) => {
             this.items = items;
           })
