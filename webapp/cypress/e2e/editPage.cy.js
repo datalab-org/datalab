@@ -18,7 +18,7 @@ describe("Edit Page", () => {
   it("Loads the main page without any errors", () => {
     cy.findByText("About").should("exist");
     cy.findByText("Samples").should("exist");
-    cy.findByText("Add a sample").should("exist");
+    cy.findByText("Add an item").should("exist");
     cy.findByText("# of blocks").should("exist");
     cy.wait(1000).then((x) => {
       cy.contains("Server Error. Sample list not retreived.").should("not.exist");
@@ -27,7 +27,7 @@ describe("Edit Page", () => {
   });
 
   it("Adds a valid sample", () => {
-    cy.findByText("Add a sample").click();
+    cy.findByText("Add an item").click();
     cy.findByText("Add new sample").should("exist");
     cy.findByLabelText("Sample ID:").type("editable_sample");
     cy.findByLabelText("Date Created:").type("1990-01-07T00:00");
@@ -37,11 +37,11 @@ describe("Edit Page", () => {
 
     cy.findByText("editable_sample");
     cy.findByText("This is a sample name");
-    cy.get("tr>td").eq(5).contains(0); // 0 blocks are present
+    cy.get("tr>td").eq(6).contains(0); // 0 blocks are present
   });
 
   it("Adds a second valid sample, to use as a component", () => {
-    cy.findByText("Add a sample").click();
+    cy.findByText("Add an item").click();
     cy.findByText("Add new sample");
     cy.findByLabelText("Sample ID:").type("component1");
     cy.findByLabelText("Sample Name:").type("This is a component");
@@ -49,7 +49,7 @@ describe("Edit Page", () => {
   });
 
   it("Adds a third valid sample, to use as a component", () => {
-    cy.findByText("Add a sample").click();
+    cy.findByText("Add an item").click();
     cy.findByText("Add new sample");
     cy.findByLabelText("Sample ID:").type("component2");
     cy.findByLabelText("Sample Name:").type("This is another component");
@@ -229,7 +229,7 @@ describe("Edit Page", () => {
     cy.get(".datablock-content div").eq(1).type("The second comment box");
 
     cy.findByText("Home").click();
-    cy.get("[data-testid=sample-table] tr:nth-of-type(3) > td:nth-of-type(6)").contains(2); // 2 blocks are present
+    cy.get("[data-testid=sample-table] tr:nth-of-type(3) > td:nth-of-type(7)").contains(2); // 2 blocks are present
   });
 
   it("cleanup: delete the samples", () => {
