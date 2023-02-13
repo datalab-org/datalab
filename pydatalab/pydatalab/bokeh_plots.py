@@ -8,7 +8,7 @@ from bokeh.events import DoubleTap
 from bokeh.layouts import column, gridplot
 from bokeh.models import CrosshairTool, CustomJS, HoverTool
 from bokeh.models.widgets import Select
-from bokeh.palettes import Dark2
+from bokeh.palettes import Accent, Dark2
 from bokeh.plotting import ColumnDataSource, figure
 from bokeh.themes import Theme
 from scipy.signal import find_peaks
@@ -169,6 +169,7 @@ def selectable_axes_plot(
 def double_axes_echem_plot(
     df: pd.DataFrame,
     mode: Optional[str] = None,
+    cycle_summary: pd.DataFrame = None,
     x_options: Sequence[str] = ("Capacity", "Voltage", "Time", "Current"),
     pick_peaks: bool = True,
     **kwargs,
@@ -192,7 +193,7 @@ def double_axes_echem_plot(
     if mode == "normal":
         mode = None
 
-    modes = ("dQ/dV", "dV/dQ", None)
+    modes = ("dQ/dV", "dV/dQ", "final capacity", None)
     if mode not in modes:
         raise RuntimeError(f"Mode must be one of {modes} not {mode}.")
 
@@ -208,8 +209,10 @@ def double_axes_echem_plot(
     p1 = figure(x_axis_label=x_default, y_axis_label="Voltage (V)", **common_options)
     plots.append(p1)
 
+    mode = "final capacity"
+
     # the differential plot
-    if mode:
+    if mode in ("dQ/dV", "dV/dQ"):
         if mode == "dQ/dV":
             p2 = figure(
                 x_axis_label=mode,
@@ -222,6 +225,56 @@ def double_axes_echem_plot(
                 x_axis_label=x_default, y_axis_label=mode, x_range=p1.x_range, **common_options
             )
         plots.append(p2)
+
+    elif mode == "final capacity" and cycle_summary is not None:
+        palette = Accent[3]
+
+        p3 = figure(
+            x_axis_label="Cycle number",
+            y_axis_label="Capacity (mAh/g)",
+            **common_options,
+        )
+
+        p3.line(
+            x="full cycle",
+            y="Charge Capacity",
+            source=cycle_summary,
+            legend_label="Charge",
+            line_width=2,
+            color=palette[0],
+        )
+        p3.circle(
+            x="full cycle",
+            y="Charge Capacity",
+            source=cycle_summary,
+            fill_color="white",
+            hatch_color=palette[0],
+            legend_label="Charge",
+            line_width=2,
+            size=12,
+            color=palette[0],
+        )
+        p3.line(
+            x="full cycle",
+            y="Discharge Capacity",
+            source=cycle_summary,
+            legend_label="Discharge",
+            line_width=2,
+            color=palette[2],
+        )
+        p3.triangle(
+            x="full cycle",
+            y="Discharge Capacity",
+            source=cycle_summary,
+            fill_color="white",
+            hatch_color=palette[2],
+            line_width=2,
+            legend_label="Discharge",
+            size=12,
+            color=palette[2],
+        )
+
+        p3.legend.location = "right"
 
     lines = []
     grouped_by_half_cycle = df.groupby("half cycle")
@@ -315,6 +368,8 @@ def double_axes_echem_plot(
     elif mode == "dV/dQ":
         # grid = [[p1, p2]]
         grid = [[p1], [p2]]
+    elif mode == "final capacity":
+        grid = [[p3]]
     else:
         grid = [[p1], [xaxis_select], [yaxis_select]]
 

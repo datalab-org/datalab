@@ -202,7 +202,7 @@ class CycleBlock(DataBlock):
             LOGGER.warning("No file_id given")
             return
 
-        derivative_modes = (None, "dQ/dV", "dV/dQ")
+        derivative_modes = (None, "dQ/dV", "dV/dQ", "final capacity")
 
         if self.data["derivative_mode"] not in derivative_modes:
             LOGGER.warning(
@@ -248,10 +248,12 @@ class CycleBlock(DataBlock):
             )
             return
 
+        cycle_summary_df = None
         if file_id in self.cache.get("parsed_file", {}):
             raw_df = self.cache["parsed_file"][file_id]
         else:
             raw_df = ec.echem_file_loader(file_info["location"])
+            cycle_summary_df = ec.cycle_summary(raw_df)
             if "time/s" in raw_df:
                 # temporary. Navani should give "Time" as a standard field in the future.
                 raw_df["Time"] = raw_df["time/s"]
@@ -274,7 +276,7 @@ class CycleBlock(DataBlock):
         # Reduce df size to ~1000 rows by default
         df = reduce_echem_cycle_sampling(df)
 
-        layout = bokeh_plots.double_axes_echem_plot(df, mode=mode)
+        layout = bokeh_plots.double_axes_echem_plot(df, cycle_summary=cycle_summary_df, mode=mode)
 
         if "bokeh_plot_data" not in self.cache:
             self.cache["bokeh_plot_data"] = {}
