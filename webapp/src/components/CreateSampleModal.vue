@@ -15,6 +15,14 @@
             <div class="form-error" v-html="sampleIDValidationMessage"></div>
           </div>
           <div class="form-group col-md-6">
+            <label for="item-type-select" class="col-form-label">Type:</label>
+            <select v-model="item_type" class="form-control" id="item-type-select" required>
+              <option v-for="(obj, type) in availableTypes" :key="type" :value="type">
+                {{ obj.display }}
+              </option>
+            </select>
+          </div>
+          <div class="form-group col-md-6">
             <label for="date" class="col-form-label">Date Created:</label>
             <input
               type="datetime-local"
@@ -46,17 +54,14 @@
             />
           </div>
         </div>
-        <div class="form-row">
-          <div class="col-md-12 form-group">
-            <label id="startWithConstituentsLabel">(Optional) Start with constituents:</label>
-            <ItemSelect
-              aria-labelledby="startWithConstituentsLabel"
-              multiple
-              v-model="startingConstituents"
-            />
-            <!-- <ItemSelect v-model="selectedNewConstituent" @option:selected="addConstituent" /> -->
-          </div>
-        </div>
+
+        <!-- dynamically insert addons to this modal for each item type. On mount, the component
+        should emit a callback that can be called to get properly formatted
+        data to provide to the server -->
+        <component
+          :is="itemCreateModalAddonComponent"
+          @startingDataCallback="(callback) => (startingDataCallback = callback)"
+        />
       </template>
     </Modal>
   </form>
@@ -65,18 +70,24 @@
 <script>
 import Modal from "@/components/Modal.vue";
 import ItemSelect from "@/components/ItemSelect.vue";
-import { createNewSample } from "@/server_fetch_utils.js";
+import { createNewItem } from "@/server_fetch_utils.js";
+import { itemTypes } from "@/resources.js";
 export default {
   name: "CreateSampleModal",
   data() {
     return {
       item_id: null,
+      item_type: "samples",
       date: this.now(),
       name: "",
+      startingDataCallback: null,
       takenItemIds: [], // this holds ids that have been tried, whereas the computed takenSampleIds holds ids in the sample table
       selectedItemToCopy: null,
-      startingConstituents: [],
       agesAgo: new Date("1970-01-01").toISOString().slice(0, -8), // a datetime for the unix epoch start
+      //this is all just to filter an object in javascript:
+      availableTypes: Object.keys(itemTypes)
+        .filter((type) => itemTypes[type].isCreateable)
+        .reduce((newObj, key) => Object.assign(newObj, { [key]: itemTypes[key] }), {}),
     };
   },
   props: {
@@ -84,6 +95,9 @@ export default {
   },
   emits: ["update:modelValue"],
   computed: {
+    itemCreateModalAddonComponent() {
+      return itemTypes[this.item_type].itemCreateModalAddon;
+    },
     takenSampleIds() {
       return this.$store.state.sample_list
         ? this.$store.state.sample_list.map((x) => x.item_id)
@@ -110,18 +124,15 @@ export default {
     async submitForm() {
       console.log("new sample form submit triggered");
 
-      const startingSynthesisBlock = this.startingConstituents.map((x) => ({
-        item: x,
-        quantity: null,
-      }));
+      // get any extra data by calling the optional callback from the type-specific addon component
+      const extraData = this.startingDataCallback && this.startingDataCallback();
 
-      await createNewSample(
+      await createNewItem(
         this.item_id,
+        this.item_type,
         this.date,
         this.name,
-        {
-          synthesis_constituents: startingSynthesisBlock,
-        },
+        extraData,
         this.selectedItemToCopy && this.selectedItemToCopy.item_id
       )
         .then(() => {
