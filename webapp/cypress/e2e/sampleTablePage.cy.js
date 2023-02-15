@@ -220,7 +220,7 @@ describe("Advanced sample creation features", () => {
   it("Adds a third sample copied from the first", () => {
     cy.findByText("Add an item").click();
     cy.findByLabelText("Sample ID:").type("testAcopy");
-    cy.findByLabelText("(Optional) Copy from:").type("testA");
+    cy.findByLabelText("(Optional) Copy from existing sample:").type("testA");
     cy.get(".vs__dropdown-menu").within(() => {
       cy.findByText("testA").click();
     });
@@ -271,7 +271,7 @@ describe("Advanced sample creation features", () => {
   it("copies the second sample", () => {
     cy.findByText("Add an item").click();
     cy.findByLabelText("Sample ID:").type("testBcopy");
-    cy.findByLabelText("(Optional) Copy from:").type("testB");
+    cy.findByLabelText("(Optional) Copy from existing sample:").type("testB");
     cy.get(".vs__dropdown-menu").within(() => {
       cy.findByText("testB").click();
     });
@@ -297,7 +297,7 @@ describe("Advanced sample creation features", () => {
   it("copies the copied sample, this time with additional components", () => {
     cy.findByText("Add an item").click();
     cy.findByLabelText("Sample ID:").type("testBcopy_copy");
-    cy.findByLabelText("(Optional) Copy from:").type("testBcopy");
+    cy.findByLabelText("(Optional) Copy from existing sample:").type("testBcopy");
     cy.get(".vs__dropdown-menu").within(() => {
       cy.findByText("testBcopy").click();
     });
