@@ -6,7 +6,6 @@ from pydantic import BaseModel, Field, validator
 from pydatalab.models.entries import EntryReference
 from pydatalab.models.items import Item
 from pydatalab.models.samples import Constituent
-from pydatalab.molar_mass import calc_molar_mass
 
 # from pydatalab.logger import LOGGER
 
@@ -80,17 +79,17 @@ class Cell(Item):
 
         return v
 
-    @validator("characteristic_molar_mass")
+    @validator("characteristic_molar_mass", always=True, pre=True)
     def set_molar_mass(cls, v, values):
-        chemical_formula = values.get("characteristic_chemical_formula")
-        print(f"Attempting to calculate chemical formula for chemform {chemical_formula}")
-        if chemical_formula:
-            try:
-                mass = calc_molar_mass(chemical_formula)
-                print(f"\tmolar mass calculated: {mass} g/mol")
+        from periodictable import formula
 
-                return mass
-            except KeyError:
-                print(f"\tmolar mass calculation failed, returning original value {v}")
+        if not v:
+            chemical_formula = values.get("characteristic_chemical_formula")
 
-                return v
+            if chemical_formula:
+                try:
+                    return formula(chemical_formula).mass
+                except Exception:
+                    return None
+
+        return v
