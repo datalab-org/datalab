@@ -43,10 +43,13 @@
         </div>
         <div class="form-row">
           <div class="col-md-12 form-group">
-            <label id="copyFromSelectLabel">(Optional) Copy from:</label>
+            <label id="copyFromSelectLabel"
+              >(Optional) Copy from existing {{ itemTypeDisplayName }}:</label
+            >
             <ItemSelect
               aria-labelledby="copyFromSelectLabel"
               :modelValue="selectedItemToCopy"
+              :typesToQuery="[item_type]"
               @update:modelValue="
                 selectedItemToCopy = $event;
                 setCopiedName();
@@ -95,6 +98,9 @@ export default {
   },
   emits: ["update:modelValue"],
   computed: {
+    itemTypeDisplayName() {
+      return itemTypes[this.item_type].display;
+    },
     itemCreateModalAddonComponent() {
       return itemTypes[this.item_type].itemCreateModalAddon;
     },
