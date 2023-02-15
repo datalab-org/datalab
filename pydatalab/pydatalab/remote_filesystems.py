@@ -199,7 +199,10 @@ def _get_latest_directory_structure(
             command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
         LOGGER.debug(f"Calling {command}")
-        stdout, stderr = process.communicate(timeout=10)
+        try:
+            stdout, stderr = process.communicate(timeout=20)
+        except Exception as exc:
+            raise RuntimeError(f"Remote tree process {command!r} returned: {exc!r}")
         if stderr:
             raise RuntimeError(f"Remote tree process {command!r} returned: {stderr!r}")
 

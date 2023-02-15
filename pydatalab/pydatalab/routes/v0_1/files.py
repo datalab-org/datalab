@@ -14,6 +14,17 @@ from pydatalab.routes.utils import get_default_permissions
 
 
 def get_file(file_id, filename):
+    if not current_user.is_authenticated and not CONFIG.TESTING:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "title": "Not Authorized",
+                    "detail": "File access requires login.",
+                }
+            ),
+            401,
+        )
     path = os.path.join(CONFIG.FILE_DIRECTORY, secure_filename(file_id))
     return send_from_directory(path, filename)
 
@@ -69,6 +80,19 @@ upload.methods = ("POST",)  # type: ignore
 
 
 def add_remote_file_to_sample():
+    
+    if not current_user.is_authenticated and not CONFIG.TESTING:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "title": "Not Authorized",
+                    "detail": "Adding a file to a sample requires login.",
+                }
+            ),
+            401,
+        )
+
     request_json = request.get_json()
     item_id = request_json["item_id"]
     file_entry = request_json["file_entry"]
@@ -92,6 +116,18 @@ add_remote_file_to_sample.methods = ("POST",)  # type: ignore
 
 def delete_file_from_sample():
     """Remove a file from a sample, but don't delete the actual file (for now)"""
+    
+    if not current_user.is_authenticated and not CONFIG.TESTING:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "title": "Not Authorized",
+                    "detail": "Adding a file to a sample requires login.",
+                }
+            ),
+            401,
+        )
 
     request_json = request.get_json()
 
@@ -141,6 +177,18 @@ delete_file_from_sample.methods = ("POST",)  # type: ignore
 
 def delete_file():
     """delete a data file from the uploads/item_id folder"""
+    
+    if not current_user.is_authenticated and not CONFIG.TESTING:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "title": "Not Authorized",
+                    "detail": "Adding a file to a sample requires login.",
+                }
+            ),
+            401,
+        )
 
     request_json = request.get_json()
 
