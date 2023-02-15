@@ -49,10 +49,10 @@ class Sample(Item):
         """Add any missing sample synthesis constituents to parent relationships"""
         from pydatalab.models.relationships import RelationshipType, TypedRelationship
 
+        constituents_set = set()
         if values.get("synthesis_constituents") is not None:
 
             existing_parent_relationship_ids = set()
-            constituents_set = set()
             if values.get("relationships") is not None:
                 existing_parent_relationship_ids = set(
                     relationship.item_id

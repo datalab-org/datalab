@@ -1,5 +1,6 @@
 import datetime
 import os
+import pathlib
 import re
 import shutil
 import subprocess
@@ -13,6 +14,7 @@ import pydatalab.mongo
 from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER, logged_route
 from pydatalab.models import File
+from pydatalab.mongo import _get_active_mongo_client
 
 FILE_DIRECTORY = CONFIG.FILE_DIRECTORY
 DIRECTORIES_DICT = {fs["name"]: fs for fs in CONFIG.REMOTE_FILESYSTEMS}
@@ -53,6 +55,8 @@ def _sync_file_with_remote(remote_path: str, src: str) -> None:
         remote_path = _escape_spaces_scp_path(remote_path)
         scp_command = f"scp {re.sub('^ssh://', '', remote_path)} {src}"
 
+        os.makedirs(pathlib.Path(src).parent, exist_ok=True)
+
         LOGGER.debug("Syncing file with '%s'", scp_command)
         proc = subprocess.Popen(
             scp_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
@@ -82,7 +86,7 @@ def _check_and_sync_file(file_info: File, file_id: ObjectId) -> File:
         otherwise the old file info.
 
     """
-    file_collection = pydatalab.mongo.flask_mongo.db.files
+    file_collection = _get_active_mongo_client().datalabvue.files
     if not file_info.source_server_name or not file_info.source_path:
         raise RuntimeError("Attempted to sync file %s with no known remote", file_info)
 
@@ -97,7 +101,7 @@ def _check_and_sync_file(file_info: File, file_id: ObjectId) -> File:
     remote = DIRECTORIES_DICT.get(file_info.source_server_name, None)
     if not remote:
         LOGGER.warning(
-            f"Could not find desired remote for {file_info.source_server_name!r}, cannot sync file"
+            f"Could not find desired remote for {file_info.source_server_name!r} in {DIRECTORIES_DICT}, cannot sync file"
         )
         return file_info
 
@@ -149,6 +153,14 @@ def _check_and_sync_file(file_info: File, file_id: ObjectId) -> File:
                 return_document=ReturnDocument.AFTER,
             )
 
+            if updated_file_info is None:
+                LOGGER.debug(
+                    "No updates performed on %s, returned %s",
+                    file_info.source_path,
+                    updated_file_info,
+                )
+                return file_info
+
             return File(**updated_file_info)
 
     LOGGER.debug("File %s is recent enough, not updating", file_info.source_path)
@@ -178,7 +190,7 @@ def get_file_info_by_id(
 
     """
     LOGGER.debug("getting file for file_id: %s", file_id)
-    file_collection = pydatalab.mongo.flask_mongo.db.files
+    file_collection = _get_active_mongo_client().datalabvue.files
     file_id = ObjectId(file_id)
     file_info = file_collection.find_one({"_id": file_id})
     if not file_info:
@@ -199,7 +211,7 @@ def update_uploaded_file(file, file_id, last_modified=None, size_bytes=None):
     additional_updates can be used to pass other fields to change in (NOT IMPLEMENTED YET)"""
 
     last_modified = datetime.datetime.now().isoformat()
-    file_collection = pydatalab.mongo.flask_mongo.db.files
+    file_collection = _get_active_mongo_client().datalabvue.files
 
     updated_file_entry = file_collection.find_one_and_update(
         {"_id": file_id},  # Note, needs to be ObjectID()
@@ -231,10 +243,11 @@ def update_uploaded_file(file, file_id, last_modified=None, size_bytes=None):
 def save_uploaded_file(file, item_ids=None, block_ids=None, last_modified=None, size_bytes=None):
     """file is a file object from a flask request.
     last_modified should be an isodate format. if last_modified is None, the current time will be inserted"""
+
     from pydatalab.routes.utils import get_default_permissions
 
     sample_collection = pydatalab.mongo.flask_mongo.db.items
-    file_collection = pydatalab.mongo.flask_mongo.db.files
+    file_collection = _get_active_mongo_client().datalabvue.files
 
     # validate item_ids
     if not item_ids:
@@ -318,8 +331,8 @@ def save_uploaded_file(file, item_ids=None, block_ids=None, last_modified=None, 
 def add_file_from_remote_directory(file_entry, item_id, block_ids=None):
     from pydatalab.routes.utils import get_default_permissions
 
-    file_collection = pydatalab.mongo.flask_mongo.db.files
-    sample_collection = pydatalab.mongo.flask_mongo.db.items
+    file_collection = _get_active_mongo_client().datalabvue.files
+    sample_collection = _get_active_mongo_client().datalabvue.items
 
     if not block_ids:
         block_ids = []
@@ -410,7 +423,7 @@ def add_file_from_remote_directory(file_entry, item_id, block_ids=None):
 
 
 def retrieve_file_path(file_ObjectId):
-    file_collection = pydatalab.mongo.flask_mongo.db.files
+    file_collection = _get_active_mongo_client().datalabvue.files
     result = file_collection.find_one({"_id": ObjectId(file_ObjectId)})
     if not result:
         raise FileNotFoundError(
@@ -430,11 +443,13 @@ def remove_file_from_sample(item_id: Union[str, ObjectId], file_id: Union[str, O
         file_id: The database ID of the file to remove from the item.
 
     """
+    from pydatalab.routes.utils import get_default_permissions
+
     item_id, file_id = ObjectId(item_id), ObjectId(file_id)
-    sample_collection = pydatalab.mongo.flask_mongo.db.items
-    file_collection = pydatalab.mongo.flask_mongo.db.files
+    sample_collection = _get_active_mongo_client().datalabvue.items
+    file_collection = _get_active_mongo_client().datalabvue.files
     sample_result = sample_collection.update_one(
-        {"item_id": item_id},
+        {"item_id": item_id, **get_default_permissions(user_only=True)},
         {"$pull": {"file_ObjectIds": file_id}},
     )
 
