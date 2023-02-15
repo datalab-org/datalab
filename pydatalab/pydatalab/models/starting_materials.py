@@ -1,6 +1,6 @@
 from typing import Optional
 
-from pydantic import Field
+from pydantic import Field, validator
 
 from pydatalab.models.items import Item
 from pydatalab.models.utils import IsoformatDateTime
@@ -60,5 +60,11 @@ class StartingMaterial(Item):
 
     comment: Optional[str] = Field(alias="Comments")
 
-    class Config:
-        allow_population_by_field_name = True
+    @validator("molar_mass")
+    def add_molar_mass(cls, v, values):
+        from periodictable import formula
+
+        if v is None and values.get("chemform"):
+            return formula(values.get("chemform")).mass
+
+        return v

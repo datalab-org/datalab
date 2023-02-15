@@ -148,3 +148,19 @@ def test_cell_with_inlined_reference():
 
     assert cell
     assert Cell(**json.loads(cell.json()))
+
+
+def test_molar_mass():
+    import math
+
+    from periodictable import formula
+
+    test_formulae = [
+        ("H2O", 18.01528),
+        ("LiNi0.8Co0.1Mn0.1O2", 97.28),
+        ("Li10Ni8CoMnO20", 972.8),
+        ("Li10.1Ni8CoMnO20", 973.5),
+    ]
+
+    for form, mass in test_formulae:
+        assert math.isclose(formula(form).mass, mass, rel_tol=1e-3)

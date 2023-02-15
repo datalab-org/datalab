@@ -23,6 +23,7 @@ python-dotenv = "*"
 pydantic = {extras = ["email"], version = "*"}
 blinker = "*"
 pint = "*"
+periodictable = "*"
 
 [dev-packages]
 pytest = "*"
