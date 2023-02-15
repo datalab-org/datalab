@@ -15,11 +15,18 @@ import {
   faChevronRight,
   faArrowUp,
   faArrowDown,
+  faProjectDiagram,
+  faBook,
+  faSignInAlt,
+  faSignOutAlt,
+  faVial,
+  faVials,
   faTimes,
   faSync,
   faFolderOpen,
   faFolder,
   faHdd,
+  faQuestionCircle,
   faLink,
   faUnlink,
   faExclamationCircle,
@@ -27,14 +34,24 @@ import {
   faSearch,
 } from "@fortawesome/free-solid-svg-icons";
 import { faPlusSquare } from "@fortawesome/free-regular-svg-icons";
+import { faGithub } from "@fortawesome/free-brands-svg-icons";
+// import { faHdd } from '@fortawesome/free-regular-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 library.add(
   faSave,
   faCode,
   faChevronRight,
+  faProjectDiagram,
   faArrowUp,
   faArrowDown,
   faTimes,
+  faBook,
+  faSignInAlt,
+  faSignOutAlt,
+  faQuestionCircle,
+  faVial,
+  faGithub,
+  faVials,
   faSync,
   faFolder,
   faFolderOpen,

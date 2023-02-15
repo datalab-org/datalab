@@ -24,7 +24,7 @@ function createSample(sample_id, name = null, date = null) {
 function verifySample(sample_id, name = null, date = null) {
   if (date) {
     cy.findByText(sample_id)
-      .parent("tr")
+      .parents("tr")
       .within(() => {
         cy.findByText(date.split("T")[0]);
         if (name) {
@@ -33,7 +33,7 @@ function verifySample(sample_id, name = null, date = null) {
       });
   } else {
     cy.findByText(sample_id)
-      .parent("tr")
+      .parents("tr")
       .within(() => {
         cy.findByText(TODAY.split("T")[0]);
         if (name) {
@@ -47,7 +47,7 @@ function deleteSample(sample_id) {
   // wait a bit to allow things to settle
   cy.wait(100).then(() => {
     cy.findByText(sample_id)
-      .parent("tr")
+      .parents("tr")
       .within(() => {
         cy.get("button.close").click();
       });

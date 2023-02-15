@@ -12,7 +12,7 @@ function verifySample(sample_id, name = null, date = null) {
   if (date) {
     cy.get("[data-testid=sample-table]")
       .contains(sample_id)
-      .parent("tr")
+      .parents("tr")
       .within(() => {
         cy.contains(date.slice(0, 8));
         if (name) {
@@ -22,7 +22,7 @@ function verifySample(sample_id, name = null, date = null) {
   } else {
     cy.get("[data-testid=sample-table]")
       .contains(sample_id)
-      .parent("tr")
+      .parents("tr")
       .within(() => {
         cy.contains(TODAY.split("T")[0]);
         if (name) {
@@ -40,8 +40,10 @@ function deleteSample(sample_id, delay = 100) {
   cy.wait(delay).then(() => {
     cy.log("search for and delete: " + sample_id);
     var matchingTds = [];
-    cy.findByText(sample_id, { selector: "[data-testid=sample-table] tr > td:nth-of-type(1)" })
-      .parent("tr")
+    cy.findByText(sample_id, {
+      selector: "[data-testid=sample-table] tr > td:nth-of-type(1) > div > span",
+    })
+      .parents("tr")
       .within(() => {
         cy.get("button.close").click();
       });

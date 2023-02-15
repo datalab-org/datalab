@@ -6,13 +6,17 @@
         <label for="item_id" class="mr-2">Sample ID</label>
         <input id="item_id" class="form-control-plaintext" readonly="true" :value="item_id" />
       </div>
-      <div class="form-group col-md-7">
+      <div class="form-group col-md-6">
         <label for="name" class="mr-2">Name</label>
         <input id="name" class="form-control" v-model="Name" />
       </div>
       <div class="form-group col-md-3">
         <label for="date" class="mr-2">Date Created</label>
         <input type="datetime-local" v-model="DateCreated" class="form-control" />
+      </div>
+      <div class="col-md-1">
+        <label id="creators" class="mr-2">Creators</label>
+        <Creators aria-labelledby="creators" :creators="ItemCreators" :size="36" />
       </div>
     </div>
     <div class="form-row">
@@ -39,6 +43,7 @@ import TinyMceInline from "@/components/TinyMceInline";
 import SynthesisInformation from "@/components/SynthesisInformation";
 import TableOfContents from "@/components/TableOfContents";
 import RelationshipVisualization from "@/components/RelationshipVisualization";
+import Creators from "@/components/Creators";
 
 export default {
   props: {
@@ -58,6 +63,7 @@ export default {
     Name: createComputedSetterForItemField("name"),
     ChemForm: createComputedSetterForItemField("chemform"),
     DateCreated: createComputedSetterForItemField("date"),
+    ItemCreators: createComputedSetterForItemField("creators"),
   },
   components: {
     ChemFormulaInput,
@@ -65,6 +71,7 @@ export default {
     SynthesisInformation,
     TableOfContents,
     RelationshipVisualization,
+    Creators,
   },
 };
 </script>

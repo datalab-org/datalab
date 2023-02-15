@@ -8,38 +8,32 @@
   <div class="row justify-content-center">
     <div v-if="currentUser != null">
       <b>{{ currentUser }}&nbsp;&nbsp;</b>
-      <img
-        :src="
-          'https://www.gravatar.com/avatar/' +
-          md5(this.currentUserInfo.contact_email || this.currentUserInfo.display_name) +
-          '?s=36&d=' +
-          this.gravatar_style
-        "
-        class="avatar"
-        width="36"
-        height="36"
-        :title="this.currentUserInfo.display_name"
-      />
-      &nbsp;&nbsp;<a :href="this.apiUrl + '/logout'" class="btn btn-default btn-link text-primary"
-        >Logout</a
+      <UserBubble :creator="this.currentUserInfo" :size="36" />
+      &nbsp;&nbsp;<a :href="this.apiUrl + '/logout'" class="btn btn-default btn-link"
+        ><font-awesome-icon icon="sign-out-alt" />&nbsp;Logout</a
       >
     </div>
-    <div v-else class="btn btn-default">
-      <a :href="this.apiUrl + '/login/github'">Login</a>
+    <div v-else>
+      <a :href="this.apiUrl + '/login/github'" class="btn btn-default btn-link"
+        ><font-awesome-icon icon="sign-in-alt" />&nbsp;Login</a
+      >
     </div>
   </div>
   <div id="nav">
     <router-link to="/about">About</router-link> |
     <router-link to="/samples">Samples</router-link> |
-    <router-link to="/starting-materials">Starting Materials</router-link> |
-    <router-link to="/item-graph">Item graph</router-link>
+    <router-link to="/starting-materials">Inventory</router-link>
+    |
+    <router-link to="/item-graph"
+      ><font-awesome-icon icon="project-diagram" />&nbsp;Graph View</router-link
+    >
   </div>
 </template>
 
 <script>
-import { API_URL, LOGO_URL, HOMEPAGE_URL, GRAVATAR_STYLE } from "@/resources.js";
+import { API_URL, LOGO_URL, HOMEPAGE_URL } from "@/resources.js";
 import { getUserInfo } from "@/server_fetch_utils.js";
-import crypto from "crypto";
+import UserBubble from "@/components/UserBubble.vue";
 
 export default {
   name: "Navbar",
@@ -49,7 +43,6 @@ export default {
       logo_url: LOGO_URL,
       homepage_url: HOMEPAGE_URL,
       loginModalIsOpen: false,
-      gravatar_style: GRAVATAR_STYLE,
       currentUser: null,
       currentUserInfo: {},
     };
@@ -67,10 +60,9 @@ export default {
         console.log(this.currentUser, this.currentUserInfo);
       }
     },
-    md5(value) {
-      // Returns the MD5 hash of the given string.
-      return crypto.createHash("md5").update(value).digest("hex");
-    },
+  },
+  components: {
+    UserBubble,
   },
   mounted() {
     this.getUser();
@@ -91,13 +83,5 @@ export default {
 a > .logo-banner:hover {
   filter: alpha(opacity=40);
   opacity: 0.4;
-}
-
-.avatar {
-  border: 2px solid skyblue;
-  border-radius: 50%;
-}
-.avatar:hover {
-  border: 2px solid grey;
 }
 </style>
