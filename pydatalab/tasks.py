@@ -121,5 +121,38 @@ def manually_register_user(
 admin.add_task(manually_register_user)
 
 
+@task
+def repair_files(_, resync: bool = True):
+    """Loop through samples and find any with attached files
+    that are no longer stored on disk. If available, try to
+    sync them with remote versions of the files.
+
+    """
+
+    from pydatalab.file_utils import _check_and_sync_file
+    from pydatalab.models.files import File
+    from pydatalab.mongo import _get_active_mongo_client
+
+    cli = _get_active_mongo_client()
+
+    for ind, item in enumerate(cli.datalabvue.items.find({"type": "samples"})):
+        print(ind, end="\r")
+        for file_id in item.get("file_ObjectIds", []):
+            file_data = cli.datalabvue.files.find_one({"_id": file_id})
+            path = file_data.get("location", None)
+            if not path:
+                continue
+            path = pathlib.Path(path)
+            if not path.exists():
+                if resync and file_data.get("source_server_name") is not None:
+                    print(f"Attempting to resync {path}, {file_id}")
+                    _check_and_sync_file(File(**file_data), file_id)
+                else:
+                    print(f"Item {item['item_id']} is missing file: {file_data['name']!r}, ({file_id})")
+
+
+admin.add_task(repair_files)
+
+
 ns.add_collection(dev)
 ns.add_collection(admin)
