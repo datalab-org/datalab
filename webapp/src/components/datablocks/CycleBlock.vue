@@ -37,8 +37,19 @@
     <div class="form-row">
       <div class="col mt-2">
         <div class="input-group form-inline">
-          <label class="mr-2"><b>Derivative mode:</b></label>
+          <label class="mr-2"><b>Mode:</b></label>
           <div class="btn-group">
+            <div
+              class="btn btn-default"
+              :class="{ active: derivative_mode == 'final capacity' }"
+              @click="
+                characteristic_mass = this.normalizingMass();
+                derivative_mode = derivative_mode == 'final capacity' ? null : 'final capacity';
+                updateBlock();
+              "
+            >
+              Cycle Summary
+            </div>
             <div
               class="btn btn-default"
               :class="{ active: derivative_mode == 'dQ/dV' }"
@@ -64,7 +75,11 @@
       </div>
     </div>
 
-    <div v-show="derivative_mode" class="row">
+    <div
+      v-if="derivative_mode == 'dQ/dV' || derivative_mode == 'dV/dQ'"
+      v-show="derivative_mode"
+      class="row"
+    >
       <div class="col-md slider" style="max-width: 250px">
         <input
           type="range"
@@ -168,11 +183,15 @@ export default {
     isUpdating() {
       return this.$store.state.updating[this.block_id];
     },
+    normalizingMass() {
+      return this.$store.all_item_data[this.item_id]["characteristic_mass"] || null;
+    },
     file_id: createComputedSetterForBlockField("file_id"),
     all_cycles: createComputedSetterForBlockField("cyclenumber"),
     s_spline: createComputedSetterForBlockField("s_spline"),
     win_size_1: createComputedSetterForBlockField("win_size_1"),
     derivative_mode: createComputedSetterForBlockField("derivative_mode"),
+    characteristic_mass: createComputedSetterForBlockField("characteristic_mass"),
   },
   methods: {
     parseCycleString() {

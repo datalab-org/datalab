@@ -260,6 +260,17 @@ class CycleBlock(DataBlock):
             raw_df = raw_df.filter(required_keys)
             self.cache["parsed_file"] = raw_df
 
+        normalization_mass = self.data.get("characteristic_mass", 1000) / 1000
+
+        raw_df["Capacity normalized"] = raw_df["Capacity"] / normalization_mass
+        if cycle_summary_df is not None:
+            cycle_summary_df["Charge Capacity normalized"] = (
+                cycle_summary_df["Charge Capacity"] / normalization_mass
+            )
+            cycle_summary_df["Discharge Capacity normalized"] = (
+                cycle_summary_df["Charge Capacity"] / normalization_mass
+            )
+
         df = filter_df_by_cycle_index(raw_df, cycle_list)
 
         if mode in ("dQ/dV", "dV/dQ"):

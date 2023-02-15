@@ -170,7 +170,7 @@ def double_axes_echem_plot(
     df: pd.DataFrame,
     mode: Optional[str] = None,
     cycle_summary: pd.DataFrame = None,
-    x_options: Sequence[str] = ("Capacity", "Voltage", "Time", "Current"),
+    x_options: Sequence[str] = ("Capacity normalized", "Voltage", "Time", "Current"),
     pick_peaks: bool = True,
     **kwargs,
 ) -> gridplot:
@@ -206,10 +206,9 @@ def double_axes_echem_plot(
 
     plots = []
     # normal plot
-    p1 = figure(x_axis_label=x_default, y_axis_label="Voltage (V)", **common_options)
+    x_label = "Capacity (mAh/g)" if x_default == "Capacity normalized" else x_default
+    p1 = figure(x_axis_label=x_label, y_axis_label="Voltage (V)", **common_options)
     plots.append(p1)
-
-    mode = "final capacity"
 
     # the differential plot
     if mode in ("dQ/dV", "dV/dQ"):
@@ -237,7 +236,7 @@ def double_axes_echem_plot(
 
         p3.line(
             x="full cycle",
-            y="Charge Capacity",
+            y="Charge Capacity normalized",
             source=cycle_summary,
             legend_label="Charge",
             line_width=2,
@@ -245,7 +244,7 @@ def double_axes_echem_plot(
         )
         p3.circle(
             x="full cycle",
-            y="Charge Capacity",
+            y="Charge Capacity normalized",
             source=cycle_summary,
             fill_color="white",
             hatch_color=palette[0],
@@ -256,7 +255,7 @@ def double_axes_echem_plot(
         )
         p3.line(
             x="full cycle",
-            y="Discharge Capacity",
+            y="Discharge Capacity normalized",
             source=cycle_summary,
             legend_label="Discharge",
             line_width=2,
@@ -264,7 +263,7 @@ def double_axes_echem_plot(
         )
         p3.triangle(
             x="full cycle",
-            y="Discharge Capacity",
+            y="Discharge Capacity normalized",
             source=cycle_summary,
             fill_color="white",
             hatch_color=palette[2],
