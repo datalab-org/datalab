@@ -234,19 +234,19 @@ describe("Edit Page", () => {
 
   it("cleanup: delete the samples", () => {
     cy.findByText("editable_sample")
-      .parent("tr")
+      .parents("tr")
       .within(() => {
         cy.get("button.close").click();
       });
 
     cy.findByText("component1")
-      .parent("tr")
+      .parents("tr")
       .within(() => {
         cy.get("button.close").click();
       });
 
     cy.findByText("component2")
-      .parent("tr")
+      .parents("tr")
       .within(() => {
         cy.get("button.close").click();
       });

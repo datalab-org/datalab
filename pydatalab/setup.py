@@ -18,7 +18,7 @@ with open(module_dir.joinpath("pydatalab/__init__.py")) as version_file:
 setup(
     name="pydatalab",
     version=VERSION,
-    url="https://github.com/the-grey-group/datalabvue",
+    url="https://github.com/the-grey-group/datalab",
     include_package_data=True,
     packages=find_packages(),
 )

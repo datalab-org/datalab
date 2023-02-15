@@ -7,9 +7,9 @@ This repository consists of two components:
 
 To run an instance, you will need to install the environments for each component.
 
-Firstly, from the desired folder, clone this repository from GitHub to your local machine with `git clone https://github.com/the-grey-group/datalabvue`.
+Firstly, from the desired folder, clone this repository from GitHub to your local machine with `git clone https://github.com/the-grey-group/datalab`.
 
-Alternatively, if you do not wish to contribute to the code, you can simply download the current state as a .zip file from [GitHub](https://github.com/the-grey-group/datalabvue/archive/refs/heads/main.zip).
+Alternatively, if you do not wish to contribute to the code, you can simply download the current state as a .zip file from [GitHub](https://github.com/the-grey-group/datalab/archive/refs/heads/main.zip).
 Should you wish to just run/deploy the apps themselves, the easiest method is to use Docker ([instructions below](#deployment-with-docker)).
 
 ## `pydatalab` server installation

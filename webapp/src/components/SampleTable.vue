@@ -1,6 +1,7 @@
 <template>
   <div v-if="isSampleFetchError" class="alert alert-danger">
-    Server Error. Sample list not retreived.
+    <font-awesome-icon icon="exclamation-circle" />&nbsp;Server Error. Sample list could not be
+    retreived.
   </div>
   <table class="table table-hover table-sm" data-testid="sample-table">
     <thead>
@@ -24,29 +25,20 @@
         v-on:click.meta="openEditPageInNewTab(sample.item_id)"
         v-on:click.ctrl="openEditPageInNewTab(sample.item_id)"
       >
-        <td align="left">{{ sample.item_id }}</td>
+        <td>
+          <FormattedItemName
+            :item_id="sample.item_id"
+            :itemType="sample?.type"
+            enableModifiedClick
+          />
+        </td>
         <td aligh="center">{{ itemTypes[sample.type].display }}</td>
         <td align="left">{{ sample.name }}</td>
         <td><ChemicalFormula :formula="sample.chemform" /></td>
         <td class="text-center">{{ $filters.IsoDatetimeToDate(sample.date) }}</td>
-        <td class="text-center">
-          <div v-for="creator in sample.creators" :key="creator.display_name">
-            <img
-              :src="
-                'https://www.gravatar.com/avatar/' +
-                md5(creator.contact_email || creator.display_name) +
-                '?s=20&d=' +
-                this.gravatar_style
-              "
-              class="avatar"
-              width="20"
-              height="20"
-              :title="creator.display_name"
-            />
-          </div>
-        </td>
+        <td align="center"><Creators :creators="sample.creators" /></td>
         <td class="text-right">{{ sample.nblocks }}</td>
-        <td class="clickable" @click.stop="deleteSample(sample)">
+        <td align="right">
           <button
             type="button"
             class="close"
@@ -63,15 +55,15 @@
 
 <script>
 import ChemicalFormula from "@/components/ChemicalFormula";
+import FormattedItemName from "@/components/FormattedItemName";
+import Creators from "@/components/Creators";
 import { getSampleList, deleteSample } from "@/server_fetch_utils.js";
-import crypto from "crypto";
-import { GRAVATAR_STYLE, itemTypes } from "@/resources.js";
+import { itemTypes } from "@/resources.js";
 
 export default {
   data() {
     return {
       isSampleFetchError: false,
-      gravatar_style: GRAVATAR_STYLE,
       itemTypes: itemTypes,
     };
   },
@@ -81,10 +73,6 @@ export default {
     },
   },
   methods: {
-    md5(value) {
-      // Returns the MD5 hash of the given string.
-      return crypto.createHash("md5").update(value).digest("hex");
-    },
     goToEditPage(item_id) {
       this.$router.push(`/edit/${item_id}`);
     },
@@ -110,6 +98,8 @@ export default {
   },
   components: {
     ChemicalFormula,
+    FormattedItemName,
+    Creators,
   },
 };
 </script>
