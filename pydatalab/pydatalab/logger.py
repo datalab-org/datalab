@@ -79,12 +79,15 @@ def logged_route(fn: Callable):
     def wrapped_logged_route(*args, **kwargs):
         from flask import request
 
-        LOGGER.debug(
-            "Calling %s with request: %s, JSON payload with keys %s",
-            fn.__name__,
-            request,
-            request.get_json().keys() if request.get_json() else "null",
-        )
+        try:
+            LOGGER.debug(
+                "Calling %s with request: %s, JSON payload with keys %s",
+                fn.__name__,
+                request,
+                request.get_json().keys() if request.get_json() else "null",
+            )
+        except Exception:
+            pass
         try:
             result = fn(*args, **kwargs)
             LOGGER.debug(

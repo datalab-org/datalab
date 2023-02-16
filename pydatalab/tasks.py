@@ -148,7 +148,9 @@ def repair_files(_, resync: bool = True):
                     print(f"Attempting to resync {path}, {file_id}")
                     _check_and_sync_file(File(**file_data), file_id)
                 else:
-                    print(f"Item {item['item_id']} is missing file: {file_data['name']!r}, ({file_id})")
+                    print(
+                        f"Item {item['item_id']} is missing file: {file_data['name']!r}, ({file_id})"
+                    )
 
 
 admin.add_task(repair_files)

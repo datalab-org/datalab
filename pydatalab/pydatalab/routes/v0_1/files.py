@@ -80,7 +80,7 @@ upload.methods = ("POST",)  # type: ignore
 
 
 def add_remote_file_to_sample():
-    
+
     if not current_user.is_authenticated and not CONFIG.TESTING:
         return (
             jsonify(
@@ -116,7 +116,7 @@ add_remote_file_to_sample.methods = ("POST",)  # type: ignore
 
 def delete_file_from_sample():
     """Remove a file from a sample, but don't delete the actual file (for now)"""
-    
+
     if not current_user.is_authenticated and not CONFIG.TESTING:
         return (
             jsonify(
@@ -177,7 +177,7 @@ delete_file_from_sample.methods = ("POST",)  # type: ignore
 
 def delete_file():
     """delete a data file from the uploads/item_id folder"""
-    
+
     if not current_user.is_authenticated and not CONFIG.TESTING:
         return (
             jsonify(
