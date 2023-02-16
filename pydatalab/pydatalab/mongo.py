@@ -19,7 +19,7 @@ flask_mongo = PyMongo()
 
 
 def insert_pydantic_model_fork_safe(model: BaseModel, collection: str) -> None:
-    _get_active_mongo_client().get_database()[collection].insert_one(model.dict(by_alias=True))
+    get_database()[collection].insert_one(model.dict(by_alias=True))
 
 
 def _get_active_mongo_client(timeoutMS: int = 100) -> pymongo.MongoClient:
@@ -47,6 +47,11 @@ def _get_active_mongo_client(timeoutMS: int = 100) -> pymongo.MongoClient:
     except ConnectionFailure as exc:
         LOGGER.critical(f"Unable to connect to MongoDB at {CONFIG.MONGO_URI}")
         raise RuntimeError from exc
+
+
+def get_database() -> pymongo.database.Database:
+    """Returns the configured database."""
+    return _get_active_mongo_client().get_database()
 
 
 def check_mongo_connection() -> None:

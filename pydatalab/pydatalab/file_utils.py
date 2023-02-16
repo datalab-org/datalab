@@ -10,11 +10,10 @@ from bson.objectid import ObjectId
 from pymongo import ReturnDocument
 from werkzeug.utils import secure_filename
 
-import pydatalab.mongo
 from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER, logged_route
 from pydatalab.models import File
-from pydatalab.mongo import _get_active_mongo_client
+from pydatalab.mongo import get_database
 
 FILE_DIRECTORY = CONFIG.FILE_DIRECTORY
 DIRECTORIES_DICT = {fs["name"]: fs for fs in CONFIG.REMOTE_FILESYSTEMS}
@@ -86,7 +85,7 @@ def _check_and_sync_file(file_info: File, file_id: ObjectId) -> File:
         otherwise the old file info.
 
     """
-    file_collection = _get_active_mongo_client().datalabvue.files
+    file_collection = get_database().files
     if not file_info.source_server_name or not file_info.source_path:
         raise RuntimeError("Attempted to sync file %s with no known remote", file_info)
 
@@ -190,7 +189,7 @@ def get_file_info_by_id(
 
     """
     LOGGER.debug("getting file for file_id: %s", file_id)
-    file_collection = _get_active_mongo_client().datalabvue.files
+    file_collection = get_database().files
     file_id = ObjectId(file_id)
     file_info = file_collection.find_one({"_id": file_id})
     if not file_info:
@@ -211,7 +210,7 @@ def update_uploaded_file(file, file_id, last_modified=None, size_bytes=None):
     additional_updates can be used to pass other fields to change in (NOT IMPLEMENTED YET)"""
 
     last_modified = datetime.datetime.now().isoformat()
-    file_collection = _get_active_mongo_client().datalabvue.files
+    file_collection = get_database().files
 
     updated_file_entry = file_collection.find_one_and_update(
         {"_id": file_id},  # Note, needs to be ObjectID()
@@ -246,8 +245,8 @@ def save_uploaded_file(file, item_ids=None, block_ids=None, last_modified=None, 
 
     from pydatalab.routes.utils import get_default_permissions
 
-    sample_collection = pydatalab.mongo.flask_mongo.db.items
-    file_collection = _get_active_mongo_client().datalabvue.files
+    sample_collection = get_database().items
+    file_collection = get_database().files
 
     # validate item_ids
     if not item_ids:
@@ -331,8 +330,8 @@ def save_uploaded_file(file, item_ids=None, block_ids=None, last_modified=None, 
 def add_file_from_remote_directory(file_entry, item_id, block_ids=None):
     from pydatalab.routes.utils import get_default_permissions
 
-    file_collection = _get_active_mongo_client().datalabvue.files
-    sample_collection = _get_active_mongo_client().datalabvue.items
+    file_collection = get_database().files
+    sample_collection = get_database().items
 
     if not block_ids:
         block_ids = []
@@ -423,7 +422,7 @@ def add_file_from_remote_directory(file_entry, item_id, block_ids=None):
 
 
 def retrieve_file_path(file_ObjectId):
-    file_collection = _get_active_mongo_client().datalabvue.files
+    file_collection = get_database().files
     result = file_collection.find_one({"_id": ObjectId(file_ObjectId)})
     if not result:
         raise FileNotFoundError(
@@ -446,8 +445,8 @@ def remove_file_from_sample(item_id: Union[str, ObjectId], file_id: Union[str, O
     from pydatalab.routes.utils import get_default_permissions
 
     item_id, file_id = ObjectId(item_id), ObjectId(file_id)
-    sample_collection = _get_active_mongo_client().datalabvue.items
-    file_collection = _get_active_mongo_client().datalabvue.files
+    sample_collection = get_database().items
+    file_collection = get_database().files
     sample_result = sample_collection.update_one(
         {"item_id": item_id, **get_default_permissions(user_only=True)},
         {"$pull": {"file_ObjectIds": file_id}},
