@@ -65,16 +65,7 @@ def create_app(config_override: Dict[str, Any] = None) -> Flask:
     def logout():
         """Logs out the local user from the current session."""
         logout_user()
-        if request.environ["HTTP_REFERER"] != request.host:
-            return redirect(request.environ["HTTP_REFERER"])
-        return redirect("/")
-
-    @app.route("/login/authorized")
-    def redirect_authenticated():
-        """Redirects the authenticated user back to where they came from."""
-        if request.environ["HTTP_REFERER"] != request.host:
-            return redirect(request.environ["HTTP_REFERER"])
-        return redirect("/")
+        return redirect(request.environ.get("HTTP_REFERER", "/"))
 
     @app.route("/")
     def index():
