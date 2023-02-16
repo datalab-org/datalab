@@ -1,6 +1,6 @@
 # <div align="center">datalab</div>
 
-<div>
+<div align="center">
 <a href="https://github.com/the-grey-group/datalab/actions/workflows/ci.yml">
 <img src="https://img.shields.io/github/actions/workflow/status/the-grey-group/datalab/ci.yml?logo=github">
 </a>
