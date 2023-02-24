@@ -24,6 +24,7 @@ pydantic = {extras = ["email"], version = "*"}
 blinker = "*"
 pint = "*"
 periodictable = "*"
+flask-compress = "*"
 
 [dev-packages]
 pytest = "*"
