@@ -182,7 +182,7 @@ def create_app(config_override: Dict[str, Any] = None) -> Flask:
         return f"""<head>
             <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
             </head>
-            <h2><marquee width="200px"><p style="color: CornflowerBlue">Welcome to pydatalab</marquee></h2>
+            <h2><p style="color: CornflowerBlue">Welcome to pydatalab</p></h2>
 <p>{welcome_string}</p>
 <p>{auth_string}</p>
 <p>{logout_string}</p>
