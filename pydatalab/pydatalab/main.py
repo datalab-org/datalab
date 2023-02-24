@@ -59,8 +59,6 @@ def create_app(config_override: Dict[str, Any] = None) -> Flask:
 
     pydatalab.mongo.create_default_indices()
 
-    # if False, don't compress all responses, we will add it on a per-view basis
-    # app.config["COMPRESS_REGISTER"] = False
     compress.init_app(app)
 
     @app.route("/logout")
