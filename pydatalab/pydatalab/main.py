@@ -65,16 +65,7 @@ def create_app(config_override: Dict[str, Any] = None) -> Flask:
     def logout():
         """Logs out the local user from the current session."""
         logout_user()
-        if request.environ["HTTP_REFERER"] != request.host:
-            return redirect(request.environ["HTTP_REFERER"])
-        return redirect("/")
-
-    @app.route("/login/authorized")
-    def redirect_authenticated():
-        """Redirects the authenticated user back to where they came from."""
-        if request.environ["HTTP_REFERER"] != request.host:
-            return redirect(request.environ["HTTP_REFERER"])
-        return redirect("/")
+        return redirect(request.environ.get("HTTP_REFERER", "/"))
 
     @app.route("/")
     def index():
@@ -191,7 +182,7 @@ def create_app(config_override: Dict[str, Any] = None) -> Flask:
         return f"""<head>
             <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
             </head>
-            <h2><marquee width="200px"><p style="color: CornflowerBlue">Welcome to pydatalab</marquee></h2>
+            <h2><p style="color: CornflowerBlue">Welcome to pydatalab</p></h2>
 <p>{welcome_string}</p>
 <p>{auth_string}</p>
 <p>{logout_string}</p>

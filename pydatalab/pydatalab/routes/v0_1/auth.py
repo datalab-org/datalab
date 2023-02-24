@@ -8,7 +8,7 @@ import json
 from typing import Callable, Dict, Optional, Union
 
 from bson import ObjectId
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, redirect
 from flask_dance.consumer import oauth_authorized
 from flask_dance.contrib.github import github, make_github_blueprint
 from flask_dance.contrib.orcid import make_orcid_blueprint, orcid
@@ -27,7 +27,9 @@ OAUTH_BLUEPRINTS: Dict[IdentityType, Blueprint] = {
         scope="/authenticate",
         sandbox=True,
     ),
-    IdentityType.GITHUB: make_github_blueprint(scope="read:org,user"),
+    IdentityType.GITHUB: make_github_blueprint(
+        scope="read:org,user",
+    ),
 }
 """A dictionary of Flask blueprints corresponding to the supported OAuth2 providers."""
 
@@ -234,6 +236,15 @@ def orcid_logged_in(_, token):
 
     # Return false to prevent Flask-dance from trying to store the token elsewhere
     return False
+
+
+@oauth_authorized.connect
+def redirect_to_ui(blueprint, token):  # pylint: disable=unused-argument
+    """Intercepts the default Flask-Dance and redirects to the referring page."""
+    from flask import request
+
+    referer = request.headers.get("Referer", "/")
+    return redirect(referer)
 
 
 def get_authenticated_user_info():
