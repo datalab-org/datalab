@@ -289,9 +289,9 @@ label,
 }
 
 .navbar-icon {
-  width: 2.5rem;
-  height: 2.5rem;
-  /*padding: 0.3rem;*/
+  width: 1.9rem;
+  height: 1.9rem;
+  padding: 0.3rem;
 }
 
 .unsaved-warning {
