@@ -2,6 +2,7 @@ from typing import Any, Dict
 
 from dotenv import dotenv_values
 from flask import Flask, redirect, request, url_for
+from flask_compress import Compress
 from flask_cors import CORS
 from flask_login import current_user, logout_user
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -11,6 +12,8 @@ from pydatalab.config import CONFIG
 from pydatalab.logger import logged_route
 from pydatalab.login import LOGIN_MANAGER
 from pydatalab.utils import CustomJSONEncoder
+
+compress = Compress()
 
 
 def create_app(config_override: Dict[str, Any] = None) -> Flask:
@@ -55,6 +58,8 @@ def create_app(config_override: Dict[str, Any] = None) -> Flask:
     register_endpoints(app)
 
     pydatalab.mongo.create_default_indices()
+
+    compress.init_app(app)
 
     @app.route("/logout")
     def logout():
