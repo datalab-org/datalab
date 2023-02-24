@@ -10,6 +10,7 @@ from pydatalab import bokeh_plots
 from pydatalab.blocks.blocks import DataBlock
 from pydatalab.file_utils import get_file_info_by_id
 from pydatalab.logger import LOGGER
+from pydatalab.mongo import flask_mongo
 from pydatalab.simple_bokeh_plot import mytheme
 from pydatalab.utils import reduce_df_size
 
@@ -44,6 +45,7 @@ def compute_gpcl_differential(
     window_size_2: int = 1001,
     polyorder_1: int = 5,
     polyorder_2: int = 5,
+    use_normalized_capacity: bool = False,
 ) -> pd.DataFrame:
     """Compute differential dQ/dV or dV/dQ for the input dataframe.
 
@@ -70,13 +72,13 @@ def compute_gpcl_differential(
         return df
 
     if mode.lower().replace("/", "") == "dvdq":
-        y_label = "Voltage"
-        x_label = "Capacity"
-        yp_label = "dvdq"
+        y_label = "voltage (V)"
+        x_label = "capacity (mAh/g)" if use_normalized_capacity else "capacity (mAh)"
+        yp_label = "dV/dQ (V/mA)"
     else:
-        y_label = "Capacity"
-        x_label = "Voltage"
-        yp_label = "dqdv"
+        y_label = "capacity (mAh/g)" if use_normalized_capacity else "capacity (mAh)"
+        x_label = "voltage (V)"
+        yp_label = "dQ/dV (mA/V)"
 
     smoothing_parameters = {
         "polynomial_spline": polynomial_spline,
@@ -184,6 +186,16 @@ class CycleBlock(DataBlock):
         "derivative_mode": None,
     }
 
+    def _get_characteristic_mass_g(self):
+        # return {"characteristic_mass": 1000}
+        doc = flask_mongo.db.items.find_one(
+            {"item_id": self.data["item_id"]}, {"characteristic_mass": 1}
+        )
+        characteristic_mass_mg = doc.get("characteristic_mass", None)
+        if characteristic_mass_mg:
+            return characteristic_mass_mg / 1000.0
+        return None
+
     def plot_cycle(self):
         """Plots the electrochemical cycling data from the file ID provided in the request."""
 
@@ -197,6 +209,17 @@ class CycleBlock(DataBlock):
             "half cycle",
             "full cycle",
         )
+
+        keys_with_units = {
+            "Time": "time (s)",
+            "Voltage": "voltage (V)",
+            "Capacity": "capacity (mAh)",
+            "Current": "current (mA)",
+            "Charge Capacity": "charge capacity (mAh)",
+            "Discharge Capacity": "discharge capacity (mAh)",
+            "dqdv": "dQ/dV (mA/V)",
+            "dvdq": "dV/dQ (V/mA)",
+        }
 
         if "file_id" not in self.data:
             LOGGER.warning("No file_id given")
@@ -251,6 +274,7 @@ class CycleBlock(DataBlock):
         cycle_summary_df = None
         if file_id in self.cache.get("parsed_file", {}):
             raw_df = self.cache["parsed_file"][file_id]
+            raw_df.rename(columns=keys_with_units, inplace=True)
         else:
             raw_df = ec.echem_file_loader(file_info["location"])
             cycle_summary_df = ec.cycle_summary(raw_df)
@@ -258,18 +282,22 @@ class CycleBlock(DataBlock):
                 # temporary. Navani should give "Time" as a standard field in the future.
                 raw_df["Time"] = raw_df["time/s"]
             raw_df = raw_df.filter(required_keys)
+            raw_df.rename(columns=keys_with_units, inplace=True)
+            cycle_summary_df.rename(columns=keys_with_units, inplace=True)
             self.cache["parsed_file"] = raw_df
 
-        normalization_mass = self.data.get("characteristic_mass", 1000) / 1000
+        characteristic_mass_g = self._get_characteristic_mass_g()
 
-        raw_df["Capacity normalized"] = raw_df["Capacity"] / normalization_mass
-        if cycle_summary_df is not None:
-            cycle_summary_df["Charge Capacity normalized"] = (
-                cycle_summary_df["Charge Capacity"] / normalization_mass
-            )
-            cycle_summary_df["Discharge Capacity normalized"] = (
-                cycle_summary_df["Charge Capacity"] / normalization_mass
-            )
+        if characteristic_mass_g:
+            raw_df["capacity (mAh/g)"] = raw_df["capacity (mAh)"] / characteristic_mass_g
+            raw_df["current (mA/g)"] = raw_df["current (mA)"] / characteristic_mass_g
+            if cycle_summary_df is not None:
+                cycle_summary_df["charge capacity (mAh/g)"] = (
+                    cycle_summary_df["charge capacity (mAh)"] / characteristic_mass_g
+                )
+                cycle_summary_df["discharge capacity (mAh/g)"] = (
+                    cycle_summary_df["discharge capacity (mAh)"] / characteristic_mass_g
+                )
 
         df = filter_df_by_cycle_index(raw_df, cycle_list)
 
@@ -282,12 +310,15 @@ class CycleBlock(DataBlock):
                 s_spline=10 ** (-float(self.data["s_spline"])),
                 window_size_1=int(self.data["win_size_1"]),
                 window_size_2=int(self.data["win_size_2"]),
+                use_normalized_capacity=bool(characteristic_mass_g),
             )
 
-        # Reduce df size to ~1000 rows by default
+        # Reduce df size to ~5000 rows by default
         df = reduce_echem_cycle_sampling(df)
 
-        layout = bokeh_plots.double_axes_echem_plot(df, cycle_summary=cycle_summary_df, mode=mode)
+        layout = bokeh_plots.double_axes_echem_plot(
+            df, cycle_summary=cycle_summary_df, mode=mode, normalized=bool(characteristic_mass_g)
+        )
 
         if "bokeh_plot_data" not in self.cache:
             self.cache["bokeh_plot_data"] = {}

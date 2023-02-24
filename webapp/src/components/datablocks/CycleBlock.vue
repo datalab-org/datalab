@@ -43,7 +43,6 @@
               class="btn btn-default"
               :class="{ active: derivative_mode == 'final capacity' }"
               @click="
-                characteristic_mass = this.normalizingMass();
                 derivative_mode = derivative_mode == 'final capacity' ? null : 'final capacity';
                 updateBlock();
               "
@@ -183,9 +182,9 @@ export default {
     isUpdating() {
       return this.$store.state.updating[this.block_id];
     },
-    normalizingMass() {
-      return this.$store.all_item_data[this.item_id]["characteristic_mass"] || null;
-    },
+    // normalizingMass() {
+    //   return this.$store.all_item_data[this.item_id]["characteristic_mass"] || null;
+    // },
     file_id: createComputedSetterForBlockField("file_id"),
     all_cycles: createComputedSetterForBlockField("cyclenumber"),
     s_spline: createComputedSetterForBlockField("s_spline"),
