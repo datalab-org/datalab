@@ -135,6 +135,8 @@ def filter_df_by_cycle_index(
     df: pd.DataFrame, cycle_list: Optional[List[int]] = None
 ) -> pd.DataFrame:
     """Filters the input dataframe by the chosen rows in the `cycle_list`.
+    If `half_cycle` is a column in the df, it will be used for filtering,
+    otherwise `cycle index` will be used.
 
     Args:
         df: The input dataframe to filter. Must have the column "half cycle".
@@ -146,6 +148,13 @@ def filter_df_by_cycle_index(
     """
     if cycle_list is None:
         return df
+
+    if "half cycle" not in df.columns:
+        if "cycle index" not in df.columns:
+            raise ValueError(
+                "Input dataframe must have either 'half cycle' or 'cycle index' column"
+            )
+        return df[df["cycle index"].isin(i for i in cycle_list)]
 
     try:
         half_cycles = [i for item in cycle_list for i in [(2 * int(item)) - 1, 2 * int(item)]]
@@ -284,6 +293,9 @@ class CycleBlock(DataBlock):
             raw_df = raw_df.filter(required_keys)
             raw_df.rename(columns=keys_with_units, inplace=True)
             cycle_summary_df.rename(columns=keys_with_units, inplace=True)
+            cycle_summary_df["cycle index"] = pd.to_numeric(
+                cycle_summary_df.index, downcast="integer"
+            )
             self.cache["parsed_file"] = raw_df
 
         characteristic_mass_g = self._get_characteristic_mass_g()
@@ -300,6 +312,8 @@ class CycleBlock(DataBlock):
                 )
 
         df = filter_df_by_cycle_index(raw_df, cycle_list)
+        if cycle_summary_df is not None:
+            cycle_summary_df = filter_df_by_cycle_index(cycle_summary_df, cycle_list)
 
         if mode in ("dQ/dV", "dV/dQ"):
 
