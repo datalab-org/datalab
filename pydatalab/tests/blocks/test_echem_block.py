@@ -13,13 +13,27 @@ from pydatalab.blocks.echem_block import (
 @pytest.fixture
 def echem_dataframe():
     """Yields example echem data as a dataframe."""
-    return echem_file_loader(
+    df = echem_file_loader(
         Path(__file__)
         .parent.joinpath(
             "../../example_data/echem/jdb11-1_c3_gcpl_5cycles_2V-3p8V_C-24_data_C09.mpr"
         )
         .resolve()
     )
+
+    keys_with_units = {
+        "Time": "time (s)",
+        "Voltage": "voltage (V)",
+        "Capacity": "capacity (mAh)",
+        "Current": "current (mA)",
+        "Charge Capacity": "charge capacity (mAh)",
+        "Discharge Capacity": "discharge capacity (mAh)",
+        "dqdv": "dQ/dV (mA/V)",
+        "dvdq": "dV/dQ (V/mA)",
+    }
+
+    df.rename(columns=keys_with_units, inplace=True)
+    return df
 
 
 @pytest.fixture
@@ -46,10 +60,10 @@ def test_compute_gpcl_differential(reduced_and_filtered_echem_dataframe):
     df = reduced_and_filtered_echem_dataframe
 
     dqdv_results = compute_gpcl_differential(df)
-    assert "dqdv" in dqdv_results
+    assert "dQ/dV (mA/V)" in dqdv_results
 
     dvdq_results = compute_gpcl_differential(df, mode="dV/dQ")
-    assert "dvdq" in dvdq_results
+    assert "dV/dQ (V/mA)" in dvdq_results
 
 
 def test_filter_df_by_cycle_index(reduced_echem_dataframe):

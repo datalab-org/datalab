@@ -8,7 +8,7 @@ from bokeh.events import DoubleTap
 from bokeh.layouts import column, gridplot
 from bokeh.models import CrosshairTool, CustomJS, HoverTool
 from bokeh.models.widgets import Select
-from bokeh.palettes import Dark2
+from bokeh.palettes import Accent, Dark2
 from bokeh.plotting import ColumnDataSource, figure
 from bokeh.themes import Theme
 from scipy.signal import find_peaks
@@ -169,8 +169,10 @@ def selectable_axes_plot(
 def double_axes_echem_plot(
     df: pd.DataFrame,
     mode: Optional[str] = None,
-    x_options: Sequence[str] = ("Capacity", "Voltage", "Time", "Current"),
+    cycle_summary: pd.DataFrame = None,
+    x_options: Sequence[str] = [],
     pick_peaks: bool = True,
+    normalized: bool = False,
     **kwargs,
 ) -> gridplot:
     """Creates a Bokeh plot for electrochemistry data.
@@ -186,13 +188,20 @@ def double_axes_echem_plot(
     Returns: The Bokeh layout.
     """
 
+    if not x_options:
+        x_options = (
+            ("capacity (mAh/g)", "voltage (V)", "time (s)", "current (mA/g)")
+            if normalized
+            else ("capacity (mAh)", "voltage (V)", "time (s)", "current (mA)")
+        )
+
     common_options = {"aspect_ratio": 1.5, "tools": TOOLS}
     common_options.update(**kwargs)
 
     if mode == "normal":
         mode = None
 
-    modes = ("dQ/dV", "dV/dQ", None)
+    modes = ("dQ/dV", "dV/dQ", "final capacity", None)
     if mode not in modes:
         raise RuntimeError(f"Mode must be one of {modes} not {mode}.")
 
@@ -205,15 +214,17 @@ def double_axes_echem_plot(
 
     plots = []
     # normal plot
-    p1 = figure(x_axis_label=x_default, y_axis_label="Voltage (V)", **common_options)
+    # x_label = "Capacity (mAh/g)" if x_default == "Capacity normalized" else x_default
+    x_label = x_default
+    p1 = figure(x_axis_label=x_label, y_axis_label="voltage (V)", **common_options)
     plots.append(p1)
 
     # the differential plot
-    if mode:
+    if mode in ("dQ/dV", "dV/dQ"):
         if mode == "dQ/dV":
             p2 = figure(
                 x_axis_label=mode,
-                y_axis_label="Voltage (V)",
+                y_axis_label="voltage (V)",
                 y_range=p1.y_range,
                 **common_options,
             )
@@ -223,18 +234,68 @@ def double_axes_echem_plot(
             )
         plots.append(p2)
 
+    elif mode == "final capacity" and cycle_summary is not None:
+        palette = Accent[3]
+
+        p3 = figure(
+            x_axis_label="Cycle number",
+            y_axis_label="capacity (mAh/g)" if normalized else "capacity (mAh)",
+            **common_options,
+        )
+
+        p3.line(
+            x="full cycle",
+            y="charge capacity (mAh/g)" if normalized else "charge capacity (mAh)",
+            source=cycle_summary,
+            legend_label="charge",
+            line_width=2,
+            color=palette[0],
+        )
+        p3.circle(
+            x="full cycle",
+            y="charge capacity (mAh/g)" if normalized else "charge capacity (mAh)",
+            source=cycle_summary,
+            fill_color="white",
+            hatch_color=palette[0],
+            legend_label="charge",
+            line_width=2,
+            size=12,
+            color=palette[0],
+        )
+        p3.line(
+            x="full cycle",
+            y="discharge capacity (mAh/g)" if normalized else "discharge capacity (mAh)",
+            source=cycle_summary,
+            legend_label="discharge",
+            line_width=2,
+            color=palette[2],
+        )
+        p3.triangle(
+            x="full cycle",
+            y="discharge capacity (mAh/g)" if normalized else "discharge capacity (mAh)",
+            source=cycle_summary,
+            fill_color="white",
+            hatch_color=palette[2],
+            line_width=2,
+            legend_label="discharge",
+            size=12,
+            color=palette[2],
+        )
+
+        p3.legend.location = "right"
+
     lines = []
     grouped_by_half_cycle = df.groupby("half cycle")
     max_full_cycle = df["full cycle"].max()
 
     for ind, plot in enumerate(plots):
         x = x_default
-        y = "Voltage"
+        y = "voltage (V)"
         if ind == 1:
             if mode == "dQ/dV":
-                x = "dqdv"
+                x = "dQ/dV (mA/V)"
             else:
-                y = "dvdq"
+                y = "dV/dQ (V/mA)"
 
         for _, group in grouped_by_half_cycle:
             # trim the end of the colour cycle for visibility on a white background
@@ -315,6 +376,8 @@ def double_axes_echem_plot(
     elif mode == "dV/dQ":
         # grid = [[p1, p2]]
         grid = [[p1], [p2]]
+    elif mode == "final capacity":
+        grid = [[p3]]
     else:
         grid = [[p1], [xaxis_select], [yaxis_select]]
 
