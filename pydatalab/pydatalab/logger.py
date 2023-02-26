@@ -97,7 +97,7 @@ def logged_route(fn: Callable):
             )
             return result
         except Exception as exc:
-            LOGGER.error("%s errored with %s", fn.__name__, exc)
+            LOGGER.error("%s errored with %s %s", fn.__name__, exc.__class__.__name__, exc)
             raise exc
 
     return wrapped_logged_route
