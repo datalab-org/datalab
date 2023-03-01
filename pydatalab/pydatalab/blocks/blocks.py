@@ -112,7 +112,10 @@ class DataBlock:
         """returns a json-able dictionary to render the block on the web"""
         if self.plot_functions:
             for plot in self.plot_functions:
-                plot()
+                try:
+                    plot()
+                except RuntimeError:
+                    LOGGER.warning(f"Could not create plot for {self.__class__.__name__}: {self.data}")
         return self.data
 
     @classmethod
@@ -186,12 +189,16 @@ class NMRBlock(DataBlock):
 
         if "selected_process" not in self.data:
             self.data["selected_process"] = available_processes[0]
-
-        df, a_dic, topspin_title, processed_data_shape = nmr_utils.read_bruker_1d(
-            os.path.join(directory_location, name),
-            process_number=self.data["selected_process"],
-            verbose=False,
-        )
+        
+        try:
+            df, a_dic, topspin_title, processed_data_shape = nmr_utils.read_bruker_1d(
+                os.path.join(directory_location, name),
+                process_number=self.data["selected_process"],
+                verbose=False,
+            )
+        except Exception:
+            LOGGER.critical(f"Unable to parse {name} as Bruker project.")
+            return
 
         serialized_df = df.to_dict() if (df is not None) else None
 
@@ -318,6 +325,7 @@ class XRDBlock(DataBlock):
 
         if "file_id" not in self.data:
             LOGGER.warning("XRDBlock.generate_xrd_plot(): No file set in the DataBlock")
+            raise RuntimeError("XRDBlock.generate_xrd_plot(): No file set in DataBlock")
         else:
             file_info = get_file_info_by_id(self.data["file_id"], update_if_live=True)
             ext = os.path.splitext(file_info["location"].split("/")[-1])[-1].lower()
