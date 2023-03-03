@@ -115,7 +115,9 @@ class DataBlock:
                 try:
                     plot()
                 except RuntimeError:
-                    LOGGER.warning(f"Could not create plot for {self.__class__.__name__}: {self.data}")
+                    LOGGER.warning(
+                        f"Could not create plot for {self.__class__.__name__}: {self.data}"
+                    )
         return self.data
 
     @classmethod
@@ -189,7 +191,7 @@ class NMRBlock(DataBlock):
 
         if "selected_process" not in self.data:
             self.data["selected_process"] = available_processes[0]
-        
+
         try:
             df, a_dic, topspin_title, processed_data_shape = nmr_utils.read_bruker_1d(
                 os.path.join(directory_location, name),
