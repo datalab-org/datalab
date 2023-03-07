@@ -1,15 +1,28 @@
 import datetime
+from pathlib import Path
 from typing import Dict, Union
 
 import pandas as pd
 
 
-def parse(path) -> Dict[str, Union[pd.DataFrame, Dict]]:
+def parse(path: Path) -> Dict[str, Union[pd.DataFrame, Dict]]:
+    """Parses a TGA .asc file and returns a dictionary with keys
+    `data` and `meta`, which themselves contain a dictionary of dataframes
+    for each species with the species names as keys, and a dictionary of
+    metadata fields respectively.
+
+    Parameters:
+        path: The path of the file to parse.
+
+    """
 
     header_keys = ("Sourcefile", "Exporttime", "Start Time", "End Time")
     data_keys = ("Time", "Time Relative [s]", "Partial Pressure [mbar]")
     header = {}
     species = []
+
+    if not path.exists():
+        raise RuntimeError(f"Provided path does not exist: {path!r}")
 
     with open(path, "r") as f:
 
