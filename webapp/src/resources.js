@@ -6,6 +6,7 @@ import ChatBlock from "@/components/datablocks/ChatBlock";
 import CycleBlock from "@/components/datablocks/CycleBlock";
 import NMRBlock from "@/components/datablocks/NMRBlock";
 import EISBlock from "@/components/datablocks/EISBlock";
+import TGABlock from "@/components/datablocks/TGABlock";
 
 import SampleInformation from "@/components/SampleInformation";
 import StartingMaterialInformation from "@/components/StartingMaterialInformation";
@@ -34,6 +35,7 @@ export const blockTypes = {
   eis: { description: "EIS", component: EISBlock },
   nmr: { description: "NMR", component: NMRBlock },
   chat: { description: "Virtual assistant", component: ChatBlock },
+  tga: { description: "TGA", component: TGABlock },
 };
 
 export const itemTypes = {
