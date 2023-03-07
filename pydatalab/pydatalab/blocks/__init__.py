@@ -11,6 +11,7 @@ from pydatalab.blocks.blocks import (
     XRDBlock,
 )
 from pydatalab.blocks.echem_block import CycleBlock
+from pydatalab.blocks.tga_block import TGABlock
 
 BLOCKS: Sequence[Type[DataBlock]] = (
     DataBlock,
@@ -19,6 +20,7 @@ BLOCKS: Sequence[Type[DataBlock]] = (
     XRDBlock,
     CycleBlock,
     NMRBlock,
+    TGABlock,
     NotSupportedBlock,
     ChatBlock,
     EISBlock,
@@ -36,6 +38,7 @@ __all__ = (
     "EISBlock",
     "CycleBlock",
     "NMRBlock",
+    "TGABlock",
     "BLOCK_TYPES",
     "BLOCKS",
 )

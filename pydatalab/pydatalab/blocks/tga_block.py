@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 import bokeh
 
@@ -36,18 +37,19 @@ class TGABlock(DataBlock):
                 )
                 return
 
-            tga_data = parse(file_info["location"])
+            tga_data = parse(Path(file_info["location"]))
 
-        x_options = ["Time (seconds)"]
-        y_options = ["Partial pressure (mbar)"]
+        x_options = ["Time Relative [s]"]
+        y_options = ["Partial Pressure [mbar]"]
 
         if tga_data:
             p = selectable_axes_plot(
-                tga_data,
+                tga_data["data"],
                 x_options=x_options,
                 y_options=y_options,
                 plot_line=True,
                 plot_points=False,
+                y_axis_type="log",
             )
 
             self.data["bokeh_plot_data"] = bokeh.embed.json_item(p, theme=mytheme)

@@ -1,4 +1,4 @@
-from typing import List, Optional, Sequence, Union
+from typing import Dict, List, Optional, Sequence, Union
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -79,7 +79,7 @@ mytheme = Theme(json=style)
 
 
 def selectable_axes_plot(
-    df: Union[List[pd.DataFrame], pd.DataFrame],
+    df: Union[Dict[str, pd.DataFrame], List[pd.DataFrame], pd.DataFrame],
     x_options: List[str],
     y_options: List[str],
     color_options: Optional[List[str]] = None,
@@ -96,7 +96,7 @@ def selectable_axes_plot(
     Creates bokeh layout with selectable axis.
 
     Args:
-        df: Dataframe, or list of dataframes from data block.
+        df: Dataframe, or list/dict of dataframes from data block.
         x_options: Selectable fields to use for the x-values
         y_options: Selectable fields to use for the y-values
         color_options: Selectable fields to colour lines/points by.
@@ -139,7 +139,21 @@ def selectable_axes_plot(
 
     hatch_patterns = [None, ".", "/", "x"]
 
+    labels = []
+
+    if isinstance(df, dict):
+        labels = list(df.keys())
+
     for ind, df_ in enumerate(df):
+
+        if isinstance(df, dict):
+            df_ = df[df_]
+
+        if labels:
+            label = labels[ind]
+        else:
+            label = df_.index.name if len(df) > 1 else ""
+
         source = ColumnDataSource(df_)
 
         if color_options:
@@ -153,7 +167,6 @@ def selectable_axes_plot(
             line_color = COLORS[ind % len(COLORS)]
             fill_color = COLORS[ind % len(COLORS)]
 
-        label = df_.index.name if len(df) > 1 else ""
 
         circles = (
             p.circle(
