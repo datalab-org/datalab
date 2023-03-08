@@ -34,7 +34,7 @@ export function createComputedSetterForItemField(item_field) {
       console.log(value);
       store.commit("updateItemData", {
         item_id: this.item_id,
-        block_data: { [item_field]: value },
+        block_data: { [item_field]: value ? value : null },
       });
     },
   };
