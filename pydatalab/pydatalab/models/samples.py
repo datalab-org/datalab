@@ -55,7 +55,7 @@ class Sample(Item):
             existing_parent_relationship_ids = set()
             if values.get("relationships") is not None:
                 existing_parent_relationship_ids = set(
-                    relationship.item_id
+                    relationship.item_id or relationship.refcode
                     for relationship in values["relationships"]
                     if relationship.relation == RelationshipType.PARENT
                 )
@@ -63,7 +63,10 @@ class Sample(Item):
                 values["relationships"] = []
 
             for constituent in values.get("synthesis_constituents", []):
-                if constituent.item.item_id not in existing_parent_relationship_ids:
+                if (
+                    constituent.item.item_id not in existing_parent_relationship_ids
+                    and constituent.item.refcode not in existing_parent_relationship_ids
+                ):
                     relationship = TypedRelationship(
                         relation=RelationshipType.PARENT,
                         item_id=constituent.item.item_id,

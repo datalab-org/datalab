@@ -144,6 +144,14 @@ def test_full_text_search(client, real_mongo_client, example_items):
     assert response.json["items"][1]["item_id"] == "material"
     assert response.json["items"][2]["item_id"] == "12345"
 
+    response = client.get("/search-items/?query='grey:TEST4'")
+
+    assert response.status_code == 200
+    assert response.json["status"] == "success"
+    # should return all grey:TEST<n> samples, with TEST4 first
+    assert len(response.json["items"]) == 5
+    assert response.json["items"][0]["item_id"] == "material"
+
 
 @pytest.mark.dependency(depends=["test_delete_sample"])
 def test_new_sample_with_relationships(client, complicated_sample):
@@ -153,7 +161,8 @@ def test_new_sample_with_relationships(client, complicated_sample):
     # Test that 201: Created is emitted
     assert response.status_code == 201, response.json
     assert response.json["status"] == "success"
-
+    new_refcode = response.json["sample_list_entry"]["refcode"]
+    assert new_refcode.startswith("grey:")
     assert response.json["sample_list_entry"]["item_id"] == complicated_sample.item_id
 
     response = client.get(
@@ -186,7 +195,7 @@ def test_new_sample_with_relationships(client, complicated_sample):
     derived_sample.relationships.append(
         TypedRelationship(
             relation=RelationshipType.SIBLING,
-            item_id=complicated_sample.item_id,
+            refcode=new_refcode,
             type=complicated_sample.type,
         )
     )
@@ -217,11 +226,19 @@ def test_new_sample_with_relationships(client, complicated_sample):
         # i.e., "starting_material_3", has been removed
     ]
     assert response.json["child_items"] == []
-    assert [d["item_id"] for d in response.json["item_data"]["relationships"]] == [
+    assert [d.get("item_id") for d in response.json["item_data"]["relationships"]] == [
         "starting_material_1",
         "starting_material_2",
-        complicated_sample.item_id,
+        None,
         "starting_material_1",
+        # i.e., "starting_material_3", has been removed
+    ]
+
+    assert [d.get("refcode") for d in response.json["item_data"]["relationships"]] == [
+        None,
+        None,
+        new_refcode,
+        None,
         # i.e., "starting_material_3", has been removed
     ]
 
@@ -242,6 +259,8 @@ def test_saved_sample_has_new_relationships(client, default_sample_dict, complic
     response = client.get(
         f"/get-item-data/{default_sample_dict['item_id']}",
     )
+    new_refcode = response.json["item_data"]["refcode"]
+    assert new_refcode.startswith("grey:")
 
     assert response.json
 

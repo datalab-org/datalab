@@ -3,7 +3,12 @@ from typing import Optional
 
 from pydantic import BaseModel, Field, root_validator, validator
 
-from pydatalab.models.utils import HumanReadableIdentifier, KnownType, PyObjectId
+from pydatalab.models.utils import (
+    HumanReadableIdentifier,
+    KnownType,
+    PyObjectId,
+    Refcode,
+)
 
 
 class RelationshipType(str, Enum):
@@ -48,6 +53,10 @@ class TypedRelationship(BaseModel):
         description="The ID of the entry that is related to this entry."
     )
 
+    refcode: Optional[Refcode] = Field(
+        description="The refcode of the entry that is related to this entry."
+    )
+
     @validator("relation")
     def check_for_description(cls, v, values):
         if v == RelationshipType.OTHER and values.get("description") is None:
@@ -60,7 +69,7 @@ class TypedRelationship(BaseModel):
     @root_validator
     def check_id_fields(cls, values):
         """Check that only one of the possible identifier fields is provided."""
-        id_fields = ("immutable_id", "item_id")
+        id_fields = ("immutable_id", "item_id", "refcode")
         if all(values[f] is None for f in id_fields):
             raise ValueError(f"Must provide at least one of {id_fields!r}")
         if sum(1 for f in id_fields if values[f] is not None) > 1:

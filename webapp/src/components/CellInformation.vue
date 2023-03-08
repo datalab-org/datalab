@@ -3,16 +3,26 @@
     <!-- Sample information -->
     <div id="sample-information" class="form-row">
       <div class="form-group col-md-2">
-        <label for="item_id" class="mr-2">Sample ID</label>
-        <input id="item_id" class="form-control-plaintext" readonly="true" :value="item_id" />
+        <label for="refcode" class="mr-2">Refcode</label>
+        <span class="form-control-plaintext formatted-refcode">
+          <FormattedRefcode :refcode="Refcode" />
+        </span>
       </div>
-      <div class="form-group col-md-6 ml-3 mr-5">
-        <label for="name">Name</label>
+      <div class="form-group col-md-2">
+        <label for="item_id" class="mr-2">Cell ID</label>
+        <input id="item_id" class="form-control-plaintext" readonly="true" v-model="ItemID" />
+      </div>
+      <div class="form-group col-md-4">
+        <label for="name" class="mr-2">Name</label>
         <input id="name" class="form-control" v-model="Name" />
       </div>
-      <div class="form-group col-md-3 ml-3">
-        <label for="date">Date Created</label>
+      <div class="form-group col-md-3">
+        <label for="date" class="mr-2">Date Created</label>
         <input type="datetime-local" v-model="DateCreated" class="form-control" />
+      </div>
+      <div class="col-md-1">
+        <label id="creators" class="mr-2">Creators</label>
+        <Creators aria-labelledby="creators" :creators="ItemCreators" :size="36" />
       </div>
     </div>
     <div class="form-row">
@@ -83,6 +93,7 @@ import TinyMceInline from "@/components/TinyMceInline";
 import CellPreparationInformation from "@/components/CellPreparationInformation";
 import TableOfContents from "@/components/TableOfContents";
 import RelationshipVisualization from "@/components/RelationshipVisualization";
+import FormattedRefcode from "@/components/FormattedRefcode";
 import { cellFormats } from "@/resources.js";
 
 export default {
@@ -100,6 +111,8 @@ export default {
     };
   },
   computed: {
+    Refcode: createComputedSetterForItemField("refcode"),
+    ItemID: createComputedSetterForItemField("item_id"),
     SampleDescription: createComputedSetterForItemField("description"),
     Name: createComputedSetterForItemField("name"),
     ChemForm: createComputedSetterForItemField("characteristic_chemical_formula"),
@@ -115,6 +128,7 @@ export default {
     CellPreparationInformation,
     TableOfContents,
     RelationshipVisualization,
+    FormattedRefcode,
   },
 };
 </script>
