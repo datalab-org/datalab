@@ -2,11 +2,12 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Type, Union
 
 from pydantic import AnyUrl, BaseModel, BaseSettings, Field, root_validator, validator
 
 from pydatalab.models import Person
+from pydatalab.models.utils import RandomAlphabeticalRefcodeFactory, RefCodeFactory
 
 
 def config_file_settings(settings: BaseSettings) -> Dict[str, Any]:
@@ -69,6 +70,15 @@ class ServerConfig(BaseSettings):
 
     TESTING: bool = Field(
         False, description="Whether to run the server in testing mode, i.e., without user auth."
+    )
+
+    IDENTIFIER_PREFIX: str = Field(
+        "grey",
+        description="The prefix to use for identifiers in this deployment, e.g., `grey:AAAAAA`",
+    )
+
+    REFCODE_GENERATOR: Type[RefCodeFactory] = Field(
+        RandomAlphabeticalRefcodeFactory, description="The class to use to generate refcodes."
     )
 
     REMOTE_FILESYSTEMS: List[Dict[str, str]] = Field(
