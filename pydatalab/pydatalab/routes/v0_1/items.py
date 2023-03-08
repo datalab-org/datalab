@@ -437,11 +437,33 @@ delete_sample.methods = ("POST",)  # type: ignore
 
 
 def get_item_data(item_id):
+    id_keys = ("refcode", "item_id")
 
     # retrieve the entry from the database:
-    doc = flask_mongo.db.items.find_one(
-        {"item_id": item_id, **get_default_permissions(user_only=False)},
+    cursor = flask_mongo.db.items.aggregate(
+        [
+            {
+                "$match": {
+                    "$or": [
+                        {k: item_id, **get_default_permissions(user_only=False)} for k in id_keys
+                    ]
+                }
+            },
+            {
+                "$lookup": {
+                    "from": "users",
+                    "localField": "creator_ids",
+                    "foreignField": "_id",
+                    "as": "creators",
+                }
+            },
+        ],
     )
+
+    try:
+        doc = list(cursor)[0]
+    except IndexError:
+        doc = None
 
     if not doc or (not current_user.is_authenticated and doc["type"] == "starting_materials"):
         return (
