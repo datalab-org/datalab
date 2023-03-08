@@ -79,7 +79,7 @@ def create_default_indices(
     Indexes created are:
         - A text index over all string fields in item models,
         - An index over item type,
-        - A unique index over `item_id`.
+        - A unique index over `item_id` and `refcode`.
         - A text index over user names and identities.
 
     Parameters:
@@ -103,24 +103,36 @@ def create_default_indices(
                 item_fts_fields.add(f)
 
     def create_or_recreate_text_index(collection, fields, weights):
-        return collection.create_index(
-            [(k, pymongo.TEXT) for k in fields],
-            name=f"{collection.name} full-text search",
-            weights=weights,
-        )
+
+        fts_index_name = f"{collection.name} full-text search"
+
+        def create_fts():
+            return collection.create_index(
+                [(k, pymongo.TEXT) for k in fields],
+                name=fts_index_name,
+                weights=weights,
+            )
+
+        try:
+            return create_fts()
+        except pymongo.errors.OperationFailure:
+            collection.drop_index(fts_index_name)
+            return create_fts()
 
     ret = []
 
-    try:
-        ret += create_or_recreate_text_index(
-            db.items, item_fts_fields, weights={"item_id": 3, "name": 3, "chemform": 3}
-        )
-    except Exception:
-        pass
+    ret += create_or_recreate_text_index(
+        db.items,
+        item_fts_fields,
+        weights={"refcode": 3, "item_id": 3, "name": 3, "chemform": 3},
+    )
 
     ret += db.items.create_index("type", name="item type", background=background)
     ret += db.items.create_index(
         "item_id", unique=True, name="unique item ID", background=background
+    )
+    ret += db.items.create_index(
+        "refcode", unique=True, name="unique refcode", background=background
     )
     ret += db.items.create_index("last_modified", name="last modified", background=background)
 

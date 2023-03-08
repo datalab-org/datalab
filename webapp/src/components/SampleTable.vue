@@ -25,7 +25,7 @@
         v-on:click.meta="openEditPageInNewTab(sample.item_id)"
         v-on:click.ctrl="openEditPageInNewTab(sample.item_id)"
       >
-        <td>
+        <td align="left" class="table-item-id">
           <FormattedItemName
             :item_id="sample.item_id"
             :itemType="sample?.type"

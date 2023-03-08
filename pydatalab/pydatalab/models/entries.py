@@ -4,7 +4,13 @@ from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field, root_validator
 
 from pydatalab.models.relationships import TypedRelationship
-from pydatalab.models.utils import JSON_ENCODERS, IsoformatDateTime, PyObjectId
+from pydatalab.models.utils import (
+    JSON_ENCODERS,
+    HumanReadableIdentifier,
+    IsoformatDateTime,
+    PyObjectId,
+    Refcode,
+)
 
 
 class Entry(BaseModel, abc.ABC):
@@ -80,15 +86,22 @@ class EntryReference(BaseModel):
 
     type: str
     immutable_id: Optional[PyObjectId]
-    item_id: Optional[str]
+    item_id: Optional[HumanReadableIdentifier]
+    refcode: Optional[Refcode]
 
     @root_validator
     def check_id_fields(cls, values):
         """Check that only one of the possible identifier fields is provided."""
-        id_fields = ("immutable_id", "item_id")
-        if all(values[f] is None for f in id_fields):
+        id_fields = ("immutable_id", "item_id", "refcode")
+
+        # Temporarily remove refcodes from the list of fields to check
+        # until it is fully implemented
+        if values.get("refcode") is not None:
+            values["refcode"] = None
+        if all(values.get(f) is None for f in id_fields):
             raise ValueError(f"Must provide at least one of {id_fields!r}")
-        if sum(1 for f in id_fields if values[f] is not None) > 1:
+
+        if sum(1 for f in id_fields if values.get(f) is not None) > 1:
             raise ValueError("Must provide only one of {id_fields!r}")
 
         return values

@@ -1,5 +1,9 @@
 import datetime
+import random
+import string
 from enum import Enum
+from functools import partial
+from typing import Callable
 
 import pint
 from bson.objectid import ObjectId
@@ -24,6 +28,12 @@ class KnownType(str, Enum):
     PEOPLE = "people"
 
 
+IDENTIFIER_REGEX = r"^(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9_-]+[a-zA-Z0-9])$"
+"""A regex that matches identifiers that are url-safe and do not contain
+leading or trailing punctuation.
+"""
+
+
 class HumanReadableIdentifier(ConstrainedStr):
     """Used to constrain human-readable and URL-safe identifiers for items."""
 
@@ -32,9 +42,7 @@ class HumanReadableIdentifier(ConstrainedStr):
     strip_whitespace = True
     to_lower = False
     strict = False
-
-    regex = r"^[a-zA-Z0-9_-]+$"
-    """A regex to match strings without characters that need URL encoding"""
+    regex = IDENTIFIER_REGEX
 
     def __init__(self, value):
         self.value = parse_obj_as(type(self), value)
@@ -47,6 +55,23 @@ class HumanReadableIdentifier(ConstrainedStr):
 
     def __bool__(self):
         return bool(self.value)
+
+
+class Refcode(HumanReadableIdentifier):
+
+    regex = r"^[a-z]{2,10}:" + IDENTIFIER_REGEX[1:]
+    """A regex to match refcodes that have a lower-case prefix between 2-10 chars, followed by a colon,
+    and then the normal rules for an ID (url-safe etc.).
+
+    """
+
+    @property
+    def prefix(self):
+        return self.value.split(":")[0]
+
+    @property
+    def identifier(self):
+        return self.value.split(":")[1]
 
 
 class UserRole(str, Enum):
@@ -138,3 +163,38 @@ JSON_ENCODERS = {
     pint.Quantity: str,
     ObjectId: str,
 }
+
+
+class RefCodeFactory:
+
+    refcode_generator: Callable
+
+    @classmethod
+    def generate(self):
+        from pydatalab.config import CONFIG
+
+        return f"{CONFIG.IDENTIFIER_PREFIX}:{self.refcode_generator()}"
+
+
+def random_uppercase(length: int = 6):
+    return "".join(random.choices(string.ascii_uppercase, k=length))
+
+
+class RandomAlphabeticalRefcodeFactory(RefCodeFactory):
+
+    refcode_generator = partial(random_uppercase, length=6)
+
+
+def generate_unique_refcode():
+    """Generates a unique refcode for an item using the configured convention."""
+    from pydatalab.config import CONFIG
+    from pydatalab.mongo import get_database
+
+    refcode = f"{CONFIG.REFCODE_GENERATOR.generate()}"
+    try:
+        while get_database().items.find_one({"refcode": refcode}):
+            refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{CONFIG.REFCODE_GENERATOR.generate()}"
+    except Exception as exc:
+        raise RuntimeError(f"Cannot check refcode for uniqueness: {exc}")
+
+    return refcode

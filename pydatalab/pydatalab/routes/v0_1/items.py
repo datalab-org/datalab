@@ -13,6 +13,7 @@ from pydatalab.logger import LOGGER
 from pydatalab.models import ITEM_MODELS
 from pydatalab.models.items import Item
 from pydatalab.models.relationships import RelationshipType
+from pydatalab.models.utils import generate_unique_refcode
 from pydatalab.mongo import flask_mongo
 from pydatalab.routes.utils import get_default_permissions
 
@@ -134,6 +135,7 @@ def get_samples():
                     "$project": {
                         "_id": 0,
                         "item_id": 1,
+                        "refcode": 1,
                         "type": 1,
                         "creator_ids": 1,
                         "sample_id": 1,
@@ -191,6 +193,7 @@ def search_items():
                     "item_id": 1,
                     "name": 1,
                     "chemform": 1,
+                    "refcode": 1,
                 }
             },
         ]
@@ -272,6 +275,7 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
 
             sample_dict = copied_doc
 
+    sample_dict.pop("refcode", None)
     type = sample_dict["type"]
     if type not in ITEM_MODELS:
         raise RuntimeError("Invalid type")
@@ -305,6 +309,9 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
             409,  # 409: Conflict
         )
 
+    # Generate a unique refcode for the sample
+    new_sample["refcode"] = generate_unique_refcode()
+
     new_sample["date"] = new_sample.get("date", datetime.datetime.now())
     try:
         data_model: Item = model(**new_sample)
@@ -337,6 +344,7 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
             "status": "success",
             "item_id": data_model.item_id,
             "sample_list_entry": {
+                "refcode": data_model.refcode,
                 "item_id": data_model.item_id,
                 "nblocks": 0,
                 "date": data_model.date,
@@ -437,18 +445,10 @@ delete_sample.methods = ("POST",)  # type: ignore
 
 
 def get_item_data(item_id):
-    id_keys = ("refcode", "item_id")
-
     # retrieve the entry from the database:
     cursor = flask_mongo.db.items.aggregate(
         [
-            {
-                "$match": {
-                    "$or": [
-                        {k: item_id, **get_default_permissions(user_only=False)} for k in id_keys
-                    ]
-                }
-            },
+            {"$match": {"item_id": item_id, **get_default_permissions(user_only=False)}},
             {
                 "$lookup": {
                     "from": "users",
@@ -494,8 +494,24 @@ def get_item_data(item_id):
 
     # find any documents with relationships that mention this document
     relationships_query_results = flask_mongo.db.items.find(
-        filter={"relationships.item_id": doc.item_id},
-        projection={"item_id": 1, "relationships": {"$elemMatch": {"item_id": doc.item_id}}},
+        filter={
+            "$or": [
+                {"relationships.item_id": doc.item_id},
+                {"relationships.refcode": doc.refcode},
+            ]
+        },
+        projection={
+            "item_id": 1,
+            "refcode": 1,
+            "relationships": {
+                "$elemMatch": {
+                    "$or": [
+                        {"item_id": doc.item_id},
+                        {"refcode": doc.refcode},
+                    ],
+                },
+            },
+        },
     )
 
     # loop over and collect all 'outer' relationships presented by other items
@@ -504,13 +520,13 @@ def get_item_data(item_id):
         for k in d["relationships"]:
             if k["relation"] not in incoming_relationships:
                 incoming_relationships[k["relation"]] = set()
-            incoming_relationships[k["relation"]].add(d["item_id"])
+            incoming_relationships[k["relation"]].add(d["item_id"] or d["refcode"])
 
     # loop over and aggregate all 'inner' relationships presented by this item
     inlined_relationships: Dict[RelationshipType, Set[str]] = {}
     if doc.relationships is not None:
         inlined_relationships = {
-            relation: {d.item_id for d in doc.relationships if d.relation == relation}
+            relation: {d.item_id or d.refcode for d in doc.relationships if d.relation == relation}
             for relation in RelationshipType
         }
 

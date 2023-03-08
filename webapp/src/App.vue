@@ -18,6 +18,7 @@ body {
 }
 
 @import url("https://fonts.googleapis.com/css?family=Figtree");
+@import url("https://fonts.googleapis.com/css?family=Roboto+Mono");
 #app {
   font-family: Figtree, Avenir, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -90,5 +91,16 @@ body {
 
 .callout-danger {
   border-left-color: #d9534f;
+}
+
+.table-item-id {
+  font-size: 1.2em;
+  font-weight: normal;
+}
+
+.formatted-refcode {
+  font-size: 1.2em;
+  font-weight: normal;
+  font-family: "Roboto Mono", monospace;
 }
 </style>

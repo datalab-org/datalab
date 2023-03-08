@@ -8,6 +8,7 @@ from pydatalab.models.utils import UserRole
 ns = Collection()
 dev = Collection("dev")
 admin = Collection("admin")
+migration = Collection("migration")
 
 
 @task
@@ -156,5 +157,23 @@ def repair_files(_, resync: bool = True):
 admin.add_task(repair_files)
 
 
+@task
+def add_missing_refcodes(_):
+    from pydatalab.models.utils import generate_unique_refcode
+    from pydatalab.mongo import get_database
+
+    db = get_database()
+
+    for item in db.items.find({"refcode": None}, projection={"refcode": 1, "_id": 1}):
+        if item.get("refcode") is None:
+            refcode = generate_unique_refcode()
+            print(f"Assigning {item['_id']} with {refcode}")
+            db.items.update_one({"_id": item["_id"]}, {"$set": {"refcode": refcode}})
+
+
+migration.add_task(add_missing_refcodes)
+
+
 ns.add_collection(dev)
 ns.add_collection(admin)
+ns.add_collection(migration)

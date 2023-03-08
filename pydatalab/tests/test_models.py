@@ -12,7 +12,7 @@ from pydatalab.models.relationships import (
     RelationshipType,
     TypedRelationship,
 )
-from pydatalab.models.utils import HumanReadableIdentifier
+from pydatalab.models.utils import HumanReadableIdentifier, Refcode
 
 
 @pytest.mark.parametrize("model", ITEM_MODELS.values())
@@ -120,6 +120,10 @@ def test_good_ids(id):
         "lithium & sodium",
         "me388-123456789-123456789-really-long-descriptive-identifier-that-should-be-the-name-but-is-otherwise-valid",
         1111111111111111111111111111111111111111111111111,
+        "_AAAA",
+        "AAA_",
+        "__",
+        "_",
     ],
 )
 def test_bad_ids(id):
@@ -164,3 +168,46 @@ def test_molar_mass():
 
     for form, mass in test_formulae:
         assert math.isclose(formula(form).mass, mass, rel_tol=1e-3)
+
+
+@pytest.mark.parametrize(
+    "refcode",
+    [
+        "grey:ABCDEF",
+        "grey:ABC_DEF",
+        "grey:ABC_DE_F",
+        "grey:a2f2b2asdfadsf",
+        "grey:a2-f2b-2a-sd-fadsf",
+        "grey:a2_f2b_2a_sd_fadsf",
+        "grey:AaAaAa",
+        "grey:A",
+        "grey:AA",
+        "whatever:123456",
+    ],
+)
+def test_good_refcodes(refcode):
+    """Test good refcodes for validity."""
+
+    assert Refcode(refcode)
+
+
+@pytest.mark.parametrize(
+    "refcode",
+    [
+        "AAAAAA",
+        "grey:1111111111111111111111111111111111111111111111111111111111111111111",
+        "grey:hello_refcode_",
+        "grey:hello_refcode-",
+        "grey:_hello_refcode",
+        "prefixwaytoolongasdfasdf:ABACUF",
+        "BadPrefix:ABACUF",
+        "Bad_Prefix:ABACUF",
+        "a:ABACUF",
+        "grey:_",
+    ],
+)
+def test_bad_refcodes(refcode):
+    """Test bad refcodes for invalidity."""
+
+    with pytest.raises(pydantic.ValidationError):
+        Refcode(refcode)
