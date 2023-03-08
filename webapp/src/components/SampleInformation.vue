@@ -3,10 +3,16 @@
     <!-- Sample information -->
     <div id="sample-information" class="form-row">
       <div class="form-group col-md-2">
-        <label for="item_id" class="mr-2">Sample ID</label>
-        <input id="item_id" class="form-control-plaintext" readonly="true" :value="item_id" />
+        <label for="refcode" class="mr-2">Refcode</label>
+        <span class="form-control-plaintext formatted-refcode">
+          <FormattedRefcode :refcode="Refcode" />
+        </span>
       </div>
-      <div class="form-group col-md-6">
+      <div class="form-group col-md-2">
+        <label for="item_id" class="mr-2">Sample ID</label>
+        <input id="item_id" class="form-control-plaintext" readonly="true" v-model="ItemID" />
+      </div>
+      <div class="form-group col-md-4">
         <label for="name" class="mr-2">Name</label>
         <input id="name" class="form-control" v-model="Name" />
       </div>
@@ -39,6 +45,7 @@
 <script>
 import { createComputedSetterForItemField } from "@/field_utils.js";
 import ChemFormulaInput from "@/components/ChemFormulaInput";
+import FormattedRefcode from "@/components/FormattedRefcode";
 import TinyMceInline from "@/components/TinyMceInline";
 import SynthesisInformation from "@/components/SynthesisInformation";
 import TableOfContents from "@/components/TableOfContents";
@@ -48,6 +55,7 @@ import Creators from "@/components/Creators";
 export default {
   props: {
     item_id: String,
+    refcode: String,
   },
   data() {
     return {
@@ -59,6 +67,8 @@ export default {
     };
   },
   computed: {
+    Refcode: createComputedSetterForItemField("refcode"),
+    ItemID: createComputedSetterForItemField("item_id"),
     SampleDescription: createComputedSetterForItemField("description"),
     Name: createComputedSetterForItemField("name"),
     ChemForm: createComputedSetterForItemField("chemform"),
@@ -71,6 +81,7 @@ export default {
     SynthesisInformation,
     TableOfContents,
     RelationshipVisualization,
+    FormattedRefcode,
     Creators,
   },
 };

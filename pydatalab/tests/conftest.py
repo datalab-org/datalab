@@ -10,7 +10,7 @@ import pydatalab.mongo
 from pydatalab.main import create_app
 from pydatalab.models import Cell, Sample, StartingMaterial
 
-TEST_DATABASE_NAME = "db"
+TEST_DATABASE_NAME = "datalab_testing"
 
 
 class PyMongoMock(mongomock.MongoClient):
@@ -206,6 +206,7 @@ def example_items():
                     "name": "new material",
                     "description": "NaNiO2",
                     "date": "1970-02-01",
+                    "refcode": "grey:TEST1",
                 }
             ),
             Sample(**{"item_id": "56789", "name": "alice", "date": "1970-02-01"}),
@@ -215,15 +216,24 @@ def example_items():
                     "name": "bob",
                     "description": "12345",
                     "date": "1970-02-01",
+                    "refcode": "grey:TEST2",
                 }
             ),
-            Sample(**{"item_id": "sample_2", "name": "other_sample", "date": "1970-02-01"}),
+            Sample(
+                **{
+                    "item_id": "sample_2",
+                    "name": "other_sample",
+                    "date": "1970-02-01",
+                    "refcode": "grey:TEST3",
+                }
+            ),
             StartingMaterial(
                 **{
                     "item_id": "material",
                     "chemform": "NaNiO2",
                     "name": "new material",
                     "date_acquired": "1970-02-01",
+                    "refcode": "grey:TEST4",
                 }
             ),
             StartingMaterial(
@@ -232,6 +242,7 @@ def example_items():
                     "chemform": "NaNiO2",
                     "name": "NaNiO2",
                     "date_acquired": "1970-02-01",
+                    "refcode": "grey:TEST5",
                 }
             ),
         ]
