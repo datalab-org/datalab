@@ -18,7 +18,7 @@ TYPEFACE = "Helvetica"  # "Lato"
 # SIZES = list(range(6, 22, 3))
 # COLORS = Plasma256
 COLORS = Dark2[8]
-TOOLS = "box_zoom, reset, tap, crosshair"
+TOOLS = "box_zoom, reset, tap, crosshair, save"
 
 SELECTABLE_CALLBACK_x = """
   var column = cb_obj.value;
