@@ -39,14 +39,14 @@
       "title": "Refcode",
       "minLength": 1,
       "maxLength": 40,
-      "pattern": "^[a-z]{2,10}:(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9_-]+[a-zA-Z0-9])$",
+      "pattern": "^[a-z]{2,10}:(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
       "type": "string"
     },
     "item_id": {
       "title": "Item Id",
       "minLength": 1,
       "maxLength": 40,
-      "pattern": "^(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9_-]+[a-zA-Z0-9])$",
+      "pattern": "^(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
       "type": "string"
     },
     "creator_ids": {
@@ -189,7 +189,7 @@
           "description": "The ID of the entry that is related to this entry.",
           "minLength": 1,
           "maxLength": 40,
-          "pattern": "^(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9_-]+[a-zA-Z0-9])$",
+          "pattern": "^(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
           "type": "string"
         },
         "refcode": {
@@ -197,7 +197,7 @@
           "description": "The refcode of the entry that is related to this entry.",
           "minLength": 1,
           "maxLength": 40,
-          "pattern": "^[a-z]{2,10}:(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9_-]+[a-zA-Z0-9])$",
+          "pattern": "^[a-z]{2,10}:(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
           "type": "string"
         }
       },
@@ -319,14 +319,14 @@
           "title": "Item Id",
           "minLength": 1,
           "maxLength": 40,
-          "pattern": "^(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9_-]+[a-zA-Z0-9])$",
+          "pattern": "^(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
           "type": "string"
         },
         "refcode": {
           "title": "Refcode",
           "minLength": 1,
           "maxLength": 40,
-          "pattern": "^[a-z]{2,10}:(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9_-]+[a-zA-Z0-9])$",
+          "pattern": "^[a-z]{2,10}:(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
           "type": "string"
         }
       },
