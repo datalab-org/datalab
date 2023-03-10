@@ -117,8 +117,11 @@ export default {
       if (this.takenItemIds.includes(this.item_id) || this.takenSampleIds.includes(this.item_id)) {
         return `<a href='edit/${this.item_id}'>${this.item_id}</a> already in use.`;
       }
-      if (!/^[a-zA-Z0-9_-]+$/.test(this.item_id)) {
-        return "ID can only contain alphanumeric characters, dashes ('-') and underscores ('_')";
+      if (!/^[a-zA-Z0-9._-]+$/.test(this.item_id)) {
+        return "ID can only contain alphanumeric characters, dashes ('-') and underscores ('_') and periods ('.')";
+      }
+      if (/^[._-]/.test(this.item_id) | /[._-]$/.test(this.item_id)) {
+        return "ID cannot start or end with puncutation";
       }
       if (this.item_id.length < 1 || this.item_id.length > 40) {
         return "ID must be between 1 and 40 characters in length";
