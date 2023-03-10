@@ -175,7 +175,7 @@ describe("Sample table page", () => {
       "sdlkfjs",
       "w343t",
       "dfow4_112",
-      "_122rwre",
+      "122.rwre",
       "56oer09gser9sdfd0s9dr333e",
       "7",
       "XX",
@@ -185,8 +185,8 @@ describe("Sample table page", () => {
     more_ids.map((id) => verifySample(id));
 
     // check one of the pages to make sure it is generating properly
-    cy.findByText("_122rwre").click();
-    cy.findByLabelText("Sample ID").should("have.value", "_122rwre");
+    cy.findByText("122.rwre").click();
+    cy.findByLabelText("Sample ID").should("have.value", "122.rwre");
     cy.go("back");
 
     more_ids.map((id) => verifySample(id));

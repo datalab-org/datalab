@@ -28,7 +28,7 @@ class KnownType(str, Enum):
     PEOPLE = "people"
 
 
-IDENTIFIER_REGEX = r"^(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9_-]+[a-zA-Z0-9])$"
+IDENTIFIER_REGEX = r"^(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$"
 """A regex that matches identifiers that are url-safe and do not contain
 leading or trailing punctuation.
 """

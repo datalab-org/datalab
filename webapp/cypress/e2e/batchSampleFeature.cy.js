@@ -762,13 +762,13 @@ describe("Batch sample creation", () => {
     // add some illegal sample names that the webapp doesn't know are illegal so the server will reject them
     cy.findByLabelText("start counting {#} at:").clear().type(4);
     getBatchAddCell(1, 1).type("illegal/id");
-    getBatchAddCell(2, 1).type("illegal.id");
+    getBatchAddCell(2, 1).type("illegal.id_");
     getBatchAddCell(3, 1).type("legalID");
     getSubmitButton().click();
 
     cy.get("[data-testid=batch-modal-container] .callout").should("have.length", 3);
     cy.contains("Unable to create new item with ID illegal/id.");
-    cy.contains("Unable to create new item with ID illegal.id");
+    cy.contains("Unable to create new item with ID illegal.id_");
     cy.contains("legalID Successfully created.");
   });
 
