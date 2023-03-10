@@ -1,7 +1,10 @@
+import traceback
 from typing import Any, Callable, Iterable, Tuple
 
 from flask import Response, jsonify
 from werkzeug.exceptions import Forbidden, HTTPException
+
+from pydatalab.config import CONFIG
 
 
 class UserRegistrationForbidden(Forbidden):
@@ -35,9 +38,10 @@ def handle_http_exception(exc: HTTPException) -> Tuple[Response, int]:
     """Return a specific error message and status code if the exception stores them."""
     response = {
         "title": exc.__class__.__name__,
-        "message": exc.description,
+        "description": exc.description,
     }
     status_code = exc.code if exc.code else 400
+
     return jsonify(response), status_code
 
 
@@ -48,9 +52,14 @@ def render_unauthorised_user_template(exc: UserRegistrationForbidden) -> Tuple[R
 
 def handle_generic_exception(exc: Exception) -> Tuple[Response, int]:
     """Return a specific error message and status code if the exception stores them."""
+    if CONFIG.DEBUG:
+        raise (exc)
+
     response = {
         "title": exc.__class__.__name__,
-        "message": exc.args[0] if exc.args else "",
+        "description": exc.args[0] if exc.args else "",
+        # Return the full traceback under the key 'detail':
+        "detail": "".join(traceback.format_exc()).replace("\n", "\\n"),
     }
     return jsonify(response), 500
 
