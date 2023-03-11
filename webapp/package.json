@@ -33,6 +33,7 @@
     "vue": "^3.2.4",
     "vue-router": "^4.0.0-0",
     "vue-select": "^4.0.0-beta.6",
+    "vue3-easy-data-table": "^1.5.34",
     "vuex": "^4.0.0-0",
     "webcola": "^3.4.0"
   },
