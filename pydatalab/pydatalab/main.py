@@ -1,7 +1,8 @@
+import datetime
 from typing import Any, Dict
 
 from dotenv import dotenv_values
-from flask import Flask, redirect, request, url_for
+from flask import Flask, redirect, request, session, url_for
 from flask_compress import Compress
 from flask_cors import CORS
 from flask_login import current_user, logout_user
@@ -53,9 +54,9 @@ def create_app(config_override: Dict[str, Any] = None) -> Flask:
     flask_mongo = pydatalab.mongo.flask_mongo
     flask_mongo.init_app(app, connectTimeoutMS=100, serverSelectionTimeoutMS=100)
 
-    LOGIN_MANAGER.init_app(app)
-
     register_endpoints(app)
+
+    LOGIN_MANAGER.init_app(app)
 
     pydatalab.mongo.create_default_indices()
 
@@ -66,6 +67,12 @@ def create_app(config_override: Dict[str, Any] = None) -> Flask:
         """Logs out the local user from the current session."""
         logout_user()
         return redirect(request.environ.get("HTTP_REFERER", "/"))
+
+    @app.before_first_request  # runs before FIRST request (only once)
+    def make_session_permanent():
+        """Make the session permanent so that it doesn't expire on browser close, but instead adds a lifetime."""
+        session.permanent = True
+        app.permanent_session_lifetime = datetime.timedelta(days=1)
 
     @app.route("/")
     def index():
