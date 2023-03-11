@@ -5,6 +5,9 @@ with their local accounts.
 """
 
 import json
+import random
+from hashlib import sha512
+from string import ascii_letters
 from typing import Callable, Dict, Optional, Union
 
 from bson import ObjectId
@@ -18,9 +21,17 @@ from flask_login.utils import LocalProxy
 from pydatalab.config import CONFIG
 from pydatalab.errors import UserRegistrationForbidden
 from pydatalab.logger import LOGGER
-from pydatalab.login import LoginUser
+from pydatalab.login import get_by_id_cached
 from pydatalab.models.people import Identity, IdentityType, Person
 from pydatalab.mongo import flask_mongo, insert_pydantic_model_fork_safe
+
+KEY_LENGTH: int = 32
+
+
+def wrapped_login_user(*args, **kwargs):
+    LOGGER.warning("Logging in user %s with role %s", args[0].display_name, args[0].role)
+    login_user(*args, **kwargs)
+
 
 OAUTH_BLUEPRINTS: Dict[IdentityType, Blueprint] = {
     IdentityType.ORCID: make_orcid_blueprint(
@@ -164,13 +175,13 @@ def find_create_or_modify_user(
                 raise UserRegistrationForbidden
 
             user = Person.new_user_from_identity(identity, use_display_name=True)
-            login_user(LoginUser(_id=user.immutable_id, data=user))
+            wrapped_login_user(get_by_id_cached(str(user.immutable_id)))
             LOGGER.debug("Inserting new user model %s into database", user)
             insert_pydantic_model_fork_safe(user, "users")
 
     # Log the user into the session with this identity
     if user is not None:
-        login_user(LoginUser(_id=user.immutable_id, data=user))
+        wrapped_login_user(get_by_id_cached(str(user.immutable_id)))
 
 
 @oauth_authorized.connect_via(OAUTH_BLUEPRINTS[IdentityType.GITHUB])
@@ -255,6 +266,29 @@ def get_authenticated_user_info():
         return jsonify({"status": "failure", "message": "User must be authenticated."}), 401
 
 
+def generate_user_api_key():
+    """Returns metadata associated with the currently authenticated user."""
+    if current_user.is_authenticated and current_user.role == "admin":
+        new_key = "".join(random.choices(ascii_letters, k=KEY_LENGTH))
+        flask_mongo.db.api_keys.update_one(
+            {"_id": ObjectId(current_user.id)},
+            {"$set": {"hash": sha512(new_key.encode("utf-8")).hexdigest()}},
+            upsert=True,
+        )
+        return jsonify({"key": new_key}), 200
+    else:
+        return (
+            jsonify(
+                {
+                    "status": "failure",
+                    "message": "User must be an authenticated admin to request an API key.",
+                }
+            ),
+            401,
+        )
+
+
 ENDPOINTS: Dict[str, Callable] = {
     "/get-current-user/": get_authenticated_user_info,
+    "/get-api-key/": generate_user_api_key,
 }

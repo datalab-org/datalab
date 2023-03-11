@@ -136,7 +136,9 @@ def repair_files(_, resync: bool = True):
 
     cli = _get_active_mongo_client()
 
-    for ind, item in enumerate(cli.datalabvue.items.find({"type": "samples"})):
+    for ind, item in enumerate(
+        cli.datalabvue.items.find({"$or": [{"type": "samples"}, {"type": "cells"}]})
+    ):
         print(ind, end="\r")
         for file_id in item.get("file_ObjectIds", []):
             file_data = cli.datalabvue.files.find_one({"_id": file_id})
