@@ -12,7 +12,7 @@
     </div>
     <div class="row">
       <div class="col-sm-12 mx-auto">
-        <SampleTable />
+        <FancySampleTable />
       </div>
     </div>
   </div>
@@ -22,7 +22,7 @@
 
 <script>
 import Navbar from "@/components/Navbar";
-import SampleTable from "@/components/SampleTable";
+import FancySampleTable from "@/components/FancySampleTable";
 import CreateSampleModal from "@/components/CreateSampleModal";
 import BatchCreateSampleModal from "@/components/BatchCreateSampleModal";
 
@@ -36,7 +36,7 @@ export default {
   },
   components: {
     Navbar,
-    SampleTable,
+    FancySampleTable,
     CreateSampleModal,
     BatchCreateSampleModal,
   },
