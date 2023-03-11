@@ -35,6 +35,7 @@
               v-else
               :item_id="constituent.item.item_id"
               :itemType="constituent.item.type"
+              :refcode="constituent.item.refcode"
               :name="constituent.item.name"
               enableClick
               enableModifiedClick

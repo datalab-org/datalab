@@ -14,21 +14,23 @@
       <span v-if="searching"> Sorry, no matches found. </span>
       <span v-else class="empty-search"> Type a search term... </span>
     </template>
-    <template v-slot:option="{ type, item_id, name, chemform }">
+    <template v-slot:option="{ type, item_id, name, chemform, refcode }">
       <FormattedItemName
         :item_id="item_id"
         :itemType="type"
         :name="name"
         :chemform="chemform"
+        :refcode="refcode"
         enableModifiedClick
         :maxLength="formattedItemNameMaxLength"
       />
     </template>
-    <template v-slot:selected-option="{ type, item_id, name }">
+    <template v-slot:selected-option="{ type, item_id, name, refcode }">
       <FormattedItemName
         :item_id="item_id"
         :itemType="type"
         :name="name"
+        :refcode="refcode"
         enableModifiedClick
         :maxLength="formattedItemNameMaxLength"
       />
@@ -98,6 +100,7 @@ export default {
       return {
         chemform: "",
         item_id: "",
+        refcode: "",
         name: newOption,
         type: "none",
       };

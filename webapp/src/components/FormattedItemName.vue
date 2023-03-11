@@ -10,7 +10,14 @@
     >
       {{ item_id }}
     </span>
-    {{ shortenedName }}
+    <span v-if="refcode"
+      ><FormattedRefcode
+        :item_id="item_id"
+        :refcode="refcode"
+        :enableModifiedClick="enableModifiedClick"
+        :enableClick="enableClick"
+    /></span>
+    <span>{{ shortenedName }}</span>
     <span v-if="chemform && chemform != ' '"> [ <ChemicalFormula :formula="chemform" /> ] </span>
   </div>
 </template>
@@ -18,10 +25,12 @@
 <script>
 import { itemTypes } from "@/resources.js";
 import ChemicalFormula from "@/components/ChemicalFormula.vue";
+import FormattedRefcode from "@/components/FormattedRefcode.vue";
 
 export default {
   props: {
     item_id: String,
+    refcode: String,
     itemType: String,
     name: String,
     chemform: String,
@@ -58,6 +67,7 @@ export default {
   },
   components: {
     ChemicalFormula,
+    FormattedRefcode,
   },
   emits: ["itemIdClicked"],
 };

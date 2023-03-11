@@ -1,16 +1,14 @@
 <template>
-  <div>
-    <span
-      class="badge"
-      :class="{ clickable: enableClick || enableModifiedClick }"
-      :style="{ backgroundColor: badgeColor }"
-      @click.exact="enableClick ? openEditPageInNewTab() : null"
-      @click.meta.stop="enableModifiedClick ? openEditPageInNewTab() : null"
-      @click.ctrl.stop="enableModifiedClick ? openEditPageInNewTab() : null"
-    >
-      {{ shortenedName }}
-    </span>
-  </div>
+  <span
+    class="badge badge-light mr-2"
+    :class="{ clickable: enableClick || enableModifiedClick }"
+    :style="{ backgroundColor: badgeColor }"
+    @click.exact="enableClick ? openEditPageInNewTab() : null"
+    @click.meta.stop="enableModifiedClick ? openEditPageInNewTab() : null"
+    @click.ctrl.stop="enableModifiedClick ? openEditPageInNewTab() : null"
+  >
+    {{ shortenedName }}
+  </span>
 </template>
 
 <script>
