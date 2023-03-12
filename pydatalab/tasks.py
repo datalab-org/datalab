@@ -3,6 +3,7 @@ import pathlib
 
 from invoke import Collection, task
 
+from pydatalab.logger import setup_log
 from pydatalab.models.utils import UserRole
 
 ns = Collection()
@@ -174,6 +175,76 @@ def add_missing_refcodes(_):
 
 
 migration.add_task(add_missing_refcodes)
+
+def _check_id(id=None, base_url=None, api_key=None):
+    """Checks the given item ID served at the base URL and logs the result."""
+    import requests
+
+    log = setup_log("check_item_validity")
+    response = requests.get(f"{base_url}/get-item-data/{id}", headers={"DATALAB-API-KEY": api_key})
+    if response.status_code != 200:
+        log.error(f"ꙮ {id!r}: {response.content!r}")
+
+
+@task
+def check_item_validity(_, base_url: str = None, starting_materials: bool = False):
+    """This task looks up all sample and cell items and checks that they
+    can be successfully accessed through the API.
+
+    Requires the environment variable DATALAB_API_KEY to be set.
+
+    Parameters:
+        base_url: The API URL.
+        starting_materials: Whether to check starting materials as well.
+
+    """
+
+    import functools
+    import multiprocessing
+    import os
+
+    import requests
+
+    api_key = os.environ.get("DATALAB_API_KEY")
+    if not api_key:
+        raise SystemExit("DATALAB_API_KEY env var not set")
+
+    log = setup_log("check_item_validity")
+
+    user_response = requests.get(
+        f"{base_url}/get-current-user/", headers={"DATALAB-API-KEY": api_key}
+    )
+    if not user_response.status_code == 200:
+        raise SystemExit(f"Could not get current user: {user_response.json()['message']}")
+
+    all_samples_ids = [
+        d["item_id"]
+        for d in requests.get(f"{base_url}/samples/", headers={"DATALAB-API-KEY": api_key}).json()[
+            "samples"
+        ]
+    ]
+
+    log.info(f"Found {len(all_samples_ids)} items")
+
+    multiprocessing.Pool(max(min(len(all_samples_ids), 8), 1)).map(
+        functools.partial(_check_id, api_key=api_key, base_url=base_url),
+        all_samples_ids,
+    )
+
+    if starting_materials:
+        all_starting_material_ids = [
+            d["item_id"]
+            for d in requests.get(
+                f"{base_url}/starting-materials/", headers={"DATALAB-API-KEY": api_key}
+            ).json()["items"]
+        ]
+        multiprocessing.Pool(max(min(len(all_starting_material_ids), 8), 1)).map(
+            functools.partial(_check_id, api_key=api_key, base_url=base_url),
+            all_starting_material_ids,
+        )
+
+
+admin.add_task(check_item_validity)
 
 
 ns.add_collection(dev)
