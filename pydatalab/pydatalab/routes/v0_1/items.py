@@ -137,7 +137,6 @@ def get_samples():
                         "item_id": 1,
                         "refcode": 1,
                         "type": 1,
-                        "creator_ids": 1,
                         "sample_id": 1,
                         "nblocks": {"$size": "$display_order"},
                         "creators": {
