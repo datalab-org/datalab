@@ -138,13 +138,3 @@ class ServerConfig(BaseSettings):
 
 
 CONFIG = ServerConfig()
-
-
-def log_config():
-    """Adds the current server configuration to the log."""
-    from pydatalab.logger import LOGGER
-
-    LOGGER.info("Loaded config with options: %s", CONFIG.dict())
-
-
-log_config()

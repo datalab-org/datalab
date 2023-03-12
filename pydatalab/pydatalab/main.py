@@ -1,4 +1,5 @@
 import datetime
+import logging
 from typing import Any, Dict
 
 from dotenv import dotenv_values
@@ -10,7 +11,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 import pydatalab.mongo
 from pydatalab.config import CONFIG
-from pydatalab.logger import logged_route
+from pydatalab.logger import LOGGER, logged_route, setup_log
 from pydatalab.login import LOGIN_MANAGER
 from pydatalab.utils import CustomJSONEncoder
 
@@ -28,6 +29,8 @@ def create_app(config_override: Dict[str, Any] = None) -> Flask:
         The `Flask` app with all associated endpoints.
 
     """
+    setup_log("werkzeug", log_level=logging.INFO)
+    setup_log("", log_level=logging.INFO)
 
     app = Flask(__name__, instance_relative_config=True)
 
@@ -36,6 +39,9 @@ def create_app(config_override: Dict[str, Any] = None) -> Flask:
 
     app.config.update(CONFIG.dict())
     app.config.update(dotenv_values())
+
+    LOGGER.info("Starting app with Flask app.config: %s", app.config)
+    LOGGER.info("Datalab config: %s", CONFIG.dict())
 
     if CONFIG.BEHIND_REVERSE_PROXY:
         # Fix headers for reverse proxied app:

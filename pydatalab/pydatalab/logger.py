@@ -1,6 +1,6 @@
 import logging
 from functools import wraps
-from typing import Callable
+from typing import Callable, Optional
 
 
 class AnsiColorHandler(logging.StreamHandler):
@@ -11,10 +11,10 @@ class AnsiColorHandler(logging.StreamHandler):
     """
 
     LOGLEVEL_COLORS = {
-        logging.DEBUG: "38;20m",
-        logging.INFO: "46;30m",
-        logging.WARNING: "43;30m",
-        logging.ERROR: "41;30m",
+        logging.DEBUG: "36m",
+        logging.INFO: "32m",
+        logging.WARNING: "33m",
+        logging.ERROR: "1;91m",
         logging.CRITICAL: "101;30m",
     }
 
@@ -34,29 +34,37 @@ class AnsiColorHandler(logging.StreamHandler):
         if len(message) > self.max_width:
             message = message[: self.max_width] + "[...]"
         color = self.LOGLEVEL_COLORS[record.levelno]
-        message = f"{prefix} \x1b[{color}{message}\x1b[0m"
+        message = f"\x1b[{color} {prefix} {message}\x1b[0m"
         return message
 
 
-def setup_log():
-    """Creates a logger for pydatalab with a simple
-    stdout output.
+def setup_log(log_name: str = "pydatalab", log_level: Optional[int] = None) -> logging.Logger:
+    """Creates a logger a simple coloured stdout output.
 
-    Verbosity is set in the config file via
-    the DEBUG option.
+    Verbosity can be set to debug in the config file via
+    the DEBUG option, or passed the the function.
+
+    Parameters:
+        log_name: The name of the logger.
+        log_level: The logging level to use.
+
+    Returns:
+        The logger object.
 
     """
     from pydatalab.config import CONFIG
 
-    logger = logging.getLogger("pydatalab")
+    logger = logging.getLogger(log_name)
     logger.handlers = []
     logger.propagate = False
     handler = AnsiColorHandler()
     logger.addHandler(handler)
+    if log_level is None:
+        log_level = logging.INFO
 
-    log_level = logging.INFO
-    if CONFIG.DEBUG:
-        log_level = logging.DEBUG
+        if CONFIG.DEBUG:
+            log_level = logging.DEBUG
+
     logger.setLevel(log_level)
     return logger
 
@@ -97,7 +105,15 @@ def logged_route(fn: Callable):
             )
             return result
         except Exception as exc:
-            LOGGER.error("%s errored with %s %s", fn.__name__, exc.__class__.__name__, exc)
+            import traceback
+
+            LOGGER.error(
+                "%s errored with %s %s %s",
+                fn.__name__,
+                exc.__class__.__name__,
+                exc,
+                traceback.print_tb(exc.__traceback__),
+            )
             raise exc
 
     return wrapped_logged_route
