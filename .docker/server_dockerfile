@@ -27,7 +27,7 @@ CMD ["pipenv", "run", \
      "gunicorn", \
      "-w", "2", \
      "--error-logfile", "/logs/pydatalab_error.log", \
-     "--access-logfile", "/logs/pydatalab_access.log", \
+     "--access-logfile", "-", \
      "-b", "0.0.0.0:5001", \
      "pydatalab.main:create_app()" \
 ]
