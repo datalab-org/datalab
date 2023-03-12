@@ -116,16 +116,19 @@ def compute_gpcl_differential(
         cycle_index_array = np.full(len(x), int(cycle_index), dtype=int)
         half_cycle_index_array = np.full(len(x), int(cycle), dtype=int)
 
-        differential_df = differential_df.append(
-            pd.DataFrame(
-                {
-                    x_label: x,
-                    y_label: y,
-                    yp_label: yp,
-                    "full cycle": cycle_index_array,
-                    "half cycle": half_cycle_index_array,
-                }
-            )
+        differential_df = pd.concat(
+            [
+                differential_df,
+                pd.DataFrame(
+                    {
+                        x_label: x,
+                        y_label: y,
+                        yp_label: yp,
+                        "full cycle": cycle_index_array,
+                        "half cycle": half_cycle_index_array,
+                    }
+                ),
+            ]
         )
 
     return differential_df
