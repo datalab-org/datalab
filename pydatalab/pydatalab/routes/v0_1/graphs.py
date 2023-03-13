@@ -13,6 +13,9 @@ def get_graph_cy_format():
         projection={"item_id": 1, "name": 1, "type": 1, "relationships": 1},
     )
 
+    node_ids = {document["item_id"] for document in all_documents}
+    all_documents.rewind()
+
     nodes = []
     edges = []
     for document in all_documents:
@@ -37,6 +40,8 @@ def get_graph_cy_format():
 
             target = document["item_id"]
             source = relationship["item_id"]
+            if source not in node_ids:
+                continue
             edges.append(
                 {
                     "data": {
@@ -54,7 +59,7 @@ def get_graph_cy_format():
     nodes = [
         node
         for node in nodes
-        if ((node["data"]["type"] == "samples") or (node["data"]["id"] in whitelist))
+        if node["data"]["type"] == "samples" or node["data"]["id"] in whitelist
     ]
 
     return (jsonify(status="success", nodes=nodes, edges=edges), 200)
