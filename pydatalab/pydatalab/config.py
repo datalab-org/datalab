@@ -55,7 +55,7 @@ class DeploymentMetadata(BaseModel):
 class ServerConfig(BaseSettings):
     """A model that provides settings for deploying the API."""
 
-    SECRET_KEY: str = Field("dummy key", description="The secret key to use for Flask.")
+    SECRET_KEY: str = Field(os.urandom(12).hex(), description="The secret key to use for Flask.")
 
     MONGO_URI: str = Field(
         "mongodb://localhost:27017/datalabvue",
