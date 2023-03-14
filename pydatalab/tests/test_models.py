@@ -153,6 +153,7 @@ def test_cell_with_inlined_reference():
     )
 
     assert cell
+    assert len(cell.relationships == 1)
     assert Cell(**json.loads(cell.json()))
 
 
