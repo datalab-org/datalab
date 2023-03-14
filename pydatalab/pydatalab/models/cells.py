@@ -24,13 +24,13 @@ class CellFormat(str, Enum):
 
 class InlineSubstance(BaseModel):
     name: str
-    formula: str
+    chemform: Optional[str]
 
 
 class CellComponent(Constituent):
     """A constituent of a sample."""
 
-    item: Union[EntryReference, InlineSubstance] = Field(...)
+    item: Union[InlineSubstance, EntryReference]
     """A reference to item (sample or starting material) entry for the constituent substance."""
 
 

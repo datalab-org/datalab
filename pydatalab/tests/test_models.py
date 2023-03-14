@@ -139,13 +139,13 @@ def test_cell_with_inlined_reference():
     from pydatalab.models.cells import Cell
     from pydatalab.models.samples import Sample
 
-    anode = Sample(item_id="test_anode", formula="C")
+    anode = Sample(item_id="test_anode", chemform="C")
 
     cell = Cell(
         item_id="abcd-1-2-3",
         positive_electrode=[{"item": anode, "quantity": 2}],
         negative_electrode=[
-            {"item": {"name": "My secret cathode", "formula": "NaCoO2"}, "quantity": 3}
+            {"item": {"name": "My secret cathode", "chemform": "NaCoO2"}, "quantity": 3}
         ],
         characteristic_mass=1.2,
         active_ion="Na+",
@@ -153,8 +153,63 @@ def test_cell_with_inlined_reference():
     )
 
     assert cell
-    assert len(cell.relationships == 1)
-    assert Cell(**json.loads(cell.json()))
+    assert len(cell.relationships) == 1
+
+    cell = Cell(**json.loads(cell.json()))
+    assert cell
+    assert len(cell.relationships) == 1
+
+    # test from raw json
+    cell_json = {
+        "item_id": "abcd-1-2-3",
+        "positive_electrode": [
+            {"item": {"type": "samples", "item_id": "test_anode", "chemform": "C"}, "quantity": 2}
+        ],
+        "negative_electrode": [
+            {"item": {"name": "My secret cathode", "chemform": "NaCoO2"}, "quantity": 3}
+        ],
+        "characteristic_mass": 1.2,
+        "active_ion": "Na+",
+        "cell_format": "swagelok",
+    }
+
+    cell = Cell(**cell_json)
+    assert cell
+    assert len(cell.relationships) == 1
+
+    cell_json_2 = {
+        "item_id": "abcd-1-2-3",
+        "positive_electrode": [
+            {"item": {"item_id": "", "name": "inline", "chemform": "C"}, "quantity": 2}
+        ],
+        "negative_electrode": [
+            {"item": {"name": "My secret cathode", "chemform": "NaCoO2"}, "quantity": 3}
+        ],
+        "characteristic_mass": 1.2,
+        "active_ion": "Na+",
+        "cell_format": "swagelok",
+    }
+
+    cell = Cell(**cell_json_2)
+    assert cell
+    assert len(cell.relationships) == 0
+
+    cell_json_3 = {
+        "item_id": "abcd-1-2-3",
+        "positive_electrode": [
+            {"item": {"type": "samples", "item_id": "real_item"}, "quantity": 2}
+        ],
+        "negative_electrode": [
+            {"item": {"name": "My secret cathode", "chemform": "NaCoO2"}, "quantity": 3}
+        ],
+        "characteristic_mass": 1.2,
+        "active_ion": "Na+",
+        "cell_format": "swagelok",
+    }
+
+    cell = Cell(**cell_json_3)
+    assert cell
+    assert len(cell.relationships) == 1
 
 
 def test_molar_mass():

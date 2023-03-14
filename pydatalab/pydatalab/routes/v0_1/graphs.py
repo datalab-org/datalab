@@ -35,7 +35,7 @@ def get_graph_cy_format():
 
         for relationship in document["relationships"]:
             # only considering child-parent relationships:
-            if relationship["relation"] != "parent":
+            if relationship["relation"] not in ("parent", "is_part_of"):
                 continue
 
             target = document["item_id"]
@@ -59,7 +59,7 @@ def get_graph_cy_format():
     nodes = [
         node
         for node in nodes
-        if node["data"]["type"] == "samples" or node["data"]["id"] in whitelist
+        if node["data"]["type"] in ("samples", "cells") or node["data"]["id"] in whitelist
     ]
 
     return (jsonify(status="success", nodes=nodes, edges=edges), 200)

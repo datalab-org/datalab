@@ -358,6 +358,23 @@
       ],
       "type": "string"
     },
+    "InlineSubstance": {
+      "title": "InlineSubstance",
+      "type": "object",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "chemform": {
+          "title": "Chemform",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
     "EntryReference": {
       "title": "EntryReference",
       "description": "A reference to a database entry by ID and type.\n\nCan include additional arbitarary metadata useful for\ninlining the item data.",
@@ -390,24 +407,6 @@
         "type"
       ]
     },
-    "InlineSubstance": {
-      "title": "InlineSubstance",
-      "type": "object",
-      "properties": {
-        "name": {
-          "title": "Name",
-          "type": "string"
-        },
-        "formula": {
-          "title": "Formula",
-          "type": "string"
-        }
-      },
-      "required": [
-        "name",
-        "formula"
-      ]
-    },
     "CellComponent": {
       "title": "CellComponent",
       "description": "A constituent of a sample.",
@@ -417,10 +416,10 @@
           "title": "Item",
           "anyOf": [
             {
-              "$ref": "#/definitions/EntryReference"
+              "$ref": "#/definitions/InlineSubstance"
             },
             {
-              "$ref": "#/definitions/InlineSubstance"
+              "$ref": "#/definitions/EntryReference"
             }
           ]
         },
