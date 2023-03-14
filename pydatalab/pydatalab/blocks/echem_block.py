@@ -288,7 +288,10 @@ class CycleBlock(DataBlock):
             raw_df = self.cache["parsed_file"][file_id]
             raw_df.rename(columns=keys_with_units, inplace=True)
         else:
-            raw_df = ec.echem_file_loader(file_info["location"])
+            try:
+                raw_df = ec.echem_file_loader(file_info["location"])
+            except Exception as exc:
+                raise RuntimeError(f"Navani raised an error when parsing: {exc}") from exc
             cycle_summary_df = ec.cycle_summary(raw_df)
             if "time/s" in raw_df:
                 # temporary. Navani should give "Time" as a standard field in the future.
