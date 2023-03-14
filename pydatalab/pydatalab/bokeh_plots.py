@@ -283,6 +283,7 @@ def double_axes_echem_plot(
         )
 
         p3.legend.location = "right"
+        p3.y_range.start = 0
 
     lines = []
     grouped_by_half_cycle = df.groupby("half cycle")
