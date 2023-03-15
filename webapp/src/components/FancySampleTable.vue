@@ -3,9 +3,16 @@
     Server Error. Sample list not retreived.
   </div>
 
-  <div class="form-inline col-3 ml-auto mb-2">
+  <div class="form-inline mb-2 ml-auto">
+    <button
+      class="btn btn-default ml-auto mr-2"
+      :disabled="!Boolean(itemsSelected.length)"
+      @click="deleteSelectedItems"
+    >
+      Delete selected...
+    </button>
     <div class="form-group">
-      <label for="sample-table-search" class="sr-only">Hello</label>
+      <label for="sample-table-search" class="sr-only">Search items</label>
       <input
         id="sample-table-search"
         type="text"
@@ -26,12 +33,20 @@
     @click-row="goToEditPage"
     v-model:items-selected="itemsSelected"
   >
-    <template #item-date="item">
-      {{ $filters.IsoDatetimeToDate(item.date) }}
+    <template #item-item_id="item">
+      <FormattedItemName :item_id="item.item_id" :itemType="item?.type" enableModifiedClick />
+    </template>
+
+    <template #item-type="item">
+      {{ itemTypes[item.type].display }}
     </template>
 
     <template #item-chemform="item">
       <ChemicalFormula :formula="item.chemform" />
+    </template>
+
+    <template #item-date="item">
+      {{ $filters.IsoDatetimeToDate(item.date) }}
     </template>
 
     <template #item-creators="item">
@@ -42,20 +57,21 @@
 
 <script>
 import Vue3EasyDataTable from "vue3-easy-data-table";
-// import { Header, Item } from "vue3-easy-data-table"; // types
 import "vue3-easy-data-table/dist/style.css";
-
+import FormattedItemName from "@/components/FormattedItemName";
 import ChemicalFormula from "@/components/ChemicalFormula";
 import Creators from "@/components/Creators";
+// eslint-disable-next-line no-unused-vars
 import { getSampleList, deleteSample } from "@/server_fetch_utils.js";
 import crypto from "crypto";
-import { GRAVATAR_STYLE } from "@/resources.js";
+import { GRAVATAR_STYLE, itemTypes } from "@/resources.js";
 
 export default {
   data() {
     return {
       isSampleFetchError: false,
       gravatar_style: GRAVATAR_STYLE,
+      itemTypes: itemTypes,
       sampleTableIsReady: false,
       itemsSelected: [],
       headers: [
@@ -104,12 +120,21 @@ export default {
           this.isSampleFetchError = true;
         });
     },
-    deleteSample(sample) {
-      if (confirm(`Are you sure you want to delete sample "${sample.item_id}"?`)) {
+    deleteSelectedItems() {
+      const idsSelected = this.itemsSelected.map((x) => x.item_id);
+      if (
+        confirm(
+          `Are you sure you want to delete ${this.itemsSelected.length} selected items (${idsSelected})?`
+        )
+      ) {
         console.log("deleting...");
-        deleteSample(sample.item_id, sample);
+        idsSelected.forEach((item_id) => {
+          console.log(`deleting item ${item_id}`);
+          deleteSample(item_id);
+        });
+      } else {
+        console.log("delete cancelled...");
       }
-      console.log("delete cancelled...");
     },
   },
   created() {
@@ -119,6 +144,7 @@ export default {
     Vue3EasyDataTable,
     ChemicalFormula,
     Creators,
+    FormattedItemName,
   },
 };
 </script>
@@ -150,5 +176,9 @@ export default {
   --easy-table-body-row-font-size: 1rem;
   --easy-table-footer-font-size: 1rem;
   --easy-table-message-font-size: 1rem;
+}
+
+.btn:disabled {
+  cursor: not-allowed;
 }
 </style>
