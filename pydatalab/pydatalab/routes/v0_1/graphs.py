@@ -1,4 +1,4 @@
-from typing import Callable, Dict
+from typing import Callable, Dict, Optional
 
 from flask import jsonify
 
@@ -6,7 +6,7 @@ from pydatalab.mongo import flask_mongo
 from pydatalab.routes.utils import get_default_permissions
 
 
-def get_graph_cy_format(item_id: str = None):
+def get_graph_cy_format(item_id: Optional[str] = None):
 
     if item_id is None:
         all_documents = flask_mongo.db.items.find(
@@ -53,6 +53,7 @@ def get_graph_cy_format(item_id: str = None):
                     "id": document["item_id"],
                     "name": document["name"],
                     "type": document["type"],
+                    "special": document["item_id"] == item_id,
                 }
             }
         )

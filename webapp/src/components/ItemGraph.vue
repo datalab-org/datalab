@@ -66,7 +66,9 @@ export default {
       var cy = cytoscape({
         container: document.getElementById("cy"),
         elements: this.graphData,
-        userPanningEnabled: false,
+        userPanningEnabled: true,
+        wheelSensitivity: 0.2,
+        boxSelectionEnabled: false,
         style: [
           {
             selector: "node",
@@ -93,6 +95,11 @@ export default {
       // set colors of each of the nodes by type
       cy.nodes().each(function (element) {
         element.style("background-color", itemTypes[element.data("type")].navbarColor);
+      });
+
+      cy.nodes().each(function (element) {
+        element.style("border-width", element.data("special") == 1 ? 4 : 0);
+        element.style("border-color", "grey");
       });
 
       // tapdragover and tapdragout are mouseover and mouseout events
