@@ -30,7 +30,7 @@ class InlineSubstance(BaseModel):
 class CellComponent(Constituent):
     """A constituent of a sample."""
 
-    item: Union[InlineSubstance, EntryReference]
+    item: Union[EntryReference, InlineSubstance]
     """A reference to item (sample or starting material) entry for the constituent substance."""
 
 
