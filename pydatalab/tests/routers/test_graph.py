@@ -35,7 +35,7 @@ def test_simple_graph(client):
         item_id="abcd-1-2-3",
         positive_electrode=[{"item": parent, "quantity": 2}],
         negative_electrode=[
-            {"item": {"name": "My secret cathode", "formula": "NaCoO2"}, "quantity": 3}
+            {"item": {"name": "My secret cathode", "chemform": "NaCoO2"}, "quantity": 3}
         ],
         characteristic_mass=1.2,
         active_ion="Na+",

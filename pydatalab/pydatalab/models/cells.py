@@ -33,6 +33,20 @@ class CellComponent(Constituent):
     item: Union[EntryReference, InlineSubstance]
     """A reference to item (sample or starting material) entry for the constituent substance."""
 
+    @validator("item", pre=True, always=True)
+    def coerce_reference(cls, v):
+        if isinstance(v, dict):
+            id = v.pop("item_id", None)
+            if id:
+                return EntryReference(item_id=id, **v)
+            else:
+                name = v.pop("name", "")
+                chemform = v.pop("chemform", None)
+                if not name:
+                    raise ValueError("Inline substance must have a name!")
+                return InlineSubstance(name=name, chemform=chemform)
+        return v
+
 
 class Cell(Item):
     """A model for representing electrochemical cells."""
