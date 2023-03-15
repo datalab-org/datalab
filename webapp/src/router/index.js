@@ -4,6 +4,7 @@ import { createRouter, createWebHistory } from "vue-router";
 import Samples from "../views/Samples.vue";
 import SamplesNext from "../views/SamplesNext.vue";
 import StartingMaterials from "../views/StartingMaterials.vue";
+import StartingMaterialsNext from "../views/StartingMaterialsNext.vue";
 import NotFound from "../views/NotFound.vue";
 import EditPage from "../views/EditPage.vue";
 import Test from "@/components/Test.vue";
@@ -36,6 +37,11 @@ const routes = [
     path: "/starting-materials",
     name: "starting-materials",
     component: StartingMaterials,
+  },
+  {
+    path: "/next/starting-materials",
+    name: "starting-materials-next",
+    component: StartingMaterialsNext,
   },
   {
     path: "/test/",
