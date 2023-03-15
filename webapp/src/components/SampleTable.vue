@@ -88,7 +88,7 @@ export default {
     deleteSample(sample) {
       if (confirm(`Are you sure you want to delete sample "${sample.item_id}"?`)) {
         console.log("deleting...");
-        deleteSample(sample.item_id, sample);
+        deleteSample(sample.item_id);
       }
       console.log("delete cancelled...");
     },
