@@ -37,12 +37,12 @@ export default createStore({
       // sampleSummary is a json object summarizing the new sample
       state.sample_list.unshift(sampleSummary);
     },
-    deleteFromSampleList(state, sample_summary) {
-      const index = state.sample_list.indexOf(sample_summary);
+    deleteFromSampleList(state, item_id) {
+      const index = state.sample_list.map((e) => e.item_id).indexOf(item_id);
       if (index > -1) {
         state.sample_list.splice(index, 1);
       } else {
-        console.log("deleteFromSampleList couldn't find the object");
+        console.log(`deleteFromSampleList couldn't find the item with id ${item_id}`);
       }
     },
     createItemData(state, payload) {

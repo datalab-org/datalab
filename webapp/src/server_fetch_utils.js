@@ -179,13 +179,13 @@ export function searchUsers(query, nresults = 100) {
   });
 }
 
-export function deleteSample(item_id, sample_summary) {
+export function deleteSample(item_id) {
   return fetch_post(`${API_URL}/delete-sample/`, {
     item_id: item_id,
   })
     .then(function (response_json) {
       console.log("delete successful" + response_json);
-      store.commit("deleteFromSampleList", sample_summary);
+      store.commit("deleteFromSampleList", item_id);
     })
     .catch((error) => alert("Sample delete failed for " + item_id + ": " + error));
 }
