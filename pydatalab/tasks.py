@@ -176,6 +176,7 @@ def add_missing_refcodes(_):
 
 migration.add_task(add_missing_refcodes)
 
+
 def _check_id(id=None, base_url=None, api_key=None):
     """Checks the given item ID served at the base URL and logs the result."""
     import requests

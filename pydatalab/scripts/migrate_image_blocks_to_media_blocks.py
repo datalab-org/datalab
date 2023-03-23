@@ -2,9 +2,7 @@ from pydatalab.mongo import get_database
 
 db = get_database()
 
-all_items = list(db.items.find())
-
-for item in all_items:
+for item in db.items.find({"blocks_obj": {"$ne": {}}}):
     print(f"processing item {item['item_id']}")
     for key in item["blocks_obj"]:
         if item["blocks_obj"][key]["blocktype"] == "image":
