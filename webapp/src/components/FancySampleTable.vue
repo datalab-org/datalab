@@ -63,7 +63,6 @@ import ChemicalFormula from "@/components/ChemicalFormula";
 import Creators from "@/components/Creators";
 // eslint-disable-next-line no-unused-vars
 import { getSampleList, deleteSample } from "@/server_fetch_utils.js";
-import crypto from "crypto";
 import { GRAVATAR_STYLE, itemTypes } from "@/resources.js";
 
 export default {
@@ -80,7 +79,7 @@ export default {
         { text: "Sample name", value: "name", sortable: true },
         { text: "Formula", value: "chemform", sortable: true },
         { text: "Date", value: "date", sortable: true },
-        { text: "Creators", value: "creators" },
+        { text: "Creators", value: "creators", sortable: true },
         { text: "# of blocks", value: "nblocks", sortable: true },
       ],
       searchValue: "",
@@ -92,10 +91,6 @@ export default {
     },
   },
   methods: {
-    md5(value) {
-      // Returns the MD5 hash of the given string.
-      return crypto.createHash("md5").update(value).digest("hex");
-    },
     goToEditPage(row, event) {
       // don't actually go to editpage is this click is in the select column, because
       // that is easy to accidentally do. in future, could try to actuate the checkbox, too.
