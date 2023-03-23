@@ -33,7 +33,7 @@ export default {
   },
   computed: {
     badgeColor() {
-      return "LightPink";
+      return "LightGrey";
     },
     shortenedName() {
       if (this.refcode.includes(":")) {
