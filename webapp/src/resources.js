@@ -1,6 +1,6 @@
 // Resources for the application
 import DataBlockBase from "@/components/datablocks/DataBlockBase";
-import ImageBlock from "@/components/datablocks/ImageBlock";
+import MediaBlock from "@/components/datablocks/MediaBlock";
 import XRDBlock from "@/components/datablocks/XRDBlock";
 import CycleBlock from "@/components/datablocks/CycleBlock";
 import NMRBlock from "@/components/datablocks/NMRBlock";
@@ -26,7 +26,7 @@ export const debounceTime = 250; // time after user stops typing before request 
 export const blockTypes = {
   generic: { description: "Test Block", component: DataBlockBase },
   comment: { description: "Comment", component: DataBlockBase },
-  image: { description: "Image Block", component: ImageBlock },
+  media: { description: "Media Block", component: MediaBlock },
   xrd: { description: "Powder XRD", component: XRDBlock },
   cycle: { description: "Electrochemistry", component: CycleBlock },
   nmr: { description: "NMR", component: NMRBlock },
