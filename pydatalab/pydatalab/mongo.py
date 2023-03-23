@@ -22,7 +22,7 @@ def insert_pydantic_model_fork_safe(model: BaseModel, collection: str) -> None:
     get_database()[collection].insert_one(model.dict(by_alias=True))
 
 
-def _get_active_mongo_client(timeoutMS: int = 100) -> pymongo.MongoClient:
+def _get_active_mongo_client(timeoutMS: int = 1000) -> pymongo.MongoClient:
     """Returns a `MongoClient` for the configured `MONGO_URI`,
     raising a `RuntimeError` if not available.
 
