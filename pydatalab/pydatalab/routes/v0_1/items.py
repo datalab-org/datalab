@@ -349,7 +349,7 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
                 "date": data_model.date,
                 "name": data_model.name,
                 "creator_ids": data_model.creator_ids,
-                "creators": [json.loads(c.json()) for c in data_model.creators]
+                "creators": [json.loads(c.json(exclude_unset=True)) for c in data_model.creators]
                 if data_model.creators
                 else [],
                 "type": data_model.type,

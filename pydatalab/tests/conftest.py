@@ -31,7 +31,7 @@ def monkeypatch_session():
     m.undo()
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def real_mongo_client() -> Union[pymongo.MongoClient, None]:
     """Returns a connected MongoClient if available, otherwise `None`."""
     client = pymongo.MongoClient(
@@ -45,7 +45,7 @@ def real_mongo_client() -> Union[pymongo.MongoClient, None]:
     return client
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def client(real_mongo_client, monkeypatch_session):
     """Returns a test client for the API. If it exists,
     connects to a local MongoDB, otherwise uses the
