@@ -4,11 +4,11 @@
       v-model="file_id"
       :item_id="item_id"
       :block_id="block_id"
-      :extensions="['.png', '.jpg', '.jpeg']"
+      :extensions="['.png', '.jpeg', '.jpg', '.mp4', '.mov', '.webm']"
+      class="mb-3"
     />
-    <div class="col-xl-6 col-lg-7 col-md-10 mx-auto">
-      <img v-if="file_id" :src="image_url" class="img-fluid" />
-    </div>
+    <img v-if="isPhoto" :src="media_url" class="img-fluid mx-auto" />
+    <video v-if="isVideo" :src="media_url" controls class="mx-auto" />
   </DataBlockBase>
 </template>
 
@@ -28,13 +28,14 @@ export default {
     all_files() {
       return this.$store.state.files;
     },
-    image_url() {
-      // return ''
-      console.log("trying to get image_url for file_id:");
-      console.log(this.file_id);
-      // console.log(this.$store.state.files[this.file_id].url_path);
-
+    media_url() {
       return `${API_URL}/files/${this.file_id}/${this.all_files[this.file_id].name}`;
+    },
+    isPhoto() {
+      return [".png", ".jpeg", ".jpg"].includes(this.all_files[this.file_id]?.extension);
+    },
+    isVideo() {
+      return [".mp4", ".mov", ".webm"].includes(this.all_files[this.file_id]?.extension);
     },
   },
   components: {
@@ -43,3 +44,11 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+image,
+video {
+  display: block;
+  max-height: 600px;
+}
+</style>
