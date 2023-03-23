@@ -149,10 +149,10 @@ class CommentBlock(DataBlock):
     description = "Comment"
 
 
-class ImageBlock(DataBlock):
-    blocktype = "image"
-    description = "Image"
-    accepted_file_extensions = (".png", ".jpeg", ".jpg")
+class MediaBlock(DataBlock):
+    blocktype = "media"
+    description = "Media"
+    accepted_file_extensions = (".png", ".jpeg", ".jpg", ".mp4", ".mov", ".webm")
 
 
 class NMRBlock(DataBlock):
