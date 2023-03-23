@@ -1,8 +1,6 @@
 <template>
   <Navbar />
-  <div class="container">
-    <ItemGraph :graphData="graphData" style="height: 600px" />
-  </div>
+  <ItemGraph :graphData="graphData" />
 </template>
 
 <script>

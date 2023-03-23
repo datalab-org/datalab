@@ -398,14 +398,13 @@
           "title": "Name",
           "type": "string"
         },
-        "formula": {
-          "title": "Formula",
+        "chemform": {
+          "title": "Chemform",
           "type": "string"
         }
       },
       "required": [
-        "name",
-        "formula"
+        "name"
       ]
     },
     "CellComponent": {

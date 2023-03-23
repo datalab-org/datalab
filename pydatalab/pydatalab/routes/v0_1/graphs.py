@@ -1,4 +1,4 @@
-from typing import Callable, Dict
+from typing import Callable, Dict, Optional
 
 from flask import jsonify
 
@@ -6,12 +6,42 @@ from pydatalab.mongo import flask_mongo
 from pydatalab.routes.utils import get_default_permissions
 
 
-def get_graph_cy_format():
+def get_graph_cy_format(item_id: Optional[str] = None):
 
-    all_documents = flask_mongo.db.items.find(
-        get_default_permissions(user_only=False),
-        projection={"item_id": 1, "name": 1, "type": 1, "relationships": 1},
-    )
+    if item_id is None:
+        all_documents = flask_mongo.db.items.find(
+            get_default_permissions(user_only=False),
+            projection={"item_id": 1, "name": 1, "type": 1, "relationships": 1},
+        )
+        node_ids = {document["item_id"] for document in all_documents}
+        all_documents.rewind()
+
+    else:
+        all_documents = list(
+            flask_mongo.db.items.find(
+                {
+                    "$or": [{"item_id": item_id}, {"relationships.item_id": item_id}],
+                    **get_default_permissions(user_only=False),
+                },
+                projection={"item_id": 1, "name": 1, "type": 1, "relationships": 1},
+            )
+        )
+
+        node_ids = {document["item_id"] for document in all_documents}
+        if len(node_ids) > 1:
+            next_shell = flask_mongo.db.items.find(
+                {
+                    "$or": [
+                        *[{"item_id": id} for id in node_ids if id != item_id],
+                        *[{"relationships.item_id": id} for id in node_ids if id != item_id],
+                    ],
+                    **get_default_permissions(user_only=False),
+                },
+                projection={"item_id": 1, "name": 1, "type": 1, "relationships": 1},
+            )
+
+            node_ids = node_ids | {document["item_id"] for document in next_shell}
+            all_documents.extend(next_shell)
 
     nodes = []
     edges = []
@@ -23,6 +53,7 @@ def get_graph_cy_format():
                     "id": document["item_id"],
                     "name": document["name"],
                     "type": document["type"],
+                    "special": document["item_id"] == item_id,
                 }
             }
         )
@@ -32,11 +63,13 @@ def get_graph_cy_format():
 
         for relationship in document["relationships"]:
             # only considering child-parent relationships:
-            if relationship["relation"] != "parent":
+            if relationship["relation"] not in ("parent", "is_part_of"):
                 continue
 
             target = document["item_id"]
             source = relationship["item_id"]
+            if source not in node_ids:
+                continue
             edges.append(
                 {
                     "data": {
@@ -54,7 +87,7 @@ def get_graph_cy_format():
     nodes = [
         node
         for node in nodes
-        if ((node["data"]["type"] == "samples") or (node["data"]["id"] in whitelist))
+        if node["data"]["type"] in ("samples", "cells") or node["data"]["id"] in whitelist
     ]
 
     return (jsonify(status="success", nodes=nodes, edges=edges), 200)
@@ -64,5 +97,6 @@ get_graph_cy_format.methods = ("GET",)  # type: ignore
 
 
 ENDPOINTS: Dict[str, Callable] = {
-    "/item-graph/": get_graph_cy_format,
+    "/item-graph/<item_id>": get_graph_cy_format,
+    "/item-graph": get_graph_cy_format,
 }

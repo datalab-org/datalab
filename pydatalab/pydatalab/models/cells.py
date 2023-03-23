@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import List, Optional, Union
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, root_validator, validator
 
 from pydatalab.models.entries import EntryReference
 from pydatalab.models.items import Item
@@ -24,14 +24,28 @@ class CellFormat(str, Enum):
 
 class InlineSubstance(BaseModel):
     name: str
-    formula: str
+    chemform: Optional[str]
 
 
 class CellComponent(Constituent):
     """A constituent of a sample."""
 
-    item: Union[EntryReference, InlineSubstance] = Field(...)
+    item: Union[EntryReference, InlineSubstance]
     """A reference to item (sample or starting material) entry for the constituent substance."""
+
+    @validator("item", pre=True, always=True)
+    def coerce_reference(cls, v):
+        if isinstance(v, dict):
+            id = v.pop("item_id", None)
+            if id:
+                return EntryReference(item_id=id, **v)
+            else:
+                name = v.pop("name", "")
+                chemform = v.pop("chemform", None)
+                if not name:
+                    raise ValueError("Inline substance must have a name!")
+                return InlineSubstance(name=name, chemform=chemform)
+        return v
 
 
 class Cell(Item):
@@ -93,3 +107,34 @@ class Cell(Item):
                     return None
 
         return v
+
+    @root_validator
+    def add_missing_electrode_relationships(cls, values):
+        """Add any missing sample synthesis constituents to parent relationships"""
+        from pydatalab.models.relationships import RelationshipType, TypedRelationship
+
+        existing_parthood_relationship_ids = set()
+        if values.get("relationships") is not None:
+            existing_parthood_relationship_ids = set(
+                relationship.item_id
+                for relationship in values["relationships"]
+                if relationship.relation == RelationshipType.PARTHOOD
+            )
+        else:
+            values["relationships"] = []
+
+        for component in ("positive_electrode", "negative_electrode", "electrolyte"):
+            for constituent in values.get(component, []):
+                if (
+                    isinstance(constituent.item, EntryReference)
+                    and constituent.item.item_id not in existing_parthood_relationship_ids
+                ):
+                    relationship = TypedRelationship(
+                        relation=RelationshipType.PARTHOOD,
+                        item_id=constituent.item.item_id,
+                        type=constituent.item.type,
+                        description="Is a constituent of",
+                    )
+                    values["relationships"].append(relationship)
+
+        return values

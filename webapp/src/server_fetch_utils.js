@@ -345,8 +345,12 @@ export async function addRemoteFileToSample(file_entry, item_id) {
     .catch((error) => `addRemoteFilesToSample unsuccessful. Error: ${error}`);
 }
 
-export async function getItemGraph() {
-  return fetch_get(`${API_URL}/item-graph/`)
+export async function getItemGraph(item_id = "") {
+  let url = `${API_URL}/item-graph`;
+  if (item_id != "") {
+    url = url + "/" + item_id;
+  }
+  return fetch_get(url)
     .then(function (response_json) {
       console.log("received graph");
       store.commit("setItemGraph", { nodes: response_json.nodes, edges: response_json.edges });
