@@ -1,12 +1,9 @@
-import traceback
 import os
 from typing import Any, Callable, Iterable, Tuple
 
 from flask import Response, jsonify
 from pydantic import ValidationError
 from werkzeug.exceptions import Forbidden, HTTPException
-
-from pydatalab.config import CONFIG
 
 
 class UserRegistrationForbidden(Forbidden):
@@ -50,6 +47,7 @@ def handle_http_exception(exc: HTTPException) -> Tuple[Response, int]:
 def render_unauthorised_user_template(exc: UserRegistrationForbidden) -> Tuple[Response, int]:
     """Return a rich HTML page on user account creation failure."""
     return Response(response=exc.description), exc.code
+
 
 def handle_pydantic_validation_error(exc: ValidationError) -> Tuple[Response, int]:
     """Handle pydantic validation errors separately from other exceptions.
