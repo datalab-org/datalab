@@ -94,6 +94,7 @@ import CellPreparationInformation from "@/components/CellPreparationInformation"
 import TableOfContents from "@/components/TableOfContents";
 import RelationshipVisualization from "@/components/RelationshipVisualization";
 import FormattedRefcode from "@/components/FormattedRefcode";
+import Creators from "@/components/Creators";
 import { cellFormats } from "@/resources.js";
 
 export default {
@@ -118,6 +119,7 @@ export default {
     ChemForm: createComputedSetterForItemField("characteristic_chemical_formula"),
     MolarMass: createComputedSetterForItemField("characteristic_molar_mass"),
     DateCreated: createComputedSetterForItemField("date"),
+    ItemCreators: createComputedSetterForItemField("creators"),
     CellFormat: createComputedSetterForItemField("cell_format"),
     CellFormatDescription: createComputedSetterForItemField("cell_format_description"),
     CharacteristicMass: createComputedSetterForItemField("characteristic_mass"),
@@ -129,6 +131,7 @@ export default {
     TableOfContents,
     RelationshipVisualization,
     FormattedRefcode,
+    Creators,
   },
 };
 </script>
