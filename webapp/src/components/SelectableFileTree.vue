@@ -38,7 +38,8 @@
           <p class="mb-1 ml-4">
             &#8627; <span class="selected-info-name">modified:</span>
             <span class="selected-modified-time">{{
-              Date(selectedEntry.time).toLocaleString("en-GB")
+              // convert unix timestamp in seconds to JavaScript localised date string
+              timestampToLocaleDate(selectedEntry.time)
             }}</span>
           </p>
           <p class="mb-0 ml-4">
@@ -80,6 +81,10 @@ export default {
       const exponent = Math.min(Math.floor(Math.log10(num < 0 ? -num : num) / 3), UNITS.length - 1);
       const n = Number(((num < 0 ? -num : num) / 1000 ** exponent).toPrecision(precision));
       return (num < 0 ? "-" : "") + n + (addSpace ? " " : "") + UNITS[exponent];
+    },
+    timestampToLocaleDate(timestamp) {
+      let date = new Date(Number(timestamp) * 1000);
+      return date.toLocaleString("en-GB");
     },
     setSelectedEntry(entry, toplevel_name) {
       entry.toplevel_name = toplevel_name;
