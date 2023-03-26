@@ -95,7 +95,7 @@ export default {
       var seconds_since_oldest_update = null;
       if ("meta" in response_json) {
         if ("oldest_cache_update" in response_json.meta) {
-          oldest_cache_update = new Date(response_json.meta.oldest_cache_update);
+          oldest_cache_update = new Date(response_json.meta.oldest_cache_update + "Z");
           seconds_since_oldest_update = new Date() - oldest_cache_update / 1000;
           console.log(
             `loadCachedTree received, oldest dir update was ${seconds_since_oldest_update} s ago`
