@@ -4,8 +4,9 @@
       v-model="file_id"
       :item_id="item_id"
       :block_id="block_id"
-      :extensions="['.png', '.jpeg', '.jpg', '.mp4', '.mov', '.webm']"
+      :extensions="['.png', '.jpeg', '.jpg', '.tiff', '.tif', '.mp4', '.mov', '.webm']"
       class="mb-3"
+      updateBlockOnChange
     />
     <img v-if="isPhoto" :src="media_url" class="img-fluid mx-auto" />
     <video v-if="isVideo" :src="media_url" controls class="mx-auto" />
@@ -28,11 +29,21 @@ export default {
     all_files() {
       return this.$store.state.files;
     },
+    block_data() {
+      return this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id];
+    },
     media_url() {
+      // If the API has already base64 encoded the image, then use it,
+      let b64_encoding = this.block_data["b64_encoded_image"] || null;
+      if ((b64_encoding != null && b64_encoding[this.file_id]) || null != null) {
+        return `data:image/png;base64,${b64_encoding[this.file_id]}`;
+      }
       return `${API_URL}/files/${this.file_id}/${this.all_files[this.file_id].name}`;
     },
     isPhoto() {
-      return [".png", ".jpeg", ".jpg"].includes(this.all_files[this.file_id]?.extension);
+      return [".png", ".jpeg", ".jpg", ".tif", ".tiff"].includes(
+        this.all_files[this.file_id]?.extension
+      );
     },
     isVideo() {
       return [".mp4", ".mov", ".webm"].includes(this.all_files[this.file_id]?.extension);

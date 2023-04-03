@@ -25,6 +25,7 @@ blinker = "*"
 pint = "*"
 periodictable = "*"
 flask-compress = "*"
+pillow = "*"
 
 [dev-packages]
 pytest = "*"
