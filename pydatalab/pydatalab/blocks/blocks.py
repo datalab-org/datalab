@@ -1,3 +1,5 @@
+import base64
+import io
 import os
 import random
 import zipfile
@@ -7,6 +9,7 @@ import bokeh
 import numpy as np
 import pandas as pd
 from bson import ObjectId
+from PIL import Image
 from scipy.signal import medfilt
 
 from pydatalab import nmr_utils, xrd_utils
@@ -152,7 +155,28 @@ class CommentBlock(DataBlock):
 class MediaBlock(DataBlock):
     blocktype = "media"
     description = "Media"
-    accepted_file_extensions = (".png", ".jpeg", ".jpg", ".mp4", ".mov", ".webm")
+    accepted_file_extensions = (".png", ".jpeg", ".jpg", ".tif", ".tiff", ".mp4", ".mov", ".webm")
+
+    @property
+    def plot_functions(self):
+        return (self.encode_tiff,)
+
+    def encode_tiff(self):
+        if "file_id" not in self.data:
+            LOGGER.warning("ImageBlock.encode_tiff(): No file set in the DataBlock")
+            return
+        if "b64_encoded_image" not in self.data:
+            self.data["b64_encoded_image"] = {}
+        file_info = get_file_info_by_id(self.data["file_id"], update_if_live=True)
+        if file_info["name"].endswith(".tif") or file_info["name"].endswith(".tiff"):
+            im = Image.open(file_info["location"])
+            LOGGER.warning("Making base64 encoding of tif")
+            with io.BytesIO() as f:
+                im.save(f, format="PNG")
+                f.seek(0)
+                self.data["b64_encoded_image"][self.data["file_id"]] = base64.b64encode(
+                    f.getvalue()
+                ).decode()
 
 
 class NMRBlock(DataBlock):
