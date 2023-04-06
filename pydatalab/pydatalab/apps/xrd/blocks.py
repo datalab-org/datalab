@@ -26,7 +26,13 @@ class XRDBlock(DataBlock):
     def plot_functions(self):
         return (self.generate_xrd_plot,)
 
-    def load_pattern(self, location: str) -> Tuple[pd.DataFrame, List[str]]:
+    @classmethod
+    def load_pattern(
+        self, location: str, wavelength: float = None
+    ) -> Tuple[pd.DataFrame, List[str]]:
+
+        if not isinstance(location, str):
+            location = str(location)
 
         ext = os.path.splitext(location.split("/")[-1])[-1].lower()
 
@@ -40,15 +46,14 @@ class XRDBlock(DataBlock):
             df = pd.read_csv(location, sep=r"\s+", names=["twotheta", "intensity", "error"])
 
         df = df.rename(columns={"twotheta": "2θ (°)"})
-        try:
-            wavelength = float(self.data["wavelength"])
-
-            df["Q (Å⁻¹)"] = 4 * np.pi / wavelength * np.sin(np.deg2rad(df["2θ (°)"]) / 2)
-            df["d (Å)"] = 2 * np.pi / df["Q (Å⁻¹)"]
 
         # if no wavelength (or invalid wavelength) is passed, don't convert to Q and d
-        except (ValueError, ZeroDivisionError):
-            pass
+        if wavelength:
+            try:
+                df["Q (Å⁻¹)"] = 4 * np.pi / wavelength * np.sin(np.deg2rad(df["2θ (°)"]) / 2)
+                df["d (Å)"] = 2 * np.pi / df["Q (Å⁻¹)"]
+            except (ValueError, ZeroDivisionError):
+                pass
 
         df["sqrt(intensity)"] = np.sqrt(df["intensity"])
         df["log(intensity)"] = np.log10(df["intensity"])
@@ -93,7 +98,6 @@ class XRDBlock(DataBlock):
 
         if "file_id" not in self.data:
             # If no file set, try to plot them all
-
             item_info = flask_mongo.db.items.find_one(
                 {"item_id": self.data["item_id"]},
             )
@@ -115,7 +119,15 @@ class XRDBlock(DataBlock):
 
             pattern_dfs = []
             for f in all_files:
-                pattern_df, y_options = self.load_pattern(f["location"])
+                try:
+                    pattern_df, y_options = self.load_pattern(
+                        f["location"],
+                        wavelength=self.data.get("wavelength", self.defaults["wavelength"]),
+                    )
+                except Exception as exc:
+                    raise RuntimeError(
+                        f"Could not parse file {file_info['location']}. Error: {exc}"
+                    )
                 pattern_dfs.append(pattern_df)
 
         else:

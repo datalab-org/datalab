@@ -4,7 +4,6 @@ from pydatalab.apps.chat.blocks import ChatBlock
 from pydatalab.apps.eis import EISBlock
 from pydatalab.apps.tga import MassSpecBlock
 from pydatalab.apps.xrd import XRDBlock
-
 from pydatalab.blocks.blocks import (
     CommentBlock,
     DataBlock,
