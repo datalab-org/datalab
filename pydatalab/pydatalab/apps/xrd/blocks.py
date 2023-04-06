@@ -1,4 +1,18 @@
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
+import os
+from typing import List, Tuple
+
+import bokeh
+import numpy as np
+import pandas as pd
+from scipy.signal import medfilt
+
+from pydatalab.blocks.blocks import DataBlock
+from pydatalab.bokeh_plots import mytheme, selectable_axes_plot
+from pydatalab.file_utils import get_file_info_by_id
+from pydatalab.logger import LOGGER
+from pydatalab.mongo import flask_mongo
+
+from .utils import parse_xrdml
 
 
 class XRDBlock(DataBlock):
@@ -17,7 +31,7 @@ class XRDBlock(DataBlock):
         ext = os.path.splitext(location.split("/")[-1])[-1].lower()
 
         if ext == ".xrdml":
-            df = xrd_utils.parse_xrdml(location)
+            df = parse_xrdml(location)
 
         elif ext == ".xy":
             df = pd.read_csv(location, sep=r"\s+", names=["twotheta", "intensity"])

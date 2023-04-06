@@ -3,20 +3,17 @@ import io
 import os
 import random
 import zipfile
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Callable, Dict, Optional, Sequence
 
 import bokeh.embed
-import numpy as np
 import pandas as pd
 from bson import ObjectId
 from PIL import Image
-from scipy.signal import medfilt
 
-from pydatalab import nmr_utils, xrd_utils
+from pydatalab import nmr_utils
 from pydatalab.bokeh_plots import mytheme, selectable_axes_plot
 from pydatalab.file_utils import get_file_info_by_id
 from pydatalab.logger import LOGGER
-from pydatalab.mongo import flask_mongo
 
 __all__ = ("generate_random_id", "DataBlock")
 

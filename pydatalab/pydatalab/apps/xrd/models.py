@@ -2,6 +2,8 @@ from typing import List, Optional
 
 from pydantic import BaseModel
 
+__all__ = ("XRDPattern", "XRDMeasurement")
+
 
 class XRDPattern(BaseModel):
     """This model defines the structure of the data that is expected
