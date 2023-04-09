@@ -1,4 +1,5 @@
 import logging
+import time
 from functools import wraps
 from typing import Callable, Optional
 
@@ -87,6 +88,7 @@ def logged_route(fn: Callable):
     def wrapped_logged_route(*args, **kwargs):
         from flask import request
 
+        start = time.monotonic_ns()
         try:
             LOGGER.debug(
                 "Calling %s with request: %s, JSON payload with keys %s",
@@ -98,9 +100,11 @@ def logged_route(fn: Callable):
             pass
         try:
             result = fn(*args, **kwargs)
+
             LOGGER.debug(
-                "%s returned %s",
+                "%s returned in %s seconds with %s",
                 fn.__name__,
+                (time.monotonic_ns() - start) / 1e9,
                 result,
             )
             return result
@@ -108,8 +112,9 @@ def logged_route(fn: Callable):
             import traceback
 
             LOGGER.error(
-                "%s errored with %s %s %s",
+                "%s errored in %s seconds with %s %s %s",
                 fn.__name__,
+                (time.monotonic_ns() - start) / 1e9,
                 exc.__class__.__name__,
                 exc,
                 traceback.print_tb(exc.__traceback__),
