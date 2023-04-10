@@ -16,7 +16,7 @@ scipy = "*"
 matplotlib = "*"
 pymongo = "*"
 galvani = "*"
-navani = {git = "git+https://github.com/the-grey-group/navani.git@v0.1.1"}
+navani = {git = "git+https://github.com/the-grey-group/navani.git@v0.1.2"}
 openpyxl = "*"
 nmrglue = "*"
 python-dotenv = "*"
