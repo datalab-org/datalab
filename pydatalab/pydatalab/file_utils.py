@@ -141,7 +141,7 @@ def _check_and_sync_file(file_info: File, file_id: ObjectId) -> File:
         # For ssh-able remotes, check age of the local file, rather than the last time the remote file was modified
         remote_timestamp = _call_remote_stat(full_remote_path)
         LOGGER.debug(
-            "File %s was last edited at timestamp %s, %s seconds ago",
+            "File %s was last edited at timestamp %s, %s ago",
             full_remote_path,
             remote_timestamp,
             datetime.datetime.today() - remote_timestamp,
@@ -171,39 +171,41 @@ def _check_and_sync_file(file_info: File, file_id: ObjectId) -> File:
             )
             return file_info
 
-        if file_info.location is not None:
-            new_stat_results = os.stat(file_info.location)
+    else:
+        LOGGER.debug("File %s is recent enough, not updating", file_info.source_path)
 
-            # If the file has not been updated in the last cutoff period, do not redownload on every access
-            is_live = True
-            if datetime.datetime.now() - remote_timestamp > LIVE_FILE_CUTOFF:
-                is_live = False
+    if file_info.location is not None:
+        local_stat_results = os.stat(file_info.location)
 
-            updated_file_info = file_collection.find_one_and_update(
-                {"_id": file_id},
-                {
-                    "$set": {
-                        "size": new_stat_results.st_size,
-                        "last_modified": datetime.datetime.fromtimestamp(new_stat_results.st_mtime),
-                        "last_modified_remote": remote_timestamp,
-                        "is_live": is_live,
-                    },
-                    "$inc": {"revision": 1},
+        # If the file has not been updated in the last cutoff period, do not redownload on every access
+        is_live = True
+        if datetime.datetime.now() - remote_timestamp > LIVE_FILE_CUTOFF:
+            is_live = False
+
+        updated_file_info = file_collection.find_one_and_update(
+            {"_id": file_id},
+            {
+                "$set": {
+                    "size": local_stat_results.st_size,
+                    "last_modified": datetime.datetime.fromtimestamp(local_stat_results.st_mtime),
+                    "last_modified_remote": remote_timestamp,
+                    "is_live": is_live,
                 },
-                return_document=ReturnDocument.AFTER,
+                "$inc": {"revision": 1},
+            },
+            return_document=ReturnDocument.AFTER,
+        )
+
+        if updated_file_info is None:
+            LOGGER.debug(
+                "No updates performed on %s, returned %s",
+                file_info.source_path,
+                updated_file_info,
             )
+            return file_info
 
-            if updated_file_info is None:
-                LOGGER.debug(
-                    "No updates performed on %s, returned %s",
-                    file_info.source_path,
-                    updated_file_info,
-                )
-                return file_info
+        return File(**updated_file_info)
 
-            return File(**updated_file_info)
-
-    LOGGER.debug("File %s is recent enough, not updating", file_info.source_path)
     return file_info
 
 
