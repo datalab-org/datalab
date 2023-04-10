@@ -49,8 +49,9 @@ def reduced_and_filtered_echem_dataframe(reduced_echem_dataframe):
 def test_reduce_size(echem_dataframe):
     original_size = echem_dataframe.shape[0]
     for size in (1, 10, int(0.5 * len(echem_dataframe)), len(echem_dataframe)):
+        number_of_cycles = echem_dataframe["full cycle"].nunique()
         reduced_df = reduce_echem_cycle_sampling(echem_dataframe, size)
-        assert size <= reduced_df.shape[0] <= size + 1
+        assert size <= reduced_df.shape[0] <= (size + 1) * number_of_cycles
         assert echem_dataframe.shape[0] == original_size
         assert reduced_df.shape[1] == echem_dataframe.shape[1]
 

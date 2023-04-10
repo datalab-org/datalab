@@ -1,9 +1,12 @@
 import os
-from typing import Any, Dict, List, Optional
+import time
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Union
 
 import bokeh
 import numpy as np
 import pandas as pd
+from bson import ObjectId
 from navani import echem as ec
 
 from pydatalab import bokeh_plots
@@ -15,12 +18,12 @@ from pydatalab.simple_bokeh_plot import mytheme
 from pydatalab.utils import reduce_df_size
 
 
-def reduce_echem_cycle_sampling(df: pd.DataFrame, num_samples: int = 5000) -> pd.DataFrame:
-    """Reduce number of data points per cycle.
+def reduce_echem_cycle_sampling(df: pd.DataFrame, num_samples: int = 100) -> pd.DataFrame:
+    """Reduce number of cycles to at most 100 points per cycle.
 
     Parameters:
         df: The echem dataframe to reduce, which must have cycling data stored
-            under a `"full cycle"` column.
+    e       under a `"full cycle"` column.
         num_displayed: The maximum number of sample points to include per cycle.
 
     Returns:
@@ -31,7 +34,7 @@ def reduce_echem_cycle_sampling(df: pd.DataFrame, num_samples: int = 5000) -> pd
     number_of_cycles = df["full cycle"].nunique()
 
     if number_of_cycles >= 1:
-        df = reduce_df_size(df, num_samples)
+        df = reduce_df_size(df, num_samples * number_of_cycles)
     return df
 
 
@@ -208,8 +211,15 @@ class CycleBlock(DataBlock):
             return characteristic_mass_mg / 1000.0
         return None
 
-    def plot_cycle(self):
-        """Plots the electrochemical cycling data from the file ID provided in the request."""
+    def _load(self, file_id: Union[str, ObjectId], reload: bool = False):
+        """Loads the echem data using navani, summarises it, then caches the results
+        to disk with suffixed names.
+
+        Parameters:
+            file_id: The ID of the file to load.
+            reload: Whether to reload the data from the file, or use the cached version, if available.
+
+        """
 
         required_keys = (
             "Time",
@@ -233,9 +243,62 @@ class CycleBlock(DataBlock):
             "dvdq": "dV/dQ (V/mA)",
         }
 
+        file_info = get_file_info_by_id(file_id, update_if_live=True)
+        filename = file_info["name"]
+        ext = os.path.splitext(filename)[-1].lower()
+
+        if ext not in self.accepted_file_extensions:
+            raise RuntimeError(
+                f"Unrecognized filetype {ext}, must be one of {self.accepted_file_extensions}"
+            )
+
+        parsed_file_loc = Path(file_info["location"]).with_suffix(".RAW_PARSED.pkl")
+        cycle_summary_file_loc = Path(file_info["location"]).with_suffix(".SUMMARY.pkl")
+
+        raw_df = None
+        if not reload:
+            if parsed_file_loc.exists():
+                raw_df = pd.read_pickle(parsed_file_loc)
+
+            cycle_summary_df = None
+            if cycle_summary_file_loc.exists():
+                cycle_summary_df = pd.read_pickle(cycle_summary_file_loc)
+
+        if raw_df is None:
+            try:
+                LOGGER.debug("Loading file %s", file_info["location"])
+                start_time = time.time()
+                raw_df = ec.echem_file_loader(file_info["location"])
+                LOGGER.debug(
+                    "Loaded file %s in %s seconds",
+                    file_info["location"],
+                    time.time() - start_time,
+                )
+            except Exception as exc:
+                raise RuntimeError(f"Navani raised an error when parsing: {exc}") from exc
+            raw_df.to_pickle(parsed_file_loc)
+
+        if cycle_summary_df is None:
+            cycle_summary_df = ec.cycle_summary(raw_df)
+            cycle_summary_df.to_pickle(cycle_summary_file_loc)
+
+        if "time/s" in raw_df:
+            # temporary. Navani should give "Time" as a standard field in the future.
+            raw_df["Time"] = raw_df["time/s"]
+        raw_df = raw_df.filter(required_keys)
+        raw_df.rename(columns=keys_with_units, inplace=True)
+
+        cycle_summary_df.rename(columns=keys_with_units, inplace=True)
+        cycle_summary_df["cycle index"] = pd.to_numeric(cycle_summary_df.index, downcast="integer")
+
+        return raw_df, cycle_summary_df
+
+    def plot_cycle(self):
+        """Plots the electrochemical cycling data from the file ID provided in the request."""
         if "file_id" not in self.data:
             LOGGER.warning("No file_id given")
             return
+        file_id = self.data["file_id"]
 
         derivative_modes = (None, "dQ/dV", "dV/dQ", "final capacity")
 
@@ -247,8 +310,6 @@ class CycleBlock(DataBlock):
             )
             self.data["derivative_mode"] = None
 
-        file_id = self.data["file_id"]
-
         if self.data["derivative_mode"] is None:
             mode = "normal"
         else:
@@ -259,50 +320,7 @@ class CycleBlock(DataBlock):
         if not isinstance(cycle_list, list):
             cycle_list = None
 
-        # retrieve bokeh_plot_data from the cache if it has already been generated for a given file, mode, and settings:
-        if (
-            self.cache.get("bokeh_plot_data", {}).get(file_id, {}).get(mode, None)
-            and cycle_list == self.cache.get("cycle_list", [])
-            and self.cache.get("win_size_1") == self.data["win_size_1"]
-            and self.cache.get("s_spline") == self.data["s_spline"]
-        ):
-            self.data["bokeh_plot_data"] = self.cache["bokeh_plot_data"][file_id][mode]
-            return
-
-        self.cache["cycle_list"] = cycle_list
-        self.cache["win_size_1"] = self.data["win_size_1"]
-        self.cache["s_spline"] = self.data["s_spline"]
-
-        file_info = get_file_info_by_id(file_id, update_if_live=True)
-        filename = file_info["name"]
-        ext = os.path.splitext(filename)[-1].lower()
-
-        if ext not in self.accepted_file_extensions:
-            LOGGER.warning(
-                f"Unrecognized filetype {ext}, must be one of {self.accepted_file_extensions}"
-            )
-            return
-
-        cycle_summary_df = None
-        if file_id in self.cache.get("parsed_file", {}):
-            raw_df = self.cache["parsed_file"][file_id]
-            raw_df.rename(columns=keys_with_units, inplace=True)
-        else:
-            try:
-                raw_df = ec.echem_file_loader(file_info["location"])
-            except Exception as exc:
-                raise RuntimeError(f"Navani raised an error when parsing: {exc}") from exc
-            cycle_summary_df = ec.cycle_summary(raw_df)
-            if "time/s" in raw_df:
-                # temporary. Navani should give "Time" as a standard field in the future.
-                raw_df["Time"] = raw_df["time/s"]
-            raw_df = raw_df.filter(required_keys)
-            raw_df.rename(columns=keys_with_units, inplace=True)
-            cycle_summary_df.rename(columns=keys_with_units, inplace=True)
-            cycle_summary_df["cycle index"] = pd.to_numeric(
-                cycle_summary_df.index, downcast="integer"
-            )
-            self.cache["parsed_file"] = raw_df
+        raw_df, cycle_summary_df = self._load(file_id)
 
         characteristic_mass_g = self._get_characteristic_mass_g()
 
@@ -333,21 +351,14 @@ class CycleBlock(DataBlock):
                 use_normalized_capacity=bool(characteristic_mass_g),
             )
 
-        # Reduce df size to ~5000 rows by default
-        df = reduce_echem_cycle_sampling(df)
+        # Reduce df size to 100 points per cycle by default
+        df = reduce_echem_cycle_sampling(df, num_samples=100)
 
         layout = bokeh_plots.double_axes_echem_plot(
             df, cycle_summary=cycle_summary_df, mode=mode, normalized=bool(characteristic_mass_g)
         )
 
-        if "bokeh_plot_data" not in self.cache:
-            self.cache["bokeh_plot_data"] = {}
-
-        if file_id not in self.cache["bokeh_plot_data"]:
-            self.cache["bokeh_plot_data"][file_id] = {}
-
-        self.cache["bokeh_plot_data"][file_id][mode] = bokeh.embed.json_item(layout, theme=mytheme)
-        self.data["bokeh_plot_data"] = self.cache["bokeh_plot_data"][file_id][mode]
+        self.data["bokeh_plot_data"] = bokeh.embed.json_item(layout, theme=mytheme)
         return
 
     @property
