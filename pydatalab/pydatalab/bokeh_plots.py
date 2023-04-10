@@ -367,7 +367,8 @@ def double_axes_echem_plot(
     if mode:
         crosshair = CrosshairTool(dimensions="width" if mode == "dQ/dV" else "height")
     for p in plots:
-        p.add_tools(HoverTool(tooltips=hovertooltips))
+        if len(lines) < 100:
+            p.add_tools(HoverTool(tooltips=hovertooltips))
         if mode:
             p.add_tools(crosshair)
         p.js_on_event(DoubleTap, CustomJS(args=dict(p=p), code="p.reset.emit()"))
@@ -375,7 +376,6 @@ def double_axes_echem_plot(
     if mode == "dQ/dV":
         grid = [[p1, p2], [xaxis_select]]
     elif mode == "dV/dQ":
-        # grid = [[p1, p2]]
         grid = [[p1], [p2]]
     elif mode == "final capacity":
         grid = [[p3]]
