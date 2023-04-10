@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional
 from pydantic import Field, validator
 
 from pydatalab.models.entries import Entry
+from pydatalab.models.files import File
 from pydatalab.models.people import Person
 from pydatalab.models.utils import (
     HumanReadableIdentifier,
@@ -45,7 +46,7 @@ class Item(Entry, abc.ABC):
     display_order: List[str] = Field([])
     """The order in which to display block data in the UI."""
 
-    files: Optional[List[str]]
+    files: Optional[List[File]]
     """Any files attached to this sample."""
 
     file_ObjectIds: List[PyObjectId] = Field([])
