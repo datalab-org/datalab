@@ -2,6 +2,7 @@
 import DataBlockBase from "@/components/datablocks/DataBlockBase";
 import MediaBlock from "@/components/datablocks/MediaBlock";
 import XRDBlock from "@/components/datablocks/XRDBlock";
+import ChatBlock from "@/components/datablocks/ChatBlock";
 import CycleBlock from "@/components/datablocks/CycleBlock";
 import NMRBlock from "@/components/datablocks/NMRBlock";
 
@@ -30,6 +31,7 @@ export const blockTypes = {
   xrd: { description: "Powder XRD", component: XRDBlock },
   cycle: { description: "Electrochemistry", component: CycleBlock },
   nmr: { description: "NMR", component: NMRBlock },
+  chat: { description: "A. L. L. C. A. P. S.", component: ChatBlock },
 };
 
 export const itemTypes = {

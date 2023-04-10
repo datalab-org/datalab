@@ -5,7 +5,7 @@ import random
 import zipfile
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
-import bokeh
+import bokeh.embed
 import numpy as np
 import pandas as pd
 from bson import ObjectId
