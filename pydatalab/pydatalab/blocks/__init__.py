@@ -1,6 +1,7 @@
 from typing import Dict, Sequence, Type
 
 from pydatalab.blocks.blocks import (
+    ChatBlock,
     CommentBlock,
     DataBlock,
     MediaBlock,
@@ -18,6 +19,7 @@ BLOCKS: Sequence[Type[DataBlock]] = (
     CycleBlock,
     NMRBlock,
     NotSupportedBlock,
+    ChatBlock,
 )
 
 BLOCK_TYPES: Dict[str, Type[DataBlock]] = {block.blocktype: block for block in BLOCKS}
@@ -28,6 +30,7 @@ __all__ = (
     "CommentBlock",
     "MediaBlock",
     "XRDBlock",
+    "ChatBlock",
     "CycleBlock",
     "NMRBlock",
     "BLOCK_TYPES",
