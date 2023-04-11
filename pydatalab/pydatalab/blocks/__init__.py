@@ -1,7 +1,7 @@
 from typing import Dict, Sequence, Type
 
+from pydatalab.apps.chat.blocks import ChatBlock
 from pydatalab.blocks.blocks import (
-    ChatBlock,
     CommentBlock,
     DataBlock,
     MediaBlock,
