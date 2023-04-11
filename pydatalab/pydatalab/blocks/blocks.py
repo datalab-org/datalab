@@ -268,4 +268,3 @@ class NMRBlock(DataBlock):
         bokeh_layout.children[0].x_range.flipped = True  # flip x axis, per NMR convention
 
         self.data["bokeh_plot_data"] = bokeh.embed.json_item(bokeh_layout, theme=mytheme)
-

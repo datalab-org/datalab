@@ -1,6 +1,7 @@
 import os
 import re
 import warnings
+from typing import List, Tuple
 
 import numpy as np
 import pandas as pd
@@ -15,8 +16,15 @@ class XrdmlParseError(Exception):
     pass
 
 
-def parse_xrdml(fn: str) -> pd.DataFrame:
-    with open(fn, "rU") as f:
+def parse_xrdml(filename: str) -> pd.DataFrame:
+    """Parses an XRDML file and returns a pandas DataFrame with columns
+    twotheta and intensity.
+
+    Parameters:
+        filename: The file to parse.
+
+    """
+    with open(filename, "r") as f:
         s = f.read()
 
     start, end = getStartEnd(s)  # extract first and last angle
@@ -24,66 +32,87 @@ def parse_xrdml(fn: str) -> pd.DataFrame:
 
     angles = np.linspace(start, end, num=len(intensities))
 
-    df = pd.DataFrame(
+    return pd.DataFrame(
         {
             "twotheta": angles,
             "intensity": intensities,
         }
     )
 
-    return df
 
+def convertSinglePattern(
+    filename: str,
+    directory: str = ".",
+    adjust_baseline: bool = False,
+    overwrite: bool = False,
+) -> str:
+    """Converts an XRDML file to a simple xy and writes it to the passed directory, without
+    overwriting any existing files.
 
-def convertSinglePattern(fn, directory=".", adjust_baseline=False, overwrite=False):
-    """converts a filename (.xrdml) to xy and writes it to directory as a .xy file.
-    Does nothing (prints a message) if there is already a filename.xy in the directory"""
-    fn = os.path.join(directory, fn)
-    outfn = fn + ".xy"
+    Parameters:
+        filename: The file to convert.
+        directory: The output directory.
+        adjust_baseline: If True, the baseline will be adjusted so that no points are negative.
+        overwrite: If True, existing files with the same filenames will be overwritten.
+
+    Returns:
+        The output filename.
+
+    """
+    filename = os.path.join(directory, filename)
+    outfn = filename + ".xy"
     if os.path.exists(outfn):
         if overwrite:
-            print("{} already exists in the directory {}. Overwriting.".format(outfn, directory))
+            print(f"{outfn} already exists in the directory {directory}. Overwriting.")
         else:
             warnings.warn(
-                "{} already exists in the directory {}. rm or mv it if you wish to convert {}".format(
-                    outfn, directory, fn
-                )
+                f"{outfn} already exists in the directory {directory}, will not overwrite"
             )
             return outfn
 
-    with open(fn, "rU") as f:
+    with open(filename, "r") as f:
         s = f.read()
-    print("Processing file {}:".format(fn))
+
+    print(f"Processing file {filename}")
     start, end = getStartEnd(s)
-    print("    start angle: {}    end angle: {}".format(start, end))
+    print(f"\tstart angle: {start}\tend angle: {end}")
     intensities = getIntensities(s)
 
     if adjust_baseline:
-        intensities = np.array(intensities)
+        intensities = np.array(intensities)  # type: ignore
         minI = np.min(intensities)
         if minI < 0:
             print(
-                "    adjusting baseline so that no points are negative (adding {} counts)".format(
-                    -1 * np.min(intensities)
-                )
+                f"\tadjusting baseline so that no points are negative (adding {-1 * minI} counts)"
             )
-            intensities = intensities - np.min(intensities)
+            intensities -= minI
         else:
-            print("    no intensitites are less than zero, so no baseline adjustment performed")
+            print("\tno intensitites are less than zero, so no baseline adjustment performed")
 
-    print("    number of datapoints: {}".format(len(intensities)))
+        intensities = intensities.tolist()  # type: ignore
+
+    print(f"\tnumber of datapoints: {len(intensities)}")
     xystring = toXY(intensities, start, end)
     with open(outfn, "w") as of:
         of.write(xystring)
-    print("    Success!")
+    print("\tSuccess!")
     return outfn
 
 
-def getStartEnd(s):
-    """parse a given xrdml file to find the start and end 2Theta points of the scan.
-    Returns a tuple of floats: (start, end)"""
+def getStartEnd(s: str) -> Tuple[float, float]:
+    """Parse a given string representation of an xrdml file to find the start and end 2Theta points of the scan.
+    Note: this could match either Omega or 2Theta depending on their order in the XRDML file.
+
+    Raises:
+        XrdmlParseError: if the start and end positions could not be found.
+
+    Returns:
+        (start, end) positions in the XRDML file.
+
+    """
     match = re.search(STARTEND_REGEX, s)
     if not match:
-        raise XrdmlParseError("the start and end 2theta positions were not found in the XML file")
+        raise XrdmlParseError("the start and end 2theta positions were not found in the XRDML file")
 
     start = float(match.group(1))
     end = float(match.group(2))
@@ -91,8 +120,16 @@ def getStartEnd(s):
     return start, end
 
 
-def getIntensities(s):
-    """parses an xrdml file in string form to extract the intensities. Returns a list of floats"""
+def getIntensities(s: str) -> List[float]:
+    """Parse a given string representation of an xrdml file to find the peak intensities.
+
+    Raises:
+        XrdmlParseError: if intensities could not be found in the file
+
+    Returns:
+        The array of intensitites.
+
+    """
     match = re.search(DATA_REGEX, s)
     if not match:
         raise XrdmlParseError("the intensitites were not found in the XML file")
@@ -101,9 +138,11 @@ def getIntensities(s):
     return out
 
 
-def toXY(intensities, start, end):
-    """converts a given list of intensities, along with a start and end angle,
-    to a string in XY format"""
+def toXY(intensities: List[float], start: float, end: float) -> str:
+    """Converts a given list of intensities, along with a start and end angle,
+    to a string in XY format.
+
+    """
     angles = np.linspace(start, end, num=len(intensities))
     xylines = ["{:.5f} {:.3f}\r\n".format(a, i) for a, i in zip(angles, intensities)]
     return "".join(xylines)
