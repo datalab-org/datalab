@@ -3,22 +3,26 @@
 DataBlockBase as a prop, and save from within DataBlockBase  -->
   <DataBlockBase :item_id="item_id" :block_id="block_id">
     <div class="row">
-      <div id="bokehPlotContainer" class="col-xl-9 col-lg-10 col-md-11 mx-auto">
-        <BokehPlot :bokehPlotData="bokehPlotData" />
+      <div id="chatWindowContainer" class="col-xl-9 col-lg-10 col-md-11 mx-auto">
+        <ChatWindow :chatMessages="messages" />
       </div>
     </div>
-    <div class="form-row col-md-10 col-lg-4 mt-2 mb-2 pl-1">
-      <div class="input-group form-inline">
-        <label class="mr-2"><b>Prompt</b></label>
-        <input type="text" class="form-control" v-model="prompt" @keydown.enter="updateBlock()" />
-      </div>
+    <div class="input-group form-inline">
+      <textarea
+        rows="3"
+        type="text"
+        class="form-control"
+        v-model="prompt"
+        @keydown.enter="updateBlock()"
+        placeholder="Type your message to send to the LLM, then hit enter when you are ready."
+      />
     </div>
   </DataBlockBase>
 </template>
 
 <script>
 import DataBlockBase from "@/components/datablocks/DataBlockBase";
-import BokehPlot from "@/components/BokehPlot";
+import ChatWindow from "@/components/ChatWindow";
 
 import { createComputedSetterForBlockField } from "@/field_utils.js";
 import { updateBlockFromServer } from "@/server_fetch_utils.js";
@@ -29,16 +33,14 @@ export default {
     block_id: String,
   },
   computed: {
-    bokehPlotData() {
-      return this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id]
-        .bokeh_plot_data;
+    messages() {
+      return this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id].messages;
     },
     prompt: createComputedSetterForBlockField("prompt"),
-    file_id: createComputedSetterForBlockField("file_id"),
   },
   components: {
     DataBlockBase,
-    BokehPlot,
+    ChatWindow,
   },
   methods: {
     updateBlock() {

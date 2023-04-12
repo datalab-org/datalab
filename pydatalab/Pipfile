@@ -26,6 +26,7 @@ pint = "*"
 periodictable = "*"
 flask-compress = "*"
 pillow = "*"
+openai = "*"
 
 [dev-packages]
 pytest = "*"

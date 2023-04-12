@@ -8,8 +8,6 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 import bokeh.embed
 import numpy as np
 import pandas as pd
-from bokeh.models import Text
-from bokeh.plotting import figure
 from bson import ObjectId
 from PIL import Image
 from scipy.signal import medfilt
