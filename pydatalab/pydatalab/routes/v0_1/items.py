@@ -443,7 +443,7 @@ def delete_sample():
 delete_sample.methods = ("POST",)  # type: ignore
 
 
-def get_item_data(item_id):
+def get_item_data(item_id, load_blocks=True):
     # retrieve the entry from the database:
     cursor = flask_mongo.db.items.aggregate(
         [
@@ -485,7 +485,8 @@ def get_item_data(item_id):
             raise KeyError(f"Item {item_id=} has no type field in document.")
 
     doc = ItemModel(**doc)
-    doc.blocks_obj = reserialize_blocks(doc.blocks_obj)
+    if load_blocks:
+        doc.blocks_obj = reserialize_blocks(doc.blocks_obj)
 
     files_data = []
     if doc.file_ObjectIds:
