@@ -68,7 +68,6 @@ def dereference_files(file_ids: List[Union[str, ObjectId]]) -> Dict[str, Dict]:
 
 
 def get_starting_materials():
-
     if not current_user.is_authenticated and not CONFIG.TESTING:
         return (
             jsonify(
@@ -111,7 +110,6 @@ get_starting_materials.methods = ("GET",)  # type: ignore
 
 
 def get_samples():
-
     items = [
         doc
         for doc in flask_mongo.db.items.aggregate(
@@ -205,7 +203,6 @@ search_items.methods = ("GET",)  # type: ignore
 
 
 def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[dict, int]:
-
     if not current_user.is_authenticated and not CONFIG.TESTING:
         return (
             dict(
@@ -217,7 +214,6 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
         )
 
     if copy_from_item_id:
-
         copied_doc = flask_mongo.db.items.find_one({"item_id": copy_from_item_id})
 
         LOGGER.debug(f"Copying from pre-existing item {copy_from_item_id} with data:\n{copied_doc}")
@@ -412,7 +408,6 @@ create_samples.methods = ("POST",)  # type: ignore
 
 
 def delete_sample():
-
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
     item_id = request_json["item_id"]
 
@@ -464,7 +459,11 @@ def get_item_data(item_id, load_blocks=True):
     except IndexError:
         doc = None
 
-    if not doc or (not current_user.is_authenticated and doc["type"] == "starting_materials"):
+    if not doc or (
+        not CONFIG.TESTING
+        and not current_user.is_authenticated
+        and doc["type"] == "starting_materials"
+    ):
         return (
             jsonify(
                 {
@@ -557,7 +556,6 @@ get_item_data.methods = ("GET",)  # type: ignore
 
 
 def save_item():
-
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
 
     item_id = request_json["item_id"]
