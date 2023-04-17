@@ -61,5 +61,6 @@ export default {
   padding: 1rem;
   max-width: 65%;
   color: black;
+  white-space: pre-wrap;
 }
 </style>
