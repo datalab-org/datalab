@@ -1,11 +1,57 @@
+import json
 import os
 from typing import Sequence
 
 import openai
 
+from pydatalab.apps.chat.item_models_for_chat import Cell, Sample
 from pydatalab.blocks.blocks import DataBlock
+from pydatalab.mongo import flask_mongo
+from pydatalab.utils import CustomJSONEncoder
 
 __all__ = "ChatBlock"
+
+ITEM_MODELS = {
+    "samples": Sample,
+    "cells": Cell,
+}
+
+
+def get_item_data_for_chat(item_id):
+    cursor = flask_mongo.db.items.aggregate(
+        [
+            {"$match": {"item_id": item_id}},
+            {
+                "$lookup": {
+                    "from": "users",
+                    "localField": "creator_ids",
+                    "foreignField": "_id",
+                    "as": "creators",
+                }
+            },
+            {
+                "$lookup": {
+                    "from": "files",
+                    "localField": "file_ObjectIds",
+                    "foreignField": "_id",
+                    "as": "files",
+                }
+            },
+        ]
+    )
+    doc = list(cursor)[0]
+
+    ItemModel = ITEM_MODELS[doc["type"]]
+
+    item = ItemModel(**doc)
+
+    item_dict = item.dict(exclude_none=True)
+
+    item_dict["blocks"] = [value for value in item_dict["blocks_obj"].values()]
+    del item_dict["blocks_obj"]
+
+    output = json.dumps(item_dict, cls=CustomJSONEncoder)
+    return output
 
 
 class ChatBlock(DataBlock):
@@ -28,12 +74,15 @@ class ChatBlock(DataBlock):
 
     def render(self):
         from pydatalab.routes.v0_1.graphs import get_graph_cy_format
-        from pydatalab.routes.v0_1.items import get_item_data
 
-        item_info = get_item_data(self.data["item_id"], load_blocks=False).json
-        graph = get_graph_cy_format(self.data["item_id"])
+        # item_info = get_item_data(self.data["item_id"], load_blocks=False).json
+        graph = get_graph_cy_format()[0].json
 
-        item_info["item_data"]["blocks_obj"] = []
+        item_infos = [
+            get_item_data_for_chat(node["data"]["id"])
+            for node in graph["nodes"]
+            if node["data"]["type"] != "starting_materials"
+        ]
 
         if not self.data.get("messages"):
             self.data["messages"] = [
@@ -43,9 +92,7 @@ class ChatBlock(DataBlock):
                 },
                 {
                     "role": "user",
-                    "content": f"""The current item has item_id: {self.data['item_id']}. Here is a json that describes links between this sample and others: {graph}.
-
-                    Here is a json file that describes the current item and others that are linked to it: {item_info}""",
+                    "content": f"""The current item has item_id: {self.data['item_id']}. Here is a json file that describes the current item and others that are linked to it: {item_infos}""",
                 },
             ]
 
@@ -65,12 +112,14 @@ class ChatBlock(DataBlock):
             if self.data["messages"][-1]["role"] == "assistant":
                 return
 
+        print(item_infos)
         responses = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=self.data["messages"],
             temperature=0.9,
             max_tokens=1024,
-            stop=["\n"],
+            # stop=["\n"],
+            n=1,
         )
 
         try:
