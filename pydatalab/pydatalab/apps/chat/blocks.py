@@ -6,6 +6,7 @@ import openai
 
 from pydatalab.apps.chat.item_models_for_chat import Cell, Sample
 from pydatalab.blocks.blocks import DataBlock
+from pydatalab.logger import LOGGER
 from pydatalab.mongo import flask_mongo
 from pydatalab.utils import CustomJSONEncoder
 
@@ -47,7 +48,9 @@ def get_item_data_for_chat(item_id):
 
     item_dict = item.dict(exclude_none=True)
 
-    item_dict["blocks"] = [value for value in item_dict["blocks_obj"].values()]
+    item_dict["blocks"] = [
+        value for value in item_dict["blocks_obj"].values() if value["blocktype"] != "chat"
+    ]
     del item_dict["blocks_obj"]
 
     output = json.dumps(item_dict, cls=CustomJSONEncoder)
@@ -111,16 +114,17 @@ class ChatBlock(DataBlock):
         except Exception:
             if self.data["messages"][-1]["role"] == "assistant":
                 return
-
-        print(item_infos)
-        responses = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=self.data["messages"],
-            temperature=0.9,
-            max_tokens=1024,
-            # stop=["\n"],
-            n=1,
-        )
+        try:
+            responses = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=self.data["messages"],
+                temperature=0.9,
+                max_tokens=1024,
+                n=1,
+            )
+        except openai.InvalidRequestError:
+            LOGGER.debug("rReceived an invalidRequestError from openAi.")
+            return
 
         try:
             self.data["messages"].append(responses["choices"][0].message)
