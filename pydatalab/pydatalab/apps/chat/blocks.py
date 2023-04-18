@@ -4,6 +4,7 @@ from typing import Sequence
 import openai
 
 from pydatalab.blocks.blocks import DataBlock
+from pydatalab.logger import LOGGER
 
 __all__ = "ChatBlock"
 
@@ -61,18 +62,22 @@ class ChatBlock(DataBlock):
         try:
             if self.data["messages"][-1].role == "assistant":
                 return
-        except Exception:
+        except AttributeError:
             if self.data["messages"][-1]["role"] == "assistant":
                 return
 
-        responses = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=self.data["messages"],
-            temperature=0.9,
-            max_tokens=1024,
-        )
+        try:
+            responses = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=self.data["messages"],
+                temperature=0.9,
+                max_tokens=1024,
+            )
+        except openai.InvalidRequestError as exc:
+            LOGGER.debug("Received an InvalidRequestError from OpenAI API: %s", exc)
+            return
 
         try:
             self.data["messages"].append(responses["choices"][0].message)
-        except Exception:
+        except AttributeError:
             self.data["messages"].append(responses["choices"][0]["message"])
