@@ -449,6 +449,14 @@ def get_item_data(item_id, load_blocks=True):
                     "localField": "creator_ids",
                     "foreignField": "_id",
                     "as": "creators",
+                },
+            },
+            {
+                "$lookup": {
+                    "from": "files",
+                    "localField": "file_ObjectIds",
+                    "foreignField": "_id",
+                    "as": "files",
                 }
             },
         ],
@@ -486,10 +494,6 @@ def get_item_data(item_id, load_blocks=True):
     doc = ItemModel(**doc)
     if load_blocks:
         doc.blocks_obj = reserialize_blocks(doc.blocks_obj)
-
-    files_data = []
-    if doc.file_ObjectIds:
-        files_data = dereference_files(doc.file_ObjectIds)
 
     # find any documents with relationships that mention this document
     relationships_query_results = flask_mongo.db.items.find(
@@ -545,7 +549,7 @@ def get_item_data(item_id, load_blocks=True):
             "status": "success",
             "item_id": item_id,
             "item_data": return_dict,
-            "files_data": files_data,
+            "files_data": return_dict.get("files", []),
             "child_items": sorted(children),
             "parent_items": sorted(parents),
         }
