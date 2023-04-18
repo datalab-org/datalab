@@ -70,7 +70,6 @@ class ChatBlock(DataBlock):
             messages=self.data["messages"],
             temperature=0.9,
             max_tokens=1024,
-            stop=["\n"],
         )
 
         try:
