@@ -7,11 +7,12 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
         <ChatWindow :chatMessages="messages" />
       </div>
     </div>
-    <div class="input-group form-inline">
+    <div class="input-group form-inline col-md-8 mx-auto">
       <textarea
         rows="3"
         type="text"
         class="form-control"
+        :disabled="isLoading"
         v-model="prompt"
         @keydown.enter="updateBlock()"
         placeholder="Type your message to send to the LLM, then hit enter when you are ready."
@@ -32,6 +33,11 @@ export default {
     item_id: String,
     block_id: String,
   },
+  data() {
+    return {
+      isLoading: false,
+    };
+  },
   computed: {
     messages() {
       return this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id].messages;
@@ -44,11 +50,13 @@ export default {
   },
   methods: {
     updateBlock() {
+      this.isLoading = true;
       updateBlockFromServer(
         this.item_id,
         this.block_id,
         this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id]
       );
+      this.isLoading = false;
     },
   },
 };
