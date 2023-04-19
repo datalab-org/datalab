@@ -87,6 +87,10 @@ You are embedded within the program datalab, where you have access to json descr
             if node["data"]["type"] != "starting_materials"
         ]
 
+        all_item_info = "\n".join(item_infos)
+        # with open("all_data.json", "w") as f:
+        #     f.write(all_item_info)
+
         if not self.data.get("messages"):
             self.data["messages"] = [
                 {
@@ -95,7 +99,7 @@ You are embedded within the program datalab, where you have access to json descr
                 },
                 {
                     "role": "user",
-                    "content": f"""The current item has item_id: {self.data['item_id']}. Here is a json file that describes the current item and others that are linked to it: {item_infos}""",
+                    "content": f"""The current item has item_id: {self.data['item_id']}. Here is a json file that describes the current item and others that are linked to it: {all_item_info}""",
                 },
             ]
 
@@ -127,7 +131,7 @@ You are embedded within the program datalab, where you have access to json descr
             self.data["messages"].append(
                 {
                     "role": "error",
-                    "content": f"Received an error from the OpenAi API: {e}. \nLikely this conversation has reached its maximum context size and you will need to start over with a new conversation.",
+                    "content": f"Received an error from the OpenAi API: {e}. \n\n(if this error says too many tokens were requested, this conversation has reached its maximum size and you will need to start a new conversation to ask more questions)",
                 }
             )
             return
