@@ -3,7 +3,7 @@
 DataBlockBase as a prop, and save from within DataBlockBase  -->
   <DataBlockBase :item_id="item_id" :block_id="block_id">
     <div class="row">
-      <div id="chatWindowContainer" class="col-xl-9 col-lg-10 col-md-11 mx-auto">
+      <div id="chatWindowContainer" class="col-xl-10 col-lg-11 col-md-12 mx-auto">
         <ChatWindow :chatMessages="messages" />
       </div>
     </div>
