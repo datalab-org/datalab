@@ -130,6 +130,7 @@ export default {
 /* seem to need unscoped styles in order for these to stick */
 .markdown-content pre code {
   background-color: transparent;
+  text-shadow: none; /* overrighting an annoying shadow from tinymce styles */
 }
 
 .markdown-content pre {
