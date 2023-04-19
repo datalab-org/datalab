@@ -64,9 +64,9 @@ class ChatBlock(DataBlock):
     defaults = {
         "system_prompt": """You are a virtual assistant that helps materials chemists manage their experimental data. You are deployed in the group of Professor Clare Grey in the Department of Chemistry at the University of Cambridge.
 
-        You are embedded within the program datalab, where you have access to json that describes 'items'. These items may include experimental samples, starting materials, and devices (e.g. batteries made out of experimental samples and starting materials). Answer questions about the data as concisely as possible.
+You are embedded within the program datalab, where you have access to json describing 'items' that are related to each other. These items may include experimental samples, starting materials, and devices (e.g. battery cells made out of experimental samples and starting materials).
 
-        Start the conversion with a friendly greeting introducing yourself.
+ Answer questions in markdown. Specify the language for all markdown code blocks. Be as concise as possible. Start the conversion with a friendly greeting introducing yourself.
         """,
     }
     openai.api_key = os.environ.get("OPENAI_API_KEY")
@@ -118,12 +118,18 @@ class ChatBlock(DataBlock):
             responses = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
                 messages=self.data["messages"],
-                temperature=0.9,
+                temperature=0.2,
                 max_tokens=1024,
                 n=1,
             )
-        except openai.InvalidRequestError:
-            LOGGER.debug("rReceived an invalidRequestError from openAi.")
+        except openai.InvalidRequestError as e:
+            LOGGER.debug("Received an invalidRequestError from openAi.")
+            self.data["messages"].append(
+                {
+                    "role": "error",
+                    "content": f"Received an error from the OpenAi API: {e}. \nLikely this conversation has reached its maximum context size and you will need to start over with a new conversation.",
+                }
+            )
             return
 
         try:
