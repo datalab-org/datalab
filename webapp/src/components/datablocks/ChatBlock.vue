@@ -14,9 +14,11 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
         class="form-control"
         :disabled="isLoading"
         v-model="prompt"
-        @keydown.enter="updateBlock()"
-        placeholder="Type your message to send to the LLM, then hit enter when you are ready."
+        placeholder="Type your message to send to the LLM, then hit send."
       />
+      <button type="button" class="btn btn-primary" :disabled="isLoading" @click="updateBlock()">
+        Send
+      </button>
     </div>
   </DataBlockBase>
 </template>
