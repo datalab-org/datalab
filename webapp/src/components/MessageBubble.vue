@@ -50,7 +50,7 @@ export default {
       flush: "post",
       async handler() {
         // if any mermaid code blocks are present, convert them to mermaid plots:
-        const elements = this.$refs.markdownDiv.querySelectorAll("pre .mermaid-code");
+        const elements = this.$refs.markdownDiv.querySelectorAll("pre.mermaid-code");
         elements.forEach(async (el) => {
           const { svg } = await mermaid.render(
             "mermaid_" + Math.floor(Math.random() * 1000000),
