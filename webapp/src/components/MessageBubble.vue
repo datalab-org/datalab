@@ -5,7 +5,7 @@
     :class="{ 'flex-left': !isUserMessage, 'flex-right': isUserMessage }"
   >
     <div class="bubble" :class="{ 'bubble-system': !isUserMessage, 'bubble-user': isUserMessage }">
-      <div v-show="!showRaw" class="markdown-content" v-html="markdownContent" />
+      <div ref="markdownDiv" v-show="!showRaw" class="markdown-content" v-html="markdownContent" />
       <div class="raw-content" v-show="showRaw">{{ message.content }}</div>
       <div class="float-right raw-toggle" @click="showRaw = !showRaw">
         <span :class="{ 'font-weight-bold': showRaw }"> raw </span> |
@@ -44,13 +44,32 @@ export default {
       return this.md?.render(this.message.content);
     },
   },
+  methods: {},
+  watch: {
+    markdownContent: {
+      flush: "post",
+      async handler() {
+        // if any mermaid code blocks are present, convert them to mermaid plots:
+        const elements = this.$refs.markdownDiv.querySelectorAll("pre .mermaid-code");
+        elements.forEach(async (el) => {
+          const { svg } = await mermaid.render(
+            "mermaid_" + Math.floor(Math.random() * 1000000),
+            el.textContent,
+            el
+          );
+          el.innerHTML = svg;
+        });
+      },
+    },
+  },
   mounted() {
+    console.log("mounted called");
     this.md = new MarkdownIt({
       typographer: true,
       highlight: function (str, lang) {
         if (lang && lang == "mermaid") {
           try {
-            return `<pre class="mermaid">${str}</pre>`;
+            return `<pre class="mermaid-code">${str}</pre>`;
           } catch (__) {
             //pass
           }
@@ -67,10 +86,6 @@ export default {
     this.md.renderer.rules.table_open = function () {
       return '<table class="table table-sm">';
     };
-    mermaid.initialize({ startOnLoad: false });
-  },
-  updated() {
-    mermaid.run({ querySelector: ".mermaid" });
   },
 };
 </script>
