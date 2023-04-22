@@ -6,6 +6,7 @@ import pytest
 from bson.json_util import ObjectId
 
 from pydatalab.models import ITEM_MODELS, Sample
+from pydatalab.models.files import File
 from pydatalab.models.items import Item
 from pydatalab.models.relationships import (
     KnownType,
@@ -43,6 +44,61 @@ def test_relationship_with_custom_type():
         )
 
 
+def test_file():
+    current_datetime = datetime.datetime.now()
+    file_dict1 = {
+        "_id": "6437c96341ffc8169a957e2d",
+        "size": 10003,
+        "last_modified_remote": "2019-05-18T15:17:08",
+        "item_ids": ["test1", "test2"],
+        "blocks": ["123456"],
+        "name": "test.jpg",
+        "extension": ".jpg",
+        "original_name": "test .jpg",
+        "location": "path/test.jpg",
+        "url_path": "/app/files/dsefse/test.jpg",
+        "source": "remote",
+        "time_added": current_datetime,
+        "metadata": {"something": "data"},
+        "representation": [1, 2, 3],
+        "source_server_name": "Bob",
+        "source_path": "test_experiment/pictures/test.jpg",
+        "is_live": True,
+    }
+
+    # maximal file (everything defined)
+    File1 = File(**file_dict1)
+    assert File1.type == "files"
+    assert File1.time_added == current_datetime
+
+    file_dict2 = {
+        "item_ids": [],
+        "blocks": [],
+        "name": "a.b",
+        "extension": ".b",
+        "time_added": "2019-05-18T15:18:10",
+        "is_live": False,
+    }
+
+    # minimal file
+    File2 = File(**file_dict2)
+    assert File2.type == "files"
+    assert File2.time_added == datetime.datetime.fromisoformat("2019-05-18T15:18:10")
+
+    # make sure you can make a sample with the files internal
+    sample = Sample(
+        creator_ids=[ObjectId("0123456789ab0123456789ab"), ObjectId("1023456789ab0123456789ab")],
+        creators=None,
+        date="2020-01-01 00:00",
+        last_modified=datetime.datetime(2020, 1, 1, 0, 0),
+        item_id="1234",
+        files=[file_dict1, file_dict2],
+    )
+
+    assert sample.files[0].type == "files"
+    assert sample.files[1].type == "files"
+
+
 def test_custom_and_inherited_items():
     class TestItem(Item):
         type: str = "items_custom"
@@ -52,7 +108,6 @@ def test_custom_and_inherited_items():
         last_modified=None,
         creator_ids=[ObjectId("0123456789ab0123456789ab"), ObjectId("1023456789ab0123456789ab")],
         creators=None,
-        files=["file1", "file2"],
         date="2020-01-01 00:00",
         item_id="1234",
     )
@@ -72,7 +127,6 @@ def test_custom_and_inherited_items():
     sample = Sample(
         creator_ids=[ObjectId("0123456789ab0123456789ab"), ObjectId("1023456789ab0123456789ab")],
         creators=None,
-        files=["file1", "file2"],
         date="2020-01-01 00:00",
         last_modified=datetime.datetime(2020, 1, 1, 0, 0),
         item_id="1234",

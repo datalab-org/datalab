@@ -38,6 +38,7 @@ def reserialize_blocks(blocks_obj: Dict[str, Dict]) -> Dict[str, Dict]:
     return blocks_obj
 
 
+# Seems to be obselete now?
 def dereference_files(file_ids: List[Union[str, ObjectId]]) -> Dict[str, Dict]:
     """For a list of Object IDs (as strings or otherwise), query the files collection
     and return a dictionary of the data stored under each ID.
@@ -544,12 +545,17 @@ def get_item_data(item_id, load_blocks=True):
     # Must be exported to JSON first to apply the custom pydantic JSON encoders
     return_dict = json.loads(doc.json())
 
+    # create the files_data dictionary keyed by file ObjectId
+    files_data: Dict[ObjectId, Dict] = dict(
+        [(f["immutable_id"], f) for f in return_dict.get("files", [])]
+    )
+
     return jsonify(
         {
             "status": "success",
             "item_id": item_id,
             "item_data": return_dict,
-            "files_data": return_dict.get("files", []),
+            "files_data": files_data,
             "child_items": sorted(children),
             "parent_items": sorted(parents),
         }
