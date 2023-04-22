@@ -40,10 +40,9 @@ class ChatBlock(DataBlock):
             model.blocks_obj = {
                 k: value for k, value in model.blocks_obj.items() if value["blocktype"] != "chat"
             }
-        _type = model.type
         item_info = model.dict(exclude_none=True, exclude_unset=True, exclude_defaults=True)
-        item_info["type"] = _type
-        LOGGER.debug(item_info)
+        item_info["type"] = model.type
+        # LOGGER.debug(item_info)
 
         # strip irrelevant or large fields
         for block in item_info.get("blocks_obj", {}).values():
@@ -93,13 +92,16 @@ class ChatBlock(DataBlock):
             self.data["prompt"] = None
 
         try:
-            if self.data["messages"][-1].role == "assistant":
+            if self.data["messages"][-1].role not in ("user", "system"):
                 return
         except AttributeError:
-            if self.data["messages"][-1]["role"] == "assistant":
+            if self.data["messages"][-1]["role"] not in ("user", "system"):
                 return
 
         try:
+            LOGGER.warning(
+                f"submitting request to OpenAI API for completion with last message role \"{self.data['messages'][-1]['role']}\" (message = {self.data['messages'][-1:]})"
+            )
             responses = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
                 messages=self.data["messages"],
