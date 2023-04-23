@@ -3,16 +3,22 @@
   <div v-if="loading" class="alert alert-secondary">Loading...</div>
   -->
   <div ref="chatWindow" :style="{ height: windowHeight }" />
-  <div v-for="message in chatMessages.slice(2)" :key="message.id">
-    <MessageBubble :message="message" />
-  </div>
+  <transition-group name="message-list" tag="ul">
+    <ul v-for="(message, index) in chatMessages.slice(2)" :key="index">
+      <MessageBubble :message="message" />
+    </ul>
+  </transition-group>
+  <font-awesome-icon class="ellipsis" :icon="['fas', 'ellipsis-h']" beat-fade v-if="isLoading" />
 </template>
 
 <script>
 import MessageBubble from "@/components/MessageBubble.vue";
 
 export default {
-  props: ["chatMessages"],
+  props: {
+    chatMessages: Array,
+    isLoading: Boolean,
+  },
   data: function () {
     return {
       loading: false,
@@ -30,3 +36,23 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.message-list-enter-active,
+.message-list-leave-active {
+  transition: all 0.5s ease;
+}
+
+.message-list-enter-from,
+.message-list-leave-to {
+  opacity: 0;
+  transform: translateX(30px);
+}
+
+.ellipsis {
+  font-size: 1.5rem;
+  color: lightgrey;
+  position: relative;
+  top: -1rem;
+}
+</style>
