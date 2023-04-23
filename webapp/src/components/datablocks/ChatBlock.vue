@@ -4,19 +4,26 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
   <DataBlockBase :item_id="item_id" :block_id="block_id">
     <div class="row">
       <div id="chatWindowContainer" class="col-xl-9 col-lg-10 col-md-11 mx-auto">
-        <ChatWindow :chatMessages="messages" />
+        <ChatWindow :chatMessages="messages" :isLoading="isLoading" />
       </div>
     </div>
-    <div class="input-group form-inline col-md-8 mx-auto">
+    <div class="input-group form-inline col-md-10 mx-auto align-items-end">
       <textarea
         rows="3"
         type="text"
         class="form-control"
         :disabled="isLoading"
         v-model="prompt"
-        placeholder="Type your message to send to the LLM, then hit send."
+        placeholder="Type your message to send to the LLM, then hit send (or shift-enter)."
+        @keydown.enter.shift.exact.prevent="updateBlock"
       />
-      <button type="button" class="btn btn-primary" :disabled="isLoading" @click="updateBlock()">
+      <button
+        type="button"
+        class="btn btn-default send-button"
+        :disabled="isLoading"
+        :class="{ disabled: !prompt || isLoading }"
+        @click="updateBlock()"
+      >
         Send
       </button>
     </div>
@@ -41,9 +48,7 @@ export default {
     };
   },
   computed: {
-    messages() {
-      return this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id].messages;
-    },
+    messages: createComputedSetterForBlockField("messages"),
     prompt: createComputedSetterForBlockField("prompt"),
   },
   components: {
@@ -51,9 +56,15 @@ export default {
     ChatWindow,
   },
   methods: {
-    updateBlock() {
+    async updateBlock() {
       this.isLoading = true;
-      updateBlockFromServer(
+      this.messages.push({
+        content: this.prompt,
+        role: "user",
+      });
+      this.prompt = "";
+
+      await updateBlockFromServer(
         this.item_id,
         this.block_id,
         this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id]
@@ -64,4 +75,13 @@ export default {
 };
 </script>
 
-<style scoped></style>
+<style scoped>
+.send-button {
+  height: 2.5rem;
+  border-radius: 2rem;
+  position: relative;
+  left: -70px;
+  top: -10px;
+  z-index: 10;
+}
+</style>
