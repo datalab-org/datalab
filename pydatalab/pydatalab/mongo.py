@@ -18,8 +18,13 @@ flask_mongo = PyMongo()
 """This is the primary database interface used by the Flask app."""
 
 
-def insert_pydantic_model_fork_safe(model: BaseModel, collection: str) -> None:
-    get_database()[collection].insert_one(model.dict(by_alias=True))
+def insert_pydantic_model_fork_safe(model: BaseModel, collection: str) -> str:
+    """Inserts a Pydantic model into chosen collection, returning the inserted ID."""
+    return (
+        get_database()[collection]
+        .insert_one(model.dict(by_alias=True, exclude_none=True))
+        .inserted_id
+    )
 
 
 def _get_active_mongo_client(timeoutMS: int = 1000) -> pymongo.MongoClient:
