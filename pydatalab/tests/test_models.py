@@ -16,6 +16,43 @@ from pydatalab.models.relationships import (
 from pydatalab.models.utils import HumanReadableIdentifier, Refcode
 
 
+def test_sample_with_inlined_reference():
+    from pydatalab.models.samples import Sample
+
+    a = Sample(item_id="test_anode", chemform="C")
+
+    b = Sample(
+        item_id="abcd-1-2-3",
+        synthesis_constituents=[
+            {"item": {"item_id": a.item_id, "type": "samples"}, "quantity": None}
+        ],
+    )
+
+    assert b
+    assert len(b.relationships) == 1
+
+    c = Sample(
+        item_id="c-123",
+        synthesis_constituents=[
+            {"item": {"item_id": a.item_id, "type": "samples"}, "quantity": None},
+            {"item": {"name": "inline"}, "quantity": None},
+        ],
+    )
+
+    assert c
+    assert len(c.relationships) == 1
+
+    d = Sample(
+        item_id="d-123",
+        synthesis_constituents=[
+            {"item": {"name": a.item_id}, "quantity": None},
+            {"item": {"name": "inline"}, "quantity": None},
+        ],
+    )
+    assert d
+    assert len(d.relationships) == 0
+
+
 @pytest.mark.parametrize("model", ITEM_MODELS.values())
 def test_generate_schemas(model):
     """Test that all item model schemas can be generated."""

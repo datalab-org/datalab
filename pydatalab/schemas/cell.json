@@ -500,6 +500,10 @@
           "title": "Type",
           "type": "string"
         },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
         "immutable_id": {
           "title": "Immutable Id",
           "type": "string"
