@@ -444,6 +444,10 @@
           "title": "Type",
           "type": "string"
         },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
         "immutable_id": {
           "title": "Immutable Id",
           "type": "string"
@@ -467,13 +471,38 @@
         "type"
       ]
     },
+    "InlineSubstance": {
+      "title": "InlineSubstance",
+      "type": "object",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "chemform": {
+          "title": "Chemform",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
     "Constituent": {
       "title": "Constituent",
       "description": "A constituent of a sample.",
       "type": "object",
       "properties": {
         "item": {
-          "$ref": "#/definitions/EntryReference"
+          "title": "Item",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/EntryReference"
+            },
+            {
+              "$ref": "#/definitions/InlineSubstance"
+            }
+          ]
         },
         "quantity": {
           "title": "Quantity",

@@ -1,33 +1,9 @@
 from typing import List, Optional
 
-from pydantic import BaseModel, Field, root_validator, validator
+from pydantic import Field, root_validator
 
-from pydatalab.models.entries import EntryReference
 from pydatalab.models.items import Item
-from pydatalab.models.utils import ItemType
-
-
-class Constituent(BaseModel):
-    """A constituent of a sample."""
-
-    item: EntryReference = Field(...)
-    """A reference to item (sample or starting material) entry for the constituent substance."""
-
-    quantity: Optional[float] = Field(..., ge=0)
-    """The amount of the constituent material used to create the sample."""
-
-    unit: str = Field("g")
-    """The unit symbol for the value provided in `quantity`, default is mass
-    in grams (g) but could also refer to volumes (mL, L, etc.) or moles (mol).
-    """
-
-    @validator("item")
-    def check_itemhood(cls, v):
-        """Check that the reference within the constituent is to an item type."""
-        if "type" in (v.value for v in ItemType):
-            raise ValueError(f"`type` must be one of {ItemType!r}")
-
-        return v
+from pydatalab.models.utils import Constituent, InlineSubstance
 
 
 class Sample(Item):
@@ -63,6 +39,9 @@ class Sample(Item):
                 values["relationships"] = []
 
             for constituent in values.get("synthesis_constituents", []):
+                # If this is an inline relationship, just skip it
+                if isinstance(constituent.item, InlineSubstance):
+                    continue
                 if (
                     constituent.item.item_id not in existing_parent_relationship_ids
                     and constituent.item.refcode not in existing_parent_relationship_ids

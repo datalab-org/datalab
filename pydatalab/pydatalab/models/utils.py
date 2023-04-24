@@ -3,11 +3,18 @@ import random
 import string
 from enum import Enum
 from functools import partial
-from typing import Callable
+from typing import Callable, Optional, Union
 
 import pint
 from bson.objectid import ObjectId
-from pydantic import ConstrainedStr, parse_obj_as
+from pydantic import (
+    BaseModel,
+    ConstrainedStr,
+    Field,
+    parse_obj_as,
+    root_validator,
+    validator,
+)
 from typing_extensions import TypeAlias
 
 
@@ -198,3 +205,80 @@ def generate_unique_refcode():
         raise RuntimeError(f"Cannot check refcode for uniqueness: {exc}")
 
     return refcode
+
+
+class InlineSubstance(BaseModel):
+    name: str
+    chemform: Optional[str]
+
+
+class EntryReference(BaseModel):
+    """A reference to a database entry by ID and type.
+
+    Can include additional arbitarary metadata useful for
+    inlining the item data.
+
+    """
+
+    type: str
+    name: Optional[str]
+    immutable_id: Optional[PyObjectId]
+    item_id: Optional[HumanReadableIdentifier]
+    refcode: Optional[Refcode]
+
+    @root_validator
+    def check_id_fields(cls, values):
+        """Check that only one of the possible identifier fields is provided."""
+        id_fields = ("immutable_id", "item_id", "refcode")
+
+        # Temporarily remove refcodes from the list of fields to check
+        # until it is fully implemented
+        if values.get("refcode") is not None:
+            values["refcode"] = None
+        if all(values.get(f) is None for f in id_fields):
+            raise ValueError(f"Must provide at least one of {id_fields!r}")
+
+        if sum(1 for f in id_fields if values.get(f) is not None) > 1:
+            raise ValueError("Must provide only one of {id_fields!r}")
+
+        return values
+
+    class Config:
+        extra = "allow"
+
+
+class Constituent(BaseModel):
+    """A constituent of a sample."""
+
+    item: Union[EntryReference, InlineSubstance]
+    """A reference to item (sample or starting material) entry for the constituent substance."""
+
+    quantity: Optional[float] = Field(..., ge=0)
+    """The amount of the constituent material used to create the sample."""
+
+    unit: str = Field("g")
+    """The unit symbol for the value provided in `quantity`, default is mass
+    in grams (g) but could also refer to volumes (mL, L, etc.) or moles (mol).
+    """
+
+    @validator("item")
+    def check_itemhood(cls, v):
+        """Check that the reference within the constituent is to an item type."""
+        if "type" in (v.value for v in ItemType):
+            raise ValueError(f"`type` must be one of {ItemType!r}")
+
+        return v
+
+    @validator("item", pre=True, always=True)
+    def coerce_reference(cls, v):
+        if isinstance(v, dict):
+            id = v.pop("item_id", None)
+            if id:
+                return EntryReference(item_id=id, **v)
+            else:
+                name = v.pop("name", "")
+                chemform = v.pop("chemform", None)
+                if not name:
+                    raise ValueError("Inline substance must have a name!")
+                return InlineSubstance(name=name, chemform=chemform)
+        return v
