@@ -1,76 +1,11 @@
 <template>
   <div id="synthesis-information">
     <label class="mr-2 pb-2">Synthesis Information</label>
-    <table class="table mb-2">
-      <thead>
-        <tr class="subheading">
-          <th style="width: calc(60% - 2rem)">Component</th>
-          <th style="width: 21%">Formula</th>
-          <th style="width: 12%">Amount</th>
-          <th style="width: 7%">Unit</th>
-          <th style="width: 1rem"></th>
-        </tr>
-      </thead>
-      <tbody class="borderless">
-        <tr v-for="(constituent, index) in constituents" :key="index">
-          <td class="first-column">
-            <transition name="fade">
-              <font-awesome-icon
-                v-if="!selectShown[index]"
-                :icon="['fas', 'search']"
-                class="swap-constituent-icon"
-                @click="turnOnRowSelect(index)"
-              />
-            </transition>
-            <ItemSelect
-              class="select-in-row"
-              v-if="selectShown[index]"
-              :ref="`select${index}`"
-              v-model="selectedChangedConstituent"
-              :clearable="false"
-              @option:selected="swapConstituent($event, index)"
-              @search:blur="selectShown[index] = false"
-            />
-            <FormattedItemName
-              v-else
-              :item_id="constituent.item.item_id"
-              :itemType="constituent.item.type"
-              :name="constituent.item.name"
-              enableClick
-              enableModifiedClick
-              @dblclick="turnOnRowSelect(index)"
-            />
-          </td>
-          <td>
-            <ChemicalFormula :formula="constituent.item?.chemform" />
-          </td>
-          <td>
-            <input
-              class="form-control quantity-input"
-              :class="{ 'red-border': isNaN(constituent.quantity) }"
-              v-model="constituent.quantity"
-            />
-          </td>
-          <td>
-            <input class="form-control" v-model="constituent.unit" />
-          </td>
-
-          <td>
-            <button
-              type="button"
-              class="close"
-              @click.stop="removeConstituent(index)"
-              aria-label="delete"
-            >
-              <span aria-hidden="true">&times;</span>
-            </button>
-          </td>
-        </tr>
-        <tr>
-          <ItemSelect v-model="selectedNewConstituent" @option:selected="addConstituent" />
-        </tr>
-      </tbody>
-    </table>
+    <div class="card component-card">
+      <div class="card-body pt-2 pb-0 mb-0 pl-5">
+        <CompactConstituentTable id="synthesis-table" v-model="constituents" />
+      </div>
+    </div>
     <span id="synthesis-procedure-label" class="subheading ml-2">Procedure</span>
     <TinyMceInline
       aria-labelledby="synthesis-procedure-label"
@@ -81,18 +16,13 @@
 
 <script>
 import TinyMceInline from "@/components/TinyMceInline";
-import ChemicalFormula from "@/components/ChemicalFormula.vue";
 import { createComputedSetterForItemField } from "@/field_utils.js";
-
-import ItemSelect from "@/components/ItemSelect.vue";
-import FormattedItemName from "@/components/FormattedItemName.vue";
+import CompactConstituentTable from "@/components/CompactConstituentTable.vue";
 
 export default {
   components: {
     TinyMceInline,
-    ChemicalFormula,
-    ItemSelect,
-    FormattedItemName,
+    CompactConstituentTable,
   },
   data() {
     return {
