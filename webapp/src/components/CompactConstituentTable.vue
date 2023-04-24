@@ -73,7 +73,7 @@
           <transition name="fade">
             <font-awesome-icon
               class="add-row-button"
-              v-if="!newSelectIsShown"
+              v-if="!addNewConstituentIsActive"
               :icon="['far', 'plus-square']"
             />
           </transition>
