@@ -1,13 +1,17 @@
 from enum import Enum
-from typing import List, Optional, Union
+from typing import List, Optional
 
-from pydantic import BaseModel, Field, root_validator, validator
+from pydantic import Field, root_validator, validator
 
 from pydatalab.models.entries import EntryReference
 from pydatalab.models.items import Item
-from pydatalab.models.samples import Constituent
+from pydatalab.models.utils import Constituent
 
 # from pydatalab.logger import LOGGER
+
+
+class CellComponent(Constituent):
+    ...
 
 
 class CellFormat(str, Enum):
@@ -20,32 +24,6 @@ class CellFormat(str, Enum):
     swagelok = "swagelok"
     cylindrical = "cylindrical"
     other = "other"
-
-
-class InlineSubstance(BaseModel):
-    name: str
-    chemform: Optional[str]
-
-
-class CellComponent(Constituent):
-    """A constituent of a sample."""
-
-    item: Union[EntryReference, InlineSubstance]
-    """A reference to item (sample or starting material) entry for the constituent substance."""
-
-    @validator("item", pre=True, always=True)
-    def coerce_reference(cls, v):
-        if isinstance(v, dict):
-            id = v.pop("item_id", None)
-            if id:
-                return EntryReference(item_id=id, **v)
-            else:
-                name = v.pop("name", "")
-                chemform = v.pop("chemform", None)
-                if not name:
-                    raise ValueError("Inline substance must have a name!")
-                return InlineSubstance(name=name, chemform=chemform)
-        return v
 
 
 class Cell(Item):
