@@ -20,6 +20,39 @@
             v-show="true"
             :icon="['fa', 'link']"
           />
+          <font-awesome-icon
+            v-else-if="stored_files[file_id].source_server_name != null"
+            class="unlink-icon"
+            v-show="true"
+            :icon="['fa', 'unlink']"
+          />
+          <span v-if="stored_files[file_id].source_server_name != null">
+            <span class="server-name">
+              <font-awesome-icon :icon="['fas', 'hdd']" class="toplevel-icon" />
+              {{ stored_files[file_id].source_server_name }}
+            </span>
+            <span class="last-updated-text">
+              (updated
+              {{
+                formatDistance(new Date(stored_files[file_id].last_modified_remote), new Date(), {
+                  addSuffix: true,
+                })
+              }}, last synced
+              {{
+                formatDistance(new Date(stored_files[file_id].last_modified), new Date(), {
+                  addSuffix: true,
+                })
+              }})
+            </span>
+          </span>
+          <span v-else class="last-updated-text">
+            (uploaded
+            {{
+              formatDistance(new Date(stored_files[file_id].last_modified), new Date(), {
+                addSuffix: true,
+              })
+            }})
+          </span>
         </div>
       </div>
       <div class="row">
@@ -40,6 +73,7 @@
 
 <script>
 import { deleteFileFromSample } from "@/server_fetch_utils";
+import { formatDistance } from "date-fns";
 
 export default {
   data() {
@@ -53,6 +87,7 @@ export default {
     stored_files: Object,
   },
   methods: {
+    formatDistance,
     deleteFile(event, file_id) {
       console.log(`delete file button clicked!`);
       console.log(event);
@@ -73,13 +108,15 @@ export default {
 
 .filelink {
   color: #004175;
+  font-family: "Andalé Mono", monospace;
 }
 
 .filelink:hover {
   text-decoration: none;
 }
 
-.link-icon {
+.link-icon,
+.unlink-icon {
   margin-left: 0.4rem;
   color: #888;
   font-size: small;
@@ -93,5 +130,24 @@ export default {
 #uppy-trigger {
   scroll-anchor: auto;
   width: 8rem;
+}
+
+.last-updated-text {
+  font-size: 0.8em;
+  color: #888;
+  font-style: italic;
+  vertical-align: middle;
+}
+
+.server-name {
+  font-family: "Andalé Mono", monospace;
+  font-weight: 400;
+  /*font-style: italic;*/
+  color: teal;
+  border: solid 1px teal;
+  padding: 0.1rem 0.25rem;
+  margin-left: 0.5rem;
+  border-radius: 0.2rem;
+  font-size: 0.8em;
 }
 </style>
