@@ -75,6 +75,15 @@ services:
     ports:
       - "27017:27017"
 
+  rabbitmq:
+    build:
+      context: .
+      dockerfile: .docker/mq_dockerfile
+    networks:
+      - backend
+    ports:
+      - "5672:5672"
+
 networks:
   nginx:
     external: true

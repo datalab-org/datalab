@@ -61,6 +61,17 @@ class ServerConfig(BaseSettings):
         "mongodb://localhost:27017/datalabvue",
         description="The URI for the underlying MongoDB.",
     )
+
+    MQ_BROKER_URL: str = Field(
+        "amqp://localhost:5672/datalab",
+        description="The URL for the message queue broker.",
+    )
+
+    MQ_RESULTS_BACKEND: str = Field(
+        "rpc://localhost:5672/datalab",
+        description="The message queue results backend URL.",
+    )
+
     FILE_DIRECTORY: Union[str, Path] = Field(
         Path(__file__).parent.joinpath("../files").resolve(),
         description="The path under which to place stored files uploaded to the server.",

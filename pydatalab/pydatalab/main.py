@@ -2,6 +2,7 @@ import datetime
 import logging
 from typing import Any, Dict
 
+from celery import Celery, Task
 from dotenv import dotenv_values
 from flask import Flask, redirect, request, session, url_for
 from flask_compress import Compress
@@ -16,6 +17,19 @@ from pydatalab.login import LOGIN_MANAGER
 from pydatalab.utils import CustomJSONEncoder
 
 compress = Compress()
+
+
+def celery_init_app(app: Flask) -> Celery:
+    class FlaskTask(Task):
+        def __call__(self, *args: object, **kwargs: object) -> object:
+            with app.app_context():
+                return self.run(*args, **kwargs)
+
+    celery_app = Celery(app.name, task_cls=FlaskTask)
+    celery_app.config_from_object(app.config["CELERY"])
+    celery_app.set_default()
+    app.extensions["celery"] = celery_app
+    return celery_app
 
 
 def create_app(config_override: Dict[str, Any] = None) -> Flask:
@@ -39,6 +53,15 @@ def create_app(config_override: Dict[str, Any] = None) -> Flask:
 
     app.config.update(CONFIG.dict())
     app.config.update(dotenv_values())
+
+    app.config.from_mapping(
+        CELERY={
+            "broker_url": CONFIG.MQ_BROKER_URL,
+            "result_backend": CONFIG.MQ_RESULTS_BACKEND,
+            "task_ignore_result": True,
+        }
+    )
+    celery_init_app(app)
 
     LOGGER.info("Starting app with Flask app.config: %s", app.config)
     LOGGER.info("Datalab config: %s", CONFIG.dict())

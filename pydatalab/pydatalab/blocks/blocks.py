@@ -9,6 +9,7 @@ import bokeh
 import numpy as np
 import pandas as pd
 from bson import ObjectId
+from celery import shared_task
 from PIL import Image
 from scipy.signal import medfilt
 
@@ -19,6 +20,11 @@ from pydatalab.logger import LOGGER
 from pydatalab.mongo import flask_mongo
 
 __all__ = ("generate_random_id", "DataBlock")
+
+
+@shared_task
+def load_async(callable, **kwargs):
+    return callable(**kwargs)
 
 
 def generate_random_id():
@@ -343,6 +349,9 @@ class XRDBlock(DataBlock):
         ]
 
         return df, y_options
+
+    def load(self, **kwargs):
+        load_async(self._load, **kwargs)
 
     def generate_xrd_plot(self):
         file_info = None

@@ -7,6 +7,8 @@ import bokeh
 import numpy as np
 import pandas as pd
 from bson import ObjectId
+from celery import shared_task
+from celery.result import AsyncResult
 from navani import echem as ec
 
 from pydatalab import bokeh_plots
@@ -16,6 +18,11 @@ from pydatalab.logger import LOGGER
 from pydatalab.mongo import flask_mongo
 from pydatalab.simple_bokeh_plot import mytheme
 from pydatalab.utils import reduce_df_size
+
+
+@shared_task
+def async_parse_and_save_file(location: str, parsed_file_loc: str):
+    return CycleBlock.parse_and_save_file(Path(location), Path(parsed_file_loc))
 
 
 def reduce_echem_cycle_sampling(df: pd.DataFrame, num_samples: int = 100) -> pd.DataFrame:
@@ -201,6 +208,23 @@ class CycleBlock(DataBlock):
         "derivative_mode": None,
     }
 
+    @staticmethod
+    def parse_and_save_file(location, parsed_file_loc):
+        try:
+            LOGGER.debug("Loading file %s", location)
+            start_time = time.time()
+            raw_df = ec.echem_file_loader(location)
+            LOGGER.debug(
+                "Loaded file %s in %s seconds",
+                location,
+                time.time() - start_time,
+            )
+        except Exception as exc:
+            raise RuntimeError(f"Navani raised an error when parsing: {exc}") from exc
+        raw_df.to_pickle(parsed_file_loc)
+
+        return raw_df
+
     def _get_characteristic_mass_g(self):
         # return {"characteristic_mass": 1000}
         doc = flask_mongo.db.items.find_one(
@@ -258,6 +282,7 @@ class CycleBlock(DataBlock):
         raw_df = None
         if not reload:
             if parsed_file_loc.exists():
+                LOGGER.debug("Loading %s from pkl", parsed_file_loc)
                 raw_df = pd.read_pickle(parsed_file_loc)
 
             cycle_summary_df = None
@@ -265,18 +290,20 @@ class CycleBlock(DataBlock):
                 cycle_summary_df = pd.read_pickle(cycle_summary_file_loc)
 
         if raw_df is None:
-            try:
-                LOGGER.debug("Loading file %s", file_info["location"])
-                start_time = time.time()
-                raw_df = ec.echem_file_loader(file_info["location"])
-                LOGGER.debug(
-                    "Loaded file %s in %s seconds",
-                    file_info["location"],
-                    time.time() - start_time,
-                )
-            except Exception as exc:
-                raise RuntimeError(f"Navani raised an error when parsing: {exc}") from exc
-            raw_df.to_pickle(parsed_file_loc)
+
+            result = AsyncResult(
+                async_parse_and_save_file.delay(
+                    location=str(file_info["location"]),
+                    parsed_file_loc=str(parsed_file_loc),
+                ).id
+            )
+            ind = 0
+            while not result.ready():
+                ind += 1
+                time.sleep(1)
+                LOGGER.debug("Polling for results %s", ind)
+
+            raw_df = result.result
 
         if cycle_summary_df is None:
             cycle_summary_df = ec.cycle_summary(raw_df)

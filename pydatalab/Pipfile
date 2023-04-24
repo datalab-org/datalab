@@ -26,6 +26,7 @@ pint = "*"
 periodictable = "*"
 flask-compress = "*"
 pillow = "*"
+celery = "*"
 
 [dev-packages]
 pytest = "*"
