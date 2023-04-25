@@ -19,6 +19,7 @@
         :item_id="item_id"
         :itemType="type"
         :name="name"
+        :selecting="true"
         :chemform="chemform"
         enableModifiedClick
         :maxLength="formattedItemNameMaxLength"
@@ -28,6 +29,7 @@
       <FormattedItemName
         :item_id="item_id"
         :itemType="type"
+        :selecting="true"
         :name="name"
         enableModifiedClick
         :maxLength="formattedItemNameMaxLength"
