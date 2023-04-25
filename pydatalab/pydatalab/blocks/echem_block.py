@@ -245,6 +245,10 @@ class CycleBlock(DataBlock):
 
         file_info = get_file_info_by_id(file_id, update_if_live=True)
         filename = file_info["name"]
+
+        if file_info.get("is_live"):
+            reload = True
+
         ext = os.path.splitext(filename)[-1].lower()
 
         if ext not in self.accepted_file_extensions:
