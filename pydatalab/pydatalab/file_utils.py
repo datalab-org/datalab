@@ -17,6 +17,7 @@ from pydatalab.mongo import get_database
 
 FILE_DIRECTORY = CONFIG.FILE_DIRECTORY
 DIRECTORIES_DICT = {fs["name"]: fs for fs in CONFIG.REMOTE_FILESYSTEMS}
+LIVE_FILE_CUTOFF = datetime.timedelta(days=31)
 
 
 def _escape_spaces_scp_path(remote_path: str) -> str:
@@ -71,6 +72,34 @@ def _sync_file_with_remote(remote_path: str, src: str) -> None:
 
 
 @logged_route
+def _call_remote_stat(path: str):
+    """Call `stat` on a remote file.
+
+    Args:
+        path: The full remote path.
+
+    Returns:
+        A dictionary of the `tree` output.
+
+    """
+
+    path = path.strip("ssh://")
+    hostname, file_path = path.split(":", 1)
+    command = f"ssh {hostname} 'stat -c %Y {file_path}'"
+    process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    LOGGER.debug(f"Calling {command}")
+    try:
+        stdout, stderr = process.communicate(timeout=20)
+        timestamp = int(stdout.decode("utf-8"))
+    except Exception as exc:
+        raise RuntimeError(f"Remote stat process {command!r} returned: {exc!r}")
+    if stderr:
+        raise RuntimeError(f"Remote statprocess {command!r} returned: {stderr!r}")
+
+    return datetime.datetime.fromtimestamp(timestamp)
+
+
+@logged_route
 def _check_and_sync_file(file_info: File, file_id: ObjectId) -> File:
     """For a given file, check if the remote version is newer
     than the stored version and sync them if so.
@@ -110,7 +139,13 @@ def _check_and_sync_file(file_info: File, file_id: ObjectId) -> File:
 
     if full_remote_path.startswith("ssh://"):
         # For ssh-able remotes, check age of the local file, rather than the last time the remote file was modified
-        remote_timestamp = datetime.datetime.now()
+        remote_timestamp = _call_remote_stat(full_remote_path)
+        LOGGER.debug(
+            "File %s was last edited at timestamp %s, %s ago",
+            full_remote_path,
+            remote_timestamp,
+            datetime.datetime.today() - remote_timestamp,
+        )
 
     else:
         try:
@@ -136,36 +171,45 @@ def _check_and_sync_file(file_info: File, file_id: ObjectId) -> File:
             )
             return file_info
 
-        if file_info.location is not None:
-            new_stat_results = os.stat(file_info.location)
+    else:
+        LOGGER.debug("File %s is recent enough, not updating", file_info.source_path)
 
-            updated_file_info = file_collection.find_one_and_update(
-                {"_id": file_id},
-                {
-                    "$set": {
-                        "size": new_stat_results.st_size,
-                        "last_modified": datetime.datetime.fromtimestamp(new_stat_results.st_mtime),
-                        "last_modified_remote": remote_timestamp,
-                    },
-                    "$inc": {"revision": 1},
+    if file_info.location is not None:
+        local_stat_results = os.stat(file_info.location)
+
+        # If the file has not been updated in the last cutoff period, do not redownload on every access
+        is_live = True
+        if datetime.datetime.now() - remote_timestamp > LIVE_FILE_CUTOFF:
+            is_live = False
+
+        updated_file_info = file_collection.find_one_and_update(
+            {"_id": file_id},
+            {
+                "$set": {
+                    "size": local_stat_results.st_size,
+                    "last_modified": datetime.datetime.fromtimestamp(local_stat_results.st_mtime),
+                    "last_modified_remote": remote_timestamp,
+                    "is_live": is_live,
                 },
-                return_document=ReturnDocument.AFTER,
+                "$inc": {"revision": 1},
+            },
+            return_document=ReturnDocument.AFTER,
+        )
+
+        if updated_file_info is None:
+            LOGGER.debug(
+                "No updates performed on %s, returned %s",
+                file_info.source_path,
+                updated_file_info,
             )
+            return file_info
 
-            if updated_file_info is None:
-                LOGGER.debug(
-                    "No updates performed on %s, returned %s",
-                    file_info.source_path,
-                    updated_file_info,
-                )
-                return file_info
+        return File(**updated_file_info)
 
-            return File(**updated_file_info)
-
-    LOGGER.debug("File %s is recent enough, not updating", file_info.source_path)
     return file_info
 
 
+@logged_route
 def get_file_info_by_id(
     file_id: Union[str, ObjectId], update_if_live: bool = True
 ) -> Dict[str, Any]:
@@ -203,6 +247,7 @@ def get_file_info_by_id(
     return file_info.dict()
 
 
+@logged_route
 def update_uploaded_file(file, file_id, last_modified=None, size_bytes=None):
     """file is a file object from a flask request.
     last_modified should be an isodate format. if None, the current time will be inserted
@@ -239,6 +284,7 @@ def update_uploaded_file(file, file_id, last_modified=None, size_bytes=None):
     return ret
 
 
+@logged_route
 def save_uploaded_file(file, item_ids=None, block_ids=None, last_modified=None, size_bytes=None):
     """file is a file object from a flask request.
     last_modified should be an isodate format. if last_modified is None, the current time will be inserted"""

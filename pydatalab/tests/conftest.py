@@ -10,7 +10,7 @@ import pydatalab.mongo
 from pydatalab.main import create_app
 from pydatalab.models import Cell, Sample, StartingMaterial
 
-TEST_DATABASE_NAME = "datalab_testing"
+TEST_DATABASE_NAME = "datalab-testing"
 
 
 class PyMongoMock(mongomock.MongoClient):
@@ -18,7 +18,6 @@ class PyMongoMock(mongomock.MongoClient):
         return super().__init__(MONGO_URI)
 
 
-# Must remain as `db` so that calls to flask_mongo.db remain correct
 MONGO_URI = f"mongodb://localhost:27017/{TEST_DATABASE_NAME}"
 
 
@@ -88,15 +87,19 @@ def client(real_mongo_client, monkeypatch_session):
         with patch.object(
             pydatalab.mongo,
             "flask_mongo",
-            PyMongoMock(connectTimeoutMS=100, serverSelectionTimeoutMS=100),
+            PyMongoMock(MONGO_URI, connectTimeoutMS=100, serverSelectionTimeoutMS=100),
         ):
 
             def mock_mongo_client():
-                return PyMongoMock(connectTimeoutMS=100, serverSelectionTimeoutMS=100)
+                return PyMongoMock(MONGO_URI, connectTimeoutMS=100, serverSelectionTimeoutMS=100)
+
+            def mock_mongo_database():
+                return mock_mongo_client().get_database(TEST_DATABASE_NAME)
 
             monkeypatch_session.setattr(
                 pydatalab.mongo, "_get_active_mongo_client", mock_mongo_client
             )
+            monkeypatch_session.setattr(pydatalab.mongo, "get_database", mock_mongo_database)
             app = create_app(test_app_config)
 
             with app.test_client() as cli:
