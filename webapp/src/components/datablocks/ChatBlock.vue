@@ -20,8 +20,7 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
       <button
         type="button"
         class="btn btn-default send-button"
-        :disabled="isLoading"
-        :class="{ disabled: !prompt || isLoading }"
+        :disabled="!prompt || isLoading"
         @click="updateBlock()"
       >
         Send

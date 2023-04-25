@@ -1,4 +1,5 @@
 module.exports = {
+  transpileDependencies: ["mermaid"],
   configureWebpack: (config) => {
     config.externals = {
       ...config.externals,
