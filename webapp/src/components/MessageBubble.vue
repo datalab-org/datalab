@@ -18,8 +18,8 @@
 <script>
 import MarkdownIt from "markdown-it";
 import "markdown-it";
-// import hljs from "highlight.js";
-// import "highlight.js/styles/a11y-light.css";
+import hljs from "highlight.js";
+import "highlight.js/styles/a11y-light.css";
 import mermaid from "mermaid";
 
 export default {
@@ -76,14 +76,13 @@ export default {
         }
         if (lang && lang == "svg") {
           return `<pre class="svg-drawing">${str}</pre>`;
+        } else if (lang && hljs.getLanguage(lang)) {
+          try {
+            return hljs.highlight(str, { language: lang }).value;
+          } catch (__) {
+            //pass
+          }
         }
-        // else if (lang && hljs.getLanguage(lang)) {
-        //   try {
-        //     return hljs.highlight(str, { language: lang }).value;
-        //   } catch (__) {
-        //     //pass
-        //   }
-        // }
       },
     });
 
