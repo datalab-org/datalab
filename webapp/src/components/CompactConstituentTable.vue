@@ -44,10 +44,15 @@
             class="form-control form-control-sm quantity-input"
             :class="{ 'red-border': isNaN(constituent.quantity) }"
             v-model="constituent.quantity"
+            placeholder="quantity"
           />
         </td>
         <td>
-          <input class="form-control form-control-sm" v-model="constituent.unit" />
+          <input
+            class="form-control form-control-sm"
+            v-model="constituent.unit"
+            placeholder="unit"
+          />
         </td>
 
         <td>

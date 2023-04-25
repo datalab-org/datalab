@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div v-if="item_id">
     <span
       class="badge badge-light mr-2"
       :class="{ clickable: enableClick || enableModifiedClick }"
@@ -13,6 +13,10 @@
     {{ shortenedName }}
     <span v-if="chemform && chemform != ' '"> [ <ChemicalFormula :formula="chemform" /> ] </span>
   </div>
+  <div v-else>
+    <font-awesome-icon v-if="selecting" :icon="['far', 'plus-square']" />
+    {{ shortenedName }}
+  </div>
 </template>
 
 <script>
@@ -23,6 +27,10 @@ export default {
   props: {
     item_id: String,
     itemType: String,
+    selecting: {
+      type: Boolean,
+      default: false,
+    },
     name: String,
     chemform: String,
     enableClick: {
