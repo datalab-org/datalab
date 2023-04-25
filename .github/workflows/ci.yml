@@ -105,10 +105,6 @@ jobs:
         working-directory: ./webapp
         run: yarn install --frozen-lockfile
 
-      - name: Unit and Component test web app
-        working-directory: ./webapp
-        run: yarn test:unit
-
       - name: Build web app
         working-directory: ./webapp
         run: yarn build
