@@ -31,7 +31,7 @@ export const blockTypes = {
   xrd: { description: "Powder XRD", component: XRDBlock },
   cycle: { description: "Electrochemistry", component: CycleBlock },
   nmr: { description: "NMR", component: NMRBlock },
-  chat: { description: "A. L. L. C. A. P. S.", component: ChatBlock },
+  chat: { description: "Virtual assistant", component: ChatBlock },
 };
 
 export const itemTypes = {
