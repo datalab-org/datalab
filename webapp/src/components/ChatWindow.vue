@@ -4,7 +4,7 @@
   -->
   <div ref="chatWindow" :style="{ height: windowHeight }" />
   <transition-group name="message-list" tag="ul">
-    <ul v-for="(message, index) in chatMessages.slice(2)" :key="index">
+    <ul v-for="(message, index) in chatMessages" :key="index">
       <MessageBubble :message="message" />
     </ul>
   </transition-group>

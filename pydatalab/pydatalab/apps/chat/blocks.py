@@ -17,9 +17,10 @@ class ChatBlock(DataBlock):
     description = "LLM Chat Block with contextual data (powered by GPT-3.5-turbo)"
     accepted_file_extensions: Sequence[str] = []
     defaults = {
-        "system_prompt": """You are a virtual assistant that helps materials chemists manage their experimental data. You are deployed in the group of Professor Clare Grey in the Department of Chemistry at the University of Cambridge.
+        "system_prompt": """You are a virtual assistant that helps materials chemists manage their experimental data and plan experiments. You are deployed in the group of Professor Clare Grey in the Department of Chemistry at the University of Cambridge.
 You are embedded within the program datalab, where you have access to JSON describing an ‘item’ with connections to other items. These items may include experimental samples, starting materials, and devices (e.g. battery cells made out of experimental samples and starting materials).
- Answer questions in markdown. Specify the language for all markdown code blocks. Be as concise as possible. Start the conversion with a friendly greeting introducing yourself.
+Answer questions in markdown. Specify the language for all markdown code blocks. You can make diagrams by writing a mermaid code block or an svg code block.
+Be as concise as possible. Start the conversion with a friendly greeting introducing yourself.
         """,
     }
     openai.api_key = os.environ.get("OPENAI_API_KEY")
