@@ -548,18 +548,18 @@ export default {
   font-weight: 600;
 }
 
-.modal-enclosure >>> .modal-header {
+.modal-enclosure :deep(.modal-header) {
   padding: 0.5rem 1rem;
 }
 
-.modal-enclosure >>> .modal-dialog {
+.modal-enclosure :deep(.modal-dialog) {
   max-width: 95vw;
   min-height: 90vh;
   margin-top: 2.5vh;
   margin-bottom: 2.5vh;
 }
 
-.modal-enclosure >>> .modal-content {
+.modal-enclosure :deep(.modal-content) {
   height: 90vh;
   overflow: scroll;
   scroll-behavior: smooth;
