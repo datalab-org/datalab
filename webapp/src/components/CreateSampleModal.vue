@@ -1,5 +1,5 @@
 <template>
-  <form @submit.prevent="submitForm">
+  <form @submit.prevent="submitForm" class="modal-enclosure">
     <Modal
       :modelValue="modelValue"
       @update:modelValue="$emit('update:modelValue', $event)"
@@ -201,5 +201,11 @@ export default {
 :deep(.form-error a) {
   color: #820000;
   font-weight: 600;
+}
+
+.modal-enclosure :deep(.modal-content) {
+  max-height: 90vh;
+  overflow: auto;
+  scroll-behavior: smooth;
 }
 </style>
