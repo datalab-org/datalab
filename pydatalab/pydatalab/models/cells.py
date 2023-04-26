@@ -83,16 +83,6 @@ class Cell(Item):
 
     active_ion_charge: float = Field(1)
 
-    @validator("cell_format", "cell_format_description")
-    def check_descriptions_for_ambiguous_formats(cls, v, values):
-        if (
-            values.get("cell_format") == CellFormat.other
-            and values.get("cell_format_description") is None
-        ):
-            raise ValueError("cell_format_description must be set if cell_format is 'other'")
-
-        return v
-
     @validator("characteristic_molar_mass", always=True, pre=True)
     def set_molar_mass(cls, v, values):
         from periodictable import formula
