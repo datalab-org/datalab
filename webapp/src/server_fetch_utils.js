@@ -222,9 +222,13 @@ export async function updateBlockFromServer(item_id, block_id, block_data) {
         block_id: block_id,
         block_data: response_json.new_block_data,
       });
+      store.commit("setBlockNotUpdating", block_id);
     })
-    .catch((error) => alert("Error in updateBlockFromServer: " + error))
-    .then(() => store.commit("setBlockNotUpdating", block_id));
+    .catch((error) => {
+      alert("Error in updateBlockFromServer: " + error);
+      store.commit("setBlockNotUpdating", block_id);
+      throw error;
+    });
 }
 
 export function addABlock(item_id, block_type, index = null) {

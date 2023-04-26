@@ -2,9 +2,20 @@
   <!-- render the chat with the LLM bot as a green chat bubble on the left, and the user's messages as a grey chat bubble on the right -->
   <div
     class="bubble-enclosure"
-    :class="{ 'flex-left': !isUserMessage, 'flex-right': isUserMessage }"
+    :class="{
+      'flex-left': role === 'assistant',
+      'flex-right': role === 'user' || role === 'system',
+    }"
   >
-    <div class="bubble" :class="{ 'bubble-system': !isUserMessage, 'bubble-user': isUserMessage }">
+    <div
+      class="bubble"
+      :class="{
+        'bubble-assistant': role === 'assistant',
+        'bubble-user': role === 'user',
+        'bubble-system': role === 'system',
+      }"
+    >
+      <span class="system-prompt-label" v-if="role === 'system'">system prompt:</span>
       <div ref="markdownDiv" v-show="!showRaw" class="markdown-content" v-html="markdownContent" />
       <div class="raw-content" v-show="showRaw">{{ message.content }}</div>
       <div class="float-right raw-toggle" @click="showRaw = !showRaw">
@@ -37,8 +48,14 @@ export default {
     };
   },
   computed: {
+    role() {
+      return this.message.role;
+    },
     isUserMessage() {
       return this.message.role === "user";
+    },
+    isSystemMessage() {
+      return this.message.role === "system";
     },
     markdownContent() {
       return this.md?.render(this.message.content);
@@ -67,14 +84,14 @@ export default {
     this.md = new MarkdownIt({
       typographer: true,
       highlight: function (str, lang) {
-        if (lang && lang == "mermaid") {
+        if (lang && lang.toLowerCase() == "mermaid") {
           try {
             return `<pre class="mermaid-code">${str}</pre>`;
           } catch (__) {
             //pass
           }
         }
-        if (lang && lang == "svg") {
+        if (lang && lang.toLowerCase() == "svg") {
           return `<pre class="svg-drawing">${str}</pre>`;
         } else if (lang && hljs.getLanguage(lang)) {
           try {
@@ -114,9 +131,23 @@ export default {
   max-width: 90%;
 }
 
-.bubble-system {
+.bubble-assistant {
   background-color: rgba(25, 25, 25, 0.05);
   width: 90%;
+}
+
+.bubble-system {
+  border: 1px solid #dee2e6;
+  background-color: rgba(24, 132, 185, 0.05);
+  border-radius: 0.1rem !important;
+  width: 90%;
+}
+
+.system-prompt-label {
+  font-family: "Roboto Mono", monospace;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: rgb(100, 100, 100);
 }
 
 .raw-content {
