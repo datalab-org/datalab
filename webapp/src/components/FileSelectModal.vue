@@ -131,18 +131,18 @@ export default {
 </script>
 
 <style scoped>
-.modal-enclosure >>> .modal-header {
+.modal-enclosure :deep(.modal-header) {
   padding: 0.5rem 1rem;
 }
 
-.modal-enclosure >>> .modal-dialog {
+.modal-enclosure :deep(.modal-dialog) {
   max-width: 95%;
   min-height: 95vh;
   margin-top: 2.5vh;
   margin-bottom: 2.5vh;
 }
 
-.modal-enclosure >>> .modal-content {
+.modal-enclosure :deep(.modal-content) {
   height: 95vh;
   /*overflow: scroll;*/
 }
