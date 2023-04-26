@@ -27,7 +27,7 @@ export const debounceTime = 250; // time after user stops typing before request 
 export const blockTypes = {
   generic: { description: "Test Block", component: DataBlockBase },
   comment: { description: "Comment", component: DataBlockBase },
-  media: { description: "Media Block", component: MediaBlock },
+  media: { description: "Media", component: MediaBlock },
   xrd: { description: "Powder XRD", component: XRDBlock },
   cycle: { description: "Electrochemistry", component: CycleBlock },
   nmr: { description: "NMR", component: NMRBlock },
