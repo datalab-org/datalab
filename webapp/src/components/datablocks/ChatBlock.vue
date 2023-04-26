@@ -14,8 +14,8 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
         class="form-control"
         :disabled="isLoading"
         v-model="prompt"
-        placeholder="Type your message to send to the LLM, then hit send (or shift-enter)."
-        @keydown.enter.shift.exact.prevent="updateBlock"
+        placeholder="Type your message to send to the LLM, then press enter or hit send (shift-enter for newline)."
+        @keydown.enter.exact.prevent="updateBlock"
       />
       <button
         type="button"
