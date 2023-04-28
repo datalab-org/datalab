@@ -89,7 +89,7 @@ import TableOfContents from "@/components/TableOfContents";
 import FileList from "@/components/FileList";
 import Modal from "@/components/Modal";
 import FileSelectModal from "@/components/FileSelectModal";
-import { getItemData, addABlock, saveItem } from "@/server_fetch_utils";
+import { getItemData, addABlock, saveItem, getBlockTypes } from "@/server_fetch_utils";
 
 import setupUppy from "@/file_upload.js";
 
@@ -111,6 +111,14 @@ export default {
     };
   },
   methods: {
+    async getBlockTypeList() {
+      if (this.$store.state.blockTypes.length == 0) {
+        getBlockTypes().catch(() => {
+          this.blockTypeFetchError = true;
+        });
+      }
+      return this.$store.state.blockTypes;
+    },
     async newBlock(event, blockType, index = null) {
       var block_id = await addABlock(this.item_id, blockType, index);
       // close the dropdown and scroll to the new block
@@ -208,6 +216,7 @@ export default {
     },
   },
   created() {
+    this.getBlockTypeList();
     this.getSampleData();
   },
   components: {

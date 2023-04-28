@@ -25,7 +25,6 @@ export const GRAVATAR_STYLE = "identicon";
 export const debounceTime = 250; // time after user stops typing before request is sent
 
 export const blockTypes = {
-  generic: { description: "Test Block", component: DataBlockBase },
   comment: { description: "Comment", component: DataBlockBase },
   media: { description: "Media", component: MediaBlock },
   xrd: { description: "Powder XRD", component: XRDBlock },

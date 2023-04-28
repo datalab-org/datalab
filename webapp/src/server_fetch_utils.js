@@ -119,6 +119,18 @@ export function createNewSamples(newSampleDatas, copyFromItemIds = null) {
   });
 }
 
+export function getBlockTypes() {
+  return fetch_get(`${API_URL}/list-block-types`)
+    .then(function (response_json) {
+      store.commit("setBlockTypes", response_json.block_types);
+    })
+    .catch((error) => {
+      console.error("Error when fetching block type list");
+      console.error(error);
+      throw error;
+    });
+}
+
 export function getSampleList() {
   return fetch_get(`${API_URL}/samples/`)
     .then(function (response_json) {

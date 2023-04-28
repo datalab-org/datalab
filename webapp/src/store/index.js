@@ -1,4 +1,5 @@
 import { createStore } from "vuex";
+import { blockTypes } from "@/resources.js";
 // import { createLogger } from "vuex";
 // import { set } from 'vue'
 
@@ -8,6 +9,7 @@ export default createStore({
     all_block_data: {},
     all_item_children: {},
     all_item_parents: {},
+    blockTypes: {},
     sample_list: [],
     starting_material_list: [],
     saved_status: {},
@@ -24,6 +26,18 @@ export default createStore({
     setSampleList(state, sampleSummaries) {
       // sampleSummaries is an array of json objects summarizing the available samples
       state.sample_list = sampleSummaries;
+    },
+    setBlockTypes(state, fetchedBlockTypes) {
+      // list of block types implemented in this API, alongside their metadata
+      state.blockTypes = fetchedBlockTypes;
+      // loop over JS block types from resources.js and add them to the store if they are missing
+      for (var b in blockTypes) {
+        if (!(b in fetchedBlockTypes)) {
+          state.blockTypes[b] = blockTypes[b];
+        } else {
+          state.blockTypes[b].component = blockTypes[b].component;
+        }
+      }
     },
     setStartingMaterialList(state, startingMaterialSummaries) {
       // startingMaterialSummaries is an array of json objects summarizing the available samples
