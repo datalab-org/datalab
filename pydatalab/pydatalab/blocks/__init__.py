@@ -2,6 +2,8 @@ from typing import Dict, Sequence, Type
 
 from pydatalab.apps.chat.blocks import ChatBlock
 from pydatalab.apps.eis import EISBlock
+from pydatalab.apps.tga import MassSpecBlock
+
 from pydatalab.blocks.blocks import (
     CommentBlock,
     DataBlock,
@@ -11,7 +13,6 @@ from pydatalab.blocks.blocks import (
     XRDBlock,
 )
 from pydatalab.blocks.echem_block import CycleBlock
-from pydatalab.blocks.tga_block import TGABlock
 
 BLOCKS: Sequence[Type[DataBlock]] = (
     DataBlock,
@@ -20,7 +21,7 @@ BLOCKS: Sequence[Type[DataBlock]] = (
     XRDBlock,
     CycleBlock,
     NMRBlock,
-    TGABlock,
+    MassSpecBlock,
     NotSupportedBlock,
     ChatBlock,
     EISBlock,
@@ -38,7 +39,7 @@ __all__ = (
     "EISBlock",
     "CycleBlock",
     "NMRBlock",
-    "TGABlock",
+    "MassSpecBlock",
     "BLOCK_TYPES",
     "BLOCKS",
 )
