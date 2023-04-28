@@ -74,8 +74,43 @@ style = {
     }
 }
 
+"""Additional style suitable for grid plots"""
+grid_style = {
+    "attrs": {
+        # apply defaults to Figure properties
+        "Figure": {
+            "toolbar_location": "above",
+            "outline_line_color": None,
+            "min_border_right": 10,
+        },
+        "Title": {
+            "text_font_style": "bold",
+            "text_font": TYPEFACE,
+        },
+        # apply defaults to Axis properties
+        "Axis": {
+            "axis_label_text_font": TYPEFACE,
+            "axis_label_text_font_style": "normal",
+            "major_tick_in": 0,
+            "minor_tick_out": 0,
+            "minor_tick_in": 0,
+            "axis_line_color": None,
+            "major_tick_line_color": None,
+            "minor_tick_line_color": None,
+        },
+        "Grid": {
+            "grid_line_color": None,
+        },
+        # apply defaults to Legend properties
+        "Legend": {
+            "background_fill_alpha": 0.8,
+        },
+    }
+}
+
 
 mytheme = Theme(json=style)
+grid_theme = Theme(json=grid_style)
 
 
 def selectable_axes_plot(
@@ -86,6 +121,8 @@ def selectable_axes_plot(
     color_mapper: Optional[ColorMapper] = None,
     x_default: Optional[str] = None,
     y_default: Optional[Union[str, List[str]]] = None,
+    label_x: bool = True,
+    label_y: bool = True,
     plot_points: bool = True,
     point_size: int = 4,
     plot_line: bool = True,
@@ -128,11 +165,16 @@ def selectable_axes_plot(
     else:
         y_label = y_default
 
+    x_axis_label = x_default if label_x else ""
+    y_axis_label = y_label if label_y else ""
+
     p = figure(
         sizing_mode="scale_width",
-        aspect_ratio=1.5,
+        aspect_ratio=kwargs.pop("aspect_ratio", 1.5),
         x_axis_label=x_default,
         y_axis_label=y_default,
+        x_axis_label=x_axis_label,
+        y_axis_label=y_axis_label,
         tools=tools,
         title=plot_title,
         **kwargs,
@@ -185,7 +227,6 @@ def selectable_axes_plot(
             line_color = COLORS[ind % len(COLORS)]
             fill_color = COLORS[ind % len(COLORS)]
 
-
         circles = (
             p.circle(
                 x=x_default,
@@ -215,12 +256,16 @@ def selectable_axes_plot(
                 y_aux = y_default[1:]
             y_default = y_default[0]
 
-
         if y_aux:
             for y in y_aux:
                 aux_lines = (  # noqa
                     p.line(
-                        x=x_default, y=y, source=source, color=color, legend_label=label, alpha=0.2
+                        x=x_default,
+                        y=y,
+                        source=source,
+                        color=color,
+                        legend_label=label,
+                        alpha=0.3,
                     )
                     if plot_line
                     else None

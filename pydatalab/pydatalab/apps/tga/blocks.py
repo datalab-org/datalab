@@ -2,13 +2,12 @@ import os
 from pathlib import Path
 
 import bokeh
-import numpy as np
 from bokeh.layouts import gridplot
-from scipy.interpolate import splev, splrep
+from scipy.signal import savgol_filter
 
 from pydatalab.apps.tga.parsers import parse_mt_mass_spec_ascii
 from pydatalab.blocks.blocks import DataBlock
-from pydatalab.bokeh_plots import selectable_axes_plot
+from pydatalab.bokeh_plots import grid_theme, selectable_axes_plot
 from pydatalab.file_utils import get_file_info_by_id
 from pydatalab.logger import LOGGER
 
@@ -22,7 +21,7 @@ class MassSpecBlock(DataBlock):
     def plot_functions(self):
         return (self.generate_ms_plot,)
 
-    def generate_ms_plot(self, grid_plot: bool = True):
+    def generate_ms_plot(self):
         file_info = None
         # all_files = None
         ms_data = None
@@ -44,58 +43,47 @@ class MassSpecBlock(DataBlock):
             ms_data = parse_mt_mass_spec_ascii(Path(file_info["location"]))
 
         x_options = ["Time Relative [s]"]
-        y_options = ["Partial Pressure [mbar]"]
 
         if ms_data:
+
             for species in ms_data["data"]:
-                pressure = ms_data["data"][species]["Partial Pressure [mbar]"].to_numpy()
-                time = ms_data["data"][species]["Time Relative [s]"].to_numpy()
+                data_key = (
+                    "Partial Pressure [mbar]"
+                    if "Partial Pressure [mbar]" in ms_data["data"][species]
+                    else "Ion Current [A]"
+                )
+                data = ms_data["data"][species][data_key].to_numpy()
 
-                time = time[~np.isnan(time)]
-                pressure = pressure[~np.isnan(pressure)]
-
-                ms_data["data"][species]["Partial Pressure [mbar] (spline)"] = splev(
-                    time,
-                    splrep(
-                        time,
-                        pressure,
-                        xe=time[~np.isnan(time)].max(),
-                        xb=time[~np.isnan(time)].min(),
-                        s=10,
-                    ),
+                ms_data["data"][species][f"{data_key} (Savitzky-Golay)"] = savgol_filter(
+                    data, len(data) // 10, 3
                 )
 
-            if grid_plot:
-                plots = []
-                for ind, species in enumerate(ms_data["data"]):
-                    plots.append(
-                        selectable_axes_plot(
-                            {species: ms_data["data"][species]},
-                            x_options=x_options,
-                            y_options=y_options,
-                            y_default=[
-                                "Partial Pressure [mbar] (spline)",
-                                "Partial Pressure [mbar]",
-                            ],
-                            plot_line=True,
-                            plot_points=False,
-                            plot_title=species,
-                            plot_index=ind,
-                        )
+            plots = []
+            for ind, species in enumerate(ms_data["data"]):
+                plots.append(
+                    selectable_axes_plot(
+                        {species: ms_data["data"][species]},
+                        x_options=x_options,
+                        y_options=[data_key],
+                        y_default=[
+                            f"{data_key} (Savitzky-Golay)",
+                            f"{data_key}",
+                        ],
+                        label_x=(ind == 0),
+                        label_y=(ind == 0),
+                        plot_line=True,
+                        plot_points=False,
+                        plot_title=species,
+                        plot_index=ind,
+                        aspect_ratio=1.5,
                     )
-                # construct 3xN grid of all species
-                grid = []
-                for i in range(0, len(plots), 3):
-                    grid.append(plots[i : i + 3])
-                p = gridplot(grid, sizing_mode="scale_width", toolbar_location="below")
-            else:
-                p = selectable_axes_plot(
-                    ms_data["data"],
-                    x_options=x_options,
-                    y_options=y_options,
-                    plot_line=True,
-                    plot_points=False,
-                    y_axis_type="log",
                 )
 
-            self.data["bokeh_plot_data"] = bokeh.embed.json_item(p)
+            # construct MxN grid of all species
+            M = 3
+            grid = []
+            for i in range(0, len(plots), M):
+                grid.append(plots[i : i + M])
+            p = gridplot(grid, sizing_mode="scale_width", toolbar_location="below")
+
+            self.data["bokeh_plot_data"] = bokeh.embed.json_item(p, theme=grid_theme)
