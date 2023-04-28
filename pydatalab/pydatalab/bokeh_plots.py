@@ -217,7 +217,13 @@ def selectable_axes_plot(
     if len(df) <= 1:
         p.legend.visible = False
 
-    layout = column(p, xaxis_select, yaxis_select)
+    plot_columns = [p]
+    if len(x_options) > 1:
+        plot_columns.append(xaxis_select)
+    if len(y_options) > 1:
+        plot_columns.append(yaxis_select)
+
+    layout = column(*plot_columns)
 
     p.js_on_event(DoubleTap, CustomJS(args=dict(p=p), code="p.reset.emit()"))
     return layout
