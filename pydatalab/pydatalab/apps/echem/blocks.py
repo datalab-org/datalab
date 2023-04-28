@@ -1,7 +1,7 @@
 import os
 import time
 from pathlib import Path
-from typing import Any, Dict, Union
+from typing import Union
 
 import bokeh
 import pandas as pd
@@ -43,8 +43,6 @@ class CycleBlock(DataBlock):
         ".nda",
         ".ndax",
     )
-
-    cache: Dict[str, Any]
 
     defaults = {
         "p_spline": 5,
