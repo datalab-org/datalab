@@ -17,6 +17,7 @@ from pydatalab.bokeh_plots import mytheme, selectable_axes_plot
 from pydatalab.file_utils import get_file_info_by_id
 from pydatalab.logger import LOGGER
 from pydatalab.mongo import flask_mongo
+from pydatalab import __version__
 
 __all__ = ("generate_random_id", "DataBlock")
 
@@ -53,6 +54,7 @@ class DataBlock:
     # values cached on the block instance for faster retrieval
     cache: Optional[Dict[str, Any]] = None
     plot_functions: Optional[Sequence[Callable[[], None]]] = None
+    version = __version__
 
     def __init__(self, item_id, dictionary=None, unique_id=None):
 

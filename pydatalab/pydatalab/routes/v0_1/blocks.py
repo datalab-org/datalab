@@ -2,9 +2,27 @@ from typing import Callable, Dict
 
 from flask import jsonify, request
 
+from pydatalab import __version__
 from pydatalab.blocks import BLOCK_TYPES
 from pydatalab.mongo import flask_mongo
 from pydatalab.routes.utils import get_default_permissions
+
+
+def list_block_types():
+    """Returns a list of all blocks implemented in this server."""
+    return jsonify(
+        {
+            "status": "success",
+            "block_types": {
+                block_type: {
+                    "description": getattr(block, "description", ""),
+                    "version": getattr(block, "version", __version__),
+                    "accepted_file_extensions": getattr(block, "accepted_file_extensions", []),
+                }
+                for block_type, block in BLOCK_TYPES.items()
+            },
+        }
+    )
 
 
 def add_data_block():
@@ -128,4 +146,5 @@ ENDPOINTS: Dict[str, Callable] = {
     "/add-data-block/": add_data_block,
     "/update-block/": update_block,
     "/delete-block/": delete_block,
+    "/list-block-types/": list_block_types,
 }
