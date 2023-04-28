@@ -1,14 +1,16 @@
 from pathlib import Path
 
+import pytest
 
-def test_tga_parse():
 
-    from pydatalab.apps.tga import parse
+def test_ms_parse():
 
-    tga = parse(
+    from pydatalab.apps.tga.parsers import parse_mt_mass_spec_ascii
+
+    ms = parse_mt_mass_spec_ascii(
         Path(__file__).parent.parent.parent
         / "example_data"
-        / "TGA"
+        / "TGA-MS"
         / "20221128 134958 TGA MS Megan.asc"
     )
 
@@ -22,8 +24,41 @@ def test_tga_parse():
         "Carbondioxide",
     )
 
-    expected_shape = (1366, 3)
-    assert all(k in tga["data"] for k in expected_species)
+    # the final 3 columns are missing in the example file
+    expected_shapes = [
+        (1366, 2),
+        (1366, 2),
+        (1366, 2),
+        (1365, 2),
+        (1365, 2),
+        (1365, 2),
+        (1365, 2),
+    ]
 
-    for k in expected_species:
-        assert tga["data"][k].shape == expected_shape
+    assert all(k in ms["data"] for k in expected_species)
+
+    for ind, k in enumerate(expected_species):
+        assert ms["data"][k].shape == expected_shapes[ind]
+
+    assert all(k in ms["meta"] for k in ("Start Time", "End Time", "Sourcefile", "Exporttime"))
+
+
+@pytest.mark.parametrize(
+    "filename", (Path(__file__).parent.parent.parent / "example_data" / "TGA-MS").glob("*.asc")
+)
+def test_ms_parse_no_validation(filename):
+
+    from pydatalab.apps.tga.parsers import parse_mt_mass_spec_ascii
+
+    ms = parse_mt_mass_spec_ascii(filename)
+    assert ms
+
+    assert all(k in ms["meta"] for k in ("Start Time", "End Time", "Sourcefile", "Exporttime"))
+
+    for species in ms["data"]:
+        assert (
+            "Ion Current [A]" in ms["data"][species]
+            or "Partial Pressure [mbar]" in ms["data"][species]
+        )
+        assert "Time Relative [s]" in ms["data"][species]
+        assert "Time" not in ms["data"][species]
