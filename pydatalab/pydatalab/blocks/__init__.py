@@ -9,7 +9,7 @@ from pydatalab.apps.raman import RamanBlock
 from pydatalab.apps.tga import MassSpecBlock
 from pydatalab.apps.xrd import XRDBlock
 from pydatalab.blocks.base import DataBlock
-from pydatalab.blocks.common import CommentBlock, MediaBlock, NotSupportedBlock
+from pydatalab.blocks.common import CommentBlock, MediaBlock
 
 BLOCKS: Sequence[Type["DataBlock"]] = (
     CommentBlock,
@@ -19,7 +19,6 @@ BLOCKS: Sequence[Type["DataBlock"]] = (
     RamanBlock,
     NMRBlock,
     MassSpecBlock,
-    NotSupportedBlock,
     ChatBlock,
     EISBlock,
 )
