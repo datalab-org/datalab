@@ -28,6 +28,7 @@ pillow = "*"
 openai = "*"
 tiktoken = "*"
 navani = {git = "git+https://github.com/the-grey-group/navani.git@v0.1.3"}
+python-dateutil = "*"
 
 [dev-packages]
 pytest = "*"

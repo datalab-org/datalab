@@ -1,16 +1,17 @@
-import datetime
 from pathlib import Path
 from typing import Dict, Union
 
+import dateutil
 import pandas as pd
 
-__all__ = "parse_ms_ascii"
+__all__ = ("parse_mt_mass_spec_ascii",)
 
 
-def parse_ms_ascii(path: Path) -> Dict[str, Union[pd.DataFrame, Dict]]:
-    """Parses an .asc file containing MS results and returns a dictionary with keys
-    `data` and `meta`, which themselves contain a dictionary of dataframes
-    for each species with the species names as keys, and a dictionary of
+def parse_mt_mass_spec_ascii(path: Path) -> Dict[str, Union[pd.DataFrame, Dict]]:
+    """Parses an .asc file containing MS results from a Mettler-Toledo
+    spectrometer and returns a dictionary with keys `data` and `meta`,
+    which themselves contain a dictionary of dataframes for each species
+    with the species names/masses as keys, and a dictionary of
     metadata fields respectively.
 
     Parameters:
@@ -19,7 +20,7 @@ def parse_ms_ascii(path: Path) -> Dict[str, Union[pd.DataFrame, Dict]]:
     """
 
     header_keys = ("Sourcefile", "Exporttime", "Start Time", "End Time")
-    data_keys = ("Time", "Time Relative [s]", "Partial Pressure [mbar]")
+    data_keys = ("Time Relative [s]", "Partial Pressure [mbar]", "Ion Current [A]")
     header = {}
     species = []
 
@@ -48,10 +49,11 @@ def parse_ms_ascii(path: Path) -> Dict[str, Union[pd.DataFrame, Dict]]:
             )
 
         for key in header_keys[1:]:
-            header[key] = datetime.datetime.strptime(header[key], "%d/%m/%Y %H:%M:%S")  # type: ignore
+            if "time" in key.lower():
+                header[key] = dateutil.parser.parse(header[key])  # type: ignore
 
         reads = 0
-        max_species_lines = 2
+        max_species_lines = 10
         while reads < max_species_lines:
             line = f.readline().strip()
             reads += 1
@@ -64,20 +66,29 @@ def parse_ms_ascii(path: Path) -> Dict[str, Union[pd.DataFrame, Dict]]:
                 f"Could not find species list in lines {header_end}:{header_end + max_species_lines} lines of file."
             )
 
-        # Read data with duplicated keys
-        df = pd.read_csv(f, sep="\t", header=0, parse_dates=False)
-        ms_results = {}
+        # Read data with duplicated keys: will have (column number % number of data keys) appended to them
+        # MT software also writes "---" if the value is missing, so parse these as NaNs to remove later
+        df = pd.read_csv(f, sep="\t", header=0, parse_dates=False, na_values=["---"])
+        ms_results: Dict[str, Union[pd.DataFrame, Dict]] = {}
         ms_results["meta"] = header
         ms_results["data"] = {}
 
+        # Some files have Ion Current [A] or Partial Pressure [mbar] -- only rename those that are present
+        present_keys = set(df.columns.values) & set(data_keys)
         for ind, specie in enumerate(species):
-            species_data_keys = [k + f"{'.' + str(ind) if ind != 0 else ''}" for k in data_keys]
+
+            # Loop over all species and rename the columns to remove the species name and disaggregate as a dict
+            species_data_keys = [k + f"{'.' + str(ind) if ind != 0 else ''}" for k in present_keys]
             ms_results["data"][specie] = df[species_data_keys].rename(
-                {mangled: original for mangled, original in zip(species_data_keys, data_keys)},
+                {mangled: original for mangled, original in zip(species_data_keys, present_keys)},
                 axis="columns",
             )
-            ms_results["data"][specie]["Time"] = pd.to_datetime(  # type: ignore
-                ms_results["data"][specie]["Time"]  # type: ignore
-            )
+
+            # Drop time axis as format cannot be easily inferred and data is essentially duplicated: "Start Time" in header
+            # provides the timestamp of the first row
+            ms_results["data"][specie].drop("Time", axis="columns", inplace=True, errors="ignore")
+
+            # If the file was provided in an incomplete form, the final rows will be NaN, so drop them
+            ms_results["data"][specie].dropna(inplace=True)
 
         return ms_results

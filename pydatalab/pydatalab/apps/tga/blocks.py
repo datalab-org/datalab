@@ -6,7 +6,7 @@ import numpy as np
 from bokeh.layouts import gridplot
 from scipy.interpolate import splev, splrep
 
-from pydatalab.apps.tga.parsers import parse_ms_ascii
+from pydatalab.apps.tga.parsers import parse_mt_mass_spec_ascii
 from pydatalab.blocks.blocks import DataBlock
 from pydatalab.bokeh_plots import selectable_axes_plot
 from pydatalab.file_utils import get_file_info_by_id
@@ -41,7 +41,7 @@ class MassSpecBlock(DataBlock):
                 )
                 return
 
-            ms_data = parse_ms_ascii(Path(file_info["location"]))
+            ms_data = parse_mt_mass_spec_ascii(Path(file_info["location"]))
 
         x_options = ["Time Relative [s]"]
         y_options = ["Partial Pressure [mbar]"]
