@@ -222,7 +222,7 @@ describe("Advanced sample creation features", () => {
     cy.findByLabelText("Sample ID:").type("testAcopy");
     cy.findByLabelText("(Optional) Copy from existing sample:").type("testA");
     cy.get(".vs__dropdown-menu").within(() => {
-      cy.findByText("testA").click();
+      cy.contains(".badge", "testA").click();
     });
     cy.findByDisplayValue("COPY OF the first test sample").clear().type("a copied sample");
     cy.contains("Submit").click();
@@ -248,15 +248,17 @@ describe("Advanced sample creation features", () => {
     cy.findByText("Comment").click();
 
     cy.get(".datablock-content div").first().type("a comment is added here.");
+    cy.get("svg.add-row-button").click();
     cy.get("#synthesis-information .vs__search").first().type("component3");
     cy.get(".vs__dropdown-menu").within(() => {
-      cy.findByText("component3").click();
+      cy.contains(".badge", "component3").click();
     });
     cy.get("#synthesis-information tbody tr:nth-of-type(1) input").eq(0).type("30");
 
+    cy.get("svg.add-row-button").click();
     cy.get("#synthesis-information .vs__search").first().type("component4");
     cy.get(".vs__dropdown-menu").within(() => {
-      cy.findByText("component4").click();
+      cy.contains(".badge", "component4").click();
     });
     cy.get("#synthesis-information tbody tr:nth-of-type(2) input").eq(0).type("100"); // eq(1) gets the second element that matches
 
@@ -273,7 +275,7 @@ describe("Advanced sample creation features", () => {
     cy.findByLabelText("Sample ID:").type("testBcopy");
     cy.findByLabelText("(Optional) Copy from existing sample:").type("testB");
     cy.get(".vs__dropdown-menu").within(() => {
-      cy.findByText("testB").click();
+      cy.contains(".badge", "testB").click();
     });
     cy.contains("Submit").click();
     verifySample("testBcopy", "COPY OF the second test sample");
@@ -299,16 +301,16 @@ describe("Advanced sample creation features", () => {
     cy.findByLabelText("Sample ID:").type("testBcopy_copy");
     cy.findByLabelText("(Optional) Copy from existing sample:").type("testBcopy");
     cy.get(".vs__dropdown-menu").within(() => {
-      cy.findByText("testBcopy").click();
+      cy.contains(".badge", "testBcopy").click();
     });
 
     cy.findByLabelText("(Optional) Start with constituents:").type("component2");
     cy.get(".vs__dropdown-menu").within(() => {
-      cy.findByText("component2").click();
+      cy.contains(".badge", "component2").click();
     });
     cy.findByLabelText("(Optional) Start with constituents:").type("component3");
     cy.get(".vs__dropdown-menu").within(() => {
-      cy.findByText("component3").click();
+      cy.contains(".badge", "component3").click();
     });
 
     cy.contains("Submit").click();
