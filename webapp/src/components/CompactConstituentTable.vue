@@ -31,6 +31,7 @@
             :item_id="constituent.item.item_id"
             :itemType="constituent.item.type"
             :name="constituent.item.name"
+            :chemform="constituent.item.chemform || ''"
             enableClick
             enableModifiedClick
             @dblclick="turnOnRowSelect(index)"
