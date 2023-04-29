@@ -29,12 +29,12 @@
           v-show="isMenuDropdownVisible"
         >
           <a
-            v-for="(blockType, id) in blockTypes"
+            v-for="(blockType, id) in block_types"
             :key="id"
             class="dropdown-item"
             @click="newBlock($event, id)"
           >
-            {{ blockType.description }}
+            {{ blockType.name }}
           </a>
         </div>
       </div>
@@ -95,7 +95,7 @@ import setupUppy from "@/file_upload.js";
 
 import tinymce from "tinymce/tinymce";
 
-import { blockTypes, itemTypes } from "@/resources.js";
+import { itemTypes } from "@/resources.js";
 import NotImplementedBlock from "@/components/datablocks/NotImplementedBlock.vue";
 import { API_URL } from "@/resources.js";
 
@@ -104,6 +104,7 @@ export default {
     return {
       item_id: this.$route.params.id,
       item_data_loaded: false,
+      blockTypes: {},
       isMenuDropdownVisible: false,
       selectedRemoteFiles: [],
       isLoadingRemoteTree: false,
@@ -111,14 +112,11 @@ export default {
     };
   },
   methods: {
-    async getBlockTypeList() {
-      if (this.$store.state.blockTypes.length == 0) {
-        getBlockTypes().catch(() => {
-          this.blockTypeFetchError = true;
-        });
-      }
+    getBlockTypeList() {
+      getBlockTypes();
       return this.$store.state.blockTypes;
     },
+
     async newBlock(event, blockType, index = null) {
       var block_id = await addABlock(this.item_id, blockType, index);
       // close the dropdown and scroll to the new block
@@ -149,8 +147,8 @@ export default {
     },
     getBlockDisplayType(block_id) {
       var type = this.blocks[block_id].blocktype;
-      if (type in blockTypes) {
-        return blockTypes[type].component;
+      if (type in this.blockTypes) {
+        return this.blockTypes[type].component;
       } else {
         return NotImplementedBlock;
       }
@@ -214,9 +212,12 @@ export default {
     stored_files() {
       return this.$store.state.files;
     },
+    block_types() {
+      return this.$store.state.blockTypes;
+    },
   },
   created() {
-    this.getBlockTypeList();
+    this.blockTypes = this.getBlockTypeList();
     this.getSampleData();
   },
   components: {
@@ -228,7 +229,6 @@ export default {
     FileSelectModal,
   },
   beforeMount() {
-    this.blockTypes = blockTypes; // bind blockTypes as a NON-REACTIVE object to the this context so that it is accessible by the template.
     this.itemApiUrl = API_URL + "/get-item-data/" + this.item_id;
   },
   mounted() {

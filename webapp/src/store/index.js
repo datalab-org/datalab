@@ -29,13 +29,17 @@ export default createStore({
     },
     setBlockTypes(state, fetchedBlockTypes) {
       // list of block types implemented in this API, alongside their metadata
-      state.blockTypes = fetchedBlockTypes;
+      state.blockTypes = {};
+      for (var b in fetchedBlockTypes) {
+        state.blockTypes[b.id] = b.attributes;
+      }
+
       // loop over JS block types from resources.js and add them to the store if they are missing
-      for (var b in blockTypes) {
-        if (!(b in fetchedBlockTypes)) {
-          state.blockTypes[b] = blockTypes[b];
+      for (var block in blockTypes) {
+        if (!(block in fetchedBlockTypes)) {
+          state.blockTypes[block] = blockTypes[b];
         } else {
-          state.blockTypes[b].component = blockTypes[b].component;
+          state.blockTypes[block].component = blockTypes[b].component;
         }
       }
     },

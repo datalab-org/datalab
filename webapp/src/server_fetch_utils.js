@@ -120,9 +120,9 @@ export function createNewSamples(newSampleDatas, copyFromItemIds = null) {
 }
 
 export function getBlockTypes() {
-  return fetch_get(`${API_URL}/list-block-types`)
+  return fetch_get(`${API_URL}/info/blocks`)
     .then(function (response_json) {
-      store.commit("setBlockTypes", response_json.block_types);
+      store.commit("setBlockTypes", response_json.data);
     })
     .catch((error) => {
       console.error("Error when fetching block type list");
