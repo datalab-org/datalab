@@ -1,7 +1,7 @@
 import os
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import List, Optional, Union
 
 import bokeh
 import numpy as np
@@ -180,7 +180,8 @@ class CycleBlock(DataBlock):
     """
 
     blocktype = "cycle"
-    description = "Electrochemical cycling"
+    description = "This block can plot data from electrochemical cycling experiments from many different cycler's file formats."
+    name = "Electrochemistry"
 
     accepted_file_extensions = (
         ".mpr",
@@ -190,8 +191,6 @@ class CycleBlock(DataBlock):
         ".txt",
         ".res",
     )
-
-    cache: Dict[str, Any]
 
     defaults = {
         "p_spline": 5,

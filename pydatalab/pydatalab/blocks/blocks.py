@@ -12,12 +12,11 @@ from bson import ObjectId
 from PIL import Image
 from scipy.signal import medfilt
 
-from pydatalab import nmr_utils, xrd_utils
+from pydatalab import __version__, nmr_utils, xrd_utils
 from pydatalab.bokeh_plots import mytheme, selectable_axes_plot
 from pydatalab.file_utils import get_file_info_by_id
 from pydatalab.logger import LOGGER
 from pydatalab.mongo import flask_mongo
-from pydatalab import __version__
 
 __all__ = ("generate_random_id", "DataBlock")
 
@@ -46,6 +45,7 @@ def generate_random_id():
 class DataBlock:
     """base class for a data block."""
 
+    name: str = "Generic Block"
     blocktype: str = "generic"
     description: str = "Generic Block"
     accepted_file_extensions: Sequence[str]
@@ -147,16 +147,19 @@ class DataBlock:
 class NotSupportedBlock(DataBlock):
     blocktype = "notsupported"
     description = "Block not supported"
+    name = "Not supported"
 
 
 class CommentBlock(DataBlock):
     blocktype = "comment"
-    description = "Comment"
+    description = "This block can be used to provide formatted inline comments."
+    name = "Comment"
 
 
 class MediaBlock(DataBlock):
     blocktype = "media"
-    description = "Media"
+    name = "Media"
+    description = "This block can render images and videos."
     accepted_file_extensions = (".png", ".jpeg", ".jpg", ".tif", ".tiff", ".mp4", ".mov", ".webm")
 
     @property
@@ -183,7 +186,8 @@ class MediaBlock(DataBlock):
 
 class NMRBlock(DataBlock):
     blocktype = "nmr"
-    description = "Simple NMR Block"
+    name = "NMR"
+    description = "This is a simple NMR Block which can plot scans from a zipped Bruker project."
     accepted_file_extensions = ".zip"
     defaults = {"process number": 1}
 
@@ -277,7 +281,8 @@ class NMRBlock(DataBlock):
 
 class XRDBlock(DataBlock):
     blocktype = "xrd"
-    description = "Powder XRD"
+    name = "Powder XRD"
+    description = "This block can plot powder XRD data from a variety of file types and perform simple baseline corrections."
     accepted_file_extensions = (".xrdml", ".xy", ".dat", ".xye")
 
     defaults = {"wavelength": 1.54060}

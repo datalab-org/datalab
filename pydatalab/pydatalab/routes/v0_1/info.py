@@ -9,6 +9,7 @@ from flask import jsonify, request
 from pydantic import AnyUrl, BaseModel, Field, validator
 
 from pydatalab import __version__
+from pydatalab.blocks import BLOCK_TYPES
 from pydatalab.models import Person
 
 from ._version import __api_version__
@@ -47,7 +48,7 @@ class JSONAPIResponse(BaseModel):
 
     data: Union[Data, List[Data]]
     meta: Meta
-    links: Links
+    links: Optional[Links]
 
 
 class MetaPerson(BaseModel):
@@ -94,6 +95,33 @@ def get_info():
     )
 
 
+def list_block_types():
+    """Returns a list of all blocks implemented in this server."""
+    return jsonify(
+        json.loads(
+            JSONAPIResponse(
+                data=[
+                    Data(
+                        id=block_type,
+                        type="block_type",
+                        attributes={
+                            "name": getattr(block, "name", ""),
+                            "description": getattr(block, "description", ""),
+                            "version": getattr(block, "version", __version__),
+                            "accepted_file_extensions": getattr(
+                                block, "accepted_file_extensions", []
+                            ),
+                        },
+                    )
+                    for block_type, block in BLOCK_TYPES.items()
+                ],
+                meta=Meta(query=request.query_string),
+            ).json()
+        )
+    )
+
+
 ENDPOINTS: Dict[str, Callable] = {
     "/info/": get_info,
+    "/info/blocks": list_block_types,
 }
