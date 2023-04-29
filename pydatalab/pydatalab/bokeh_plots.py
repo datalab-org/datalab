@@ -14,7 +14,7 @@ from bokeh.themes import Theme
 from scipy.signal import find_peaks
 
 FONTSIZE = "12pt"
-TYPEFACE = "Helvetica"  # "Lato"
+TYPEFACE = "Figtree"  # "Lato"
 # SIZES = list(range(6, 22, 3))
 # COLORS = Plasma256
 COLORS = Dark2[8]
@@ -77,12 +77,13 @@ def selectable_axes_plot(
     df: Union[List[pd.DataFrame], pd.DataFrame],
     x_options: List[str],
     y_options: List[str],
+    color_options: Optional[List[str]] = None,
     x_default: Optional[str] = None,
     y_default: Optional[str] = None,
     plot_points: bool = True,
     point_size: int = 4,
     plot_line: bool = True,
-    tools: Union[str, List[str]] = TOOLS,
+    tools: Optional[List] = None,
     **kwargs,
 ):
     """
@@ -92,6 +93,7 @@ def selectable_axes_plot(
         df: Dataframe, or list of dataframes from data block.
         x_options: Selectable fields to use for the x-values
         y_options: Selectable fields to use for the y-values
+        color_options: Selectable fields to colour lines/points by.
         x_default: Default x-axis that is printed at start, defaults to first value of `x_options`
         y_default: Default y-axis that is printed at start, defaults to first value of `y_options`.
         plot_points: Whether to use plot markers.
@@ -111,9 +113,12 @@ def selectable_axes_plot(
         aspect_ratio=1.5,
         x_axis_label=x_default,
         y_axis_label=y_default,
-        tools=tools,
+        tools=TOOLS,
         **kwargs,
     )
+
+    if tools:
+        p.add_tools(tools)
 
     if isinstance(df, pd.DataFrame):
         df = [df]
@@ -123,15 +128,21 @@ def selectable_axes_plot(
     for ind, df_ in enumerate(df):
         source = ColumnDataSource(df_)
 
+        # This currently seems to be slow
+        if color_options:
+            color = color_options[0]
+        else:
+            color = COLORS[ind]
+
         label = df_.index.name if len(df) > 1 else ""
 
         circles = (
-            p.circle(x=x_default, y=y_default, source=source, size=point_size, color=COLORS[ind])
+            p.circle(x=x_default, y=y_default, source=source, size=point_size, color=color)
             if plot_points
             else None
         )
         lines = (
-            p.line(x=x_default, y=y_default, source=source, color=COLORS[ind], legend_label=label)
+            p.line(x=x_default, y=y_default, source=source, color=color, legend_label=label)
             if plot_line
             else None
         )
