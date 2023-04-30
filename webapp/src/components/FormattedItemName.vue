@@ -31,8 +31,14 @@ export default {
       type: Boolean,
       default: false,
     },
-    name: String,
-    chemform: String,
+    name: {
+      type: String,
+      default: null,
+    },
+    chemform: {
+      type: String,
+      default: null,
+    },
     enableClick: {
       type: Boolean,
       default: false,
@@ -54,7 +60,7 @@ export default {
       if (this.maxLength && this.maxLength < this.name.length) {
         return this.name.substring(0, this.maxLength) + "...";
       } else {
-        return this.name;
+        return this.name || "";
       }
     },
   },

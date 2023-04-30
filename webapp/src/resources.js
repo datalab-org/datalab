@@ -70,10 +70,10 @@ export const itemTypes = {
   },
   collections: {
     itemInformationComponent: CollectionInformation,
-    navbarColor: "#563D7C",
+    navbarColor: "#563D7c",
     navbarName: "Collection",
-    lightColor: "#b38fea",
-    labelColor: "#298651",
+    lightColor: "#B38FEA",
+    labelColor: "#845dbf",
     display: "collection",
   },
 };

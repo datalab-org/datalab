@@ -93,7 +93,15 @@ function handleResponse(response) {
 // exported functions
 // ****************************************************************************
 
-export function createNewItem(item_id, type, date, name, startingData = {}, copyFrom = null) {
+export function createNewItem(
+  item_id,
+  type,
+  date,
+  name,
+  startingCollection = null,
+  startingData = {},
+  copyFrom = null
+) {
   return fetch_post(`${API_URL}/new-sample/`, {
     copy_from_item_id: copyFrom,
     new_sample_data: {
@@ -101,6 +109,7 @@ export function createNewItem(item_id, type, date, name, startingData = {}, copy
       date: date,
       name: name,
       type: type,
+      collections: startingCollection,
       ...startingData,
     },
   }).then(function (response_json) {

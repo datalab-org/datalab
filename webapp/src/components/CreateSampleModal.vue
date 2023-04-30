@@ -10,7 +10,7 @@
       <template v-slot:body>
         <div class="form-row">
           <div class="form-group col-md-6">
-            <label for="sample-id" class="col-form-label">Sample ID:</label>
+            <label for="sample-id" class="col-form-label">ID:</label>
             <input v-model="item_id" type="text" class="form-control" id="sample-id" required />
             <div class="form-error" v-html="sampleIDValidationMessage"></div>
           </div>
@@ -37,7 +37,7 @@
         </div>
         <div class="form-row">
           <div class="form-group col-md-12">
-            <label for="name">Sample Name:</label>
+            <label for="name">Name:</label>
             <input id="name" type="text" v-model="name" class="form-control" />
           </div>
         </div>
@@ -95,6 +95,7 @@ export default {
       date: this.now(),
       name: "",
       startingDataCallback: null,
+      startInCollection: null,
       takenItemIds: [], // this holds ids that have been tried, whereas the computed takenSampleIds holds ids in the sample table
       selectedItemToCopy: null,
       startingConstituents: [],
@@ -147,21 +148,22 @@ export default {
 
       // get any extra data by calling the optional callback from the type-specific addon component
       const extraData = this.startingDataCallback && this.startingDataCallback();
-      const startingCollection = this.startInCollection.map((x) => ({
-        collection_id: x.collection_id,
-        immutable_id: x.immutable_id,
-        type: "collections",
-      }));
+      let startingCollection = [];
+      if (this.startInCollection != null) {
+        startingCollection = this.startInCollection.map((x) => ({
+          collection_id: x.collection_id,
+          immutable_id: x.immutable_id,
+          type: "collections",
+        }));
+      }
 
       await createNewItem(
         this.item_id,
         this.item_type,
         this.date,
         this.name,
+        startingCollection,
         extraData,
-        {
-            collections: startingCollection,
-        },
         this.selectedItemToCopy && this.selectedItemToCopy.item_id
       )
         .then(() => {

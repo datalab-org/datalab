@@ -27,6 +27,14 @@
     </div>
     <div class="form-row">
       <div class="form-group col-md-3">
+        <label for="collections" class="mr-2">Collections:</label>
+        <div v-for="collection in Collections" :key="collection.collection_id">
+          <FormattedCollectionName :collection_id="collection.collection_id" enableClick />
+        </div>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group col-md-3">
         <label for="chemform" class="mr-2">Chemical formula</label>
         <ChemFormulaInput id="chemform" v-model="ChemForm" />
       </div>
@@ -46,6 +54,7 @@
 import { createComputedSetterForItemField } from "@/field_utils.js";
 import ChemFormulaInput from "@/components/ChemFormulaInput";
 import FormattedRefcode from "@/components/FormattedRefcode";
+import FormattedCollectionName from "@/components/FormattedCollectionName";
 import TinyMceInline from "@/components/TinyMceInline";
 import SynthesisInformation from "@/components/SynthesisInformation";
 import TableOfContents from "@/components/TableOfContents";
@@ -74,6 +83,7 @@ export default {
     ChemForm: createComputedSetterForItemField("chemform"),
     DateCreated: createComputedSetterForItemField("date"),
     ItemCreators: createComputedSetterForItemField("creators"),
+    Collections: createComputedSetterForItemField("collections"),
   },
   components: {
     ChemFormulaInput,
@@ -82,6 +92,7 @@ export default {
     TableOfContents,
     RelationshipVisualization,
     FormattedRefcode,
+    FormattedCollectionName,
     Creators,
   },
 };

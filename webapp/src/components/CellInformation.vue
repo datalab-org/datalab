@@ -26,6 +26,14 @@
       </div>
     </div>
     <div class="form-row">
+      <div class="form-group col-md-3">
+        <label for="collections" class="mr-2">Collections:</label>
+        <div v-for="collection in Collections" :key="collection.collection_id">
+          <FormattedCollectionName :collection_id="collection.collection_id" enableClick />
+        </div>
+      </div>
+    </div>
+    <div class="form-row">
       <div class="form-group col-md-2">
         <label for="cell-format-dropdown" class="mr-2">Cell format</label>
         <select id="cell-format-dropdown" v-model="CellFormat" class="form-control">
@@ -94,6 +102,7 @@ import CellPreparationInformation from "@/components/CellPreparationInformation"
 import TableOfContents from "@/components/TableOfContents";
 import RelationshipVisualization from "@/components/RelationshipVisualization";
 import FormattedRefcode from "@/components/FormattedRefcode";
+import FormattedCollectionName from "@/components/FormattedCollectionName";
 import Creators from "@/components/Creators";
 import { cellFormats } from "@/resources.js";
 
@@ -131,6 +140,7 @@ export default {
     TableOfContents,
     RelationshipVisualization,
     FormattedRefcode,
+    FormattedCollectionName,
     Creators,
   },
 };

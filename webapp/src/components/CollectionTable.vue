@@ -21,25 +21,16 @@
         v-on:click.meta="openEditPageInNewTab(collection.collection_id)"
         v-on:click.ctrl="openEditPageInNewTab(collection.collection_id)"
       >
-        <td align="left">{{ collection.collection_id }}</td>
-        <td align="left">{{ collection.title }}</td>
-        <td align="right">{{ collection.num_items }}</td>
-        <td align="center">
-          <div v-for="creator in collection.creators" :key="creator.display_name">
-            <img
-              :src="
-                'https://www.gravatar.com/avatar/' +
-                md5(creator.contact_email || creator.display_name) +
-                '?s=20&d=' +
-                this.gravatar_style
-              "
-              class="avatar"
-              width="20"
-              height="20"
-              :title="creator.display_name"
-            />
-          </div>
+        <td align="left">
+          <FormattedItemName
+            :item_id="collection.collection_id"
+            :itemType="collection.type"
+            enableModifiedClick
+          />
         </td>
+        <td align="left">{{ collection.title }}</td>
+        <td align="right">{{ collection.num_items || 0 }}</td>
+        <td align="center"><Creators :creators="collection.creators" /></td>
         <td align="right">
           <button
             type="button"
@@ -57,6 +48,7 @@
 
 <script>
 import { getCollectionList, deleteCollection } from "@/server_fetch_utils.js";
+import FormattedItemName from "@/components/FormattedItemName";
 import crypto from "crypto";
 import { GRAVATAR_STYLE } from "@/resources.js";
 
@@ -101,6 +93,9 @@ export default {
   },
   created() {
     this.getCollections();
+  },
+  components: {
+    FormattedItemName,
   },
 };
 </script>

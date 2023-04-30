@@ -46,11 +46,11 @@ export default createStore({
       state.sample_list.unshift(sampleSummary);
     },
     prependToCollectionList(state, collectionSummary) {
-      // sampleSummary is a json object summarizing the new sample
+      // collectionSummary is a json object summarizing the new sample
       state.collection_list.unshift(collectionSummary);
     },
-    deleteFromSampleList(state, sample_summary) {
-      const index = state.sample_list.indexOf(sample_summary);
+    deleteFromSampleList(state, item_id) {
+      const index = state.sample_list.map((e) => e.item_id).indexOf(item_id);
       if (index > -1) {
         state.sample_list.splice(index, 1);
       } else {

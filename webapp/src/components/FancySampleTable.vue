@@ -49,6 +49,14 @@
       {{ $filters.IsoDatetimeToDate(item.date) }}
     </template>
 
+    <template #item-collection="item">
+      <FormattedCollectionName
+        v-for="collection in item.collections"
+        :key="collection.collection_id"
+        :collection_id="collection.collection_id"
+      />
+    </template>
+
     <template #item-creators="item">
       <Creators :creators="item.creators" />
     </template>
@@ -59,6 +67,7 @@
 import Vue3EasyDataTable from "vue3-easy-data-table";
 import "vue3-easy-data-table/dist/style.css";
 import FormattedItemName from "@/components/FormattedItemName";
+import FormattedCollectionName from "@/components/FormattedCollectionName";
 import ChemicalFormula from "@/components/ChemicalFormula";
 import Creators from "@/components/Creators";
 // eslint-disable-next-line no-unused-vars
@@ -79,6 +88,7 @@ export default {
         { text: "Sample name", value: "name", sortable: true },
         { text: "Formula", value: "chemform", sortable: true },
         { text: "Date", value: "date", sortable: true },
+        { text: "Collections", value: "collections", sortable: true },
         { text: "Creators", value: "creators", sortable: true },
         { text: "# of blocks", value: "nblocks", sortable: true },
       ],
@@ -140,6 +150,7 @@ export default {
     ChemicalFormula,
     Creators,
     FormattedItemName,
+    FormattedCollectionName,
   },
 };
 </script>
