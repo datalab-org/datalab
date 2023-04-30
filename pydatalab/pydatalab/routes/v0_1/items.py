@@ -114,12 +114,13 @@ def get_samples_summary(match: Optional[Dict] = None):
     if not match:
         match = {}
     match.update(get_default_permissions(user_only=False))
-    match["type"] = "samples"
+    match["type"] = {"$in": ["samples", "cells"]}
 
     return flask_mongo.db.items.aggregate(
         [
             {"$match": match},
             {"$lookup": creators_lookup()},
+            {"$lookup": collections_lookup()},
             {
                 "$project": {
                     "_id": 0,
@@ -128,6 +129,8 @@ def get_samples_summary(match: Optional[Dict] = None):
                     "name": 1,
                     "chemform": 1,
                     "type": 1,
+                    "collections.name": 1,
+                    "collections.collection_id": 1,
                 }
             },
             {"$sort": {"_id": -1}},
@@ -141,6 +144,15 @@ def creators_lookup() -> Dict:
         "localField": "creator_ids",
         "foreignField": "_id",
         "as": "creators",
+    }
+
+
+def collections_lookup() -> Dict:
+    return {
+        "from": "collections",
+        "localField": "relationships.immutable_id",
+        "foreignField": "_id",
+        "as": "collections",
     }
 
 
@@ -198,7 +210,8 @@ def search_items():
 search_items.methods = ("GET",)  # type: ignore
 
 
-def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[dict, int]:
+def _create_sample(sample_dict: dict, copy_from_item_id: Optional[str] = None) -> tuple[dict, int]:
+
     if not current_user.is_authenticated and not CONFIG.TESTING:
         return (
             dict(
@@ -322,7 +335,7 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
             400,
         )
 
-    result = flask_mongo.db.items.insert_one(data_model.dict())
+    result = flask_mongo.db.items.insert_one(data_model.dict(exclude={"creators", "collections"}))
     if not result.acknowledged:
         return (
             dict(
@@ -347,6 +360,11 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
                 "creator_ids": data_model.creator_ids,
                 "creators": [json.loads(c.json(exclude_unset=True)) for c in data_model.creators]
                 if data_model.creators
+                else [],
+                "collections": [
+                    json.loads(c.json(exclude_unset=True)) for c in data_model.collections
+                ]
+                if data_model.collections
                 else [],
                 "type": data_model.type,
             },
@@ -443,22 +461,8 @@ def get_item_data(item_id, load_blocks=True):
     cursor = flask_mongo.db.items.aggregate(
         [
             {"$match": {"item_id": item_id, **get_default_permissions(user_only=False)}},
-            {
-                "$lookup": {
-                    "from": "users",
-                    "localField": "creator_ids",
-                    "foreignField": "_id",
-                    "as": "creators",
-                },
-            },
-            {
-                "$lookup": {
-                    "from": "files",
-                    "localField": "file_ObjectIds",
-                    "foreignField": "_id",
-                    "as": "files",
-                }
-            },
+            {"$lookup": creators_lookup()},
+            {"$lookup": collections_lookup()},
         ],
     )
 
@@ -467,11 +471,10 @@ def get_item_data(item_id, load_blocks=True):
     except IndexError:
         doc = None
 
-    if not doc or (
-        not CONFIG.TESTING
-        and not current_user.is_authenticated
-        and doc["type"] == "starting_materials"
-    ):
+    for ind, coll in enumerate(doc.get("collections", [])):
+        doc["collections"][ind] = {"collection_id": coll["collection_id"], "type": "collections"}
+
+    if not doc or (not current_user.is_authenticated and doc["type"] == "starting_materials"):
         return (
             jsonify(
                 {
@@ -501,6 +504,7 @@ def get_item_data(item_id, load_blocks=True):
             "$or": [
                 {"relationships.item_id": doc.item_id},
                 {"relationships.refcode": doc.refcode},
+                {"relationships.immutable_id": doc.immutable_id},
             ]
         },
         projection={
@@ -523,13 +527,19 @@ def get_item_data(item_id, load_blocks=True):
         for k in d["relationships"]:
             if k["relation"] not in incoming_relationships:
                 incoming_relationships[k["relation"]] = set()
-            incoming_relationships[k["relation"]].add(d["item_id"] or d["refcode"])
+            incoming_relationships[k["relation"]].add(
+                d["item_id"] or d["refcode"] or d["immutable_id"]
+            )
 
     # loop over and aggregate all 'inner' relationships presented by this item
     inlined_relationships: Dict[RelationshipType, Set[str]] = {}
     if doc.relationships is not None:
         inlined_relationships = {
-            relation: {d.item_id or d.refcode for d in doc.relationships if d.relation == relation}
+            relation: {
+                d.item_id or d.refcode or d.immutable_id
+                for d in doc.relationships
+                if d.relation == relation
+            }
             for relation in RelationshipType
         }
 
@@ -555,8 +565,7 @@ def get_item_data(item_id, load_blocks=True):
             "item_id": item_id,
             "item_data": return_dict,
             "files_data": files_data,
-            "child_items": sorted(children),
-            "parent_items": sorted(parents),
+            "child_items": sorted(children), "parent_items": sorted(parents),
         }
     )
 
@@ -611,6 +620,10 @@ def save_item():
             ),
             400,
         )
+
+    # remove collections and creators and any other reference fields
+    item.pop("collections")
+    item.pop("creators")
 
     result = flask_mongo.db.items.update_one(
         {"item_id": item_id},

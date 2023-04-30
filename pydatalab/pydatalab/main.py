@@ -227,7 +227,7 @@ def register_endpoints(app: Flask):
 
     for bp in BLUEPRINTS:
         for ver in versions:
-            app.register_blueprint(bp, url_prefix=f"{ver}")
+            app.register_blueprint(bp, url_prefix=f"{ver}", name=f"{ver}/{bp.name}")
 
     for bp in OAUTH_BLUEPRINTS:  # type: ignore
         app.register_blueprint(OAUTH_BLUEPRINTS[bp], url_prefix="/login")  # type: ignore

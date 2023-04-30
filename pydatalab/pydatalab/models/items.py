@@ -97,12 +97,4 @@ class Item(Entry, abc.ABC):
                 # Accumulate all constituent IDs in a set to filter those that have been deleted
                 collections_set.add(collection.immutable_id)
 
-        # Finally, filter out any parent relationships with item that were removed
-        # from the synthesis constituents
-        values["relationships"] = [
-            rel
-            for rel in values["relationships"]
-            if not (rel.immutable_id not in collections_set and rel.type == "collections")
-        ]
-
         return values
