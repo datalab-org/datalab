@@ -1,6 +1,7 @@
 <template>
-  <div v-if="isSampleFetchError" class="alert alert-danger">
-    Server Error. Sample list not retreived.
+  <div v-if="isFetchError" class="alert alert-danger">
+    <font-awesome-icon icon="exclamation-circle" />&nbsp;Sample list could not be retreived. Are you
+    logged in?
   </div>
 
   <div class="form-inline mb-2 ml-auto">
@@ -27,12 +28,15 @@
     :headers="headers"
     :items="samples"
     :search-value="searchValue"
+    :loading="!isReady"
     table-class-name="customize-table"
     header-class-name="customize-table-header"
     buttons-pagination
     @click-row="goToEditPage"
     v-model:items-selected="itemsSelected"
   >
+    <template #empty-message>No samples found.</template>
+
     <template #item-item_id="item">
       <FormattedItemName :item_id="item.item_id" :itemType="item?.type" enableModifiedClick />
     </template>
@@ -60,6 +64,10 @@
     <template #item-creators="item">
       <Creators :creators="item.creators" />
     </template>
+
+    <template #item-nblocks="item">
+      {{ item.nblocks || 0 }}
+    </template>
   </Vue3EasyDataTable>
 </template>
 
@@ -77,10 +85,10 @@ import { GRAVATAR_STYLE, itemTypes } from "@/resources.js";
 export default {
   data() {
     return {
-      isSampleFetchError: false,
+      isFetchError: false,
       gravatar_style: GRAVATAR_STYLE,
       itemTypes: itemTypes,
-      sampleTableIsReady: false,
+      isReady: false,
       itemsSelected: [],
       headers: [
         { text: "ID", value: "item_id", sortable: true },
@@ -119,10 +127,10 @@ export default {
       getSampleList()
         .then(() => {
           console.log("sample list received!");
-          this.sampleTableIsReady = true;
+          this.isReady = true;
         })
         .catch(() => {
-          this.isSampleFetchError = true;
+          this.isFetchError = true;
         });
     },
     deleteSelectedItems() {
