@@ -97,7 +97,6 @@ def compute_gpcl_differential(
 
     # Loop over distinct half cycles
     for cycle in df["half cycle"].unique():
-
         # Extract all segments corresponding to this half cycle index
         df_cycle = df[df["half cycle"] == cycle]
 
@@ -260,11 +259,11 @@ class CycleBlock(DataBlock):
         cycle_summary_file_loc = Path(file_info["location"]).with_suffix(".SUMMARY.pkl")
 
         raw_df = None
+        cycle_summary_df = None
         if not reload:
             if parsed_file_loc.exists():
                 raw_df = pd.read_pickle(parsed_file_loc)
 
-            cycle_summary_df = None
             if cycle_summary_file_loc.exists():
                 cycle_summary_df = pd.read_pickle(cycle_summary_file_loc)
 
@@ -344,7 +343,6 @@ class CycleBlock(DataBlock):
             cycle_summary_df = filter_df_by_cycle_index(cycle_summary_df, cycle_list)
 
         if mode in ("dQ/dV", "dV/dQ"):
-
             df = compute_gpcl_differential(
                 df,
                 mode=mode,
