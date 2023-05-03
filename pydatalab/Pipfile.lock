@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "f0ec0de92218dd179e100f089b261414ed939995b933c6fc10540cd697f21b9d"
+            "sha256": "2ce07a6fe2a46d393d170c98a252ebf79bb5f578063ba774ad1c95a7b09365fd"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -322,7 +322,7 @@
                 "sha256:f8303414c7b03f794347ad062c0516cee0e15f7a612abd0ce1e25caf6ceb47df",
                 "sha256:fca62a8301b605b954ad2e9c3666f9d97f63872aa4efcae5492baca2056b74ab"
             ],
-            "markers": "python_version >= '3.7'",
+            "markers": "python_full_version >= '3.7.0'",
             "version": "==3.1.0"
         },
         "click": {
@@ -852,7 +852,7 @@
         },
         "navani": {
             "git": "https://github.com/the-grey-group/navani.git",
-            "ref": "5ef533701849253379a026bda3e3a29b4bd3bc8e"
+            "ref": "5eaa650ac98f89b4c3ff3cfdecfb663ab5da6247"
         },
         "nmrglue": {
             "hashes": [
@@ -1676,7 +1676,7 @@
                 "sha256:f8303414c7b03f794347ad062c0516cee0e15f7a612abd0ce1e25caf6ceb47df",
                 "sha256:fca62a8301b605b954ad2e9c3666f9d97f63872aa4efcae5492baca2056b74ab"
             ],
-            "markers": "python_version >= '3.7'",
+            "markers": "python_full_version >= '3.7.0'",
             "version": "==3.1.0"
         },
         "click": {
