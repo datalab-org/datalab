@@ -16,7 +16,6 @@ scipy = "*"
 matplotlib = "*"
 pymongo = "*"
 galvani = "*"
-navani = {git = "git+https://github.com/the-grey-group/navani.git@v0.1.2"}
 openpyxl = "*"
 nmrglue = "*"
 python-dotenv = "*"
@@ -28,6 +27,7 @@ flask-compress = "*"
 pillow = "*"
 openai = "*"
 tiktoken = "*"
+navani = {git = "git+https://github.com/the-grey-group/navani.git@v0.1.3"}
 
 [dev-packages]
 pytest = "*"

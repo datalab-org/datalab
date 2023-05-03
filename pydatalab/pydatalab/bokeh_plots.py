@@ -236,10 +236,12 @@ def double_axes_echem_plot(
 
     if not x_options:
         x_options = (
-            ("capacity (mAh/g)", "voltage (V)", "time (s)", "current (mA/g)")
+            ["capacity (mAh/g)", "voltage (V)", "time (s)", "current (mA/g)"]
             if normalized
-            else ("capacity (mAh)", "voltage (V)", "time (s)", "current (mA)")
+            else ["capacity (mAh)", "voltage (V)", "time (s)", "current (mA)"]
         )
+    
+    x_options = [opt for opt in x_options if opt in df.columns]
 
     common_options = {"aspect_ratio": 1.5, "tools": TOOLS}
     common_options.update(**kwargs)

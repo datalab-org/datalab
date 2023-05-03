@@ -285,9 +285,6 @@ class CycleBlock(DataBlock):
             cycle_summary_df = ec.cycle_summary(raw_df)
             cycle_summary_df.to_pickle(cycle_summary_file_loc)
 
-        if "time/s" in raw_df:
-            # temporary. Navani should give "Time" as a standard field in the future.
-            raw_df["Time"] = raw_df["time/s"]
         raw_df = raw_df.filter(required_keys)
         raw_df.rename(columns=keys_with_units, inplace=True)
 
