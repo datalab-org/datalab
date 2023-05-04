@@ -21,9 +21,7 @@ from bokeh.themes import Theme
 from scipy.signal import find_peaks
 
 FONTSIZE = "12pt"
-TYPEFACE = "Figtree"  # "Lato"
-# SIZES = list(range(6, 22, 3))
-# COLORS = Plasma256
+TYPEFACE = "Helvetica"  # "Lato"
 COLORS = Dark2[8]
 TOOLS = "box_zoom, reset, tap, crosshair, save"
 
@@ -240,7 +238,7 @@ def double_axes_echem_plot(
             if normalized
             else ["capacity (mAh)", "voltage (V)", "time (s)", "current (mA)"]
         )
-    
+
     x_options = [opt for opt in x_options if opt in df.columns]
 
     common_options = {"aspect_ratio": 1.5, "tools": TOOLS}
@@ -335,7 +333,6 @@ def double_axes_echem_plot(
 
     lines = []
     grouped_by_half_cycle = df.groupby("half cycle")
-    max_full_cycle = df["full cycle"].max()
 
     for ind, plot in enumerate(plots):
         x = x_default
@@ -346,20 +343,18 @@ def double_axes_echem_plot(
             else:
                 y = "dV/dQ (V/mA)"
 
-        for _, group in grouped_by_half_cycle:
-            # trim the end of the colour cycle for visibility on a white background
-            if max_full_cycle <= 1:
-                color_value = 0.5
-            else:
-                color_value = 0.8 * max(
-                    0.0, (group["full cycle"].iloc[0] - 1) / (max_full_cycle - 1)
-                )
+        # trim the end of the colour cycle for visibility on a white background
+        color_space = np.linspace(0.3, 0.7, len(grouped_by_half_cycle))  # type: ignore
+        if len(grouped_by_half_cycle) <= 1:
+            color_space = [0.5]  # type: ignore
+
+        for group_idx, group in grouped_by_half_cycle:
 
             line = plot.line(
                 x=x,
                 y=y,
                 source=group,
-                line_color=matplotlib.colors.rgb2hex(cmap(color_value)),
+                line_color=matplotlib.colors.rgb2hex(cmap(color_space[group_idx - 1])),
                 hover_line_width=2,
                 selection_line_width=2,
                 selection_line_color="black",
