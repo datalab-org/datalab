@@ -19,23 +19,25 @@ from pydatalab.utils import reduce_df_size
 
 
 def reduce_echem_cycle_sampling(df: pd.DataFrame, num_samples: int = 100) -> pd.DataFrame:
-    """Reduce number of cycles to at most 100 points per cycle.
+    """Reduce number of cycles to at most `num_samples` points per half cycle. Will 
+    keep the endpoint values of each half cycle.
 
     Parameters:
         df: The echem dataframe to reduce, which must have cycling data stored
-    e       under a `"full cycle"` column.
-        num_displayed: The maximum number of sample points to include per cycle.
+            under a `"half cycle"` column.
+        num_samples: The maximum number of sample points to include per cycle.
 
     Returns:
         The output dataframe.
 
     """
 
-    number_of_cycles = df["full cycle"].nunique()
+    return_df = pd.DataFrame([])
 
-    if number_of_cycles >= 1:
-        df = reduce_df_size(df, num_samples * number_of_cycles)
-    return df
+    for _, half_cycle in df.groupby("half cycle"):
+        return_df = pd.concat([return_df, reduce_df_size(half_cycle, num_samples, endpoint=True)])
+
+    return return_df
 
 
 def compute_gpcl_differential(
