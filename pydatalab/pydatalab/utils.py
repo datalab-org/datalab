@@ -28,7 +28,7 @@ def reduce_df_size(df: pd.DataFrame, target_nrows: int, endpoint: bool = True) -
     if endpoint:
         indices = [0] + list(range(stride, num_rows - 1, stride)) + [num_rows - 1]
     else:
-        indices = range(0, num_rows, stride)
+        indices = list(range(0, num_rows, stride))
 
     return df.iloc[indices].copy()
 
