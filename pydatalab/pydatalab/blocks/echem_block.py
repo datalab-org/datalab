@@ -19,7 +19,7 @@ from pydatalab.utils import reduce_df_size
 
 
 def reduce_echem_cycle_sampling(df: pd.DataFrame, num_samples: int = 100) -> pd.DataFrame:
-    """Reduce number of cycles to at most `num_samples` points per half cycle. Will 
+    """Reduce number of cycles to at most `num_samples` points per half cycle. Will
     keep the endpoint values of each half cycle.
 
     Parameters:
