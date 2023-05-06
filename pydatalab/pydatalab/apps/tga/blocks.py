@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from typing import List, Tuple
 
 import bokeh
 from bokeh.layouts import gridplot
@@ -46,6 +47,9 @@ class MassSpecBlock(DataBlock):
 
         if ms_data:
 
+            # collect the maximum value of the data key for each species for plot ordering
+            max_vals: List[Tuple[str, float]] = []
+
             for species in ms_data["data"]:
                 data_key = (
                     "Partial Pressure [mbar]"
@@ -58,8 +62,10 @@ class MassSpecBlock(DataBlock):
                     data, len(data) // 10, 3
                 )
 
+                max_vals.append((species, ms_data["data"][species][data_key].max()))
+
             plots = []
-            for ind, species in enumerate(ms_data["data"]):
+            for ind, (species, _) in enumerate(sorted(max_vals, key=lambda x: x[1], reverse=True)):
                 plots.append(
                     selectable_axes_plot(
                         {species: ms_data["data"][species]},
@@ -73,11 +79,13 @@ class MassSpecBlock(DataBlock):
                         label_y=(ind == 0),
                         plot_line=True,
                         plot_points=False,
-                        plot_title=species,
+                        plot_title=f"Channel name: {species}",
                         plot_index=ind,
                         aspect_ratio=1.5,
                     )
                 )
+
+                plots[-1].children[0].xaxis[0].ticker.desired_num_ticks = 2
 
             # construct MxN grid of all species
             M = 3
