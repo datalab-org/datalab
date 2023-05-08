@@ -27,6 +27,7 @@ periodictable = "*"
 flask-compress = "*"
 pillow = "*"
 openai = "*"
+tiktoken = "*"
 
 [dev-packages]
 pytest = "*"
