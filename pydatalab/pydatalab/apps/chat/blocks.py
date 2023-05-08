@@ -3,6 +3,7 @@ import os
 from typing import Sequence
 
 import openai
+import tiktoken
 
 from pydatalab.blocks.blocks import DataBlock
 from pydatalab.logger import LOGGER
@@ -10,6 +11,26 @@ from pydatalab.models import ITEM_MODELS
 from pydatalab.utils import CustomJSONEncoder
 
 __all__ = "ChatBlock"
+MODEL = "gpt-3.5-turbo"
+MAX_CONTEXT_SIZE = 4097
+
+
+def num_tokens_from_messages(messages: Sequence[dict]):
+    # see: https://github.com/openai/openai-cookbook/blob/main/examples/How_to_count_tokens_with_tiktoken.ipynb
+    encoding = tiktoken.encoding_for_model(MODEL)
+
+    tokens_per_message = 4  # every message follows <|start|>{role/name}\n{content}<|end|>\n
+    tokens_per_name = -1  # if there's a name, the role is omitted
+
+    num_tokens = 0
+    for message in messages:
+        num_tokens += tokens_per_message
+        for key, value in message.items():
+            num_tokens += len(encoding.encode(value))
+            if key == "name":
+                num_tokens += tokens_per_name
+    num_tokens += 3  # every reply is primed with <|start|>assistant<|message|>
+    return num_tokens
 
 
 class ChatBlock(DataBlock):
@@ -22,6 +43,8 @@ You are embedded within the program datalab, where you have access to JSON descr
 Answer questions in markdown. Specify the language for all markdown code blocks. You can make diagrams by writing a mermaid code block or an svg code block.
 Be as concise as possible. Start the conversion with a friendly greeting introducing yourself.
         """,
+        "temperature": 0.2,
+        "error_message": None,
     }
     openai.api_key = os.environ.get("OPENAI_API_KEY")
 
@@ -118,6 +141,15 @@ Be as concise as possible. Start the conversion with a friendly greeting introdu
             )
             self.data["prompt"] = None
 
+        token_count = num_tokens_from_messages(self.data["messages"])
+        self.data["token_count"] = token_count
+
+        if token_count >= MAX_CONTEXT_SIZE:
+            self.data[
+                "error_message"
+            ] = f"""This conversation has reached its maximum context size and the chatbot won't be able to respond further ({token_count} tokens, max: {MAX_CONTEXT_SIZE}). Please make a new chat block to start fresh."""
+            return
+
         try:
             if self.data["messages"][-1].role not in ("user", "system"):
                 return
@@ -126,20 +158,29 @@ Be as concise as possible. Start the conversion with a friendly greeting introdu
                 return
 
         try:
-            LOGGER.warning(
+            LOGGER.debug(
                 f"submitting request to OpenAI API for completion with last message role \"{self.data['messages'][-1]['role']}\" (message = {self.data['messages'][-1:]})"
             )
             responses = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
+                model=MODEL,
                 messages=self.data["messages"],
-                temperature=0.2,
-                max_tokens=1024,
+                temperature=self.data["temperature"],
+                max_tokens=min(
+                    1024, MAX_CONTEXT_SIZE - token_count
+                ),  # if less than 1024 tokens are left in the token, then indicate this
             )
-        except openai.InvalidRequestError as exc:
-            LOGGER.debug("Received an InvalidRequestError from OpenAI API: %s", exc)
+            self.data["error_message"] = None
+        except openai.OpenAIError as exc:
+            LOGGER.debug("Received an error from OpenAI API: %s", exc)
+            self.data["error_message"] = f"Received an error from the OpenAi API: {exc}."
             return
 
         try:
             self.data["messages"].append(responses["choices"][0].message)
         except AttributeError:
             self.data["messages"].append(responses["choices"][0]["message"])
+
+        token_count = num_tokens_from_messages(self.data["messages"])
+        self.data["token_count"] = token_count
+
+        return

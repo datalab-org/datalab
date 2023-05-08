@@ -10,7 +10,11 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
     </div>
 
     <div class="row">
-      <div id="chatWindowContainer" class="col-xl-9 col-lg-10 col-md-11 mx-auto">
+      <div id="chatWindowContainer" class="col-xl-9 col-lg-10 col-md-12 mx-auto">
+        <div id="context-size-message" v-if="!contextHidden">
+          Conversation token count: {{ tokenCount }} (max: 4097)
+        </div>
+
         <ChatWindow :chatMessages="messages.slice(contextHidden ? 2 : 0)" :isLoading="isLoading" />
         <div class="d-flex justify-content-center">
           <button
@@ -27,6 +31,9 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
           </button>
         </div>
       </div>
+    </div>
+    <div v-if="errorMessage" class="alert alert-warning">
+      {{ errorMessage }}
     </div>
     <div class="input-group form-inline col-md-10 mx-auto align-items-end">
       <textarea
@@ -72,6 +79,13 @@ export default {
   computed: {
     messages: createComputedSetterForBlockField("messages"),
     prompt: createComputedSetterForBlockField("prompt"),
+    errorMessage() {
+      return this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id]
+        .error_message;
+    },
+    tokenCount() {
+      return this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id].token_count;
+    },
   },
   components: {
     DataBlockBase,
@@ -129,5 +143,10 @@ export default {
 .regenerate-button {
   margin-top: -1rem;
   margin-bottom: 1rem;
+}
+
+#context-size-message {
+  font-style: italic;
+  margin-left: 20%;
 }
 </style>
