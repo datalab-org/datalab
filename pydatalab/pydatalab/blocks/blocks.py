@@ -350,23 +350,7 @@ class XRDBlock(DataBlock):
         pattern_dfs = None
 
         if "file_id" not in self.data:
-            LOGGER.warning("XRDBlock.generate_xrd_plot(): No file set in the DataBlock")
-            raise RuntimeError("XRDBlock.generate_xrd_plot(): No file set in DataBlock")
-        else:
-            file_info = get_file_info_by_id(self.data["file_id"], update_if_live=True)
-            ext = os.path.splitext(file_info["location"].split("/")[-1])[-1].lower()
-            if ext not in self.accepted_file_extensions:
-                LOGGER.warning(
-                    "XRDBlock.generate_xrd_plot(): Unsupported file extension (must be one of %s), not %s",
-                    self.accepted_file_extensions,
-                    ext,
-                )
-                return
-
-            pattern_dfs, y_options = self.load_pattern(file_info["location"])
-            pattern_dfs = [pattern_dfs]
-
-        if not file_info:
+            # If no file set, try to plot them all
 
             item_info = flask_mongo.db.items.find_one(
                 {"item_id": self.data["item_id"]},
@@ -385,19 +369,30 @@ class XRDBlock(DataBlock):
                 LOGGER.warning(
                     "XRDBlock.generate_xrd_plot(): Unsupported file extension (must be .xrdml or .xy)"
                 )
-                return
+                raise RuntimeError("XRDBlock.generate_xrd_plot(): No file set in DataBlock")
 
             pattern_dfs = []
             for f in all_files:
                 pattern_df, y_options = self.load_pattern(f["location"])
                 pattern_dfs.append(pattern_df)
 
-        x_options = ["2θ (°)", "Q (Å⁻¹)", "d (Å)"]
+        else:
+            file_info = get_file_info_by_id(self.data["file_id"], update_if_live=True)
+            ext = os.path.splitext(file_info["location"].split("/")[-1])[-1].lower()
+            if ext not in self.accepted_file_extensions:
+                raise RuntimeError(
+                    "XRDBlock.generate_xrd_plot(): Unsupported file extension (must be one of %s), not %s",
+                    self.accepted_file_extensions,
+                    ext,
+                )
+
+            pattern_dfs, y_options = self.load_pattern(file_info["location"])
+            pattern_dfs = [pattern_dfs]
 
         if pattern_dfs:
             p = selectable_axes_plot(
                 pattern_dfs,
-                x_options=x_options,
+                x_options=["2θ (°)", "Q (Å⁻¹)", "d (Å)"],
                 y_options=y_options,
                 plot_line=True,
                 plot_points=True,

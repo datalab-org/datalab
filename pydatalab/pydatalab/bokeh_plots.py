@@ -6,7 +6,14 @@ import numpy as np
 import pandas as pd
 from bokeh.events import DoubleTap
 from bokeh.layouts import column, gridplot
-from bokeh.models import CrosshairTool, CustomJS, HoverTool
+from bokeh.models import (
+    ColorBar,
+    ColorMapper,
+    CrosshairTool,
+    CustomJS,
+    HoverTool,
+    LinearColorMapper,
+)
 from bokeh.models.widgets import Select
 from bokeh.palettes import Accent, Dark2
 from bokeh.plotting import ColumnDataSource, figure
@@ -78,6 +85,7 @@ def selectable_axes_plot(
     x_options: List[str],
     y_options: List[str],
     color_options: Optional[List[str]] = None,
+    color_mapper: Optional[ColorMapper] = None,
     x_default: Optional[str] = None,
     y_default: Optional[str] = None,
     plot_points: bool = True,
@@ -94,6 +102,7 @@ def selectable_axes_plot(
         x_options: Selectable fields to use for the x-values
         y_options: Selectable fields to use for the y-values
         color_options: Selectable fields to colour lines/points by.
+        color_mapper: Optional colour mapper to pass to switch between log and linear scales.
         x_default: Default x-axis that is printed at start, defaults to first value of `x_options`
         y_default: Default y-axis that is printed at start, defaults to first value of `y_options`.
         plot_points: Whether to use plot markers.
@@ -125,24 +134,46 @@ def selectable_axes_plot(
 
     callbacks_x = []
     callbacks_y = []
+
+    if color_options:
+        if color_mapper is None:
+            color_mapper = LinearColorMapper(palette="Cividis256")
+
+    hatch_patterns = [None, ".", "/", "x"]
+
     for ind, df_ in enumerate(df):
         source = ColumnDataSource(df_)
 
-        # This currently seems to be slow
         if color_options:
-            color = color_options[0]
+            color = {"field": color_options[0], "transform": color_mapper}
+            line_color = "black"
+            fill_color = None
+            if hatch_patterns[ind % len(hatch_patterns)] is None:
+                fill_color = color
         else:
-            color = COLORS[ind]
+            color = COLORS[ind % len(COLORS)]
+            line_color = COLORS[ind % len(COLORS)]
+            fill_color = COLORS[ind % len(COLORS)]
 
         label = df_.index.name if len(df) > 1 else ""
 
         circles = (
-            p.circle(x=x_default, y=y_default, source=source, size=point_size, color=color)
+            p.circle(
+                x=x_default,
+                y=y_default,
+                source=source,
+                size=point_size,
+                line_color=color,
+                fill_color=fill_color,
+                legend_label=label,
+                hatch_pattern=hatch_patterns[ind % len(hatch_patterns)],
+                hatch_color=color,
+            )
             if plot_points
             else None
         )
         lines = (
-            p.line(x=x_default, y=y_default, source=source, color=color, legend_label=label)
+            p.line(x=x_default, y=y_default, source=source, color=line_color, legend_label=label)
             if plot_line
             else None
         )
@@ -159,6 +190,10 @@ def selectable_axes_plot(
                 code=SELECTABLE_CALLBACK_y,
             )
         )
+
+    if color_mapper and color_options:
+        color_bar = ColorBar(color_mapper=color_mapper, title=color_options[0])  # type: ignore
+        p.add_layout(color_bar, "right")
 
     # Add list boxes for selecting which columns to plot on the x and y axis
     xaxis_select = Select(title="X axis:", value=x_default, options=x_options)

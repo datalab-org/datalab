@@ -3,7 +3,7 @@ from pathlib import Path
 
 import bokeh.embed
 import pandas as pd
-from bokeh.models import HoverTool
+from bokeh.models import HoverTool, LogColorMapper
 
 from pydatalab.blocks.blocks import DataBlock
 from pydatalab.bokeh_plots import mytheme, selectable_axes_plot
@@ -59,7 +59,8 @@ class EISBlock(DataBlock):
                 eis_data,
                 x_options=["Re(Z) [Ω]"],
                 y_options=["-Im(Z) [Ω]"],
-                # color_options=["Frequency [Hz]"],
+                color_options=["Frequency [Hz]"],
+                color_mapper=LogColorMapper("Cividis256"),
                 plot_points=True,
                 plot_line=False,
                 tools=HoverTool(tooltips=[("Frequency [Hz]", "@{Frequency [Hz]}")]),
