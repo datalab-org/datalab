@@ -182,6 +182,7 @@ def selectable_axes_plot(
             if plot_line
             else None
         )
+
         circles = (
             p.circle(
                 x=x_default,
