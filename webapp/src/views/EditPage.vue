@@ -75,6 +75,16 @@
           <component :is="getBlockDisplayType(block_id)" :item_id="item_id" :block_id="block_id" />
         </div>
       </transition-group>
+      <div ref="blockLoadingIndicator" class="text-center">
+        <font-awesome-icon
+          v-if="isLoadingNewBlock"
+          icon="spinner"
+          class="fa-spin mx-auto"
+          fixed-width
+          style="color: gray"
+          size="2x"
+        />
+      </div>
     </div>
 
     <FileSelectModal :item_id="item_id" />
@@ -108,14 +118,20 @@ export default {
       selectedRemoteFiles: [],
       isLoadingRemoteTree: false,
       isLoadingRemoteFiles: false,
+      isLoadingNewBlock: false,
     };
   },
   methods: {
     async newBlock(event, blockType, index = null) {
+      this.isMenuDropdownVisible = false;
+      this.isLoadingNewBlock = true;
+      this.$refs.blockLoadingIndicator.scrollIntoView({
+        behavior: "smooth",
+      });
       var block_id = await addABlock(this.item_id, blockType, index);
       // close the dropdown and scroll to the new block
-      this.isMenuDropdownVisible = false;
       var new_block_el = document.getElementById(block_id);
+      this.isLoadingNewBlock = false;
       new_block_el.scrollIntoView({
         behavior: "smooth",
       });
@@ -324,5 +340,9 @@ label,
 .block-list-leave-active {
   position: absolute;
   max-width: calc(100% - 30px);
+}
+
+.dropdown-menu {
+  cursor: pointer;
 }
 </style>
