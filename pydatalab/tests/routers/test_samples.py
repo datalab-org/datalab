@@ -373,9 +373,37 @@ def test_create_cell(client, default_cell):
     assert response.status_code == 201, response.json
     assert response.json["status"] == "success"
 
-    copy_doc = {"item_id": "copy_of_complicated_cell"}
+    test_id = "copy_of_complicated_cell"
+
+    copy_doc = {
+        "item_id": test_id,
+        "type": "cells",
+        "electrolyte": [
+            {"item": {"name": "salt", "chemform": "NaCl"}, "quantity": 100, "unit": "ml"}
+        ],
+    }
     copy_request = {"new_sample_data": copy_doc, "copy_from_item_id": default_cell.item_id}
     response = client.post("/new-sample/", json=copy_request)
 
     assert response.status_code == 201, response.json
     assert response.json["status"] == "success"
+
+    response = client.get(
+        f"/get-item-data/{default_cell.item_id}",
+    )
+
+    assert response.json["item_data"]["electrolyte"] == [
+        {"item": {"chemform": None, "name": "inlined reference"}, "quantity": 100, "unit": "ml"},
+    ]
+
+    assert len(response.json["item_data"]["electrolyte"]) == 1
+    assert len(response.json["item_data"]["positive_electrode"]) == 1
+    assert len(response.json["item_data"]["negative_electrode"]) == 2
+
+    copied_response = client.get(
+        f"/get-item-data/{test_id}",
+    )
+
+    assert len(copied_response.json["item_data"]["electrolyte"]) == 2
+    assert len(copied_response.json["item_data"]["positive_electrode"]) == 1
+    assert len(copied_response.json["item_data"]["negative_electrode"]) == 2
