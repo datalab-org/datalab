@@ -1,4 +1,4 @@
-from typing import List, Optional, Sequence, Union
+from typing import Dict, List, Optional, Sequence, Union
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -74,21 +74,60 @@ style = {
     }
 }
 
+"""Additional style suitable for grid plots"""
+grid_style = {
+    "attrs": {
+        # apply defaults to Figure properties
+        "Figure": {
+            "toolbar_location": "above",
+            "outline_line_color": None,
+            "min_border_right": 10,
+        },
+        "Title": {
+            "text_font_style": "bold",
+            "text_font": TYPEFACE,
+        },
+        # apply defaults to Axis properties
+        "Axis": {
+            "axis_label_text_font": TYPEFACE,
+            "axis_label_text_font_style": "normal",
+            "major_tick_in": 0,
+            "minor_tick_out": 0,
+            "minor_tick_in": 0,
+            "axis_line_color": None,
+            "major_tick_line_color": None,
+            "minor_tick_line_color": None,
+        },
+        "Grid": {
+            "grid_line_color": None,
+        },
+        # apply defaults to Legend properties
+        "Legend": {
+            "background_fill_alpha": 0.8,
+        },
+    }
+}
+
 
 mytheme = Theme(json=style)
+grid_theme = Theme(json=grid_style)
 
 
 def selectable_axes_plot(
-    df: Union[List[pd.DataFrame], pd.DataFrame],
+    df: Union[Dict[str, pd.DataFrame], List[pd.DataFrame], pd.DataFrame],
     x_options: List[str],
     y_options: List[str],
     color_options: Optional[List[str]] = None,
     color_mapper: Optional[ColorMapper] = None,
     x_default: Optional[str] = None,
-    y_default: Optional[str] = None,
+    y_default: Optional[Union[str, List[str]]] = None,
+    label_x: bool = True,
+    label_y: bool = True,
     plot_points: bool = True,
     point_size: int = 4,
     plot_line: bool = True,
+    plot_title: Optional[str] = None,
+    plot_index: Optional[int] = None,
     tools: Optional[List] = None,
     **kwargs,
 ):
@@ -96,16 +135,21 @@ def selectable_axes_plot(
     Creates bokeh layout with selectable axis.
 
     Args:
-        df: Dataframe, or list of dataframes from data block.
+        df: Dataframe, or list/dict of dataframes from data block.
         x_options: Selectable fields to use for the x-values
         y_options: Selectable fields to use for the y-values
         color_options: Selectable fields to colour lines/points by.
         color_mapper: Optional colour mapper to pass to switch between log and linear scales.
-        x_default: Default x-axis that is printed at start, defaults to first value of `x_options`
-        y_default: Default y-axis that is printed at start, defaults to first value of `y_options`.
+        x_default: Default x-axis that is plotted at start, defaults to first value of `x_options`
+        y_default: Default y-axis that is plotted at start, defaults to first value of `y_options`.
+            If provided a list, the first entry will be plotted as solid line, and all others will
+            be transparent lines.
         plot_points: Whether to use plot markers.
         point_size: The size of markers, if enabled.
         plot_line: Whether to draw a line between points.
+        plot_title: Global plot title to give to the figure.
+        plot_index: If part of a larger number of plots, use this index for e.g., choosing the correct
+            value in the colour cycle.
         tools: A list of Bokeh tools to enable.
 
     Returns:
@@ -113,14 +157,24 @@ def selectable_axes_plot(
     """
     if not x_default:
         x_default = x_options[0]
+    if not y_default:
         y_default = y_options[0]
+
+    if isinstance(y_default, list):
+        y_label = y_options[0]
+    else:
+        y_label = y_default
+
+    x_axis_label = x_default if label_x else ""
+    y_axis_label = y_label if label_y else ""
 
     p = figure(
         sizing_mode="scale_width",
-        aspect_ratio=1.5,
-        x_axis_label=x_default,
-        y_axis_label=y_default,
+        aspect_ratio=kwargs.pop("aspect_ratio", 1.5),
+        x_axis_label=x_axis_label,
+        y_axis_label=y_axis_label,
         tools=TOOLS,
+        title=plot_title,
         **kwargs,
     )
 
@@ -139,7 +193,21 @@ def selectable_axes_plot(
 
     hatch_patterns = [None, ".", "/", "x"]
 
+    labels = []
+
+    if isinstance(df, dict):
+        labels = list(df.keys())
+
     for ind, df_ in enumerate(df):
+
+        if isinstance(df, dict):
+            df_ = df[df_]
+
+        if labels:
+            label = labels[ind]
+        else:
+            label = df_.index.name if len(df) > 1 else ""
+
         source = ColumnDataSource(df_)
 
         if color_options:
@@ -148,12 +216,21 @@ def selectable_axes_plot(
             fill_color = None
             if hatch_patterns[ind % len(hatch_patterns)] is None:
                 fill_color = color
+        elif plot_index is not None:
+            color = COLORS[plot_index % len(COLORS)]
+            line_color = COLORS[plot_index % len(COLORS)]
+            fill_color = COLORS[plot_index % len(COLORS)]
         else:
             color = COLORS[ind % len(COLORS)]
             line_color = COLORS[ind % len(COLORS)]
             fill_color = COLORS[ind % len(COLORS)]
 
-        label = df_.index.name if len(df) > 1 else ""
+        # If y_default is a list, plot the first one as a solid line, and the rest as transparent "auxiliary" lines
+        y_aux = None
+        if isinstance(y_default, list):
+            if len(y_default) > 1:
+                y_aux = y_default[1:]
+            y_default = y_default[0]
 
         circles = (
             p.circle(
@@ -170,11 +247,27 @@ def selectable_axes_plot(
             if plot_points
             else None
         )
+
         lines = (
             p.line(x=x_default, y=y_default, source=source, color=line_color, legend_label=label)
             if plot_line
             else None
         )
+
+        if y_aux:
+            for y in y_aux:
+                aux_lines = (  # noqa
+                    p.line(
+                        x=x_default,
+                        y=y,
+                        source=source,
+                        color=color,
+                        legend_label=label,
+                        alpha=0.3,
+                    )
+                    if plot_line
+                    else None
+                )
 
         callbacks_x.append(
             CustomJS(
@@ -204,7 +297,13 @@ def selectable_axes_plot(
     if len(df) <= 1:
         p.legend.visible = False
 
-    layout = column(p, xaxis_select, yaxis_select)
+    plot_columns = [p]
+    if len(x_options) > 1:
+        plot_columns.append(xaxis_select)
+    if len(y_options) > 1:
+        plot_columns.append(yaxis_select)
+
+    layout = column(*plot_columns)
 
     p.js_on_event(DoubleTap, CustomJS(args=dict(p=p), code="p.reset.emit()"))
     return layout
