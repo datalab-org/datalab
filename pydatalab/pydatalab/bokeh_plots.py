@@ -128,7 +128,7 @@ def selectable_axes_plot(
     plot_line: bool = True,
     plot_title: Optional[str] = None,
     plot_index: Optional[int] = None,
-    tools: Union[str, List[str]] = TOOLS,
+    tools: Optional[List] = None,
     **kwargs,
 ):
     """
@@ -173,7 +173,7 @@ def selectable_axes_plot(
         aspect_ratio=kwargs.pop("aspect_ratio", 1.5),
         x_axis_label=x_axis_label,
         y_axis_label=y_axis_label,
-        tools=tools,
+        tools=TOOLS,
         title=plot_title,
         **kwargs,
     )
@@ -225,6 +225,13 @@ def selectable_axes_plot(
             line_color = COLORS[ind % len(COLORS)]
             fill_color = COLORS[ind % len(COLORS)]
 
+        # If y_default is a list, plot the first one as a solid line, and the rest as transparent "auxiliary" lines
+        y_aux = None
+        if isinstance(y_default, list):
+            if len(y_default) > 1:
+                y_aux = y_default[1:]
+            y_default = y_default[0]
+
         circles = (
             p.circle(
                 x=x_default,
@@ -246,13 +253,6 @@ def selectable_axes_plot(
             if plot_line
             else None
         )
-
-        # If y_default is a list, plot the first one as a solid line, and the rest as transparent "auxiliary" lines
-        y_aux = None
-        if isinstance(y_default, list):
-            if len(y_default) > 1:
-                y_aux = y_default[1:]
-            y_default = y_default[0]
 
         if y_aux:
             for y in y_aux:
