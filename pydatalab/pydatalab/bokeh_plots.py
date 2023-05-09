@@ -240,7 +240,7 @@ def selectable_axes_plot(
             if plot_points
             else None
         )
-        
+
         lines = (
             p.line(x=x_default, y=y_default, source=source, color=line_color, legend_label=label)
             if plot_line

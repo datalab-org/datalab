@@ -3,7 +3,6 @@ from typing import Dict, Sequence, Type
 from pydatalab.apps.chat.blocks import ChatBlock
 from pydatalab.apps.eis import EISBlock
 from pydatalab.apps.tga import MassSpecBlock
-
 from pydatalab.blocks.blocks import (
     CommentBlock,
     DataBlock,
