@@ -171,8 +171,6 @@ def selectable_axes_plot(
     p = figure(
         sizing_mode="scale_width",
         aspect_ratio=kwargs.pop("aspect_ratio", 1.5),
-        x_axis_label=x_default,
-        y_axis_label=y_default,
         x_axis_label=x_axis_label,
         y_axis_label=y_axis_label,
         tools=tools,
