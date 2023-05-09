@@ -2,7 +2,12 @@
   <div class="row">
     <div class="col-md-12 form-group">
       <label id="startWithConstituentsLabel">(Optional) Start with constituents:</label>
-      <ItemSelect aria-labelledby="startWithConstituentsLabel" multiple v-model="constituents" />
+      <ItemSelect
+        aria-labelledby="startWithConstituentsLabel"
+        multiple
+        taggable
+        v-model="constituents"
+      />
     </div>
   </div>
 </template>
