@@ -120,7 +120,7 @@ def fixture_default_cell(default_sample):
             "item_id": "test_cell",
             "name": "test cell",
             "date": "1970-02-01",
-            "anode": [
+            "negative_electrode": [
                 {
                     "item": {"item_id": "test", "chemform": "Li15Si4", "type": "samples"},
                     "quantity": 2.0,
@@ -132,13 +132,14 @@ def fixture_default_cell(default_sample):
                     "unit": "mg",
                 },
             ],
-            "cathode": [
+            "positive_electrode": [
                 {
                     "item": {"item_id": "test_cathode", "chemform": "LiCoO2", "type": "samples"},
                     "quantity": 2000,
                     "unit": "kg",
                 }
             ],
+            "electrolyte": [{"item": {"name": "inlined reference"}, "quantity": 100, "unit": "ml"}],
             "cell_format": "swagelok",
             "type": "cells",
         }
