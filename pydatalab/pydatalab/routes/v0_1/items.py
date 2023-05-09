@@ -247,26 +247,30 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
         # addition to the constituents copied from the copy_from_item_id, avoiding duplicates
         if copied_doc["type"] == "samples":
             existing_consituent_ids = [
-                constituent["item"]["item_id"]
+                constituent["item"].get("item_id", None)
                 for constituent in copied_doc["synthesis_constituents"]
             ]
             copied_doc["synthesis_constituents"] += [
                 constituent
                 for constituent in sample_dict.get("synthesis_constituents", [])
-                if (constituent["item"]["item_id"] not in existing_consituent_ids)
+                if constituent["item"].get("item_id") is None
+                or constituent["item"].get("item_id") not in existing_consituent_ids
             ]
             sample_dict = copied_doc
 
         elif copied_doc["type"] == "cells":
-            for component in ("cathode", "anode", "electrolyte"):
+
+            for component in ("positive_electrode", "negative_electrode", "electrolyte"):
                 if copied_doc.get(component):
                     existing_consituent_ids = [
-                        constituent["item"]["item_id"] for constituent in copied_doc[component]
+                        constituent["item"].get("item_id", None)
+                        for constituent in copied_doc[component]
                     ]
                     copied_doc[component] += [
                         constituent
                         for constituent in sample_dict.get(component, [])
-                        if (constituent["item"]["item_id"] not in existing_consituent_ids)
+                        if constituent["item"].get("item_id", None) is None
+                        or constituent["item"].get("item_id") not in existing_consituent_ids
                     ]
 
             sample_dict = copied_doc
