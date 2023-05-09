@@ -42,6 +42,20 @@ SELECTABLE_CALLBACK_y = """
   yaxis.axis_label = column;
 """
 
+# unfortunately, the colorbar title (label) doesn't actually update even though it should
+# this bug is likely fixed in bokeh v3.0+
+# https://github.com/bokeh/bokeh/issues/11116
+SELECTABLE_CALLBACK_color = """
+  var column = cb_obj.value;
+  var low = Math.min.apply(Math,source.data[column]);
+  var high = Math.max.apply(Math,source.data[column]);
+  color_bar.color_mapper.low = low;
+  color_bar.color_mapper.high = high;
+  color_bar.title = cb_obj.title;
+  circle1.glyph.fill_color = {field: column, transform: color_bar.color_mapper};
+  circle1.glyph.line_color = {field: column, transform: color_bar.color_mapper};
+  source.change.emit();
+"""
 
 style = {
     "attrs": {
@@ -88,6 +102,7 @@ def selectable_axes_plot(
     color_mapper: Optional[ColorMapper] = None,
     x_default: Optional[str] = None,
     y_default: Optional[str] = None,
+    color_default: Optional[str] = None,
     plot_points: bool = True,
     point_size: int = 4,
     plot_line: bool = True,
@@ -105,6 +120,7 @@ def selectable_axes_plot(
         color_mapper: Optional colour mapper to pass to switch between log and linear scales.
         x_default: Default x-axis that is printed at start, defaults to first value of `x_options`
         y_default: Default y-axis that is printed at start, defaults to first value of `y_options`.
+        color_default: Default column to color each point on at the start. Defaults to same as y_default
         plot_points: Whether to use plot markers.
         point_size: The size of markers, if enabled.
         plot_line: Whether to draw a line between points.
@@ -115,7 +131,10 @@ def selectable_axes_plot(
     """
     if not x_default:
         x_default = x_options[0]
+    if not y_default:
         y_default = y_options[0]
+    if not color_default:
+        color_default = y_default
 
     p = figure(
         sizing_mode="scale_width",
@@ -134,6 +153,7 @@ def selectable_axes_plot(
 
     callbacks_x = []
     callbacks_y = []
+    callbacks_color = []
 
     if color_options:
         if color_mapper is None:
@@ -146,7 +166,7 @@ def selectable_axes_plot(
 
         if color_options:
             color = {"field": color_options[0], "transform": color_mapper}
-            line_color = "black"
+            line_color = "gray"
             fill_color = None
             if hatch_patterns[ind % len(hatch_patterns)] is None:
                 fill_color = color
@@ -156,6 +176,12 @@ def selectable_axes_plot(
             fill_color = COLORS[ind % len(COLORS)]
 
         label = df_.index.name if len(df) > 1 else ""
+
+        lines = (
+            p.line(x=x_default, y=y_default, source=source, color=line_color, legend_label=label)
+            if plot_line
+            else None
+        )
 
         circles = (
             p.circle(
@@ -170,11 +196,6 @@ def selectable_axes_plot(
                 hatch_color=color,
             )
             if plot_points
-            else None
-        )
-        lines = (
-            p.line(x=x_default, y=y_default, source=source, color=line_color, legend_label=label)
-            if plot_line
             else None
         )
 
@@ -202,11 +223,30 @@ def selectable_axes_plot(
     yaxis_select = Select(title="Y axis:", value=y_default, options=y_options)
     yaxis_select.js_on_change("value", *callbacks_y)
 
+    if color_options:
+        callbacks_color.append(
+            CustomJS(
+                args=dict(
+                    circle1=circles,
+                    line1=lines,
+                    source=source,
+                    color_bar=color_bar,
+                ),
+                code=SELECTABLE_CALLBACK_color,
+            )
+        )
+        color_select = Select(title="Color:", value=color_default, options=color_options)
+        color_select.js_on_change("value", *callbacks_color)
+
     p.legend.click_policy = "hide"
     if len(df) <= 1:
         p.legend.visible = False
 
-    layout = column(p, xaxis_select, yaxis_select)
+    if color_options:
+        layout = column(p, xaxis_select, yaxis_select, color_select)
+
+    else:
+        layout = column(p, xaxis_select, yaxis_select)
 
     p.js_on_event(DoubleTap, CustomJS(args=dict(p=p), code="p.reset.emit()"))
     return layout
