@@ -4,10 +4,11 @@ from pydantic import Field
 
 from pydatalab.models.entries import Entry, EntryReference
 from pydatalab.models.people import Person
+from pydatalab.models.traits import HasOwner
 from pydatalab.models.utils import HumanReadableIdentifier, PyObjectId
 
 
-class Collection(Entry):
+class Collection(Entry, HasOwner):
 
     type: str = Field("collections", const="collections", pattern="^collections$")
 
@@ -19,12 +20,6 @@ class Collection(Entry):
 
     description: Optional[str]
     """A description of the collection, either in plain-text or a markup language."""
-
-    creator_ids: List[PyObjectId] = Field([])
-    """The database IDs of the user(s) who created the collection."""
-
-    creators: Optional[List[Person]] = Field(None)
-    """Inlined info for the people associated with this collection."""
 
     num_items: Optional[int] = Field(None)
     """Inlined number of items associated with this collection."""

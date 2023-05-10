@@ -328,7 +328,7 @@ def _create_sample(sample_dict: dict, copy_from_item_id: Optional[str] = None) -
         return (
             dict(
                 status="error",
-                message=f"Unable to create new item with ID {new_sample['item_id']}.",
+                message=f"Unable to create new item with ID {new_sample['item_id']}: {str(error)}.",
                 item_id=new_sample["item_id"],
                 output=str(error),
             ),
@@ -347,7 +347,7 @@ def _create_sample(sample_dict: dict, copy_from_item_id: Optional[str] = None) -
             400,
         )
 
-    return (
+    data = (
         {
             "status": "success",
             "item_id": data_model.item_id,
@@ -371,6 +371,9 @@ def _create_sample(sample_dict: dict, copy_from_item_id: Optional[str] = None) -
         },
         201,  # 201: Created
     )
+
+    breakpoint()
+    return data
 
 
 def create_sample():

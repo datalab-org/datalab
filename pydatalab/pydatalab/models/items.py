@@ -7,6 +7,7 @@ from pydatalab.models.collections import CollectionReference
 from pydatalab.models.entries import Entry
 from pydatalab.models.files import File
 from pydatalab.models.people import Person
+from pydatalab.models.traits import HasOwner
 from pydatalab.models.utils import (
     HumanReadableIdentifier,
     IsoformatDateTime,
@@ -15,7 +16,7 @@ from pydatalab.models.utils import (
 )
 
 
-class Item(Entry, abc.ABC):
+class Item(Entry, HasOwner, abc.ABC):
     """The generic model for data types that will be exposed with their own named endpoints."""
 
     refcode: Refcode = None  # type: ignore
@@ -25,12 +26,6 @@ class Item(Entry, abc.ABC):
 
     item_id: HumanReadableIdentifier
     """A locally unique, human-readable identifier for the entry. This ID is mutable."""
-
-    creator_ids: List[PyObjectId] = Field([])
-    """The database IDs of the user(s) who created the item."""
-
-    creators: Optional[List[Person]] = Field(None)
-    """Inlined info for the people associated with this item."""
 
     collections: List[CollectionReference] = Field([])
     """Inlined info for the collections associated with this item."""

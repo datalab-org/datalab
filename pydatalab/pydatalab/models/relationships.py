@@ -71,6 +71,7 @@ class TypedRelationship(BaseModel):
     def check_id_fields(cls, values):
         """Check that only one of the possible identifier fields is provided."""
         id_fields = ("immutable_id", "item_id", "refcode")
+        breakpoint()
         if all(values[f] is None for f in id_fields):
             raise ValueError(f"Must provide at least one of {id_fields!r}")
         if sum(1 for f in id_fields if values[f] is not None) > 1:
