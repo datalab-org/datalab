@@ -443,17 +443,17 @@ def double_axes_echem_plot(
                 y = "dV/dQ (V/mA)"
 
         # trim the end of the colour cycle for visibility on a white background
-        color_space = np.linspace(0.3, 0.7, len(grouped_by_half_cycle))  # type: ignore
-        if len(grouped_by_half_cycle) <= 1:
-            color_space = [0.5]  # type: ignore
+        color_space = np.linspace(0.3, 0.7, int(df["half cycle"].max()))  # type: ignore
 
-        for group_idx, group in grouped_by_half_cycle:
+        for _, group in grouped_by_half_cycle:
 
             line = plot.line(
                 x=x,
                 y=y,
                 source=group,
-                line_color=matplotlib.colors.rgb2hex(cmap(color_space[group_idx - 1])),
+                line_color=matplotlib.colors.rgb2hex(
+                    cmap(color_space[int(group["half cycle"].max()) - 1])
+                ),
                 hover_line_width=2,
                 selection_line_width=2,
                 selection_line_color="black",
