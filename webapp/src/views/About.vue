@@ -17,6 +17,8 @@
           >.
         </p>
 
+        <StatisticsTable />
+
         Datalab was primarily developed by:
         <ul>
           <li>
@@ -39,7 +41,7 @@
         , as an external stakeholder project.
 
         <div align="center" style="padding-top: 20px">
-          <img src="https://avatars.githubusercontent.com/u/75324577" width="100" />
+          <img src="https://avatars.githubusercontent.com/u/75324577" width="100" target="_blank" />
         </div>
 
         <!-- <tiny-mce-inline /> -->
@@ -50,9 +52,10 @@
 
 <script>
 import Navbar from "@/components/Navbar";
+import StatisticsTable from "@/components/StatisticsTable";
 
 export default {
-  components: { Navbar },
+  components: { Navbar, StatisticsTable },
 };
 </script>
 

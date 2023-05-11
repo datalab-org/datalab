@@ -31,6 +31,10 @@ export default createStore({
       // sampleSummaries is an array of json objects summarizing the available samples
       state.sample_list = sampleSummaries;
     },
+    setStats(state, counts) {
+      // sampleSummaries is an array of json objects summarizing the available samples
+      state.counts = counts;
+    },
     setStartingMaterialList(state, startingMaterialSummaries) {
       // startingMaterialSummaries is an array of json objects summarizing the available starting materials
       state.starting_material_list = startingMaterialSummaries;
