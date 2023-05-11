@@ -5,9 +5,7 @@ from pydantic import Field, root_validator, validator
 
 from pydatalab.models.collections import CollectionReference
 from pydatalab.models.entries import Entry
-from pydatalab.models.files import File
-from pydatalab.models.people import Person
-from pydatalab.models.traits import HasOwner
+from pydatalab.models.traits import HasOwner, HasRevisionControl
 from pydatalab.models.utils import (
     HumanReadableIdentifier,
     IsoformatDateTime,
@@ -16,7 +14,7 @@ from pydatalab.models.utils import (
 )
 
 
-class Item(Entry, HasOwner, abc.ABC):
+class Item(Entry, HasOwner, HasRevisionControl, abc.ABC):
     """The generic model for data types that will be exposed with their own named endpoints."""
 
     refcode: Refcode = None  # type: ignore

@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -13,3 +13,12 @@ class HasOwner(BaseModel):
 
     creators: Optional[List[Person]] = Field(None)
     """Inlined info for the people associated with this item."""
+
+
+class HasRevisionControl(BaseModel):
+
+    revision: int = 1
+    """The revision number of the entry."""
+
+    revisions: Optional[Dict[int, Any]] = None
+    """An optional mapping from old revision numbers to the model state at that revision."""

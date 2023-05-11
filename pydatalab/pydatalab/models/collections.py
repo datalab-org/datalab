@@ -1,11 +1,10 @@
-from typing import List, Optional
+from typing import Optional
 
 from pydantic import Field
 
 from pydatalab.models.entries import Entry, EntryReference
-from pydatalab.models.people import Person
 from pydatalab.models.traits import HasOwner
-from pydatalab.models.utils import HumanReadableIdentifier, PyObjectId
+from pydatalab.models.utils import HumanReadableIdentifier
 
 
 class Collection(Entry, HasOwner):

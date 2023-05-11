@@ -37,7 +37,7 @@ def get_collections():
         ]
     )
 
-    return jsonify({"status": "success", "collections": list(collections)})
+    return jsonify({"status": "success", "data": list(collections)})
 
 
 @collection.route("/collections/<collection_id>", methods=["GET"])
@@ -58,12 +58,16 @@ def get_collection(collection_id):
 
     collection = Collection(**list(collection)[0])
 
-    samples = get_samples_summary(
-        match={
-            "relationships.type": "collections",
-            "relationships.immutable_id": collection.immutable_id,
-        }
+    samples = list(
+        get_samples_summary(
+            match={
+                "relationships.type": "collections",
+                "relationships.immutable_id": collection.immutable_id,
+            }
+        )
     )
+
+    collection.num_items = len(samples)
 
     return jsonify(
         {
@@ -80,7 +84,7 @@ def create_collection():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
     data = request_json.get("data", {})
     copy_from_id = request_json.get("copy_from_collection_id", None)
-    starting_members = data.get("starting_members", [])
+    starting_members = request_json.get("starting_members", [])
 
     if not current_user.is_authenticated and not CONFIG.TESTING:
         return (
@@ -170,7 +174,7 @@ def create_collection():
             errors = [
                 item_id
                 for item_id in starting_members
-                if item_id not in results.raw_result["upserted"]
+                if item_id not in results.raw_result.get("upserted", [])
             ]
 
     else:
@@ -320,4 +324,4 @@ def search_collections():
         )
     ]
 
-    return jsonify({"status": "success", "collections": list(cursor)}), 200
+    return jsonify({"status": "success", "data": list(cursor)}), 200

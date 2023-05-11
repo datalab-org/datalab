@@ -372,7 +372,6 @@ def _create_sample(sample_dict: dict, copy_from_item_id: Optional[str] = None) -
         201,  # 201: Created
     )
 
-    breakpoint()
     return data
 
 
@@ -473,9 +472,6 @@ def get_item_data(item_id, load_blocks=True):
         doc = list(cursor)[0]
     except IndexError:
         doc = None
-
-    for ind, coll in enumerate(doc.get("collections", [])):
-        doc["collections"][ind] = {"collection_id": coll["collection_id"], "type": "collections"}
 
     if not doc or (not current_user.is_authenticated and doc["type"] == "starting_materials"):
         return (

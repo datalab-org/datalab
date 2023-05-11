@@ -1,5 +1,5 @@
 import abc
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 from pydantic import BaseModel, Field, root_validator
 
@@ -35,12 +35,6 @@ class Entry(BaseModel, abc.ABC):
 
     relationships: Optional[List[TypedRelationship]] = None
     """A list of related entries and their types."""
-
-    revision: int = 1
-    """The revision number of the entry."""
-
-    revisions: Optional[Dict[int, Any]] = None
-    """An optional mapping from old revision numbers to the model state at that revision."""
 
     @root_validator(pre=True)
     def check_id_names(cls, values):
