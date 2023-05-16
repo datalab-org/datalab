@@ -5,7 +5,7 @@
     </a>
     <img v-else class="logo-banner" :src="this.logo_url" />
   </div>
-  <div class="row justify-content-center">
+  <div class="row justify-content-center pt-3">
     <div v-if="currentUser != null">
       <b>{{ currentUser }}&nbsp;&nbsp;</b>
       <UserBubble :creator="this.currentUserInfo" :size="36" />
@@ -14,9 +14,9 @@
       >
     </div>
     <div v-else>
-      <a :href="this.apiUrl + '/login/github'" class="btn btn-default btn-link"
-        ><font-awesome-icon icon="sign-in-alt" />&nbsp;Login</a
-      >
+      <button class="btn btn-default" @click="loginModalIsOpen = true">
+        <font-awesome-icon icon="sign-in-alt" />&nbsp;Login
+      </button>
     </div>
   </div>
   <div id="nav">
@@ -28,12 +28,14 @@
       ><font-awesome-icon icon="project-diagram" />&nbsp;Graph View</router-link
     >
   </div>
+  <LoginModal v-model="loginModalIsOpen" />
 </template>
 
 <script>
 import { API_URL, LOGO_URL, HOMEPAGE_URL } from "@/resources.js";
 import { getUserInfo } from "@/server_fetch_utils.js";
 import UserBubble from "@/components/UserBubble.vue";
+import LoginModal from "@/components/LoginModal.vue";
 
 export default {
   name: "Navbar",
@@ -63,6 +65,7 @@ export default {
   },
   components: {
     UserBubble,
+    LoginModal,
   },
   mounted() {
     this.getUser();
