@@ -84,6 +84,7 @@ def _call_remote_stat(path: str):
     """
 
     path = path.strip("ssh://")
+    path = path.replace(r"\ ", " ").replace(" ", r"\ ")
     hostname, file_path = path.split(":", 1)
     command = f"ssh {hostname} 'stat -c %Y {file_path}'"
     process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
