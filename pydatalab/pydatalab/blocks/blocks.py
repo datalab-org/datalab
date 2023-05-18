@@ -52,7 +52,6 @@ class DataBlock:
     plot_functions: Optional[Sequence[Callable[[], None]]] = None
 
     def __init__(self, item_id, dictionary=None, unique_id=None):
-
         if dictionary is None:
             dictionary = {}
 
@@ -123,7 +122,7 @@ class DataBlock:
     @classmethod
     def from_web(cls, data):
         LOGGER.debug("Loading block %s from web request.", cls.__class__.__name__)
-        Block = cls(data["item_id"])
+        Block = cls(data["item_id"], unique_id=data["block_id"])
         Block.update_from_web(data)
         return Block
 
