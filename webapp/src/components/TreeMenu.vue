@@ -26,6 +26,7 @@
       :class="{ selected: isSelected }"
       @click.exact="selectFile"
       @click.meta="addFileToSelection"
+      @click.ctrl="addFileToSelection"
     >
       <span class="file-icon"> &#8249; &#8250; </span>
       <span class="filename" :class="{ 'search-match': searchMatched }">
