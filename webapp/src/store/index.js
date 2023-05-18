@@ -10,7 +10,8 @@ export default createStore({
     all_item_parents: {},
     sample_list: [],
     starting_material_list: [],
-    saved_status: {},
+    saved_status_blocks: {},
+    saved_status_items: {},
     updating: {},
     updatingDelayed: {},
     remoteDirectoryTree: {},
@@ -52,7 +53,7 @@ export default createStore({
       state.all_item_data[payload.item_id] = payload.item_data;
       state.all_item_children[payload.item_id] = payload.child_items;
       state.all_item_parents[payload.item_id] = payload.parent_items;
-      state.saved_status[payload.item_id] = true;
+      state.saved_status_items[payload.item_id] = true;
     },
     updateFiles(state, files_data) {
       // payload should be an object with file ids as key and file data as values
@@ -99,7 +100,6 @@ export default createStore({
       else {
         state.all_item_data[item_id]["display_order"].push(new_block_id);
       }
-      state.saved_status[item_id] = false;
     },
     updateBlockData(state, payload) {
       // requires the following fields in payload:
@@ -109,18 +109,23 @@ export default createStore({
         state.all_item_data[payload.item_id]["blocks_obj"][payload.block_id],
         payload.block_data
       );
-      state.saved_status[payload.item_id] = false;
+      state.saved_status_blocks[payload.block_id] = false;
     },
     updateItemData(state, payload) {
       //requires the following fields in payload:
       // item_id, block_data
       Object.assign(state.all_item_data[payload.item_id], payload.block_data);
-      state.saved_status[payload.item_id] = false;
+      state.saved_status_items[payload.item_id] = false;
     },
-    setSaved(state, payload) {
+    setItemSaved(state, payload) {
       // requires the following fields in payload:
       // item_id, isSaved
-      state.saved_status[payload.item_id] = payload.isSaved;
+      state.saved_status_items[payload.item_id] = payload.isSaved;
+    },
+    setBlockSaved(state, payload) {
+      // requires the following fields in payload:
+      // block_id, isSaved
+      state.saved_status_blocks[payload.block_id] = payload.isSaved;
     },
     removeBlockFromDisplay(state, payload) {
       // requires the following fields in payload:
@@ -156,7 +161,7 @@ export default createStore({
           display_order[payload.index1],
         ];
       }
-      state.saved_status[payload.item_id] = false;
+      state.saved_status_items[payload.item_id] = false;
     },
     setBlockUpdating(state, block_id) {
       state.updating[block_id] = true;
