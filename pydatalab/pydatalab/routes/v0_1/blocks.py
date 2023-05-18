@@ -2,7 +2,8 @@ from typing import Callable, Dict
 
 from flask import jsonify, request
 
-from pydatalab.blocks import BLOCK_TYPES
+from pydatalab.blocks import BLOCK_TYPES, DataBlock
+from pydatalab.logger import LOGGER
 from pydatalab.mongo import flask_mongo
 from pydatalab.routes.utils import get_default_permissions
 
@@ -69,19 +70,49 @@ def add_data_block():
 add_data_block.methods = ("POST",)  # type: ignore
 
 
+def _save_block_to_db(block: DataBlock) -> bool:
+    """Save data for a single block within an item to the database,
+    overwriting previous data saved there.
+    returns true if successful, false if unsuccessful
+    """
+    result = flask_mongo.db.items.update_one(
+        {"item_id": block.data["item_id"], **get_default_permissions(user_only=False)},
+        {"$set": {f"blocks_obj.{block.block_id}": block.to_db()}},
+    )
+
+    if result.matched_count != 1:
+        LOGGER.warning(
+            f"_save_block_to_db failed, likely because item_id ({block.data['item_id']}) and/or block_id ({block.block_id})  wasn't found"
+        )
+        return False
+    else:
+        return True
+
+
 def update_block():
     """Take in json block data from site, process, and spit
     out updated data. May be used, for example, when the user
     changes plot parameters and the server needs to generate a new
-    plot
+    plot.
     """
+
     request_json = request.get_json()
     block_data = request_json["block_data"]
     blocktype = block_data["blocktype"]
+    save_to_db = request_json.get("save_to_db", False)
 
     block = BLOCK_TYPES[blocktype].from_web(block_data)
 
-    return jsonify(status="success", new_block_data=block.to_web()), 200
+    saved_successfully = False
+    if save_to_db:
+        saved_successfully = _save_block_to_db(block)
+
+    return (
+        jsonify(
+            status="success", saved_successfully=saved_successfully, new_block_data=block.to_web()
+        ),
+        200,
+    )
 
 
 update_block.methods = ("POST",)  # type: ignore

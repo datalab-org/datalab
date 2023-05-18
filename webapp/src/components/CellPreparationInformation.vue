@@ -72,51 +72,30 @@ export default {
     NegElectrodeConstituents: createComputedSetterForItemField("negative_electrode"),
     CellPreparationDescription: createComputedSetterForItemField("cell_preparation_description"),
   },
-  methods: {
-    addConstituent(selectedItem) {
-      this.PosElectrodeConstituents.push({
-        item: selectedItem,
-        quantity: null,
-        unit: "g",
-      });
-      this.selectedNewConstituent = null;
-      this.selectShown.push(false);
-    },
-    turnOnRowSelect(index) {
-      this.selectShown[index] = true;
-      this.selectedChangedConstituent = this.PosElectrodeConstituents[index].item;
-      this.$nextTick(function () {
-        // unfortunately this seems to be the "official" way to focus on the select element:
-        this.$refs[`select${index}`].$refs.selectComponent.$refs.search.focus();
-      });
-    },
-    swapConstituent(selectedItem, index) {
-      this.PosElectrodeConstituents[index].item = selectedItem;
-      this.selectShown[index] = false;
-    },
-    removeConstituent(index) {
-      this.PosElectrodeConstituents.splice(index, 1);
-      this.selectShown.splice(index, 1);
-    },
-  },
   watch: {
     // since PosElectrodeConstituents is an object, the computed setter never fires and
     // saved status is never updated. So, use a watcher:
     PosElectrodeConstituents: {
       handler() {
-        this.$store.commit("setSaved", { item_id: this.item_id, isSaved: false });
+        this.$store.commit("setItemSaved", { item_id: this.item_id, isSaved: false });
+      },
+      deep: true,
+    },
+    ElectrolyteConstituents: {
+      handler() {
+        this.$store.commit("setItemSaved", { item_id: this.item_id, isSaved: false });
+      },
+      deep: true,
+    },
+    NegElectrodeConstituents: {
+      handler() {
+        this.$store.commit("setItemSaved", { item_id: this.item_id, isSaved: false });
       },
       deep: true,
     },
   },
-  mounted() {
-    this.selectShown = new Array(this.PosElectrodeConstituents.length).fill(false);
-  },
   components: {
     TinyMceInline,
-    // ChemicalFormula,
-    // ItemSelect,
-    // FormattedItemName,
     CompactConstituentTable,
   },
 };

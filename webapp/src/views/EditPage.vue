@@ -43,10 +43,10 @@
       </a>
     </div>
     <div class="navbar-nav ml-auto">
-      <span v-if="item_data_loaded && !savedStatus" class="navbar-text unsaved-warning">
+      <span v-if="itemDataLoaded && !savedStatus" class="navbar-text unsaved-warning">
         Unsaved changes
       </span>
-      <span v-if="item_data_loaded" class="navbar-text mx-2"
+      <span v-if="itemDataLoaded" class="navbar-text mx-2"
         ><i>Last saved: {{ lastModified }}</i></span
       >
       <font-awesome-icon
@@ -113,7 +113,7 @@ export default {
   data() {
     return {
       item_id: this.$route.params.id,
-      item_data_loaded: false,
+      itemDataLoaded: false,
       isMenuDropdownVisible: false,
       selectedRemoteFiles: [],
       isLoadingRemoteTree: false,
@@ -163,7 +163,6 @@ export default {
         return NotImplementedBlock;
       }
     },
-
     saveSample() {
       // trigger the mce save so that they update the store with their content
       console.log("save sample clicked!");
@@ -172,7 +171,7 @@ export default {
     },
     async getSampleData() {
       await getItemData(this.item_id);
-      this.item_data_loaded = true;
+      this.itemDataLoaded = true;
     },
     leavePageWarningListener(event) {
       event.preventDefault;
@@ -198,7 +197,14 @@ export default {
       return this.item_data.blocks_obj;
     },
     savedStatus() {
-      return this.$store.state.saved_status[this.item_id];
+      if (!this.itemDataLoaded) {
+        return true;
+      }
+      let allSavedStatusBlocks = this.$store.state.saved_status_blocks;
+      let allBlocksAreSaved = this.item_data.display_order.every(
+        (block_id) => allSavedStatusBlocks[block_id] !== false
+      );
+      return allBlocksAreSaved && this.$store.state.saved_status_items[this.item_id];
     },
     lastModified() {
       // if (!this.item_data.last_modified) { return "" }
