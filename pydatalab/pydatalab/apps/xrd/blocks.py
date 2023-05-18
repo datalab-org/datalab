@@ -122,7 +122,7 @@ class XRDBlock(DataBlock):
                 try:
                     pattern_df, y_options = self.load_pattern(
                         f["location"],
-                        wavelength=self.data.get("wavelength", self.defaults["wavelength"]),
+                        wavelength=float(self.data.get("wavelength", self.defaults["wavelength"])),
                     )
                 except Exception as exc:
                     raise RuntimeError(
@@ -140,7 +140,10 @@ class XRDBlock(DataBlock):
                     ext,
                 )
 
-            pattern_dfs, y_options = self.load_pattern(file_info["location"])
+            pattern_dfs, y_options = self.load_pattern(
+                file_info["location"],
+                wavelength=float(self.data.get("wavelength", self.defaults["wavelength"])),
+            )
             pattern_dfs = [pattern_dfs]
 
         if pattern_dfs:
