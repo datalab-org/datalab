@@ -48,11 +48,17 @@ Be as concise as possible. Start the conversion with a friendly greeting introdu
     }
     openai.api_key = os.environ.get("OPENAI_API_KEY")
 
+    def to_db(self):
+        """returns a dictionary with the data for this
+        block, ready to be input into mongodb"""
+        self.render()
+        return super().to_db()
+
     @property
     def plot_functions(self):
         return (self.render,)
 
-    def render(self):
+    def prepare_item_json_for_chat(self):
         from pydatalab.routes.v0_1.items import get_item_data
 
         item_info = get_item_data(self.data["item_id"], load_blocks=False).json
@@ -117,7 +123,11 @@ Be as concise as possible. Start the conversion with a friendly greeting introdu
             .replace(r"\n", " ")
         )
 
+        return item_info_json
+
+    def render(self):
         if not self.data.get("messages"):
+            item_info_json = self.prepare_item_json_for_chat()
             self.data["messages"] = [
                 {
                     "role": "system",
@@ -166,7 +176,7 @@ Be as concise as possible. Start the conversion with a friendly greeting introdu
                 messages=self.data["messages"],
                 temperature=self.data["temperature"],
                 max_tokens=min(
-                    1024, MAX_CONTEXT_SIZE - token_count
+                    1024, MAX_CONTEXT_SIZE - token_count - 1
                 ),  # if less than 1024 tokens are left in the token, then indicate this
             )
             self.data["error_message"] = None
