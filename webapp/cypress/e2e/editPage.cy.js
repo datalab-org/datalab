@@ -210,7 +210,7 @@ describe("Edit Page", () => {
       .type("1");
   });
 
-  it("Add some blocks to the sample", () => {
+  it("Add some blocks to the sample and checks unsaved warning behavior", () => {
     cy.findByText("editable_sample").click();
     cy.findByLabelText("Sample ID").should("have.value", "editable_sample");
     cy.findByLabelText("Name").should("have.value", "This is a sample name");
@@ -220,17 +220,41 @@ describe("Edit Page", () => {
       cy.findByText("Comment").click();
     });
 
+    cy.contains("Unsaved changes").should("not.exist");
+
     cy.findByText("Add a block").click();
     cy.get(".dropdown-menu").within(() => {
       cy.findByText("Comment").click();
     });
 
-    cy.findByText("Unsaved changes");
-    cy.wait(100).then(() => cy.get(".fa-save").click());
     cy.contains("Unsaved changes").should("not.exist");
 
-    cy.get(".datablock-content div").eq(0).type("The first comment box");
+    cy.get(".datablock-content div").eq(0).type("the first comment box");
+    cy.contains("Unsaved changes");
+
+    // click update block icon and make sure unsaved changes warning goes away
+    cy.get('.datablock-header [aria-label="updateBlock"]').eq(0).click();
+    cy.contains("Unsaved changes").should("not.exist");
+    cy.get(".datablock-content div").eq(0).contains("the first comment box");
+
+    cy.get(".datablock-content div").eq(0).type("The first comment box; further changes.");
+    cy.contains("Unsaved changes");
+
     cy.get(".datablock-content div").eq(1).type("The second comment box");
+    cy.contains("Unsaved changes");
+    cy.get('.datablock-header [aria-label="updateBlock"]').eq(1).click();
+    cy.wait(500).then(() => {
+      cy.contains("Unsaved changes"); // unsaved changes warning should still exist since first block is still edited
+    });
+    cy.get('.datablock-header [aria-label="updateBlock"]').eq(0).click();
+    cy.contains("Unsaved changes").should("not.exist");
+
+    cy.get(".datablock-content div").eq(1).type("The second comment box; further changes");
+    cy.findByLabelText("Name").type("name change");
+    cy.contains("Unsaved changes");
+
+    cy.get(".fa-save").click();
+    cy.contains("Unsaved changes").should("not.exist");
 
     cy.findByText("Home").click();
     cy.get("[data-testid=sample-table] tr:nth-of-type(3) > td:nth-of-type(7)").contains(2); // 2 blocks are present

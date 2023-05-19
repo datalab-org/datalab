@@ -14,6 +14,7 @@
         class="block-header-icon"
         @click="updateBlock"
         :class="{ spin: isUpdating }"
+        aria-label="updateBlock"
       />
       <font-awesome-icon
         :icon="['fas', 'arrow-up']"
@@ -48,6 +49,7 @@
 <script>
 import { createComputedSetterForBlockField } from "@/field_utils.js";
 import TinyMceInline from "@/components/TinyMceInline";
+import tinymce from "tinymce/tinymce";
 
 import { deleteBlock, updateBlockFromServer } from "@/server_fetch_utils";
 
@@ -86,6 +88,14 @@ export default {
   props: ["item_id", "block_id"],
   methods: {
     async updateBlock() {
+      // check for any tinymce editors within the block. If so, trigger them
+      // to save so that the store is updated before sending data to the server
+      tinymce.editors.forEach((editor) => {
+        // check if editor is a child of this datablock
+        if (editor.bodyElement.closest(`#${this.block_id}`)) {
+          editor.save();
+        }
+      });
       await updateBlockFromServer(this.item_id, this.block_id, this.block);
     },
     deleteThisBlock() {
