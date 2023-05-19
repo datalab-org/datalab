@@ -70,7 +70,7 @@ export default {
     // saved status is never updated. So, use a watcher:
     constituents: {
       handler() {
-        this.$store.commit("setSaved", { item_id: this.item_id, isSaved: false });
+        this.$store.commit("setItemSaved", { item_id: this.item_id, isSaved: false });
       },
       deep: true,
     },
