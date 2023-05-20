@@ -1,5 +1,8 @@
 import json
 import pathlib
+import re
+import sys
+from typing import Optional, Tuple
 
 from invoke import Collection, task
 
@@ -10,6 +13,20 @@ ns = Collection()
 dev = Collection("dev")
 admin = Collection("admin")
 migration = Collection("migration")
+
+
+def update_file(filename: str, sub_line: Tuple[str, str], strip: Optional[str] = None):
+    """Utility function for tasks to read, update, and write files.
+
+    Modified from optimade-python-tools.
+
+    """
+    with open(filename, "r") as handle:
+        lines = [re.sub(sub_line[0], sub_line[1], line.rstrip(strip)) for line in handle]
+
+    with open(filename, "w") as handle:
+        handle.write("\n".join(lines))
+        handle.write("\n")
 
 
 @task
@@ -26,6 +43,30 @@ def generate_schemas(_):
 
 
 dev.add_task(generate_schemas)
+
+
+@task(help={"ver": "New Datalab version to set"})
+def set_version(_, ver=""):
+    """Sets the datalab package version
+
+    Modified from optimade-python-tools.
+
+    """
+    match = re.fullmatch(r"v?([0-9]+\.[0-9]+\.[0-9]+)", ver)
+    if not match or (match and len(match.groups()) != 1):
+        print("Error: Please specify version as 'Major.Minor.Patch' or 'vMajor.Minor.Patch'")
+        sys.exit(1)
+    ver = match.group(1)
+
+    update_file(
+        pathlib.Path(__file__).parent.resolve().joinpath("pydatalab/__init__.py"),
+        (r'__version__ = ".*"', f'__version__ = "{ver}"'),
+    )
+
+    print("Bumped version to {}".format(ver))
+
+
+dev.add_task(set_version)
 
 
 @task
