@@ -5,6 +5,7 @@ from pydantic import Field, root_validator, validator
 
 from pydatalab.models.collections import CollectionReference
 from pydatalab.models.entries import Entry
+from pydatalab.models.files import File
 from pydatalab.models.traits import HasOwner, HasRevisionControl
 from pydatalab.models.utils import (
     HumanReadableIdentifier,

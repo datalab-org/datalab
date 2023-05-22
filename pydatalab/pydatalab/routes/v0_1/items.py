@@ -564,7 +564,8 @@ def get_item_data(item_id, load_blocks=True):
             "item_id": item_id,
             "item_data": return_dict,
             "files_data": files_data,
-            "child_items": sorted(children), "parent_items": sorted(parents),
+            "child_items": sorted(children),
+            "parent_items": sorted(parents),
         }
     )
 

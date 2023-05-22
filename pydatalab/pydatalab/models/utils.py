@@ -3,7 +3,7 @@ import random
 import string
 from enum import Enum
 from functools import partial
-from typing import Callable
+from typing import Callable, Optional, Union
 
 import pint
 from bson.objectid import ObjectId

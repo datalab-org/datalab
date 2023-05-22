@@ -3,6 +3,30 @@
   "description": "A model for representing electrochemical cells.",
   "type": "object",
   "properties": {
+    "revision": {
+      "title": "Revision",
+      "default": 1,
+      "type": "integer"
+    },
+    "revisions": {
+      "title": "Revisions",
+      "type": "object"
+    },
+    "creator_ids": {
+      "title": "Creator Ids",
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "creators": {
+      "title": "Creators",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Person"
+      }
+    },
     "type": {
       "title": "Type",
       "default": "cells",
@@ -26,15 +50,6 @@
         "$ref": "#/definitions/TypedRelationship"
       }
     },
-    "revision": {
-      "title": "Revision",
-      "default": 1,
-      "type": "integer"
-    },
-    "revisions": {
-      "title": "Revisions",
-      "type": "object"
-    },
     "refcode": {
       "title": "Refcode",
       "minLength": 1,
@@ -49,19 +64,12 @@
       "pattern": "^(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
       "type": "string"
     },
-    "creator_ids": {
-      "title": "Creator Ids",
+    "collections": {
+      "title": "Collections",
       "default": [],
       "type": "array",
       "items": {
-        "type": "string"
-      }
-    },
-    "creators": {
-      "title": "Creators",
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/Person"
+        "$ref": "#/definitions/CollectionReference"
       }
     },
     "description": {
@@ -191,7 +199,8 @@
         "starting_materials",
         "blocks",
         "files",
-        "people"
+        "people",
+        "collections"
       ],
       "type": "string"
     },
@@ -243,7 +252,6 @@
         }
       },
       "required": [
-        "relation",
         "type"
       ]
     },
@@ -316,15 +324,6 @@
             "$ref": "#/definitions/TypedRelationship"
           }
         },
-        "revision": {
-          "title": "Revision",
-          "default": 1,
-          "type": "integer"
-        },
-        "revisions": {
-          "title": "Revisions",
-          "type": "object"
-        },
         "identities": {
           "title": "Identities",
           "type": "array",
@@ -340,6 +339,46 @@
           "title": "Contact Email",
           "type": "string",
           "format": "email"
+        }
+      }
+    },
+    "CollectionReference": {
+      "title": "CollectionReference",
+      "description": "A reference to a database entry by ID and type.\n\nCan include additional arbitarary metadata useful for\ninlining the item data.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "title": "Type",
+          "default": "collections",
+          "const": "collections",
+          "pattern": "^collections$",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "immutable_id": {
+          "title": "Immutable Id",
+          "type": "string"
+        },
+        "item_id": {
+          "title": "Item Id",
+          "minLength": 1,
+          "maxLength": 40,
+          "pattern": "^(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
+          "type": "string"
+        },
+        "refcode": {
+          "title": "Refcode",
+          "minLength": 1,
+          "maxLength": 40,
+          "pattern": "^[a-z]{2,10}:(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
+          "type": "string"
+        },
+        "collection_id": {
+          "title": "Collection Id",
+          "type": "string"
         }
       }
     },
@@ -370,15 +409,6 @@
           "items": {
             "$ref": "#/definitions/TypedRelationship"
           }
-        },
-        "revision": {
-          "title": "Revision",
-          "default": 1,
-          "type": "integer"
-        },
-        "revisions": {
-          "title": "Revisions",
-          "type": "object"
         },
         "size": {
           "title": "Size",
