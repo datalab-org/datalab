@@ -27,10 +27,8 @@
     </div>
     <div class="form-row">
       <div class="form-group col-md-3">
-        <label for="collections" class="mr-2">Collections:</label>
-        <div v-for="collection in Collections" :key="collection.collection_id">
-          <FormattedCollectionName :collection_id="collection.collection_id" enableClick />
-        </div>
+        <label id="collections" class="mr-2">Collections:</label>
+        <CollectionList aria-labelledby="collections" :collections="Collections" />
       </div>
     </div>
     <div class="form-row">
@@ -54,7 +52,7 @@
 import { createComputedSetterForItemField } from "@/field_utils.js";
 import ChemFormulaInput from "@/components/ChemFormulaInput";
 import FormattedRefcode from "@/components/FormattedRefcode";
-import FormattedCollectionName from "@/components/FormattedCollectionName";
+import CollectionList from "@/components/CollectionList";
 import TinyMceInline from "@/components/TinyMceInline";
 import SynthesisInformation from "@/components/SynthesisInformation";
 import TableOfContents from "@/components/TableOfContents";
@@ -92,7 +90,7 @@ export default {
     TableOfContents,
     RelationshipVisualization,
     FormattedRefcode,
-    FormattedCollectionName,
+    CollectionList,
     Creators,
   },
 };

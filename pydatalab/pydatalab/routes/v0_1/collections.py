@@ -63,7 +63,8 @@ def get_collection(collection_id):
             match={
                 "relationships.type": "collections",
                 "relationships.immutable_id": collection.immutable_id,
-            }
+            },
+            project={"collections": 0},
         )
     )
 
@@ -140,7 +141,9 @@ def create_collection():
             400,
         )
 
-    result: InsertOneResult = flask_mongo.db.collections.insert_one(data_model.dict(exclude_unset=True))
+    result: InsertOneResult = flask_mongo.db.collections.insert_one(
+        data_model.dict(exclude_unset=True)
+    )
     if not result.acknowledged:
         return (
             dict(

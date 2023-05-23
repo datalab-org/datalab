@@ -6,6 +6,7 @@ from bson import ObjectId
 from flask import jsonify, request
 from flask_login import current_user
 from pydantic import ValidationError
+from pymongo.command_cursor import CommandCursor
 
 from pydatalab.blocks import BLOCK_TYPES
 from pydatalab.config import CONFIG
@@ -110,28 +111,46 @@ def get_starting_materials():
 get_starting_materials.methods = ("GET",)  # type: ignore
 
 
-def get_samples_summary(match: Optional[Dict] = None):
+def get_samples_summary(
+    match: Optional[Dict] = None, project: Optional[Dict] = None
+) -> CommandCursor:
+    """Return a summary of item entries that match some criteria.
+
+    Parameters:
+        match: A MongoDB aggregation match query to filter the results.
+        project: A MongoDB aggregation project query to filter the results, relative
+            to the default included below.
+
+    """
     if not match:
         match = {}
     match.update(get_default_permissions(user_only=False))
     match["type"] = {"$in": ["samples", "cells"]}
+
+    _project = {
+        "_id": 0,
+        "creators": 1,
+        "item_id": 1,
+        "name": 1,
+        "chemform": 1,
+        "type": 1,
+        "collections": 1,
+    }
+
+    # Cannot mix 0 and 1 keys in MongoDB project so must loop and check
+    if project:
+        for key in project:
+            if project[key] == 0:
+                _project.pop(key, None)
+            else:
+                _project[key] = 1
 
     return flask_mongo.db.items.aggregate(
         [
             {"$match": match},
             {"$lookup": creators_lookup()},
             {"$lookup": collections_lookup()},
-            {
-                "$project": {
-                    "_id": 0,
-                    "creators": 1,
-                    "item_id": 1,
-                    "name": 1,
-                    "chemform": 1,
-                    "type": 1,
-                    "collections": 1,
-                }
-            },
+            {"$project": _project},
             {"$sort": {"_id": -1}},
         ]
     )
@@ -375,7 +394,8 @@ def _create_sample(sample_dict: dict, copy_from_item_id: Optional[str] = None) -
                 if data_model.creators
                 else [],
                 "collections": [
-                    json.loads(c.json(exclude_unset=True, exclude_none=True)) for c in data_model.collections
+                    json.loads(c.json(exclude_unset=True, exclude_none=True))
+                    for c in data_model.collections
                 ]
                 if data_model.collections
                 else [],

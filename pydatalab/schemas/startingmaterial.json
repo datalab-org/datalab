@@ -3,6 +3,14 @@
   "description": "A model for representing an experimental sample.",
   "type": "object",
   "properties": {
+    "collections": {
+      "title": "Collections",
+      "default": [],
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Collection"
+      }
+    },
     "revision": {
       "title": "Revision",
       "default": 1,
@@ -63,14 +71,6 @@
       "maxLength": 40,
       "pattern": "^(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
       "type": "string"
-    },
-    "collections": {
-      "title": "Collections",
-      "default": [],
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/CollectionReference"
-      }
     },
     "description": {
       "title": "Description",
@@ -352,11 +352,26 @@
         }
       }
     },
-    "CollectionReference": {
-      "title": "CollectionReference",
-      "description": "A reference to a database entry by ID and type.\n\nCan include additional arbitarary metadata useful for\ninlining the item data.",
+    "Collection": {
+      "title": "Collection",
+      "description": "An Entry is an abstract base class for any model that can be\ndeserialized and stored in the database.",
       "type": "object",
       "properties": {
+        "creator_ids": {
+          "title": "Creator Ids",
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "creators": {
+          "title": "Creators",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Person"
+          }
+        },
         "type": {
           "title": "Type",
           "default": "collections",
@@ -364,33 +379,45 @@
           "pattern": "^collections$",
           "type": "string"
         },
-        "name": {
-          "title": "Name",
-          "type": "string"
-        },
         "immutable_id": {
-          "title": "Immutable Id",
+          "title": "Immutable ID",
           "type": "string"
         },
-        "item_id": {
-          "title": "Item Id",
+        "last_modified": {
+          "title": "Last Modified",
+          "type": "date",
+          "format": "date-time"
+        },
+        "relationships": {
+          "title": "Relationships",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/TypedRelationship"
+          }
+        },
+        "collection_id": {
+          "title": "Collection Id",
           "minLength": 1,
           "maxLength": 40,
           "pattern": "^(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
           "type": "string"
         },
-        "refcode": {
-          "title": "Refcode",
-          "minLength": 1,
-          "maxLength": 40,
-          "pattern": "^[a-z]{2,10}:(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
+        "title": {
+          "title": "Title",
           "type": "string"
         },
-        "collection_id": {
-          "title": "Collection Id",
+        "description": {
+          "title": "Description",
           "type": "string"
+        },
+        "num_items": {
+          "title": "Num Items",
+          "type": "integer"
         }
-      }
+      },
+      "required": [
+        "collection_id"
+      ]
     },
     "File": {
       "title": "File",

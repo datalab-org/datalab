@@ -28,9 +28,7 @@
     <div class="form-row">
       <div class="form-group col-md-3">
         <label for="collections" class="mr-2">Collections:</label>
-        <div v-for="collection in Collections" :key="collection.collection_id">
-          <FormattedCollectionName :collection_id="collection.collection_id" enableClick />
-        </div>
+        <CollectionList :collections="Collections" />
       </div>
     </div>
     <div class="form-row">
@@ -102,7 +100,7 @@ import CellPreparationInformation from "@/components/CellPreparationInformation"
 import TableOfContents from "@/components/TableOfContents";
 import RelationshipVisualization from "@/components/RelationshipVisualization";
 import FormattedRefcode from "@/components/FormattedRefcode";
-import FormattedCollectionName from "@/components/FormattedCollectionName";
+import CollectionList from "@/components/CollectionList";
 import Creators from "@/components/Creators";
 import { cellFormats } from "@/resources.js";
 
@@ -132,6 +130,7 @@ export default {
     CellFormat: createComputedSetterForItemField("cell_format"),
     CellFormatDescription: createComputedSetterForItemField("cell_format_description"),
     CharacteristicMass: createComputedSetterForItemField("characteristic_mass"),
+    Collections: createComputedSetterForItemField("collections"),
   },
   components: {
     ChemFormulaInput,
@@ -140,7 +139,7 @@ export default {
     TableOfContents,
     RelationshipVisualization,
     FormattedRefcode,
-    FormattedCollectionName,
+    CollectionList,
     Creators,
   },
 };

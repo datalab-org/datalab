@@ -25,7 +25,10 @@ export default {
   },
   props: {
     collection_id: String,
-    title: String,
+    title: {
+      type: String,
+      default: "",
+    },
     enableClick: {
       type: Boolean,
       default: false,
