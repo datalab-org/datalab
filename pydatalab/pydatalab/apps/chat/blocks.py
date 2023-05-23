@@ -73,8 +73,14 @@ Be as concise as possible. Start the conversion with a friendly greeting introdu
         # LOGGER.debug(item_info)
 
         # strip irrelevant or large fields
+        item_filenames = {
+            str(file["immutable_id"]): file["name"] for file in item_info.get("files", [])
+        }
         for block in item_info.get("blocks_obj", {}).values():
             block.pop("bokeh_plot_data", None)
+
+            block_fields_to_remove = ["item_id", "block_id"]
+            [block.pop(field, None) for field in block_fields_to_remove]
 
             # nmr block fields to remove (need a more general way to do this)
             NMR_fields_to_remove = [
@@ -88,6 +94,11 @@ Be as concise as possible. Start the conversion with a friendly greeting introdu
                 "selected_process",
             ]
             [block.pop(field, None) for field in NMR_fields_to_remove]
+
+            # replace file_id with the actual filename
+            file_id = block.pop("file_id", None)
+            if file_id:
+                block["file"] = item_filenames.get(file_id, None)
 
         top_level_keys_to_remove = [
             "display_order",
@@ -103,12 +114,18 @@ Be as concise as possible. Start the conversion with a friendly greeting introdu
         for k in top_level_keys_to_remove:
             item_info.pop(k, None)
 
-        for ind, f in enumerate(item_info.get("files", [])):
-            item_info["files"][ind] = {k: v for k, v in f.items() if k in ["name", "extension"]}
         for ind, f in enumerate(item_info.get("relationships", [])):
             item_info["relationships"][ind] = {
                 k: v for k, v in f.items() if k in ["item_id", "type", "relation"]
             }
+        item_info["files"] = [file["name"] for file in item_info.get("files", [])]
+        item_info["creators"] = [
+            creator["display_name"] for creator in item_info.get("creators", [])
+        ]
+
+        # move blocks from blocks_obj to a simpler list to further cut down tokens,
+        # especially in alphanumeric block_id fields
+        item_info["blocks"] = [block for block in item_info.pop("blocks_obj", {}).values()]
 
         item_info = {k: value for k, value in item_info.items() if value}
 
