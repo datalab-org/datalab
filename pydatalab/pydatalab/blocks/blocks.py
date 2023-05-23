@@ -122,9 +122,9 @@ class DataBlock:
     @classmethod
     def from_web(cls, data):
         LOGGER.debug("Loading block %s from web request.", cls.__class__.__name__)
-        Block = cls(data["item_id"], unique_id=data["block_id"])
-        Block.update_from_web(data)
-        return Block
+        block = cls(data["item_id"], unique_id=data["block_id"])
+        block.update_from_web(data)
+        return block
 
     def update_from_web(self, data):
         """update the object with data received from the website. Only updates fields
