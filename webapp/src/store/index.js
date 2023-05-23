@@ -13,6 +13,7 @@ export default createStore({
     all_collection_parents: {},
     sample_list: [],
     starting_material_list: [],
+    collection_list: [],
     saved_status: {},
     collection_saved_status: {},
     updating: {},
@@ -30,11 +31,11 @@ export default createStore({
       state.sample_list = sampleSummaries;
     },
     setStartingMaterialList(state, startingMaterialSummaries) {
-      // startingMaterialSummaries is an array of json objects summarizing the available samples
+      // startingMaterialSummaries is an array of json objects summarizing the available starting materials
       state.starting_material_list = startingMaterialSummaries;
     },
     setCollectionList(state, collectionSummaries) {
-      // sampleSummaries is an array of json objects summarizing the available samples
+      // collectionSummaries is an array of json objects summarizing the available collections
       state.collection_list = collectionSummaries;
     },
     appendToSampleList(state, sampleSummary) {

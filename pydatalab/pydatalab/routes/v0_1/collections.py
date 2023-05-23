@@ -84,7 +84,7 @@ def create_collection():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
     data = request_json.get("data", {})
     copy_from_id = request_json.get("copy_from_collection_id", None)
-    starting_members = request_json.get("starting_members", [])
+    starting_members = data.get("starting_members", [])
 
     if not current_user.is_authenticated and not CONFIG.TESTING:
         return (
@@ -140,7 +140,7 @@ def create_collection():
             400,
         )
 
-    result: InsertOneResult = flask_mongo.db.collections.insert_one(data_model.dict())
+    result: InsertOneResult = flask_mongo.db.collections.insert_one(data_model.dict(exclude_unset=True))
     if not result.acknowledged:
         return (
             dict(

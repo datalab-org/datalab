@@ -24,7 +24,7 @@ import CollectionTable from "@/components/CollectionTable";
 import CreateCollectionModal from "@/components/CreateCollectionModal";
 
 export default {
-  name: "Samples",
+  name: "Collections",
   data() {
     return {
       createCollectionModalIsOpen: false,

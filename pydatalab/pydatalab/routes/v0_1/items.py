@@ -129,8 +129,7 @@ def get_samples_summary(match: Optional[Dict] = None):
                     "name": 1,
                     "chemform": 1,
                     "type": 1,
-                    "collections.name": 1,
-                    "collections.collection_id": 1,
+                    "collections": 1,
                 }
             },
             {"$sort": {"_id": -1}},
@@ -148,10 +147,24 @@ def creators_lookup() -> Dict:
 
 
 def collections_lookup() -> Dict:
+    """Looks inside the relationships of the item, searches for IDs in the collections
+    table and then projects only the collection ID and name for the response.
+
+    """
+
     return {
         "from": "collections",
-        "localField": "relationships.immutable_id",
-        "foreignField": "_id",
+        "let": {"collection_ids": "$relationships.immutable_id"},
+        "pipeline": [
+            {
+                "$match": {
+                    "$expr": {
+                        "$in": ["$_id", "$$collection_ids"],
+                    }
+                }
+            },
+            {"$project": {"_id": 1, "collection_id": 1}},
+        ],
         "as": "collections",
     }
 
@@ -362,7 +375,7 @@ def _create_sample(sample_dict: dict, copy_from_item_id: Optional[str] = None) -
                 if data_model.creators
                 else [],
                 "collections": [
-                    json.loads(c.json(exclude_unset=True)) for c in data_model.collections
+                    json.loads(c.json(exclude_unset=True, exclude_none=True)) for c in data_model.collections
                 ]
                 if data_model.collections
                 else [],
@@ -551,11 +564,11 @@ def get_item_data(item_id, load_blocks=True):
     )
 
     # Must be exported to JSON first to apply the custom pydantic JSON encoders
-    return_dict = json.loads(doc.json())
+    return_dict = json.loads(doc.json(exclude_unset=True))
 
     # create the files_data dictionary keyed by file ObjectId
     files_data: Dict[ObjectId, Dict] = dict(
-        [(f["immutable_id"], f) for f in return_dict.get("files", [])]
+        [(f["immutable_id"], f) for f in return_dict.get("files") or []]
     )
 
     return jsonify(

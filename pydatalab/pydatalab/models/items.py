@@ -1,12 +1,11 @@
 import abc
 from typing import Any, Dict, List, Optional
 
-from pydantic import Field, root_validator, validator
+from pydantic import Field, validator
 
-from pydatalab.models.collections import CollectionReference
 from pydatalab.models.entries import Entry
 from pydatalab.models.files import File
-from pydatalab.models.traits import HasOwner, HasRevisionControl
+from pydatalab.models.traits import HasOwner, HasRevisionControl, IsCollectable
 from pydatalab.models.utils import (
     HumanReadableIdentifier,
     IsoformatDateTime,
@@ -15,7 +14,7 @@ from pydatalab.models.utils import (
 )
 
 
-class Item(Entry, HasOwner, HasRevisionControl, abc.ABC):
+class Item(Entry, HasOwner, HasRevisionControl, IsCollectable, abc.ABC):
     """The generic model for data types that will be exposed with their own named endpoints."""
 
     refcode: Refcode = None  # type: ignore
@@ -25,9 +24,6 @@ class Item(Entry, HasOwner, HasRevisionControl, abc.ABC):
 
     item_id: HumanReadableIdentifier
     """A locally unique, human-readable identifier for the entry. This ID is mutable."""
-
-    collections: List[CollectionReference] = Field([])
-    """Inlined info for the collections associated with this item."""
 
     description: Optional[str]
     """A description of the item, either in plain-text or a markup language."""
@@ -60,35 +56,3 @@ class Item(Entry, HasOwner, HasRevisionControl, abc.ABC):
             raise ValueError(f"refcode missing prefix {CONFIG.IDENTIFIER_PREFIX!r}")
 
         return v
-
-    @root_validator
-    def add_missing_collection_relationships(cls, values):
-        from pydatalab.models.relationships import TypedRelationship
-
-        if values.get("collections") is not None:
-
-            existing_parent_relationship_ids = set()
-            collections_set = set()
-            if values.get("relationships") is not None:
-                existing_parent_relationship_ids = set(
-                    relationship.immutable_id
-                    for relationship in values["relationships"]
-                    if relationship.type == "collections"
-                )
-            else:
-                values["relationships"] = []
-
-            for collection in values.get("collections", []):
-                if collection.immutable_id not in existing_parent_relationship_ids:
-                    relationship = TypedRelationship(
-                        relation=None,
-                        immutable_id=collection.immutable_id,
-                        type="collections",
-                        description="Is a member of",
-                    )
-                    values["relationships"].append(relationship)
-
-                # Accumulate all constituent IDs in a set to filter those that have been deleted
-                collections_set.add(collection.immutable_id)
-
-        return values

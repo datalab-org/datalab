@@ -416,25 +416,24 @@ def test_create_collections(client, default_collection):
     # Create a collection with initial items
     new_collection = copy.deepcopy(default_collection)
     new_collection.collection_id = "test_collection_2"
-    response = client.put(
-        "/collections/",
-        json={
-            "data": json.loads(new_collection.json()),
+
+    data = json.loads(new_collection.json())
+    data.update(
+        {
             "starting_members": [
                 {"item_id": "copy_of_complicated_cell"},
                 {"item_id": "test_cell"},
-            ],
-        },
+            ]
+        }
     )
+    response = client.put("/collections/", json={"data": data})
     assert response.status_code == 201, response.json
     assert response.json["status"] == "success"
     assert response.json["data"]["collection_id"] == "test_collection_2"
     assert response.json["data"]["title"] == "My Test Collection"
     assert response.json["data"]["num_items"] == 2
 
-    response = client.get(
-        f"/collections/{new_collection.collection_id}",
-    )
+    response = client.get(f"/collections/{new_collection.collection_id}")
 
     assert response.status_code == 200, response.json
     assert response.json["status"] == "success"
@@ -444,3 +443,9 @@ def test_create_collections(client, default_collection):
     assert response.json["data"]["num_items"] == 2
     ids = {doc["item_id"] for doc in response.json["child_items"]}
     assert ids == {"copy_of_complicated_cell", "test_cell"}
+
+    response = client.get(f"/get-item-data/{ids.pop()}")
+    assert response.status_code == 200, response.json
+    assert response.json["status"] == "success"
+    assert len(response.json["item_data"]["collections"]) == 1
+    assert response.json["item_data"]["collections"][0]["collection_id"] == "test_collection_2"

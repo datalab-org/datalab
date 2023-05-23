@@ -169,7 +169,7 @@ export function getSampleList() {
 export function getCollectionList() {
   return fetch_get(`${API_URL}/collections/`)
     .then(function (response_json) {
-      store.commit("setCollectionList", response_json.collections);
+      store.commit("setCollectionList", response_json.data);
     })
     .catch((error) => {
       console.error("Error when fetching collection list");
