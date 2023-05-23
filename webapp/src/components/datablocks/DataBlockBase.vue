@@ -144,8 +144,6 @@ export default {
         this.contentMaxHeight = "none";
       }
     });
-
-    this.$store.commit("setBlockNotUpdating", this.block_id);
   },
   components: {
     TinyMceInline,
