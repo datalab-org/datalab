@@ -99,7 +99,7 @@ import TableOfContents from "@/components/TableOfContents";
 import FileList from "@/components/FileList";
 import Modal from "@/components/Modal";
 import FileSelectModal from "@/components/FileSelectModal";
-import { getItemData, addABlock, saveItem } from "@/server_fetch_utils";
+import { getItemData, addABlock, saveItem, updateBlockFromServer } from "@/server_fetch_utils";
 
 import setupUppy from "@/file_upload.js";
 
@@ -169,9 +169,16 @@ export default {
       tinymce.editors.forEach((editor) => editor.save());
       saveItem(this.item_id);
     },
-    async getSampleData() {
-      await getItemData(this.item_id);
-      this.itemDataLoaded = true;
+    getSampleData() {
+      getItemData(this.item_id).then(() => {
+        this.itemDataLoaded = true;
+
+        // update each block asynchronously
+        this.item_data.display_order.forEach((block_id) => {
+          console.log(`calling update on block ${block_id}`);
+          updateBlockFromServer(this.item_id, block_id, this.item_data.blocks_obj[block_id]);
+        });
+      });
     },
     leavePageWarningListener(event) {
       event.preventDefault;

@@ -447,7 +447,9 @@ def delete_sample():
 delete_sample.methods = ("POST",)  # type: ignore
 
 
-def get_item_data(item_id, load_blocks=True):
+def get_item_data(item_id, load_blocks=False):
+    # load_blocks = request.args.get("load_blocks") or load_blocks
+
     # retrieve the entry from the database:
     cursor = flask_mongo.db.items.aggregate(
         [
