@@ -76,6 +76,19 @@ Be as concise as possible. Start the conversion with a friendly greeting introdu
         for block in item_info.get("blocks_obj", {}).values():
             block.pop("bokeh_plot_data", None)
 
+            # nmr block fields to remove (need a more general way to do this)
+            NMR_fields_to_remove = [
+                "acquisition_parameters",
+                "carrier_offset_Hz",
+                "nscans",
+                "processed_data",
+                "processed_data_shape",
+                "processing_parameters",
+                "pulse_program",
+                "selected_process",
+            ]
+            [block.pop(field, None) for field in NMR_fields_to_remove]
+
         top_level_keys_to_remove = [
             "display_order",
             "creator_ids",
