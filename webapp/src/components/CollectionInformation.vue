@@ -37,7 +37,6 @@ export default {
   props: {
     collection_id: String,
   },
-  data() {},
   computed: {
     CollectionID: createComputedSetterForCollectionField("collection_id"),
     Refcode: createComputedSetterForCollectionField("refcode"),

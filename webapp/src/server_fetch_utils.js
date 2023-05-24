@@ -209,7 +209,7 @@ export function searchCollections(query, nresults = 100) {
   var params = { query: query, nresults: nresults };
   Object.keys(params).forEach((key) => url.searchParams.append(key, params[key]));
   return fetch_get(url).then(function (response_json) {
-    return response_json.collections;
+    return response_json.data;
   });
 }
 

@@ -72,7 +72,6 @@
               multiple
               v-model="startInCollection"
             />
-            <!-- <ItemSelect v-model="selectedNewConstituent" @option:selected="addConstituent" /> -->
           </div>
         </div>
       </template>
