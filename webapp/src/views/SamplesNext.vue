@@ -2,43 +2,19 @@
   <Navbar />
 
   <div id="tableContainer" class="container">
-    <div class="row">
-      <div class="col-sm-12 mx-auto mb-3">
-        <button class="btn btn-default" @click="createSampleModalIsOpen = true">Add an item</button>
-        <button class="btn btn-default ml-2" @click="batchCreateSampleModalIsOpen = true">
-          Add batch of samples
-        </button>
-      </div>
-    </div>
-    <div class="row">
-      <div class="col-sm-12 mx-auto">
-        <FancySampleTable />
-      </div>
-    </div>
+    <FancySampleTable />
   </div>
-  <CreateSampleModal v-model="createSampleModalIsOpen" />
-  <BatchCreateSampleModal v-model="batchCreateSampleModalIsOpen" />
 </template>
 
 <script>
 import Navbar from "@/components/Navbar";
 import FancySampleTable from "@/components/FancySampleTable";
-import CreateSampleModal from "@/components/CreateSampleModal";
-import BatchCreateSampleModal from "@/components/BatchCreateSampleModal";
 
 export default {
   name: "Samples",
-  data() {
-    return {
-      createSampleModalIsOpen: false,
-      batchCreateSampleModalIsOpen: false,
-    };
-  },
   components: {
     Navbar,
     FancySampleTable,
-    CreateSampleModal,
-    BatchCreateSampleModal,
   },
 };
 </script>
