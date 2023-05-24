@@ -165,6 +165,15 @@ def creators_lookup() -> Dict:
     }
 
 
+def files_lookup() -> Dict:
+    return {
+        "from": "files",
+        "localField": "file_ObjectIds",
+        "foreignField": "_id",
+        "as": "files",
+    }
+
+
 def collections_lookup() -> Dict:
     """Looks inside the relationships of the item, searches for IDs in the collections
     table and then projects only the collection ID and name for the response.
@@ -498,6 +507,7 @@ def get_item_data(item_id, load_blocks=True):
             {"$match": {"item_id": item_id, **get_default_permissions(user_only=False)}},
             {"$lookup": creators_lookup()},
             {"$lookup": collections_lookup()},
+            {"$lookup": files_lookup()},
         ],
     )
 
