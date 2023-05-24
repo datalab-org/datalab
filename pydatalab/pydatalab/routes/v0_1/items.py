@@ -133,6 +133,7 @@ def get_samples_summary(
         "item_id": 1,
         "name": 1,
         "chemform": 1,
+        "characteristic_chemical_formula": 1,
         "type": 1,
         "collections": 1,
     }
