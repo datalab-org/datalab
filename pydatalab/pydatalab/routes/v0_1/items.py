@@ -325,7 +325,7 @@ def _create_sample(sample_dict: dict, copy_from_item_id: Optional[str] = None) -
     new_sample = {k: sample_dict[k] for k in schema["properties"] if k in sample_dict}
 
     if CONFIG.TESTING:
-        new_sample["creator_ids"] = []
+        new_sample["creator_ids"] = [24 * "0"]
         new_sample["creators"] = [
             {"display_name": "Public testing user", "contact_email": "datalab@odbx.science"}
         ]
