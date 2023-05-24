@@ -27,7 +27,7 @@
     </div>
     <div class="form-row">
       <div class="form-group col-md-3">
-        <label for="collections" class="mr-2">Collections:</label>
+        <label for="collections" class="mr-2">Collections</label>
         <CollectionList :collections="Collections" />
       </div>
     </div>
