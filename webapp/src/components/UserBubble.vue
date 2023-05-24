@@ -46,11 +46,11 @@ export default {
 <style scoped>
 .avatar {
   border-radius: 50%;
-  border: 2px solid black;
-  filter: alpha(opacity=100);
+  border: 2px solid transparent;
   opacity: 1;
 }
 .avatar:hover {
-  opacity: 0.4;
+  border: 2px solid black;
+  transition: border 0.25s ease;
 }
 </style>

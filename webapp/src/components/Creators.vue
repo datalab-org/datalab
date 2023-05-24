@@ -1,6 +1,6 @@
 <template>
   <div v-for="creator in creators" :key="creator.display_name">
-    <UserBubble :creator="creator" :size="this.size" />
+    <UserBubble :creator="creator" :size="'this.size'" />
   </div>
 </template>
 
@@ -16,8 +16,8 @@ export default {
       type: Array,
     },
     size: {
-      type: String,
-      default: "24",
+      type: Number,
+      default: 24,
       required: false,
     },
   },
