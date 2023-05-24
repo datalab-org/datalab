@@ -11,6 +11,7 @@
         <th scope="col">Sample name</th>
         <th scope="col">Formula</th>
         <th class="text-center" scope="col">Date</th>
+        <th scope="col">Collections</th>
         <th class="text-center" scope="col">Creators</th>
         <th class="text-center" scope="col"># of blocks</th>
         <th scope="col"></th>
@@ -36,6 +37,7 @@
         <td align="left">{{ sample.name }}</td>
         <td><ChemicalFormula :formula="sample.chemform" /></td>
         <td class="text-center">{{ $filters.IsoDatetimeToDate(sample.date) }}</td>
+        <td><CollectionList :collections="sample.collections" /></td>
         <td align="center"><Creators :creators="sample.creators" /></td>
         <td class="text-right">{{ sample.nblocks }}</td>
         <td align="right">
@@ -56,6 +58,7 @@
 <script>
 import ChemicalFormula from "@/components/ChemicalFormula";
 import FormattedItemName from "@/components/FormattedItemName";
+import CollectionList from "@/components/CollectionList";
 import Creators from "@/components/Creators";
 import { getSampleList, deleteSample } from "@/server_fetch_utils.js";
 import { itemTypes } from "@/resources.js";
@@ -100,6 +103,7 @@ export default {
     ChemicalFormula,
     FormattedItemName,
     Creators,
+    CollectionList,
   },
 };
 </script>

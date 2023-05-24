@@ -57,7 +57,12 @@
     <template #empty-message>No samples found.</template>
 
     <template #item-item_id="item">
-      <FormattedItemName :item_id="item.item_id" :itemType="item?.type" enableModifiedClick />
+      <FormattedItemName
+        :id="item.item_id"
+        :item_id="item.item_id"
+        :itemType="item?.type"
+        enableModifiedClick
+      />
     </template>
 
     <template #item-type="item">
@@ -72,16 +77,20 @@
       {{ $filters.IsoDatetimeToDate(item.date) }}
     </template>
 
-    <template #item-collection="item">
+    <template #item-collections="item">
       <CollectionList :collections="item.collections" />
     </template>
 
     <template #item-creators="item">
-      <Creators :creators="item.creators" />
+      <div style="text-align: center">
+        <Creators :creators="item.creators" />
+      </div>
     </template>
 
     <template #item-nblocks="item">
-      {{ item.nblocks || 0 }}
+      <div style="text-align: right">
+        {{ item.nblocks || 0 }}
+      </div>
     </template>
   </Vue3EasyDataTable>
 </template>
