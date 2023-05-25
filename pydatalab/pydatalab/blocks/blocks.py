@@ -51,10 +51,29 @@ class DataBlock:
     cache: Optional[Dict[str, Any]] = None
     plot_functions: Optional[Sequence[Callable[[], None]]] = None
 
-    def __init__(self, item_id, dictionary=None, unique_id=None):
+    supports_collections: bool = False
+
+    def __init__(
+        self,
+        item_id: Optional[str] = None,
+        collection_id: Optional[str] = None,
+        dictionary=None,
+        unique_id=None,
+    ):
 
         if dictionary is None:
             dictionary = {}
+
+        if item_id is None and not self.supports_collections:
+            raise RuntimeError(f"Must supply `item_id` to make {self.__class__.__name__}.")
+
+        if collection_id is not None and not self.supports_collections:
+            raise RuntimeError(
+                f"This block ({self.__class__.__name__}) does not support collections."
+            )
+
+        if item_id is not None and collection_id is not None:
+            raise RuntimeError("Must provide only one of `item_id` and `collection_id`.")
 
         # Initialise cache
         self.cache = {}
@@ -69,6 +88,7 @@ class DataBlock:
         )  # this is supposed to be a unique id for use in html and the database.
         self.data = {
             "item_id": item_id,
+            "collection_id": collection_id,
             "blocktype": self.blocktype,
             "block_id": self.block_id,
             **self.defaults,
@@ -83,7 +103,12 @@ class DataBlock:
         self.data.update(
             dictionary
         )  # this could overwrite blocktype and block_id. I think that's reasonable... maybe
-        LOGGER.debug("Initialised block %s for item ID %s.", self.__class__.__name__, item_id)
+        LOGGER.debug(
+            "Initialised block %s for item ID %s or collection ID %s.",
+            self.__class__.__name__,
+            item_id,
+            collection_id,
+        )
 
     def to_db(self):
         """returns a dictionary with the data for this
@@ -103,7 +128,11 @@ class DataBlock:
     def from_db(cls, db_entry):
         """create a block from json (dictionary) stored in a db"""
         LOGGER.debug("Loading block %s from database object.", cls.__class__.__name__)
-        new_block = cls(db_entry["item_id"], db_entry)
+        new_block = cls(
+            item_id=db_entry.get("item_id"),
+            collection_id=db_entry.get("collection_id"),
+            dictionary=db_entry,
+        )
         if "file_id" in new_block.data:
             new_block.data["file_id"] = str(new_block.data["file_id"])
         return new_block
@@ -123,7 +152,7 @@ class DataBlock:
     @classmethod
     def from_web(cls, data):
         LOGGER.debug("Loading block %s from web request.", cls.__class__.__name__)
-        Block = cls(data["item_id"])
+        Block = cls(item_id=data.get("item_id"), collection_id=data.get("collection_id"))
         Block.update_from_web(data)
         return Block
 
@@ -142,17 +171,20 @@ class DataBlock:
 class NotSupportedBlock(DataBlock):
     blocktype = "notsupported"
     description = "Block not supported"
+    supports_collections = True
 
 
 class CommentBlock(DataBlock):
     blocktype = "comment"
     description = "Comment"
+    supports_collections = True
 
 
 class MediaBlock(DataBlock):
     blocktype = "media"
     description = "Media"
     accepted_file_extensions = (".png", ".jpeg", ".jpg", ".tif", ".tiff", ".mp4", ".mov", ".webm")
+    supports_collections = False
 
     @property
     def plot_functions(self):
@@ -181,6 +213,7 @@ class NMRBlock(DataBlock):
     description = "Simple NMR Block"
     accepted_file_extensions = ".zip"
     defaults = {"process number": 1}
+    supports_collections = False
 
     @property
     def plot_functions(self):
