@@ -50,6 +50,7 @@ class DataBlock:
     # values cached on the block instance for faster retrieval
     cache: Optional[Dict[str, Any]] = None
     plot_functions: Optional[Sequence[Callable[[], None]]] = None
+    # whether this datablock can operate on collection data, or just individual items
     supports_collections: bool = False
 
     def __init__(
