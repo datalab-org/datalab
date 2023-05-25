@@ -288,7 +288,7 @@ export async function getCollectionData(collection_id) {
     .catch((error) => alert("Error getting collection data: " + error));
 }
 
-export async function updateBlockFromServer(item_id, block_id, block_data) {
+export async function updateBlockFromServer(item_id, block_id, block_data, saveToDatabase = true) {
   console.log("updateBlockFromServer called with data:");
   console.log(block_data);
   store.commit("setBlockUpdating", block_id);
@@ -296,6 +296,7 @@ export async function updateBlockFromServer(item_id, block_id, block_data) {
     item_id: item_id,
     block_id: block_id,
     block_data: block_data,
+    save_to_db: saveToDatabase,
   })
     .then(function (response_json) {
       store.commit("updateBlockData", {
@@ -304,6 +305,10 @@ export async function updateBlockFromServer(item_id, block_id, block_data) {
         block_data: response_json.new_block_data,
       });
       store.commit("setBlockNotUpdating", block_id);
+      store.commit("setBlockSaved", {
+        block_id: block_id,
+        isSaved: response_json.saved_successfully,
+      });
     })
     .catch((error) => {
       alert("Error in updateBlockFromServer: " + error);
@@ -342,7 +347,10 @@ export function saveItem(item_id) {
       if (response_json.status === "success") {
         // this should always be true if you've gotten this far...
         console.log("Save successful!");
-        store.commit("setSaved", { item_id: item_id, isSaved: true });
+        store.commit("setItemSaved", { item_id: item_id, isSaved: true });
+        store.state.all_item_data[item_id].display_order.forEach((block_id) => {
+          store.commit("setBlockSaved", { block_id: block_id, isSaved: true });
+        });
       }
     })
     .catch(function (error) {

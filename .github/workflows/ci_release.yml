@@ -1,0 +1,56 @@
+name: Release workflow
+
+on:
+  release:
+    types:
+      - published
+
+env:
+  PUBLISH_UPDATE_BRANCH: main
+  GIT_USER_NAME: "Greymon (bot)"
+  GIT_USER_EMAIL: "bot-grey-group@ml-evs.science"
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    if: github.repository == 'the-grey-group/datalab' && startsWith(github.ref, 'refs/tags/v')
+    env:
+      PUBLISH_UPDATE_BRANCH: main
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+
+      - name: Install dependencies
+        working-directory: ./pydatalab
+        run: |
+          python -m pip install --upgrade pip
+          pip install -U setuptools
+          pip install pipenv
+          pipenv sync --dev
+          pipenv run pip install invoke
+          pipenv run pip install -e .
+
+      - name: Set git config
+        run: |
+          git config --global user.name "${{ env.GIT_USER_NAME }}"
+          git config --global user.email "${{ env.GIT_USER_EMAIL }}"
+
+      - name: Update version
+        run: .github/utils/update_docs.sh
+
+      - name: Update '${{ env.PUBLISH_UPDATE_BRANCH }}'
+        uses: CasperWA/push-protected@v2
+        with:
+          token: ${{ secrets.BOT_PAT }}
+          branch: ${{ env.PUBLISH_UPDATE_BRANCH }}
+          unprotect_reviews: true
+          sleep: 15
+          force: true
+          tags: true

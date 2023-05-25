@@ -19,7 +19,7 @@ from pydatalab.mongo import flask_mongo
 from pydatalab.routes.utils import get_default_permissions
 
 
-def reserialize_blocks(blocks_obj: Dict[str, Dict]) -> Dict[str, Dict]:
+def reserialize_blocks(display_order: List[str], blocks_obj: Dict[str, Dict]) -> Dict[str, Dict]:
     """Create the corresponding Python objects from JSON block data, then
     serialize it again as JSON to populate any missing properties.
 
@@ -30,7 +30,12 @@ def reserialize_blocks(blocks_obj: Dict[str, Dict]) -> Dict[str, Dict]:
         A dictionary with the re-serialized block data.
 
     """
-    for block_id, block_data in blocks_obj.items():
+    for block_id in display_order:
+        try:
+            block_data = blocks_obj[block_id]
+        except KeyError:
+            LOGGER.warning(f"block_id {block_id} found in display order but not in blocks_obj")
+            continue
         blocktype = block_data["blocktype"]
         blocks_obj[block_id] = (
             BLOCK_TYPES.get(blocktype, BLOCK_TYPES["notsupported"]).from_db(block_data).to_web()
@@ -325,7 +330,6 @@ def _create_sample(sample_dict: dict, copy_from_item_id: Optional[str] = None) -
             sample_dict = copied_doc
 
         elif copied_doc["type"] == "cells":
-
             for component in ("positive_electrode", "negative_electrode", "electrolyte"):
                 if copied_doc.get(component):
                     existing_consituent_ids = [
@@ -555,7 +559,7 @@ def get_item_data(item_id, load_blocks=True):
 
     doc = ItemModel(**doc)
     if load_blocks:
-        doc.blocks_obj = reserialize_blocks(doc.blocks_obj)
+        doc.blocks_obj = reserialize_blocks(doc.display_order, doc.blocks_obj)
 
     # find any documents with relationships that mention this document
     relationships_query_results = flask_mongo.db.items.find(
@@ -694,7 +698,7 @@ def save_item():
         return (
             jsonify(
                 status="error",
-                message=f"{blocktype} Update failed. no subdocument matched",
+                message=f"{item_id} item update failed. no subdocument matched",
                 output=result.raw_result,
             ),
             400,

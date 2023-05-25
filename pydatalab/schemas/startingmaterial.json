@@ -3,6 +3,19 @@
   "description": "A model for representing an experimental sample.",
   "type": "object",
   "properties": {
+    "blocks_obj": {
+      "title": "Blocks Obj",
+      "default": {},
+      "type": "object"
+    },
+    "display_order": {
+      "title": "Display Order",
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
     "collections": {
       "title": "Collections",
       "default": [],
@@ -85,19 +98,6 @@
       "title": "Container Name",
       "description": "name of the chemical",
       "type": "string"
-    },
-    "blocks_obj": {
-      "title": "Blocks Obj",
-      "default": {},
-      "type": "object"
-    },
-    "display_order": {
-      "title": "Display Order",
-      "default": [],
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
     },
     "files": {
       "title": "Files",
@@ -357,6 +357,19 @@
       "description": "An Entry is an abstract base class for any model that can be\ndeserialized and stored in the database.",
       "type": "object",
       "properties": {
+        "blocks_obj": {
+          "title": "Blocks Obj",
+          "default": {},
+          "type": "object"
+        },
+        "display_order": {
+          "title": "Display Order",
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "creator_ids": {
           "title": "Creator Ids",
           "default": [],

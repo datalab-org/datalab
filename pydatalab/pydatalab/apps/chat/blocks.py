@@ -48,11 +48,17 @@ Be as concise as possible. Start the conversion with a friendly greeting introdu
     }
     openai.api_key = os.environ.get("OPENAI_API_KEY")
 
+    def to_db(self):
+        """returns a dictionary with the data for this
+        block, ready to be input into mongodb"""
+        self.render()
+        return super().to_db()
+
     @property
     def plot_functions(self):
         return (self.render,)
 
-    def render(self):
+    def prepare_item_json_for_chat(self):
         from pydatalab.routes.v0_1.items import get_item_data
 
         item_info = get_item_data(self.data["item_id"], load_blocks=False).json
@@ -67,8 +73,32 @@ Be as concise as possible. Start the conversion with a friendly greeting introdu
         # LOGGER.debug(item_info)
 
         # strip irrelevant or large fields
+        item_filenames = {
+            str(file["immutable_id"]): file["name"] for file in item_info.get("files", [])
+        }
         for block in item_info.get("blocks_obj", {}).values():
             block.pop("bokeh_plot_data", None)
+
+            block_fields_to_remove = ["item_id", "block_id"]
+            [block.pop(field, None) for field in block_fields_to_remove]
+
+            # nmr block fields to remove (need a more general way to do this)
+            NMR_fields_to_remove = [
+                "acquisition_parameters",
+                "carrier_offset_Hz",
+                "nscans",
+                "processed_data",
+                "processed_data_shape",
+                "processing_parameters",
+                "pulse_program",
+                "selected_process",
+            ]
+            [block.pop(field, None) for field in NMR_fields_to_remove]
+
+            # replace file_id with the actual filename
+            file_id = block.pop("file_id", None)
+            if file_id:
+                block["file"] = item_filenames.get(file_id, None)
 
         top_level_keys_to_remove = [
             "display_order",
@@ -84,12 +114,18 @@ Be as concise as possible. Start the conversion with a friendly greeting introdu
         for k in top_level_keys_to_remove:
             item_info.pop(k, None)
 
-        for ind, f in enumerate(item_info.get("files", [])):
-            item_info["files"][ind] = {k: v for k, v in f.items() if k in ["name", "extension"]}
         for ind, f in enumerate(item_info.get("relationships", [])):
             item_info["relationships"][ind] = {
                 k: v for k, v in f.items() if k in ["item_id", "type", "relation"]
             }
+        item_info["files"] = [file["name"] for file in item_info.get("files", [])]
+        item_info["creators"] = [
+            creator["display_name"] for creator in item_info.get("creators", [])
+        ]
+
+        # move blocks from blocks_obj to a simpler list to further cut down tokens,
+        # especially in alphanumeric block_id fields
+        item_info["blocks"] = [block for block in item_info.pop("blocks_obj", {}).values()]
 
         item_info = {k: value for k, value in item_info.items() if value}
 
@@ -117,7 +153,11 @@ Be as concise as possible. Start the conversion with a friendly greeting introdu
             .replace(r"\n", " ")
         )
 
+        return item_info_json
+
+    def render(self):
         if not self.data.get("messages"):
+            item_info_json = self.prepare_item_json_for_chat()
             self.data["messages"] = [
                 {
                     "role": "system",
@@ -166,7 +206,7 @@ Be as concise as possible. Start the conversion with a friendly greeting introdu
                 messages=self.data["messages"],
                 temperature=self.data["temperature"],
                 max_tokens=min(
-                    1024, MAX_CONTEXT_SIZE - token_count
+                    1024, MAX_CONTEXT_SIZE - token_count - 1
                 ),  # if less than 1024 tokens are left in the token, then indicate this
             )
             self.data["error_message"] = None

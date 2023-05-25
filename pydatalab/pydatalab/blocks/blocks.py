@@ -50,7 +50,6 @@ class DataBlock:
     # values cached on the block instance for faster retrieval
     cache: Optional[Dict[str, Any]] = None
     plot_functions: Optional[Sequence[Callable[[], None]]] = None
-
     supports_collections: bool = False
 
     def __init__(
@@ -60,7 +59,6 @@ class DataBlock:
         dictionary=None,
         unique_id=None,
     ):
-
         if dictionary is None:
             dictionary = {}
 
@@ -152,9 +150,13 @@ class DataBlock:
     @classmethod
     def from_web(cls, data):
         LOGGER.debug("Loading block %s from web request.", cls.__class__.__name__)
-        Block = cls(item_id=data.get("item_id"), collection_id=data.get("collection_id"))
-        Block.update_from_web(data)
-        return Block
+        block = cls(
+            item_id=data.get("item_id"),
+            collection_id=data.get("collection_id"),
+            unique_id=data["block_id"],
+        )
+        block.update_from_web(data)
+        return block
 
     def update_from_web(self, data):
         """update the object with data received from the website. Only updates fields
