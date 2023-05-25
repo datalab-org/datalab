@@ -10,6 +10,34 @@
     </span>
     <div class="navbar-nav">
       <a class="nav-item nav-link" href="/">Home</a>
+      <div class="nav-item dropdown">
+        <a
+          class="nav-link dropdown-toggle ml-2"
+          id="navbarDropdown"
+          role="button"
+          data-toggle="dropdown"
+          aria-haspopup="true"
+          aria-expanded="false"
+          @click="isMenuDropdownVisible = !isMenuDropdownVisible"
+        >
+          Add a block
+        </a>
+        <div
+          class="dropdown-menu"
+          style="display: block"
+          aria-labelledby="navbarDropdown"
+          v-show="isMenuDropdownVisible"
+        >
+          <a
+            v-for="(blockType, id) in blockTypes"
+            :key="id"
+            class="dropdown-item"
+            @click="newBlock($event, id)"
+          >
+            {{ blockType.description }}
+          </a>
+        </div>
+      </div>
       <a class="nav-item nav-link" :href="this.collectionApiUrl" target="_blank">
         <font-awesome-icon icon="code" fixed-width /> View JSON
       </a>
@@ -44,7 +72,7 @@
 import CollectionInformation from "@/components/CollectionInformation";
 import { getCollectionData, saveCollection } from "@/server_fetch_utils";
 import tinymce from "tinymce/tinymce";
-import { itemTypes } from "@/resources.js";
+import { blockTypes, itemTypes } from "@/resources.js";
 import { API_URL } from "@/resources.js";
 
 export default {
@@ -106,6 +134,7 @@ export default {
   },
   beforeMount() {
     this.collectionApiUrl = API_URL + "/collections/" + this.collection_id;
+    this.blockTypes = blockTypes; // bind blockTypes as a NON-REACTIVE object to the this context so that it is accessible by the template.
   },
   mounted() {
     // overwrite ctrl-s and cmd-s to save the page
@@ -167,9 +196,9 @@ label,
 }
 
 .navbar-icon {
-  width: 2.5rem;
-  height: 2.5rem;
-  /*padding: 0.3rem;*/
+  width: 1.9rem;
+  height: 1.9rem;
+  padding: 0.3rem;
 }
 
 .unsaved-warning {
@@ -202,5 +231,9 @@ label,
 .block-list-leave-active {
   position: absolute;
   max-width: calc(100% - 30px);
+}
+
+.dropdown-menu {
+  cursor: pointer;
 }
 </style>
