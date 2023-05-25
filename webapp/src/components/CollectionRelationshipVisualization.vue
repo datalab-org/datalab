@@ -36,29 +36,11 @@ export default {
       return this.$store.state.all_collection_children[this.collection_id];
     },
   },
-  methods: {
-    getCollectionMembers() {
-      getCollection()
-        .then((response) => {
-          this.$store.commit("setCollectionMembers", {
-            collection_id: this.collection_id,
-            items: response.data,
-          });
-        })
-        .catch((error) => {
-          console.log(error);
-          this.isFetchError = true;
-        });
-    },
-  },
   props: {
     collection_id: String,
   },
   components: {
     FancyTable,
-  },
-  created() {
-    this.getCollectionMembers();
   },
 };
 </script>
