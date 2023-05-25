@@ -44,11 +44,11 @@
   <BatchCreateSampleModal v-model="batchCreateSampleModalIsOpen" />
 
   <FancyTable
-    :headers="headers"
     :items="samples"
     :searchValue="searchValue"
     :isReady="isReady"
     :itemsSelected="itemsSelected"
+    :tableType="tableType"
   />
 </template>
 
@@ -67,13 +67,7 @@ export default {
       batchCreateSampleModalIsOpen: false,
       itemsSelected: [],
       isReady: false,
-      headers: [
-        { text: "ID", value: "item_id", sortable: true },
-        { text: "Formula", value: "chemform", sortable: true },
-        { text: "Date", value: "date", sortable: true },
-        { text: "Creators", value: "creators", sortable: true },
-        { text: "# of blocks", value: "nblocks", sortable: true },
-      ],
+      tableType: "items",
       searchValue: "",
     };
   },

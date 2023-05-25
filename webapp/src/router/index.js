@@ -6,6 +6,7 @@ import SamplesNext from "../views/SamplesNext.vue";
 import StartingMaterials from "../views/StartingMaterials.vue";
 import StartingMaterialsNext from "../views/StartingMaterialsNext.vue";
 import Collections from "../views/Collections.vue";
+import CollectionsNext from "../views/CollectionsNext.vue";
 import NotFound from "../views/NotFound.vue";
 import EditPage from "../views/EditPage.vue";
 import CollectionPage from "../views/CollectionPage.vue";
@@ -49,6 +50,11 @@ const routes = [
     path: "/collections",
     name: "collections",
     component: Collections,
+  },
+  {
+    path: "/next/collections",
+    name: "collections",
+    component: CollectionsNext,
   },
   {
     path: "/collections/:id",

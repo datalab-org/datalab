@@ -4,7 +4,7 @@
     :items="items"
     :search-value="searchValue"
     :loading="!isReady"
-    no-hover="true"
+    :no-hover="true"
     :checkbox-column-width="40"
     :expand-column-width="40"
     table-class-name="customize-table"
@@ -13,13 +13,14 @@
     @click-row="goToEditPage"
     v-model:items-selected="itemsSelected"
   >
-    <template #empty-message>No samples found.</template>
+    <template #empty-message v-if="tableType == 'items'">No samples found.</template>
+    <template #empty-message v-else>No collections found.</template>
 
-    <template #expand="item">
+    <template #expand="item" v-if="tableType == 'items'">
       <ItemDetails :item="item" />
     </template>
 
-    <template #item-item_id="item">
+    <template #item-item_id="item" v-if="tableType == 'items'">
       <FormattedItemName
         :id="item.item_id"
         :item_id="item.item_id"
@@ -28,15 +29,23 @@
       />
     </template>
 
+    <template #item-collection_id="item" v-if="tableType == 'collections'">
+      <FormattedCollectionName
+        :id="item.collection_id"
+        :collection_id="item.collection_id"
+        enableModifiedClick
+      />
+    </template>
+
     <template #item-creators="item">
       <Creators :creators="item.creators" :showNames="true" :showBubble="false" />
     </template>
 
-    <template #item-chemform="item">
+    <template #item-chemform="item" v-if="tableType == 'items'">
       <ChemicalFormula :formula="item.chemform || item.characteristic_chemical_formula" />
     </template>
 
-    <template #item-date="item">
+    <template #item-date="item" v-if="tableType == 'items'">
       {{ $filters.IsoDatetimeToDate(item.date) }}
     </template>
 
@@ -52,6 +61,7 @@
 import Vue3EasyDataTable from "vue3-easy-data-table";
 import "vue3-easy-data-table/dist/style.css";
 import FormattedItemName from "@/components/FormattedItemName";
+import FormattedCollectionName from "@/components/FormattedCollectionName";
 import ChemicalFormula from "@/components/ChemicalFormula";
 import ItemDetails from "@/components/ItemDetails";
 import { GRAVATAR_STYLE, itemTypes } from "@/resources.js";
@@ -66,14 +76,36 @@ export default {
     };
   },
   props: {
-    headers: Array,
     items: Array,
     searchValue: String,
     isReady: Boolean,
+    tableType: String,
+  },
+  computed: {
+    headers() {
+      if (this.tableType == "items") {
+        return [
+          { text: "ID", value: "item_id", sortable: true },
+          { text: "Formula", value: "chemform", sortable: true },
+          { text: "Date", value: "date", sortable: true },
+          { text: "Creators", value: "creators", sortable: true },
+          { text: "# of blocks", value: "nblocks", sortable: true },
+        ];
+      } else {
+        return [
+          { text: "ID", value: "collection_id", sortable: true },
+          { text: "Date", value: "date", sortable: true },
+          { text: "Creators", value: "creators", sortable: true },
+          { text: "# of items", value: "num_items", sortable: true },
+          { text: "# of blocks", value: "nblocks", sortable: true },
+        ];
+      }
+    },
   },
   components: {
     ChemicalFormula,
     FormattedItemName,
+    FormattedCollectionName,
     Vue3EasyDataTable,
     ItemDetails,
     Creators,
@@ -90,7 +122,11 @@ export default {
       if (event.ctrl || event.metaKey || event.altKey) {
         window.open(`/edit/${row.item_id}`, "_blank");
       } else {
-        this.$router.push(`/edit/${row.item_id}`);
+        if (this.tableType == "collections") {
+          this.$router.push(`/collections/${row.collection_id}`);
+        } else {
+          this.$router.push(`/edit/${row.item_id}`);
+        }
       }
     },
   },

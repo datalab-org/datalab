@@ -1,11 +1,11 @@
 <template>
   <label class="mr-2">Collection Members</label>
   <FancyTable
-    :headers="headers"
     :items="items"
     :searchValue="searchValue"
     :isReady="isReady"
     :itemsSelected="itemsSelected"
+    :tableType="tableType"
   />
 </template>
 
@@ -19,16 +19,7 @@ export default {
       itemsSelected: [],
       isReady: true,
       searchValue: "",
-      headers: [
-        { text: "ID", value: "item_id", sortable: true },
-        { text: "type", value: "type", sortable: true },
-        { text: "Sample name", value: "name", sortable: true },
-        { text: "Formula", value: "chemform", sortable: true },
-        { text: "Date", value: "date", sortable: true },
-        { text: "Collections", value: "collections", sortable: true },
-        { text: "Creators", value: "creators", sortable: true },
-        { text: "# of blocks", value: "nblocks", sortable: true },
-      ],
+      tableType: "items",
     };
   },
   computed: {
