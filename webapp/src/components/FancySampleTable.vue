@@ -73,7 +73,6 @@ export default {
         { text: "Sample name", value: "name", sortable: true },
         { text: "Formula", value: "chemform", sortable: true },
         { text: "Date", value: "date", sortable: true },
-        { text: "Collections", value: "collections", sortable: true },
         { text: "Creators", value: "creators", sortable: true },
         { text: "# of blocks", value: "nblocks", sortable: true },
       ],

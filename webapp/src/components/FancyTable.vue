@@ -4,6 +4,7 @@
     :items="items"
     :search-value="searchValue"
     :loading="!isReady"
+    no-hover="true"
     table-class-name="customize-table"
     header-class-name="customize-table-header"
     buttons-pagination
@@ -11,6 +12,10 @@
     v-model:items-selected="itemsSelected"
   >
     <template #empty-message>No samples found.</template>
+
+    <template #expand="item">
+      <ItemDetails :item="item" />
+    </template>
 
     <template #item-item_id="item">
       <FormattedItemName
@@ -33,16 +38,6 @@
       {{ $filters.IsoDatetimeToDate(item.date) }}
     </template>
 
-    <template #item-collections="item">
-      <CollectionList :collections="item.collections" />
-    </template>
-
-    <template #item-creators="item">
-      <div style="text-align: center">
-        <Creators :creators="item.creators" />
-      </div>
-    </template>
-
     <template #item-nblocks="item">
       <div style="text-align: right">
         {{ item.nblocks || 0 }}
@@ -55,9 +50,8 @@
 import Vue3EasyDataTable from "vue3-easy-data-table";
 import "vue3-easy-data-table/dist/style.css";
 import FormattedItemName from "@/components/FormattedItemName";
-import CollectionList from "@/components/CollectionList";
 import ChemicalFormula from "@/components/ChemicalFormula";
-import Creators from "@/components/Creators";
+import ItemDetails from "@/components/ItemDetails";
 import { GRAVATAR_STYLE, itemTypes } from "@/resources.js";
 
 export default {
@@ -75,11 +69,10 @@ export default {
     isReady: Boolean,
   },
   components: {
-    Creators,
     ChemicalFormula,
     FormattedItemName,
     Vue3EasyDataTable,
-    CollectionList,
+    ItemDetails,
   },
   methods: {
     goToEditPage(row, event) {
