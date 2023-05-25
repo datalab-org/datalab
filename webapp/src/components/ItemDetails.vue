@@ -3,6 +3,18 @@
     <div class="row justify-content-start">
       <div class="col-2">
         <div class="card">
+          <div class="card-title">Type</div>
+          <div class="card-body">{{ itemTypes[item.type].display }}</div>
+        </div>
+      </div>
+      <div class="col-2" v-if="item.name">
+        <div class="card">
+          <div class="card-title">Name</div>
+          <div class="card-body">{{ item.name }}</div>
+        </div>
+      </div>
+      <div class="col-2">
+        <div class="card">
           <div class="card-title">Refcode</div>
           <div class="card-body">
             <FormattedRefcode :refcode="item.refcode" />
@@ -15,12 +27,6 @@
           <div class="card-body">
             <CollectionList :collections="item.collections" />
           </div>
-        </div>
-      </div>
-      <div class="col-2" v-if="item.name">
-        <div class="card">
-          <div class="card-title">Name</div>
-          <div class="card-body">{{ item.name }}</div>
         </div>
       </div>
       <div class="col-2" v-if="item.creators">
@@ -39,10 +45,13 @@
 import CollectionList from "@/components/CollectionList";
 import Creators from "@/components/Creators";
 import FormattedRefcode from "@/components/FormattedRefcode";
+import { itemTypes } from "@/resources.js";
 
 export default {
   data() {
-    return {};
+    return {
+      itemTypes: itemTypes,
+    };
   },
   props: {
     item: {
@@ -60,12 +69,12 @@ export default {
 
 <style scoped>
 .card-container {
-  background-color: #ededed;
+  background-color: #f4f4f4;
   margin-left: 50px;
   border-left: 4px solid #42b983;
 }
 .card {
-  background-color: #ededed;
+  background-color: #f4f4f4;
   padding: 0 0 0 0;
   margin: 0.5em;
   border: none;
