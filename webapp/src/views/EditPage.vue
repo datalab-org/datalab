@@ -166,7 +166,9 @@ export default {
     saveSample() {
       // trigger the mce save so that they update the store with their content
       console.log("save sample clicked!");
-      tinymce.editors.forEach((editor) => editor.save());
+      tinymce.editors.forEach((editor) => {
+        editor.isDirty() && editor.save();
+      });
       saveItem(this.item_id);
     },
     getSampleData() {
