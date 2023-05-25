@@ -5,6 +5,8 @@
     :search-value="searchValue"
     :loading="!isReady"
     no-hover="true"
+    :checkbox-column-width="40"
+    :expand-column-width="40"
     table-class-name="customize-table"
     header-class-name="customize-table-header"
     buttons-pagination
@@ -26,8 +28,8 @@
       />
     </template>
 
-    <template #item-type="item">
-      {{ itemTypes[item.type].display }}
+    <template #item-creators="item">
+      <Creators :creators="item.creators" :showNames="true" :showBubble="false" />
     </template>
 
     <template #item-chemform="item">
@@ -53,6 +55,7 @@ import FormattedItemName from "@/components/FormattedItemName";
 import ChemicalFormula from "@/components/ChemicalFormula";
 import ItemDetails from "@/components/ItemDetails";
 import { GRAVATAR_STYLE, itemTypes } from "@/resources.js";
+import Creators from "@/components/Creators";
 
 export default {
   data() {
@@ -73,6 +76,7 @@ export default {
     FormattedItemName,
     Vue3EasyDataTable,
     ItemDetails,
+    Creators,
   },
   methods: {
     goToEditPage(row, event) {
