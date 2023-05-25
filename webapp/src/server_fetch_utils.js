@@ -258,6 +258,7 @@ export function addABlock(item_id, block_type, index = null) {
 export function saveItem(item_id) {
   console.log("saveItem Called!");
   var item_data = store.state.all_item_data[item_id];
+  store.commit("setItemSaved", { item_id: item_id, isSaved: false });
   fetch_post(`${API_URL}/save-item/`, {
     item_id: item_id,
     data: item_data,
@@ -266,6 +267,10 @@ export function saveItem(item_id) {
       if (response_json.status === "success") {
         // this should always be true if you've gotten this far...
         console.log("Save successful!");
+        store.commit("updateItemData", {
+          item_id: item_id,
+          item_data: { last_modified: response_json.last_modified },
+        });
         store.commit("setItemSaved", { item_id: item_id, isSaved: true });
         store.state.all_item_data[item_id].display_order.forEach((block_id) => {
           store.commit("setBlockSaved", { block_id: block_id, isSaved: true });

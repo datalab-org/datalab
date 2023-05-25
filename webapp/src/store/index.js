@@ -113,8 +113,8 @@ export default createStore({
     },
     updateItemData(state, payload) {
       //requires the following fields in payload:
-      // item_id, block_data
-      Object.assign(state.all_item_data[payload.item_id], payload.block_data);
+      // item_id, item_data
+      Object.assign(state.all_item_data[payload.item_id], payload.item_data);
       state.saved_status_items[payload.item_id] = false;
     },
     setItemSaved(state, payload) {

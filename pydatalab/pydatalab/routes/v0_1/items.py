@@ -638,7 +638,7 @@ def save_item():
             400,
         )
 
-    return jsonify(status="success"), 200
+    return jsonify(status="success", last_modified=updated_data["last_modified"]), 200
 
 
 save_item.methods = ("POST",)  # type: ignore
