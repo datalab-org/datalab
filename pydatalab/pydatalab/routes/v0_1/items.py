@@ -147,6 +147,8 @@ def get_samples_summary(
         "chemform": 1,
         "characteristic_chemical_formula": 1,
         "type": 1,
+        "date": 1,
+        "refcode": 1,
     }
 
     # Cannot mix 0 and 1 keys in MongoDB project so must loop and check
