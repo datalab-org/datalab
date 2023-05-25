@@ -69,8 +69,6 @@ export default {
       isReady: false,
       headers: [
         { text: "ID", value: "item_id", sortable: true },
-        { text: "type", value: "type", sortable: true },
-        { text: "Sample name", value: "name", sortable: true },
         { text: "Formula", value: "chemform", sortable: true },
         { text: "Date", value: "date", sortable: true },
         { text: "Creators", value: "creators", sortable: true },
