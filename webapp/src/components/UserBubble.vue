@@ -3,14 +3,12 @@
     :src="
       'https://www.gravatar.com/avatar/' +
       md5(this.creator.contact_email || this.creator.display_name) +
-      '?s=' +
-      this.size +
-      '&d=' +
+      '?d=' +
       this.gravatar_style
     "
     class="avatar"
-    :width="this.size"
-    :height="this.size"
+    :width="size"
+    :height="size"
     :title="this.creator.display_name"
   />
 </template>
@@ -30,8 +28,8 @@ export default {
       required: true,
     },
     size: {
-      type: String,
-      default: "32",
+      type: Number,
+      default: 32,
       required: false,
     },
   },
@@ -46,7 +44,7 @@ export default {
 <style scoped>
 .avatar {
   border-radius: 50%;
-  border: 2px solid transparent;
+  border: 2px solid lightgrey;
   opacity: 1;
 }
 .avatar:hover {
