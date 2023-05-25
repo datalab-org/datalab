@@ -24,6 +24,15 @@ class HasRevisionControl(BaseModel):
     """An optional mapping from old revision numbers to the model state at that revision."""
 
 
+class HasBlocks(BaseModel):
+
+    blocks_obj: Dict[str, Any] = Field({})
+    """A mapping from block ID to block data."""
+
+    display_order: List[str] = Field([])
+    """The order in which to display block data in the UI."""
+
+
 class IsCollectable(BaseModel):
     """Trait mixin for models that can be
     added to collections.

@@ -2,12 +2,12 @@ from typing import Optional
 
 from pydantic import Field
 
-from pydatalab.models.entries import Entry, EntryReference
-from pydatalab.models.traits import HasOwner
+from pydatalab.models.entries import Entry
+from pydatalab.models.traits import HasBlocks, HasOwner
 from pydatalab.models.utils import HumanReadableIdentifier
 
 
-class Collection(Entry, HasOwner):
+class Collection(Entry, HasOwner, HasBlocks):
 
     type: str = Field("collections", const="collections", pattern="^collections$")
 
