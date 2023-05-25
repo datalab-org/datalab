@@ -66,4 +66,7 @@ export default {
 .clickable {
   cursor: pointer;
 }
+.badge {
+  color: black;
+}
 </style>

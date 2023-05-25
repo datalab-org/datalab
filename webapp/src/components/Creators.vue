@@ -1,7 +1,10 @@
 <template>
-  <div v-for="creator in creators" :key="creator.display_name">
+  <span v-for="creator in creators" :key="creator.display_name">
     <UserBubble :creator="creator" :size="'this.size'" />
-  </div>
+    <span v-if="showNames && creator.display_name">
+      {{ creator.display_name }}
+    </span>
+  </span>
 </template>
 
 <script>
@@ -14,6 +17,11 @@ export default {
   props: {
     creators: {
       type: Array,
+    },
+    showNames: {
+      type: Boolean,
+      default: false,
+      required: false,
     },
     size: {
       type: Number,
