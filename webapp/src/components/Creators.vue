@@ -1,8 +1,11 @@
 <template>
   <span v-for="creator in creators" :key="creator.display_name">
-    <UserBubble :creator="creator" :size="'this.size'" />
-    <span v-if="showNames && creator.display_name">
+    <span v-if="showBubble">
+      <UserBubble :creator="creator" :size="size" v-if="showBubble" />
+    </span>
+    <span class="display-name" v-if="showNames && creator.display_name">
       {{ creator.display_name }}
+      <span v-if="creator !== creators[creators.length - 1]">,</span>
     </span>
   </span>
 </template>
@@ -23,6 +26,11 @@ export default {
       default: false,
       required: false,
     },
+    showBubble: {
+      type: Boolean,
+      default: true,
+      required: false,
+    },
     size: {
       type: Number,
       default: 24,
@@ -34,3 +42,9 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.display-name {
+  margin-left: 0.5em;
+}
+</style>
