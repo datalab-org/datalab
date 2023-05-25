@@ -92,7 +92,7 @@ export default {
       // to save so that the store is updated before sending data to the server
       tinymce.editors.forEach((editor) => {
         // check if editor is a child of this datablock
-        if (editor.bodyElement.closest(`#${this.block_id}`)) {
+        if (editor.bodyElement.closest(`#${this.block_id}`) && editor.isDirty()) {
           editor.save();
         }
       });
