@@ -129,13 +129,19 @@ def get_samples_summary(
 
     _project = {
         "_id": 0,
-        "creators": 1,
+        "creators": {
+            "display_name": 1,
+            "contact_email": 1,
+        },
+        "collections": {
+            "collection_id": 1,
+            "title": 1,
+        },
         "item_id": 1,
         "name": 1,
         "chemform": 1,
         "characteristic_chemical_formula": 1,
         "type": 1,
-        "collections": 1,
     }
 
     # Cannot mix 0 and 1 keys in MongoDB project so must loop and check
@@ -160,8 +166,17 @@ def get_samples_summary(
 def creators_lookup() -> Dict:
     return {
         "from": "users",
-        "localField": "creator_ids",
-        "foreignField": "_id",
+        "let": {"creator_ids": "$creator_ids"},
+        "pipeline": [
+            {
+                "$match": {
+                    "$expr": {
+                        "$in": ["$_id", "$$creator_ids"],
+                    },
+                }
+            },
+            {"$project": {"_id": 0, "display_name": 1, "contact_email": 1}},
+        ],
         "as": "creators",
     }
 
@@ -189,7 +204,8 @@ def collections_lookup() -> Dict:
                 "$match": {
                     "$expr": {
                         "$in": ["$_id", "$$collection_ids"],
-                    }
+                    },
+                    "type": "collections",
                 }
             },
             {"$project": {"_id": 1, "collection_id": 1}},
