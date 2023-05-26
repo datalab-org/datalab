@@ -37,19 +37,17 @@
     "vue": "^3.2.4",
     "vue-router": "^4.0.0-0",
     "vue-select": "^4.0.0-beta.6",
-    "vue3-easy-data-table": "^1.5.34",
+    "vue3-easy-data-table": "^1.5.45",
     "vuex": "^4.0.0-0",
     "webcola": "^3.4.0"
   },
   "devDependencies": {
     "@testing-library/cypress": "^8.0.0",
-    "@testing-library/jest-dom": "^5.14.1",
     "@testing-library/vue": "^6.4.2",
     "@vue/cli-plugin-babel": "~4.5.0",
     "@vue/cli-plugin-e2e-cypress": "5.0.8",
     "@vue/cli-plugin-eslint": "~4.5.0",
     "@vue/cli-plugin-router": "~4.5.0",
-    "@vue/cli-plugin-unit-jest": "~4.5.0",
     "@vue/cli-plugin-vuex": "~4.5.0",
     "@vue/cli-service": "~4.5.0",
     "@vue/compiler-sfc": "^3.2.4",
@@ -62,10 +60,8 @@
     "eslint": "^6.7.2",
     "eslint-plugin-prettier": "^3.3.1",
     "eslint-plugin-vue": "^7.0.0",
-    "jest-fetch-mock": "^3.0.3",
     "prettier": "^2.2.1",
     "typescript": "~3.9.3",
-    "vue-jest": "^5.0.0-0",
     "web-worker": "^1.2.0"
   }
 }

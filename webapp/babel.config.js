@@ -1,4 +1,16 @@
-module.exports = {
-  presets: ["@vue/cli-plugin-babel/preset"],
-  plugins: ["@babel/plugin-proposal-export-namespace-from"],
+module.exports = function override(api) {
+  var env = api.cache(() => process.env.NODE_ENV);
+  var isProd = api.cache(() => env === "production");
+  let config = {};
+
+  if (isProd) {
+    config["plugins"] = [
+      "@babel/plugin-proposal-export-namespace-from",
+      "transform-remove-console",
+    ];
+  } else {
+    config["plugins"] = ["@babel/plugin-proposal-export-namespace-from"];
+  }
+  config["presets"] = ["@vue/cli-plugin-babel/preset"];
+  return config;
 };
