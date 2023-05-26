@@ -39,6 +39,17 @@ function fetch_post(url, body) {
   return fetch(url, requestOptions).then(handleResponse);
 }
 
+function fetch_patch(url, body) {
+  let headers = construct_headers({ "Content-Type": "application/json" });
+  const requestOptions = {
+    method: "PATCH",
+    headers: headers,
+    body: JSON.stringify(body),
+    credentials: "include",
+  };
+  return fetch(url, requestOptions).then(handleResponse);
+}
+
 // eslint-disable-next-line no-unused-vars
 function fetch_put(url, body) {
   let headers = construct_headers({ "Content-Type": "application/json" });
@@ -82,7 +93,15 @@ function handleResponse(response) {
 // exported functions
 // ****************************************************************************
 
-export function createNewItem(item_id, type, date, name, startingData = {}, copyFrom = null) {
+export function createNewItem(
+  item_id,
+  type,
+  date,
+  name,
+  startingCollection = null,
+  startingData = {},
+  copyFrom = null
+) {
   return fetch_post(`${API_URL}/new-sample/`, {
     copy_from_item_id: copyFrom,
     new_sample_data: {
@@ -90,6 +109,7 @@ export function createNewItem(item_id, type, date, name, startingData = {}, copy
       date: date,
       name: name,
       type: type,
+      collections: startingCollection,
       ...startingData,
     },
   }).then(function (response_json) {
@@ -119,6 +139,21 @@ export function createNewSamples(newSampleDatas, copyFromItemIds = null) {
   });
 }
 
+export function createNewCollection(collection_id, title, startingData = {}, copyFrom = null) {
+  return fetch_put(`${API_URL}/collections/`, {
+    copy_from_collection_id: copyFrom,
+    data: {
+      collection_id: collection_id,
+      title: title,
+      type: "collections",
+      ...startingData,
+    },
+  }).then(function (response_json) {
+    store.commit("prependToCollectionList", response_json.data);
+    return "success";
+  });
+}
+
 export function getSampleList() {
   return fetch_get(`${API_URL}/samples/`)
     .then(function (response_json) {
@@ -126,6 +161,30 @@ export function getSampleList() {
     })
     .catch((error) => {
       console.error("Error when fetching sample list");
+      console.error(error);
+      throw error;
+    });
+}
+
+export function getCollectionSampleList(collection_id) {
+  return fetch_get(`${API_URL}/collections/${collection_id}`)
+    .then(function (response_json) {
+      store.commit("setCollectionSampleList", collection_id, response_json.child_items);
+    })
+    .catch((error) => {
+      console.error("Error when fetching collection sample list");
+      console.error(error);
+      throw error;
+    });
+}
+
+export function getCollectionList() {
+  return fetch_get(`${API_URL}/collections/`)
+    .then(function (response_json) {
+      store.commit("setCollectionList", response_json.data);
+    })
+    .catch((error) => {
+      console.error("Error when fetching collection list");
       console.error(error);
       throw error;
     });
@@ -153,6 +212,16 @@ export function searchItems(query, nresults = 100, types = null) {
   console.log(params);
   return fetch_get(url).then(function (response_json) {
     return response_json.items;
+  });
+}
+
+export function searchCollections(query, nresults = 100) {
+  // construct a url with parameters:
+  var url = new URL(`${API_URL}/search-collections/`);
+  var params = { query: query, nresults: nresults };
+  Object.keys(params).forEach((key) => url.searchParams.append(key, params[key]));
+  return fetch_get(url).then(function (response_json) {
+    return response_json.data;
   });
 }
 
@@ -190,6 +259,24 @@ export function deleteSample(item_id) {
     .catch((error) => alert("Sample delete failed for " + item_id + ": " + error));
 }
 
+export function deleteCollection(collection_id, collection_summary) {
+  return fetch_delete(`${API_URL}/collections/${collection_id}`)
+    .then(function (response_json) {
+      console.log("delete successful" + response_json);
+      store.commit("deleteFromCollectionList", collection_summary);
+    })
+    .catch((error) => alert("Collection delete failed for " + collection_id + ": " + error));
+}
+
+export function deletSampleFromCollection(collection_id, collection_summary) {
+  return fetch_delete(`${API_URL}/collections/${collection_id}`)
+    .then(function (response_json) {
+      console.log("delete successful" + response_json);
+      store.commit("deleteFromCollectionList", collection_summary);
+    })
+    .catch((error) => alert("Collection delete failed for " + collection_id + ": " + error));
+}
+
 export async function getItemData(item_id) {
   return fetch_get(`${API_URL}/get-item-data/${item_id}`)
     .then((response_json) => {
@@ -205,6 +292,21 @@ export async function getItemData(item_id) {
       return "success";
     })
     .catch((error) => alert("Error getting sample data: " + error));
+}
+
+export async function getCollectionData(collection_id) {
+  return fetch_get(`${API_URL}/collections/${collection_id}`)
+    .then((response_json) => {
+      console.log("get collection", response_json);
+      store.commit("setCollectionData", {
+        collection_id: collection_id,
+        data: response_json.data,
+        child_items: response_json.child_items,
+      });
+
+      return "success";
+    })
+    .catch((error) => alert("Error getting collection data: " + error));
 }
 
 export async function updateBlockFromServer(item_id, block_id, block_data, saveToDatabase = true) {
@@ -255,6 +357,25 @@ export function addABlock(item_id, block_type, index = null) {
   return block_id_promise;
 }
 
+export function addACollectionBlock(collection_id, block_type, index = null) {
+  console.log("addACollectionBlock called with", collection_id, block_type);
+  var block_id_promise = fetch_post(`${API_URL}/add-collection-data-block/`, {
+    collection_id: collection_id,
+    block_type: block_type,
+    index: index,
+  })
+    .then(function (response_json) {
+      store.commit("addACollectionBlock", {
+        collection_id: collection_id,
+        new_block_obj: response_json.new_block_obj,
+        new_block_insert_index: response_json.new_block_insert_index,
+      });
+      return response_json.new_block_obj.block_id;
+    })
+    .catch((error) => console.error("Error in addACollectionBlock:", error));
+  return block_id_promise;
+}
+
 export function saveItem(item_id) {
   console.log("saveItem Called!");
   var item_data = store.state.all_item_data[item_id];
@@ -275,6 +396,21 @@ export function saveItem(item_id) {
         store.state.all_item_data[item_id].display_order.forEach((block_id) => {
           store.commit("setBlockSaved", { block_id: block_id, isSaved: true });
         });
+      }
+    })
+    .catch(function (error) {
+      alert("Save unsuccessful :(", error);
+    });
+}
+
+export function saveCollection(collection_id) {
+  var data = store.state.all_collection_data[collection_id];
+  fetch_patch(`${API_URL}/collections/${collection_id}`, { data: data })
+    .then(function (response_json) {
+      if (response_json.status === "success") {
+        // this should always be true if you've gotten this far...
+        console.log("Save successful!");
+        store.commit("setSavedCollection", { collection_id: collection_id, isSaved: true });
       }
     })
     .catch(function (error) {
