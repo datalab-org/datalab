@@ -10,7 +10,7 @@
       <template v-slot:body>
         <div class="form-row">
           <div class="form-group col-md-6">
-            <label for="sample-id" class="col-form-label">Sample ID:</label>
+            <label for="sample-id" class="col-form-label">ID:</label>
             <input v-model="item_id" type="text" class="form-control" id="sample-id" required />
             <div class="form-error" v-html="sampleIDValidationMessage"></div>
           </div>
@@ -37,8 +37,19 @@
         </div>
         <div class="form-row">
           <div class="form-group col-md-12">
-            <label for="name">Sample Name:</label>
+            <label for="name">Name:</label>
             <input id="name" type="text" v-model="name" class="form-control" />
+          </div>
+        </div>
+        <!-- All item types can be added to a collection, so this is always available -->
+        <div class="form-row">
+          <div class="col-md-12 form-group">
+            <label id="startInCollection">(Optional) Insert into collection:</label>
+            <CollectionSelect
+              aria-labelledby="startInCollection"
+              multiple
+              v-model="startInCollection"
+            />
           </div>
         </div>
         <div class="form-row">
@@ -57,7 +68,6 @@
             />
           </div>
         </div>
-
         <!-- dynamically insert addons to this modal for each item type. On mount, the component
         should emit a callback that can be called to get properly formatted
         data to provide to the server -->
@@ -75,6 +85,7 @@ import Modal from "@/components/Modal.vue";
 import ItemSelect from "@/components/ItemSelect.vue";
 import { createNewItem } from "@/server_fetch_utils.js";
 import { itemTypes } from "@/resources.js";
+import CollectionSelect from "@/components/CollectionSelect.vue";
 export default {
   name: "CreateSampleModal",
   data() {
@@ -84,8 +95,10 @@ export default {
       date: this.now(),
       name: "",
       startingDataCallback: null,
+      startInCollection: null,
       takenItemIds: [], // this holds ids that have been tried, whereas the computed takenSampleIds holds ids in the sample table
       selectedItemToCopy: null,
+      startingConstituents: [],
       agesAgo: new Date("1970-01-01").toISOString().slice(0, -8), // a datetime for the unix epoch start
       //this is all just to filter an object in javascript:
       availableTypes: Object.keys(itemTypes)
@@ -135,19 +148,27 @@ export default {
 
       // get any extra data by calling the optional callback from the type-specific addon component
       const extraData = this.startingDataCallback && this.startingDataCallback();
+      let startingCollection = [];
+      if (this.startInCollection != null) {
+        startingCollection = this.startInCollection.map((x) => ({
+          collection_id: x.collection_id,
+          immutable_id: x.immutable_id,
+          type: "collections",
+        }));
+      }
 
       await createNewItem(
         this.item_id,
         this.item_type,
         this.date,
         this.name,
+        startingCollection,
         extraData,
         this.selectedItemToCopy && this.selectedItemToCopy.item_id
       )
         .then(() => {
           this.$emit("update:modelValue", false); // close this modal
-          // Disable scroll now that items are added to the top by default
-          // document.getElementById(this.item_id).scrollIntoView({ behavior: "smooth" });
+          document.getElementById(this.item_id).scrollIntoView({ behavior: "smooth" });
           this.item_id = null;
           this.name = null;
           this.date = this.now(); // reset date to the new current time
@@ -189,6 +210,7 @@ export default {
   components: {
     Modal,
     ItemSelect,
+    CollectionSelect,
   },
 };
 </script>

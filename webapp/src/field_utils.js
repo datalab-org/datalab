@@ -1,4 +1,5 @@
 import store from "@/store/index.js";
+//import { debounce } from 'lodash';
 
 // Amazingly (and perhaps dangerously) the this context used here is the this from
 // the component which this function is called for.
@@ -30,12 +31,32 @@ export function createComputedSetterForItemField(item_field) {
       }
     },
     set(value) {
-      console.log("comp setter called with value:");
-      console.log(value);
+      //set: debounce(function(value) {
+      console.log(`comp setter called for '${item_field}' with value: '${value}'`);
       store.commit("updateItemData", {
         item_id: this.item_id,
         item_data: { [item_field]: value === "" ? null : value },
       });
+      //}, 500),
+    },
+  };
+}
+
+export function createComputedSetterForCollectionField(collection_field) {
+  return {
+    get() {
+      if (this.collection_id in store.state.all_collection_data) {
+        return store.state.all_collection_data[this.collection_id][collection_field];
+      }
+    },
+    set(value) {
+      //set: debounce( function(value) {
+      console.log(`collection comp setter called for '${collection_field}' with value: '${value}'`);
+      store.commit("updateCollectionData", {
+        collection_id: this.collection_id,
+        block_data: { [collection_field]: value },
+      });
+      //}, 500),
     },
   };
 }
