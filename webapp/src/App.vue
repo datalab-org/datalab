@@ -103,4 +103,13 @@ body {
   font-weight: normal;
   font-family: "Roboto Mono", monospace;
 }
+
+.badge {
+  border: 2px solid transparent;
+}
+
+.badge.clickable:hover {
+  cursor: pointer;
+  border: 2px solid #000000;
+}
 </style>
