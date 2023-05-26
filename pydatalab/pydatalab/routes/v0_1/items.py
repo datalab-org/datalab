@@ -561,10 +561,10 @@ def get_item_data(item_id, load_blocks: bool = False):
             jsonify(
                 {
                     "status": "error",
-                    "message": f"Authorization required to attempt to get sample with {item_id=} from the database.",
+                    "message": f"No matching item {item_id=} with current authorization.",
                 }
             ),
-            401,
+            404,
         )
 
     # determine the item type and validate according to the appropriate schema

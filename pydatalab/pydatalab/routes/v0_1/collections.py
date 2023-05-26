@@ -19,15 +19,6 @@ collection = Blueprint("collections", __name__)
 @collection.route("/collections/")
 def get_collections():
 
-    if not current_user.is_authenticated and not CONFIG.TESTING:
-        return (
-            jsonify(
-                status="error",
-                message="Authorization required to list collections.",
-            ),
-            401,
-        )
-
     collections = flask_mongo.db.collections.aggregate(
         [
             {"$match": get_default_permissions(user_only=True)},
@@ -43,7 +34,7 @@ def get_collections():
 @collection.route("/collections/<collection_id>", methods=["GET"])
 def get_collection(collection_id):
 
-    collection = flask_mongo.db.collections.aggregate(
+    cursor = flask_mongo.db.collections.aggregate(
         [
             {
                 "$match": {
@@ -56,7 +47,23 @@ def get_collection(collection_id):
         ]
     )
 
-    collection = Collection(**list(collection)[0])
+    try:
+        doc = list(cursor)[0]
+    except IndexError:
+        doc = None
+
+    if not doc or not current_user.is_authenticated:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": f"No matching collection {collection_id=} with current authorization.",
+                }
+            ),
+            404,
+        )
+
+    collection = Collection(**doc)
 
     samples = list(
         get_samples_summary(
@@ -101,7 +108,7 @@ def create_collection():
         raise NotImplementedError("Copying collections is not yet implemented.")
 
     if CONFIG.TESTING:
-        data["creator_ids"] = []
+        data["creator_ids"] = [24 * "0"]
         data["creators"] = [
             {"display_name": "Public testing user", "contact_email": "datalab@odbx.science"}
         ]
@@ -142,7 +149,7 @@ def create_collection():
         )
 
     result: InsertOneResult = flask_mongo.db.collections.insert_one(
-        data_model.dict(exclude_unset=True)
+        data_model.dict(exclude={"creators"})
     )
     if not result.acknowledged:
         return (
@@ -269,15 +276,6 @@ def save_collection(collection_id):
 
 @collection.route("/collections/<collection_id>", methods=["DELETE"])
 def delete_collection(collection_id: str):
-
-    if not current_user.is_authenticated and not CONFIG.TESTING:
-        return (
-            jsonify(
-                status="error",
-                message="Authorization required to delete collections.",
-            ),
-            401,
-        )
 
     result = flask_mongo.db.collections.delete_one(
         {"collection_id": collection_id, **get_default_permissions(user_only=True)}
