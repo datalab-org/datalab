@@ -6,7 +6,7 @@
     :init="{
       inline: true,
       menubar: false,
-      placeholder: 'Comment',
+      placeholder: 'Add a description',
       toolbar_location: 'bottom',
       plugins: 'hr image link lists charmap table',
       table_default_styles: {
@@ -51,7 +51,7 @@ export default {
   data: function () {
     return { content: this.modelValue };
   },
-  props: ["modelValue"],
+  props: ["modelValue", "placeholder"],
   emits: ["update:modelValue"],
   watch: {
     modelValue() {

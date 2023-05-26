@@ -1,21 +1,32 @@
 <template>
   <span
-    class="badge"
+    class="badge badge-light mr-2"
     :class="{ clickable: enableClick || enableModifiedClick }"
     :style="{ backgroundColor: badgeColor }"
     @click.exact="enableClick ? openEditPageInNewTab() : null"
     @click.meta.stop="enableModifiedClick ? openEditPageInNewTab() : null"
     @click.ctrl.stop="enableModifiedClick ? openEditPageInNewTab() : null"
   >
-    {{ shortenedName }}
+    {{ collection_id }}
   </span>
+  {{ shortenedName }}
 </template>
 
 <script>
+import { itemTypes } from "@/resources.js";
+
 export default {
+  data() {
+    return {
+      itemType: "collections",
+    };
+  },
   props: {
-    refcode: String,
-    item_id: String,
+    collection_id: String,
+    title: {
+      type: String,
+      default: "",
+    },
     enableClick: {
       type: Boolean,
       default: false,
@@ -31,23 +42,23 @@ export default {
   },
   computed: {
     badgeColor() {
-      return "LightGrey";
+      return itemTypes[this.itemType]?.lightColor || "LightGrey";
     },
     shortenedName() {
-      if (this.refcode.includes(":")) {
-        return this.refcode.split(":")[1];
+      if (this.maxLength && this.maxLength < this.name.length) {
+        return this.title.substring(0, this.maxLength) + "...";
       } else {
-        return this.refcode;
+        return this.title;
       }
     },
   },
   methods: {
     openEditPageInNewTab() {
-      this.$emit("itemIdClicked");
-      window.open(`/edit/${this.item_id}`, "_blank");
+      this.$emit("collectionIdClicked");
+      window.open(`/collections/${this.collection_id}`, "_blank");
     },
   },
-  emits: ["itemIdClicked"],
+  emits: ["collectionIdClicked"],
 };
 </script>
 
