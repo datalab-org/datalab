@@ -8,10 +8,15 @@ export default createStore({
     all_block_data: {},
     all_item_children: {},
     all_item_parents: {},
+    all_collection_data: {},
+    all_collection_children: {},
+    all_collection_parents: {},
     sample_list: [],
     starting_material_list: [],
-    saved_status_blocks: {},
+    collection_list: [],
     saved_status_items: {},
+    saved_status_blocks: {},
+    saved_status_collections: {},
     updating: {},
     updatingDelayed: {},
     remoteDirectoryTree: {},
@@ -27,8 +32,12 @@ export default createStore({
       state.sample_list = sampleSummaries;
     },
     setStartingMaterialList(state, startingMaterialSummaries) {
-      // startingMaterialSummaries is an array of json objects summarizing the available samples
+      // startingMaterialSummaries is an array of json objects summarizing the available starting materials
       state.starting_material_list = startingMaterialSummaries;
+    },
+    setCollectionList(state, collectionSummaries) {
+      // collectionSummaries is an array of json objects summarizing the available collections
+      state.collection_list = collectionSummaries;
     },
     appendToSampleList(state, sampleSummary) {
       // sampleSummary is a json object summarizing the new sample
@@ -38,6 +47,10 @@ export default createStore({
       // sampleSummary is a json object summarizing the new sample
       state.sample_list.unshift(sampleSummary);
     },
+    prependToCollectionList(state, collectionSummary) {
+      // collectionSummary is a json object summarizing the new collection
+      state.collection_list.unshift(collectionSummary);
+    },
     deleteFromSampleList(state, item_id) {
       const index = state.sample_list.map((e) => e.item_id).indexOf(item_id);
       if (index > -1) {
@@ -46,14 +59,31 @@ export default createStore({
         console.log(`deleteFromSampleList couldn't find the item with id ${item_id}`);
       }
     },
+    deleteFromCollectionList(state, collection_summary) {
+      const index = state.collection_list.indexOf(collection_summary);
+      if (index > -1) {
+        state.collection_list.splice(index, 1);
+      } else {
+        console.log("deleteFromCollectionList couldn't find the object");
+      }
+    },
     createItemData(state, payload) {
       // payload should have the following fields:
-      // item_id, item_data
+      // item_id, item_data, child_items, parent_items
       // Object.assign(state.all_sample_data[payload.item_data], payload.item_data)
       state.all_item_data[payload.item_id] = payload.item_data;
       state.all_item_children[payload.item_id] = payload.child_items;
       state.all_item_parents[payload.item_id] = payload.parent_items;
       state.saved_status_items[payload.item_id] = true;
+    },
+    createCollectionData(state, payload) {
+      // payload should have the following fields:
+      // collection_id, data, child_items
+      // Object.assign(state.all_sample_data[payload.item_data], payload.item_data)
+      state.all_collection_data[payload.collection_id] = payload.data;
+      state.all_collection_children[payload.collection_id] = payload.child_items;
+      state.all_collection_parents[payload.collection_id] = [];
+      state.saved_status_collections[payload.collection_id] = true;
     },
     updateFiles(state, files_data) {
       // payload should be an object with file ids as key and file data as values
@@ -117,6 +147,12 @@ export default createStore({
       Object.assign(state.all_item_data[payload.item_id], payload.block_data);
       state.saved_status_items[payload.item_id] = false;
     },
+    updateCollectionData(state, payload) {
+      //requires the following fields in payload:
+      // item_id, block_data
+      Object.assign(state.all_collection_data[payload.collection_id], payload.block_data);
+      state.saved_status_collections[payload.collection_id] = false;
+    },
     setItemSaved(state, payload) {
       // requires the following fields in payload:
       // item_id, isSaved
@@ -126,6 +162,11 @@ export default createStore({
       // requires the following fields in payload:
       // block_id, isSaved
       state.saved_status_blocks[payload.block_id] = payload.isSaved;
+    },
+    setSavedCollection(state, payload) {
+      // requires the following fields in payload:
+      // item_id, isSaved
+      state.saved_status_collections[payload.collection_id] = payload.isSaved;
     },
     removeBlockFromDisplay(state, payload) {
       // requires the following fields in payload:
