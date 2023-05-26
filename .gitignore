@@ -3,6 +3,11 @@ files/
 uploads/
 server/
 ssh_config
+logs/
+
+# App testing files
+webapp/cypress/screenshots
+webapp/cypress/videos
 
 #starting material files
 greyGroup_chemInventory*
