@@ -1,5 +1,5 @@
 <template>
-  <div v-if="item_id">
+  <span v-if="item_id">
     <span
       class="badge badge-light mr-2"
       :class="{ clickable: enableClick || enableModifiedClick }"
@@ -12,11 +12,11 @@
     </span>
     {{ shortenedName }}
     <span v-if="chemform && chemform != ' '"> [ <ChemicalFormula :formula="chemform" /> ] </span>
-  </div>
-  <div v-else>
+  </span>
+  <span v-else>
     <font-awesome-icon v-if="selecting" :icon="['far', 'plus-square']" />
     {{ shortenedName }}
-  </div>
+  </span>
 </template>
 
 <script>
