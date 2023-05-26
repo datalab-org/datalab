@@ -447,8 +447,16 @@ def delete_sample():
 delete_sample.methods = ("POST",)  # type: ignore
 
 
-def get_item_data(item_id, load_blocks=False):
-    # load_blocks = request.args.get("load_blocks") or load_blocks
+def get_item_data(item_id, load_blocks: bool = False):
+    """Generates a JSON response for the item with the given `item_id`,
+    additionally resolving relationships to files and other items.
+
+    Parameters:
+       load_blocks: Whether to regenerate any data blocks associated with this
+           sample (i.e., create the Python object corresponding to the block and
+           call its render function).
+
+    """
 
     # retrieve the entry from the database:
     cursor = flask_mongo.db.items.aggregate(
