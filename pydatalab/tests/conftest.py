@@ -8,7 +8,7 @@ import pytest
 
 import pydatalab.mongo
 from pydatalab.main import create_app
-from pydatalab.models import Cell, Sample, StartingMaterial
+from pydatalab.models import Cell, Collection, Sample, StartingMaterial
 
 TEST_DATABASE_NAME = "datalab-testing"
 
@@ -114,7 +114,7 @@ def fixture_default_sample():
 
 
 @pytest.fixture(scope="module", name="default_cell")
-def fixture_default_cell(default_sample):
+def fixture_default_cell():
     return Cell(
         **{
             "item_id": "test_cell",
@@ -142,6 +142,18 @@ def fixture_default_cell(default_sample):
             "electrolyte": [{"item": {"name": "inlined reference"}, "quantity": 100, "unit": "ml"}],
             "cell_format": "swagelok",
             "type": "cells",
+        }
+    )
+
+
+@pytest.fixture(scope="module", name="default_collection")
+def fixture_default_collection():
+    return Collection(
+        **{
+            "collection_id": "test_collection",
+            "title": "My Test Collection",
+            "date": "1970-02-02",
+            "type": "collections",
         }
     )
 
