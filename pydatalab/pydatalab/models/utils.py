@@ -33,6 +33,7 @@ class KnownType(str, Enum):
     BLOCKS = "blocks"
     FILES = "files"
     PEOPLE = "people"
+    COLLECTIONS = "collections"
 
 
 IDENTIFIER_REGEX = r"^(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$"
