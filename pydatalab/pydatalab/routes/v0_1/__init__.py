@@ -3,6 +3,7 @@ from typing import Callable, Dict
 from ._version import __api_version__
 from .auth import ENDPOINTS as auth_endpoints
 from .blocks import ENDPOINTS as blocks_endpoints
+from .collections import collection
 from .files import ENDPOINTS as files_endpoints
 from .graphs import ENDPOINTS as graphs_endpoints
 from .healthcheck import ENDPOINTS as healthcheck_endpoints
@@ -21,4 +22,6 @@ ENDPOINTS: Dict[str, Callable] = {
     **info_endpoints,
 }
 
-__all__ = ("ENDPOINTS", "__api_version__")
+BLUEPRINTS = [collection]
+
+__all__ = ("ENDPOINTS", "BLUEPRINTS", "__api_version__")
