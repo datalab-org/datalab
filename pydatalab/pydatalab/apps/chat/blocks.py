@@ -37,9 +37,10 @@ class ChatBlock(DataBlock):
     blocktype = "chat"
     description = "LLM Chat Block with contextual data (powered by GPT-3.5-turbo)"
     accepted_file_extensions: Sequence[str] = []
+    supports_collections = True
     defaults = {
         "system_prompt": """You are a virtual assistant that helps materials chemists manage their experimental data and plan experiments. You are deployed in the group of Professor Clare Grey in the Department of Chemistry at the University of Cambridge.
-You are embedded within the program datalab, where you have access to JSON describing an ‘item’ with connections to other items. These items may include experimental samples, starting materials, and devices (e.g. battery cells made out of experimental samples and starting materials).
+You are embedded within the program datalab, where you have access to JSON describing an ‘item’, or a collection of items, with connections to other items. These items may include experimental samples, starting materials, and devices (e.g. battery cells made out of experimental samples and starting materials).
 Answer questions in markdown. Specify the language for all markdown code blocks. You can make diagrams by writing a mermaid code block or an svg code block.
 Be as concise as possible. Start the conversion with a friendly greeting introducing yourself.
         """,
@@ -58,10 +59,84 @@ Be as concise as possible. Start the conversion with a friendly greeting introdu
     def plot_functions(self):
         return (self.render,)
 
-    def prepare_item_json_for_chat(self):
+    def render(self):
+        if not self.data.get("messages"):
+
+            if (item_id := self.data.get("item_id")) is not None:
+                info_json = self._prepare_item_json_for_chat(item_id)
+            elif (collection_id := self.data.get("collection_id")) is not None:
+                info_json = self._prepare_collection_json_for_chat(collection_id)
+            else:
+                raise RuntimeError("No item or collection id provided")
+
+            self.data["messages"] = [
+                {
+                    "role": "system",
+                    "content": self.defaults["system_prompt"],
+                },
+                {
+                    "role": "user",
+                    "content": f"""Here is the JSON data for the current item(s): {info_json}""",
+                },
+            ]
+
+        if self.data.get("prompt"):
+            self.data["messages"].append(
+                {
+                    "role": "user",
+                    "content": self.data["prompt"],
+                }
+            )
+            self.data["prompt"] = None
+
+        token_count = num_tokens_from_messages(self.data["messages"])
+        self.data["token_count"] = token_count
+
+        if token_count >= MAX_CONTEXT_SIZE:
+            self.data[
+                "error_message"
+            ] = f"""This conversation has reached its maximum context size and the chatbot won't be able to respond further ({token_count} tokens, max: {MAX_CONTEXT_SIZE}). Please make a new chat block to start fresh."""
+            return
+
+        try:
+            if self.data["messages"][-1].role not in ("user", "system"):
+                return
+        except AttributeError:
+            if self.data["messages"][-1]["role"] not in ("user", "system"):
+                return
+
+        try:
+            LOGGER.debug(
+                f"submitting request to OpenAI API for completion with last message role \"{self.data['messages'][-1]['role']}\" (message = {self.data['messages'][-1:]})"
+            )
+            responses = openai.ChatCompletion.create(
+                model=MODEL,
+                messages=self.data["messages"],
+                temperature=self.data["temperature"],
+                max_tokens=min(
+                    1024, MAX_CONTEXT_SIZE - token_count - 1
+                ),  # if less than 1024 tokens are left in the token, then indicate this
+            )
+            self.data["error_message"] = None
+        except openai.OpenAIError as exc:
+            LOGGER.debug("Received an error from OpenAI API: %s", exc)
+            self.data["error_message"] = f"Received an error from the OpenAi API: {exc}."
+            return
+
+        try:
+            self.data["messages"].append(responses["choices"][0].message)
+        except AttributeError:
+            self.data["messages"].append(responses["choices"][0]["message"])
+
+        token_count = num_tokens_from_messages(self.data["messages"])
+        self.data["token_count"] = token_count
+
+        return
+
+    def _prepare_item_json_for_chat(self, item_id: str):
         from pydatalab.routes.v0_1.items import get_item_data
 
-        item_info = get_item_data(self.data["item_id"], load_blocks=False).json
+        item_info = get_item_data(item_id, load_blocks=False).json
 
         model = ITEM_MODELS[item_info["item_data"]["type"]](**item_info["item_data"])
         if model.blocks_obj:
@@ -70,7 +145,6 @@ Be as concise as possible. Start the conversion with a friendly greeting introdu
             }
         item_info = model.dict(exclude_none=True, exclude_unset=True)
         item_info["type"] = model.type
-        # LOGGER.debug(item_info)
 
         # strip irrelevant or large fields
         item_filenames = {
@@ -155,72 +229,16 @@ Be as concise as possible. Start the conversion with a friendly greeting introdu
 
         return item_info_json
 
-    def render(self):
-        if not self.data.get("messages"):
-            item_info_json = self.prepare_item_json_for_chat()
-            self.data["messages"] = [
-                {
-                    "role": "system",
-                    "content": self.defaults["system_prompt"],
-                },
-                {
-                    "role": "user",
-                    "content": f"""Here is the JSON data for the current item: {item_info_json}""",
-                },
-            ]
-        # for debugging:
-        # with open("test_item_info.json", "w") as f:
-        #     f.write(self.data["messages"][-1]["content"])
+    def _prepare_collection_json_for_chat(self, collection_id: str):
+        from pydatalab.routes.v0_1.collections import get_collection
 
-        if self.data.get("prompt"):
-            self.data["messages"].append(
-                {
-                    "role": "user",
-                    "content": self.data["prompt"],
-                }
-            )
-            self.data["prompt"] = None
+        collection_data = get_collection(collection_id).json
+        if collection_data["status"] != "success":
+            raise RuntimeError(f"Attempt to get collection data for {collection_id} failed.")
 
-        token_count = num_tokens_from_messages(self.data["messages"])
-        self.data["token_count"] = token_count
-
-        if token_count >= MAX_CONTEXT_SIZE:
-            self.data[
-                "error_message"
-            ] = f"""This conversation has reached its maximum context size and the chatbot won't be able to respond further ({token_count} tokens, max: {MAX_CONTEXT_SIZE}). Please make a new chat block to start fresh."""
-            return
-
-        try:
-            if self.data["messages"][-1].role not in ("user", "system"):
-                return
-        except AttributeError:
-            if self.data["messages"][-1]["role"] not in ("user", "system"):
-                return
-
-        try:
-            LOGGER.debug(
-                f"submitting request to OpenAI API for completion with last message role \"{self.data['messages'][-1]['role']}\" (message = {self.data['messages'][-1:]})"
-            )
-            responses = openai.ChatCompletion.create(
-                model=MODEL,
-                messages=self.data["messages"],
-                temperature=self.data["temperature"],
-                max_tokens=min(
-                    1024, MAX_CONTEXT_SIZE - token_count - 1
-                ),  # if less than 1024 tokens are left in the token, then indicate this
-            )
-            self.data["error_message"] = None
-        except openai.OpenAIError as exc:
-            LOGGER.debug("Received an error from OpenAI API: %s", exc)
-            self.data["error_message"] = f"Received an error from the OpenAi API: {exc}."
-            return
-
-        try:
-            self.data["messages"].append(responses["choices"][0].message)
-        except AttributeError:
-            self.data["messages"].append(responses["choices"][0]["message"])
-
-        token_count = num_tokens_from_messages(self.data["messages"])
-        self.data["token_count"] = token_count
-
-        return
+        children = collection_data["child_items"]
+        return (
+            "["
+            + ",".join([self._prepare_item_json_for_chat(child["item_id"]) for child in children])
+            + "]"
+        )
