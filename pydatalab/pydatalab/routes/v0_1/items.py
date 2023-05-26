@@ -1,11 +1,12 @@
 import datetime
 import json
-from typing import Callable, Dict, List, Set, Union
+from typing import Callable, Dict, List, Optional, Set, Union
 
 from bson import ObjectId
 from flask import jsonify, request
 from flask_login import current_user
 from pydantic import ValidationError
+from pymongo.command_cursor import CommandCursor
 
 from pydatalab.blocks import BLOCK_TYPES
 from pydatalab.config import CONFIG
@@ -115,47 +116,113 @@ def get_starting_materials():
 get_starting_materials.methods = ("GET",)  # type: ignore
 
 
+def get_samples_summary(
+    match: Optional[Dict] = None, project: Optional[Dict] = None
+) -> CommandCursor:
+    """Return a summary of item entries that match some criteria.
+
+    Parameters:
+        match: A MongoDB aggregation match query to filter the results.
+        project: A MongoDB aggregation project query to filter the results, relative
+            to the default included below.
+
+    """
+    if not match:
+        match = {}
+    match.update(get_default_permissions(user_only=False))
+    match["type"] = {"$in": ["samples", "cells"]}
+
+    _project = {
+        "_id": 0,
+        "creators": {
+            "display_name": 1,
+            "contact_email": 1,
+        },
+        "collections": {
+            "collection_id": 1,
+            "title": 1,
+        },
+        "item_id": 1,
+        "name": 1,
+        "chemform": 1,
+        "characteristic_chemical_formula": 1,
+        "type": 1,
+        "date": 1,
+        "refcode": 1,
+    }
+
+    # Cannot mix 0 and 1 keys in MongoDB project so must loop and check
+    if project:
+        for key in project:
+            if project[key] == 0:
+                _project.pop(key, None)
+            else:
+                _project[key] = 1
+
+    return flask_mongo.db.items.aggregate(
+        [
+            {"$match": match},
+            {"$lookup": creators_lookup()},
+            {"$lookup": collections_lookup()},
+            {"$project": _project},
+            {"$sort": {"_id": -1}},
+        ]
+    )
+
+
+def creators_lookup() -> Dict:
+    return {
+        "from": "users",
+        "let": {"creator_ids": "$creator_ids"},
+        "pipeline": [
+            {
+                "$match": {
+                    "$expr": {
+                        "$in": ["$_id", "$$creator_ids"],
+                    },
+                }
+            },
+            {"$project": {"_id": 0, "display_name": 1, "contact_email": 1}},
+        ],
+        "as": "creators",
+    }
+
+
+def files_lookup() -> Dict:
+    return {
+        "from": "files",
+        "localField": "file_ObjectIds",
+        "foreignField": "_id",
+        "as": "files",
+    }
+
+
+def collections_lookup() -> Dict:
+    """Looks inside the relationships of the item, searches for IDs in the collections
+    table and then projects only the collection ID and name for the response.
+
+    """
+
+    return {
+        "from": "collections",
+        "let": {"collection_ids": "$relationships.immutable_id"},
+        "pipeline": [
+            {
+                "$match": {
+                    "$expr": {
+                        "$in": ["$_id", "$$collection_ids"],
+                    },
+                    "type": "collections",
+                }
+            },
+            {"$project": {"_id": 1, "collection_id": 1}},
+        ],
+        "as": "collections",
+    }
+
+
 def get_samples():
-    items = [
-        doc
-        for doc in flask_mongo.db.items.aggregate(
-            [
-                {
-                    "$match": {
-                        "type": {"$in": ["samples", "cells"]},
-                        **get_default_permissions(user_only=False),
-                    }
-                },
-                {
-                    "$lookup": {
-                        "from": "users",
-                        "localField": "creator_ids",
-                        "foreignField": "_id",
-                        "as": "creators",
-                    }
-                },
-                {"$sort": {"date": -1}},
-                {
-                    "$project": {
-                        "_id": 0,
-                        "item_id": 1,
-                        "refcode": 1,
-                        "type": 1,
-                        "sample_id": 1,
-                        "nblocks": {"$size": "$display_order"},
-                        "creators": {
-                            "display_name": 1,
-                            "contact_email": 1,
-                        },
-                        "date": 1,
-                        "chemform": 1,
-                        "name": 1,
-                    }
-                },
-            ]
-        )
-    ]
-    return jsonify({"status": "success", "samples": items})
+    return jsonify({"status": "success", "samples": list(get_samples_summary())})
 
 
 get_samples.methods = ("GET",)  # type: ignore
@@ -208,7 +275,8 @@ def search_items():
 search_items.methods = ("GET",)  # type: ignore
 
 
-def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[dict, int]:
+def _create_sample(sample_dict: dict, copy_from_item_id: Optional[str] = None) -> tuple[dict, int]:
+
     if not current_user.is_authenticated and not CONFIG.TESTING:
         return (
             dict(
@@ -289,7 +357,9 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
     new_sample = {k: sample_dict[k] for k in schema["properties"] if k in sample_dict}
 
     if CONFIG.TESTING:
-        new_sample["creator_ids"] = []
+        # Set fake ID to ObjectId("000000000000000000000000") so a dummy user can be created
+        # locally for testing creator UI elements
+        new_sample["creator_ids"] = [24 * "0"]
         new_sample["creators"] = [
             {"display_name": "Public testing user", "contact_email": "datalab@odbx.science"}
         ]
@@ -324,14 +394,18 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
         return (
             dict(
                 status="error",
-                message=f"Unable to create new item with ID {new_sample['item_id']}.",
+                message=f"Unable to create new item with ID {new_sample['item_id']}: {str(error)}.",
                 item_id=new_sample["item_id"],
                 output=str(error),
             ),
             400,
         )
 
-    result = flask_mongo.db.items.insert_one(data_model.dict())
+    # Do not store the fields `collections` or `creators` in the dataabse as these should be populated
+    # via joins for a specific query.
+    # TODO: encode this at the model level, via custom schema properties or hard-coded `.store()` methods
+    # the `Entry` model.
+    result = flask_mongo.db.items.insert_one(data_model.dict(exclude={"creators", "collections"}))
     if not result.acknowledged:
         return (
             dict(
@@ -343,7 +417,7 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
             400,
         )
 
-    return (
+    data = (
         {
             "status": "success",
             "item_id": data_model.item_id,
@@ -354,14 +428,23 @@ def _create_sample(sample_dict: dict, copy_from_item_id: str = None) -> tuple[di
                 "date": data_model.date,
                 "name": data_model.name,
                 "creator_ids": data_model.creator_ids,
+                # TODO: This workaround for creators & collections is still gross, need to figure this out properly
                 "creators": [json.loads(c.json(exclude_unset=True)) for c in data_model.creators]
                 if data_model.creators
+                else [],
+                "collections": [
+                    json.loads(c.json(exclude_unset=True, exclude_none=True))
+                    for c in data_model.collections
+                ]
+                if data_model.collections
                 else [],
                 "type": data_model.type,
             },
         },
         201,  # 201: Created
     )
+
+    return data
 
 
 def create_sample():
@@ -462,22 +545,9 @@ def get_item_data(item_id, load_blocks: bool = False):
     cursor = flask_mongo.db.items.aggregate(
         [
             {"$match": {"item_id": item_id, **get_default_permissions(user_only=False)}},
-            {
-                "$lookup": {
-                    "from": "users",
-                    "localField": "creator_ids",
-                    "foreignField": "_id",
-                    "as": "creators",
-                },
-            },
-            {
-                "$lookup": {
-                    "from": "files",
-                    "localField": "file_ObjectIds",
-                    "foreignField": "_id",
-                    "as": "files",
-                }
-            },
+            {"$lookup": creators_lookup()},
+            {"$lookup": collections_lookup()},
+            {"$lookup": files_lookup()},
         ],
     )
 
@@ -486,11 +556,7 @@ def get_item_data(item_id, load_blocks: bool = False):
     except IndexError:
         doc = None
 
-    if not doc or (
-        not CONFIG.TESTING
-        and not current_user.is_authenticated
-        and doc["type"] == "starting_materials"
-    ):
+    if not doc or (not current_user.is_authenticated and doc["type"] == "starting_materials"):
         return (
             jsonify(
                 {
@@ -520,6 +586,7 @@ def get_item_data(item_id, load_blocks: bool = False):
             "$or": [
                 {"relationships.item_id": doc.item_id},
                 {"relationships.refcode": doc.refcode},
+                {"relationships.immutable_id": doc.immutable_id},
             ]
         },
         projection={
@@ -542,13 +609,19 @@ def get_item_data(item_id, load_blocks: bool = False):
         for k in d["relationships"]:
             if k["relation"] not in incoming_relationships:
                 incoming_relationships[k["relation"]] = set()
-            incoming_relationships[k["relation"]].add(d["item_id"] or d["refcode"])
+            incoming_relationships[k["relation"]].add(
+                d["item_id"] or d["refcode"] or d["immutable_id"]
+            )
 
     # loop over and aggregate all 'inner' relationships presented by this item
     inlined_relationships: Dict[RelationshipType, Set[str]] = {}
     if doc.relationships is not None:
         inlined_relationships = {
-            relation: {d.item_id or d.refcode for d in doc.relationships if d.relation == relation}
+            relation: {
+                d.item_id or d.refcode or d.immutable_id
+                for d in doc.relationships
+                if d.relation == relation
+            }
             for relation in RelationshipType
         }
 
@@ -561,11 +634,11 @@ def get_item_data(item_id, load_blocks: bool = False):
     )
 
     # Must be exported to JSON first to apply the custom pydantic JSON encoders
-    return_dict = json.loads(doc.json())
+    return_dict = json.loads(doc.json(exclude_unset=True))
 
     # create the files_data dictionary keyed by file ObjectId
     files_data: Dict[ObjectId, Dict] = dict(
-        [(f["immutable_id"], f) for f in return_dict.get("files", [])]
+        [(f["immutable_id"], f) for f in return_dict.get("files") or []]
     )
 
     return jsonify(
@@ -590,7 +663,7 @@ def save_item():
     updated_data = request_json["data"]
 
     # These keys should not be updated here and cannot be modified by the user through this endpoint
-    for k in ("_id", "file_ObjectIds", "creators", "creator_ids"):
+    for k in ("_id", "file_ObjectIds", "creators", "creator_ids", "item_id"):
         if k in updated_data:
             del updated_data[k]
 
@@ -630,6 +703,10 @@ def save_item():
             ),
             400,
         )
+
+    # remove collections and creators and any other reference fields
+    item.pop("collections")
+    item.pop("creators")
 
     result = flask_mongo.db.items.update_one(
         {"item_id": item_id},
