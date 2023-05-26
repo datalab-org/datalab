@@ -2,19 +2,19 @@
   <Navbar />
 
   <div id="tableContainer" class="container">
-    <FancySampleTable />
+    <FancyCollectionTable />
   </div>
 </template>
 
 <script>
 import Navbar from "@/components/Navbar";
-import FancySampleTable from "@/components/FancySampleTable";
+import FancyCollectionTable from "@/components/FancyCollectionTable";
 
 export default {
-  name: "Samples",
+  name: "Collections",
   components: {
     Navbar,
-    FancySampleTable,
+    FancyCollectionTable,
   },
 };
 </script>

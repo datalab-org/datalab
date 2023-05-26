@@ -35,7 +35,9 @@
         </td>
         <td aligh="center">{{ itemTypes[sample.type].display }}</td>
         <td align="left">{{ sample.name }}</td>
-        <td><ChemicalFormula :formula="sample.chemform" /></td>
+        <td>
+          <ChemicalFormula :formula="sample.chemform || sample.characteristic_chemical_formula" />
+        </td>
         <td class="text-center">{{ $filters.IsoDatetimeToDate(sample.date) }}</td>
         <td><CollectionList :collections="sample.collections" /></td>
         <td align="center"><Creators :creators="sample.creators" /></td>
