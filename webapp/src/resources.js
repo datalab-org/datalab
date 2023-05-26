@@ -11,9 +11,9 @@ import MassSpecBlock from "@/components/datablocks/MassSpecBlock";
 import SampleInformation from "@/components/SampleInformation";
 import StartingMaterialInformation from "@/components/StartingMaterialInformation";
 import CellInformation from "@/components/CellInformation";
-
 import SampleCreateModalAddon from "@/components/itemCreateModalAddons/SampleCreateModalAddon";
 import CellCreateModalAddon from "@/components/itemCreateModalAddons/CellCreateModalAddon";
+import CollectionInformation from "@/components/CollectionInformation";
 
 // Look for values set in .env file. Use defaults if `null` is not explicitly handled elsewhere in the code.
 export const API_URL =
@@ -67,6 +67,14 @@ export const itemTypes = {
     labelColor: "#946807",
     isCreateable: true,
     display: "cell",
+  },
+  collections: {
+    itemInformationComponent: CollectionInformation,
+    navbarColor: "#563D7c",
+    navbarName: "Collection",
+    lightColor: "#B38FEA",
+    labelColor: "#845dbf",
+    display: "collection",
   },
 };
 
