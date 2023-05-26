@@ -3,6 +3,7 @@ from typing import Dict, Type
 from pydantic import BaseModel
 
 from pydatalab.models.cells import Cell
+from pydatalab.models.collections import Collection
 from pydatalab.models.files import File
 from pydatalab.models.people import Person
 from pydatalab.models.samples import Sample
@@ -14,4 +15,4 @@ ITEM_MODELS: Dict[str, Type[BaseModel]] = {
     "cells": Cell,
 }
 
-__all__ = ("File", "Sample", "StartingMaterial", "Person", "ITEM_MODELS")
+__all__ = ("File", "Sample", "StartingMaterial", "Person", "Cell", "Collection", "ITEM_MODELS")

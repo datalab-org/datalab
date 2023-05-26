@@ -1,11 +1,16 @@
 import abc
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 from pydantic import Field, validator
 
 from pydatalab.models.entries import Entry
 from pydatalab.models.files import File
-from pydatalab.models.people import Person
+from pydatalab.models.traits import (
+    HasBlocks,
+    HasOwner,
+    HasRevisionControl,
+    IsCollectable,
+)
 from pydatalab.models.utils import (
     HumanReadableIdentifier,
     IsoformatDateTime,
@@ -14,7 +19,7 @@ from pydatalab.models.utils import (
 )
 
 
-class Item(Entry, abc.ABC):
+class Item(Entry, HasOwner, HasRevisionControl, IsCollectable, HasBlocks, abc.ABC):
     """The generic model for data types that will be exposed with their own named endpoints."""
 
     refcode: Refcode = None  # type: ignore
@@ -25,12 +30,6 @@ class Item(Entry, abc.ABC):
     item_id: HumanReadableIdentifier
     """A locally unique, human-readable identifier for the entry. This ID is mutable."""
 
-    creator_ids: List[PyObjectId] = Field([])
-    """The database IDs of the user(s) who created the item."""
-
-    creators: Optional[List[Person]] = Field(None)
-    """Inlined info for the people associated with this item."""
-
     description: Optional[str]
     """A description of the item, either in plain-text or a markup language."""
 
@@ -39,12 +38,6 @@ class Item(Entry, abc.ABC):
 
     name: Optional[str]
     """An optional human-readable/usable name for the entry."""
-
-    blocks_obj: Dict[str, Any] = Field({})
-    """A mapping from block ID to block data."""
-
-    display_order: List[str] = Field([])
-    """The order in which to display block data in the UI."""
 
     files: Optional[List[File]]
     """Any files attached to this sample."""
