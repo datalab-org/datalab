@@ -255,7 +255,7 @@ class NMRBlock(DataBlock):
                 process_number=self.data["selected_process"],
                 verbose=False,
             )
-        except (OSError, KeyError) as error:
+        except Exception as error:
             LOGGER.critical(f"Unable to parse {name} as Bruker project. {error}")
             return
 
