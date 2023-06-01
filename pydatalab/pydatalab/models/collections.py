@@ -1,6 +1,6 @@
 from typing import Optional
 
-from pydantic import Field
+from pydantic import Field, root_validator
 
 from pydatalab.models.entries import Entry
 from pydatalab.models.traits import HasBlocks, HasOwner
@@ -11,7 +11,7 @@ class Collection(Entry, HasOwner, HasBlocks):
 
     type: str = Field("collections", const="collections", pattern="^collections$")
 
-    collection_id: HumanReadableIdentifier
+    collection_id: HumanReadableIdentifier = Field(None)
     """A short human-readable/usable name for the collection."""
 
     title: Optional[str]
@@ -22,3 +22,10 @@ class Collection(Entry, HasOwner, HasBlocks):
 
     num_items: Optional[int] = Field(None)
     """Inlined number of items associated with this collection."""
+
+    @root_validator
+    def check_ids(cls, values):
+        if not any(values.get(k) is not None for k in ("collection_id", "immutable_id")):
+            raise ValueError("Collection must have at least collection_id or immutable_id")
+
+        return values
