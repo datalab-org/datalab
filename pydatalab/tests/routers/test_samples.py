@@ -559,3 +559,7 @@ def test_items_added_to_existing_collection(client, default_collection, default_
         d["collection_id"] for d in response.json["item_data"]["collections"]
     ]
     assert len(response.json["item_data"]["collections"]) == 1
+    assert (
+        len([d for d in response.json["item_data"]["relationships"] if d["type"] == "collections"])
+        == 1
+    )
