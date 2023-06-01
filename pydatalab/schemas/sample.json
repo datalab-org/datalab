@@ -376,10 +376,7 @@
           "title": "Num Items",
           "type": "integer"
         }
-      },
-      "required": [
-        "collection_id"
-      ]
+      }
     },
     "File": {
       "title": "File",

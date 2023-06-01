@@ -49,10 +49,10 @@ class IsCollectable(BaseModel):
 
         if values.get("collections") is not None:
 
-            existing_parent_relationship_ids = set()
-            collections_set = set()
+            new_ids = set(coll.immutable_id for coll in values["collections"])
+            existing_collection_relationship_ids = set()
             if values.get("relationships") is not None:
-                existing_parent_relationship_ids = set(
+                existing_collection_relationship_ids = set(
                     relationship.immutable_id
                     for relationship in values["relationships"]
                     if relationship.type == "collections"
@@ -61,7 +61,7 @@ class IsCollectable(BaseModel):
                 values["relationships"] = []
 
             for collection in values.get("collections", []):
-                if collection.immutable_id not in existing_parent_relationship_ids:
+                if collection.immutable_id not in existing_collection_relationship_ids:
                     relationship = TypedRelationship(
                         relation=None,
                         immutable_id=collection.immutable_id,
@@ -70,7 +70,16 @@ class IsCollectable(BaseModel):
                     )
                     values["relationships"].append(relationship)
 
-                # Accumulate all constituent IDs in a set to filter those that have been deleted
-                collections_set.add(collection.immutable_id)
+            values["relationships"] = [
+                d
+                for d in values.get("relationships", [])
+                if d.type != "collections" or d.immutable_id in new_ids
+            ]
+
+        if len([d for d in values.get("relationships", []) if d.type == "collections"]) != len(
+            values.get("collections", [])
+        ):
+            breakpoint()
+            raise RuntimeError("Relationships and collections mismatch")
 
         return values
