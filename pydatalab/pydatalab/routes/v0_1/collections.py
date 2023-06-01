@@ -52,7 +52,7 @@ def get_collection(collection_id):
     except IndexError:
         doc = None
 
-    if not doc or not current_user.is_authenticated:
+    if not doc or (not current_user.is_authenticated and not CONFIG.TESTING):
         return (
             jsonify(
                 {
