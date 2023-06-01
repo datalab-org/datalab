@@ -432,9 +432,7 @@ def test_create_collections(client, default_collection):
     assert response.json["data"]["collection_id"] == "test_collection_2"
     assert response.json["data"]["title"] == "My Test Collection"
     assert response.json["data"]["num_items"] == 2
-
     response = client.get(f"/collections/{new_collection.collection_id}")
-
     assert response.status_code == 200, response.json
     assert response.json["status"] == "success"
     assert response.json["collection_id"] == "test_collection_2"
@@ -443,9 +441,121 @@ def test_create_collections(client, default_collection):
     assert response.json["data"]["num_items"] == 2
     ids = {doc["item_id"] for doc in response.json["child_items"]}
     assert ids == {"copy_of_complicated_cell", "test_cell"}
-
-    response = client.get(f"/get-item-data/{ids.pop()}")
+    test_id = ids.pop()
+    response = client.get(f"/get-item-data/{test_id}")
     assert response.status_code == 200, response.json
     assert response.json["status"] == "success"
     assert len(response.json["item_data"]["collections"]) == 1
     assert response.json["item_data"]["collections"][0]["collection_id"] == "test_collection_2"
+
+    # Test that collections can be deleted and relationships to items are removed
+    response = client.delete(f"/collections/{new_collection.collection_id}")
+    assert response.status_code == 200, response.json
+    assert response.json["status"] == "success"
+    response = client.get(f"/collections/{new_collection.collection_id}")
+    assert response.status_code == 404, response.json
+    test_id = ids.pop()
+    response = client.get(f"/get-item-data/{test_id}")
+    assert response.status_code == 200, response.json
+    assert response.json["status"] == "success"
+    assert len(response.json["item_data"]["collections"]) == 0
+
+    # remake it for the next test
+    response = client.put("/collections/", json={"data": data})
+    assert response.status_code == 201, response.json
+    assert response.json["status"] == "success"
+    assert response.json["data"]["collection_id"] == "test_collection_2"
+    assert response.json["data"]["title"] == "My Test Collection"
+    assert response.json["data"]["num_items"] == 2
+
+
+@pytest.mark.dependency(depends=["test_create_collections"])
+def test_items_added_to_existing_collection(client, default_collection, default_sample_dict):
+
+    # Create a new item that is inside the default collection by passing collection_id
+    new_id = "testing_collection_insert_by_id"
+    default_sample_dict["item_id"] = new_id
+    default_sample_dict["collections"] = [{"collection_id": default_collection.collection_id}]
+    response = client.post("/new-sample/", json=default_sample_dict)
+    assert response.status_code == 201, response.json
+    response = client.get(f"/collections/{default_collection.collection_id}")
+    assert response.status_code == 200, response.json
+    collection_immutable_id = response.json["data"]["immutable_id"]
+    assert new_id in [d["item_id"] for d in response.json["child_items"]]
+
+    # Make sure that a new item that is inside a non-existent collection gives an error
+    new_id = "testing_collection_insert_by_id_2"
+    default_sample_dict["item_id"] = new_id
+    default_sample_dict["collections"] = [{"collection_id": "random_id"}]
+    response = client.post("/new-sample/", json=default_sample_dict)
+    assert response.status_code == 401, response.json
+    response = client.get(f"/get-item-data/{new_id}")
+    assert response.status_code == 404, response.json
+
+    # Create a new item that is inside the default collection by passing immutable id
+    new_id2 = "testing_collection_insert_by_immutable"
+    default_sample_dict["item_id"] = new_id2
+    default_sample_dict["collections"] = [{"immutable_id": collection_immutable_id}]
+    response = client.post("/new-sample/", json=default_sample_dict)
+    assert response.status_code == 201, response.json
+    response = client.get(f"/collections/{default_collection.collection_id}")
+    assert response.status_code == 200, response.json
+    assert new_id2 in [d["item_id"] for d in response.json["child_items"]]
+
+    # Update an existing item with membership of an existing collection
+    default_sample_dict["item_id"] = new_id2
+    default_sample_dict["collections"] = [
+        {"immutable_id": collection_immutable_id},
+        {"collection_id": "test_collection_2"},
+    ]
+    response = client.post("/save-item/", json={"data": default_sample_dict, "item_id": new_id2})
+    assert response.status_code == 200, response.json
+
+    response = client.get(f"/get-item-data/{new_id2}")
+    assert response.status_code == 200, response.json
+    assert "test_collection_2" in [
+        d["collection_id"] for d in response.json["item_data"]["collections"]
+    ]
+    assert default_collection.collection_id in [
+        d["collection_id"] for d in response.json["item_data"]["collections"]
+    ]
+
+    # Update an existing item with deleted membership of an existing collection
+    default_sample_dict["item_id"] = new_id2
+    default_sample_dict["collections"] = [
+        {"collection_id": "test_collection_2"},
+    ]
+    response = client.post("/save-item/", json={"data": default_sample_dict, "item_id": new_id2})
+    assert response.status_code == 200, response.json
+
+    response = client.get(f"/get-item-data/{new_id2}")
+    assert response.status_code == 200, response.json
+    assert "test_collection_2" in [
+        d["collection_id"] for d in response.json["item_data"]["collections"]
+    ]
+    assert default_collection.collection_id not in [
+        d["collection_id"] for d in response.json["item_data"]["collections"]
+    ]
+
+    # Update an existing item with a non-existent collection
+    default_sample_dict["item_id"] = new_id2
+    default_sample_dict["collections"] = [
+        {"collection_id": "test_collection_3"},
+    ]
+    response = client.post("/save-item/", json={"data": default_sample_dict, "item_id": new_id2})
+    assert response.status_code == 401, response.json
+
+    # Check that sending same collection multiple times doesn't lead to duplicates
+    default_sample_dict["item_id"] = new_id2
+    default_sample_dict["collections"] = [
+        {"collection_id": "test_collection_2", "collection_id": "test_collection_2"},
+    ]
+    response = client.post("/save-item/", json={"data": default_sample_dict, "item_id": new_id2})
+    assert response.status_code == 200, response.json
+
+    response = client.get(f"/get-item-data/{new_id2}")
+    assert response.status_code == 200, response.json
+    assert "test_collection_2" in [
+        d["collection_id"] for d in response.json["item_data"]["collections"]
+    ]
+    assert len(response.json["item_data"]["collections"]) == 1
