@@ -165,7 +165,7 @@ def get_samples_summary(
             {"$lookup": creators_lookup()},
             {"$lookup": collections_lookup()},
             {"$project": _project},
-            {"$sort": {"_id": -1}},
+            {"$sort": {"date": -1}},
         ]
     )
 
