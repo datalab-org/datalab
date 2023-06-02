@@ -318,6 +318,12 @@ export default {
         ) {
           return `<a href='edit/${sample.item_id}'>${sample.item_id}</a> already in use.`;
         }
+        if (!/^[a-zA-Z0-9._-]+$/.test(sample.item_id)) {
+          return "ID can only contain alphanumeric characters, dashes ('-') and underscores ('_') and periods ('.')";
+        }
+        if (/^[._-]/.test(sample.item_id) | /[._-]$/.test(sample.item_id)) {
+          return "ID cannot start or end with puncutation";
+        }
         if (/\s/.test(sample.item_id)) {
           return "ID cannot have any spaces";
         }

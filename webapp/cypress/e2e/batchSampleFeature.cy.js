@@ -775,7 +775,7 @@ describe("Batch sample creation", () => {
     getSubmitButton().click();
 
     cy.get("[data-testid=batch-modal-container] .callout").should("have.length", 3);
-    cy.contains("Unable to create new item with ID illegal/id.");
+    cy.contains("Unable to create new item with ID illegal/id");
     cy.contains("Unable to create new item with ID illegal.id_");
     cy.contains("legalID Successfully created.");
   });
