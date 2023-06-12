@@ -37,7 +37,7 @@ class ChatBlock(DataBlock):
     blocktype = "chat"
     description = "LLM Chat Block with contextual data (powered by GPT-3.5-turbo)"
     accepted_file_extensions: Sequence[str] = []
-    supports_collections = True
+    __supports_collections = True
     defaults = {
         "system_prompt": """You are a virtual assistant that helps materials chemists manage their experimental data and plan experiments. You are deployed in the group of Professor Clare Grey in the Department of Chemistry at the University of Cambridge.
 You are embedded within the program datalab, where you have access to JSON describing an ‘item’, or a collection of items, with connections to other items. These items may include experimental samples, starting materials, and devices (e.g. battery cells made out of experimental samples and starting materials).
