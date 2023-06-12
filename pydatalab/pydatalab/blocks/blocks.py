@@ -51,7 +51,7 @@ class DataBlock:
     cache: Optional[Dict[str, Any]] = None
     plot_functions: Optional[Sequence[Callable[[], None]]] = None
     # whether this datablock can operate on collection data, or just individual items
-    supports_collections: bool = False
+    __supports_collections: bool = False
 
     def __init__(
         self,
@@ -63,10 +63,10 @@ class DataBlock:
         if dictionary is None:
             dictionary = {}
 
-        if item_id is None and not self.supports_collections:
+        if item_id is None and not self.__supports_collections:
             raise RuntimeError(f"Must supply `item_id` to make {self.__class__.__name__}.")
 
-        if collection_id is not None and not self.supports_collections:
+        if collection_id is not None and not self.__supports_collections:
             raise RuntimeError(
                 f"This block ({self.__class__.__name__}) does not support collections."
             )
@@ -174,20 +174,20 @@ class DataBlock:
 class NotSupportedBlock(DataBlock):
     blocktype = "notsupported"
     description = "Block not supported"
-    supports_collections = True
+    __supports_collections = True
 
 
 class CommentBlock(DataBlock):
     blocktype = "comment"
     description = "Comment"
-    supports_collections = True
+    __supports_collections = True
 
 
 class MediaBlock(DataBlock):
     blocktype = "media"
     description = "Media"
     accepted_file_extensions = (".png", ".jpeg", ".jpg", ".tif", ".tiff", ".mp4", ".mov", ".webm")
-    supports_collections = False
+    __supports_collections = False
 
     @property
     def plot_functions(self):
@@ -216,7 +216,7 @@ class NMRBlock(DataBlock):
     description = "Simple NMR Block"
     accepted_file_extensions = ".zip"
     defaults = {"process number": 1}
-    supports_collections = False
+    __supports_collections = False
 
     @property
     def plot_functions(self):
