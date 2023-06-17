@@ -11,4 +11,10 @@ module.exports = {
       type: "javascript/auto",
     });
   },
+  chainWebpack: (config) => {
+    config.plugin("html").tap((args) => {
+      args[0].title = process.env.VUE_APP_WEBSITE_TITLE || "datalab";
+      return args;
+    });
+  },
 };
