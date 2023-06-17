@@ -246,7 +246,7 @@ class NMRBlock(DataBlock):
         extracted_directory_name = os.path.join(directory_location, name)
         available_processes = os.listdir(os.path.join(extracted_directory_name, "pdata"))
 
-        if "selected_process" not in self.data:
+        if self.data.get("selected_process") not in available_processes:
             self.data["selected_process"] = available_processes[0]
 
         try:
@@ -255,8 +255,8 @@ class NMRBlock(DataBlock):
                 process_number=self.data["selected_process"],
                 verbose=False,
             )
-        except Exception:
-            LOGGER.critical(f"Unable to parse {name} as Bruker project.")
+        except Exception as error:
+            LOGGER.critical(f"Unable to parse {name} as Bruker project. {error}")
             return
 
         serialized_df = df.to_dict() if (df is not None) else None
