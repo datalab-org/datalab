@@ -58,6 +58,15 @@ class StartingMaterial(Item):
         alias="Location", description="Location where chemical is stored"
     )
 
+    hazard_codes: Optional[str] = Field(
+        alias="hcodes", description="Hazard codes associated with this starting material"
+    )
+
+    active: bool = Field(
+        description="Is this starting material still active/available? Should be false if retired, disposed of, or used up.",
+        default=True,
+    )
+
     comment: Optional[str] = Field(alias="Comments")
 
     @validator("molar_mass")

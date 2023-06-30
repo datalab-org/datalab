@@ -35,7 +35,6 @@ def config_file_settings(settings: BaseSettings) -> Dict[str, Any]:
 
 
 class DeploymentMetadata(BaseModel):
-
     maintainer: Optional[Person]
     issue_tracker: Optional[AnyUrl]
     homepage: Optional[AnyUrl]
@@ -108,6 +107,10 @@ class ServerConfig(BaseSettings):
 
     DEPLOYMENT_METADATA: Optional[DeploymentMetadata] = Field(
         None, description="A dictionary containing metadata to serve at `/info`."
+    )
+
+    CHEMINVENTORY_API_KEY: Optional[str] = Field(
+        None, description="API key of an administrator on cheminventory account"
     )
 
     @root_validator

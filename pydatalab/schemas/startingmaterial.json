@@ -179,6 +179,17 @@
       "description": "Location where chemical is stored",
       "type": "string"
     },
+    "hazard_codes": {
+      "title": "Hcodes",
+      "description": "Hazard codes associated with this starting material",
+      "type": "string"
+    },
+    "active": {
+      "title": "Active",
+      "description": "Is this starting material still active/available? Should be false if retired, disposed of, or used up.",
+      "default": true,
+      "type": "boolean"
+    },
     "comment": {
       "title": "Comments",
       "type": "string"
