@@ -11,7 +11,7 @@ from pydatalab.models import ITEM_MODELS
 from pydatalab.utils import CustomJSONEncoder
 
 __all__ = "ChatBlock"
-MODEL = "gpt-3.5-turbo"
+MODEL = "gpt-3.5-turbo-0613"
 MAX_CONTEXT_SIZE = 4097
 
 
