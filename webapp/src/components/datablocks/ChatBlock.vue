@@ -2,20 +2,37 @@
   <!-- think about elegant two-way binding to DataBlockBase... or, just pass all the block data into
 DataBlockBase as a prop, and save from within DataBlockBase  -->
   <DataBlockBase :item_id="item_id" :block_id="block_id">
-    <div v-if="contextHidden" @click="contextHidden = !contextHidden" class="context-button">
-      [show prompts]
+    <div v-if="advancedHidden" @click="advancedHidden = !advancedHidden" class="context-button">
+      [show advanced]
     </div>
-    <div v-if="!contextHidden" @click="contextHidden = !contextHidden" class="context-button">
-      [hide prompts]
+    <div v-if="!advancedHidden" @click="advancedHidden = !advancedHidden" class="context-button">
+      [hide advanced]
     </div>
 
     <div class="row">
       <div id="chatWindowContainer" class="col-xl-9 col-lg-10 col-md-12 mx-auto">
-        <div id="context-size-message" v-if="!contextHidden">
-          Conversation token count: {{ tokenCount }} (max: 4097)
-        </div>
+        <div class="advanced-information" v-if="!advancedHidden">
+          <label>Model</label>: {{ modelName }} <br />
+          <label>Current conversation token count</label>: {{ tokenCount }}/4097
 
-        <ChatWindow :chatMessages="messages.slice(contextHidden ? 2 : 0)" :isLoading="isLoading" />
+          <div class="input-group form-inline">
+            <label for="temperatureInput" class="mr-2"><b>temperature:</b></label>
+            <input
+              id="temperatureInput"
+              type="number"
+              min="0"
+              max="1"
+              step="0.1"
+              class="form-control-sm"
+              v-model="temperature"
+              :class="{ 'red-border': tempInvalid }"
+            />
+            <small class="text-danger" v-show="tempInvalid">
+              Temperature must must be a number between 0 and 1
+            </small>
+          </div>
+        </div>
+        <ChatWindow :chatMessages="messages.slice(advancedHidden ? 2 : 0)" :isLoading="isLoading" />
         <div class="d-flex justify-content-center">
           <button
             class="btn btn-default btn-sm regenerate-button"
@@ -73,18 +90,31 @@ export default {
     return {
       isLoading: false,
       isRegenerating: false,
-      contextHidden: true,
+      advancedHidden: true,
     };
   },
   computed: {
     messages: createComputedSetterForBlockField("messages"),
     prompt: createComputedSetterForBlockField("prompt"),
+    temperature: createComputedSetterForBlockField("temperature"),
+    tempInvalid() {
+      return (
+        this.temperature == null ||
+        isNaN(this.temperature) ||
+        this.temperature < 0 ||
+        this.temperature > 1
+      );
+    },
+
     errorMessage() {
       return this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id]
         .error_message;
     },
     tokenCount() {
       return this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id].token_count;
+    },
+    modelName() {
+      return this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id].model_name;
     },
   },
   components: {
@@ -145,8 +175,16 @@ export default {
   margin-bottom: 1rem;
 }
 
-#context-size-message {
-  font-style: italic;
+.advanced-information {
   margin-left: 20%;
+}
+
+.advanced-information label {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+#model-information-messages {
+  font-style: italic;
 }
 </style>

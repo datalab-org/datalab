@@ -11,7 +11,7 @@ from pydatalab.models import ITEM_MODELS
 from pydatalab.utils import CustomJSONEncoder
 
 __all__ = "ChatBlock"
-MODEL = "gpt-3.5-turbo"
+MODEL = "gpt-3.5-turbo-0613"
 MAX_CONTEXT_SIZE = 4097
 
 
@@ -35,14 +35,14 @@ def num_tokens_from_messages(messages: Sequence[dict]):
 
 class ChatBlock(DataBlock):
     blocktype = "chat"
-    description = "LLM Chat Block with contextual data (powered by GPT-3.5-turbo)"
+    description = "Virtual assistant"
     accepted_file_extensions: Sequence[str] = []
     __supports_collections = True
     defaults = {
-        "system_prompt": """You are a virtual assistant that helps materials chemists manage their experimental data and plan experiments. You are deployed in the group of Professor Clare Grey in the Department of Chemistry at the University of Cambridge.
+        "system_prompt": """You are whinchat (lowercase w), a virtual data managment assistant that helps materials chemists manage their experimental data and plan experiments. You are deployed in the group of Professor Clare Grey in the Department of Chemistry at the University of Cambridge.
 You are embedded within the program datalab, where you have access to JSON describing an ‘item’, or a collection of items, with connections to other items. These items may include experimental samples, starting materials, and devices (e.g. battery cells made out of experimental samples and starting materials).
-Answer questions in markdown. Specify the language for all markdown code blocks. You can make diagrams by writing a mermaid code block or an svg code block.
-Be as concise as possible. Start the conversion with a friendly greeting introducing yourself.
+Answer questions in markdown. Specify the language for all markdown code blocks. You can make diagrams by writing a mermaid code block or an svg code block. When writing mermaid code, you must use quotations around each of the labels (e.g. A["label1"] --> B["label2"])
+Be as concise as possible. When saying your name, type a bird emoji right after whinchat 🐦.
         """,
         "temperature": 0.2,
         "error_message": None,
@@ -61,7 +61,6 @@ Be as concise as possible. Start the conversion with a friendly greeting introdu
 
     def render(self):
         if not self.data.get("messages"):
-
             if (item_id := self.data.get("item_id")) is not None:
                 info_json = self._prepare_item_json_for_chat(item_id)
             elif (collection_id := self.data.get("collection_id")) is not None:
@@ -76,7 +75,8 @@ Be as concise as possible. Start the conversion with a friendly greeting introdu
                 },
                 {
                     "role": "user",
-                    "content": f"""Here is the JSON data for the current item(s): {info_json}""",
+                    "content": f"""Here is the JSON data for the current item(s): {info_json}.
+Start with a friendly introduction and give me a one sentence summary of what this is (not detailed, no information about specific masses). """,
                 },
             ]
 
@@ -107,7 +107,7 @@ Be as concise as possible. Start the conversion with a friendly greeting introdu
 
         try:
             LOGGER.debug(
-                f"submitting request to OpenAI API for completion with last message role \"{self.data['messages'][-1]['role']}\" (message = {self.data['messages'][-1:]})"
+                f"submitting request to OpenAI API for completion with last message role \"{self.data['messages'][-1]['role']}\" (message = {self.data['messages'][-1:]}). Temperature = {self.data['temperature']} (type {type(self.data['temperature'])})"
             )
             responses = openai.ChatCompletion.create(
                 model=MODEL,
@@ -128,9 +128,10 @@ Be as concise as possible. Start the conversion with a friendly greeting introdu
         except AttributeError:
             self.data["messages"].append(responses["choices"][0]["message"])
 
+        self.data["model_name"] = MODEL
+
         token_count = num_tokens_from_messages(self.data["messages"])
         self.data["token_count"] = token_count
-
         return
 
     def _prepare_item_json_for_chat(self, item_id: str):

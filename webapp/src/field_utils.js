@@ -16,7 +16,7 @@ export function createComputedSetterForBlockField(block_field) {
       store.commit("updateBlockData", {
         item_id: this.item_id,
         block_id: this.block_id,
-        block_data: { [block_field]: value ? value : null },
+        block_data: { [block_field]: value === "" ? null : value },
       });
     },
   };
@@ -34,7 +34,7 @@ export function createComputedSetterForItemField(item_field) {
       console.log(value);
       store.commit("updateItemData", {
         item_id: this.item_id,
-        item_data: { [item_field]: value ? value : null },
+        item_data: { [item_field]: value === "" ? null : value },
       });
     },
   };
