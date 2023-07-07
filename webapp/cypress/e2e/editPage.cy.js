@@ -29,30 +29,30 @@ describe("Edit Page", () => {
   it("Adds a valid sample", () => {
     cy.findByText("Add an item").click();
     cy.findByText("Add new sample").should("exist");
-    cy.findByLabelText("Sample ID:").type("editable_sample");
+    cy.findByLabelText("ID:").type("editable_sample");
     cy.findByLabelText("Date Created:").type("1990-01-07T00:00");
 
-    cy.findByLabelText("Sample Name:").type("This is a sample name");
+    cy.findByLabelText("Name:").type("This is a sample name");
     cy.contains("Submit").click();
 
     cy.findByText("editable_sample");
     cy.findByText("This is a sample name");
-    cy.get("tr>td").eq(6).contains(0); // 0 blocks are present
+    cy.get("tr>td").eq(7).contains(0); // 0 blocks are present
   });
 
   it("Adds a second valid sample, to use as a component", () => {
     cy.findByText("Add an item").click();
     cy.findByText("Add new sample");
-    cy.findByLabelText("Sample ID:").type("component1");
-    cy.findByLabelText("Sample Name:").type("This is a component");
+    cy.findByLabelText("ID:").type("component1");
+    cy.findByLabelText("Name:").type("This is a component");
     cy.contains("Submit").click();
   });
 
   it("Adds a third valid sample, to use as a component", () => {
     cy.findByText("Add an item").click();
     cy.findByText("Add new sample");
-    cy.findByLabelText("Sample ID:").type("component2");
-    cy.findByLabelText("Sample Name:").type("This is another component");
+    cy.findByLabelText("ID:").type("component2");
+    cy.findByLabelText("Name:").type("This is another component");
     cy.contains("Submit").click();
   });
 
@@ -257,7 +257,7 @@ describe("Edit Page", () => {
     cy.contains("Unsaved changes").should("not.exist");
 
     cy.findByText("Home").click();
-    cy.get("[data-testid=sample-table] tr:nth-of-type(3) > td:nth-of-type(7)").contains(2); // 2 blocks are present
+    cy.get("[data-testid=sample-table] tr:nth-of-type(3) > td:nth-of-type(8)").contains(2); // 2 blocks are present
   });
 
   it("cleanup: delete the samples", () => {

@@ -217,7 +217,7 @@ export function searchItems(query, nresults = 100, types = null) {
 
 export function searchCollections(query, nresults = 100) {
   // construct a url with parameters:
-  var url = new URL(`${API_URL}/search-collections/`);
+  var url = new URL(`${API_URL}/search-collections`);
   var params = { query: query, nresults: nresults };
   Object.keys(params).forEach((key) => url.searchParams.append(key, params[key]));
   return fetch_get(url).then(function (response_json) {
