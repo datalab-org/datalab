@@ -63,7 +63,7 @@ def get_graph_cy_format(item_id: Optional[str] = None):
 
         for relationship in document["relationships"]:
             # only considering child-parent relationships:
-            if relationship["relation"] not in ("parent", "is_part_of"):
+            if relationship.get("relation") not in ("parent", "is_part_of"):
                 continue
 
             target = document["item_id"]
