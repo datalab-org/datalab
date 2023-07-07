@@ -1,0 +1,17 @@
+# YAML 1.2
+# Metadata for citation of this software according to the CFF format (https://citation-file-format.github.io/)
+cff-version: 1.2.0
+message: If you use this software, please cite the versioned archive.
+title: datalab
+abstract: Datalab is a place to store experimental data and the connections between them.
+authors:
+- given-names: Matthew L.
+  family-names: Evans
+  orcid: https://orcid.org/0000-0002-1182-9098
+- given-names: Joshua D.
+  family-names: Bocarsly
+  orcid: https://orcid.org/0000-0002-7523-152X
+repository-code: https://github.com/the-grey-group/datalab
+url: https://github.com/the-grey-group/datalab
+type: software
+license: MIT
