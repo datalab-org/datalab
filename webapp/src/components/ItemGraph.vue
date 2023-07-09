@@ -52,10 +52,14 @@ const layoutOptions = {
 export default {
   props: {
     graphData: Object,
+    defaultGraphStyle: {
+      type: String,
+      default: "elk-stress",
+    },
   },
   data() {
     return {
-      graphStyle: "elk-stress",
+      graphStyle: this.defaultGraphStyle,
     };
   },
   methods: {

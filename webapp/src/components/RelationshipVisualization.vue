@@ -88,7 +88,7 @@ export default {
     item_id: String,
   },
   async mounted() {
-    await getItemGraph(this.item_id);
+    await getItemGraph({ item_id: this.item_id });
   },
   components: {
     // FormattedItemName

@@ -20,7 +20,7 @@
       v-model="CollectionDescription"
     ></TinyMceInline>
 
-    <!-- <CollectionRelationshipVisualization :collection_id="collection_id" /> -->
+    <CollectionRelationshipVisualization :collection_id="collection_id" />
     <FancyCollectionSampleTable :collection_id="collection_id" />
   </div>
 </template>
@@ -30,7 +30,7 @@ import { createComputedSetterForCollectionField } from "@/field_utils.js";
 import FancyCollectionSampleTable from "@/components/FancyCollectionSampleTable";
 import TinyMceInline from "@/components/TinyMceInline";
 import Creators from "@/components/Creators";
-// import CollectionRelationshipVisualization from "@/components/CollectionRelationshipVisualization";
+import CollectionRelationshipVisualization from "@/components/CollectionRelationshipVisualization";
 
 export default {
   props: {
@@ -47,7 +47,7 @@ export default {
     TinyMceInline,
     FancyCollectionSampleTable,
     Creators,
-    //    CollectionRelationshipVisualization,
+    CollectionRelationshipVisualization,
   },
 };
 </script>
