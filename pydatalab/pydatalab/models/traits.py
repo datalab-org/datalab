@@ -79,7 +79,6 @@ class IsCollectable(BaseModel):
         if len([d for d in values.get("relationships", []) if d.type == "collections"]) != len(
             values.get("collections", [])
         ):
-            breakpoint()
             raise RuntimeError("Relationships and collections mismatch")
 
         return values

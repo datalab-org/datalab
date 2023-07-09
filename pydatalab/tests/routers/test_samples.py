@@ -394,19 +394,19 @@ def test_create_cell(client, default_cell):
 def test_create_collections(client, default_collection):
 
     # Check no collections initially
-    response = client.get("/collections/")
+    response = client.get("/collections")
     assert len(response.json["data"]) == 0, response.json
     assert response.status_code == 200
 
     # Create an empty collection
-    response = client.put("/collections/", json={"data": json.loads(default_collection.json())})
+    response = client.put("/collections", json={"data": json.loads(default_collection.json())})
     assert response.status_code == 201, response.json
     assert response.json["status"] == "success"
     assert response.json["data"]["collection_id"] == "test_collection"
     assert response.json["data"]["title"] == "My Test Collection"
     assert response.json["data"]["num_items"] == 0
 
-    response = client.get("/collections/")
+    response = client.get("/collections")
     assert response.status_code == 200
     assert len(response.json["data"]) == 1
     assert response.json["data"][0]["collection_id"] == "test_collection"
@@ -426,7 +426,7 @@ def test_create_collections(client, default_collection):
             ]
         }
     )
-    response = client.put("/collections/", json={"data": data})
+    response = client.put("/collections", json={"data": data})
     assert response.status_code == 201, response.json
     assert response.json["status"] == "success"
     assert response.json["data"]["collection_id"] == "test_collection_2"
@@ -461,7 +461,7 @@ def test_create_collections(client, default_collection):
     assert len(response.json["item_data"]["collections"]) == 0
 
     # remake it for the next test
-    response = client.put("/collections/", json={"data": data})
+    response = client.put("/collections", json={"data": data})
     assert response.status_code == 201, response.json
     assert response.json["status"] == "success"
     assert response.json["data"]["collection_id"] == "test_collection_2"
