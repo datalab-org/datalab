@@ -16,7 +16,7 @@ from pydatalab.routes.v0_1.items import creators_lookup, get_samples_summary
 collection = Blueprint("collections", __name__)
 
 
-@collection.route("/collections/")
+@collection.route("/collections")
 def get_collections():
 
     collections = flask_mongo.db.collections.aggregate(
@@ -87,7 +87,7 @@ def get_collection(collection_id):
     )
 
 
-@collection.route("/collections/", methods=["PUT"])
+@collection.route("/collections", methods=["PUT"])
 def create_collection():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
     data = request_json.get("data", {})
@@ -301,7 +301,7 @@ def delete_collection(collection_id: str):
     )
 
 
-@collection.route("/search-collections/", methods=["GET"])
+@collection.route("/search-collections", methods=["GET"])
 def search_collections():
     query = request.args.get("query", type=str)
     nresults = request.args.get("nresults", default=100, type=int)

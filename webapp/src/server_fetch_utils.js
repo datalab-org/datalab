@@ -140,7 +140,7 @@ export function createNewSamples(newSampleDatas, copyFromItemIds = null) {
 }
 
 export function createNewCollection(collection_id, title, startingData = {}, copyFrom = null) {
-  return fetch_put(`${API_URL}/collections/`, {
+  return fetch_put(`${API_URL}/collections`, {
     copy_from_collection_id: copyFrom,
     data: {
       collection_id: collection_id,
@@ -179,7 +179,7 @@ export function getCollectionSampleList(collection_id) {
 }
 
 export function getCollectionList() {
-  return fetch_get(`${API_URL}/collections/`)
+  return fetch_get(`${API_URL}/collections`)
     .then(function (response_json) {
       store.commit("setCollectionList", response_json.data);
     })
@@ -498,10 +498,13 @@ export async function addRemoteFileToSample(file_entry, item_id) {
     .catch((error) => `addRemoteFilesToSample unsuccessful. Error: ${error}`);
 }
 
-export async function getItemGraph(item_id = "") {
+export async function getItemGraph({ item_id = null, collection_id = null } = {}) {
   let url = `${API_URL}/item-graph`;
-  if (item_id != "") {
+  if (item_id != null) {
     url = url + "/" + item_id;
+  }
+  if (collection_id != null) {
+    url = url + "?collection_id=" + collection_id;
   }
   return fetch_get(url)
     .then(function (response_json) {
