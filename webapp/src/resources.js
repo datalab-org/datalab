@@ -3,6 +3,7 @@ import DataBlockBase from "@/components/datablocks/DataBlockBase";
 import MediaBlock from "@/components/datablocks/MediaBlock";
 import XRDBlock from "@/components/datablocks/XRDBlock";
 import ChatBlock from "@/components/datablocks/ChatBlock";
+import RamanBlock from "@/components/datablocks/RamanBlock";
 import CycleBlock from "@/components/datablocks/CycleBlock";
 import NMRBlock from "@/components/datablocks/NMRBlock";
 import EISBlock from "@/components/datablocks/EISBlock";
@@ -31,6 +32,7 @@ export const blockTypes = {
   comment: { description: "Comment", component: DataBlockBase },
   media: { description: "Media", component: MediaBlock },
   xrd: { description: "Powder XRD", component: XRDBlock },
+  raman: { description: "Raman", component: RamanBlock},
   cycle: { description: "Electrochemistry", component: CycleBlock },
   eis: { description: "EIS", component: EISBlock },
   nmr: { description: "NMR", component: NMRBlock },
