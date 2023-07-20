@@ -179,7 +179,7 @@ def creators_lookup() -> Dict:
             {
                 "$match": {
                     "$expr": {
-                        "$in": ["$_id", "$$creator_ids"],
+                        "$in": ["$_id", {"$ifNull": ["$$creator_ids", []]}],
                     },
                 }
             },
@@ -211,7 +211,7 @@ def collections_lookup() -> Dict:
             {
                 "$match": {
                     "$expr": {
-                        "$in": ["$_id", "$$collection_ids"],
+                        "$in": ["$_id", {"$ifNull": ["$$collection_ids", []]}],
                     },
                     "type": "collections",
                 }
