@@ -19,7 +19,7 @@ galvani = "*"
 openpyxl = "*"
 nmrglue = "*"
 python-dotenv = "*"
-pydantic = {extras = ["email"], version = "*"}
+pydantic = {extras = ["email"], version = "<2.0"}
 blinker = "*"
 pint = "*"
 periodictable = "*"
@@ -29,6 +29,7 @@ openai = "*"
 tiktoken = "*"
 navani = {git = "git+https://github.com/the-grey-group/navani.git@v0.1.3"}
 python-dateutil = "*"
+pybaselines = "*"
 
 [dev-packages]
 pytest = "*"
