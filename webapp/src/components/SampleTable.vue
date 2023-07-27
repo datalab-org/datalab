@@ -109,14 +109,6 @@ export default {
 </script>
 
 <style scoped>
-.avatar {
-  border: 2px solid grey;
-  border-radius: 50%;
-}
-.avatar:hover {
-  border: 2px solid skyblue;
-}
-
 .clickable {
   cursor: pointer;
 }
