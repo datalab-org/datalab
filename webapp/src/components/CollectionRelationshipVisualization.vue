@@ -3,8 +3,9 @@
   <div>
     <ItemGraph
       :graphData="graphData"
-      style="height: 150px"
-      :defaultGraphStyle="elk - layered - down"
+      style="height: 200px; width: 100%; border: 1px solid transparent; border-radius: 5px"
+      :defaultGraphStyle="'elk-stress'"
+      :showOptions="false"
     />
   </div>
 </template>
