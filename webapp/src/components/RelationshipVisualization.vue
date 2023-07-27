@@ -65,7 +65,7 @@ import { getItemGraph } from "@/server_fetch_utils.js";
 export default {
   data() {
     return {
-      activeTab: "parents",
+      activeTab: "graph",
     };
   },
   computed: {

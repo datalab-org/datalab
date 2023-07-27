@@ -146,6 +146,7 @@ def get_graph_cy_format(item_id: Optional[str] = None, collection_id: Optional[s
                         "id": document["item_id"],
                         "name": document["name"],
                         "type": document["type"],
+                        "special": document["item_id"] == item_id,
                     }
                 }
             )
