@@ -97,7 +97,6 @@ import SelectableFileTree from "@/components/SelectableFileTree";
 
 import TableOfContents from "@/components/TableOfContents";
 import FileList from "@/components/FileList";
-import Modal from "@/components/Modal";
 import FileSelectModal from "@/components/FileSelectModal";
 import { getItemData, addABlock, saveItem, updateBlockFromServer } from "@/server_fetch_utils";
 
@@ -239,7 +238,6 @@ export default {
   },
   components: {
     TinyMceInline,
-    Modal,
     SelectableFileTree,
     FileList,
     TableOfContents,

@@ -115,7 +115,7 @@ def add_collection_data_block():
         )
 
     # get the new display_order:
-    display_order_result = flask_mongo.db.items.find_one(
+    display_order_result = flask_mongo.db.collections.find_one(
         {"collection_id": collection_id, **get_default_permissions(user_only=True)},
         {"display_order": 1},
     )
@@ -128,6 +128,9 @@ def add_collection_data_block():
         else len(display_order_result["display_order"]) - 1,
         new_display_order=display_order_result["display_order"],
     )
+
+
+add_collection_data_block.methods = ("POST",)  # type: ignore
 
 
 def _save_block_to_db(block: DataBlock) -> bool:

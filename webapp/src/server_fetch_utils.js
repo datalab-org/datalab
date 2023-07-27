@@ -358,25 +358,6 @@ export function addABlock(item_id, block_type, index = null) {
   return block_id_promise;
 }
 
-export function addACollectionBlock(collection_id, block_type, index = null) {
-  console.log("addACollectionBlock called with", collection_id, block_type);
-  var block_id_promise = fetch_post(`${API_URL}/add-collection-data-block/`, {
-    collection_id: collection_id,
-    block_type: block_type,
-    index: index,
-  })
-    .then(function (response_json) {
-      store.commit("addACollectionBlock", {
-        collection_id: collection_id,
-        new_block_obj: response_json.new_block_obj,
-        new_block_insert_index: response_json.new_block_insert_index,
-      });
-      return response_json.new_block_obj.block_id;
-    })
-    .catch((error) => console.error("Error in addACollectionBlock:", error));
-  return block_id_promise;
-}
-
 export function saveItem(item_id) {
   console.log("saveItem Called!");
   var item_data = store.state.all_item_data[item_id];
