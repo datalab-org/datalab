@@ -1,26 +1,40 @@
 <template>
   <div class="container">
-    <div id="collection-information" class="form-row">
-      <div class="form-group col-md-2">
-        <label for="item_id" class="mr-2">Collection ID</label>
-        <input id="item_id" class="form-control-plaintext" v-model="CollectionID" />
+    <div class="row">
+      <div class="col">
+        <div id="collection-information" class="form-row">
+          <div class="form-group col-md-2">
+            <label for="item_id" class="mr-2">Refcode</label>
+            <input id="item_id" class="form-control-plaintext" v-model="Refcode" />
+          </div>
+          <div class="col-md-2">
+            <label id="creators" class="mr-2">Creators</label>
+            <div class="mr-2">
+              <Creators :creators="CollectionCreators" :size="36" />
+            </div>
+          </div>
+          <div class="form-group col">
+            <label for="name" class="mr">Title</label>
+            <input
+              placeholder="Add a title"
+              id="name"
+              class="form-control"
+              v-model="Title"
+              style="border: none"
+            />
+          </div>
+        </div>
+
+        <label id="description-label" class="mr-2">Description</label>
+        <TinyMceInline
+          aria-labelledby="description-label"
+          v-model="CollectionDescription"
+        ></TinyMceInline>
       </div>
-      <div class="form-group col-md-4">
-        <label for="name" class="mr-2">Title</label>
-        <input id="name" class="form-control" v-model="Title" />
-      </div>
-      <div class="col-md-1">
-        <label id="creators" class="mr-2">Creators</label>
-        <Creators :creators="CollectionCreators" :size="36" />
+      <div class="col-md-3">
+        <CollectionRelationshipVisualization :collection_id="collection_id" />
       </div>
     </div>
-    <label id="description-label" class="mr-2">Description</label>
-    <TinyMceInline
-      aria-labelledby="description-label"
-      v-model="CollectionDescription"
-    ></TinyMceInline>
-
-    <CollectionRelationshipVisualization :collection_id="collection_id" />
     <FancyCollectionSampleTable :collection_id="collection_id" />
   </div>
 </template>
@@ -38,6 +52,7 @@ export default {
   },
   computed: {
     CollectionID: createComputedSetterForCollectionField("collection_id"),
+    CollectionRefcode: createComputedSetterForCollectionField("refcode"),
     CollectionDescription: createComputedSetterForCollectionField("description"),
     Title: createComputedSetterForCollectionField("title"),
     Name: createComputedSetterForCollectionField("name"),

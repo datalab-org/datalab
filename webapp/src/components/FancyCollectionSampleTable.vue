@@ -3,7 +3,7 @@
     Server Error. Sample list not retreived.
   </div>
 
-  <div class="form-inline mb-2 ml-auto">
+  <div class="form-inline mb-2 ml-auto mt-2">
     <button
       class="btn btn-default ml-auto mr-2"
       :disabled="!Boolean(itemsSelected.length)"
@@ -132,16 +132,6 @@ export default {
   },
 };
 </script>
-
-<style scoped>
-.avatar {
-  border: 2px solid grey;
-  border-radius: 50%;
-}
-.avatar:hover {
-  border: 2px solid skyblue;
-}
-</style>
 
 <style>
 .customize-table th {
