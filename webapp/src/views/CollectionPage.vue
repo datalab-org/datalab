@@ -28,14 +28,15 @@
           aria-labelledby="navbarDropdown"
           v-show="isMenuDropdownVisible"
         >
-          <a
-            v-for="(blockType, id) in blockTypes"
-            :key="id"
-            class="dropdown-item"
-            @click="newBlock($event, id)"
-          >
-            {{ blockType.description }}
-          </a>
+          <template v-for="(blockType, id) in blockTypes" :key="id">
+            <a
+              v-if="blockTypes[id].supportsCollections == true"
+              class="dropdown-item"
+              @click="newBlock($event, id)"
+            >
+              {{ blockType.description }}
+            </a>
+          </template>
         </div>
       </div>
       <a class="nav-item nav-link" :href="this.collectionApiUrl" target="_blank">
@@ -46,8 +47,8 @@
       <span v-if="data_loaded && !savedStatus" class="navbar-text unsaved-warning">
         Unsaved changes
       </span>
-      <span v-if="data_loaded" class="navbar-text mx-2"
-        ><i>Last saved: {{ lastModified }}</i></span
+      <span v-if="data_loaded" class="navbar-text small mx-2"
+        ><i>Last saved {{ lastModified }}</i></span
       >
       <font-awesome-icon
         icon="save"
@@ -74,6 +75,7 @@ import { getCollectionData, saveCollection, addACollectionBlock } from "@/server
 import tinymce from "tinymce/tinymce";
 import { blockTypes, itemTypes } from "@/resources.js";
 import { API_URL } from "@/resources.js";
+import { formatDistanceToNow } from "date-fns";
 
 export default {
   data() {
@@ -132,7 +134,7 @@ export default {
       // if (!this.item_data.last_modified) { return "" }
       let item_date = this.collection_data.last_modified;
       const save_date = new Date(item_date);
-      return save_date.toLocaleString("en-GB");
+      return formatDistanceToNow(save_date, new Date(), { addSuffix: true });
     },
   },
   created() {

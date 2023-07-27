@@ -108,6 +108,7 @@ import tinymce from "tinymce/tinymce";
 import { blockTypes, itemTypes } from "@/resources.js";
 import NotImplementedBlock from "@/components/datablocks/NotImplementedBlock.vue";
 import { API_URL } from "@/resources.js";
+import { formatDistanceToNow } from "date-fns";
 
 export default {
   data() {
@@ -216,17 +217,12 @@ export default {
       return allBlocksAreSaved && this.$store.state.saved_status_items[this.item_id];
     },
     lastModified() {
-      // if (!this.item_data.last_modified) { return "" }
-      let item_date = this.item_data.last_modified;
-      if (item_date == null) {
-        item_date = this.item_data.date;
-      }
+      let item_date = this.item_data.last_modified || this.item_data.date;
       if (item_date == null) {
         return "Unknown";
       }
-
       const save_date = new Date(item_date);
-      return save_date.toLocaleString("en-GB");
+      return formatDistanceToNow(save_date, { addSuffix: true });
     },
     files() {
       return this.item_data.files;
