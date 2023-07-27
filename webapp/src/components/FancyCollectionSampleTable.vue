@@ -1,6 +1,6 @@
 <template>
   <div v-if="isSampleFetchError" class="alert alert-danger">
-    Server Error. Sample list not retreived.
+    Server Error. Sample list could not be retreived for collection.
   </div>
 
   <div class="form-inline mb-2 ml-auto mt-2">
@@ -9,7 +9,7 @@
       :disabled="!Boolean(itemsSelected.length)"
       @click="deleteSelectedItems"
     >
-      Delete selected...
+      Remove selected...
     </button>
     <div class="form-group">
       <label for="sample-table-search" class="sr-only">Search items</label>
@@ -26,6 +26,10 @@
   <Vue3EasyDataTable
     :headers="headers"
     :items="samples"
+    :loading="!sampleTableIsReady"
+    :no-hover="true"
+    :checkbox-column-width="40"
+    :expand-column-width="40"
     :search-value="searchValue"
     table-class-name="customize-table"
     header-class-name="customize-table-header"
@@ -33,6 +37,8 @@
     @click-row="goToEditPage"
     v-model:items-selected="itemsSelected"
   >
+    <template #empty-message>Collection is empty.</template>
+
     <template #item-item_id="item">
       <FormattedItemName :item_id="item.item_id" :itemType="item?.type" enableModifiedClick />
     </template>
@@ -61,8 +67,9 @@ import "vue3-easy-data-table/dist/style.css";
 import FormattedItemName from "@/components/FormattedItemName";
 import ChemicalFormula from "@/components/ChemicalFormula";
 import Creators from "@/components/Creators";
+import { getCollectionSampleList } from "@/server_fetch_utils.js";
 // eslint-disable-next-line no-unused-vars
-import { GRAVATAR_STYLE, itemTypes } from "@/resources.js";
+import { itemTypes } from "@/resources.js";
 
 export default {
   props: {
@@ -71,7 +78,6 @@ export default {
   data() {
     return {
       isSampleFetchError: false,
-      gravatar_style: GRAVATAR_STYLE,
       itemTypes: itemTypes,
       sampleTableIsReady: false,
       itemsSelected: [],
@@ -89,10 +95,19 @@ export default {
   },
   computed: {
     samples() {
-      return this.$store.state.this_collection_children;
+      return this.$store.state.all_collection_children[this.collection_id] || [];
     },
   },
   methods: {
+    getCollectionSamples() {
+      getCollectionSampleList(this.collection_id)
+        .then(() => {
+          this.sampleTableIsReady = true;
+        })
+        .catch(() => {
+          this.isSampleFetchError = true;
+        });
+    },
     goToEditPage(row, event) {
       // don't actually go to editpage is this click is in the select column, because
       // that is easy to accidentally do. in future, could try to actuate the checkbox, too.
@@ -107,22 +122,24 @@ export default {
         this.$router.push(`/edit/${row.item_id}`);
       }
     },
-    //deleteSelectedItems() {
-    //  const idsSelected = this.itemsSelected.map((x) => x.item_id);
-    //  if (
-    //    confirm(
-    //      `Are you sure you want to delete ${this.itemsSelected.length} selected items (${idsSelected})?`
-    //    )
-    //  ) {
-    //    console.log("deleting...");
-    //    idsSelected.forEach((item_id) => {
-    //      console.log(`deleting item ${item_id}`);
-    //      deleteSample(item_id);
-    //    });
-    //  } else {
-    //    console.log("delete cancelled...");
-    //  }
-    //},
+    deleteSelectedItems() {
+      const idsSelected = this.itemsSelected.map((x) => x.item_id);
+      if (
+        confirm(
+          `Are you sure you want to remove ${this.itemsSelected.length} selected items (${idsSelected}) from this collection?`
+        )
+      ) {
+        console.log("deleting...");
+        idsSelected.forEach((item_id) => {
+          console.log(`deleting item ${item_id}`);
+        });
+      } else {
+        console.log("delete cancelled...");
+      }
+    },
+  },
+  created() {
+    this.getCollectionSamples();
   },
   components: {
     Vue3EasyDataTable,
