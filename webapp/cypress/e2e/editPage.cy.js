@@ -58,7 +58,6 @@ describe("Edit Page", () => {
 
   it("Checks editing the sample edit page", () => {
     cy.findByText("editable_sample").click();
-    cy.findByLabelText("Sample ID").should("have.value", "editable_sample");
     cy.findByLabelText("Name").should("have.value", "This is a sample name");
     cy.findByLabelText("Chemical formula").type("NaCoO2", { force: true });
 
@@ -212,7 +211,6 @@ describe("Edit Page", () => {
 
   it("Add some blocks to the sample and checks unsaved warning behavior", () => {
     cy.findByText("editable_sample").click();
-    cy.findByLabelText("Sample ID").should("have.value", "editable_sample");
     cy.findByLabelText("Name").should("have.value", "This is a sample name");
 
     cy.findByText("Add a block").click();

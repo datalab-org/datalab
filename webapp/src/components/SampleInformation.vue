@@ -1,46 +1,59 @@
 <template>
   <div class="container">
     <!-- Sample information -->
-    <div id="sample-information" class="form-row">
-      <div class="form-group col-md-2">
-        <label for="refcode" class="mr-2">Refcode</label>
-        <span class="form-control-plaintext formatted-refcode">
-          <FormattedRefcode :refcode="Refcode" />
-        </span>
+    <div class="row">
+      <div class="col">
+        <div id="sample-information" class="form-row">
+          <div class="form-group col-md-4">
+            <label for="name" class="mr-2">Name</label>
+            <input id="name" class="form-control" v-model="Name" />
+          </div>
+          <div class="form-group col-md-4">
+            <label for="chemform" class="mr-2">Chemical formula</label>
+            <ChemFormulaInput id="chemform" v-model="ChemForm" />
+          </div>
+          <div class="form-group col-md-4">
+            <label for="date" class="mr-2">Date Created</label>
+            <input
+              type="datetime-local"
+              v-model="DateCreated"
+              class="form-control"
+              style="max-width: 250px"
+            />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group col-md-2">
+            <label for="refcode" class="mr-2">Refcode</label>
+            <FormattedRefcode :refcode="Refcode" />
+          </div>
+          <div class="col-md-2 pb-3">
+            <label id="creators" class="mr-2">Creators</label>
+            <div class="mx-auto">
+              <Creators aria-labelledby="creators" :creators="ItemCreators" :size="36" />
+            </div>
+          </div>
+          <div class="form-group col-md-3">
+            <label id="collections" class="mr-2">Collections</label>
+            <div>
+              <CollectionList aria-labelledby="collections" :collections="Collections" />
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col">
+            <label id="description-label" class="mr-2">Description</label>
+            <TinyMceInline
+              aria-labelledby="description-label"
+              v-model="SampleDescription"
+            ></TinyMceInline>
+          </div>
+        </div>
       </div>
-      <div class="form-group col-md-2">
-        <label for="item_id" class="mr-2">Sample ID</label>
-        <input id="item_id" class="form-control-plaintext" readonly="true" v-model="ItemID" />
-      </div>
-      <div class="form-group col-md-4">
-        <label for="name" class="mr-2">Name</label>
-        <input id="name" class="form-control" v-model="Name" />
-      </div>
-      <div class="form-group col-md-3">
-        <label for="date" class="mr-2">Date Created</label>
-        <input type="datetime-local" v-model="DateCreated" class="form-control" />
-      </div>
-      <div class="col-md-1">
-        <label id="creators" class="mr-2">Creators</label>
-        <Creators aria-labelledby="creators" :creators="ItemCreators" :size="36" />
+      <div class="col-md-4">
+        <ItemRelationshipVisualization :item_id="item_id" />
       </div>
     </div>
-    <div class="form-row">
-      <div class="form-group col-md-3">
-        <label id="collections" class="mr-2">Collections:</label>
-        <CollectionList aria-labelledby="collections" :collections="Collections" />
-      </div>
-    </div>
-    <div class="form-row">
-      <div class="form-group col-md-3">
-        <label for="chemform" class="mr-2">Chemical formula</label>
-        <ChemFormulaInput id="chemform" v-model="ChemForm" />
-      </div>
-    </div>
-    <label id="description-label" class="mr-2">Description</label>
-    <TinyMceInline aria-labelledby="description-label" v-model="SampleDescription"></TinyMceInline>
-
-    <RelationshipVisualization :item_id="item_id" />
 
     <TableOfContents :item_id="item_id" :informationSections="tableOfContentsSections" />
 
@@ -56,7 +69,7 @@ import CollectionList from "@/components/CollectionList";
 import TinyMceInline from "@/components/TinyMceInline";
 import SynthesisInformation from "@/components/SynthesisInformation";
 import TableOfContents from "@/components/TableOfContents";
-import RelationshipVisualization from "@/components/RelationshipVisualization";
+import ItemRelationshipVisualization from "@/components/ItemRelationshipVisualization";
 import Creators from "@/components/Creators";
 
 export default {
@@ -88,7 +101,7 @@ export default {
     TinyMceInline,
     SynthesisInformation,
     TableOfContents,
-    RelationshipVisualization,
+    ItemRelationshipVisualization,
     FormattedRefcode,
     CollectionList,
     Creators,

@@ -1,90 +1,105 @@
 <template>
   <div class="container">
     <!-- Sample information -->
-    <div id="sample-information" class="form-row">
-      <div class="form-group col-md-2">
-        <label for="refcode" class="mr-2">Refcode</label>
-        <span class="form-control-plaintext formatted-refcode">
-          <FormattedRefcode :refcode="Refcode" />
-        </span>
-      </div>
-      <div class="form-group col-md-2">
-        <label for="item_id" class="mr-2">Cell ID</label>
-        <input id="item_id" class="form-control-plaintext" readonly="true" v-model="ItemID" />
-      </div>
-      <div class="form-group col-md-4">
-        <label for="name" class="mr-2">Name</label>
-        <input id="name" class="form-control" v-model="Name" />
-      </div>
-      <div class="form-group col-md-3">
-        <label for="date" class="mr-2">Date Created</label>
-        <input type="datetime-local" v-model="DateCreated" class="form-control" />
-      </div>
-      <div class="col-md-1">
-        <label id="creators" class="mr-2">Creators</label>
-        <Creators aria-labelledby="creators" :creators="ItemCreators" :size="36" />
-      </div>
-    </div>
-    <div class="form-row">
-      <div class="form-group col-md-3">
-        <label for="collections" class="mr-2">Collections</label>
-        <CollectionList :collections="Collections" />
-      </div>
-    </div>
-    <div class="form-row">
-      <div class="form-group col-md-2">
-        <label for="cell-format-dropdown" class="mr-2">Cell format</label>
-        <select id="cell-format-dropdown" v-model="CellFormat" class="form-control">
-          <option
-            v-for="(description, key) in availableCellFormats"
-            :value="description"
-            :key="key"
-          >
-            {{ description }}
-          </option>
-        </select>
-      </div>
-      <div class="form-group col-md-6 ml-3">
-        <label for="cell-format-description">Cell description</label>
-        <input
-          id="cell-format-description"
-          type="text"
-          class="form-control"
-          v-model="CellFormatDescription"
-        />
-      </div>
-    </div>
+    <div class="row">
+      <div class="col">
+        <div id="sample-information" class="form-row">
+          <div class="form-group col-md-5">
+            <label for="name" class="mr-2">Name</label>
+            <input id="name" class="form-control" v-model="Name" />
+          </div>
+          <div class="form-group col-md-3">
+            <label for="date" class="mr-2">Date Created</label>
+            <input
+              type="datetime-local"
+              v-model="DateCreated"
+              class="form-control"
+              style="max-width: 250px"
+            />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group col-md-2">
+            <label for="refcode" class="mr-2">Refcode</label>
+            <FormattedRefcode :refcode="Refcode" />
+          </div>
+          <div class="col-md-2 pb-3">
+            <label id="creators" class="mr-2">Creators</label>
+            <div class="mx-auto">
+              <Creators aria-labelledby="creators" :creators="ItemCreators" :size="36" />
+            </div>
+          </div>
+          <div class="form-group col-md-3">
+            <label id="collections" class="mr-2">Collections</label>
+            <div>
+              <CollectionList aria-labelledby="collections" :collections="Collections" />
+            </div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group col-md-2">
+            <label for="cell-format-dropdown" class="mr-2">Cell format</label>
+            <select id="cell-format-dropdown" v-model="CellFormat" class="form-control">
+              <option
+                v-for="(description, key) in availableCellFormats"
+                :value="description"
+                :key="key"
+              >
+                {{ description }}
+              </option>
+            </select>
+          </div>
+          <div class="form-group col-md-6 ml-3">
+            <label for="cell-format-description">Cell format description</label>
+            <input
+              id="cell-format-description"
+              type="text"
+              class="form-control"
+              v-model="CellFormatDescription"
+            />
+          </div>
+        </div>
 
-    <div class="form-row py-4">
-      <div class="form-group col-xl-2 col-lg-2 col-md-3">
-        <label for="characteristic-mass">Active mass (mg)</label>
-        <input
-          id="characteristic-mass"
-          class="form-control"
-          type="text"
-          v-model="CharacteristicMass"
-          :class="{ 'red-border': isNaN(CharacteristicMass) }"
-        />
+        <div class="form-row py-4">
+          <div class="form-group col-md-3">
+            <label for="characteristic-mass">Active mass (mg)</label>
+            <input
+              id="characteristic-mass"
+              class="form-control"
+              type="text"
+              v-model="CharacteristicMass"
+              :class="{ 'red-border': isNaN(CharacteristicMass) }"
+            />
+          </div>
+          <div class="form-group col-md-4 ml-3">
+            <label for="chemform">Active material formula</label>
+            <ChemFormulaInput id="chemform" v-model="ChemForm" />
+          </div>
+          <div class="form-group col-md-3 ml-3">
+            <label for="characteristic-molar-mass">Molar mass</label>
+            <input
+              id="characteristic-molar-mass"
+              class="form-control"
+              type="text"
+              v-model="MolarMass"
+              :class="{ 'red-border': isNaN(MolarMass) }"
+            />
+          </div>
+        </div>
+        <div class="row">
+          <div class="col">
+            <label id="description-label" class="mr-2">Description</label>
+            <TinyMceInline
+              aria-labelledby="description-label"
+              v-model="SampleDescription"
+            ></TinyMceInline>
+          </div>
+        </div>
       </div>
-      <div class="form-group col-xl-2 col-lg-3 col-md-4 ml-3">
-        <label for="chemform">Active material formula</label>
-        <ChemFormulaInput id="chemform" v-model="ChemForm" />
-      </div>
-      <div class="form-group col-xl-2 col-lg-2 col-md-3 ml-3">
-        <label for="characteristic-molar-mass">Molar mass</label>
-        <input
-          id="characteristic-molar-mass"
-          class="form-control"
-          type="text"
-          v-model="MolarMass"
-          :class="{ 'red-border': isNaN(MolarMass) }"
-        />
+      <div class="col-md-4">
+        <ItemRelationshipVisualization :item_id="item_id" />
       </div>
     </div>
-    <label id="description-label">Description</label>
-    <TinyMceInline aria-labelledby="description-label" v-model="SampleDescription"></TinyMceInline>
-
-    <RelationshipVisualization :item_id="item_id" />
 
     <TableOfContents :item_id="item_id" :informationSections="tableOfContentsSections" />
 
@@ -98,7 +113,7 @@ import ChemFormulaInput from "@/components/ChemFormulaInput";
 import TinyMceInline from "@/components/TinyMceInline";
 import CellPreparationInformation from "@/components/CellPreparationInformation";
 import TableOfContents from "@/components/TableOfContents";
-import RelationshipVisualization from "@/components/RelationshipVisualization";
+import ItemRelationshipVisualization from "@/components/ItemRelationshipVisualization";
 import FormattedRefcode from "@/components/FormattedRefcode";
 import CollectionList from "@/components/CollectionList";
 import Creators from "@/components/Creators";
@@ -137,7 +152,7 @@ export default {
     TinyMceInline,
     CellPreparationInformation,
     TableOfContents,
-    RelationshipVisualization,
+    ItemRelationshipVisualization,
     FormattedRefcode,
     CollectionList,
     Creators,

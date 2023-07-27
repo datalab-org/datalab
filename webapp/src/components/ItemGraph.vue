@@ -181,4 +181,10 @@ export default {
 #flex-container {
   flex-flow: column;
 }
+
+#cy {
+  width: 100%;
+  height: 800px;
+  /* display: block;*/
+}
 </style>

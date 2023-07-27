@@ -108,7 +108,6 @@ describe("Sample table page", () => {
 
   it("Checks the sample edit page", () => {
     cy.findByText("12345678910").click();
-    cy.findByLabelText("Sample ID").should("have.value", "12345678910");
     cy.go("back");
     cy.findByText("12345678910");
     cy.findByText("This is a sample name");
@@ -186,7 +185,6 @@ describe("Sample table page", () => {
 
     // check one of the pages to make sure it is generating properly
     cy.findByText("122.rwre").click();
-    cy.findByLabelText("Sample ID").should("have.value", "122.rwre");
     cy.go("back");
 
     more_ids.map((id) => verifySample(id));
@@ -283,7 +281,6 @@ describe("Advanced sample creation features", () => {
 
   it("checks the edit page of the copied sample", () => {
     cy.findByText("testBcopy").click();
-    cy.findByLabelText("Sample ID").should("have.value", "testBcopy");
     cy.findByLabelText("Name").should("have.value", "COPY OF the second test sample");
     cy.findByText("this is a description of testB.");
     cy.findByText("a comment is added here.");
@@ -319,7 +316,6 @@ describe("Advanced sample creation features", () => {
 
   it("checks the edit page of the copied sample with components", () => {
     cy.findByText("testBcopy_copy").click();
-    cy.findByLabelText("Sample ID").should("have.value", "testBcopy_copy");
     cy.findByLabelText("Name").should("have.value", "COPY OF COPY OF the second test sample");
     cy.findByText("this is a description of testB.");
     cy.findByText("a comment is added here.");
