@@ -132,33 +132,6 @@ export default createStore({
         state.all_item_data[item_id]["display_order"].push(new_block_id);
       }
     },
-    addACollectionBlock(state, { collection_id, new_block_obj, new_block_insert_index }) {
-      // payload: item_id, new_block_obj, new_display_order
-
-      // I should actually throw an error if this fails!
-      console.assert(
-        collection_id == new_block_obj.collection_id,
-        "The block has a different collection_id (%s) than the collection_id provided to addACollectionBlock (%s)",
-        collection_id,
-        new_block_obj.collection_id
-      );
-      console.log(
-        `addACollectionBlock called with: ${collection_id}, ${new_block_obj}, ${new_block_insert_index}`
-      );
-      let new_block_id = new_block_obj.block_id;
-      state.all_collection_data[collection_id]["blocks_obj"][new_block_id] = new_block_obj;
-      if (new_block_insert_index) {
-        state.all_collection_data[collection_id]["display_order"].splice(
-          new_block_insert_index,
-          0,
-          new_block_id
-        );
-      }
-      // if new_block_insert_index is None, then block is inserted at the end
-      else {
-        state.all_collection_data[collection_id]["display_order"].push(new_block_id);
-      }
-    },
     updateBlockData(state, payload) {
       // requires the following fields in payload:
       // item_id, block_id, block_data
