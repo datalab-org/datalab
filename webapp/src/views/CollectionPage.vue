@@ -10,35 +10,6 @@
     </span>
     <div class="navbar-nav">
       <a class="nav-item nav-link" href="/">Home</a>
-      <div class="nav-item dropdown">
-        <a
-          class="nav-link dropdown-toggle ml-2"
-          id="navbarDropdown"
-          role="button"
-          data-toggle="dropdown"
-          aria-haspopup="true"
-          aria-expanded="false"
-          @click="isMenuDropdownVisible = !isMenuDropdownVisible"
-        >
-          Add a block
-        </a>
-        <div
-          class="dropdown-menu"
-          style="display: block"
-          aria-labelledby="navbarDropdown"
-          v-show="isMenuDropdownVisible"
-        >
-          <template v-for="(blockType, id) in blockTypes" :key="id">
-            <a
-              v-if="blockTypes[id].supportsCollections == true"
-              class="dropdown-item"
-              @click="newBlock($event, id)"
-            >
-              {{ blockType.description }}
-            </a>
-          </template>
-        </div>
-      </div>
       <a class="nav-item nav-link" :href="this.collectionApiUrl" target="_blank">
         <font-awesome-icon icon="code" fixed-width /> View JSON
       </a>
@@ -62,18 +33,14 @@
   <!-- Item-type header information goes here -->
   <div class="editor-body">
     <CollectionInformation :collection_id="collection_id" />
-
-    <div class="container">
-      <hr />
-    </div>
   </div>
 </template>
 
 <script>
 import CollectionInformation from "@/components/CollectionInformation";
-import { getCollectionData, saveCollection, addACollectionBlock } from "@/server_fetch_utils";
+import { getCollectionData, saveCollection } from "@/server_fetch_utils";
 import tinymce from "tinymce/tinymce";
-import { blockTypes, itemTypes } from "@/resources.js";
+import { itemTypes } from "@/resources.js";
 import { API_URL } from "@/resources.js";
 import { formatDistanceToNow } from "date-fns";
 
@@ -87,20 +54,6 @@ export default {
     };
   },
   methods: {
-    async newBlock(event, blockType, index = null) {
-      this.isMenuDropdownVisible = false;
-      this.isLoadingNewBlock = true;
-      this.$refs.blockLoadingIndicator.scrollIntoView({
-        behavior: "smooth",
-      });
-      var block_id = await addACollectionBlock(this.item_id, blockType, index);
-      // close the dropdown and scroll to the new block
-      var new_block_el = document.getElementById(block_id);
-      this.isLoadingNewBlock = false;
-      new_block_el.scrollIntoView({
-        behavior: "smooth",
-      });
-    },
     saveCollectionData() {
       // trigger the mce save so that they update the store with their content
       console.log("save clicked!");
@@ -131,7 +84,6 @@ export default {
       return this.$store.state.saved_status_collections[this.collection_id];
     },
     lastModified() {
-      // if (!this.item_data.last_modified) { return "" }
       let item_date = this.collection_data.last_modified;
       const save_date = new Date(item_date);
       return formatDistanceToNow(save_date, new Date(), { addSuffix: true });
@@ -145,7 +97,6 @@ export default {
   },
   beforeMount() {
     this.collectionApiUrl = API_URL + "/collections/" + this.collection_id;
-    this.blockTypes = blockTypes; // bind blockTypes as a NON-REACTIVE object to the this context so that it is accessible by the template.
   },
   mounted() {
     // overwrite ctrl-s and cmd-s to save the page
