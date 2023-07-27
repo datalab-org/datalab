@@ -3,6 +3,10 @@
     <!-- Sample information -->
     <div id="starting-material-information" class="form-row">
       <div class="form-group col-md-2 col-sm-4">
+        <label for="item_id" class="mr-2">Refcode</label>
+        <div><FormattedRefcode :refcode="Refcode" /></div>
+      </div>
+      <div class="form-group col-md-2 col-sm-4">
         <label for="item_id" class="mr-2">Barcode</label>
         <input id="item_id" class="form-control-plaintext" readonly="true" :value="item_id" />
       </div>
@@ -30,13 +34,19 @@
       </div>
     </div>
     <div class="form-row">
-      <div class="form-group col-md-2">
+      <div class="form-group col-md-3">
+        <label id="collections" class="mr-2">Collections</label>
+        <div>
+          <CollectionList aria-labelledby="collections" :collections="Collections" />
+        </div>
+      </div>
+      <div class="form-group col-md-3">
         <label for="chemform" class="mr-2">Chemical formula</label>
         <span class="form-control-plaintext" readonly="true">
           <ChemicalFormula :formula="item.chemform" />
         </span>
       </div>
-      <div class="form-group col-md-4">
+      <div class="form-group col-md-3">
         <label for="supplier" class="mr-2">Supplier</label>
         <input
           id="supplier"
@@ -75,6 +85,8 @@ import { createComputedSetterForItemField } from "@/field_utils.js";
 import TinyMceInline from "@/components/TinyMceInline";
 import ChemicalFormula from "@/components/ChemicalFormula";
 import TableOfContents from "@/components/TableOfContents";
+import CollectionList from "@/components/CollectionList";
+import FormattedRefcode from "@/components/FormattedRefcode";
 
 export default {
   data() {
@@ -93,11 +105,15 @@ export default {
       return this.$store.state.all_item_data[this.item_id];
     },
     ItemDescription: createComputedSetterForItemField("description"),
+    Collections: createComputedSetterForItemField("collections"),
+    Refcode: createComputedSetterForItemField("refcode"),
   },
   components: {
     ChemicalFormula,
     TinyMceInline,
+    CollectionList,
     TableOfContents,
+    FormattedRefcode,
   },
 };
 </script>

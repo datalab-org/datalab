@@ -6,7 +6,7 @@
   >
     <span class="navbar-brand" @click="scrollToID($event, 'topScrollPoint')"
       >{{ itemTypeEntry?.navbarName || "loading..." }}&nbsp;&nbsp;|&nbsp;&nbsp;
-      {{ collection_id }}
+      <FormattedCollectionName :collection_id="collection_id" />
     </span>
     <div class="navbar-nav">
       <a class="nav-item nav-link" href="/">Home</a>
@@ -39,6 +39,7 @@
 <script>
 import CollectionInformation from "@/components/CollectionInformation";
 import { getCollectionData, saveCollection } from "@/server_fetch_utils";
+import FormattedCollectionName from "@/components/FormattedCollectionName.vue";
 import tinymce from "tinymce/tinymce";
 import { itemTypes } from "@/resources.js";
 import { API_URL } from "@/resources.js";
@@ -94,6 +95,7 @@ export default {
   },
   components: {
     CollectionInformation,
+    FormattedCollectionName,
   },
   beforeMount() {
     this.collectionApiUrl = API_URL + "/collections/" + this.collection_id;

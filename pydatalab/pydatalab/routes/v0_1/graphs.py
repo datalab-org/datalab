@@ -51,7 +51,6 @@ def get_graph_cy_format(item_id: Optional[str] = None, collection_id: Optional[s
         }
         if len(node_ids) > 1:
             or_query = [{"item_id": id} for id in node_ids if id != item_id]
-            # query.extend([{"relationships.item_id": id} for id in node_ids if id != item_id])
             next_shell = flask_mongo.db.items.find(
                 {
                     "$or": or_query,
@@ -112,10 +111,7 @@ def get_graph_cy_format(item_id: Optional[str] = None, collection_id: Optional[s
                     )
                 continue
 
-        if not document.get("relationships"):
-            continue
-
-        for relationship in document["relationships"]:
+        for relationship in document.get("relationships", []):
             # only considering child-parent relationships:
             if relationship.get("relation") not in ("parent", "is_part_of"):
                 continue
