@@ -11,9 +11,6 @@ export default createStore({
     all_collection_data: {},
     all_collection_children: {},
     all_collection_parents: {},
-    this_collection_data: {},
-    this_collection_children: [],
-    this_collection_parents: [],
     sample_list: [],
     starting_material_list: [],
     collection_list: [],
@@ -83,12 +80,11 @@ export default createStore({
       // payload should have the following fields:
       // collection_id, data, child_items
       // Object.assign(state.all_sample_data[payload.item_data], payload.item_data)
-      state.this_collection_id = payload.collection_id;
-      state.this_collection_data = payload.data;
       state.all_collection_data[payload.collection_id] = payload.data;
-      state.this_collection_children = payload.child_items;
-      state.this_collection_parents = [];
       state.saved_status_collections[payload.collection_id] = true;
+    },
+    setCollectionSampleList(state, payload) {
+      state.all_collection_children[payload.collection_id] = payload.child_items;
     },
     updateFiles(state, files_data) {
       // payload should be an object with file ids as key and file data as values
