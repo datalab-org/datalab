@@ -339,6 +339,13 @@
           "title": "Contact Email",
           "type": "string",
           "format": "email"
+        },
+        "managers": {
+          "title": "Managers",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
