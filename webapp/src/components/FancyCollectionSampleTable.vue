@@ -83,8 +83,8 @@ export default {
       itemsSelected: [],
       headers: [
         { text: "ID", value: "item_id", sortable: true },
-        { text: "type", value: "type", sortable: true },
-        { text: "Sample name", value: "name", sortable: true },
+        { text: "Type", value: "type", sortable: true },
+        { text: "Name", value: "name", sortable: true },
         { text: "Formula", value: "chemform", sortable: true },
         { text: "Date", value: "date", sortable: true },
         { text: "Creators", value: "creators", sortable: true },

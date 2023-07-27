@@ -6,7 +6,7 @@
   >
     <span class="navbar-brand" @click="scrollToID($event, 'topScrollPoint')"
       >{{ itemTypeEntry?.navbarName || "loading..." }}&nbsp;&nbsp;|&nbsp;&nbsp;
-      {{ item_id }}
+      <FormattedItemName :item_id="item_id" :itemType="itemType" />
     </span>
     <div class="navbar-nav">
       <a class="nav-item nav-link" href="/">Home</a>
@@ -46,7 +46,7 @@
       <span v-if="itemDataLoaded && !savedStatus" class="navbar-text unsaved-warning">
         Unsaved changes
       </span>
-      <span v-if="itemDataLoaded" class="navbar-text mx-2"
+      <span v-if="itemDataLoaded" class="navbar-text small mx-2"
         ><i>Last saved: {{ lastModified }}</i></span
       >
       <font-awesome-icon
@@ -95,10 +95,10 @@
 import TinyMceInline from "@/components/TinyMceInline";
 import SelectableFileTree from "@/components/SelectableFileTree";
 
-import TableOfContents from "@/components/TableOfContents";
 import FileList from "@/components/FileList";
 import FileSelectModal from "@/components/FileSelectModal";
 import { getItemData, addABlock, saveItem, updateBlockFromServer } from "@/server_fetch_utils";
+import FormattedItemName from "@/components/FormattedItemName";
 
 import setupUppy from "@/file_upload.js";
 
@@ -189,12 +189,11 @@ export default {
     },
   },
   computed: {
+    itemType() {
+      return this.$store.state.all_item_data[this.item_id]?.type;
+    },
     itemTypeEntry() {
-      var type = this.$store.state.all_item_data[this.item_id]?.type; // will be null if data not loaded yet
-      if (type in itemTypes) {
-        return itemTypes[type];
-      }
-      return null;
+      return itemTypes[this.itemType] || null;
     },
     navbarColor() {
       return this.itemTypeEntry?.navbarColor || "DarkGrey";
@@ -240,8 +239,8 @@ export default {
     TinyMceInline,
     SelectableFileTree,
     FileList,
-    TableOfContents,
     FileSelectModal,
+    FormattedItemName,
   },
   beforeMount() {
     this.blockTypes = blockTypes; // bind blockTypes as a NON-REACTIVE object to the this context so that it is accessible by the template.

@@ -5,7 +5,7 @@
         <div id="collection-information" class="form-row">
           <div class="col-md-2">
             <label id="creators" class="mr-2">Creators</label>
-            <div class="mr-2">
+            <div>
               <Creators :creators="CollectionCreators" :size="36" />
             </div>
           </div>
@@ -27,7 +27,7 @@
           v-model="CollectionDescription"
         ></TinyMceInline>
       </div>
-      <div class="col-md-3">
+      <div class="col-md-4">
         <CollectionRelationshipVisualization :collection_id="collection_id" />
       </div>
     </div>
