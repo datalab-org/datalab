@@ -167,12 +167,13 @@ export function getSampleList() {
 }
 
 export function getCollectionSampleList(collection_id) {
+  console.log("getCollectionSampleList");
   return fetch_get(`${API_URL}/collections/${collection_id}`)
     .then(function (response_json) {
-      store.commit("setCollectionSampleList", collection_id, response_json.child_items);
+      store.commit("setCollectionSampleList", response_json);
     })
     .catch((error) => {
-      console.error("Error when fetching collection sample list");
+      console.error("Error when fetching collection sample list for collection_id", collection_id);
       console.error(error);
       throw error;
     });

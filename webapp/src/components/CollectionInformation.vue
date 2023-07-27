@@ -3,10 +3,6 @@
     <div class="row">
       <div class="col">
         <div id="collection-information" class="form-row">
-          <div class="form-group col-md-2">
-            <label for="item_id" class="mr-2">Refcode</label>
-            <input id="item_id" class="form-control-plaintext" v-model="Refcode" />
-          </div>
           <div class="col-md-2">
             <label id="creators" class="mr-2">Creators</label>
             <div class="mr-2">
@@ -52,7 +48,6 @@ export default {
   },
   computed: {
     CollectionID: createComputedSetterForCollectionField("collection_id"),
-    CollectionRefcode: createComputedSetterForCollectionField("refcode"),
     CollectionDescription: createComputedSetterForCollectionField("description"),
     Title: createComputedSetterForCollectionField("title"),
     Name: createComputedSetterForCollectionField("name"),
