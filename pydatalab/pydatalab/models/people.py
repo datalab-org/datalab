@@ -6,6 +6,7 @@ import bson.errors
 from pydantic import BaseModel, EmailStr, Field, validator
 
 from pydatalab.models.entries import Entry
+from pydatalab.models.utils import PyObjectId
 
 
 class IdentityType(str, Enum):
@@ -75,6 +76,9 @@ class Person(Entry):
 
     contact_email: Optional[EmailStr]
     """In the case of multiple *verified* email identities, this email will be used as the primary contact."""
+
+    managers: Optional[List[PyObjectId]]
+    """A list of user IDs that can manage this person's items."""
 
     @validator("type", pre=True, always=True)
     def add_missing_type(cls, v):
