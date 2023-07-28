@@ -289,6 +289,68 @@ def check_item_validity(_, base_url: str = None, starting_materials: bool = Fals
 admin.add_task(check_item_validity)
 
 
+@task
+def import_cheminventory(_, filename: str):
+    import random
+
+    import pandas as pd
+
+    from pydatalab.models import StartingMaterial
+    from pydatalab.models.utils import generate_unique_refcode
+    from pydatalab.mongo import get_database
+
+    def generate_random_startingmaterial_id():
+        """
+        This function generates XX + a random 15-length string for use as an id for starting materials
+        that don't have a barcode.
+        """
+
+        randlist = ["XX"] + random.choices("abcdefghijklmnopqrstuvwxyz0123456789", k=15)
+
+        return "".join(randlist)
+
+    data_collection = get_database().items
+
+    df = pd.read_excel(filename)
+    df["type"] = "starting_materials"  # all starting materials will have this as the type
+    df["item_id"] = df["Barcode"]  # assign item_id to be the Barcode by default
+
+    # some starting materials don't have a barcode. Create a random id for those.
+    replacement_dict = {
+        i: generate_random_startingmaterial_id() for i, _ in df[df.item_id.isna()].iterrows()
+    }
+    df.item_id.fillna(value=replacement_dict, inplace=True)
+
+    # clean the molecular weight column:
+    df["Molecular Weight"].replace(" ", float("nan"), inplace=True)
+
+    # convert df to list of dictionaries for ingestion into mongo
+    df.to_dict(orient="records")
+
+    # filter out missing values
+    ds = [
+        {k: v for k, v in d.items() if (v != "None" and pd.notnull(v))}
+        for d in df.to_dict(orient="records")
+    ]
+
+    starting_materials = []
+    for d in ds:
+        d["refcode"] = generate_unique_refcode()
+        starting_materials.append(StartingMaterial(**d))
+
+    # update or insert all starting materials
+    for starting_material in starting_materials:
+        print(f"adding starting material {starting_material.item_id} ({starting_material.name})")
+        data_collection.update_one(
+            {"item_id": starting_material.item_id}, {"$set": starting_material.dict()}, upsert=True
+        )
+
+    print("Done!")
+
+
+admin.add_task(import_cheminventory)
+
+
 ns.add_collection(dev)
 ns.add_collection(admin)
 ns.add_collection(migration)
