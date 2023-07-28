@@ -3,7 +3,9 @@ from typing import Any, Dict
 from flask_login import current_user
 
 from pydatalab.config import CONFIG
+from pydatalab.logger import LOGGER
 from pydatalab.login import UserRole
+from pydatalab.mongo import get_database
 
 
 def get_default_permissions(user_only: bool = True) -> Dict[str, Any]:
@@ -31,7 +33,17 @@ def get_default_permissions(user_only: bool = True) -> Dict[str, Any]:
 
     null_perm = {"creator_ids": {"$size": 0}}
     if current_user.is_authenticated and current_user.person is not None:
-        user_perm = {"creator_ids": {"$in": [current_user.person.immutable_id]}}
+        # find managed users under the given user (can later be expanded to groups)
+        managed_users = list(
+            get_database().users.find(
+                {"managers": {"$in": [current_user.person.immutable_id]}}, projection={"_id": 1}
+            )
+        )
+        if managed_users:
+            managed_users = [u["_id"] for u in managed_users]
+        LOGGER.info("Found users %s for user %s", managed_users, current_user.person)
+
+        user_perm = {"creator_ids": {"$in": [current_user.person.immutable_id] + managed_users}}
         if user_only:
             return user_perm
         return {"$or": [user_perm, null_perm]}
