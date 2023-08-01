@@ -352,8 +352,9 @@ class CycleBlock(DataBlock):
                 use_normalized_capacity=bool(characteristic_mass_g),
             )
 
-        # Reduce df size to 100 points per cycle by default
-        df = reduce_echem_cycle_sampling(df, num_samples=100)
+        # Reduce df size to 100 points per cycle by default if there are more than a 100k points
+        if len(df) > 1e5:
+            df = reduce_echem_cycle_sampling(df, num_samples=100)
 
         layout = bokeh_plots.double_axes_echem_plot(
             df, cycle_summary=cycle_summary_df, mode=mode, normalized=bool(characteristic_mass_g)
