@@ -57,14 +57,14 @@
       </div>
       <div class="row">
         <button id="uppy-trigger" class="btn btn-default btn-sm mb-3 ml-4" type="button">
-          Upload files...</button
+          Upload</button
         ><!-- Surrounding divs so that buttons  don't become full-width in the card -->
         <button
           class="btn btn-default btn-sm mb-3 ml-2"
           type="button"
           @click="setFileSelectModalOpen"
         >
-          Add files from server...
+          Add from server
         </button>
       </div>
     </div>
@@ -140,7 +140,8 @@ export default {
 }
 
 .server-name {
-  font-family: "Andalé Mono", monospace;
+  font-family: "Spline Sans Mono", monospace;
+  text-transform: uppercase;
   font-weight: 400;
   /*font-style: italic;*/
   color: teal;

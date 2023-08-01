@@ -1,4 +1,13 @@
 <template>
+  <div class="datalab-title mx-auto">
+    <span class="datalab-D">D</span>
+    <span class="datalab-A">A</span>
+    <span class="datalab-T">T</span>
+    <span class="datalab-AA">A</span>
+    <span class="datalab-L">L</span>
+    <span class="datalab-AAA">A</span>
+    <span class="datalab-B">B</span>
+  </div>
   <div v-if="this.logo_url != null">
     <a v-if="this.homepage_url != null" :href="this.homepage_url" target="_blank">
       <img class="logo-banner" :src="this.logo_url" />

@@ -3,18 +3,18 @@
     <font-awesome-icon icon="exclamation-circle" />&nbsp;Server Error. Sample list could not be
     retreived.
   </div>
-  <table class="table table-hover table-sm" data-testid="sample-table">
+  <table class="table item-table table-hover table-sm" data-testid="sample-table">
     <thead>
       <tr>
-        <th scope="col">ID</th>
-        <th scope="col">Type</th>
-        <th scope="col">Sample name</th>
-        <th scope="col">Formula</th>
-        <th class="text-center" scope="col">Date</th>
-        <th scope="col">Collections</th>
-        <th class="text-center" scope="col">Creators</th>
-        <th class="text-center" scope="col"># of blocks</th>
-        <th scope="col"></th>
+        <th class="item-th" scope="col">ID</th>
+        <th class="item-th" scope="col">Type</th>
+        <th class="item-th" scope="col">Sample name</th>
+        <th class="item-th" scope="col">Formula</th>
+        <th class="item-th" scope="col">Date</th>
+        <th class="item-th" scope="col">Collections</th>
+        <th class="item-th" scope="col">Creators</th>
+        <th class="item-th" scope="col">Blocks</th>
+        <th class="item-th table-delete-header" scope="col"></th>
       </tr>
     </thead>
     <tbody>
@@ -33,14 +33,18 @@
             enableModifiedClick
           />
         </td>
-        <td aligh="center">{{ itemTypes[sample.type].display }}</td>
-        <td align="left">{{ sample.name }}</td>
-        <td><ChemicalFormula :formula="sample.chemform" /></td>
-        <td class="text-center">{{ $filters.IsoDatetimeToDate(sample.date) }}</td>
-        <td><CollectionList :collections="sample.collections" /></td>
-        <td align="center"><Creators :creators="sample.creators" /></td>
-        <td class="text-right">{{ sample.nblocks }}</td>
-        <td align="right">
+        <td class="item-td table-item-type" align="center">{{ itemTypes[sample.type].display }}</td>
+        <td class="item-td table-item-name" align="left">{{ sample.name }}</td>
+        <td class="item-td table-item-formula"><ChemicalFormula :formula="sample.chemform" /></td>
+        <td class="item-td table-item-date">{{ $filters.IsoDatetimeToDate(sample.date) }}</td>
+        <td class="item-td table-item-collections">
+          <CollectionList :collections="sample.collections" />
+        </td>
+        <td class="item-td table-item-creators" align="center">
+          <Creators :creators="sample.creators" />
+        </td>
+        <td class="item-td table-item-blocks text-right">{{ sample.nblocks }}</td>
+        <td class="item-td table-item-delete-button" align="right">
           <button
             type="button"
             class="close"

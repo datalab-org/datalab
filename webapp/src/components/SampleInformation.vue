@@ -25,7 +25,9 @@
         <div class="form-row">
           <div class="form-group col-md-2">
             <label for="refcode" class="mr-2">Refcode</label>
-            <FormattedRefcode :refcode="Refcode" />
+            <div>
+              <FormattedRefcode :refcode="Refcode" />
+            </div>
           </div>
           <div class="col-md-2 pb-3">
             <label id="creators" class="mr-2">Creators</label>

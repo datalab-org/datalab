@@ -2,33 +2,37 @@
   <!-- think about elegant two-way binding to DataBlockBase... or, just pass all the block data into
 DataBlockBase as a prop, and save from within DataBlockBase  -->
   <DataBlockBase :item_id="item_id" :block_id="block_id">
-    <FileSelectDropdown
-      v-model="file_id"
-      :item_id="item_id"
-      :block_id="block_id"
-      :extensions="['.xrdml', '.xy', '.dat', '.xye']"
-      updateBlockOnChange
-    />
-
-    <div class="form-row col-md-4 col-lg-4 mt-2 mb-2 pl-1">
-      <div class="input-group form-inline">
-        <label class="mr-2"><b>Wavelength (Å):</b></label>
-        <input
-          type="text"
-          class="form-control"
-          :class="{ 'is-invalid': wavelengthParseError }"
-          v-model="wavelength"
-          @keydown.enter="
-            parseWavelength();
-            updateBlock();
-          "
-          @blur="
-            parseWavelength();
-            updateBlock();
-          "
+    <div class="form-inline">
+      <div class="col-6">
+        <FileSelectDropdown
+          v-model="file_id"
+          :item_id="item_id"
+          :block_id="block_id"
+          :extensions="['.xrdml', '.xy', '.dat', '.xye']"
+          updateBlockOnChange
         />
-        <div v-if="wavelengthParseError" class="alert alert-danger mt-2 mx-auto">
-          {{ wavelengthParseError }}
+      </div>
+
+      <div class="col-md-4 col-lg-4 mt-2 mb-2 pl-1">
+        <div class="input-group form-inline">
+          <label class="mr-2">Wavelength (Å):</label>
+          <input
+            type="text"
+            class="form-control"
+            :class="{ 'is-invalid': wavelengthParseError }"
+            v-model="wavelength"
+            @keydown.enter="
+              parseWavelength();
+              updateBlock();
+            "
+            @blur="
+              parseWavelength();
+              updateBlock();
+            "
+          />
+          <div v-if="wavelengthParseError" class="alert alert-danger mt-2 mx-auto">
+            {{ wavelengthParseError }}
+          </div>
         </div>
       </div>
     </div>

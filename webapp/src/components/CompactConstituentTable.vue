@@ -1,5 +1,5 @@
 <template>
-  <table style="width: 600px" class="table table-sm borderless">
+  <table style="width: 600px" class="table select-table table-sm borderless">
     <colgroup>
       <col span="1" style="width: 300px" />
       <col span="1" style="width: 75px" />

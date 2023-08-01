@@ -4,8 +4,9 @@
     class="navbar navbar-expand sticky-top navbar-dark py-0 editor-navbar"
     :style="{ backgroundColor: navbarColor }"
   >
-    <span class="navbar-brand" @click="scrollToID($event, 'topScrollPoint')"
-      >{{ itemTypeEntry?.navbarName || "loading..." }}&nbsp;&nbsp;|&nbsp;&nbsp;
+    <span class="navbar-brand" @click="scrollToID($event, 'topScrollPoint')">
+      <span class="navbar-type">{{ itemTypeEntry?.navbarName || "loading..." }}</span
+      >&nbsp;
       <FormattedItemName :item_id="item_id" :itemType="itemType" />
     </span>
     <div class="navbar-nav">
@@ -64,12 +65,9 @@
 
     <FileList :item_id="item_id" :file_ids="file_ids" :stored_files="stored_files" />
 
-    <div class="container">
-      <hr />
-    </div>
-
     <!-- Display the blocks -->
     <div class="container block-container">
+      <label class="mr-2">Blocks</label>
       <transition-group name="block-list" tag="div">
         <div class="block-list-item" v-for="block_id in item_data.display_order" :key="block_id">
           <component :is="getBlockDisplayType(block_id)" :item_id="item_id" :block_id="block_id" />
@@ -305,11 +303,13 @@ label,
 
 .nav-link {
   cursor: pointer;
+  border: 1px solid transparent;
 }
 
 .nav-link:hover {
-  background-color: black;
   color: white;
+  text-decoration: underline wavy lightgrey;
+  text-underline-offset: 0.2rem;
 }
 
 .navbar-icon {

@@ -136,14 +136,6 @@ export default {
   width: 100%;
 }
 
-.subheading {
-  color: darkslategrey;
-  font-size: small;
-  font-weight: 600;
-  text-transform: uppercase;
-  margin-bottom: 0px;
-}
-
 table {
   margin-bottom: 0rem;
 }

@@ -6,6 +6,8 @@
         fixed-width
         class="collapse-arrow"
         @click="toggleExpandBlock"
+        title="Expand block"
+        aria-label="Expand block"
       />
       <input class="form-control-plaintext block-title" type="text" v-model="BlockTitle" />
       <span class="blocktype-label ml-auto mr-3">{{ blockType }}</span>
@@ -14,24 +16,31 @@
         class="block-header-icon"
         @click="updateBlock"
         :class="{ spin: isUpdating }"
-        aria-label="updateBlock"
+        aria-label="Refresh block"
+        title="Refresh block"
       />
       <font-awesome-icon
         :icon="['fas', 'arrow-up']"
         class="block-header-icon"
         @click="swapUp"
         v-if="displayIndex != 0"
+        aria-label="Move block up"
+        title="Move block up"
       />
       <font-awesome-icon
         :icon="['fas', 'arrow-down']"
         class="block-header-icon"
         @click="swapDown"
         v-if="displayIndex != displayOrder.length - 1"
+        aria-label="Move block down"
+        title="Move block down"
       />
       <font-awesome-icon
         :icon="['fas', 'times']"
         class="block-header-icon delete-block-button"
         @click="deleteThisBlock"
+        aria-label="Delete block"
+        title="Delete block"
       />
     </div>
 
@@ -154,6 +163,8 @@ export default {
 <style scoped>
 .data-block {
   padding-bottom: 18px;
+  border: 0px solid #ccc;
+  margin-bottom: 20px;
 }
 
 /* Style the button that is used to open and close the collapsible content */
@@ -170,21 +181,21 @@ export default {
 }
 
 .collapsible {
-  background-color: #eee;
   color: #444;
   /*cursor: pointer;*/
   /*padding: 6px;*/
   width: 100%;
-  border: 1px solid #ccc;
+  border-bottom: 1px solid #ccc;
   text-align: left;
   outline: none;
-  border-radius: 3px;
+  border-radius: 0;
 }
 
 .block-title {
   margin-left: 1em;
-  font-size: large;
-  font-weight: 500;
+  font-size: 0.7em;
+  font-family: "Spline Sans Mono";
+  text-transform: uppercase;
 }
 
 /* Add a background color to the button if it is clicked on (add the .active class with JS), and when you move the mouse over it (hover) */
@@ -210,9 +221,8 @@ export default {
 }
 
 .collapse-arrow {
-  font-size: large;
+  font-size: small;
   margin-left: 10px;
-  margin-right: 10px;
   color: #004175;
   transition: all 0.4s;
 }
@@ -229,7 +239,7 @@ export default {
 }
 
 .block-header-icon {
-  font-size: large;
+  font-size: small;
   color: #004175;
   /*margin-left: auto;*/
   margin-right: 10px;
