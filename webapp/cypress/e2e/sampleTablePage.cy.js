@@ -108,6 +108,7 @@ describe("Sample table page", () => {
 
   it("Checks the sample edit page", () => {
     cy.findByText("12345678910").click();
+    cy.wait(1000);
     cy.go("back");
     cy.findByText("12345678910");
     cy.findByText("This is a sample name");
@@ -185,6 +186,7 @@ describe("Sample table page", () => {
 
     // check one of the pages to make sure it is generating properly
     cy.findByText("122.rwre").click();
+    cy.wait(1000);
     cy.go("back");
 
     more_ids.map((id) => verifySample(id));

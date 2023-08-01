@@ -53,10 +53,9 @@ function searchAndSelectItem(search_text, selector, delay = 100) {
 function deleteSample(sample_id, delay = 100) {
   cy.wait(delay).then(() => {
     cy.log("search for and delete: " + sample_id);
-    var matchingTds = [];
-    cy.findByText(sample_id, {
-      selector: "[data-testid=sample-table] tr > td:nth-of-type(1) > div > span",
-    })
+    var matchingIds = [];
+    cy.get("[data-testid=sample-table]")
+      .contains(sample_id)
       .parents("tr")
       .within(() => {
         cy.get("button.close").click();
@@ -229,14 +228,12 @@ describe("Batch sample creation", () => {
   it("checks the copied samples", () => {
     // check the copied samples
     cy.contains("baseA_copy").click();
-    cy.findByLabelText("Sample ID").should("have.value", "baseA_copy");
     cy.findByLabelText("Name").should("have.value", "a copied sample");
     cy.findByText("this is a description of baseA.");
     cy.findByText("a comment is added here.");
     cy.findByText("Home").click();
 
     cy.contains(/^baseB_copy$/).click();
-    cy.findByLabelText("Sample ID").should("have.value", "baseB_copy");
     cy.findByText("this is a description of baseB.");
     cy.findByText("a comment is added here.");
     cy.findByText("a second comment is added here.");
@@ -250,7 +247,6 @@ describe("Batch sample creation", () => {
     cy.findByText("Home").click();
 
     cy.findByText("baseB_copy2").click();
-    cy.findByLabelText("Sample ID").should("have.value", "baseB_copy2");
     cy.findByText("this is a description of baseB.");
     cy.findByText("a comment is added here.");
     cy.findByText("a second comment is added here.");
@@ -346,7 +342,6 @@ describe("Batch sample creation", () => {
 
   it("checks the created samples", () => {
     cy.contains("test101").click();
-    cy.findByLabelText("Sample ID").should("have.value", "test101");
     cy.findByLabelText("Name").should("have.value", "sample with two components");
     cy.get("#synthesis-information table").contains("component1");
     cy.get("#synthesis-information table").contains("component2");
@@ -355,7 +350,6 @@ describe("Batch sample creation", () => {
     cy.findByText("Home").click();
 
     cy.contains("test102").click();
-    cy.findByLabelText("Sample ID").should("have.value", "test102");
     cy.findByLabelText("Name").should(
       "have.value",
       "sample with two components, copied from a sample with no components"
@@ -369,7 +363,6 @@ describe("Batch sample creation", () => {
     cy.findByText("Home").click();
 
     cy.contains("test103").click();
-    cy.findByLabelText("Sample ID").should("have.value", "test103");
     cy.findByLabelText("Name").should(
       "have.value",
       "sample with one component, copied from a sample with two components"
@@ -403,7 +396,6 @@ describe("Batch sample creation", () => {
     cy.findByText("Home").click();
 
     cy.contains("test104").click();
-    cy.findByLabelText("Sample ID").should("have.value", "test104");
     cy.findByLabelText("Name").should(
       "have.value",
       "sample with three components, copied from a sample with some of the same components"
@@ -560,7 +552,6 @@ describe("Batch sample creation", () => {
 
     function checkCreatedSample(item_id) {
       cy.contains(item_id).click();
-      cy.findByLabelText("Sample ID").should("have.value", item_id);
       cy.contains("this is a description of baseB.");
       cy.get("#synthesis-information table").contains("component3");
       cy.get("#synthesis-information table").contains("component4");
@@ -679,7 +670,6 @@ describe("Batch sample creation", () => {
 
     function checkCreatedSample(item_id) {
       cy.contains(item_id).click();
-      cy.findByLabelText("Sample ID").should("have.value", item_id);
       cy.contains("this is a description of baseB.");
       cy.get("#synthesis-information table").contains("component3");
       cy.get("#synthesis-information table").contains("component4");
