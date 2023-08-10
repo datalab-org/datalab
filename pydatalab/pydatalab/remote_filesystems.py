@@ -117,6 +117,7 @@ def get_directory_structure(
                 directory["name"],
                 cache_last_updated,
             )
+            status = "updated"
 
         else:
             last_updated = cached_dir_structure["last_updated"]
@@ -126,16 +127,19 @@ def get_directory_structure(
                 directory["name"],
                 last_updated,
             )
+            status = "cached"
 
-    except RuntimeError as exc:
-        dir_structure = [{"type": "error", "details": str(exc)}]
+    except Exception as exc:
+        dir_structure = [{"type": "error", "name": directory["name"], "details": str(exc)}]
         last_updated = datetime.datetime.now()
+        status = "error"
 
     return {
         "name": directory["name"],
         "type": "toplevel",
         "contents": dir_structure,
         "last_updated": last_updated,
+        "status": status,
     }
 
 
@@ -204,9 +208,43 @@ def _get_latest_directory_structure(
         except Exception as exc:
             raise RuntimeError(f"Remote tree process {command!r} returned: {exc!r}")
         if stderr:
-            raise RuntimeError(f"Remote tree process {command!r} returned: {stderr!r}")
+            # Do not return the bare stderr, but instead specialise the error message to common errors
+            if "WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!" in stderr.decode("utf-8"):
+                msg = f"Remote host identification has changed for {hostname}: please contact the administrator of this datalab deployment."
+                LOGGER.error(
+                    "Remote host identification for %s has changed, failed to update remote directories",
+                    hostname,
+                )
+            else:
+                msg = "Remote tree process returned an error: please contact the administrator of this datalab deployment."
+                LOGGER.error(
+                    "Remote tree process on %s returned an error: %s",
+                    hostname,
+                    stderr.decode("utf-8"),
+                )
+            raise RuntimeError(msg)
 
-        return json.loads(stdout)
+        try:
+            return json.loads(stdout)
+        except Exception:
+            if "error opening dir" in stdout.decode("utf-8"):
+                msg = "Can no longer access the configured directory on the remote system; please contact the administrator of this datalab deployment."
+                LOGGER.error(
+                    "Remote directory %s on %s no longer accessible. Response: %s",
+                    directory_path,
+                    hostname,
+                    stdout.decode("utf-8"),
+                )
+            else:
+                msg = "Remote tree process failed with an unhandled error; please contact the administrator of this datalab deployment."
+                LOGGER.error(
+                    "Remote directory syncing for  %s on %s failed. Response: %s",
+                    directory_path,
+                    hostname,
+                    stdout.decode("utf-8"),
+                )
+
+            raise RuntimeError(msg)
 
     if hostname:
         LOGGER.debug(f"Calling remote {tree_command} on {directory_path}")
