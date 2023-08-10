@@ -9,19 +9,18 @@ from .graphs import ENDPOINTS as graphs_endpoints
 from .healthcheck import ENDPOINTS as healthcheck_endpoints
 from .info import ENDPOINTS as info_endpoints
 from .items import ENDPOINTS as items_endpoints
-from .remotes import ENDPOINTS as remotes_endpoints
+from .remotes import remote
 
 ENDPOINTS: Dict[str, Callable] = {
     **blocks_endpoints,
     **items_endpoints,
     **files_endpoints,
-    **remotes_endpoints,
     **healthcheck_endpoints,
     **auth_endpoints,
     **graphs_endpoints,
     **info_endpoints,
 }
 
-BLUEPRINTS = [collection]
+BLUEPRINTS = [collection, remote]
 
 __all__ = ("ENDPOINTS", "BLUEPRINTS", "__api_version__")

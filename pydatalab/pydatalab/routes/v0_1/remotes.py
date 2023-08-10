@@ -1,12 +1,31 @@
-from typing import Callable, Dict
+from typing import Any, Dict, Optional
 
-from flask import jsonify, request
+from flask import Blueprint, jsonify, request
 from flask_login import current_user
 
 from pydatalab.config import CONFIG
-from pydatalab.remote_filesystems import get_directory_structures
+from pydatalab.remote_filesystems import (
+    get_directory_structure,
+    get_directory_structures,
+)
 
 
+def _check_invalidate_cache(args: Dict[str, str]) -> Optional[bool]:
+    invalidate_cache: Optional[bool] = None
+    if "invalidate_cache" in args:
+        invalidate_cache_arg = args.get("invalidate_cache")
+        if invalidate_cache_arg not in ("1", "0"):
+            raise RuntimeError("invalidate_cache must be 0 or 1")
+        invalidate_cache = bool(int(invalidate_cache_arg))
+
+    return invalidate_cache
+
+
+remote = Blueprint("remotes", __name__)
+
+
+@remote.route("/list-remote-directories/", methods=["GET"])
+@remote.route("/remotes", methods=["GET"])
 def list_remote_directories():
     """Returns the most recent directory structures from the server.
 
@@ -26,12 +45,19 @@ def list_remote_directories():
             401,
         )
 
-    invalidate_cache = None
-    if "invalidate_cache" in request.args:
-        invalidate_cache = request.args["invalidate_cache"]
-        if invalidate_cache not in ("1", "0"):
-            return jsonify({"error": "invalidate_cache must be 0 or 1"}), 400
-        invalidate_cache = bool(int(invalidate_cache))
+    try:
+        invalidate_cache = _check_invalidate_cache(request.args)
+    except RuntimeError as e:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "title": "Invalid Argument",
+                    "detail": str(e),
+                }
+            ),
+            400,
+        )
 
     all_directory_structures = get_directory_structures(
         CONFIG.REMOTE_FILESYSTEMS, invalidate_cache=invalidate_cache
@@ -50,6 +76,59 @@ def list_remote_directories():
 list_remote_directories.methods = ("GET",)  # type: ignore
 
 
-ENDPOINTS: Dict[str, Callable] = {
-    "/list-remote-directories/": list_remote_directories,
-}
+@remote.route("/remotes/<remote_id>", methods=["GET"])
+def get_remote_directory(remote_id: str):
+    """Returns the most recent directory structure from the server for the
+    given configured remote name.
+
+    """
+    if not current_user.is_authenticated and not CONFIG.TESTING:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "title": "Not Authorized",
+                    "detail": "Listing remote directories requires authentication.",
+                }
+            ),
+            401,
+        )
+
+    try:
+        invalidate_cache = _check_invalidate_cache(request.args)
+    except RuntimeError as e:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "title": "Invalid Argument",
+                    "detail": str(e),
+                }
+            ),
+            400,
+        )
+
+    for d in CONFIG.REMOTE_FILESYSTEMS:
+        if remote_id == d["name"]:
+            remote_obj = d
+            break
+    else:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "title": "Not Found",
+                    "detail": f"No remote found with name {remote_id!r}",
+                }
+            ),
+            404,
+        )
+
+    directory_structure = get_directory_structure(remote_obj, invalidate_cache=invalidate_cache)
+
+    response: Dict[str, Any] = {}
+    response["meta"] = {}
+    response["meta"]["remote"] = d
+    response["data"] = directory_structure
+
+    return jsonify(response), 200
