@@ -27,7 +27,6 @@ class Sample(Item):
 
         constituents_set = set()
         if values.get("synthesis_constituents") is not None:
-
             existing_parent_relationship_ids = set()
             if values.get("relationships") is not None:
                 existing_parent_relationship_ids = set(

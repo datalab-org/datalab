@@ -23,7 +23,6 @@ class XRDPattern(BaseModel):
 
 
 class XRDProcessing(BaseModel):
-
     peak_positions: List[float]
 
     peak_intensities: List[float]
@@ -41,7 +40,6 @@ class XRDMetadata(BaseModel):
 
 
 class XRDMeasurement(BaseModel):
-
     data: Optional[XRDPattern]
     processing: Optional[XRDProcessing]
     metadata: Optional[XRDMetadata]

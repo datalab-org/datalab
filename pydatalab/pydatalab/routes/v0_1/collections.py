@@ -18,7 +18,6 @@ collection = Blueprint("collections", __name__)
 
 @collection.route("/collections")
 def get_collections():
-
     collections = flask_mongo.db.collections.aggregate(
         [
             {"$match": get_default_permissions(user_only=True)},
@@ -33,7 +32,6 @@ def get_collections():
 
 @collection.route("/collections/<collection_id>", methods=["GET"])
 def get_collection(collection_id):
-
     cursor = flask_mongo.db.collections.aggregate(
         [
             {
@@ -209,7 +207,6 @@ def create_collection():
 @collection.route("/collections/<collection_id>", methods=["PATCH"])
 @logged_route
 def save_collection(collection_id):
-
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
     updated_data = request_json.get("data")
 
@@ -276,7 +273,6 @@ def save_collection(collection_id):
 
 @collection.route("/collections/<collection_id>", methods=["DELETE"])
 def delete_collection(collection_id: str):
-
     result = flask_mongo.db.collections.delete_one(
         {"collection_id": collection_id, **get_default_permissions(user_only=True)}
     )

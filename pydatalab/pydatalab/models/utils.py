@@ -66,7 +66,6 @@ class HumanReadableIdentifier(ConstrainedStr):
 
 
 class Refcode(HumanReadableIdentifier):
-
     regex = r"^[a-z]{2,10}:" + IDENTIFIER_REGEX[1:]
     """A regex to match refcodes that have a lower-case prefix between 2-10 chars, followed by a colon,
     and then the normal rules for an ID (url-safe etc.).
@@ -174,7 +173,6 @@ JSON_ENCODERS = {
 
 
 class RefCodeFactory:
-
     refcode_generator: Callable
 
     @classmethod
@@ -189,7 +187,6 @@ def random_uppercase(length: int = 6):
 
 
 class RandomAlphabeticalRefcodeFactory(RefCodeFactory):
-
     refcode_generator = partial(random_uppercase, length=6)
 
 

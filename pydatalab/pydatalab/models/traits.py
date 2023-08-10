@@ -7,7 +7,6 @@ from pydatalab.models.utils import PyObjectId
 
 
 class HasOwner(BaseModel):
-
     creator_ids: List[PyObjectId] = Field([])
     """The database IDs of the user(s) who created the item."""
 
@@ -16,7 +15,6 @@ class HasOwner(BaseModel):
 
 
 class HasRevisionControl(BaseModel):
-
     revision: int = 1
     """The revision number of the entry."""
 
@@ -25,7 +23,6 @@ class HasRevisionControl(BaseModel):
 
 
 class HasBlocks(BaseModel):
-
     blocks_obj: Dict[str, Any] = Field({})
     """A mapping from block ID to block data."""
 
@@ -48,7 +45,6 @@ class IsCollectable(BaseModel):
         from pydatalab.models.relationships import TypedRelationship
 
         if values.get("collections") is not None:
-
             new_ids = set(coll.immutable_id for coll in values["collections"])
             existing_collection_relationship_ids = set()
             if values.get("relationships") is not None:

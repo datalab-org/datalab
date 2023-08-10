@@ -15,7 +15,6 @@ class CellComponent(Constituent):
 
 
 class CellFormat(str, Enum):
-
     coin = "coin"
     pouch = "pouch"
     in_situ_xrd = "in situ (XRD)"

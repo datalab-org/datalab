@@ -35,7 +35,6 @@ def config_file_settings(settings: BaseSettings) -> Dict[str, Any]:
 
 
 class DeploymentMetadata(BaseModel):
-
     maintainer: Optional[Person]
     issue_tracker: Optional[AnyUrl]
     homepage: Optional[AnyUrl]

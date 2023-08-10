@@ -13,7 +13,6 @@ all_documents = db.items.find()
 nodes = []
 edges = []
 for document in all_documents:
-
     nodes.append(
         {"data": {"id": document["item_id"], "name": document["name"], "type": document["type"]}}
     )

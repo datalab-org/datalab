@@ -80,7 +80,6 @@ upload.methods = ("POST",)  # type: ignore
 
 
 def add_remote_file_to_sample():
-
     if not current_user.is_authenticated and not CONFIG.TESTING:
         return (
             jsonify(

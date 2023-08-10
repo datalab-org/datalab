@@ -28,7 +28,6 @@ def parse_mt_mass_spec_ascii(path: Path) -> Dict[str, Union[pd.DataFrame, Dict]]
         raise RuntimeError(f"Provided path does not exist: {path!r}")
 
     with open(path, "r") as f:
-
         # Read start of file until all header keys have been found
         max_header_lines = 8
         reads = 0
@@ -76,7 +75,6 @@ def parse_mt_mass_spec_ascii(path: Path) -> Dict[str, Union[pd.DataFrame, Dict]]
         # Some files have Ion Current [A] or Partial Pressure [mbar] -- only rename those that are present
         present_keys = set(df.columns.values) & set(data_keys)
         for ind, specie in enumerate(species):
-
             # Loop over all species and rename the columns to remove the species name and disaggregate as a dict
             species_data_keys = [k + f"{'.' + str(ind) if ind != 0 else ''}" for k in present_keys]
             ms_results["data"][specie] = df[species_data_keys].rename(
