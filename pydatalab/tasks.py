@@ -234,6 +234,7 @@ def check_item_validity(_, base_url: str | None = None, starting_materials: bool
     can be successfully accessed through the API.
 
     Requires the environment variable DATALAB_API_KEY to be set.
+    Will also additionally pass JSON-formatted values from the DATALAB_HEADERS environment variable.
 
     Parameters:
         base_url: The API URL.
@@ -251,19 +252,18 @@ def check_item_validity(_, base_url: str | None = None, starting_materials: bool
     if not api_key:
         raise SystemExit("DATALAB_API_KEY env var not set")
 
+    headers = json.loads(os.environ.get("DATALAB_HEADERS", "{}"))
+    headers.update({"DATALAB-API-KEY": api_key})
+
     log = setup_log("check_item_validity")
 
-    user_response = requests.get(
-        f"{base_url}/get-current-user/", headers={"DATALAB-API-KEY": api_key}
-    )
+    user_response = requests.get(f"{base_url}/get-current-user/", headers=headers)
     if not user_response.status_code == 200:
-        raise SystemExit(f"Could not get current user: {user_response.json()['message']}")
+        raise SystemExit(f"Could not get current user: {user_response.content!r}")
 
     all_samples_ids = [
         d["item_id"]
-        for d in requests.get(f"{base_url}/samples/", headers={"DATALAB-API-KEY": api_key}).json()[
-            "samples"
-        ]
+        for d in requests.get(f"{base_url}/samples/", headers=headers).json()["samples"]
     ]
 
     log.info(f"Found {len(all_samples_ids)} items")
@@ -276,9 +276,9 @@ def check_item_validity(_, base_url: str | None = None, starting_materials: bool
     if starting_materials:
         all_starting_material_ids = [
             d["item_id"]
-            for d in requests.get(
-                f"{base_url}/starting-materials/", headers={"DATALAB-API-KEY": api_key}
-            ).json()["items"]
+            for d in requests.get(f"{base_url}/starting-materials/", headers=headers).json()[
+                "items"
+            ]
         ]
         multiprocessing.Pool(max(min(len(all_starting_material_ids), 8), 1)).map(
             functools.partial(_check_id, api_key=api_key, base_url=base_url),
@@ -287,6 +287,54 @@ def check_item_validity(_, base_url: str | None = None, starting_materials: bool
 
 
 admin.add_task(check_item_validity)
+
+
+@task
+def check_remotes(_, base_url: str = None):
+    """This task looks up all configured remotes and checks that they
+    can be synced.
+
+    Requires the environment variable DATALAB_API_KEY to be set.
+    Will also additionally pass JSON-formatted values from the DATALAB_HEADERS environment variable.
+
+    Parameters:
+        base_url: The API URL.
+
+    """
+
+    import os
+
+    import requests
+
+    api_key = os.environ.get("DATALAB_API_KEY")
+    if not api_key:
+        raise SystemExit("DATALAB_API_KEY env var not set")
+
+    headers = json.loads(os.environ.get("DATALAB_HEADERS", "{}"))
+
+    headers.update({"DATALAB-API-KEY": api_key})
+
+    log = setup_log("check_remotes")
+
+    user_response = requests.get(f"{base_url}/get-current-user/", headers=headers)
+    if not user_response.status_code == 200:
+        raise SystemExit(f"Could not get current user: {user_response.content!r}")
+
+    directory_response = requests.get(f"{base_url}/list-remote-directories/", headers=headers)
+
+    if directory_response.status_code != 200:
+        raise SystemExit(f"Could not get remote directories: {directory_response}")
+
+    directory_structures = directory_response.json()["data"]
+
+    for d in directory_structures:
+        if d["type"] == "error":
+            log.error(f"ꙮ {d['name']!r}: {d['details']!r}")
+        elif d["type"] == "toplevel":
+            log.info(f"✓ {d['name']!r}: {d['last_updated']!r}")
+
+
+admin.add_task(check_remotes)
 
 
 @task
