@@ -21,4 +21,5 @@ setup(
     url="https://github.com/the-grey-group/datalab",
     include_package_data=True,
     packages=find_packages(),
+    python_requires=">=3.9",
 )
