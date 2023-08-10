@@ -109,7 +109,6 @@ def create_default_indices(
                 item_fts_fields.add(f)
 
     def create_or_recreate_text_index(collection, fields, weights):
-
         fts_index_name = f"{collection.name} full-text search"
 
         def create_fts():

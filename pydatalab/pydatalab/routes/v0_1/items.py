@@ -292,7 +292,6 @@ search_items.methods = ("GET",)  # type: ignore
 
 
 def _create_sample(sample_dict: dict, copy_from_item_id: Optional[str] = None) -> tuple[dict, int]:
-
     if not current_user.is_authenticated and not CONFIG.TESTING:
         return (
             dict(

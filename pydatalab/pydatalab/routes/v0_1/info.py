@@ -20,7 +20,6 @@ class Attributes(BaseModel):
 
 
 class Meta(BaseModel):
-
     timestamp: datetime = Field(default_factory=datetime.now)
     query: str = ""
     api_version: str = __api_version__
@@ -30,7 +29,6 @@ class Meta(BaseModel):
 
 
 class Links(BaseModel):
-
     self: AnyUrl
 
     class Config:
@@ -44,7 +42,6 @@ class Data(BaseModel):
 
 
 class JSONAPIResponse(BaseModel):
-
     data: Union[Data, List[Data]]
     meta: Meta
     links: Links
@@ -56,7 +53,6 @@ class MetaPerson(BaseModel):
 
 
 class Info(Attributes, Meta):
-
     maintainer: Optional[MetaPerson]
     issue_tracker: Optional[AnyUrl]
     homepage: Optional[AnyUrl]
@@ -77,7 +73,6 @@ def _get_deployment_metadata_once() -> Dict:
 
 
 def get_info():
-
     metadata = _get_deployment_metadata_once()
 
     return (

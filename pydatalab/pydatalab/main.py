@@ -18,7 +18,7 @@ from pydatalab.utils import CustomJSONEncoder
 compress = Compress()
 
 
-def create_app(config_override: Dict[str, Any] = None) -> Flask:
+def create_app(config_override: Dict[str, Any] | None = None) -> Flask:
     """Create the main `Flask` app with the given config.
 
     Parameters:

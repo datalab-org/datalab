@@ -46,7 +46,6 @@ class MassSpecBlock(DataBlock):
         x_options = ["Time Relative [s]"]
 
         if ms_data:
-
             # collect the maximum value of the data key for each species for plot ordering
             max_vals: List[Tuple[str, float]] = []
 

@@ -36,7 +36,6 @@ for sample in all_samples:
     print(f"{sample_id}:")
 
     for filename in sample["files"]:
-
         extension = os.path.splitext(filename)[1]
         old_file_location = os.path.join(
             CONFIG.FILE_DIRECTORY, sample_id, secure_filename(filename)

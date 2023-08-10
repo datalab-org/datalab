@@ -140,7 +140,7 @@ def get_directory_structure(
 
 
 def _get_latest_directory_structure(
-    directory_path: Union[str, "os.PathLike[str]"], hostname: str = None
+    directory_path: Union[str, "os.PathLike[str]"], hostname: str | None = None
 ) -> List[Dict[str, str]]:
     """Call `tree` on the remote or mounted filesystem.
 

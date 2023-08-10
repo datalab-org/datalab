@@ -8,7 +8,6 @@ from pydatalab.models.utils import HumanReadableIdentifier
 
 
 class Collection(Entry, HasOwner, HasBlocks):
-
     type: str = Field("collections", const="collections", pattern="^collections$")
 
     collection_id: HumanReadableIdentifier = Field(None)

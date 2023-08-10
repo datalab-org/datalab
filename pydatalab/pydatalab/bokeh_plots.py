@@ -199,7 +199,6 @@ def selectable_axes_plot(
         labels = list(df.keys())
 
     for ind, df_ in enumerate(df):
-
         if isinstance(df, dict):
             df_ = df[df_]
 
@@ -446,7 +445,6 @@ def double_axes_echem_plot(
         color_space = np.linspace(0.3, 0.7, int(df["half cycle"].max()))  # type: ignore
 
         for _, group in grouped_by_half_cycle:
-
             line = plot.line(
                 x=x,
                 y=y,

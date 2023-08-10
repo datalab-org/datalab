@@ -4,7 +4,6 @@ from flask import jsonify
 
 
 def is_ready():
-
     from pydatalab.mongo import check_mongo_connection
 
     try:

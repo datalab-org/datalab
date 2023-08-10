@@ -57,7 +57,6 @@ def test_reduce_size(echem_dataframe):
 
 
 def test_compute_gpcl_differential(reduced_and_filtered_echem_dataframe):
-
     df = reduced_and_filtered_echem_dataframe
 
     dqdv_results = compute_gpcl_differential(df)
@@ -68,7 +67,6 @@ def test_compute_gpcl_differential(reduced_and_filtered_echem_dataframe):
 
 
 def test_filter_df_by_cycle_index(reduced_echem_dataframe):
-
     cycle_lists = ([1, 2, 3], [4.0, 6.0, 10.0], [-1, 5, 2])
     for cycle_list in cycle_lists:
         filtered_df = filter_df_by_cycle_index(reduced_echem_dataframe, cycle_list)

@@ -114,7 +114,6 @@ def test_create_indices(real_mongo_client):
 
 @pytest.mark.dependency(depends=["test_create_indices"])
 def test_full_text_search(client, real_mongo_client, example_items):
-
     if real_mongo_client is None:
         pytest.skip("Skipping FTS tests, not connected to real MongoDB")
 
@@ -156,7 +155,6 @@ def test_full_text_search(client, real_mongo_client, example_items):
 
 @pytest.mark.dependency(depends=["test_delete_sample"])
 def test_new_sample_with_relationships(client, complicated_sample):
-
     complicated_sample_json = json.loads(complicated_sample.json())
     response = client.post("/new-sample/", json=complicated_sample_json)
     # Test that 201: Created is emitted
@@ -327,7 +325,6 @@ def test_copy_from_sample(client, complicated_sample):
 
 @pytest.mark.dependency(depends=["test_copy_from_sample"])
 def test_create_multiple_samples(client, complicated_sample):
-
     samples = [complicated_sample, complicated_sample.copy()]
     samples[0].item_id = "another_new_complicated_sample"
     samples[1].item_id = "additional_new_complicated_sample"
@@ -369,7 +366,6 @@ def test_create_multiple_samples(client, complicated_sample):
 
 @pytest.mark.dependency(depends=["test_create_multiple_samples"])
 def test_create_cell(client, default_cell):
-
     response = client.post("/new-sample/", json=json.loads(default_cell.json()))
     assert response.status_code == 201, response.json
     assert response.json["status"] == "success"
@@ -392,7 +388,6 @@ def test_create_cell(client, default_cell):
 
 @pytest.mark.dependency(depends=["test_create_cell"])
 def test_create_collections(client, default_collection):
-
     # Check no collections initially
     response = client.get("/collections")
     assert len(response.json["data"]) == 0, response.json
@@ -471,7 +466,6 @@ def test_create_collections(client, default_collection):
 
 @pytest.mark.dependency(depends=["test_create_collections"])
 def test_items_added_to_existing_collection(client, default_collection, default_sample_dict):
-
     # Create a new item that is inside the default collection by passing collection_id
     new_id = "testing_collection_insert_by_id"
     default_sample_dict["item_id"] = new_id

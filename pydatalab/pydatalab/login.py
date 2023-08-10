@@ -130,7 +130,6 @@ def load_user(user_id: str) -> Optional[LoginUser]:
 
 @LOGIN_MANAGER.request_loader
 def request_loader(request) -> Optional[LoginUser]:
-
     api_key = request.headers.get("DATALAB-API-KEY", None)
     if api_key:
         return get_by_api_key(str(api_key))

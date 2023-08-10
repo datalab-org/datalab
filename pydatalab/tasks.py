@@ -2,7 +2,7 @@ import json
 import pathlib
 import re
 import sys
-from typing import Optional, Tuple
+from typing import Tuple
 
 from invoke import Collection, task
 
@@ -15,7 +15,7 @@ admin = Collection("admin")
 migration = Collection("migration")
 
 
-def update_file(filename: str, sub_line: Tuple[str, str], strip: Optional[str] = None):
+def update_file(filename: str, sub_line: Tuple[str, str], strip: str | None = None):
     """Utility function for tasks to read, update, and write files.
 
     Modified from optimade-python-tools.
@@ -129,8 +129,8 @@ def manually_register_user(
     _,
     display_name: str,
     contact_email: str,
-    orcid: str = None,
-    github_user_id: int = None,
+    orcid: str | None = None,
+    github_user_id: int | None = None,
 ):
     from pydatalab.models.people import Identity, Person
 
@@ -229,7 +229,7 @@ def _check_id(id=None, base_url=None, api_key=None):
 
 
 @task
-def check_item_validity(_, base_url: str = None, starting_materials: bool = False):
+def check_item_validity(_, base_url: str | None = None, starting_materials: bool = False):
     """This task looks up all sample and cell items and checks that they
     can be successfully accessed through the API.
 
