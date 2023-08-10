@@ -290,7 +290,7 @@ admin.add_task(check_item_validity)
 
 
 @task
-def check_remotes(_, base_url: str = None):
+def check_remotes(_, base_url: str | None = None, invalidate_cache: bool = False):
     """This task looks up all configured remotes and checks that they
     can be synced.
 
@@ -299,6 +299,7 @@ def check_remotes(_, base_url: str = None):
 
     Parameters:
         base_url: The API URL.
+        invalidate_cache: Whether to force cache invalidation.
 
     """
 
@@ -320,7 +321,10 @@ def check_remotes(_, base_url: str = None):
     if not user_response.status_code == 200:
         raise SystemExit(f"Could not get current user: {user_response.content!r}")
 
-    directory_response = requests.get(f"{base_url}/list-remote-directories/", headers=headers)
+    directory_response = requests.get(
+        f"{base_url}/list-remote-directories?invalidate_cache={'1' if invalidate_cache else '0'}",
+        headers=headers,
+    )
 
     if directory_response.status_code != 200:
         raise SystemExit(f"Could not get remote directories: {directory_response}")
@@ -328,9 +332,11 @@ def check_remotes(_, base_url: str = None):
     directory_structures = directory_response.json()["data"]
 
     for d in directory_structures:
-        if d["type"] == "error":
-            log.error(f"ꙮ {d['name']!r}: {d['details']!r}")
-        elif d["type"] == "toplevel":
+        if d["status"] == "error":
+            log.error(f"ꙮ {d['name']!r}: {d['contents'][0]['details']!r}")
+        elif d["status"] == "cached":
+            log.info(f"✩ {d['name']!r}: {d['last_updated']!r}")
+        elif d["status"] == "updated":
             log.info(f"✓ {d['name']!r}: {d['last_updated']!r}")
 
 
