@@ -4,7 +4,6 @@ import pytest
 
 
 def test_ms_parse():
-
     from pydatalab.apps.tga.parsers import parse_mt_mass_spec_ascii
 
     ms = parse_mt_mass_spec_ascii(
@@ -47,7 +46,6 @@ def test_ms_parse():
     "filename", (Path(__file__).parent.parent.parent / "example_data" / "TGA-MS").glob("*.asc")
 )
 def test_ms_parse_no_validation(filename):
-
     from pydatalab.apps.tga.parsers import parse_mt_mass_spec_ascii
 
     ms = parse_mt_mass_spec_ascii(filename)

@@ -33,7 +33,6 @@ class RelationshipType(str, Enum):
 
 
 class TypedRelationship(BaseModel):
-
     description: Optional[str] = Field(
         None,
         description="A description of the relationship.",

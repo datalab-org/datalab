@@ -5,7 +5,6 @@ from pydatalab.models.samples import Constituent
 
 
 def test_simple_graph(client):
-
     parent = Sample(
         item_id="parent",
     )

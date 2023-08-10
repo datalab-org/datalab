@@ -288,7 +288,8 @@ def update_uploaded_file(file, file_id, last_modified=None, size_bytes=None):
 @logged_route
 def save_uploaded_file(file, item_ids=None, block_ids=None, last_modified=None, size_bytes=None):
     """file is a file object from a flask request.
-    last_modified should be an isodate format. if last_modified is None, the current time will be inserted"""
+    last_modified should be an isodate format. if last_modified is None, the current time will be inserted
+    """
 
     from pydatalab.routes.utils import get_default_permissions
 

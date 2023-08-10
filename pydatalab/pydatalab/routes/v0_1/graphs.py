@@ -7,7 +7,6 @@ from pydatalab.routes.utils import get_default_permissions
 
 
 def get_graph_cy_format(item_id: Optional[str] = None, collection_id: Optional[str] = None):
-
     collection_id = request.args.get("collection_id", type=str)
 
     if item_id is None:
@@ -69,7 +68,6 @@ def get_graph_cy_format(item_id: Optional[str] = None, collection_id: Optional[s
     drawn_elements = set()
     node_collections = set()
     for document in all_documents:
-
         for relationship in document.get("relationships", []):
             # only considering child-parent relationships
             if relationship.get("type") == "collections" and not collection_id:

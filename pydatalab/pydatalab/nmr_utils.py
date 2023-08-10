@@ -27,7 +27,7 @@ def read_bruker_1d(data, process_number=1, verbose=True, sample_mass_mg=None):
     # if df is provided, just return it as-is. This functionality is provided to make functions calling read_bruker_1d flexible by default.
     # Either the data directory or the already-processed df can always be provided with equivalent results.
 
-    if type(data) == pd.core.frame.DataFrame:
+    if isinstance(data, pd.DataFrame):
         if verbose:
             print("data frame provided to read_bruker_1d(). Returning it as is.")
         return data
@@ -85,7 +85,6 @@ def read_bruker_1d(data, process_number=1, verbose=True, sample_mass_mg=None):
 
 
 def read_topspin_txt(filename, sample_mass_mg=None, nscans=None):
-
     MAX_HEADER_LINES = 10
     LEFTRIGHT_REGEX = r"# LEFT = (-?\d+\.\d+) ppm. RIGHT = (-?\d+\.\d+) ppm\."
     SIZE_REGEX = r"SIZE = (\d+)"

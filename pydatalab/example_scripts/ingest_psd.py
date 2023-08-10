@@ -47,7 +47,6 @@ def collect_samples_from(fname):
 
 
 def upload_patterns_and_files(samples, id_pattern_map):
-
     unmeasured_samples = set()
     for sample in samples.values():
         sample_id = sample["item_id"]
@@ -88,7 +87,6 @@ def upload_patterns_and_files(samples, id_pattern_map):
 
 
 if __name__ == "__main__":
-
     import argparse
 
     parser = argparse.ArgumentParser()

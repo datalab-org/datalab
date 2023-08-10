@@ -28,9 +28,8 @@ class XRDBlock(DataBlock):
 
     @classmethod
     def load_pattern(
-        self, location: str, wavelength: float = None
+        self, location: str, wavelength: float | None = None
     ) -> Tuple[pd.DataFrame, List[str]]:
-
         if not isinstance(location, str):
             location = str(location)
 
