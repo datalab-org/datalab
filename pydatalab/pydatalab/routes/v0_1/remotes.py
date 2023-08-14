@@ -1,3 +1,4 @@
+import json
 from typing import Any, Dict, Optional
 
 from flask import Blueprint, jsonify, request
@@ -24,7 +25,7 @@ def _check_invalidate_cache(args: Dict[str, str]) -> Optional[bool]:
 remote = Blueprint("remotes", __name__)
 
 
-@remote.route("/list-remote-directories/", methods=["GET"])
+@remote.route("/list-remote-directories", methods=["GET"])
 @remote.route("/remotes", methods=["GET"])
 def list_remote_directories():
     """Returns the most recent directory structures from the server.
@@ -65,7 +66,7 @@ def list_remote_directories():
 
     response = {}
     response["meta"] = {}
-    response["meta"]["remotes"] = CONFIG.REMOTE_FILESYSTEMS
+    response["meta"]["remotes"] = [json.loads(d.json()) for d in CONFIG.REMOTE_FILESYSTEMS]
     if all_directory_structures:
         oldest_update = min(d["last_updated"] for d in all_directory_structures)
         response["meta"]["oldest_cache_update"] = oldest_update.isoformat()
@@ -76,9 +77,9 @@ def list_remote_directories():
 list_remote_directories.methods = ("GET",)  # type: ignore
 
 
-@remote.route("/remotes/<remote_id>", methods=["GET"])
+@remote.route("/remotes/<path:remote_id>", methods=["GET"])
 def get_remote_directory(remote_id: str):
-    """Returns the most recent directory structure from the server for the
+    """Returns the directory structure from the server for the
     given configured remote name.
 
     """
@@ -109,7 +110,7 @@ def get_remote_directory(remote_id: str):
         )
 
     for d in CONFIG.REMOTE_FILESYSTEMS:
-        if remote_id == d["name"]:
+        if remote_id == d.name:
             remote_obj = d
             break
     else:
@@ -128,7 +129,7 @@ def get_remote_directory(remote_id: str):
 
     response: Dict[str, Any] = {}
     response["meta"] = {}
-    response["meta"]["remote"] = d
+    response["meta"]["remote"] = json.loads(d.json())
     response["data"] = directory_structure
 
     return jsonify(response), 200

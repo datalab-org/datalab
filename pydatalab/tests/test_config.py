@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from pydatalab.config import ServerConfig
+from pydatalab.main import create_app
 
 
 def test_default_settings():
@@ -22,3 +23,16 @@ def test_update_settings():
     assert config.NEW_KEY == new_settings["new_key"]
     assert config.SECRET_KEY
     assert Path(config.FILE_DIRECTORY).name == "files"
+
+
+def test_config_override():
+    app = create_app(
+        config_override={"REMOTE_FILESYSTEMS": [{"hostname": None, "path": "/", "name": "local"}]}
+    )
+    assert app.config["REMOTE_FILESYSTEMS"][0]["hostname"] is None
+    assert app.config["REMOTE_FILESYSTEMS"][0]["path"] == Path("/")
+
+    from pydatalab.config import CONFIG
+
+    assert CONFIG.REMOTE_FILESYSTEMS[0].hostname is None
+    assert CONFIG.REMOTE_FILESYSTEMS[0].path == Path("/")
