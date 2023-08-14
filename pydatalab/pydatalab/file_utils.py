@@ -10,13 +10,13 @@ from bson.objectid import ObjectId
 from pymongo import ReturnDocument
 from werkzeug.utils import secure_filename
 
-from pydatalab.config import CONFIG
+from pydatalab.config import CONFIG, RemoteFilesystem
 from pydatalab.logger import LOGGER, logged_route
 from pydatalab.models import File
-from pydatalab.mongo import get_database
+from pydatalab.mongo import flask_mongo
 
 FILE_DIRECTORY = CONFIG.FILE_DIRECTORY
-DIRECTORIES_DICT = {fs["name"]: fs for fs in CONFIG.REMOTE_FILESYSTEMS}
+DIRECTORIES_DICT = {fs.name: fs for fs in CONFIG.REMOTE_FILESYSTEMS}
 LIVE_FILE_CUTOFF = datetime.timedelta(days=31)
 
 
@@ -115,7 +115,7 @@ def _check_and_sync_file(file_info: File, file_id: ObjectId) -> File:
         otherwise the old file info.
 
     """
-    file_collection = get_database().files
+    file_collection = flask_mongo.db.files
     if not file_info.source_server_name or not file_info.source_path:
         raise RuntimeError("Attempted to sync file %s with no known remote", file_info)
 
@@ -127,16 +127,16 @@ def _check_and_sync_file(file_info: File, file_id: ObjectId) -> File:
         return file_info
 
     cached_timestamp = file_info.last_modified_remote
-    remote = DIRECTORIES_DICT.get(file_info.source_server_name, None)
+    remote: RemoteFilesystem | None = DIRECTORIES_DICT.get(file_info.source_server_name, None)
     if not remote:
         LOGGER.warning(
             f"Could not find desired remote for {file_info.source_server_name!r} in {DIRECTORIES_DICT}, cannot sync file"
         )
         return file_info
 
-    full_remote_path = os.path.join(remote["path"], file_info.source_path)
-    if remote["hostname"]:
-        full_remote_path = f'{remote["hostname"]}:{full_remote_path}'
+    full_remote_path = os.path.join(remote.path, file_info.source_path)
+    if remote.hostname:
+        full_remote_path = f"{remote.hostname}:{full_remote_path}"
 
     if full_remote_path.startswith("ssh://"):
         # For ssh-able remotes, check age of the local file, rather than the last time the remote file was modified
@@ -234,7 +234,7 @@ def get_file_info_by_id(
 
     """
     LOGGER.debug("getting file for file_id: %s", file_id)
-    file_collection = get_database().files
+    file_collection = flask_mongo.db.files
     file_id = ObjectId(file_id)
     file_info = file_collection.find_one({"_id": file_id})
     if not file_info:
@@ -256,7 +256,7 @@ def update_uploaded_file(file, file_id, last_modified=None, size_bytes=None):
     additional_updates can be used to pass other fields to change in (NOT IMPLEMENTED YET)"""
 
     last_modified = datetime.datetime.now().isoformat()
-    file_collection = get_database().files
+    file_collection = flask_mongo.db.files
 
     updated_file_entry = file_collection.find_one_and_update(
         {"_id": file_id},  # Note, needs to be ObjectID()
@@ -293,8 +293,8 @@ def save_uploaded_file(file, item_ids=None, block_ids=None, last_modified=None, 
 
     from pydatalab.routes.utils import get_default_permissions
 
-    sample_collection = get_database().items
-    file_collection = get_database().files
+    sample_collection = flask_mongo.db.items
+    file_collection = flask_mongo.db.files
 
     # validate item_ids
     if not item_ids:
@@ -378,8 +378,8 @@ def save_uploaded_file(file, item_ids=None, block_ids=None, last_modified=None, 
 def add_file_from_remote_directory(file_entry, item_id, block_ids=None):
     from pydatalab.routes.utils import get_default_permissions
 
-    file_collection = get_database().files
-    sample_collection = get_database().items
+    file_collection = flask_mongo.db.files
+    sample_collection = flask_mongo.db.items
 
     if not block_ids:
         block_ids = []
@@ -387,13 +387,13 @@ def add_file_from_remote_directory(file_entry, item_id, block_ids=None):
     extension = os.path.splitext(filename)[1]
 
     # generate the remote url
-    host = DIRECTORIES_DICT[file_entry["toplevel_name"]]
+    host: RemoteFilesystem = DIRECTORIES_DICT[file_entry["toplevel_name"]]
 
     remote_path = os.path.join(file_entry["relative_path"].lstrip("/"), file_entry["name"])
 
     # If we are dealing with a truly remote host
-    if host["hostname"]:
-        remote_toplevel_path = f'{host["hostname"]}:{host["path"]}'
+    if host.hostname:
+        remote_toplevel_path = f"{host.hostname}:{host.path}"
         full_remote_path = f"{remote_toplevel_path}/{remote_path}"
         if file_entry.get("time") is None:
             remote_timestamp = None
@@ -402,7 +402,7 @@ def add_file_from_remote_directory(file_entry, item_id, block_ids=None):
 
     # Otherwise we assume the file is mounted locally
     else:
-        remote_toplevel_path = host["path"]
+        remote_toplevel_path = host.path
         full_remote_path = os.path.join(remote_toplevel_path, remote_path)
         # check that the path is valid and get the last modified time from the server
         remote_timestamp = os.path.getmtime(full_remote_path)
@@ -430,7 +430,7 @@ def add_file_from_remote_directory(file_entry, item_id, block_ids=None):
         # last modified time as provided from the remote server. May by different than last_modified if the two servers times are not synchrotronized.
         last_modified_remote=remote_timestamp,
         # Whether this file will update (if changes have occured) on access
-        is_live=bool(host["hostname"]),
+        is_live=bool(host.hostname),
         # incremented with each update
         version=1,
     )
@@ -470,7 +470,7 @@ def add_file_from_remote_directory(file_entry, item_id, block_ids=None):
 
 
 def retrieve_file_path(file_ObjectId):
-    file_collection = get_database().files
+    file_collection = flask_mongo.db.files
     result = file_collection.find_one({"_id": ObjectId(file_ObjectId)})
     if not result:
         raise FileNotFoundError(
@@ -493,8 +493,8 @@ def remove_file_from_sample(item_id: Union[str, ObjectId], file_id: Union[str, O
     from pydatalab.routes.utils import get_default_permissions
 
     item_id, file_id = ObjectId(item_id), ObjectId(file_id)
-    sample_collection = get_database().items
-    file_collection = get_database().files
+    sample_collection = flask_mongo.db.items
+    file_collection = flask_mongo.db.files
     sample_result = sample_collection.update_one(
         {"item_id": item_id, **get_default_permissions(user_only=True)},
         {"$pull": {"file_ObjectIds": file_id}},

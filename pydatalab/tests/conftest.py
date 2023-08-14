@@ -52,14 +52,21 @@ def client(real_mongo_client, monkeypatch_session):
 
     """
 
-    example_remote = {
-        "name": "example_data",
-        "hostname": None,
-        "path": Path(__file__).parent.joinpath("../example_data/"),
-    }
+    example_remotes = [
+        {
+            "name": "example_data",
+            "hostname": None,
+            "path": Path(__file__).parent.joinpath("../example_data/"),
+        },
+        {
+            "name": "example/data",
+            "hostname": None,
+            "path": Path(__file__).parent.joinpath("../example_data/"),
+        },
+    ]
     test_app_config = {
         "MONGO_URI": MONGO_URI,
-        "REMOTE_FILESYSTEMS": [example_remote],
+        "REMOTE_FILESYSTEMS": example_remotes,
         "TESTING": True,
     }
 

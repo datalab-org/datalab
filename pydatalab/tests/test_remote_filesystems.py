@@ -7,7 +7,7 @@ import mongomock
 import pytest
 
 import pydatalab.mongo
-from pydatalab.config import CONFIG
+from pydatalab.config import CONFIG, RemoteFilesystem
 from pydatalab.remote_filesystems import (
     get_directory_structure,
     get_directory_structures,
@@ -28,14 +28,16 @@ def test_get_directory_structure_local():
     attempt to query a directory.
 
     """
-    test_dir = {"path": Path(__file__).parent, "name": "test"}
+    test_dir = RemoteFilesystem(**{"path": Path(__file__).parent, "name": "test"})
     dir_structure = get_directory_structure(test_dir)
     dir_structure.pop("last_updated")
     assert dir_structure
+    assert dir_structure.pop("status") == "updated"
     assert all(k in dir_structure for k in ("type", "name", "contents"))
     assert all(k in dir_structure["contents"][0] for k in ("type", "name", "size", "time"))
     dir_structure_cached = get_directory_structure(test_dir)
     last_updated_cached = dir_structure_cached.pop("last_updated")
+    assert dir_structure_cached.pop("status") == "cached"
     assert dir_structure_cached == dir_structure
     assert last_updated_cached
 
@@ -43,11 +45,13 @@ def test_get_directory_structure_local():
     dir_structure_cached_again = get_directory_structures([test_dir])[0]
     last_updated_cached_again = dir_structure_cached_again.pop("last_updated")
     assert last_updated_cached == last_updated_cached_again
+    assert dir_structure_cached_again.pop("status") == "cached"
 
     # Hit the cache one more time, this time requesting invalidationg (but we should be
     # below the minimum cache age)
     dir_structure_cached_again = get_directory_structures([test_dir], invalidate_cache=True)[0]
     last_updated_cached_again = dir_structure_cached_again.pop("last_updated")
+    assert dir_structure_cached_again.pop("status") == "cached"
     assert last_updated_cached == last_updated_cached_again
 
     try:
@@ -65,8 +69,9 @@ def test_get_directory_structure_local():
         last_updated_cached_final = dir_structure_cached_final.pop("last_updated")
         assert last_updated_cached_final == last_updated_cached_again
     finally:
-        CONFIG.REMOTE_CACHE_MIN_AGE = 1
+        # order of these statements matter as each individual reset will be validated
         CONFIG.REMOTE_CACHE_MAX_AGE = 60
+        CONFIG.REMOTE_CACHE_MIN_AGE = 1
 
     assert get_directory_structures([], invalidate_cache=True) == []
 
@@ -77,7 +82,7 @@ def test_get_missing_directory_structure_local():
     """Check that missing directories do not crash everything, and that
     they still get cached.
     """
-    test_dir = {"path": "this_directory_does_not_exist", "name": "test"}
+    test_dir = RemoteFilesystem(**{"path": "this_directory_does_not_exist", "name": "test"})
     dir_structure = get_directory_structure(test_dir)
     dir_structure.pop("last_updated")
     assert dir_structure
@@ -95,7 +100,9 @@ def test_get_directory_structure_remote():
     once the cache has been mocked.
 
     """
-    test_dir = {"name": "test", "hostname": "ssh://fake.host", "path": Path(__file__).parent}
+    test_dir = RemoteFilesystem(
+        **{"name": "test", "hostname": "ssh://fake.host", "path": Path(__file__).parent}
+    )
     dir_structure = get_directory_structure(test_dir)
     assert dir_structure["contents"][0]["type"] == "error"
     dummy_dir_structure = {

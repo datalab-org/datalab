@@ -51,6 +51,12 @@ class DeploymentMetadata(BaseModel):
         extra = "allow"
 
 
+class RemoteFilesystem(BaseModel):
+    name: str
+    hostname: Optional[str]
+    path: Path
+
+
 class ServerConfig(BaseSettings):
     """A model that provides settings for deploying the API."""
 
@@ -80,7 +86,7 @@ class ServerConfig(BaseSettings):
         RandomAlphabeticalRefcodeFactory, description="The class to use to generate refcodes."
     )
 
-    REMOTE_FILESYSTEMS: List[Dict[str, str]] = Field(
+    REMOTE_FILESYSTEMS: List[RemoteFilesystem] = Field(
         [],
         descripton="A list of dictionaries describing remote filesystems to be accessible from the server.",
     )
@@ -113,7 +119,7 @@ class ServerConfig(BaseSettings):
     def validate_cache_ages(cls, values):
         if values.get("REMOTE_CACHE_MIN_AGE") > values.get("REMOTE_CACHE_MAX_AGE"):
             raise RuntimeError(
-                f"The maximum cache age must be greater than the minimum cache age: {values}"
+                f"The maximum cache age must be greater than the minimum cache age: min {values.get('REMOTE_CACHE_MIN_AGE')=}, max {values.get('REMOTE_CACHE_MAX_AGE')=}"
             )
         return values
 
@@ -121,6 +127,7 @@ class ServerConfig(BaseSettings):
         env_prefix = "pydatalab_"
         extra = "allow"
         env_file_encoding = "utf-8"
+        validate_assignment = True
 
         @classmethod
         def customise_sources(
