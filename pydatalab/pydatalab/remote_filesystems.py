@@ -7,14 +7,14 @@ import subprocess
 from typing import Any, Dict, List, Optional, Union
 
 import pydatalab.mongo
-from pydatalab.config import CONFIG
+from pydatalab.config import CONFIG, RemoteFilesystem
 from pydatalab.logger import LOGGER
 
 
 def get_directory_structures(
-    directories: List[Dict[str, str]],
+    directories: List[RemoteFilesystem],
     invalidate_cache: Optional[bool] = None,
-    parallel: bool = True,
+    parallel: bool = False,
 ) -> List[Dict[str, Any]]:
     """For all registered top-level directories, call tree either
     locally or remotely to get their directory structures, or access
@@ -48,7 +48,7 @@ def get_directory_structures(
 
 
 def get_directory_structure(
-    directory: Dict[str, str],
+    directory: RemoteFilesystem,
     invalidate_cache: Optional[bool] = False,
 ) -> Dict[str, Any]:
     """For the given remote directory, either reconstruct the directory
@@ -59,7 +59,7 @@ def get_directory_structure(
     directory.
 
     Args:
-        directory: A dictionary describing the directory to scan, with keys
+        directory: A RemoteFilesystem object the directory to scan, with attributes
             `'name'`, `'path'` and optionally `'hostname'`.
         invalidate_cache: If `True`, then the cached directory structure will
             be reset, provided the cache was not updated very recently. If `False`,
@@ -105,16 +105,14 @@ def get_directory_structure(
                 and cache_age > datetime.timedelta(minutes=CONFIG.REMOTE_CACHE_MIN_AGE)
             )
         ):
-            dir_structure = _get_latest_directory_structure(
-                directory["path"], directory.get("hostname")
-            )
+            dir_structure = _get_latest_directory_structure(directory.path, directory.hostname)
             last_updated = _save_directory_structure(
                 directory,
                 dir_structure,
             )
             LOGGER.debug(
                 "Remote filesystems cache miss for '%s': last updated %s",
-                directory["name"],
+                directory.name,
                 cache_last_updated,
             )
             status = "updated"
@@ -124,18 +122,18 @@ def get_directory_structure(
             dir_structure = cached_dir_structure["contents"]
             LOGGER.debug(
                 "Remote filesystems cache hit for '%s': last updated %s",
-                directory["name"],
+                directory.name,
                 last_updated,
             )
             status = "cached"
 
     except Exception as exc:
-        dir_structure = [{"type": "error", "name": directory["name"], "details": str(exc)}]
+        dir_structure = [{"type": "error", "name": directory.name, "details": str(exc)}]
         last_updated = datetime.datetime.now()
         status = "error"
 
     return {
-        "name": directory["name"],
+        "name": directory.name,
         "type": "toplevel",
         "contents": dir_structure,
         "last_updated": last_updated,
@@ -309,27 +307,27 @@ def _fix_tree_paths(
 
 
 def _save_directory_structure(
-    directory: Dict[str, Any],
+    directory: RemoteFilesystem,
     dir_structure: List[Dict[str, Any]],
 ) -> datetime.datetime:
     """Upserts the tree structure of each directory to the `remoteFilesystems`
     collection in the database.
 
     Args:
-        directory_name: The top-level directory name to update.
+        directory: The remote filesystem object to update.
         dir_structure: The directory structure info.
 
     Returns:
         The last updated timestamp.
 
     """
-    collection = pydatalab.mongo._get_active_mongo_client().get_database().remoteFilesystems
+    collection = pydatalab.mongo.get_database().remoteFilesystems
 
     last_updated = datetime.datetime.now()
     last_updated = last_updated.replace(microsecond=0)
 
     result = collection.update_one(
-        {"name": directory["name"]},
+        {"name": directory.name},
         {
             "$set": {
                 "contents": dir_structure,
@@ -341,7 +339,7 @@ def _save_directory_structure(
     )
     LOGGER.debug(
         "Result of saving directory %s structure to the db: %s %s",
-        directory["name"],
+        directory.name,
         last_updated,
         result.raw_result,
     )
@@ -350,16 +348,16 @@ def _save_directory_structure(
 
 
 def _get_cached_directory_structure(
-    directory: Dict[str, Any],
+    directory: RemoteFilesystem,
 ) -> Optional[Dict[str, Any]]:
     """Gets the structure of the given directory from the database.
 
     Args:
-        directory_name: The name of the directory to get.
+        directory: The configured RemoteFilesystem object to get.
 
     Returns:
         The stored directory structure.
 
     """
-    collection = pydatalab.mongo._get_active_mongo_client().get_database().remoteFilesystems
-    return collection.find_one({"name": directory["name"]})
+    collection = pydatalab.mongo.get_database().remoteFilesystems
+    return collection.find_one({"name": directory.name})
