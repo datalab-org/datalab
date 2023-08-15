@@ -32,7 +32,7 @@ export const blockTypes = {
   comment: { description: "Comment", component: DataBlockBase },
   media: { description: "Media", component: MediaBlock },
   xrd: { description: "Powder XRD", component: XRDBlock },
-  raman: { description: "Raman", component: RamanBlock},
+  raman: { description: "Raman", component: RamanBlock },
   cycle: { description: "Electrochemistry", component: CycleBlock },
   eis: { description: "EIS", component: EISBlock },
   nmr: { description: "NMR", component: NMRBlock },
