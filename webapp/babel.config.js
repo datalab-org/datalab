@@ -5,11 +5,11 @@ module.exports = function override(api) {
 
   if (isProd) {
     config["plugins"] = [
-      "@babel/plugin-proposal-export-namespace-from",
+      "@babel/plugin-transform-export-namespace-from",
       "transform-remove-console",
     ];
   } else {
-    config["plugins"] = ["@babel/plugin-proposal-export-namespace-from"];
+    config["plugins"] = ["@babel/plugin-transform-export-namespace-from"];
   }
   config["presets"] = ["@vue/cli-plugin-babel/preset"];
   return config;
