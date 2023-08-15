@@ -96,10 +96,7 @@ def get_directory_structure(
         # then rebuild the cache.
         if (
             (not cached_dir_structure)
-            or (
-                invalidate_cache is not False
-                and cache_age > datetime.timedelta(minutes=CONFIG.REMOTE_CACHE_MAX_AGE)
-            )
+            or cache_age > datetime.timedelta(minutes=CONFIG.REMOTE_CACHE_MAX_AGE)
             or (
                 invalidate_cache
                 and cache_age > datetime.timedelta(minutes=CONFIG.REMOTE_CACHE_MIN_AGE)
