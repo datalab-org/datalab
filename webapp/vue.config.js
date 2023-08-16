@@ -1,6 +1,7 @@
 module.exports = {
   transpileDependencies: ["mermaid"],
   configureWebpack: (config) => {
+    config.resolve.fallback = { crypto: require.resolve("crypto-browserify") };
     config.externals = {
       ...config.externals,
       bokeh: "Bokeh",
