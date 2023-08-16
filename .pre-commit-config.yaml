@@ -26,17 +26,11 @@ repos:
       - id: check-symlinks
       - id: mixed-line-ending
 
-  - repo: https://github.com/pycqa/flake8
-    rev: 6.1.0
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: "v0.0.281"
     hooks:
-      - id: flake8
-
-  - repo: https://github.com/timothycrosley/isort
-    rev: 5.12.0
-    hooks:
-      - id: isort
-        # Required for isort to be configured via pyproject.toml
-        additional_dependencies: ["toml"]
+      - id: ruff
+        args: [--fix]
 
   - repo: https://github.com/pre-commit/mirrors-prettier
     rev: v2.6.2
@@ -48,13 +42,13 @@ repos:
     rev: v1.4.1
     hooks:
       - id: mypy
-        additional_dependencies: ["types-all"]
+        additional_dependencies: ["types-all", "pydantic~=1.10"]
 
   - repo: local
     hooks:
       - id: generate-schemas
         name: Regenerate item model JSONSchemas
         description: Check if the current code changes have enacted changes to the resulting JSONSchemas
-        entry: invoke -r pydatalab dev.generate-schemas
+        entry: pipenv run invoke -r pydatalab dev.generate-schemas
         pass_filenames: false
         language: python

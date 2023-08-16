@@ -542,7 +542,7 @@ def test_items_added_to_existing_collection(client, default_collection, default_
     # Check that sending same collection multiple times doesn't lead to duplicates
     default_sample_dict["item_id"] = new_id2
     default_sample_dict["collections"] = [
-        {"collection_id": "test_collection_2", "collection_id": "test_collection_2"},
+        {"collection_id": "test_collection_2"},
     ]
     response = client.post("/save-item/", json={"data": default_sample_dict, "item_id": new_id2})
     assert response.status_code == 200, response.json

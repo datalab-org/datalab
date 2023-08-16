@@ -79,17 +79,17 @@ def convertSinglePattern(
     intensities = getIntensities(s)
 
     if adjust_baseline:
-        intensities = np.array(intensities)  # type: ignore
-        minI = np.min(intensities)
+        _intensities = np.array(intensities)  # type: ignore
+        minI: float = np.min(_intensities)
         if minI < 0:
             print(
                 f"\tadjusting baseline so that no points are negative (adding {-1 * minI} counts)"
             )
-            intensities -= minI
+            _intensities -= minI
         else:
             print("\tno intensitites are less than zero, so no baseline adjustment performed")
 
-        intensities = intensities.tolist()  # type: ignore
+        intensities = _intensities.tolist()  # type: ignore
 
     print(f"\tnumber of datapoints: {len(intensities)}")
     xystring = toXY(intensities, start, end)
