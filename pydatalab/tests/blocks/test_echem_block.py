@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 from navani.echem import echem_file_loader
 
-from pydatalab.blocks.echem_block import (
+from pydatalab.apps.echem.utils import (
     compute_gpcl_differential,
     filter_df_by_cycle_index,
     reduce_echem_cycle_sampling,
