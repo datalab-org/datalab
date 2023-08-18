@@ -146,15 +146,26 @@ def filter_df_by_cycle_index(
     if cycle_list is None:
         return df
 
+    cycle_list = sorted(i for i in cycle_list if i > 0)
+
     if "half cycle" not in df.columns:
         if "cycle index" not in df.columns:
             raise ValueError(
                 "Input dataframe must have either 'half cycle' or 'cycle index' column"
             )
+
+        if len(cycle_list) == 1 and max(cycle_list) > df["cycle index"].max():
+            cycle_list[0] = df["cycle index"].max()
         return df[df["cycle index"].isin(i for i in cycle_list)]
 
     try:
-        half_cycles = [i for item in cycle_list for i in [(2 * int(item)) - 1, 2 * int(item)]]
+        if len(cycle_list) == 1 and 2 * max(cycle_list) > df["half cycle"].max():
+            cycle_list[0] = df["half cycle"].max() // 2
+        half_cycles = [
+            i
+            for item in cycle_list
+            for i in [max((2 * int(item)) - 1, df["half cycle"].min()), 2 * int(item)]
+        ]
     except ValueError as exc:
         raise ValueError(
             f"Unable to parse `cycle_list` as integers: {cycle_list}. Error: {exc}"

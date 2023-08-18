@@ -15,6 +15,7 @@
         <input
           type="text"
           class="form-control"
+          placeholder="e.g., 1-5, 7, 9-10. Starts at 1."
           :class="{ 'is-invalid': cycle_num_error }"
           v-model="cyclesString"
           @keydown.enter="
@@ -209,10 +210,19 @@ export default {
       for (const section of cycle_string_sections) {
         let split_section = section.split("-");
         if (split_section.length == 1) {
+          let value = parseInt(split_section[0]);
+          if (value < 1) {
+            this.cycle_num_error = `Invalid input '${cyclesString}', cycle numbers start at 1.`;
+            return;
+          }
           all_cycles.push(parseInt(split_section[0]));
         } else {
           let upper_range = parseInt(split_section[1]);
           let lower_range = parseInt(split_section[0]);
+          if (lower_range < 1) {
+            this.cycle_num_error = `Invalid input '${cyclesString}', cycle numbers start at 1.`;
+            return;
+          }
           for (
             let j = Math.min(lower_range, upper_range);
             j <= Math.max(lower_range, upper_range);
