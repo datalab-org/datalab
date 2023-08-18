@@ -4,6 +4,18 @@ SHELL ["/bin/bash", "--login", "-c"]
 EXPOSE 5001
 RUN apt update && apt install -y tree && apt clean
 
+# Install the older version of mdbtools (0.7.1) until https://github.com/echemdata/galvani/issues/89 is resolved
+WORKDIR /opt
+RUN git clone https://github.com/mdbtools/mdbtools --depth 1 --branch 0.7.1
+WORKDIR /opt/mdbtools
+RUN autoreconf -i -f
+RUN ./configure --disable-man
+RUN make -j 4
+RUN make install
+RUN ldconfig
+
+
+FROM base as app
 # Copy all server code into workdir
 WORKDIR /app
 RUN pip install pipenv
@@ -11,14 +23,14 @@ RUN pip install pipenv
 COPY pydatalab/Pipfile pydatalab/Pipfile.lock ./
 
 # Create development image using flask's dev server with hot-reload
-FROM base as development
+FROM app as development
 RUN --mount=type=cache,target=/root/.cache/pip pipenv sync
 ENV FLASK_APP "pydatalab.main:create_app()"
 ENV FLASK_ENV "development"
 CMD ["pipenv", "run", "flask", "run", "--port", "5001", "--host", "0.0.0.0"]
 
 # Create production image using gunicorn and minimal dependencies
-FROM base as production
+FROM app as production
 RUN --mount=type=cache,target=/root/.cache/pip pipenv sync
 RUN [ "pipenv", "run", "pip", "install", "gunicorn" ]
 COPY ./pydatalab/ ./
