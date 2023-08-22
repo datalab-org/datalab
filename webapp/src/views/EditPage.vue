@@ -46,7 +46,7 @@
       <span v-if="itemDataLoaded && !savedStatus" class="navbar-text unsaved-warning">
         Unsaved changes
       </span>
-      <span v-if="itemDataLoaded" class="navbar-text small mx-2"
+      <span v-if="itemDataLoaded && lastModified" class="navbar-text small mx-2"
         ><i>Last saved: {{ lastModified }}</i></span
       >
       <font-awesome-icon
@@ -119,6 +119,7 @@ export default {
       isLoadingRemoteTree: false,
       isLoadingRemoteFiles: false,
       isLoadingNewBlock: false,
+      lastModified: null,
     };
   },
   methods: {
@@ -170,6 +171,7 @@ export default {
         editor.isDirty() && editor.save();
       });
       saveItem(this.item_id);
+      this.lastModified = "just now";
     },
     getSampleData() {
       getItemData(this.item_id).then(() => {
@@ -180,12 +182,23 @@ export default {
           console.log(`calling update on block ${block_id}`);
           updateBlockFromServer(this.item_id, block_id, this.item_data.blocks_obj[block_id]);
         });
+        this.setLastModified();
       });
     },
     leavePageWarningListener(event) {
       event.preventDefault;
       return (event.returnValue =
         "Unsaved changes present. Would you like to leave without saving?");
+    },
+    setLastModified() {
+      let item_date = this.item_data.last_modified || this.item_data.date;
+      if (item_date == null) {
+        this.lastModified = "Unknown";
+      } else {
+        // API dates are in UTC but missing Z suffix
+        const save_date = new Date(item_date + "Z");
+        this.lastModified = formatDistanceToNow(save_date, { addSuffix: true });
+      }
     },
   },
   computed: {
@@ -214,14 +227,6 @@ export default {
       );
       return allBlocksAreSaved && this.$store.state.saved_status_items[this.item_id];
     },
-    lastModified() {
-      let item_date = this.item_data.last_modified || this.item_data.date;
-      if (item_date == null) {
-        return "Unknown";
-      }
-      const save_date = new Date(item_date);
-      return formatDistanceToNow(save_date, { addSuffix: true });
-    },
     files() {
       return this.item_data.files;
     },
@@ -234,6 +239,7 @@ export default {
   },
   created() {
     this.getSampleData();
+    this.interval = setInterval(() => this.setLastModified(), 30000);
   },
   components: {
     TinyMceInline,

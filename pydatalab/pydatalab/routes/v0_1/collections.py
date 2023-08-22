@@ -130,7 +130,7 @@ def create_collection():
             409,  # 409: Conflict
         )
 
-    data["date"] = data.get("date", datetime.datetime.now())
+    data["last_modified"] = data.get("last_modified", datetime.datetime.now().isoformat())
 
     try:
         data_model = Collection(**data)
