@@ -3,11 +3,12 @@
   <div class="container">
     <div class="row">
       <div class="col-sm-8 mx-auto">
-        <h2>About datalab</h2>
-        <p>Datalab is a place to store experimental data and the connections between them.</p>
+        <h4 class="p-3 mx-auto" style="width: 90%">
+          datalab is a place to store experimental data and the connections between them.
+        </h4>
 
         <p>
-          Datalab is open source (MIT license) and development occurs on GitHub at
+          datalab is open source (MIT license) and development occurs on GitHub at
           <a href="https://github.com/the-grey-group/datalab"
             ><font-awesome-icon :icon="['fab', 'github']" />&nbsp;the-grey-group/datalab</a
           >
@@ -17,9 +18,12 @@
           >.
         </p>
 
-        <StatisticsTable />
+        <h5>Deployment stats:</h5>
+        <div class="mx-auto" style="width: 80%">
+          <StatisticsTable />
+        </div>
 
-        Datalab was primarily developed by:
+        datalab was primarily developed by:
         <ul>
           <li>
             <a href="https://github.com/jdbocarsly"

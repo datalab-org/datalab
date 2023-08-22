@@ -154,10 +154,10 @@ export function createNewCollection(collection_id, title, startingData = {}, cop
   });
 }
 
-export function getStats() {
+export async function getStats() {
   return fetch_get(`${API_URL}/info/stats`)
     .then(function (response_json) {
-      store.commit("setStats", response_json.counts);
+      return response_json.counts;
     })
     .catch((error) => {
       console.error("Error when fetching stats");

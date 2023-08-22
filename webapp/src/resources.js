@@ -78,6 +78,14 @@ export const itemTypes = {
     labelColor: "#845dbf",
     display: "collection",
   },
+  users: {
+    navbarColor: "mediumseagreen",
+    navbarName: "User",
+    lightColor: "mediumseagreen",
+    labelColor: "mediumseagreen",
+    isCreateable: false,
+    display: "user",
+  },
 };
 
 export const cellFormats = {
