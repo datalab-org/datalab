@@ -10,6 +10,7 @@ from pydantic import AnyUrl, BaseModel, Field, validator
 
 from pydatalab import __version__
 from pydatalab.models import Person
+from pydatalab.mongo import flask_mongo
 
 from ._version import __api_version__
 
@@ -89,6 +90,20 @@ def get_info():
     )
 
 
+def get_stats():
+    """Returns a dictionary of counts of each entry type in the deployment"""
+
+    user_count = flask_mongo.db.users.count_documents({})
+    sample_count = flask_mongo.db.items.count_documents({"type": "samples"})
+    cell_count = flask_mongo.db.items.count_documents({"type": "cells"})
+
+    return (
+        jsonify({"counts": {"users": user_count, "samples": sample_count, "cells": cell_count}}),
+        200,
+    )
+
+
 ENDPOINTS: Dict[str, Callable] = {
     "/info/": get_info,
+    "/info/stats": get_stats,
 }
