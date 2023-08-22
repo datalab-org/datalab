@@ -18,8 +18,8 @@
       <span v-if="data_loaded && !savedStatus" class="navbar-text unsaved-warning">
         Unsaved changes
       </span>
-      <span v-if="data_loaded" class="navbar-text small mx-2"
-        ><i>Last saved {{ lastModified }}</i></span
+      <span v-if="data_loaded && lastModified" class="navbar-text small mx-2"
+        ><i>Last saved: {{ lastModified }}</i></span
       >
       <font-awesome-icon
         icon="save"
@@ -52,6 +52,7 @@ export default {
       data_loaded: false,
       isMenuDropdownVisible: false,
       isLoadingNewBlock: false,
+      lastModified: null,
     };
   },
   methods: {
@@ -60,15 +61,27 @@ export default {
       console.log("save clicked!");
       tinymce.editors.forEach((editor) => editor.save());
       saveCollection(this.collection_id);
+      this.lastModified = "just now";
     },
     async getCollection() {
       await getCollectionData(this.collection_id);
       this.data_loaded = true;
+      this.setLastModified();
     },
     leavePageWarningListener(event) {
       event.preventDefault;
       return (event.returnValue =
         "Unsaved changes present. Would you like to leave without saving?");
+    },
+    setLastModified() {
+      let item_date = this.collection_data.last_modified || this.collection_data.date;
+      if (item_date == null) {
+        this.lastModified = "Unknown";
+      } else {
+        // API dates are in UTC but missing Z suffix
+        const save_date = new Date(item_date + "Z");
+        this.lastModified = formatDistanceToNow(save_date, { addSuffix: true });
+      }
     },
   },
   computed: {
@@ -84,14 +97,10 @@ export default {
     savedStatus() {
       return this.$store.state.saved_status_collections[this.collection_id];
     },
-    lastModified() {
-      let item_date = this.collection_data.last_modified;
-      const save_date = new Date(item_date);
-      return formatDistanceToNow(save_date, new Date(), { addSuffix: true });
-    },
   },
   created() {
     this.getCollection();
+    this.interval = setInterval(() => this.setLastModified(), 30000);
   },
   components: {
     CollectionInformation,
