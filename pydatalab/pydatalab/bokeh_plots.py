@@ -441,8 +441,12 @@ def double_axes_echem_plot(
             else:
                 y = "dV/dQ (V/mA)"
 
+        # if filtering has removed all cycles, skip making the plot
+        if len(df) < 1:
+            raise RuntimeError("No data remaining to plot after filtering.")
+
         # trim the end of the colour cycle for visibility on a white background
-        color_space = np.linspace(0.3, 0.7, int(df["half cycle"].max()))  # type: ignore
+        color_space = np.linspace(0.3, 0.7, max(int(df["half cycle"].max()), 1))  # type: ignore
 
         for _, group in grouped_by_half_cycle:
             line = plot.line(
