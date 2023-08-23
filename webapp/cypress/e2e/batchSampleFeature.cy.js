@@ -756,17 +756,17 @@ describe("Batch sample creation", () => {
   // as contains matches greedily, if any IDs have matching substrings they must be added in the appropriate order
   it("deletes the rest of the samples (cleanup)", () => {
     [
-      "test101_unique",
       "test102_unique",
       "test103_unique",
       "test101_unique2",
+      "test101_unique",
       "component1",
       "component2",
       "component3",
       "component4",
       "baseA_copy",
-      "baseB_copy",
       "baseB_copy2",
+      "baseB_copy",
       "test101",
       "test102",
       "test103",
