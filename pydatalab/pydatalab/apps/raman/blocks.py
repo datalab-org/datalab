@@ -7,7 +7,7 @@ import pandas as pd
 from pybaselines import Baseline
 from scipy.signal import medfilt
 
-from pydatalab.blocks.blocks import DataBlock
+from pydatalab.blocks.base import DataBlock
 from pydatalab.bokeh_plots import mytheme, selectable_axes_plot
 from pydatalab.file_utils import get_file_info_by_id
 
