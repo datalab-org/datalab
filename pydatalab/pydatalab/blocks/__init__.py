@@ -1,16 +1,19 @@
 from typing import Dict, Sequence, Type
 
+# These app imports will be replaced by dynamic plugins in a future version
 from pydatalab.apps.chat.blocks import ChatBlock
 from pydatalab.apps.echem import CycleBlock
 from pydatalab.apps.eis import EISBlock
+from pydatalab.apps.nmr import NMRBlock
 from pydatalab.apps.raman import RamanBlock
 from pydatalab.apps.tga import MassSpecBlock
 from pydatalab.apps.xrd import XRDBlock
-from pydatalab.blocks.blocks import (
-    CommentBlock,
+from pydatalab.blocks.base import (
     DataBlock,
+)
+from pydatalab.blocks.common import (
+    CommentBlock,
     MediaBlock,
-    NMRBlock,
     NotSupportedBlock,
 )
 
