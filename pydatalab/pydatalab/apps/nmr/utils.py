@@ -1,6 +1,7 @@
 import itertools
 import os
 import re
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import nmrglue as ng
@@ -13,15 +14,27 @@ from scipy import integrate
 ######################################################################################
 
 
-def read_bruker_1d(data, process_number=1, verbose=True, sample_mass_mg=None):
+def read_bruker_1d(
+    data: Path | pd.DataFrame,
+    process_number: int = 1,
+    verbose: bool = False,
+    sample_mass_mg: float | None = None,
+) -> tuple[pd.DataFrame | None, dict, str | None, tuple[int, ...]]:
     """Read a 1D bruker nmr spectrum and return it as a df.
 
-    arguments:
+    Parameters:
+        data: The directory of the full bruker data file, or a pandas DataFrame which
+            will be returned without further processing.
+        process_number: The process number of the processed data you want to plot [default: 1].
+        verbose: Whether to print information such as the spectrum title to stdout.
+        sample_mass_mg: The (optional) sample mass. If provided, the resulting DataFrame will have a "intensity_per_scan_per_gram" column.
 
-    data: The directory of the full bruker data file. You may also supply a df as this argument. In this case, the df is returned as is.
-    process_number: The process number of the processed data you want to plot [default 1]
-    verbose: Whether to print information such as the spectrum title to stdout (default True)
-    sample_mass_mg: The (optional) sample mass. If provided, the resulting DataFrame will have a "intensity_per_scan_per_gram" column.
+    Returns:
+        df: A pandas DataFrame containing the spectrum data, or None if the reading failed.
+        a_dic: A dictionary containing the acquisition parameters.
+        topspin_title: The title of the spectrum, as stored in the topspin "title" file.
+        shape: The shape of the spectrum data array.
+
     """
 
     # if df is provided, just return it as-is. This functionality is provided to make functions calling read_bruker_1d flexible by default.
@@ -32,12 +45,12 @@ def read_bruker_1d(data, process_number=1, verbose=True, sample_mass_mg=None):
             print("data frame provided to read_bruker_1d(). Returning it as is.")
         return data
     else:
-        data_dir = data
+        data_dir = Path(data)
 
-    processed_data_dir = os.path.join(data_dir, "pdata", str(process_number))
+    processed_data_dir = data_dir / "pdata" / str(process_number)
 
-    a_dic, a_data = ng.fileio.bruker.read(data_dir)  # aquisition_data
-    p_dic, p_data = ng.fileio.bruker.read_pdata(processed_data_dir)  # processing data
+    a_dic, a_data = ng.fileio.bruker.read(str(data_dir))  # aquisition_data
+    p_dic, p_data = ng.fileio.bruker.read_pdata(str(processed_data_dir))  # processing data
 
     try:
         with open(os.path.join(processed_data_dir, "title"), "r") as f:
@@ -46,7 +59,6 @@ def read_bruker_1d(data, process_number=1, verbose=True, sample_mass_mg=None):
         topspin_title = None
 
     if len(p_data.shape) > 1:
-        print("data is more than one dimensional - read failed")
         return None, a_dic, topspin_title, p_data.shape
 
     nscans = a_dic["acqus"]["NS"]
