@@ -10,7 +10,7 @@ from pydatalab.config import CONFIG
 from pydatalab.logger import logged_route
 from pydatalab.models.collections import Collection
 from pydatalab.mongo import flask_mongo
-from pydatalab.routes.utils import get_default_permissions
+from pydatalab.permissions import get_default_permissions
 from pydatalab.routes.v0_1.items import creators_lookup, get_samples_summary
 
 collection = Blueprint("collections", __name__)

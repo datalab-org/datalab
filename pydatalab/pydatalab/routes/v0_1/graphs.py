@@ -3,7 +3,7 @@ from typing import Callable, Dict, Optional, Set
 from flask import jsonify, request
 
 from pydatalab.mongo import flask_mongo
-from pydatalab.routes.utils import get_default_permissions
+from pydatalab.permissions import get_default_permissions
 
 
 def get_graph_cy_format(item_id: Optional[str] = None, collection_id: Optional[str] = None):

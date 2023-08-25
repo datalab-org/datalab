@@ -8,17 +8,10 @@ from pydatalab.apps.nmr import NMRBlock
 from pydatalab.apps.raman import RamanBlock
 from pydatalab.apps.tga import MassSpecBlock
 from pydatalab.apps.xrd import XRDBlock
-from pydatalab.blocks.base import (
-    DataBlock,
-)
-from pydatalab.blocks.common import (
-    CommentBlock,
-    MediaBlock,
-    NotSupportedBlock,
-)
+from pydatalab.blocks.base import DataBlock
+from pydatalab.blocks.common import CommentBlock, MediaBlock, NotSupportedBlock
 
-BLOCKS: Sequence[Type[DataBlock]] = (
-    DataBlock,
+BLOCKS: Sequence[Type["DataBlock"]] = (
     CommentBlock,
     MediaBlock,
     XRDBlock,
@@ -31,11 +24,9 @@ BLOCKS: Sequence[Type[DataBlock]] = (
     EISBlock,
 )
 
-BLOCK_TYPES: Dict[str, Type[DataBlock]] = {block.blocktype: block for block in BLOCKS}
-BLOCK_TYPES["test"] = DataBlock
+BLOCK_TYPES: Dict[str, Type["DataBlock"]] = {block.blocktype: block for block in BLOCKS}
 
 __all__ = (
-    "DataBlock",
     "CommentBlock",
     "MediaBlock",
     "XRDBlock",
