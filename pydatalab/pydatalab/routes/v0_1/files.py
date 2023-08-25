@@ -2,6 +2,7 @@ import os
 from typing import Callable, Dict
 
 from bson import ObjectId
+from bson.errors import InvalidId
 from flask import jsonify, request, send_from_directory
 from flask_login import current_user
 from pymongo import ReturnDocument
@@ -13,14 +14,22 @@ from pydatalab.config import CONFIG
 from pydatalab.routes.utils import get_default_permissions
 
 
-def get_file(file_id, filename):
-    if not current_user.is_authenticated and not CONFIG.TESTING:
+def get_file(file_id: str, filename: str):
+    try:
+        _file_id = ObjectId(file_id)
+    except InvalidId:
+        # If the ID is invalid, then there will be no results in the database anyway,
+        # so just 401
+        _file_id = file_id
+    if not pydatalab.mongo.flask_mongo.db.files.find_one(
+        {"_id": _file_id, **get_default_permissions(user_only=True)}
+    ):
         return (
             jsonify(
                 {
                     "status": "error",
                     "title": "Not Authorized",
-                    "detail": "File access requires login.",
+                    "detail": "Authorization required to access file",
                 }
             ),
             401,
