@@ -2,10 +2,11 @@ from typing import Callable, Dict
 
 from flask import jsonify, request
 
-from pydatalab.blocks import BLOCK_TYPES, DataBlock
+from pydatalab.blocks import BLOCK_TYPES
+from pydatalab.blocks.base import DataBlock
 from pydatalab.logger import LOGGER
 from pydatalab.mongo import flask_mongo
-from pydatalab.routes.utils import get_default_permissions
+from pydatalab.permissions import get_default_permissions
 
 
 def add_data_block():
