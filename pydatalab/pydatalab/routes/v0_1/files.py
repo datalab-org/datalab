@@ -11,7 +11,7 @@ from werkzeug.utils import secure_filename
 import pydatalab.mongo
 from pydatalab import file_utils
 from pydatalab.config import CONFIG
-from pydatalab.routes.utils import get_default_permissions
+from pydatalab.permissions import get_default_permissions
 
 
 def get_file(file_id: str, filename: str):

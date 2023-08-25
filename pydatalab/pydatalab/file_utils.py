@@ -15,7 +15,7 @@ from pydatalab.logger import LOGGER, logged_route
 from pydatalab.models import File
 from pydatalab.models.utils import PyObjectId
 from pydatalab.mongo import flask_mongo
-from pydatalab.routes.utils import get_default_permissions
+from pydatalab.permissions import get_default_permissions
 
 FILE_DIRECTORY = CONFIG.FILE_DIRECTORY
 DIRECTORIES_DICT = {fs.name: fs for fs in CONFIG.REMOTE_FILESYSTEMS}
@@ -302,7 +302,7 @@ def save_uploaded_file(
     last_modified should be an isodate format. if last_modified is None, the current time will be inserted
     """
 
-    from pydatalab.routes.utils import get_default_permissions
+    from pydatalab.permissions import get_default_permissions
 
     sample_collection = flask_mongo.db.items
     file_collection = flask_mongo.db.files
@@ -388,7 +388,7 @@ def save_uploaded_file(
 
 
 def add_file_from_remote_directory(file_entry, item_id, block_ids=None):
-    from pydatalab.routes.utils import get_default_permissions
+    from pydatalab.permissions import get_default_permissions
 
     file_collection = flask_mongo.db.files
     sample_collection = flask_mongo.db.items
@@ -504,7 +504,7 @@ def remove_file_from_sample(item_id: Union[str, ObjectId], file_id: Union[str, O
         file_id: The database ID of the file to remove from the item.
 
     """
-    from pydatalab.routes.utils import get_default_permissions
+    from pydatalab.permissions import get_default_permissions
 
     item_id, file_id = ObjectId(item_id), ObjectId(file_id)
     sample_collection = flask_mongo.db.items
