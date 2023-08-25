@@ -13,7 +13,9 @@ from werkzeug.utils import secure_filename
 from pydatalab.config import CONFIG, RemoteFilesystem
 from pydatalab.logger import LOGGER, logged_route
 from pydatalab.models import File
+from pydatalab.models.utils import PyObjectId
 from pydatalab.mongo import flask_mongo
+from pydatalab.routes.utils import get_default_permissions
 
 FILE_DIRECTORY = CONFIG.FILE_DIRECTORY
 DIRECTORIES_DICT = {fs.name: fs for fs in CONFIG.REMOTE_FILESYSTEMS}
@@ -184,7 +186,7 @@ def _check_and_sync_file(file_info: File, file_id: ObjectId) -> File:
             is_live = False
 
         updated_file_info = file_collection.find_one_and_update(
-            {"_id": file_id},
+            {"_id": file_id, **get_default_permissions(user_only=False)},
             {
                 "$set": {
                     "size": local_stat_results.st_size,
@@ -236,7 +238,9 @@ def get_file_info_by_id(
     LOGGER.debug("getting file for file_id: %s", file_id)
     file_collection = flask_mongo.db.files
     file_id = ObjectId(file_id)
-    file_info = file_collection.find_one({"_id": file_id})
+    file_info = file_collection.find_one(
+        {"_id": file_id, **get_default_permissions(user_only=False)}
+    )
     if not file_info:
         raise IOError(f"could not find file with id: {file_id} in db")
 
@@ -286,7 +290,14 @@ def update_uploaded_file(file, file_id, last_modified=None, size_bytes=None):
 
 
 @logged_route
-def save_uploaded_file(file, item_ids=None, block_ids=None, last_modified=None, size_bytes=None):
+def save_uploaded_file(
+    file,
+    item_ids=None,
+    block_ids=None,
+    last_modified=None,
+    size_bytes: int | None = None,
+    creator_ids: list[PyObjectId | str] | None = None,
+):
     """file is a file object from a flask request.
     last_modified should be an isodate format. if last_modified is None, the current time will be inserted
     """
@@ -333,6 +344,7 @@ def save_uploaded_file(file, item_ids=None, block_ids=None, last_modified=None, 
         last_modified_remote=None,  # not used for source=uploaded
         is_live=False,  # not available for source=uploaded
         revision=1,  # increment with each update
+        creator_ids=creator_ids if creator_ids else [],
     )
 
     result = file_collection.insert_one(new_file_document.dict())
@@ -347,7 +359,7 @@ def save_uploaded_file(file, item_ids=None, block_ids=None, last_modified=None, 
     file.save(file_location)
 
     updated_file_entry = file_collection.find_one_and_update(
-        {"_id": inserted_id},
+        {"_id": inserted_id, **get_default_permissions(user_only=False)},
         {
             "$set": {
                 "location": file_location,
@@ -447,7 +459,7 @@ def add_file_from_remote_directory(file_entry, item_id, block_ids=None):
     _sync_file_with_remote(full_remote_path, new_file_location)
 
     updated_file_entry = file_collection.find_one_and_update(
-        {"_id": inserted_id},
+        {"_id": inserted_id, **get_default_permissions(user_only=False)},
         {
             "$set": {
                 "location": new_file_location,
@@ -471,7 +483,9 @@ def add_file_from_remote_directory(file_entry, item_id, block_ids=None):
 
 def retrieve_file_path(file_ObjectId):
     file_collection = flask_mongo.db.files
-    result = file_collection.find_one({"_id": ObjectId(file_ObjectId)})
+    result = file_collection.find_one(
+        {"_id": ObjectId(file_ObjectId), **get_default_permissions(user_only=False)}
+    )
     if not result:
         raise FileNotFoundError(
             f"The file with file_ObjectId: {file_ObjectId} could not be found in the database"

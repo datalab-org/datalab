@@ -431,6 +431,30 @@
       "description": "A model for representing a file that has been tracked or uploaded to datalab.",
       "type": "object",
       "properties": {
+        "revision": {
+          "title": "Revision",
+          "default": 1,
+          "type": "integer"
+        },
+        "revisions": {
+          "title": "Revisions",
+          "type": "object"
+        },
+        "creator_ids": {
+          "title": "Creator Ids",
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "creators": {
+          "title": "Creators",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Person"
+          }
+        },
         "type": {
           "title": "Type",
           "default": "files",
