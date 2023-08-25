@@ -61,7 +61,7 @@ Additional notes:
 4. Run the webapp from a development server with `yarn serve`.
 
 Similar to the Flask development server, these steps will provide a development environment that serves the web app at `localhost:8080` (by default) and automatically reloads it as changes are made to the source code.
-Various other development scripts are available through `yarn` (see also the [webapp README](./webapp/README.md)):
+Various other development scripts are available through `yarn`:
 
 - `yarn lint`: Lint the javascript code using `eslint`, identifying issues and automatically fixing many. This linting process also runs automatically every time the development server reloads.
 - `yarn test:unit`: run the unit/componenet tests using `jest`. These test individual functions or components.

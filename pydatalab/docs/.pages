@@ -2,5 +2,5 @@ nav:
     - index.md
     - INSTALL.md
     - design
-    - schemas
-    - api_reference
+    - 'Model schemas': schemas
+    - api_reference.md
