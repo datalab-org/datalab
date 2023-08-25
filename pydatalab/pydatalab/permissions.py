@@ -31,7 +31,7 @@ def get_default_permissions(user_only: bool = True) -> Dict[str, Any]:
     ):
         return {}
 
-    null_perm = {"creator_ids": {"$size": 0}}
+    null_perm = {"$or": [{"creator_ids": {"$size": 0}}, {"creator_ids": {"$exists": False}}]}
     if current_user.is_authenticated and current_user.person is not None:
         # find managed users under the given user (can later be expanded to groups)
         managed_users = list(
@@ -41,7 +41,7 @@ def get_default_permissions(user_only: bool = True) -> Dict[str, Any]:
         )
         if managed_users:
             managed_users = [u["_id"] for u in managed_users]
-        LOGGER.info("Found users %s for user %s", managed_users, current_user.person)
+            LOGGER.debug("Found managed users %s for user %s", managed_users, current_user.person)
 
         user_perm = {"creator_ids": {"$in": [current_user.person.immutable_id] + managed_users}}
         if user_only:
