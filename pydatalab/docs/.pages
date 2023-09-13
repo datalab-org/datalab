@@ -2,5 +2,7 @@ nav:
     - index.md
     - INSTALL.md
     - design
-    - 'Model schemas': schemas
-    - api_reference.md
+    - schemas
+    - blocks
+    - rest_api.md
+    - config.md
