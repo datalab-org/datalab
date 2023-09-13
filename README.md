@@ -58,7 +58,7 @@ change significantly between versions.
 ## Installation
 
 Installation, usage and deployment instructions can be found in
-[INSTALL.md](./INSTALL.md) and in the [online documentation](https://readthedocs.com/datalab).
+[INSTALL.md](./INSTALL.md) and in the [online documentation](https://the-datalab.readthedocs.io).
 
 ## License
 
