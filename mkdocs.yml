@@ -41,6 +41,9 @@ markdown_extensions:
   - toc:
       permalink: true
 
+extra_css:
+  - css/reference.css
+
 plugins:
   - mkdocstrings:
       default_handler: python

@@ -46,7 +46,7 @@ in the Department of Chemistry at the University of Cambridge.
 - A simple, intuitive UI for recording sample metadata and relationships with
   other samples (batches, offshoots), alongside synthesis parameters and raw data.
 - Basic analysis and plotting of live and archived data attached to a sample, e.g.,
-  characterisation via XRD or NMR, electrochemical cycling data and images -- see Blocks for a complete list.
+  characterisation via XRD or NMR, electrochemical cycling data and images (see "Data blocks" section for a complete list).
 - Interactive network visualisation of the connections between samples and inventory.
 
 ## Development status
