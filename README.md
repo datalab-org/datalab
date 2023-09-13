@@ -69,7 +69,7 @@ Please see [LICENSE](./LICENSE) for the full text of the license.
 
 This software was primarily developed by:
 
-- [Joshua Bocarsly](https://jdbocarsly.github.io) (Department of Chemistry, University of Cambridge)
+- [Joshua Bocarsly](https://jdbocarsly.github.io) ([Department of Chemistry, University of Houston](https://www.uh.edu/nsm/chemistry), previously [Department of Chemistry, University of Cambridge](https://www.ch.cam.ac.uk/))
 - [Matthew Evans](https://ml-evs.science) ([MODL-IMCN,
   UCLouvain](https://uclouvain.be/en/research-institutes/imcn/modl) & [Matgenix](https://matgenix.com))
 

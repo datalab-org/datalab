@@ -28,7 +28,8 @@
           <li>
             <a href="https://github.com/jdbocarsly"
               ><font-awesome-icon :icon="['fab', 'github']" /></a
-            >&nbsp;Joshua Bocarsly (Department of Chemistry, University of Cambridge)
+            >&nbsp;Joshua Bocarsly (Department of Chemistry, University of Houston, previously
+            Department of Chemistry, University of Cambridge)
           </li>
           <li>
             <a href="https://github.com/ml-evs"><font-awesome-icon :icon="['fab', 'github']" /></a
