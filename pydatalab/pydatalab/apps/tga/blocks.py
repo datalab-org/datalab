@@ -15,7 +15,8 @@ from pydatalab.logger import LOGGER
 
 class MassSpecBlock(DataBlock):
     blocktype = "ms"
-    description = "Mass spectrometry (MS)"
+    name = "Mass spectrometry"
+    description = "Read and visualize mass spectrometry data as a grid plot per channel"
     accepted_file_extensions = (".asc",)
 
     @property
