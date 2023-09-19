@@ -30,7 +30,8 @@ class CycleBlock(DataBlock):
     """
 
     blocktype = "cycle"
-    description = "Electrochemical cycling"
+    name = "Electrochemical cycling"
+    description = "This block can plot data from electrochemical cycling experiments from many different cycler's file formats."
 
     accepted_file_extensions = (
         ".mpr",

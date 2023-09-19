@@ -9,21 +9,17 @@ from pydatalab.logger import LOGGER
 from .base import DataBlock
 
 
-class NotSupportedBlock(DataBlock):
-    blocktype = "notsupported"
-    description = "Block not supported"
-    _supports_collections = True
-
-
 class CommentBlock(DataBlock):
+    name = "Comment"
     blocktype = "comment"
-    description = "Comment"
+    description = "Add a rich text comment to the document."
     _supports_collections = True
 
 
 class MediaBlock(DataBlock):
+    name = "Media"
     blocktype = "media"
-    description = "Media"
+    description = "Display an image or a video of a supported format."
     accepted_file_extensions = (".png", ".jpeg", ".jpg", ".tif", ".tiff", ".mp4", ".mov", ".webm")
     _supports_collections = False
 

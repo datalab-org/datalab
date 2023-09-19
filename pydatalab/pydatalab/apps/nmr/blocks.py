@@ -14,7 +14,9 @@ from .utils import read_bruker_1d
 
 class NMRBlock(DataBlock):
     blocktype = "nmr"
-    description = "Bruker NMR Spectrum"
+    name = "NMR"
+    description = "A simple NMR block for visualizing 1D NMR data from Bruker projects."
+
     accepted_file_extensions = ".zip"
     defaults = {"process number": 1}
     _supports_collections = False
