@@ -17,7 +17,8 @@ from .utils import parse_xrdml
 
 class XRDBlock(DataBlock):
     blocktype = "xrd"
-    description = "Powder XRD"
+    name = "Powder XRD"
+    description = "Visualize XRD patterns and perform simple baseline corrections."
     accepted_file_extensions = (".xrdml", ".xy", ".dat", ".xye")
 
     defaults = {"wavelength": 1.54060}
