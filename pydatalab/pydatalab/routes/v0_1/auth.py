@@ -20,16 +20,17 @@ from flask_login.utils import LocalProxy
 
 from pydatalab.config import CONFIG
 from pydatalab.errors import UserRegistrationForbidden
-from pydatalab.logger import LOGGER
-from pydatalab.login import get_by_id_cached
+from pydatalab.logger import LOGGER, logged_route
+from pydatalab.login import get_by_id
 from pydatalab.models.people import Identity, IdentityType, Person
 from pydatalab.mongo import flask_mongo, insert_pydantic_model_fork_safe
 
 KEY_LENGTH: int = 32
 
 
+@logged_route
 def wrapped_login_user(*args, **kwargs):
-    LOGGER.warning("Logging in user %s with role %s", args[0].display_name, args[0].role)
+    # LOGGER.warning("Logging in user %s with role %s", args[0].display_name, args[0].role)
     login_user(*args, **kwargs)
 
 
@@ -73,6 +74,7 @@ def find_create_or_modify_user(
 
     """
 
+    @logged_route
     def find_user_with_identity(
         identifier: str,
         identity_type: Union[str, IdentityType],
@@ -105,6 +107,7 @@ def find_create_or_modify_user(
 
         return None
 
+    @logged_route
     def attach_identity_to_user(
         user_id: str,
         identity: Identity,
@@ -130,7 +133,7 @@ def find_create_or_modify_user(
 
         """
         update = {"$push": {"identities": identity.dict()}}
-        if use_display_name and identity.display_name:
+        if use_display_name and identity and identity.display_name:
             update["$set"] = {"display_name": identity.display_name}
 
         if use_contact_email and identity.identity_type is IdentityType.EMAIL and identity.verified:
@@ -175,13 +178,16 @@ def find_create_or_modify_user(
                 raise UserRegistrationForbidden
 
             user = Person.new_user_from_identity(identity, use_display_name=True)
-            wrapped_login_user(get_by_id_cached(str(user.immutable_id)))
             LOGGER.debug("Inserting new user model %s into database", user)
             insert_pydantic_model_fork_safe(user, "users")
+            user_model = get_by_id(str(user.immutable_id))
+            if user is None:
+                raise RuntimeError("WHY IS THIS NONE")
+            wrapped_login_user(user_model)
 
     # Log the user into the session with this identity
     if user is not None:
-        wrapped_login_user(get_by_id_cached(str(user.immutable_id)))
+        wrapped_login_user(get_by_id(str(user.immutable_id)))
 
 
 @oauth_authorized.connect_via(OAUTH_BLUEPRINTS[IdentityType.GITHUB])

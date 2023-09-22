@@ -3,7 +3,6 @@ for retrieving the authenticated user for a session and their identities.
 
 """
 
-from functools import lru_cache
 from hashlib import sha512
 from typing import List, Optional
 
@@ -74,7 +73,6 @@ class LoginUser(UserMixin):
             self.role = user.role
 
 
-@lru_cache(maxsize=128)
 def get_by_id_cached(user_id):
     """Cached version of get_by_id."""
     return get_by_id(user_id)
