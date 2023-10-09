@@ -29,7 +29,7 @@ Should you wish to just run/deploy the apps themselves, the easiest method is to
 1. Install the `pydatalab` package.
     1. Navigate to the `pydatalab` folder and run `pipenv install`.
         - This will create a `pipenv` environment for `pydatalab` and all of its dependencies that is registered within *this folder* only.
-1. Run the server from the `pydatalab` folder with `pipenv run pydatalab/main.py`.
+1. Run the server from the `pydatalab` folder with `pipenv run python pydatalab/main.py`.
 
 The server should now be accessible at http://localhost:5001. If the server is running, navigating to this URL will display "Hello, This is a server".
 
