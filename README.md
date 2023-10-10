@@ -33,6 +33,11 @@ in the Department of Chemistry at the University of Cambridge.
 
 ## Features
 
+### Introductory video
+
+https://github.com/the-grey-group/datalab/assets/7916000/0065cdd6-a5f0-4391-b192-0137fe208acc
+
+
 ### Server
 
 - A REST API for accessing data and analysis related to chemical samples,
