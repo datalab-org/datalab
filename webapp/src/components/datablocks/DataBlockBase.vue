@@ -72,6 +72,13 @@
 </template>
 
 <script>
+/**
+ * DataBlockBase - A base component for all data blocks.
+ *
+ * This component is used to create a data block that can be expanded, collapsed,
+ * moved, deleted and annotated with a title and description.
+ *
+ */
 import { createComputedSetterForBlockField } from "@/field_utils.js";
 import TinyMceInline from "@/components/TinyMceInline";
 import tinymce from "tinymce/tinymce";

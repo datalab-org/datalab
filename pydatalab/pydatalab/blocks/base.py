@@ -2,7 +2,9 @@ import random
 import warnings
 from typing import Any, Callable, Dict, Optional, Sequence
 
+import bokeh.embed
 from bson import ObjectId
+from pydantic import BaseModel
 
 from pydatalab.logger import LOGGER
 
@@ -30,6 +32,34 @@ def generate_random_id():
 ############################################################################################################
 
 
+class DataBlockParameter(BaseModel):
+    type: Literal["number", "string"]
+    editable: bool
+    required: bool
+    label: str
+    default: float | str
+    description: str
+
+
+class DataBlockInput(BaseModel):
+    type: Literal["file", "string", "number"]
+    label: str
+    multiplicity: int | Literal["*"]
+    parameters: Optional[dict[str, DataBlockParameter]]
+
+
+class DataBlockView(BaseModel):
+    type: type[dict, bokeh.embed.standalone.StandaloneEmbedJson]
+
+
+class DataBlockUITemplate(BaseModel):
+    """A DSL for templating the datablock UI."""
+
+    inputs: dict[str, DataBlockInput] | None
+    view: dict[str, DataBlockView] | None
+    parameters: dict[str, DataBlockParameter] | None
+
+
 class DataBlock:
     """Base class for a data block."""
 
@@ -51,6 +81,8 @@ class DataBlock:
 
     plot_functions: Optional[Sequence[Callable[[], None]]] = None
     """A list of functions that can be called to generate plots for this block."""
+
+    ui_template: DataBlockUITemplate | None = None
 
     _supports_collections: bool = False
     """Whether this datablock can operate on collection data, or just individual items"""
@@ -183,6 +215,9 @@ class DataBlock:
             self.data["errors"] = block_errors
         if block_warnings:
             self.data["warnings"] = block_warnings
+
+        if self.ui_template:
+            return {self.data[k] for k in self.data if k in self.ui_template.view}
 
         return self.data
 

@@ -22,6 +22,7 @@ export default createStore({
     remoteDirectoryTree: {},
     remoteDirectoryTreeSecondsSinceLastUpdate: null,
     files: {},
+    available_block_types: {},
     itemGraphData: null,
     remoteDirectoryTreeIsLoading: false,
     fileSelectModalIsOpen: false,
@@ -172,6 +173,12 @@ export default createStore({
       // requires the following fields in payload:
       // item_id, isSaved
       state.saved_status_collections[payload.collection_id] = payload.isSaved;
+    },
+    setBlockTypes(state, payload) {
+      // Sets the available block types from the server
+      for (var i = 0; i < payload.length; i++) {
+        state.available_block_types[payload[i].id] = payload[i];
+      }
     },
     removeBlockFromDisplay(state, payload) {
       // requires the following fields in payload:

@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from scipy.signal import medfilt
 
-from pydatalab.blocks.base import DataBlock
+from pydatalab.blocks.base import DataBlock, DataBlockUITemplate
 from pydatalab.bokeh_plots import DATALAB_BOKEH_THEME, selectable_axes_plot
 from pydatalab.file_utils import get_file_info_by_id
 from pydatalab.logger import LOGGER
@@ -15,11 +15,35 @@ from pydatalab.mongo import flask_mongo
 from .utils import parse_xrdml
 
 
+class XRDBlockUI(DataBlockUITemplate):
+    inputs = {
+        "patterns": {
+            "type": "file",
+            "label": "Attach XRD files",
+            "multiplicity": "*",
+            "parameters": {
+                "wavelength": { "type": "number", "editable": True,
+                    "required": True,
+                    "default": 1.54060,
+                    "label": "Wavelength Å",
+                    "description": "Wavelength of the X-ray source used for this pattern in Å.",
+                }, },
+        }
+    }
+
+    view = {
+        "bokehPlotData": {
+            "type": bokeh.embed.standalone.StandaloneEmbedJson,
+        }
+    }
+
+
 class XRDBlock(DataBlock):
     blocktype = "xrd"
     name = "Powder XRD"
     description = "Visualize XRD patterns and perform simple baseline corrections."
     accepted_file_extensions = (".xrdml", ".xy", ".dat", ".xye")
+    ui_template = XRDBlockUI
 
     defaults = {"wavelength": 1.54060}
 

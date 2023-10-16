@@ -1,14 +1,4 @@
 // Resources for the application
-import DataBlockBase from "@/components/datablocks/DataBlockBase";
-import MediaBlock from "@/components/datablocks/MediaBlock";
-import XRDBlock from "@/components/datablocks/XRDBlock";
-import ChatBlock from "@/components/datablocks/ChatBlock";
-import RamanBlock from "@/components/datablocks/RamanBlock";
-import CycleBlock from "@/components/datablocks/CycleBlock";
-import NMRBlock from "@/components/datablocks/NMRBlock";
-import EISBlock from "@/components/datablocks/EISBlock";
-import MassSpecBlock from "@/components/datablocks/MassSpecBlock";
-
 import SampleInformation from "@/components/SampleInformation";
 import StartingMaterialInformation from "@/components/StartingMaterialInformation";
 import CellInformation from "@/components/CellInformation";

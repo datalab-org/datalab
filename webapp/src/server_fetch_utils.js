@@ -533,6 +533,17 @@ export async function getItemGraph({ item_id = null, collection_id = null } = {}
     .catch((error) => `getItemGraph unsuccessful. Error: ${error}`);
 }
 
+export async function getBlockTypes() {
+  let url = `${API_URL}/info/blocks`;
+
+  return fetch_get(url)
+    .then(function (response_json) {
+      console.log("Received block types");
+      store.commit("setBlockTypes", response_json.data);
+    })
+    .catch((error) => `getBlockTypes unsuccessful. Error: ${error}`);
+}
+
 // export async function addRemoteFilesToSample(file_entries, item_id) {
 //  console.log('loadSelectedRemoteFiles')
 //  return fetch_post(`${API_URL}/add-remote-files-to-sample/`, {
