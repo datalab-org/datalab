@@ -22,7 +22,7 @@ class RamanBlock(DataBlock):
         return (self.generate_raman_plot,)
 
     @classmethod
-    def load(self, location: str) -> Tuple[pd.DataFrame, List[str]]:
+    def load_raman_spectrum(self, location: str) -> Tuple[pd.DataFrame, List[str]]:
         if not isinstance(location, str):
             location = str(location)
 
