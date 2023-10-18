@@ -139,16 +139,29 @@ def _save_block_to_db(block: DataBlock) -> bool:
     overwriting previous data saved there.
     returns true if successful, false if unsuccessful
     """
-    if block.data.get("item_id"):
+
+    updated_block = block.to_db()
+    update = {"$set": {f"blocks_obj.{block.block_id}": updated_block}}
+
+    print(updated_block.keys())
+
+    if block.data.get("collection_id"):
+        match = {"collection_id": block.data["collection_id"], **get_default_permissions(user_only=False)}
+    else:
+        match = {"block_id": block.data["block_id"], **get_default_permissions(user_only=False)}
+
+    
+    try:
         result = flask_mongo.db.items.update_one(
-            {"item_id": block.data["item_id"], **get_default_permissions(user_only=False)},
-            {"$set": {f"blocks_obj.{block.block_id}": block.to_db()}},
+            match,
+            update,
         )
-    elif block.data.get("collection_id"):
-        result = flask_mongo.db.collections.update_one(
-            {"item_id": block.data["collection_id"], **get_default_permissions(user_only=False)},
-            {"$set": {f"blocks_obj.{block.block_id}": block.to_db()}},
+    except pymongo.errors.DocumentTooLarge:
+        LOGGER.warning(
+            f"_save_block_to_db failed, trying to strip down the block plot to fit in the 16MB limit"
         )
+
+        return False
 
     if result.matched_count != 1:
         LOGGER.warning(

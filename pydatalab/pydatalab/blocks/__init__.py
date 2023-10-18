@@ -4,6 +4,7 @@ from typing import Dict, Sequence, Type
 from pydatalab.apps.chat.blocks import ChatBlock
 from pydatalab.apps.echem import CycleBlock
 from pydatalab.apps.eis import EISBlock
+from pydatalab.apps.mri import MRIBlock
 from pydatalab.apps.nmr import NMRBlock
 from pydatalab.apps.raman import RamanBlock
 from pydatalab.apps.tga import MassSpecBlock
@@ -17,6 +18,7 @@ BLOCKS: Sequence[Type["DataBlock"]] = (
     XRDBlock,
     CycleBlock,
     RamanBlock,
+    MRIBlock,
     NMRBlock,
     MassSpecBlock,
     NotSupportedBlock,

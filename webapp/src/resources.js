@@ -1,5 +1,6 @@
 // Resources for the application
 import DataBlockBase from "@/components/datablocks/DataBlockBase";
+import MRIBlock from "@/components/datablocks/MRIBlock";
 import MediaBlock from "@/components/datablocks/MediaBlock";
 import XRDBlock from "@/components/datablocks/XRDBlock";
 import ChatBlock from "@/components/datablocks/ChatBlock";
@@ -40,6 +41,7 @@ export const blockTypes = {
   comment: { description: "Comment", component: DataBlockBase },
   media: { description: "Media", component: MediaBlock },
   xrd: { description: "Powder XRD", component: XRDBlock },
+  mri: { description: "In situ MRI", component: MRIBlock },
   raman: { description: "Raman", component: RamanBlock },
   cycle: { description: "Electrochemistry", component: CycleBlock },
   eis: { description: "EIS", component: EISBlock },
