@@ -5,6 +5,7 @@ import bokeh
 import numpy as np
 import pandas as pd
 from pybaselines import Baseline
+from rsciio.renishaw import file_reader
 from scipy.signal import medfilt
 
 from pydatalab.blocks.base import DataBlock
@@ -15,20 +16,27 @@ from pydatalab.file_utils import get_file_info_by_id
 class RamanBlock(DataBlock):
     blocktype = "raman"
     description = "Raman spectroscopy"
-    accepted_file_extensions = (".txt",)
+    accepted_file_extensions = (".txt",".wdf")
 
     @property
     def plot_functions(self):
         return (self.generate_raman_plot,)
 
     @classmethod
-    def load_raman_spectrum(self, location: str) -> Tuple[pd.DataFrame, List[str]]:
+    def load_raman_spectrum(self, location: str, ext : str) -> Tuple[pd.DataFrame, List[str]]:
         if not isinstance(location, str):
             location = str(location)
-
-        df = pd.read_csv(location, sep=r"\s+")
-
-        df = df.rename(columns={"#Wave": "wavenumber", "#Intensity": "intensity"})
+        print(location)
+        if ext == '.txt':
+            df = pd.read_csv(location, sep=r"\s+")
+            df = df.rename(columns={"#Wave": "wavenumber", "#Intensity": "intensity"})
+        if ext == '.wdf':
+            if self.test_1D_2D(location) == '1D':
+                df = self.make_wdf_df(location)
+            elif self.test_1D_2D(location) == '2D':
+                raise RuntimeError('This is 2D Raman mapping data')
+            else:
+                raise RuntimeError('Unrecognised .wdf file')
 
         df["sqrt(intensity)"] = np.sqrt(df["intensity"])
         df["log(intensity)"] = np.log10(df["intensity"])
@@ -80,6 +88,27 @@ class RamanBlock(DataBlock):
         ]
 
         return df, y_options
+    
+    @classmethod
+    def test_1D_2D(self, location):
+        raman_data = file_reader(location)
+        if len(raman_data[0]['axes']) == 1:
+            return '1D'
+        elif len(raman_data[0]['axes']) == 3:
+            return '2D'
+        else:
+            raise ValueError('Data is not compatible 1D or 2D Raman data')
+    
+    @classmethod
+    def make_wdf_df(self, location):
+        raman_data = file_reader(location)
+        intensity = raman_data[0]['data']
+        wavenumber_size = raman_data[0]['axes'][0]['size']
+        wavenumber_offset = raman_data[0]['axes'][0]['offset']
+        wavenumber_scale = raman_data[0]['axes'][0]['scale']
+        wavenumbers = np.array([wavenumber_offset + i * wavenumber_scale for i in range(wavenumber_size)])
+        df = pd.DataFrame({'wavenumber': wavenumbers, 'intensity': intensity})
+        return df
 
     def generate_raman_plot(self):
         file_info = None
@@ -95,11 +124,12 @@ class RamanBlock(DataBlock):
                 raise RuntimeError(
                     "RamanBlock.generate_raman_plot(): Unsupported file extension (must be one of %s), not %s",
                     self.accepted_file_extensions,
-                    ext,
+                    ext, 
                 )
-
+        # if I don't pass ext here and try generate it in the function it doesn't recognise data attribute
             pattern_dfs, y_options = self.load_raman_spectrum(
                 file_info["location"],
+                ext 
             )
             pattern_dfs = [pattern_dfs]
 
