@@ -30,7 +30,7 @@ tiktoken = "*"
 navani = {git = "git+https://github.com/the-grey-group/navani.git@v0.1.4"}
 python-dateutil = "*"
 pybaselines = "*"
-rosettasciio = {git = "git+https://github.com/hyperspy/rosettasciio"}
+rosettasciio = "*"
 
 [dev-packages]
 pytest = "*"

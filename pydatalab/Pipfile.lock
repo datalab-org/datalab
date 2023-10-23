@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "fc657b220c3eae2dea4b96ff35936963b50bcd57b6f263109958e6f44977374b"
+            "sha256": "d208acdb1adbd5c923d48f1f7a6ac65ce7449a4349d68e39ae59c24516200c9a"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -1621,8 +1621,35 @@
             "version": "==1.3.1"
         },
         "rosettasciio": {
-            "git": "https://github.com/hyperspy/rosettasciio",
-            "ref": "166c5cb68e10e2726013ccf0cc8068fa4dcb5336"
+            "hashes": [
+                "sha256:044bf97572fe0ff5f723e89ea1db2e0f1e0cabb8874b3d9b055c0cdc0f186871",
+                "sha256:06d44c2d9ccaec45ed06bd8b73cb977921235d81a671336fe1776b214b198b7a",
+                "sha256:0afffd4f5df566574fdee30c5cbe2b1a567435684d51764bdc5329ed16d56f4a",
+                "sha256:1560a44209db99516b1de482f9a2fc6c246098181044a9b347eb88c63dc7c783",
+                "sha256:24c960f9a26441d826b96eda66007a958760b0dc965a11aaf4bc49884916ee05",
+                "sha256:2a351691632f8e43c10652daf143c04e3ca0e127d1d88c127f29e5a5519ee555",
+                "sha256:2f1b402af11e79933b9422cefe5f7fe56c792705aac7bdcf5f702a8fefbeef8a",
+                "sha256:363cb191eef5174e999a64443be3987e976a83a9325254c7dfdb5514d5f313ea",
+                "sha256:3c27ceaba57a849642f17ef8ede0e2349d04b7c848e44696a445f756dd59c3e7",
+                "sha256:3e311c9a4506bf974cb72f28cfdf3571fd7a43e795c697be24a28bacecf01907",
+                "sha256:48bd68c5f73926eed6589b1801a8e9fc09e37101365c0b3b224fdfbb48af9037",
+                "sha256:4b845b211c50af55e8ea42826aa380b2d80f6a846e44c1622db14a22f7886f04",
+                "sha256:59e67e5f9225c8763023b01107602f2f311bfc5bbba5f8372ccb598822b45b5d",
+                "sha256:62dd36b191dbf3e0918bed5bc7d40d823d518cc00e6ba537dd144a1f5193da90",
+                "sha256:80da1a9f518af3d9d2e12290c40aab86be342cda9fd2cad77f83535c9f3be5b7",
+                "sha256:8171e0e26a28b9200463d0b34883e2ba63a4cd8e36a8eb012dedd3859b22aab1",
+                "sha256:ae16a7126369366307d88a8d73a331bbe5d825732b0cde78d6978be01795890c",
+                "sha256:b8d429582bcaebcd31e7c3fd628cf1b9397da485b34fb259a5376aefe1d34520",
+                "sha256:c76702ca1a22e97ec68e3ba92c1a8ee8bb276eadcfc647735068dd61355a8e9a",
+                "sha256:e9e908b3b86476c81cab02f270eb91b49a7822b05ad98d67025570525b21b5f5",
+                "sha256:f17d3d5cfd0ffa8dcf6fd039e4175147f0260b06d4d73786d867cee6c715e3b0",
+                "sha256:f8a648c6409d5dcc65ed5d519cba7c656c727847de3a7bf724bee3ba8d59abda",
+                "sha256:f8b97af780ccf3a317541dd9260bdadf68a11bafe41776cc2a12becac69f029a",
+                "sha256:f93ad28465cd2bb4de6631d2f5f3eb3e38fd372465ccfd18c0d83d1e1dc54d02",
+                "sha256:fc662b5536242e0f051f33f11bc61d11929f8193ef5ce919837dafb86e2e63e3"
+            ],
+            "index": "pypi",
+            "version": "==0.1"
         },
         "scipy": {
             "hashes": [
