@@ -1,10 +1,12 @@
 import os
+from pathlib import Path
 from typing import List, Tuple
 
 import bokeh
 import numpy as np
 import pandas as pd
 from pybaselines import Baseline
+from rsciio.renishaw import file_reader
 from scipy.signal import medfilt
 
 from pydatalab.blocks.base import DataBlock
@@ -15,20 +17,23 @@ from pydatalab.file_utils import get_file_info_by_id
 class RamanBlock(DataBlock):
     blocktype = "raman"
     description = "Raman spectroscopy"
-    accepted_file_extensions = (".txt",)
+    accepted_file_extensions = (".txt", ".wdf")
 
     @property
     def plot_functions(self):
         return (self.generate_raman_plot,)
 
     @classmethod
-    def load(self, location: str) -> Tuple[pd.DataFrame, List[str]]:
+    def load(self, location: str | Path) -> Tuple[pd.DataFrame, List[str]]:
         if not isinstance(location, str):
             location = str(location)
+        ext = os.path.splitext(location)[-1].lower()
 
-        df = pd.read_csv(location, sep=r"\s+")
-
-        df = df.rename(columns={"#Wave": "wavenumber", "#Intensity": "intensity"})
+        if ext == ".txt":
+            df = pd.read_csv(location, sep=r"\s+")
+            df = df.rename(columns={"#Wave": "wavenumber", "#Intensity": "intensity"})
+        elif ext == ".wdf":
+            df = self.make_wdf_df(location)
 
         df["sqrt(intensity)"] = np.sqrt(df["intensity"])
         df["log(intensity)"] = np.log10(df["intensity"])
@@ -81,6 +86,38 @@ class RamanBlock(DataBlock):
 
         return df, y_options
 
+    @classmethod
+    def make_wdf_df(self, location: Path | str) -> pd.DataFrame:
+        """Read the .wdf file with RosettaSciIO and try to extract
+        1D Raman spectra.
+
+        Parameters:
+            location: The location of the file to read.
+
+        Returns:
+            A dataframe with the appropriate columns.
+
+        """
+
+        raman_data = file_reader(location)
+
+        if len(raman_data[0]["axes"]) == 1:
+            pass
+        elif len(raman_data[0]["axes"]) == 3:
+            raise RuntimeError("This block does not support 2D Raman yet.")
+        else:
+            raise RuntimeError("Data is not compatible 1D or 2D Raman data.")
+
+        intensity = raman_data[0]["data"]
+        wavenumber_size = raman_data[0]["axes"][0]["size"]
+        wavenumber_offset = raman_data[0]["axes"][0]["offset"]
+        wavenumber_scale = raman_data[0]["axes"][0]["scale"]
+        wavenumbers = np.array(
+            [wavenumber_offset + i * wavenumber_scale for i in range(wavenumber_size)]
+        )
+        df = pd.DataFrame({"wavenumber": wavenumbers, "intensity": intensity})
+        return df
+
     def generate_raman_plot(self):
         file_info = None
         pattern_dfs = None
@@ -97,10 +134,7 @@ class RamanBlock(DataBlock):
                     self.accepted_file_extensions,
                     ext,
                 )
-
-            pattern_dfs, y_options = self.load_raman_spectrum(
-                file_info["location"],
-            )
+            pattern_dfs, y_options = self.load(file_info["location"])
             pattern_dfs = [pattern_dfs]
 
         if pattern_dfs:
