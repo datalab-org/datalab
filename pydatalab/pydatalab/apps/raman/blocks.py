@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from typing import List, Tuple
 
 import bokeh
@@ -23,20 +24,16 @@ class RamanBlock(DataBlock):
         return (self.generate_raman_plot,)
 
     @classmethod
-    def load(self, location: str, ext: str) -> Tuple[pd.DataFrame, List[str]]:
+    def load(self, location: str | Path) -> Tuple[pd.DataFrame, List[str]]:
         if not isinstance(location, str):
             location = str(location)
-        print(location)
+        ext = os.path.splitext(location)[-1].lower()
+
         if ext == ".txt":
             df = pd.read_csv(location, sep=r"\s+")
             df = df.rename(columns={"#Wave": "wavenumber", "#Intensity": "intensity"})
-        if ext == ".wdf":
-            if self.test_1D_2D(location) == "1D":
-                df = self.make_wdf_df(location)
-            elif self.test_1D_2D(location) == "2D":
-                raise RuntimeError("This is 2D Raman mapping data")
-            else:
-                raise RuntimeError("Unrecognised .wdf file")
+        elif ext == ".wdf":
+            df = self.make_wdf_df(location)
 
         df["sqrt(intensity)"] = np.sqrt(df["intensity"])
         df["log(intensity)"] = np.log10(df["intensity"])
@@ -90,18 +87,27 @@ class RamanBlock(DataBlock):
         return df, y_options
 
     @classmethod
-    def test_1D_2D(self, location):
-        raman_data = file_reader(location)
-        if len(raman_data[0]["axes"]) == 1:
-            return "1D"
-        elif len(raman_data[0]["axes"]) == 3:
-            return "2D"
-        else:
-            raise ValueError("Data is not compatible 1D or 2D Raman data")
+    def make_wdf_df(self, location: Path | str) -> pd.DataFrame:
+        """Read the .wdf file with RosettaSciIO and try to extract
+        1D Raman spectra.
 
-    @classmethod
-    def make_wdf_df(self, location):
+        Parameters:
+            location: The location of the file to read.
+
+        Returns:
+            A dataframe with the appropriate columns.
+
+        """
+
         raman_data = file_reader(location)
+
+        if len(raman_data[0]["axes"]) == 1:
+            pass
+        elif len(raman_data[0]["axes"]) == 3:
+            raise RuntimeError("This block does not support 2D Raman yet.")
+        else:
+            raise RuntimeError("Data is not compatible 1D or 2D Raman data.")
+
         intensity = raman_data[0]["data"]
         wavenumber_size = raman_data[0]["axes"][0]["size"]
         wavenumber_offset = raman_data[0]["axes"][0]["offset"]
@@ -128,8 +134,7 @@ class RamanBlock(DataBlock):
                     self.accepted_file_extensions,
                     ext,
                 )
-            # if I don't pass ext here and try generate it in the function it doesn't recognise data attribute
-            pattern_dfs, y_options = self.load(file_info["location"], ext)
+            pattern_dfs, y_options = self.load(file_info["location"])
             pattern_dfs = [pattern_dfs]
 
         if pattern_dfs:
