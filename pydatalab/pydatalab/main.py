@@ -1,5 +1,6 @@
 import datetime
 import logging
+import pathlib
 from typing import Any, Dict
 
 from dotenv import dotenv_values
@@ -65,6 +66,9 @@ def create_app(config_override: Dict[str, Any] | None = None) -> Flask:
     LOGIN_MANAGER.init_app(app)
 
     pydatalab.mongo.create_default_indices()
+
+    if CONFIG.FILE_DIRECTORY is not None:
+        pathlib.Path(CONFIG.FILE_DIRECTORY).mkdir(parents=False, exist_ok=True)
 
     compress.init_app(app)
 
