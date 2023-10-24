@@ -24,12 +24,16 @@ LIVE_FILE_CUTOFF = datetime.timedelta(days=31)
 
 
 def get_space_available_bytes() -> int:
-    """For the configured file location, return the number of available bytes.
-
-    Note: uses Unix-specific statvfs system call.
+    """For the configured file location, return the number of available bytes, as
+    ascertained from the filesystem blocksize and available block count (via Unix-specific
+    statvfs system call).
 
     """
-    stats = os.statvfs(CONFIG.FILE_DIRECTORY)
+    try:
+        stats = os.statvfs(CONFIG.FILE_DIRECTORY)
+    except FileNotFoundError:
+        raise RuntimeError(f"{CONFIG.FILE_DIRECTORY=} was not safely initialised.")
+
     return stats.f_bsize * stats.f_bavail
 
 
@@ -68,7 +72,7 @@ def _sync_file_with_remote(remote_path: str, src: str) -> None:
         remote_path = _escape_spaces_scp_path(remote_path)
         scp_command = f"scp {re.sub('^ssh://', '', remote_path)} {src}"
 
-        os.makedirs(pathlib.Path(src).parent, exist_ok=True)
+        pathlib.Path(src).parent.mkdir(parents=False, exist_ok=True)
 
         LOGGER.debug("Syncing file with '%s'", scp_command)
         proc = subprocess.Popen(
@@ -396,7 +400,7 @@ def save_uploaded_file(
 
         new_directory = os.path.join(FILE_DIRECTORY, str(inserted_id))
         file_location = os.path.join(new_directory, filename)
-        os.makedirs(new_directory)
+        pathlib.Path(new_directory).mkdir(exist_ok=False)
         file.save(file_location)
 
     updated_file_entry = flask_mongo.db.files.find_one_and_update(
@@ -496,7 +500,7 @@ def add_file_from_remote_directory(file_entry, item_id, block_ids=None):
 
     new_directory = os.path.join(FILE_DIRECTORY, str(inserted_id))
     new_file_location = os.path.join(new_directory, filename)
-    os.makedirs(new_directory)
+    pathlib.Path(new_directory).mkdir(exist_ok=True)
     _sync_file_with_remote(full_remote_path, new_file_location)
 
     updated_file_entry = file_collection.find_one_and_update(
