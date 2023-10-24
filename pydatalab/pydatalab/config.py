@@ -115,6 +115,15 @@ class ServerConfig(BaseSettings):
         None, description="A dictionary containing metadata to serve at `/info`."
     )
 
+    MAX_CONTENT_LENGTH: int = Field(
+        100 * 1000 * 1000,
+        description=r"""Direct mapping to the equivalent Flask setting. In practice, limits the file size that can be uploaded.
+Defaults to 100 GB to avoid filling the tmp directory of a server.
+
+Warning: this value will overwrite any other values passed to `FLASK_MAX_CONTENT_LENGTH` but is included here to clarify
+its importance when deploying a datalab instance.""",
+    )
+
     @root_validator
     def validate_cache_ages(cls, values):
         if values.get("REMOTE_CACHE_MIN_AGE") > values.get("REMOTE_CACHE_MAX_AGE"):
