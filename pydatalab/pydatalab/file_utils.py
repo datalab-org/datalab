@@ -8,18 +8,29 @@ from typing import Any, Dict, Union
 
 from bson.objectid import ObjectId
 from pymongo import ReturnDocument
+from werkzeug.datastructures import FileStorage
 from werkzeug.utils import secure_filename
 
 from pydatalab.config import CONFIG, RemoteFilesystem
 from pydatalab.logger import LOGGER, logged_route
 from pydatalab.models import File
 from pydatalab.models.utils import PyObjectId
-from pydatalab.mongo import flask_mongo
+from pydatalab.mongo import _get_active_mongo_client, flask_mongo
 from pydatalab.permissions import get_default_permissions
 
 FILE_DIRECTORY = CONFIG.FILE_DIRECTORY
 DIRECTORIES_DICT = {fs.name: fs for fs in CONFIG.REMOTE_FILESYSTEMS}
 LIVE_FILE_CUTOFF = datetime.timedelta(days=31)
+
+
+def get_space_available_bytes() -> int:
+    """For the configured file location, return the number of available bytes.
+
+    Note: uses Unix-specific statvfs system call.
+
+    """
+    stats = os.statvfs(CONFIG.FILE_DIRECTORY)
+    return stats.f_bsize * stats.f_bavail
 
 
 def _escape_spaces_scp_path(remote_path: str) -> str:
@@ -291,21 +302,33 @@ def update_uploaded_file(file, file_id, last_modified=None, size_bytes=None):
 
 @logged_route
 def save_uploaded_file(
-    file,
-    item_ids=None,
-    block_ids=None,
-    last_modified=None,
+    file: FileStorage,
+    item_ids: list[str] | None = None,
+    block_ids: list[str] | None = None,
+    last_modified: datetime.datetime | str | None = None,
     size_bytes: int | None = None,
     creator_ids: list[PyObjectId | str] | None = None,
-):
-    """file is a file object from a flask request.
-    last_modified should be an isodate format. if last_modified is None, the current time will be inserted
+) -> dict:
+    """Attempt to save a copy of the file object from the request in the file store, and
+    add its metadata to the database.
+
+    Parameters:
+        file: The flask file object in the request.
+        item_ids: The item IDs to attempt to attach the file to.
+        block_ids: The block IDs to attempt to attach the file to.
+        last_modified: An isoformat datetime for to track as the last time the filed was modified
+            (otherwise use the current datetime).
+        size_bytes: A hint for the file size in bytes, will be used to verify ahead of time whether
+            the file can be saved.
+        creator_ids: A list of IDs for users who will be registered as the creator of this file,
+            i.e., retaining write access.
+
+    Returns:
+        A dictionary containing the saved metadata for the file.
+
     """
 
     from pydatalab.permissions import get_default_permissions
-
-    sample_collection = flask_mongo.db.items
-    file_collection = flask_mongo.db.files
 
     # validate item_ids
     if not item_ids:
@@ -314,13 +337,19 @@ def save_uploaded_file(
         block_ids = []
 
     for item_id in item_ids:
-        if not sample_collection.find_one(
+        if not flask_mongo.db.items.find_one(
             {"item_id": item_id, **get_default_permissions(user_only=True)}
         ):
             raise ValueError(f"item_id is invalid: {item_id}")
 
+    if file.filename is None:
+        raise RuntimeError("Filename is missing.")
+
     filename = secure_filename(file.filename)
     extension = os.path.splitext(filename)[1]
+
+    if isinstance(last_modified, datetime.datetime):
+        last_modified = last_modified.isoformat()
 
     if not last_modified:
         last_modified = datetime.datetime.now().isoformat()
@@ -347,18 +376,30 @@ def save_uploaded_file(
         creator_ids=creator_ids if creator_ids else [],
     )
 
-    result = file_collection.insert_one(new_file_document.dict())
-    if not result.acknowledged:
-        raise IOError(f"db operation failed when trying to insert new file. Result: {result}")
+    # In one transaction, check if we can save the file, insert it into the database
+    # and save it, then release the lock
+    client = _get_active_mongo_client()
+    with client.start_session(causal_consistency=True) as session:
+        space = get_space_available_bytes()
+        if size_bytes is not None and space < size_bytes:
+            raise RuntimeError(
+                f"Cannot store file: insufficient space available on disk (required: {size_bytes // 1024 ** 3} GB). Please contact your datalab administrator."
+            )
+        file_collection = client.get_database().files
+        result = file_collection.insert_one(new_file_document.dict(), session=session)
+        if not result.acknowledged:
+            raise RuntimeError(
+                f"db operation failed when trying to insert new file. Result: {result}"
+            )
 
-    inserted_id = result.inserted_id
+        inserted_id = result.inserted_id
 
-    new_directory = os.path.join(FILE_DIRECTORY, str(inserted_id))
-    file_location = os.path.join(new_directory, filename)
-    os.makedirs(new_directory)
-    file.save(file_location)
+        new_directory = os.path.join(FILE_DIRECTORY, str(inserted_id))
+        file_location = os.path.join(new_directory, filename)
+        os.makedirs(new_directory)
+        file.save(file_location)
 
-    updated_file_entry = file_collection.find_one_and_update(
+    updated_file_entry = flask_mongo.db.files.find_one_and_update(
         {"_id": inserted_id, **get_default_permissions(user_only=False)},
         {
             "$set": {
@@ -373,7 +414,7 @@ def save_uploaded_file(
 
     # update any referenced item_ids
     for item_id in item_ids:
-        sample_update_result = sample_collection.update_one(
+        sample_update_result = flask_mongo.db.items.update_one(
             {"item_id": item_id, **get_default_permissions(user_only=True)},
             {"$push": {"file_ObjectIds": inserted_id}},
         )
