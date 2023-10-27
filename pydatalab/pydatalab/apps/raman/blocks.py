@@ -91,7 +91,7 @@ class RamanBlock(DataBlock):
 
     
     @classmethod
-    def make_wdf_df(self, location):
+    def make_wdf_df(self, location: Path | str) -> pd.DataFrame:
         """Read the .wdf file with RosettaSciIO and try to extract
         1D Raman spectra.
 
