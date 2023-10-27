@@ -58,9 +58,8 @@ in the Department of Chemistry at the University of Cambridge.
 
 ## Development status
 
-The software is still an alpha work-in-progress and the API, data models and UI may
-change significantly between versions.
-
+datalab remains under active development, and the API, data models and UI may change significantly between versions without prior notice.
+Where possible, and without breaking changes will be listed in the release notes for every pre-v1 release.
 
 ## Installation
 
@@ -74,15 +73,14 @@ Please see [LICENSE](./LICENSE) for the full text of the license.
 
 ## Contributions
 
-This software was primarily developed by:
+This software was conceived and developed by:
 
-- [Joshua Bocarsly](https://jdbocarsly.github.io) ([Department of Chemistry, University of Houston](https://www.uh.edu/nsm/chemistry), previously [Department of Chemistry, University of Cambridge](https://www.ch.cam.ac.uk/))
-- [Matthew Evans](https://ml-evs.science) ([MODL-IMCN,
+- [Prof Joshua Bocarsly](https://jdbocarsly.github.io) ([Department of Chemistry, University of Houston](https://www.uh.edu/nsm/chemistry), previously [Department of Chemistry, University of Cambridge](https://www.ch.cam.ac.uk/))
+- [Dr Matthew Evans](https://ml-evs.science) ([MODL-IMCN,
   UCLouvain](https://uclouvain.be/en/research-institutes/imcn/modl) & [Matgenix](https://matgenix.com))
 
 with contributions and testing performed by other members of the Grey Group.
-
-<!-- uni logos -->
+A full list of code contributions can be found on [GitHub](https://github.com/the-grey-group/datalab/graphs/contributors).
 
 ## Funding
 
@@ -91,5 +89,3 @@ This project has received funding from the European Union's Horizon 2020 researc
 <div align="center">
 <img href="https://big-map.org" src="https://big-map.github.io/big-map-registry/static/img/big-map-white-transparent.png" width=100>
 </div>
-
-<!-- funding logos -->
