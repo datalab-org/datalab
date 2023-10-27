@@ -30,8 +30,10 @@ class RamanBlock(DataBlock):
         ext = os.path.splitext(location)[-1].lower()
 
         if ext == ".txt":
-            df = pd.read_csv(location, sep=r"\s+")
-            df = df.rename(columns={"#Wave": "wavenumber", "#Intensity": "intensity"})
+            try:
+                df = pd.DataFrame(np.loadtxt(location), columns=['wavenumber', 'intensity'])
+            except UnicodeDecodeError:
+                df = pd.DataFrame(np.loadtxt(location, encoding='cp1252'), columns=['wavenumber', 'intensity'])
         elif ext == ".wdf":
             df = self.make_wdf_df(location)
 
@@ -85,9 +87,11 @@ class RamanBlock(DataBlock):
         ]
 
         return df, y_options
+    
 
+    
     @classmethod
-    def make_wdf_df(self, location: Path | str) -> pd.DataFrame:
+    def make_wdf_df(self, location):
         """Read the .wdf file with RosettaSciIO and try to extract
         1D Raman spectra.
 
@@ -118,6 +122,7 @@ class RamanBlock(DataBlock):
         df = pd.DataFrame({"wavenumber": wavenumbers, "intensity": intensity})
         return df
 
+
     def generate_raman_plot(self):
         file_info = None
         pattern_dfs = None
@@ -132,7 +137,7 @@ class RamanBlock(DataBlock):
                 raise RuntimeError(
                     "RamanBlock.generate_raman_plot(): Unsupported file extension (must be one of %s), not %s",
                     self.accepted_file_extensions,
-                    ext,
+                    ext, 
                 )
             pattern_dfs, y_options = self.load(file_info["location"])
             pattern_dfs = [pattern_dfs]
