@@ -18,13 +18,13 @@ src="https://img.shields.io/readthedocs/the-datalab?logo=readthedocs&color=bluev
 
 <!-- datalab logo -->
 
-This repository contains the code for the **datalab** data management system, targeted (broadly) at materials chemistry labs but with customisability and extensability in mind.
+This repository contains the code for the *datalab* data management system, targeted (broadly) at materials chemistry labs but with customisability and extensability in mind.
 
-The main aim of **datalab** is to provide a platform for capturing the significant amounts of long-tail experimental data and metadata produced in a typical lab, and enable storage, filtering and future data re-use by humans and machines.
+The main aim of *datalab* is to provide a platform for capturing the significant amounts of long-tail experimental data and metadata produced in a typical lab, and enable storage, filtering and future data re-use by humans and machines.
 The platform provides researchers with a way to record sample- and cell-specific metadata, attach and sync raw data from instruments, and perform analysis and visualisation of many characterisation techniques in the browser (XRD, NMR, electrochemical cycling, TEM, TGA, Mass Spec, Raman).
-Importantly, **datalab** stores a network of interconnected research objects in the lab, such that individual pieces of data are stored with the context needed to make them scientifically useful.
+Importantly, *datalab* stores a network of interconnected research objects in the lab, such that individual pieces of data are stored with the context needed to make them scientifically useful.
 
-**datalab** consists of two main components:
+*datalab* consists of two main components:
 
 - a Flask-based Python web server (`pydatalab`) that communicates with a MongoDB
   database backend and can perform simple analysis and ETL of particular data types,
@@ -63,7 +63,7 @@ in the Department of Chemistry at the University of Cambridge.
 
 ## Development status
 
-**datalab** remains under active development, and the API, data models and UI may change significantly between versions without prior notice.
+*datalab* remains under active development, and the API, data models and UI may change significantly between versions without prior notice.
 Where possible, and without breaking changes will be listed in the release notes for every pre-v1 release.
 
 ## Installation
@@ -85,7 +85,13 @@ This software was conceived and developed by:
   UCLouvain](https://uclouvain.be/en/research-institutes/imcn/modl) & [Matgenix](https://matgenix.com))
 
 with contributions and testing performed by other members of the Grey Group.
+
 A full list of code contributions can be found on [GitHub](https://github.com/the-grey-group/datalab/graphs/contributors).
+
+## Contact
+
+We are available for consultations on setting up and managing *datalab* deployments, as well as collaborating on or sponsoring additions of new features and techniques.
+Please contact Josh or Matthew on their academic emails, or use the catch-all address datalab@odbx.science if you are interested.
 
 ## Funding
 
