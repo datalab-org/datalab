@@ -12,6 +12,8 @@ import { library } from "@fortawesome/fontawesome-svg-core";
 import {
   faSave,
   faCode,
+  faEnvelope,
+  faCog,
   faChevronRight,
   faArrowUp,
   faArrowDown,
@@ -37,12 +39,14 @@ import {
   faEllipsisH,
 } from "@fortawesome/free-solid-svg-icons";
 import { faPlusSquare } from "@fortawesome/free-regular-svg-icons";
-import { faGithub } from "@fortawesome/free-brands-svg-icons";
+import { faGithub, faOrcid } from "@fortawesome/free-brands-svg-icons";
 // import { faHdd } from '@fortawesome/free-regular-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 library.add(
   faSave,
   faCode,
+  faEnvelope,
+  faCog,
   faChevronRight,
   faProjectDiagram,
   faArrowUp,
@@ -55,6 +59,7 @@ library.add(
   faQuestionCircle,
   faVial,
   faGithub,
+  faOrcid,
   faVials,
   faSync,
   faFolder,
