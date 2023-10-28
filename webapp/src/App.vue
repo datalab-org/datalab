@@ -108,6 +108,10 @@ body {
   border: 2px solid transparent;
 }
 
+.fa-orcid {
+  color: #a6ce39;
+}
+
 .badge.clickable:hover {
   cursor: pointer;
   border: 2px solid #000000;

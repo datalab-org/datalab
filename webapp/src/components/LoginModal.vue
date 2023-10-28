@@ -2,7 +2,7 @@
   <div id="dummyDivForModalBackground" :class="{ overlay: modalOpaque }"></div>
 
   <div
-    class="modal fade"
+    class="fade"
     tabindex="-1"
     role="dialog"
     :style="{ display: modalDisplayed ? 'block' : 'none' }"
@@ -14,26 +14,39 @@
           <div>
             <button
               type="button"
-              class="login btn-link btn btn-default"
+              class="login btn-link btn btn-default btn-block"
               data-dismiss="modal"
-              aria-label="Login with GitHub"
+              aria-label="Login via GitHub"
               @click="this.apiUrl + '/login/github'"
             >
               <span aria-hidden="true">
-                <font-awesome-icon :icon="['fab', 'github']" /> Login with GitHub</span
+                <font-awesome-icon :icon="['fab', 'github']" /> Login via GitHub</span
               >
             </button>
           </div>
           <div>
             <button
               type="button"
-              class="login btn-link btn btn-default orcid-hover"
+              class="login btn-link btn btn-default btn-block"
               data-dismiss="modal"
-              aria-label="Login with ORCID"
+              aria-label="Login via ORCID"
               @click="this.apiUrl + '/login/orcid'"
             >
               <span aria-hidden="true">
-                <font-awesome-icon :icon="['fab', 'orcid']" /> Login with ORCID</span
+                <font-awesome-icon :icon="['fab', 'orcid']" /> Login via ORCID</span
+              >
+            </button>
+          </div>
+          <div>
+            <button
+              type="button"
+              class="login btn-link btn btn-default btn-block"
+              data-dismiss="modal"
+              aria-label="Login via email"
+              @click="this.apiUrl + '/login/email'"
+            >
+              <span aria-hidden="true">
+                <font-awesome-icon :icon="['fa', 'envelope']" /> Login via email</span
               >
             </button>
           </div>
@@ -94,10 +107,6 @@ export default {
 }
 
 /* css selector for a font-awesome-icon svg inside a class called orcid-hover that only changes color of the icon */
-
-.orcid-hover:hover > {
-  color: #a6ce39;
-}
 
 #dummyDivForModalBackground.overlay:after {
   content: "";

@@ -12,6 +12,7 @@ import { library } from "@fortawesome/fontawesome-svg-core";
 import {
   faSave,
   faCode,
+  faEnvelope,
   faChevronRight,
   faArrowUp,
   faArrowDown,
@@ -43,6 +44,7 @@ import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 library.add(
   faSave,
   faCode,
+  faEnvelope,
   faChevronRight,
   faProjectDiagram,
   faArrowUp,
