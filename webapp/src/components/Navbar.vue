@@ -5,20 +5,9 @@
     </a>
     <img v-else class="logo-banner" :src="this.logo_url" />
   </div>
-  <div class="row justify-content-center pt-3">
-    <div v-if="currentUser != null">
-      <b>{{ currentUser }}&nbsp;&nbsp;</b>
-      <UserBubble :creator="this.currentUserInfo" :size="36" />
-      &nbsp;&nbsp;<a :href="this.apiUrl + '/logout'" class="btn btn-default btn-link"
-        ><font-awesome-icon icon="sign-out-alt" />&nbsp;Logout</a
-      >
-    </div>
-    <div v-else>
-      <button class="btn btn-default" @click="loginModalIsOpen = true">
-        <font-awesome-icon icon="sign-in-alt" />&nbsp;Login
-      </button>
-    </div>
-  </div>
+
+  <LoginDetails></LoginDetails>
+
   <div id="nav">
     <router-link to="/about">About</router-link> |
     <router-link to="/samples">Samples</router-link> |
@@ -28,14 +17,11 @@
       ><font-awesome-icon icon="project-diagram" />&nbsp;Graph View</router-link
     >
   </div>
-  <LoginModal v-model="loginModalIsOpen" />
 </template>
 
 <script>
 import { API_URL, LOGO_URL, HOMEPAGE_URL } from "@/resources.js";
-import { getUserInfo } from "@/server_fetch_utils.js";
-import UserBubble from "@/components/UserBubble.vue";
-import LoginModal from "@/components/LoginModal.vue";
+import LoginDetails from "@/components/LoginDetails.vue";
 
 export default {
   name: "Navbar",
@@ -44,31 +30,10 @@ export default {
       apiUrl: API_URL,
       logo_url: LOGO_URL,
       homepage_url: HOMEPAGE_URL,
-      loginModalIsOpen: false,
-      currentUser: null,
-      currentUserInfo: {},
     };
   },
-  methods: {
-    async getUser() {
-      let user = await getUserInfo();
-      if (user != null) {
-        this.currentUser = user.display_name;
-        this.currentUserInfo = {
-          display_name: user.display_name || "",
-          immutable_id: user.immutable_id,
-          contact_email: user.contact_email || "",
-        };
-        console.log(this.currentUser, this.currentUserInfo);
-      }
-    },
-  },
   components: {
-    UserBubble,
-    LoginModal,
-  },
-  mounted() {
-    this.getUser();
+    LoginDetails,
   },
 };
 </script>
