@@ -8,7 +8,7 @@ import Webcam from "@uppy/webcam";
 import store from "@/store/index.js";
 import { construct_headers } from "@/server_fetch_utils.js";
 
-import { API_URL } from "@/resources.js";
+import { API_URL, UPPY_MAX_NUMBER_OF_FILES, UPPY_MAX_TOTAL_FILE_SIZE } from "@/resources.js";
 // file-upload loaded
 
 export default function setupUppy(item_id, trigger_selector, reactive_file_list) {
@@ -16,8 +16,8 @@ export default function setupUppy(item_id, trigger_selector, reactive_file_list)
   var uppy = new Uppy({
     restrictions: {
       // Somewhat arbitrary restrictions that prevent numbers that would break the server in one go -- the API should also refuse files when 'full'
-      maxTotalFileSize: 102400000000, // Set this UI restriction arbitrarily high at 100 GB for now --- this is the point at which I would be unsure if the upload could even complete
-      maxNumberOfFiles: 10000, // Similarly, a max of 10000 files in one upload as a single "File" entry feels reasonable, once we move to uploading folders etc.
+      maxTotalFileSize: UPPY_MAX_TOTAL_FILE_SIZE, // Set this UI restriction arbitrarily high at 100 GB for now --- this is the point at which I would be unsure if the upload could even complete
+      maxNumberOfFiles: UPPY_MAX_NUMBER_OF_FILES, // Similarly, a max of 10000 files in one upload as a single "File" entry feels reasonable, once we move to uploading folders etc.
     },
   });
   let headers = construct_headers();
