@@ -40,7 +40,7 @@ OAUTH_BLUEPRINTS: Dict[IdentityType, Blueprint] = {
         sandbox=True,
     ),
     IdentityType.GITHUB: make_github_blueprint(
-        scope="read:org,user",
+        scope="read:user",
     ),
 }
 """A dictionary of Flask blueprints corresponding to the supported OAuth2 providers."""
