@@ -74,6 +74,11 @@ class ServerConfig(BaseSettings):
         "mongodb://localhost:27017/datalabvue",
         description="The URI for the underlying MongoDB.",
     )
+    SESSION_LIFETIME: int = Field(
+        7 * 24,
+        description="The lifetime of each authenticated session, in hours.",
+    )
+
     FILE_DIRECTORY: Union[str, Path] = Field(
         Path(__file__).parent.joinpath("../files").resolve(),
         description="The path under which to place stored files uploaded to the server.",
