@@ -82,7 +82,7 @@ def create_app(config_override: Dict[str, Any] | None = None) -> Flask:
     def make_session_permanent():
         """Make the session permanent so that it doesn't expire on browser close, but instead adds a lifetime."""
         session.permanent = True
-        app.permanent_session_lifetime = datetime.timedelta(days=1)
+        app.permanent_session_lifetime = datetime.timedelta(hours=CONFIG.SESSION_LIFETIME)
 
     @app.route("/")
     def index():
