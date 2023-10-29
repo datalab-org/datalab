@@ -25,6 +25,7 @@
           <slot name="footer">
             <input type="submit" class="btn btn-info" :disabled="disableSubmit" value="Submit" />
             <button
+              v-if="closeButton"
               type="button"
               class="btn btn-secondary"
               data-dismiss="modal"
@@ -52,6 +53,10 @@ export default {
     disableSubmit: {
       type: Boolean,
       default: false,
+    },
+    closeButton: {
+      type: Boolean,
+      default: true,
     },
     isLarge: {
       type: Boolean,

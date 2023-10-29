@@ -247,6 +247,19 @@ export async function getUserInfo() {
     });
 }
 
+export async function requestMagicLink(email_address) {
+  return fetch_post(`${API_URL}/magic-link/`, {
+    email: email_address,
+    referrer: window.location.origin,
+  })
+    .then((response_json) => {
+      return response_json;
+    })
+    .catch((err) => {
+      return err;
+    });
+}
+
 export function searchUsers(query, nresults = 100) {
   // construct a url with parameters:
   var url = new URL(`${API_URL}/search-users/`);
