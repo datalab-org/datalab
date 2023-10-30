@@ -11,7 +11,7 @@ theme:
       primary: amber
       accent: brown
   font:
-    text: Source Sans Pro
+    text: Figtree
 
 repo_name: the-grey-group/datalab
 repo_url: https://github.com/the-grey-group/datalab
