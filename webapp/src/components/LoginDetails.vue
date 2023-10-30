@@ -107,6 +107,7 @@ export default {
   },
   methods: {
     async getUser() {
+      // Need to reload the page if this is a magic-link login
       let token = this.$route.query.token;
       if (token != null) {
         window.location.href = this.apiUrl + "/login/email?token=" + token;

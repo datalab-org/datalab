@@ -216,7 +216,7 @@ def register_endpoints(app: Flask):
     from pydatalab.errors import ERROR_HANDLERS
     from pydatalab.routes import BLUEPRINTS, ENDPOINTS, __api_version__, auth
 
-    OAUTH_BLUEPRINTS = auth.OAUTH_BLUEPRINTS
+    AUTH_BLUEPRINTS = auth.AUTH_BLUEPRINTS
 
     major, minor, patch = __api_version__.split(".")
     versions = ["", f"/v{major}", f"/v{major}.{minor}", f"/v{major}.{minor}.{patch}"]
@@ -233,8 +233,8 @@ def register_endpoints(app: Flask):
         for ver in versions:
             app.register_blueprint(bp, url_prefix=f"{ver}", name=f"{ver}/{bp.name}")
 
-    for bp in OAUTH_BLUEPRINTS:  # type: ignore
-        app.register_blueprint(OAUTH_BLUEPRINTS[bp], url_prefix="/login")  # type: ignore
+    for bp in AUTH_BLUEPRINTS:  # type: ignore
+        app.register_blueprint(AUTH_BLUEPRINTS[bp], url_prefix="/login")  # type: ignore
 
     for exception_type, handler in ERROR_HANDLERS:
         app.register_error_handler(exception_type, handler)
