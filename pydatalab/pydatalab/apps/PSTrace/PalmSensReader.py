@@ -19,7 +19,7 @@ from io import StringIO
 
 
 filename = "PalmSense_test_datalab_shorter.csv"
-file_encoding = 'utf-16 LE'
+
 
 
 def getdata(filename, file_encoding='utf-16 LE', verbose = False):
@@ -67,11 +67,6 @@ def getdata(filename, file_encoding='utf-16 LE', verbose = False):
             print("\n")
 
     return split_dfs
-
-
-
-
-
 
 
 def main():
