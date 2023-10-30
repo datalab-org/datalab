@@ -15,6 +15,9 @@ src="https://img.shields.io/readthedocs/the-datalab?logo=readthedocs&color=bluev
 
 </h1>
 
+> 📢 If you are interested in joining the *datalab* mailing list and helping decide its future, please fill out the survey at https://forms.gle/etq4pcsQJ3omLBmj6.
+
+> ℹ️ We have created a public deployment of *datalab* for potential users to test. Please register via the magic-link email sign in at https://public.datalab.odbx.science. Any data stored here will be private but we provide no assurances for availability or data backups, so please do not use this for production work.
 
 <!-- datalab logo -->
 
