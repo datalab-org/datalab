@@ -19,7 +19,7 @@ from io import StringIO
 
 
 filename = "PalmSense_test_datalab_shorter.csv"
-file_encoding = 'utf-16 LE'
+
 
 
 def getdata(filename, file_encoding='utf-16 LE', verbose = False):
@@ -73,6 +73,38 @@ def getdata(filename, file_encoding='utf-16 LE', verbose = False):
 
 
 
+    ### Read csv
+    df = pd.read_csv(filename, header=None, names=column_names,encoding = file_encoding)
+
+#    print(dfhead)
+  #  print (df.head(n=10))
+
+    df.to_csv("test.csv")
+
+    
+    # Keyword to split on
+    keyword = 'Impedance'
+    
+    # Find the locations of the keyword in any column
+    mask = df.apply(lambda row: row.astype(str).str.contains(keyword), axis=1)
+    mask['Any'] = mask.any(axis=1)
+    groups = mask["Any"].cumsum()
+
+    # Splitting the DataFrame based on the keyword occurrences
+    split_dfs = {group: df[group == groups] for group in groups.unique()}
+    
+    # Display the split DataFrames
+    for key, split_df in split_dfs.items():
+        print(f"DataFrame for '{keyword}' occurrence {key}:")
+        print(split_df)
+        print("\n")
+
+
+
+
+
+    
+    return df
 
 def main():
     """ Main program """
