@@ -248,7 +248,7 @@ export async function getUserInfo() {
 }
 
 export async function requestMagicLink(email_address) {
-  return fetch_post(`${API_URL}/magic-link/`, {
+  return fetch_post(`${API_URL}/login/magic-link`, {
     email: email_address,
     referrer: window.location.origin,
   })
