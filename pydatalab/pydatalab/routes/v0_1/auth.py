@@ -308,9 +308,6 @@ def email_logged_in():
         create_account=True,
     )
 
-    # Remove the token
-    flask_mongo.db.magic_links.delete_one({"jwt": token})
-
     referer = request.headers.get("Referer", "/")
     return redirect(referer, 307)
 
