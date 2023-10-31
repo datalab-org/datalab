@@ -121,7 +121,7 @@ class ServerConfig(BaseSettings):
 
     GITHUB_ORG_ALLOW_LIST: Optional[List[str]] = Field(
         None,
-        description="A list of GitHub organization IDs (not names), that the membership of which will be required to register a new datalab account.",
+        description="A list of GitHub organization IDs (not names), that the membership of which will be required to register a new datalab account. If `[]`, then all GitHub accounts will be allowed to register.",
     )
 
     DEPLOYMENT_METADATA: Optional[DeploymentMetadata] = Field(
