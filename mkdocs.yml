@@ -54,7 +54,7 @@ plugins:
             show_root_toc_entry: true
             show_root_full_path: true
             show_object_full_path: false
-            show_category_heading: true
+            show_category_heading: false
             show_if_no_docstring: true
             show_signature_annotations: true
             show_source: true
@@ -65,14 +65,13 @@ plugins:
             members: true
             inherited_members: true
             docstring_style: google
-            enable_inventory: false
+            enable_inventory: true
             filters:
               - "!^_[^_]"
               - "!__json_encoder__$"
               - "!__all__$"
               - "!__config__$"
-              - "!ValidatorResults$"
-              - "!Config"
+              - "!^Config$"
   - awesome-pages
   - autorefs
 
