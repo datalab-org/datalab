@@ -254,10 +254,10 @@ def generate_and_share_magic_link():
     user = find_user_with_identity(email, IdentityType.EMAIL, verify=False)
     if user is not None:
         subject = "Datalab Sign-in Magic Link"
-        body = f"Click the link below to sign-in to the datalab instance at {referrer}:\n\n{link}\n\nThis link is single-use and will expire in 24 hours."
+        body = f"Click the link below to sign-in to the datalab instance at {referrer.strip('https://')}:\n\n{link}\n\nThis link is single-use and will expire in 24 hours."
     else:
         subject = "Datalab Registration Magic Link"
-        body = f"Click the link below to register for the datalab instance at {referrer}:\n\n{link}\n\nThis link is single-use and will expire in 24 hours."
+        body = f"Click the link below to register for the datalab instance at {referrer.strip('https://')}:\n\n{link}\n\nThis link is single-use and will expire in 24 hours."
 
     try:
         send_mail(email, subject, body)
