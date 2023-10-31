@@ -25,6 +25,17 @@
     </div>
 
     <div class="form-group ml-5">
+      <label class="subheading cell-component-label mt-4 pb-1" for="electrolyte-table"
+        >Separator</label
+      >
+      <div class="card component-card">
+        <div class="card-body pt-2 pb-0 mb-0 pl-5">
+          <CompactConstituentTable id="separator-table" v-model="SeparatorConstituents" />
+        </div>
+      </div>
+    </div>
+
+    <div class="form-group ml-5">
       <label class="subheading cell-component-label mt-4 pb-1" for="neg-electrode-table"
         >Negative electrode</label
       >
@@ -70,6 +81,7 @@ export default {
     PosElectrodeConstituents: createComputedSetterForItemField("positive_electrode"),
     ElectrolyteConstituents: createComputedSetterForItemField("electrolyte"),
     NegElectrodeConstituents: createComputedSetterForItemField("negative_electrode"),
+    SeparatorConstituents: createComputedSetterForItemField("separator"),
     CellPreparationDescription: createComputedSetterForItemField("cell_preparation_description"),
   },
   watch: {
@@ -88,6 +100,12 @@ export default {
       deep: true,
     },
     NegElectrodeConstituents: {
+      handler() {
+        this.$store.commit("setItemSaved", { item_id: this.item_id, isSaved: false });
+      },
+      deep: true,
+    },
+    SeparatorConstituents: {
       handler() {
         this.$store.commit("setItemSaved", { item_id: this.item_id, isSaved: false });
       },

@@ -58,6 +58,8 @@ class Cell(Item):
 
     electrolyte: List[CellComponent] = Field([])
 
+    separator: List[CellComponent] = Field([])
+
     active_ion_charge: float = Field(1)
 
     @validator("characteristic_molar_mass", always=True, pre=True)
@@ -90,7 +92,7 @@ class Cell(Item):
         else:
             values["relationships"] = []
 
-        for component in ("positive_electrode", "negative_electrode", "electrolyte"):
+        for component in ("positive_electrode", "negative_electrode", "electrolyte", "separator"):
             for constituent in values.get(component, []):
                 if (
                     isinstance(constituent.item, EntryReference)

@@ -169,6 +169,14 @@
         "$ref": "#/definitions/CellComponent"
       }
     },
+    "separator": {
+      "title": "Separator",
+      "default": [],
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/CellComponent"
+      }
+    },
     "active_ion_charge": {
       "title": "Active Ion Charge",
       "default": 1,
