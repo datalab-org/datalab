@@ -1,8 +1,8 @@
 nav:
     - index.md
     - INSTALL.md
+    - config.md
     - design
     - schemas
     - blocks
     - rest_api.md
-    - config.md
