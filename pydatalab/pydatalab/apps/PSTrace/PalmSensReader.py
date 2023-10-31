@@ -18,11 +18,11 @@ from io import StringIO
 #pd.options.display.float_format = "{:.1f}".format
 
 
-filename = "PalmSense_test_datalab_shorter.csv"
+filename = "PalmSense_test_datalab_shorter.csv" # file with experimetnal data as exported "as csv" from PSTrace
+keyword = "Measurement" #keyword to split input file on
 
 
-
-def getdata(filename, file_encoding='utf-16 LE', verbose = False):
+def getdata(filename, file_encoding='utf-16 LE', verbose = False ):
     """
     Loads experimental data from a CSV file, splits the DataFrame based on a specified keyword,
     and returns a dictionary containing the resulting DataFrames.
@@ -47,9 +47,6 @@ def getdata(filename, file_encoding='utf-16 LE', verbose = False):
     # Read CSV file into a DataFrame
     df = pd.read_csv(filename, header=None, names=column_names, encoding=file_encoding)
 
-    # Keyword to split on
-    keyword = 'Measurement'
-
     # Find the locations of the keyword in any column
     mask = df.apply(lambda row: row.astype(str).str.contains(keyword), axis=1)
     mask['Any'] = mask.any(axis=1)
@@ -59,8 +56,8 @@ def getdata(filename, file_encoding='utf-16 LE', verbose = False):
     split_dfs = {group: df[group == groups].dropna(axis=1, how='all') 
                                          for group in groups.unique()}
     
-    # Display the split DataFrames
-    if verbose == True: 
+    # Display the split DataFrames if verbose=True, default value is False
+    if verbose: 
         for key, split_df in split_dfs.items():
             print(f"DataFrame for '{keyword}' occurrence {key}:")
             print(split_df)
@@ -68,6 +65,48 @@ def getdata(filename, file_encoding='utf-16 LE', verbose = False):
 
     return split_dfs
 
+
+def formatdata(split_dfs):
+    
+    dfs_with_freq= []
+    impedance_dfs = {}
+    for key, df in split_dfs.items():
+        
+        if df.apply(lambda row: row.astype(str).str.contains('freq / Hz')).any().any():
+            dfs_with_freq.append(key)
+            df = split_dfs[key].reset_index(drop=True)
+            name_row = (df[df.apply(lambda row: row.astype(str).str.contains('Measurement'))
+                                .any(axis=1)].index[0])
+            new_name = df.iloc[name_row][1]
+            date_row = (df[df.apply(lambda row: row.astype(str).str.contains('Date and time'))
+                                .any(axis=1)].index[0])
+            date_time =  df.iloc[date_row][1]
+            print(date_time)
+            #reset the index for compatibility when finding it
+            
+        
+
+            # Find the index of the row containing the string 'freq / Hz'
+            index_with_freq = (df[df.apply(lambda row: row.astype(str).str.contains('freq / Hz'))
+                                .any(axis=1)].index[0])
+     
+            # Set the row with 'freq / Hz' as the header
+            df.columns = df.iloc[index_with_freq]
+     
+            # Remove the row that contains 'freq / Hz' and rows before it (index < index_with_freq)
+            df = df.drop(index_with_freq).drop(index=range(0, index_with_freq))
+     
+            # Display the DataFrame after setting the header and removing unnecessary rows
+            impedance_dfs[new_name]= {"Date and Time" : date_time,"Data": df}
+             
+    if dfs_with_freq:
+        n = len (dfs_with_freq)
+        print(impedance_dfs)
+        print(f"There are {n} Impedance measurements")
+    
+    else:
+        print("No part of this file contains Impedance measurements")
+                
 
 def main():
     """ Main program """
@@ -77,7 +116,14 @@ def main():
   #  df = getdata2()
 
     split_dfs = getdata(filename, verbose = False )
-    print(split_dfs)
+
+    for key, df in split_dfs.items():
+        df.to_csv(f"{key}.csv")
+    
+    formatdata(split_dfs)
+
+
+
     
     """ We plot experimental CV"""  
     #plot(df)
