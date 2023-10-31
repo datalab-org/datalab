@@ -331,13 +331,20 @@ def github_logged_in(blueprint, token):
     github_info = resp.json()
     github_user_id = str(github_info["id"])
     username = str(github_info["login"])
-    name = str(github_info["name"])
+    name = github_info["name"]
+    if name is None:
+        name = github_info["login"]
+    name = str(name)
 
     org_membership = blueprint.session.get(f"/users/{username}/orgs").json()
-    if CONFIG.GITHUB_ORG_ALLOW_LIST:
-        create_account = any(
-            str(org["id"]) in CONFIG.GITHUB_ORG_ALLOW_LIST for org in org_membership
-        )
+    if CONFIG.GITHUB_ORG_ALLOW_LIST is not None:
+        # An 'empty' allow list acts to allow all orgs, a `None` allow list (the default) bans all orgs
+        if CONFIG.GITHUB_ORG_ALLOW_LIST:
+            create_account = any(
+                str(org["id"]) in CONFIG.GITHUB_ORG_ALLOW_LIST for org in org_membership
+            )
+        else:
+            create_account = True
     else:
         create_account = False
 
