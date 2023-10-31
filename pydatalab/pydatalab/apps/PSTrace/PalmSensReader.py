@@ -66,48 +66,95 @@ def getdata(filename, file_encoding='utf-16 LE', verbose = False ):
     return split_dfs
 
 
-def formatdata(split_dfs):
+# def formatdata(split_dfs):
     
-    dfs_with_freq= []
-    impedance_dfs = {}
-    for key, df in split_dfs.items():
+#     dfs_with_freq= []
+#     impedance_dfs = {}
+#     for key, df in split_dfs.items():
         
-        if df.apply(lambda row: row.astype(str).str.contains('freq / Hz')).any().any():
-            dfs_with_freq.append(key)
-            df = split_dfs[key].reset_index(drop=True)
-            name_row = (df[df.apply(lambda row: row.astype(str).str.contains('Measurement'))
-                                .any(axis=1)].index[0])
-            new_name = df.iloc[name_row][1]
-            date_row = (df[df.apply(lambda row: row.astype(str).str.contains('Date and time'))
-                                .any(axis=1)].index[0])
-            date_time =  df.iloc[date_row][1]
-            print(date_time)
-            #reset the index for compatibility when finding it
+#         if df.apply(lambda row: row.astype(str).str.contains('freq / Hz')).any().any():
+#             dfs_with_freq.append(key)
+#             df = split_dfs[key].reset_index(drop=True)
+#             name_row = (df[df.apply(lambda row: row.astype(str).str.contains('Measurement'))
+#                                 .any(axis=1)].index[0])
+#             new_name = df.iloc[name_row][1]
+#             date_row = (df[df.apply(lambda row: row.astype(str).str.contains('Date and time'))
+#                                 .any(axis=1)].index[0])
+#             date_time =  df.iloc[date_row][1]
+#             print(date_time)
+            
             
         
 
-            # Find the index of the row containing the string 'freq / Hz'
-            index_with_freq = (df[df.apply(lambda row: row.astype(str).str.contains('freq / Hz'))
-                                .any(axis=1)].index[0])
+#             # Find the index of the row containing the string 'freq / Hz'
+#             index_with_freq = (df[df.apply(lambda row: row.astype(str).str.contains('freq / Hz'))
+#                                 .any(axis=1)].index[0])
      
-            # Set the row with 'freq / Hz' as the header
+#             # Set the row with 'freq / Hz' as the header
+#             df.columns = df.iloc[index_with_freq]
+     
+#             # Remove the row that contains 'freq / Hz' and rows before it (index < index_with_freq)
+#             df = df.drop(index_with_freq).drop(index=range(0, index_with_freq))
+     
+#             # Display the DataFrame after setting the header and removing unnecessary rows
+#             impedance_dfs[new_name]= {"Date and Time" : date_time, "Data": df}
+             
+#     if dfs_with_freq:
+#         n = len (dfs_with_freq)
+#         print(impedance_dfs)
+#         print(f"There are {n} Impedance measurements")
+    
+#     else:
+#         print("No part of this file contains Impedance measurements")
+
+
+
+def format_impedance_data(split_dfs):
+    # Initialize a list to store keys of dataframes with 'freq / Hz'
+    dfs_with_freq = []
+    
+    # Create a dictionary to hold dataframes with impedance measurements
+    impedance_dfs = {}
+    
+    # Check if 'freq / Hz' exists in any dataframe, and append the key to a list
+    for key, df in split_dfs.items():
+        
+        if df.apply(lambda row: row.astype(str).str.contains('freq / Hz')).any().any():
+            # Reset the index of the dataframe
+            df = split_dfs[key].reset_index(drop=True)            
+            dfs_with_freq.append(key)
+            
+            # Find the row index that contains 'Measurement' to find the name to use
+            name_row = df[df.apply(lambda row: row.astype(str).str.contains('Measurement'))
+                           .any(axis=1)].index[0]
+            new_name = df.iloc[name_row][1]
+            
+            # Find the row index that contains 'Date and time' for the date and time
+            date_row = df[df.apply(lambda row: row.astype(str).str.contains('Date and time'))
+                           .any(axis=1)].index[0]
+            date_time = df.iloc[date_row][1]
+            
+            # Find the index of the row containing the string 'freq / Hz' to use as df header
+            index_with_freq = df[df.apply(lambda row: row.astype(str).str.contains('freq / Hz'))
+                                 .any(axis=1)].index[0]
             df.columns = df.iloc[index_with_freq]
      
-            # Remove the row that contains 'freq / Hz' and rows before it (index < index_with_freq)
+            # Remove the row that contains 'freq / Hz' and rows before it
             df = df.drop(index_with_freq).drop(index=range(0, index_with_freq))
      
-            # Display the DataFrame after setting the header and removing unnecessary rows
-            impedance_dfs[new_name]= {"Date and Time" : date_time,"Data": df}
+            # Store the extracted information and data in the impedance_dfs dictionary
+            impedance_dfs[key] = {"Name" : new_name, "Date and Time": date_time, "Data": df}
              
+    # Check if there are dataframes with 'freq / Hz'
     if dfs_with_freq:
-        n = len (dfs_with_freq)
-        print(impedance_dfs)
+        n = len(dfs_with_freq)
         print(f"There are {n} Impedance measurements")
-    
     else:
         print("No part of this file contains Impedance measurements")
                 
-
+    return impedance_dfs
+        
+        
 def main():
     """ Main program """
 
@@ -120,8 +167,8 @@ def main():
     for key, df in split_dfs.items():
         df.to_csv(f"{key}.csv")
     
-    formatdata(split_dfs)
-
+    eis = format_impedance_data(split_dfs)
+    print(eis)
 
 
     
