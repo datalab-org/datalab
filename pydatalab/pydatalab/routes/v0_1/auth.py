@@ -21,12 +21,12 @@ from flask_login import current_user, login_user
 from flask_login.utils import LocalProxy
 
 from pydatalab.config import CONFIG
-from pydatalab.email import send_mail
 from pydatalab.errors import UserRegistrationForbidden
 from pydatalab.logger import LOGGER, logged_route
 from pydatalab.login import get_by_id
 from pydatalab.models.people import Identity, IdentityType, Person
 from pydatalab.mongo import flask_mongo, insert_pydantic_model_fork_safe
+from pydatalab.sendgrid import send_mail
 
 KEY_LENGTH: int = 32
 LINK_EXPIRATION: datetime.timedelta = datetime.timedelta(days=1)
