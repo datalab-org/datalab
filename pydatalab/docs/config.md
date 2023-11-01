@@ -51,7 +51,7 @@ Currently, there are two mechanisms for accessing remote files:
 
 Currently most administration tasks must be handled directly inside the Python API container.
 Several helper routines are available as `invoke` tasks in `tasks.py` in the `pydatalab` root folder.
-These are documented below.
+You can list all available tasks by running `invoke --list` in the root `pydatalab` folder after installing the package with the `[dev]` extras.
 In the future, many admin tasks (e.g., updating user info, allowing/blocking user accounts, defining subgroups) will be accessible in the web UI.
 
 ### Importing chemical inventories
@@ -64,7 +64,3 @@ If a future export is made and reimported, the old entries will be kept and upda
 # Config API Reference
 
 ::: pydatalab.config
-
-# Admin tasks
-
-::: tasks
