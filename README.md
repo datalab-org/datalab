@@ -17,7 +17,7 @@ src="https://img.shields.io/readthedocs/the-datalab?logo=readthedocs&color=bluev
 
 > 📢 If you are interested in joining the *datalab* mailing list and helping decide its future, please fill out [the survey](https://forms.gle/etq4pcsQJ3omLBmj6).
 
-> ℹ️ We have created a public deployment of *datalab* for potential users to test. Please register via the magic-link email sign in at [public.datalab.odbx.science](https://public.datalab.odbx.science). Any data stored here will be private but we provide no assurances for availability or data backups, so please do not use this for production work.
+> ℹ️ We have created a public deployment of *datalab* for potential users to test. Please register via the magic-link email sign in at [public.datalab.odbx.science](https://public.datalab.odbx.science). Any data stored here will not be visible to others except the admins of the deployment, where it will only be used for debugging purposes. We provide no assurances for availability or data backups on this deployment, so please do not use this for production work.
 
 <!-- datalab logo -->
 
@@ -34,7 +34,7 @@ Importantly, *datalab* stores a network of interconnected research objects in th
 - a Vue 3 web application for a GUI that can be used to record information on
   samples alongside raw data files and analysis documents.
 
-The system was developed for and is currently deployed for the
+The system was originally developed in and is currently deployed for the
 [Grey Group](https://www.ch.cam.ac.uk/group/grey/)
 in the Department of Chemistry at the University of Cambridge.
 
@@ -58,16 +58,16 @@ in the Department of Chemistry at the University of Cambridge.
 
 ### UI
 
-- A simple, intuitive UI for recording sample metadata and relationships with
-  other samples (batches, offshoots), alongside synthesis parameters and raw data.
-- Basic analysis and plotting of live and archived data attached to a sample, e.g.,
+- A simple, intuitive UI for recording sample-based metadata and relationships with
+  other samples (batches, derivatives, _etc._), alongside synthesis parameters and raw data.
+- Basic analysis and plotting of live and archived data attached to a sample, _e.g._,
   characterisation via XRD or NMR, electrochemical cycling data and images (see "Data blocks" section for a complete list).
 - Interactive network visualisation of the connections between samples and inventory.
 
 ## Development status
 
 *datalab* remains under active development, and the API, data models and UI may change significantly between versions without prior notice.
-Where possible, and without breaking changes will be listed in the release notes for every pre-v1 release.
+Where possible, breaking changes will be listed in the release notes for every pre-v1 release.
 
 ## Installation
 

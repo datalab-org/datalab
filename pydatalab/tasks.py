@@ -132,6 +132,7 @@ def manually_register_user(
     orcid: str | None = None,
     github_user_id: int | None = None,
 ):
+    """Registers a user account with the given identities."""
     from pydatalab.models.people import Identity, Person
 
     identities = []
@@ -203,6 +204,7 @@ admin.add_task(repair_files)
 
 @task
 def add_missing_refcodes(_):
+    """Generates refcodes for any items that are missing them."""
     from pydatalab.models.utils import generate_unique_refcode
     from pydatalab.mongo import get_database
 
@@ -233,8 +235,8 @@ def check_item_validity(_, base_url: str | None = None, starting_materials: bool
     """This task looks up all sample and cell items and checks that they
     can be successfully accessed through the API.
 
-    Requires the environment variable DATALAB_API_KEY to be set.
-    Will also additionally pass JSON-formatted values from the DATALAB_HEADERS environment variable.
+    Requires the environment variable `DATALAB_API_KEY` to be set.
+    Will also additionally pass JSON-formatted values from the `DATALAB_HEADERS` environment variable.
 
     Parameters:
         base_url: The API URL.
@@ -345,6 +347,13 @@ admin.add_task(check_remotes)
 
 @task
 def import_cheminventory(_, filename: str):
+    """For a given ChemInventory Excel export, ingest the .xlsx file at
+    <filename> into the datalab items collection with type `starting_materials`.
+
+    Parameters:
+        filename: The filename of the ChemInventory exported spreadsheet to import.
+
+    """
     import random
 
     import pandas as pd
