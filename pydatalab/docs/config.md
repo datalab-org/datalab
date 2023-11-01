@@ -6,7 +6,7 @@
     - This can be provided via a JSON or YAML config file at the location provided by the `PYDATALAB_CONFIG_FILE` environment variable, or as environment variables themselves, prefixed with `PYDATALAB_`.
     - The available configuration variables and their default values are listed below.
 2. Additional server configuration provided as environment variables, such as secrets like Flask's `SECRET_KEY`, API keys for external services (e.g., Sendgrid) and OAuth client credentials (for logging in via GitHub or ORCID).
-    - These can be provided as environment variables or in a `.env` file in the directory `pydatalab` is launched from.
+    - These can be provided as environment variables or in a `.env` file in the directory from which `pydatalab` is launched.
 3. Web app configuration, such as the URL of the relevant *datalab* API and branding (logo URLs, external homepage links).
     - These are typically provided as a `.env` file in the directory from which the webapp is built/served.
 
@@ -15,10 +15,10 @@
 *datalab* has three supported user registration/authentication
 mechanisms:
 
-1. via GitHub accounts that are public members of appropriate GitHub
-organizations,
-2. via ORCID,
-3. via magic links sent to email addresses.
+1. OAuth2 via GitHub accounts that are public members of appropriate GitHub
+organizations
+2. OAuth2 via ORCID
+3. via magic links sent to email addresses
 
 Each is configured differently.
 
@@ -45,7 +45,7 @@ In practice, these options should be set in a centralised deployment.
 Currently, there are two mechanisms for accessing remote files:
 
 1. You can mount the filesystem locally and provide the path in your datalab config file. For example, for Cambridge Chemistry users, you will have to (connect to the ChemNet VPN and) mount the Grey Group backup servers on your local machine, then define these folders in your config.
-2. Access over `ssh`: alternatively, you can set up passwordless `ssh` access to a machine (e.g., using `citadel` as a proxy jump), and paths on that remote machine can be configured as separate filesystems. The filesystem metadata will be synced periodically, and any attached files will be downloaded and stored locally (with the file being kept younger than 1 hour old on each access).
+2. Access over `ssh`: alternatively, you can set up passwordless `ssh` access to a machine (e.g., using `citadel` as a proxy jump), and paths on that remote machine can be configured as separate filesystems. The filesystem metadata will be synced periodically, and any files attached in `datalab` will be downloaded and stored locally on the `pydatalab` server (with the file being kept younger than 1 hour old on each access).
 
 ## Server administration
 

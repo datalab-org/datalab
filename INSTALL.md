@@ -1,15 +1,16 @@
 # Installation
 
 *datalab* is intended to be deployed on a persistent server accessible on the web that can act as a data management platform
-for a given collection of researchers.
-The instructions below outline how to make primarily a development installation on your local machine.
-We strongly recommend using the [Docker setup instructions](#deployment-with-docker) if you are deploying to a server.
+for a group of researchers.
+The instructions below outline how to make a development installation on your local machine.
+We strongly recommend using the [Docker setup instructions](#deployment-with-docker) if you are deploying for use in production.
 
 This repository consists of two components:
 
-- a Flask-based Python web server (`pydatalab`) that communicates with the database backend,
+- a Flask-based Python web server (`pydatalab`) that communicates with the database backend
 - a JavaScript+Vue web application for the user interface.
 
+`pydatalab` can in principle be used without the web app frontend through its JSON API.
 
 ## Local (development) installation
 
@@ -20,17 +21,17 @@ Firstly, from the desired folder, clone this repository from GitHub to your loca
 ### `pydatalab` server installation
 
 The instructions in this section will leave you with a running JSON API on your host machine.
-This can hypothetically be used entirely independently (and hopefully increasingly ergonomically) from the web front-end.
+This can hypothetically be used entirely independently from the web front-end through the JSON API.
 
 1. Install `pipenv` on your machine.
     - Detailed instructions for installing `pipenv`, `pip` and Python itself can be found on the [`pipenv` website](https://pipenv.pypa.io/en/latest/install/#installing-pipenv).
-    - We recommend you install `pipenv` from PyPI (with `pip install pipenv` or `pip install --user pipenv`) for the Python distribution of your choice (in a virtual environment or otherwise). This is distinct from the virtual environment that `pipenv` itself will create for the `pydatalab` package.
+    - We recommend you install `pipenv` from PyPI (with `pip install pipenv` or `pip install --user pipenv`) for the Python distribution of your choice (in a virtual environment or otherwise). `pipenv` will be used to create its own virtual environment for installation of the `pydatalab` package.
 1. Set up MongoDB.
     1. Install the free MongoDB community edition (full instructions on the [MongoDB website](https://docs.mongodb.com/manual/installation/)).
         * For Mac users, MongoDB is available via [HomeBrew](https://github.com/mongodb/homebrew-brew).
         - You can alternatively run the MongoDB via Docker using the config in this package with `docker-compose up mongo` (see further instructions [below](#deployment-with-docker).
-        * If you wish to view the database directly, MongoDB has several GUIs, e.g. [MongoDB Compass](https://www.mongodb.com/products/compass) or [RoboMongo](https://robomongo.org/).
-        - For persistence, you will need to set up MongoDB to run as a service on your computer (or run manually each time you use the site).
+        * If you wish to view the database directly, MongoDB has several GUIs, e.g. [MongoDB Compass](https://www.mongodb.com/products/compass) or [Studio 3T](https://robomongo.org/).
+        - For persistence, you will need to set up MongoDB to run as a service on your computer (or run manually each time you run the `pydatalab` server).
     1. In MongoDB, create a database called "datalabvue" ([further instructions on the MongoDB website](https://www.mongodb.com/basics/create-database)).
         - You can do this with the `mongo` shell (`echo "use datalabvue" | mongo`) or with Compass.
 1. Install the `pydatalab` package.
@@ -54,7 +55,7 @@ Should you wish to contribute to/modify the Python code, you may wish to perform
 
 ### Web app
 
-1. If you do not already have it, install node.js and the Node Package Manager (`npm`).
+1. If you do not already have it, install `node.js` and the Node Package Manager (`npm`).
 It is recommended not to install node using the official installer, since it is difficult to manage or uninstall, and permissions issues may arise.
 Intead, it is recommended to install and manage versions using the [node version manager (nvm)](https://github.com/nvm-sh/nvm#installing-and-updating): `nvm install --lts`.
 This will install the current recommended version of node and nvm.
@@ -71,7 +72,7 @@ Similar to the Flask development server, these steps will provide a development 
 Various other development scripts are available through `yarn`:
 
 - `yarn lint`: Lint the javascript code using `eslint`, identifying issues and automatically fixing many. This linting process also runs automatically every time the development server reloads.
-- `yarn test:unit`: run the unit/componenet tests using `jest`. These test individual functions or components.
+- `yarn test:unit`: run the unit/component tests using `jest`. These test individual functions or components.
 - `yarn test:e2e`: run end-to-end tests using `cypress`. This will build and serve the app, and launch an instance of Chrome where the tests can be interactively viewed. The tests can also be run without the gui using ```yarn test:e2e --headless```. Note: currently, the tests make requests to the server running on `localhost:5001`.
 - `yarn build`: Compile an optimized, minimized, version of the app for production.
 
@@ -93,7 +94,7 @@ The development target mounts the repository in the running container and provid
 
 ## Permanent deployment instructions
 
-There are several steps involved from taking the Docker containers above and provisioning a persistent *datalab* server and instance.
+There are several steps involved from taking the Docker containers above and provisioning a persistent *datalab* server and instance available through the internet.
 Many of these involve tuning the server configuration for your group following the [additional documentation](config.md) on configuration, but many additional choices also depend on how you plan to host the containers in the long-term.
 Some things to consider:
 
