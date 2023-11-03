@@ -11,6 +11,7 @@ import os.path, glob
 import csv
 import re
 from io import StringIO
+import numpy as np
 
 # The following lines adjust the granularity of reporting. 
 #pd.options.display.max_rows = 10
@@ -19,6 +20,7 @@ from io import StringIO
 <<<<<<< HEAD
 
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 filename = "PalmSense_test_datalab_shorter.csv"
 file_encoding = 'utf-16 LE'
@@ -42,6 +44,9 @@ def getdata():
 def getdata(filename, file_encoding='utf-16 LE', verbose = False):
 =======
 filename = "PalmSense_test_datalab_shorter.csv" # file with experimetnal data as exported "as csv" from PSTrace
+=======
+filename = "PalmSense_test_datalab.csv" # file with experimetnal data as exported "as csv" from PSTrace
+>>>>>>> 4fa42bc (code reads all parts of csv output file from PSTrace)
 keyword = "Measurement" #keyword to split input file on
 
 
@@ -57,6 +62,7 @@ def getdata(filename, file_encoding='utf-16 LE', verbose = False ):
 
     Returns:
     - split_dfs (dict): Dictionary containing DataFrames split based on the keyword
+      it is normally any type of measurement in the first df, and EIS in the following ones
     """
 
 
@@ -91,6 +97,7 @@ def getdata(filename, file_encoding='utf-16 LE', verbose = False ):
     return split_dfs
 
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 
@@ -177,8 +184,22 @@ def formatdata(split_dfs):
 #         print("No part of this file contains Impedance measurements")
 
 
+=======
+>>>>>>> 4fa42bc (code reads all parts of csv output file from PSTrace)
 
 def format_impedance_data(split_dfs):
+    """
+    Formats the data extracted from split_dfs, filtering the data related to Impedance measurements.
+    
+    Args:
+    - split_dfs (dict): A dictionary containing values as dataframes for different measurements,
+    that are the result of the function getdata(filename)
+
+    Returns:
+    - impedance_dfs (dict): A dictionary storing dataframes related to Impedance measurements,
+      indexed by their respective keys, each containing the measurement name, date, and the actual data.
+    """
+    
     # Initialize a list to store keys of dataframes with 'freq / Hz'
     dfs_with_freq = []
     
@@ -210,10 +231,13 @@ def format_impedance_data(split_dfs):
      
             # Remove the row that contains 'freq / Hz' and rows before it
             df = df.drop(index_with_freq).drop(index=range(0, index_with_freq))
-     
+            
             # Store the extracted information and data in the impedance_dfs dictionary
-            impedance_dfs[key] = {"Name" : new_name, "Date and Time": date_time, "Data": df}
-             
+            impedance_dfs[f"EIS measurement {key}"] = {"Name" : new_name, "Date and Time": date_time, "Data": df}
+           # new_key = f"EIS ({key})"
+           # impedance_dfs[new_key] = impedance_dfs.pop(key)
+            
+            
     # Check if there are dataframes with 'freq / Hz'
     if dfs_with_freq:
         n = len(dfs_with_freq)
@@ -226,9 +250,71 @@ def format_impedance_data(split_dfs):
 
 =======
     return impedance_dfs
+<<<<<<< HEAD
         
         
 >>>>>>> c84820a (Cleaned and documented code for impedance spectroscopy data formating)
+=======
+
+
+def format_DC_data(split_dfs):
+    """
+    Extracts and formats DC (direct current) measurement data from a collection of DataFrames.
+    
+    Args:
+    split_dfs (dict): A dictionary containing DataFrames to process, 
+    comes from the funtion getdata(filename)
+    
+    Returns:
+    dict: Dictionary of formatted DC measurement data.
+    """
+
+    # Process each DataFrame in the input dictionary
+    for key, df in split_dfs.items():
+        # Check for the presence of 'Date and time measurement:', only present in dataframes of DC measurements
+        if df.apply(lambda row: row.astype(str).str.contains('Date and time measurement:')).any().any():
+            # Reset the index of the dataframe
+            df = split_dfs[key].reset_index(drop=True)
+
+            # Find and remove the row index containing 'File date:' because it belongs to EIS measurements
+            # it is an artifact of how the different dataframes were split by getdata(filename)
+            row_filedate = df[df.apply(lambda row: row.astype(str).str.contains('File date:'))
+                              .any(axis=1)].index[0]
+            df = df.drop(df.index[row_filedate])
+
+            # Create a dictionary of DataFrames with two columns each 
+            # (each DC measurements only consists on 2 columns that can change in the magnitude measured
+            # possible magnitudes: time(s), Voltage (V), Currrent (microA)
+            DC_dfs = {f"DC measurement {int(i/2)}": df.iloc[:, i:i+2] for i in range(0, df.shape[1], 2)}
+
+    # Select the first DataFrame 'DC measurement 0' as example to find rows
+    df = DC_dfs["DC measurement 0"]
+
+    # Find the row index for date/time of measurement, name of measurement and units 
+    date_row = df[df.apply(lambda row: row.astype(str).str.contains('Date and time measurement:'))
+                  .any(axis=1)].index[0]
+    name_row = date_row - 1
+    units_row = date_row + 1
+
+    # Process each DataFrame in the generated dictionary
+    for key, df in DC_dfs.items():
+        # Extract date and time information
+        date_time = df.iloc[date_row, 1]
+        new_name = df.iloc[name_row, 0].split(":")[0]
+
+        # Set column headers as the units row
+        df.columns = df.iloc[units_row]
+        df = df.drop(units_row).drop(index=range(0, units_row))
+        df.dropna(how='all', inplace=True)
+        # Store the extracted information and data in the 'DC_dfs' dictionary
+        DC_dfs[key] = {"Name": new_name, "Date and Time": date_time, "Data": df}
+        new_key = f"DC measurement ({key})"
+
+    return DC_dfs
+
+
+                  
+>>>>>>> 4fa42bc (code reads all parts of csv output file from PSTrace)
 def main():
     """ Main program """
 
@@ -241,10 +327,12 @@ def main():
     for key, df in split_dfs.items():
         df.to_csv(f"{key}.csv")
     
-    eis = format_impedance_data(split_dfs)
-    print(eis)
+    eis_data = format_impedance_data(split_dfs)
 
-
+    DC_data = format_DC_data(split_dfs)
+    
+    print(eis_data)    
+    print (DC_data)
     
     """ We plot experimental CV"""  
     #plot(df)
