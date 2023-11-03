@@ -50,8 +50,12 @@ filename = "PalmSense_test_datalab.csv" # file with experimetnal data as exporte
 >>>>>>> 4fa42bc (code reads all parts of csv output file from PSTrace)
 =======
 
+<<<<<<< HEAD
 filename = "PalmSense_test_datalab_EIS.csv" # file with experimetnal data as exported "as csv" from PSTrace
 >>>>>>> 3378ab0 (solved issues with cases where there are no DC current experiments)
+=======
+filename = "PalmSense_test_datalab.csv" # file with experimetnal data as exported "as csv" from PSTrace
+>>>>>>> 611b9a2 (solved bug)
 keyword = "Measurement" #keyword to split input file on
 
 
