@@ -15,7 +15,6 @@ import numpy as np
 
 
 filename = "PalmSense_test_datalab.csv" # file with experimetnal data as exported "as csv" from PSTrace
-keyword = "Measurement" #keyword to split input file on
 
 
 def getdata(filename, file_encoding='utf-16 LE', verbose = False ):
@@ -44,8 +43,8 @@ def getdata(filename, file_encoding='utf-16 LE', verbose = False ):
     # Read CSV file into a DataFrame
     df = pd.read_csv(filename, header=None, names=column_names, encoding=file_encoding)
 
-    # Find the locations of the keyword in any column
-    mask = df.apply(lambda row: row.astype(str).str.contains(keyword), axis=1)
+    # Find the locations of the keyword "Measurement" in any column. The file onlyhas that when an EIS mesurmment starts
+    mask = df.apply(lambda row: row.astype(str).str.contains("Measurement"), axis=1)
     mask['Any'] = mask.any(axis=1)
     groups = mask["Any"].cumsum()
 
@@ -56,13 +55,16 @@ def getdata(filename, file_encoding='utf-16 LE', verbose = False ):
     # Display the split DataFrames if verbose=True, default value is False
     if verbose: 
         for key, split_df in split_dfs.items():
-            print(f"DataFrame for '{keyword}' occurrence {key}:")
+            print(f"DataFrame for splitting keyword = Measurement occurrence {key}:")
             print(split_df)
             print("\n")
 
     return split_dfs
 
-
+def find_row(df, keyword):
+    
+    
+    return df[df.apply(lambda row: row.astype(str).str.contains(keyword)).any(axis=1)].index[0]
 
 def format_impedance_data(split_dfs):
     """
@@ -92,28 +94,22 @@ def format_impedance_data(split_dfs):
             dfs_with_freq.append(key)
             
             # Find the row index that contains 'Measurement' to find the name to use
-            name_row = df[df.apply(lambda row: row.astype(str).str.contains('Measurement'))
-                           .any(axis=1)].index[0]
+            name_row = find_row(df, "Measurement")
             new_name = df.iloc[name_row][1]
             
             # Find the row index that contains 'Date and time' for the date and time
-            date_row = df[df.apply(lambda row: row.astype(str).str.contains('Date and time'))
-                           .any(axis=1)].index[0]
+            date_row = find_row(df, 'Date and time')
             date_time = df.iloc[date_row][1]
             
-            # Find the index of the row containing the string 'freq / Hz' to use as df header
-            index_with_freq = df[df.apply(lambda row: row.astype(str).str.contains('freq / Hz'))
-                                 .any(axis=1)].index[0]
-            df.columns = df.iloc[index_with_freq]
+            # Find the index of the row containing the string 'freq / Hz' to use as df header            
+            freq_row = find_row(df, 'freq / Hz' )
+            df.columns = df.iloc[freq_row]
      
             # Remove the row that contains 'freq / Hz' and rows before it
-            df = df.drop(index_with_freq).drop(index=range(0, index_with_freq))
+            df = df.drop(freq_row).drop(index=range(0, freq_row))
             
             # Store the extracted information and data in the impedance_dfs dictionary
             impedance_dfs[f"EIS measurement {key}"] = {"Name" : new_name, "Date and Time": date_time, "Data": df}
-           # new_key = f"EIS ({key})"
-           # impedance_dfs[new_key] = impedance_dfs.pop(key)
-            
             
     # Check if there are dataframes with 'freq / Hz'
     if dfs_with_freq:
@@ -150,8 +146,7 @@ def format_DC_data(split_dfs):
 
             # Find and remove the row index containing 'File date:' because it belongs to EIS measurements
             # it is an artifact of how the different dataframes were split by getdata(filename)
-            row_filedate = df[df.apply(lambda row: row.astype(str).str.contains('File date:'))
-                              .any(axis=1)].index[0]
+            row_filedate = find_row(df, 'File date:')
             df = df.drop(df.index[row_filedate])
 
             # Create a dictionary of DataFrames with two columns each 
@@ -163,8 +158,7 @@ def format_DC_data(split_dfs):
         df = DC_dfs["DC measurement 0"]
 
         # Find the row index for date/time of measurement, name of measurement and units 
-        date_row = df[df.apply(lambda row: row.astype(str).str.contains('Date and time measurement:'))
-                      .any(axis=1)].index[0]
+        date_row = find_row(df, 'Date and time measurement:')
         name_row = date_row - 1
         units_row = date_row + 1
     
@@ -179,6 +173,7 @@ def format_DC_data(split_dfs):
             df.columns = df.iloc[units_row]
             df = df.drop(units_row).drop(index=range(0, units_row))
             df.dropna(how='all', inplace=True)
+            
             # Store the extracted information and data in the 'DC_dfs' dictionary
             DC_dfs[key] = {"Name": new_name, "Date and Time": date_time, "Data": df}
             new_key = f"DC measurement ({key})"
@@ -189,14 +184,11 @@ def format_DC_data(split_dfs):
     else:
         print("There are no direct current measurements")
 
-    
-
-
-                  
+                      
 def main():
     """ Main program """
 
-    split_dfs = getdata(filename, verbose = False )
+    split_dfs = getdata(filename, verbose = False)
     
     eis_data = format_impedance_data(split_dfs)
 
