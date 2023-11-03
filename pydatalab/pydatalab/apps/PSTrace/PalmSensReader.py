@@ -62,7 +62,10 @@ def getdata(filename, file_encoding='utf-16 LE', verbose = False ):
     return split_dfs
 
 def find_row(df, keyword):
-    
+    """This function finds the index of a row containiing a keyword
+    Args: 
+    - df : DataFrame where we are searching
+    - keyword (str): the keyword it searches"""
     
     return df[df.apply(lambda row: row.astype(str).str.contains(keyword)).any(axis=1)].index[0]
 
