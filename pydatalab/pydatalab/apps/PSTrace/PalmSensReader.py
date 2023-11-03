@@ -318,14 +318,7 @@ def format_DC_data(split_dfs):
 def main():
     """ Main program """
 
-
-    """ Get the experimental data"""
-  #  df = getdata2()
-
     split_dfs = getdata(filename, verbose = False )
-
-    for key, df in split_dfs.items():
-        df.to_csv(f"{key}.csv")
     
     eis_data = format_impedance_data(split_dfs)
 
@@ -334,12 +327,9 @@ def main():
     print(eis_data)    
     print (DC_data)
     
-    """ We plot experimental CV"""  
-    #plot(df)
-
     #This is because Anaconda writes a lot of temporary files in my computer, not needed in datalab
-    for file in glob.glob("tmp*"):
-        os.remove(file)
+    # for file in glob.glob("tmp*"):
+    #     os.remove(file)
         
             
 if __name__ == "__main__":
