@@ -14,7 +14,7 @@ from io import StringIO
 import numpy as np
 
 
-filename = "PalmSense_test_datalab_EIS.csv" # file with experimetnal data as exported "as csv" from PSTrace
+filename = "PalmSense_test_datalab.csv" # file with experimetnal data as exported "as csv" from PSTrace
 keyword = "Measurement" #keyword to split input file on
 
 
