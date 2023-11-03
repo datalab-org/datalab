@@ -13,6 +13,7 @@ import re
 from io import StringIO
 import numpy as np
 
+<<<<<<< HEAD
 # The following lines adjust the granularity of reporting. 
 #pd.options.display.max_rows = 10
 #pd.options.display.max_columns = 10
@@ -47,6 +48,10 @@ filename = "PalmSense_test_datalab_shorter.csv" # file with experimetnal data as
 =======
 filename = "PalmSense_test_datalab.csv" # file with experimetnal data as exported "as csv" from PSTrace
 >>>>>>> 4fa42bc (code reads all parts of csv output file from PSTrace)
+=======
+
+filename = "PalmSense_test_datalab_EIS.csv" # file with experimetnal data as exported "as csv" from PSTrace
+>>>>>>> 3378ab0 (solved issues with cases where there are no DC current experiments)
 keyword = "Measurement" #keyword to split input file on
 
 
@@ -243,7 +248,7 @@ def format_impedance_data(split_dfs):
         n = len(dfs_with_freq)
         print(f"There are {n} Impedance measurements")
     else:
-        print("No part of this file contains Impedance measurements")
+        print("The are no Impedance measurements")
                 
 <<<<<<< HEAD
 >>>>>>> 2d1266c (Formated EIS part of the output files)
@@ -268,13 +273,17 @@ def format_DC_data(split_dfs):
     Returns:
     dict: Dictionary of formatted DC measurement data.
     """
-
+    
+    dfs_DC_meas = []
+    DC_data = False
     # Process each DataFrame in the input dictionary
     for key, df in split_dfs.items():
         # Check for the presence of 'Date and time measurement:', only present in dataframes of DC measurements
         if df.apply(lambda row: row.astype(str).str.contains('Date and time measurement:')).any().any():
+            DC_data = True
             # Reset the index of the dataframe
             df = split_dfs[key].reset_index(drop=True)
+            
 
             # Find and remove the row index containing 'File date:' because it belongs to EIS measurements
             # it is an artifact of how the different dataframes were split by getdata(filename)
@@ -286,31 +295,38 @@ def format_DC_data(split_dfs):
             # (each DC measurements only consists on 2 columns that can change in the magnitude measured
             # possible magnitudes: time(s), Voltage (V), Currrent (microA)
             DC_dfs = {f"DC measurement {int(i/2)}": df.iloc[:, i:i+2] for i in range(0, df.shape[1], 2)}
+    if DC_data:
+        # Select the first DataFrame 'DC measurement 0' as example to find rows
+        df = DC_dfs["DC measurement 0"]
 
-    # Select the first DataFrame 'DC measurement 0' as example to find rows
-    df = DC_dfs["DC measurement 0"]
+        # Find the row index for date/time of measurement, name of measurement and units 
+        date_row = df[df.apply(lambda row: row.astype(str).str.contains('Date and time measurement:'))
+                      .any(axis=1)].index[0]
+        name_row = date_row - 1
+        units_row = date_row + 1
+    
+        # Process each DataFrame in the generated dictionary
+        for key, df in DC_dfs.items():
+            dfs_DC_meas.append(key)
+            # Extract date and time information
+            date_time = df.iloc[date_row, 1]
+            new_name = df.iloc[name_row, 0].split(":")[0]
+    
+            # Set column headers as the units row
+            df.columns = df.iloc[units_row]
+            df = df.drop(units_row).drop(index=range(0, units_row))
+            df.dropna(how='all', inplace=True)
+            # Store the extracted information and data in the 'DC_dfs' dictionary
+            DC_dfs[key] = {"Name": new_name, "Date and Time": date_time, "Data": df}
+            new_key = f"DC measurement ({key})"
 
-    # Find the row index for date/time of measurement, name of measurement and units 
-    date_row = df[df.apply(lambda row: row.astype(str).str.contains('Date and time measurement:'))
-                  .any(axis=1)].index[0]
-    name_row = date_row - 1
-    units_row = date_row + 1
+        n = len(dfs_DC_meas)
+        print(f"There are {n} direct current measurements")
+        return DC_dfs
+    else:
+        print("There are no direct current measurements")
 
-    # Process each DataFrame in the generated dictionary
-    for key, df in DC_dfs.items():
-        # Extract date and time information
-        date_time = df.iloc[date_row, 1]
-        new_name = df.iloc[name_row, 0].split(":")[0]
-
-        # Set column headers as the units row
-        df.columns = df.iloc[units_row]
-        df = df.drop(units_row).drop(index=range(0, units_row))
-        df.dropna(how='all', inplace=True)
-        # Store the extracted information and data in the 'DC_dfs' dictionary
-        DC_dfs[key] = {"Name": new_name, "Date and Time": date_time, "Data": df}
-        new_key = f"DC measurement ({key})"
-
-    return DC_dfs
+    
 
 
                   
@@ -326,11 +342,7 @@ def main():
     
     print(eis_data)    
     print (DC_data)
-    
-    #This is because Anaconda writes a lot of temporary files in my computer, not needed in datalab
-    # for file in glob.glob("tmp*"):
-    #     os.remove(file)
-        
+
             
 if __name__ == "__main__":
     
