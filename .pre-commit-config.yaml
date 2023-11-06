@@ -2,6 +2,9 @@ default_language_version:
   python: python3.10
   node: 16.14.2
 
+ci:
+  skip: [generate-schemas]
+
 repos:
   - repo: https://github.com/psf/black
     rev: 23.10.1
