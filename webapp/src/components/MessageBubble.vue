@@ -72,7 +72,7 @@ export default {
           const { svg } = await mermaid.render(
             "mermaid_" + Math.floor(Math.random() * 1000000),
             el.textContent,
-            el
+            el,
           );
           el.innerHTML = svg;
         });

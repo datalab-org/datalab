@@ -164,7 +164,7 @@ export default {
         this.name,
         startingCollection,
         extraData,
-        this.selectedItemToCopy && this.selectedItemToCopy.item_id
+        this.selectedItemToCopy && this.selectedItemToCopy.item_id,
       )
         .then(() => {
           this.$emit("update:modelValue", false); // close this modal

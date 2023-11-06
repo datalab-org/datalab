@@ -2,16 +2,20 @@ default_language_version:
   python: python3.10
   node: 16.14.2
 
+ci:
+  skip: [generate-schemas]
+  autoupdate_schedule: "monthly"
+
 repos:
-  - repo: https://github.com/ambv/black
-    rev: 23.7.0
+  - repo: https://github.com/psf/black
+    rev: 23.10.1
     hooks:
       - id: black
         name: Blacken
         args: ["--config", "pyproject.toml"]
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+    rev: v4.5.0
     hooks:
       - id: trailing-whitespace
         exclude: (pydatalab/example_data/)|(.*.snap)
@@ -26,20 +30,20 @@ repos:
       - id: check-symlinks
       - id: mixed-line-ending
 
-  - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: "v0.0.281"
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: "v0.1.4"
     hooks:
       - id: ruff
         args: [--fix]
 
   - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v2.6.2
+    rev: v3.0.3
     hooks:
       - id: prettier
         types_or: [javascript, jsx, vue, html, yaml]
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.4.1
+    rev: v1.6.1
     hooks:
       - id: mypy
         additional_dependencies: ["types-all", "pydantic~=1.10"]
