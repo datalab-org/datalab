@@ -119,19 +119,19 @@ describe("Edit Page", () => {
 
     cy.get("#synthesis-information tbody tr:nth-of-type(1) td:nth-of-type(2) input").should(
       "have.value",
-      10
+      10,
     );
     cy.get("#synthesis-information tbody tr:nth-of-type(1) td:nth-of-type(3) input").should(
       "have.value",
-      "mL"
+      "mL",
     );
     cy.get("#synthesis-information tbody tr:nth-of-type(2) td:nth-of-type(2) input").should(
       "have.value",
-      0.001
+      0.001,
     );
     cy.get("#synthesis-information tbody tr:nth-of-type(2) td:nth-of-type(3) input").should(
       "have.value",
-      "pints"
+      "pints",
     );
   });
 
@@ -141,11 +141,11 @@ describe("Edit Page", () => {
     cy.get("#synthesis-information tbody > tr").should("have.length", 2);
     cy.get("#synthesis-information tbody > tr:nth-of-type(1) td:nth-of-type(2) input").should(
       "have.value",
-      0.001
+      0.001,
     );
     cy.get("#synthesis-information tbody > tr:nth-of-type(1) td:nth-of-type(3) input").should(
       "have.value",
-      "pints"
+      "pints",
     );
 
     cy.get("#synthesis-information tbody > tr:nth-of-type(1) .close").click();
@@ -158,7 +158,7 @@ describe("Edit Page", () => {
     cy.get("#synthesis-information").contains("component2");
     cy.get("#synthesis-information tbody > tr:nth-of-type(1) td:nth-of-type(2) input").should(
       "have.value",
-      ""
+      "",
     ); // should be reset, not a previous value
 
     cy.get("svg.add-row-button").click();
@@ -169,36 +169,36 @@ describe("Edit Page", () => {
     cy.get("#synthesis-information").contains("Na2O");
     cy.get("#synthesis-information tbody > tr:nth-of-type(2) td:nth-of-type(2) input").should(
       "have.value",
-      ""
+      "",
     ); // should be reset, not a previous value
   });
 
   it("tries to add a non-numeric value into quantity", () => {
     cy.findByText("editable_sample").click();
     cy.get("#synthesis-information tbody > tr:nth-of-type(1) td:nth-of-type(2) input").type(
-      "100.001"
+      "100.001",
     );
     cy.get(
-      "#synthesis-information tbody > tr:nth-of-type(1) td:nth-of-type(2) input.red-border"
+      "#synthesis-information tbody > tr:nth-of-type(1) td:nth-of-type(2) input.red-border",
     ).should("not.exist");
     cy.get("#synthesis-information tbody > tr:nth-of-type(1) td:nth-of-type(2) input")
       .clear()
       .type("1");
     cy.get(
-      "#synthesis-information tbody > tr:nth-of-type(1) td:nth-of-type(2) input.red-border"
+      "#synthesis-information tbody > tr:nth-of-type(1) td:nth-of-type(2) input.red-border",
     ).should("not.exist");
     cy.get("#synthesis-information tbody > tr:nth-of-type(1) td:nth-of-type(2) input")
       .clear()
       .type("word");
     cy.get(
-      "#synthesis-information tbody > tr:nth-of-type(1) td:nth-of-type(2) input.red-border"
+      "#synthesis-information tbody > tr:nth-of-type(1) td:nth-of-type(2) input.red-border",
     ).should("exist");
 
     cy.get("#synthesis-information tbody > tr:nth-of-type(2) td:nth-of-type(2) input")
       .clear()
       .type("$");
     cy.get(
-      "#synthesis-information tbody > tr:nth-of-type(2) td:nth-of-type(2) input.red-border"
+      "#synthesis-information tbody > tr:nth-of-type(2) td:nth-of-type(2) input.red-border",
     ).should("exist");
 
     cy.get("#synthesis-information tbody > tr:nth-of-type(1) td:nth-of-type(2) input")

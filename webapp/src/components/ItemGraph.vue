@@ -130,7 +130,7 @@ export default {
           "background-color",
           element.data("special") == 1
             ? itemTypes[element.data("type")].lightColor
-            : itemTypes[element.data("type")].navbarColor
+            : itemTypes[element.data("type")].navbarColor,
         );
         element.style("border-width", element.data("special") == 1 ? 2 : 0);
         element.style("border-color", "grey");

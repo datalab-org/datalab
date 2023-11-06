@@ -115,7 +115,7 @@ export default createStore({
         item_id == new_block_obj.item_id,
         "The block has a different item_id (%s) than the item_id provided to addABlock (%s)",
         item_id,
-        new_block_obj.item_id
+        new_block_obj.item_id,
       );
       console.log(`addABlock called with: ${item_id}, ${new_block_obj}, ${new_block_insert_index}`);
       let new_block_id = new_block_obj.block_id;
@@ -124,7 +124,7 @@ export default createStore({
         state.all_item_data[item_id]["display_order"].splice(
           new_block_insert_index,
           0,
-          new_block_id
+          new_block_id,
         );
       }
       // if new_block_insert_index is None, then block is inserted at the end
@@ -138,7 +138,7 @@ export default createStore({
       console.log("updating block data with:", payload);
       Object.assign(
         state.all_item_data[payload.item_id]["blocks_obj"][payload.block_id],
-        payload.block_data
+        payload.block_data,
       );
       state.saved_status_blocks[payload.block_id] = false;
     },

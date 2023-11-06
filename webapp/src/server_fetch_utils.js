@@ -100,7 +100,7 @@ export function createNewItem(
   name,
   startingCollection = null,
   startingData = {},
-  copyFrom = null
+  copyFrom = null,
 ) {
   return fetch_post(`${API_URL}/new-sample/`, {
     copy_from_item_id: copyFrom,
@@ -450,7 +450,7 @@ export function deleteFileFromSample(item_id, file_id) {
 export async function fetchRemoteTree(invalidate_cache) {
   var invalidate_cache_param = invalidate_cache ? "1" : "0";
   var url = new URL(
-    `${API_URL}/list-remote-directories?invalidate_cache=${invalidate_cache_param}`
+    `${API_URL}/list-remote-directories?invalidate_cache=${invalidate_cache_param}`,
   );
   console.log("fetchRemoteTree called!");
   store.commit("setRemoteDirectoryTreeIsLoading", true);

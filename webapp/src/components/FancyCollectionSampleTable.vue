@@ -126,7 +126,7 @@ export default {
       const idsSelected = this.itemsSelected.map((x) => x.item_id);
       if (
         confirm(
-          `Are you sure you want to remove ${this.itemsSelected.length} selected items (${idsSelected}) from this collection?`
+          `Are you sure you want to remove ${this.itemsSelected.length} selected items (${idsSelected}) from this collection?`,
         )
       ) {
         console.log("deleting...");

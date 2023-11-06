@@ -133,7 +133,7 @@ export default {
       await updateBlockFromServer(
         this.item_id,
         this.block_id,
-        this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id]
+        this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id],
       );
       this.isLoading = false;
     },
@@ -144,7 +144,7 @@ export default {
       await updateBlockFromServer(
         this.item_id,
         this.block_id,
-        this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id]
+        this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id],
       ).catch(() => {
         this.messages.push(last_message);
       });
