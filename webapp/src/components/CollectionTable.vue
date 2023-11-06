@@ -80,7 +80,7 @@ export default {
     deleteCollection(collection) {
       if (
         confirm(
-          `Are you sure you want to delete collection "${collection.collection_id}"?\nThis will not delete any items.`
+          `Are you sure you want to delete collection "${collection.collection_id}"?\nThis will not delete any items.`,
         )
       ) {
         deleteCollection(collection.collection_id, collection);

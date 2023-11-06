@@ -200,7 +200,9 @@ export default {
   max-height: 0px;
   padding: 0px 18px;
   overflow: hidden;
-  transition: max-height 0.4s ease, padding 0.4s ease;
+  transition:
+    max-height 0.4s ease,
+    padding 0.4s ease;
 }
 
 /*this is a sibling selector, selects the div directly after expanded*/

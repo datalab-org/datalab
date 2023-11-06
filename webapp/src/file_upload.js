@@ -59,7 +59,7 @@ export default function setupUppy(item_id, trigger_selector, reactive_file_list)
       if (reactive_file_list[file_id].name == file.name) {
         matching_file_id = file_id;
         alert(
-          "A file with this name already exists in the sample. If you upload this, it will update the current file."
+          "A file with this name already exists in the sample. If you upload this, it will update the current file.",
         );
       }
     }

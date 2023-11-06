@@ -31,7 +31,7 @@ export function ForceGraph(
     width = 640, // outer width, in pixels
     height = 400, // outer height, in pixels
     invalidation, // when this promise resolves, stop the simulation
-  } = {}
+  } = {},
 ) {
   // Compute values.
   const N = d3.map(nodes, nodeId).map(intern);

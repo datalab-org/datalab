@@ -72,7 +72,7 @@ library.add(
   faSearch,
   faPlusSquare,
   faSpinner,
-  faEllipsisH
+  faEllipsisH,
 );
 
 // Import TinyMCE

@@ -135,7 +135,7 @@ describe("Sample table page", () => {
     cy.request({ url: `${API_URL}/get-item-data/12345678910`, failOnStatusCode: false }).then(
       (resp) => {
         expect(resp.status).to.be.gte(400).lt(500);
-      }
+      },
     );
   });
 
@@ -203,7 +203,7 @@ describe("Sample table page", () => {
     cy.request({ url: `${API_URL}/get-item-data/_122rwre`, failOnStatusCode: false }).then(
       (resp) => {
         expect(resp.status).to.be.gte(400).lt(500);
-      }
+      },
     );
   });
 });
