@@ -29,7 +29,7 @@ from pydatalab.mongo import flask_mongo, insert_pydantic_model_fork_safe
 from pydatalab.sendgrid import send_mail
 
 KEY_LENGTH: int = 32
-LINK_EXPIRATION: datetime.timedelta = datetime.timedelta(days=1)
+LINK_EXPIRATION: datetime.timedelta = datetime.timedelta(hours=1)
 
 
 @logged_route
@@ -250,14 +250,16 @@ def generate_and_share_magic_link():
 
     link = f"{referrer}?token={token}"
 
+    instance_url = referrer.replace("https://", "")
+
     # See if the user already exists and jadjust the email if so
     user = find_user_with_identity(email, IdentityType.EMAIL, verify=False)
     if user is not None:
         subject = "Datalab Sign-in Magic Link"
-        body = f"Click the link below to sign-in to the datalab instance at {referrer.strip('https://')}:\n\n{link}\n\nThis link is single-use and will expire in 24 hours."
+        body = f"Click the link below to sign-in to the datalab instance at {instance_url}:\n\n{link}\n\nThis link is single-use and will expire in 1 hour."
     else:
         subject = "Datalab Registration Magic Link"
-        body = f"Click the link below to register for the datalab instance at {referrer.strip('https://')}:\n\n{link}\n\nThis link is single-use and will expire in 24 hours."
+        body = f"Click the link below to register for the datalab instance at {instance_url}:\n\n{link}\n\nThis link is single-use and will expire in 1 hour."
 
     try:
         send_mail(email, subject, body)
