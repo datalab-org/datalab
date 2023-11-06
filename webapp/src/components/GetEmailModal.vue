@@ -19,8 +19,8 @@
               id="email-address"
               required
             />
-            <div class="form-error" v-html="emailValidationMessage"></div>
-            <div class="form-success" v-html="successMessage"></div>
+            <div class="form-error">{{ emailValidationMessage }}</div>
+            <div class="form-success">{{ successMessage }}</div>
           </div>
         </div>
       </template>
@@ -56,7 +56,7 @@ export default {
       if (response.status == "success") {
         this.emailSent = true;
         this.successMessage =
-          "Email sent! Please check your inbox for a link to sign in or register.";
+          "Email sent! Please check your inbox (and spam folder) for a link to sign in or register. It may take a few minutes to arrive.";
       } else {
         this.emailError = true;
         this.emailValidationMessage =
