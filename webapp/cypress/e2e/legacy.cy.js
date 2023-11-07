@@ -23,30 +23,34 @@ function createSample(sample_id, name = null, date = null) {
 
 function verifySample(sample_id, name = null, date = null) {
   if (date) {
-    cy.findByText(sample_id)
+    cy.get("[data-testid=sample-table]")
+      .contains(sample_id)
       .parents("tr")
       .within(() => {
-        cy.findByText(date.split("T")[0]);
+        cy.contains(date.slice(0, 8));
         if (name) {
-          cy.findByText(name);
+          cy.contains(name);
         }
       });
   } else {
-    cy.findByText(sample_id)
+    cy.get("[data-testid=sample-table]")
+      .contains(sample_id)
       .parents("tr")
       .within(() => {
-        cy.findByText(TODAY.split("T")[0]);
+        cy.contains(TODAY.split("T")[0]);
         if (name) {
-          cy.findByText(name);
+          cy.contains(name);
         }
       });
   }
 }
 
-function deleteSample(sample_id) {
-  // wait a bit to allow things to settle
-  cy.wait(100).then(() => {
-    cy.findByText(sample_id)
+function deleteSample(sample_id, delay = 100) {
+  cy.wait(delay).then(() => {
+    cy.log("search for and delete: " + sample_id);
+    var matchingIds = [];
+    cy.get("[data-testid=sample-table]")
+      .contains(sample_id)
       .parents("tr")
       .within(() => {
         cy.get("button.close").click();
