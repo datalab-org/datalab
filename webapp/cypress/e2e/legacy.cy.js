@@ -767,12 +767,14 @@ describe("Batch sample creation", () => {
     cy.get(".vs__dropdown-menu").within(() => {
       cy.contains(".badge", "baseA").click();
     });
+    cy.wait(100);
 
     getBatchAddCell(2, 1).type("baseB_copy");
     getBatchAddCell(2, 4, ".vs__search").type("BaseB");
     cy.get(".vs__dropdown-menu").within(() => {
       cy.contains(".badge", "baseB").click();
     });
+    cy.wait(100);
 
     getBatchAddCell(3, 1).type("baseB_copy2");
     getBatchAddCell(3, 4, ".vs__search").type("BaseB");
