@@ -108,7 +108,6 @@ jobs:
         working-directory: ./webapp
         run: yarn build
 
-
   e2e:
     name: Run e2e tests across app and API
     runs-on: ubuntu-latest
