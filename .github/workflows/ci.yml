@@ -124,7 +124,6 @@ jobs:
           files: docker-compose.yml
           load: true
           push: false
-          targets: prod
           set: |
             *.cache-from=type=gha,scope=cached-stage
             *.cache-to=type=gha,scope=cached-stage,mode=max
