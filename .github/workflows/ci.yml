@@ -86,9 +86,8 @@ jobs:
         uses: codecov/codecov-action@v3
 
   webapp:
-    name: Test the webapp
+    name: Test the app build
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v3
 
@@ -109,16 +108,30 @@ jobs:
         working-directory: ./webapp
         run: yarn build
 
+
+  e2e:
+    name: Run e2e tests across app and API
+    runs-on: ubuntu-latest
+
+    steps:
       - name: Build the Docker images
-        run: |
-          echo "PYDATALAB_TESTING=true" >> pydatalab/.env
-          docker compose --profile prod build
+        uses: docker/bake-action@v2.3.0
+        with:
+          files: docker-compose.yml
+          load: true
+          push: false
+          targets: prod
+          set: |
+            *.cache-from=type=gha,scope=cached-stage
+            *.cache-to=type=gha,scope=cached-stage,mode=max
 
       - name: Start Docker images
         run: |
           # Create a named docker network that all containers attach to
           docker network create nginx
-          docker compose --profile prod up -d --wait --no-build
+          # Set API runtime config for testing mode to disable auth
+          echo "PYDATALAB_TESTING=true" >> pydatalab/.env
+          docker compose --env-file pydatalab/.env --profile prod up -d --wait --no-build
 
       - name: Run end-to-end tests
         working-directory: ./webapp
