@@ -139,17 +139,3 @@ jobs:
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
         run: |
           yarn test:e2e  --headless --url http://localhost:8081 --record
-
-      - name: Archive video from cypress
-        if: success() || failure()
-        uses: actions/upload-artifact@v3
-        with:
-          name: Cypress video
-          path: /home/runner/work/datalabvue/datalabvue/webapp/cypress/videos/*.cy.js.mp4
-
-      - name: Archive any failure screenshots from Cypress
-        if: failure()
-        uses: actions/upload-artifact@v3
-        with:
-          name: Cypress screenshots
-          path: /home/runner/work/datalabvue/datalabvue/webapp/cypress/screenshots/*/*.png
