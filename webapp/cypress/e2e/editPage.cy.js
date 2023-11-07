@@ -258,23 +258,11 @@ describe("Edit Page", () => {
     cy.get("[data-testid=sample-table] tr:nth-of-type(3) > td:nth-of-type(8)").contains(2); // 2 blocks are present
   });
 
-  it("cleanup: delete the samples", () => {
-    cy.findByText("editable_sample")
-      .parents("tr")
-      .within(() => {
-        cy.get("button.close").click();
-      });
+  it("deletes the samples (cleanup)", () => {
+    ["editable_sample", "component1", "component2"].forEach((item_id) => {
+      deleteSample(item_id);
+    });
 
-    cy.findByText("component1")
-      .parents("tr")
-      .within(() => {
-        cy.get("button.close").click();
-      });
-
-    cy.findByText("component2")
-      .parents("tr")
-      .within(() => {
-        cy.get("button.close").click();
-      });
+    cy.get("[data-testid=sample-table] > tbody > tr").should("have.length", 0);
   });
 });
