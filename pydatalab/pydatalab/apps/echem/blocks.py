@@ -1,11 +1,10 @@
 import os
 import time
 from pathlib import Path
-from typing import Any, Dict, Union
+from typing import Any, Dict
 
 import bokeh
 import pandas as pd
-from bson import ObjectId
 from navani import echem as ec
 
 from pydatalab import bokeh_plots
@@ -40,6 +39,8 @@ class CycleBlock(DataBlock):
         ".xlsx",
         ".txt",
         ".res",
+        ".csv",
+        ".mps",
     )
 
     cache: Dict[str, Any]
@@ -62,12 +63,13 @@ class CycleBlock(DataBlock):
             return characteristic_mass_mg / 1000.0
         return None
 
-    def _load(self, file_id: Union[str, ObjectId], reload: bool = False):
-        """Loads the echem data using navani, summarises it, then caches the results
+    @classmethod
+    def load(cls, filename: str | Path, reload: bool = False):
+        """Loads the echem data using navani (or otherwise), summarises it, then caches the results
         to disk with suffixed names.
 
         Parameters:
-            file_id: The ID of the file to load.
+            filename: The name of the file to load.
             reload: Whether to reload the data from the file, or use the cached version, if available.
 
         """
@@ -94,21 +96,15 @@ class CycleBlock(DataBlock):
             "dvdq": "dV/dQ (V/mA)",
         }
 
-        file_info = get_file_info_by_id(file_id, update_if_live=True)
-        filename = file_info["name"]
-
-        if file_info.get("is_live"):
-            reload = True
-
         ext = os.path.splitext(filename)[-1].lower()
 
-        if ext not in self.accepted_file_extensions:
+        if ext not in cls.accepted_file_extensions:
             raise RuntimeError(
-                f"Unrecognized filetype {ext}, must be one of {self.accepted_file_extensions}"
+                f"Unrecognized filetype {ext}, must be one of {cls.accepted_file_extensions}"
             )
 
-        parsed_file_loc = Path(file_info["location"]).with_suffix(".RAW_PARSED.pkl")
-        cycle_summary_file_loc = Path(file_info["location"]).with_suffix(".SUMMARY.pkl")
+        parsed_file_loc = Path(filename).with_suffix(".RAW_PARSED.pkl")
+        cycle_summary_file_loc = Path(filename).with_suffix(".SUMMARY.pkl")
 
         raw_df = None
         cycle_summary_df = None
@@ -120,13 +116,18 @@ class CycleBlock(DataBlock):
                 cycle_summary_df = pd.read_pickle(cycle_summary_file_loc)
 
         if raw_df is None:
+            if ext == ".csv":
+                from pydatalab.apps.echem.palmsens import read_palmsens_csv
+
+                raw_eis_df, raw_df = read_palmsens_csv(filename)
+                return raw_df, raw_eis_df
             try:
-                LOGGER.debug("Loading file %s", file_info["location"])
+                LOGGER.debug("Loading file %s", filename)
                 start_time = time.time()
-                raw_df = ec.echem_file_loader(file_info["location"])
+                raw_df = ec.echem_file_loader(filename)
                 LOGGER.debug(
                     "Loaded file %s in %s seconds",
-                    file_info["location"],
+                    filename,
                     time.time() - start_time,
                 )
             except Exception as exc:
@@ -172,7 +173,14 @@ class CycleBlock(DataBlock):
         if not isinstance(cycle_list, list):
             cycle_list = None
 
-        raw_df, cycle_summary_df = self._load(file_id)
+        file_info = get_file_info_by_id(file_id, update_if_live=True)
+        filename = file_info["name"]
+
+        reload = False
+        if file_info.get("is_live"):
+            reload = True
+
+        raw_df, cycle_summary_df = self.load(filename, reload=reload)
 
         characteristic_mass_g = self._get_characteristic_mass_g()
 

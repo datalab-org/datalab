@@ -1,13 +1,34 @@
+import shutil
 from pathlib import Path
 
 import pytest
 from navani.echem import echem_file_loader
 
+from pydatalab.apps.echem import CycleBlock
 from pydatalab.apps.echem.utils import (
     compute_gpcl_differential,
     filter_df_by_cycle_index,
     reduce_echem_cycle_sampling,
 )
+
+
+@pytest.fixture
+def data_files():
+    return (Path(__file__).parent.parent.parent / "example_data" / "echem").glob("[!.]*")
+
+
+def test_load(data_files, tmp_path):
+    for f in data_files:
+        f = shutil.copy(f, tmp_path)
+        df, df2 = CycleBlock.load(f)
+        if isinstance(df, dict):
+            assert df
+        else:
+            assert not df.empty
+        if isinstance(df2, dict):
+            assert df2
+        else:
+            assert not df2.empty
 
 
 @pytest.fixture
