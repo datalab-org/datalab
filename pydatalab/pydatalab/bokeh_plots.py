@@ -39,6 +39,15 @@ SELECTABLE_CALLBACK_y = """
   source.change.emit();
   yaxis.axis_label = column;
 """
+SELECTABLE_CALLBACK_color = """
+  var column = cb_obj.value;
+  var low = Math.min.apply(Math, source.data[column]);
+  var high = Math.max.apply(Math, source.data[column]);
+  if (circle1) {circle1.glyph.line_color.field = column; circle1.glyph.fill_color.field = column;}
+  if (line1) {line1.glyph.line_color.field = column;}
+  if (colorbar) {colorbar.color_mapper.low = low; colorbar.color_mapper.high = high; colorbar.title = column;}
+  source.change.emit();
+"""
 
 
 style = {
@@ -126,6 +135,7 @@ def selectable_axes_plot(
     plot_points: bool = True,
     point_size: int = 4,
     plot_line: bool = True,
+    plot_image: bool = False,
     plot_title: Optional[str] = None,
     plot_index: Optional[int] = None,
     tools: Optional[List] = None,
@@ -171,6 +181,7 @@ def selectable_axes_plot(
     p = figure(
         sizing_mode="scale_width",
         aspect_ratio=kwargs.pop("aspect_ratio", 1.5),
+        match_aspect=kwargs.pop("match_aspect"),
         x_axis_label=x_axis_label,
         y_axis_label=y_axis_label,
         tools=TOOLS,
@@ -186,6 +197,7 @@ def selectable_axes_plot(
 
     callbacks_x = []
     callbacks_y = []
+    callbacks_c = []
 
     if color_options:
         if color_mapper is None:
@@ -282,8 +294,15 @@ def selectable_axes_plot(
         )
 
     if color_mapper and color_options:
-        color_bar = ColorBar(color_mapper=color_mapper, title=color_options[0])  # type: ignore
-        p.add_layout(color_bar, "right")
+        colorbar = ColorBar(color_mapper=color_mapper, title=color_options[0])  # type: ignore
+        p.add_layout(colorbar, "right")
+
+        callbacks_c.append(
+            CustomJS(
+                args=dict(circle1=circles, line1=lines, source=source, colorbar=colorbar),
+                code=SELECTABLE_CALLBACK_color,
+            )
+        )
 
     # Add list boxes for selecting which columns to plot on the x and y axis
     xaxis_select = Select(title="X axis:", value=x_default, options=x_options)
@@ -291,6 +310,9 @@ def selectable_axes_plot(
 
     yaxis_select = Select(title="Y axis:", value=y_default, options=y_options)
     yaxis_select.js_on_change("value", *callbacks_y)
+
+    color_select = Select(title="Colour by:", value=color_options[0], options=color_options)
+    color_select.js_on_change("value", *callbacks_c)
 
     p.legend.click_policy = "hide"
     if len(df) <= 1:
@@ -301,6 +323,8 @@ def selectable_axes_plot(
         plot_columns.append(xaxis_select)
     if len(y_options) > 1:
         plot_columns.append(yaxis_select)
+    if len(color_options) > 1:
+        plot_columns.append(color_select)
 
     layout = column(*plot_columns)
 
