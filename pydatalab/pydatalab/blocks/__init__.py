@@ -2,6 +2,7 @@ from typing import Dict, Sequence, Type
 
 # These app imports will be replaced by dynamic plugins in a future version
 from pydatalab.apps.chat.blocks import ChatBlock
+from pydatalab.apps.ebsd import EBSDBlock
 from pydatalab.apps.echem import CycleBlock
 from pydatalab.apps.eis import EISBlock
 from pydatalab.apps.nmr import NMRBlock
@@ -19,6 +20,7 @@ BLOCKS: Sequence[Type["DataBlock"]] = (
     RamanBlock,
     NMRBlock,
     MassSpecBlock,
+    EBSDBlock,
     NotSupportedBlock,
     ChatBlock,
     EISBlock,
@@ -35,6 +37,7 @@ __all__ = (
     "CycleBlock",
     "NMRBlock",
     "RamanBlock",
+    "EBSDBlock",
     "MassSpecBlock",
     "BLOCK_TYPES",
     "BLOCKS",

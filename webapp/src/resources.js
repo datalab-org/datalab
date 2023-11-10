@@ -4,6 +4,7 @@ import MediaBlock from "@/components/datablocks/MediaBlock";
 import XRDBlock from "@/components/datablocks/XRDBlock";
 import ChatBlock from "@/components/datablocks/ChatBlock";
 import RamanBlock from "@/components/datablocks/RamanBlock";
+import EBSDBlock from "@/components/datablocks/EBSDBlock";
 import CycleBlock from "@/components/datablocks/CycleBlock";
 import NMRBlock from "@/components/datablocks/NMRBlock";
 import EISBlock from "@/components/datablocks/EISBlock";
@@ -42,6 +43,7 @@ export const blockTypes = {
   media: { description: "Media", component: MediaBlock },
   xrd: { description: "Powder XRD", component: XRDBlock },
   raman: { description: "Raman", component: RamanBlock },
+  ebsd: { description: "EBSD", component: EBSDBlock },
   cycle: { description: "Electrochemistry", component: CycleBlock },
   eis: { description: "EIS", component: EISBlock },
   nmr: { description: "NMR", component: NMRBlock },
