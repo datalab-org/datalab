@@ -85,7 +85,6 @@ import "tinymce/skins/ui/oxide/skin.min.css";
 import "tinymce/skins/ui/oxide/content.min.css";
 import "tinymce/skins/content/default/content.min.css";
 // import "tinymce/plugins/emoticons" // not working for some reason
-import "tinymce/plugins/hr";
 import "tinymce/plugins/image";
 import "tinymce/plugins/link";
 import "tinymce/plugins/lists";

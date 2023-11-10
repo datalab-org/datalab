@@ -8,7 +8,7 @@
       menubar: false,
       placeholder: 'Add a description',
       toolbar_location: 'bottom',
-      plugins: 'hr image link lists charmap table',
+      plugins: 'image link lists charmap table',
       table_default_styles: {
         width: '50%',
         'margin-left': '1rem',
