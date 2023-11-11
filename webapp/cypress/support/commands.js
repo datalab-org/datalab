@@ -81,10 +81,14 @@ Cypress.Commands.add("deleteSample", (sample_id, delay = 100) => {
   });
 });
 
-
 Cypress.Commands.add("deleteSampleViaAPI", (sample_id) => {
   cy.log("search for and delete: " + sample_id);
-  cy.request({method: "POST", url: API_URL + "/delete-sample/", body: { item_id: sample_id }, failOnStatusCode: false});
+  cy.request({
+    method: "POST",
+    url: API_URL + "/delete-sample/",
+    body: { item_id: sample_id },
+    failOnStatusCode: false,
+  });
 });
 
 Cypress.Commands.add("searchAndSelectItem", (search_text, selector, delay = 100) => {
