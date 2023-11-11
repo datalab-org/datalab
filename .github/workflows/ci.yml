@@ -134,7 +134,7 @@ jobs:
           docker network create nginx
           # Set API runtime config for testing mode to disable auth
           echo "PYDATALAB_TESTING=true" >> pydatalab/.env
-          docker compose --env-file pydatalab/.env --profile prod up -d --wait --no-build
+          docker compose --env-file pydatalab/.env --profile prod up -d --wait
 
       - name: Run end-to-end tests
         working-directory: ./webapp
