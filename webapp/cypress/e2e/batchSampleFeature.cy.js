@@ -32,6 +32,14 @@ function verifySample(sample_id, name = null, date = null) {
   }
 }
 
+function removeAllTestSamples(sample_ids) {
+  // as contains matches greedily, if any IDs have matching substrings they must be added in the appropriate order
+  sample_ids.forEach((item_id) => {
+    deleteSample(item_id);
+  });
+  cy.get("[data-testid=sample-table] > tbody > tr").should("have.length", 0);
+}
+
 function getSubmitButton() {
   return cy.get("[data-testid=batch-modal-container]").contains("Submit");
 }
@@ -53,7 +61,6 @@ function searchAndSelectItem(search_text, selector, delay = 100) {
 function deleteSample(sample_id, delay = 100) {
   cy.wait(delay).then(() => {
     cy.log("search for and delete: " + sample_id);
-    var matchingIds = [];
     cy.get("[data-testid=sample-table]")
       .contains(sample_id)
       .parents("tr")
@@ -65,21 +72,55 @@ function deleteSample(sample_id, delay = 100) {
 
 function getBatchAddCell(row, column, additionalSelectors = "") {
   return cy.get(
-    `[data-testid=batch-add-table] > tbody > tr:nth-of-type(${row}) > td:nth-of-type(${column}) ${additionalSelectors}`,
+    `[data-testid=batch-add-table] > tbody > tr:nth-of-type(${row}) > td:nth-of-type(${column}) ${additionalSelectors}`
   );
 }
 
 function getBatchTemplateCell(column, additionalSelectors = "") {
   return cy.get(
-    `[data-testid=batch-add-table-template] > tbody > td:nth-of-type(${column}) ${additionalSelectors}`,
+    `[data-testid=batch-add-table-template] > tbody > td:nth-of-type(${column}) ${additionalSelectors}`
   );
 }
 
 function getBatchAddError(row, additionalSelectors = "") {
   return cy.get(
-    `[data-testid=batch-add-table] > tbody > tr:nth-of-type(${row}) + td ${additionalSelectors}`,
+    `[data-testid=batch-add-table] > tbody > tr:nth-of-type(${row}) + td ${additionalSelectors}`
   );
 }
+
+// Any sample ID touched by these tests should be listed here for clean-up
+let sample_ids = [
+  "test102_unique",
+  "test103_unique",
+  "test101_unique2",
+  "test101_unique",
+  "component1",
+  "component2",
+  "component3",
+  "component4",
+  "baseA_copy",
+  "baseB_copy2",
+  "baseB_copy",
+  "test101",
+  "test102",
+  "test103",
+  "test104",
+  "test_1",
+  "test_2",
+  "test_3",
+  "baseA",
+  "baseB",
+];
+
+before(() => {
+  cy.visit("/");
+  removeAllTestSamples(sample_ids);
+});
+
+after(() => {
+  cy.visit("/");
+  removeAllTestSamples(sample_ids);
+});
 
 describe("Batch sample creation", () => {
   beforeEach(() => {
@@ -225,8 +266,10 @@ describe("Batch sample creation", () => {
     verifySample("baseB_copy");
     verifySample("baseB_copy2");
   });
+
   it("checks the copied samples", () => {
     // check the copied samples
+    cy.visit("/");
     cy.contains("baseA_copy").click();
     cy.findByLabelText("Name").should("have.value", "a copied sample");
     cy.findByText("this is a description of baseA.");
@@ -279,7 +322,7 @@ describe("Batch sample creation", () => {
     // sample with two components, copied from a sample with no components
     getBatchAddCell(2, 1).type("test102");
     getBatchAddCell(2, 2).type(
-      "sample with two components, copied from a sample with no components",
+      "sample with two components, copied from a sample with no components"
     );
     getBatchAddCell(2, 4, ".vs__search").type("baseA");
     cy.get(".vs__dropdown-menu").within(() => {
@@ -297,7 +340,7 @@ describe("Batch sample creation", () => {
     // sample with one components, copied from a sample with two components
     getBatchAddCell(3, 1).type("test103");
     getBatchAddCell(3, 2).type(
-      "sample with one component, copied from a sample with two components",
+      "sample with one component, copied from a sample with two components"
     );
     getBatchAddCell(3, 4, ".vs__search").type("baseB");
     cy.get(".vs__dropdown-menu").within(() => {
@@ -311,7 +354,7 @@ describe("Batch sample creation", () => {
     // sample with three components, copied from a sample with some of the same components
     getBatchAddCell(4, 1).type("test104");
     getBatchAddCell(4, 2).type(
-      "sample with three components, copied from a sample with some of the same components",
+      "sample with three components, copied from a sample with some of the same components"
     );
     getBatchAddCell(4, 4, ".vs__search").type("baseB");
     cy.get(".vs__dropdown-menu").within(() => {
@@ -352,7 +395,7 @@ describe("Batch sample creation", () => {
     cy.contains("test102").click();
     cy.findByLabelText("Name").should(
       "have.value",
-      "sample with two components, copied from a sample with no components",
+      "sample with two components, copied from a sample with no components"
     );
     cy.contains("this is a description of baseA.");
     cy.get("#synthesis-information table").contains("component1");
@@ -365,7 +408,7 @@ describe("Batch sample creation", () => {
     cy.contains("test103").click();
     cy.findByLabelText("Name").should(
       "have.value",
-      "sample with one component, copied from a sample with two components",
+      "sample with one component, copied from a sample with two components"
     );
     cy.contains("this is a description of baseB.");
     cy.get("#synthesis-information table").contains("component1");
@@ -376,19 +419,19 @@ describe("Batch sample creation", () => {
 
     cy.get("#synthesis-information tbody tr:nth-of-type(1) td:nth-of-type(2) input").should(
       "have.value",
-      "30",
+      "30"
     );
     cy.get("#synthesis-information tbody tr:nth-of-type(1) td:nth-of-type(3) input").should(
       "have.value",
-      "g",
+      "g"
     );
     cy.get("#synthesis-information tbody tr:nth-of-type(2) td:nth-of-type(2) input").should(
       "have.value",
-      "100",
+      "100"
     );
     cy.get("#synthesis-information tbody tr:nth-of-type(2) td:nth-of-type(3) input").should(
       "have.value",
-      "g",
+      "g"
     );
 
     cy.findByText("a comment is added here.");
@@ -398,7 +441,7 @@ describe("Batch sample creation", () => {
     cy.contains("test104").click();
     cy.findByLabelText("Name").should(
       "have.value",
-      "sample with three components, copied from a sample with some of the same components",
+      "sample with three components, copied from a sample with some of the same components"
     );
     cy.contains("this is a description of baseB.");
     cy.get("#synthesis-information table").contains("component2");
@@ -408,27 +451,27 @@ describe("Batch sample creation", () => {
 
     cy.get("#synthesis-information tbody tr:nth-of-type(1) td:nth-of-type(2) input").should(
       "have.value",
-      "30",
+      "30"
     );
     cy.get("#synthesis-information tbody tr:nth-of-type(1) td:nth-of-type(3) input").should(
       "have.value",
-      "g",
+      "g"
     );
     cy.get("#synthesis-information tbody tr:nth-of-type(2) td:nth-of-type(2) input").should(
       "have.value",
-      "100",
+      "100"
     );
     cy.get("#synthesis-information tbody tr:nth-of-type(2) td:nth-of-type(3) input").should(
       "have.value",
-      "g",
+      "g"
     );
     cy.get("#synthesis-information tbody tr:nth-of-type(3) td:nth-of-type(2) input").should(
       "have.value",
-      "",
+      ""
     );
     cy.get("#synthesis-information tbody tr:nth-of-type(3) td:nth-of-type(3) input").should(
       "have.value",
-      "g",
+      "g"
     );
 
     cy.findByText("a description of the synthesis here");
@@ -574,10 +617,6 @@ describe("Batch sample creation", () => {
     checkCreatedSample("test_1");
     checkCreatedSample("test_2");
     checkCreatedSample("test_3");
-
-    // deleteSample("test_1");
-    // deleteSample("test_2");
-    // deleteSample("test_3");;
   });
 
   it("plays with the number of rows", () => {
@@ -751,35 +790,5 @@ describe("Batch sample creation", () => {
     verifySample("test102_unique", "", "2000-01-01T10:05");
     verifySample("test103_unique");
     verifySample("test101_unique2");
-  });
-
-  // as contains matches greedily, if any IDs have matching substrings they must be added in the appropriate order
-  it("deletes the rest of the samples (cleanup)", () => {
-    [
-      "test102_unique",
-      "test103_unique",
-      "test101_unique2",
-      "test101_unique",
-      "component1",
-      "component2",
-      "component3",
-      "component4",
-      "baseA_copy",
-      "baseB_copy2",
-      "baseB_copy",
-      "test101",
-      "test102",
-      "test103",
-      "test104",
-      "test_1",
-      "test_2",
-      "test_3",
-      "baseA",
-      "baseB",
-    ].forEach((item_id) => {
-      deleteSample(item_id);
-    });
-
-    cy.get("[data-testid=sample-table] > tbody > tr").should("have.length", 0);
   });
 });

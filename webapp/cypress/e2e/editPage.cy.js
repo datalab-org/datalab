@@ -6,14 +6,43 @@ Cypress.on("window:before:load", (win) => {
   consoleSpy = cy.spy(win.console, "error");
 });
 
+function deleteSample(sample_id, delay = 100) {
+  cy.visit("/");
+  cy.wait(delay).then(() => {
+    cy.log("search for and delete: " + sample_id);
+    cy.get("[data-testid=sample-table]")
+      .contains(sample_id)
+      .parents("tr")
+      .within(() => {
+        cy.get("button.close").click();
+      });
+  });
+}
+
+let sample_ids = ["editable_sample", "component1", "component2"];
+
+function removeAllTestSamples(sample_ids) {
+  // as contains matches greedily, if any IDs have matching substrings they must be added in the appropriate order
+  sample_ids.forEach((item_id) => {
+    deleteSample(item_id);
+  });
+  cy.get("[data-testid=sample-table] > tbody > tr").should("have.length", 0);
+}
+
+before(() => {
+  cy.visit("/");
+  removeAllTestSamples(sample_ids);
+});
+
+after(() => {
+  cy.visit("/");
+  removeAllTestSamples(sample_ids);
+});
+
 describe("Edit Page", () => {
   beforeEach(() => {
     cy.visit("/");
   });
-
-  // afterEach( () => {
-  //  cy.expect(consoleSpy).not.to.be.called
-  // });
 
   it("Loads the main page without any errors", () => {
     cy.findByText("About").should("exist");
@@ -119,19 +148,19 @@ describe("Edit Page", () => {
 
     cy.get("#synthesis-information tbody tr:nth-of-type(1) td:nth-of-type(2) input").should(
       "have.value",
-      10,
+      10
     );
     cy.get("#synthesis-information tbody tr:nth-of-type(1) td:nth-of-type(3) input").should(
       "have.value",
-      "mL",
+      "mL"
     );
     cy.get("#synthesis-information tbody tr:nth-of-type(2) td:nth-of-type(2) input").should(
       "have.value",
-      0.001,
+      0.001
     );
     cy.get("#synthesis-information tbody tr:nth-of-type(2) td:nth-of-type(3) input").should(
       "have.value",
-      "pints",
+      "pints"
     );
   });
 
@@ -141,11 +170,11 @@ describe("Edit Page", () => {
     cy.get("#synthesis-information tbody > tr").should("have.length", 2);
     cy.get("#synthesis-information tbody > tr:nth-of-type(1) td:nth-of-type(2) input").should(
       "have.value",
-      0.001,
+      0.001
     );
     cy.get("#synthesis-information tbody > tr:nth-of-type(1) td:nth-of-type(3) input").should(
       "have.value",
-      "pints",
+      "pints"
     );
 
     cy.get("#synthesis-information tbody > tr:nth-of-type(1) .close").click();
@@ -158,7 +187,7 @@ describe("Edit Page", () => {
     cy.get("#synthesis-information").contains("component2");
     cy.get("#synthesis-information tbody > tr:nth-of-type(1) td:nth-of-type(2) input").should(
       "have.value",
-      "",
+      ""
     ); // should be reset, not a previous value
 
     cy.get("svg.add-row-button").click();
@@ -169,36 +198,36 @@ describe("Edit Page", () => {
     cy.get("#synthesis-information").contains("Na2O");
     cy.get("#synthesis-information tbody > tr:nth-of-type(2) td:nth-of-type(2) input").should(
       "have.value",
-      "",
+      ""
     ); // should be reset, not a previous value
   });
 
   it("tries to add a non-numeric value into quantity", () => {
     cy.findByText("editable_sample").click();
     cy.get("#synthesis-information tbody > tr:nth-of-type(1) td:nth-of-type(2) input").type(
-      "100.001",
+      "100.001"
     );
     cy.get(
-      "#synthesis-information tbody > tr:nth-of-type(1) td:nth-of-type(2) input.red-border",
+      "#synthesis-information tbody > tr:nth-of-type(1) td:nth-of-type(2) input.red-border"
     ).should("not.exist");
     cy.get("#synthesis-information tbody > tr:nth-of-type(1) td:nth-of-type(2) input")
       .clear()
       .type("1");
     cy.get(
-      "#synthesis-information tbody > tr:nth-of-type(1) td:nth-of-type(2) input.red-border",
+      "#synthesis-information tbody > tr:nth-of-type(1) td:nth-of-type(2) input.red-border"
     ).should("not.exist");
     cy.get("#synthesis-information tbody > tr:nth-of-type(1) td:nth-of-type(2) input")
       .clear()
       .type("word");
     cy.get(
-      "#synthesis-information tbody > tr:nth-of-type(1) td:nth-of-type(2) input.red-border",
+      "#synthesis-information tbody > tr:nth-of-type(1) td:nth-of-type(2) input.red-border"
     ).should("exist");
 
     cy.get("#synthesis-information tbody > tr:nth-of-type(2) td:nth-of-type(2) input")
       .clear()
       .type("$");
     cy.get(
-      "#synthesis-information tbody > tr:nth-of-type(2) td:nth-of-type(2) input.red-border",
+      "#synthesis-information tbody > tr:nth-of-type(2) td:nth-of-type(2) input.red-border"
     ).should("exist");
 
     cy.get("#synthesis-information tbody > tr:nth-of-type(1) td:nth-of-type(2) input")
@@ -256,25 +285,5 @@ describe("Edit Page", () => {
 
     cy.findByText("Home").click();
     cy.get("[data-testid=sample-table] tr:nth-of-type(3) > td:nth-of-type(8)").contains(2); // 2 blocks are present
-  });
-
-  it("cleanup: delete the samples", () => {
-    cy.findByText("editable_sample")
-      .parents("tr")
-      .within(() => {
-        cy.get("button.close").click();
-      });
-
-    cy.findByText("component1")
-      .parents("tr")
-      .within(() => {
-        cy.get("button.close").click();
-      });
-
-    cy.findByText("component2")
-      .parents("tr")
-      .within(() => {
-        cy.get("button.close").click();
-      });
   });
 });
