@@ -66,6 +66,14 @@ let sample_ids = [
   "testBcopy_copy",
   "testBcopy",
   "testB",
+  "sdlkfjs",
+  "w343t",
+  "dfow4_112",
+  "122.rwre",
+  "56oer09gser9sdfd0s9dr333e",
+  "7",
+  "XX",
+  "yyy",
 ];
 
 function removeAllTestSamples(sample_ids) {
@@ -76,7 +84,7 @@ function removeAllTestSamples(sample_ids) {
   cy.get("[data-testid=sample-table] > tbody > tr").should("have.length", 0);
 }
 
-before(() => {
+beforeEach(() => {
   cy.visit("/");
   removeAllTestSamples(sample_ids);
 });
@@ -89,12 +97,7 @@ after(() => {
 describe("Sample table page", () => {
   beforeEach(() => {
     cy.visit("/");
-    removeAllTestSamples(sample_ids);
   });
-
-  // afterEach( () => {
-  //  cy.expect(consoleSpy).not.to.be.called
-  // });
 
   it("Loads the main page without any errors", () => {
     cy.findByText("About").should("exist");
@@ -126,9 +129,9 @@ describe("Sample table page", () => {
     cy.findByText("12345678910");
     cy.findByText("This is a sample name");
     cy.findByText("1990-01-07");
-    cy.visit("/");
+  });
 
-    //it("Checks if the sample is in the database", () => {
+  it("Checks if the sample is in the database", () => {
     cy.request({ url: `${API_URL}/get-item-data/12345678910`, failOnStatusCode: true })
       .its("body")
       .then((body) => {
@@ -137,18 +140,18 @@ describe("Sample table page", () => {
         expect(body.item_data).to.have.property("name", "This is a sample name");
         expect(body.item_data).to.have.property("date", "1990-01-07T00:00:00");
       });
+  });
 
-    cy.visit("/");
-    //it("Checks the sample edit page", () => {
+  it("Checks the sample edit page", () => {
     cy.findByText("12345678910").click();
     cy.wait(1000);
     cy.go("back");
     cy.findByText("12345678910");
     cy.findByText("This is a sample name");
     cy.findByText("1990-01-07");
+  });
 
-    cy.visit("/");
-    //it("Attempts to Add an item with the same name", () => {
+  it("Attempts to Add an item with the same name", () => {
     cy.findByText("Add an item").click();
     cy.findByText("Add new sample").should("exist");
     cy.findByLabelText("ID:").type("12345678910");
@@ -157,9 +160,9 @@ describe("Sample table page", () => {
     cy.get(".form-error a").contains("12345678910");
 
     cy.contains("Submit").should("be.disabled");
+  });
 
-    cy.visit("/");
-    //it("Deletes a sample", function () {
+  it("Deletes a sample", function () {
     cy.get("tr#12345678910 button.close").click();
     cy.contains("12345678910").should("not.exist");
 
@@ -242,15 +245,14 @@ describe("Sample table page", () => {
 describe("Advanced sample creation features", () => {
   beforeEach(() => {
     cy.visit("/");
-    removeAllTestSamples();
+    removeAllTestSamples(sample_ids);
   });
   it("Adds some valid samples", () => {
     createSample("testA", "the first test sample");
     createSample("testB", "the second test sample");
+  });
 
-    cy.visit("/");
-
-    //it("Adds a third sample copied from the first", () => {
+  it("Adds a third sample copied from the first", () => {
     cy.findByText("Add an item").click();
     cy.findByLabelText("ID:").type("testAcopy");
     cy.findByLabelText("(Optional) Copy from existing sample:").type("testA");
@@ -260,21 +262,21 @@ describe("Advanced sample creation features", () => {
     cy.findByDisplayValue("COPY OF the first test sample").clear().type("a copied sample");
     cy.contains("Submit").click();
     verifySample("testAcopy", "a copied sample");
+  });
 
-    cy.visit("/");
-    //it("deletes the first sample and makes sure the copy is still there", () => {
+  it("deletes the first sample and makes sure the copy is still there", () => {
     deleteSample("testA");
     verifySample("testAcopy", "a copied sample");
+  });
 
-    cy.visit("/");
-    //it("makes some more items for testing as components", () => {
+  it("makes some more items for testing as components", () => {
     createSample("component1");
     createSample("component2");
     createSample("component3");
     createSample("component4");
+  });
 
-    cy.visit("/");
-    //it("modifies some data in the second sample", () => {
+  it("modifies some data in the second sample", () => {
     cy.findByText("testB").click();
     cy.findByLabelText("Description").type("this is a description of testB.");
     cy.findByText("Add a block").click();
@@ -299,9 +301,9 @@ describe("Advanced sample creation features", () => {
 
     cy.get(".fa-save").click();
     cy.findByText("Home").click();
+  });
 
-    cy.visit("/");
-    //it("copies the second sample", () => {
+  it("copies the second sample", () => {
     cy.findByText("Add an item").click();
     cy.findByLabelText("ID:").type("testBcopy");
     cy.findByLabelText("(Optional) Copy from existing sample:").type("testB");
@@ -310,9 +312,9 @@ describe("Advanced sample creation features", () => {
     });
     cy.contains("Submit").click();
     verifySample("testBcopy", "COPY OF the second test sample");
+  });
 
-    cy.visit("/");
-    //it("checks the edit page of the copied sample", () => {
+  it("checks the edit page of the copied sample", () => {
     cy.findByText("testBcopy").click();
     cy.findByLabelText("Name").should("have.value", "COPY OF the second test sample");
     cy.findByText("this is a description of testB.");
@@ -324,9 +326,9 @@ describe("Advanced sample creation features", () => {
     cy.get("#synthesis-information tbody tr:nth-of-type(2) input")
       .eq(0)
       .should("have.value", "100");
+  });
 
-    cy.visit("/");
-    //it("copies the copied sample, this time with additional components", () => {
+  it("copies the copied sample, this time with additional components", () => {
     cy.findByText("Add an item").click();
     cy.findByLabelText("ID:").type("testBcopy_copy");
     cy.findByLabelText("(Optional) Copy from existing sample:").type("testBcopy");
@@ -345,9 +347,8 @@ describe("Advanced sample creation features", () => {
 
     cy.contains("Submit").click();
     verifySample("testBcopy_copy", "COPY OF COPY OF the second test sample");
-
-    cy.visit("/");
-    //it("checks the edit page of the copied sample with components", () => {
+  });
+  it("checks the edit page of the copied sample with components", () => {
     cy.findByText("testBcopy_copy").click();
     cy.findByLabelText("Name").should("have.value", "COPY OF COPY OF the second test sample");
     cy.findByText("this is a description of testB.");
