@@ -137,8 +137,9 @@ jobs:
           docker compose --env-file pydatalab/.env --profile prod up -d --wait
 
       - name: Run end-to-end tests
-        working-directory: ./webapp
+        uses: cypress-io/github-action@v6
+        with:
+          config: baseUrl=http://localhost:8081
+          working-directory: ./webapp
         env:
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
-        run: |
-          yarn test:e2e  --headless --url http://localhost:8081 --record
