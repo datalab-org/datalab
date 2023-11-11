@@ -10,12 +10,12 @@ let sample_ids = ["editable_sample", "component1", "component2"];
 
 before(() => {
   cy.visit("/");
-  removeAllTestSamples(sample_ids);
+  cy.removeAllTestSamples(sample_ids);
 });
 
 after(() => {
   cy.visit("/");
-  removeAllTestSamples(sample_ids);
+  cy.removeAllTestSamples(sample_ids);
 });
 
 describe("Edit Page", () => {

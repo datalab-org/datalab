@@ -54,12 +54,12 @@ let sample_ids = [
 
 before(() => {
   cy.visit("/");
-  removeAllTestSamples(sample_ids);
+  cy.removeAllTestSamples(sample_ids);
 });
 
 after(() => {
   cy.visit("/");
-  removeAllTestSamples(sample_ids);
+  cy.removeAllTestSamples(sample_ids);
 });
 
 describe("Batch sample creation", () => {
@@ -83,13 +83,13 @@ describe("Batch sample creation", () => {
     cy.findAllByText("Successfully created.").should("have.length", 3);
 
     cy.get("[data-testid=batch-modal-container]").contains("Close").click();
-    verifySample("testA");
-    verifySample("testB", "this sample has a name");
-    verifySample("testC");
+    cy.verifySample("testA");
+    cy.verifySample("testB", "this sample has a name");
+    cy.verifySample("testC");
 
-    deleteSample("testA");
-    deleteSample("testB");
-    deleteSample("testC");
+    cy.deleteSample("testA");
+    cy.deleteSample("testB");
+    cy.deleteSample("testC");
   });
 
   it("adds two valid samples", () => {
@@ -107,8 +107,8 @@ describe("Batch sample creation", () => {
     cy.findAllByText("Successfully created.").should("have.length", 2);
 
     cy.get("[data-testid=batch-modal-container]").contains("Close").click();
-    verifySample("baseA");
-    verifySample("baseB", "the name of baseB", "1999-12-31T01:00");
+    cy.verifySample("baseA");
+    cy.verifySample("baseB", "the name of baseB", "1999-12-31T01:00");
   });
 
   it("adds four base samples", () => {
@@ -131,10 +131,10 @@ describe("Batch sample creation", () => {
     cy.findAllByText("Successfully created.").should("have.length", 4);
 
     cy.get("[data-testid=batch-modal-container]").contains("Close").click();
-    verifySample("component1", "this component has a name");
-    verifySample("component2");
-    verifySample("component3");
-    verifySample("component4");
+    cy.verifySample("component1", "this component has a name");
+    cy.verifySample("component2");
+    cy.verifySample("component3");
+    cy.verifySample("component4");
   });
 
   it("modifies some data in the first sample", () => {
@@ -162,10 +162,10 @@ describe("Batch sample creation", () => {
     cy.findByLabelText("Add a block").findByText("Comment").click();
     cy.get(".datablock-content").eq(1).type("a second comment is added here.");
 
-    searchAndSelectItem("component3", "#synthesis-information .vs__search");
+    cy.searchAndSelectItem("component3", "#synthesis-information .vs__search");
     cy.get("#synthesis-information tbody tr:nth-of-type(1) input").first().type("30");
 
-    searchAndSelectItem("component4", "#synthesis-information .vs__search");
+    cy.searchAndSelectItem("component4", "#synthesis-information .vs__search");
     cy.get("#synthesis-information tbody tr:nth-of-type(2) input").eq(0).type("100");
 
     cy.get(".fa-save").click();
@@ -202,9 +202,9 @@ describe("Batch sample creation", () => {
     cy.findAllByText("Successfully created.").should("have.length", 3);
 
     cy.get("[data-testid=batch-modal-container]").contains("Close").click();
-    verifySample("baseA_copy", "a copied sample");
-    verifySample("baseB_copy");
-    verifySample("baseB_copy2");
+    cy.verifySample("baseA_copy", "a copied sample");
+    cy.verifySample("baseB_copy");
+    cy.verifySample("baseB_copy2");
   });
 
   it("checks the copied samples", () => {
@@ -439,13 +439,13 @@ describe("Batch sample creation", () => {
     cy.findAllByText("Successfully created.").should("have.length", 3);
 
     cy.get("[data-testid=batch-modal-container]").contains("Close").click();
-    verifySample("test_1", "testing 1", "1992-12-10T14:34");
-    verifySample("test_2", "testing 1,2");
-    verifySample("test_3", "testing 1,2,3");
+    cy.verifySample("test_1", "testing 1", "1992-12-10T14:34");
+    cy.verifySample("test_2", "testing 1,2");
+    cy.verifySample("test_3", "testing 1,2,3");
 
-    deleteSample("test_1");
-    deleteSample("test_2");
-    deleteSample("test_3");
+    cy.deleteSample("test_1");
+    cy.deleteSample("test_2");
+    cy.deleteSample("test_3");
   });
 
   it("uses the template id, name, and date", () => {
@@ -464,13 +464,13 @@ describe("Batch sample creation", () => {
     cy.findAllByText("Successfully created.").should("have.length", 3);
 
     cy.get("[data-testid=batch-modal-container]").contains("Close").click();
-    verifySample("test_5", "this is the test sample #5", "1980-02-01T05:35");
-    verifySample("test_6", "this is the test sample #6", "1980-02-01T05:35");
-    verifySample("test_7", "this is the test sample #7", "1980-02-01T05:35");
+    cy.verifySample("test_5", "this is the test sample #5", "1980-02-01T05:35");
+    cy.verifySample("test_6", "this is the test sample #6", "1980-02-01T05:35");
+    cy.verifySample("test_7", "this is the test sample #7", "1980-02-01T05:35");
 
-    deleteSample("test_5");
-    deleteSample("test_6");
-    deleteSample("test_7");
+    cy.deleteSample("test_5");
+    cy.deleteSample("test_6");
+    cy.deleteSample("test_7");
   });
 
   it("uses the template id, name, date, copyFrom, and components", () => {
@@ -522,9 +522,9 @@ describe("Batch sample creation", () => {
 
     getSubmitButton().click();
 
-    verifySample("test_1", "this is the test sample #1", "1980-02-01T00:00");
-    verifySample("test_2", "this is the test sample #2", "1980-02-01T00:00");
-    verifySample("test_3", "this is the test sample #3", "1980-02-01T00:00");
+    cy.verifySample("test_1", "this is the test sample #1", "1980-02-01T00:00");
+    cy.verifySample("test_2", "this is the test sample #2", "1980-02-01T00:00");
+    cy.verifySample("test_3", "this is the test sample #3", "1980-02-01T00:00");
 
     cy.get("[data-testid=batch-modal-container]").contains("a", "test_1");
     cy.get("[data-testid=batch-modal-container]").contains("a", "test_2");
@@ -668,12 +668,12 @@ describe("Batch sample creation", () => {
       cy.findByText("Home").click();
     }
 
-    verifySample("test1", "name1");
-    verifySample("test2", "name2");
+    cy.verifySample("test1", "name1");
+    cy.verifySample("test2", "name2");
     checkCreatedSample("test1");
     checkCreatedSample("test2");
-    deleteSample("test1");
-    deleteSample("test2");
+    cy.deleteSample("test1");
+    cy.deleteSample("test2");
   });
 
   it("checks errors on the row", () => {
@@ -726,9 +726,9 @@ describe("Batch sample creation", () => {
 
     cy.get("[data-testid=batch-modal-container]").contains("Close").click();
 
-    verifySample("test101_unique");
-    verifySample("test102_unique", "", "2000-01-01T10:05");
-    verifySample("test103_unique");
-    verifySample("test101_unique2");
+    cy.verifySample("test101_unique");
+    cy.verifySample("test102_unique", "", "2000-01-01T10:05");
+    cy.verifySample("test103_unique");
+    cy.verifySample("test101_unique2");
   });
 });

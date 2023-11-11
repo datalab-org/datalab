@@ -20,19 +20,24 @@ let sample_ids = [
   "dfow4_112",
   "122.rwre",
   "56oer09gser9sdfd0s9dr333e",
+  "12345678910",
+  "test1",
+  "test2",
+  "test3",
+  "test4",
   "7",
   "XX",
   "yyy",
 ];
 
-beforeEach(() => {
+before(() => {
   cy.visit("/");
-  removeAllTestSamples(sample_ids);
+  cy.removeAllTestSamples(sample_ids);
 });
 
 after(() => {
   cy.visit("/");
-  removeAllTestSamples(sample_ids);
+  cy.removeAllTestSamples(sample_ids);
 });
 
 describe("Sample table page", () => {
@@ -115,34 +120,34 @@ describe("Sample table page", () => {
   });
 
   it("Adds several valid samples", () => {
-    createSample("test1");
-    verifySample("test1");
+    cy.createSample("test1");
+    cy.verifySample("test1");
 
-    createSample("test2", "second sample name");
-    verifySample("test1");
-    verifySample("test2", "second sample name");
+    cy.createSample("test2", "second sample name");
+    cy.verifySample("test1");
+    cy.verifySample("test2", "second sample name");
 
-    createSample("test3", "third sample name", "2006-04-25T00:00");
-    verifySample("test1");
-    verifySample("test2", "second sample name");
-    verifySample("test3", "third sample name", "2006-04-25T00:00");
+    cy.createSample("test3", "third sample name", "2006-04-25T00:00");
+    cy.verifySample("test1");
+    cy.verifySample("test2", "second sample name");
+    cy.verifySample("test3", "third sample name", "2006-04-25T00:00");
 
-    createSample("test4");
-    verifySample("test1");
-    verifySample("test2", "second sample name");
-    verifySample("test3", "third sample name", "2006-04-25T00:00");
-    verifySample("test4");
+    cy.createSample("test4");
+    cy.verifySample("test1");
+    cy.verifySample("test2", "second sample name");
+    cy.verifySample("test3", "third sample name", "2006-04-25T00:00");
+    cy.verifySample("test4");
 
-    deleteSample("test2");
+    cy.deleteSample("test2");
     cy.contains("test2").should("not.exist");
     cy.contains("second sample name").should("not.exist");
-    verifySample("test1");
-    verifySample("test3", "third sample name", "2006-04-25T00:00");
-    verifySample("test4");
+    cy.verifySample("test1");
+    cy.verifySample("test3", "third sample name", "2006-04-25T00:00");
+    cy.verifySample("test4");
 
-    deleteSample("test1");
+    cy.deleteSample("test1");
     cy.contains("test1").should("not.exist");
-    deleteSample("test4");
+    cy.deleteSample("test4");
     cy.contains("test1").should("not.exist");
     cy.contains("test4").should("not.exist");
 
@@ -156,22 +161,22 @@ describe("Sample table page", () => {
       "XX",
       "yyy",
     ];
-    more_ids.map((id) => createSample(id));
-    more_ids.map((id) => verifySample(id));
+    more_ids.map((id) => cy.createSample(id));
+    more_ids.map((id) => cy.verifySample(id));
 
     // check one of the pages to make sure it is generating properly
     cy.findByText("122.rwre").click();
     cy.wait(1000);
     cy.go("back");
 
-    more_ids.map((id) => verifySample(id));
+    more_ids.map((id) => cy.verifySample(id));
 
     cy.wait(1000);
 
-    more_ids.map((id) => deleteSample(id));
+    more_ids.map((id) => cy.deleteSample(id));
     more_ids.map((id) => cy.contains(id).should("not.exist"));
 
-    deleteSample("test3");
+    cy.deleteSample("test3");
     cy.contains("test3").should("not.exist");
 
     // make sure one of the pages is really deleted
@@ -186,11 +191,10 @@ describe("Sample table page", () => {
 describe("Advanced sample creation features", () => {
   beforeEach(() => {
     cy.visit("/");
-    removeAllTestSamples(sample_ids);
   });
   it("Adds some valid samples", () => {
-    createSample("testA", "the first test sample");
-    createSample("testB", "the second test sample");
+    cy.createSample("testA", "the first test sample");
+    cy.createSample("testB", "the second test sample");
   });
 
   it("Adds a third sample copied from the first", () => {
@@ -202,19 +206,19 @@ describe("Advanced sample creation features", () => {
     });
     cy.findByDisplayValue("COPY OF the first test sample").clear().type("a copied sample");
     cy.contains("Submit").click();
-    verifySample("testAcopy", "a copied sample");
+    cy.verifySample("testAcopy", "a copied sample");
   });
 
   it("deletes the first sample and makes sure the copy is still there", () => {
-    deleteSample("testA");
-    verifySample("testAcopy", "a copied sample");
+    cy.deleteSample("testA");
+    cy.verifySample("testAcopy", "a copied sample");
   });
 
   it("makes some more items for testing as components", () => {
-    createSample("component1");
-    createSample("component2");
-    createSample("component3");
-    createSample("component4");
+    cy.createSample("component1");
+    cy.createSample("component2");
+    cy.createSample("component3");
+    cy.createSample("component4");
   });
 
   it("modifies some data in the second sample", () => {
@@ -252,7 +256,7 @@ describe("Advanced sample creation features", () => {
       cy.contains(".badge", "testB").click();
     });
     cy.contains("Submit").click();
-    verifySample("testBcopy", "COPY OF the second test sample");
+    cy.verifySample("testBcopy", "COPY OF the second test sample");
   });
 
   it("checks the edit page of the copied sample", () => {
@@ -287,7 +291,7 @@ describe("Advanced sample creation features", () => {
     });
 
     cy.contains("Submit").click();
-    verifySample("testBcopy_copy", "COPY OF COPY OF the second test sample");
+    cy.verifySample("testBcopy_copy", "COPY OF COPY OF the second test sample");
   });
   it("checks the edit page of the copied sample with components", () => {
     cy.findByText("testBcopy_copy").click();
