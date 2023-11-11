@@ -6,28 +6,7 @@ Cypress.on("window:before:load", (win) => {
   consoleSpy = cy.spy(win.console, "error");
 });
 
-function deleteSample(sample_id, delay = 100) {
-  cy.visit("/");
-  cy.wait(delay).then(() => {
-    cy.log("search for and delete: " + sample_id);
-    cy.get("[data-testid=sample-table]")
-      .contains(sample_id)
-      .parents("tr")
-      .within(() => {
-        cy.get("button.close").click();
-      });
-  });
-}
-
 let sample_ids = ["editable_sample", "component1", "component2"];
-
-function removeAllTestSamples(sample_ids) {
-  // as contains matches greedily, if any IDs have matching substrings they must be added in the appropriate order
-  sample_ids.forEach((item_id) => {
-    deleteSample(item_id);
-  });
-  cy.get("[data-testid=sample-table] > tbody > tr").should("have.length", 0);
-}
 
 before(() => {
   cy.visit("/");

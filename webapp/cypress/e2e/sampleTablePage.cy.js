@@ -6,57 +6,6 @@ Cypress.on("window:before:load", (win) => {
   consoleSpy = cy.spy(win.console, "error");
 });
 
-const TODAY = new Date().toISOString().slice(0, -8);
-
-function createSample(sample_id, name = null, date = null) {
-  cy.findByText("Add an item").click();
-  cy.findByText("Add new sample").should("exist");
-  cy.findByLabelText("ID:").type(sample_id);
-  if (name) {
-    cy.findByLabelText("Name:").type(name);
-  }
-  if (date) {
-    cy.findByLabelText("Date Created:").type(date);
-  }
-  cy.contains("Submit").click();
-}
-
-function deleteSample(sample_id, delay = 100) {
-  cy.visit("/");
-  cy.wait(delay).then(() => {
-    cy.log("search for and delete: " + sample_id);
-    var matchingIds = [];
-    cy.get("[data-testid=sample-table]")
-      .contains(sample_id)
-      .parents("tr")
-      .within(() => {
-        cy.get("button.close").click();
-      });
-  });
-}
-
-function verifySample(sample_id, name = null, date = null) {
-  if (date) {
-    cy.findByText(sample_id)
-      .parents("tr")
-      .within(() => {
-        cy.findByText(date.split("T")[0]);
-        if (name) {
-          cy.findByText(name);
-        }
-      });
-  } else {
-    cy.findByText(sample_id)
-      .parents("tr")
-      .within(() => {
-        cy.findByText(TODAY.split("T")[0]);
-        if (name) {
-          cy.findByText(name);
-        }
-      });
-  }
-}
-
 let sample_ids = [
   "testAcopy",
   "component1",
@@ -75,14 +24,6 @@ let sample_ids = [
   "XX",
   "yyy",
 ];
-
-function removeAllTestSamples(sample_ids) {
-  // as contains matches greedily, if any IDs have matching substrings they must be added in the appropriate order
-  sample_ids.forEach((item_id) => {
-    deleteSample(item_id);
-  });
-  cy.get("[data-testid=sample-table] > tbody > tr").should("have.length", 0);
-}
 
 beforeEach(() => {
   cy.visit("/");
