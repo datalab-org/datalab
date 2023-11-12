@@ -48,8 +48,19 @@ let sample_ids = [
   "test_1",
   "test_2",
   "test_3",
+  "test_4",
+  "test_5",
+  "test_6",
+  "test_7",
+  "test1",
+  "test2",
+  "test3",
+  "test4",
   "baseA",
   "baseB",
+  "testA",
+  "testB",
+  "testC",
 ];
 
 before(() => {
@@ -69,7 +80,6 @@ describe("Batch sample creation", () => {
   it("Adds 3 valid samples", () => {
     cy.contains("Add batch of samples").click();
     getSubmitButton().should("be.disabled");
-    cy.contains("Submit").should("be.disabled");
     getBatchAddCell(1, 1).type("testA");
     getBatchAddCell(2, 1).type("testB");
     getBatchAddCell(2, 2).type("this sample has a name");
@@ -209,7 +219,6 @@ describe("Batch sample creation", () => {
 
   it("checks the copied samples", () => {
     // check the copied samples
-    cy.visit("/");
     cy.contains("baseA_copy").click();
     cy.findByLabelText("Name").should("have.value", "a copied sample");
     cy.findByText("this is a description of baseA.");
