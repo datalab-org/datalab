@@ -15,6 +15,7 @@ let sample_ids = [
   "testBcopy_copy",
   "testBcopy",
   "testB",
+  "testA",
   "sdlkfjs",
   "w343t",
   "dfow4_112",
@@ -210,7 +211,7 @@ describe("Advanced sample creation features", () => {
   });
 
   it("deletes the first sample and makes sure the copy is still there", () => {
-    cy.deleteSample("testA");
+    cy.deleteSampleViaAPI("testA");
     cy.verifySample("testAcopy", "a copied sample");
   });
 
