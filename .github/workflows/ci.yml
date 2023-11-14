@@ -86,9 +86,8 @@ jobs:
         uses: codecov/codecov-action@v3
 
   webapp:
-    name: Test the webapp
+    name: Test the app build
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v3
 
@@ -109,34 +108,45 @@ jobs:
         working-directory: ./webapp
         run: yarn build
 
-      - name: Build the Docker images
+  e2e:
+    name: Run e2e tests across app and API
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Debugging
         run: |
-          echo "PYDATALAB_TESTING=true" >> pydatalab/.env
-          docker compose --profile prod build
+          docker image ls
+
+      - name: Build the Docker images
+        uses: docker/bake-action@v4
+        with:
+          files: docker-compose.yml
+          load: true
+          set: |
+            *.cache-from=type=gha,scope=cached-stage
+            *.cache-to=type=gha,scope=cached-stage,mode=max
+
+      - name: Debugging
+        run: |
+          docker image ls
 
       - name: Start Docker images
         run: |
           # Create a named docker network that all containers attach to
           docker network create nginx
-          docker compose --profile prod up -d --wait --no-build
+          # Set API runtime config for testing mode to disable auth
+          echo "PYDATALAB_TESTING=true" >> pydatalab/.env
+          docker compose --env-file pydatalab/.env --profile prod up -d --wait
 
       - name: Run end-to-end tests
-        working-directory: ./webapp
+        uses: cypress-io/github-action@v6
+        with:
+          config: baseUrl=http://localhost:8081
+          working-directory: ./webapp
         env:
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
-        run: |
-          yarn test:e2e  --headless --url http://localhost:8081 --record
-
-      - name: Archive video from cypress
-        if: success() || failure()
-        uses: actions/upload-artifact@v3
-        with:
-          name: Cypress video
-          path: /home/runner/work/datalabvue/datalabvue/webapp/cypress/videos/*.cy.js.mp4
-
-      - name: Archive any failure screenshots from Cypress
-        if: failure()
-        uses: actions/upload-artifact@v3
-        with:
-          name: Cypress screenshots
-          path: /home/runner/work/datalabvue/datalabvue/webapp/cypress/screenshots/*/*.png
