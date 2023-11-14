@@ -377,7 +377,7 @@ def save_uploaded_file(
         last_modified_remote=None,  # not used for source=uploaded
         is_live=False,  # not available for source=uploaded
         revision=1,  # increment with each update
-        creator_ids=creator_ids if creator_ids else [],
+        creator_ids=creator_ids if creator_ids is not None else [],
     )
 
     # In one transaction, check if we can save the file, insert it into the database
@@ -432,7 +432,9 @@ def save_uploaded_file(
     return ret
 
 
-def add_file_from_remote_directory(file_entry, item_id, block_ids=None):
+def add_file_from_remote_directory(
+    file_entry, item_id, block_ids=None, creator_ids: list[PyObjectId | str] | None = None
+):
     from pydatalab.permissions import get_default_permissions
 
     file_collection = flask_mongo.db.files
@@ -449,20 +451,19 @@ def add_file_from_remote_directory(file_entry, item_id, block_ids=None):
     remote_path = os.path.join(file_entry["relative_path"].lstrip("/"), file_entry["name"])
 
     # If we are dealing with a truly remote host
+    remote_timestamp: datetime.datetime | None = None
     if host.hostname:
         remote_toplevel_path = f"{host.hostname}:{host.path}"
         full_remote_path = f"{remote_toplevel_path}/{remote_path}"
-        if file_entry.get("time") is None:
-            remote_timestamp = None
-        else:
+        if file_entry.get("time") is not None:
             remote_timestamp = datetime.datetime.fromtimestamp(int(file_entry["time"]))
 
     # Otherwise we assume the file is mounted locally
     else:
-        remote_toplevel_path = host.path
+        remote_toplevel_path = str(host.path)
         full_remote_path = os.path.join(remote_toplevel_path, remote_path)
         # check that the path is valid and get the last modified time from the server
-        remote_timestamp = os.path.getmtime(full_remote_path)
+        remote_timestamp = datetime.datetime.fromtimestamp(int(os.path.getmtime(full_remote_path)))
 
     new_file_document = File(
         name=filename,
@@ -490,6 +491,7 @@ def add_file_from_remote_directory(file_entry, item_id, block_ids=None):
         is_live=bool(host.hostname),
         # incremented with each update
         version=1,
+        creator_ids=creator_ids if creator_ids is not None else [],
     )
 
     result = file_collection.insert_one(new_file_document.dict())
