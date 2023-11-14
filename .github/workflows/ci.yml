@@ -118,15 +118,22 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Debugging
+        run: |
+          docker image ls
+
       - name: Build the Docker images
         uses: docker/bake-action@v4
         with:
           files: docker-compose.yml
           load: true
-          push: false
           set: |
             *.cache-from=type=gha,scope=cached-stage
             *.cache-to=type=gha,scope=cached-stage,mode=max
+
+      - name: Debugging
+        run: |
+          docker image ls
 
       - name: Start Docker images
         run: |
