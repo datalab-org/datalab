@@ -27,7 +27,6 @@ services:
       - "8081:8081"
     networks:
       - nginx
-      - default
 
   api:
     profiles: ["prod"]

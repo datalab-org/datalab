@@ -6,13 +6,9 @@ RUN apt update && apt install -y tree && apt clean
 
 # Install the older version of mdbtools (0.7.1) until https://github.com/echemdata/galvani/issues/89 is resolved
 WORKDIR /opt
-RUN git clone https://github.com/mdbtools/mdbtools --depth 1 --branch 0.7.1
-WORKDIR /opt/mdbtools
-RUN autoreconf -i -f
-RUN ./configure --disable-man
-RUN make -j 4
-RUN make install
-RUN ldconfig
+RUN curl -L https://github.com/mdbtools/mdbtools/archive/refs/tags/0.7.1.zip > 0.7.1.zip && unzip -d /opt/mdbtools 0.7.1.zip && rm 0.7.1.zip
+WORKDIR /opt/mdbtools/mdbtools-0.7.1
+RUN autoreconf -i -f &&  ./configure --disable-man && make -j 4 && make install && ldconfig
 
 
 FROM base as app
