@@ -6,14 +6,22 @@ Cypress.on("window:before:load", (win) => {
   consoleSpy = cy.spy(win.console, "error");
 });
 
+let sample_ids = ["editable_sample", "component1", "component2"];
+
+before(() => {
+  cy.visit("/");
+  cy.removeAllTestSamples(sample_ids);
+});
+
+after(() => {
+  cy.visit("/");
+  cy.removeAllTestSamples(sample_ids);
+});
+
 describe("Edit Page", () => {
   beforeEach(() => {
     cy.visit("/");
   });
-
-  // afterEach( () => {
-  //  cy.expect(consoleSpy).not.to.be.called
-  // });
 
   it("Loads the main page without any errors", () => {
     cy.findByText("About").should("exist");
@@ -256,25 +264,5 @@ describe("Edit Page", () => {
 
     cy.findByText("Home").click();
     cy.get("[data-testid=sample-table] tr:nth-of-type(3) > td:nth-of-type(8)").contains(2); // 2 blocks are present
-  });
-
-  it("cleanup: delete the samples", () => {
-    cy.findByText("editable_sample")
-      .parents("tr")
-      .within(() => {
-        cy.get("button.close").click();
-      });
-
-    cy.findByText("component1")
-      .parents("tr")
-      .within(() => {
-        cy.get("button.close").click();
-      });
-
-    cy.findByText("component2")
-      .parents("tr")
-      .within(() => {
-        cy.get("button.close").click();
-      });
   });
 });
