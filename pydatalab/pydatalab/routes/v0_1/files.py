@@ -22,7 +22,7 @@ def get_file(file_id: str, filename: str):
         # so just 401
         _file_id = file_id
     if not pydatalab.mongo.flask_mongo.db.files.find_one(
-        {"_id": _file_id, **get_default_permissions(user_only=True)}
+        {"_id": _file_id, **get_default_permissions(user_only=False)}
     ):
         return (
             jsonify(
@@ -62,6 +62,11 @@ def upload():
     item_id = request.form["item_id"]
     replace_file_id = request.form["replace_file"]
 
+    if not CONFIG.TESTING:
+        creator_id = current_user.person.immutable_id
+    else:
+        creator_id = ObjectId(24 * "0")
+
     is_update = replace_file_id and replace_file_id != "null"
     for filekey in request.files:  # pretty sure there is just 1 per request
         file = request.files[
@@ -70,7 +75,9 @@ def upload():
         if is_update:
             file_information = file_utils.update_uploaded_file(file, ObjectId(replace_file_id))
         else:
-            file_information = file_utils.save_uploaded_file(file, item_ids=[item_id])
+            file_information = file_utils.save_uploaded_file(
+                file, item_ids=[item_id], creator_ids=[creator_id]
+            )
 
     return (
         jsonify(
@@ -105,7 +112,14 @@ def add_remote_file_to_sample():
     item_id = request_json["item_id"]
     file_entry = request_json["file_entry"]
 
-    updated_file_entry = file_utils.add_file_from_remote_directory(file_entry, item_id)
+    if not CONFIG.TESTING:
+        creator_id = current_user.person.immutable_id
+    else:
+        creator_id = ObjectId(24 * "0")
+
+    updated_file_entry = file_utils.add_file_from_remote_directory(
+        file_entry, item_id, creator_ids=[creator_id]
+    )
 
     return (
         jsonify(
