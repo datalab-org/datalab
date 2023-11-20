@@ -223,7 +223,7 @@ export default {
       }
       let allSavedStatusBlocks = this.$store.state.saved_status_blocks;
       let allBlocksAreSaved = this.item_data.display_order.every(
-        (block_id) => allSavedStatusBlocks[block_id] !== false
+        (block_id) => allSavedStatusBlocks[block_id] !== false,
       );
       return allBlocksAreSaved && this.$store.state.saved_status_items[this.item_id];
     },

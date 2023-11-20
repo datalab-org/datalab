@@ -6,62 +6,45 @@ Cypress.on("window:before:load", (win) => {
   consoleSpy = cy.spy(win.console, "error");
 });
 
-const TODAY = new Date().toISOString().slice(0, -8);
+let sample_ids = [
+  "testAcopy",
+  "component1",
+  "component2",
+  "component3",
+  "component4",
+  "testBcopy_copy",
+  "testBcopy",
+  "testB",
+  "testA",
+  "sdlkfjs",
+  "w343t",
+  "dfow4_112",
+  "122.rwre",
+  "56oer09gser9sdfd0s9dr333e",
+  "12345678910",
+  "test1",
+  "test2",
+  "test3",
+  "test4",
+  "7",
+  "XX",
+  "yyy",
+];
 
-function createSample(sample_id, name = null, date = null) {
-  cy.findByText("Add an item").click();
-  cy.findByText("Add new sample").should("exist");
-  cy.findByLabelText("ID:").type(sample_id);
-  if (name) {
-    cy.findByLabelText("Name:").type(name);
-  }
-  if (date) {
-    cy.findByLabelText("Date Created:").type(date);
-  }
-  cy.contains("Submit").click();
-}
+before(() => {
+  cy.visit("/");
+  cy.removeAllTestSamples(sample_ids);
+});
 
-function verifySample(sample_id, name = null, date = null) {
-  if (date) {
-    cy.findByText(sample_id)
-      .parents("tr")
-      .within(() => {
-        cy.findByText(date.split("T")[0]);
-        if (name) {
-          cy.findByText(name);
-        }
-      });
-  } else {
-    cy.findByText(sample_id)
-      .parents("tr")
-      .within(() => {
-        cy.findByText(TODAY.split("T")[0]);
-        if (name) {
-          cy.findByText(name);
-        }
-      });
-  }
-}
-
-function deleteSample(sample_id) {
-  // wait a bit to allow things to settle
-  cy.wait(100).then(() => {
-    cy.findByText(sample_id)
-      .parents("tr")
-      .within(() => {
-        cy.get("button.close").click();
-      });
-  });
-}
+after(() => {
+  cy.visit("/");
+  cy.removeAllTestSamples(sample_ids);
+});
 
 describe("Sample table page", () => {
   beforeEach(() => {
     cy.visit("/");
   });
-
-  // afterEach( () => {
-  //  cy.expect(consoleSpy).not.to.be.called
-  // });
 
   it("Loads the main page without any errors", () => {
     cy.findByText("About").should("exist");
@@ -129,45 +112,43 @@ describe("Sample table page", () => {
   it("Deletes a sample", function () {
     cy.get("tr#12345678910 button.close").click();
     cy.contains("12345678910").should("not.exist");
-  });
 
-  it("Attempts to go to the page of the deleted sample", function () {
     cy.request({ url: `${API_URL}/get-item-data/12345678910`, failOnStatusCode: false }).then(
       (resp) => {
         expect(resp.status).to.be.gte(400).lt(500);
-      }
+      },
     );
   });
 
   it("Adds several valid samples", () => {
-    createSample("test1");
-    verifySample("test1");
+    cy.createSample("test1");
+    cy.verifySample("test1");
 
-    createSample("test2", "second sample name");
-    verifySample("test1");
-    verifySample("test2", "second sample name");
+    cy.createSample("test2", "second sample name");
+    cy.verifySample("test1");
+    cy.verifySample("test2", "second sample name");
 
-    createSample("test3", "third sample name", "2006-04-25T00:00");
-    verifySample("test1");
-    verifySample("test2", "second sample name");
-    verifySample("test3", "third sample name", "2006-04-25T00:00");
+    cy.createSample("test3", "third sample name", "2006-04-25T00:00");
+    cy.verifySample("test1");
+    cy.verifySample("test2", "second sample name");
+    cy.verifySample("test3", "third sample name", "2006-04-25T00:00");
 
-    createSample("test4");
-    verifySample("test1");
-    verifySample("test2", "second sample name");
-    verifySample("test3", "third sample name", "2006-04-25T00:00");
-    verifySample("test4");
+    cy.createSample("test4");
+    cy.verifySample("test1");
+    cy.verifySample("test2", "second sample name");
+    cy.verifySample("test3", "third sample name", "2006-04-25T00:00");
+    cy.verifySample("test4");
 
-    deleteSample("test2");
+    cy.deleteSample("test2");
     cy.contains("test2").should("not.exist");
     cy.contains("second sample name").should("not.exist");
-    verifySample("test1");
-    verifySample("test3", "third sample name", "2006-04-25T00:00");
-    verifySample("test4");
+    cy.verifySample("test1");
+    cy.verifySample("test3", "third sample name", "2006-04-25T00:00");
+    cy.verifySample("test4");
 
-    deleteSample("test1");
+    cy.deleteSample("test1");
     cy.contains("test1").should("not.exist");
-    deleteSample("test4");
+    cy.deleteSample("test4");
     cy.contains("test1").should("not.exist");
     cy.contains("test4").should("not.exist");
 
@@ -181,29 +162,29 @@ describe("Sample table page", () => {
       "XX",
       "yyy",
     ];
-    more_ids.map((id) => createSample(id));
-    more_ids.map((id) => verifySample(id));
+    more_ids.map((id) => cy.createSample(id));
+    more_ids.map((id) => cy.verifySample(id));
 
     // check one of the pages to make sure it is generating properly
     cy.findByText("122.rwre").click();
     cy.wait(1000);
     cy.go("back");
 
-    more_ids.map((id) => verifySample(id));
+    more_ids.map((id) => cy.verifySample(id));
 
     cy.wait(1000);
 
-    more_ids.map((id) => deleteSample(id));
+    more_ids.map((id) => cy.deleteSample(id));
     more_ids.map((id) => cy.contains(id).should("not.exist"));
 
-    deleteSample("test3");
+    cy.deleteSample("test3");
     cy.contains("test3").should("not.exist");
 
     // make sure one of the pages is really deleted
     cy.request({ url: `${API_URL}/get-item-data/_122rwre`, failOnStatusCode: false }).then(
       (resp) => {
         expect(resp.status).to.be.gte(400).lt(500);
-      }
+      },
     );
   });
 });
@@ -213,8 +194,8 @@ describe("Advanced sample creation features", () => {
     cy.visit("/");
   });
   it("Adds some valid samples", () => {
-    createSample("testA", "the first test sample");
-    createSample("testB", "the second test sample");
+    cy.createSample("testA", "the first test sample");
+    cy.createSample("testB", "the second test sample");
   });
 
   it("Adds a third sample copied from the first", () => {
@@ -226,19 +207,19 @@ describe("Advanced sample creation features", () => {
     });
     cy.findByDisplayValue("COPY OF the first test sample").clear().type("a copied sample");
     cy.contains("Submit").click();
-    verifySample("testAcopy", "a copied sample");
+    cy.verifySample("testAcopy", "a copied sample");
   });
 
   it("deletes the first sample and makes sure the copy is still there", () => {
-    deleteSample("testA");
-    verifySample("testAcopy", "a copied sample");
+    cy.deleteSampleViaAPI("testA");
+    cy.verifySample("testAcopy", "a copied sample");
   });
 
   it("makes some more items for testing as components", () => {
-    createSample("component1");
-    createSample("component2");
-    createSample("component3");
-    createSample("component4");
+    cy.createSample("component1");
+    cy.createSample("component2");
+    cy.createSample("component3");
+    cy.createSample("component4");
   });
 
   it("modifies some data in the second sample", () => {
@@ -266,8 +247,6 @@ describe("Advanced sample creation features", () => {
 
     cy.get(".fa-save").click();
     cy.findByText("Home").click();
-
-    /* ==== End Cypress Studio ==== */
   });
 
   it("copies the second sample", () => {
@@ -278,7 +257,7 @@ describe("Advanced sample creation features", () => {
       cy.contains(".badge", "testB").click();
     });
     cy.contains("Submit").click();
-    verifySample("testBcopy", "COPY OF the second test sample");
+    cy.verifySample("testBcopy", "COPY OF the second test sample");
   });
 
   it("checks the edit page of the copied sample", () => {
@@ -313,9 +292,8 @@ describe("Advanced sample creation features", () => {
     });
 
     cy.contains("Submit").click();
-    verifySample("testBcopy_copy", "COPY OF COPY OF the second test sample");
+    cy.verifySample("testBcopy_copy", "COPY OF COPY OF the second test sample");
   });
-
   it("checks the edit page of the copied sample with components", () => {
     cy.findByText("testBcopy_copy").click();
     cy.findByLabelText("Name").should("have.value", "COPY OF COPY OF the second test sample");
@@ -330,20 +308,5 @@ describe("Advanced sample creation features", () => {
       .eq(0)
       .should("have.value", "100"); // eq(1) gets the second element that matches
     cy.get("#synthesis-information tbody tr:nth-of-type(3) input").eq(0).should("have.value", ""); // eq(1) gets the second element that matches
-  });
-
-  it("deletes all samples", () => {
-    [
-      "testAcopy",
-      "component1",
-      "component2",
-      "component3",
-      "component4",
-      "testBcopy_copy",
-      "testBcopy",
-      "testB",
-    ].map((id) => {
-      deleteSample(id);
-    });
   });
 });

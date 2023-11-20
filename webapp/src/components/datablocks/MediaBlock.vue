@@ -42,7 +42,7 @@ export default {
     },
     isPhoto() {
       return [".png", ".jpeg", ".jpg", ".tif", ".tiff"].includes(
-        this.all_files[this.file_id]?.extension
+        this.all_files[this.file_id]?.extension,
       );
     },
     isVideo() {

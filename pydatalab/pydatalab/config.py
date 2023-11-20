@@ -9,6 +9,8 @@ from pydantic import AnyUrl, BaseModel, BaseSettings, Field, root_validator, val
 from pydatalab.models import Person
 from pydatalab.models.utils import RandomAlphabeticalRefcodeFactory, RefCodeFactory
 
+__all__ = ("CONFIG", "ServerConfig", "DeploymentMetadata", "RemoteFilesystem")
+
 
 def config_file_settings(settings: BaseSettings) -> Dict[str, Any]:
     """Returns a dictionary of server settings loaded from the default or specified
@@ -35,6 +37,8 @@ def config_file_settings(settings: BaseSettings) -> Dict[str, Any]:
 
 
 class DeploymentMetadata(BaseModel):
+    """A model for specifying metadata about a datalab deployment."""
+
     maintainer: Optional[Person]
     issue_tracker: Optional[AnyUrl]
     homepage: Optional[AnyUrl]
@@ -52,6 +56,10 @@ class DeploymentMetadata(BaseModel):
 
 
 class RemoteFilesystem(BaseModel):
+    """Configuration for specifying a single remote filesystem
+    accessible from the server.
+    """
+
     name: str
     hostname: Optional[str]
     path: Path
@@ -103,7 +111,7 @@ class ServerConfig(BaseSettings):
 
     BEHIND_REVERSE_PROXY: bool = Field(
         False,
-        description="Whether the Flask app is being deployed behind a reverse proxy. If `True`, the reverse proxy middleware described in the Flask docs (https://flask.palletsprojects.com/en/2.2.x/deploying/proxy_fix/) will be attached to the app.",
+        description="Whether the Flask app is being deployed behind a reverse proxy. If `True`, the reverse proxy middleware described in the [Flask docs](https://flask.palletsprojects.com/en/2.2.x/deploying/proxy_fix/) will be attached to the app.",
     )
 
     GITHUB_ORG_ALLOW_LIST: Optional[List[str]] = Field(
@@ -113,6 +121,15 @@ class ServerConfig(BaseSettings):
 
     DEPLOYMENT_METADATA: Optional[DeploymentMetadata] = Field(
         None, description="A dictionary containing metadata to serve at `/info`."
+    )
+
+    MAX_CONTENT_LENGTH: int = Field(
+        100 * 1000 * 1000,
+        description=r"""Direct mapping to the equivalent Flask setting. In practice, limits the file size that can be uploaded.
+Defaults to 100 GB to avoid filling the tmp directory of a server.
+
+Warning: this value will overwrite any other values passed to `FLASK_MAX_CONTENT_LENGTH` but is included here to clarify
+its importance when deploying a datalab instance.""",
     )
 
     @root_validator
@@ -143,4 +160,7 @@ class ServerConfig(BaseSettings):
             setattr(self, key.upper(), mapping[key])
 
 
-CONFIG = ServerConfig()
+CONFIG: ServerConfig = ServerConfig()
+"""The global server configuration object.
+This is a singleton instance of the `ServerConfig` model.
+"""

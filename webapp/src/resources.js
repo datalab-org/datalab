@@ -25,6 +25,15 @@ export const LOGO_URL = process.env.VUE_APP_LOGO_URL;
 export const HOMEPAGE_URL = process.env.VUE_APP_HOMEPAGE_URL;
 export const GRAVATAR_STYLE = "identicon";
 
+export const UPPY_MAX_TOTAL_FILE_SIZE =
+  Number(process.env.VUE_APP_UPPY_MAX_TOTAL_FILE_SIZE) != null
+    ? process.env.VUE_APP_UPPY_MAX_TOTAL_FILE_SIZE
+    : 102400000000;
+export const UPPY_MAX_NUMBER_OF_FILES =
+  Number(process.env.VUE_APP_UPPY_MAX_NUMBER_OF_FILES) != null
+    ? process.env.VUE_APP_UPPY_MAX_NUMBER_OF_FILES
+    : 10000;
+
 export const debounceTime = 250; // time after user stops typing before request is sent
 
 export const blockTypes = {
