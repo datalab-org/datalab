@@ -23,20 +23,41 @@ class RamanBlock(DataBlock):
     def plot_functions(self):
         return (self.generate_raman_plot,)
 
-    @classmethod
+
     def load(self, location: str | Path) -> Tuple[pd.DataFrame, List[str]]:
         if not isinstance(location, str):
             location = str(location)
         ext = os.path.splitext(location)[-1].lower()
 
+        vendor = None
         if ext == ".txt":
             try:
-                df = pd.DataFrame(np.loadtxt(location), columns=['wavenumber', 'intensity'])
-            except UnicodeDecodeError:
-                df = pd.DataFrame(np.loadtxt(location, encoding='cp1252'), columns=['wavenumber', 'intensity'])
+                header = []
+                with open(location, "r", encoding='cp1252') as f:
+                    for line in f:
+                        if line.startswith('#'):
+                            header.append(line)
+                    if "#Wave" in header[0] and "#Intensity"  in header[0]:
+                        vendor = "renishaw"
+                    else:
+                        metadata = {key: value for key, value in [line.split("=") for line in header]}
+                        if metadata.get("#AxisType[0]") == "Intens\n" and metadata.get("#AxisType[1]") == "Spectr\n":
+                            vendor = "labspec"
+                # for some reason not recognising self.data as an attribute so just putting in dummy variable for now
+                            self.data['metadata'] = metadata
+                if vendor == 'renishaw':
+                    df = pd.DataFrame(np.loadtxt(location), columns=['wavenumber', 'intensity'])
+                elif vendor == 'labspec':
+                    df = pd.DataFrame(np.loadtxt(location, encoding='cp1252'), columns=['wavenumber', 'intensity'])
+            except IndexError:
+                pass
         elif ext == ".wdf":
-            df = self.make_wdf_df(location)
-
+            vendor = "renishaw"
+            # this metadata cannot get jsonify-ed by the update_block function, so just saving to dummy variable for now
+            df, dummy = self.make_wdf_df(location)
+        if not vendor:
+            raise Exception("Could not detect Raman data vendor -- this file type is not supported by this block.")
+        
         df["sqrt(intensity)"] = np.sqrt(df["intensity"])
         df["log(intensity)"] = np.log10(df["intensity"])
         df["normalized intensity"] = df["intensity"] / np.max(df["intensity"])
@@ -59,7 +80,7 @@ class RamanBlock(DataBlock):
         df["intensity - median baseline"] /= np.max(df["intensity - median baseline"])
 
         # baseline calculation I used in my data
-        half_window = 30
+        half_window = round(0.03*df.shape[0]) # a value which worked for my data, not sure how universally good it will be
         baseline_fitter = Baseline(x_data=df["wavenumber"])
         morphological_baseline = baseline_fitter.mor(
             df["normalized intensity"], half_window=half_window
@@ -85,7 +106,6 @@ class RamanBlock(DataBlock):
             "intensity - morphological baseline",
             f"baseline (`pybaselines.Baseline.mor`, {half_window=})",
         ]
-
         return df, y_options
     
 
@@ -120,7 +140,7 @@ class RamanBlock(DataBlock):
             [wavenumber_offset + i * wavenumber_scale for i in range(wavenumber_size)]
         )
         df = pd.DataFrame({"wavenumber": wavenumbers, "intensity": intensity})
-        return df
+        return df, raman_data[0]['metadata']
 
 
     def generate_raman_plot(self):
