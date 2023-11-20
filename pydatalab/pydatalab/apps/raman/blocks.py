@@ -1,6 +1,5 @@
 import os
 from pathlib import Path
-from typing import List, Tuple
 
 import bokeh
 import numpy as np
@@ -23,12 +22,14 @@ class RamanBlock(DataBlock):
     def plot_functions(self):
         return (self.generate_raman_plot,)
 
-    def load(self, location: str | Path) -> Tuple[pd.DataFrame, List[str]]:
+    @classmethod
+    def load(self, location: str | Path) -> tuple[pd.DataFrame, dict, list[str]]:
         if not isinstance(location, str):
             location = str(location)
         ext = os.path.splitext(location)[-1].lower()
 
         vendor = None
+        metadata: dict = {}
         if ext == ".txt":
             try:
                 header = []
@@ -47,20 +48,18 @@ class RamanBlock(DataBlock):
                             and metadata.get("#AxisType[1]") == "Spectr\n"
                         ):
                             vendor = "labspec"
-                            # for some reason not recognising self.data as an attribute so just putting in dummy variable for now
-                            self.data["metadata"] = metadata
                 if vendor == "renishaw":
                     df = pd.DataFrame(np.loadtxt(location), columns=["wavenumber", "intensity"])
                 elif vendor == "labspec":
                     df = pd.DataFrame(
                         np.loadtxt(location, encoding="cp1252"), columns=["wavenumber", "intensity"]
                     )
+                    metadata = {}
             except IndexError:
                 pass
         elif ext == ".wdf":
             vendor = "renishaw"
-            # this metadata cannot get jsonify-ed by the update_block function, so just saving to dummy variable for now
-            df, dummy = self.make_wdf_df(location)
+            df, metadata = self.make_wdf_df(location)
         if not vendor:
             raise Exception(
                 "Could not detect Raman data vendor -- this file type is not supported by this block."
@@ -116,7 +115,7 @@ class RamanBlock(DataBlock):
             "intensity - morphological baseline",
             f"baseline (`pybaselines.Baseline.mor`, {half_window=})",
         ]
-        return df, y_options
+        return df, metadata, y_options
 
     @classmethod
     def make_wdf_df(self, location: Path | str) -> pd.DataFrame:
@@ -166,7 +165,7 @@ class RamanBlock(DataBlock):
                     self.accepted_file_extensions,
                     ext,
                 )
-            pattern_dfs, y_options = self.load(file_info["location"])
+            pattern_dfs, y_options, _ = self.load(file_info["location"])
             pattern_dfs = [pattern_dfs]
 
         if pattern_dfs:
