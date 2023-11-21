@@ -1,6 +1,6 @@
 #Acq. time (s)=	300
 #Accumulations=	12
-#Range (cm-¹)=	200...800
+#Range (cm-ï¿½)=	200...800
 #Windows=	1
 #Auto scanning=	Off
 #Autofocus=	Off
@@ -15,7 +15,7 @@
 #Inst. Process=	Off
 #Detector Gain=	High Sensitivity
 #Detector ADC=	45 kHz       
-#Detector temperature (°C)=	-60.1
+#Detector temperature (ï¿½C)=	-60.1
 #Instrument=	LabRAM HR Evol
 #Detector=	Syncerity OE
 #Objective=	x10_VIS
@@ -27,9 +27,9 @@
 #Collection=	Microscope
 #StageXY=	Marzhauser
 #StageZ=	Marzhauser
-#X (µm)=	0
-#Y (µm)=	0
-#Z (µm)=	7.9
+#X (ï¿½m)=	0
+#Y (ï¿½m)=	0
+#Z (ï¿½m)=	7.9
 #Full time(hh:mm)=	1:00
 #Project=	A
 #Sample=	B
