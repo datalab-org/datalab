@@ -148,5 +148,6 @@ jobs:
         with:
           config: baseUrl=http://localhost:8081
           working-directory: ./webapp
+          record: true
         env:
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
