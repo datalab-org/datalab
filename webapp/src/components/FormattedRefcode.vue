@@ -34,11 +34,7 @@ export default {
       return "LightGrey";
     },
     shortenedName() {
-      if (this.refcode.includes(":")) {
-        return this.refcode.split(":")[1];
-      } else {
-        return this.refcode;
-      }
+      return this.refcode;
     },
   },
   methods: {
