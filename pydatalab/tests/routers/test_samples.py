@@ -161,7 +161,7 @@ def test_new_sample_with_relationships(client, complicated_sample):
     assert response.status_code == 201, response.json
     assert response.json["status"] == "success"
     new_refcode = response.json["sample_list_entry"]["refcode"]
-    assert new_refcode.startswith("grey:")
+    assert new_refcode.startswith("test:")
     assert response.json["sample_list_entry"]["item_id"] == complicated_sample.item_id
 
     response = client.get(
@@ -259,7 +259,7 @@ def test_saved_sample_has_new_relationships(client, default_sample_dict, complic
         f"/get-item-data/{default_sample_dict['item_id']}",
     )
     new_refcode = response.json["item_data"]["refcode"]
-    assert new_refcode.startswith("grey:")
+    assert new_refcode.startswith("test:")
 
     assert response.json
 

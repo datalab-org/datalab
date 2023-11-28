@@ -10,7 +10,18 @@
 3. Web app configuration, such as the URL of the relevant *datalab* API and branding (logo URLs, external homepage links).
     - These are typically provided as a `.env` file in the directory from which the webapp is built/served.
 
-## Configuring user registration/authentication
+## Mandatory settings
+
+There is only one mandatory setting when creating a deployment.
+This is the `IDENTIFIER_PREFIX`, which shall be prepended to every entry's refcode to enable global uniqueness of *datalab* entries.
+For now, the prefixes themselves are not checked for uniqueness across the fledling *datalab* federation, but will in the future.
+
+This prefix should be set to something relatively short (max 10 chars.) that describes your group or your deployment, e.g., the PI's surname, project ID or department.
+
+This can be set either via a config file, or as an environment variable (e.g., `PYDATALAB_IDENTIFIER_PREFIX='grey'`).
+Be warned, if the prefix changes between server launches, all entries will have to be migrated manually to the desired prefix, or maintained at the old prefix.
+
+## User registration & authentication
 
 *datalab* has three supported user registration/authentication
 mechanisms:
@@ -26,6 +37,7 @@ For GitHub, you must register a [GitHub OAuth
 application](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app) for your instance, providing the client ID and secret in the `.env` for the API.
 Then, you can configure `GITHUB_ORG_ALLOW_LIST` with a list of string IDs of GitHub organizations that user's must be a public member of to register an account.
 If this value is set to `None`, then no accounts will be able to register, and if it is set to an empty list, then no restrictions will apply.
+You can find the relevant organization IDs using the GitHub API, for example at `https://api.github.com/orgs/<org_name>`.
 
 For ORCID integration, each *datalab* instance must currently register for the ORCID developer program and request new credentials.
 As such, this may be tricky to support for new instances.
@@ -36,7 +48,7 @@ additional configuration for the [SendGrid](https://sendgrid.com/) web API, i.e.
 There is currently no restrictions on which email addresses can sign up.
 This approach will soon also support using any configured SMTP server.
 
-## Configuring remote filesystems
+## Remote filesystems
 
 This package allows you to attach files from remote filesystems to samples and other entries.
 These filesystems can be configured in the config file with the `REMOTE_FILESYSTEMS` option.
@@ -47,7 +59,7 @@ Currently, there are two mechanisms for accessing remote files:
 1. You can mount the filesystem locally and provide the path in your datalab config file. For example, for Cambridge Chemistry users, you will have to (connect to the ChemNet VPN and) mount the Grey Group backup servers on your local machine, then define these folders in your config.
 2. Access over `ssh`: alternatively, you can set up passwordless `ssh` access to a machine (e.g., using `citadel` as a proxy jump), and paths on that remote machine can be configured as separate filesystems. The filesystem metadata will be synced periodically, and any files attached in `datalab` will be downloaded and stored locally on the `pydatalab` server (with the file being kept younger than 1 hour old on each access).
 
-## Server administration
+## General Server administration
 
 Currently most administration tasks must be handled directly inside the Python API container.
 Several helper routines are available as `invoke` tasks in `tasks.py` in the `pydatalab` root folder.
