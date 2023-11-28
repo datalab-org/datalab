@@ -47,11 +47,13 @@ class Item(Entry, HasOwner, HasRevisionControl, IsCollectable, HasBlocks, abc.AB
 
     @validator("refcode", pre=True, always=True)
     def refcode_validator(cls, v):
-        """Generate a refcode if not provided; check that the refcode has the correct prefix if provided."""
+        """Generate a refcode if not provided."""
 
-        from pydatalab.config import CONFIG
-
-        if v and not v.startswith(f"{CONFIG.IDENTIFIER_PREFIX}:"):
-            raise ValueError(f"refcode missing prefix {CONFIG.IDENTIFIER_PREFIX!r}")
+        if v:
+            prefix = None
+            id = None
+            prefix, id = v.split(":")
+            if prefix is None or id is None:
+                raise ValueError(f"refcode missing prefix or ID {id=}, {prefix=} from {v=}")
 
         return v
