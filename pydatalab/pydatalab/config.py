@@ -4,7 +4,15 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Type, Union
 
-from pydantic import AnyUrl, BaseModel, BaseSettings, Field, root_validator, validator
+from pydantic import (
+    AnyUrl,
+    BaseModel,
+    BaseSettings,
+    Field,
+    ValidationError,
+    root_validator,
+    validator,
+)
 
 from pydatalab.models import Person
 from pydatalab.models.utils import RandomAlphabeticalRefcodeFactory, RefCodeFactory
@@ -86,8 +94,8 @@ class ServerConfig(BaseSettings):
     )
 
     IDENTIFIER_PREFIX: str = Field(
-        "grey",
-        description="The prefix to use for identifiers in this deployment, e.g., `grey:AAAAAA`",
+        None,
+        description="The prefix to use for identifiers in this deployment, e.g., 'grey' in `grey:AAAAAA`",
     )
 
     REFCODE_GENERATOR: Type[RefCodeFactory] = Field(
@@ -139,6 +147,49 @@ its importance when deploying a datalab instance.""",
                 f"The maximum cache age must be greater than the minimum cache age: min {values.get('REMOTE_CACHE_MIN_AGE')=}, max {values.get('REMOTE_CACHE_MAX_AGE')=}"
             )
         return values
+
+    @validator("IDENTIFIER_PREFIX", pre=True, always=True)
+    def validate_identifier_prefix(cls, v, values):
+        """Make sure that the identifier prefix is set and is valid, raising clear error messages if not.
+
+        If in testing mode, then set the prefix to test too.
+
+        """
+
+        if values.get("TESTING"):
+            return "test"
+
+        if v is None:
+            import warnings
+
+            warning_msg = (
+                "You should configure an identifier prefix for this deployment. "
+                "You should attempt to make it unique to your deployment or group. "
+                "In the future these will be optionally globally validated versus all deployments for uniqueness. "
+                "For now the value of `test` will be used."
+            )
+
+            warnings.warn(warning_msg)
+            logging.warning(warning_msg)
+
+            return "test"
+
+        if len(v) > 12:
+            raise RuntimeError(
+                "Identifier prefix must be less than 12 characters long, received {v=}"
+            )
+
+        # test a trial refcode
+        from pydatalab.models.utils import Refcode
+
+        try:
+            Refcode(f"{v}:AAAAAA")
+        except ValidationError as exc:
+            raise RuntimeError(
+                f"Invalid identifier prefix: {v}. Validation with refcode `AAAAAA` returned error: {exc}"
+            )
+
+        return v
 
     class Config:
         env_prefix = "pydatalab_"
