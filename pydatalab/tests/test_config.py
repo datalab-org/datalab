@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from pydatalab.config import ServerConfig
 from pydatalab.main import create_app
 
@@ -36,3 +38,17 @@ def test_config_override():
 
     assert CONFIG.REMOTE_FILESYSTEMS[0].hostname is None
     assert CONFIG.REMOTE_FILESYSTEMS[0].path == Path("/")
+
+
+def test_validators():
+    # check GitHub org IDs are coerced into strings
+    config = ServerConfig(GITHUB_ALLOW_LIST=[123], IDENTIFIER_PREFIX="test")
+    assert config.GITHUB_ALLOW_LIST[0] == "123"
+
+    # check that prefix must be set
+    with pytest.warns():
+        config = ServerConfig(IDENTIFIER_PREFIX=None)
+
+    # check bad prefix
+    with pytest.raises(RuntimeError):
+        config = ServerConfig(IDENTIFIER_PREFIX="this prefix is way way too long")
