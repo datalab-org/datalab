@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from pydatalab.config import ServerConfig
 from pydatalab.main import create_app
 
@@ -36,3 +38,13 @@ def test_config_override():
 
     assert CONFIG.REMOTE_FILESYSTEMS[0].hostname is None
     assert CONFIG.REMOTE_FILESYSTEMS[0].path == Path("/")
+
+
+def test_validators():
+    # check that prefix must be set
+    with pytest.warns():
+        _ = ServerConfig(IDENTIFIER_PREFIX=None)
+
+    # check bad prefix
+    with pytest.raises(RuntimeError):
+        _ = ServerConfig(IDENTIFIER_PREFIX="this prefix is way way too long")
