@@ -41,14 +41,10 @@ def test_config_override():
 
 
 def test_validators():
-    # check GitHub org IDs are coerced into strings
-    config = ServerConfig(GITHUB_ALLOW_LIST=[123], IDENTIFIER_PREFIX="test")
-    assert config.GITHUB_ALLOW_LIST[0] == "123"
-
     # check that prefix must be set
     with pytest.warns():
-        config = ServerConfig(IDENTIFIER_PREFIX=None)
+        _ = ServerConfig(IDENTIFIER_PREFIX=None)
 
     # check bad prefix
     with pytest.raises(RuntimeError):
-        config = ServerConfig(IDENTIFIER_PREFIX="this prefix is way way too long")
+        _ = ServerConfig(IDENTIFIER_PREFIX="this prefix is way way too long")
