@@ -35,6 +35,11 @@ Each is configured differently.
 
 For GitHub, you must register a [GitHub OAuth
 application](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app) for your instance, providing the client ID and secret in the `.env` for the API.
+
+The authorization callback URL in the GitHub app settings should be set to `<YOUR_API_URL>/login/github/authorized`.
+A user's first login may direct them to this page rather than the web app, depending on their browser.
+The user will then simply have to navigate back to the URL of the web app, where they should find themselves to be logged in.
+
 Then, you can configure `GITHUB_ORG_ALLOW_LIST` with a list of string IDs of GitHub organizations that user's must be a public member of to register an account.
 If this value is set to `None`, then no accounts will be able to register, and if it is set to an empty list, then no restrictions will apply.
 You can find the relevant organization IDs using the GitHub API, for example at `https://api.github.com/orgs/<org_name>`.
