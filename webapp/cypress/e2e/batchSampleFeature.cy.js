@@ -656,6 +656,7 @@ describe("Batch sample creation", () => {
   it("checks errors on the row", () => {
     cy.contains("Add batch of samples").click();
     getBatchTemplateCell("1").type("test10{{}#{}}");
+    cy.wait(100);
     getSubmitButton().should("be.disabled");
     getBatchAddError(1).should("have.text", "test101 already in use.");
     getBatchAddError(2).should("have.text", "test102 already in use.");
