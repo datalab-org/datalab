@@ -9,7 +9,8 @@ export default defineConfig({
     },
     baseUrl: 'http://localhost:8080',
     apiUrl: 'http://localhost:5001',
-    experimentalStudio: true,
+    experimentalMemoryManagement: true,
+    numTetsKeptInMemory: 0,
     projectId: "4kqx5i",
   },
 })
