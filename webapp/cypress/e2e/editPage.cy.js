@@ -6,7 +6,7 @@ Cypress.on("window:before:load", (win) => {
   consoleSpy = cy.spy(win.console, "error");
 });
 
-let sample_ids = ["editable_sample", "component1", "component2"];
+let sample_ids = [];
 
 before(() => {
   cy.visit("/");

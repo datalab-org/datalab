@@ -6,30 +6,7 @@ Cypress.on("window:before:load", (win) => {
   consoleSpy = cy.spy(win.console, "error");
 });
 
-let sample_ids = [
-  "testAcopy",
-  "component1",
-  "component2",
-  "component3",
-  "component4",
-  "testBcopy_copy",
-  "testBcopy",
-  "testB",
-  "testA",
-  "sdlkfjs",
-  "w343t",
-  "dfow4_112",
-  "122.rwre",
-  "56oer09gser9sdfd0s9dr333e",
-  "12345678910",
-  "test1",
-  "test2",
-  "test3",
-  "test4",
-  "7",
-  "XX",
-  "yyy",
-];
+let sample_ids = [];
 
 before(() => {
   cy.visit("/");
