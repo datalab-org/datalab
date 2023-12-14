@@ -40,7 +40,7 @@ OAUTH_BLUEPRINTS: Dict[IdentityType, Blueprint] = {
         sandbox=True,
     ),
     IdentityType.GITHUB: make_github_blueprint(
-        scope="read:user",
+        scope="read:user,read:org",
     ),
 }
 """A dictionary of Flask blueprints corresponding to the supported OAuth2 providers."""
@@ -211,13 +211,18 @@ def github_logged_in(blueprint, token):
     username = str(github_info["login"])
     name = str(github_info["name"])
 
-    org_membership = blueprint.session.get(f"/users/{username}/orgs").json()
+    create_account: bool = False
+    # Use the read:org scope to check if the user is a member of at least one of the allowed orgs
     if CONFIG.GITHUB_ORG_ALLOW_LIST:
-        create_account = any(
-            str(org["id"]) in CONFIG.GITHUB_ORG_ALLOW_LIST for org in org_membership
-        )
-    else:
-        create_account = False
+        for org in CONFIG.GITHUB_ORG_ALLOW_LIST:
+            if str(int(org)) == org:
+                org = int(org)
+            if blueprint.session.get(f"/orgs/{org}/members/{username}").ok:
+                create_account = True
+                break
+
+    elif CONFIG.GITHUB_ORG_ALLOW_LIST is None:
+        create_account = True
 
     find_create_or_modify_user(
         github_user_id,
