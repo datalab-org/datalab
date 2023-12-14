@@ -33,8 +33,11 @@ organizations
 
 Each is configured differently.
 
+#### GitHub OAuth2
+
 For GitHub, you must register a [GitHub OAuth
-application](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app) for your instance, providing the client ID and secret in the `.env` for the API.
+application](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app) for your instance, providing the client ID and secret in the `.env` for the API, using the variable names `GITHUB_OAUTH_CLIENT_ID` and `GITHUB_OAUTH_CLIENT_SECRET`.
+These should be provided in a `.env` file local to your app and not added to your main config file.
 
 The authorization callback URL in the GitHub app settings should be set to `<YOUR_API_URL>/login/github/authorized`.
 A user's first login may direct them to this page rather than the web app, depending on their browser.
@@ -44,13 +47,17 @@ Then, you can configure `GITHUB_ORG_ALLOW_LIST` with a list of string IDs of Git
 If this value is set to `None`, then no accounts will be able to register, and if it is set to an empty list, then no restrictions will apply.
 You can find the relevant organization IDs using the GitHub API, for example at `https://api.github.com/orgs/<org_name>`.
 
+#### ORCID OAuth2
+
 For ORCID integration, each *datalab* instance must currently register for the ORCID developer program and request new credentials.
 As such, this may be tricky to support for new instances.
 We are looking for ways around this in the future.
 
+#### Email magic links
+
 To support sign-in via email magic-links, you must currently provide
 additional configuration for the [SendGrid](https://sendgrid.com/) web API, i.e., your default email sender (`MAIL_DEFAULT_SENDER`) and SendGrid API key (`MAIL_PASSWORD`), as environment variables for the API container.
-There is currently no restrictions on which email addresses can sign up.
+There are currently no restrictions on which email addresses can sign up.
 This approach will soon also support using any configured SMTP server.
 
 ## Remote filesystems
