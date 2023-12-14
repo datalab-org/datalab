@@ -97,9 +97,9 @@ class RamanBlock(DataBlock):
         df["intensity - morphological baseline"] = (
             df["normalized intensity"] - morphological_baseline
         )
-        df[
-            f"baseline (`pybaselines.Baseline.mor`, {half_window=})"
-        ] = morphological_baseline / np.max(df["intensity - morphological baseline"])
+        df[f"baseline (`pybaselines.Baseline.mor`, {half_window=})"] = (
+            morphological_baseline / np.max(df["intensity - morphological baseline"])
+        )
         df["intensity - morphological baseline"] /= np.max(df["intensity - morphological baseline"])
         df.index.name = location.split("/")[-1]
 

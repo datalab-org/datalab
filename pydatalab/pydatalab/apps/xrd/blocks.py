@@ -71,9 +71,9 @@ class XRDBlock(DataBlock):
         median_baseline = medfilt(df["normalized intensity"], kernel_size=kernel_size)
         df["intensity - median baseline"] = df["normalized intensity"] - median_baseline
         df["intensity - median baseline"] /= np.max(df["intensity - median baseline"])
-        df[
-            f"baseline (`scipy.signal.medfilt`, kernel_size={kernel_size})"
-        ] = median_baseline / np.max(df["intensity - median baseline"])
+        df[f"baseline (`scipy.signal.medfilt`, kernel_size={kernel_size})"] = (
+            median_baseline / np.max(df["intensity - median baseline"])
+        )
 
         df.index.name = location.split("/")[-1]
 
