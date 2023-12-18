@@ -6,6 +6,7 @@ from pydatalab.apps.echem import CycleBlock
 from pydatalab.apps.eis import EISBlock
 from pydatalab.apps.nmr import NMRBlock
 from pydatalab.apps.raman import RamanBlock
+from pydatalab.apps.raman_map import RamanMapBlock
 from pydatalab.apps.tga import MassSpecBlock
 from pydatalab.apps.xrd import XRDBlock
 from pydatalab.blocks.base import DataBlock
@@ -17,6 +18,7 @@ BLOCKS: Sequence[Type["DataBlock"]] = (
     XRDBlock,
     CycleBlock,
     RamanBlock,
+    RamanMapBlock,
     NMRBlock,
     MassSpecBlock,
     NotSupportedBlock,
@@ -35,6 +37,7 @@ __all__ = (
     "CycleBlock",
     "NMRBlock",
     "RamanBlock",
+    "RamanMapBlock"
     "MassSpecBlock",
     "BLOCK_TYPES",
     "BLOCKS",
