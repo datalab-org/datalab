@@ -131,10 +131,6 @@ jobs:
             *.cache-from=type=gha,scope=cached-stage
             *.cache-to=type=gha,scope=cached-stage,mode=max
 
-      - name: Debugging
-        run: |
-          docker image ls
-
       - name: Start Docker images
         run: |
           # Create a named docker network that all containers attach to
@@ -148,5 +144,36 @@ jobs:
         with:
           config: baseUrl=http://localhost:8081
           working-directory: ./webapp
+          record: true
+          spec: |
+            ./cypress/e2e/sampleTablePage.cy.js
+            ./cypress/e2e/editPage.cy.js
+          browser: "electron"
+        env:
+          CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
+
+      - name: Run end-to-end tests (Chrome)
+        uses: cypress-io/github-action@v6
+        with:
+          config: baseUrl=http://localhost:8081
+          working-directory: ./webapp
+          record: true
+          spec: |
+            ./cypress/e2e/sampleTablePage.cy.js
+            ./cypress/e2e/editPage.cy.js
+          browser: "electron"
+        env:
+          CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
+
+      - name: Run end-to-end tests (Firefox)
+        uses: cypress-io/github-action@v6
+        with:
+          config: baseUrl=http://localhost:8081
+          working-directory: ./webapp
+          record: true
+          spec: |
+            ./cypress/e2e/sampleTablePage.cy.js
+            ./cypress/e2e/editPage.cy.js
+          browser: "firefox"
         env:
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}

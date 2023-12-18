@@ -22,9 +22,7 @@ def fixture_insert_default_sample(client, default_sample):  # pylint: disable=un
 
 
 @pytest.mark.dependency()
-def test_upload(
-    client, default_filepath, insert_default_sample, default_sample
-):  # pylint: disable=unused-argument
+def test_upload(client, default_filepath, insert_default_sample, default_sample):  # pylint: disable=unused-argument
     with open(default_filepath, "rb") as f:
         response = client.post(
             "/upload-file/",

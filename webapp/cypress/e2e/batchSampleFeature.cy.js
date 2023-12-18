@@ -29,39 +29,7 @@ function getBatchAddError(row, additionalSelectors = "") {
 }
 
 // Any sample ID touched by these tests should be listed here for clean-up
-let sample_ids = [
-  "test102_unique",
-  "test103_unique",
-  "test101_unique2",
-  "test101_unique",
-  "component1",
-  "component2",
-  "component3",
-  "component4",
-  "baseA_copy",
-  "baseB_copy2",
-  "baseB_copy",
-  "test101",
-  "test102",
-  "test103",
-  "test104",
-  "test_1",
-  "test_2",
-  "test_3",
-  "test_4",
-  "test_5",
-  "test_6",
-  "test_7",
-  "test1",
-  "test2",
-  "test3",
-  "test4",
-  "baseA",
-  "baseB",
-  "testA",
-  "testB",
-  "testC",
-];
+let sample_ids = [];
 
 before(() => {
   cy.visit("/");
@@ -688,6 +656,7 @@ describe("Batch sample creation", () => {
   it("checks errors on the row", () => {
     cy.contains("Add batch of samples").click();
     getBatchTemplateCell("1").type("test10{{}#{}}");
+    cy.wait(100);
     getSubmitButton().should("be.disabled");
     getBatchAddError(1).should("have.text", "test101 already in use.");
     getBatchAddError(2).should("have.text", "test102 already in use.");
