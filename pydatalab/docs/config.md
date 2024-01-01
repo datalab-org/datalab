@@ -55,10 +55,12 @@ We are looking for ways around this in the future.
 
 #### Email magic links
 
-To support sign-in via email magic-links, you must currently provide
-additional configuration for the [SendGrid](https://sendgrid.com/) web API, i.e., your default email sender (`MAIL_DEFAULT_SENDER`) and SendGrid API key (`MAIL_PASSWORD`), as environment variables for the API container.
-There are currently no restrictions on which email addresses can sign up.
-This approach will soon also support using any configured SMTP server.
+To support sign-in via email magic-links, you must currently provide additional configuration for authorized SMTP server.
+The SMTP server must be configured via the environment variables `MAIL_SERVER`, `MAIL_USER`, `MAIL_PASSWORD`, `MAIL_DEFAULT_SENDER`, `MAIL_PORT` and `MAIL_USE_TLS` environment variables, as described in the [Flask-Mail documentation](https://flask-mail.readthedocs.io/en/latest/#configuring-flask-mail).
+
+Third-party options could include [SendGrid](https://sendgrid.com/), which can be configured to use the `MAIL_USER` `apikey` with an appropriate API key, after verifying ownership of the `MAIL_DEFAULT_SENDER` address via DNS (see [the SendGrid documentation](https://sendgrid.com/en-us/blog/sending-emails-from-python-flask-applications-with-twilio-sendgrid) for an example configuration).
+
+The email addresses that are allowed to sign up can be restricted by domain/subdomain using the [`ServerConfig.EMAIL_DOMAIN`](`pydatalab.config.ServerConfig.EMAIL_DOMAIN_ALLOW_LIST`) setting.
 
 ## Remote filesystems
 
@@ -85,6 +87,6 @@ It relies on the Excel export feature of ChemInventory and is achieved with `inv
 If a future export is made and reimported, the old entries will be kept and updated, rather than overwritten.
 *datalab* currently has no functionality for chemical inventory management itself; if you wish to support importing from another inventory system, please [raise an issue](https://github.com/the-grey-group/datalab/issues/new).
 
-# Config API Reference
+## Config API Reference
 
 ::: pydatalab.config

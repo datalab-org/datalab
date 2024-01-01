@@ -141,6 +141,11 @@ class ServerConfig(BaseSettings):
         None, description="A dictionary containing metadata to serve at `/info`."
     )
 
+    EMAIL_DOMAIN_ALLOW_LIST: Optional[List[str]] = Field(
+        [],
+        description="A list of domains for which user's will be able to register accounts if they have a matching email address. Setting the value to `None` will allow any email addresses at any domain to register an account, otherwise the default `[]` will not allow any email addresses.",
+    )
+
     MAX_CONTENT_LENGTH: int = Field(
         100 * 1000 * 1000,
         description=r"""Direct mapping to the equivalent Flask setting. In practice, limits the file size that can be uploaded.

@@ -40,6 +40,7 @@ def create_app(config_override: Dict[str, Any] | None = None) -> Flask:
         CONFIG.update(config_override)
 
     app.config.update(CONFIG.dict())
+    app.config["MAIL_DEBUG"] = CONFIG.DEBUG
     app.config.update(dotenv_values())
 
     LOGGER.info("Starting app with Flask app.config: %s", app.config)
