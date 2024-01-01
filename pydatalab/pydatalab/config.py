@@ -1,6 +1,8 @@
+import hashlib
 import json
 import logging
 import os
+import platform
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Type, Union
 
@@ -76,7 +78,10 @@ class RemoteFilesystem(BaseModel):
 class ServerConfig(BaseSettings):
     """A model that provides settings for deploying the API."""
 
-    SECRET_KEY: str = Field(os.urandom(12).hex(), description="The secret key to use for Flask.")
+    SECRET_KEY: str = Field(
+        hashlib.sha512(((platform.platform() + str(platform.python_build)).encode())).hexdigest(),
+        description="The secret key to use for Flask. This value should be changed and/or loaded from an environment variable for production deployments.",
+    )
 
     MONGO_URI: str = Field(
         "mongodb://localhost:27017/datalabvue",
