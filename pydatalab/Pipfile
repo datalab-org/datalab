@@ -32,6 +32,7 @@ navani = {git = "git+https://github.com/the-grey-group/navani.git@v0.1.4"}
 python-dateutil = "*"
 pybaselines = "*"
 rosettasciio = "*"
+pyjwt = "*"
 
 [dev-packages]
 pytest = "*"
