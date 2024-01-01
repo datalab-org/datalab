@@ -1,17 +1,19 @@
 """This module implements functionality for authenticating users
-via OAuth2 providers, and associating these OAuth2 identities
+via OAuth2 providers and JWT, and associating these identities
 with their local accounts.
 
 """
 
+import datetime
 import json
 import random
 from hashlib import sha512
 from string import ascii_letters
 from typing import Callable, Dict, Optional, Union
 
+import jwt
 from bson import ObjectId
-from flask import Blueprint, jsonify, redirect
+from flask import Blueprint, jsonify, redirect, request
 from flask_dance.consumer import oauth_authorized
 from flask_dance.contrib.github import github, make_github_blueprint
 from flask_dance.contrib.orcid import make_orcid_blueprint, orcid
@@ -24,8 +26,10 @@ from pydatalab.logger import LOGGER, logged_route
 from pydatalab.login import get_by_id
 from pydatalab.models.people import Identity, IdentityType, Person
 from pydatalab.mongo import flask_mongo, insert_pydantic_model_fork_safe
+from pydatalab.send_email import send_mail
 
 KEY_LENGTH: int = 32
+LINK_EXPIRATION: datetime.timedelta = datetime.timedelta(hours=1)
 
 
 @logged_route
@@ -34,7 +38,10 @@ def wrapped_login_user(*args, **kwargs):
     login_user(*args, **kwargs)
 
 
-OAUTH_BLUEPRINTS: Dict[IdentityType, Blueprint] = {
+EMAIL_BLUEPRINT = Blueprint("email", __name__)
+
+
+AUTH_BLUEPRINTS: Dict[IdentityType, Blueprint] = {
     IdentityType.ORCID: make_orcid_blueprint(
         scope="/authenticate",
         sandbox=True,
@@ -42,8 +49,9 @@ OAUTH_BLUEPRINTS: Dict[IdentityType, Blueprint] = {
     IdentityType.GITHUB: make_github_blueprint(
         scope="read:org,read:user",
     ),
+    IdentityType.EMAIL: EMAIL_BLUEPRINT,
 }
-"""A dictionary of Flask blueprints corresponding to the supported OAuth2 providers."""
+"""A dictionary of Flask blueprints corresponding to the supported OAuth providers."""
 
 OAUTH_PROXIES: Dict[IdentityType, LocalProxy] = {
     IdentityType.ORCID: orcid,
@@ -53,6 +61,48 @@ OAUTH_PROXIES: Dict[IdentityType, LocalProxy] = {
 to the supported OAuth2 providers, and can be used to make further authenticated
 requests out to the providers.
 """
+
+
+@logged_route
+def find_user_with_identity(
+    identifier: str,
+    identity_type: Union[str, IdentityType],
+    verify: bool = False,
+) -> Optional[Person]:
+    """Look up the given identity in the users database.
+
+    Parameters:
+        identifier: The identifier of the identity to look up.
+        identity_type: The type of the identity to look up.
+        verify: Whether to mark the identity as verified if it is found.
+
+    """
+    user = flask_mongo.db.users.find_one(
+        {"identities.identifier": identifier, "identities.identity_type": identity_type},
+    )
+    if user:
+        person = Person(**user)
+        identity_indices: list[int] = [
+            ind
+            for ind, _ in enumerate(person.identities)
+            if (_.identity_type == identity_type and _.identifier == identifier)
+        ]
+        if len(identity_indices) != 1:
+            raise RuntimeError(
+                "Unexpected error: multiple or no identities matched the OAuth token."
+            )
+
+        identity_index = identity_indices[0]
+
+        if verify and not person.identities[identity_index].verified:
+            flask_mongo.db.users.update_one(
+                {"_id": person.immutable_id},
+                {"$set": {f"identities.{identity_index}.verified": True}},
+            )
+
+        return person
+
+    return None
 
 
 def find_create_or_modify_user(
@@ -73,39 +123,6 @@ def find_create_or_modify_user(
         3. Log in as the user for this session.
 
     """
-
-    @logged_route
-    def find_user_with_identity(
-        identifier: str,
-        identity_type: Union[str, IdentityType],
-    ) -> Optional[Person]:
-        """Look up the given identity in the users database."""
-        user = flask_mongo.db.users.find_one(
-            {"identities.identifier": identifier, "identities.identity_type": identity_type},
-        )
-        if user:
-            person = Person(**user)
-            identity_indices: list[int] = [
-                ind
-                for ind, _ in enumerate(person.identities)
-                if (_.identity_type == identity_type and _.identifier == identifier)
-            ]
-            if len(identity_indices) != 1:
-                raise RuntimeError(
-                    "Unexpected error: multiple or no identities matched the OAuth token."
-                )
-
-            identity_index = identity_indices[0]
-
-            if not person.identities[identity_index].verified:
-                flask_mongo.db.users.update_one(
-                    {"_id": person.immutable_id},
-                    {"$set": {f"identities.{identity_index}.verified": True}},
-                )
-
-            return person
-
-        return None
 
     @logged_route
     def attach_identity_to_user(
@@ -149,7 +166,7 @@ def find_create_or_modify_user(
                 f"Attempted to modify user {user_id} but performed {result.matched_count} updates. Results:\n{result.raw_result}"
             )
 
-    user = find_user_with_identity(identifier, identity_type)
+    user = find_user_with_identity(identifier, identity_type, verify=True)
 
     # If no user was found in the database with the OAuth ID, make or modify one:
     if not user:
@@ -168,6 +185,7 @@ def find_create_or_modify_user(
                 current_user.id,
                 identity,
                 use_display_name=True if current_user.display_name is None else False,
+                use_contact_email=True if current_user.contact_email is None else False,
             )
             current_user.refresh()
             user = current_user.person
@@ -182,7 +200,7 @@ def find_create_or_modify_user(
             insert_pydantic_model_fork_safe(user, "users")
             user_model = get_by_id(str(user.immutable_id))
             if user is None:
-                raise RuntimeError("WHY IS THIS NONE")
+                raise RuntimeError("Failed to insert user into database")
             wrapped_login_user(user_model)
 
     # Log the user into the session with this identity
@@ -190,7 +208,113 @@ def find_create_or_modify_user(
         wrapped_login_user(get_by_id(str(user.immutable_id)))
 
 
-@oauth_authorized.connect_via(OAUTH_BLUEPRINTS[IdentityType.GITHUB])
+@EMAIL_BLUEPRINT.route("/magic-link", methods=["POST"])
+def generate_and_share_magic_link():
+    """Generates a JWT-based magic link with which a user can log in, stores it
+    in the database and sends it to the verified email address.
+
+    """
+    from flask import request
+
+    request_json = request.get_json()
+    email = request_json.get("email")
+    referrer = request_json.get("referrer")
+
+    if not email:
+        return jsonify({"status": "error", "detail": "No email provided."}), 400
+
+    if not referrer:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "detail": "Referrer address not provided, please contact the datalab administrator.",
+                }
+            ),
+            500,
+        )
+
+    # Generate a JWT for the user with a short expiration; the session itself
+    # should persist
+    # The key `exp` is a standard part of JWT; pyjwt treats this as an expiration time
+    # and will correctly encode the datetime
+    token = jwt.encode(
+        {"exp": datetime.datetime.utcnow() + LINK_EXPIRATION, "email": email},
+        CONFIG.SECRET_KEY,
+        algorithm="HS256",
+    )
+
+    flask_mongo.db.magic_links.insert_one(
+        {"jwt": token},
+    )
+
+    link = f"{referrer}?token={token}"
+
+    instance_url = referrer.replace("https://", "")
+
+    # See if the user already exists and jadjust the email if so
+    user = find_user_with_identity(email, IdentityType.EMAIL, verify=False)
+    if user is not None:
+        subject = "Datalab Sign-in Magic Link"
+        body = f"Click the link below to sign-in to the datalab instance at {instance_url}:\n\n{link}\n\nThis link is single-use and will expire in 1 hour."
+    else:
+        subject = "Datalab Registration Magic Link"
+        body = f"Click the link below to register for the datalab instance at {instance_url}:\n\n{link}\n\nThis link is single-use and will expire in 1 hour."
+
+    try:
+        send_mail(email, subject, body)
+    except Exception:
+        return jsonify({"status": "error", "detail": "Email not sent successfully."}), 400
+
+    return jsonify({"status": "success", "detail": "Email sent successfully."}), 200
+
+
+@EMAIL_BLUEPRINT.route("/email")
+def email_logged_in():
+    """Endpoint for handling magic link authentication.
+
+    - Checks the passed token for as valid JWT in the `magic_links` collection
+    - If found, checks if the user with the decoded email exists in the user
+    collection.
+    - If not found, make the user account and verify their email address,
+    - Authenticate the user for this session.
+
+    """
+    args = request.args
+    token = args.get("token")
+    if not token:
+        raise ValueError("Token not provided")
+
+    if not flask_mongo.db.magic_links.find_one({"jwt": token}):
+        raise ValueError("Token not found, please request a new one.")
+
+    data = jwt.decode(
+        token,
+        CONFIG.SECRET_KEY,
+        algorithms=["HS256"],
+    )
+
+    if datetime.datetime.fromtimestamp(data["exp"]) < datetime.datetime.utcnow():
+        raise ValueError("Token expired, please request a new one.")
+
+    email = data["email"]
+    if not email:
+        raise RuntimeError("No email found; please request a new token.")
+
+    find_create_or_modify_user(
+        email,
+        IdentityType.EMAIL,
+        email,
+        display_name=email,
+        verified=True,
+        create_account=True,
+    )
+
+    referer = request.headers.get("Referer", "/")
+    return redirect(referer, 307)
+
+
+@oauth_authorized.connect_via(AUTH_BLUEPRINTS[IdentityType.GITHUB])
 def github_logged_in(blueprint, token):
     """This Flask signal hooks into any attempt to use the GitHub blueprint, and will
     make a user account with this identity if not already present in the database.
@@ -237,7 +361,7 @@ def github_logged_in(blueprint, token):
     return False
 
 
-@oauth_authorized.connect_via(OAUTH_BLUEPRINTS[IdentityType.ORCID])
+@oauth_authorized.connect_via(AUTH_BLUEPRINTS[IdentityType.ORCID])
 def orcid_logged_in(_, token):
     """This signal hooks into any attempt to use the ORCID blueprint, and will
     associate a user account with this identity if not already present in the database.
