@@ -63,6 +63,33 @@ requests out to the providers.
 """
 
 
+def _check_email_domain(email: str, allow_list: Optional[list[str]]) -> bool:
+    """Checks whether the provided email address is allowed to
+    register an account based on the configured domain allow list. If the user already exists,
+    they will be allowed to login either way.
+
+    Parameters:
+        email: The email address to check.
+        allow_list: The list of allowed domains.
+
+    Returns:
+        Whether the email address is allowed to register an account.
+
+    """
+    domain = email.split("@")[-1]
+    if allow_list is None:
+        return False
+
+    for allowed in allow_list:
+        if domain.endswith(allowed):
+            break
+    else:
+        if allow_list:
+            return False
+
+    return True
+
+
 @logged_route
 def find_user_with_identity(
     identifier: str,
@@ -252,8 +279,22 @@ def generate_and_share_magic_link():
 
     instance_url = referrer.replace("https://", "")
 
-    # See if the user already exists and jadjust the email if so
+    # See if the user already exists and adjust the email if so
     user = find_user_with_identity(email, IdentityType.EMAIL, verify=False)
+
+    if not user:
+        allowed = _check_email_domain(email, CONFIG.EMAIL_DOMAIN_ALLOW_LIST)
+        if not allowed:
+            return (
+                jsonify(
+                    {
+                        "status": "error",
+                        "detail": f"Email address {email} is not allowed to register an account. Please contact the administrator if you believe this is an error.",
+                    }
+                ),
+                400,
+            )
+
     if user is not None:
         subject = "Datalab Sign-in Magic Link"
         body = f"Click the link below to sign-in to the datalab instance at {instance_url}:\n\n{link}\n\nThis link is single-use and will expire in 1 hour."
