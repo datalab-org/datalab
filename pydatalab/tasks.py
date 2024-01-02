@@ -1,7 +1,9 @@
 import json
+import os
 import pathlib
 import re
 import sys
+import time
 from typing import Tuple
 
 from invoke import Collection, task
@@ -413,6 +415,67 @@ def import_cheminventory(_, filename: str):
 
 admin.add_task(import_cheminventory)
 
+
+@task
+def create_backup(_, strategy_name: str):
+    """Create a backup given the strategy name in the config.
+
+    This task can be added as a cronjob on the server, ideally using
+    the frequency specified in the strategy to avoid confusion.
+
+    Example usage in cron:
+
+    ```shell
+    crontab -e
+    ```
+
+    ```shell
+    0 0 * * * /usr/local/bin/pipenv run invoke admin.create-backup --strategy-name=daily-snapshots
+    ```
+
+    """
+    from pydatalab.backups import create_backup
+    from pydatalab.config import CONFIG
+
+    if not CONFIG.BACKUP_STRATEGIES:
+        raise SystemExit("No backup strategies configured.")
+
+    strategy = CONFIG.BACKUP_STRATEGIES.get(strategy_name)
+    if strategy is None:
+        raise SystemExit(f"Backup strategy {strategy_name!r} not found in config.")
+
+    create_backup(strategy)
+
+
+admin.add_task(create_backup)
+
+
+@task
+def restore_backup(_, snapshot_path: os.PathLike):
+    from pathlib import Path
+
+    from pydatalab.config import CONFIG
+
+    user_input = input(
+        f"!!! WARNING !!!\n\nThis is a destructive procedure and will:\n\t- overwrite any files currently saved at {CONFIG.FILE_DIRECTORY},\n\t- delete the database at {CONFIG.MONGO_URI}.\n\nInput [y] to continue, or anything else to abort: "
+    )
+    if user_input == "y":
+        from pydatalab.backups import restore_snapshot
+
+        print("Waiting 3 seconds for confirmation...")
+        time.sleep(3)
+        user_input = input("Are you sure? [y|n] ")
+
+        if user_input == "y":
+            print("Preparing to restore...")
+            time.sleep(5)
+            print("Restoring...")
+            return restore_snapshot(Path(snapshot_path))
+
+        print("Restore aborted.")
+
+
+admin.add_task(restore_backup)
 
 ns.add_collection(dev)
 ns.add_collection(admin)

@@ -50,9 +50,9 @@ class DeploymentMetadata(BaseModel):
     """A model for specifying metadata about a datalab deployment."""
 
     maintainer: Optional[Person]
-    issue_tracker: Optional[AnyUrl]
+    issue_tracker: Optional[AnyUrl] = Field("https://github.com/the-grey-group/datalab/issues")
     homepage: Optional[AnyUrl]
-    source_repository: Optional[AnyUrl]
+    source_repository: Optional[AnyUrl] = Field("https://github.com/the-grey-group/datalab")
 
     @validator("maintainer")
     def strip_fields_from_person(cls, v):
@@ -63,6 +63,37 @@ class DeploymentMetadata(BaseModel):
 
     class Config:
         extra = "allow"
+
+
+class BackupStrategy(BaseModel):
+    """This model describes the config of a particular backup strategy."""
+
+    active: bool | None = Field(
+        True,
+        description="Whether this backup strategy is active; i.e., whether it is actually used. All strategies will be disabled in testing scenarios.",
+    )
+    hostname: str | None = Field(
+        description="The hostname of the SSH-accessible server on which to store the backup (`None` indicates local backups)."
+    )
+    location: Path = Field(
+        description="The location under which to store the backups on the host. Each backup will be date-stamped and stored in a subdirectory of this location."
+    )
+    retention: int | None = Field(
+        None,
+        description="How many copies of this backup type to keep. For example, if the backup runs daily, this number indicates how many previous days worth of backup to keep. If the backup size ever decreases between days, the largest backup will always be kept.",
+    )
+    frequency: str | None = Field(
+        None,
+        description="The frequency of the backup, described in the crontab syntax.",
+        pattern=r"^(?:\*|\d+(?:-\d+)?)(?:\/\d+)?(?:,\d+(?:-\d+)?(?:\/\d+)?)*$",
+    )
+    notification_email_address: str | None = Field(
+        None, description="An email address to send backup notifications to."
+    )
+    notify_on_success: bool = Field(
+        True,
+        description="Whether to send a notification email on successful backup, or just for failures/warnings.",
+    )
 
 
 class RemoteFilesystem(BaseModel):
@@ -173,6 +204,30 @@ Warning: this value will overwrite any other values passed to `FLASK_MAX_CONTENT
 its importance when deploying a datalab instance.""",
     )
 
+    BACKUP_STRATEGIES: Optional[dict[str, BackupStrategy]] = Field(
+        {
+            "daily-snapshots": BackupStrategy(
+                hostname=None,
+                location="/tmp/daily-snapshots/",
+                frequency="5 4 * * *",  # 4:05 every day
+                retention=7,
+            ),
+            "weekly-snapshots": BackupStrategy(
+                hostname=None,
+                location="/tmp/weekly-snapshots/",
+                frequency="5 3 * * 1",  # 03:05 every Monday
+                retention=5,
+            ),
+            "quarterly-snapshots": BackupStrategy(
+                hostname=None,
+                location="/tmp/quarterly-snapshots/",
+                frequency="5 2 1 1,4,7,10 *",  # first of January, April, July, October at 02:05
+                retention=4,
+            ),
+        },
+        description="The desired backup configuration.",
+    )
+
     @root_validator
     def validate_cache_ages(cls, values):
         if values.get("REMOTE_CACHE_MIN_AGE") > values.get("REMOTE_CACHE_MAX_AGE"):
@@ -209,6 +264,14 @@ its importance when deploying a datalab instance.""",
             )
 
         return v
+
+    @root_validator
+    def deactivate_backup_strategies_during_testing(cls, values):
+        if values.get("TESTING"):
+            for name in values.get("BACKUP_STRATEGIES", {}):
+                values["BACKUP_STRATEGIES"][name].active = False
+
+        return values
 
     class Config:
         env_prefix = "pydatalab_"
