@@ -45,13 +45,12 @@ def real_mongo_client() -> Union[pymongo.MongoClient, None]:
 
 
 @pytest.fixture(scope="module")
-def client(real_mongo_client, monkeypatch_session):
-    """Returns a test client for the API. If it exists,
-    connects to a local MongoDB, otherwise uses the
-    mongomock testing backend.
+def database(real_mongo_client):
+    yield real_mongo_client.get_database(TEST_DATABASE_NAME)
 
-    """
 
+@pytest.fixture(scope="session")
+def app_config():
     example_remotes = [
         {
             "name": "example_data",
@@ -64,11 +63,30 @@ def client(real_mongo_client, monkeypatch_session):
             "path": Path(__file__).parent.joinpath("../example_data/"),
         },
     ]
-    test_app_config = {
+    yield {
         "MONGO_URI": MONGO_URI,
         "REMOTE_FILESYSTEMS": example_remotes,
         "TESTING": True,
+        "EMAIL_AUTH_SMTP_SETTINGS": {
+            "MAIL_SERVER": "smtp.example.com",
+            "MAIL_PORT": 587,
+            "MAIL_USERNAME": "",
+            "MAIL_PASSWORD": "",
+            "MAIL_USE_TLS": True,
+            "MAIL_DEFAULT_SENDER": "test@example.org",
+        },
+        "EMAIL_DOMAIN_ALLOW_LIST": ["example.org", "ml-evs.science"],
     }
+
+
+@pytest.fixture(scope="module")
+def app(real_mongo_client, monkeypatch_session, app_config):
+    """Yields the test app.
+
+    If it exists, connects to a local MongoDB, otherwise uses the
+    mongomock testing backend.
+
+    """
 
     try:
         mongo_cli = real_mongo_client
@@ -82,13 +100,6 @@ def client(real_mongo_client, monkeypatch_session):
                 f"Not running tests over the top of existing database named {TEST_DATABASE_NAME!r} at {MONGO_URI}; "
                 "try dropping it before running the tests if this is desired."
             )
-
-        app = create_app(test_app_config)
-
-        with app.test_client() as cli:
-            yield cli
-
-        mongo_cli.drop_database(TEST_DATABASE_NAME)
 
     except pymongo.errors.ServerSelectionTimeoutError:
         with patch.object(
@@ -107,10 +118,17 @@ def client(real_mongo_client, monkeypatch_session):
                 pydatalab.mongo, "_get_active_mongo_client", mock_mongo_client
             )
             monkeypatch_session.setattr(pydatalab.mongo, "get_database", mock_mongo_database)
-            app = create_app(test_app_config)
 
-            with app.test_client() as cli:
-                yield cli
+    app = create_app(app_config)
+    yield app
+    mongo_cli.drop_database(TEST_DATABASE_NAME)
+
+
+@pytest.fixture(scope="module")
+def client(app):
+    """Returns a test client for the API."""
+    with app.test_client() as cli:
+        yield cli
 
 
 @pytest.fixture(scope="module", name="default_sample")
