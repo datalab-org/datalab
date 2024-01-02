@@ -1,5 +1,6 @@
 <template>
   <div class="row justify-content-center pt-3">
+    <GetEmailModal v-model="emailModalIsOpen" />
     <template v-if="currentUser != null">
       <div class="dropdown">
         <button
@@ -48,7 +49,7 @@
           aria-expanded="false"
           @click="isLoginDropdownVisible = !isLoginDropdownVisible"
         >
-          <font-awesome-icon icon="sign-in-alt" />&nbsp;Login
+          <font-awesome-icon icon="sign-in-alt" />&nbsp;Login/Register
         </button>
         <div
           class="dropdown-menu"
@@ -70,13 +71,14 @@
             :href="this.apiUrl + '/login/orcid'"
             ><font-awesome-icon class="orcid-icon" :icon="['fab', 'orcid']" /> Login via ORCID</a
           >
-          <a
+          <button
             type="button"
-            class="disabled dropdown-item btn login btn-link btn-default"
+            class="dropdown-item btn login btn-link btn-default"
             aria-label="Login via email"
-            :href="this.apiUrl + '/login/email'"
-            ><font-awesome-icon :icon="['fa', 'envelope']" /> Login via email</a
+            @click="emailModalIsOpen = true"
           >
+            <font-awesome-icon :icon="['fa', 'envelope']" /> Login via email
+          </button>
         </div>
       </div>
     </template>
@@ -87,11 +89,13 @@
 import { API_URL } from "@/resources.js";
 import UserBubble from "@/components/UserBubble.vue";
 import { getUserInfo } from "@/server_fetch_utils.js";
+import GetEmailModal from "@/components/GetEmailModal.vue";
 export default {
   data() {
     return {
       isLoginDropdownVisible: false,
       isUserDropdownVisible: false,
+      emailModalIsOpen: false,
       apiUrl: API_URL,
       currentUser: null,
       currentUserInfo: {},
@@ -99,22 +103,16 @@ export default {
   },
   components: {
     UserBubble,
-  },
-  props: {
-    modelValue: Boolean,
-  },
-  watch: {
-    modelValue(newValue) {
-      if (newValue) {
-        this.openModal();
-      }
-      if (!newValue) {
-        this.closeModal();
-      }
-    },
+    GetEmailModal,
   },
   methods: {
     async getUser() {
+      // Need to reload the page if this is a magic-link login
+      let token = this.$route.query.token;
+      if (token != null) {
+        window.location.href = this.apiUrl + "/login/email?token=" + token;
+      }
+
       let user = await getUserInfo();
       if (user != null) {
         this.currentUser = user.display_name;
