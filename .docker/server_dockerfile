@@ -1,15 +1,18 @@
 # syntax=docker/dockerfile:experimental
 FROM python:3.10 as base
 SHELL ["/bin/bash", "--login", "-c"]
-EXPOSE 5001
-RUN apt update && apt install -y tree && apt clean
+
+# Install system dependencies
+RUN apt update && apt install -y gnupg curl tree && apt clean
+
+# Install MongoDB tools in the official way
+WORKDIR /opt
+RUN wget https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2204-x86_64-100.9.0.deb && apt install ./mongodb-database-tools-*-100.9.0.deb
 
 # Install the older version of mdbtools (0.7.1) until https://github.com/echemdata/galvani/issues/89 is resolved
-WORKDIR /opt
 RUN curl -L https://github.com/mdbtools/mdbtools/archive/refs/tags/0.7.1.zip > 0.7.1.zip && unzip -d /opt/mdbtools 0.7.1.zip && rm 0.7.1.zip
 WORKDIR /opt/mdbtools/mdbtools-0.7.1
 RUN autoreconf -i -f &&  ./configure --disable-man && make -j 4 && make install && ldconfig
-
 
 FROM base as app
 # Copy all server code into workdir
@@ -23,7 +26,9 @@ FROM app as development
 RUN --mount=type=cache,target=/root/.cache/pip pipenv sync
 ENV FLASK_APP "pydatalab.main:create_app()"
 ENV FLASK_ENV "development"
-CMD ["pipenv", "run", "flask", "run", "--port", "5001", "--host", "0.0.0.0"]
+ENV PORT=5001
+
+CMD ["/bin/bash", "-c", "pipenv run flask run --port ${PORT} --host 0.0.0.0"]
 
 # Create production image using gunicorn and minimal dependencies
 FROM app as production
@@ -31,11 +36,13 @@ RUN --mount=type=cache,target=/root/.cache/pip pipenv sync
 RUN [ "pipenv", "run", "pip", "install", "gunicorn" ]
 COPY ./pydatalab/ ./
 
-CMD ["pipenv", "run", \
-     "gunicorn", \
-     "-w", "2", \
-     "--error-logfile", "/logs/pydatalab_error.log", \
-     "--access-logfile", "-", \
-     "-b", "0.0.0.0:5001", \
-     "pydatalab.main:create_app()" \
-]
+# This will define the number of gunicorn workers
+ARG WEB_CONCURRENCY=16
+ENV WEB_CONCURRENCY=${WEB_CONCURRENCY}
+
+ARG PORT=5001
+EXPOSE ${PORT}
+ENV PORT=${PORT}
+
+
+CMD ["/bin/bash", "-c", "pipenv run gunicorn -w ${WEB_CONCURRENCY} --error-logfile /logs/pydatalab_error.log --access-logfile - -b 0.0.0.0:${PORT} 'pydatalab.main:create_app()'"]
