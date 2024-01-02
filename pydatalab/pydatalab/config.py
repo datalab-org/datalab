@@ -75,6 +75,19 @@ class RemoteFilesystem(BaseModel):
     path: Path
 
 
+class SMTPSettings(BaseModel):
+    """Configuration for specifying SMTP settings for sending emails."""
+
+    MAIL_SERVER: str = Field("127.0.0.1", description="The SMTP server to use for sending emails.")
+    MAIL_PORT: int = Field(587, description="The port to use for the SMTP server.")
+    MAIL_USERNAME: str = Field("", description="The username to use for the SMTP server.")
+    MAIL_PASSWORD: str = Field("", description="The password to use for the SMTP server.")
+    MAIL_USE_TLS: bool = Field(True, description="Whether to use TLS for the SMTP connection.")
+    MAIL_DEFAULT_SENDER: str = Field(
+        "", description="The email address to use as the sender for emails."
+    )
+
+
 class ServerConfig(BaseSettings):
     """A model that provides settings for deploying the API."""
 
@@ -144,6 +157,11 @@ class ServerConfig(BaseSettings):
     EMAIL_DOMAIN_ALLOW_LIST: Optional[List[str]] = Field(
         [],
         description="A list of domains for which user's will be able to register accounts if they have a matching email address. Setting the value to `None` will allow any email addresses at any domain to register an account, otherwise the default `[]` will not allow any email addresses.",
+    )
+
+    EMAIL_AUTH_SMTP_SETTINGS: SMTPSettings = Field(
+        SMTPSettings(),
+        description="A dictionary containing SMTP settings for sending emails for account registration.",
     )
 
     MAX_CONTENT_LENGTH: int = Field(

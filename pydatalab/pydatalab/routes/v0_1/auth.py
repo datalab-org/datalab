@@ -7,6 +7,7 @@ with their local accounts.
 import datetime
 import json
 import random
+import re
 from hashlib import sha512
 from string import ascii_letters
 from typing import Callable, Dict, Optional, Union
@@ -250,7 +251,11 @@ def generate_and_share_magic_link():
     if not email:
         return jsonify({"status": "error", "detail": "No email provided."}), 400
 
+    if not re.match(r"^\S+@\S+.\S+$", email):
+        return jsonify({"status": "error", "detail": "Invalid email provided."}), 400
+
     if not referrer:
+        LOGGER.warning("No referrer provided for magic link request: %s", request_json)
         return (
             jsonify(
                 {
@@ -258,7 +263,7 @@ def generate_and_share_magic_link():
                     "detail": "Referrer address not provided, please contact the datalab administrator.",
                 }
             ),
-            500,
+            400,
         )
 
     # Generate a JWT for the user with a short expiration; the session itself
@@ -285,6 +290,7 @@ def generate_and_share_magic_link():
     if not user:
         allowed = _check_email_domain(email, CONFIG.EMAIL_DOMAIN_ALLOW_LIST)
         if not allowed:
+            LOGGER.info("Did not allow %s to register an account", email)
             return (
                 jsonify(
                     {
@@ -292,7 +298,7 @@ def generate_and_share_magic_link():
                         "detail": f"Email address {email} is not allowed to register an account. Please contact the administrator if you believe this is an error.",
                     }
                 ),
-                400,
+                403,
             )
 
     if user is not None:
@@ -304,7 +310,8 @@ def generate_and_share_magic_link():
 
     try:
         send_mail(email, subject, body)
-    except Exception:
+    except Exception as exc:
+        LOGGER.warning("Failed to send email to %s: %s", email, exc)
         return jsonify({"status": "error", "detail": "Email not sent successfully."}), 400
 
     return jsonify({"status": "success", "detail": "Email sent successfully."}), 200
