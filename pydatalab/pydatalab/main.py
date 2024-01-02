@@ -67,6 +67,9 @@ def create_app(config_override: Dict[str, Any] | None = None) -> Flask:
 
     LOGIN_MANAGER.init_app(app)
 
+    if CONFIG.EMAIL_AUTH_SMTP_SETTINGS is not None:
+        app.config.update(CONFIG.EMAIL_AUTH_SMTP_SETTINGS.dict())
+
     MAIL.init_app(app)
 
     pydatalab.mongo.create_default_indices()

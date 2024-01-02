@@ -1,8 +1,8 @@
 """Send an email using Flask-Mail with the configured SMTP server."""
 
-import os
-
 from flask_mail import Mail, Message
+
+from pydatalab.config import CONFIG
 
 MAIL = Mail()
 
@@ -20,7 +20,14 @@ def send_mail(recipient: str, subject: str, body: str):
         body (str): The body of the email.
 
     """
+
+    if CONFIG.EMAIL_AUTH_SMTP_SETTINGS is None:
+        raise RuntimeError("No SMTP settings configured.")
+
     message = Message(
-        sender=os.environ["MAIL_DEFAULT_SENDER"], recipients=[recipient], body=body, subject=subject
+        sender=CONFIG.EMAIL_AUTH_SMTP_SETTINGS.MAIL_DEFAULT_SENDER,
+        recipients=[recipient],
+        body=body,
+        subject=subject,
     )
     MAIL.send(message)
