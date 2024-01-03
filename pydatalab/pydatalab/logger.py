@@ -14,7 +14,7 @@ class AnsiColorHandler(logging.StreamHandler):
     LOGLEVEL_COLORS = {
         logging.DEBUG: "36m",
         logging.INFO: "32m",
-        logging.WARNING: "33m",
+        logging.WARNING: "103;30m",
         logging.ERROR: "1;91m",
         logging.CRITICAL: "101;30m",
     }
