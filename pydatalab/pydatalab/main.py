@@ -20,6 +20,59 @@ from pydatalab.utils import CustomJSONEncoder
 compress = Compress()
 
 
+def _warn_startup_settings(app):
+    """Loop over various secrets and settings and populate the logs if
+    missing or invalid.
+
+    """
+
+    if CONFIG.EMAIL_AUTH_SMTP_SETTINGS is None:
+        LOGGER.warning("No email auth SMTP settings provided, email registration will not work.")
+
+    if CONFIG.IDENTIFIER_PREFIX == "test":
+        LOGGER.critical(
+            "You should configure an identifier prefix for this deployment. "
+            "You should attempt to make it unique to your deployment or group. "
+            "In the future these will be optionally globally validated versus all deployments for uniqueness. "
+            "For now the value of %s will be used.",
+            CONFIG.IDENTIFIER_PREFIX,
+        )
+
+    secrets_and_errors = [
+        (
+            "GITHUB_OAUTH_CLIENT_ID",
+            "No GitHub OAuth client ID provided, GitHub login will not work",
+        ),
+        (
+            "GITHUB_OAUTH_CLIENT_SECRET",
+            "No GitHub OAuth client secret provided, GitHub login will not work",
+        ),
+        (
+            "ORCID_OAUTH_CLIENT_SECRET",
+            "No ORCID OAuth client secret provided, ORCID login will not work",
+        ),
+        ("ORCID_OAUTH_CLIENT_ID", "No ORCID OAuth client ID provided, ORCID login will not work"),
+        ("OPENAI_API_KEY", "No OpenAI API key provided, OpenAI-based ChatBlock will not work"),
+    ]
+
+    for secret, error in secrets_and_errors:
+        if not app.config.get(secret):
+            LOGGER.warning("%s: please set `%s`", error, secret)
+
+    if CONFIG.DEBUG:
+        LOGGER.warning("Running with debug logs enabled")
+
+    if CONFIG.TESTING:
+        LOGGER.critical(
+            "Running in testing mode, with no authentication required; this is not recommended for production use: set `CONFIG.TESTING`"
+        )
+
+    if not CONFIG.DEPLOYMENT_METADATA:
+        LOGGER.critical(
+            "No deployment metadata provided, please set `CONFIG.DEPLOYMENT_METADATA` to allow the UI to provide helpful information to users"
+        )
+
+
 def create_app(config_override: Dict[str, Any] | None = None) -> Flask:
     """Create the main `Flask` app with the given config.
 
@@ -45,6 +98,7 @@ def create_app(config_override: Dict[str, Any] | None = None) -> Flask:
 
     LOGGER.info("Starting app with Flask app.config: %s", app.config)
     LOGGER.info("Datalab config: %s", CONFIG.dict())
+    _warn_startup_settings(app)
 
     if CONFIG.BEHIND_REVERSE_PROXY:
         # Fix headers for reverse proxied app:
@@ -60,15 +114,13 @@ def create_app(config_override: Dict[str, Any] | None = None) -> Flask:
     app.json_encoder = CustomJSONEncoder
 
     # Must use the full path so that this object can be mocked for testing
+
     flask_mongo = pydatalab.mongo.flask_mongo
     flask_mongo.init_app(app, connectTimeoutMS=100, serverSelectionTimeoutMS=100)
 
     register_endpoints(app)
 
     LOGIN_MANAGER.init_app(app)
-
-    if CONFIG.EMAIL_AUTH_SMTP_SETTINGS is not None:
-        app.config.update(CONFIG.EMAIL_AUTH_SMTP_SETTINGS.dict())
 
     MAIL.init_app(app)
 

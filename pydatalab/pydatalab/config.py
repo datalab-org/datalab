@@ -185,26 +185,12 @@ its importance when deploying a datalab instance.""",
     def validate_identifier_prefix(cls, v, values):
         """Make sure that the identifier prefix is set and is valid, raising clear error messages if not.
 
-        If in testing mode, then set the prefix to test too.
+        If in testing mode, then set the prefix to 'test' too.
+        The app startup will test for this value and should also warn aggressively that this is unset.
 
         """
 
-        if values.get("TESTING"):
-            return "test"
-
-        if v is None:
-            import warnings
-
-            warning_msg = (
-                "You should configure an identifier prefix for this deployment. "
-                "You should attempt to make it unique to your deployment or group. "
-                "In the future these will be optionally globally validated versus all deployments for uniqueness. "
-                "For now the value of `test` will be used."
-            )
-
-            warnings.warn(warning_msg)
-            logging.warning(warning_msg)
-
+        if values.get("TESTING") or v is None:
             return "test"
 
         if len(v) > 12:
