@@ -50,7 +50,7 @@ def database(real_mongo_client):
 
 
 @pytest.fixture(scope="session")
-def app_config():
+def app_config(tmp_path_factory):
     example_remotes = [
         {
             "name": "example_data",
@@ -66,6 +66,7 @@ def app_config():
     yield {
         "MONGO_URI": MONGO_URI,
         "REMOTE_FILESYSTEMS": example_remotes,
+        "FILE_DIRECTORY": str(tmp_path_factory.mktemp("files")),
         "TESTING": True,
         "EMAIL_AUTH_SMTP_SETTINGS": {
             "MAIL_SERVER": "smtp.example.com",
