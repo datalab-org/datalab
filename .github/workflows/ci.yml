@@ -66,6 +66,10 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Install MongoDB tools binaries
+        run: |
+          wget https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2204-x86_64-100.9.0.deb && sudo apt install ./mongodb-database-tools-*-100.9.0.deb
+
       - name: Install latest compatible versions of immediate dependencies
         working-directory: ./pydatalab
         run: |
