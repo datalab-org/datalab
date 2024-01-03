@@ -18,8 +18,6 @@ from pydatalab.models.utils import PyObjectId
 from pydatalab.mongo import _get_active_mongo_client, flask_mongo
 from pydatalab.permissions import get_default_permissions
 
-FILE_DIRECTORY = CONFIG.FILE_DIRECTORY
-DIRECTORIES_DICT = {fs.name: fs for fs in CONFIG.REMOTE_FILESYSTEMS}
 LIVE_FILE_CUTOFF = datetime.timedelta(days=31)
 
 
@@ -132,6 +130,7 @@ def _check_and_sync_file(file_info: File, file_id: ObjectId) -> File:
         otherwise the old file info.
 
     """
+    directories_dict = {fs.name: fs for fs in CONFIG.REMOTE_FILESYSTEMS}
     file_collection = flask_mongo.db.files
     if not file_info.source_server_name or not file_info.source_path:
         raise RuntimeError("Attempted to sync file %s with no known remote", file_info)
@@ -144,10 +143,10 @@ def _check_and_sync_file(file_info: File, file_id: ObjectId) -> File:
         return file_info
 
     cached_timestamp = file_info.last_modified_remote
-    remote: RemoteFilesystem | None = DIRECTORIES_DICT.get(file_info.source_server_name, None)
+    remote: RemoteFilesystem | None = directories_dict.get(file_info.source_server_name, None)
     if not remote:
         LOGGER.warning(
-            f"Could not find desired remote for {file_info.source_server_name!r} in {DIRECTORIES_DICT}, cannot sync file"
+            f"Could not find desired remote for {file_info.source_server_name!r} in {directories_dict}, cannot sync file"
         )
         return file_info
 
@@ -398,7 +397,7 @@ def save_uploaded_file(
 
         inserted_id = result.inserted_id
 
-        new_directory = os.path.join(FILE_DIRECTORY, str(inserted_id))
+        new_directory = os.path.join(CONFIG.FILE_DIRECTORY, str(inserted_id))
         file_location = os.path.join(new_directory, filename)
         pathlib.Path(new_directory).mkdir(exist_ok=False)
         file.save(file_location)
@@ -439,6 +438,7 @@ def add_file_from_remote_directory(
 
     file_collection = flask_mongo.db.files
     sample_collection = flask_mongo.db.items
+    directories_dict = {fs.name: fs for fs in CONFIG.REMOTE_FILESYSTEMS}
 
     if not block_ids:
         block_ids = []
@@ -446,7 +446,7 @@ def add_file_from_remote_directory(
     extension = os.path.splitext(filename)[1]
 
     # generate the remote url
-    host: RemoteFilesystem = DIRECTORIES_DICT[file_entry["toplevel_name"]]
+    host: RemoteFilesystem = directories_dict[file_entry["toplevel_name"]]
 
     remote_path = os.path.join(file_entry["relative_path"].lstrip("/"), file_entry["name"])
 
@@ -500,7 +500,7 @@ def add_file_from_remote_directory(
 
     inserted_id = result.inserted_id
 
-    new_directory = os.path.join(FILE_DIRECTORY, str(inserted_id))
+    new_directory = os.path.join(CONFIG.FILE_DIRECTORY, str(inserted_id))
     new_file_location = os.path.join(new_directory, filename)
     pathlib.Path(new_directory).mkdir(exist_ok=True)
     _sync_file_with_remote(full_remote_path, new_file_location)
