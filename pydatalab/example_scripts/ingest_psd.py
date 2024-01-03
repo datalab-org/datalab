@@ -78,7 +78,6 @@ def upload_patterns_and_files(samples, id_pattern_map):
             response = requests.post(f"{API_URL}/add-remote-file-to-sample/", json=body, auth=AUTH)
 
             if response.status_code not in (200, 201, 409):
-                breakpoint()
                 raise RuntimeError(
                     f"Unable to add file {fname} to sample {sample_id}: {response.content}"
                 )
