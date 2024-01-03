@@ -54,7 +54,6 @@ class DataBlock:
             dictionary = {}
 
         if item_id is None and not self._supports_collections:
-            breakpoint()
             raise RuntimeError(f"Must supply `item_id` to make {self.__class__.__name__}.")
 
         if collection_id is not None and not self._supports_collections:
