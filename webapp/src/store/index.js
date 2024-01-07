@@ -12,6 +12,7 @@ export default createStore({
     all_collection_children: {},
     all_collection_parents: {},
     sample_list: [],
+    equipment_list: [],
     starting_material_list: [],
     collection_list: [],
     saved_status_items: {},
@@ -39,6 +40,10 @@ export default createStore({
       // collectionSummaries is an array of json objects summarizing the available collections
       state.collection_list = collectionSummaries;
     },
+    setEquipmentList(state, equipmentSummaries) {
+      // equipmentSummary is an array of json objects summarizing the available samples
+      state.equipment_list = equipmentSummaries;
+    },
     appendToSampleList(state, sampleSummary) {
       // sampleSummary is a json object summarizing the new sample
       state.sample_list.push(sampleSummary);
@@ -46,6 +51,10 @@ export default createStore({
     prependToSampleList(state, sampleSummary) {
       // sampleSummary is a json object summarizing the new sample
       state.sample_list.unshift(sampleSummary);
+    },
+    prependToEquipmentList(state, equipmentSummary) {
+      // sampleSummary is a json object summarizing the new sample
+      state.equipment_list.unshift(equipmentSummary);
     },
     prependToCollectionList(state, collectionSummary) {
       // collectionSummary is a json object summarizing the new collection

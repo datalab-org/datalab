@@ -116,7 +116,13 @@ export function createNewItem(
     console.log("received the following data from fetch new-sample:");
     console.log(response_json.sample_list_entry);
     console.log(`item_id: ${item_id}`);
-    store.commit("prependToSampleList", response_json.sample_list_entry);
+    const returned_type = response_json.sample_list_entry.type;
+    if (returned_type === "samples" || returned_type === "cells") {
+      store.commit("prependToSampleList", response_json.sample_list_entry);
+    }
+    if (returned_type === "equipment") {
+      store.commit("prependToEquipmentList", response_json.sample_list_entry);
+    }
     return "success";
   });
 }
@@ -209,6 +215,18 @@ export function getStartingMaterialList() {
     })
     .catch((error) => {
       console.error("Error when fetching starting material list");
+      console.error(error);
+      throw error;
+    });
+}
+
+export function getEquipmentList() {
+  return fetch_get(`${API_URL}/equipment/`)
+    .then(function (response_json) {
+      store.commit("setEquipmentList", response_json.items);
+    })
+    .catch((error) => {
+      console.error("Error when fetching equipment list");
       console.error(error);
       throw error;
     });

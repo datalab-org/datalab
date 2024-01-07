@@ -94,6 +94,13 @@ export const itemTypes = {
     isCreateable: false,
     display: "user",
   },
+  equipment: {
+    navbarColor: "#c77c02",
+    navbarName: "Equipment",
+    lightColor: "#f7d6a1",
+    labelColor: "#c77c02",
+    display: "equipment",
+  },
 };
 
 export const cellFormats = {
