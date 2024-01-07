@@ -74,6 +74,56 @@ def dereference_files(file_ids: List[Union[str, ObjectId]]) -> Dict[str, Dict]:
     return results
 
 
+def get_equipment_summary():
+    if not current_user.is_authenticated and not CONFIG.TESTING:
+        return (
+            jsonify(
+                status="error",
+                message="Authorization required to access chemical inventory.",
+            ),
+            401,
+        )
+
+    _project = {
+        "_id": 0,
+        "creators": {
+            "display_name": 1,
+            "contact_email": 1,
+        },
+        # "collections": {
+        #     "collection_id": 1,
+        #     "title": 1,
+        # },
+        "item_id": 1,
+        "name": 1,
+        "nblocks": {"$size": "$display_order"},
+        "characteristic_chemical_formula": 1,
+        "type": 1,
+        "date": 1,
+        "refcode": 1,
+        "location": 1,
+    }
+
+    items = [
+        doc
+        for doc in flask_mongo.db.items.aggregate(
+            [
+                {
+                    "$match": {
+                        "type": "equipment",
+                        **get_default_permissions(user_only=False),
+                    }
+                },
+                {"$project": _project},
+            ]
+        )
+    ]
+    return jsonify({"status": "success", "items": items})
+
+
+get_equipment_summary.methods = ("GET",)  # type: ignore
+
+
 def get_starting_materials():
     if not current_user.is_authenticated and not CONFIG.TESTING:
         return (
@@ -276,7 +326,10 @@ def search_items():
     if isinstance(types, str):
         types = types.split(",")  # should figure out how to parse as list automatically
 
-    match_obj = {"$text": {"$search": query}, **get_default_permissions(user_only=False)}
+    match_obj = {
+        "$text": {"$search": query},
+        **get_default_permissions(user_only=False),
+    }
     if types is not None:
         match_obj["type"] = {"$in": types}
 
@@ -360,7 +413,11 @@ def _create_sample(sample_dict: dict, copy_from_item_id: Optional[str] = None) -
             sample_dict = copied_doc
 
         elif copied_doc["type"] == "cells":
-            for component in ("positive_electrode", "negative_electrode", "electrolyte"):
+            for component in (
+                "positive_electrode",
+                "negative_electrode",
+                "electrolyte",
+            ):
                 if copied_doc.get(component):
                     existing_consituent_ids = [
                         constituent["item"].get("item_id", None)
@@ -402,7 +459,10 @@ def _create_sample(sample_dict: dict, copy_from_item_id: Optional[str] = None) -
         # locally for testing creator UI elements
         new_sample["creator_ids"] = [24 * "0"]
         new_sample["creators"] = [
-            {"display_name": "Public testing user", "contact_email": "datalab@odbx.science"}
+            {
+                "display_name": "Public testing user",
+                "contact_email": "datalab@odbx.science",
+            }
         ]
     else:
         new_sample["creator_ids"] = [current_user.person.immutable_id]
@@ -484,6 +544,11 @@ def _create_sample(sample_dict: dict, copy_from_item_id: Optional[str] = None) -
         },
         201,  # 201: Created
     )
+
+    # hack to let us use _create_sample() for equipment too. We probably want to make
+    # a more general create_item() to more elegantly handle different returns.
+    if data_model.type == "equipment":
+        data[0]["sample_list_entry"]["location"] = data_model.location
 
     return data
 
@@ -585,7 +650,12 @@ def get_item_data(item_id, load_blocks: bool = False):
     # retrieve the entry from the database:
     cursor = flask_mongo.db.items.aggregate(
         [
-            {"$match": {"item_id": item_id, **get_default_permissions(user_only=False)}},
+            {
+                "$match": {
+                    "item_id": item_id,
+                    **get_default_permissions(user_only=False),
+                }
+            },
             {"$lookup": creators_lookup()},
             {"$lookup": collections_lookup()},
             {"$lookup": files_lookup()},
@@ -708,7 +778,14 @@ def save_item():
     updated_data = request_json["data"]
 
     # These keys should not be updated here and cannot be modified by the user through this endpoint
-    for k in ("_id", "file_ObjectIds", "creators", "creator_ids", "item_id", "relationships"):
+    for k in (
+        "_id",
+        "file_ObjectIds",
+        "creators",
+        "creator_ids",
+        "item_id",
+        "relationships",
+    ):
         if k in updated_data:
             del updated_data[k]
 
@@ -827,6 +904,7 @@ def search_users():
 ENDPOINTS: Dict[str, Callable] = {
     "/samples/": get_samples,
     "/starting-materials/": get_starting_materials,
+    "/equipment/": get_equipment_summary,
     "/search-items/": search_items,
     "/search-users/": search_users,
     "/new-sample/": create_sample,
