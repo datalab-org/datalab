@@ -12,6 +12,7 @@ export default createStore({
     all_collection_children: {},
     all_collection_parents: {},
     sample_list: [],
+    equipment_list: [],
     starting_material_list: [],
     collection_list: [],
     saved_status_items: {},
@@ -43,6 +44,10 @@ export default createStore({
     setDisplayName(state, displayName) {
       state.currentUserDisplayName = displayName;
     },
+    setEquipmentList(state, equipmentSummaries) {
+      // equipmentSummary is an array of json objects summarizing the available samples
+      state.equipment_list = equipmentSummaries;
+    },
     appendToSampleList(state, sampleSummary) {
       // sampleSummary is a json object summarizing the new sample
       state.sample_list.push(sampleSummary);
@@ -54,6 +59,10 @@ export default createStore({
     prependToStartingMaterialList(state, itemSummary) {
       // sampleSummary is a json object summarizing the new sample
       state.starting_material_list.unshift(itemSummary);
+    },
+    prependToEquipmentList(state, equipmentSummary) {
+      // sampleSummary is a json object summarizing the new sample
+      state.equipment_list.unshift(equipmentSummary);
     },
     prependToCollectionList(state, collectionSummary) {
       // collectionSummary is a json object summarizing the new collection
