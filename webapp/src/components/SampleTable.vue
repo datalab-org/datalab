@@ -33,7 +33,7 @@
             enableModifiedClick
           />
         </td>
-        <td aligh="center">{{ itemTypes[sample.type].display }}</td>
+        <td align="center">{{ itemTypes[sample.type].display }}</td>
         <td align="left">{{ sample.name }}</td>
         <td><ChemicalFormula :formula="sample.chemform" /></td>
         <td class="text-center">{{ $filters.IsoDatetimeToDate(sample.date) }}</td>
