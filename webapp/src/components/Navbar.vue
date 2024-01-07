@@ -13,6 +13,8 @@
     <router-link to="/samples">Samples</router-link> |
     <router-link to="/collections">Collections</router-link> |
     <router-link to="/starting-materials">Inventory</router-link> |
+    <router-link to="/equipment">Equipment</router-link> |
+
     <router-link to="/item-graph"
       ><font-awesome-icon icon="project-diagram" />&nbsp;Graph View</router-link
     >

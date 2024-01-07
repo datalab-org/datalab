@@ -16,6 +16,8 @@ import CollectionInformation from "@/components/CollectionInformation";
 
 import SampleCreateModalAddon from "@/components/itemCreateModalAddons/SampleCreateModalAddon";
 import CellCreateModalAddon from "@/components/itemCreateModalAddons/CellCreateModalAddon";
+import CollectionInformation from "@/components/CollectionInformation";
+import EquipmentInformation from "@/components/EquipmentInformation";
 
 // Look for values set in .env file. Use defaults if `null` is not explicitly handled elsewhere in the code.
 export const API_URL =
@@ -100,6 +102,14 @@ export const itemTypes = {
     labelColor: "mediumseagreen",
     isCreateable: false,
     display: "user",
+  },
+  equipment: {
+    itemInformationComponent: EquipmentInformation,
+    navbarColor: "#c77c02",
+    navbarName: "Equipment",
+    lightColor: "#f7d6a1",
+    labelColor: "#c77c02",
+    display: "equipment",
   },
 };
 
