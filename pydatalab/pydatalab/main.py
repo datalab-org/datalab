@@ -17,7 +17,7 @@ from pydatalab.login import LOGIN_MANAGER
 from pydatalab.send_email import MAIL
 from pydatalab.utils import CustomJSONEncoder
 
-compress = Compress()
+COMPRESS = Compress()
 
 
 def _warn_startup_settings(app):
@@ -68,7 +68,7 @@ def _warn_startup_settings(app):
         )
 
     if not CONFIG.DEPLOYMENT_METADATA:
-        LOGGER.critical(
+        LOGGER.warning(
             "No deployment metadata provided, please set `CONFIG.DEPLOYMENT_METADATA` to allow the UI to provide helpful information to users"
         )
 
@@ -93,11 +93,10 @@ def create_app(config_override: Dict[str, Any] | None = None) -> Flask:
         CONFIG.update(config_override)
 
     app.config.update(CONFIG.dict())
-    app.config["MAIL_DEBUG"] = CONFIG.DEBUG
+    app.config["MAIL_DEBUG"] = CONFIG.TESTING
     app.config.update(dotenv_values())
 
     LOGGER.info("Starting app with Flask app.config: %s", app.config)
-    LOGGER.info("Datalab config: %s", CONFIG.dict())
     _warn_startup_settings(app)
 
     if CONFIG.BEHIND_REVERSE_PROXY:
@@ -118,18 +117,16 @@ def create_app(config_override: Dict[str, Any] | None = None) -> Flask:
     flask_mongo = pydatalab.mongo.flask_mongo
     flask_mongo.init_app(app, connectTimeoutMS=100, serverSelectionTimeoutMS=100)
 
-    register_endpoints(app)
-
-    LOGIN_MANAGER.init_app(app)
-
-    MAIL.init_app(app)
+    for extension in (LOGIN_MANAGER, MAIL, COMPRESS):
+        extension.init_app(app)
 
     pydatalab.mongo.create_default_indices()
 
     if CONFIG.FILE_DIRECTORY is not None:
         pathlib.Path(CONFIG.FILE_DIRECTORY).mkdir(parents=False, exist_ok=True)
 
-    compress.init_app(app)
+    register_endpoints(app)
+    LOGGER.info("App created.")
 
     @app.route("/logout")
     def logout():
