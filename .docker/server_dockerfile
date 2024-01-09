@@ -45,4 +45,4 @@ EXPOSE ${PORT}
 ENV PORT=${PORT}
 
 
-CMD ["/bin/bash", "-c", "pipenv run gunicorn -w ${WEB_CONCURRENCY} --error-logfile /logs/pydatalab_error.log --access-logfile - -b 0.0.0.0:${PORT} 'pydatalab.main:create_app()'"]
+CMD ["/bin/bash", "-c", "pipenv run gunicorn --preload -w ${WEB_CONCURRENCY} --error-logfile /logs/pydatalab_error.log --access-logfile - -b 0.0.0.0:${PORT} 'pydatalab.main:create_app()'"]
