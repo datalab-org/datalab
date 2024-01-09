@@ -23,7 +23,9 @@ class AnsiColorHandler(logging.StreamHandler):
 
     def __init__(self) -> None:
         super().__init__()
-        self.formatter = logging.Formatter("%(asctime)s - %(name)s | %(levelname)-8s: %(message)s")
+        self.formatter = logging.Formatter(
+            "%(asctime)s | %(levelname)-8s: %(message)s (PID: %(process)d - %(name)s: %(pathname)s:%(funcName)s:%(lineno)d)"
+        )
 
     def format(self, record: logging.LogRecord) -> str:
         from flask_login import current_user
