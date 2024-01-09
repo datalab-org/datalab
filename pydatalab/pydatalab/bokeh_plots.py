@@ -74,6 +74,7 @@ style = {
     }
 }
 
+
 """Additional style suitable for grid plots"""
 grid_style = {
     "attrs": {
@@ -109,8 +110,8 @@ grid_style = {
 }
 
 
-mytheme = Theme(json=style)
-grid_theme = Theme(json=grid_style)
+DATALAB_BOKEH_THEME = Theme(json=style)
+DATALAB_BOKEH_GRID_THEME = Theme(json=grid_style)
 
 
 def selectable_axes_plot(
