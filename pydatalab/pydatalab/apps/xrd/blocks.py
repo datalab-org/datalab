@@ -7,7 +7,7 @@ import pandas as pd
 from scipy.signal import medfilt
 
 from pydatalab.blocks.base import DataBlock
-from pydatalab.bokeh_plots import mytheme, selectable_axes_plot
+from pydatalab.bokeh_plots import DATALAB_BOKEH_THEME, selectable_axes_plot
 from pydatalab.file_utils import get_file_info_by_id
 from pydatalab.logger import LOGGER
 from pydatalab.mongo import flask_mongo
@@ -155,4 +155,4 @@ class XRDBlock(DataBlock):
                 point_size=3,
             )
 
-            self.data["bokeh_plot_data"] = bokeh.embed.json_item(p, theme=mytheme)
+            self.data["bokeh_plot_data"] = bokeh.embed.json_item(p, theme=DATALAB_BOKEH_THEME)

@@ -13,7 +13,6 @@ from pydatalab.blocks.base import DataBlock
 from pydatalab.file_utils import get_file_info_by_id
 from pydatalab.logger import LOGGER
 from pydatalab.mongo import flask_mongo
-from pydatalab.simple_bokeh_plot import mytheme
 
 from .utils import (
     compute_gpcl_differential,
@@ -210,7 +209,9 @@ class CycleBlock(DataBlock):
             df, cycle_summary=cycle_summary_df, mode=mode, normalized=bool(characteristic_mass_g)
         )
 
-        self.data["bokeh_plot_data"] = bokeh.embed.json_item(layout, theme=mytheme)
+        self.data["bokeh_plot_data"] = bokeh.embed.json_item(
+            layout, theme=bokeh_plots.DATALAB_BOKEH_THEME
+        )
         return
 
     @property
