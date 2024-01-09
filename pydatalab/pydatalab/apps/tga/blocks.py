@@ -8,7 +8,7 @@ from scipy.signal import savgol_filter
 
 from pydatalab.apps.tga.parsers import parse_mt_mass_spec_ascii
 from pydatalab.blocks.base import DataBlock
-from pydatalab.bokeh_plots import grid_theme, selectable_axes_plot
+from pydatalab.bokeh_plots import DATALAB_BOKEH_GRID_THEME, selectable_axes_plot
 from pydatalab.file_utils import get_file_info_by_id
 from pydatalab.logger import LOGGER
 
@@ -93,4 +93,4 @@ class MassSpecBlock(DataBlock):
                 grid.append(plots[i : i + M])
             p = gridplot(grid, sizing_mode="scale_width", toolbar_location="below")
 
-            self.data["bokeh_plot_data"] = bokeh.embed.json_item(p, theme=grid_theme)
+            self.data["bokeh_plot_data"] = bokeh.embed.json_item(p, theme=DATALAB_BOKEH_GRID_THEME)
