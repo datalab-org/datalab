@@ -43,7 +43,7 @@ export const blockTypes = {
   media: { description: "Media", component: MediaBlock },
   xrd: { description: "Powder XRD", component: XRDBlock },
   raman: { description: "Raman", component: RamanBlock },
-  raman_map: {description: "Raman Map", component: RamanMapBlock},
+  raman_map: { description: "Raman Map", component: RamanMapBlock },
   cycle: { description: "Electrochemistry", component: CycleBlock },
   eis: { description: "EIS", component: EISBlock },
   nmr: { description: "NMR", component: NMRBlock },
