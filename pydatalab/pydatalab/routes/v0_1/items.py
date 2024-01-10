@@ -518,37 +518,39 @@ def _create_sample(sample_dict: dict, copy_from_item_id: Optional[str] = None) -
             400,
         )
 
-    data = (
-        {
-            "status": "success",
-            "item_id": data_model.item_id,
-            "sample_list_entry": {
-                "refcode": data_model.refcode,
-                "item_id": data_model.item_id,
-                "nblocks": 0,
-                "date": data_model.date,
-                "name": data_model.name,
-                "creator_ids": data_model.creator_ids,
-                # TODO: This workaround for creators & collections is still gross, need to figure this out properly
-                "creators": [json.loads(c.json(exclude_unset=True)) for c in data_model.creators]
-                if data_model.creators
-                else [],
-                "collections": [
-                    json.loads(c.json(exclude_unset=True, exclude_none=True))
-                    for c in data_model.collections
-                ]
-                if data_model.collections
-                else [],
-                "type": data_model.type,
-            },
-        },
-        201,  # 201: Created
-    )
+    sample_list_entry = {
+        "refcode": data_model.refcode,
+        "item_id": data_model.item_id,
+        "nblocks": 0,
+        "date": data_model.date,
+        "name": data_model.name,
+        "creator_ids": data_model.creator_ids,
+        # TODO: This workaround for creators & collections is still gross, need to figure this out properly
+        "creators": [json.loads(c.json(exclude_unset=True)) for c in data_model.creators]
+        if data_model.creators
+        else [],
+        "collections": [
+            json.loads(c.json(exclude_unset=True, exclude_none=True))
+            for c in data_model.collections
+        ]
+        if data_model.collections
+        else [],
+        "type": data_model.type,
+    }
 
     # hack to let us use _create_sample() for equipment too. We probably want to make
     # a more general create_item() to more elegantly handle different returns.
     if data_model.type == "equipment":
-        data[0]["sample_list_entry"]["location"] = data_model.location
+        sample_list_entry["location"] = data_model.location
+
+    data = (
+        {
+            "status": "success",
+            "item_id": data_model.item_id,
+            "sample_list_entry": sample_list_entry,
+        },
+        201,  # 201: Created
+    )
 
     return data
 
