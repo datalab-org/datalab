@@ -91,12 +91,11 @@ class RamanMapBlock(DataBlock):
         origin = [float(origin[0]), float(origin[1])]
         x_span = float(data[0]["original_metadata"]["WHTL_0"]["FocalPlaneXResolution"])
         y_span = float(data[0]["original_metadata"]["WHTL_0"]["FocalPlaneYResolution"])
-        
+        print(x_span,y_span,origin)
         # converts image to vector compatible with bokeh
-        image_data = np.array(image, dtype=np.uint8)
-        image_data = np.dstack((image_data, 255 * np.ones_like(image_data[:, :, 0])))
-        img_vector = image_data.view(dtype=np.uint32).reshape((image_data.shape[0], image_data.shape[1]))
- 
+        image_array = np.array(image, dtype=np.uint8)
+        image_array = np.dstack((image_array, 255 * np.ones_like(image_array[:, :, 0])))
+        img_vector = image_array.view(dtype=np.uint32).reshape((image_array.shape[0], image_array.array[1]))
         # generates numbers for colours for points in linear gradient
         col = [i/(len(x_coordinates)*len(y_coordinates)) for i in range(len(x_coordinates)*len(y_coordinates))]
 
@@ -110,8 +109,7 @@ class RamanMapBlock(DataBlock):
 
         # generates image figure and plots image
         from pathlib import Path
-        bokeh.plotting.output_file(Path(__file__).parent/"plot.html")
-        p = bokeh.plotting.figure(width=image_data.shape[1], height=image_data.shape[0], x_range=(origin[0], origin[0] + x_span), y_range=(origin[1]+y_span,origin[1]))
+        p = bokeh.plotting.figure(width=image_array.shape[1], height=image_array.shape[0], x_range=(origin[0], origin[0] + x_span), y_range=(origin[1]+y_span,origin[1]))
         p.image_rgba(image=[img_vector], x=origin[0], y=origin[1], dw=x_span, dh=y_span)
         # plot scatter points and colorbar
         p.circle('x','y', size=10, source = source,
@@ -125,22 +123,22 @@ class RamanMapBlock(DataBlock):
         return col, p, metadata
     
     def plot_raman_spectra(self, location: str | Path, col):
+        # generates plot and extracts raman spectra from .wdf file
         p = bokeh.plotting.figure(width=800, height=400, x_axis_label='Raman Shift (cm-1)', y_axis_label='Intensity (a.u.)')
         raman_shift, intensity_data, metadata = self.get_map_data(location)
-        print(intensity_data)
         intensity_list = []
+        # generates baseline to be subtracted from spectra
         def generate_baseline(x_data, y_data):
             baseline_fitter = Baseline(x_data = x_data)
             baseline = baseline_fitter.mor(y_data, half_window=30)[0]
             return baseline
+        # the bokeh ColumnDataSource works was easiest for me to work with this as a list so making list of spectra intensities
         for i in range(intensity_data.shape[0]):
             for j in range(intensity_data.shape[1]):
                 intensity_spectrum = intensity_data[i, j, :]
                 # want to make optional but will leave for now
                 baseline = generate_baseline(raman_shift, intensity_spectrum)
                 intensity_spectrum = intensity_spectrum - baseline
-                # if normalised:
-                #     intensity_data = intensity_data/np.max(intensity_data)
                 intensity_list.append(intensity_spectrum)
         
         # generates colorbar
