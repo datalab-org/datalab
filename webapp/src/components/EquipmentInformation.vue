@@ -18,7 +18,7 @@
         <label for="datetime-local" class="mr-2">Date</label>
         <input
           type="datetime-local"
-          v-model="equipmentDate"
+          v-model="EquipmentDate"
           id="date-opened"
           class="form-control"
         />
@@ -37,10 +37,21 @@
           <input id="Manufacturer" v-model="Manufacturer" class="form-control" />
         </span>
       </div>
-
       <div class="form-group col-md-5">
         <label for="location" class="mr-2">Location</label>
         <input id="location" v-model="Location" class="form-control" />
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group col-md-8">
+        <label for="serial-input" class="mr-2">Serial no(s).</label>
+        <input id="serial-input" v-model="SerialNos" class="form-control" />
+      </div>
+      <div class="col-md-4 pb-3">
+        <label id="maintainers-label" class="mr-2">Maintainers</label>
+        <div class="mx-auto">
+          <Creators aria-labelledby="maintainers-label" :creators="Maintainers" :size="36" />
+        </div>
       </div>
     </div>
     <label class="mr-2">Description</label>
@@ -83,7 +94,9 @@ export default {
     Name: createComputedSetterForItemField("name"),
     Location: createComputedSetterForItemField("location"),
     Refcode: createComputedSetterForItemField("refcode"),
-    equipmentDate: createComputedSetterForItemField("date"),
+    EquipmentDate: createComputedSetterForItemField("date"),
+    SerialNos: createComputedSetterForItemField("serial_numbers"),
+    Maintainers: createComputedSetterForItemField("creators"),
   },
   components: {
     TinyMceInline,
