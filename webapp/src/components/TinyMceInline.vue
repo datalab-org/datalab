@@ -8,13 +8,13 @@
       menubar: false,
       placeholder: 'Add a description',
       toolbar_location: 'bottom',
-      plugins: 'hr image link lists charmap table',
+      plugins: 'hr image link lists charmap table emoticons',
       table_default_styles: {
         width: '50%',
         'margin-left': '1rem',
       },
       toolbar:
-        'bold italic underline strikethrough superscript subscript forecolor backcolor removeformat | 		alignleft aligncenter alignright | bullist numlist indent outdent | headergroup insertgroup | table',
+        'bold italic underline strikethrough superscript subscript forecolor backcolor removeformat |     alignleft aligncenter alignright | bullist numlist indent outdent | headergroup insertgroup | table',
       toolbar_groups: {
         formatgroup: {
           icon: 'format',
@@ -45,11 +45,11 @@
 </template>
 
 <script>
-// import {createComputedSetterForBlockField} from "@/field_utils.js"
-
 export default {
   data: function () {
-    return { content: this.modelValue };
+    return {
+      content: this.modelValue,
+    };
   },
   props: ["modelValue", "placeholder"],
   emits: ["update:modelValue"],
@@ -74,11 +74,11 @@ export default {
 
 /* styles for the tables.. but they don't work in scoped*/
 /*table {
-	width: 50%;
-	margin-left: 1rem;
+  width: 50%;
+  margin-left: 1rem;
 }
 tbody tr:first-child {
-	font-weight: 600;
-	background-color: #edfff5;
+  font-weight: 600;
+  background-color: #edfff5;
 }*/
 </style>
