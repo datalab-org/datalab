@@ -92,7 +92,7 @@ export default {
     },
     blockType() {
       try {
-        return this.block["blockType"];
+        return this.block["blocktype"];
       } catch {
         return "Block type not found";
       }
