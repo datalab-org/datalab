@@ -29,11 +29,11 @@ class Sample(Item):
         if values.get("synthesis_constituents") is not None:
             existing_parent_relationship_ids = set()
             if values.get("relationships") is not None:
-                existing_parent_relationship_ids = set(
+                existing_parent_relationship_ids = {
                     relationship.item_id or relationship.refcode
                     for relationship in values["relationships"]
                     if relationship.relation == RelationshipType.PARENT
-                )
+                }
             else:
                 values["relationships"] = []
 

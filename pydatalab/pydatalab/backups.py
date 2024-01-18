@@ -179,7 +179,7 @@ def create_backup(strategy: BackupStrategy) -> bool:
         sftp = client.open_sftp()
         try:
             sftp.chdir(path=str(strategy.location))
-        except IOError:
+        except OSError:
             sftp.mkdir(path=str(strategy.location))
             sftp.chdir(path=str(strategy.location))
 

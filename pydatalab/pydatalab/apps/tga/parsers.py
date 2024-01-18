@@ -27,7 +27,7 @@ def parse_mt_mass_spec_ascii(path: Path) -> Dict[str, Union[pd.DataFrame, Dict]]
     if not path.exists():
         raise RuntimeError(f"Provided path does not exist: {path!r}")
 
-    with open(path, "r") as f:
+    with open(path) as f:
         # Read start of file until all header keys have been found
         max_header_lines = 8
         reads = 0

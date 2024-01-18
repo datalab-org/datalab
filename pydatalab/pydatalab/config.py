@@ -123,7 +123,7 @@ class ServerConfig(BaseSettings):
     """A model that provides settings for deploying the API."""
 
     SECRET_KEY: str = Field(
-        hashlib.sha512(((platform.platform() + str(platform.python_build)).encode())).hexdigest(),
+        hashlib.sha512((platform.platform() + str(platform.python_build)).encode()).hexdigest(),
         description="The secret key to use for Flask. This value should be changed and/or loaded from an environment variable for production deployments.",
     )
 
