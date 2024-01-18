@@ -165,7 +165,7 @@ class RamanBlock(DataBlock):
                     self.accepted_file_extensions,
                     ext,
                 )
-            pattern_dfs, y_options, _ = self.load(file_info["location"])
+            pattern_dfs, metadata, y_options = self.load(file_info["location"])
             pattern_dfs = [pattern_dfs]
 
         if pattern_dfs:
