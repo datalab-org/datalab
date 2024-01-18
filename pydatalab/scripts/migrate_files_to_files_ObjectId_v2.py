@@ -65,7 +65,7 @@ for sample in all_samples:
 
         result = file_collection.insert_one(new_file_document)
         if not result.acknowledged:
-            raise IOError(f"db operation failed when trying to insert new file. Result: {result}")
+            raise OSError(f"db operation failed when trying to insert new file. Result: {result}")
 
         inserted_id = result.inserted_id
 
@@ -89,6 +89,6 @@ for sample in all_samples:
             {"sample_id": sample_id}, {"$push": {"file_ObjectIds": inserted_id}}
         )
         if sample_update_result.modified_count != 1:
-            raise IOError(
+            raise OSError(
                 f"mdb operation failed when trying to insert new file ObjectId into sample: {sample_id}"
             )

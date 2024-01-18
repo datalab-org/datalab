@@ -82,11 +82,11 @@ class Cell(Item):
 
         existing_parthood_relationship_ids = set()
         if values.get("relationships") is not None:
-            existing_parthood_relationship_ids = set(
+            existing_parthood_relationship_ids = {
                 relationship.item_id
                 for relationship in values["relationships"]
                 if relationship.relation == RelationshipType.PARTHOOD
-            )
+            }
         else:
             values["relationships"] = []
 

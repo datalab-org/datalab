@@ -45,14 +45,14 @@ class IsCollectable(BaseModel):
         from pydatalab.models.relationships import TypedRelationship
 
         if values.get("collections") is not None:
-            new_ids = set(coll.immutable_id for coll in values["collections"])
+            new_ids = {coll.immutable_id for coll in values["collections"]}
             existing_collection_relationship_ids = set()
             if values.get("relationships") is not None:
-                existing_collection_relationship_ids = set(
+                existing_collection_relationship_ids = {
                     relationship.immutable_id
                     for relationship in values["relationships"]
                     if relationship.type == "collections"
-                )
+                }
             else:
                 values["relationships"] = []
 

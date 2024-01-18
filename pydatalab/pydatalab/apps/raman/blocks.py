@@ -33,7 +33,7 @@ class RamanBlock(DataBlock):
         if ext == ".txt":
             try:
                 header = []
-                with open(location, "r", encoding="cp1252") as f:
+                with open(location, encoding="cp1252") as f:
                     for line in f:
                         if line.startswith("#"):
                             header.append(line)

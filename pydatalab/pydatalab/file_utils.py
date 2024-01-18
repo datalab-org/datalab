@@ -256,7 +256,7 @@ def get_file_info_by_id(
         {"_id": file_id, **get_default_permissions(user_only=False)}
     )
     if not file_info:
-        raise IOError(f"could not find file with id: {file_id} in db")
+        raise OSError(f"could not find file with id: {file_id} in db")
 
     file_info = File(**file_info)
 
@@ -291,7 +291,7 @@ def update_uploaded_file(file, file_id, last_modified=None, size_bytes=None):
     )
 
     if not updated_file_entry:
-        raise IOError(f"Issue with db update uploaded file {file.name} id {file_id}")
+        raise OSError(f"Issue with db update uploaded file {file.name} id {file_id}")
 
     updated_file_entry = File(**updated_file_entry)
 
@@ -422,7 +422,7 @@ def save_uploaded_file(
             {"$push": {"file_ObjectIds": inserted_id}},
         )
         if sample_update_result.modified_count != 1:
-            raise IOError(
+            raise OSError(
                 f"db operation failed when trying to insert new file ObjectId into sample: {item_id}"
             )
 
@@ -496,7 +496,7 @@ def add_file_from_remote_directory(
 
     result = file_collection.insert_one(new_file_document.dict())
     if not result.acknowledged:
-        raise IOError(f"db operation failed when trying to insert new file. Result: {result}")
+        raise OSError(f"db operation failed when trying to insert new file. Result: {result}")
 
     inserted_id = result.inserted_id
 
@@ -521,7 +521,7 @@ def add_file_from_remote_directory(
         {"$push": {"file_ObjectIds": inserted_id}},
     )
     if sample_update_result.modified_count != 1:
-        raise IOError(
+        raise OSError(
             f"db operation failed when trying to insert new file ObjectId into sample: {item_id}"
         )
 
@@ -562,7 +562,7 @@ def remove_file_from_sample(item_id: Union[str, ObjectId], file_id: Union[str, O
     )
 
     if sample_result.modified_count < 1:
-        raise IOError(
+        raise OSError(
             f"Failed to remove {file_id!r} from item {item_id!r}. Result: {sample_result.raw_result}"
         )
 
