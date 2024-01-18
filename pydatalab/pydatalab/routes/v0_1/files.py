@@ -22,7 +22,7 @@ def get_file(file_id: str, filename: str):
         # so just 401
         _file_id = file_id
     if not pydatalab.mongo.flask_mongo.db.files.find_one(
-        {"_id": _file_id, **get_default_permissions(user_only=True)}
+        {"_id": _file_id, **get_default_permissions(user_only=False)}
     ):
         return (
             jsonify(
