@@ -417,10 +417,20 @@ admin.add_task(import_cheminventory)
 
 
 @task
-def create_backup(_, strategy_name: str):
-    """Create a backup given the strategy name in the config.
+def create_backup(
+    _, strategy_name: str | None = None, output_path: pathlib.Path | str | None = None
+):
+    """Create a backup given the strategy name in the config or a local output path.
 
-    This task can be added as a cronjob on the server, ideally using
+    If a strategy is not provided, this task will simply write a backup file
+    to the chosen path (must end with .tar or .tar.gz).
+    No retention policy will be applied, and remote backups are not possible
+    via this route.
+
+    If a strategy is provided, this task will create a backup file following all
+    the configured settings, including retention and remote storage.
+
+    This task could be added as a cronjob on the server, ideally using
     the frequency specified in the strategy to avoid confusion.
 
     Example usage in cron:
@@ -434,17 +444,27 @@ def create_backup(_, strategy_name: str):
     ```
 
     """
-    from pydatalab.backups import create_backup
+    from pydatalab.backups import create_backup, take_snapshot
     from pydatalab.config import CONFIG
 
-    if not CONFIG.BACKUP_STRATEGIES:
-        raise SystemExit("No backup strategies configured.")
+    if output_path and strategy_name:
+        raise SystemExit("Cannot specify both an output path and a strategy name.")
 
-    strategy = CONFIG.BACKUP_STRATEGIES.get(strategy_name)
-    if strategy is None:
-        raise SystemExit(f"Backup strategy {strategy_name!r} not found in config.")
+    if output_path is not None:
+        return take_snapshot(pathlib.Path(output_path))
 
-    create_backup(strategy)
+    if strategy_name is not None:
+        if not CONFIG.BACKUP_STRATEGIES:
+            raise SystemExit("No backup strategies configured and output path not provided.")
+
+        strategy = CONFIG.BACKUP_STRATEGIES.get(strategy_name)
+        if strategy is None:
+            raise SystemExit(f"Backup strategy {strategy_name!r} not found in config.")
+
+    else:
+        raise SystemExit("No backup strategy or output path provided.")
+
+    return create_backup(strategy)
 
 
 admin.add_task(create_backup)
