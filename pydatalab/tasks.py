@@ -23,7 +23,7 @@ def update_file(filename: str, sub_line: Tuple[str, str], strip: str | None = No
     Modified from optimade-python-tools.
 
     """
-    with open(filename, "r") as handle:
+    with open(filename) as handle:
         lines = [re.sub(sub_line[0], sub_line[1], line.rstrip(strip)) for line in handle]
 
     with open(filename, "w") as handle:

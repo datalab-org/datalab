@@ -24,7 +24,7 @@ def parse_xrdml(filename: str) -> pd.DataFrame:
         filename: The file to parse.
 
     """
-    with open(filename, "r") as f:
+    with open(filename) as f:
         s = f.read()
 
     start, end = getStartEnd(s)  # extract first and last angle
@@ -70,7 +70,7 @@ def convertSinglePattern(
             )
             return outfn
 
-    with open(filename, "r") as f:
+    with open(filename) as f:
         s = f.read()
 
     print(f"Processing file {filename}")
