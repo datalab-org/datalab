@@ -64,6 +64,9 @@ services:
     networks:
       - nginx
       - backend
+    environment:
+      - PYDATALAB_TESTING=true
+      - PYDATALAB_MONGO_URI=mongodb://database:27017/datalabvue
 
   database:
     build:
