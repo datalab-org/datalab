@@ -109,8 +109,12 @@ When scheduling backups externally, it is recommended you do not use `cron` insi
 Instead, you could schedule a job that calls, for example:
 
 ```shell
-docker compose exec api pipenv run admin.create-backup --strategy-name daily-snapshots
+#              <container name>          <invoke task name>            <configured strategy name>
+#                    ^                           ^                                  ^
+docker compose exec api invoke pipenv run admin.create-backup --strategy-name daily-snapshots
 ```
+
+Care must be taken to schedule this command to run from the correct directory.
 
 In the future, this may be integrated directly into the *datalab* server using a Python-based scheduler.
 
