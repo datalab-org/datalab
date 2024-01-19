@@ -141,6 +141,11 @@ class ServerConfig(BaseSettings):
         description="The path under which to place stored files uploaded to the server.",
     )
 
+    LOG_FILE: Union[str, Path] = Field(
+        Path(__file__).parent.joinpath("../logs/datalab.log").resolve(),
+        description="The path to the log file to use for the server and all associated processes (e.g., invoke tasks)",
+    )
+
     DEBUG: bool = Field(True, description="Whether to enable debug-level logging in the server.")
 
     TESTING: bool = Field(
@@ -272,6 +277,17 @@ its importance when deploying a datalab instance.""",
                 values["BACKUP_STRATEGIES"][name].active = False
 
         return values
+
+    @validator("LOG_FILE")
+    def make_missing_log_directory(cls, v):
+        """Make sure that the log directory exists and is writable."""
+        try:
+            v = Path(v)
+            v.parent.mkdir(exist_ok=True, parents=True)
+            v.touch(exist_ok=True)
+        except Exception as exc:
+            raise RuntimeError(f"Unable to create log file at {v}") from exc
+        return v
 
     class Config:
         env_prefix = "pydatalab_"
