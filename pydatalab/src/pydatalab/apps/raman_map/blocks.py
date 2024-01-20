@@ -24,14 +24,18 @@ class RamanMapBlock(DataBlock):
 
     @classmethod
     def get_map_data(self, location: Path | str):
-        """Read the .wdf file with RosettaSciIO and extract relevant
-        data.
+        """Read the .wdf file with RosettaSciIO and extract the image
+        and points of the Raman measurements. Plots these as an image
+        overlaid by a scatter plot with points of gradient colours
 
         Parameters:
             location: The location of the file to read.
 
         Returns:
-            A dataframe with the appropriate columns,
+            col: list of numbers corresponding to colors of each scatter
+            point
+            p: plot of image and points Raman was measured
+            metadata: metadata associated witht the measurement
 
 
         """
@@ -57,7 +61,6 @@ class RamanMapBlock(DataBlock):
         raman_shift, intensity_data, metadata = self.get_map_data(location)
         x_coordinates = []
         # gets the size, point spacing and original offset of x-axis
-        # check for origin
         size_x = data[0]["original_metadata"]["WMAP_0"]["size_xyz"][0]
         scale_x = data[0]["original_metadata"]["WMAP_0"]["scale_xyz"][0]
         offset_x = data[0]["original_metadata"]["WMAP_0"]["offset_xyz"][0]
@@ -85,19 +88,19 @@ class RamanMapBlock(DataBlock):
         origin = [float(origin[0]), float(origin[1])]
         x_span = float(data[0]["original_metadata"]["WHTL_0"]["FocalPlaneXResolution"])
         y_span = float(data[0]["original_metadata"]["WHTL_0"]["FocalPlaneYResolution"])
-        print(x_span, y_span, origin)
         # converts image to vector compatible with bokeh
-        image_array = np.array(image, dtype=np.uint8)
-        image_array = np.dstack((image_array, 255 * np.ones_like(image_array[:, :, 0])))
-        img_vector = image_array.view(dtype=np.uint32).reshape(
-            (image_array.shape[0], image_array.array[1])
+        image_data = np.array(image, dtype=np.uint8)
+        image_data = np.flip(image_data, axis=0)
+        image_data = np.dstack((image_data, 255 * np.ones_like(image_data[:, :, 0])))
+        img_vector = image_data.view(dtype=np.uint32).reshape(
+            (image_data.shape[0], image_data.shape[1])
         )
+
         # generates numbers for colours for points in linear gradient
         col = [
             i / (len(x_coordinates) * len(y_coordinates))
             for i in range(len(x_coordinates) * len(y_coordinates))
         ]
-
         # links x- and y-coordinates with colour numbers
         source = ColumnDataSource(
             data={
@@ -108,17 +111,14 @@ class RamanMapBlock(DataBlock):
         )
         # gemerates colormap for coloured scatter poitns
         exp_cmap = LinearColorMapper(palette="Turbo256", low=min(col), high=max(col))
-
         # generates image figure and plots image
-        from pathlib import Path
-
         p = bokeh.plotting.figure(
-            width=image_array.shape[1],
-            height=image_array.shape[0],
+            width=image_data.shape[1],
+            height=image_data.shape[0],
             x_range=(origin[0], origin[0] + x_span),
             y_range=(origin[1] + y_span, origin[1]),
         )
-        p.image_rgba(image=[img_vector], x=origin[0], y=origin[1], dw=x_span, dh=y_span)
+        p.image_rgba(image=[img_vector], x=origin[0], y=origin[1] + y_span, dw=x_span, dh=y_span)
         # plot scatter points and colorbar
         p.circle("x", "y", size=10, source=source, color={"field": "col", "transform": exp_cmap})
         color_bar = ColorBar(
@@ -132,6 +132,19 @@ class RamanMapBlock(DataBlock):
         return col, p, metadata
 
     def plot_raman_spectra(self, location: str | Path, col):
+        """Read the .wdf file with RosettaSciIO and extract relevant
+        data.
+
+        Parameters:
+            location: The location of the file to read.
+            col: list of numbers corresponding to colors of the points generated
+            in the map plot
+
+        Returns:
+            Bokeh plot of the Raman spectra
+
+
+        """
         # generates plot and extracts raman spectra from .wdf file
         p = bokeh.plotting.figure(
             width=800,
