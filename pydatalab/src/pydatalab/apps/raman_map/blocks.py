@@ -89,13 +89,12 @@ class RamanMapBlock(DataBlock):
         x_span = float(data[0]["original_metadata"]["WHTL_0"]["FocalPlaneXResolution"])
         y_span = float(data[0]["original_metadata"]["WHTL_0"]["FocalPlaneYResolution"])
         # converts image to vector compatible with bokeh
-        image_data = np.array(image, dtype=np.uint8)
-        image_data = np.flip(image_data, axis=0)
-        image_data = np.dstack((image_data, 255 * np.ones_like(image_data[:, :, 0])))
-        img_vector = image_data.view(dtype=np.uint32).reshape(
-            (image_data.shape[0], image_data.shape[1])
+        image_array = np.array(image, dtype=np.uint8)
+        image_array = np.flip(image_array, axis=0)
+        image_array = np.dstack((image_array, 255 * np.ones_like(image_array[:, :, 0])))
+        img_vector = image_array.view(dtype=np.uint32).reshape(
+            (image_array.shape[0], image_array.shape[1])
         )
-
         # generates numbers for colours for points in linear gradient
         col = [
             i / (len(x_coordinates) * len(y_coordinates))
@@ -115,6 +114,13 @@ class RamanMapBlock(DataBlock):
         p = bokeh.plotting.figure(
             width=image_data.shape[1],
             height=image_data.shape[0],
+            x_range=(origin[0], origin[0] + x_span),
+            y_range=(origin[1] + y_span, origin[1]),
+        )
+        p.image_rgba(image=[img_vector], x=origin[0], y=origin[1], dw=x_span, dh=y_span)
+        p = bokeh.plotting.figure(
+            width=image_array.shape[1],
+            height=image_array.shape[0],
             x_range=(origin[0], origin[0] + x_span),
             y_range=(origin[1] + y_span, origin[1]),
         )
