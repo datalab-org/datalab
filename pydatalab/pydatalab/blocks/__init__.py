@@ -37,8 +37,7 @@ __all__ = (
     "CycleBlock",
     "NMRBlock",
     "RamanBlock",
-    "RamanMapBlock"
-    "MassSpecBlock",
+    "RamanMapBlock" "MassSpecBlock",
     "BLOCK_TYPES",
     "BLOCKS",
 )

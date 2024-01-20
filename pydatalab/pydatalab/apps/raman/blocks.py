@@ -163,7 +163,7 @@ class RamanBlock(DataBlock):
                 raise RuntimeError(
                     "RamanBlock.generate_raman_plot(): Unsupported file extension (must be one of %s), not %s",
                     self.accepted_file_extensions,
-                    ext, 
+                    ext,
                 )
             pattern_dfs, y_options, _ = self.load(file_info["location"])
             pattern_dfs = [pattern_dfs]
