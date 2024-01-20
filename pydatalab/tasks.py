@@ -1,7 +1,9 @@
 import json
+import os
 import pathlib
 import re
 import sys
+import time
 from typing import Tuple
 
 from invoke import Collection, task
@@ -21,7 +23,7 @@ def update_file(filename: str, sub_line: Tuple[str, str], strip: str | None = No
     Modified from optimade-python-tools.
 
     """
-    with open(filename, "r") as handle:
+    with open(filename) as handle:
         lines = [re.sub(sub_line[0], sub_line[1], line.rstrip(strip)) for line in handle]
 
     with open(filename, "w") as handle:
@@ -413,6 +415,87 @@ def import_cheminventory(_, filename: str):
 
 admin.add_task(import_cheminventory)
 
+
+@task
+def create_backup(
+    _, strategy_name: str | None = None, output_path: pathlib.Path | str | None = None
+):
+    """Create a backup given the strategy name in the config or a local output path.
+
+    If a strategy is not provided, this task will simply write a backup file
+    to the chosen path (must end with .tar or .tar.gz).
+    No retention policy will be applied, and remote backups are not possible
+    via this route.
+
+    If a strategy is provided, this task will create a backup file following all
+    the configured settings, including retention and remote storage.
+
+    This task could be added as a cronjob on the server, ideally using
+    the frequency specified in the strategy to avoid confusion.
+
+    Example usage in cron:
+
+    ```shell
+    crontab -e
+    ```
+
+    ```shell
+    0 0 * * * /usr/local/bin/pipenv run invoke admin.create-backup --strategy-name=daily-snapshots
+    ```
+
+    """
+    from pydatalab.backups import create_backup, take_snapshot
+    from pydatalab.config import CONFIG
+
+    if output_path and strategy_name:
+        raise SystemExit("Cannot specify both an output path and a strategy name.")
+
+    if output_path is not None:
+        return take_snapshot(pathlib.Path(output_path))
+
+    if strategy_name is not None:
+        if not CONFIG.BACKUP_STRATEGIES:
+            raise SystemExit("No backup strategies configured and output path not provided.")
+
+        strategy = CONFIG.BACKUP_STRATEGIES.get(strategy_name)
+        if strategy is None:
+            raise SystemExit(f"Backup strategy {strategy_name!r} not found in config.")
+
+    else:
+        raise SystemExit("No backup strategy or output path provided.")
+
+    return create_backup(strategy)
+
+
+admin.add_task(create_backup)
+
+
+@task
+def restore_backup(_, snapshot_path: os.PathLike):
+    from pathlib import Path
+
+    from pydatalab.config import CONFIG
+
+    user_input = input(
+        f"!!! WARNING !!!\n\nThis is a destructive procedure and will:\n\t- overwrite any files currently saved at {CONFIG.FILE_DIRECTORY},\n\t- delete the database at {CONFIG.MONGO_URI}.\n\nInput [y] to continue, or anything else to abort: "
+    )
+    if user_input == "y":
+        from pydatalab.backups import restore_snapshot
+
+        print("Waiting 3 seconds for confirmation...")
+        time.sleep(3)
+        user_input = input("Are you sure? [y|n] ")
+
+        if user_input == "y":
+            print("Preparing to restore...")
+            time.sleep(5)
+            print("Restoring...")
+            return restore_snapshot(Path(snapshot_path))
+
+        print("Restore aborted.")
+
+
+admin.add_task(restore_backup)
 
 ns.add_collection(dev)
 ns.add_collection(admin)

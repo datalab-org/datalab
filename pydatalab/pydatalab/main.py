@@ -14,9 +14,63 @@ import pydatalab.mongo
 from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER, logged_route, setup_log
 from pydatalab.login import LOGIN_MANAGER
+from pydatalab.send_email import MAIL
 from pydatalab.utils import CustomJSONEncoder
 
-compress = Compress()
+COMPRESS = Compress()
+
+
+def _warn_startup_settings(app):
+    """Loop over various secrets and settings and populate the logs if
+    missing or invalid.
+
+    """
+
+    if CONFIG.EMAIL_AUTH_SMTP_SETTINGS is None:
+        LOGGER.warning("No email auth SMTP settings provided, email registration will not work.")
+
+    if CONFIG.IDENTIFIER_PREFIX == "test":
+        LOGGER.critical(
+            "You should configure an identifier prefix for this deployment. "
+            "You should attempt to make it unique to your deployment or group. "
+            "In the future these will be optionally globally validated versus all deployments for uniqueness. "
+            "For now the value of %s will be used.",
+            CONFIG.IDENTIFIER_PREFIX,
+        )
+
+    secrets_and_errors = [
+        (
+            "GITHUB_OAUTH_CLIENT_ID",
+            "No GitHub OAuth client ID provided, GitHub login will not work",
+        ),
+        (
+            "GITHUB_OAUTH_CLIENT_SECRET",
+            "No GitHub OAuth client secret provided, GitHub login will not work",
+        ),
+        (
+            "ORCID_OAUTH_CLIENT_SECRET",
+            "No ORCID OAuth client secret provided, ORCID login will not work",
+        ),
+        ("ORCID_OAUTH_CLIENT_ID", "No ORCID OAuth client ID provided, ORCID login will not work"),
+        ("OPENAI_API_KEY", "No OpenAI API key provided, OpenAI-based ChatBlock will not work"),
+    ]
+
+    for secret, error in secrets_and_errors:
+        if not app.config.get(secret):
+            LOGGER.warning("%s: please set `%s`", error, secret)
+
+    if CONFIG.DEBUG:
+        LOGGER.warning("Running with debug logs enabled")
+
+    if CONFIG.TESTING:
+        LOGGER.critical(
+            "Running in testing mode, with no authentication required; this is not recommended for production use: set `CONFIG.TESTING`"
+        )
+
+    if not CONFIG.DEPLOYMENT_METADATA:
+        LOGGER.warning(
+            "No deployment metadata provided, please set `CONFIG.DEPLOYMENT_METADATA` to allow the UI to provide helpful information to users"
+        )
 
 
 def create_app(config_override: Dict[str, Any] | None = None) -> Flask:
@@ -39,10 +93,11 @@ def create_app(config_override: Dict[str, Any] | None = None) -> Flask:
         CONFIG.update(config_override)
 
     app.config.update(CONFIG.dict())
+    app.config["MAIL_DEBUG"] = CONFIG.TESTING
     app.config.update(dotenv_values())
 
     LOGGER.info("Starting app with Flask app.config: %s", app.config)
-    LOGGER.info("Datalab config: %s", CONFIG.dict())
+    _warn_startup_settings(app)
 
     if CONFIG.BEHIND_REVERSE_PROXY:
         # Fix headers for reverse proxied app:
@@ -58,19 +113,20 @@ def create_app(config_override: Dict[str, Any] | None = None) -> Flask:
     app.json_encoder = CustomJSONEncoder
 
     # Must use the full path so that this object can be mocked for testing
+
     flask_mongo = pydatalab.mongo.flask_mongo
     flask_mongo.init_app(app, connectTimeoutMS=100, serverSelectionTimeoutMS=100)
 
-    register_endpoints(app)
-
-    LOGIN_MANAGER.init_app(app)
+    for extension in (LOGIN_MANAGER, MAIL, COMPRESS):
+        extension.init_app(app)
 
     pydatalab.mongo.create_default_indices()
 
     if CONFIG.FILE_DIRECTORY is not None:
         pathlib.Path(CONFIG.FILE_DIRECTORY).mkdir(parents=False, exist_ok=True)
 
-    compress.init_app(app)
+    register_endpoints(app)
+    LOGGER.info("App created.")
 
     @app.route("/logout")
     def logout():
@@ -82,7 +138,7 @@ def create_app(config_override: Dict[str, Any] | None = None) -> Flask:
     def make_session_permanent():
         """Make the session permanent so that it doesn't expire on browser close, but instead adds a lifetime."""
         session.permanent = True
-        app.permanent_session_lifetime = datetime.timedelta(days=1)
+        app.permanent_session_lifetime = datetime.timedelta(hours=CONFIG.SESSION_LIFETIME)
 
     @app.route("/")
     def index():
@@ -216,7 +272,7 @@ def register_endpoints(app: Flask):
     from pydatalab.errors import ERROR_HANDLERS
     from pydatalab.routes import BLUEPRINTS, ENDPOINTS, __api_version__, auth
 
-    OAUTH_BLUEPRINTS = auth.OAUTH_BLUEPRINTS
+    AUTH_BLUEPRINTS = auth.AUTH_BLUEPRINTS
 
     major, minor, patch = __api_version__.split(".")
     versions = ["", f"/v{major}", f"/v{major}.{minor}", f"/v{major}.{minor}.{patch}"]
@@ -233,8 +289,8 @@ def register_endpoints(app: Flask):
         for ver in versions:
             app.register_blueprint(bp, url_prefix=f"{ver}", name=f"{ver}/{bp.name}")
 
-    for bp in OAUTH_BLUEPRINTS:  # type: ignore
-        app.register_blueprint(OAUTH_BLUEPRINTS[bp], url_prefix="/login")  # type: ignore
+    for bp in AUTH_BLUEPRINTS:  # type: ignore
+        app.register_blueprint(AUTH_BLUEPRINTS[bp], url_prefix="/login")  # type: ignore
 
     for exception_type, handler in ERROR_HANDLERS:
         app.register_error_handler(exception_type, handler)

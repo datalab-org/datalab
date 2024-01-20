@@ -53,7 +53,7 @@ def read_bruker_1d(
     p_dic, p_data = ng.fileio.bruker.read_pdata(str(processed_data_dir))  # processing data
 
     try:
-        with open(os.path.join(processed_data_dir, "title"), "r") as f:
+        with open(os.path.join(processed_data_dir, "title")) as f:
             topspin_title = f.read()
     except FileNotFoundError:
         topspin_title = None
@@ -101,7 +101,7 @@ def read_topspin_txt(filename, sample_mass_mg=None, nscans=None):
     LEFTRIGHT_REGEX = r"# LEFT = (-?\d+\.\d+) ppm. RIGHT = (-?\d+\.\d+) ppm\."
     SIZE_REGEX = r"SIZE = (\d+)"
 
-    with open(filename, "r") as f:
+    with open(filename) as f:
         header = "".join(itertools.islice(f, MAX_HEADER_LINES))  # read the first 10 lines
     # print(header)
 

@@ -5973,9 +5973,9 @@ flow-parser@0.*:
   integrity sha512-RW1Dh6BuT14DA7+gtNRKzgzvG3GTPdrceHCi4ddZ9VFGQ9HtO5L8wzxMGsor7XtInIrbWZZCSak0oxnBF7tApw==
 
 follow-redirects@^1.0.0:
-  version "1.15.2"
-  resolved "https://registry.yarnpkg.com/follow-redirects/-/follow-redirects-1.15.2.tgz#b460864144ba63f2681096f274c4e57026da2c13"
-  integrity sha512-VQLG33o04KaQ8uYi2tVNbdrWp1QWxNNea+nmIB4EVM28v0hmP17z7aG1+wAkNzVq4KeXTq3221ye5qTJP91JwA==
+  version "1.15.4"
+  resolved "https://registry.yarnpkg.com/follow-redirects/-/follow-redirects-1.15.4.tgz#cdc7d308bf6493126b17ea2191ea0ccf3e535adf"
+  integrity sha512-Cr4D/5wlrb0z9dgERpUL3LrmPKVDsETIJhaCMeDfuFYcqa5bldGV6wBsAN6X/vxlXQtFBMrXdXxdL8CbDTGniw==
 
 for-each@^0.3.3:
   version "0.3.3"
@@ -10490,10 +10490,10 @@ timed-out@^4.0.1:
   resolved "https://registry.yarnpkg.com/timed-out/-/timed-out-4.0.1.tgz#f32eacac5a175bea25d7fab565ab3ed8741ef56f"
   integrity sha512-G7r3AhovYtr5YKOWQkta8RKAPb+J9IsO4uVmzjl8AZwfhs8UcUwTiD6gcJYSgOtzyjvQKrKYn41syHbUWMkafA==
 
-tinymce@^5.10.8, tinymce@^5.5.0:
-  version "5.10.8"
-  resolved "https://registry.yarnpkg.com/tinymce/-/tinymce-5.10.8.tgz#c85758fa3cca2cbb4b14dd037a0b315b6462c50e"
-  integrity sha512-iyoo3VGMAJhLMDdblAefKvYgBRk9kQi58GTwAmoieqsyggGsKZWlQl/YY6nTILFHUCA1FhYu0HdmM5YYjs17UQ==
+tinymce@^5.10.9, tinymce@^5.5.0:
+  version "5.10.9"
+  resolved "https://registry.yarnpkg.com/tinymce/-/tinymce-5.10.9.tgz#1dfacb3231c71a688d90ff44a0b3f2e91b3b9edf"
+  integrity sha512-5bkrors87X9LhYX2xq8GgPHrIgJYHl87YNs+kBcjQ5I3CiUgzo/vFcGvT3MZQ9QHsEeYMhYO6a5CLGGffR8hMg==
 
 tmp@^0.0.33:
   version "0.0.33"

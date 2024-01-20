@@ -669,9 +669,9 @@ def get_item_data(item_id, load_blocks: bool = False):
     return_dict = json.loads(doc.json(exclude_unset=True))
 
     # create the files_data dictionary keyed by file ObjectId
-    files_data: Dict[ObjectId, Dict] = dict(
-        [(f["immutable_id"], f) for f in return_dict.get("files") or []]
-    )
+    files_data: Dict[ObjectId, Dict] = {
+        f["immutable_id"]: f for f in return_dict.get("files") or []
+    }
 
     return jsonify(
         {
