@@ -222,7 +222,20 @@ def collections_lookup() -> Dict:
     }
 
 
-def _check_collections(sample_dict):
+def _check_collections(sample_dict: dict) -> list[dict[str, str]]:
+    """Loop through the provided collection metadata for the sample and
+    return the list of references to store (i.e., just the `immutable_id`
+    of the collection).
+
+    Raises:
+        ValueError: if any of the linked collections cannot be found in
+        the database.
+
+    Returns:
+        A list of dictionaries with singular key `immutable_id` returning
+        the database ID of the collection.
+
+    """
     if sample_dict.get("collections", []):
         for ind, c in enumerate(sample_dict.get("collections", [])):
             query = {}
