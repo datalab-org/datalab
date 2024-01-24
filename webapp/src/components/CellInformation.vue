@@ -32,7 +32,7 @@
           <div class="form-group col-md-3">
             <label id="collections" class="mr-2">Collections</label>
             <div>
-              <CollectionList aria-labelledby="collections" :collections="Collections" />
+              <CollectionSelect aria-labelledby="collections" multiple v-model="Collections" />
             </div>
           </div>
         </div>
@@ -115,7 +115,7 @@ import CellPreparationInformation from "@/components/CellPreparationInformation"
 import TableOfContents from "@/components/TableOfContents";
 import ItemRelationshipVisualization from "@/components/ItemRelationshipVisualization";
 import FormattedRefcode from "@/components/FormattedRefcode";
-import CollectionList from "@/components/CollectionList";
+import CollectionSelect from "@/components/CollectionSelect";
 import Creators from "@/components/Creators";
 import { cellFormats } from "@/resources.js";
 
@@ -154,7 +154,7 @@ export default {
     TableOfContents,
     ItemRelationshipVisualization,
     FormattedRefcode,
-    CollectionList,
+    CollectionSelect,
     Creators,
   },
 };
