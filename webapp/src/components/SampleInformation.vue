@@ -33,10 +33,10 @@
               <Creators aria-labelledby="creators" :creators="ItemCreators" :size="36" />
             </div>
           </div>
-          <div class="form-group col-md-3">
+          <div class="form-group col-md">
             <label id="collections" class="mr-2">Collections</label>
             <div>
-              <CollectionList aria-labelledby="collections" :collections="Collections" />
+              <CollectionSelect aria-labelledby="collections" multiple v-model="Collections" />
             </div>
           </div>
         </div>
@@ -65,7 +65,7 @@
 import { createComputedSetterForItemField } from "@/field_utils.js";
 import ChemFormulaInput from "@/components/ChemFormulaInput";
 import FormattedRefcode from "@/components/FormattedRefcode";
-import CollectionList from "@/components/CollectionList";
+import CollectionSelect from "@/components/CollectionSelect";
 import TinyMceInline from "@/components/TinyMceInline";
 import SynthesisInformation from "@/components/SynthesisInformation";
 import TableOfContents from "@/components/TableOfContents";
@@ -103,7 +103,7 @@ export default {
     TableOfContents,
     ItemRelationshipVisualization,
     FormattedRefcode,
-    CollectionList,
+    CollectionSelect,
     Creators,
   },
 };

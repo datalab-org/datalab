@@ -9,7 +9,7 @@
   >
     <template #no-options="{ searching }">
       <span v-if="searching"> Sorry, no matches found. </span>
-      <span v-else class="empty-search"> Type a search term... </span>
+      <span v-else class="empty-search"> Search for a collection... </span>
     </template>
     <template v-slot:option="{ collection_id, title }">
       <FormattedCollectionName
@@ -19,10 +19,9 @@
         :maxLength="formattedItemNameMaxLength"
       />
     </template>
-    <template v-slot:selected-option="{ collection_id, title }">
+    <template v-slot:selected-option="{ collection_id }">
       <FormattedCollectionName
         :collection_id="collection_id"
-        :title="title"
         enableModifiedClick
         :maxLength="formattedItemNameMaxLength"
       />
