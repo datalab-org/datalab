@@ -2,8 +2,8 @@
   <vSelect
     v-model="value"
     :options="collections"
+    multiple
     @search="debouncedAsyncSearch"
-    label="name"
     :filterable="false"
     ref="selectComponent"
   >
@@ -73,6 +73,12 @@ export default {
       this.debounceTimeout = setTimeout(async () => {
         await searchCollections(query, 100)
           .then((collections) => {
+            // check if the searched collections are already listed in the value
+            // if so, remove it from the list of options
+            if (this.value) {
+              const valueIds = this.value.map((item) => item.collection_id);
+              collections = collections.filter((item) => !valueIds.includes(item.collection_id));
+            }
             this.collections = collections;
           })
           .catch((error) => {
