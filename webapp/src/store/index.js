@@ -51,6 +51,10 @@ export default createStore({
       // collectionSummary is a json object summarizing the new collection
       state.collection_list.unshift(collectionSummary);
     },
+    addItemToCollection(state, payload) {
+      // Adds an item in "summarized" form to a collection
+      state.all_collection_children[payload.collection_id].push(payload.item);
+    },
     deleteFromSampleList(state, item_id) {
       const index = state.sample_list.map((e) => e.item_id).indexOf(item_id);
       if (index > -1) {

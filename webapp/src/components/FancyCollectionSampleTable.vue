@@ -5,13 +5,25 @@
 
   <div class="form-inline mb-2 ml-auto mt-2">
     <div class="form-group">
-      <label for="sample-table-search" class="sr-only">Search items</label>
+      <label for="collection-table-search" class="sr-only">Filter items</label>
       <input
-        id="sample-table-search"
+        id="collection-table-search"
         type="text"
         class="form-control"
         v-model="searchValue"
         placeholder="Search within collection"
+      />
+    </div>
+    <div class="col-md-6">
+      <label id="add-to-collection" class="sr-only">Add items</label>
+      <ItemSelect
+        id="add-to-collection-select"
+        class="select-in-row"
+        :modelValue="selectedItemToAdd"
+        @update:modelValue="
+          selectedItemToAdd = $event;
+          addItemFromSearch();
+        "
       />
     </div>
   </div>
@@ -28,7 +40,6 @@
     header-class-name="customize-table-header"
     buttons-pagination
     @click-row="goToEditPage"
-    v-model:items-selected="itemsSelected"
   >
     <template #empty-message>Collection is empty.</template>
 
@@ -60,7 +71,8 @@ import "vue3-easy-data-table/dist/style.css";
 import FormattedItemName from "@/components/FormattedItemName";
 import ChemicalFormula from "@/components/ChemicalFormula";
 import Creators from "@/components/Creators";
-import { getCollectionSampleList } from "@/server_fetch_utils.js";
+import { getCollectionSampleList, addItemToCollection } from "@/server_fetch_utils.js";
+import ItemSelect from "@/components/ItemSelect";
 // eslint-disable-next-line no-unused-vars
 import { itemTypes } from "@/resources.js";
 
@@ -73,6 +85,7 @@ export default {
       isSampleFetchError: false,
       itemTypes: itemTypes,
       sampleTableIsReady: false,
+      selectedItemToAdd: null,
       itemsSelected: [],
       headers: [
         { text: "ID", value: "item_id", sortable: true },
@@ -92,6 +105,11 @@ export default {
     },
   },
   methods: {
+    addItemFromSearch() {
+      if (this.selectedItemToAdd) {
+        addItemToCollection(this.selectedItemToAdd, this.collection_id);
+      }
+    },
     getCollectionSamples() {
       getCollectionSampleList(this.collection_id)
         .then(() => {
@@ -115,21 +133,6 @@ export default {
         this.$router.push(`/edit/${row.item_id}`);
       }
     },
-    deleteSelectedItems() {
-      const idsSelected = this.itemsSelected.map((x) => x.item_id);
-      if (
-        confirm(
-          `Are you sure you want to remove ${this.itemsSelected.length} selected items (${idsSelected}) from this collection?`,
-        )
-      ) {
-        console.log("deleting...");
-        idsSelected.forEach((item_id) => {
-          console.log(`deleting item ${item_id}`);
-        });
-      } else {
-        console.log("delete cancelled...");
-      }
-    },
   },
   created() {
     this.getCollectionSamples();
@@ -139,6 +142,7 @@ export default {
     ChemicalFormula,
     Creators,
     FormattedItemName,
+    ItemSelect,
   },
 };
 </script>

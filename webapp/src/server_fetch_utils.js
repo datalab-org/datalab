@@ -154,6 +154,18 @@ export function createNewCollection(collection_id, title, startingData = {}, cop
   });
 }
 
+export function addItemToCollection(item, collection_id) {
+  return fetch_post(`${API_URL}/save-item/`, {
+    item_id: item.item_id,
+    data: {
+      collections: [{ collection_id: collection_id }],
+    },
+  }).then(function () {
+    store.commit("addItemToCollection", item, collection_id);
+    return "success";
+  });
+}
+
 export async function getStats() {
   return fetch_get(`${API_URL}/info/stats`)
     .then(function (response_json) {
@@ -410,6 +422,8 @@ export function saveCollection(collection_id) {
       alert("Save unsuccessful :(", error);
     });
 }
+
+// export function addToCollection(collection_id) {
 
 export function deleteBlock(item_id, block_id) {
   console.log("deleteBlock called!");
