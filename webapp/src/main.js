@@ -4,7 +4,7 @@ import "bootstrap/dist/css/bootstrap.css";
 // import 'bootstrap-vue/dist/bootstrap-vue.css'
 
 import { API_URL } from "@/resources.js";
-import { createApp } from "vue";
+import { createApp, defineCustomElement } from "vue";
 import App from "./App.vue";
 import router from "./router";
 
@@ -94,6 +94,7 @@ import "tinymce/plugins/charmap";
 import "tinymce/plugins/table";
 import "tinymce/plugins/emoticons";
 import "tinymce/plugins/emoticons/js/emojis";
+import "tinymce/plugins/code";
 
 // import "@uppy/vue"
 
@@ -105,6 +106,11 @@ import store from "./store";
 
 // css for vue-select
 import "vue-select/dist/vue-select.css";
+
+import FormattedItemName from "@/components/FormattedItemName.ce.vue";
+
+const FormattedItemNameWebComponent = defineCustomElement(FormattedItemName);
+customElements.define("item-reference", FormattedItemNameWebComponent);
 
 const app = createApp(App);
 
