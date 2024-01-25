@@ -4,13 +4,6 @@
   </div>
 
   <div class="form-inline mb-2 ml-auto mt-2">
-    <button
-      class="btn btn-default ml-auto mr-2"
-      :disabled="!Boolean(itemsSelected.length)"
-      @click="deleteSelectedItems"
-    >
-      Remove selected...
-    </button>
     <div class="form-group">
       <label for="sample-table-search" class="sr-only">Search items</label>
       <input
@@ -18,7 +11,7 @@
         type="text"
         class="form-control"
         v-model="searchValue"
-        placeholder="search"
+        placeholder="Search within collection"
       />
     </div>
   </div>
