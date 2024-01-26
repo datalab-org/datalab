@@ -24,11 +24,8 @@
               <Creators aria-labelledby="creators" :creators="ItemCreators" :size="36" />
             </div>
           </div>
-          <div class="form-group col-md-6 col-sm-7 pr-2">
-            <label id="collections">Collections</label>
-            <div>
-              <CollectionSelect aria-labelledby="collections" multiple v-model="Collections" />
-            </div>
+          <div class="col-md-6 col-sm-7 pr-2">
+            <ToggleableCollectionFormGroup v-model="Collections" />
           </div>
         </div>
         <div class="form-row">
@@ -110,7 +107,7 @@ import CellPreparationInformation from "@/components/CellPreparationInformation"
 import TableOfContents from "@/components/TableOfContents";
 import ItemRelationshipVisualization from "@/components/ItemRelationshipVisualization";
 import FormattedRefcode from "@/components/FormattedRefcode";
-import CollectionSelect from "@/components/CollectionSelect";
+import ToggleableCollectionFormGroup from "@/components/ToggleableCollectionFormGroup";
 import Creators from "@/components/Creators";
 import { cellFormats } from "@/resources.js";
 
@@ -149,7 +146,7 @@ export default {
     TableOfContents,
     ItemRelationshipVisualization,
     FormattedRefcode,
-    CollectionSelect,
+    ToggleableCollectionFormGroup,
     Creators,
   },
 };

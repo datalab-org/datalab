@@ -30,29 +30,8 @@
               <Creators aria-labelledby="creators" :creators="ItemCreators" :size="36" />
             </div>
           </div>
-          <div class="form-group col-md-6 col-sm-7 pr-2">
-            <label id="collections">
-              Collections
-              <span
-                class="clickable text-italic"
-                :class="{ 'text-heavy': isEditingCollections }"
-                @click="isEditingCollections = !isEditingCollections"
-                >[edit]</span
-              >
-            </label>
-            <div>
-              <CollectionList
-                v-if="!isEditingCollections"
-                aria-labelledby="collections"
-                :collections="Collections"
-              />
-              <CollectionSelect
-                v-show="isEditingCollections"
-                aria-labelledby="collections"
-                multiple
-                v-model="Collections"
-              />
-            </div>
+          <div class="col-md-6 col-sm-7 pr-2">
+            <ToggleableCollectionFormGroup v-model="Collections" />
           </div>
         </div>
         <div class="form-row">
@@ -80,8 +59,7 @@
 import { createComputedSetterForItemField } from "@/field_utils.js";
 import ChemFormulaInput from "@/components/ChemFormulaInput";
 import FormattedRefcode from "@/components/FormattedRefcode";
-import CollectionSelect from "@/components/CollectionSelect";
-import CollectionList from "@/components/CollectionList";
+import ToggleableCollectionFormGroup from "@/components/ToggleableCollectionFormGroup";
 import TinyMceInline from "@/components/TinyMceInline";
 import SynthesisInformation from "@/components/SynthesisInformation";
 import TableOfContents from "@/components/TableOfContents";
@@ -95,7 +73,6 @@ export default {
   },
   data() {
     return {
-      isEditingCollections: false,
       tableOfContentsSections: [
         { title: "Sample Information", targetID: "sample-information" },
         { title: "Table of Contents", targetID: "table-of-contents" },
@@ -120,23 +97,8 @@ export default {
     TableOfContents,
     ItemRelationshipVisualization,
     FormattedRefcode,
-    CollectionSelect,
-    CollectionList,
+    ToggleableCollectionFormGroup,
     Creators,
   },
 };
 </script>
-
-<style scoped>
-.clickable {
-  cursor: pointer;
-}
-
-.text-italic {
-  opacity: 0.7;
-}
-
-.text-heavy {
-  font-weight: 600;
-}
-</style>
