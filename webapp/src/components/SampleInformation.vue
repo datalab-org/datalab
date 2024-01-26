@@ -23,20 +23,38 @@
           </div>
         </div>
         <div class="form-row">
-          <div class="form-group col-md-2">
+          <div class="form-group col-md-3 col-sm-2">
             <label for="refcode" class="mr-2">Refcode</label>
             <FormattedRefcode :refcode="Refcode" />
           </div>
-          <div class="col-md-2 pb-3">
+          <div class="form-group col-md-3 col-sm-3 pb-3">
             <label id="creators" class="mr-2">Creators</label>
             <div class="mx-auto">
               <Creators aria-labelledby="creators" :creators="ItemCreators" :size="36" />
             </div>
           </div>
-          <div class="form-group col-md">
-            <label id="collections" class="mr-2">Collections</label>
+          <div class="form-group col-md-6 col-sm-7">
+            <label id="collections" class="mr-2">
+              Collections
+              <span
+                class="clickable text-italic"
+                :class="{ 'text-heavy': isEditingCollections }"
+                @click="isEditingCollections = !isEditingCollections"
+                >[edit]</span
+              >
+            </label>
             <div>
-              <CollectionSelect aria-labelledby="collections" multiple v-model="Collections" />
+              <CollectionList
+                v-if="!isEditingCollections"
+                aria-labelledby="collections"
+                :collections="Collections"
+              />
+              <CollectionSelect
+                v-show="isEditingCollections"
+                aria-labelledby="collections"
+                multiple
+                v-model="Collections"
+              />
             </div>
           </div>
         </div>
@@ -66,6 +84,7 @@ import { createComputedSetterForItemField } from "@/field_utils.js";
 import ChemFormulaInput from "@/components/ChemFormulaInput";
 import FormattedRefcode from "@/components/FormattedRefcode";
 import CollectionSelect from "@/components/CollectionSelect";
+import CollectionList from "@/components/CollectionList";
 import TinyMceInline from "@/components/TinyMceInline";
 import SynthesisInformation from "@/components/SynthesisInformation";
 import TableOfContents from "@/components/TableOfContents";
@@ -79,6 +98,7 @@ export default {
   },
   data() {
     return {
+      isEditingCollections: false,
       tableOfContentsSections: [
         { title: "Sample Information", targetID: "sample-information" },
         { title: "Table of Contents", targetID: "table-of-contents" },
@@ -104,7 +124,22 @@ export default {
     ItemRelationshipVisualization,
     FormattedRefcode,
     CollectionSelect,
+    CollectionList,
     Creators,
   },
 };
 </script>
+
+<style scoped>
+.clickable {
+  cursor: pointer;
+}
+
+.text-italic {
+  opacity: 0.7;
+}
+
+.text-heavy {
+  font-weight: 600;
+}
+</style>
