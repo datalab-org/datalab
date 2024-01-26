@@ -82,7 +82,7 @@ export const itemTypes = {
     itemInformationComponent: CollectionInformation,
     navbarColor: "#563D7c",
     navbarName: "Collection",
-    lightColor: "#B38FEA",
+    lightColor: "#e7dcf8",
     labelColor: "#845dbf",
     display: "collection",
   },
