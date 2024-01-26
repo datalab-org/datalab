@@ -1,44 +1,39 @@
 <template>
-  <div class="container">
+  <div class="container-lg">
     <!-- Sample information -->
     <div class="row">
-      <div class="col">
+      <div class="col-md-8">
         <div id="sample-information" class="form-row">
-          <div class="form-group col-md-5">
+          <div class="form-group col-sm-8">
             <label for="name" class="mr-2">Name</label>
             <input id="name" class="form-control" v-model="Name" />
           </div>
-          <div class="form-group col-md-3">
+          <div class="form-group col-sm-4">
             <label for="date" class="mr-2">Date Created</label>
-            <input
-              type="datetime-local"
-              v-model="DateCreated"
-              class="form-control"
-              style="max-width: 250px"
-            />
+            <input type="datetime-local" v-model="DateCreated" class="form-control" />
           </div>
         </div>
         <div class="form-row">
-          <div class="form-group col-md-2">
-            <label for="refcode" class="mr-2">Refcode</label>
+          <div class="form-group col-md-3 col-sm-2 col-6 pr-2">
+            <label for="refcode">Refcode</label>
             <FormattedRefcode :refcode="Refcode" />
           </div>
-          <div class="col-md-2 pb-3">
-            <label id="creators" class="mr-2">Creators</label>
+          <div class="form-group col-md-3 col-sm-3 col-6 pb-3 pr-2">
+            <label id="creators">Creators</label>
             <div class="mx-auto">
               <Creators aria-labelledby="creators" :creators="ItemCreators" :size="36" />
             </div>
           </div>
-          <div class="form-group col-md-3">
-            <label id="collections" class="mr-2">Collections</label>
+          <div class="form-group col-md-6 col-sm-7 pr-2">
+            <label id="collections">Collections</label>
             <div>
               <CollectionSelect aria-labelledby="collections" multiple v-model="Collections" />
             </div>
           </div>
         </div>
         <div class="form-row">
-          <div class="form-group col-md-2">
-            <label for="cell-format-dropdown" class="mr-2">Cell format</label>
+          <div class="form-group col-sm-4 pr-2">
+            <label for="cell-format-dropdown">Cell format</label>
             <select id="cell-format-dropdown" v-model="CellFormat" class="form-control">
               <option
                 v-for="(description, key) in availableCellFormats"
@@ -49,7 +44,7 @@
               </option>
             </select>
           </div>
-          <div class="form-group col-md-6 ml-3">
+          <div class="form-group col-sm-8">
             <label for="cell-format-description">Cell format description</label>
             <input
               id="cell-format-description"
@@ -61,7 +56,7 @@
         </div>
 
         <div class="form-row py-4">
-          <div class="form-group col-md-3">
+          <div class="form-group col-lg-3 col-md-4 pr-3">
             <label for="characteristic-mass">Active mass (mg)</label>
             <input
               id="characteristic-mass"
@@ -71,11 +66,11 @@
               :class="{ 'red-border': isNaN(CharacteristicMass) }"
             />
           </div>
-          <div class="form-group col-md-4 ml-3">
-            <label for="chemform">Active material formula</label>
+          <div class="form-group col-lg-4 col-md-4 pr-3">
+            <label for="chemform">Active formula</label>
             <ChemFormulaInput id="chemform" v-model="ChemForm" />
           </div>
-          <div class="form-group col-md-3 ml-3">
+          <div class="form-group col-lg-3 col-md-4">
             <label for="characteristic-molar-mass">Molar mass</label>
             <input
               id="characteristic-molar-mass"
@@ -88,7 +83,7 @@
         </div>
         <div class="row">
           <div class="col">
-            <label id="description-label" class="mr-2">Description</label>
+            <label id="description-label">Description</label>
             <TinyMceInline
               aria-labelledby="description-label"
               v-model="SampleDescription"
