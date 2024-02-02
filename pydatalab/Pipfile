@@ -35,6 +35,7 @@ rosettasciio = "*"
 pyjwt = "*"
 invoke = "*"
 paramiko = "*"
+pydatalab = {file = ".", editable = true}
 
 [dev-packages]
 pytest = "*"
