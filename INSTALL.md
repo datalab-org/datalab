@@ -43,7 +43,7 @@ The server should now be accessible at [http://localhost:5001](http://localhost:
 
 Should you wish to contribute to/modify the Python code, you may wish to perform these extra steps:
 
-1. From within the `pydatalab` folder, run `pipenv install --dev` to pull the development dependencies (e.g., `pre-commit`, `pytest`).
+1. From within the `pydatalab` folder, run `pipenv install --dev` to pull the development dependencies (e.g., `pre-commit`, `pytest`). You may also need to install `pre-commit` globally.
 1. Run `pre-commit install` to begin using `pre-commit` to check all of your modifications when you run `git commit`.
     - The hooks that run on each commit can be found in the top-level `.pre-commit-config.yml` file.
 1. The tests on the Python code can be run by executing `py.test` from the `pydatalab/` folder.
