@@ -28,7 +28,7 @@ flask-compress = "*"
 pillow = "*"
 openai = "~= 0.28"
 tiktoken = "*"
-navani = {git = "git+https://github.com/the-grey-group/navani.git@v0.1.4"}
+navani = {git = "git+https://github.com/the-grey-group/navani.git@v0.1.5-rc1"}
 python-dateutil = "*"
 pybaselines = "*"
 rosettasciio = "*"
