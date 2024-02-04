@@ -2,18 +2,20 @@
   <div class="form-group">
     <label id="collections">
       Collections
-      <span
-        class="clickable text-italic"
-        :class="{ 'text-heavy': isEditingCollections }"
+      <font-awesome-icon
+        class="clickable"
+        icon="pen"
+        size="xs"
+        :fade="isEditingCollections"
         @click="isEditingCollections = !isEditingCollections"
-        >[edit]</span
-      >
+      />
     </label>
-    <div>
+    <div style="height: 2em">
       <CollectionList
         v-if="!isEditingCollections"
         aria-labelledby="collections"
         :collections="value"
+        style="padding-top: 0.5rem"
       />
       <CollectionSelect
         v-if="isEditingCollections"
@@ -63,6 +65,9 @@ export default {
 
 .text-italic {
   opacity: 0.7;
+}
+.clickable {
+  color: grey;
 }
 
 .text-heavy {
