@@ -21,14 +21,12 @@
     :items="samples"
     :loading="!sampleTableIsReady"
     :no-hover="true"
-    :checkbox-column-width="40"
     :expand-column-width="40"
     :search-value="searchValue"
     table-class-name="customize-table"
     header-class-name="customize-table-header"
     buttons-pagination
     @click-row="goToEditPage"
-    v-model:items-selected="itemsSelected"
   >
     <template #empty-message>Collection is empty.</template>
 
