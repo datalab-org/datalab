@@ -3,26 +3,28 @@
     <label id="collections">
       Collections
       <font-awesome-icon
-        class="clickable"
+        class="clickable pl-1"
         icon="pen"
         size="xs"
         :fade="isEditingCollections"
         @click="isEditingCollections = !isEditingCollections"
       />
     </label>
-    <div style="height: 2em">
+    <div>
       <CollectionList
         v-if="!isEditingCollections"
         aria-labelledby="collections"
         :collections="value"
         style="padding-top: 0.5rem"
       />
-      <CollectionSelect
-        v-if="isEditingCollections"
-        aria-labelledby="collections"
-        multiple
-        v-model="value"
-      />
+      <OnClickOutside @trigger="isEditingCollections = false">
+        <CollectionSelect
+          v-if="isEditingCollections"
+          aria-labelledby="collections"
+          multiple
+          v-model="value"
+        />
+      </OnClickOutside>
     </div>
   </div>
 </template>
@@ -30,6 +32,7 @@
 <script>
 import CollectionSelect from "@/components/CollectionSelect";
 import CollectionList from "@/components/CollectionList";
+import { OnClickOutside } from "@vueuse/components";
 
 export default {
   props: {
@@ -54,6 +57,7 @@ export default {
   components: {
     CollectionSelect,
     CollectionList,
+    OnClickOutside,
   },
 };
 </script>
