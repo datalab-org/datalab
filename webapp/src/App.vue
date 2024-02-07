@@ -33,14 +33,15 @@ body {
 }
 
 #nav a {
-  font-weight: bold;
-  color: #2c3e50;
+  color: #444;
   border-radius: 5px;
   padding: 5px;
 }
 
 #nav a.router-link-exact-active {
-  color: #42b983;
+  color: black;
+  font-weight: bold;
+  text-decoration: underline;
 }
 
 /*for form errors*/
