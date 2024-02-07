@@ -1,8 +1,8 @@
 <template>
   <span
-    class="badge badge-light mr-2"
+    class="formatted-collection-name badge badge-light"
     :class="{ clickable: enableClick || enableModifiedClick }"
-    :style="{ backgroundColor: badgeColor }"
+    :style="{ 'border-color': badgeColor, color: badgeColor }"
     @click.exact="enableClick ? openEditPageInNewTab() : null"
     @click.meta.stop="enableModifiedClick ? openEditPageInNewTab() : null"
     @click.ctrl.stop="enableModifiedClick ? openEditPageInNewTab() : null"
@@ -42,7 +42,7 @@ export default {
   },
   computed: {
     badgeColor() {
-      return itemTypes[this.itemType]?.lightColor || "LightGrey";
+      return itemTypes[this.itemType]?.navbarColor || "LightGrey";
     },
     shortenedName() {
       if (this.maxLength && this.maxLength < this.name.length) {
@@ -66,7 +66,11 @@ export default {
 .clickable {
   cursor: pointer;
 }
-.badge {
-  color: black;
+.formatted-collection-name {
+  border-width: 1px;
+}
+
+.formatted-collection-name:hover {
+  border-width: 1.5px !important;
 }
 </style>
