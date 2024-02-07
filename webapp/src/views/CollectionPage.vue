@@ -4,9 +4,9 @@
     class="navbar navbar-expand sticky-top navbar-dark py-0 editor-navbar"
     :style="{ backgroundColor: navbarColor }"
   >
-    <span class="navbar-brand" @click="scrollToID($event, 'topScrollPoint')"
-      >{{ itemTypeEntry?.navbarName || "loading..." }}&nbsp;&nbsp;|&nbsp;&nbsp;
-      <FormattedCollectionName :collection_id="collection_id" />
+    <span class="navbar-brand" @click="scrollToID($event, 'topScrollPoint')">
+      {{ itemTypeEntry?.navbarName || "loading..." }}&nbsp;&nbsp;|&nbsp;&nbsp;
+      <FormattedItemName :item_id="collection_id" itemType="collections" />
     </span>
     <div class="navbar-nav">
       <a class="nav-item nav-link" href="/">Home</a>
@@ -39,7 +39,7 @@
 <script>
 import CollectionInformation from "@/components/CollectionInformation";
 import { getCollectionData, saveCollection } from "@/server_fetch_utils";
-import FormattedCollectionName from "@/components/FormattedCollectionName.vue";
+import FormattedItemName from "@/components/FormattedItemName.vue";
 import tinymce from "tinymce/tinymce";
 import { itemTypes } from "@/resources.js";
 import { API_URL } from "@/resources.js";
@@ -110,7 +110,7 @@ export default {
   },
   components: {
     CollectionInformation,
-    FormattedCollectionName,
+    FormattedItemName,
   },
   beforeMount() {
     this.collectionApiUrl = API_URL + "/collections/" + this.collection_id;

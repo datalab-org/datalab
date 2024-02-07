@@ -1,7 +1,7 @@
 <template>
   <span v-if="item_id">
     <span
-      class="badge badge-light mr-2"
+      class="badge badge-light"
       :class="{ clickable: enableClick || enableModifiedClick }"
       :style="{ backgroundColor: badgeColor }"
       @click.exact="enableClick ? openEditPageInNewTab() : null"
