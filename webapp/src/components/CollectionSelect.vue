@@ -4,6 +4,7 @@
     :options="collections"
     multiple
     @search="debouncedAsyncSearch"
+    label="collection_id"
     :filterable="false"
     ref="selectComponent"
   >
