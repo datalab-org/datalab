@@ -1,13 +1,17 @@
 <template>
-  <div class="form-group">
-    <label id="collections">
+  <div
+    class="h-100 form-group clickable"
+    ref="outerdiv"
+    @click="isEditingCollections = !isEditingCollections"
+  >
+    <label id="collections" class="clickable">
       Collections
       <font-awesome-icon
-        class="clickable pl-1"
+        id="edit-icon"
+        class="pl-1"
         icon="pen"
         size="xs"
         :fade="isEditingCollections"
-        @click="isEditingCollections = !isEditingCollections"
       />
     </label>
     <div>
@@ -15,15 +19,13 @@
         v-if="!isEditingCollections"
         aria-labelledby="collections"
         :collections="value"
-        style="padding-top: 0.5rem"
       />
-      <OnClickOutside @trigger="isEditingCollections = false">
-        <CollectionSelect
-          v-if="isEditingCollections"
-          aria-labelledby="collections"
-          multiple
-          v-model="value"
-        />
+      <OnClickOutside
+        v-if="isEditingCollections"
+        :options="{ ignore: [outerDivRef] }"
+        @trigger="isEditingCollections = false"
+      >
+        <CollectionSelect aria-labelledby="collections" multiple v-model="value" @click.stop />
       </OnClickOutside>
     </div>
   </div>
@@ -41,6 +43,7 @@ export default {
   data() {
     return {
       isEditingCollections: false,
+      outerDivRef: null,
     };
   },
   computed: {
@@ -53,6 +56,9 @@ export default {
         this.$emit("update:modelValue", newValue);
       },
     },
+  },
+  mounted() {
+    this.outerDivRef = this.$refs.outerdiv; // we need to get the editIcon's ref to be accessible in the template so we can exclude it from the ClickOutside
   },
   components: {
     CollectionSelect,
@@ -70,7 +76,8 @@ export default {
 .text-italic {
   opacity: 0.7;
 }
-.clickable {
+
+#edit-icon {
   color: grey;
 }
 
