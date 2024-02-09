@@ -19,8 +19,8 @@
         Unsaved changes
       </span>
       <span v-if="data_loaded && lastModified" class="navbar-text small mx-2"
-        ><i>Last saved: {{ lastModified }}</i></span
-      >
+        ><i>Last saved: {{ lastModified }}</i>
+      </span>
       <font-awesome-icon
         icon="save"
         fixed-width
@@ -56,6 +56,12 @@ export default {
     };
   },
   methods: {
+    scrollToID(event, id) {
+      var element = document.getElementById(id);
+      element.scrollIntoView({
+        behavior: "smooth",
+      });
+    },
     saveCollectionData() {
       // trigger the mce save so that they update the store with their content
       console.log("save clicked!");
