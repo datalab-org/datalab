@@ -1,5 +1,5 @@
 <template>
-  <div v-if="this.logo_url != null">
+  <div class="pt-1" v-if="this.logo_url != null">
     <a v-if="this.homepage_url != null" :href="this.homepage_url" target="_blank">
       <img class="logo-banner" :src="this.logo_url" />
     </a>
