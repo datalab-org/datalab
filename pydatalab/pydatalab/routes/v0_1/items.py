@@ -101,7 +101,6 @@ def get_equipment_summary():
                 {
                     "$match": {
                         "type": "equipment",
-                        **get_default_permissions(user_only=False),
                     }
                 },
                 {"$project": _project},
