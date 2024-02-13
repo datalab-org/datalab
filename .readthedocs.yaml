@@ -22,5 +22,5 @@ python:
       path: ./pydatalab
 
 mkdocs:
-  configuration: ./mkdocs.yml
+  configuration: ./pydatalab/mkdocs.yml
   fail_on_warning: false

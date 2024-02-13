@@ -35,7 +35,7 @@ theme:
 repo_name: datalab-org/datalab
 repo_url: https://github.com/datalab-org/datalab
 
-docs_dir: "pydatalab/docs"
+docs_dir: "docs"
 
 extra:
   social:
