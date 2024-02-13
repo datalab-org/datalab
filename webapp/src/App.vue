@@ -105,16 +105,22 @@ body {
   font-family: "Roboto Mono", monospace;
 }
 
-.badge {
-  border: 2px solid transparent;
-}
-
 .fa-orcid {
   color: #a6ce39;
 }
 
+.badge.clickable {
+  border: 2px solid transparent;
+}
+
 .badge.clickable:hover {
   cursor: pointer;
-  border: 2px solid #000000;
+  border: 2px solid black;
+  border-color: black;
+  box-shadow: 0 0 3px ;
+}
+
+.clickable {
+  cursor: pointer;
 }
 </style>
