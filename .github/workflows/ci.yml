@@ -157,8 +157,7 @@ jobs:
 
       - name: Set some environment variables for CI containers pre-build
         run: |
-          cp webapp/.env.test_e2e webapp/.env
-          echo "VUE_APP_API_URL=http://localhost:5001" >> .env
+          cp webapp/.env.test_e2e .env
           echo "PYDATALAB_TESTING=true" >> pydatalab/.env
 
       - name: Load previously built Docker images
@@ -181,7 +180,7 @@ jobs:
       - name: Start services
         run: |
           # Launch production container profiles and wait for them to come up
-          docker compose up database api app --no-build -d --wait
+          docker compose up database api app --no-build --force-recreate -d --wait
 
       - name: Run end-to-end tests
         uses: cypress-io/github-action@v6
