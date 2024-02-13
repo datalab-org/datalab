@@ -46,6 +46,7 @@ repos:
     hooks:
       - id: mypy
         additional_dependencies: ["types-all", "pydantic~=1.10"]
+        args: ["--config-file", "pydatalab/pyproject.toml"]
 
   - repo: local
     hooks:
