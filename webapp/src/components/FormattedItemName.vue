@@ -76,9 +76,3 @@ export default {
   emits: ["itemIdClicked"],
 };
 </script>
-
-<style scoped>
-.clickable {
-  cursor: pointer;
-}
-</style>

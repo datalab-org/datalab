@@ -61,16 +61,3 @@ export default {
   emits: ["collectionIdClicked"],
 };
 </script>
-
-<style scoped>
-.clickable {
-  cursor: pointer;
-}
-.formatted-collection-name {
-  border-width: 1px;
-}
-
-.formatted-collection-name:hover {
-  border-width: 1.5px !important;
-}
-</style>
