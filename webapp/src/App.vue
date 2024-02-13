@@ -117,7 +117,7 @@ body {
   cursor: pointer;
   border: 2px solid black;
   border-color: black;
-  box-shadow: 0 0 3px ;
+  box-shadow: 0 0 3px;
 }
 
 .clickable {
