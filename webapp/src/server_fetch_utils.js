@@ -165,6 +165,17 @@ export async function getStats() {
     });
 }
 
+export async function getInfo() {
+  return fetch_get(`${API_URL}/info/`)
+    .then(function (response_json) {
+      return { apiVersion: response_json.data.attributes.server_version };
+    })
+    .catch((error) => {
+      console.error("Error when fetching info");
+      throw error;
+    });
+}
+
 export function getSampleList() {
   return fetch_get(`${API_URL}/samples/`)
     .then(function (response_json) {
