@@ -1,3 +1,42 @@
+[build-system]
+requires = ["setuptools >= 42", "versioningit  ~=  1.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pydatalab"
+readme = "README.md"
+keywords = []
+license = { text = "MIT" }
+authors = [{ name = "Matthew Evans", email = "matthew@ml-evs.science" }, { name = "Joshua Bocarsly" }]
+dynamic = ["version"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Information Technology",
+    "Topic :: Other/Nonlisted Topic",
+    "Topic :: Scientific/Engineering",
+]
+
+requires-python = ">=3.10"
+
+[project.urls]
+homepage = "https://github.com/the-grey-group/datalab"
+repository = "https://github.com/the-grey-group/datalab"
+documentation = "https://the-datalab.readthedocs.io"
+changelog = "https://github.com/the-grey-group/datalab/releases"
+
+[tool.setuptools.packages.find]
+where = ["pydatalab"]
+include = ["pydatalab"]
+namespaces = false
+
+[tool.versioningit.vcs]
+method = "git"
+default-tag = "0.0.1"
+
 [tool.mypy]
 plugins = "pydantic.mypy"
 ignore_missing_imports = true
