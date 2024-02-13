@@ -3,16 +3,11 @@ FROM python:3.10 as base
 SHELL ["/bin/bash", "--login", "-c"]
 
 # Install system dependencies
-RUN apt update && apt install -y gnupg curl tree && apt clean
+RUN apt update && apt install -y gnupg curl tree mdbtools && apt clean
 
 # Install MongoDB tools in the official way
 WORKDIR /opt
 RUN wget https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2204-x86_64-100.9.0.deb && apt install ./mongodb-database-tools-*-100.9.0.deb
-
-# Install the older version of mdbtools (0.7.1) until https://github.com/echemdata/galvani/issues/89 is resolved
-RUN curl -L https://github.com/mdbtools/mdbtools/archive/refs/tags/0.7.1.zip > 0.7.1.zip && unzip -d /opt/mdbtools 0.7.1.zip && rm 0.7.1.zip
-WORKDIR /opt/mdbtools/mdbtools-0.7.1
-RUN autoreconf -i -f &&  ./configure --disable-man && make -j 4 && make install && ldconfig
 
 FROM base as app
 # Copy all server code into workdir
