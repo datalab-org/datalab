@@ -23,10 +23,10 @@
                   <font-awesome-icon
                     :icon="['fas', 'chevron-right']"
                     fixed-width
-                    class="collapse-arrow"
+                    class="collapse-arrow clickable"
                     :class="{ expanded: templateIsOpen }"
                   />
-                  <label class="blue-label collapse-clickable ml-2"> Template: </label>
+                  <label class="blue-label clickable pl-2"> Template: </label>
                 </div>
                 <label
                   for="batchSampleNRows"
@@ -523,15 +523,10 @@ export default {
 
 .collapse-arrow {
   transition: all 0.4s;
-  cursor: pointer;
 }
 
 .collapse-arrow:hover {
   color: #7ca7ca;
-}
-
-.collapse-clickable {
-  cursor: pointer;
 }
 
 .expanded {
