@@ -75,7 +75,7 @@ class PlotterBlock(DataBlock):
         file_info = get_file_info_by_id(self.data["file_id"], update_if_live=True)
 
         try:
-            return pd.read_csv(file_info["location"], skip_blank_lines=False)
+            return pd.read_csv(file_info["location"], sep=None, skip_blank_lines=False)
         except Exception as e:
             raise RuntimeError(f"`pandas.read_csv()` was not able to read the file. Error: {e}")
 
