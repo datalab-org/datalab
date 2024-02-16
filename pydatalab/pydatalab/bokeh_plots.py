@@ -21,7 +21,7 @@ from bokeh.themes import Theme
 from scipy.signal import find_peaks
 
 FONTSIZE = "12pt"
-TYPEFACE = "Helvetica"  # "Lato"
+TYPEFACE = "Helvetica, sans-serif"
 COLORS = Dark2[8]
 TOOLS = "box_zoom, reset, tap, crosshair, save"
 
@@ -92,6 +92,8 @@ grid_style = {
         "Axis": {
             "axis_label_text_font": TYPEFACE,
             "axis_label_text_font_style": "normal",
+            "major_label_text_font": TYPEFACE,
+            "minor_label_text_font": TYPEFACE,
             "major_tick_in": 0,
             "minor_tick_out": 0,
             "minor_tick_in": 0,
