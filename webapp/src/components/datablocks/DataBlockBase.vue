@@ -40,6 +40,31 @@
       :style="{ 'max-height': contentMaxHeight }"
       class="datablock-content"
     >
+      <!-- Show any warnings or errors reported by the block -->
+      <div
+        class="alert alert-danger d-flex align-items-center ml-3"
+        role="alert"
+        v-if="block.errors"
+      >
+        <ul class="fa-ul">
+          <li v-for="(error, index) in block.errors" :key="index">
+            <font-awesome-icon class="fa-li" icon="exclamation-circle" />
+            {{ error }}
+          </li>
+        </ul>
+      </div>
+      <div
+        class="alert alert-warning d-flex align-items-center ml-3"
+        role="alert"
+        v-if="block.warnings"
+      >
+        <ul class="fa-ul">
+          <li v-for="(warning, index) in block.warnings" :key="index">
+            <font-awesome-icon class="fa-li" icon="exclamation-triangle" />
+            {{ warning }}
+          </li>
+        </ul>
+      </div>
       <slot></slot>
       <TinyMceInline v-model="BlockDescription"></TinyMceInline>
     </div>
