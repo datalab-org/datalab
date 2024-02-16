@@ -1,5 +1,6 @@
-import pytest
 import shutil
+
+import pytest
 
 from pydatalab.config import CONFIG
 
@@ -67,7 +68,9 @@ def test_get_file_and_delete(client, default_filepath, default_sample):
     assert not response.json["files_data"]
 
 
-def test_upload_new_version(client, default_filepath, insert_default_sample, default_sample, tmpdir):  # pylint: disable=unused-argument
+def test_upload_new_version(
+    client, default_filepath, insert_default_sample, default_sample, tmpdir
+):  # pylint: disable=unused-argument
     """Upload a file, then upload a new version of the same file."""
     with open(default_filepath, "rb") as f:
         response = client.post(
@@ -110,5 +113,8 @@ def test_upload_new_version(client, default_filepath, insert_default_sample, def
     assert response_reup.json["file_information"]
     assert response_reup.json["status"], "success"
     assert response_reup.status_code == 201
-    assert response_reup.json["file_information"]["location"] == response.json["file_information"]["location"]
+    assert (
+        response_reup.json["file_information"]["location"]
+        == response.json["file_information"]["location"]
+    )
     assert response_reup.json["file_id"] == response.json["file_id"]

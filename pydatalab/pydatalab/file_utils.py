@@ -296,7 +296,7 @@ def update_uploaded_file(file, file_id, last_modified=None, size_bytes=None):
     updated_file_entry = File(**updated_file_entry)
 
     # overwrite the old file with the new location
-    file.save(updated_file_entry["location"])
+    file.save(updated_file_entry.location)
 
     ret = updated_file_entry.dict()
     ret.update({"_id": file_id})
