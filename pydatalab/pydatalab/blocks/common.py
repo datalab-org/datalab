@@ -51,14 +51,14 @@ class MediaBlock(DataBlock):
                 ).decode()
 
 
-class PlotterBlock(DataBlock):
+class TabularDataBlock(DataBlock):
     """This block simply tries to read the given file with pandas, and
     expose an interface to plot its columns as scatter points.
 
     """
 
-    blocktype = "plotter"
-    description = "Simple Plot"
+    blocktype = "tabular"
+    description = "Tabular Data Block"
     accepted_file_extensions = (".csv", ".txt", ".tsv", ".dat")
 
     @property
@@ -84,24 +84,18 @@ class PlotterBlock(DataBlock):
 
         from pydatalab.bokeh_plots import DATALAB_BOKEH_THEME, selectable_axes_plot
 
-        LOGGER.debug("Reached here.")
-
         df = self._load()
         if df is None:
             return
         columns = list(df.columns)
-        LOGGER.debug("Reached here 2.")
         plot = selectable_axes_plot(
             df,
             x_options=columns,
             y_options=columns,
-            # color_options=columns,
             x_default=columns[0],
             y_default=columns[1],
             plot_points=True,
             plot_line=False,
         )
-
-        LOGGER.debug("Reached here 3.")
 
         self.data["bokeh_plot_data"] = bokeh.embed.json_item(plot, theme=DATALAB_BOKEH_THEME)
