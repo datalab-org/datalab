@@ -2,8 +2,8 @@ import base64
 import io
 import warnings
 
-from PIL import Image
 import pandas as pd
+from PIL import Image
 
 from pydatalab.file_utils import get_file_info_by_id
 from pydatalab.logger import LOGGER
@@ -80,14 +80,15 @@ class PlotterBlock(DataBlock):
             raise RuntimeError(f"`pandas.read_csv()` was not able to read the file. Error: {e}")
 
     def plot_df(self):
-        from pydatalab.bokeh_plots import selectable_axes_plot, DATALAB_BOKEH_THEME
         import bokeh.embed
+
+        from pydatalab.bokeh_plots import DATALAB_BOKEH_THEME, selectable_axes_plot
 
         LOGGER.debug("Reached here.")
 
         df = self._load()
         if df is None:
-            return 
+            return
         columns = list(df.columns)
         LOGGER.debug("Reached here 2.")
         plot = selectable_axes_plot(
@@ -100,7 +101,7 @@ class PlotterBlock(DataBlock):
             plot_points=True,
             plot_line=False,
         )
-        
+
         LOGGER.debug("Reached here 3.")
 
         self.data["bokeh_plot_data"] = bokeh.embed.json_item(plot, theme=DATALAB_BOKEH_THEME)
