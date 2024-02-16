@@ -1,7 +1,9 @@
 import base64
 import io
+import warnings
 
 from PIL import Image
+import pandas as pd
 
 from pydatalab.file_utils import get_file_info_by_id
 from pydatalab.logger import LOGGER
@@ -47,3 +49,58 @@ class MediaBlock(DataBlock):
                 self.data["b64_encoded_image"][self.data["file_id"]] = base64.b64encode(
                     f.getvalue()
                 ).decode()
+
+
+class PlotterBlock(DataBlock):
+    """This block simply tries to read the given file with pandas, and
+    expose an interface to plot its columns as scatter points.
+
+    """
+
+    blocktype = "plotter"
+    description = "Simple Plot"
+    accepted_file_extensions = (".csv", ".txt", ".tsv", ".dat")
+
+    @property
+    def plot_functions(self):
+        return (self.plot_df,)
+
+    def _load(self) -> pd.DataFrame:
+        if "file_id" not in self.data:
+            warnings.warn(
+                f"{self.__class__.__name__}.read_data_file(): No file set in the DataBlock"
+            )
+            return
+
+        file_info = get_file_info_by_id(self.data["file_id"], update_if_live=True)
+
+        try:
+            return pd.read_csv(file_info["location"], skip_blank_lines=False)
+        except Exception as e:
+            raise RuntimeError(f"`pandas.read_csv()` was not able to read the file. Error: {e}")
+
+    def plot_df(self):
+        from pydatalab.bokeh_plots import selectable_axes_plot, DATALAB_BOKEH_THEME
+        import bokeh.embed
+
+        LOGGER.debug("Reached here.")
+
+        df = self._load()
+        if df is None:
+            return 
+        columns = list(df.columns)
+        LOGGER.debug("Reached here 2.")
+        plot = selectable_axes_plot(
+            df,
+            x_options=columns,
+            y_options=columns,
+            # color_options=columns,
+            x_default=columns[0],
+            y_default=columns[1],
+            plot_points=True,
+            plot_line=False,
+        )
+        
+        LOGGER.debug("Reached here 3.")
+
+        self.data["bokeh_plot_data"] = bokeh.embed.json_item(plot, theme=DATALAB_BOKEH_THEME)

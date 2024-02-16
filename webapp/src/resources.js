@@ -1,5 +1,6 @@
 // Resources for the application
 import DataBlockBase from "@/components/datablocks/DataBlockBase";
+import BokehBlock from "@/components/datablocks/BokehBlock";
 import MediaBlock from "@/components/datablocks/MediaBlock";
 import XRDBlock from "@/components/datablocks/XRDBlock";
 import ChatBlock from "@/components/datablocks/ChatBlock";
@@ -46,6 +47,7 @@ export const debounceTime = 250; // time after user stops typing before request 
 export const blockTypes = {
   comment: { description: "Comment", component: DataBlockBase },
   media: { description: "Media", component: MediaBlock },
+  plotter: { description: "Simple plot", component: BokehBlock },
   xrd: { description: "Powder XRD", component: XRDBlock },
   raman: { description: "Raman", component: RamanBlock },
   cycle: { description: "Electrochemistry", component: CycleBlock },
