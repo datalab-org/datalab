@@ -1,4 +1,5 @@
 import random
+import warnings
 from typing import Any, Callable, Dict, Optional, Sequence
 
 from bson import ObjectId
@@ -132,12 +133,27 @@ class DataBlock:
         """returns a json-able dictionary to render the block on the web"""
         if self.plot_functions:
             for plot in self.plot_functions:
-                try:
-                    plot()
-                except RuntimeError:
-                    LOGGER.warning(
-                        f"Could not create plot for {self.__class__.__name__}: {self.data}"
-                    )
+                with warnings.catch_warnings(record=True) as captured_warnings:
+                    try:
+                        plot()
+                    except Exception as e:
+                        if "errors" not in self.data:
+                            self.data["errors"] = []
+                        self.data["errors"].append(f"{self.__class__.__name__} raised error: {e}")
+                        LOGGER.warning(
+                            f"Could not create plot for {self.__class__.__name__}: {self.data}"
+                        )
+                    finally:
+                        if captured_warnings:
+                            if "warnings" not in self.data:
+                                self.data["warnings"] = []
+                            self.data["warnings"].extend(
+                                [
+                                    f"{self.__class__.__name__} raised warning: {w.message}"
+                                    for w in captured_warnings
+                                ]
+                            )
+
         return self.data
 
     @classmethod
