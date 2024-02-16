@@ -130,7 +130,10 @@ class RamanBlock(DataBlock):
 
         """
 
-        raman_data = file_reader(location)
+        try:
+            raman_data = file_reader(location)
+        except Exception as e:
+            raise RuntimeError(f"Could not read file with RosettaSciIO. Error: {e}")
 
         if len(raman_data[0]["axes"]) == 1:
             pass
