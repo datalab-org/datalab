@@ -18,7 +18,7 @@
       <span class="system-prompt-label" v-if="role === 'system'">system prompt:</span>
       <div ref="markdownDiv" v-show="!showRaw" class="markdown-content" v-html="markdownContent" />
       <div class="raw-content" v-show="showRaw">{{ message.content }}</div>
-      <div class="float-right raw-toggle" @click="showRaw = !showRaw">
+      <div class="float-right raw-toggle clickable" @click="showRaw = !showRaw">
         <span :class="{ 'font-weight-bold': showRaw }"> raw </span> |
         <span :class="{ 'font-weight-bold': !showRaw }">formatted</span>
       </div>
@@ -168,8 +168,8 @@ export default {
   font-size: 0.875rem;
   color: rgb(100, 100, 100);
   opacity: 0.5;
-  cursor: pointer;
 }
+
 .raw-toggle:hover {
   opacity: 1;
 }

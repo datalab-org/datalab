@@ -94,17 +94,6 @@ body {
   border-left-color: #d9534f;
 }
 
-.table-item-id {
-  font-size: 1.2em;
-  font-weight: normal;
-}
-
-.formatted-refcode {
-  font-size: 1.2em;
-  font-weight: normal;
-  font-family: "Roboto Mono", monospace;
-}
-
 .fa-orcid {
   color: #a6ce39;
 }

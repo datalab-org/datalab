@@ -109,7 +109,8 @@ export default {
 </script>
 
 <style scoped>
-.clickable {
-  cursor: pointer;
+.table-item-id {
+  font-size: 1.2em;
+  font-weight: normal;
 }
 </style>
