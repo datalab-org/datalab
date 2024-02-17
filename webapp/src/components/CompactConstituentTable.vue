@@ -78,7 +78,7 @@
         >
           <transition name="fade">
             <font-awesome-icon
-              class="add-row-button"
+              class="add-row-button clickable"
               v-if="!addNewConstituentIsActive"
               :icon="['far', 'plus-square']"
             />
@@ -179,7 +179,6 @@ td {
 }
 
 .add-row-button {
-  cursor: pointer;
   position: absolute;
   font-size: regular;
   color: #bbb;
@@ -202,18 +201,6 @@ td {
 
 .select-in-row {
   width: 100%;
-}
-
-.clickable {
-  cursor: pointer;
-}
-
-.subheading {
-  color: darkslategrey;
-  font-size: small;
-  font-weight: 600;
-  text-transform: uppercase;
-  margin-bottom: 0px;
 }
 
 .borderless tr,

@@ -188,31 +188,4 @@ label,
 .navbar-brand {
   cursor: pointer;
 }
-
-.block-container {
-  padding-bottom: 100px;
-  position: relative;
-}
-
-.block-list-item {
-  transition: all 0.6s ease;
-  /*display: inline-block;*/
-  width: 100%;
-  position: relative;
-}
-
-.block-list-enter-from,
-.block-list-leave-to {
-  opacity: 0;
-  /*transform: translateX(-100px);*/
-}
-
-.block-list-leave-active {
-  position: absolute;
-  max-width: calc(100% - 30px);
-}
-
-.dropdown-menu {
-  cursor: pointer;
-}
 </style>

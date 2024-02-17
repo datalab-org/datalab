@@ -106,55 +106,11 @@ export default {
   width: 700px;
 }
 
-.first-column {
-  position: relative;
-}
-
-.swap-constituent-icon {
-  cursor: pointer;
-  position: absolute;
-  font-size: regular;
-  color: #bbb;
-  float: right;
-  transform: translateY(30%);
-  transition: transform 0.4s ease;
-  width: 1.5rem;
-  left: -1.5rem;
-}
-
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-
-.select-in-row {
-  width: 100%;
-}
-
 .subheading {
   color: darkslategrey;
   font-size: small;
   font-weight: 600;
   text-transform: uppercase;
   margin-bottom: 0px;
-}
-
-table {
-  margin-bottom: 0rem;
-}
-
-.borderless td,
-.borderless th {
-  border: none;
-}
-
-.empty-search {
-  opacity: 0.5;
-  font-style: italic;
 }
 </style>

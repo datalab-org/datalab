@@ -69,10 +69,6 @@ export default {
 </script>
 
 <style scoped>
-.clickable {
-  cursor: pointer;
-}
-
 .text-italic {
   opacity: 0.7;
 }

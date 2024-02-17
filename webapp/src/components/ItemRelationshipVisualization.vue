@@ -32,28 +32,3 @@ export default {
   },
 };
 </script>
-
-<style scoped>
-.nav-link {
-  cursor: pointer;
-}
-
-.contents-item {
-  cursor: pointer;
-}
-
-.contents-blocktype {
-  font-style: italic;
-  color: gray;
-  margin-right: 1rem;
-}
-
-.contents-blocktitle {
-  color: #004175;
-}
-
-#contents-ol {
-  margin-bottom: 0rem;
-  padding-left: 1rem;
-}
-</style>

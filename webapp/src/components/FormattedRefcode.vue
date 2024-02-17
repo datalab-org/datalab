@@ -45,9 +45,6 @@ export default {
 </script>
 
 <style scoped>
-.clickable {
-  cursor: pointer;
-}
 .badge {
   color: black;
 }

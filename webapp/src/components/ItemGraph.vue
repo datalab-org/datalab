@@ -177,7 +177,7 @@ export default {
 };
 </script>
 
-<style scoped>
+<style>
 #flex-container {
   flex-flow: column;
 }
