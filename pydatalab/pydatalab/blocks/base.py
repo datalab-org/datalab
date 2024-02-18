@@ -102,15 +102,17 @@ class DataBlock:
     def to_db(self):
         """returns a dictionary with the data for this
         block, ready to be input into mongodb"""
+
         LOGGER.debug("Casting block %s to database object.", self.__class__.__name__)
+
+        if "bokeh_plot_data" in self.data:
+            self.data.pop("bokeh_plot_data")
 
         if "file_id" in self.data:
             dict_for_db = self.data.copy()  # gross, I know
             dict_for_db["file_id"] = ObjectId(dict_for_db["file_id"])
             return dict_for_db
 
-        if "bokeh_plot_data" in self.data:
-            self.data.pop("bokeh_plot_data")
         return self.data
 
     @classmethod
