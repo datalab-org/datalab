@@ -2,6 +2,9 @@
 FROM python:3.10 as base
 SHELL ["/bin/bash", "--login", "-c"]
 
+# Useful for installing deps from git, preventing big downloads and bandwith quotas
+ENV GIT_LFS_SKIP_SMUDGE=1
+
 # Install system dependencies
 RUN apt update && apt install -y gnupg curl tree mdbtools && apt clean
 
@@ -32,7 +35,7 @@ RUN [ "pipenv", "run", "pip", "install", "gunicorn" ]
 COPY ./pydatalab/ ./
 
 # This will define the number of gunicorn workers
-ARG WEB_CONCURRENCY=16
+ARG WEB_CONCURRENCY=4
 ENV WEB_CONCURRENCY=${WEB_CONCURRENCY}
 
 ARG PORT=5001
