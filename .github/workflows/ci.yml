@@ -8,6 +8,9 @@ on:
 
 env:
   FORCE_COLOR: true
+  # Need to set this to avoid pipenv syncing an entire LFS repo and failing with bandwidth quota (see
+  # https://github.com/the-grey-group/datalab/issues/603)
+  GIT_LFS_SKIP_SMUDGE: 1
 
 concurrency:
   group: ${{ github.head_ref || github.run_id }}
