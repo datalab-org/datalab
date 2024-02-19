@@ -35,7 +35,7 @@ services:
       dockerfile: .docker/server_dockerfile
       target: production
       args:
-        - WEB_CONCURRENCY=16
+        - WEB_CONCURRENCY=4
     depends_on:
       - database
     volumes:

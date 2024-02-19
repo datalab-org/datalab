@@ -35,7 +35,7 @@ RUN [ "pipenv", "run", "pip", "install", "gunicorn" ]
 COPY ./pydatalab/ ./
 
 # This will define the number of gunicorn workers
-ARG WEB_CONCURRENCY=16
+ARG WEB_CONCURRENCY=4
 ENV WEB_CONCURRENCY=${WEB_CONCURRENCY}
 
 ARG PORT=5001
