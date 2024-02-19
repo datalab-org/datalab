@@ -13,11 +13,12 @@ WORKDIR /opt
 RUN wget https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2204-x86_64-100.9.0.deb && apt install ./mongodb-database-tools-*-100.9.0.deb
 
 FROM base as app
-# Copy all server code into workdir
+
 WORKDIR /app
+
 RUN pip install pipenv
 
-COPY pydatalab/Pipfile pydatalab/Pipfile.lock ./
+COPY pydatalab/Pipfile pydatalab/Pipfile.lock pydatalab/pyproject.toml .
 
 # Create development image using flask's dev server with hot-reload
 FROM app as development
@@ -34,6 +35,9 @@ RUN --mount=type=cache,target=/root/.cache/pip pipenv sync
 RUN [ "pipenv", "run", "pip", "install", "gunicorn" ]
 COPY ./pydatalab/ ./
 
+# Install the local version of the package and mount the repository data to get version info
+RUN --mount=type=bind,target=/app/.git,source=./.git ["pipenv", "run", "pip", "install", "."]
+
 # This will define the number of gunicorn workers
 ARG WEB_CONCURRENCY=4
 ENV WEB_CONCURRENCY=${WEB_CONCURRENCY}
@@ -41,7 +45,6 @@ ENV WEB_CONCURRENCY=${WEB_CONCURRENCY}
 ARG PORT=5001
 EXPOSE ${PORT}
 ENV PORT=${PORT}
-
 
 CMD ["/bin/bash", "-c", "pipenv run gunicorn --preload -w ${WEB_CONCURRENCY} --error-logfile /logs/pydatalab_error.log --access-logfile - -b 0.0.0.0:${PORT} 'pydatalab.main:create_app()'"]
 

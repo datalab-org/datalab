@@ -1,3 +1,6 @@
-from importlib.metadata import version
+from importlib.metadata import PackageNotFoundError, version
 
-__version__ = version("pydatalab")
+try:
+    __version__ = version("pydatalab")
+except PackageNotFoundError:
+    __version__ = "develop"
