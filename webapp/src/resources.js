@@ -16,13 +16,10 @@ import SampleCreateModalAddon from "@/components/itemCreateModalAddons/SampleCre
 import CellCreateModalAddon from "@/components/itemCreateModalAddons/CellCreateModalAddon";
 import CollectionInformation from "@/components/CollectionInformation";
 
-// Look for values set in .env file. Use defaults if `null` is not explicitly handled elsewhere in the code.
-export const API_URL =
-  process.env.VUE_APP_API_URL != null ? process.env.VUE_APP_API_URL : "http://localhost:5001";
-export const API_TOKEN = process.env.VUE_APP_API_TOKEN;
-
-export const LOGO_URL = process.env.VUE_APP_LOGO_URL;
-export const HOMEPAGE_URL = process.env.VUE_APP_HOMEPAGE_URL;
+export const API_URL = "http://localhost:5001";
+export const API_TOKEN = null;
+export const LOGO_URL = null;
+export const HOMEPAGE_URL = null;
 export const GRAVATAR_STYLE = "identicon";
 
 export const UPPY_MAX_TOTAL_FILE_SIZE =
