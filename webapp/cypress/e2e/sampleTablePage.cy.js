@@ -35,7 +35,7 @@ describe("Sample table page", () => {
     // Can we wait for the server response instead of hard-coding
     // a wait time in ms?
     cy.wait(100).then((x) => {
-      cy.contains("Server Error. Sample list not retreived.").should("not.exist");
+      cy.contains("Server Error. Sample list could not be retreived.").should("not.exist");
       expect(consoleSpy).not.to.be.called;
     });
   });

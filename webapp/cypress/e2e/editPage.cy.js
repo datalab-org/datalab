@@ -29,7 +29,7 @@ describe("Edit Page", () => {
     cy.findByText("Add an item").should("exist");
     cy.findByText("# of blocks").should("exist");
     cy.wait(1000).then((x) => {
-      cy.contains("Server Error. Sample list not retreived.").should("not.exist");
+      cy.contains("Server Error. Sample list could not be retreived.").should("not.exist");
       expect(consoleSpy).not.to.be.called;
     });
   });

@@ -142,9 +142,10 @@ jobs:
         run: |
           # Create a named docker network that all containers attach to
           docker network create nginx
-          # Set API runtime config for testing mode to disable auth
-          echo "PYDATALAB_TESTING=true" >> pydatalab/.env
-          docker compose --env-file pydatalab/.env --profile prod up -d --wait
+          # Add default API URL argument to Vue prod build
+          echo "VUE_APP_API_URL=http://localhost:5001" >> .env
+          # Launch production container profiles and wait for them to come up
+          docker compose up database api_dev app -d --wait
 
       - name: Run end-to-end tests
         uses: cypress-io/github-action@v6
