@@ -9,6 +9,10 @@ services:
       target: production
     volumes:
       - ./logs:/logs
+    environment:
+      - VUE_APP_API_URL
+      - VUE_APP_LOGO_URL
+      - VUE_APP_HOMEPAGE_URL
     ports:
       - "8081:8081"
     networks:

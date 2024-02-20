@@ -6,12 +6,11 @@ WORKDIR /app
 
 EXPOSE 8081
 
-RUN npm install -g serve
-
 COPY webapp/package.json webapp/yarn.lock ./
 
 # Using a custom node_modules location to avoid mounting it outside of docker
 RUN --mount=type=cache,target=/root/.cache/yarn yarn install --frozen-lockfile --modules-folder /node_modules
+ENV PATH $PATH:/node_modules/.bin
 
 FROM base as development
 
@@ -20,11 +19,19 @@ RUN apt-get update \
     && apt install -y libgtk2.0-0 libgtk-3-0 libgbm-dev libnotify-dev libgconf-2-4 libnss3 libxss1 libasound2 libxtst6 xauth xvfb \
     && rm -rf /var/lib/apt/lists/*
 
-ENV PATH $PATH:/node_modules/.bin
 CMD [ "yarn", "serve", "--port", "8081"]
 
 FROM base as production
 ENV NODE_ENV production
+
+# These get replaced by the entrypoint script for production builds.
+# Set the real values in `.env` files or an external docker-compose.
+ARG VUE_APP_API_URL=magic-api-url
+ARG VUE_APP_LOGO_URL=magic-logo-url
+ARG VUE_APP_HOMEPAGE_URL=magic-homepage-url
+
 COPY webapp ./
 RUN /node_modules/.bin/vue-cli-service build
-CMD [ "serve", "-s", "dist", "-p", "8081" ]
+
+COPY ./.docker/app_entrypoint.sh /app/
+CMD [ "/bin/bash", "-c", "/app/app_entrypoint.sh" ]
