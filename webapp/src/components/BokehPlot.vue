@@ -1,8 +1,6 @@
 <template>
-  <div v-if="!loaded" class="alert alert-secondary">Data will be displayed here</div>
-  <div v-if="loading" class="alert alert-secondary">Setting up bokeh plot...</div>
-  <!-- <button class="btn btn-dark" @click="startBokehPlot"> Setup plot </button> -->
-  <!-- <button class="btn btn-dark" @click="cleanupBokehPlot"> Remove plot </button> -->
+  <!-- <div v-if="!loaded" class="alert alert-secondary mt-3">Data will be displayed here</div> -->
+  <div v-if="loading" class="alert alert-secondary mt-3">Setting up bokeh plot...</div>
   <div ref="bokehPlotContainer" :id="unique_id" :style="{ height: bokehPlotContainerHeight }" />
 </template>
 
