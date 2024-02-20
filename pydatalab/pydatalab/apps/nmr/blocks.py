@@ -14,7 +14,7 @@ from .utils import read_bruker_1d
 
 class NMRBlock(DataBlock):
     blocktype = "nmr"
-    description = "Simple NMR Block"
+    description = "Bruker NMR Spectrum"
     accepted_file_extensions = ".zip"
     defaults = {"process number": 1}
     _supports_collections = False
