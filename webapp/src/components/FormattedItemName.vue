@@ -1,7 +1,7 @@
 <template>
   <span v-if="item_id">
     <span
-      class="badge badge-light"
+      class="formatted-item-name badge badge-light"
       :class="{ clickable: enableClick || enableModifiedClick }"
       :style="{ backgroundColor: badgeColor }"
       @click.exact="enableClick ? openEditPageInNewTab() : null"
@@ -76,3 +76,14 @@ export default {
   emits: ["itemIdClicked"],
 };
 </script>
+
+<style scoped>
+.formatted-item-name {
+  border: 2px solid transparent;
+}
+
+.formatted-item-name.clickable:hover {
+  border: 2px solid rgba(0, 0, 0, 0.6);
+  box-shadow: 0 0 2px gray;
+}
+</style>

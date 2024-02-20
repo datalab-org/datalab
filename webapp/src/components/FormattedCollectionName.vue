@@ -64,10 +64,13 @@ export default {
 
 <style scoped>
 .formatted-collection-name {
-  border-width: 1px;
+  border: 1.5px solid;
+  margin: 1px;
 }
 
 .formatted-collection-name:hover {
-  border-width: 1.5px !important;
+  border-width: 2px;
+  margin: 0px;
+  box-shadow: 0 0 2px gray;
 }
 </style>

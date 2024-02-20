@@ -4,7 +4,7 @@
     class="navbar navbar-expand sticky-top navbar-dark py-0 editor-navbar"
     :style="{ backgroundColor: navbarColor }"
   >
-    <span class="navbar-brand" @click="scrollToID($event, 'topScrollPoint')"
+    <span class="navbar-brand clickable" @click="scrollToID($event, 'topScrollPoint')"
       >{{ itemTypeEntry?.navbarName || "loading..." }}&nbsp;&nbsp;|&nbsp;&nbsp;
       <FormattedItemName :item_id="item_id" :itemType="itemType" />
     </span>
@@ -324,13 +324,13 @@ label,
   padding: 0.3rem;
 }
 
+::v-deep(.navbar-brand:hover .formatted-item-name) {
+  outline: 2px solid rgba(0, 0, 0, 0.3);
+}
+
 .unsaved-warning {
   font-weight: 600;
   color: #ffc845;
-}
-
-.navbar-brand {
-  cursor: pointer;
 }
 
 .block-container {

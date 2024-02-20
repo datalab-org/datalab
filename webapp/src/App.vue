@@ -98,17 +98,6 @@ body {
   color: #a6ce39;
 }
 
-.badge.clickable {
-  border: 2px solid transparent;
-}
-
-.badge.clickable:hover {
-  cursor: pointer;
-  border: 2px solid black;
-  border-color: black;
-  box-shadow: 0 0 3px;
-}
-
 .clickable {
   cursor: pointer;
 }
