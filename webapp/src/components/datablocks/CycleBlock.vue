@@ -1,6 +1,6 @@
 <template>
   <DataBlockBase :item_id="item_id" :block_id="block_id">
-    <div class="form-row col-lg-8">
+    <div class="form-row">
       <FileSelectDropdown
         v-model="file_id"
         :item_id="item_id"
@@ -9,10 +9,11 @@
         updateBlockOnChange
       />
     </div>
-    <div class="form-row col-md-6 col-lg-7 mt-2">
+    <div class="form-row">
       <div class="input-group form-inline">
         <label class="mr-2"><b>Cycles to plot:</b></label>
         <input
+          id="cycles-input"
           type="text"
           class="form-control"
           placeholder="e.g., 1-5, 7, 9-10. Starts at 1."
@@ -27,7 +28,7 @@
             updateBlock();
           "
         />
-        <label id="listOfCycles" class="ml-3">Showing cycles: {{ parsedCycles }}</label>
+        <span id="list-of-cycles" class="pl-3 pt-2">Showing cycles: {{ parsedCycles }}</span>
       </div>
 
       <div v-if="cycle_num_error" class="alert alert-danger mt-2 mx-auto">
@@ -35,41 +36,39 @@
       </div>
     </div>
 
-    <div class="form-row">
-      <div class="col mt-2">
-        <div class="input-group form-inline">
-          <label class="mr-2"><b>Mode:</b></label>
-          <div class="btn-group">
-            <div
-              class="btn btn-default"
-              :class="{ active: derivative_mode == 'final capacity' }"
-              @click="
-                derivative_mode = derivative_mode == 'final capacity' ? null : 'final capacity';
-                updateBlock();
-              "
-            >
-              Cycle Summary
-            </div>
-            <div
-              class="btn btn-default"
-              :class="{ active: derivative_mode == 'dQ/dV' }"
-              @click="
-                derivative_mode = derivative_mode == 'dQ/dV' ? null : 'dQ/dV';
-                updateBlock();
-              "
-            >
-              d<i>Q</i>/d<i>V</i>
-            </div>
-            <div
-              class="btn btn-default"
-              :class="{ active: derivative_mode == 'dV/dQ' }"
-              @click="
-                derivative_mode = derivative_mode == 'dV/dQ' ? null : 'dV/dQ';
-                updateBlock();
-              "
-            >
-              d<i>V</i>/d<i>Q</i>
-            </div>
+    <div class="form-row mt-2">
+      <div class="input-group form-inline">
+        <label class="mr-2"><b>Mode:</b></label>
+        <div class="btn-group">
+          <div
+            class="btn btn-default"
+            :class="{ active: derivative_mode == 'final capacity' }"
+            @click="
+              derivative_mode = derivative_mode == 'final capacity' ? null : 'final capacity';
+              updateBlock();
+            "
+          >
+            Cycle Summary
+          </div>
+          <div
+            class="btn btn-default"
+            :class="{ active: derivative_mode == 'dQ/dV' }"
+            @click="
+              derivative_mode = derivative_mode == 'dQ/dV' ? null : 'dQ/dV';
+              updateBlock();
+            "
+          >
+            d<i>Q</i>/d<i>V</i>
+          </div>
+          <div
+            class="btn btn-default"
+            :class="{ active: derivative_mode == 'dV/dQ' }"
+            @click="
+              derivative_mode = derivative_mode == 'dV/dQ' ? null : 'dV/dQ';
+              updateBlock();
+            "
+          >
+            d<i>V</i>/d<i>Q</i>
           </div>
         </div>
       </div>
@@ -255,8 +254,12 @@ export default {
 </script>
 
 <style scoped>
-#listOfCycles {
+#list-of-cycles {
   color: grey;
+}
+
+#cycles-input {
+  max-width: 14em;
 }
 
 .blurry {

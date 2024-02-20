@@ -1,17 +1,18 @@
 <template>
-  <div class="form-inline">
-    <div class="form-group">
-      <label class="mr-4"><b>Select a file:</b></label>
-      <select class="form-control" :value="modelValue" @input="handleInput">
-        <option v-for="file_id in available_file_ids" :key="file_id" :value="file_id">
-          {{ all_files[file_id].name }}
-        </option>
-      </select>
+  <div class="form-group form-inline">
+    <label class="mr-4"><b>Select a file:</b></label>
+    <select class="form-control" :value="modelValue" @input="handleInput">
+      <option value="" v-if="!available_file_ids.length" disabled>
+        No matching files available
+      </option>
+      <option v-for="file_id in available_file_ids" :key="file_id" :value="file_id">
+        {{ all_files[file_id].name }}
+      </option>
+    </select>
 
-      <span v-if="all_files[modelValue] && all_files[modelValue].is_live" class="ml-2">
-        <b>Live</b> (last updated: {{ lastModified }})
-      </span>
-    </div>
+    <span v-if="all_files[modelValue] && all_files[modelValue].is_live" class="ml-2">
+      <b>Live</b> (last updated: {{ lastModified }})
+    </span>
   </div>
 </template>
 
