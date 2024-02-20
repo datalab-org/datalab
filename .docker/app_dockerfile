@@ -6,8 +6,6 @@ WORKDIR /app
 
 EXPOSE 8081
 
-RUN npm install -g serve
-
 COPY webapp/package.json webapp/yarn.lock ./
 
 # Using a custom node_modules location to avoid mounting it outside of docker
