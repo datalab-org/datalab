@@ -79,7 +79,7 @@
           <transition name="fade">
             <font-awesome-icon
               class="add-row-button clickable"
-              v-if="!addNewConstituentIsActive"
+              v-if="!newSelectIsShown"
               :icon="['far', 'plus-square']"
             />
           </transition>
