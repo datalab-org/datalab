@@ -178,6 +178,7 @@ def selectable_axes_plot(
         title=plot_title,
         **kwargs,
     )
+    p.toolbar.logo = "grey"
 
     if tools:
         p.add_tools(tools)
