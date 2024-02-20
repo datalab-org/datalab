@@ -1,6 +1,7 @@
 from typing import Any, Dict
 
 from flask_login import current_user
+from bson import ObjectId
 
 from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER
@@ -31,7 +32,15 @@ def get_default_permissions(user_only: bool = True) -> Dict[str, Any]:
     ):
         return {}
 
-    null_perm = {"$or": [{"creator_ids": {"$size": 0}}, {"creator_ids": {"$exists": False}}]}
+    null_perm = {
+        "$or": 
+            [
+                {"creator_ids": {"$size": 0}}, 
+                {"creator_ids": {"$exists": False}}, 
+                {"creator_ids": {"$in": [24*"0"]}},
+                {"creator_ids": {"$in": [ObjectId(24*"0")]}},
+            ]
+        }
     if current_user.is_authenticated and current_user.person is not None:
         # find managed users under the given user (can later be expanded to groups)
         managed_users = list(

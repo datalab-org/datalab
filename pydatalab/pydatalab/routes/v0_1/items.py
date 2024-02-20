@@ -75,15 +75,6 @@ def dereference_files(file_ids: List[Union[str, ObjectId]]) -> Dict[str, Dict]:
 
 
 def get_starting_materials():
-    if not current_user.is_authenticated and not CONFIG.TESTING:
-        return (
-            jsonify(
-                status="error",
-                message="Authorization required to access chemical inventory.",
-            ),
-            401,
-        )
-
     items = [
         doc
         for doc in flask_mongo.db.items.aggregate(
@@ -597,11 +588,7 @@ def get_item_data(item_id, load_blocks: bool = False):
     except IndexError:
         doc = None
 
-    if not doc or (
-        not current_user.is_authenticated
-        and not CONFIG.TESTING
-        and not doc["type"] == "starting_materials"
-    ):
+    if not doc:
         return (
             jsonify(
                 {

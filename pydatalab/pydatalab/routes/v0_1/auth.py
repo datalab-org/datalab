@@ -233,6 +233,7 @@ def find_create_or_modify_user(
 
     # Log the user into the session with this identity
     if user is not None:
+        LOGGER.debug("Logging in user %s via email", user.display_name)
         wrapped_login_user(get_by_id(str(user.immutable_id)))
 
 
@@ -346,6 +347,7 @@ def email_logged_in():
         raise ValueError("Token expired, please request a new one.")
 
     email = data["email"]
+    LOGGER.debug("Logging in %s via token %s", email, token)
     if not email:
         raise RuntimeError("No email found; please request a new token.")
 
