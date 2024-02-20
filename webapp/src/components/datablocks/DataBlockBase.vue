@@ -53,18 +53,6 @@
           </li>
         </ul>
       </div>
-      <div
-        class="alert alert-warning d-flex align-items-center ml-3"
-        role="alert"
-        v-if="block.warnings"
-      >
-        <ul class="fa-ul">
-          <li v-for="(warning, index) in block.warnings" :key="index">
-            <font-awesome-icon class="fa-li" icon="exclamation-triangle" />
-            {{ warning }}
-          </li>
-        </ul>
-      </div>
       <slot></slot>
       <TinyMceInline v-model="BlockDescription"></TinyMceInline>
     </div>
