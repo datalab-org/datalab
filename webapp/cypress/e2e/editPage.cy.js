@@ -91,7 +91,6 @@ describe("Edit Page", () => {
 
   it("adds some synthesis information", () => {
     cy.findByText("editable_sample").click();
-    cy.get("svg.add-row-button").click();
     cy.get("#synthesis-information .vs__search").first().type("component1");
     cy.get(".vs__dropdown-menu").contains(".badge", "component1").click();
     cy.get("#synthesis-information tbody > tr").should("have.length", 2);
