@@ -73,7 +73,7 @@ Cypress.Commands.add("deleteSample", (sample_id, delay = 100) => {
   cy.wait(delay).then(() => {
     cy.log("search for and delete: " + sample_id);
     cy.get("[data-testid=sample-table]")
-      .contains(sample_id)
+      .contains(new RegExp("^" + sample_id + "$", "g"))
       .parents("tr")
       .within(() => {
         cy.get("button.close").click();
@@ -91,19 +91,24 @@ Cypress.Commands.add("deleteSampleViaAPI", (sample_id) => {
   });
 });
 
-Cypress.Commands.add("searchAndSelectItem", (search_text, selector, delay = 100) => {
-  // searches in the dropdown for the first real item with the given name, looking for a badge
-  // if click_plus, then also click the add row button before looking for the search bar
-  cy.get("#synthesis-information").within(() => {
-    cy.get("svg.add-row-button").click();
-  });
-  cy.get(selector).first().type(search_text);
-  cy.wait(delay).then(() => {
-    cy.get(".vs__dropdown-menu").within(() => {
-      cy.contains(".badge", search_text).click();
+Cypress.Commands.add(
+  "searchAndSelectItem",
+  (search_text, selector, clickPlus = false, delay = 100) => {
+    // searches in the dropdown for the first real item with the given name, looking for a badge
+    // if clickPlus, then also click the add row button before looking for the search bar
+    if (clickPlus) {
+      cy.get("#synthesis-information").within(() => {
+        cy.get("svg.add-row-button").click();
+      });
+    }
+    cy.get(selector).first().type(search_text);
+    cy.wait(delay).then(() => {
+      cy.get(".vs__dropdown-menu").within(() => {
+        cy.contains(".badge", search_text).click();
+      });
     });
-  });
-});
+  },
+);
 
 Cypress.Commands.add("removeAllTestSamples", (sample_ids) => {
   // as contains matches greedily, if any IDs have matching substrings they must be added in the appropriate order

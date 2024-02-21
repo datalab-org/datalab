@@ -143,7 +143,7 @@ describe("Batch sample creation", () => {
     cy.searchAndSelectItem("component3", "#synthesis-information .vs__search");
     cy.get("#synthesis-information tbody tr:nth-of-type(1) input").first().type("30");
 
-    cy.searchAndSelectItem("component4", "#synthesis-information .vs__search");
+    cy.searchAndSelectItem("component4", "#synthesis-information .vs__search", true);
     cy.get("#synthesis-information tbody tr:nth-of-type(2) input").eq(0).type("100");
 
     cy.get(".fa-save").click();
