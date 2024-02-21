@@ -12,32 +12,34 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
       />
     </div>
 
-    <div class="form-row col-md-6 col-lg-4 mt-2 mb-2 pl-0">
-      <div class="input-group form-inline">
-        <label class="mr-2"><b>Wavelength (Å):</b></label>
-        <input
-          type="text"
-          class="form-control"
-          :class="{ 'is-invalid': wavelengthParseError }"
-          v-model="wavelength"
-          @keydown.enter="
-            parseWavelength();
-            updateBlock();
-          "
-          @blur="
-            parseWavelength();
-            updateBlock();
-          "
-        />
-        <div v-if="wavelengthParseError" class="alert alert-danger mt-2 mx-auto">
-          {{ wavelengthParseError }}
+    <div v-if="file_id">
+      <div class="form-row col-md-6 col-lg-4 mt-2 mb-2 pl-0">
+        <div class="input-group form-inline">
+          <label class="mr-2"><b>Wavelength (Å):</b></label>
+          <input
+            type="text"
+            class="form-control"
+            :class="{ 'is-invalid': wavelengthParseError }"
+            v-model="wavelength"
+            @keydown.enter="
+              parseWavelength();
+              updateBlock();
+            "
+            @blur="
+              parseWavelength();
+              updateBlock();
+            "
+          />
+          <div v-if="wavelengthParseError" class="alert alert-danger mt-2 mx-auto">
+            {{ wavelengthParseError }}
+          </div>
         </div>
       </div>
-    </div>
 
-    <div class="row">
-      <div id="bokehPlotContainer" class="col-xl-9 col-lg-10 col-md-11 mx-auto">
-        <BokehPlot :bokehPlotData="bokehPlotData" />
+      <div class="row">
+        <div id="bokehPlotContainer" class="col-xl-9 col-lg-10 col-md-11 mx-auto">
+          <BokehPlot :bokehPlotData="bokehPlotData" />
+        </div>
       </div>
     </div>
   </DataBlockBase>
