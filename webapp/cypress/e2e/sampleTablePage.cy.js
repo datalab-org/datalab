@@ -206,7 +206,6 @@ describe("Advanced sample creation features", () => {
     cy.findByText("Comment").click();
 
     cy.get(".datablock-content div").first().type("a comment is added here.");
-    cy.get("svg.add-row-button").click();
     cy.get("#synthesis-information .vs__search").first().type("component3");
     cy.get(".vs__dropdown-menu").within(() => {
       cy.contains(".badge", "component3").click();
