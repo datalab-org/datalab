@@ -26,8 +26,8 @@
           </div>
           <div class="form-group col-md-3 col-sm-3 col-6 pb-3">
             <label id="creators">Creators</label>
-            <div class="mx-auto">
-              <Creators aria-labelledby="creators" :creators="ItemCreators" :size="36" />
+            <div aria-labelledby="creators" class="mx-auto">
+              <Creators :creators="ItemCreators" :size="36" />
             </div>
           </div>
           <div class="col-md-6 col-sm-7 pr-2">
