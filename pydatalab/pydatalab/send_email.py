@@ -3,6 +3,7 @@
 from flask_mail import Mail, Message
 
 from pydatalab.config import CONFIG
+from pydatalab.logger import LOGGER
 
 MAIL = Mail()
 
@@ -20,14 +21,14 @@ def send_mail(recipient: str, subject: str, body: str):
         body (str): The body of the email.
 
     """
-
-    if CONFIG.EMAIL_AUTH_SMTP_SETTINGS is None:
-        raise RuntimeError("No SMTP settings configured.")
+    LOGGER.debug("Sending email to %s", recipient)
 
     message = Message(
-        sender=CONFIG.EMAIL_AUTH_SMTP_SETTINGS.MAIL_DEFAULT_SENDER,
+        sender="datalab@odbx.science",
         recipients=[recipient],
         body=body,
         subject=subject,
     )
+    MAIL.connect()
     MAIL.send(message)
+    LOGGER.debug("Email sent to %s", recipient)

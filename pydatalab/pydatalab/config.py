@@ -111,8 +111,10 @@ class SMTPSettings(BaseModel):
 
     MAIL_SERVER: str = Field("127.0.0.1", description="The SMTP server to use for sending emails.")
     MAIL_PORT: int = Field(587, description="The port to use for the SMTP server.")
-    MAIL_USERNAME: str = Field("", description="The username to use for the SMTP server.")
-    MAIL_PASSWORD: str = Field("", description="The password to use for the SMTP server.")
+    MAIL_USERNAME: str = Field(
+        "", 
+        description="The username to use for the SMTP server. Will use the externally provided `MAIL_PASSWORD` environment variable for authentication."
+    )
     MAIL_USE_TLS: bool = Field(True, description="Whether to use TLS for the SMTP connection.")
     MAIL_DEFAULT_SENDER: str = Field(
         "", description="The email address to use as the sender for emails."
@@ -195,8 +197,8 @@ class ServerConfig(BaseSettings):
         description="A list of domains for which user's will be able to register accounts if they have a matching email address. Setting the value to `None` will allow any email addresses at any domain to register an account, otherwise the default `[]` will not allow any email addresses.",
     )
 
-    EMAIL_AUTH_SMTP_SETTINGS: SMTPSettings = Field(
-        SMTPSettings(),
+    EMAIL_AUTH_SMTP_SETTINGS: Optional[SMTPSettings] = Field(
+        None,
         description="A dictionary containing SMTP settings for sending emails for account registration.",
     )
 
