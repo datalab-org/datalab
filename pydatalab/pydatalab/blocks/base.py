@@ -134,19 +134,17 @@ class DataBlock:
         if self.plot_functions:
             for plot in self.plot_functions:
                 with warnings.catch_warnings(record=True) as captured_warnings:
+                    self.data["errors"] = []
+                    self.data["warnings"] = []
                     try:
                         plot()
                     except Exception as e:
-                        if "errors" not in self.data:
-                            self.data["errors"] = []
                         self.data["errors"].append(f"{self.__class__.__name__} raised error: {e}")
                         LOGGER.warning(
                             f"Could not create plot for {self.__class__.__name__}: {self.data}"
                         )
                     finally:
                         if captured_warnings:
-                            if "warnings" not in self.data:
-                                self.data["warnings"] = []
                             self.data["warnings"].extend(
                                 [
                                     f"{self.__class__.__name__} raised warning: {w.message}"
