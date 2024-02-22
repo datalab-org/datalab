@@ -7,6 +7,10 @@ services:
       context: .
       dockerfile: .docker/app_dockerfile
       target: production
+    environment:
+      - VUE_APP_API_URL=http://titirici-datalab.ch.ic.ac.uk:5001
+      - VUE_APP_LOGO_URL=https://images.squarespace-cdn.com/content/v1/5c619b5c523958463c9806fc/1586972125161-PJ57FS4GS3BHUCYOIL5V/logo%2Bresearch-01.png
+      - VUE_APP_HOMEPAGE_URL=https://www.titiricigroup.com/
     volumes:
       - ./logs:/logs
     ports:
@@ -40,6 +44,9 @@ services:
       - database
     volumes:
       - ./logs:/logs
+      - ./config.json:/app/config.json
+      - ./.env:/app/.env
+      - /data:/app/files
     ports:
       - "5001:5001"
     networks:
