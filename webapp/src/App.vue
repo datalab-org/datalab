@@ -19,8 +19,9 @@ body {
 
 @import url("https://fonts.googleapis.com/css?family=Figtree");
 @import url("https://fonts.googleapis.com/css?family=Roboto+Mono");
+@import url("https://fonts.googleapis.com/css?family=Barlow+Semi+Condensed");
 #app {
-  font-family: Figtree, Avenir, Arial, sans-serif;
+  font-family: Barlow Semi Condensed, Figtree, Avenir, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   /*text-align: center;*/
