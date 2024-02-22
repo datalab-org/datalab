@@ -152,6 +152,11 @@ class DataBlock:
                                 ]
                             )
 
+    
+        if "errors" in self.data and not self.data["errors"]:
+            del self.data["errors"]
+        if "warnings" in self.data and not self.data["warnings"]:
+            del self.data["warnings"]
         return self.data
 
     @classmethod
