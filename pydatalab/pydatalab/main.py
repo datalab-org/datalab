@@ -27,7 +27,23 @@ def _warn_startup_settings(app):
     """
 
     if CONFIG.EMAIL_AUTH_SMTP_SETTINGS is None:
-        LOGGER.warning("No email auth SMTP settings provided, email registration will not work.")
+        LOGGER.warning(
+            "No email auth SMTP settings provided, email registration will not be enabled."
+        )
+    else:
+        if app.config["MAIL_SERVER"] and not app.config.get("MAIL_PASSWORD"):
+            LOGGER.critical(
+                "CONFIG.EMAIL_AUTH_SMTP_SETTINGS.MAIL_SERVER was set to '%s' but no `MAIL_PASSWORD` was provided. "
+                "This can be passed in a `.env` file (as `MAIL_PASSWORD`) or as an environment variable.",
+                app.config["MAIL_SERVER"],
+            )
+        if not app.config["MAIL_DEFAULT_SENDER"]:
+            LOGGER.critical(
+                "CONFIG.EMAIL_AUTH_SMTP_SETTINGS.MAIL_DEFAULT_SENDER is not set in the config. "
+                "Email authentication may not work correctly."
+                "This can be set in the config above or equivalently via `MAIL_DEFAULT_SENDER` in a `.env` file, "
+                "or as an environment variable."
+            )
 
     if CONFIG.IDENTIFIER_PREFIX == "test":
         LOGGER.critical(
@@ -73,7 +89,9 @@ def _warn_startup_settings(app):
         )
 
 
-def create_app(config_override: Dict[str, Any] | None = None) -> Flask:
+def create_app(
+    config_override: Dict[str, Any] | None = None, env_file: pathlib.Path | None = None
+) -> Flask:
     """Create the main `Flask` app with the given config.
 
     Parameters:
@@ -93,8 +111,18 @@ def create_app(config_override: Dict[str, Any] | None = None) -> Flask:
         CONFIG.update(config_override)
 
     app.config.update(CONFIG.dict())
+
+    # This value will still be overwritten by any dotenv values
     app.config["MAIL_DEBUG"] = CONFIG.TESTING
-    app.config.update(dotenv_values())
+
+    # percolate datalab mail settings up to the `MAIL_` env vars/app config
+    # for use by Flask Mail
+    if CONFIG.EMAIL_AUTH_SMTP_SETTINGS is not None:
+        mail_settings = CONFIG.EMAIL_AUTH_SMTP_SETTINGS.dict()
+        for key in mail_settings:
+            app.config[key] = mail_settings[key]
+
+    app.config.update(dotenv_values(dotenv_path=env_file))
 
     LOGGER.info("Starting app with Flask app.config: %s", app.config)
     _warn_startup_settings(app)
