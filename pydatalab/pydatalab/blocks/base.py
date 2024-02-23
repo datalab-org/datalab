@@ -129,30 +129,33 @@ class DataBlock:
             new_block.data["file_id"] = str(new_block.data["file_id"])
         return new_block
 
-    def to_web(self):
-        """returns a json-able dictionary to render the block on the web"""
+    def to_web(self) -> Dict[str, Any]:
+        """Returns a JSON serializable dictionary to render the data block on the web."""
+        block_errors = []
+        block_warnings = []
         if self.plot_functions:
             for plot in self.plot_functions:
                 with warnings.catch_warnings(record=True) as captured_warnings:
                     try:
                         plot()
                     except Exception as e:
-                        if "errors" not in self.data:
-                            self.data["errors"] = []
-                        self.data["errors"].append(f"{self.__class__.__name__} raised error: {e}")
+                        block_errors.append(f"{self.__class__.__name__} raised error: {e}")
                         LOGGER.warning(
                             f"Could not create plot for {self.__class__.__name__}: {self.data}"
                         )
                     finally:
                         if captured_warnings:
-                            if "warnings" not in self.data:
-                                self.data["warnings"] = []
-                            self.data["warnings"].extend(
+                            block_warnings.extend(
                                 [
                                     f"{self.__class__.__name__} raised warning: {w.message}"
                                     for w in captured_warnings
                                 ]
                             )
+
+        if block_errors:
+            self.data["errors"] = block_errors
+        if warnings:
+            self.data["warnings"] = block_warnings
 
         return self.data
 
