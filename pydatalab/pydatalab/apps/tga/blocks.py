@@ -7,7 +7,7 @@ from bokeh.layouts import gridplot
 from scipy.signal import savgol_filter
 
 from pydatalab.apps.tga.parsers import parse_mt_mass_spec_ascii
-from pydatalab.blocks.base import DataBlock
+from pydatalab.blocks._legacy import DataBlock
 from pydatalab.bokeh_plots import DATALAB_BOKEH_GRID_THEME, selectable_axes_plot
 from pydatalab.file_utils import get_file_info_by_id
 from pydatalab.logger import LOGGER

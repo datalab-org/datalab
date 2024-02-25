@@ -9,7 +9,7 @@ from bson import ObjectId
 from navani import echem as ec
 
 from pydatalab import bokeh_plots
-from pydatalab.blocks.base import DataBlock
+from pydatalab.blocks._legacy import DataBlock
 from pydatalab.file_utils import get_file_info_by_id
 from pydatalab.logger import LOGGER
 from pydatalab.mongo import flask_mongo

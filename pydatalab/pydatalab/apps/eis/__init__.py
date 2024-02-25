@@ -5,7 +5,7 @@ import bokeh.embed
 import pandas as pd
 from bokeh.models import HoverTool, LogColorMapper
 
-from pydatalab.blocks.base import DataBlock
+from pydatalab.blocks._legacy import DataBlock
 from pydatalab.bokeh_plots import DATALAB_BOKEH_THEME, selectable_axes_plot
 from pydatalab.file_utils import get_file_info_by_id
 from pydatalab.logger import LOGGER

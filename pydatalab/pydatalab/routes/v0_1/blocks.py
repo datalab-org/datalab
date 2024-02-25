@@ -3,7 +3,7 @@ from typing import Callable, Dict
 from flask import jsonify, request
 
 from pydatalab.blocks import BLOCK_TYPES
-from pydatalab.blocks.base import DataBlock
+from pydatalab.blocks._legacy import DataBlock
 from pydatalab.logger import LOGGER
 from pydatalab.mongo import flask_mongo
 from pydatalab.permissions import get_default_permissions

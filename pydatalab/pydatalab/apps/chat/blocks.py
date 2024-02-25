@@ -5,7 +5,7 @@ from typing import Sequence
 import openai
 import tiktoken
 
-from pydatalab.blocks.base import DataBlock
+from pydatalab.blocks._legacy import DataBlock
 from pydatalab.logger import LOGGER
 from pydatalab.models import ITEM_MODELS
 from pydatalab.utils import CustomJSONEncoder
