@@ -7,6 +7,7 @@ from flask import jsonify, request
 from flask_login import current_user
 from pydantic import ValidationError
 from pymongo.command_cursor import CommandCursor
+import pymongo.errors
 
 from pydatalab.blocks import BLOCK_TYPES
 from pydatalab.config import CONFIG
@@ -766,10 +767,21 @@ def save_item():
     item.pop("collections")
     item.pop("creators")
 
-    result = flask_mongo.db.items.update_one(
-        {"item_id": item_id},
-        {"$set": item},
-    )
+    try:
+        result = flask_mongo.db.items.update_one(
+            {"item_id": item_id},
+            {"$set": item},
+        )
+    except pymongo.errors.DocumentTooLarge as exc:
+        LOGGER.critical(f"DocumentTooLarge error:\n{exc}. Block data: {item['blocks_obj']}")
+        return (
+            jsonify(
+                status="error",
+                message=f"Item update failed due to document size error: {exc}",
+                output=str(exc),
+            ),
+            400,
+        )
 
     if result.matched_count != 1:
         return (
