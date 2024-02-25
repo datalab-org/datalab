@@ -1,16 +1,25 @@
 from typing import Callable, Dict
 
-from flask import jsonify, request
+from flask import jsonify, request 
+import pymongo.errors
 
 from pydatalab.blocks import BLOCK_TYPES
-from pydatalab.blocks._legacy import DataBlock
+from pydatalab.blocks._legacy import DataBlock as LegacyDataBlock
+from pydatalab.blocks.base import DataBlock
 from pydatalab.logger import LOGGER
 from pydatalab.mongo import flask_mongo
 from pydatalab.permissions import get_default_permissions
 
 
 def add_data_block():
-    """Call with AJAX to add a block to the sample"""
+    """Provide the JSON representation of a block to add to a sample.
+
+    Required keys:
+        - block_type: the type of block to add
+        - item_id: the item to add the block to
+        - index: the position in the display order to add the block to
+
+    """
 
     request_json = request.get_json()
 
@@ -134,29 +143,41 @@ def add_collection_data_block():
 add_collection_data_block.methods = ("POST",)  # type: ignore
 
 
-def _save_block_to_db(block: DataBlock) -> bool:
+def _save_block_to_db(block: DataBlock | LegacyDataBlock) -> bool:
     """Save data for a single block within an item to the database,
     overwriting previous data saved there.
     returns true if successful, false if unsuccessful
     """
-    if block.data.get("item_id"):
-        result = flask_mongo.db.items.update_one(
-            {"item_id": block.data["item_id"], **get_default_permissions(user_only=False)},
-            {"$set": {f"blocks_obj.{block.block_id}": block.to_db()}},
-        )
-    elif block.data.get("collection_id"):
-        result = flask_mongo.db.collections.update_one(
-            {"item_id": block.data["collection_id"], **get_default_permissions(user_only=False)},
-            {"$set": {f"blocks_obj.{block.block_id}": block.to_db()}},
+
+    updated_block = block.to_db()
+    update = {"$set": {f"blocks_obj.{block.block_id}": updated_block}}
+        
+    item_id = block.data.item_id if hasattr(block.data, "item_id") else block.data.get("item_id")
+    collection_id = block.data.collection_id if hasattr(block.data, "collection_id") else block.data.get("collection_id")
+    block_id = block.block_id
+
+    if collection_id:
+        match = {"collection_id": collection_id, **get_default_permissions(user_only=False)}
+    else:
+        match = {"item_id": item_id, **get_default_permissions(user_only=False)}
+
+    update = {"$set": {f"blocks_obj.{block.block_id}": block.to_db()}}
+
+    result = None
+    try:
+        result = flask_mongo.db.items.update_one(match, update)
+    except pymongo.errors.DocumentTooLarge:
+        LOGGER.critical(
+            "_save_block_to_db failed, trying to strip down the block plot to fit in the 16MB limit"
         )
 
-    if result.matched_count != 1:
+    if not result or result.matched_count != 1:
         LOGGER.warning(
-            f"_save_block_to_db failed, likely because item_id ({block.data.get('item_id')}), collection_id ({block.data.get('collection_id')}) and/or block_id ({block.block_id})  wasn't found"
+            f"_save_block_to_db failed, likely because {item_id!r} or {collection_id!r} and/or {block_id!r} wasn't found"
         )
         return False
-    else:
-        return True
+
+    return True
 
 
 def update_block():

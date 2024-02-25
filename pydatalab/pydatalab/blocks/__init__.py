@@ -9,9 +9,11 @@ from pydatalab.apps.raman import RamanBlock
 from pydatalab.apps.tga import MassSpecBlock
 from pydatalab.apps.xrd import XRDBlock
 from pydatalab.blocks.base import DataBlock
+from pydatalab.blocks._legacy import DataBlock as LegacyDataBlock
 from pydatalab.blocks.common import CommentBlock, MediaBlock, NotSupportedBlock
 
-BLOCKS: Sequence[Type["DataBlock"]] = (
+BLOCKS: Sequence[Type["DataBlock"] | Type["LegacyDataBlock"]] = (
+    ChatBlock,
     CommentBlock,
     MediaBlock,
     XRDBlock,
@@ -20,11 +22,10 @@ BLOCKS: Sequence[Type["DataBlock"]] = (
     NMRBlock,
     MassSpecBlock,
     NotSupportedBlock,
-    ChatBlock,
     EISBlock,
 )
 
-BLOCK_TYPES: Dict[str, Type["DataBlock"]] = {block.blocktype: block for block in BLOCKS}
+BLOCK_TYPES: Dict[str, Type["DataBlock"] | Type["LegacyDataBlock"]] = {block.blocktype: block for block in BLOCKS}
 
 __all__ = (
     "CommentBlock",
