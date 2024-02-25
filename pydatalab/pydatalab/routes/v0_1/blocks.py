@@ -1,7 +1,7 @@
 from typing import Callable, Dict
 
-from flask import jsonify, request 
 import pymongo.errors
+from flask import jsonify, request
 
 from pydatalab.blocks import BLOCK_TYPES
 from pydatalab.blocks._legacy import DataBlock as LegacyDataBlock
@@ -151,9 +151,13 @@ def _save_block_to_db(block: DataBlock | LegacyDataBlock) -> bool:
 
     updated_block = block.to_db()
     update = {"$set": {f"blocks_obj.{block.block_id}": updated_block}}
-        
+
     item_id = block.data.item_id if hasattr(block.data, "item_id") else block.data.get("item_id")
-    collection_id = block.data.collection_id if hasattr(block.data, "collection_id") else block.data.get("collection_id")
+    collection_id = (
+        block.data.collection_id
+        if hasattr(block.data, "collection_id")
+        else block.data.get("collection_id")
+    )
     block_id = block.block_id
 
     if collection_id:

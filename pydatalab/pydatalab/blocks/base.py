@@ -1,12 +1,11 @@
 import random
 import warnings
 from typing import Any, Callable, Optional, Sequence, Type
-from pydantic import BaseModel
-from pydatalab.models.utils import HumanReadableIdentifier, PyObjectId
 
-from bson import ObjectId
+from pydantic import BaseModel
 
 from pydatalab.logger import LOGGER
+from pydatalab.models.utils import HumanReadableIdentifier, PyObjectId
 
 __all__ = ("generate_random_id", "DataBlock")
 
@@ -26,13 +25,13 @@ def generate_random_id():
     )
     return "".join(randlist)
 
+
 class BlockMetadata(BaseModel):
     class Config:
         extra = "forbid"
 
 
 class BlockDataModel(BaseModel):
-
     block_id: str
     blocktype: str
     title: str
@@ -50,6 +49,7 @@ class BlockDataModel(BaseModel):
 
     def to_db(self):
         return self.dict(exclude_none=True, exclude={"bokeh_plot_data"})
+
 
 class DataBlock:
     """Base class for a data block."""
@@ -92,14 +92,14 @@ class DataBlock:
         item_id: str | None = None,
         collection_id: str | None = None,
         block_id: str | None = None,
-        dictionary: dict[str, Any] | None = None
+        dictionary: dict[str, Any] | None = None,
     ):
         """Initalises a block attached to an item or collection.
 
         If given, the `block_id` will be used as the unique identifier for this block,
         otherwise one will be generated.
 
-        Will populate the `self.data` with the given defaults and dictionary 
+        Will populate the `self.data` with the given defaults and dictionary
         metadata.
 
         Parameters:
@@ -132,13 +132,15 @@ class DataBlock:
             block_id or generate_random_id()
         )  # this is supposed to be a unique id for use in html and the database.
 
-        self.data = self.data_model(**{
-            "block_id": self.block_id,
-            "item_id": item_id,
-            "collection_id": collection_id,
-            "blocktype": self.blocktype,
-            "title": self.title
-        })
+        self.data = self.data_model(
+            **{
+                "block_id": self.block_id,
+                "item_id": item_id,
+                "collection_id": collection_id,
+                "blocktype": self.blocktype,
+                "title": self.title,
+            }
+        )
 
         for key in self.defaults:
             setattr(self.data.metadata, key, self.defaults[key])
@@ -191,7 +193,8 @@ class DataBlock:
                             if not self.data.warnings:
                                 self.data.warnings = []
                             self.data.warnings.extend(
-                                [ f"{self.__class__.__name__} raised warning: {w.message}"
+                                [
+                                    f"{self.__class__.__name__} raised warning: {w.message}"
                                     for w in captured_warnings
                                 ]
                             )
@@ -211,5 +214,5 @@ class DataBlock:
             item_id=data.get("item_id"),
             collection_id=data.get("collection_id"),
             block_id=data["block_id"],
-            dictionary=data
+            dictionary=data,
         )

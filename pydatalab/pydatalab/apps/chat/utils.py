@@ -1,13 +1,19 @@
-from typing import Sequence, Literal
 import json
-from pydatalab.models import ITEM_MODELS
+from typing import Literal, Sequence
+
 from pydantic import BaseModel
+
+from pydatalab.models import ITEM_MODELS
+
 
 class Message(BaseModel):
     role: Literal["user", "assistant", "system"]
     content: str
 
-def num_tokens_from_messages(messages: Sequence[dict | Message], model: str = "gpt-3.5-turbo-0613") -> int:
+
+def num_tokens_from_messages(
+    messages: Sequence[dict | Message], model: str = "gpt-3.5-turbo-0613"
+) -> int:
     """Count the number of tokens used in the current conversation
     with tiktoken.
 
@@ -19,6 +25,7 @@ def num_tokens_from_messages(messages: Sequence[dict | Message], model: str = "g
 
     """
     import tiktoken
+
     encoding = tiktoken.encoding_for_model(model)
 
     tokens_per_message = 4  # every message follows <|start|>{role/name}\n{content}<|end|>\n
@@ -36,10 +43,11 @@ def num_tokens_from_messages(messages: Sequence[dict | Message], model: str = "g
     num_tokens += 3  # every reply is primed with <|start|>assistant<|message|>
     return num_tokens
 
+
 def prepare_item_json_for_chat(item_id: str) -> str:
     """Retrieve and prepare the item data with the given ID for use in chat.
 
-    This includes stripping out unnecessary or large fields, 
+    This includes stripping out unnecessary or large fields,
     and converting the remaining data to a JSON string.
 
     Parameters:
@@ -109,9 +117,7 @@ def prepare_item_json_for_chat(item_id: str) -> str:
             k: v for k, v in f.items() if k in ["item_id", "type", "relation"]
         }
     item_info["files"] = [file["name"] for file in item_info.get("files", [])]
-    item_info["creators"] = [
-        creator["display_name"] for creator in item_info.get("creators", [])
-    ]
+    item_info["creators"] = [creator["display_name"] for creator in item_info.get("creators", [])]
 
     # move blocks from blocks_obj to a simpler list to further cut down tokens,
     # especially in alphanumeric block_id fields
@@ -165,7 +171,5 @@ def prepare_collection_json_for_chat(collection_id: str) -> str:
 
     children = collection_data["child_items"]
     return (
-        "["
-        + ",".join([prepare_item_json_for_chat(child["item_id"]) for child in children])
-        + "]"
+        "[" + ",".join([prepare_item_json_for_chat(child["item_id"]) for child in children]) + "]"
     )

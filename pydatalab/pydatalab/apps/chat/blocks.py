@@ -1,18 +1,18 @@
 import os
-from typing import Sequence, Literal, Callable
+from typing import Callable, Sequence
 
-
-from pydantic import Field, BaseModel
-
-from pydatalab.blocks.base import DataBlock, BlockMetadata, BlockDataModel
-from pydatalab.logger import LOGGER
-from .utils import (
-    num_tokens_from_messages,
-    prepare_item_json_for_chat,
-    prepare_collection_json_for_chat,
-    Message,
-)
 import openai
+from pydantic import Field
+
+from pydatalab.blocks.base import BlockDataModel, BlockMetadata, DataBlock
+from pydatalab.logger import LOGGER
+
+from .utils import (
+    Message,
+    num_tokens_from_messages,
+    prepare_collection_json_for_chat,
+    prepare_item_json_for_chat,
+)
 
 __all__ = ("ChatBlock",)
 

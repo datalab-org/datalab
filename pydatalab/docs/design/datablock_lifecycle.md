@@ -1,8 +1,8 @@
 # Draft design: Data block lifecycle
 
 Here is a current idea for how data should flow through a datablock.
-The main design constraint is that it should be possible for non-expert 
-developers to easily define a new block that can parse and display valid data, 
+The main design constraint is that it should be possible for non-expert
+developers to easily define a new block that can parse and display valid data,
 returning errors where appropriate.
 
 In the best case scenario, this would mean that the block developer should not

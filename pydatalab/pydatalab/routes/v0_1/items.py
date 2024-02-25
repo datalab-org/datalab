@@ -2,12 +2,12 @@ import datetime
 import json
 from typing import Callable, Dict, List, Optional, Set, Union
 
+import pymongo.errors
 from bson import ObjectId
 from flask import jsonify, request
 from flask_login import current_user
 from pydantic import ValidationError
 from pymongo.command_cursor import CommandCursor
-import pymongo.errors
 
 from pydatalab.blocks import BLOCK_TYPES
 from pydatalab.config import CONFIG
