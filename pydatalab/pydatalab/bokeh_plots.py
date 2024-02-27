@@ -7,6 +7,7 @@ import pandas as pd
 from bokeh.events import DoubleTap
 from bokeh.layouts import column, gridplot
 from bokeh.models import (
+    Button,
     ColorBar,
     ColorMapper,
     CrosshairTool,
@@ -519,12 +520,37 @@ def double_axes_echem_plot(
             p.add_tools(crosshair)
         p.js_on_event(DoubleTap, CustomJS(args=dict(p=p), code="p.reset.emit()"))
 
+    save_data = Button(label="Download .csv", button_type="primary", width_policy="min")
+    save_data_callback = CustomJS(
+        args=dict(source=ColumnDataSource(cycle_summary)),
+        code="""
+            const columns = Object.keys(source.data);
+            console.log(columns);
+            // Create a list of 10 columns x N points
+            const values = columns.map((column, i) => source.data[column]);
+            var csvContent = "data:text/csv;charset=utf-8," + columns.join(",") + "\\n"
+            // loop over columns and add each row value one at a time
+            for (var i = 0; i < values[0].length; i++) {
+                csvContent = csvContent + values.map((row) => row[i]).join(",") + "\\n";
+            };
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "data.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        """,
+    )
+
+    save_data.js_on_click(save_data_callback)
+
     if mode == "dQ/dV":
         grid = [[p1, p2], [xaxis_select]]
     elif mode == "dV/dQ":
         grid = [[p1], [p2]]
     elif mode == "final capacity":
-        grid = [[p3]]
+        grid = [[save_data], [p3]]
     else:
         grid = [[p1], [xaxis_select], [yaxis_select]]
 
