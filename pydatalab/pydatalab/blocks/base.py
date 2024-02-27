@@ -154,7 +154,7 @@ class DataBlock:
 
         if block_errors:
             self.data["errors"] = block_errors
-        if warnings:
+        if block_warnings:
             self.data["warnings"] = block_warnings
 
         return self.data
