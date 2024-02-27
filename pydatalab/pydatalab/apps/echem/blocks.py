@@ -39,6 +39,8 @@ class CycleBlock(DataBlock):
         ".xlsx",
         ".txt",
         ".res",
+        ".nda",
+        ".ndax",
     )
 
     cache: Dict[str, Any]
