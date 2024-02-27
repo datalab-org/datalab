@@ -5,7 +5,7 @@
         v-model="file_id"
         :item_id="item_id"
         :block_id="block_id"
-        :extensions="['.mpr', '.txt', '.xls', '.xlsx', '.txt', '.res']"
+        :extensions="['.mpr', '.txt', '.xls', '.xlsx', '.txt', '.res', '.nda', '.ndax']"
         updateBlockOnChange
       />
     </div>
