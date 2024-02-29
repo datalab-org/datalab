@@ -146,11 +146,13 @@ def _save_block_to_db(block: DataBlock) -> bool:
     print(updated_block.keys())
 
     if block.data.get("collection_id"):
-        match = {"collection_id": block.data["collection_id"], **get_default_permissions(user_only=False)}
+        match = {
+            "collection_id": block.data["collection_id"],
+            **get_default_permissions(user_only=False),
+        }
     else:
         match = {"block_id": block.data["block_id"], **get_default_permissions(user_only=False)}
 
-    
     try:
         result = flask_mongo.db.items.update_one(
             match,
@@ -158,7 +160,7 @@ def _save_block_to_db(block: DataBlock) -> bool:
         )
     except pymongo.errors.DocumentTooLarge:
         LOGGER.warning(
-            f"_save_block_to_db failed, trying to strip down the block plot to fit in the 16MB limit"
+            "_save_block_to_db failed, trying to strip down the block plot to fit in the 16MB limit"
         )
 
         return False

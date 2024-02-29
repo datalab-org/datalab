@@ -1,9 +1,7 @@
 import bokeh
 import numpy as np
-import pandas as pd
 
 from pydatalab.blocks.base import DataBlock
-from pydatalab.logger import LOGGER
 from pydatalab.bokeh_plots import DATALAB_BOKEH_THEME
 from pydatalab.file_utils import get_file_info_by_id
 
@@ -11,7 +9,7 @@ from pydatalab.file_utils import get_file_info_by_id
 class MRIBlock(DataBlock):
     blocktype = "mri"
     description = "In situ MRI"
-    accepted_file_extensions = ("2dseq", )
+    accepted_file_extensions = ("2dseq",)
 
     @property
     def plot_functions(self):
@@ -47,7 +45,7 @@ class MRIBlock(DataBlock):
     def generate_mri_plot(self):
         """Generate image plots of MRI data."""
         from bokeh.layouts import column
-        from bokeh.models import ColumnDataSource, CustomJS, Slider, ColorBar, LinearColorMapper
+        from bokeh.models import ColorBar, ColumnDataSource, CustomJS, Slider
         from bokeh.plotting import figure
 
         if "file_id" not in self.data:
@@ -89,13 +87,19 @@ class MRIBlock(DataBlock):
 
         # Set limits to edge of images defined by 10x10
         p.x_range.start = 0
-        p.x_range.end = 10 
+        p.x_range.end = 10
         p.y_range.start = 0
         p.y_range.end = 10
 
         color_bar = ColorBar(color_mapper=color_mapper)
 
-        slider = Slider(start=0, end=len(image_array) - 1, step=1, value=0, title=f"Select image ({len(image_array)} images)")
+        slider = Slider(
+            start=0,
+            end=len(image_array) - 1,
+            step=1,
+            value=0,
+            title=f"Select image ({len(image_array)} images)",
+        )
 
         slider_callback = CustomJS(
             args=dict(image_source=image_source, image_array=image_array, slider=slider),
