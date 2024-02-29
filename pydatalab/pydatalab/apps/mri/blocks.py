@@ -11,7 +11,7 @@ from pydatalab.file_utils import get_file_info_by_id
 class MRIBlock(DataBlock):
     blocktype = "mri"
     description = "In situ MRI"
-    accepted_file_extensions = (".csv", "2dseq", "visu_pars")
+    accepted_file_extensions = ("2dseq", )
 
     @property
     def plot_functions(self):
