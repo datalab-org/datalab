@@ -36,6 +36,7 @@ pyjwt = "*"
 invoke = "*"
 paramiko = "*"
 pydatalab = {file = ".", editable = true}
+async-timeout = "*"
 
 [dev-packages]
 pytest = "*"
