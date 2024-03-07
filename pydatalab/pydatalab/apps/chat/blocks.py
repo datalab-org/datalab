@@ -2,8 +2,10 @@ import json
 import os
 from typing import Sequence
 
-import openai
 import tiktoken
+import OpenAI
+from langchain.llms import OpenAI
+# from langchain.chats import OpenAI
 
 from pydatalab.blocks.base import DataBlock
 from pydatalab.logger import LOGGER
@@ -19,7 +21,7 @@ def num_tokens_from_messages(messages: Sequence[dict]):
     # see: https://github.com/openai/openai-cookbook/blob/main/examples/How_to_count_tokens_with_tiktoken.ipynb
     encoding = tiktoken.encoding_for_model(MODEL)
 
-    tokens_per_message = 4  # every message follows <|start|>{role/name}\n{content}<|end|>\n
+    tokens_per_message = 4  # every message follows {role/name}\n{content}\n
     tokens_per_name = -1  # if there's a name, the role is omitted
 
     num_tokens = 0
@@ -29,7 +31,7 @@ def num_tokens_from_messages(messages: Sequence[dict]):
             num_tokens += len(encoding.encode(value))
             if key == "name":
                 num_tokens += tokens_per_name
-    num_tokens += 3  # every reply is primed with <|start|>assistant<|message|>
+    num_tokens += 3  # every reply is primed with assistant
     return num_tokens
 
 
@@ -39,7 +41,7 @@ class ChatBlock(DataBlock):
     accepted_file_extensions: Sequence[str] = []
     __supports_collections = True
     defaults = {
-        "system_prompt": """You are whinchat (lowercase w), a virtual data managment assistant that helps materials chemists manage their experimental data and plan experiments. You are deployed in the group of Professor Clare Grey in the Department of Chemistry at the University of Cambridge.
+        "system_prompt": """You are whinchat (lowercase w), a virtual data management assistant that helps materials chemists manage their experimental data and plan experiments. You are deployed in the group of Professor Clare Grey in the Department of Chemistry at the University of Cambridge.
 You are embedded within the program datalab, where you have access to JSON describing an ‘item’, or a collection of items, with connections to other items. These items may include experimental samples, starting materials, and devices (e.g. battery cells made out of experimental samples and starting materials).
 Answer questions in markdown. Specify the language for all markdown code blocks. You can make diagrams by writing a mermaid code block or an svg code block. When writing mermaid code, you must use quotations around each of the labels (e.g. A["label1"] --> B["label2"])
 Be as concise as possible. When saying your name, type a bird emoji right after whinchat 🐦.
@@ -47,7 +49,7 @@ Be as concise as possible. When saying your name, type a bird emoji right after 
         "temperature": 0.2,
         "error_message": None,
     }
-    openai.api_key = os.environ.get("OPENAI_API_KEY")
+    chat_api = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"), model=MODEL)
 
     def to_db(self):
         """returns a dictionary with the data for this
@@ -107,20 +109,19 @@ Start with a friendly introduction and give me a one sentence summary of what th
 
         try:
             LOGGER.debug(
-                f"submitting request to OpenAI API for completion with last message role \"{self.data['messages'][-1]['role']}\" (message = {self.data['messages'][-1:]}). Temperature = {self.data['temperature']} (type {type(self.data['temperature'])})"
+                f"submitting request to Langchain OpenAI for completion with last message role \"{self.data['messages'][-1]['role']}\" (message = {self.data['messages'][-1:]}). Temperature = {self.data['temperature']} (type {type(self.data['temperature'])})"
             )
-            responses = openai.ChatCompletion.create(
-                model=MODEL,
+            responses = self.chat_api.complete(
                 messages=self.data["messages"],
                 temperature=self.data["temperature"],
                 max_tokens=min(
                     1024, MAX_CONTEXT_SIZE - token_count - 1
-                ),  # if less than 1024 tokens are left in the token, then indicate this
+                ),
             )
             self.data["error_message"] = None
-        except openai.OpenAIError as exc:
-            LOGGER.debug("Received an error from OpenAI API: %s", exc)
-            self.data["error_message"] = f"Received an error from the OpenAi API: {exc}."
+        except Exception as exc:
+            LOGGER.debug("Received an error from Langchain OpenAI: %s", exc)
+            self.data["error_message"] = f"Received an error from the Langchain OpenAI: {exc}."
             return
 
         try:
@@ -133,6 +134,8 @@ Start with a friendly introduction and give me a one sentence summary of what th
         token_count = num_tokens_from_messages(self.data["messages"])
         self.data["token_count"] = token_count
         return
+
+    # Your existing methods _prepare_item_json_for_chat and _prepare_collection_json_for_chat remain unchanged
 
     def _prepare_item_json_for_chat(self, item_id: str):
         from pydatalab.routes.v0_1.items import get_item_data

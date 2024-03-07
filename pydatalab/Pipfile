@@ -36,6 +36,7 @@ rosettasciio = "*"
 pyjwt = "*"
 invoke = "*"
 paramiko = "*"
+langchain = "*"
 
 [dev-packages]
 pytest = "*"
