@@ -453,13 +453,12 @@ export function saveCollection(collection_id) {
     });
 }
 
-export function saveUser(user_id, user) {
-  fetch_patch(`${API_URL}/users/${user_id}`, user)
+export function saveUser(user_id, user_name) {
+  fetch_patch(`${API_URL}/users/${user_id}`, { data: { user_name } })
     .then(function (response_json) {
       if (response_json.status === "success") {
+        // this should always be true if you've gotten this far...
         console.log("Save successful!");
-      } else {
-        alert("User save unsuccessful", response_json.detail);
       }
     })
     .catch(function (error) {
