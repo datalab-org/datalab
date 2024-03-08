@@ -5,6 +5,7 @@
       <ItemSelect
         aria-labelledby="startWithConstituentsLabel"
         multiple
+        :typesToQuery="['samples', 'starting_materials']"
         taggable
         v-model="constituents"
       />
