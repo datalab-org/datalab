@@ -25,6 +25,7 @@ export default createStore({
     itemGraphData: null,
     remoteDirectoryTreeIsLoading: false,
     fileSelectModalIsOpen: false,
+    currentUserDisplayName: null,
   },
   mutations: {
     setSampleList(state, sampleSummaries) {
@@ -38,6 +39,9 @@ export default createStore({
     setCollectionList(state, collectionSummaries) {
       // collectionSummaries is an array of json objects summarizing the available collections
       state.collection_list = collectionSummaries;
+    },
+    setDisplayName(state, displayName) {
+      state.currentUserDisplayName = displayName;
     },
     appendToSampleList(state, sampleSummary) {
       // sampleSummary is a json object summarizing the new sample
@@ -231,6 +235,9 @@ export default createStore({
     getBlockByItemIDandBlockID: (state) => (item_id, block_id) => {
       console.log("getBlockBySampleIDandBlockID called with:", item_id, block_id);
       return state.all_sample_data[item_id]["blocks_obj"][block_id];
+    },
+    getCurrentUserDisplayName(state) {
+      return state.currentUserDisplayName;
     },
   },
   actions: {},

@@ -36,12 +36,12 @@ Cypress.Commands.add("createSample", (sample_id, name = null, date = null) => {
   cy.findByText("Add new sample").should("exist");
   cy.findByLabelText("ID:").type(sample_id);
   if (name) {
-    cy.findByLabelText("Name:").type(name);
+    cy.get("#sample-name").type(name);
   }
   if (date) {
     cy.findByLabelText("Date Created:").type(date);
   }
-  cy.contains("Submit").click();
+  cy.get("#sample-submit").click();
 });
 
 Cypress.Commands.add("verifySample", (sample_id, name = null, date = null) => {

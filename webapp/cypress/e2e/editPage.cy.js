@@ -40,8 +40,8 @@ describe("Edit Page", () => {
     cy.findByLabelText("ID:").type("editable_sample");
     cy.findByLabelText("Date Created:").type("1990-01-07T00:00");
 
-    cy.findByLabelText("Name:").type("This is a sample name");
-    cy.contains("Submit").click();
+    cy.get("#sample-name").type("This is a sample name");
+    cy.get("#sample-submit").click();
 
     cy.findByText("editable_sample");
     cy.findByText("This is a sample name");
@@ -52,16 +52,16 @@ describe("Edit Page", () => {
     cy.findByText("Add an item").click();
     cy.findByText("Add new sample");
     cy.findByLabelText("ID:").type("component1");
-    cy.findByLabelText("Name:").type("This is a component");
-    cy.contains("Submit").click();
+    cy.get("#sample-name").type("This is a component");
+    cy.get("#sample-submit").click();
   });
 
   it("Adds a third valid sample, to use as a component", () => {
     cy.findByText("Add an item").click();
     cy.findByText("Add new sample");
     cy.findByLabelText("ID:").type("component2");
-    cy.findByLabelText("Name:").type("This is another component");
-    cy.contains("Submit").click();
+    cy.get("#sample-name").type("This is another component");
+    cy.get("#sample-submit").click();
   });
 
   it("Checks editing the sample edit page", () => {

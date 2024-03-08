@@ -251,6 +251,7 @@ export function searchCollections(query, nresults = 100) {
 export async function getUserInfo() {
   return fetch_get(`${API_URL}/get-current-user/`)
     .then((response_json) => {
+      store.commit("setDisplayName", response_json.display_name);
       return response_json;
     })
     .catch(() => {
@@ -420,6 +421,23 @@ export function saveCollection(collection_id) {
     .catch(function (error) {
       alert("Save unsuccessful :(", error);
     });
+}
+
+export function saveUser(user_id, user) {
+  return new Promise((resolve, reject) => {
+    fetch_patch(`${API_URL}/users/${user_id}`, user)
+      .then(function (response_json) {
+        if (response_json.status === "success") {
+          console.log("Save successful!");
+          resolve();
+        } else {
+          reject(new Error("Save unsuccessful"));
+        }
+      })
+      .catch(function (error) {
+        reject(error);
+      });
+  });
 }
 
 export function deleteBlock(item_id, block_id) {
