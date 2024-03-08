@@ -25,6 +25,7 @@
             type="button"
             class="dropdown-item btn login btn-link btn-default"
             aria-label="Account settings"
+            @click="editAccountSettingIsOpen = true"
             ><font-awesome-icon icon="cog" /> Account settings</a
           >
           <a
@@ -81,12 +82,14 @@
       </div>
     </template>
   </div>
+  <EditAccountSettingsModal v-model="editAccountSettingIsOpen" />
 </template>
 
 <script>
 import { API_URL } from "@/resources.js";
 import UserBubble from "@/components/UserBubble.vue";
 import { getUserInfo } from "@/server_fetch_utils.js";
+import EditAccountSettingsModal from "@/components/EditAccountSettingsModal.vue";
 export default {
   data() {
     return {
@@ -95,10 +98,12 @@ export default {
       apiUrl: API_URL,
       currentUser: null,
       currentUserInfo: {},
+      editAccountSettingIsOpen: false,
     };
   },
   components: {
     UserBubble,
+    EditAccountSettingsModal,
   },
   props: {
     modelValue: Boolean,
