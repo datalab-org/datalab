@@ -23,7 +23,7 @@
         >
           <a
             type="button"
-            class="disabled dropdown-item btn login btn-link btn-default"
+            class="dropdown-item btn login btn-link btn-default"
             aria-label="Account settings"
             ><font-awesome-icon icon="cog" /> Account settings</a
           >
