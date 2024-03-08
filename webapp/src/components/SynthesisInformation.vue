@@ -3,7 +3,7 @@
     <label class="mr-2 pb-2">Synthesis Information</label>
     <div class="card component-card">
       <div class="card-body pt-2 pb-0 mb-0 pl-5">
-        <CompactConstituentTable id="synthesis-table" v-model="constituents" />
+        <CompactConstituentTable id="synthesis-table" v-model="constituents" :typesToQuery='["samples", "starting_materials"]'/>
       </div>
     </div>
     <span id="synthesis-procedure-label" class="subheading ml-2">Procedure</span>

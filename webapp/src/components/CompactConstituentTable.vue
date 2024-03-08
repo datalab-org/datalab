@@ -23,6 +23,7 @@
             :ref="`select${index}`"
             v-model="selectedChangedConstituent"
             :clearable="false"
+            :typesToQuery="typesToQuery"
             @option:selected="swapConstituent($event, index)"
             @search:blur="selectShown[index] = false"
           />
@@ -88,6 +89,7 @@
             <ItemSelect
               taggable
               ref="newSelect"
+              :typesToQuery="typesToQuery"
               v-model="selectedNewConstituent"
               @option:selected="addConstituent"
             />
@@ -106,6 +108,10 @@ import { OnClickOutside } from "@vueuse/components";
 export default {
   props: {
     modelValue: Object,
+    typesToQuery: {
+      type: Array,
+      default: () => ["samples", "starting_materials", "cells"],
+    },
   },
   data() {
     return {
