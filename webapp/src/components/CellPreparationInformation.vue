@@ -8,7 +8,11 @@
       >
       <div class="card component-card">
         <div class="card-body pt-2 pb-0 mb-0 pl-5">
-          <CompactConstituentTable id="pos-electrode-table" v-model="PosElectrodeConstituents" :typesToQuery='["starting_materials", "samples"]'/>
+          <CompactConstituentTable
+            id="pos-electrode-table"
+            v-model="PosElectrodeConstituents"
+            :typesToQuery="['starting_materials', 'samples']"
+          />
         </div>
       </div>
     </div>
@@ -19,7 +23,11 @@
       >
       <div class="card component-card">
         <div class="card-body pt-2 pb-0 mb-0 pl-5">
-            <CompactConstituentTable id="electrolyte-table" v-model="ElectrolyteConstituents" :typesToQuery='["starting_materials", "samples"]'/>
+          <CompactConstituentTable
+            id="electrolyte-table"
+            v-model="ElectrolyteConstituents"
+            :typesToQuery="['starting_materials', 'samples']"
+          />
         </div>
       </div>
     </div>
@@ -30,7 +38,11 @@
       >
       <div class="card component-card">
         <div class="card-body pt-2 pb-0 mb-0 pl-5">
-          <CompactConstituentTable id="neg-electrode-table" v-model="NegElectrodeConstituents" :typesToQuery='["starting_materials", "samples"]' />
+          <CompactConstituentTable
+            id="neg-electrode-table"
+            v-model="NegElectrodeConstituents"
+            :typesToQuery="['starting_materials', 'samples']"
+          />
         </div>
       </div>
     </div>
