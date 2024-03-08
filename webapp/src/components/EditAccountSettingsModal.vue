@@ -60,13 +60,14 @@
 
 <script>
 import Modal from "@/components/Modal.vue";
-import { getUserInfo } from "@/server_fetch_utils.js";
+import { getUserInfo, saveUser } from "@/server_fetch_utils.js";
 import { API_URL } from "@/resources.js";
 export default {
   name: "EditAccountSettingsModal",
   data() {
     return {
       currentUser: "",
+      currentUserInfos: "",
       currentUserGithub: "",
       currentUserOrchid: "",
       apiUrl: API_URL,
@@ -78,11 +79,12 @@ export default {
   emits: ["update:modelValue"],
   methods: {
     async submitForm() {
-      console.log("user updated");
+      await saveUser(this.currentUserInfos.immutable_id, this.currentUser);
     },
     async getUser() {
       let user = await getUserInfo();
       if (user != null) {
+        this.currentUserInfos = user;
         this.currentUser = user.display_name;
 
         const githubIdentity = user.identities.find(
