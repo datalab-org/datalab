@@ -7,7 +7,6 @@ from pydatalab.config import CONFIG
 from pydatalab.models.people import DisplayName, EmailStr
 from pydatalab.mongo import flask_mongo
 
-
 user = Blueprint("users", __name__)
 
 
