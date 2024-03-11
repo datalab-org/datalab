@@ -113,6 +113,11 @@ export default {
       return this.$store.getters.getCurrentUserDisplayName;
     },
   },
+  computed: {
+    userDisplayName() {
+      return this.$store.getters.getCurrentUserDisplayName;
+    },
+  },
   props: {
     modelValue: Boolean,
   },
