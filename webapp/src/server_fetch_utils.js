@@ -251,6 +251,7 @@ export function searchCollections(query, nresults = 100) {
 export async function getUserInfo() {
   return fetch_get(`${API_URL}/get-current-user/`)
     .then((response_json) => {
+      store.commit("setDisplayName", response_json.display_name);
       return response_json;
     })
     .catch(() => {

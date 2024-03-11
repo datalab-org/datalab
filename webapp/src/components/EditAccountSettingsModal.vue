@@ -66,7 +66,6 @@ export default {
   name: "EditAccountSettingsModal",
   data() {
     return {
-      originalUserName: "",
       currentUser: "",
       currentUserInfos: "",
       currentUserGithub: "",
@@ -81,8 +80,8 @@ export default {
   methods: {
     async submitForm() {
       await saveUser(this.currentUserInfos.immutable_id, this.currentUser).then(() => {
+        this.$store.commit("setDisplayName", this.currentUser);
         this.$emit("update:modelValue", false);
-        this.originalUserName = this.currentUser;
       });
     },
     async getUser() {
@@ -101,10 +100,6 @@ export default {
         );
         this.currentUserOrchid = orchidIdentity ? orchidIdentity : null;
       }
-    },
-    resetForm() {
-      this.currentUser = this.originalUserName;
-      this.$emit("update:modelValue", false);
     },
   },
   mounted() {

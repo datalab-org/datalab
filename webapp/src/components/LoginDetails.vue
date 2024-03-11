@@ -12,7 +12,7 @@
           @click="isUserDropdownVisible = !isUserDropdownVisible"
         >
           <UserBubble :creator="this.currentUserInfo" :size="24" />&nbsp;
-          <span class="user-display-name">{{ currentUser }}</span
+          <span class="user-display-name">{{ userDisplayName }}</span
           >&nbsp;
         </button>
         <div
@@ -105,6 +105,11 @@ export default {
     UserBubble,
     EditAccountSettingsModal,
   },
+  computed: {
+    userDisplayName() {
+      return this.$store.getters.getCurrentUserDisplayName;
+    },
+  },
   props: {
     modelValue: Boolean,
   },
@@ -112,8 +117,7 @@ export default {
     modelValue(newValue) {
       if (newValue) {
         this.openModal();
-      }
-      if (!newValue) {
+      } else {
         this.closeModal();
       }
     },
