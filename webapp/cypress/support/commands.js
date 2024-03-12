@@ -31,10 +31,10 @@ import "@testing-library/cypress/add-commands";
 const TODAY = new Date().toISOString().slice(0, -8);
 const API_URL = Cypress.config("apiUrl");
 
-Cypress.Commands.add("createSample", (sample_id, name = null, date = null) => {
+Cypress.Commands.add("createSample", (item_id, name = null, date = null) => {
   cy.findByText("Add an item").click();
-  cy.findByText("Add new sample").should("exist");
-  cy.findByLabelText("ID:").type(sample_id);
+  cy.findByText("Add new item").should("exist");
+  cy.findByLabelText("ID:").type(item_id);
   if (name) {
     cy.get("#sample-name").type(name);
   }
@@ -44,10 +44,10 @@ Cypress.Commands.add("createSample", (sample_id, name = null, date = null) => {
   cy.get("#sample-submit").click();
 });
 
-Cypress.Commands.add("verifySample", (sample_id, name = null, date = null) => {
+Cypress.Commands.add("verifySample", (item_id, name = null, date = null) => {
   if (date) {
     cy.get("[data-testid=sample-table]")
-      .contains(sample_id)
+      .contains(item_id)
       .parents("tr")
       .within(() => {
         cy.contains(date.slice(0, 8));
@@ -57,7 +57,7 @@ Cypress.Commands.add("verifySample", (sample_id, name = null, date = null) => {
       });
   } else {
     cy.get("[data-testid=sample-table]")
-      .contains(sample_id)
+      .contains(item_id)
       .parents("tr")
       .within(() => {
         cy.contains(TODAY.split("T")[0]);
@@ -68,12 +68,12 @@ Cypress.Commands.add("verifySample", (sample_id, name = null, date = null) => {
   }
 });
 
-Cypress.Commands.add("deleteSample", (sample_id, delay = 100) => {
+Cypress.Commands.add("deleteSample", (item_id, delay = 100) => {
   cy.visit("/");
   cy.wait(delay).then(() => {
-    cy.log("search for and delete: " + sample_id);
+    cy.log("search for and delete: " + item_id);
     cy.get("[data-testid=sample-table]")
-      .contains(new RegExp("^" + sample_id + "$", "g"))
+      .contains(new RegExp("^" + item_id + "$", "g"))
       .parents("tr")
       .within(() => {
         cy.get("button.close").click();
@@ -81,12 +81,12 @@ Cypress.Commands.add("deleteSample", (sample_id, delay = 100) => {
   });
 });
 
-Cypress.Commands.add("deleteSampleViaAPI", (sample_id) => {
-  cy.log("search for and delete: " + sample_id);
+Cypress.Commands.add("deleteSampleViaAPI", (item_id) => {
+  cy.log("search for and delete: " + item_id);
   cy.request({
     method: "POST",
     url: API_URL + "/delete-sample/",
-    body: { item_id: sample_id },
+    body: { item_id: item_id },
     failOnStatusCode: false,
   });
 });
@@ -110,9 +110,9 @@ Cypress.Commands.add(
   },
 );
 
-Cypress.Commands.add("removeAllTestSamples", (sample_ids) => {
+Cypress.Commands.add("removeAllTestSamples", (item_ids) => {
   // as contains matches greedily, if any IDs have matching substrings they must be added in the appropriate order
-  sample_ids = [
+  item_ids = [
     "editable_sample",
     "component1",
     "component2",
@@ -170,7 +170,7 @@ Cypress.Commands.add("removeAllTestSamples", (sample_ids) => {
     "testB",
     "testC",
   ];
-  sample_ids.forEach((item_id) => {
+  item_ids.forEach((item_id) => {
     cy.deleteSampleViaAPI(item_id);
   });
   cy.visit("/");
