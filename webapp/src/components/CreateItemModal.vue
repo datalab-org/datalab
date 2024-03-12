@@ -3,17 +3,17 @@
     <Modal
       :modelValue="modelValue"
       @update:modelValue="$emit('update:modelValue', $event)"
-      :disableSubmit="Boolean(sampleIDValidationMessage) || !Boolean(item_id)"
+      :disableSubmit="Boolean(itemIDValidationMessage) || !Boolean(item_id)"
       submitID="sample-submit"
     >
-      <template v-slot:header> Add new sample </template>
+      <template v-slot:header> Add new item </template>
 
       <template v-slot:body>
         <div class="form-row">
           <div class="form-group col-md-6">
-            <label for="sample-id" class="col-form-label">ID:</label>
-            <input v-model="item_id" type="text" class="form-control" id="sample-id" required />
-            <div class="form-error" v-html="sampleIDValidationMessage"></div>
+            <label for="item-id" class="col-form-label">ID:</label>
+            <input v-model="item_id" type="text" class="form-control" id="item-id" required />
+            <div class="form-error" v-html="itemIDValidationMessage"></div>
           </div>
           <div class="form-group col-md-6">
             <label for="item-type-select" class="col-form-label">Type:</label>
@@ -88,7 +88,7 @@ import { createNewItem } from "@/server_fetch_utils.js";
 import { itemTypes } from "@/resources.js";
 import CollectionSelect from "@/components/CollectionSelect.vue";
 export default {
-  name: "CreateSampleModal",
+  name: "CreateItemModal",
   data() {
     return {
       item_id: null,
@@ -123,7 +123,7 @@ export default {
         ? this.$store.state.sample_list.map((x) => x.item_id)
         : [];
     },
-    sampleIDValidationMessage() {
+    itemIDValidationMessage() {
       if (this.item_id == null) {
         return "";
       } // Don't throw an error before the user starts typing
@@ -145,7 +145,7 @@ export default {
   },
   methods: {
     async submitForm() {
-      console.log("new sample form submit triggered");
+      console.log("new item form submit triggered");
 
       // get any extra data by calling the optional callback from the type-specific addon component
       const extraData = this.startingDataCallback && this.startingDataCallback();
@@ -185,7 +185,7 @@ export default {
             console.log("error parsing error message", e);
           } finally {
             if (!is_item_id_error) {
-              alert("Error with creating new sample: " + error);
+              alert("Error with creating new item: " + error);
             }
           }
         });

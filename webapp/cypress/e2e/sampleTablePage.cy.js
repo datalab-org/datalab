@@ -42,7 +42,7 @@ describe("Sample table page", () => {
 
   it("Adds a valid sample", () => {
     cy.findByText("Add an item").click();
-    cy.findByText("Add new sample").should("exist");
+    cy.findByText("Add new item").should("exist");
     cy.findByLabelText("ID:").type("12345678910");
     cy.findByLabelText("Date Created:").type("1990-01-07T00:00");
 
@@ -77,7 +77,7 @@ describe("Sample table page", () => {
 
   it("Attempts to Add an item with the same name", () => {
     cy.findByText("Add an item").click();
-    cy.findByText("Add new sample").should("exist");
+    cy.findByText("Add new item").should("exist");
     cy.findByLabelText("ID:").type("12345678910");
 
     cy.contains("already in use").should("exist");
