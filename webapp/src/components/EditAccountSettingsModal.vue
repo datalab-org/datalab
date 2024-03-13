@@ -141,6 +141,9 @@ export default {
         this.user = user;
       }
     },
+    resetForm() {
+      this.$emit("update:modelValue", false);
+    },
   },
   mounted() {
     this.getUser();
