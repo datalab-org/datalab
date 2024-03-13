@@ -1,6 +1,12 @@
 <template>
   <form @submit.prevent="submitForm" class="modal-enclosure">
-    <Modal :modelValue="modelValue" @update:modelValue="$emit('update:modelValue', $event)">
+    <Modal
+      :modelValue="modelValue"
+      @update:modelValue="$emit('update:modelValue', $event)"
+      :disableSubmit="
+        Boolean(displayNameValidationMessage) || Boolean(contactEmailValidationMessage)
+      "
+    >
       <template v-slot:header> Account settings </template>
 
       <template v-slot:body>
@@ -14,6 +20,7 @@
               id="account-name"
               required
             />
+            <div class="form-error" v-html="displayNameValidationMessage"></div>
           </div>
         </div>
         <div class="form-row">
@@ -26,6 +33,7 @@
               id="account-email"
               placeholder="Please enter your email"
             />
+            <div class="form-error" v-html="contactEmailValidationMessage"></div>
           </div>
         </div>
         <div class="form-row">
@@ -103,6 +111,21 @@ export default {
     modelValue: Boolean,
   },
   emits: ["update:modelValue"],
+  computed: {
+    displayNameValidationMessage() {
+      if (this.user.display_name && this.user.display_name.length > 150) {
+        return "Name should be less than 150 characters.";
+      }
+      return "";
+    },
+    contactEmailValidationMessage() {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (this.user.contact_email && !emailRegex.test(this.user.contact_email)) {
+        return "Invalid email format.";
+      }
+      return "";
+    },
+  },
   methods: {
     async submitForm() {
       await saveUser(this.user.immutable_id, this.user);
