@@ -1,4 +1,3 @@
-import re
 from enum import Enum
 from typing import List, Optional
 
@@ -132,8 +131,7 @@ class Person(Entry):
     def validate_contact_email_format(cls, v):
         """Validate that the contact email has a valid email format."""
         if not validate_email(v):
-            raise ValueError(
-                "Invalid email format for contact email.")
+            raise ValueError("Invalid email format for contact email.")
         return v
 
     @staticmethod

@@ -1,9 +1,6 @@
 from bson import ObjectId
-from bson import ObjectId
 from flask import Blueprint, jsonify, request
 from flask_login import current_user
-from pydantic import validate_email
-
 
 from pydatalab.config import CONFIG
 from pydatalab.models.people import DisplayName, EmailStr
