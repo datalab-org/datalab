@@ -4,7 +4,8 @@ from typing import List, Optional
 
 import bson
 import bson.errors
-from pydantic import BaseModel, EmailStr, Field, validator
+import re
+from pydantic import BaseModel, EmailStr, Field, validator, validate_email
 
 from pydatalab.models.entries import Entry
 from pydatalab.models.utils import PyObjectId
@@ -94,17 +95,18 @@ class Person(Entry):
 
     @validator("display_name")
     def validate_display_name_length(cls, v):
-        """Validate that the display name."""
+        """Validate the display name."""
         if len(v) > 150:
-            raise ValueError("Display name must be at most 150 characters long.")
+            raise ValueError(
+                "Display name must be at most 150 characters long.")
         return v
 
     @validator("contact_email")
     def validate_contact_email_format(cls, v):
         """Validate that the contact email has a valid email format."""
-        email_regex = re.compile(r"[^@]+@[^@]+\.[^@]+")
-        if v is not None:
-            not email_regex.match(EmailStr(v))
+        if not validate_email(v):
+            raise ValueError(
+                "Invalid email format for contact email.")
         return v
 
     @staticmethod

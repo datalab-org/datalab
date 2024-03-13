@@ -1,6 +1,8 @@
 from bson import ObjectId
 from flask import Blueprint, jsonify, request
 from flask_login import current_user
+from pydantic import validate_email
+
 
 from pydatalab.mongo import flask_mongo
 
@@ -12,7 +14,12 @@ def save_user(user_id):
     request_json = request.get_json()
 
     display_name = request_json.get("display_name")
+    if len(display_name) > 150:
+        return jsonify(status="error", detail="Name should be less than 150 characters."), 400
+
     contact_email = request_json.get("contact_email")
+    if not validate_email(contact_email):
+        return jsonify(status="error", detail="Invalid email format for contact email."), 400
 
     if not current_user.is_authenticated:
         return jsonify(status="error"), 401
