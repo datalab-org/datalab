@@ -132,7 +132,6 @@ export default {
           immutable_id: user.immutable_id,
           contact_email: user.contact_email || "",
         };
-        console.log(this.currentUser, this.currentUserInfo);
       }
     },
   },

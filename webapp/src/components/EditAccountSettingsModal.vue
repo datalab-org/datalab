@@ -8,7 +8,7 @@
           <div class="form-group col-md-6">
             <label for="account-name" class="col-form-label">Name:</label>
             <input
-              v-model="currentUser"
+              v-model="user.display_name"
               type="text"
               class="form-control"
               id="account-name"
@@ -18,12 +18,31 @@
         </div>
         <div class="form-row">
           <div class="form-group col-md-6">
+            <label for="account-name" class="col-form-label">Contact email:</label>
+            <input
+              v-model="user.contact_email"
+              type="text"
+              class="form-control"
+              id="account-name"
+              placeholder="Please enter your email"
+            />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group col-md-6">
             <a
-              v-if="currentUserGithub !== null"
+              v-if="user.identities.some((identity) => identity.identity_type === 'github')"
               type="button"
               class="dropdown-item btn login btn-link btn-default"
-              ><font-awesome-icon :icon="['fab', 'github']" /> Logged with GitHub</a
+              :href="
+                'https://github.com/' +
+                user.identities.find((identity) => identity.identity_type === 'github').name
+              "
             >
+              <font-awesome-icon :icon="['fab', 'github']" />
+              {{ user.identities.find((identity) => identity.identity_type === "github").name }}
+            </a>
+
             <a
               v-else
               type="button"
@@ -37,12 +56,17 @@
         <div class="form-row">
           <div class="form-group col-md-6">
             <a
-              v-if="currentUserOrchid !== null"
+              v-if="user.identities.some((identity) => identity.identity_type === 'orcid')"
               type="button"
-              class="disabled dropdown-item btn login btn-link btn-default"
-              ><font-awesome-icon class="orcid-icon" :icon="['fab', 'orcid']" /> Logged with
-              ORCID</a
+              class="dropdown-item btn login btn-link btn-default"
+              :href="
+                'https://orcid.org/' +
+                user.identities.find((identity) => identity.identity_type === 'orcid').name
+              "
             >
+              <font-awesome-icon :icon="['fab', 'github']" />
+              {{ user.identities.find((identity) => identity.identity_type === "orcid").name }}
+            </a>
             <a
               v-else
               type="button"
@@ -59,17 +83,18 @@
 </template>
 
 <script>
+import { API_URL } from "@/resources.js";
 import Modal from "@/components/Modal.vue";
 import { getUserInfo, saveUser } from "@/server_fetch_utils.js";
-import { API_URL } from "@/resources.js";
 export default {
   name: "EditAccountSettingsModal",
   data() {
     return {
-      currentUser: "",
-      currentUserInfos: "",
-      currentUserGithub: "",
-      currentUserOrchid: "",
+      user: {
+        display_name: null,
+        contact_email: null,
+        identities: [],
+      },
       apiUrl: API_URL,
     };
   },
@@ -79,27 +104,19 @@ export default {
   emits: ["update:modelValue"],
   methods: {
     async submitForm() {
-      await saveUser(this.currentUserInfos.immutable_id, this.currentUser).then(() => {
-        this.$store.commit("setDisplayName", this.currentUser);
+      await saveUser(this.user.immutable_id, this.user).then(() => {
+        this.$store.commit("setDisplayName", this.user.display_name);
         this.$emit("update:modelValue", false);
       });
     },
     async getUser() {
       let user = await getUserInfo();
       if (user != null) {
-        this.currentUserInfos = user;
-        this.currentUser = user.display_name;
-
-        const githubIdentity = user.identities.find(
-          (identity) => identity.identity_type === "github",
-        );
-        this.currentUserGithub = githubIdentity ? githubIdentity : null;
-
-        const orchidIdentity = user.identities.find(
-          (identity) => identity.identity_type === "orchid",
-        );
-        this.currentUserOrchid = orchidIdentity ? orchidIdentity : null;
+        this.user = user;
       }
+    },
+    resetForm() {
+      this.$emit("update:modelValue", false);
     },
   },
   mounted() {

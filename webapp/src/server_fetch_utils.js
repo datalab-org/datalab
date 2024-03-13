@@ -423,9 +423,9 @@ export function saveCollection(collection_id) {
     });
 }
 
-export function saveUser(user_id, user_name) {
+export function saveUser(user_id, user) {
   return new Promise((resolve, reject) => {
-    fetch_patch(`${API_URL}/users/${user_id}`, { data: { user_name } })
+    fetch_patch(`${API_URL}/users/${user_id}`, user)
       .then(function (response_json) {
         if (response_json.status === "success") {
           console.log("Save successful!");
