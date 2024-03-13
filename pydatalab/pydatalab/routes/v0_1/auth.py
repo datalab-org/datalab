@@ -447,9 +447,9 @@ def redirect_to_ui(blueprint, token):  # pylint: disable=unused-argument
 def get_authenticated_user_info():
     """Returns metadata associated with the currently authenticated user."""
     if current_user.is_authenticated:
-        user_info = json.loads(current_user.person.json())
-        user_info["role"] = current_user.role
-        return jsonify(user_info), 200
+        current_user_response = json.loads(current_user.person.json())
+        current_user_response["role"] = current_user.role.value
+        return jsonify(current_user_response), 200
     else:
         return jsonify({"status": "failure", "message": "User must be authenticated."}), 401
 
