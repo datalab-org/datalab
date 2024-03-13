@@ -3,6 +3,7 @@ from typing import List, Optional
 
 import bson
 import bson.errors
+import re
 from pydantic import BaseModel, EmailStr, Field, validator
 
 from pydatalab.models.entries import Entry
@@ -90,6 +91,22 @@ class Person(Entry):
     @validator("type", pre=True)
     def set_default_type(cls, _):
         return "people"
+
+    @validator("display_name")
+    def validate_display_name_length(cls, v):
+        """Validate that the display name."""
+        if len(v) > 150:
+            raise ValueError(
+                "Display name must be at most 150 characters long.")
+        return v
+
+    @validator("contact_email")
+    def validate_contact_email_format(cls, v):
+        """Validate that the contact email has a valid email format."""
+        email_regex = re.compile(r"[^@]+@[^@]+\.[^@]+")
+        if v is not None:
+            not email_regex.match(EmailStr(v))
+        return v
 
     @staticmethod
     def new_user_from_identity(
