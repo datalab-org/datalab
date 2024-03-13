@@ -22,7 +22,7 @@ def save_user(user_id):
 
     update_result = flask_mongo.db.users.update_one(
         {"_id": ObjectId(user_id)},
-        {"$set": {"display_name": display_name, "contact_email": contact_email}}
+        {"$set": {"display_name": display_name, "contact_email": contact_email}},
     )
 
     if update_result.modified_count != 1:

@@ -1,9 +1,9 @@
+import re
 from enum import Enum
 from typing import List, Optional
 
 import bson
 import bson.errors
-import re
 from pydantic import BaseModel, EmailStr, Field, validator
 
 from pydatalab.models.entries import Entry
@@ -96,8 +96,7 @@ class Person(Entry):
     def validate_display_name_length(cls, v):
         """Validate that the display name."""
         if len(v) > 150:
-            raise ValueError(
-                "Display name must be at most 150 characters long.")
+            raise ValueError("Display name must be at most 150 characters long.")
         return v
 
     @validator("contact_email")
