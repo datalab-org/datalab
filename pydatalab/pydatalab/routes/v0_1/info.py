@@ -58,6 +58,7 @@ class Info(Attributes, Meta):
     issue_tracker: Optional[AnyUrl]
     homepage: Optional[AnyUrl]
     source_repository: Optional[AnyUrl]
+    identifier_prefix: str
 
     @validator("maintainer")
     def strip_maintainer_fields(cls, v):
@@ -70,7 +71,12 @@ class Info(Attributes, Meta):
 def _get_deployment_metadata_once() -> Dict:
     from pydatalab.config import CONFIG
 
-    return CONFIG.DEPLOYMENT_METADATA.dict(exclude_none=True) if CONFIG.DEPLOYMENT_METADATA else {}
+    identifier_prefix = CONFIG.IDENTIFIER_PREFIX
+    metadata = (
+        CONFIG.DEPLOYMENT_METADATA.dict(exclude_none=True) if CONFIG.DEPLOYMENT_METADATA else {}
+    )
+    metadata.update({"identifier_prefix": identifier_prefix})
+    return metadata
 
 
 def get_info():
