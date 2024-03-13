@@ -3,7 +3,6 @@ from flask import Blueprint, jsonify, request
 from flask_login import current_user
 from pydantic import validate_email
 
-
 from pydatalab.mongo import flask_mongo
 
 user = Blueprint("users", __name__)
