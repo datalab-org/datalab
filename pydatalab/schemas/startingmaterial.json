@@ -185,8 +185,7 @@
     }
   },
   "required": [
-    "item_id",
-    "name"
+    "item_id"
   ],
   "definitions": {
     "RelationshipType": {
