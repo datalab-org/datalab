@@ -24,7 +24,10 @@ export const API_TOKEN = process.env.VUE_APP_API_TOKEN;
 
 export const LOGO_URL = process.env.VUE_APP_LOGO_URL;
 export const HOMEPAGE_URL = process.env.VUE_APP_HOMEPAGE_URL;
+
 export const GRAVATAR_STYLE = "identicon";
+
+export const IS_STARTING_MATERIAL_EDITABLE = true;
 
 export const UPPY_MAX_TOTAL_FILE_SIZE =
   Number(process.env.VUE_APP_UPPY_MAX_TOTAL_FILE_SIZE) != null
