@@ -31,7 +31,7 @@ class StartingMaterial(Item):
 
     full_percent: Optional[str] = Field(alias="Full %")
 
-    name: str = Field(alias="Container Name", description="name of the chemical")
+    name: Optional[str] = Field(alias="Container Name", description="name of the chemical")
 
     size: Optional[str] = Field(
         alias="Container Size", description="size of the container (see 'size_unit' for the units)"
