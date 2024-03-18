@@ -62,6 +62,17 @@ class Identity(BaseModel):
         return v
 
 
+class DisplayName(str):
+    """A constrained string less than 150 characters long."""
+    max_length = 150
+
+    def __new__(cls, value):
+        if len(value) > cls.max_length:
+            raise ValueError(
+                f"Display name must be at most {cls.max_length} characters long.")
+        return str.__new__(cls, value)
+
+
 class Person(Entry):
     """A model that describes an individual and their digital identities."""
 
@@ -71,7 +82,7 @@ class Person(Entry):
     identities: List[Identity] = Field(default_factory=list)
     """A list of identities attached to this person, e.g., email addresses, OAuth accounts."""
 
-    display_name: Optional[str]
+    display_name: Optional[DisplayName]
     """The user-chosen display name."""
 
     contact_email: Optional[EmailStr]
@@ -90,14 +101,6 @@ class Person(Entry):
     @validator("type", pre=True)
     def set_default_type(cls, _):
         return "people"
-
-    @validator("display_name")
-    def validate_display_name_length(cls, v):
-        """Validate the display name."""
-        max_len = 150
-        if len(v) > max_len:
-            raise ValueError(f"Display name must be at most {max_len} characters long.")
-        return v
 
     @staticmethod
     def new_user_from_identity(
