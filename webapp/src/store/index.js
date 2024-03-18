@@ -51,6 +51,10 @@ export default createStore({
       // sampleSummary is a json object summarizing the new sample
       state.sample_list.unshift(sampleSummary);
     },
+    prependToStartingMaterialList(state, itemSummary) {
+      // sampleSummary is a json object summarizing the new sample
+      state.starting_material_list.unshift(itemSummary);
+    },
     prependToCollectionList(state, collectionSummary) {
       // collectionSummary is a json object summarizing the new collection
       state.collection_list.unshift(collectionSummary);

@@ -2,7 +2,7 @@
 // all code using fetch should be collected into this file
 
 import store from "@/store/index.js";
-import { API_URL, API_TOKEN } from "@/resources.js";
+import { API_URL, API_TOKEN, SAMPLE_TABLE_TYPES, INVENTORY_TABLE_TYPES } from "@/resources.js";
 
 // ****************************************************************************
 // A simple wrapper to simplify response handling for fetch calls
@@ -115,8 +115,15 @@ export function createNewItem(
   }).then(function (response_json) {
     console.log("received the following data from fetch new-sample:");
     console.log(response_json.sample_list_entry);
-    console.log(`item_id: ${item_id}`);
-    store.commit("prependToSampleList", response_json.sample_list_entry);
+    console.log(
+      `created a new item with item_id: ${item_id}, type: ${response_json.sample_list_entry.type}`,
+    );
+    if (SAMPLE_TABLE_TYPES.includes(response_json.sample_list_entry.type)) {
+      store.commit("prependToSampleList", response_json.sample_list_entry);
+    }
+    if (INVENTORY_TABLE_TYPES.includes(response_json.sample_list_entry.type)) {
+      store.commit("prependToStartingMaterialList", response_json.sample_list_entry);
+    }
     return "success";
   });
 }
