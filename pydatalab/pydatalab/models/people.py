@@ -119,15 +119,6 @@ class Person(Entry):
     def set_default_type(cls, _):
         return "people"
 
-    @validator("display_name")
-    def validate_display_name_length(cls, v):
-        """Validate the display name."""
-        max_len = 150
-        if len(v) > max_len:
-            raise ValueError(
-                f"Display name must be at most {max_len} characters long.")
-        return v
-
     @staticmethod
     def new_user_from_identity(
         identity: Identity, use_display_name: bool = True, use_contact_email: bool = True
