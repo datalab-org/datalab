@@ -96,8 +96,7 @@ class Person(Entry):
         """Validate the display name."""
         max_len = 150
         if len(v) > max_len:
-            raise ValueError(
-                f"Display name must be at most {max_len} characters long.")
+            raise ValueError(f"Display name must be at most {max_len} characters long.")
         return v
 
     @staticmethod
