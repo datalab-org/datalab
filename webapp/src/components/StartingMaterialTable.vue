@@ -28,7 +28,6 @@
             :item_id="item.item_id"
             :itemType="item?.type || 'starting_materials'"
             enableModifiedClick
-            :maxLength="formattedItemNameMaxLength"
           />
         </td>
         <td>{{ item.name }}</td>
