@@ -16,7 +16,7 @@
       </div>
     </div>
   </div>
-  <CreateItemModal v-model="createItemModalIsOpen" />
+  <CreateItemModal v-model="createItemModalIsOpen" :allowedTypes="allowedTypes" />
   <BatchCreateSampleModal v-model="batchCreateSampleModalIsOpen" />
 </template>
 
@@ -25,6 +25,7 @@ import Navbar from "@/components/Navbar";
 import SampleTable from "@/components/SampleTable";
 import CreateItemModal from "@/components/CreateItemModal";
 import BatchCreateSampleModal from "@/components/BatchCreateSampleModal";
+import { SAMPLE_TABLE_TYPES } from "@/resources.js";
 
 export default {
   name: "Samples",
@@ -32,6 +33,7 @@ export default {
     return {
       createItemModalIsOpen: false,
       batchCreateSampleModalIsOpen: false,
+      allowedTypes: SAMPLE_TABLE_TYPES,
     };
   },
   components: {
