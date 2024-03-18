@@ -144,6 +144,15 @@
       "title": "Full %",
       "type": "string"
     },
+    "GHS_codes": {
+      "title": "Ghs H-Codes",
+      "description": "A string describing any GHS hazard codes associated with this item. See https://pubchem.ncbi.nlm.nih.gov/ghs/ for code definitions.",
+      "examples": [
+        "H224",
+        "H303, H316, H319"
+      ],
+      "type": "string"
+    },
     "size": {
       "title": "Container Size",
       "description": "size of the container (see 'size_unit' for the units)",
