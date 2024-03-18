@@ -31,6 +31,8 @@ class StartingMaterial(Item):
 
     full_percent: Optional[str] = Field(alias="Full %")
 
+    GHS_codes: Optional[str] = Field(alias="GHS H-codes")
+
     name: Optional[str] = Field(alias="Container Name", description="name of the chemical")
 
     size: Optional[str] = Field(

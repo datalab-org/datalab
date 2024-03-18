@@ -144,6 +144,10 @@
       "title": "Full %",
       "type": "string"
     },
+    "GHS_codes": {
+      "title": "Ghs H-Codes",
+      "type": "string"
+    },
     "size": {
       "title": "Container Size",
       "description": "size of the container (see 'size_unit' for the units)",
