@@ -3,7 +3,7 @@ from typing import List, Optional
 
 import bson
 import bson.errors
-from pydantic import BaseModel, EmailStr, Field, validate_email, validator
+from pydantic import BaseModel, EmailStr, Field, validator
 
 from pydatalab.models.entries import Entry
 from pydatalab.models.utils import PyObjectId
