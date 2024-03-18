@@ -31,6 +31,12 @@ class StartingMaterial(Item):
 
     full_percent: Optional[str] = Field(alias="Full %")
 
+    GHS_codes: Optional[str] = Field(
+        alias="GHS H-codes",
+        description="A string describing any GHS hazard codes associated with this item. See https://pubchem.ncbi.nlm.nih.gov/ghs/ for code definitions.",
+        examples=["H224", "H303, H316, H319"],
+    )
+
     name: Optional[str] = Field(alias="Container Name", description="name of the chemical")
 
     size: Optional[str] = Field(
