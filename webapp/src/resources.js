@@ -100,6 +100,9 @@ export const itemTypes = {
   },
 };
 
+export const SAMPLE_TABLE_TYPES = ["samples", "cells"];
+export const INVENTORY_TABLE_TYPES = ["starting_materials"];
+
 export const cellFormats = {
   coin: "coin",
   pouch: "pouch",

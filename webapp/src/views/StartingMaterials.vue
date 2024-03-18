@@ -14,19 +14,21 @@
       </div>
     </div>
   </div>
-  <CreateItemModal v-model="createItemModalIsOpen" />
+  <CreateItemModal v-model="createItemModalIsOpen" :allowedTypes="allowedTypes" />
 </template>
 
 <script>
 import Navbar from "@/components/Navbar";
 import StartingMaterialTable from "@/components/StartingMaterialTable";
 import CreateItemModal from "@/components/CreateItemModal";
+import { INVENTORY_TABLE_TYPES } from "@/resources.js";
 
 export default {
   name: "StartingMaterials",
   data() {
     return {
       createItemModalIsOpen: false,
+      allowedTypes: INVENTORY_TABLE_TYPES,
     };
   },
   components: {

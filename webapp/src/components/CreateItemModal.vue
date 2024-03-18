@@ -18,8 +18,8 @@
           <div class="form-group col-md-6">
             <label for="item-type-select" class="col-form-label">Type:</label>
             <select v-model="item_type" class="form-control" id="item-type-select" required>
-              <option v-for="(obj, type) in availableTypes" :key="type" :value="type">
-                {{ obj.display }}
+              <option v-for="type in allowedTypes" :key="type" :value="type">
+                {{ itemTypes[type].display }}
               </option>
             </select>
           </div>
@@ -85,14 +85,14 @@
 import Modal from "@/components/Modal.vue";
 import ItemSelect from "@/components/ItemSelect.vue";
 import { createNewItem } from "@/server_fetch_utils.js";
-import { itemTypes } from "@/resources.js";
+import { itemTypes, SAMPLE_TABLE_TYPES } from "@/resources.js";
 import CollectionSelect from "@/components/CollectionSelect.vue";
 export default {
   name: "CreateItemModal",
   data() {
     return {
       item_id: null,
-      item_type: "samples",
+      item_type: "",
       date: this.now(),
       name: "",
       startingDataCallback: null,
@@ -101,17 +101,20 @@ export default {
       selectedItemToCopy: null,
       startingConstituents: [],
       agesAgo: new Date("1970-01-01").toISOString().slice(0, -8), // a datetime for the unix epoch start
-      //this is all just to filter an object in javascript:
-      availableTypes: Object.keys(itemTypes)
-        .filter((type) => itemTypes[type].isCreateable)
-        .reduce((newObj, key) => Object.assign(newObj, { [key]: itemTypes[key] }), {}),
     };
   },
   props: {
     modelValue: Boolean,
+    allowedTypes: {
+      type: Array,
+      default: () => SAMPLE_TABLE_TYPES,
+    },
   },
   emits: ["update:modelValue"],
   computed: {
+    itemTypes() {
+      return itemTypes;
+    },
     itemTypeDisplayName() {
       return itemTypes[this.item_type].display;
     },
@@ -207,6 +210,9 @@ export default {
       }
       this.name = `COPY OF ${this.selectedItemToCopy.name}`;
     },
+  },
+  created() {
+    this.item_type = this.allowedTypes[0];
   },
   components: {
     Modal,
