@@ -94,8 +94,9 @@ class Person(Entry):
     @validator("display_name")
     def validate_display_name_length(cls, v):
         """Validate the display name."""
-        if len(v) > 150:
-            raise ValueError("Display name must be at most 150 characters long.")
+        max_len = 150
+        if len(v) > max_len:
+            raise ValueError(f"Display name must be at most {max_len} characters long.")
         return v
 
     @validator("contact_email")
