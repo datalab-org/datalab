@@ -101,9 +101,11 @@ export function createNewItem(
   startingCollection = null,
   startingData = {},
   copyFrom = null,
+  generateIDAutomatically = false,
 ) {
   return fetch_post(`${API_URL}/new-sample/`, {
     copy_from_item_id: copyFrom,
+    generate_id_automatically: generateIDAutomatically,
     new_sample_data: {
       item_id: item_id,
       date: date,
