@@ -106,7 +106,8 @@ def find_user_with_identity(
 
     """
     user = flask_mongo.db.users.find_one(
-        {"identities.identifier": identifier, "identities.identity_type": identity_type},
+        {"identities.identifier": identifier,
+            "identities.identity_type": identity_type},
     )
     if user:
         person = Person(**user)
@@ -223,7 +224,8 @@ def find_create_or_modify_user(
             if not create_account:
                 raise UserRegistrationForbidden
 
-            user = Person.new_user_from_identity(identity, use_display_name=True)
+            user = Person.new_user_from_identity(
+                identity, use_display_name=True)
             LOGGER.debug("Inserting new user model %s into database", user)
             insert_pydantic_model_fork_safe(user, "users")
             user_model = get_by_id(str(user.immutable_id))
@@ -255,7 +257,8 @@ def generate_and_share_magic_link():
         return jsonify({"status": "error", "detail": "Invalid email provided."}), 400
 
     if not referrer:
-        LOGGER.warning("No referrer provided for magic link request: %s", request_json)
+        LOGGER.warning(
+            "No referrer provided for magic link request: %s", request_json)
         return (
             jsonify(
                 {
@@ -444,7 +447,9 @@ def redirect_to_ui(blueprint, token):  # pylint: disable=unused-argument
 def get_authenticated_user_info():
     """Returns metadata associated with the currently authenticated user."""
     if current_user.is_authenticated:
-        return jsonify(json.loads(current_user.person.json())), 200
+        user_info = json.loads(current_user.person.json())
+        user_info["role"] = current_user.role
+        return jsonify(user_info), 200
     else:
         return jsonify({"status": "failure", "message": "User must be authenticated."}), 401
 
