@@ -18,12 +18,12 @@
         </div>
         <div class="form-row">
           <div class="form-group col-md-6">
-            <label for="account-name" class="col-form-label">Contact email:</label>
+            <label for="account-email" class="col-form-label">Contact email:</label>
             <input
               v-model="user.contact_email"
               type="text"
               class="form-control"
-              id="account-name"
+              id="account-email"
               placeholder="Please enter your email"
             />
           </div>
@@ -49,7 +49,7 @@
               class="dropdown-item btn login btn-link btn-default"
               aria-label="Login via GitHub"
               :href="this.apiUrl + '/login/github'"
-              ><font-awesome-icon :icon="['fab', 'github']" /> Login via GitHub</a
+              ><font-awesome-icon :icon="['fab', 'github']" /> Connect your GitHub account</a
             >
           </div>
         </div>
@@ -73,7 +73,8 @@
               class="disabled dropdown-item btn login btn-link btn-default"
               aria-label="Login via ORCID"
               :href="this.apiUrl + '/login/orcid'"
-              ><font-awesome-icon class="orcid-icon" :icon="['fab', 'orcid']" /> Login via ORCID</a
+              ><font-awesome-icon class="orcid-icon" :icon="['fab', 'orcid']" /> Connect your
+              ORCiD</a
             >
           </div>
         </div>
