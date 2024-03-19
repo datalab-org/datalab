@@ -536,12 +536,13 @@ def create_samples():
 
     sample_jsons = request_json["new_sample_datas"]
     copy_from_item_ids = request_json.get("copy_from_item_ids")
+    generate_ids_automatically = request_json.get("generate_ids_automatically")
 
     if copy_from_item_ids is None:
         copy_from_item_ids = [None] * len(sample_jsons)
 
     outputs = [
-        _create_sample(sample_json, copy_from_item_id)
+        _create_sample(sample_json, copy_from_item_id, generate_ids_automatically)
         for sample_json, copy_from_item_id in zip(sample_jsons, copy_from_item_ids)
     ]
     responses, http_codes = zip(*outputs)
