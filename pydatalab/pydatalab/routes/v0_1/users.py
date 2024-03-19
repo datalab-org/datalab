@@ -28,7 +28,7 @@ def save_user(user_id):
     if update_result.modified_count != 1:
         return jsonify(
             status="error",
-            detail="User does not have the appropriate permissions to update the given user ID.",
-        ), 403
+            detail="Unable to update {user_id=}.",
+        ), 400
 
     return jsonify(status="success"), 200
