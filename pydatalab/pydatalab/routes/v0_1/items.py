@@ -276,7 +276,10 @@ def search_items():
     if isinstance(types, str):
         types = types.split(",")  # should figure out how to parse as list automatically
 
-    match_obj = {"$text": {"$search": query}, **get_default_permissions(user_only=False)}
+    match_obj = {
+        "$text": {"$search": query},
+        **get_default_permissions(user_only=False),
+    }
     if types is not None:
         match_obj["type"] = {"$in": types}
 
@@ -304,7 +307,11 @@ def search_items():
 search_items.methods = ("GET",)  # type: ignore
 
 
-def _create_sample(sample_dict: dict, copy_from_item_id: Optional[str] = None) -> tuple[dict, int]:
+def _create_sample(
+    sample_dict: dict,
+    copy_from_item_id: Optional[str] = None,
+    generate_id_automatically: bool = False,
+) -> tuple[dict, int]:
     if not current_user.is_authenticated and not CONFIG.TESTING:
         return (
             dict(
@@ -313,6 +320,17 @@ def _create_sample(sample_dict: dict, copy_from_item_id: Optional[str] = None) -
                 item_id=sample_dict["item_id"],
             ),
             401,
+        )
+
+    sample_dict["item_id"] = sample_dict.get("item_id", None)
+    if generate_id_automatically and sample_dict["item_id"]:
+        return (
+            dict(
+                status="error",
+                messages=f"""Request to create item with generate_id_automatically = true is incompatible with the provided item data,
+                which has an item_id included (provided id: {sample_dict['item_id']}")""",
+            ),
+            400,
         )
 
     if copy_from_item_id:
@@ -360,7 +378,11 @@ def _create_sample(sample_dict: dict, copy_from_item_id: Optional[str] = None) -
             sample_dict = copied_doc
 
         elif copied_doc["type"] == "cells":
-            for component in ("positive_electrode", "negative_electrode", "electrolyte"):
+            for component in (
+                "positive_electrode",
+                "negative_electrode",
+                "electrolyte",
+            ):
                 if copied_doc.get(component):
                     existing_consituent_ids = [
                         constituent["item"].get("item_id", None)
@@ -411,7 +433,10 @@ def _create_sample(sample_dict: dict, copy_from_item_id: Optional[str] = None) -
         # locally for testing creator UI elements
         new_sample["creator_ids"] = [24 * "0"]
         new_sample["creators"] = [
-            {"display_name": "Public testing user", "contact_email": "datalab@odbx.science"}
+            {
+                "display_name": "Public testing user",
+                "contact_email": "datalab@odbx.science",
+            }
         ]
     else:
         new_sample["creator_ids"] = [current_user.person.immutable_id]
@@ -421,6 +446,16 @@ def _create_sample(sample_dict: dict, copy_from_item_id: Optional[str] = None) -
                 "contact_email": current_user.person.contact_email,
             }
         ]
+
+    # Generate a unique refcode for the sample
+    new_sample["refcode"] = generate_unique_refcode()
+    if generate_id_automatically:
+        new_sample["item_id"] = new_sample["refcode"].split(":")[1]
+        LOGGER.debug(
+            "an automatic item_id was generated for the new sample: {new_sample['item_id']}"
+        )
+
+    # import pdb; pdb.set_trace()
 
     # check to make sure that item_id isn't taken already
     if flask_mongo.db.items.find_one({"item_id": sample_dict["item_id"]}):
@@ -432,9 +467,6 @@ def _create_sample(sample_dict: dict, copy_from_item_id: Optional[str] = None) -
             ),
             409,  # 409: Conflict
         )
-
-    # Generate a unique refcode for the sample
-    new_sample["refcode"] = generate_unique_refcode()
 
     new_sample["date"] = new_sample.get("date", datetime.datetime.now())
     try:
@@ -451,7 +483,7 @@ def _create_sample(sample_dict: dict, copy_from_item_id: Optional[str] = None) -
             400,
         )
 
-    # Do not store the fields `collections` or `creators` in the dataabse as these should be populated
+    # Do not store the fields `collections` or `creators` in the database as these should be populated
     # via joins for a specific query.
     # TODO: encode this at the model level, via custom schema properties or hard-coded `.store()` methods
     # the `Entry` model.
@@ -501,7 +533,9 @@ def create_sample():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
     if "new_sample_data" in request_json:
         response, http_code = _create_sample(
-            request_json["new_sample_data"], request_json.get("copy_from_item_id")
+            request_json["new_sample_data"],
+            request_json.get("copy_from_item_id"),
+            request_json.get("generate_id_automatically", False),
         )
     else:
         response, http_code = _create_sample(request_json)
@@ -521,12 +555,13 @@ def create_samples():
 
     sample_jsons = request_json["new_sample_datas"]
     copy_from_item_ids = request_json.get("copy_from_item_ids")
+    generate_ids_automatically = request_json.get("generate_ids_automatically")
 
     if copy_from_item_ids is None:
         copy_from_item_ids = [None] * len(sample_jsons)
 
     outputs = [
-        _create_sample(sample_json, copy_from_item_id)
+        _create_sample(sample_json, copy_from_item_id, generate_ids_automatically)
         for sample_json, copy_from_item_id in zip(sample_jsons, copy_from_item_ids)
     ]
     responses, http_codes = zip(*outputs)
@@ -594,7 +629,12 @@ def get_item_data(item_id, load_blocks: bool = False):
     # retrieve the entry from the database:
     cursor = flask_mongo.db.items.aggregate(
         [
-            {"$match": {"item_id": item_id, **get_default_permissions(user_only=False)}},
+            {
+                "$match": {
+                    "item_id": item_id,
+                    **get_default_permissions(user_only=False),
+                }
+            },
             {"$lookup": creators_lookup()},
             {"$lookup": collections_lookup()},
             {"$lookup": files_lookup()},
@@ -717,7 +757,14 @@ def save_item():
     updated_data = request_json["data"]
 
     # These keys should not be updated here and cannot be modified by the user through this endpoint
-    for k in ("_id", "file_ObjectIds", "creators", "creator_ids", "item_id", "relationships"):
+    for k in (
+        "_id",
+        "file_ObjectIds",
+        "creators",
+        "creator_ids",
+        "item_id",
+        "relationships",
+    ):
         if k in updated_data:
             del updated_data[k]
 
