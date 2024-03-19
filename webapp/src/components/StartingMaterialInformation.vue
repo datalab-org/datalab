@@ -85,7 +85,7 @@ import ToggleableCollectionFormGroup from "@/components/ToggleableCollectionForm
 import FormattedRefcode from "@/components/FormattedRefcode";
 import StyledInput from "@/components/StyledInput";
 
-import { IS_STARTING_MATERIAL_EDITABLE } from "@/resources.js";
+import { EDITABLE_INVENTORY } from "@/resources.js";
 
 export default {
   data() {
@@ -118,7 +118,7 @@ export default {
     Refcode: createComputedSetterForItemField("refcode"),
   },
   created() {
-    this.isEditable = IS_STARTING_MATERIAL_EDITABLE;
+    this.isEditable = EDITABLE_INVENTORY;
   },
   components: {
     StyledInput,
