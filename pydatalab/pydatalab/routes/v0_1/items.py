@@ -304,7 +304,11 @@ def search_items():
 search_items.methods = ("GET",)  # type: ignore
 
 
-def _create_sample(sample_dict: dict, copy_from_item_id: Optional[str] = None) -> tuple[dict, int]:
+def _create_sample(
+    sample_dict: dict,
+    copy_from_item_id: Optional[str] = None,
+    generate_id_automatically: bool = False,
+) -> tuple[dict, int]:
     if not current_user.is_authenticated and not CONFIG.TESTING:
         return (
             dict(
@@ -313,6 +317,12 @@ def _create_sample(sample_dict: dict, copy_from_item_id: Optional[str] = None) -
                 item_id=sample_dict["item_id"],
             ),
             401,
+        )
+
+    if generate_id_automatically and sample_dict["item_id"]:
+        LOGGER.warning(
+            f"""generate_id_automatically = true was provided to _create_sample(), but an item_id of "{sample_dict['item_id']}" is included in the sample_dict.
+            The provided item_id will not be used."""
         )
 
     if copy_from_item_id:
@@ -418,6 +428,16 @@ def _create_sample(sample_dict: dict, copy_from_item_id: Optional[str] = None) -
             }
         ]
 
+    # Generate a unique refcode for the sample
+    new_sample["refcode"] = generate_unique_refcode()
+    if generate_id_automatically:
+        new_sample["item_id"] = new_sample["refcode"].split(":")[1]
+        LOGGER.debug(
+            "an automatic item_id was generated for the new sample: {new_sample['item_id']}"
+        )
+
+    # import pdb; pdb.set_trace()
+
     # check to make sure that item_id isn't taken already
     if flask_mongo.db.items.find_one({"item_id": sample_dict["item_id"]}):
         return (
@@ -428,9 +448,6 @@ def _create_sample(sample_dict: dict, copy_from_item_id: Optional[str] = None) -
             ),
             409,  # 409: Conflict
         )
-
-    # Generate a unique refcode for the sample
-    new_sample["refcode"] = generate_unique_refcode()
 
     new_sample["date"] = new_sample.get("date", datetime.datetime.now())
     try:
@@ -447,7 +464,7 @@ def _create_sample(sample_dict: dict, copy_from_item_id: Optional[str] = None) -
             400,
         )
 
-    # Do not store the fields `collections` or `creators` in the dataabse as these should be populated
+    # Do not store the fields `collections` or `creators` in the database as these should be populated
     # via joins for a specific query.
     # TODO: encode this at the model level, via custom schema properties or hard-coded `.store()` methods
     # the `Entry` model.
@@ -497,7 +514,9 @@ def create_sample():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
     if "new_sample_data" in request_json:
         response, http_code = _create_sample(
-            request_json["new_sample_data"], request_json.get("copy_from_item_id")
+            request_json["new_sample_data"],
+            request_json.get("copy_from_item_id"),
+            request_json.get("generate_id_automatically", False),
         )
     else:
         response, http_code = _create_sample(request_json)
