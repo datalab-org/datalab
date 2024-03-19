@@ -3,7 +3,11 @@
   <div id="tableContainer" class="container">
     <div class="row">
       <div class="col-sm-12 mx-auto mb-3">
-        <button class="btn btn-default" @click="createItemModalIsOpen = true">
+        <button
+          v-if="editable_inventory"
+          class="btn btn-default"
+          @click="createItemModalIsOpen = true"
+        >
           Add a starting material
         </button>
       </div>
@@ -21,7 +25,7 @@
 import Navbar from "@/components/Navbar";
 import StartingMaterialTable from "@/components/StartingMaterialTable";
 import CreateItemModal from "@/components/CreateItemModal";
-import { INVENTORY_TABLE_TYPES } from "@/resources.js";
+import { INVENTORY_TABLE_TYPES, EDITABLE_INVENTORY } from "@/resources.js";
 
 export default {
   name: "StartingMaterials",
@@ -35,6 +39,9 @@ export default {
     Navbar,
     StartingMaterialTable,
     CreateItemModal,
+  },
+  created() {
+    this.editable_inventory = EDITABLE_INVENTORY;
   },
 };
 </script>
