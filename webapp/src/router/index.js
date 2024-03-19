@@ -14,6 +14,7 @@ import TestTree from "@/components/TestTree.vue";
 import CycleParameterTable from "@/components/CycleParameterTable.vue";
 import ExampleGraph from "@/views/ExampleGraph.vue";
 import ItemGraphPage from "@/views/ItemGraphPage.vue";
+import Admin from "@/views/Admin.vue";
 const routes = [
   {
     path: "/about",
@@ -79,6 +80,12 @@ const routes = [
     path: "/test-cycle-parameter-table/",
     name: "test-cycle-parameter-table",
     component: CycleParameterTable,
+  },
+  {
+    path: "/admin",
+    name: "admin",
+    alias: "/",
+    component: Admin,
   },
   { path: "/404", name: "notfound", component: NotFound },
   { path: "/:pathMatch(.*)*", component: NotFound },
