@@ -2,8 +2,8 @@ import json
 import os
 from typing import Sequence
 
-import tiktoken
-from langchain_community.llms import OpenAI
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_openai import ChatOpenAI
 
 from pydatalab.blocks.base import DataBlock
 from pydatalab.logger import LOGGER
@@ -17,20 +17,21 @@ MAX_CONTEXT_SIZE = 4097
 
 def num_tokens_from_messages(messages: Sequence[dict]):
     # see: https://github.com/openai/openai-cookbook/blob/main/examples/How_to_count_tokens_with_tiktoken.ipynb
-    encoding = tiktoken.encoding_for_model(MODEL)
+    return 0
+    # encoding = tiktoken.encoding_for_model(MODEL)
 
-    tokens_per_message = 4  # every message follows {role/name}\n{content}\n
-    tokens_per_name = -1  # if there's a name, the role is omitted
+    # tokens_per_message = 4  # every message follows {role/name}\n{content}\n
+    # tokens_per_name = -1  # if there's a name, the role is omitted
 
-    num_tokens = 0
-    for message in messages:
-        num_tokens += tokens_per_message
-        for key, value in message.items():
-            num_tokens += len(encoding.encode(value))
-            if key == "name":
-                num_tokens += tokens_per_name
-    num_tokens += 3  # every reply is primed with assistant
-    return num_tokens
+    # num_tokens = 0
+    # for message in messages:
+    #     num_tokens += tokens_per_message
+    #     for key, value in message.items():
+    #         num_tokens += len(encoding.encode(value))
+    #         if key == "name":
+    #             num_tokens += tokens_per_name
+    # num_tokens += 3  # every reply is primed with assistant
+    # return num_tokens
 
 
 class ChatBlock(DataBlock):
@@ -68,24 +69,15 @@ Be as concise as possible. When saying your name, type a bird emoji right after 
                 raise RuntimeError("No item or collection id provided")
 
             self.data["messages"] = [
-                {
-                    "role": "system",
-                    "content": self.defaults["system_prompt"],
-                },
-                {
-                    "role": "user",
-                    "content": f"""Here is the JSON data for the current item(s): {info_json}.
-    Start with a friendly introduction and give me a one sentence summary of what this is (not detailed, no information about specific masses). """,
-                },
+                ("system", self.defaults["system_prompt"]),
+                (
+                    "user",
+                    f"""Here is the JSON data for the current item(s): {info_json}. Start with a friendly introduction and give me a one sentence summary of what this is (not detailed, no information about specific masses). """,
+                ),
             ]
 
         if self.data.get("prompt"):
-            self.data["messages"].append(
-                {
-                    "role": "user",
-                    "content": self.data["prompt"],
-                }
-            )
+            self.data["messages"].append(("user", self.data["prompt"]))
             self.data["prompt"] = None
 
         token_count = num_tokens_from_messages(self.data["messages"])
@@ -98,25 +90,23 @@ Be as concise as possible. When saying your name, type a bird emoji right after 
             return
 
         try:
-            if self.data["messages"][-1]["role"] not in ("user", "system"):
+            if self.data["messages"][-1][0] not in ("user", "system"):
                 return
         except KeyError:
             return
 
         # Initialize LangChain LLM and chain
-        openai_llm = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"), model=MODEL)
+        openai_llm = ChatOpenAI(api_key=os.environ.get("OPENAI_API_KEY"), model=MODEL)
 
         # Prepare the prompt for LangChain
-        langchain_prompt = self.data["messages"]
+        langchain_prompt = ChatPromptTemplate.from_messages(self.data["messages"])
 
         try:
             LOGGER.debug(
-                f"submitting request to LangChain for completion with last message role \"{self.data['messages'][-1]['role']}\" (message = {self.data['messages'][-1:]}). Temperature = {self.data['temperature']} (type {type(self.data['temperature'])})"
+                f"submitting request to LangChain for completion with last message role \"{self.data['messages'][-1][0]}\" (message = {self.data['messages'][-1:]}). Temperature = {self.data['temperature']} (type {type(self.data['temperature'])})"
             )
             # Use the generate method with the corrected parameter name
-            response = openai_llm.generate(
-                prompts=[langchain_prompt], temperature=self.data["temperature"]
-            )
+            response = openai_llm.generate(langchain_prompt, temperature=self.data["temperature"])
             self.data["error_message"] = None
         except Exception as exc:
             LOGGER.debug("Received an error from LangChain: %s", exc)
