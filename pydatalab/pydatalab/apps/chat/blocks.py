@@ -3,16 +3,14 @@ import os
 from typing import Sequence
 
 import tiktoken
-import OpenAI
-from langchain.llms import OpenAI
-# from langchain.chats import OpenAI
+from langchain_community.llms import OpenAI
 
 from pydatalab.blocks.base import DataBlock
 from pydatalab.logger import LOGGER
 from pydatalab.models import ITEM_MODELS
 from pydatalab.utils import CustomJSONEncoder
 
-__all__ = "ChatBlock"
+__all__ = ["ChatBlock"]
 MODEL = "gpt-3.5-turbo-0613"
 MAX_CONTEXT_SIZE = 4097
 
@@ -41,15 +39,14 @@ class ChatBlock(DataBlock):
     accepted_file_extensions: Sequence[str] = []
     __supports_collections = True
     defaults = {
-        "system_prompt": """You are whinchat (lowercase w), a virtual data management assistant that helps materials chemists manage their experimental data and plan experiments. You are deployed in the group of Professor Clare Grey in the Department of Chemistry at the University of Cambridge.
-You are embedded within the program datalab, where you have access to JSON describing an ‘item’, or a collection of items, with connections to other items. These items may include experimental samples, starting materials, and devices (e.g. battery cells made out of experimental samples and starting materials).
+        "system_prompt": """You are whinchat (lowercase w), a virtual data managment assistant that helps materials chemists manage their experimental data and plan experiments. You are deployed in the group of Professor Clare Grey in the Department of Chemistry at the University of Cambridge.
+You are embedded within the program datalab, where you have access to JSON describing an 'item', or a collection of items, with connections to other items. These items may include experimental samples, starting materials, and devices (e.g. battery cells made out of experimental samples and starting materials).
 Answer questions in markdown. Specify the language for all markdown code blocks. You can make diagrams by writing a mermaid code block or an svg code block. When writing mermaid code, you must use quotations around each of the labels (e.g. A["label1"] --> B["label2"])
 Be as concise as possible. When saying your name, type a bird emoji right after whinchat 🐦.
         """,
         "temperature": 0.2,
         "error_message": None,
     }
-    chat_api = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"), model=MODEL)
 
     def to_db(self):
         """returns a dictionary with the data for this
@@ -78,7 +75,7 @@ Be as concise as possible. When saying your name, type a bird emoji right after 
                 {
                     "role": "user",
                     "content": f"""Here is the JSON data for the current item(s): {info_json}.
-Start with a friendly introduction and give me a one sentence summary of what this is (not detailed, no information about specific masses). """,
+    Start with a friendly introduction and give me a one sentence summary of what this is (not detailed, no information about specific masses). """,
                 },
             ]
 
@@ -101,41 +98,41 @@ Start with a friendly introduction and give me a one sentence summary of what th
             return
 
         try:
-            if self.data["messages"][-1].role not in ("user", "system"):
-                return
-        except AttributeError:
             if self.data["messages"][-1]["role"] not in ("user", "system"):
                 return
+        except KeyError:
+            return
+
+        # Initialize LangChain LLM and chain
+        openai_llm = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"), model=MODEL)
+
+        # Prepare the prompt for LangChain
+        langchain_prompt = self.data["messages"]
 
         try:
             LOGGER.debug(
-                f"submitting request to Langchain OpenAI for completion with last message role \"{self.data['messages'][-1]['role']}\" (message = {self.data['messages'][-1:]}). Temperature = {self.data['temperature']} (type {type(self.data['temperature'])})"
+                f"submitting request to LangChain for completion with last message role \"{self.data['messages'][-1]['role']}\" (message = {self.data['messages'][-1:]}). Temperature = {self.data['temperature']} (type {type(self.data['temperature'])})"
             )
-            responses = self.chat_api.complete(
-                messages=self.data["messages"],
-                temperature=self.data["temperature"],
-                max_tokens=min(
-                    1024, MAX_CONTEXT_SIZE - token_count - 1
-                ),
+            # Use the generate method with the corrected parameter name
+            response = openai_llm.generate(
+                prompts=[langchain_prompt], temperature=self.data["temperature"]
             )
             self.data["error_message"] = None
         except Exception as exc:
-            LOGGER.debug("Received an error from Langchain OpenAI: %s", exc)
-            self.data["error_message"] = f"Received an error from the Langchain OpenAI: {exc}."
+            LOGGER.debug("Received an error from LangChain: %s", exc)
+            self.data["error_message"] = f"Received an error from LangChain: {exc}."
             return
 
         try:
-            self.data["messages"].append(responses["choices"][0].message)
-        except AttributeError:
-            self.data["messages"].append(responses["choices"][0]["message"])
+            self.data["messages"].append({"role": "assistant", "content": response})
+        except KeyError:
+            self.data["messages"].append({"role": "assistant", "content": response})
 
         self.data["model_name"] = MODEL
 
         token_count = num_tokens_from_messages(self.data["messages"])
         self.data["token_count"] = token_count
         return
-
-    # Your existing methods _prepare_item_json_for_chat and _prepare_collection_json_for_chat remain unchanged
 
     def _prepare_item_json_for_chat(self, item_id: str):
         from pydatalab.routes.v0_1.items import get_item_data
