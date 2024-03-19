@@ -27,7 +27,10 @@ export const HOMEPAGE_URL = process.env.VUE_APP_HOMEPAGE_URL;
 
 export const GRAVATAR_STYLE = "identicon";
 
-export const IS_STARTING_MATERIAL_EDITABLE = true;
+// determine whether inventory should be readonly (except blocks). Note: environment
+// variables can only be strings, not bools.
+const editable_inventory = process.env.VUE_APP_EDITABLE_INVENTORY || "false";
+export const EDITABLE_INVENTORY = editable_inventory.toLowerCase() == "true";
 
 export const UPPY_MAX_TOTAL_FILE_SIZE =
   Number(process.env.VUE_APP_UPPY_MAX_TOTAL_FILE_SIZE) != null
