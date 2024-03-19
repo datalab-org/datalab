@@ -3,7 +3,9 @@
     <Modal
       :modelValue="modelValue"
       @update:modelValue="$emit('update:modelValue', $event)"
-      :disableSubmit="Boolean(itemIDValidationMessage) || !Boolean(item_id)"
+      :disableSubmit="
+        Boolean(itemIDValidationMessage) || (!generateIDAutomatically && !Boolean(item_id))
+      "
       submitID="sample-submit"
     >
       <template v-slot:header> Add new item </template>
@@ -12,8 +14,30 @@
         <div class="form-row">
           <div class="form-group col-md-6">
             <label for="item-id" class="col-form-label">ID:</label>
-            <input v-model="item_id" type="text" class="form-control" id="item-id" required />
+            <input
+              v-model="item_id"
+              type="text"
+              class="form-control"
+              id="item-id"
+              :disabled="generateIDAutomatically"
+              :required="!generateIDAutomatically"
+            />
             <div class="form-error" v-html="itemIDValidationMessage"></div>
+            <div class="form-check mt-1 ml-1">
+              <input
+                type="checkbox"
+                v-model="generateIDAutomatically"
+                class="form-check-input clickable"
+                id="automatic-id-checkbox"
+                @input="item_id = null"
+              />
+              <label
+                id="automatic-id-label"
+                class="form-check-label clickable"
+                for="automatic-id-checkbox"
+                >generate automatically</label
+              >
+            </div>
           </div>
           <div class="form-group col-md-6">
             <label for="item-type-select" class="col-form-label">Type:</label>
@@ -23,7 +47,7 @@
               </option>
             </select>
           </div>
-          <div class="form-group col-md-6">
+          <div class="form-group col-md-6 pt-0">
             <label for="date" class="col-form-label">Date Created:</label>
             <input
               type="datetime-local"
@@ -100,6 +124,7 @@ export default {
       takenItemIds: [], // this holds ids that have been tried, whereas the computed takenSampleIds holds ids in the sample table
       selectedItemToCopy: null,
       startingConstituents: [],
+      generateIDAutomatically: false,
       agesAgo: new Date("1970-01-01").toISOString().slice(0, -8), // a datetime for the unix epoch start
     };
   },
@@ -169,10 +194,14 @@ export default {
         startingCollection,
         extraData,
         this.selectedItemToCopy && this.selectedItemToCopy.item_id,
+        this.generateIDAutomatically,
       )
         .then(() => {
           this.$emit("update:modelValue", false); // close this modal
-          document.getElementById(this.item_id).scrollIntoView({ behavior: "smooth" });
+          // can enable the following line to get smooth scrolling into view, but will fail
+          // if generateIDAutomatically. It's currently not necessary because
+          // new items always show up at the top of the sample table
+          // // document.getElementById(this.item_id).scrollIntoView({ behavior: "smooth" });
           this.item_id = null;
           this.name = null;
           this.date = this.now(); // reset date to the new current time
@@ -223,6 +252,10 @@ export default {
 </script>
 
 <style scoped>
+#automatic-id-label {
+  color: #555;
+}
+
 .form-error {
   color: red;
 }
