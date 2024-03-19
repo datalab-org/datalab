@@ -19,7 +19,9 @@
       <div class="form-group col-lg-3 col-sm-4">
         <label for="chemform">Chemical formula</label>
         <ChemFormulaInput v-if="isEditable" id="chemform" v-model="ChemForm" />
-        <ChemicalFormula v-if="!isEditable" id="chemform" :formula="ChemForm" />
+        <span v-if="!isEditable" class="form-control-plaintext" readonly>
+          <ChemicalFormula id="chemform" :formula="ChemForm" />
+        </span>
       </div>
       <div class="form-group col-lg-3 col-sm-4">
         <label for="supplier">Supplier</label>

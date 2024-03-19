@@ -1,6 +1,6 @@
 <template>
   <input
-    :type="type"
+    :type="inputType"
     :class="{ 'form-control': !readonly, 'form-control-plaintext': readonly }"
     :readonly="readonly"
     v-model="vmodelvalue"
@@ -23,6 +23,12 @@ export default {
     type: { default: "string" },
   },
   computed: {
+    inputType() {
+      if (this.readonly && (this.type == "date" || this.type == "datetime-local")) {
+        return "text";
+      }
+      return this.type;
+    },
     vmodelvalue: {
       get() {
         if (this.type == "date") {
