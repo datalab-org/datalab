@@ -130,10 +130,15 @@ export function createNewItem(
   });
 }
 
-export function createNewSamples(newSampleDatas, copyFromItemIds = null) {
+export function createNewSamples(
+  newSampleDatas,
+  copyFromItemIds = null,
+  generateIDsAutomatically = false,
+) {
   return fetch_post(`${API_URL}/new-samples/`, {
     copy_from_item_ids: copyFromItemIds,
     new_sample_datas: newSampleDatas,
+    generate_ids_automatically: generateIDsAutomatically,
   }).then(function (response_json) {
     console.log("received the following data from fetch new-samples:");
     console.log(response_json);
