@@ -67,6 +67,14 @@ export default createStore({
         console.log(`deleteFromSampleList couldn't find the item with id ${item_id}`);
       }
     },
+    deleteFromStartingMaterialList(state, item_id) {
+      const index = state.starting_material_list.map((e) => e.item_id).indexOf(item_id);
+      if (index > -1) {
+        state.starting_material_list.splice(index, 1);
+      } else {
+        console.log(`deleteFromStartingMaterialList couldn't find the item with id ${item_id}`);
+      }
+    },
     deleteFromCollectionList(state, collection_summary) {
       const index = state.collection_list.indexOf(collection_summary);
       if (index > -1) {
