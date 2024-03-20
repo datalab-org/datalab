@@ -74,7 +74,7 @@ describe("Batch sample creation", () => {
     cy.contains("Add batch of samples").click();
     cy.findByLabelText("Number of rows:").clear().type(2);
 
-    cy.contains("Submit").should("be.disabled");
+    cy.get("#sample-submit").should("be.disabled");
     getBatchAddCell(1, 1).type("baseA");
     getBatchAddCell(2, 1).type("baseB");
     getBatchAddCell(2, 2).type("the name of baseB");
@@ -93,7 +93,7 @@ describe("Batch sample creation", () => {
     cy.contains("Add batch of samples").click();
     cy.findByLabelText("Number of rows:").clear().type(4);
 
-    cy.contains("Submit").should("be.disabled");
+    cy.get("#sample-submit").should("be.disabled");
     getBatchAddCell(1, 1).type("component1");
     getBatchAddCell(1, 2).type("this component has a name");
     getBatchAddCell(2, 1).type("component2");

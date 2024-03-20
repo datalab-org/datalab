@@ -23,7 +23,13 @@
         </div>
         <div class="modal-footer">
           <slot name="footer">
-            <input type="submit" class="btn btn-info" :disabled="disableSubmit" value="Submit" />
+            <input
+              :id="submitID"
+              type="submit"
+              class="btn btn-info"
+              :disabled="disableSubmit"
+              value="Submit"
+            />
             <button
               type="button"
               class="btn btn-secondary"
@@ -56,6 +62,9 @@ export default {
     isLarge: {
       type: Boolean,
       default: false,
+    },
+    submitID: {
+      type: String,
     },
   },
   watch: {
