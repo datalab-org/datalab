@@ -25,12 +25,12 @@
         </div>
         <div class="form-row">
           <div class="form-group col-md-6">
-            <label for="account-name" class="col-form-label">Contact email:</label>
+            <label for="account-email" class="col-form-label">Contact email:</label>
             <input
               v-model="user.contact_email"
               type="text"
               class="form-control"
-              id="account-name"
+              id="account-email"
               placeholder="Please enter your email"
             />
             <div class="form-error" v-html="contactEmailValidationMessage"></div>
@@ -57,7 +57,7 @@
               class="dropdown-item btn login btn-link btn-default"
               aria-label="Login via GitHub"
               :href="this.apiUrl + '/login/github'"
-              ><font-awesome-icon :icon="['fab', 'github']" /> Login via GitHub</a
+              ><font-awesome-icon :icon="['fab', 'github']" /> Connect your GitHub account</a
             >
           </div>
         </div>
@@ -81,7 +81,8 @@
               class="disabled dropdown-item btn login btn-link btn-default"
               aria-label="Login via ORCID"
               :href="this.apiUrl + '/login/orcid'"
-              ><font-awesome-icon class="orcid-icon" :icon="['fab', 'orcid']" /> Login via ORCID</a
+              ><font-awesome-icon class="orcid-icon" :icon="['fab', 'orcid']" /> Connect your
+              ORCiD</a
             >
           </div>
         </div>
@@ -112,10 +113,13 @@ export default {
   emits: ["update:modelValue"],
   computed: {
     displayNameValidationMessage() {
-      if (this.user.display_name && this.user.display_name.length > 150) {
-        return "Name should be less than 150 characters.";
+      if (!this.user.display_name || /^\s*$/.test(this.user.display_name)) {
+        return "Name is required.";
+      } else if (this.user.display_name.length > 150) {
+        return "Name should be no more than 150 characters.";
+      } else {
+        return "";
       }
-      return "";
     },
     contactEmailValidationMessage() {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -127,19 +131,15 @@ export default {
   },
   methods: {
     async submitForm() {
-      await saveUser(this.user.immutable_id, this.user).then(() => {
-        this.$store.commit("setDisplayName", this.user.display_name);
-        this.$emit("update:modelValue", false);
-      });
+      await saveUser(this.user.immutable_id, this.user);
+      this.$store.commit("setDisplayName", this.user.display_name);
+      this.$emit("update:modelValue", false);
     },
     async getUser() {
       let user = await getUserInfo();
       if (user != null) {
         this.user = user;
       }
-    },
-    resetForm() {
-      this.$emit("update:modelValue", false);
     },
   },
   mounted() {
