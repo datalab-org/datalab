@@ -12,6 +12,7 @@
         <th scope="col">Date acquired</th>
         <th scope="col">Purity</th>
         <th scope="col"># of blocks</th>
+        <th scope="col"></th>
       </tr>
     </thead>
     <tbody>
@@ -35,6 +36,11 @@
         <td>{{ $filters.IsoDatetimeToDate(item.date_acquired) }}</td>
         <td>{{ item.chemical_purity }}</td>
         <td>{{ item.nblocks }}</td>
+        <td align="right">
+          <button type="button" class="close" @click.stop="deleteItem(item)" aria-label="delete">
+            <span aria-hidden="true" style="color: grey">&times;</span>
+          </button>
+        </td>
       </tr>
     </tbody>
   </table>
@@ -43,7 +49,7 @@
 <script>
 import ChemicalFormula from "@/components/ChemicalFormula";
 import FormattedItemName from "@/components/FormattedItemName";
-import { getStartingMaterialList } from "@/server_fetch_utils.js";
+import { getStartingMaterialList, deleteStartingMaterial } from "@/server_fetch_utils.js";
 
 export default {
   data() {
@@ -67,6 +73,13 @@ export default {
       getStartingMaterialList().catch(() => {
         this.isFetchError = true;
       });
+    },
+    deleteItem(item) {
+      if (confirm(`Are you sure you want to delete starting material "${item.item_id}"?`)) {
+        console.log("deleting...");
+        deleteStartingMaterial(item.item_id);
+      }
+      console.log("delete cancelled.");
     },
   },
   created() {
