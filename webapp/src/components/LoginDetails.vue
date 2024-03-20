@@ -12,7 +12,7 @@
           @click="isUserDropdownVisible = !isUserDropdownVisible"
         >
           <UserBubble :creator="this.currentUserInfo" :size="24" />&nbsp;
-          <span class="user-display-name">{{ currentUser }}</span
+          <span class="user-display-name">{{ userDisplayName }}</span
           >&nbsp;
         </button>
         <div
@@ -23,8 +23,9 @@
         >
           <a
             type="button"
-            class="disabled dropdown-item btn login btn-link btn-default"
+            class="dropdown-item btn login btn-link btn-default"
             aria-label="Account settings"
+            @click="editAccountSettingIsOpen = true"
             ><font-awesome-icon icon="cog" /> Account settings</a
           >
           <a
@@ -81,12 +82,14 @@
       </div>
     </template>
   </div>
+  <EditAccountSettingsModal v-model="editAccountSettingIsOpen" />
 </template>
 
 <script>
 import { API_URL } from "@/resources.js";
 import UserBubble from "@/components/UserBubble.vue";
 import { getUserInfo } from "@/server_fetch_utils.js";
+import EditAccountSettingsModal from "@/components/EditAccountSettingsModal.vue";
 export default {
   data() {
     return {
@@ -95,10 +98,17 @@ export default {
       apiUrl: API_URL,
       currentUser: null,
       currentUserInfo: {},
+      editAccountSettingIsOpen: false,
     };
   },
   components: {
     UserBubble,
+    EditAccountSettingsModal,
+  },
+  computed: {
+    userDisplayName() {
+      return this.$store.getters.getCurrentUserDisplayName;
+    },
   },
   props: {
     modelValue: Boolean,
@@ -107,8 +117,7 @@ export default {
     modelValue(newValue) {
       if (newValue) {
         this.openModal();
-      }
-      if (!newValue) {
+      } else {
         this.closeModal();
       }
     },
@@ -123,7 +132,6 @@ export default {
           immutable_id: user.immutable_id,
           contact_email: user.contact_email || "",
         };
-        console.log(this.currentUser, this.currentUserInfo);
       }
     },
   },
