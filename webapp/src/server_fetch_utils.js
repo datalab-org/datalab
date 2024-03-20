@@ -290,6 +290,17 @@ export function deleteSample(item_id) {
     .catch((error) => alert("Sample delete failed for " + item_id + ": " + error));
 }
 
+export function deleteStartingMaterial(item_id) {
+  return fetch_post(`${API_URL}/delete-sample/`, {
+    item_id: item_id,
+  })
+    .then(function (response_json) {
+      console.log("delete successful" + response_json);
+      store.commit("deleteFromStartingMaterialList", item_id);
+    })
+    .catch((error) => alert("Item delete failed for " + item_id + ": " + error));
+}
+
 export function deleteCollection(collection_id, collection_summary) {
   return fetch_delete(`${API_URL}/collections/${collection_id}`)
     .then(function (response_json) {
