@@ -33,15 +33,15 @@ def save_user(user_id):
     if not update:
         return jsonify(status="success", detail="No update was performed."), 200
 
-    update_result = flask_mongo.db.users.update_one(
-        {"_id": ObjectId(user_id)},
-        {"$set": update}
-    )
+    update_result = flask_mongo.db.users.update_one({"_id": ObjectId(user_id)}, {"$set": update})
+
+    if update_result.matched_count != 1:
+        return jsonify(status="error", detail="Unable to update user."), 400
 
     if update_result.modified_count != 1:
         return jsonify(
-            status="error",
-            detail="Unable to update {user_id=}.",
-        ), 400
+            status="success",
+            detail="No update was performed",
+        ), 200
 
     return jsonify(status="success"), 200

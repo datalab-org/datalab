@@ -424,20 +424,17 @@ export function saveCollection(collection_id) {
 }
 
 export function saveUser(user_id, user) {
-  return new Promise((resolve, reject) => {
-    fetch_patch(`${API_URL}/users/${user_id}`, user)
-      .then(function (response_json) {
-        if (response_json.status === "success") {
-          console.log("Save successful!");
-          resolve();
-        } else {
-          reject(new Error("Save unsuccessful"));
-        }
-      })
-      .catch(function (error) {
-        reject(error);
-      });
-  });
+  fetch_patch(`${API_URL}/users/${user_id}`, user)
+    .then(function (response_json) {
+      if (response_json.status === "success") {
+        console.log("Save successful!");
+      } else {
+        alert("User save unsuccessful", response_json.detail);
+      }
+    })
+    .catch(function (error) {
+      alert("User save unsuccessful", error);
+    });
 }
 
 export function deleteBlock(item_id, block_id) {
