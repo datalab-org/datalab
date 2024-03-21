@@ -384,7 +384,7 @@ def github_logged_in(blueprint, token):
     github_info = resp.json()
     github_user_id = str(github_info["id"])
     username = str(github_info["login"])
-    name = str(github_info["name"])
+    name = str(github_info["name"] if github_info["name"] is not None else github_info["login"])
 
     create_account: bool = False
     # Use the read:org scope to check if the user is a member of at least one of the allowed orgs
