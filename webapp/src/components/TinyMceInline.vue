@@ -13,6 +13,7 @@
         width: '50%',
         'margin-left': '1rem',
       },
+      contextmenu: false,
       toolbar:
         'bold italic underline strikethrough superscript subscript forecolor backcolor removeformat | 		alignleft aligncenter alignright | bullist numlist indent outdent | headergroup insertgroup | table',
       toolbar_groups: {

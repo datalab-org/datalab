@@ -4,6 +4,7 @@
       :modelValue="modelValue"
       @update:modelValue="$emit('update:modelValue', $event)"
       :disableSubmit="Boolean(sampleIDValidationMessage) || !Boolean(item_id)"
+      submitID="sample-submit"
     >
       <template v-slot:header> Add new sample </template>
 
@@ -38,7 +39,7 @@
         <div class="form-row">
           <div class="form-group col-md-12">
             <label for="name">Name:</label>
-            <input id="name" type="text" v-model="name" class="form-control" />
+            <input id="sample-name" type="text" v-model="name" class="form-control" />
           </div>
         </div>
         <!-- All item types can be added to a collection, so this is always available -->

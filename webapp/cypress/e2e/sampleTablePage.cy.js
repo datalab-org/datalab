@@ -46,8 +46,8 @@ describe("Sample table page", () => {
     cy.findByLabelText("ID:").type("12345678910");
     cy.findByLabelText("Date Created:").type("1990-01-07T00:00");
 
-    cy.findByLabelText("Name:").type("This is a sample name");
-    cy.contains("Submit").click();
+    cy.get("#sample-name").type("This is a sample name");
+    cy.get("#sample-submit").click();
 
     // check that the sample table is correctly populated
     cy.findByText("12345678910");
@@ -83,7 +83,7 @@ describe("Sample table page", () => {
     cy.contains("already in use").should("exist");
     cy.get(".form-error a").contains("12345678910");
 
-    cy.contains("Submit").should("be.disabled");
+    cy.get("#sample-submit").should("be.disabled");
   });
 
   it("Deletes a sample", function () {
@@ -183,7 +183,7 @@ describe("Advanced sample creation features", () => {
       cy.contains(".badge", "testA").click();
     });
     cy.findByDisplayValue("COPY OF the first test sample").clear().type("a copied sample");
-    cy.contains("Submit").click();
+    cy.get("#sample-submit").click();
     cy.verifySample("testAcopy", "a copied sample");
   });
 
@@ -232,7 +232,7 @@ describe("Advanced sample creation features", () => {
     cy.get(".vs__dropdown-menu").within(() => {
       cy.contains(".badge", "testB").click();
     });
-    cy.contains("Submit").click();
+    cy.get("#sample-submit").click();
     cy.verifySample("testBcopy", "COPY OF the second test sample");
   });
 
@@ -267,7 +267,7 @@ describe("Advanced sample creation features", () => {
       cy.contains(".badge", "component3").click();
     });
 
-    cy.contains("Submit").click();
+    cy.get("#sample-submit").click();
     cy.verifySample("testBcopy_copy", "COPY OF COPY OF the second test sample");
   });
   it("checks the edit page of the copied sample with components", () => {
