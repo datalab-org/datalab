@@ -25,7 +25,7 @@ pint = "*"
 periodictable = "*"
 flask-compress = "*"
 pillow = "*"
-openai = "*"
+openai = "==0.28"
 tiktoken = "*"
 galvani = "~= 0.4"
 navani = {git = "git+https://github.com/the-grey-group/navani.git@v0.1.5"}
