@@ -17,7 +17,7 @@ class StartingMaterial(Item):
         alias="Barcode", description="A unique barcode from ChemInventory"
     )
 
-    date_acquired: Optional[IsoformatDateTime] = Field(
+    date: Optional[IsoformatDateTime] = Field(
         alias="Date Acquired", description="The date the item was acquired"
     )
 
