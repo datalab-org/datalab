@@ -7,11 +7,11 @@
     <thead>
       <tr>
         <th scope="col">ID</th>
-        <th scope="col">Type</th>
         <th scope="col">Name</th>
         <th class="text-center" scope="col">Date created</th>
         <th class="text-center" scope="col">Location</th>
-        <th class="text-center" scope="col"># of blocks</th>
+        <th class="text-left" scope="col">Maintainers</th>
+
         <th scope="col"></th>
       </tr>
     </thead>
@@ -31,21 +31,19 @@
             enableModifiedClick
           />
         </td>
-        <td align="center">{{ itemTypes[equipment.type].display }}</td>
         <td align="left">{{ equipment.name }}</td>
         <td class="text-center">{{ $filters.IsoDatetimeToDate(equipment.date) }}</td>
         <td class="left">{{ equipment.location }}</td>
         <td align="center"><Creators :creators="equipment.creators" /></td>
-        <td class="text-right">{{ equipment.nblocks }}</td>
         <td align="right">
-          <!--           <button
+          <button
             type="button"
             class="close"
             @click.stop="deleteEquipment(equipment)"
             aria-label="delete"
           >
             <span aria-hidden="true" style="color: grey">&times;</span>
-          </button> -->
+          </button>
         </td>
       </tr>
     </tbody>
@@ -55,7 +53,7 @@
 <script>
 import FormattedItemName from "@/components/FormattedItemName";
 import Creators from "@/components/Creators";
-import { getEquipmentList } from "@/server_fetch_utils.js"; // deleteEquipment
+import { getEquipmentList, deleteEquipment } from "@/server_fetch_utils.js";
 import { itemTypes } from "@/resources.js";
 
 export default {
@@ -82,13 +80,13 @@ export default {
         this.isEquipmentFetchError = true;
       });
     },
-    // deleteEquipment(equipment) {
-    //   if (confirm(`Are you sure you want to delete equipment "${equipment.item_id}"?`)) {
-    //     console.log("deleting...");
-    //     deleteEquipment(equipment.item_id);
-    //   }
-    //   console.log("delete cancelled...");
-    // },
+    deleteEquipment(equipment) {
+      if (confirm(`Are you sure you want to delete equipment "${equipment.item_id}"?`)) {
+        console.log("deleting...");
+        deleteEquipment(equipment.item_id);
+      }
+      console.log("delete cancelled...");
+    },
   },
   created() {
     this.getEquipment();

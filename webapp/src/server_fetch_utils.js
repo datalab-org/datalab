@@ -332,6 +332,17 @@ export function deleteCollection(collection_id, collection_summary) {
     .catch((error) => alert("Collection delete failed for " + collection_id + ": " + error));
 }
 
+export function deleteEquipment(item_id) {
+  return fetch_post(`${API_URL}/delete-sample/`, {
+    item_id: item_id,
+  })
+    .then(function (response_json) {
+      console.log("delete successful" + response_json);
+      store.commit("deleteFromEquipmentList", item_id);
+    })
+    .catch((error) => alert("Item delete failed for " + item_id + ": " + error));
+}
+
 export function deletSampleFromCollection(collection_id, collection_summary) {
   return fetch_delete(`${API_URL}/collections/${collection_id}`)
     .then(function (response_json) {
