@@ -2,36 +2,37 @@ import json
 import os
 from typing import Sequence
 
-from langchain_core.prompts import ChatPromptTemplate
+import tiktoken
 from langchain_openai import ChatOpenAI
 
+# from langchain.chat_models import ChatOpenAI
 from pydatalab.blocks.base import DataBlock
 from pydatalab.logger import LOGGER
 from pydatalab.models import ITEM_MODELS
 from pydatalab.utils import CustomJSONEncoder
 
-__all__ = ["ChatBlock"]
+__all__ = "ChatBlock"
 MODEL = "gpt-3.5-turbo-0613"
 MAX_CONTEXT_SIZE = 4097
 
+openai_client = ChatOpenAI(api_key=os.environ.get("OPENAI_API_KEY"), model=MODEL)
+
 
 def num_tokens_from_messages(messages: Sequence[dict]):
-    # see: https://github.com/openai/openai-cookbook/blob/main/examples/How_to_count_tokens_with_tiktoken.ipynb
-    return 0
-    # encoding = tiktoken.encoding_for_model(MODEL)
+    encoding = tiktoken.encoding_for_model(MODEL)
 
-    # tokens_per_message = 4  # every message follows {role/name}\n{content}\n
-    # tokens_per_name = -1  # if there's a name, the role is omitted
+    tokens_per_message = 4
+    tokens_per_name = -1
 
-    # num_tokens = 0
-    # for message in messages:
-    #     num_tokens += tokens_per_message
-    #     for key, value in message.items():
-    #         num_tokens += len(encoding.encode(value))
-    #         if key == "name":
-    #             num_tokens += tokens_per_name
-    # num_tokens += 3  # every reply is primed with assistant
-    # return num_tokens
+    num_tokens = 0
+    for message in messages:
+        num_tokens += tokens_per_message
+        for key, value in message.items():
+            num_tokens += len(encoding.encode(value))
+            if key == "name":
+                num_tokens += tokens_per_name
+    num_tokens += 3
+    return num_tokens
 
 
 class ChatBlock(DataBlock):
@@ -41,9 +42,9 @@ class ChatBlock(DataBlock):
     __supports_collections = True
     defaults = {
         "system_prompt": """You are whinchat (lowercase w), a virtual data managment assistant that helps materials chemists manage their experimental data and plan experiments. You are deployed in the group of Professor Clare Grey in the Department of Chemistry at the University of Cambridge.
-You are embedded within the program datalab, where you have access to JSON describing an 'item', or a collection of items, with connections to other items. These items may include experimental samples, starting materials, and devices (e.g. battery cells made out of experimental samples and starting materials).
-Answer questions in markdown. Specify the language for all markdown code blocks. You can make diagrams by writing a mermaid code block or an svg code block. When writing mermaid code, you must use quotations around each of the labels (e.g. A["label1"] --> B["label2"])
-Be as concise as possible. When saying your name, type a bird emoji right after whinchat 🐦.
+        You are embedded within the program datalab, where you have access to JSON describing an ‘item’, or a collection of items, with connections to other items. These items may include experimental samples, starting materials, and devices (e.g. battery cells made out of experimental samples and starting materials).
+        Answer questions in markdown. Specify the language for all markdown code blocks. You can make diagrams by writing a mermaid code block or an svg code block. When writing mermaid code, you must use quotations around each of the labels (e.g. A["label1"] --> B["label2"])
+        Be as concise as possible. When saying your name, type a bird emoji right after whinchat 🐦.
         """,
         "temperature": 0.2,
         "error_message": None,
@@ -69,15 +70,24 @@ Be as concise as possible. When saying your name, type a bird emoji right after 
                 raise RuntimeError("No item or collection id provided")
 
             self.data["messages"] = [
-                ("system", self.defaults["system_prompt"]),
-                (
-                    "user",
-                    f"""Here is the JSON data for the current item(s): {info_json}. Start with a friendly introduction and give me a one sentence summary of what this is (not detailed, no information about specific masses). """,
-                ),
+                {
+                    "role": "system",
+                    "content": self.defaults["system_prompt"],
+                },
+                {
+                    "role": "user",
+                    "content": f"""Here is the JSON data for the current item(s): {info_json}.
+Start with a friendly introduction and give me a one sentence summary of what this is (not detailed, no information about specific masses). """,
+                },
             ]
 
         if self.data.get("prompt"):
-            self.data["messages"].append(("user", self.data["prompt"]))
+            self.data["messages"].append(
+                {
+                    "role": "user",
+                    "content": self.data["prompt"],
+                }
+            )
             self.data["prompt"] = None
 
         token_count = num_tokens_from_messages(self.data["messages"])
@@ -90,33 +100,61 @@ Be as concise as possible. When saying your name, type a bird emoji right after 
             return
 
         try:
-            if self.data["messages"][-1][0] not in ("user", "system"):
+            if self.data["messages"][-1].role not in ("user", "system"):
                 return
-        except KeyError:
-            return
-
-        # Initialize LangChain LLM and chain
-        openai_llm = ChatOpenAI(api_key=os.environ.get("OPENAI_API_KEY"), model=MODEL)
-
-        # Prepare the prompt for LangChain
-        langchain_prompt = ChatPromptTemplate.from_messages(self.data["messages"])
+        except AttributeError:
+            if self.data["messages"][-1]["role"] not in ("user", "system"):
+                return
 
         try:
             LOGGER.debug(
-                f"submitting request to LangChain for completion with last message role \"{self.data['messages'][-1][0]}\" (message = {self.data['messages'][-1:]}). Temperature = {self.data['temperature']} (type {type(self.data['temperature'])})"
+                f"submitting request to OpenAI API for completion with last message role \"{self.data['messages'][-1]['role']}\" (message = {self.data['messages'][-1:]}). Temperature = {self.data['temperature']} (type {type(self.data['temperature'])})"
             )
-            # Use the generate method with the corrected parameter name
-            response = openai_llm.generate(langchain_prompt, temperature=self.data["temperature"])
+            from langchain_core.messages import HumanMessage, SystemMessage
+
+            # Convert your messages to the required format
+            langchain_messages = []
+            for message in self.data["messages"]:
+                if message["role"] == "user":
+                    langchain_messages.append(HumanMessage(content=message["content"]))
+                else:
+                    langchain_messages.append(SystemMessage(content=message["content"]))
+
+            # Call the OpenAI client with the invoke method
+            response = openai_client.invoke(langchain_messages)
+
+            # Check if the response is a tuple and extract messages if so
+            if isinstance(response, tuple):
+                messages = response[0]
+            else:
+                messages = response
+
+            # Process the messages and add to self.data["messages"]
+            for msg in messages:
+                # Ensure that the message has a 'content' attribute
+                if hasattr(msg, "content"):
+                    new_message = {
+                        "role": "assistant" if isinstance(msg, SystemMessage) else "user",
+                        "content": msg.content,
+                    }
+                    if new_message not in self.data["messages"]:
+                        self.data["messages"].append(new_message)
+                else:
+                    LOGGER.debug("Message object does not have a 'content' attribute")
+
             self.data["error_message"] = None
         except Exception as exc:
-            LOGGER.debug("Received an error from LangChain: %s", exc)
-            self.data["error_message"] = f"Received an error from LangChain: {exc}."
+            LOGGER.debug("Received an error from OpenAI API: %s", exc)
+            self.data["error_message"] = f"Received an error from the OpenAi API: {exc}."
             return
 
+        # Assuming the response is a list of messages
         try:
-            self.data["messages"].append({"role": "assistant", "content": response})
-        except KeyError:
-            self.data["messages"].append({"role": "assistant", "content": response})
+            self.data["messages"].extend(
+                [{"role": "system", "content": msg.content} for msg in response]
+            )
+        except AttributeError:
+            self.data["messages"].append({"role": "system", "content": response.content})
 
         self.data["model_name"] = MODEL
 
