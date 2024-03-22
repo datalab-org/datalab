@@ -92,6 +92,14 @@ export default createStore({
         console.log("deleteFromCollectionList couldn't find the object");
       }
     },
+    deleteFromEquipmentList(state, item_id) {
+      const index = state.equipment_list.map((e) => e.item_id).indexOf(item_id);
+      if (index > -1) {
+        state.equipment_list.splice(index, 1);
+      } else {
+        console.log(`deleteFromEquipmentList couldn't find the item with id ${item_id}`);
+      }
+    },
     createItemData(state, payload) {
       // payload should have the following fields:
       // item_id, item_data, child_items, parent_items
