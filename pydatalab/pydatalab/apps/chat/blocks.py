@@ -2,7 +2,6 @@ import json
 import os
 from typing import Sequence
 
-import tiktoken
 from langchain_openai import ChatOpenAI
 
 # from langchain.chat_models import ChatOpenAI
@@ -16,23 +15,6 @@ MODEL = "gpt-3.5-turbo-0613"
 MAX_CONTEXT_SIZE = 4097
 
 openai_client = ChatOpenAI(api_key=os.environ.get("OPENAI_API_KEY"), model=MODEL)
-
-
-def num_tokens_from_messages(messages: Sequence[dict]):
-    encoding = tiktoken.encoding_for_model(MODEL)
-
-    tokens_per_message = 4
-    tokens_per_name = -1
-
-    num_tokens = 0
-    for message in messages:
-        num_tokens += tokens_per_message
-        for key, value in message.items():
-            num_tokens += len(encoding.encode(value))
-            if key == "name":
-                num_tokens += tokens_per_name
-    num_tokens += 3
-    return num_tokens
 
 
 class ChatBlock(DataBlock):
@@ -90,15 +72,6 @@ Start with a friendly introduction and give me a one sentence summary of what th
             )
             self.data["prompt"] = None
 
-        token_count = num_tokens_from_messages(self.data["messages"])
-        self.data["token_count"] = token_count
-
-        if token_count >= MAX_CONTEXT_SIZE:
-            self.data[
-                "error_message"
-            ] = f"""This conversation has reached its maximum context size and the chatbot won't be able to respond further ({token_count} tokens, max: {MAX_CONTEXT_SIZE}). Please make a new chat block to start fresh."""
-            return
-
         try:
             if self.data["messages"][-1].role not in ("user", "system"):
                 return
@@ -110,57 +83,44 @@ Start with a friendly introduction and give me a one sentence summary of what th
             LOGGER.debug(
                 f"submitting request to OpenAI API for completion with last message role \"{self.data['messages'][-1]['role']}\" (message = {self.data['messages'][-1:]}). Temperature = {self.data['temperature']} (type {type(self.data['temperature'])})"
             )
-            from langchain_core.messages import HumanMessage, SystemMessage
+            from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
             # Convert your messages to the required format
             langchain_messages = []
             for message in self.data["messages"]:
                 if message["role"] == "user":
                     langchain_messages.append(HumanMessage(content=message["content"]))
-                else:
+                elif message["role"] == "system":
                     langchain_messages.append(SystemMessage(content=message["content"]))
+                else:
+                    langchain_messages.append(AIMessage(content=message["content"]))
+
+            token_count = openai_client.get_num_tokens_from_messages(langchain_messages)
+
+            self.data["token_count"] = token_count
+
+            if token_count >= MAX_CONTEXT_SIZE:
+                self.data[
+                    "error_message"
+                ] = f"""This conversation has reached its maximum context size and the chatbot won't be able to respond further ({token_count} tokens, max: {MAX_CONTEXT_SIZE}). Please make a new chat block to start fresh."""
+                return
 
             # Call the OpenAI client with the invoke method
             response = openai_client.invoke(langchain_messages)
 
-            # Check if the response is a tuple and extract messages if so
-            if isinstance(response, tuple):
-                messages = response[0]
-            else:
-                messages = response
+            langchain_messages.append(response)
 
-            # Process the messages and add to self.data["messages"]
-            for msg in messages:
-                # Ensure that the message has a 'content' attribute
-                if hasattr(msg, "content"):
-                    new_message = {
-                        "role": "assistant" if isinstance(msg, SystemMessage) else "user",
-                        "content": msg.content,
-                    }
-                    if new_message not in self.data["messages"]:
-                        self.data["messages"].append(new_message)
-                else:
-                    LOGGER.debug("Message object does not have a 'content' attribute")
+            token_count = openai_client.get_num_tokens_from_messages(langchain_messages)
+
+            self.data["token_count"] = token_count
+
+            self.data["messages"].append({"role": "assistant", "content": response.content})
 
             self.data["error_message"] = None
         except Exception as exc:
             LOGGER.debug("Received an error from OpenAI API: %s", exc)
             self.data["error_message"] = f"Received an error from the OpenAi API: {exc}."
             return
-
-        # Assuming the response is a list of messages
-        try:
-            self.data["messages"].extend(
-                [{"role": "system", "content": msg.content} for msg in response]
-            )
-        except AttributeError:
-            self.data["messages"].append({"role": "system", "content": response.content})
-
-        self.data["model_name"] = MODEL
-
-        token_count = num_tokens_from_messages(self.data["messages"])
-        self.data["token_count"] = token_count
-        return
 
     def _prepare_item_json_for_chat(self, item_id: str):
         from pydatalab.routes.v0_1.items import get_item_data
