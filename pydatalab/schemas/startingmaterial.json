@@ -90,7 +90,8 @@
       "type": "string"
     },
     "date": {
-      "title": "Date",
+      "title": "Date Acquired",
+      "description": "The date the item was acquired",
       "type": "date",
       "format": "date-time"
     },
@@ -118,12 +119,6 @@
       "title": "Barcode",
       "description": "A unique barcode from ChemInventory",
       "type": "string"
-    },
-    "date_acquired": {
-      "title": "Date Acquired",
-      "description": "The date the item was acquired",
-      "type": "date",
-      "format": "date-time"
     },
     "date_opened": {
       "title": "Date Opened",

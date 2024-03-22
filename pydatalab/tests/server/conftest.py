@@ -185,6 +185,19 @@ def fixture_default_collection():
     )
 
 
+@pytest.fixture(scope="module", name="default_starting_material")
+def fixture_default_starting_material():
+    return StartingMaterial(
+        **{
+            "item_id": "test_sm",
+            "chemform": "Na2CO3",
+            "name": "Sodium carbonate",
+            "date": "1992-12-11",
+            "type": "starting_materials",
+        }
+    )
+
+
 @pytest.fixture(scope="module", name="complicated_sample")
 def fixture_complicated_sample():
     from pydatalab.models.samples import Constituent
@@ -275,7 +288,7 @@ def example_items():
                     "item_id": "material",
                     "chemform": "NaNiO2",
                     "name": "new material",
-                    "date_acquired": "1970-02-01",
+                    "date": "1970-02-01",
                     "refcode": "grey:TEST4",
                 }
             ),
@@ -284,7 +297,7 @@ def example_items():
                     "item_id": "test",
                     "chemform": "NaNiO2",
                     "name": "NaNiO2",
-                    "date_acquired": "1970-02-01",
+                    "date": "1970-02-01",
                     "refcode": "grey:TEST5",
                 }
             ),
@@ -300,3 +313,8 @@ def fixture_default_sample_dict(default_sample):
 @pytest.fixture(scope="module", name="default_cell_dict")
 def fixture_default_cell_dict(default_cell):
     return default_cell.dict(exclude_unset=True)
+
+
+@pytest.fixture(scope="module", name="default_starting_material_dict")
+def fixture_default_starting_material_dict(default_starting_material):
+    return default_starting_material.dict(exclude_unset=True)

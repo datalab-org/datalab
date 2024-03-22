@@ -109,7 +109,7 @@ export default {
     Name: createComputedSetterForItemField("name"),
     CAS: createComputedSetterForItemField("CAS"),
     GHS: createComputedSetterForItemField("GHS_codes"),
-    DateAcquired: createComputedSetterForItemField("date_acquired"),
+    DateAcquired: createComputedSetterForItemField("date"),
     DateOpened: createComputedSetterForItemField("date_opened"),
     ChemForm: createComputedSetterForItemField("chemform"),
     Supplier: createComputedSetterForItemField("supplier"),
