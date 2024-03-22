@@ -4,8 +4,9 @@
       :modelValue="modelValue"
       @update:modelValue="$emit('update:modelValue', $event)"
       :disableSubmit="
-        Boolean(itemIDValidationMessage) || (!generateIDAutomatically && !Boolean(item_id))"
-       submitID="sample-submit"
+        Boolean(itemIDValidationMessage) || (!generateIDAutomatically && !Boolean(item_id))
+      "
+      submitID="sample-submit"
     >
       <template v-slot:header> Add new item </template>
 
