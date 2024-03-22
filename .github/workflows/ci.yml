@@ -170,15 +170,17 @@ jobs:
         env:
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
 
-      - name: Run end-to-end tests (Firefox)
-        uses: cypress-io/github-action@v6
-        with:
-          config: baseUrl=http://localhost:8081
-          working-directory: ./webapp
-          record: true
-          spec: |
-            ./cypress/e2e/sampleTablePage.cy.js
-            ./cypress/e2e/editPage.cy.js
-          browser: "firefox"
-        env:
-          CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
+      # Disabled temporarily until new cypress action version is released
+      # due to bug with Firefox 124 (https://github.com/the-grey-group/datalab/issues/653)
+      #- name: Run end-to-end tests (Firefox)
+      #  uses: cypress-io/github-action@v6
+      #  with:
+      #    config: baseUrl=http://localhost:8081
+      #    working-directory: ./webapp
+      #    record: true
+      #    spec: |
+      #      ./cypress/e2e/sampleTablePage.cy.js
+      #      ./cypress/e2e/editPage.cy.js
+      #    browser: "firefox"
+      #  env:
+      #    CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
