@@ -6,7 +6,7 @@ import bson.errors
 from pydantic import BaseModel, EmailStr, Field, validator
 
 from pydatalab.models.entries import Entry
-from pydatalab.models.utils import PyObjectId
+from pydatalab.models.utils import HumanReadableIdentifier, PyObjectId
 
 
 class IdentityType(str, Enum):
@@ -15,6 +15,20 @@ class IdentityType(str, Enum):
     EMAIL = "email"
     ORCID = "orcid"
     GITHUB = "github"
+
+
+class Group(Entry):
+    """A model that describes a group of users."""
+
+    type: str = Field("groups", const=True)
+
+    group_id: HumanReadableIdentifier = Field(
+        description="A human-readable identifier for the group."
+    )
+
+    name: Optional[str] = Field(description="The group's name.")
+
+    description: Optional[str] = Field(description="A description of the group.")
 
 
 class Identity(BaseModel):
@@ -73,6 +87,9 @@ class Person(Entry):
 
     display_name: Optional[str]
     """The user-chosen display name."""
+
+    groups: Optional[List[PyObjectId]]
+    """A list of group IDs that this person belongs to."""
 
     contact_email: Optional[EmailStr]
     """In the case of multiple *verified* email identities, this email will be used as the primary contact."""
