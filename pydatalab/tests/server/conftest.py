@@ -193,6 +193,11 @@ def fixture_default_starting_material():
             "chemform": "Na2CO3",
             "name": "Sodium carbonate",
             "date": "1992-12-11",
+            "date_opened": "2022-12-11",
+            "CAS": "497-19-8",
+            "chemical_purity": "99%",
+            "location": "SR1 room 22",
+            "GHS_codes": "H303, H316, H319",
             "type": "starting_materials",
         }
     )
