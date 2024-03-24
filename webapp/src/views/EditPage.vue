@@ -34,7 +34,7 @@
             class="dropdown-item"
             @click="newBlock($event, id)"
           >
-            {{ blockType.description }}
+            {{ blockType.name }}
           </a>
         </div>
       </div>
