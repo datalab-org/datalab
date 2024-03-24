@@ -1,3 +1,4 @@
+import warnings
 from typing import Dict, List, Optional, Sequence, Union
 
 import matplotlib
@@ -524,6 +525,9 @@ def double_axes_echem_plot(
     elif mode == "dV/dQ":
         grid = [[p1], [p2]]
     elif mode == "final capacity":
+        if cycle_summary is None:
+            warnings.warn("Unable to generate cycle summary plot for this dataset.")
+            return None
         grid = [[p3]]
     else:
         grid = [[p1], [xaxis_select], [yaxis_select]]
