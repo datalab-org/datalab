@@ -109,7 +109,7 @@ class DataBlock:
             self.data["file_id"] = str(self.data["file_id"])
 
         if "title" not in self.data:
-            self.data["title"] = self.description
+            self.data["title"] = self.name
         self.data.update(
             init_data
         )  # this could overwrite blocktype and block_id. I think that's reasonable... maybe
