@@ -40,7 +40,25 @@ SELECTABLE_CALLBACK_y = """
   source.change.emit();
   yaxis.axis_label = column;
 """
-
+GENERATE_CSV_CALLBACK = """
+  let columns = Object.keys(source.data);
+  console.log(columns);
+  // Add double quotes around each column name
+  const values = columns.map((column, i) => source.data[column]);
+  columns = columns.map((column) => '"' + column + '"');
+  var csvContent = "data:text/csv;charset=utf-8," + columns.join(",") + "\\n"
+  // loop over columns and add each row value one at a time
+  for (var i = 0; i < values[0].length; i++) {
+      csvContent = csvContent + values.map((row) => row[i]).join(",") + "\\n";
+  };
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", "data.csv");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+"""
 
 style = {
     "attrs": {
@@ -189,6 +207,7 @@ def selectable_axes_plot(
 
     callbacks_x = []
     callbacks_y = []
+    source = None
 
     if color_options:
         if color_mapper is None:
@@ -304,6 +323,21 @@ def selectable_axes_plot(
         plot_columns.append(xaxis_select)
     if len(y_options) > 1:
         plot_columns.append(yaxis_select)
+
+    # Only enable csv export for simple 'single dataframe' plots, for now
+    if (
+        source is not None
+        and len(df) == 1
+        and isinstance(df, list)
+        and isinstance(df[0], pd.DataFrame)
+    ):
+        save_data = Button(label="Download .csv", button_type="primary", width_policy="min")
+        save_data_callback = CustomJS(
+            args=dict(source=source),
+            code=GENERATE_CSV_CALLBACK,
+        )
+        save_data.js_on_click(save_data_callback)
+        plot_columns = [save_data] + plot_columns
 
     layout = column(*plot_columns)
 
@@ -523,26 +557,8 @@ def double_axes_echem_plot(
     save_data = Button(label="Download .csv", button_type="primary", width_policy="min")
     save_data_callback = CustomJS(
         args=dict(source=ColumnDataSource(cycle_summary)),
-        code="""
-            const columns = Object.keys(source.data);
-            console.log(columns);
-            // Create a list of 10 columns x N points
-            const values = columns.map((column, i) => source.data[column]);
-            var csvContent = "data:text/csv;charset=utf-8," + columns.join(",") + "\\n"
-            // loop over columns and add each row value one at a time
-            for (var i = 0; i < values[0].length; i++) {
-                csvContent = csvContent + values.map((row) => row[i]).join(",") + "\\n";
-            };
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", "data.csv");
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        """,
+        code=GENERATE_CSV_CALLBACK,
     )
-
     save_data.js_on_click(save_data_callback)
 
     if mode == "dQ/dV":
