@@ -217,9 +217,12 @@ class CycleBlock(DataBlock):
             df, cycle_summary=cycle_summary_df, mode=mode, normalized=bool(characteristic_mass_g)
         )
 
-        self.data["bokeh_plot_data"] = bokeh.embed.json_item(
-            layout, theme=bokeh_plots.DATALAB_BOKEH_THEME
-        )
+        if layout is not None:
+            # Don't overwrite the previous plot data in cases where the plot is not generated
+            # for a 'normal' reason
+            self.data["bokeh_plot_data"] = bokeh.embed.json_item(
+                layout, theme=bokeh_plots.DATALAB_BOKEH_THEME
+            )
         return
 
     @property
