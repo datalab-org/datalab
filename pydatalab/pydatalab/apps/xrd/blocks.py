@@ -22,12 +22,15 @@ class XRDBlockUI(DataBlockUITemplate):
             "label": "Attach XRD files",
             "multiplicity": "*",
             "parameters": {
-                "wavelength": { "type": "number", "editable": True,
+                "wavelength": {
+                    "type": "number",
+                    "editable": True,
                     "required": True,
                     "default": 1.54060,
                     "label": "Wavelength Å",
                     "description": "Wavelength of the X-ray source used for this pattern in Å.",
-                }, },
+                },
+            },
         }
     }
 
