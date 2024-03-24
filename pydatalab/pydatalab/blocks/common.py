@@ -9,6 +9,12 @@ from pydatalab.logger import LOGGER
 from .base import DataBlock
 
 
+class NotSupportedBlock(DataBlock):
+    name = "Not Supported"
+    blocktype = "notsupported"
+    description = "A placeholder block type when the requested block is not supported by the current version of the server."
+
+
 class CommentBlock(DataBlock):
     name = "Comment"
     blocktype = "comment"
