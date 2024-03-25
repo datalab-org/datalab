@@ -5,8 +5,38 @@ from flask_login import current_user
 from pydatalab.config import CONFIG
 from pydatalab.models.people import DisplayName, EmailStr
 from pydatalab.mongo import flask_mongo
+from pydatalab.permissions import get_default_permissions
+
 
 user = Blueprint("users", __name__)
+
+
+@user.route("/users")
+def get_users():
+    users = flask_mongo.db.users.aggregate([
+        {"$match": get_default_permissions(user_only=True)},
+        {
+            "$lookup": {
+                "from": "roles",
+                "localField": "_id",
+                "foreignField": "_id",
+                "as": "role"
+            }
+        },
+        {
+            "$addFields": {
+                "role": {
+                    "$cond": {
+                        "if": {"$eq": [{"$size": "$role"}, 0]},
+                        "then": "user",
+                        "else": {"$arrayElemAt": ["$role.role", 0]}
+                    }
+                }
+            }
+        }
+    ])
+
+    return jsonify({"status": "success", "data": list(users)})
 
 
 @user.route("/users/<user_id>", methods=["PATCH"])
