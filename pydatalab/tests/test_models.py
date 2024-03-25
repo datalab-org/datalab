@@ -391,5 +391,5 @@ def test_good_display_name(display_name):
 def test_bad_display_name(display_name):
     """Test bad display_name for invalidity."""
 
-    with pytest.raises(pydantic.ValidationError):
+    with pytest.raises(ValueError):
         DisplayName(display_name)
