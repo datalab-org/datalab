@@ -13,11 +13,10 @@ import SampleInformation from "@/components/SampleInformation";
 import StartingMaterialInformation from "@/components/StartingMaterialInformation";
 import CellInformation from "@/components/CellInformation";
 import CollectionInformation from "@/components/CollectionInformation";
+import EquipmentInformation from "@/components/EquipmentInformation";
 
 import SampleCreateModalAddon from "@/components/itemCreateModalAddons/SampleCreateModalAddon";
 import CellCreateModalAddon from "@/components/itemCreateModalAddons/CellCreateModalAddon";
-import CollectionInformation from "@/components/CollectionInformation";
-import EquipmentInformation from "@/components/EquipmentInformation";
 
 // Look for values set in .env file. Use defaults if `null` is not explicitly handled elsewhere in the code.
 export const API_URL =
@@ -115,6 +114,7 @@ export const itemTypes = {
 
 export const SAMPLE_TABLE_TYPES = ["samples", "cells"];
 export const INVENTORY_TABLE_TYPES = ["starting_materials"];
+export const EQUIPMENT_TABLE_TYPES = ["equipment"];
 
 export const cellFormats = {
   coin: "coin",
