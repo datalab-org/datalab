@@ -113,10 +113,15 @@ export default {
   emits: ["update:modelValue"],
   computed: {
     displayNameValidationMessage() {
-      if (this.user.display_name && this.user.display_name.length > 150) {
+      if (!this.user.display_name || !this.user.display_name.trim()) {
+        return "Name is required.";
+      } else if (this.user.display_name.length > 150) {
         return "Name should be less than 150 characters.";
+      } else if (!/^[a-zA-Z\s]*$/.test(this.user.display_name)) {
+        return "Name should contain only alphabetic characters and spaces.";
+      } else {
+        return "";
       }
-      return "";
     },
     contactEmailValidationMessage() {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
