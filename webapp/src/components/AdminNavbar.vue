@@ -1,27 +1,19 @@
 <template>
   <div class="sidebar">
-    <a @click="selectItem('User')">User</a>
-    <a @click="selectItem('Collection')">Collection</a>
-    <a @click="selectItem('Sample')">Sample</a>
-  </div>
-  <div class="admin-display">
-    <AdminDisplay :selectedItem="selectedItem" />
+    <ul>
+      <li v-for="item in items" :key="item.id" @click="selectItem(item)">
+        {{ item }}
+      </li>
+    </ul>
   </div>
 </template>
 
 <script>
-import AdminDisplay from "@/components/AdminDisplay.vue";
-
 export default {
-  components: { AdminDisplay },
-  data() {
-    return {
-      selectedItem: "User",
-    };
-  },
+  props: ["items"],
   methods: {
     selectItem(item) {
-      this.selectedItem = item;
+      this.$emit("item-selected", item);
     },
   },
   name: "AdminNavbar",
@@ -35,14 +27,14 @@ export default {
   background-color: lightgreen;
   border: 1px solid lightgreen;
   border-radius: 0.5em;
-}
-.sidebar a {
-  display: block;
-  margin-bottom: 15px;
   cursor: pointer;
 }
-.admin-display {
-  display: flex;
-  width: 100%;
+ul {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+li {
+  margin: 1em;
 }
 </style>

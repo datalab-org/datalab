@@ -1,9 +1,8 @@
 <template>
   <div class="admin-display">
-    <!-- Afficher le contenu basé sur la valeur de selectedItem -->
-    <template v-if="selectedItem === 'User'"> User </template>
-    <template v-else-if="selectedItem === 'Collection'"> <CollectionTable /> </template>
-    <template v-else-if="selectedItem === 'Sample'"> <SampleTable /> </template>
+    <template v-if="selectedItem === 'Users'"> User </template>
+    <template v-else-if="selectedItem === 'Collections'"> <CollectionTable /> </template>
+    <template v-else-if="selectedItem === 'Samples'"> <SampleTable /> </template>
   </div>
 </template>
 
@@ -19,6 +18,7 @@ export default {
 
 <style scoped>
 .admin-display {
+  width: 100%;
   padding: 1em;
   margin: 0.5em;
   border: 1px solid lightgray;
