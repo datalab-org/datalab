@@ -1,3 +1,4 @@
+import re
 from enum import Enum
 from typing import List, Optional
 
@@ -71,11 +72,16 @@ class DisplayName(str):
     max_length = 150
 
     def __new__(cls, value):
-        if not value.strip():
+        empty_or_whitespace_only_regex = re.compile(r"^\s*$")
+        alpha_and_space_only_regex = re.compile(r"^[a-zA-Z\s\'-]*$")
+
+        if empty_or_whitespace_only_regex.match(value):
             raise ValueError("Display name cannot be empty.")
 
-        if not all(char.isalpha() or char.isspace() for char in value):
-            raise ValueError("Display name can only contain alphabetic characters and spaces.")
+        if not alpha_and_space_only_regex.match(value):
+            raise ValueError(
+                "Display name can only contain alphabetic characters, spaces, hyphens, and apostrophes."
+            )
 
         if len(value) > cls.max_length:
             raise ValueError(f"Display name must be at most {cls.max_length} characters long.")

@@ -451,7 +451,7 @@ export function saveUser(user_id, user) {
       }
     })
     .catch(function (error) {
-      alert("User save unsuccessful", error);
+      alert(`User save unsuccessful: ${error}`);
     });
 }
 
