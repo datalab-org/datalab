@@ -63,13 +63,23 @@ class Identity(BaseModel):
 
 
 class DisplayName(str):
-    """A constrained string less than 150 characters long."""
+    """
+    A constrained string less than 150 characters long
+    that cannot be empty and should contain only alphabetic characters and spaces.
+    """
 
     max_length = 150
 
     def __new__(cls, value):
+        if not value.strip():
+            raise ValueError("Display name cannot be empty.")
+
+        if not all(char.isalpha() or char.isspace() for char in value):
+            raise ValueError("Display name can only contain alphabetic characters and spaces.")
+
         if len(value) > cls.max_length:
             raise ValueError(f"Display name must be at most {cls.max_length} characters long.")
+
         return str.__new__(cls, value)
 
 
