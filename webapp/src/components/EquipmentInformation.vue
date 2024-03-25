@@ -54,6 +54,12 @@
         </div>
       </div>
     </div>
+    <div class="form-row">
+      <div class="form-group col-md-8">
+        <label for="contact-input" class="mr-2">Contact information</label>
+        <input id="contact-input" v-model="Contact" class="form-control" />
+      </div>
+    </div>
     <label class="mr-2">Description</label>
     <TinyMceInline v-model="ItemDescription"></TinyMceInline>
 
@@ -97,6 +103,7 @@ export default {
     EquipmentDate: createComputedSetterForItemField("date"),
     SerialNos: createComputedSetterForItemField("serial_numbers"),
     Maintainers: createComputedSetterForItemField("creators"),
+    Contact: createComputedSetterForItemField("contact"),
   },
   components: {
     TinyMceInline,

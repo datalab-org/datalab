@@ -18,3 +18,6 @@ class Equipment(Item):
 
     location: Optional[str]
     """Place where the equipment is located"""
+
+    contact: Optional[str]
+    """Contact information for equipment (e.g., email address or phone number)."""
