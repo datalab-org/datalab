@@ -455,8 +455,6 @@ def _create_sample(
             "an automatic item_id was generated for the new sample: {new_sample['item_id']}"
         )
 
-    # import pdb; pdb.set_trace()
-
     # check to make sure that item_id isn't taken already
     if flask_mongo.db.items.find_one({"item_id": sample_dict["item_id"]}):
         return (
@@ -533,9 +531,9 @@ def create_sample():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
     if "new_sample_data" in request_json:
         response, http_code = _create_sample(
-            request_json["new_sample_data"],
-            request_json.get("copy_from_item_id"),
-            request_json.get("generate_id_automatically", False),
+            sample_dict=request_json["new_sample_data"],
+            copy_from_item_id=request_json.get("copy_from_item_id"),
+            generate_id_automatically=request_json.get("generate_id_automatically", False),
         )
     else:
         response, http_code = _create_sample(request_json)
@@ -561,7 +559,11 @@ def create_samples():
         copy_from_item_ids = [None] * len(sample_jsons)
 
     outputs = [
-        _create_sample(sample_json, copy_from_item_id, generate_ids_automatically)
+        _create_sample(
+            sample_dict=sample_json,
+            copy_from_item_id=copy_from_item_id,
+            generate_id_automatically=generate_ids_automatically,
+        )
         for sample_json, copy_from_item_id in zip(sample_jsons, copy_from_item_ids)
     ]
     responses, http_codes = zip(*outputs)
