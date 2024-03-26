@@ -1,9 +1,12 @@
 <template>
   <form @submit.prevent="submitForm" class="modal-enclosure">
-    <Modal :modelValue="modelValue" @update:modelValue="$emit('update:modelValue', $event)">
-      <!-- :disableSubmit="
+    <Modal
+      :modelValue="modelValue"
+      @update:modelValue="$emit('update:modelValue', $event)"
+      :disableSubmit="
         Boolean(displayNameValidationMessage) || Boolean(contactEmailValidationMessage)
-      " -->
+      "
+    >
       <template v-slot:header> Account settings </template>
 
       <template v-slot:body>
@@ -114,8 +117,6 @@ export default {
         return "Name is required.";
       } else if (this.user.display_name.length > 150) {
         return "Name should be less than 150 characters.";
-      } else if (!/^[a-zA-Z\s'-]*$/.test(this.user.display_name)) {
-        return "Name can only contain alphabetic characters, spaces, hyphens, and apostrophes.";
       } else {
         return "";
       }
