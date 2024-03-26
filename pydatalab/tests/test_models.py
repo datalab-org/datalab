@@ -370,6 +370,7 @@ def test_bad_refcodes(refcode):
         "Test",
         "Test Test",
         "Test test test",
+        "约翰·史密斯",
     ],
 )
 def test_good_display_name(display_name):
