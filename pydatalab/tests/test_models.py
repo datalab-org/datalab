@@ -8,7 +8,7 @@ from bson.json_util import ObjectId
 from pydatalab.models import ITEM_MODELS, Sample
 from pydatalab.models.files import File
 from pydatalab.models.items import Item
-from pydatalab.models.people import DisplayName
+from pydatalab.models.people import DisplayName, EmailStr
 from pydatalab.models.relationships import (
     KnownType,
     RelationshipType,
@@ -383,8 +383,6 @@ def test_good_display_name(display_name):
     [
         "",
         " ",
-        "Test123",
-        "@Test",
         "Test" * 100,
     ],
 )
@@ -393,3 +391,27 @@ def test_bad_display_name(display_name):
 
     with pytest.raises(ValueError):
         DisplayName(display_name)
+
+
+@pytest.mark.parametrize(
+    "contact_email",
+    [
+        "test@example.com",
+    ],
+)
+def test_good_email(contact_email):
+    assert EmailStr(contact_email)
+
+
+@pytest.mark.parametrize(
+    "contact_email",
+    [
+        "test@example.com2",
+        "   ",
+        "test@",
+        1000 * "test" + "@example.com",
+    ],
+)
+def test_bad_email(contact_email):
+    with pytest.raises(ValueError):
+        assert EmailStr(contact_email)

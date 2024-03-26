@@ -346,6 +346,8 @@
         },
         "display_name": {
           "title": "Display Name",
+          "minLength": 1,
+          "maxLength": 150,
           "type": "string"
         },
         "contact_email": {
