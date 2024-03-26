@@ -152,10 +152,15 @@ class DataBlock:
                                 ]
                             )
 
+        # If the last plotting run did not raise any errors or warnings, remove any old ones
         if block_errors:
             self.data["errors"] = block_errors
+        else:
+            self.data.pop("errors", None)
         if block_warnings:
             self.data["warnings"] = block_warnings
+        else:
+            self.data.pop("warnings", None)
 
         return self.data
 
