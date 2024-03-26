@@ -116,7 +116,7 @@ export default {
       if (!this.user.display_name || /^\s*$/.test(this.user.display_name)) {
         return "Name is required.";
       } else if (this.user.display_name.length > 150) {
-        return "Name should be less than 150 characters.";
+        return "Name should be no more than 150 characters.";
       } else {
         return "";
       }
