@@ -25,7 +25,10 @@
             type="button"
             class="dropdown-item btn login btn-link btn-default"
             aria-label="Account settings"
-            @click="editAccountSettingIsOpen = true"
+            @click="
+              editAccountSettingIsOpen = true;
+              isUserDropdownVisible = false;
+            "
             ><font-awesome-icon icon="cog" /> Account settings</a
           >
           <a

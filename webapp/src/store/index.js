@@ -156,6 +156,13 @@ export default createStore({
         state.all_item_data[payload.item_id]["blocks_obj"][payload.block_id],
         payload.block_data,
       );
+      // if there are no block warnings or errors, make sure they are not in the store
+      if (!payload.block_data.errors) {
+        delete state.all_item_data[payload.item_id]["blocks_obj"][payload.block_id].errors;
+      }
+      if (!payload.block_data.warnings) {
+        delete state.all_item_data[payload.item_id]["blocks_obj"][payload.block_id].warnings;
+      }
       state.saved_status_blocks[payload.block_id] = false;
     },
     updateItemData(state, payload) {

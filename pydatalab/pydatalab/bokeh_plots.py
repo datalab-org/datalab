@@ -1,3 +1,4 @@
+import warnings
 from typing import Dict, List, Optional, Sequence, Union
 
 import matplotlib
@@ -398,6 +399,7 @@ def double_axes_echem_plot(
     # x_label = "Capacity (mAh/g)" if x_default == "Capacity normalized" else x_default
     x_label = x_default
     p1 = figure(x_axis_label=x_label, y_axis_label="voltage (V)", **common_options)
+    p1.xaxis.ticker.desired_num_ticks = 5
     plots.append(p1)
 
     # the differential plot
@@ -409,10 +411,12 @@ def double_axes_echem_plot(
                 y_range=p1.y_range,
                 **common_options,
             )
+            p2.xaxis.ticker.desired_num_ticks = 3
         else:
             p2 = figure(
                 x_axis_label=x_default, y_axis_label=mode, x_range=p1.x_range, **common_options
             )
+            p2.xaxis.ticker.desired_num_ticks = 5
         plots.append(p2)
 
     elif mode == "final capacity" and cycle_summary is not None:
@@ -465,6 +469,7 @@ def double_axes_echem_plot(
 
         p3.legend.location = "right"
         p3.y_range.start = 0
+        p3.xaxis.ticker.desired_num_ticks = 5
 
     lines = []
     grouped_by_half_cycle = df.groupby("half cycle")
@@ -568,7 +573,8 @@ def double_axes_echem_plot(
             save_data.js_on_click(save_data_callback)
             grid = [[save_data], [p3]]
         else:
-            grid = [[p3]]
+            warnings.warn("Unable to generate cycle summary plot for this dataset.")
+            return None
     else:
         grid = [[p1], [xaxis_select], [yaxis_select]]
 
