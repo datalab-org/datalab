@@ -844,7 +844,6 @@ def save_item():
             400,
         )
 
-
     if updated_data.get("collections", []):
         try:
             updated_data["collections"] = _check_collections(updated_data)
