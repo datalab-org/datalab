@@ -14,7 +14,7 @@
           <div class="form-group col-md-6">
             <label for="account-name" class="col-form-label">Name:</label>
             <input
-              v-model="user.display_name"
+              v-model="editedUser.display_name"
               type="text"
               class="form-control"
               id="account-name"
@@ -27,7 +27,7 @@
           <div class="form-group col-md-6">
             <label for="account-email" class="col-form-label">Contact email:</label>
             <input
-              v-model="user.contact_email"
+              v-model="editedUser.contact_email"
               type="text"
               class="form-control"
               id="account-email"
@@ -39,16 +39,18 @@
         <div class="form-row">
           <div class="form-group col-md-6">
             <a
-              v-if="user.identities.some((identity) => identity.identity_type === 'github')"
+              v-if="editedUser.identities.some((identity) => identity.identity_type === 'github')"
               type="button"
               class="dropdown-item btn login btn-link btn-default"
               :href="
                 'https://github.com/' +
-                user.identities.find((identity) => identity.identity_type === 'github').name
+                editedUser.identities.find((identity) => identity.identity_type === 'github').name
               "
             >
               <font-awesome-icon :icon="['fab', 'github']" />
-              {{ user.identities.find((identity) => identity.identity_type === "github").name }}
+              {{
+                editedUser.identities.find((identity) => identity.identity_type === "github").name
+              }}
             </a>
 
             <a
@@ -64,16 +66,18 @@
         <div class="form-row">
           <div class="form-group col-md-6">
             <a
-              v-if="user.identities.some((identity) => identity.identity_type === 'orcid')"
+              v-if="editedUser.identities.some((identity) => identity.identity_type === 'orcid')"
               type="button"
               class="dropdown-item btn login btn-link btn-default"
               :href="
                 'https://orcid.org/' +
-                user.identities.find((identity) => identity.identity_type === 'orcid').name
+                editedUser.identities.find((identity) => identity.identity_type === 'orcid').name
               "
             >
               <font-awesome-icon :icon="['fab', 'github']" />
-              {{ user.identities.find((identity) => identity.identity_type === "orcid").name }}
+              {{
+                editedUser.identities.find((identity) => identity.identity_type === "orcid").name
+              }}
             </a>
             <a
               v-else
@@ -94,21 +98,18 @@
 <script>
 import { API_URL } from "@/resources.js";
 import Modal from "@/components/Modal.vue";
-import { getUserInfo, saveUser } from "@/server_fetch_utils.js";
+import { saveUser } from "@/server_fetch_utils.js";
 export default {
   name: "EditAccountSettingsModal",
-  data() {
-    return {
-      user: {
-        display_name: null,
-        contact_email: null,
-        identities: [],
-      },
-      apiUrl: API_URL,
-    };
-  },
   props: {
     modelValue: Boolean,
+    userToEdit: Object,
+  },
+  data() {
+    return {
+      apiUrl: API_URL,
+      editedUser: { ...this.userToEdit },
+    };
   },
   emits: ["update:modelValue"],
   computed: {
@@ -123,7 +124,7 @@ export default {
     },
     contactEmailValidationMessage() {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (this.user.contact_email && !emailRegex.test(this.user.contact_email)) {
+      if (this.editedUser.contact_email && !emailRegex.test(this.editedUser.contact_email)) {
         return "Invalid email format.";
       }
       return "";
@@ -134,12 +135,6 @@ export default {
       await saveUser(this.user.immutable_id, this.user);
       this.$store.commit("setDisplayName", this.user.display_name);
       this.$emit("update:modelValue", false);
-    },
-    async getUser() {
-      let user = await getUserInfo();
-      if (user != null) {
-        this.user = user;
-      }
     },
     resetForm() {
       this.$emit("update:modelValue", false);
