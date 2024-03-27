@@ -14,7 +14,7 @@ __all__ = "ChatBlock"
 MODEL = "gpt-3.5-turbo-0613"
 MAX_CONTEXT_SIZE = 4097
 
-openai_client = ChatOpenAI(api_key=os.environ.get("OPENAI_API_KEY"), model=MODEL)
+# openai_client = ChatOpenAI(api_key=os.environ.get("OPENAI_API_KEY"), model=MODEL)
 
 
 class ChatBlock(DataBlock):
@@ -31,6 +31,10 @@ class ChatBlock(DataBlock):
         "temperature": 0.2,
         "error_message": None,
     }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.openai_client = ChatOpenAI(api_key=os.environ.get("OPENAI_API_KEY"), model=MODEL)
 
     def to_db(self):
         """returns a dictionary with the data for this
@@ -95,7 +99,7 @@ Start with a friendly introduction and give me a one sentence summary of what th
                 else:
                     langchain_messages.append(AIMessage(content=message["content"]))
 
-            token_count = openai_client.get_num_tokens_from_messages(langchain_messages)
+            token_count = self.openai_client.get_num_tokens_from_messages(langchain_messages)
 
             self.data["token_count"] = token_count
 
@@ -106,11 +110,11 @@ Start with a friendly introduction and give me a one sentence summary of what th
                 return
 
             # Call the OpenAI client with the invoke method
-            response = openai_client.invoke(langchain_messages)
+            response = self.openai_client.invoke(langchain_messages)
 
             langchain_messages.append(response)
 
-            token_count = openai_client.get_num_tokens_from_messages(langchain_messages)
+            token_count = self.openai_client.get_num_tokens_from_messages(langchain_messages)
 
             self.data["token_count"] = token_count
 
