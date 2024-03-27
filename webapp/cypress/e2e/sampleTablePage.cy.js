@@ -97,6 +97,25 @@ describe("Sample table page", () => {
     );
   });
 
+  it("Adds a sample with an automatic ID", () => {
+    const name = "sample with automatically generated id";
+    const date = "2024-03-26T00:00";
+
+    cy.createSample("irrelevant_id", name, date, true);
+
+    cy.get('[data-testid="sample-table"]')
+      .contains(name)
+      .parents("tr")
+      .within(() => {
+        cy.get("td.table-item-id .formatted-item-name").invoke("text").as("createdId");
+      });
+    cy.get("@createdId").then((createdId) => {
+      expect(createdId).not.to.equal("irrelevant_id");
+      cy.verifySample(createdId, name, date);
+      cy.deleteSample(createdId);
+    });
+  });
+
   it("Adds several valid samples", () => {
     cy.createSample("test1");
     cy.verifySample("test1");
