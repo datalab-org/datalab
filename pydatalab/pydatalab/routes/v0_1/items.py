@@ -463,8 +463,9 @@ def _create_sample(
     # new_sample = {k: sample_dict[k] for k in schema["properties"] if k in sample_dict}
     new_sample = sample_dict
 
-    if type == "starting_materials":
-        # starting_materials are open to all in the deploment at this point, so no creators are assigned
+    if type in ("starting_materials", "equipment"):
+        # starting_materials and equipment are open to all in the deploment at this point,
+        # so no creators are assigned
         new_sample["creator_ids"] = []
         new_sample["creators"] = []
     elif CONFIG.TESTING:
