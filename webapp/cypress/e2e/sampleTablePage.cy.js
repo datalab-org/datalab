@@ -254,17 +254,18 @@ describe("Advanced sample creation features", () => {
     cy.findByText("Add an item").click();
     cy.findByLabelText("ID:").type("testBcopy_copy");
     cy.findByLabelText("(Optional) Copy from existing sample:").type("testBcopy");
-    cy.get(".vs__dropdown-menu").within(() => {
-      cy.contains(".badge", "testBcopy").click();
+    cy.findByLabelText("(Optional) Copy from existing sample:").within(() => {
+      cy.contains(".vs__dropdown-menu .badge", "testBcopy").click();
     });
 
     cy.findByLabelText("(Optional) Start with constituents:").type("component2");
-    cy.get(".vs__dropdown-menu").within(() => {
-      cy.contains(".badge", "component2").click();
+    cy.findByLabelText("(Optional) Start with constituents:").within(() => {
+      cy.contains(".vs__dropdown-menu .badge", "component2").click();
     });
+
     cy.findByLabelText("(Optional) Start with constituents:").type("component3");
-    cy.get(".vs__dropdown-menu").within(() => {
-      cy.contains(".badge", "component3").click();
+    cy.findByLabelText("(Optional) Start with constituents:").within(() => {
+      cy.contains(".vs__dropdown-menu .badge", "component3").click();
     });
 
     cy.get("#sample-submit").click();
