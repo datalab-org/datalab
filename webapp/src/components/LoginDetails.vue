@@ -11,7 +11,7 @@
           data-toggle="dropdown"
           @click="isUserDropdownVisible = !isUserDropdownVisible"
         >
-          <UserBubble :creator="this.currentUser" :size="24" />&nbsp;
+          <UserBubble :creator="this.currentUserInfo" :size="24" />&nbsp;
           <span class="user-display-name">{{ userDisplayName }}</span
           >&nbsp;
         </button>
@@ -100,17 +100,13 @@ export default {
       isUserDropdownVisible: false,
       apiUrl: API_URL,
       currentUser: null,
+      currentUserInfo: {},
       editAccountSettingIsOpen: false,
     };
   },
   components: {
     UserBubble,
     EditAccountSettingsModal,
-  },
-  computed: {
-    userDisplayName() {
-      return this.$store.getters.getCurrentUserDisplayName;
-    },
   },
   computed: {
     userDisplayName() {
@@ -133,8 +129,10 @@ export default {
     async getUser() {
       let user = await getUserInfo();
       if (user != null) {
-        this.currentUser = {
-          ...user,
+        this.currentUser = user.display_name;
+        this.currentUserInfo = {
+          display_name: user.display_name || "",
+          immutable_id: user.immutable_id,
           contact_email: user.contact_email || "",
         };
       }
