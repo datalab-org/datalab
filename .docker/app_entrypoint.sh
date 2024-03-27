@@ -32,6 +32,7 @@ for file in $ROOT_DIR/js/app.*.js*; do
     sed -i "s|magic-api-url|${VUE_APP_API_URL}|g" $file
     sed -i "s|magic-logo-url|${VUE_APP_LOGO_URL}|g" $file
     sed -i "s|magic-homepage-url|${VUE_APP_HOMEPAGE_URL}|g" $file
+    sed -i "s|magic-setting|${VUE_APP_EDITABLE_INVENTORY}|g" $file
     done
 
 echo "Done!"
