@@ -826,11 +826,16 @@ def save_item():
 
         updated_data["blocks_obj"][block_id] = block.to_db()
 
+    user_only = updated_data["type"] not in ("starting_materials", "equipment")
+
     item = flask_mongo.db.items.find_one(
-        {"item_id": item_id, **get_default_permissions(user_only=True)}
+        {"item_id": item_id, **get_default_permissions(user_only=user_only)}
     )
 
-    if not item:
+    # Bit of a hack for now: starting materials and equipment should be editable by anyone,
+    # so we adjust the query above to be more permissive when the user is requesting such an item
+    # but before returning we need to check that the actual item did indeed have that type
+    if not item or not user_only and item["type"] not in ("starting_materials", "equipment"):
         return (
             jsonify(
                 status="error",
@@ -838,6 +843,7 @@ def save_item():
             ),
             400,
         )
+
 
     if updated_data.get("collections", []):
         try:
