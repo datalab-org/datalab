@@ -31,18 +31,26 @@ import "@testing-library/cypress/add-commands";
 const TODAY = new Date().toISOString().slice(0, -8);
 const API_URL = Cypress.config("apiUrl");
 
-Cypress.Commands.add("createSample", (item_id, name = null, date = null) => {
-  cy.findByText("Add an item").click();
-  cy.findByText("Add new item").should("exist");
-  cy.findByLabelText("ID:").type(item_id);
-  if (name) {
-    cy.get("#sample-name").type(name);
-  }
-  if (date) {
-    cy.findByLabelText("Date Created:").type(date);
-  }
-  cy.get("#sample-submit").click();
-});
+Cypress.Commands.add(
+  "createSample",
+  (item_id, name = null, date = null, generate_id_automatically = false) => {
+    cy.findByText("Add an item").click();
+    cy.findByText("Add new item").should("exist");
+    cy.findByLabelText("ID:").type(item_id);
+    if (name) {
+      cy.get("#sample-name").type(name);
+    }
+    if (date) {
+      cy.findByLabelText("Date Created:").type(date);
+    }
+
+    if (generate_id_automatically) {
+      cy.findByLabelText("generate automatically").click();
+    }
+
+    cy.get("#sample-submit").click();
+  },
+);
 
 Cypress.Commands.add("verifySample", (item_id, name = null, date = null) => {
   if (date) {
