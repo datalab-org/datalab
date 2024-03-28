@@ -86,8 +86,11 @@ jobs:
           pipenv run pytest -rs -vvv --cov-report=term --cov-report=xml --cov ./pydatalab ./tests
 
       - name: Upload coverage to Codecov
-        if: matrix.python-version == '3.10' && github.repository == 'the-grey-group/datalabvue'
+        if: matrix.python-version == '3.10' && github.repository == 'the-grey-group/datalab'
         uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: the-grey-group/datalab
 
   webapp:
     name: Test the app build
