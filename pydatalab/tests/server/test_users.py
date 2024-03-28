@@ -1,6 +1,13 @@
 from pydatalab.models.people import Person
 
 
+def test_get_current_user(client, insert_demo_user):
+    """Test that the API key for the demo user has been set correctly."""
+
+    resp = client.get("/get-current-user/")
+    assert resp.status_code == 200
+
+
 def test_user_update(client, real_mongo_client):
     example_user = Person(display_name="Test Person", contact_email="test@example.org").dict(
         exclude_unset=True, exclude_none=True

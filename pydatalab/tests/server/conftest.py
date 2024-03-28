@@ -5,6 +5,7 @@ from unittest.mock import patch
 import mongomock
 import pymongo
 import pytest
+from flask.testing import FlaskClient
 
 import pydatalab.mongo
 from pydatalab.main import create_app
@@ -67,7 +68,7 @@ def app_config(tmp_path_factory):
         "MONGO_URI": MONGO_URI,
         "REMOTE_FILESYSTEMS": example_remotes,
         "FILE_DIRECTORY": str(tmp_path_factory.mktemp("files")),
-        "TESTING": True,
+        "TESTING": False,
         "EMAIL_AUTH_SMTP_SETTINGS": {
             "MAIL_SERVER": "smtp.example.com",
             "MAIL_PORT": 587,
@@ -127,10 +128,43 @@ def app(real_mongo_client, monkeypatch_session, app_config):
 
 
 @pytest.fixture(scope="module")
-def client(app):
+def client(app, generate_api_key):
     """Returns a test client for the API."""
+
+    class AuthorizedTestClient(FlaskClient):
+        def open(self, *args, **kwargs):
+            kwargs.setdefault("headers", {"DATALAB_API_KEY": generate_api_key})
+            return super().open(*args, **kwargs)
+
+    app.test_client_class = AuthorizedTestClient
+
     with app.test_client() as cli:
         yield cli
+
+
+@pytest.fixture(scope="session")
+def generate_api_key():
+    import random
+
+    return "".join(random.choices("abcdef0123456789", k=24))
+
+
+@pytest.fixture(scope="module", autouse=True)
+def insert_demo_user(app, real_mongo_client, generate_api_key):
+    from hashlib import sha512
+
+    from bson import ObjectId
+
+    demo_user = {
+        "_id": ObjectId(24 * "0"),
+        "contact_email": "test@example.org",
+        "display_name": "Test User",
+    }
+    real_mongo_client.get_database(TEST_DATABASE_NAME).users.insert_one(demo_user)
+    hash = sha512(generate_api_key.encode("utf-8")).hexdigest()
+    real_mongo_client.get_database(TEST_DATABASE_NAME).api_keys.insert_one(
+        {"_id": ObjectId(24 * "0"), "hash": hash}
+    )
 
 
 @pytest.fixture(scope="module", name="default_sample")
