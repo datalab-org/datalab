@@ -1,5 +1,5 @@
 <template>
-  <form @submit.prevent="submitForm" class="modal-enclosure">
+  <form @submit.prevent="submitForm" class="modal-enclosure" data-testid="create-equipment-form">
     <Modal
       :modelValue="modelValue"
       @update:modelValue="$emit('update:modelValue', $event)"
@@ -15,11 +15,13 @@
             <div class="form-error" v-html="equipmentIDValidationMessage"></div>
           </div>
           <div class="form-group col-md-6">
-            <label for="item-type-select" class="col-form-label">Type:</label>
+            <label for="create-equipment-modal-item-type-select" class="col-form-label"
+              >Type:</label
+            >
             <select
               v-model="item_type"
               class="form-control"
-              id="item-type-select"
+              id="create-equipment-modal-item-type-select"
               required
               disabled
             >
@@ -29,12 +31,12 @@
             </select>
           </div>
           <div class="form-group col-md-6">
-            <label for="date" class="col-form-label">Date Created:</label>
+            <label for="create-equipment-modal-date" class="col-form-label">Date Created:</label>
             <input
               type="datetime-local"
               v-model="date"
               class="form-control"
-              id="date"
+              id="create-equipment-modal-date"
               :min="agesAgo"
               :max="oneYearOn()"
               required
@@ -43,12 +45,22 @@
         </div>
         <div class="form-row">
           <div class="form-group col-md-12">
-            <label for="name">Name:</label>
-            <input id="name" type="text" v-model="name" class="form-control" />
+            <label for="create-equipment-modal-name">Name:</label>
+            <input
+              id="create-equipment-modal-name"
+              type="text"
+              v-model="name"
+              class="form-control"
+            />
           </div>
           <div class="form-group col-md-12">
-            <label for="name">Location:</label>
-            <input id="name" type="text" v-model="location" class="form-control" />
+            <label for="create-equipment-modal-location">Location:</label>
+            <input
+              id="create-equipment-modal-location"
+              type="text"
+              v-model="location"
+              class="form-control"
+            />
           </div>
         </div>
         <!-- All item types can be added to a collection, so this is always available -->
@@ -182,6 +194,7 @@ export default {
           document.getElementById(this.item_id).scrollIntoView({ behavior: "smooth" });
           this.item_id = null;
           this.name = null;
+          this.location = null;
           this.date = this.now(); // reset date to the new current time
         })
         .catch((error) => {
