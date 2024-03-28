@@ -29,6 +29,7 @@ ENV NODE_ENV production
 ARG VUE_APP_API_URL=magic-api-url
 ARG VUE_APP_LOGO_URL=magic-logo-url
 ARG VUE_APP_HOMEPAGE_URL=magic-homepage-url
+ARG VUE_APP_EDITABLE_INVENTORY=magic-setting
 
 COPY webapp ./
 RUN /node_modules/.bin/vue-cli-service build
