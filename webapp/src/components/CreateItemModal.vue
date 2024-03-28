@@ -13,12 +13,12 @@
       <template v-slot:body>
         <div class="form-row">
           <div class="form-group col-md-6">
-            <label for="item-id" class="col-form-label">ID:</label>
+            <label for="create-item-item_id" class="col-form-label">ID:</label>
             <input
               v-model="item_id"
               type="text"
               class="form-control"
-              id="item-id"
+              id="create-item-item_id"
               :disabled="generateIDAutomatically"
               :required="!generateIDAutomatically"
             />
@@ -28,13 +28,13 @@
                 type="checkbox"
                 v-model="generateIDAutomatically"
                 class="form-check-input clickable"
-                id="automatic-id-checkbox"
+                id="create-item-auto-id-checkbox"
                 @input="item_id = null"
               />
               <label
-                id="automatic-id-label"
+                id="create-item-automatic-id-label"
                 class="form-check-label clickable"
-                for="automatic-id-checkbox"
+                for="create-item-auto-id-checkbox"
                 >generate automatically</label
               >
             </div>
@@ -48,12 +48,12 @@
             </select>
           </div>
           <div class="form-group col-md-6 pt-0">
-            <label for="date" class="col-form-label">Date Created:</label>
+            <label for="create-item-date" class="col-form-label">Date Created:</label>
             <input
               type="datetime-local"
               v-model="date"
               class="form-control"
-              id="date"
+              id="create-item-date"
               :min="agesAgo"
               :max="oneYearOn()"
               required
@@ -62,8 +62,8 @@
         </div>
         <div class="form-row">
           <div class="form-group col-md-12">
-            <label for="name">Name:</label>
-            <input id="sample-name" type="text" v-model="name" class="form-control" />
+            <label for="create-item-name">Name:</label>
+            <input id="create-item-name" type="text" v-model="name" class="form-control" />
           </div>
         </div>
         <!-- All item types can be added to a collection, so this is always available -->
@@ -252,7 +252,7 @@ export default {
 </script>
 
 <style scoped>
-#automatic-id-label {
+#create-item-automatic-id-label {
   color: #555;
 }
 

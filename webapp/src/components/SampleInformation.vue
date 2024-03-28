@@ -5,28 +5,33 @@
       <div class="col">
         <div id="sample-information" class="form-row">
           <div class="form-group col-sm-4 pr-2">
-            <label for="name">Name</label>
-            <input id="name" class="form-control" v-model="Name" />
+            <label for="samp-name">Name</label>
+            <input id="samp-name" class="form-control" v-model="Name" />
           </div>
           <div class="form-group col-sm-4 col-6 pr-2">
-            <label for="chemform">Chemical formula</label>
-            <ChemFormulaInput id="chemform" v-model="ChemForm" />
+            <label for="samp-chemform">Chemical formula</label>
+            <ChemFormulaInput id="samp-chemform" v-model="ChemForm" />
           </div>
           <div class="form-group col-sm-4 col-6">
-            <label for="date">Date Created</label>
-            <input type="datetime-local" v-model="DateCreated" class="form-control" />
+            <label for="samp-date">Date Created</label>
+            <input
+              id="samp-date"
+              type="datetime-local"
+              v-model="DateCreated"
+              class="form-control"
+            />
           </div>
         </div>
         <div class="form-row">
           <div class="form-group col-md-3 col-sm-2 col-6">
-            <label for="refcode">Refcode</label>
-            <div id="refcode">
+            <label for="samp-refcode">Refcode</label>
+            <div id="samp-refcode">
               <FormattedRefcode :refcode="Refcode" />
             </div>
           </div>
           <div class="form-group col-md-3 col-sm-3 col-6 pb-3">
-            <label id="creators">Creators</label>
-            <div aria-labelledby="creators" class="mx-auto">
+            <label id="samp-creators">Creators</label>
+            <div aria-labelledby="samp-creators" class="mx-auto">
               <Creators :creators="ItemCreators" :size="36" />
             </div>
           </div>
@@ -36,11 +41,8 @@
         </div>
         <div class="form-row">
           <div class="col">
-            <label id="description-label">Description</label>
-            <TinyMceInline
-              aria-labelledby="description-label"
-              v-model="SampleDescription"
-            ></TinyMceInline>
+            <label id="samp-description-label">Description</label>
+            <TinyMceInline aria-labelledby="samp-description-label" v-model="SampleDescription" />
           </div>
         </div>
       </div>

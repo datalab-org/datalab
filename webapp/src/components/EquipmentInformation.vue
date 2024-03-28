@@ -3,25 +3,20 @@
     <!-- Item information -->
     <div id="equipment-information" class="form-row">
       <div class="form-group col-md-2 col-sm-4">
-        <label for="item_id" class="mr-2">Refcode</label>
+        <label class="mr-2">Refcode</label>
         <div><FormattedRefcode :refcode="Refcode" /></div>
       </div>
       <div class="form-group col-md-2 col-sm-4">
-        <label for="item_id" class="mr-2">Item id</label>
-        <input id="item_id" class="form-control-plaintext" readonly="true" :value="item_id" />
+        <label for="equip-item_id" class="mr-2">Item id</label>
+        <input id="equip-item_id" class="form-control-plaintext" readonly="true" :value="item_id" />
       </div>
       <div class="form-group col-md-6 col-sm-8">
-        <label for="name" class="mr-2">Name</label>
-        <input id="name" v-model="Name" class="form-control" />
+        <label for="equip-name" class="mr-2">Name</label>
+        <input id="equip-name" v-model="Name" class="form-control" />
       </div>
       <div class="form-group col-md-2 col-sm-4">
-        <label for="datetime-local" class="mr-2">Date</label>
-        <input
-          type="datetime-local"
-          v-model="EquipmentDate"
-          id="date-opened"
-          class="form-control"
-        />
+        <label for="equip-date" class="mr-2">Date</label>
+        <input type="datetime-local" v-model="EquipmentDate" id="equip-date" class="form-control" />
       </div>
     </div>
     <div class="form-row">
@@ -32,36 +27,36 @@
         </div>
       </div>
       <div class="form-group col-md-5">
-        <label for="chemform" class="mr-2">Manufacturer</label>
+        <label for="equip-manufacturer" class="mr-2">Manufacturer</label>
         <span>
-          <input id="Manufacturer" v-model="Manufacturer" class="form-control" />
+          <input id="equip-manufacturer" v-model="Manufacturer" class="form-control" />
         </span>
       </div>
       <div class="form-group col-md-5">
-        <label for="location" class="mr-2">Location</label>
-        <input id="location" v-model="Location" class="form-control" />
+        <label for="equip-location" class="mr-2">Location</label>
+        <input id="equip-location" v-model="Location" class="form-control" />
       </div>
     </div>
     <div class="form-row">
       <div class="form-group col-md-8">
-        <label for="serial-input" class="mr-2">Serial no(s).</label>
-        <input id="serial-input" v-model="SerialNos" class="form-control" />
+        <label for="equip-serial" class="mr-2">Serial no(s).</label>
+        <input id="equip-serial" v-model="SerialNos" class="form-control" />
       </div>
       <div class="col-md-4 pb-3">
-        <label id="maintainers-label" class="mr-2">Maintainers</label>
+        <label id="equip-maintainers" class="mr-2">Maintainers</label>
         <div class="mx-auto">
-          <Creators aria-labelledby="maintainers-label" :creators="Maintainers" :size="36" />
+          <Creators aria-labelledby="equip-maintainers" :creators="Maintainers" :size="36" />
         </div>
       </div>
     </div>
     <div class="form-row">
       <div class="form-group col-md-8">
-        <label for="contact-input" class="mr-2">Contact information</label>
-        <input id="contact-input" v-model="Contact" class="form-control" />
+        <label for="equip-contact" class="mr-2">Contact information</label>
+        <input id="equip-contact" v-model="Contact" class="form-control" />
       </div>
     </div>
-    <label class="mr-2">Description</label>
-    <TinyMceInline v-model="ItemDescription"></TinyMceInline>
+    <label id="equip-description-label" class="mr-2">Description</label>
+    <TinyMceInline aria-labelledby="equip-description-label" v-model="ItemDescription" />
 
     <TableOfContents
       class="mb-3"
@@ -77,6 +72,7 @@ import TinyMceInline from "@/components/TinyMceInline";
 import TableOfContents from "@/components/TableOfContents";
 import CollectionList from "@/components/CollectionList";
 import FormattedRefcode from "@/components/FormattedRefcode";
+import Creators from "@/components/Creators";
 
 export default {
   data() {
@@ -110,6 +106,7 @@ export default {
     CollectionList,
     TableOfContents,
     FormattedRefcode,
+    Creators,
   },
 };
 </script>
