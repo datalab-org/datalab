@@ -474,6 +474,20 @@ export function saveUser(user_id, user) {
     });
 }
 
+export function saveRole(user_id, role) {
+  fetch_patch(`${API_URL}/roles/${user_id}`, role)
+    .then(function (response_json) {
+      if (response_json.status === "success") {
+        console.log("Save successful!");
+      } else {
+        alert("Role save unsuccessful", response_json.detail);
+      }
+    })
+    .catch(function (error) {
+      alert(`Role save unsuccessful: ${error}`);
+    });
+}
+
 export function deleteBlock(item_id, block_id) {
   console.log("deleteBlock called!");
   fetch_post(`${API_URL}/delete-block/`, {

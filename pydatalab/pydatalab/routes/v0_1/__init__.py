@@ -11,6 +11,7 @@ from .info import ENDPOINTS as info_endpoints
 from .items import ENDPOINTS as items_endpoints
 from .remotes import remote
 from .users import user
+from .roles import role
 
 ENDPOINTS: Dict[str, Callable] = {
     **blocks_endpoints,
@@ -22,6 +23,6 @@ ENDPOINTS: Dict[str, Callable] = {
     **info_endpoints,
 }
 
-BLUEPRINTS = [collection, remote, user]
+BLUEPRINTS = [collection, remote, user, role]
 
 __all__ = ("ENDPOINTS", "BLUEPRINTS", "__api_version__")

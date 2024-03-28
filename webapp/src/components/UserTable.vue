@@ -11,14 +11,20 @@
       <tr v-for="user in users" :key="user._id">
         <td align="left">{{ user._id.$oid }}</td>
         <td align="left">{{ user.display_name }}</td>
-        <td align="left">{{ user.role }}</td>
+        <td align="left">
+          <select v-model="user.role" @change="updateUserRole(user._id.$oid, $event.target.value)">
+            <option value="user">User</option>
+            <option value="admin">Admin</option>
+            <option value="manager">Manager</option>
+          </select>
+        </td>
       </tr>
     </tbody>
   </table>
 </template>
 
 <script>
-import { getUsersList } from "@/server_fetch_utils.js";
+import { getUsersList, saveRole } from "@/server_fetch_utils.js";
 
 export default {
   data() {
@@ -32,6 +38,9 @@ export default {
       if (data != null) {
         this.users = data;
       }
+    },
+    async updateUserRole(user_id, role) {
+      await saveRole(user_id, { role: role });
     },
   },
   created() {
