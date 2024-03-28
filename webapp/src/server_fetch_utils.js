@@ -227,6 +227,18 @@ export function getCollectionList() {
     });
 }
 
+export function getUsersList() {
+  return fetch_get(`${API_URL}/users`)
+    .then(function (response_json) {
+      return response_json.data;
+    })
+    .catch((error) => {
+      console.error("Error when fetching users list");
+      console.error(error);
+      throw error;
+    });
+}
+
 export function getStartingMaterialList() {
   return fetch_get(`${API_URL}/starting-materials/`)
     .then(function (response_json) {
