@@ -35,58 +35,50 @@ Cypress.Commands.add(
   "createSample",
   (item_id, name = null, date = null, generate_id_automatically = false) => {
     cy.findByText("Add an item").click();
-    cy.findByText("Add new item").should("exist");
-    cy.findByLabelText("ID:").type(item_id);
-    if (name) {
-      cy.get("#sample-name").type(name);
-    }
-    if (date) {
-      cy.findByLabelText("Date Created:").type(date);
-    }
-
-    if (generate_id_automatically) {
-      cy.findByLabelText("generate automatically").click();
-    }
-
-    cy.get("#sample-submit").click();
+    cy.get('[data-testid="create-item-form"]').within(() => {
+      cy.findByText("Add new item").should("exist");
+      cy.findByLabelText("ID:").type(item_id);
+      if (name) {
+        cy.findByLabelText("Name:").type(name);
+      }
+      if (date) {
+        cy.findByLabelText("Date Created:").type(date);
+      }
+      if (generate_id_automatically) {
+        cy.findByLabelText("generate automatically").click();
+      }
+      cy.findByText("Submit").click();
+    });
   },
 );
 
 Cypress.Commands.add("verifySample", (item_id, name = null, date = null) => {
-  if (date) {
-    cy.get("[data-testid=sample-table]")
-      .contains(item_id)
-      .parents("tr")
-      .within(() => {
+  cy.get("[data-testid=sample-table]")
+    .contains(item_id)
+    .parents("tr")
+    .within(() => {
+      if (date) {
         cy.contains(date.slice(0, 8));
-        if (name) {
-          cy.contains(name);
-        }
-      });
-  } else {
-    cy.get("[data-testid=sample-table]")
-      .contains(item_id)
-      .parents("tr")
-      .within(() => {
+      } else {
         cy.contains(TODAY.split("T")[0]);
-        if (name) {
-          cy.contains(name);
-        }
-      });
-  }
+      }
+      if (name) {
+        cy.contains(name);
+      }
+    });
 });
 
-Cypress.Commands.add("deleteSample", (item_id, delay = 100) => {
-  cy.visit("/");
-  cy.wait(delay).then(() => {
-    cy.log("search for and delete: " + item_id);
-    cy.get("[data-testid=sample-table]")
-      .contains(new RegExp("^" + item_id + "$", "g"))
-      .parents("tr")
-      .within(() => {
-        cy.get("button.close").click();
-      });
-  });
+Cypress.Commands.add("deleteSample", (item_id) => {
+  cy.log("search for and delete: " + item_id);
+  cy.get("[data-testid=sample-table]")
+    .contains(new RegExp("^" + item_id + "$", "g"))
+    .parents("tr")
+    .within(() => {
+      cy.get("button.close").click();
+    });
+  cy.get("[data-testid=sample-table]")
+    .contains(new RegExp("^" + item_id + "$", "g"))
+    .should("not.exist");
 });
 
 Cypress.Commands.add("deleteSampleViaAPI", (item_id) => {
@@ -118,9 +110,43 @@ Cypress.Commands.add(
   },
 );
 
-Cypress.Commands.add("removeAllTestSamples", (item_ids) => {
+Cypress.Commands.add("createEquipment", (item_id, name = null, date = null) => {
+  cy.findByText("Add an item").click();
+  cy.get('[data-testid="create-equipment-form"]').within(() => {
+    cy.findByText("Add equipment").should("exist");
+    cy.findByLabelText("ID:").type(item_id);
+    if (name) {
+      cy.findByLabelText("Name:").type(name);
+    }
+    if (date) {
+      cy.findByLabelText("Date Created:").type(date);
+    }
+    cy.findByText("Submit").click();
+  });
+});
+
+Cypress.Commands.add("verifyEquipment", (item_id, name = null, date = null, location = null) => {
+  cy.get("[data-testid=equipment-table]")
+    .contains(item_id)
+    .parents("tr")
+    .within(() => {
+      if (date) {
+        cy.contains(date.slice(0, 8));
+      } else {
+        cy.contains(TODAY.split("T")[0]);
+      }
+      if (name) {
+        cy.contains(name);
+      }
+      if (location) {
+        cy.contains(location);
+      }
+    });
+});
+
+Cypress.Commands.add("removeAllTestSamples", (item_ids, check_sample_table) => {
   // as contains matches greedily, if any IDs have matching substrings they must be added in the appropriate order
-  item_ids = [
+  item_ids = item_ids || [
     "editable_sample",
     "component1",
     "component2",
@@ -181,7 +207,9 @@ Cypress.Commands.add("removeAllTestSamples", (item_ids) => {
   item_ids.forEach((item_id) => {
     cy.deleteSampleViaAPI(item_id);
   });
-  cy.visit("/");
-  cy.wait(100);
-  cy.get("[data-testid=sample-table] > tbody > tr").should("have.length", 0);
+  if (check_sample_table) {
+    cy.visit("/").then(() => {
+      cy.get("[data-testid=sample-table] > tbody > tr").should("have.length", 0);
+    });
+  }
 });
