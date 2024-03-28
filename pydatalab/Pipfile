@@ -37,6 +37,7 @@ invoke = "*"
 paramiko = "*"
 langchain = "*"
 langchain-openai = "*"
+langchain-anthropic = "*"
 
 [dev-packages]
 pytest = "*"
