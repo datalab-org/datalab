@@ -12,7 +12,11 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
     <div class="row">
       <div id="chatWindowContainer" class="col-xl-9 col-lg-10 col-md-12 mx-auto">
         <div class="advanced-information" v-if="!advancedHidden">
-          <label>Model</label>: {{ modelName }} <br />
+          <label>Model</label>:
+          <select class="form-control" v-model="chatModel">
+            <option v-for="model in availableModels" :key="model">{{ model }}</option>
+          </select>
+          <br />
           <label>Current conversation token count</label>: {{ tokenCount }}/4097
 
           <div class="input-group form-inline">
@@ -97,6 +101,8 @@ export default {
     messages: createComputedSetterForBlockField("messages"),
     prompt: createComputedSetterForBlockField("prompt"),
     temperature: createComputedSetterForBlockField("temperature"),
+    chatModel: createComputedSetterForBlockField("model"),
+    availableModels: createComputedSetterForBlockField("available_models"),
     tempInvalid() {
       return (
         this.temperature == null ||
