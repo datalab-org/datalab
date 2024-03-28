@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import platform
+from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Type, Union
 
@@ -44,6 +45,43 @@ def config_file_settings(settings: BaseSettings) -> Dict[str, Any]:
         res = {}
 
     return res
+
+
+class PermissionGroups(str, Enum):
+    """An enumeration of the possible permission groups for a given resource.
+
+    The groups are as follows:
+
+    - `user`: Only the user who created the resource has access.
+    - `shared`: The user or groups who created the resource and any users they have shared the resource with have access.
+    - `member`: The user or groups who created the resource and any users who are authenticated members of the group have access.
+    - `public`: Any visitor to the page has access to the resource.
+
+    """
+
+    user = "user"
+    shared = "shared"
+    member = "member"
+    public = "public"
+
+
+class PermissionsPolicy(BaseModel):
+    read: PermissionGroups = PermissionGroups.user
+    write: PermissionGroups = PermissionGroups.user
+    delete: PermissionGroups = PermissionGroups.user
+
+    @validator("delete")
+    def validate_delete(cls, v):
+        """TODO: think if its better to define separate Enums for read/write/delete that remove the public value"""
+        if v == PermissionGroups.public:
+            raise ValueError("Delete permissions cannot be set to public.")
+        return v
+
+    @validator("write")
+    def validate_write(cls, v):
+        if v == PermissionGroups.public:
+            raise ValueError("Write permissions cannot be set to public.")
+        return v
 
 
 class DeploymentMetadata(BaseModel):
@@ -200,6 +238,38 @@ class ServerConfig(BaseSettings):
     EMAIL_AUTH_SMTP_SETTINGS: Optional[SMTPSettings] = Field(
         None,
         description="A dictionary containing SMTP settings for sending emails for account registration.",
+    )
+
+    # This could also be defined at the model level by default, then these values are simply overrides
+    PERMISSIONS_POLICY: Optional[dict[str, PermissionsPolicy]] = Field(
+        {
+            "samples": PermissionsPolicy(
+                read=PermissionGroups.user,
+                write=PermissionGroups.user,
+                delete=PermissionGroups.user,
+            ),
+            "cells": PermissionsPolicy(
+                read=PermissionGroups.user,
+                write=PermissionGroups.user,
+                delete=PermissionGroups.user,
+            ),
+            "starting_materials": PermissionsPolicy(
+                read=PermissionGroups.member,
+                write=PermissionGroups.member,
+                delete=PermissionGroups.user,
+            ),
+            "equipment": PermissionsPolicy(
+                read=PermissionGroups.member,
+                write=PermissionGroups.member,
+                delete=PermissionGroups.user,
+            ),
+            "collections": PermissionsPolicy(
+                read=PermissionGroups.user,
+                write=PermissionGroups.user,
+                delete=PermissionGroups.user,
+            ),
+        },
+        description="A mapping from string entry types to the desired permissions policy.",
     )
 
     MAX_CONTENT_LENGTH: int = Field(
