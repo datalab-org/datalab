@@ -5,27 +5,64 @@ from flask_login import current_user
 from pydatalab.config import CONFIG
 from pydatalab.models.people import DisplayName, EmailStr
 from pydatalab.mongo import flask_mongo
+from pydatalab.permissions import get_default_permissions
 
 user = Blueprint("users", __name__)
+
+
+@user.route("/users")
+def get_users():
+    users = flask_mongo.db.users.aggregate(
+        [
+            {"$match": get_default_permissions(user_only=True)},
+            {
+                "$lookup": {
+                    "from": "roles",
+                    "localField": "_id",
+                    "foreignField": "_id",
+                    "as": "role",
+                }
+            },
+            {
+                "$addFields": {
+                    "role": {
+                        "$cond": {
+                            "if": {"$eq": [{"$size": "$role"}, 0]},
+                            "then": "user",
+                            "else": {"$arrayElemAt": ["$role.role", 0]},
+                        }
+                    }
+                }
+            },
+        ]
+    )
+
+    return jsonify({"status": "success", "data": list(users)})
 
 
 @user.route("/users/<user_id>", methods=["PATCH"])
 def save_user(user_id):
     request_json = request.get_json()
+    print("$$$$$$$$$$$$$$$")
+    print(request_json)
+    print("$$$$$$$$$$$$$$$")
 
     display_name: str | None = None
     contact_email: str | None = None
+    account_status: str | None = None
 
     if request_json is not None:
         display_name = request_json.get("display_name", False)
         contact_email = request_json.get("contact_email", False)
+        account_status = request_json.get("account_status", None)
 
     if not current_user.is_authenticated and not CONFIG.TESTING:
         return (jsonify({"status": "error", "message": "No user authenticated."}), 401)
 
     if not CONFIG.TESTING and current_user.id != user_id and current_user.role != "admin":
         return (
-            jsonify({"status": "error", "message": "User not allowed to edit this profile."}),
+            jsonify(
+                {"status": "error", "message": "User not allowed to edit this profile."}),
             403,
         )
 
@@ -41,15 +78,20 @@ def save_user(user_id):
             else:
                 update["contact_email"] = EmailStr(contact_email)
 
+        if account_status:
+            update["account_status"] = account_status
+
     except ValueError as e:
         return jsonify(
-            {"status": "error", "message": f"Invalid display name or email was passed: {str(e)}"}
+            {"status": "error",
+                "message": f"Invalid display name or email was passed: {str(e)}"}
         ), 400
 
     if not update:
         return jsonify({"status": "success", "message": "No update was performed."}), 200
 
-    update_result = flask_mongo.db.users.update_one({"_id": ObjectId(user_id)}, {"$set": update})
+    update_result = flask_mongo.db.users.update_one(
+        {"_id": ObjectId(user_id)}, {"$set": update})
 
     if update_result.matched_count != 1:
         return (jsonify({"status": "error", "message": "Unable to update user."}), 400)
