@@ -8,7 +8,7 @@ import pytest
 
 import pydatalab.mongo
 from pydatalab.main import create_app
-from pydatalab.models import Cell, Collection, Sample, StartingMaterial
+from pydatalab.models import Cell, Collection, Equipment, Sample, StartingMaterial
 
 TEST_DATABASE_NAME = "datalab-testing"
 
@@ -203,6 +203,22 @@ def fixture_default_starting_material():
     )
 
 
+@pytest.fixture(scope="module", name="default_equipment")
+def fixture_default_equipment():
+    return Equipment(
+        **{
+            "item_id": "test_e1",
+            "name": "a scientific instrument",
+            "date": "1999-12-31",
+            "location": "SR1 room 22",
+            "manufacturer": "science inc.",
+            "contact": "test@example.com",
+            "serial_numbers": "1, 2a, 00-123-456z",
+            "type": "equipment",
+        }
+    )
+
+
 @pytest.fixture(scope="module", name="complicated_sample")
 def fixture_complicated_sample():
     from pydatalab.models.samples import Constituent
@@ -323,3 +339,8 @@ def fixture_default_cell_dict(default_cell):
 @pytest.fixture(scope="module", name="default_starting_material_dict")
 def fixture_default_starting_material_dict(default_starting_material):
     return default_starting_material.dict(exclude_unset=True)
+
+
+@pytest.fixture(scope="module", name="default_equipment_dict")
+def fixture_default_equipment_dict(default_equipment):
+    return default_equipment.dict(exclude_unset=True)
