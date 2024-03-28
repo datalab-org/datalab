@@ -46,9 +46,9 @@ def test_get_item_data(client, default_starting_material_dict):
 
 
 @pytest.mark.dependency(depends=["test_new_starting_material", "test_get_item_data"])
-def test_new_sample_with_automatically_generated_id(client):
+def test_new_starting_material_with_automatically_generated_id(client):
     new_starting_material_data = {
-        "name": "sample with random id",
+        "name": "starting material with random id",
         "date": datetime.datetime.fromisoformat("1995-03-02"),
         "date_opened": datetime.datetime.fromisoformat("2001-12-31"),
         "chemform": "NiO",
@@ -92,7 +92,7 @@ def test_new_starting_material_collision(client, default_starting_material_dict)
 
 
 @pytest.mark.dependency(depends=["test_new_starting_material"])
-def test_save_good_sample(client, default_starting_material_dict):
+def test_save_good_starting_material(client, default_starting_material_dict):
     updated_starting_material = default_starting_material_dict.copy()
     updated_starting_material.update({"description": "This is a newer test sample."})
     response = client.post(
@@ -114,7 +114,7 @@ def test_save_good_sample(client, default_starting_material_dict):
 
 
 @pytest.mark.dependency(depends=["test_new_starting_material"])
-def test_delete_sample(client, default_starting_material_dict):
+def test_delete_starting_material(client, default_starting_material_dict):
     response = client.post(
         "/delete-sample/",
         json={"item_id": default_starting_material_dict["item_id"]},
