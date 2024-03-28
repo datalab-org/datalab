@@ -10,8 +10,8 @@ from .healthcheck import ENDPOINTS as healthcheck_endpoints
 from .info import ENDPOINTS as info_endpoints
 from .items import ENDPOINTS as items_endpoints
 from .remotes import remote
-from .users import user
 from .roles import role
+from .users import user
 
 ENDPOINTS: Dict[str, Callable] = {
     **blocks_endpoints,

@@ -5,7 +5,6 @@ from flask_login import current_user
 from pydatalab.config import CONFIG
 from pydatalab.mongo import flask_mongo
 
-
 role = Blueprint("roles", __name__)
 
 
@@ -23,16 +22,14 @@ def save_role(user_id):
 
     if not CONFIG.TESTING and current_user.role != "admin":
         return (
-            jsonify(
-                {"status": "error", "message": "User not allowed to edit this profile."}),
+            jsonify({"status": "error", "message": "User not allowed to edit this profile."}),
             403,
         )
 
     if not user_role:
         return jsonify({"status": "success", "message": "No update was performed."}), 200
 
-    update_result = flask_mongo.db.roles.update_one(
-        {"_id": ObjectId(user_id)}, {"$set": user_role})
+    update_result = flask_mongo.db.roles.update_one({"_id": ObjectId(user_id)}, {"$set": user_role})
 
     if update_result.matched_count != 1:
         return (jsonify({"status": "error", "message": "Unable to update user."}), 400)
