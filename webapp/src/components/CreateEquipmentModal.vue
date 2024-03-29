@@ -53,15 +53,6 @@
               class="form-control"
             />
           </div>
-          <div class="form-group col-md-12">
-            <label for="create-equipment-modal-location">Location:</label>
-            <input
-              id="create-equipment-modal-location"
-              type="text"
-              v-model="location"
-              class="form-control"
-            />
-          </div>
         </div>
         <!-- All item types can be added to a collection, so this is always available -->
         <!--         <div class="form-row">
@@ -116,7 +107,6 @@ export default {
       item_type: "equipment",
       date: this.now(),
       name: "",
-      location: "",
       startingDataCallback: null,
       // startInCollection: null,
       takenItemIds: [], // this holds ids that have been tried, whereas the computed takenEquipmentIds holds ids in the equipment table
@@ -186,7 +176,7 @@ export default {
         this.date,
         this.name,
         null, // no startingCollection
-        { location: this.location }, // no extra data
+        {}, // no extra data
         this.selectedItemToCopy && this.selectedItemToCopy.item_id,
       )
         .then(() => {
@@ -194,7 +184,6 @@ export default {
           document.getElementById(this.item_id).scrollIntoView({ behavior: "smooth" });
           this.item_id = null;
           this.name = null;
-          this.location = null;
           this.date = this.now(); // reset date to the new current time
         })
         .catch((error) => {
@@ -229,8 +218,9 @@ export default {
     setCopiedName() {
       if (!this.selectedItemToCopy) {
         this.name = "";
+      } else {
+        this.name = `COPY OF ${this.selectedItemToCopy.name}`;
       }
-      this.name = `COPY OF ${this.selectedItemToCopy.name}`;
     },
   },
   components: {
