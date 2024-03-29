@@ -156,6 +156,7 @@ jobs:
           spec: |
             ./cypress/e2e/sampleTablePage.cy.js
             ./cypress/e2e/editPage.cy.js
+            ./cypress/e2e/equipment.cy.js
           browser: "electron"
         env:
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
