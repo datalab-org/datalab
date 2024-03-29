@@ -40,7 +40,7 @@ export default {
       }
     },
     async updateUserRole(user_id, role) {
-      await saveRole(user_id, { role: role });
+      await saveRole(user_id, role);
     },
   },
   created() {
