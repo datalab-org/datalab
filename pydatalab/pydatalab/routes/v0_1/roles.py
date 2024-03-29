@@ -22,8 +22,7 @@ def save_role(user_id):
 
     if not CONFIG.TESTING and current_user.role != "admin":
         return (
-            jsonify(
-                {"status": "error", "message": "User not allowed to edit this profile."}),
+            jsonify({"status": "error", "message": "User not allowed to edit this profile."}),
             403,
         )
 
@@ -39,7 +38,8 @@ def save_role(user_id):
         return (jsonify({"status": "success", "message": "New user's role created."}), 201)
 
     update_result = flask_mongo.db.roles.update_one(
-        {"_id": ObjectId(user_id)}, {"$set": {"role": user_role}})
+        {"_id": ObjectId(user_id)}, {"$set": {"role": user_role}}
+    )
 
     if update_result.matched_count != 1:
         return (jsonify({"status": "error", "message": "Unable to update user."}), 400)
