@@ -101,9 +101,10 @@ describe("Sample table page", () => {
     cy.get('[data-testid="sample-table"]')
       .contains(name)
       .parents("tr")
-      .within(() => {
-        cy.get("td.table-item-id .formatted-item-name").invoke("text").as("createdId");
-      });
+      .find("td.table-item-id .formatted-item-name")
+      .invoke("text")
+      .as("createdId");
+
     cy.get("@createdId").then((createdId) => {
       expect(createdId).not.to.equal("irrelevant_id");
       cy.verifySample(createdId, name, date);
@@ -194,9 +195,7 @@ describe.only("Advanced sample creation features", () => {
     cy.get('[data-testid="create-item-form"]').within(() => {
       cy.findByLabelText("ID:").type("testAcopy");
       cy.findByLabelText("(Optional) Copy from existing sample:").type("testA");
-      cy.get(".vs__dropdown-menu").within(() => {
-        cy.contains(".badge", "testA").click();
-      });
+      cy.get(".vs__dropdown-menu").contains(".badge", "testA").click();
       cy.findByDisplayValue("COPY OF the first test sample").clear().type("a copied sample");
       cy.findByText("Submit").click();
     });
@@ -223,16 +222,14 @@ describe.only("Advanced sample creation features", () => {
 
     cy.get(".datablock-content div").first().type("a comment is added here.");
     cy.get("#synthesis-information .vs__search").first().type("component3");
-    cy.get(".vs__dropdown-menu").within(() => {
-      cy.contains(".badge", "component3").click();
-    });
+    cy.get(".vs__dropdown-menu").contains(".badge", "component3").click();
+
     cy.get("#synthesis-information tbody tr:nth-of-type(1) input").eq(0).type("30");
 
     cy.get("svg.add-row-button").click();
     cy.get("#synthesis-information .vs__search").first().type("component4");
-    cy.get(".vs__dropdown-menu").within(() => {
-      cy.contains(".badge", "component4").click();
-    });
+    cy.get(".vs__dropdown-menu").contains(".badge", "component4").click();
+
     cy.get("#synthesis-information tbody tr:nth-of-type(2) input").eq(0).type("100"); // eq(1) gets the second element that matches
 
     cy.findByLabelText("Procedure").type("a description of the synthesis here");
@@ -246,9 +243,7 @@ describe.only("Advanced sample creation features", () => {
     cy.get('[data-testid="create-item-form"]').within(() => {
       cy.findByLabelText("ID:").type("testBcopy");
       cy.findByLabelText("(Optional) Copy from existing sample:").type("testB");
-      cy.get(".vs__dropdown-menu").within(() => {
-        cy.contains(".badge", "testB").click();
-      });
+      cy.get(".vs__dropdown-menu").contains(".badge", "testB").click();
       cy.findByText("Submit").click();
     });
     cy.verifySample("testBcopy", "COPY OF the second test sample");
@@ -273,19 +268,19 @@ describe.only("Advanced sample creation features", () => {
     cy.get('[data-testid="create-item-form"]').within(() => {
       cy.findByLabelText("ID:").type("testBcopy_copy");
       cy.findByLabelText("(Optional) Copy from existing sample:").type("testBcopy");
-      cy.findByLabelText("(Optional) Copy from existing sample:").within(() => {
-        cy.contains(".vs__dropdown-menu .badge", "testBcopy").click();
-      });
+      cy.findByLabelText("(Optional) Copy from existing sample:")
+        .contains(".vs__dropdown-menu .badge", "testBcopy")
+        .click();
 
       cy.findByLabelText("(Optional) Start with constituents:").type("component2");
-      cy.findByLabelText("(Optional) Start with constituents:").within(() => {
-        cy.contains(".vs__dropdown-menu .badge", "component2").click();
-      });
+      cy.findByLabelText("(Optional) Start with constituents:")
+        .contains(".vs__dropdown-menu .badge", "component2")
+        .click();
 
       cy.findByLabelText("(Optional) Start with constituents:").type("component3");
-      cy.findByLabelText("(Optional) Start with constituents:").within(() => {
-        cy.contains(".vs__dropdown-menu .badge", "component3").click();
-      });
+      cy.findByLabelText("(Optional) Start with constituents:")
+        .contains(".vs__dropdown-menu .badge", "component3")
+        .click();
 
       cy.findByText("Submit").click();
     });

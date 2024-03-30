@@ -200,16 +200,12 @@ describe("Edit Page", () => {
     cy.findByLabelText("Name").should("have.value", "This is a sample name");
 
     cy.findByText("Add a block").click();
-    cy.get(".dropdown-menu").within(() => {
-      cy.findByText("Comment").click();
-    });
+    cy.get(".dropdown-menu").findByText("Comment").click();
 
     cy.contains("Unsaved changes").should("not.exist");
 
     cy.findByText("Add a block").click();
-    cy.get(".dropdown-menu").within(() => {
-      cy.findByText("Comment").click();
-    });
+    cy.get(".dropdown-menu").findByText("Comment").click();
 
     cy.contains("Unsaved changes").should("not.exist");
 
