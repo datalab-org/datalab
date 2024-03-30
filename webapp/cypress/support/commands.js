@@ -73,9 +73,9 @@ Cypress.Commands.add("deleteSample", (item_id) => {
   cy.get("[data-testid=sample-table]")
     .contains(new RegExp("^" + item_id + "$", "g"))
     .parents("tr")
-    .within(() => {
-      cy.get("button.close").click();
-    });
+    .find("button.close")
+    .click();
+
   cy.get("[data-testid=sample-table]")
     .contains(new RegExp("^" + item_id + "$", "g"))
     .should("not.exist");
@@ -97,16 +97,10 @@ Cypress.Commands.add(
     // searches in the dropdown for the first real item with the given name, looking for a badge
     // if clickPlus, then also click the add row button before looking for the search bar
     if (clickPlus) {
-      cy.get("#synthesis-information").within(() => {
-        cy.get("svg.add-row-button").click();
-      });
+      cy.get("#synthesis-information svg.add-row-button").click();
     }
     cy.get(selector).first().type(search_text);
-    cy.wait(delay).then(() => {
-      cy.get(".vs__dropdown-menu").within(() => {
-        cy.contains(".badge", search_text).click();
-      });
-    });
+    cy.get(".vs__dropdown-menu").contains(".badge", search_text).click();
   },
 );
 
