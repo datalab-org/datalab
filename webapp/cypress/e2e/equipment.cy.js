@@ -98,9 +98,10 @@ describe("Equipment table page", () => {
     cy.get('[data-testid="create-equipment-form"]').within(() => {
       cy.findByLabelText("ID:").type("test_e3_copy");
       cy.findByLabelText("(Optional) Copy from existing equipment:").type("test_e3");
-      cy.findByLabelText("(Optional) Copy from existing equipment:").within(() => {
-        cy.contains(".vs__dropdown-menu .badge", "test_e3").click();
-      });
+      cy.findByLabelText("(Optional) Copy from existing equipment:")
+        .contains(".vs__dropdown-menu .badge", "test_e3")
+        .click();
+
       cy.findByLabelText("Name:"); //("COPY OF my inst")
 
       cy.findByText("Submit").click();
