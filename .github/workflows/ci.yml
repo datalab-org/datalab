@@ -157,6 +157,7 @@ jobs:
             ./cypress/e2e/sampleTablePage.cy.js
             ./cypress/e2e/editPage.cy.js
             ./cypress/e2e/equipment.cy.js
+            ./cypress/e2e/batchSampleFeature.cy.js
           browser: "electron"
         env:
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
@@ -170,6 +171,8 @@ jobs:
           spec: |
             ./cypress/e2e/sampleTablePage.cy.js
             ./cypress/e2e/editPage.cy.js
+            ./cypress/e2e/equipment.cy.js
+            ./cypress/e2e/batchSampleFeature.cy.js
           browser: "chrome"
         env:
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
