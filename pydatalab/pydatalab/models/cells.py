@@ -10,8 +10,7 @@ from pydatalab.models.utils import Constituent
 # from pydatalab.logger import LOGGER
 
 
-class CellComponent(Constituent):
-    ...
+class CellComponent(Constituent): ...
 
 
 class CellFormat(str, Enum):

@@ -35,8 +35,7 @@ class XRDProcessing(BaseModel):
         extra = "allow"
 
 
-class XRDMetadata(BaseModel):
-    ...
+class XRDMetadata(BaseModel): ...
 
 
 class XRDMeasurement(BaseModel):

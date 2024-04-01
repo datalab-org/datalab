@@ -93,9 +93,9 @@ Start with a friendly introduction and give me a one sentence summary of what th
         self.data["token_count"] = token_count
 
         if token_count >= MAX_CONTEXT_SIZE:
-            self.data[
-                "error_message"
-            ] = f"""This conversation has reached its maximum context size and the chatbot won't be able to respond further ({token_count} tokens, max: {MAX_CONTEXT_SIZE}). Please make a new chat block to start fresh."""
+            self.data["error_message"] = (
+                f"""This conversation has reached its maximum context size and the chatbot won't be able to respond further ({token_count} tokens, max: {MAX_CONTEXT_SIZE}). Please make a new chat block to start fresh."""
+            )
             return
 
         try:
@@ -215,9 +215,9 @@ Start with a friendly introduction and give me a one sentence summary of what th
                     LOGGER.debug("iterating through constituents:")
                     LOGGER.debug(constituent)
                     if "quantity" in constituent:
-                        constituent[
-                            "quantity"
-                        ] = f"{constituent.get('quantity', 'unknown')} {constituent.get('unit', '')}"
+                        constituent["quantity"] = (
+                            f"{constituent.get('quantity', 'unknown')} {constituent.get('unit', '')}"
+                        )
                     constituent.pop("unit", None)
 
         # Note manual replaces to help avoid escape sequences that take up extra tokens
