@@ -25,7 +25,7 @@ export default {
   padding: 1em;
   margin: 0.5em;
   background-color: lightgreen;
-  border: 1px solid lightgreen;
+  border: 1px solid green;
   border-radius: 0.5em;
   cursor: pointer;
 }
