@@ -5,7 +5,7 @@
         <th scope="col">Name</th>
         <th scope="col">Email</th>
         <th scope="col">Role</th>
-        <th scope="col">Verified</th>
+        <th scope="col">Status</th>
       </tr>
     </thead>
     <tbody>
@@ -24,9 +24,13 @@
           </select>
         </td>
         <td align="left">
-          <select v-model="test">
-            <option value="verified">Verified</option>
+          <select
+            v-model="user.account_status"
+            @change="updateUserStatus(user._id.$oid, $event.target.value)"
+          >
+            <option value="active">Active</option>
             <option value="unverified">Unverified</option>
+            <option value="tombstoned">Tombstoned</option>
           </select>
         </td>
       </tr>
@@ -35,7 +39,7 @@
 </template>
 
 <script>
-import { getUsersList, saveRole } from "@/server_fetch_utils.js";
+import { getUsersList, saveRole, saveUser } from "@/server_fetch_utils.js";
 
 export default {
   data() {
@@ -77,6 +81,9 @@ export default {
     async updateUserRole(user_id, user_role) {
       await saveRole(user_id, { role: user_role });
       this.original_users = JSON.parse(JSON.stringify(this.users));
+    },
+    async updateUserStatus(user_id, status) {
+      await saveUser(user_id, { account_status: status });
     },
   },
   created() {

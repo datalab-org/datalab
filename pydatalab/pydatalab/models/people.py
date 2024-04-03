@@ -90,6 +90,14 @@ class EmailStr(PydanticEmailStr):
         return cls.validate(value)
 
 
+class AccountStatus(str, Enum):
+    """A string enum representing the account status."""
+
+    ACTIVE = "active"
+    UNVERIFIED = "unverified"
+    TOMBSTONED = "tombstoned"
+
+
 class Person(Entry):
     """A model that describes an individual and their digital identities."""
 
@@ -107,6 +115,9 @@ class Person(Entry):
 
     managers: Optional[List[PyObjectId]]
     """A list of user IDs that can manage this person's items."""
+
+    account_status: AccountStatus = Field(AccountStatus.UNVERIFIED)
+    """The status of the user's account."""
 
     @validator("type", pre=True, always=True)
     def add_missing_type(cls, v):
