@@ -2,18 +2,15 @@ import json
 import os
 from typing import Sequence
 
-# from langchain_openai import ChatOpenAI
 from langchain_anthropic import ChatAnthropic
+from langchain_openai import ChatOpenAI
 
 from pydatalab.blocks.base import DataBlock
 from pydatalab.logger import LOGGER
 from pydatalab.models import ITEM_MODELS
 from pydatalab.utils import CustomJSONEncoder
 
-# claude-3-haiku-20240229
-
 __all__ = "ChatBlock"
-MAX_CONTEXT_SIZE = 4097
 
 
 class ChatBlock(DataBlock):
@@ -31,11 +28,45 @@ Be as concise as possible. When saying your name, type a bird emoji right after 
         """,
         "temperature": 0.2,
         "error_message": None,
-        "model": "claude-3-sonnet-20240229",
-        "available_models": [
-            "claude-3-sonnet-20240229",
-            "claude-3-opus-20240229",
-        ],
+        "model": "gpt-3.5-turbo-0613",
+        "available_models": {
+            "claude-3-haiku-20240307": {
+                "name": "claude-3-haiku-20240307",
+                "context_window": 200000,
+                "input_cost_usd_per_MTok": 0.25,
+                "output_cost_usd_per_MTok": 1.25,
+            },
+            "claude-3-sonnet-20240229": {
+                "name": "claude-3-sonnet-20240229",
+                "context_window": 200000,
+                "input_cost_usd_per_MTok": 3.00,
+                "output_cost_usd_per_MTok": 15.00,
+            },
+            "claude-3-opus-20240229": {
+                "name": "claude-3-opus-20240229",
+                "context_window": 200000,
+                "input_cost_usd_per_MTok": 15.00,
+                "output_cost_usd_per_MTok": 75.00,
+            },
+            "gpt-3.5-turbo-0613": {
+                "name": "gpt-3.5-turbo-0613",
+                "context_window": 4096,
+                "input_cost_usd_per_MTok": 1.50,
+                "output_cost_usd_per_MTok": 2.00,
+            },
+            "gpt-4": {
+                "name": "gpt-4",
+                "context_window": 8192,
+                "input_cost_usd_per_MTok": 30.00,
+                "output_cost_usd_per_MTok": 60.00,
+            },
+            "gpt-4-0125-preview": {
+                "name": "gpt-4-0125-preview",
+                "context_window": 128000,
+                "input_cost_usd_per_MTok": 10.00,
+                "output_cost_usd_per_MTok": 30.00,
+            },
+        },
     }
 
     def __init__(self, *args, **kwargs):
@@ -89,17 +120,23 @@ Be as concise as possible. When saying your name, type a bird emoji right after 
                 return
 
         try:
-            if self.data["model"][:6] == "claude":
-                LOGGER.warning(f"initializing chatblock with model: {self.data['model']}")
+            model_name = self.data["model"]
+            model_dict = self.data["available_models"][model_name]
+            LOGGER.warning(f"Initializing chatblock with model: {model_name}")
+
+            if "claude" in model_name:
                 self.ChatClient = ChatAnthropic(
                     anthropic_api_key=os.environ["ANTHROPIC_API_KEY"],
-                    model=self.data["model"],
+                    model=model_name,
                 )
-                # else if self.data["model"] is "openai-gpt-3.5":
-                #     self.ChatClient = ChatOpenAI(open_ai_api_key="")
+            elif "gpt" in model_name:
+                self.ChatClient = ChatOpenAI(
+                    api_key=os.environ.get("OPENAI_API_KEY"),
+                    model=model_name,
+                )
 
             LOGGER.debug(
-                f"submitting request to Claude API for completion with last message role \"{self.data['messages'][-1]['role']}\" (message = {self.data['messages'][-1:]}). Temperature = {self.data['temperature']} (type {type(self.data['temperature'])})"
+                f"submitting request to API for completion with last message role \"{self.data['messages'][-1]['role']}\" (message = {self.data['messages'][-1:]}). Temperature = {self.data['temperature']} (type {type(self.data['temperature'])})"
             )
             from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
@@ -117,13 +154,14 @@ Be as concise as possible. When saying your name, type a bird emoji right after 
 
             self.data["token_count"] = token_count
 
-            if token_count >= MAX_CONTEXT_SIZE:
-                self.data["error_message"] = (
-                    f"""This conversation has reached its maximum context size and the chatbot won't be able to respond further ({token_count} tokens, max: {MAX_CONTEXT_SIZE}). Please make a new chat block to start fresh."""
-                )
+
+            if token_count >= model_dict["context_window"]:
+                self.data[
+                    "error_message"
+                ] = f"""This conversation has reached its maximum context size and the chatbot won't be able to respond further ({token_count} tokens, max: {model_dict['context_window']}). Please make a new chat block to start fresh, or use a model with a larger context window"""
                 return
 
-            # Call the Claude client with the invoke method
+            # Call the ChatClient client with the invoke method
             response = self.ChatClient.invoke(langchain_messages)
 
             langchain_messages.append(response)
@@ -135,8 +173,8 @@ Be as concise as possible. When saying your name, type a bird emoji right after 
             self.data["error_message"] = None
 
         except Exception as exc:
-            LOGGER.debug("Received an error from Claude API: %s", exc)
-            self.data["error_message"] = f"Received an error from the Claude API: {exc}."
+            LOGGER.debug("Received an error from API: %s", exc)
+            self.data["error_message"] = f"Received an error from the API: {exc}."
             return
 
     def _prepare_item_json_for_chat(self, item_id: str):
