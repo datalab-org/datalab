@@ -23,7 +23,6 @@
 <script>
 import { API_URL, LOGO_URL, HOMEPAGE_URL } from "@/resources.js";
 import LoginDetails from "@/components/LoginDetails.vue";
-import { getUserInfo } from "@/server_fetch_utils.js";
 
 export default {
   name: "Navbar",
@@ -37,17 +36,6 @@ export default {
   },
   components: {
     LoginDetails,
-  },
-  async mounted() {
-    this.getUser();
-  },
-  methods: {
-    async getUser() {
-      const user = await getUserInfo();
-      if (user !== null) {
-        this.user = user;
-      }
-    },
   },
 };
 </script>
