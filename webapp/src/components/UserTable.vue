@@ -30,7 +30,7 @@
           >
             <option value="active">Active</option>
             <option value="unverified">Unverified</option>
-            <option value="tombstoned">Tombstoned</option>
+            <option value="disabled">Disabled</option>
           </select>
         </td>
       </tr>
