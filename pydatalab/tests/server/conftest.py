@@ -221,9 +221,15 @@ def insert_demo_admin(app, admin_user_id, admin_api_key, real_mongo_client):
 
 
 @pytest.fixture(scope="module", name="default_sample")
-def fixture_default_sample():
+def fixture_default_sample(admin_user_id, user_id):
     return Sample(
-        **{"item_id": "12345", "name": "other_sample", "date": "1970-02-01", "type": "samples"}
+        **{
+            "item_id": "12345",
+            "name": "other_sample",
+            "date": "1970-02-01",
+            "type": "samples",
+            "creator_ids": [admin_user_id, user_id],
+        }
     )
 
 
