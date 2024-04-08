@@ -79,6 +79,8 @@ def app_config(tmp_path_factory):
             "MAIL_DEFAULT_SENDER": "test@example.org",
         },
         "EMAIL_DOMAIN_ALLOW_LIST": ["example.org", "ml-evs.science"],
+        "MAIL_DEBUG": True,
+        "MAIL_SUPPRESS_SEND": True,
     }
 
 
@@ -123,6 +125,7 @@ def app(real_mongo_client, monkeypatch_session, app_config):
             monkeypatch_session.setattr(pydatalab.mongo, "get_database", mock_mongo_database)
 
     app = create_app(app_config)
+
     yield app
     if mongo_cli:
         mongo_cli.drop_database(TEST_DATABASE_NAME)
@@ -154,6 +157,13 @@ def client(app, user_api_key):
 
     app.test_client_class = AuthorizedTestClient
 
+    with app.test_client() as cli:
+        yield cli
+
+
+@pytest.fixture(scope="module")
+def unauthenticated_client(app):
+    """Returns an unauthenticated test client for the API."""
     with app.test_client() as cli:
         yield cli
 
