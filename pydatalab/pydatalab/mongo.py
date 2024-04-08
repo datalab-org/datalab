@@ -155,6 +155,7 @@ def create_default_indices(
             ("identities.identity_type", pymongo.ASCENDING),
         ],
         unique=True,
+        partialFilterExpression={"identities": {"$exists": True}},
         name="unique user identifiers",
         background=background,
     )
