@@ -1,19 +1,11 @@
-from pydatalab.models.people import Person
-
-
-def test_get_current_user(client, insert_demo_user):
+def test_get_current_user(client):
     """Test that the API key for the demo user has been set correctly."""
 
     resp = client.get("/get-current-user/")
     assert resp.status_code == 200
 
 
-def test_user_update(client, real_mongo_client):
-    example_user = Person(display_name="Test Person", contact_email="test@example.org").dict(
-        exclude_unset=True, exclude_none=True
-    )
-    user_id = real_mongo_client.get_database().users.insert_one(example_user).inserted_id
-
+def test_user_update(client, admin_client, real_mongo_client, user_id, admin_user_id):
     endpoint = f"/users/{str(user_id)}"
 
     # Test display name update
@@ -22,6 +14,13 @@ def test_user_update(client, real_mongo_client):
     assert resp.status_code == 200
     user = real_mongo_client.get_database().users.find_one({"_id": user_id})
     assert user["display_name"] == "Test Person II"
+
+    # Test admin override of display name
+    user_request = {"display_name": "Test Person"}
+    resp = admin_client.patch(endpoint, json=user_request)
+    assert resp.status_code == 200
+    user = real_mongo_client.get_database().users.find_one({"_id": user_id})
+    assert user["display_name"] == "Test Person"
 
     # Test contact email update
     user_request = {"contact_email": "test2@example.org"}
@@ -35,7 +34,7 @@ def test_user_update(client, real_mongo_client):
     resp = client.patch(endpoint, json=user_request)
     assert resp.status_code == 200
     user = real_mongo_client.get_database().users.find_one({"_id": user_id})
-    assert user["display_name"] == "Test Person II"
+    assert user["display_name"] == "Test Person"
 
     # Test that contact_email -> None or empty DOES remove email
     user_request = {"contact_email": None}
@@ -61,7 +60,7 @@ def test_user_update(client, real_mongo_client):
     resp = client.patch(endpoint, json=user_request)
     assert resp.status_code == 400
     user = real_mongo_client.get_database().users.find_one({"_id": user_id})
-    assert user["display_name"] == "Test Person II"
+    assert user["display_name"] == "Test Person"
 
     # Test bad contact email does not update
     user_request = {"contact_email": "not_an_email"}
@@ -69,3 +68,11 @@ def test_user_update(client, real_mongo_client):
     assert resp.status_code == 400
     user = real_mongo_client.get_database().users.find_one({"_id": user_id})
     assert user["contact_email"] is None
+
+    # Test that user cannot update admin account
+    endpoint = f"/users/{str(admin_user_id)}"
+    user_request = {"display_name": "Test Person"}
+    resp = client.patch(endpoint, json=user_request)
+    assert resp.status_code == 403
+    user = real_mongo_client.get_database().users.find_one({"_id": admin_user_id})
+    assert user["display_name"] == "Test Admin"

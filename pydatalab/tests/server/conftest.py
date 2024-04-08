@@ -5,6 +5,7 @@ from unittest.mock import patch
 import mongomock
 import pymongo
 import pytest
+from bson import ObjectId
 from flask.testing import FlaskClient
 
 import pydatalab.mongo
@@ -128,12 +129,12 @@ def app(real_mongo_client, monkeypatch_session, app_config):
 
 
 @pytest.fixture(scope="module")
-def client(app, generate_api_key):
-    """Returns a test client for the API."""
+def admin_client(app, admin_api_key):
+    """Returns a test client for the API with admin access."""
 
     class AuthorizedTestClient(FlaskClient):
         def open(self, *args, **kwargs):
-            kwargs.setdefault("headers", {"DATALAB_API_KEY": generate_api_key})
+            kwargs.setdefault("headers", {"DATALAB_API_KEY": admin_api_key})
             return super().open(*args, **kwargs)
 
     app.test_client_class = AuthorizedTestClient
@@ -142,29 +143,71 @@ def client(app, generate_api_key):
         yield cli
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
+def client(app, user_api_key):
+    """Returns a test client for the API with normal user access."""
+
+    class AuthorizedTestClient(FlaskClient):
+        def open(self, *args, **kwargs):
+            kwargs.setdefault("headers", {"DATALAB_API_KEY": user_api_key})
+            return super().open(*args, **kwargs)
+
+    app.test_client_class = AuthorizedTestClient
+
+    with app.test_client() as cli:
+        yield cli
+
+
 def generate_api_key():
     import random
 
     return "".join(random.choices("abcdef0123456789", k=24))
 
 
-@pytest.fixture(scope="module", autouse=True)
-def insert_demo_user(app, real_mongo_client, generate_api_key):
+@pytest.fixture(scope="session")
+def admin_api_key() -> str:
+    return generate_api_key()
+
+
+@pytest.fixture(scope="session")
+def user_api_key() -> str:
+    return generate_api_key()
+
+
+@pytest.fixture(scope="session")
+def user_id():
+    yield ObjectId(24 * "1")
+
+
+@pytest.fixture(scope="session")
+def admin_user_id():
+    yield ObjectId(24 * "0")
+
+
+def insert_user(id, api_key, role, real_mongo_client):
     from hashlib import sha512
 
-    from bson import ObjectId
-
     demo_user = {
-        "_id": ObjectId(24 * "0"),
+        "_id": id,
         "contact_email": "test@example.org",
-        "display_name": "Test User",
+        "display_name": "Test Admin",
     }
     real_mongo_client.get_database(TEST_DATABASE_NAME).users.insert_one(demo_user)
-    hash = sha512(generate_api_key.encode("utf-8")).hexdigest()
+    hash = sha512(api_key.encode("utf-8")).hexdigest()
     real_mongo_client.get_database(TEST_DATABASE_NAME).api_keys.insert_one(
-        {"_id": ObjectId(24 * "0"), "hash": hash}
+        {"_id": id, "hash": hash}
     )
+    real_mongo_client.get_database(TEST_DATABASE_NAME).roles.insert_one({"_id": id, "role": role})
+
+
+@pytest.fixture(scope="module", autouse=True)
+def insert_demo_user(app, user_id, user_api_key, real_mongo_client):
+    insert_user(user_id, user_api_key, "user", real_mongo_client)
+
+
+@pytest.fixture(scope="module", autouse=True)
+def insert_demo_admin(app, admin_user_id, admin_api_key, real_mongo_client):
+    insert_user(admin_user_id, admin_api_key, "admin", real_mongo_client)
 
 
 @pytest.fixture(scope="module", name="default_sample")
