@@ -22,6 +22,8 @@ def test_new_sample(client, default_sample_dict):
     assert response.status_code == 201, response.json
     assert response.json["status"] == "success"
     for key in default_sample_dict.keys():
+        if key == "creator_ids":
+            continue
         if isinstance(v := default_sample_dict[key], datetime.datetime):
             v = v.isoformat()
         assert response.json["sample_list_entry"][key] == v
@@ -33,6 +35,8 @@ def test_get_item_data(client, default_sample_dict):
     assert response.status_code == 200
     assert response.json["status"] == "success"
     for key in default_sample_dict.keys():
+        if key == "creator_ids":
+            continue
         if isinstance(v := default_sample_dict[key], datetime.datetime):
             v = v.isoformat()
         assert response.json["item_data"][key] == v
@@ -50,13 +54,14 @@ def test_new_sample_collision(client, default_sample_dict):
 
 
 @pytest.mark.dependency(depends=["test_new_sample", "test_get_item_data"])
-def test_new_sample_with_automatically_generated_id(client):
+def test_new_sample_with_automatically_generated_id(client, user_id):
     new_sample_data = {
         "name": "sample with random id",
         "date": datetime.datetime.fromisoformat("1995-03-02"),
         "chemform": "H2O",
         "type": "samples",
         "synthesis_description": "2 parts hydrogen were added to 1 part oxygen",
+        "creator_ids": [user_id],
     }
 
     request_json = dict(
@@ -79,6 +84,8 @@ def test_new_sample_with_automatically_generated_id(client):
     for key in new_sample_data.keys():
         if isinstance(v := new_sample_data[key], datetime.datetime):
             v = v.isoformat()
+        if key == "creator_ids":
+            continue
         assert response.json["item_data"][key] == v
 
 

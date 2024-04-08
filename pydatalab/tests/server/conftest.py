@@ -279,7 +279,7 @@ def fixture_default_collection():
 
 
 @pytest.fixture(scope="module", name="default_starting_material")
-def fixture_default_starting_material():
+def fixture_default_starting_material(admin_user_id):
     return StartingMaterial(
         **{
             "item_id": "test_sm",
@@ -292,6 +292,7 @@ def fixture_default_starting_material():
             "location": "SR1 room 22",
             "GHS_codes": "H303, H316, H319",
             "type": "starting_materials",
+            "creator_ids": [admin_user_id],
         }
     )
 
@@ -313,7 +314,7 @@ def fixture_default_equipment():
 
 
 @pytest.fixture(scope="module", name="complicated_sample")
-def fixture_complicated_sample():
+def fixture_complicated_sample(user_id):
     from pydatalab.models.samples import Constituent
 
     return Sample(
@@ -323,6 +324,7 @@ def fixture_complicated_sample():
             "date": "1970-02-01",
             "chemform": "Na3P",
             "type": "samples",
+            "creator_ids": [user_id],
             "synthesis_constituents": [
                 Constituent(
                     **{
@@ -366,7 +368,7 @@ def fixture_complicated_sample():
 
 
 @pytest.fixture(scope="module")
-def example_items():
+def example_items(user_id):
     return [
         d.dict(exclude_unset=False)
         for d in [
@@ -377,9 +379,17 @@ def example_items():
                     "description": "NaNiO2",
                     "date": "1970-02-01",
                     "refcode": "grey:TEST1",
+                    "creator_ids": [user_id],
                 }
             ),
-            Sample(**{"item_id": "56789", "name": "alice", "date": "1970-02-01"}),
+            Sample(
+                **{
+                    "item_id": "56789",
+                    "name": "alice",
+                    "date": "1970-02-01",
+                    "creator_ids": [user_id],
+                }
+            ),
             Sample(
                 **{
                     "item_id": "sample_1",
@@ -387,6 +397,7 @@ def example_items():
                     "description": "12345",
                     "date": "1970-02-01",
                     "refcode": "grey:TEST2",
+                    "creator_ids": [user_id],
                 }
             ),
             Sample(
@@ -395,6 +406,7 @@ def example_items():
                     "name": "other_sample",
                     "date": "1970-02-01",
                     "refcode": "grey:TEST3",
+                    "creator_ids": [user_id],
                 }
             ),
             StartingMaterial(
@@ -404,6 +416,7 @@ def example_items():
                     "name": "new material",
                     "date": "1970-02-01",
                     "refcode": "grey:TEST4",
+                    "creator_ids": [user_id],
                 }
             ),
             StartingMaterial(
@@ -413,6 +426,7 @@ def example_items():
                     "name": "NaNiO2",
                     "date": "1970-02-01",
                     "refcode": "grey:TEST5",
+                    "creator_ids": [user_id],
                 }
             ),
         ]
