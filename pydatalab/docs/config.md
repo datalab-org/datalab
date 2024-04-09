@@ -1,4 +1,10 @@
-# Server configuration and administration
+# Server configuration
+
+This document describes the different options for configuring a *datalab*
+instance.
+It is primarily intended for those who are *deploying* *datalab* on persistent
+hardware, but may also be useful for developers.
+Deployment instructions can be found under [](deployment.md).
 
 *datalab* has 3 main configuration sources.
 
@@ -74,51 +80,6 @@ Currently, there are two mechanisms for accessing remote files:
 1. You can mount the filesystem locally and provide the path in your datalab config file. For example, for Cambridge Chemistry users, you will have to (connect to the ChemNet VPN and) mount the Grey Group backup servers on your local machine, then define these folders in your config.
 2. Access over SSH: alternatively, you can set up passwordless `ssh` access to a machine (e.g., using `citadel` as a proxy jump), and paths on that remote machine can be configured as separate filesystems. The filesystem metadata will be synced periodically, and any files attached in `datalab` will be downloaded and stored locally on the `pydatalab` server (with the file being kept younger than 1 hour old on each access).
 
-
-## General Server administration
-
-Currently most administration tasks must be handled directly inside the Python API container.
-Several helper routines are available as `invoke` tasks in `tasks.py` in the `pydatalab` root folder.
-You can list all available tasks by running `invoke --list` in the root `pydatalab` folder after installing the package with the `[dev]` extras.
-In the future, many admin tasks (e.g., updating user info, allowing/blocking user accounts, defining subgroups) will be accessible in the web UI.
-
-### Importing chemical inventories
-
-One such `invoke` task implements the ingestion of a [ChemInventory](https://cheminventory.net) chemical inventory into *datalab*.
-It relies on the Excel export feature of ChemInventory and is achieved with `invoke admin.import-cheminventory <filename>`.
-If a future export is made and reimported, the old entries will be kept and updated, rather than overwritten.
-*datalab* currently has no functionality for chemical inventory management itself; if you wish to support importing from another inventory system, please [raise an issue](https://github.com/the-grey-group/datalab/issues/new).
-
-### Backups
-
-*datalab* provides a way to configure and create a snapshot backups of the database and filestore.
-The option [`BACKUP_STRATEGIES`][pydatalab.config.ServerConfig.BACKUP_STRATEGIES] allows you to list strategies for scheduled backups, with their frequency, storage location (can be local or remote) and retention.
-These backups are only performed when scheduled externally (e.g., via `cron` on the hosting server), or when triggered manually using the `invoke admin.create-backup` task.
-
-The simplest way to create a backup is to run `invoke admin.create-backup --output-path /tmp/backup.tar.gz`, which will create a compressed backup.
-This should be run from the server or container for the API, and will make use of the config to connect to the database and file store.
-This approach will not follow any retention strategy.
-
-Alternatively, you can create a backup given the strategy name defined in the server config, using the same task:
-
-```
-invoke admin.create-backup --strategy-name daily-snapshots
-```
-
-This will apply the retention strategy and any copying to remote resources as configured.
-
-When scheduling backups externally, it is recommended you do not use `cron` inside the server Docker container.
-Instead, you could schedule a job that calls, for example:
-
-```shell
-#              <container name>          <invoke task name>            <configured strategy name>
-#                    ^                           ^                                  ^
-docker compose exec api invoke pipenv run admin.create-backup --strategy-name daily-snapshots
-```
-
-Care must be taken to schedule this command to run from the correct directory.
-
-In the future, this may be integrated directly into the *datalab* server using a Python-based scheduler.
 
 ## Config API Reference
 
