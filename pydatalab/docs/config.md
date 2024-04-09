@@ -26,11 +26,12 @@ Be warned, if the prefix changes between server launches, all entries will have 
 *datalab* has three supported user registration/authentication
 mechanisms:
 
-1. OAuth2 via GitHub accounts that are public members of appropriate GitHub organizations
-2. OAuth2 via ORCID
+1. OAuth2 via [GitHub](https://github.com) accounts that are public members of appropriate GitHub organizations
+2. OAuth2 via [ORCID](https://orcid.org)
 3. via magic links sent to email addresses
 
 Each is configured differently.
+If left unconfigured, then the corresponding registration mechanism will not be available to the user.
 
 #### GitHub OAuth2
 
@@ -48,9 +49,9 @@ You can find the relevant organization IDs using the GitHub API, for example at 
 
 #### ORCID OAuth2
 
-For ORCID integration, each *datalab* instance must currently register for the ORCID developer program and request new credentials.
-As such, this may be tricky to support for new instances.
-We are looking for ways around this in the future.
+For [ORCID](https://orcid.org) integration, each *datalab* instance must currently register for the ORCID developer program and request new credentials for their public API.
+These credentials can then be provided via the `ORCID_OAUTH_CLIENT_ID` and `ORCID_OAUTH_CLIENT_SECRET` environment variables, in the same way as the GitHub settings above.
+Currently, only users with existing *datalab* accounts can connect their ORCIDs, but in future new users will be able to register for a *datalab* instance via ORCID, with an admin required to validate their registration.
 
 #### Email magic links
 
