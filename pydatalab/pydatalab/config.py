@@ -143,8 +143,8 @@ class ServerConfig(BaseSettings):
         description="The path under which to place stored files uploaded to the server.",
     )
 
-    LOG_FILE: Union[str, Path] = Field(
-        Path(__file__).parent.joinpath("../logs/datalab.log").resolve(),
+    LOG_FILE: str | Path | None = Field(
+        None,
         description="The path to the log file to use for the server and all associated processes (e.g., invoke tasks)",
     )
 
@@ -282,6 +282,8 @@ its importance when deploying a datalab instance.""",
     @validator("LOG_FILE")
     def make_missing_log_directory(cls, v):
         """Make sure that the log directory exists and is writable."""
+        if v is None:
+            return v
         try:
             v = Path(v)
             v.parent.mkdir(exist_ok=True, parents=True)
