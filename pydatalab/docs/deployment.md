@@ -63,7 +63,7 @@ There are several steps involved from taking the Docker containers above and pro
 Many of these involve tuning the server configuration for your group following the [additional documentation](config.md) on configuration, but many additional choices also depend on how you plan to host the containers in the long-term.
 Some things to consider:
 
-- Typically you will host the app and API containers on the same server behind a reverse proxy such as [Nginx](https://nginx.org).
+- Typically you will host the app and API containers on the same server behind a reverse proxy such as [Nginx](https://nginx.org) (in which case you will need to set the [`BEHIND_REVERSE_PROXY`][pydatalab.config.ServerConfig.BEHIND_REVERSE_PROXY] setting to `True`).
 - Typically you will need to run the app and API on two different subdomains.
 
 These can be provided perhaps by an IT department, or by configuring DNS settings on your own domain to point to the server.
