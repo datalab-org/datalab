@@ -62,8 +62,7 @@ def save_role(user_id):
 
     if not CONFIG.TESTING and current_user.role != "admin":
         return (
-            jsonify(
-                {"status": "error", "message": "User not allowed to edit this profile."}),
+            jsonify({"status": "error", "message": "User not allowed to edit this profile."}),
             403,
         )
 
