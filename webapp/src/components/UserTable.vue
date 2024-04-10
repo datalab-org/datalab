@@ -16,7 +16,7 @@
           <select
             class="dropdown"
             v-model="user.role"
-            @change="updateUserRole(user._id.$oid, $event.target.value)"
+            @change="confirmUpdateUserRole(user._id.$oid, $event.target.value)"
           >
             <option value="user">User</option>
             <option value="admin">Admin</option>
@@ -41,19 +41,42 @@ export default {
   data() {
     return {
       users: null,
+      original_users: null,
       test: "unverified",
       role: ["user", "manager", "admin"],
+      tempRole: null,
     };
   },
   methods: {
     async getUsers() {
       let data = await getUsersList();
       if (data != null) {
-        this.users = data;
+        this.users = JSON.parse(JSON.stringify(data));
+        this.original_users = JSON.parse(JSON.stringify(data));
+      }
+    },
+    async confirmUpdateUserRole(user_id, new_role) {
+      const originalCurrentUser = this.original_users.find((user) => user._id.$oid === user_id);
+
+      if (originalCurrentUser.role === "admin") {
+        window.alert("You can't change an admin's role.");
+        this.users.find((user) => user._id.$oid === user_id).role = originalCurrentUser.role;
+        return;
+      }
+
+      if (
+        window.confirm(
+          `Are you sure you want to change ${originalCurrentUser.display_name}'s role to ${new_role} ?`,
+        )
+      ) {
+        await this.updateUserRole(user_id, new_role);
+      } else {
+        this.users.find((user) => user._id.$oid === user_id).role = originalCurrentUser.role;
       }
     },
     async updateUserRole(user_id, role) {
       await saveRole(user_id, role);
+      this.original_users = JSON.parse(JSON.stringify(this.users));
     },
   },
   created() {
