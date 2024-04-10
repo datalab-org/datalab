@@ -3,7 +3,7 @@
 *datalab* is intended to be deployed on a persistent server accessible on the web that can act as a data management platform
 for a group of researchers.
 The instructions below outline how to make a development installation on your local machine.
-We strongly recommend using the [Docker setup instructions](#deployment-with-docker) if you are deploying for use in production.
+We strongly recommend following the [deployment instructions](deployment.md) (or [here](https://the-datalab.readthedocs.io/en/latest/deployment) if you are reading this directly on GitHub) if you are deploying for use in production; these instructions may also be useful for developers who want to use Docker to create a reproducible development environment.
 
 This repository consists of two components:
 
@@ -51,7 +51,7 @@ Should you wish to contribute to/modify the Python code, you may wish to perform
 #### Additional notes
 
 - If the Flask server is running when the source code is changed, it will generally hot-reload without needing to manually restart the server.
-- You may have to set `MONGO_URI` in your config file or environment variables (`PYDATALAB_MONGO_URI`) depending on your MongoDB setup, further details can be found in the [Server Configuration](config.md) instructions.
+- You may have to set `MONGO_URI` in your config file or environment variables (`PYDATALAB_MONGO_URI`) depending on your MongoDB setup.
 
 ### Web app
 
@@ -75,30 +75,3 @@ Various other development scripts are available through `yarn`:
 - `yarn test:unit`: run the unit/component tests using `jest`. These test individual functions or components.
 - `yarn test:e2e`: run end-to-end tests using `cypress`. This will build and serve the app, and launch an instance of Chrome where the tests can be interactively viewed. The tests can also be run without the gui using ```yarn test:e2e --headless```. Note: currently, the tests make requests to the server running on `localhost:5001`.
 - `yarn build`: Compile an optimized, minimized, version of the app for production.
-
-## Deployment with Docker
-
-[Docker](https://docs.docker.com/) uses virtualization to allow you to build "images" of your software that are transferrable and deployable as "containers" across multiple systems.
-These instructions assume that Docker is installed (a recent version that includes Compose V2 and BuildKit) and that the Docker daemon is running locally.
-See the [Docker website](https://docs.docker.com/compose/install/) for instructions for your system.
-Note that pulling and building the images can require significant disk space (~5 GB for a full setup), especially when multiple versions of images have been built (you can use `docker system df` to see how much spaace is being used).
-
-Dockerfiles for the web app, server and database can be found in the `.docker` directory.
-There are separate build targets for `production` and `development` (and corresponding docker-compose profiles `prod` and `dev`).
-The production target will copy the state of the repository on build and use `gunicorn` and `serve` to serve the server and app respectively.
-The development target mounts the repository in the running container and provides hot-reloading servers for both the backend and frontend.
-- `docker compose --profile dev build` will pull each of the base Docker images (`mongo`, `node` and `python`) and build the corresponding apps in development mode on top of them (using `--profile prod` for production deployments).
-- `docker compose --profile dev up` will launch a container for each component, such that the web app can be accessed at `localhost:8081`, the server at `localhost:5001` and the database at `localhost:27017`.
-- Individual containers can be launched with `docker compose up <service name>` for the services `mongo`, `app`, `app_dev`, `api` and `api_dev`.
-- `docker compose stop` will stop all running containers.
-
-## Permanent deployment instructions
-
-There are several steps involved from taking the Docker containers above and provisioning a persistent *datalab* server and instance available through the internet.
-Many of these involve tuning the server configuration for your group following the [additional documentation](config.md) on configuration, but many additional choices also depend on how you plan to host the containers in the long-term.
-Some things to consider:
-
-- Typically you will host the app and API containers on the same server behind a reverse proxy such as [Nginx](https://nginx.org).
-- Typically you will need to run the app and API on two different subdomains.
-These can be provided perhaps by an IT department, or by configuring DNS settings on your own domain to point to the server.
-You will need to configure the app such so that it points at the relevant hosted API (see [app `.env` description](config.md#app).
