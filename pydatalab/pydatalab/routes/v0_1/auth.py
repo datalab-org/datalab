@@ -35,7 +35,6 @@ LINK_EXPIRATION: datetime.timedelta = datetime.timedelta(hours=1)
 
 @logged_route
 def wrapped_login_user(*args, **kwargs):
-    # LOGGER.warning("Logging in user %s with role %s", args[0].display_name, args[0].role)
     login_user(*args, **kwargs)
 
 
@@ -426,6 +425,10 @@ def orcid_logged_in(_, token):
         token["orcid"],
         display_name=token["name"],
         verified=True,
+        # TODO: For now, this does not create a new user account if missing, but can be used
+        # to connect an existing user account with an ORCID identity (which can then be used
+        # for login).
+        create_account=False,
     )
 
     # Return false to prevent Flask-dance from trying to store the token elsewhere
