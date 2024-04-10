@@ -6,6 +6,7 @@ with their local accounts.
 
 import datetime
 import json
+import os
 import random
 import re
 from hashlib import sha512
@@ -44,7 +45,7 @@ EMAIL_BLUEPRINT = Blueprint("email", __name__)
 AUTH_BLUEPRINTS: Dict[IdentityType, Blueprint] = {
     IdentityType.ORCID: make_orcid_blueprint(
         scope="/authenticate",
-        sandbox=True,
+        sandbox=os.environ.get("OAUTH_ORCID_SANDBOX", False),
     ),
     IdentityType.GITHUB: make_github_blueprint(
         scope="read:org,read:user",
