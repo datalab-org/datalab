@@ -111,8 +111,9 @@ def test_save_good_equipment(client, default_equipment_dict):
 
 
 @pytest.mark.dependency(depends=["test_new_equipment"])
-def test_delete_equipment(client, default_equipment_dict):
-    response = client.post(
+def test_delete_equipment(admin_client, default_equipment_dict):
+    """For now, only admins can delete equipment."""
+    response = admin_client.post(
         "/delete-sample/",
         json={"item_id": default_equipment_dict["item_id"]},
     )
@@ -120,7 +121,7 @@ def test_delete_equipment(client, default_equipment_dict):
     assert response.json["status"] == "success"
 
     # Check it was actually deleted
-    response = client.get(
+    response = admin_client.get(
         f"/get-item-data/{default_equipment_dict['item_id']}",
     )
     assert response.status_code == 404

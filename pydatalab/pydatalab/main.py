@@ -113,7 +113,7 @@ def create_app(
     app.config.update(CONFIG.dict())
 
     # This value will still be overwritten by any dotenv values
-    app.config["MAIL_DEBUG"] = CONFIG.TESTING
+    app.config["MAIL_DEBUG"] = app.config.get("MAIL_DEBUG") or CONFIG.TESTING
 
     # percolate datalab mail settings up to the `MAIL_` env vars/app config
     # for use by Flask Mail

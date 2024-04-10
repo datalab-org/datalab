@@ -53,12 +53,15 @@ def setup_log(log_name: str = "pydatalab", log_level: Optional[int] = None) -> l
     logger.propagate = False
     stream_handler = AnsiColorHandler()
     stream_handler.setFormatter(logging.Formatter(LOG_FORMAT_STRING))
-    rotating_file_handler = logging.handlers.RotatingFileHandler(
-        CONFIG.LOG_FILE, maxBytes=1000000, backupCount=100
-    )
-    rotating_file_handler.setFormatter(logging.Formatter(LOG_FORMAT_STRING))
     logger.addHandler(stream_handler)
-    logger.addHandler(rotating_file_handler)
+
+    if CONFIG.LOG_FILE is not None:
+        rotating_file_handler = logging.handlers.RotatingFileHandler(
+            CONFIG.LOG_FILE, maxBytes=1000000, backupCount=100
+        )
+        rotating_file_handler.setFormatter(logging.Formatter(LOG_FORMAT_STRING))
+        logger.addHandler(rotating_file_handler)
+
     if log_level is None:
         log_level = logging.INFO
 

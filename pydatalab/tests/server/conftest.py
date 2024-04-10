@@ -5,6 +5,8 @@ from unittest.mock import patch
 import mongomock
 import pymongo
 import pytest
+from bson import ObjectId
+from flask.testing import FlaskClient
 
 import pydatalab.mongo
 from pydatalab.main import create_app
@@ -67,7 +69,7 @@ def app_config(tmp_path_factory):
         "MONGO_URI": MONGO_URI,
         "REMOTE_FILESYSTEMS": example_remotes,
         "FILE_DIRECTORY": str(tmp_path_factory.mktemp("files")),
-        "TESTING": True,
+        "TESTING": False,
         "EMAIL_AUTH_SMTP_SETTINGS": {
             "MAIL_SERVER": "smtp.example.com",
             "MAIL_PORT": 587,
@@ -77,6 +79,8 @@ def app_config(tmp_path_factory):
             "MAIL_DEFAULT_SENDER": "test@example.org",
         },
         "EMAIL_DOMAIN_ALLOW_LIST": ["example.org", "ml-evs.science"],
+        "MAIL_DEBUG": True,
+        "MAIL_SUPPRESS_SEND": True,
     }
 
 
@@ -121,22 +125,111 @@ def app(real_mongo_client, monkeypatch_session, app_config):
             monkeypatch_session.setattr(pydatalab.mongo, "get_database", mock_mongo_database)
 
     app = create_app(app_config)
+
     yield app
     if mongo_cli:
         mongo_cli.drop_database(TEST_DATABASE_NAME)
 
 
 @pytest.fixture(scope="module")
-def client(app):
-    """Returns a test client for the API."""
+def admin_client(app, admin_api_key):
+    """Returns a test client for the API with admin access."""
+
+    class AuthorizedTestClient(FlaskClient):
+        def open(self, *args, **kwargs):
+            kwargs.setdefault("headers", {"DATALAB_API_KEY": admin_api_key})
+            return super().open(*args, **kwargs)
+
+    app.test_client_class = AuthorizedTestClient
+
     with app.test_client() as cli:
         yield cli
 
 
+@pytest.fixture(scope="module")
+def client(app, user_api_key):
+    """Returns a test client for the API with normal user access."""
+
+    class AuthorizedTestClient(FlaskClient):
+        def open(self, *args, **kwargs):
+            kwargs.setdefault("headers", {"DATALAB_API_KEY": user_api_key})
+            return super().open(*args, **kwargs)
+
+    app.test_client_class = AuthorizedTestClient
+
+    with app.test_client() as cli:
+        yield cli
+
+
+@pytest.fixture(scope="module")
+def unauthenticated_client(app):
+    """Returns an unauthenticated test client for the API."""
+    with app.test_client() as cli:
+        yield cli
+
+
+def generate_api_key():
+    import random
+
+    return "".join(random.choices("abcdef0123456789", k=24))
+
+
+@pytest.fixture(scope="session")
+def admin_api_key() -> str:
+    return generate_api_key()
+
+
+@pytest.fixture(scope="session")
+def user_api_key() -> str:
+    return generate_api_key()
+
+
+@pytest.fixture(scope="session")
+def user_id():
+    yield ObjectId(24 * "1")
+
+
+@pytest.fixture(scope="session")
+def admin_user_id():
+    yield ObjectId(24 * "0")
+
+
+def insert_user(id, api_key, role, real_mongo_client):
+    from hashlib import sha512
+
+    demo_user = {
+        "_id": id,
+        "contact_email": "test@example.org",
+        "display_name": "Test Admin",
+    }
+    real_mongo_client.get_database(TEST_DATABASE_NAME).users.insert_one(demo_user)
+    hash = sha512(api_key.encode("utf-8")).hexdigest()
+    real_mongo_client.get_database(TEST_DATABASE_NAME).api_keys.insert_one(
+        {"_id": id, "hash": hash}
+    )
+    real_mongo_client.get_database(TEST_DATABASE_NAME).roles.insert_one({"_id": id, "role": role})
+
+
+@pytest.fixture(scope="module", autouse=True)
+def insert_demo_user(app, user_id, user_api_key, real_mongo_client):
+    insert_user(user_id, user_api_key, "user", real_mongo_client)
+
+
+@pytest.fixture(scope="module", autouse=True)
+def insert_demo_admin(app, admin_user_id, admin_api_key, real_mongo_client):
+    insert_user(admin_user_id, admin_api_key, "admin", real_mongo_client)
+
+
 @pytest.fixture(scope="module", name="default_sample")
-def fixture_default_sample():
+def fixture_default_sample(admin_user_id, user_id):
     return Sample(
-        **{"item_id": "12345", "name": "other_sample", "date": "1970-02-01", "type": "samples"}
+        **{
+            "item_id": "12345",
+            "name": "other_sample",
+            "date": "1970-02-01",
+            "type": "samples",
+            "creator_ids": [admin_user_id, user_id],
+        }
     )
 
 
@@ -186,7 +279,7 @@ def fixture_default_collection():
 
 
 @pytest.fixture(scope="module", name="default_starting_material")
-def fixture_default_starting_material():
+def fixture_default_starting_material(admin_user_id):
     return StartingMaterial(
         **{
             "item_id": "test_sm",
@@ -199,6 +292,7 @@ def fixture_default_starting_material():
             "location": "SR1 room 22",
             "GHS_codes": "H303, H316, H319",
             "type": "starting_materials",
+            "creator_ids": [admin_user_id],
         }
     )
 
@@ -220,7 +314,7 @@ def fixture_default_equipment():
 
 
 @pytest.fixture(scope="module", name="complicated_sample")
-def fixture_complicated_sample():
+def fixture_complicated_sample(user_id):
     from pydatalab.models.samples import Constituent
 
     return Sample(
@@ -230,6 +324,7 @@ def fixture_complicated_sample():
             "date": "1970-02-01",
             "chemform": "Na3P",
             "type": "samples",
+            "creator_ids": [user_id],
             "synthesis_constituents": [
                 Constituent(
                     **{
@@ -273,7 +368,7 @@ def fixture_complicated_sample():
 
 
 @pytest.fixture(scope="module")
-def example_items():
+def example_items(user_id):
     return [
         d.dict(exclude_unset=False)
         for d in [
@@ -284,9 +379,17 @@ def example_items():
                     "description": "NaNiO2",
                     "date": "1970-02-01",
                     "refcode": "grey:TEST1",
+                    "creator_ids": [user_id],
                 }
             ),
-            Sample(**{"item_id": "56789", "name": "alice", "date": "1970-02-01"}),
+            Sample(
+                **{
+                    "item_id": "56789",
+                    "name": "alice",
+                    "date": "1970-02-01",
+                    "creator_ids": [user_id],
+                }
+            ),
             Sample(
                 **{
                     "item_id": "sample_1",
@@ -294,6 +397,7 @@ def example_items():
                     "description": "12345",
                     "date": "1970-02-01",
                     "refcode": "grey:TEST2",
+                    "creator_ids": [user_id],
                 }
             ),
             Sample(
@@ -302,6 +406,7 @@ def example_items():
                     "name": "other_sample",
                     "date": "1970-02-01",
                     "refcode": "grey:TEST3",
+                    "creator_ids": [user_id],
                 }
             ),
             StartingMaterial(
@@ -311,6 +416,7 @@ def example_items():
                     "name": "new material",
                     "date": "1970-02-01",
                     "refcode": "grey:TEST4",
+                    "creator_ids": [user_id],
                 }
             ),
             StartingMaterial(
@@ -320,6 +426,7 @@ def example_items():
                     "name": "NaNiO2",
                     "date": "1970-02-01",
                     "refcode": "grey:TEST5",
+                    "creator_ids": [user_id],
                 }
             ),
         ]
