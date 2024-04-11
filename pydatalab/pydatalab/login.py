@@ -55,7 +55,7 @@ class LoginUser(UserMixin):
 
     @property
     def contact_email(self) -> Optional[str]:
-        """Returns the top-level display name for the user, if set."""
+        """Returns the top-level contact email for the user, if set."""
         return self.person.contact_email
 
     @property
