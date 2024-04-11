@@ -30,7 +30,7 @@ Be as concise as possible. When saying your name, type a bird emoji right after 
         """,
         "temperature": 0.2,
         "error_message": None,
-        "model": "gpt-3.5-turbo-0613",
+        "model": "claude-3-sonnet-20240229",
         "available_models": {
             "claude-3-haiku-20240307": {
                 "name": "claude-3-haiku-20240307",
@@ -38,17 +38,17 @@ Be as concise as possible. When saying your name, type a bird emoji right after 
                 "input_cost_usd_per_MTok": 0.25,
                 "output_cost_usd_per_MTok": 1.25,
             },
-            "claude-3-sonnet-20240229": {
-                "name": "claude-3-sonnet-20240229",
-                "context_window": 200000,
-                "input_cost_usd_per_MTok": 3.00,
-                "output_cost_usd_per_MTok": 15.00,
-            },
             "claude-3-opus-20240229": {
                 "name": "claude-3-opus-20240229",
                 "context_window": 200000,
                 "input_cost_usd_per_MTok": 15.00,
                 "output_cost_usd_per_MTok": 75.00,
+            },
+            "claude-3-sonnet-20240229": {
+                "name": "claude-3-sonnet-20240229",
+                "context_window": 200000,
+                "input_cost_usd_per_MTok": 3.00,
+                "output_cost_usd_per_MTok": 15.00,
             },
             "gpt-3.5-turbo-0613": {
                 "name": "gpt-3.5-turbo-0613",

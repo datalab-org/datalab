@@ -11,7 +11,7 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
 
     <div class="row">
       <div id="chatWindowContainer" class="col-xl-9 col-lg-10 col-md-12 mx-auto">
-        <div class="advanced-information form-inline" v-if="!advancedHidden">
+        <div class="advanced-information" v-if="!advancedHidden">
           <div class="input-group">
             <label class="mr-2">Model:</label>
             <select class="form-control" v-model="modelName">
@@ -21,16 +21,16 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
             </select>
           </div>
           <br />
-          <div class="input-group py-2">
+          <div class="input-group">
             <label>Current conversation token count:</label>
             <span class="pl-1">{{ tokenCount }}/ {{ modelObj.context_window }}</span>
           </div>
-          <div class="input-group py-2">
+          <div class="form-row input-group">
             <label>est. cost for next message:</label>
             <span class="pl-1">${{ estimatedCost.toPrecision(2) }}</span>
           </div>
 
-          <div class="input-group py-2">
+          <div class="form-row input-group">
             <label for="temperatureInput" class="mr-2"><b>temperature:</b></label>
             <input
               id="temperatureInput"
@@ -67,7 +67,7 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
     <div v-if="errorMessage" class="alert alert-warning">
       {{ errorMessage }}
     </div>
-    <div class="alert alert-info col-lg-6 col-md-8 mt-3 mx-auto" v-show="estimatedCost > 0.01">
+    <div class="alert alert-info col-lg-6 col-md-8 mt-3 mx-auto" v-show="estimatedCost > 0.1">
       <font-awesome-icon icon="exclamation-circle" /> sending a message is estimated to cost: ${{
         estimatedCost.toPrecision(2)
       }}
@@ -154,11 +154,6 @@ export default {
   methods: {
     async updateBlock() {
       this.isLoading = true;
-      this.messages.push({
-        content: this.prompt,
-        role: "user",
-      });
-      this.prompt = "";
 
       await updateBlockFromServer(
         this.item_id,
