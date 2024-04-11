@@ -69,7 +69,7 @@
           >
           <a
             type="button"
-            class="disabled dropdown-item btn login btn-link btn-default"
+            class="dropdown-item btn login btn-link btn-default"
             aria-label="Login via ORCID"
             :href="this.apiUrl + '/login/orcid'"
             ><font-awesome-icon class="orcid-icon" :icon="['fab', 'orcid']" /> Login via ORCID</a
