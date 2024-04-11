@@ -9,6 +9,9 @@ env:
   PUBLISH_UPDATE_BRANCH: main
   GIT_USER_NAME: "Greymon (bot)"
   GIT_USER_EMAIL: "bot-grey-group@ml-evs.science"
+  # Need to set this to avoid pipenv syncing an entire LFS repo and failing with bandwidth quota (see
+  # https://github.com/the-grey-group/datalab/issues/603)
+  GIT_LFS_SKIP_SMUDGE: 1
 
 jobs:
   publish:

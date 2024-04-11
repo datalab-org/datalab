@@ -4,9 +4,9 @@
     class="navbar navbar-expand sticky-top navbar-dark py-0 editor-navbar"
     :style="{ backgroundColor: navbarColor }"
   >
-    <span class="navbar-brand" @click="scrollToID($event, 'topScrollPoint')"
-      >{{ itemTypeEntry?.navbarName || "loading..." }}&nbsp;&nbsp;|&nbsp;&nbsp;
-      <FormattedCollectionName :collection_id="collection_id" />
+    <span class="navbar-brand" @click="scrollToID($event, 'topScrollPoint')">
+      {{ itemTypeEntry?.navbarName || "loading..." }}&nbsp;&nbsp;|&nbsp;&nbsp;
+      <FormattedItemName :item_id="collection_id" itemType="collections" />
     </span>
     <div class="navbar-nav">
       <a class="nav-item nav-link" href="/">Home</a>
@@ -19,8 +19,8 @@
         Unsaved changes
       </span>
       <span v-if="data_loaded && lastModified" class="navbar-text small mx-2"
-        ><i>Last saved: {{ lastModified }}</i></span
-      >
+        ><i>Last saved: {{ lastModified }}</i>
+      </span>
       <font-awesome-icon
         icon="save"
         fixed-width
@@ -39,7 +39,7 @@
 <script>
 import CollectionInformation from "@/components/CollectionInformation";
 import { getCollectionData, saveCollection } from "@/server_fetch_utils";
-import FormattedCollectionName from "@/components/FormattedCollectionName.vue";
+import FormattedItemName from "@/components/FormattedItemName.vue";
 import tinymce from "tinymce/tinymce";
 import { itemTypes } from "@/resources.js";
 import { API_URL } from "@/resources.js";
@@ -56,6 +56,12 @@ export default {
     };
   },
   methods: {
+    scrollToID(event, id) {
+      var element = document.getElementById(id);
+      element.scrollIntoView({
+        behavior: "smooth",
+      });
+    },
     saveCollectionData() {
       // trigger the mce save so that they update the store with their content
       console.log("save clicked!");
@@ -104,7 +110,7 @@ export default {
   },
   components: {
     CollectionInformation,
-    FormattedCollectionName,
+    FormattedItemName,
   },
   beforeMount() {
     this.collectionApiUrl = API_URL + "/collections/" + this.collection_id;
@@ -180,33 +186,6 @@ label,
 }
 
 .navbar-brand {
-  cursor: pointer;
-}
-
-.block-container {
-  padding-bottom: 100px;
-  position: relative;
-}
-
-.block-list-item {
-  transition: all 0.6s ease;
-  /*display: inline-block;*/
-  width: 100%;
-  position: relative;
-}
-
-.block-list-enter-from,
-.block-list-leave-to {
-  opacity: 0;
-  /*transform: translateX(-100px);*/
-}
-
-.block-list-leave-active {
-  position: absolute;
-  max-width: calc(100% - 30px);
-}
-
-.dropdown-menu {
   cursor: pointer;
 }
 </style>

@@ -10,7 +10,7 @@ export default defineConfig({
     baseUrl: 'http://localhost:8080',
     apiUrl: 'http://localhost:5001',
     experimentalMemoryManagement: true,
-    numTetsKeptInMemory: 0,
     projectId: "4kqx5i",
+    defaultCommandTimeout: 10000,
   },
 })

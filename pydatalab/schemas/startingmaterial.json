@@ -90,7 +90,8 @@
       "type": "string"
     },
     "date": {
-      "title": "Date",
+      "title": "Date Acquired",
+      "description": "The date the item was acquired",
       "type": "date",
       "format": "date-time"
     },
@@ -119,12 +120,6 @@
       "description": "A unique barcode from ChemInventory",
       "type": "string"
     },
-    "date_acquired": {
-      "title": "Date Acquired",
-      "description": "The date the item was acquired",
-      "type": "date",
-      "format": "date-time"
-    },
     "date_opened": {
       "title": "Date Opened",
       "description": "The date the container was opened",
@@ -142,6 +137,15 @@
     },
     "full_percent": {
       "title": "Full %",
+      "type": "string"
+    },
+    "GHS_codes": {
+      "title": "Ghs H-Codes",
+      "description": "A string describing any GHS hazard codes associated with this item. See https://pubchem.ncbi.nlm.nih.gov/ghs/ for code definitions.",
+      "examples": [
+        "H224",
+        "H303, H316, H319"
+      ],
       "type": "string"
     },
     "size": {
@@ -185,8 +189,7 @@
     }
   },
   "required": [
-    "item_id",
-    "name"
+    "item_id"
   ],
   "definitions": {
     "RelationshipType": {
@@ -343,6 +346,8 @@
         },
         "display_name": {
           "title": "Display Name",
+          "minLength": 1,
+          "maxLength": 150,
           "type": "string"
         },
         "contact_email": {

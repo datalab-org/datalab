@@ -7,7 +7,7 @@
     @click.meta.stop="enableModifiedClick ? openEditPageInNewTab() : null"
     @click.ctrl.stop="enableModifiedClick ? openEditPageInNewTab() : null"
   >
-    {{ shortenedName }}
+    {{ refcode }}
   </span>
 </template>
 
@@ -33,9 +33,6 @@ export default {
     badgeColor() {
       return "LightGrey";
     },
-    shortenedName() {
-      return this.refcode;
-    },
   },
   methods: {
     openEditPageInNewTab() {
@@ -48,9 +45,6 @@ export default {
 </script>
 
 <style scoped>
-.clickable {
-  cursor: pointer;
-}
 .badge {
   color: black;
 }

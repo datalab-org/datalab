@@ -9,7 +9,7 @@ from rsciio.renishaw import file_reader
 from scipy.signal import medfilt
 
 from pydatalab.blocks.base import DataBlock
-from pydatalab.bokeh_plots import mytheme, selectable_axes_plot
+from pydatalab.bokeh_plots import DATALAB_BOKEH_THEME, selectable_axes_plot
 from pydatalab.file_utils import get_file_info_by_id
 
 
@@ -33,7 +33,7 @@ class RamanBlock(DataBlock):
         if ext == ".txt":
             try:
                 header = []
-                with open(location, "r", encoding="cp1252") as f:
+                with open(location, encoding="cp1252") as f:
                     for line in f:
                         if line.startswith("#"):
                             header.append(line)
@@ -130,7 +130,10 @@ class RamanBlock(DataBlock):
 
         """
 
-        raman_data = file_reader(location)
+        try:
+            raman_data = file_reader(location)
+        except Exception as e:
+            raise RuntimeError(f"Could not read file with RosettaSciIO. Error: {e}")
 
         if len(raman_data[0]["axes"]) == 1:
             pass
@@ -165,7 +168,7 @@ class RamanBlock(DataBlock):
                     self.accepted_file_extensions,
                     ext,
                 )
-            pattern_dfs, y_options, _ = self.load(file_info["location"])
+            pattern_dfs, _, y_options = self.load(file_info["location"])
             pattern_dfs = [pattern_dfs]
 
         if pattern_dfs:
@@ -178,4 +181,4 @@ class RamanBlock(DataBlock):
                 point_size=3,
             )
 
-            self.data["bokeh_plot_data"] = bokeh.embed.json_item(p, theme=mytheme)
+            self.data["bokeh_plot_data"] = bokeh.embed.json_item(p, theme=DATALAB_BOKEH_THEME)

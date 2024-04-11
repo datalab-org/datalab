@@ -70,9 +70,7 @@ def test_filter_df_by_cycle_index(reduced_echem_dataframe):
     cycle_lists = ([1, 2, 3], [4.0, 6.0, 10.0], [-1, 5, 2])
     for cycle_list in cycle_lists:
         filtered_df = filter_df_by_cycle_index(reduced_echem_dataframe, cycle_list)
-        assert set(int(i) for i in filtered_df["full cycle"]).issubset(
-            set(int(i) for i in cycle_list)
-        )
+        assert {int(i) for i in filtered_df["full cycle"]}.issubset({int(i) for i in cycle_list})
 
 
 def test_plot(reduced_echem_dataframe):

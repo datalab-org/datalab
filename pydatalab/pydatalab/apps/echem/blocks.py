@@ -13,7 +13,6 @@ from pydatalab.blocks.base import DataBlock
 from pydatalab.file_utils import get_file_info_by_id
 from pydatalab.logger import LOGGER
 from pydatalab.mongo import flask_mongo
-from pydatalab.simple_bokeh_plot import mytheme
 
 from .utils import (
     compute_gpcl_differential,
@@ -40,6 +39,8 @@ class CycleBlock(DataBlock):
         ".xlsx",
         ".txt",
         ".res",
+        ".nda",
+        ".ndax",
     )
 
     cache: Dict[str, Any]
@@ -133,15 +134,21 @@ class CycleBlock(DataBlock):
                 raise RuntimeError(f"Navani raised an error when parsing: {exc}") from exc
             raw_df.to_pickle(parsed_file_loc)
 
-        if cycle_summary_df is None:
-            cycle_summary_df = ec.cycle_summary(raw_df)
-            cycle_summary_df.to_pickle(cycle_summary_file_loc)
+        try:
+            if cycle_summary_df is None:
+                cycle_summary_df = ec.cycle_summary(raw_df)
+                cycle_summary_df.to_pickle(cycle_summary_file_loc)
+        except Exception:
+            pass
 
         raw_df = raw_df.filter(required_keys)
         raw_df.rename(columns=keys_with_units, inplace=True)
 
-        cycle_summary_df.rename(columns=keys_with_units, inplace=True)
-        cycle_summary_df["cycle index"] = pd.to_numeric(cycle_summary_df.index, downcast="integer")
+        if cycle_summary_df is not None:
+            cycle_summary_df.rename(columns=keys_with_units, inplace=True)
+            cycle_summary_df["cycle index"] = pd.to_numeric(
+                cycle_summary_df.index, downcast="integer"
+            )
 
         return raw_df, cycle_summary_df
 
@@ -210,7 +217,12 @@ class CycleBlock(DataBlock):
             df, cycle_summary=cycle_summary_df, mode=mode, normalized=bool(characteristic_mass_g)
         )
 
-        self.data["bokeh_plot_data"] = bokeh.embed.json_item(layout, theme=mytheme)
+        if layout is not None:
+            # Don't overwrite the previous plot data in cases where the plot is not generated
+            # for a 'normal' reason
+            self.data["bokeh_plot_data"] = bokeh.embed.json_item(
+                layout, theme=bokeh_plots.DATALAB_BOKEH_THEME
+            )
         return
 
     @property

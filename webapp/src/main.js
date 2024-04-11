@@ -11,6 +11,7 @@ import router from "./router";
 import { library } from "@fortawesome/fontawesome-svg-core";
 import {
   faSave,
+  faPen,
   faCode,
   faEnvelope,
   faCog,
@@ -32,6 +33,7 @@ import {
   faQuestionCircle,
   faLink,
   faUnlink,
+  faExclamationTriangle,
   faExclamationCircle,
   faListOl,
   faSearch,
@@ -44,6 +46,7 @@ import { faGithub, faOrcid } from "@fortawesome/free-brands-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 library.add(
   faSave,
+  faPen,
   faCode,
   faEnvelope,
   faCog,
@@ -67,6 +70,7 @@ library.add(
   faHdd,
   faLink,
   faUnlink,
+  faExclamationTriangle,
   faExclamationCircle,
   faListOl,
   faSearch,
@@ -84,13 +88,14 @@ import "tinymce/themes/silver";
 import "tinymce/skins/ui/oxide/skin.min.css";
 import "tinymce/skins/ui/oxide/content.min.css";
 import "tinymce/skins/content/default/content.min.css";
-// import "tinymce/plugins/emoticons" // not working for some reason
 import "tinymce/plugins/hr";
 import "tinymce/plugins/image";
 import "tinymce/plugins/link";
 import "tinymce/plugins/lists";
 import "tinymce/plugins/charmap";
 import "tinymce/plugins/table";
+import "tinymce/plugins/emoticons";
+import "tinymce/plugins/emoticons/js/emojis";
 
 // import "@uppy/vue"
 

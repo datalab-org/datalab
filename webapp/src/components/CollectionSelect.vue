@@ -2,14 +2,15 @@
   <vSelect
     v-model="value"
     :options="collections"
+    multiple
     @search="debouncedAsyncSearch"
-    label="name"
+    label="collection_id"
     :filterable="false"
     ref="selectComponent"
   >
     <template #no-options="{ searching }">
       <span v-if="searching"> Sorry, no matches found. </span>
-      <span v-else class="empty-search"> Type a search term... </span>
+      <span v-else class="empty-search"> Search for a collection... </span>
     </template>
     <template v-slot:option="{ collection_id, title }">
       <FormattedCollectionName
@@ -19,10 +20,9 @@
         :maxLength="formattedItemNameMaxLength"
       />
     </template>
-    <template v-slot:selected-option="{ collection_id, title }">
+    <template v-slot:selected-option="{ collection_id }">
       <FormattedCollectionName
         :collection_id="collection_id"
-        :title="title"
         enableModifiedClick
         :maxLength="formattedItemNameMaxLength"
       />
@@ -74,6 +74,12 @@ export default {
       this.debounceTimeout = setTimeout(async () => {
         await searchCollections(query, 100)
           .then((collections) => {
+            // check if the searched collections are already listed in the value
+            // if so, remove it from the list of options
+            if (this.value) {
+              const valueIds = this.value.map((item) => item.collection_id);
+              collections = collections.filter((item) => !valueIds.includes(item.collection_id));
+            }
             this.collections = collections;
           })
           .catch((error) => {

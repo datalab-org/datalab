@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from "vue-router";
 // import Home from '../views/Home.vue'
 // import Test from '../views/Test.vue'
 import Samples from "../views/Samples.vue";
+import Equipment from "../views/Equipment.vue";
 import SamplesNext from "../views/SamplesNext.vue";
 import StartingMaterials from "../views/StartingMaterials.vue";
 import StartingMaterialsNext from "../views/StartingMaterialsNext.vue";
@@ -28,6 +29,12 @@ const routes = [
     name: "samples",
     alias: "/",
     component: Samples,
+  },
+  {
+    path: "/equipment",
+    name: "equipment",
+    alias: "/",
+    component: Equipment,
   },
   { path: "/next/samples", name: "samples-next", alias: "/next", component: SamplesNext },
   {

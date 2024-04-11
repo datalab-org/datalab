@@ -12,9 +12,11 @@ import MassSpecBlock from "@/components/datablocks/MassSpecBlock";
 import SampleInformation from "@/components/SampleInformation";
 import StartingMaterialInformation from "@/components/StartingMaterialInformation";
 import CellInformation from "@/components/CellInformation";
+import CollectionInformation from "@/components/CollectionInformation";
+import EquipmentInformation from "@/components/EquipmentInformation";
+
 import SampleCreateModalAddon from "@/components/itemCreateModalAddons/SampleCreateModalAddon";
 import CellCreateModalAddon from "@/components/itemCreateModalAddons/CellCreateModalAddon";
-import CollectionInformation from "@/components/CollectionInformation";
 
 // Look for values set in .env file. Use defaults if `null` is not explicitly handled elsewhere in the code.
 export const API_URL =
@@ -23,7 +25,13 @@ export const API_TOKEN = process.env.VUE_APP_API_TOKEN;
 
 export const LOGO_URL = process.env.VUE_APP_LOGO_URL;
 export const HOMEPAGE_URL = process.env.VUE_APP_HOMEPAGE_URL;
+
 export const GRAVATAR_STYLE = "identicon";
+
+// determine whether inventory should be readonly (except blocks). Note: environment
+// variables can only be strings, not bools.
+const editable_inventory = process.env.VUE_APP_EDITABLE_INVENTORY || "false";
+export const EDITABLE_INVENTORY = editable_inventory.toLowerCase() == "true";
 
 export const UPPY_MAX_TOTAL_FILE_SIZE =
   Number(process.env.VUE_APP_UPPY_MAX_TOTAL_FILE_SIZE) != null
@@ -37,7 +45,6 @@ export const UPPY_MAX_NUMBER_OF_FILES =
 export const debounceTime = 250; // time after user stops typing before request is sent
 
 export const blockTypes = {
-  generic: { description: "Test Block", component: DataBlockBase },
   comment: { description: "Comment", component: DataBlockBase },
   media: { description: "Media", component: MediaBlock },
   xrd: { description: "Powder XRD", component: XRDBlock },
@@ -66,7 +73,7 @@ export const itemTypes = {
     navbarName: "Starting Material",
     lightColor: "#d9f2eb",
     labelColor: "#298651",
-    isCreateable: false,
+    isCreateable: true,
     display: "starting material",
   },
   cells: {
@@ -83,8 +90,8 @@ export const itemTypes = {
     itemInformationComponent: CollectionInformation,
     navbarColor: "#563D7c",
     navbarName: "Collection",
-    lightColor: "#B38FEA",
-    labelColor: "#845dbf",
+    lightColor: "#cbd6f7",
+    labelColor: "#563D7c",
     display: "collection",
   },
   users: {
@@ -95,7 +102,19 @@ export const itemTypes = {
     isCreateable: false,
     display: "user",
   },
+  equipment: {
+    itemInformationComponent: EquipmentInformation,
+    navbarColor: "#c77c02",
+    navbarName: "Equipment",
+    lightColor: "#f7d6a1",
+    labelColor: "#c77c02",
+    display: "equipment",
+  },
 };
+
+export const SAMPLE_TABLE_TYPES = ["samples", "cells"];
+export const INVENTORY_TABLE_TYPES = ["starting_materials"];
+export const EQUIPMENT_TABLE_TYPES = ["equipment"];
 
 export const cellFormats = {
   coin: "coin",

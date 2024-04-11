@@ -1,17 +1,22 @@
 <template>
-  <div class="form-inline">
-    <div class="form-group">
-      <label class="mr-4"><b>Select a file:</b></label>
-      <select class="form-control" :value="modelValue" @input="handleInput">
-        <option v-for="file_id in available_file_ids" :key="file_id" :value="file_id">
-          {{ all_files[file_id].name }}
-        </option>
-      </select>
+  <div class="form-group form-inline">
+    <label class="mr-4"><b>Select a file:</b></label>
+    <select class="form-control file-select-dropdown" :value="modelValue" @input="handleInput">
+      <option v-for="file_id in available_file_ids" :key="file_id" :value="file_id">
+        {{ all_files[file_id].name }}
+      </option>
+      <option disabled>
+        Accepted filetypes:
+        <span v-for="(extension, index) in extensions" :key="extension">
+          <span v-if="index != 0">,&thinsp;</span>
+          {{ extension }}
+        </span>
+      </option>
+    </select>
 
-      <span v-if="all_files[modelValue] && all_files[modelValue].is_live" class="ml-2">
-        <b>Live</b> (last updated: {{ lastModified }})
-      </span>
-    </div>
+    <span v-if="all_files[modelValue] && all_files[modelValue].is_live" class="ml-2">
+      <b>Live</b> (last updated: {{ lastModified }})
+    </span>
   </div>
 </template>
 
@@ -69,3 +74,9 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.file-select-dropdown {
+  min-width: 20rem;
+}
+</style>

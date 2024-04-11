@@ -1,4 +1,5 @@
 import random
+import warnings
 from typing import Any, Callable, Dict, Optional, Sequence
 
 from bson import ObjectId
@@ -54,7 +55,6 @@ class DataBlock:
             dictionary = {}
 
         if item_id is None and not self._supports_collections:
-            breakpoint()
             raise RuntimeError(f"Must supply `item_id` to make {self.__class__.__name__}.")
 
         if collection_id is not None and not self._supports_collections:
@@ -103,15 +103,17 @@ class DataBlock:
     def to_db(self):
         """returns a dictionary with the data for this
         block, ready to be input into mongodb"""
+
         LOGGER.debug("Casting block %s to database object.", self.__class__.__name__)
+
+        if "bokeh_plot_data" in self.data:
+            self.data.pop("bokeh_plot_data")
 
         if "file_id" in self.data:
             dict_for_db = self.data.copy()  # gross, I know
             dict_for_db["file_id"] = ObjectId(dict_for_db["file_id"])
             return dict_for_db
 
-        if "bokeh_plot_data" in self.data:
-            self.data.pop("bokeh_plot_data")
         return self.data
 
     @classmethod
@@ -127,16 +129,39 @@ class DataBlock:
             new_block.data["file_id"] = str(new_block.data["file_id"])
         return new_block
 
-    def to_web(self):
-        """returns a json-able dictionary to render the block on the web"""
+    def to_web(self) -> Dict[str, Any]:
+        """Returns a JSON serializable dictionary to render the data block on the web."""
+        block_errors = []
+        block_warnings = []
         if self.plot_functions:
             for plot in self.plot_functions:
-                try:
-                    plot()
-                except RuntimeError:
-                    LOGGER.warning(
-                        f"Could not create plot for {self.__class__.__name__}: {self.data}"
-                    )
+                with warnings.catch_warnings(record=True) as captured_warnings:
+                    try:
+                        plot()
+                    except Exception as e:
+                        block_errors.append(f"{self.__class__.__name__} raised error: {e}")
+                        LOGGER.warning(
+                            f"Could not create plot for {self.__class__.__name__}: {self.data}"
+                        )
+                    finally:
+                        if captured_warnings:
+                            block_warnings.extend(
+                                [
+                                    f"{self.__class__.__name__} raised warning: {w.message}"
+                                    for w in captured_warnings
+                                ]
+                            )
+
+        # If the last plotting run did not raise any errors or warnings, remove any old ones
+        if block_errors:
+            self.data["errors"] = block_errors
+        else:
+            self.data.pop("errors", None)
+        if block_warnings:
+            self.data["warnings"] = block_warnings
+        else:
+            self.data.pop("warnings", None)
+
         return self.data
 
     @classmethod

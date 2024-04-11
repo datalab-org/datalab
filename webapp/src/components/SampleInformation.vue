@@ -1,52 +1,48 @@
 <template>
-  <div class="container">
+  <div class="container-lg">
     <!-- Sample information -->
     <div class="row">
       <div class="col">
         <div id="sample-information" class="form-row">
-          <div class="form-group col-md-4">
-            <label for="name" class="mr-2">Name</label>
-            <input id="name" class="form-control" v-model="Name" />
+          <div class="form-group col-sm-4 pr-2">
+            <label for="samp-name">Name</label>
+            <input id="samp-name" class="form-control" v-model="Name" />
           </div>
-          <div class="form-group col-md-4">
-            <label for="chemform" class="mr-2">Chemical formula</label>
-            <ChemFormulaInput id="chemform" v-model="ChemForm" />
+          <div class="form-group col-sm-4 col-6 pr-2">
+            <label for="samp-chemform">Chemical formula</label>
+            <ChemFormulaInput id="samp-chemform" v-model="ChemForm" />
           </div>
-          <div class="form-group col-md-4">
-            <label for="date" class="mr-2">Date Created</label>
+          <div class="form-group col-sm-4 col-6">
+            <label for="samp-date">Date Created</label>
             <input
+              id="samp-date"
               type="datetime-local"
               v-model="DateCreated"
               class="form-control"
-              style="max-width: 250px"
             />
           </div>
         </div>
         <div class="form-row">
-          <div class="form-group col-md-2">
-            <label for="refcode" class="mr-2">Refcode</label>
-            <FormattedRefcode :refcode="Refcode" />
-          </div>
-          <div class="col-md-2 pb-3">
-            <label id="creators" class="mr-2">Creators</label>
-            <div class="mx-auto">
-              <Creators aria-labelledby="creators" :creators="ItemCreators" :size="36" />
+          <div class="form-group col-md-3 col-sm-2 col-6">
+            <label for="samp-refcode">Refcode</label>
+            <div id="samp-refcode">
+              <FormattedRefcode :refcode="Refcode" />
             </div>
           </div>
-          <div class="form-group col-md-3">
-            <label id="collections" class="mr-2">Collections</label>
-            <div>
-              <CollectionList aria-labelledby="collections" :collections="Collections" />
+          <div class="form-group col-md-3 col-sm-3 col-6 pb-3">
+            <label id="samp-creators">Creators</label>
+            <div aria-labelledby="samp-creators" class="mx-auto">
+              <Creators :creators="ItemCreators" :size="36" />
             </div>
+          </div>
+          <div class="col-md-6 col-sm-7 pr-2">
+            <ToggleableCollectionFormGroup v-model="Collections" />
           </div>
         </div>
-        <div class="row">
+        <div class="form-row">
           <div class="col">
-            <label id="description-label" class="mr-2">Description</label>
-            <TinyMceInline
-              aria-labelledby="description-label"
-              v-model="SampleDescription"
-            ></TinyMceInline>
+            <label id="samp-description-label">Description</label>
+            <TinyMceInline aria-labelledby="samp-description-label" v-model="SampleDescription" />
           </div>
         </div>
       </div>
@@ -65,7 +61,7 @@
 import { createComputedSetterForItemField } from "@/field_utils.js";
 import ChemFormulaInput from "@/components/ChemFormulaInput";
 import FormattedRefcode from "@/components/FormattedRefcode";
-import CollectionList from "@/components/CollectionList";
+import ToggleableCollectionFormGroup from "@/components/ToggleableCollectionFormGroup";
 import TinyMceInline from "@/components/TinyMceInline";
 import SynthesisInformation from "@/components/SynthesisInformation";
 import TableOfContents from "@/components/TableOfContents";
@@ -103,7 +99,7 @@ export default {
     TableOfContents,
     ItemRelationshipVisualization,
     FormattedRefcode,
-    CollectionList,
+    ToggleableCollectionFormGroup,
     Creators,
   },
 };

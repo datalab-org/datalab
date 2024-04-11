@@ -1,44 +1,43 @@
 <template>
-  <div class="container">
+  <div class="container-lg">
     <!-- Sample information -->
     <div class="row">
-      <div class="col">
+      <div class="col-md-8">
         <div id="sample-information" class="form-row">
-          <div class="form-group col-md-5">
-            <label for="name" class="mr-2">Name</label>
-            <input id="name" class="form-control" v-model="Name" />
+          <div class="form-group col-sm-8">
+            <label for="cell-name" class="mr-2">Name</label>
+            <input id="cell-name" class="form-control" v-model="Name" />
           </div>
-          <div class="form-group col-md-3">
-            <label for="date" class="mr-2">Date Created</label>
+          <div class="form-group col-sm-4">
+            <label for="cell-date" class="mr-2">Date Created</label>
             <input
+              id="cell-date"
               type="datetime-local"
               v-model="DateCreated"
               class="form-control"
-              style="max-width: 250px"
             />
           </div>
         </div>
         <div class="form-row">
-          <div class="form-group col-md-2">
-            <label for="refcode" class="mr-2">Refcode</label>
-            <FormattedRefcode :refcode="Refcode" />
-          </div>
-          <div class="col-md-2 pb-3">
-            <label id="creators" class="mr-2">Creators</label>
-            <div class="mx-auto">
-              <Creators aria-labelledby="creators" :creators="ItemCreators" :size="36" />
+          <div class="form-group col-md-3 col-sm-2 col-6 pr-2">
+            <label for="cell-refcode">Refcode</label>
+            <div id="cell-refcode">
+              <FormattedRefcode :refcode="Refcode" />
             </div>
           </div>
-          <div class="form-group col-md-3">
-            <label id="collections" class="mr-2">Collections</label>
-            <div>
-              <CollectionList aria-labelledby="collections" :collections="Collections" />
+          <div class="form-group col-md-3 col-sm-3 col-6 pb-3 pr-2">
+            <label id="cell-creators">Creators</label>
+            <div aria-labelledby="cell-creators" class="mx-auto">
+              <Creators :creators="ItemCreators" :size="36" />
             </div>
+          </div>
+          <div class="col-md-6 col-sm-7 pr-2">
+            <ToggleableCollectionFormGroup v-model="Collections" />
           </div>
         </div>
         <div class="form-row">
-          <div class="form-group col-md-2">
-            <label for="cell-format-dropdown" class="mr-2">Cell format</label>
+          <div class="form-group col-sm-4 pr-2">
+            <label for="cell-format-dropdown">Cell format</label>
             <select id="cell-format-dropdown" v-model="CellFormat" class="form-control">
               <option
                 v-for="(description, key) in availableCellFormats"
@@ -49,7 +48,7 @@
               </option>
             </select>
           </div>
-          <div class="form-group col-md-6 ml-3">
+          <div class="form-group col-sm-8">
             <label for="cell-format-description">Cell format description</label>
             <input
               id="cell-format-description"
@@ -61,24 +60,24 @@
         </div>
 
         <div class="form-row py-4">
-          <div class="form-group col-md-3">
-            <label for="characteristic-mass">Active mass (mg)</label>
+          <div class="form-group col-lg-3 col-md-4 pr-3">
+            <label for="cell-characteristic-mass">Active mass (mg)</label>
             <input
-              id="characteristic-mass"
+              id="cell-characteristic-mass"
               class="form-control"
               type="text"
               v-model="CharacteristicMass"
               :class="{ 'red-border': isNaN(CharacteristicMass) }"
             />
           </div>
-          <div class="form-group col-md-4 ml-3">
-            <label for="chemform">Active material formula</label>
-            <ChemFormulaInput id="chemform" v-model="ChemForm" />
+          <div class="form-group col-lg-4 col-md-4 pr-3">
+            <label for="cell-chemform">Active formula</label>
+            <ChemFormulaInput id="cell-chemform" v-model="ChemForm" />
           </div>
-          <div class="form-group col-md-3 ml-3">
-            <label for="characteristic-molar-mass">Molar mass</label>
+          <div class="form-group col-lg-3 col-md-4">
+            <label for="cell-characteristic-molar-mass">Molar mass</label>
             <input
-              id="characteristic-molar-mass"
+              id="cell-characteristic-molar-mass"
               class="form-control"
               type="text"
               v-model="MolarMass"
@@ -88,9 +87,9 @@
         </div>
         <div class="row">
           <div class="col">
-            <label id="description-label" class="mr-2">Description</label>
+            <label id="cell-description-label">Description</label>
             <TinyMceInline
-              aria-labelledby="description-label"
+              aria-labelledby="cell-description-label"
               v-model="SampleDescription"
             ></TinyMceInline>
           </div>
@@ -115,7 +114,7 @@ import CellPreparationInformation from "@/components/CellPreparationInformation"
 import TableOfContents from "@/components/TableOfContents";
 import ItemRelationshipVisualization from "@/components/ItemRelationshipVisualization";
 import FormattedRefcode from "@/components/FormattedRefcode";
-import CollectionList from "@/components/CollectionList";
+import ToggleableCollectionFormGroup from "@/components/ToggleableCollectionFormGroup";
 import Creators from "@/components/Creators";
 import { cellFormats } from "@/resources.js";
 
@@ -154,7 +153,7 @@ export default {
     TableOfContents,
     ItemRelationshipVisualization,
     FormattedRefcode,
-    CollectionList,
+    ToggleableCollectionFormGroup,
     Creators,
   },
 };

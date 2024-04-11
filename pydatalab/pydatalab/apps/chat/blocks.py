@@ -2,8 +2,7 @@ import json
 import os
 from typing import Sequence
 
-import openai
-import tiktoken
+from langchain_openai import ChatOpenAI
 
 from pydatalab.blocks.base import DataBlock
 from pydatalab.logger import LOGGER
@@ -13,24 +12,6 @@ from pydatalab.utils import CustomJSONEncoder
 __all__ = "ChatBlock"
 MODEL = "gpt-3.5-turbo-0613"
 MAX_CONTEXT_SIZE = 4097
-
-
-def num_tokens_from_messages(messages: Sequence[dict]):
-    # see: https://github.com/openai/openai-cookbook/blob/main/examples/How_to_count_tokens_with_tiktoken.ipynb
-    encoding = tiktoken.encoding_for_model(MODEL)
-
-    tokens_per_message = 4  # every message follows <|start|>{role/name}\n{content}<|end|>\n
-    tokens_per_name = -1  # if there's a name, the role is omitted
-
-    num_tokens = 0
-    for message in messages:
-        num_tokens += tokens_per_message
-        for key, value in message.items():
-            num_tokens += len(encoding.encode(value))
-            if key == "name":
-                num_tokens += tokens_per_name
-    num_tokens += 3  # every reply is primed with <|start|>assistant<|message|>
-    return num_tokens
 
 
 class ChatBlock(DataBlock):
@@ -47,7 +28,10 @@ Be as concise as possible. When saying your name, type a bird emoji right after 
         "temperature": 0.2,
         "error_message": None,
     }
-    openai.api_key = os.environ.get("OPENAI_API_KEY")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.openai_client = ChatOpenAI(api_key=os.environ.get("OPENAI_API_KEY"), model=MODEL)
 
     def to_db(self):
         """returns a dictionary with the data for this
@@ -89,15 +73,6 @@ Start with a friendly introduction and give me a one sentence summary of what th
             )
             self.data["prompt"] = None
 
-        token_count = num_tokens_from_messages(self.data["messages"])
-        self.data["token_count"] = token_count
-
-        if token_count >= MAX_CONTEXT_SIZE:
-            self.data[
-                "error_message"
-            ] = f"""This conversation has reached its maximum context size and the chatbot won't be able to respond further ({token_count} tokens, max: {MAX_CONTEXT_SIZE}). Please make a new chat block to start fresh."""
-            return
-
         try:
             if self.data["messages"][-1].role not in ("user", "system"):
                 return
@@ -109,30 +84,39 @@ Start with a friendly introduction and give me a one sentence summary of what th
             LOGGER.debug(
                 f"submitting request to OpenAI API for completion with last message role \"{self.data['messages'][-1]['role']}\" (message = {self.data['messages'][-1:]}). Temperature = {self.data['temperature']} (type {type(self.data['temperature'])})"
             )
-            responses = openai.ChatCompletion.create(
-                model=MODEL,
-                messages=self.data["messages"],
-                temperature=self.data["temperature"],
-                max_tokens=min(
-                    1024, MAX_CONTEXT_SIZE - token_count - 1
-                ),  # if less than 1024 tokens are left in the token, then indicate this
-            )
+            from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+
+            # Convert your messages to the required format
+            langchain_messages = []
+            for message in self.data["messages"]:
+                if message["role"] == "user":
+                    langchain_messages.append(HumanMessage(content=message["content"]))
+                elif message["role"] == "system":
+                    langchain_messages.append(SystemMessage(content=message["content"]))
+                else:
+                    langchain_messages.append(AIMessage(content=message["content"]))
+
+            token_count = self.openai_client.get_num_tokens_from_messages(langchain_messages)
+            self.data["token_count"] = token_count
+
+            if token_count >= MAX_CONTEXT_SIZE:
+                self.data["error_message"] = (
+                    f"""This conversation has reached its maximum context size and the chatbot won't be able to respond further ({token_count} tokens, max: {MAX_CONTEXT_SIZE}). Please make a new chat block to start fresh."""
+                )
+                return
+
+            # Call the OpenAI client with the invoke method
+            response = self.openai_client.invoke(langchain_messages)
+            langchain_messages.append(response)
+            token_count = self.openai_client.get_num_tokens_from_messages(langchain_messages)
+            self.data["token_count"] = token_count
+            self.data["messages"].append({"role": "assistant", "content": response.content})
             self.data["error_message"] = None
-        except openai.OpenAIError as exc:
+
+        except Exception as exc:
             LOGGER.debug("Received an error from OpenAI API: %s", exc)
             self.data["error_message"] = f"Received an error from the OpenAi API: {exc}."
             return
-
-        try:
-            self.data["messages"].append(responses["choices"][0].message)
-        except AttributeError:
-            self.data["messages"].append(responses["choices"][0]["message"])
-
-        self.data["model_name"] = MODEL
-
-        token_count = num_tokens_from_messages(self.data["messages"])
-        self.data["token_count"] = token_count
-        return
 
     def _prepare_item_json_for_chat(self, item_id: str):
         from pydatalab.routes.v0_1.items import get_item_data
@@ -215,9 +199,9 @@ Start with a friendly introduction and give me a one sentence summary of what th
                     LOGGER.debug("iterating through constituents:")
                     LOGGER.debug(constituent)
                     if "quantity" in constituent:
-                        constituent[
-                            "quantity"
-                        ] = f"{constituent.get('quantity', 'unknown')} {constituent.get('unit', '')}"
+                        constituent["quantity"] = (
+                            f"{constituent.get('quantity', 'unknown')} {constituent.get('unit', '')}"
+                        )
                     constituent.pop("unit", None)
 
         # Note manual replaces to help avoid escape sequences that take up extra tokens

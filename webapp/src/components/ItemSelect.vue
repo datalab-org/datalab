@@ -9,6 +9,7 @@
     ref="selectComponent"
     :createOption="createOption"
     :filterBy="() => true"
+    placeholder="type to search..."
   >
     <template #no-options="{ searching }">
       <span v-if="searching"> Sorry, no matches found. </span>

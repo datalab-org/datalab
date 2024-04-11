@@ -23,6 +23,22 @@
           <StatisticsTable />
         </div>
 
+        <h5>Deployment info:</h5>
+        <div class="p-3">
+          <table>
+            <tr>
+              <td>API version</td>
+              <td>
+                <code>{{ apiInfo.apiVersion }}</code>
+              </td>
+            </tr>
+            <tr>
+              <td>App version</td>
+              <td><code>0.3.2</code></td>
+            </tr>
+          </table>
+        </div>
+
         datalab was primarily developed by:
         <ul>
           <li>
@@ -57,15 +73,33 @@
 
 <script>
 import Navbar from "@/components/Navbar";
+import { getInfo } from "@/server_fetch_utils.js";
 import StatisticsTable from "@/components/StatisticsTable";
 
 export default {
   components: { Navbar, StatisticsTable },
+  data() {
+    return {
+      apiInfo: { apiVersion: "unknown" },
+    };
+  },
+  async mounted() {
+    this.apiInfo = await getInfo();
+  },
 };
 </script>
 
 <style scoped>
 h1 {
   margin: 2rem 0rem;
+}
+
+td,
+th {
+  text-align: center;
+  border-top: 1px solid #ddd;
+  border-right: 1px solid #ddd;
+  border-left: 1px solid #ddd;
+  border-bottom: 1px solid #ddd;
 }
 </style>

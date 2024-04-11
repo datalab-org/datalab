@@ -1,9 +1,9 @@
 # Datalab database dirs - these can be removed once we have a better place for them
 files/
 uploads/
-server/
 ssh_config
 logs/
+site/
 
 # App testing files
 webapp/cypress/screenshots

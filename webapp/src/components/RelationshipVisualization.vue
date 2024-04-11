@@ -106,12 +106,6 @@ export default {
   cursor: pointer;
 }
 
-.contents-blocktype {
-  font-style: italic;
-  color: gray;
-  margin-right: 1rem;
-}
-
 .contents-blocktitle {
   color: #004175;
 }

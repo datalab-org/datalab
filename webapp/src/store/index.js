@@ -12,6 +12,7 @@ export default createStore({
     all_collection_children: {},
     all_collection_parents: {},
     sample_list: [],
+    equipment_list: [],
     starting_material_list: [],
     collection_list: [],
     saved_status_items: {},
@@ -25,6 +26,7 @@ export default createStore({
     itemGraphData: null,
     remoteDirectoryTreeIsLoading: false,
     fileSelectModalIsOpen: false,
+    currentUserDisplayName: null,
   },
   mutations: {
     setSampleList(state, sampleSummaries) {
@@ -39,6 +41,13 @@ export default createStore({
       // collectionSummaries is an array of json objects summarizing the available collections
       state.collection_list = collectionSummaries;
     },
+    setDisplayName(state, displayName) {
+      state.currentUserDisplayName = displayName;
+    },
+    setEquipmentList(state, equipmentSummaries) {
+      // equipmentSummary is an array of json objects summarizing the available samples
+      state.equipment_list = equipmentSummaries;
+    },
     appendToSampleList(state, sampleSummary) {
       // sampleSummary is a json object summarizing the new sample
       state.sample_list.push(sampleSummary);
@@ -46,6 +55,14 @@ export default createStore({
     prependToSampleList(state, sampleSummary) {
       // sampleSummary is a json object summarizing the new sample
       state.sample_list.unshift(sampleSummary);
+    },
+    prependToStartingMaterialList(state, itemSummary) {
+      // sampleSummary is a json object summarizing the new sample
+      state.starting_material_list.unshift(itemSummary);
+    },
+    prependToEquipmentList(state, equipmentSummary) {
+      // sampleSummary is a json object summarizing the new sample
+      state.equipment_list.unshift(equipmentSummary);
     },
     prependToCollectionList(state, collectionSummary) {
       // collectionSummary is a json object summarizing the new collection
@@ -59,12 +76,28 @@ export default createStore({
         console.log(`deleteFromSampleList couldn't find the item with id ${item_id}`);
       }
     },
+    deleteFromStartingMaterialList(state, item_id) {
+      const index = state.starting_material_list.map((e) => e.item_id).indexOf(item_id);
+      if (index > -1) {
+        state.starting_material_list.splice(index, 1);
+      } else {
+        console.log(`deleteFromStartingMaterialList couldn't find the item with id ${item_id}`);
+      }
+    },
     deleteFromCollectionList(state, collection_summary) {
       const index = state.collection_list.indexOf(collection_summary);
       if (index > -1) {
         state.collection_list.splice(index, 1);
       } else {
         console.log("deleteFromCollectionList couldn't find the object");
+      }
+    },
+    deleteFromEquipmentList(state, item_id) {
+      const index = state.equipment_list.map((e) => e.item_id).indexOf(item_id);
+      if (index > -1) {
+        state.equipment_list.splice(index, 1);
+      } else {
+        console.log(`deleteFromEquipmentList couldn't find the item with id ${item_id}`);
       }
     },
     createItemData(state, payload) {
@@ -140,6 +173,13 @@ export default createStore({
         state.all_item_data[payload.item_id]["blocks_obj"][payload.block_id],
         payload.block_data,
       );
+      // if there are no block warnings or errors, make sure they are not in the store
+      if (!payload.block_data.errors) {
+        delete state.all_item_data[payload.item_id]["blocks_obj"][payload.block_id].errors;
+      }
+      if (!payload.block_data.warnings) {
+        delete state.all_item_data[payload.item_id]["blocks_obj"][payload.block_id].warnings;
+      }
       state.saved_status_blocks[payload.block_id] = false;
     },
     updateItemData(state, payload) {
@@ -231,6 +271,9 @@ export default createStore({
     getBlockByItemIDandBlockID: (state) => (item_id, block_id) => {
       console.log("getBlockBySampleIDandBlockID called with:", item_id, block_id);
       return state.all_sample_data[item_id]["blocks_obj"][block_id];
+    },
+    getCurrentUserDisplayName(state) {
+      return state.currentUserDisplayName;
     },
   },
   actions: {},

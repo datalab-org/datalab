@@ -1,24 +1,8 @@
-from pathlib import Path
+import shutil
 
 import pytest
 
 from pydatalab.config import CONFIG
-
-
-@pytest.fixture(scope="module", name="default_filepath")
-def fixture_default_filepath():
-    return Path(__file__).parent.joinpath(
-        "../../example_data/echem/jdb11-1_c3_gcpl_5cycles_2V-3p8V_C-24_data_C09.mpr"
-    )
-
-
-@pytest.fixture(scope="module", name="insert_default_sample")
-def fixture_insert_default_sample(client, default_sample):  # pylint: disable=unused-argument
-    from pydatalab.mongo import flask_mongo
-
-    flask_mongo.db.items.insert_one(default_sample.dict(exclude_unset=False))
-    yield
-    flask_mongo.db.items.delete_one({"item_id": default_sample.item_id})
 
 
 @pytest.mark.dependency()
@@ -82,3 +66,55 @@ def test_get_file_and_delete(client, default_filepath, default_sample):
     assert response.status_code == 200
     assert not response.json["item_data"]["file_ObjectIds"]
     assert not response.json["files_data"]
+
+
+def test_upload_new_version(
+    client, default_filepath, insert_default_sample, default_sample, tmpdir
+):  # pylint: disable=unused-argument
+    """Upload a file, then upload a new version of the same file."""
+    with open(default_filepath, "rb") as f:
+        response = client.post(
+            "/upload-file/",
+            buffered=True,
+            content_type="multipart/form-data",
+            data={
+                "item_id": default_sample.item_id,
+                "file": [(f, default_filepath.name)],
+                "type": "application/octet-stream",
+                "replace_file": "null",
+                "relativePath": "null",
+            },
+        )
+
+    file_id = response.json["file_id"]
+    assert file_id
+    assert response.json["file_information"]
+    assert response.json["status"], "success"
+    assert response.status_code == 201
+
+    # Copy the file to a new temp directory so its fs metadata changes
+    tmp_filepath = tmpdir / default_filepath.name
+    shutil.copy(default_filepath, tmp_filepath)
+
+    with open(tmp_filepath, "rb") as f:
+        response_reup = client.post(
+            "/upload-file/",
+            buffered=True,
+            content_type="multipart/form-data",
+            data={
+                "item_id": default_sample.item_id,
+                "file": [(f, default_filepath.name)],
+                "type": "application/octet-stream",
+                "replace_file": file_id,
+                "relativePath": "null",
+            },
+        )
+    assert isinstance(response_reup.json["file_id"], str)
+    assert response_reup.json["file_information"]
+    assert response_reup.json["status"], "success"
+    assert response_reup.status_code == 201
+    assert (
+        response_reup.json["file_information"]["location"]
+        == response.json["file_information"]["location"]
+    )
+    assert response_reup.json["file_id"] == response.json["file_id"]

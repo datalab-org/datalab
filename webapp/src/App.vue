@@ -33,14 +33,15 @@ body {
 }
 
 #nav a {
-  font-weight: bold;
-  color: #2c3e50;
+  color: #444;
   border-radius: 5px;
   padding: 5px;
 }
 
 #nav a.router-link-exact-active {
-  color: #42b983;
+  color: black;
+  font-weight: bold;
+  text-decoration: underline;
 }
 
 /*for form errors*/
@@ -93,27 +94,11 @@ body {
   border-left-color: #d9534f;
 }
 
-.table-item-id {
-  font-size: 1.2em;
-  font-weight: normal;
-}
-
-.formatted-refcode {
-  font-size: 1.2em;
-  font-weight: normal;
-  font-family: "Roboto Mono", monospace;
-}
-
-.badge {
-  border: 2px solid transparent;
-}
-
 .fa-orcid {
   color: #a6ce39;
 }
 
-.badge.clickable:hover {
+.clickable {
   cursor: pointer;
-  border: 2px solid #000000;
 }
 </style>

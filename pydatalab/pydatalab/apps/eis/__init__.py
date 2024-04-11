@@ -6,7 +6,7 @@ import pandas as pd
 from bokeh.models import HoverTool, LogColorMapper
 
 from pydatalab.blocks.base import DataBlock
-from pydatalab.bokeh_plots import mytheme, selectable_axes_plot
+from pydatalab.bokeh_plots import DATALAB_BOKEH_THEME, selectable_axes_plot
 from pydatalab.file_utils import get_file_info_by_id
 from pydatalab.logger import LOGGER
 
@@ -26,7 +26,7 @@ class EISBlock(DataBlock):
     accepted_file_extensions = [".txt"]
     blocktype = "eis"
     name = "Electrochemical Impedance Spectroscopy"
-    description = "This block can plot EIS data from Ivium .txt files"
+    description = "Electrochemical Impedance Spectroscopy"
 
     @property
     def plot_functions(self):
@@ -65,4 +65,4 @@ class EISBlock(DataBlock):
                 tools=HoverTool(tooltips=[("Frequency [Hz]", "@{Frequency [Hz]}")]),
             )
 
-            self.data["bokeh_plot_data"] = bokeh.embed.json_item(plot, theme=mytheme)
+            self.data["bokeh_plot_data"] = bokeh.embed.json_item(plot, theme=DATALAB_BOKEH_THEME)

@@ -17,7 +17,7 @@ class StartingMaterial(Item):
         alias="Barcode", description="A unique barcode from ChemInventory"
     )
 
-    date_acquired: Optional[IsoformatDateTime] = Field(
+    date: Optional[IsoformatDateTime] = Field(
         alias="Date Acquired", description="The date the item was acquired"
     )
 
@@ -31,7 +31,13 @@ class StartingMaterial(Item):
 
     full_percent: Optional[str] = Field(alias="Full %")
 
-    name: str = Field(alias="Container Name", description="name of the chemical")
+    GHS_codes: Optional[str] = Field(
+        alias="GHS H-codes",
+        description="A string describing any GHS hazard codes associated with this item. See https://pubchem.ncbi.nlm.nih.gov/ghs/ for code definitions.",
+        examples=["H224", "H303, H316, H319"],
+    )
+
+    name: Optional[str] = Field(alias="Container Name", description="name of the chemical")
 
     size: Optional[str] = Field(
         alias="Container Size", description="size of the container (see 'size_unit' for the units)"

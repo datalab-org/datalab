@@ -9,7 +9,7 @@ import pandas as pd
 STARTEND_REGEX = (
     r"<startPosition>(\d+\.\d+)</startPosition>\s+<endPosition>(\d+\.\d+)</endPosition>"
 )
-DATA_REGEX = r'<intensities unit="counts">((-?\d+ )+-?\d+)</intensities>'
+DATA_REGEX = r'<(intensities|counts) unit="counts">((-?\d+ )+-?\d+)</(intensities|counts)>'
 
 
 class XrdmlParseError(Exception):
@@ -24,7 +24,7 @@ def parse_xrdml(filename: str) -> pd.DataFrame:
         filename: The file to parse.
 
     """
-    with open(filename, "r") as f:
+    with open(filename) as f:
         s = f.read()
 
     start, end = getStartEnd(s)  # extract first and last angle
@@ -70,7 +70,7 @@ def convertSinglePattern(
             )
             return outfn
 
-    with open(filename, "r") as f:
+    with open(filename) as f:
         s = f.read()
 
     print(f"Processing file {filename}")
@@ -134,7 +134,7 @@ def getIntensities(s: str) -> List[float]:
     if not match:
         raise XrdmlParseError("the intensitites were not found in the XML file")
 
-    out = [float(x) for x in match.group(1).split()]  # the intensitites as a list of integers
+    out = [float(x) for x in match.group(2).split()]  # the intensitites as a list of integers
     return out
 
 

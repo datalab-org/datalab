@@ -23,6 +23,7 @@
             :ref="`select${index}`"
             v-model="selectedChangedConstituent"
             :clearable="false"
+            :typesToQuery="typesToQuery"
             @option:selected="swapConstituent($event, index)"
             @search:blur="selectShown[index] = false"
           />
@@ -78,8 +79,8 @@
         >
           <transition name="fade">
             <font-awesome-icon
-              class="add-row-button"
-              v-if="!addNewConstituentIsActive"
+              class="add-row-button clickable"
+              v-if="!newSelectIsShown"
               :icon="['far', 'plus-square']"
             />
           </transition>
@@ -88,6 +89,7 @@
             <ItemSelect
               taggable
               ref="newSelect"
+              :typesToQuery="typesToQuery"
               v-model="selectedNewConstituent"
               @option:selected="addConstituent"
             />
@@ -106,6 +108,10 @@ import { OnClickOutside } from "@vueuse/components";
 export default {
   props: {
     modelValue: Object,
+    typesToQuery: {
+      type: Array,
+      default: () => ["samples", "starting_materials", "cells"],
+    },
   },
   data() {
     return {
@@ -179,7 +185,6 @@ td {
 }
 
 .add-row-button {
-  cursor: pointer;
   position: absolute;
   font-size: regular;
   color: #bbb;
@@ -202,18 +207,6 @@ td {
 
 .select-in-row {
   width: 100%;
-}
-
-.clickable {
-  cursor: pointer;
-}
-
-.subheading {
-  color: darkslategrey;
-  font-size: small;
-  font-weight: 600;
-  text-transform: uppercase;
-  margin-bottom: 0px;
 }
 
 .borderless tr,

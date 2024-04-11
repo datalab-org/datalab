@@ -17,10 +17,81 @@ from pydatalab.login import LOGIN_MANAGER
 from pydatalab.send_email import MAIL
 from pydatalab.utils import CustomJSONEncoder
 
-compress = Compress()
+COMPRESS = Compress()
 
 
-def create_app(config_override: Dict[str, Any] | None = None) -> Flask:
+def _warn_startup_settings(app):
+    """Loop over various secrets and settings and populate the logs if
+    missing or invalid.
+
+    """
+
+    if CONFIG.EMAIL_AUTH_SMTP_SETTINGS is None:
+        LOGGER.warning(
+            "No email auth SMTP settings provided, email registration will not be enabled."
+        )
+    else:
+        if app.config["MAIL_SERVER"] and not app.config.get("MAIL_PASSWORD"):
+            LOGGER.critical(
+                "CONFIG.EMAIL_AUTH_SMTP_SETTINGS.MAIL_SERVER was set to '%s' but no `MAIL_PASSWORD` was provided. "
+                "This can be passed in a `.env` file (as `MAIL_PASSWORD`) or as an environment variable.",
+                app.config["MAIL_SERVER"],
+            )
+        if not app.config["MAIL_DEFAULT_SENDER"]:
+            LOGGER.critical(
+                "CONFIG.EMAIL_AUTH_SMTP_SETTINGS.MAIL_DEFAULT_SENDER is not set in the config. "
+                "Email authentication may not work correctly."
+                "This can be set in the config above or equivalently via `MAIL_DEFAULT_SENDER` in a `.env` file, "
+                "or as an environment variable."
+            )
+
+    if CONFIG.IDENTIFIER_PREFIX == "test":
+        LOGGER.critical(
+            "You should configure an identifier prefix for this deployment. "
+            "You should attempt to make it unique to your deployment or group. "
+            "In the future these will be optionally globally validated versus all deployments for uniqueness. "
+            "For now the value of %s will be used.",
+            CONFIG.IDENTIFIER_PREFIX,
+        )
+
+    secrets_and_errors = [
+        (
+            "GITHUB_OAUTH_CLIENT_ID",
+            "No GitHub OAuth client ID provided, GitHub login will not work",
+        ),
+        (
+            "GITHUB_OAUTH_CLIENT_SECRET",
+            "No GitHub OAuth client secret provided, GitHub login will not work",
+        ),
+        (
+            "ORCID_OAUTH_CLIENT_SECRET",
+            "No ORCID OAuth client secret provided, ORCID login will not work",
+        ),
+        ("ORCID_OAUTH_CLIENT_ID", "No ORCID OAuth client ID provided, ORCID login will not work"),
+        ("OPENAI_API_KEY", "No OpenAI API key provided, OpenAI-based ChatBlock will not work"),
+    ]
+
+    for secret, error in secrets_and_errors:
+        if not app.config.get(secret):
+            LOGGER.warning("%s: please set `%s`", error, secret)
+
+    if CONFIG.DEBUG:
+        LOGGER.warning("Running with debug logs enabled")
+
+    if CONFIG.TESTING:
+        LOGGER.critical(
+            "Running in testing mode, with no authentication required; this is not recommended for production use: set `CONFIG.TESTING`"
+        )
+
+    if not CONFIG.DEPLOYMENT_METADATA:
+        LOGGER.warning(
+            "No deployment metadata provided, please set `CONFIG.DEPLOYMENT_METADATA` to allow the UI to provide helpful information to users"
+        )
+
+
+def create_app(
+    config_override: Dict[str, Any] | None = None, env_file: pathlib.Path | None = None
+) -> Flask:
     """Create the main `Flask` app with the given config.
 
     Parameters:
@@ -40,11 +111,21 @@ def create_app(config_override: Dict[str, Any] | None = None) -> Flask:
         CONFIG.update(config_override)
 
     app.config.update(CONFIG.dict())
-    app.config["MAIL_DEBUG"] = CONFIG.DEBUG
-    app.config.update(dotenv_values())
+
+    # This value will still be overwritten by any dotenv values
+    app.config["MAIL_DEBUG"] = app.config.get("MAIL_DEBUG") or CONFIG.TESTING
+
+    # percolate datalab mail settings up to the `MAIL_` env vars/app config
+    # for use by Flask Mail
+    if CONFIG.EMAIL_AUTH_SMTP_SETTINGS is not None:
+        mail_settings = CONFIG.EMAIL_AUTH_SMTP_SETTINGS.dict()
+        for key in mail_settings:
+            app.config[key] = mail_settings[key]
+
+    app.config.update(dotenv_values(dotenv_path=env_file))
 
     LOGGER.info("Starting app with Flask app.config: %s", app.config)
-    LOGGER.info("Datalab config: %s", CONFIG.dict())
+    _warn_startup_settings(app)
 
     if CONFIG.BEHIND_REVERSE_PROXY:
         # Fix headers for reverse proxied app:
@@ -60,24 +141,20 @@ def create_app(config_override: Dict[str, Any] | None = None) -> Flask:
     app.json_encoder = CustomJSONEncoder
 
     # Must use the full path so that this object can be mocked for testing
+
     flask_mongo = pydatalab.mongo.flask_mongo
     flask_mongo.init_app(app, connectTimeoutMS=100, serverSelectionTimeoutMS=100)
 
-    register_endpoints(app)
-
-    LOGIN_MANAGER.init_app(app)
-
-    if CONFIG.EMAIL_AUTH_SMTP_SETTINGS is not None:
-        app.config.update(CONFIG.EMAIL_AUTH_SMTP_SETTINGS.dict())
-
-    MAIL.init_app(app)
+    for extension in (LOGIN_MANAGER, MAIL, COMPRESS):
+        extension.init_app(app)
 
     pydatalab.mongo.create_default_indices()
 
     if CONFIG.FILE_DIRECTORY is not None:
         pathlib.Path(CONFIG.FILE_DIRECTORY).mkdir(parents=False, exist_ok=True)
 
-    compress.init_app(app)
+    register_endpoints(app)
+    LOGGER.info("App created.")
 
     @app.route("/logout")
     def logout():

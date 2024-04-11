@@ -164,7 +164,7 @@ def create_collection():
 
     errors = []
     if starting_members:
-        item_ids = set(d.get("item_id") for d in starting_members)
+        item_ids = {d.get("item_id") for d in starting_members}
         if None in item_ids:
             item_ids.remove(None)
 

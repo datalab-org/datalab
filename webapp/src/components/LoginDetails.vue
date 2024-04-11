@@ -13,7 +13,7 @@
           @click="isUserDropdownVisible = !isUserDropdownVisible"
         >
           <UserBubble :creator="this.currentUserInfo" :size="24" />&nbsp;
-          <span class="user-display-name">{{ currentUser }}</span
+          <span class="user-display-name">{{ userDisplayName }}</span
           >&nbsp;
         </button>
         <div
@@ -24,8 +24,12 @@
         >
           <a
             type="button"
-            class="disabled dropdown-item btn login btn-link btn-default"
+            class="dropdown-item btn login btn-link btn-default"
             aria-label="Account settings"
+            @click="
+              editAccountSettingIsOpen = true;
+              isUserDropdownVisible = false;
+            "
             ><font-awesome-icon icon="cog" /> Account settings</a
           >
           <a
@@ -69,7 +73,7 @@
             class="dropdown-item btn login btn-link btn-default"
             aria-label="Login via ORCID"
             :href="this.apiUrl + '/login/orcid'"
-            ><font-awesome-icon :icon="['fab', 'orcid']" /> Login via ORCID</a
+            ><font-awesome-icon class="orcid-icon" :icon="['fab', 'orcid']" /> Login via ORCID</a
           >
           <button
             type="button"
@@ -83,6 +87,7 @@
       </div>
     </template>
   </div>
+  <EditAccountSettingsModal v-model="editAccountSettingIsOpen" />
 </template>
 
 <script>
@@ -90,6 +95,8 @@ import { API_URL } from "@/resources.js";
 import UserBubble from "@/components/UserBubble.vue";
 import { getUserInfo } from "@/server_fetch_utils.js";
 import GetEmailModal from "@/components/GetEmailModal.vue";
+import EditAccountSettingsModal from "@/components/EditAccountSettingsModal.vue";
+
 export default {
   data() {
     return {
@@ -99,11 +106,30 @@ export default {
       apiUrl: API_URL,
       currentUser: null,
       currentUserInfo: {},
+      editAccountSettingIsOpen: false,
     };
   },
   components: {
     UserBubble,
     GetEmailModal,
+    EditAccountSettingsModal,
+  },
+  computed: {
+    userDisplayName() {
+      return this.$store.getters.getCurrentUserDisplayName;
+    },
+  },
+  props: {
+    modelValue: Boolean,
+  },
+  watch: {
+    modelValue(newValue) {
+      if (newValue) {
+        this.openModal();
+      } else {
+        this.closeModal();
+      }
+    },
   },
   methods: {
     async getUser() {
@@ -121,7 +147,6 @@ export default {
           immutable_id: user.immutable_id,
           contact_email: user.contact_email || "",
         };
-        console.log(this.currentUser, this.currentUserInfo);
       }
     },
   },
@@ -138,5 +163,9 @@ export default {
 
 .user-display-name {
   font-weight: bold;
+}
+
+.orcid-icon {
+  color: #a6ce39;
 }
 </style>

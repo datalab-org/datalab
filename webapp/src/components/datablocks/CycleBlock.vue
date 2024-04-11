@@ -1,42 +1,43 @@
 <template>
   <DataBlockBase :item_id="item_id" :block_id="block_id">
-    <div class="form-row col-lg-8">
+    <div class="form-row">
       <FileSelectDropdown
         v-model="file_id"
         :item_id="item_id"
         :block_id="block_id"
-        :extensions="['.mpr', '.txt', '.xls', '.xlsx', '.txt', '.res']"
+        :extensions="['.mpr', '.txt', '.xls', '.xlsx', '.txt', '.res', '.nda', '.ndax']"
         updateBlockOnChange
       />
     </div>
-    <div class="form-row col-md-6 col-lg-7 mt-2">
-      <div class="input-group form-inline">
-        <label class="mr-2"><b>Cycles to plot:</b></label>
-        <input
-          type="text"
-          class="form-control"
-          placeholder="e.g., 1-5, 7, 9-10. Starts at 1."
-          :class="{ 'is-invalid': cycle_num_error }"
-          v-model="cyclesString"
-          @keydown.enter="
-            parseCycleString();
-            updateBlock();
-          "
-          @blur="
-            parseCycleString();
-            updateBlock();
-          "
-        />
-        <label id="listOfCycles" class="ml-3">Showing cycles: {{ parsedCycles }}</label>
+    <div v-if="file_id">
+      <div class="form-row">
+        <div class="input-group form-inline">
+          <label class="mr-2"><b>Cycles to plot:</b></label>
+          <input
+            id="cycles-input"
+            type="text"
+            class="form-control"
+            placeholder="e.g., 1-5, 7, 9-10. Starts at 1."
+            :class="{ 'is-invalid': cycle_num_error }"
+            v-model="cyclesString"
+            @keydown.enter="
+              parseCycleString();
+              updateBlock();
+            "
+            @blur="
+              parseCycleString();
+              updateBlock();
+            "
+          />
+          <span id="list-of-cycles" class="pl-3 pt-2">Showing cycles: {{ parsedCycles }}</span>
+        </div>
+
+        <div v-if="cycle_num_error" class="alert alert-danger mt-2 mx-auto">
+          {{ cycle_num_error }}
+        </div>
       </div>
 
-      <div v-if="cycle_num_error" class="alert alert-danger mt-2 mx-auto">
-        {{ cycle_num_error }}
-      </div>
-    </div>
-
-    <div class="form-row">
-      <div class="col mt-2">
+      <div class="form-row mt-2">
         <div class="input-group form-inline">
           <label class="mr-2"><b>Mode:</b></label>
           <div class="btn-group">
@@ -73,73 +74,73 @@
           </div>
         </div>
       </div>
-    </div>
 
-    <div
-      v-if="derivative_mode == 'dQ/dV' || derivative_mode == 'dV/dQ'"
-      v-show="derivative_mode"
-      class="row"
-    >
-      <div class="col-md slider" style="max-width: 250px">
-        <input
-          type="range"
-          class="form-control-range"
-          v-model="s_spline"
-          id="s_spline"
-          name="s_spline"
-          min="1"
-          max="10"
-          step="0.2"
-          @change="isReplotButtonDisplayed = true"
-        />
-        <label
-          @mouseover="showDescription1 = true"
-          @mouseleave="showDescription1 = false"
-          for="s_spline"
-        >
-          <span>Spline fit:</span> {{ -s_spline }}
-        </label>
-      </div>
-      <div class="col-md slider" style="max-width: 250px">
-        <input
-          type="range"
-          class="form-control-range"
-          v-model="win_size_1"
-          id="win_size_1"
-          name="win_size_1"
-          min="501"
-          max="1501"
-          @change="isReplotButtonDisplayed = true"
-        />
-        <label
-          for="win_size_1"
-          @mouseover="showDescription2 = true"
-          @mouseleave="showDescription2 = false"
-        >
-          <span>Window Size 1:</span> {{ win_size_1 }}
-        </label>
-      </div>
-      <button v-show="isReplotButtonDisplayed" class="btn btn-default my-4" @click="updateBlock">
-        Recalculate
-      </button>
-    </div>
-
-    <div class="alert alert-info" v-show="showDescription1">
-      <p>
-        Smoothing parameter that determines how close the spline fits to the real data. Larger
-        values result in a smoother fit with decreased detail.
-      </p>
-    </div>
-    <div class="alert alert-info" v-show="showDescription2">
-      <p>Window size for the Savitzky-Golay filter to apply to the derivatives.</p>
-    </div>
-
-    <div class="row mt-2">
       <div
-        class="col mx-auto"
-        :class="{ 'limited-width': bokehPlotLimitedWidth, blurry: isUpdating }"
+        v-if="derivative_mode == 'dQ/dV' || derivative_mode == 'dV/dQ'"
+        v-show="derivative_mode"
+        class="row"
       >
-        <BokehPlot :bokehPlotData="bokehPlotData" />
+        <div class="col-md slider" style="max-width: 250px">
+          <input
+            type="range"
+            class="form-control-range"
+            v-model="s_spline"
+            id="s_spline"
+            name="s_spline"
+            min="1"
+            max="10"
+            step="0.2"
+            @change="isReplotButtonDisplayed = true"
+          />
+          <label
+            @mouseover="showDescription1 = true"
+            @mouseleave="showDescription1 = false"
+            for="s_spline"
+          >
+            <span>Spline fit:</span> {{ -s_spline }}
+          </label>
+        </div>
+        <div class="col-md slider" style="max-width: 250px">
+          <input
+            type="range"
+            class="form-control-range"
+            v-model="win_size_1"
+            id="win_size_1"
+            name="win_size_1"
+            min="501"
+            max="1501"
+            @change="isReplotButtonDisplayed = true"
+          />
+          <label
+            for="win_size_1"
+            @mouseover="showDescription2 = true"
+            @mouseleave="showDescription2 = false"
+          >
+            <span>Window Size 1:</span> {{ win_size_1 }}
+          </label>
+        </div>
+        <button v-show="isReplotButtonDisplayed" class="btn btn-default my-4" @click="updateBlock">
+          Recalculate
+        </button>
+      </div>
+
+      <div class="alert alert-info" v-show="showDescription1">
+        <p>
+          Smoothing parameter that determines how close the spline fits to the real data. Larger
+          values result in a smoother fit with decreased detail.
+        </p>
+      </div>
+      <div class="alert alert-info" v-show="showDescription2">
+        <p>Window size for the Savitzky-Golay filter to apply to the derivatives.</p>
+      </div>
+
+      <div class="row mt-2">
+        <div
+          class="col mx-auto"
+          :class="{ 'limited-width': bokehPlotLimitedWidth, blurry: isUpdating }"
+        >
+          <BokehPlot :bokehPlotData="bokehPlotData" />
+        </div>
       </div>
     </div>
   </DataBlockBase>
@@ -255,8 +256,12 @@ export default {
 </script>
 
 <style scoped>
-#listOfCycles {
+#list-of-cycles {
   color: grey;
+}
+
+#cycles-input {
+  max-width: 14em;
 }
 
 .blurry {

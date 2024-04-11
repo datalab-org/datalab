@@ -10,8 +10,7 @@ from pydatalab.models.utils import Constituent
 # from pydatalab.logger import LOGGER
 
 
-class CellComponent(Constituent):
-    ...
+class CellComponent(Constituent): ...
 
 
 class CellFormat(str, Enum):
@@ -82,11 +81,11 @@ class Cell(Item):
 
         existing_parthood_relationship_ids = set()
         if values.get("relationships") is not None:
-            existing_parthood_relationship_ids = set(
+            existing_parthood_relationship_ids = {
                 relationship.item_id
                 for relationship in values["relationships"]
                 if relationship.relation == RelationshipType.PARTHOOD
-            )
+            }
         else:
             values["relationships"] = []
 

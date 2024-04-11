@@ -9,6 +9,11 @@ services:
       target: production
     volumes:
       - ./logs:/logs
+    environment:
+      - VUE_APP_API_URL
+      - VUE_APP_LOGO_URL
+      - VUE_APP_HOMEPAGE_URL
+      - VUE_APP_EDITABLE_INVENTORY
     ports:
       - "8081:8081"
     networks:
@@ -34,6 +39,8 @@ services:
       context: .
       dockerfile: .docker/server_dockerfile
       target: production
+      args:
+        - WEB_CONCURRENCY=4
     depends_on:
       - database
     volumes:
@@ -62,6 +69,9 @@ services:
     networks:
       - nginx
       - backend
+    environment:
+      - PYDATALAB_TESTING=true
+      - PYDATALAB_MONGO_URI=mongodb://database:27017/datalabvue
 
   database:
     build:
