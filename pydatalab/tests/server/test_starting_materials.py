@@ -23,6 +23,8 @@ def test_new_starting_material(client, default_starting_material_dict):
     assert len(response.json["sample_list_entry"]["creators"]) == 0
 
     for key, value in response.json["sample_list_entry"].items():
+        if key == "creator_ids":
+            continue
         if key in default_starting_material_dict:
             if isinstance(v := default_starting_material_dict[key], datetime.datetime):
                 v = v.isoformat()
@@ -30,25 +32,27 @@ def test_new_starting_material(client, default_starting_material_dict):
 
 
 @pytest.mark.dependency(depends=["test_new_starting_material"])
-def test_get_item_data(client, default_starting_material_dict):
-    response = client.get("/get-item-data/test_sm")
+def test_get_item_data(admin_client, default_starting_material_dict):
+    response = admin_client.get("/get-item-data/test_sm")
     assert response.status_code == 200
     assert response.json["status"] == "success"
 
     # all starting materials should have no creators currently (they are shared among a deployment):
     assert len(response.json["item_data"]["creators"]) == 0
     assert len(response.json["item_data"]["creator_ids"]) == 0
-
     for key in default_starting_material_dict.keys():
+        if key == "creator_ids":
+            continue
+
         if isinstance(v := default_starting_material_dict[key], datetime.datetime):
             v = v.isoformat()
         assert response.json["item_data"][key] == v
 
 
 @pytest.mark.dependency(depends=["test_new_starting_material", "test_get_item_data"])
-def test_new_sample_with_automatically_generated_id(client):
+def test_new_starting_material_with_automatically_generated_id(client):
     new_starting_material_data = {
-        "name": "sample with random id",
+        "name": "starting material with random id",
         "date": datetime.datetime.fromisoformat("1995-03-02"),
         "date_opened": datetime.datetime.fromisoformat("2001-12-31"),
         "chemform": "NiO",
@@ -74,6 +78,8 @@ def test_new_sample_with_automatically_generated_id(client):
     assert response.json["item_data"]["refcode"].split(":")[1] == created_item_id
 
     for key in new_starting_material_data.keys():
+        if key == "creator_ids":
+            continue
         if isinstance(v := new_starting_material_data[key], datetime.datetime):
             v = v.isoformat()
         assert response.json["item_data"][key] == v
@@ -92,10 +98,10 @@ def test_new_starting_material_collision(client, default_starting_material_dict)
 
 
 @pytest.mark.dependency(depends=["test_new_starting_material"])
-def test_save_good_sample(client, default_starting_material_dict):
+def test_save_good_starting_material(admin_client, default_starting_material_dict):
     updated_starting_material = default_starting_material_dict.copy()
     updated_starting_material.update({"description": "This is a newer test sample."})
-    response = client.post(
+    response = admin_client.post(
         "/save-item/",
         json={
             "item_id": default_starting_material_dict["item_id"],
@@ -105,7 +111,7 @@ def test_save_good_sample(client, default_starting_material_dict):
     assert response.status_code == 200, response.json
     assert response.json["status"] == "success"
 
-    response = client.get("/get-item-data/test_sm")
+    response = admin_client.get("/get-item-data/test_sm")
     assert response.status_code == 200
     assert response.json["status"] == "success"
     for key in default_starting_material_dict.keys():
@@ -113,9 +119,9 @@ def test_save_good_sample(client, default_starting_material_dict):
             assert response.json[key] == updated_starting_material[key]
 
 
-@pytest.mark.dependency(depends=["test_new_starting_material"])
-def test_delete_sample(client, default_starting_material_dict):
-    response = client.post(
+@pytest.mark.dependency(depends=["test_save_good_starting_material"])
+def test_delete_starting_mateiral(admin_client, default_starting_material_dict):
+    response = admin_client.post(
         "/delete-sample/",
         json={"item_id": default_starting_material_dict["item_id"]},
     )
@@ -123,7 +129,7 @@ def test_delete_sample(client, default_starting_material_dict):
     assert response.json["status"] == "success"
 
     # Check it was actually deleted
-    response = client.get(
+    response = admin_client.get(
         f"/get-item-data/{default_starting_material_dict['item_id']}",
     )
     assert response.status_code == 404

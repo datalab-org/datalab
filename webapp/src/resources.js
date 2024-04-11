@@ -13,6 +13,7 @@ import SampleInformation from "@/components/SampleInformation";
 import StartingMaterialInformation from "@/components/StartingMaterialInformation";
 import CellInformation from "@/components/CellInformation";
 import CollectionInformation from "@/components/CollectionInformation";
+import EquipmentInformation from "@/components/EquipmentInformation";
 
 import SampleCreateModalAddon from "@/components/itemCreateModalAddons/SampleCreateModalAddon";
 import CellCreateModalAddon from "@/components/itemCreateModalAddons/CellCreateModalAddon";
@@ -101,10 +102,19 @@ export const itemTypes = {
     isCreateable: false,
     display: "user",
   },
+  equipment: {
+    itemInformationComponent: EquipmentInformation,
+    navbarColor: "#c77c02",
+    navbarName: "Equipment",
+    lightColor: "#f7d6a1",
+    labelColor: "#c77c02",
+    display: "equipment",
+  },
 };
 
 export const SAMPLE_TABLE_TYPES = ["samples", "cells"];
 export const INVENTORY_TABLE_TYPES = ["starting_materials"];
+export const EQUIPMENT_TABLE_TYPES = ["equipment"];
 
 export const cellFormats = {
   coin: "coin",

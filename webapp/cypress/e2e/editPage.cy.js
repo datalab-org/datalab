@@ -6,16 +6,16 @@ Cypress.on("window:before:load", (win) => {
   consoleSpy = cy.spy(win.console, "error");
 });
 
-let sample_ids = [];
+let item_ids = ["editable_sample", "component1", "component2"];
 
 before(() => {
   cy.visit("/");
-  cy.removeAllTestSamples(sample_ids);
+  cy.removeAllTestSamples(item_ids, true);
 });
 
 after(() => {
   cy.visit("/");
-  cy.removeAllTestSamples(sample_ids);
+  cy.removeAllTestSamples(item_ids, true);
 });
 
 describe("Edit Page", () => {
@@ -28,40 +28,19 @@ describe("Edit Page", () => {
     cy.findByText("Samples").should("exist");
     cy.findByText("Add an item").should("exist");
     cy.findByText("# of blocks").should("exist");
-    cy.wait(1000).then((x) => {
-      cy.contains("Server Error. Sample list could not be retreived.").should("not.exist");
-      expect(consoleSpy).not.to.be.called;
-    });
+
+    cy.contains("Server Error. Sample list could not be retreived.").should("not.exist");
+    expect(consoleSpy).not.to.be.called;
   });
 
   it("Adds a valid sample", () => {
-    cy.findByText("Add an item").click();
-    cy.findByText("Add new item").should("exist");
-    cy.findByLabelText("ID:").type("editable_sample");
-    cy.findByLabelText("Date Created:").type("1990-01-07T00:00");
-
-    cy.get("#sample-name").type("This is a sample name");
-    cy.get("#sample-submit").click();
-
-    cy.findByText("editable_sample");
-    cy.findByText("This is a sample name");
+    cy.createSample("editable_sample", "This is a sample name", "1990-01-07T00:00");
     cy.get("tr>td").eq(7).contains(0); // 0 blocks are present
   });
 
-  it("Adds a second valid sample, to use as a component", () => {
-    cy.findByText("Add an item").click();
-    cy.findByText("Add new item");
-    cy.findByLabelText("ID:").type("component1");
-    cy.get("#sample-name").type("This is a component");
-    cy.get("#sample-submit").click();
-  });
-
-  it("Adds a third valid sample, to use as a component", () => {
-    cy.findByText("Add an item").click();
-    cy.findByText("Add new item");
-    cy.findByLabelText("ID:").type("component2");
-    cy.get("#sample-name").type("This is another component");
-    cy.get("#sample-submit").click();
+  it("Add some more samples, to use as components", () => {
+    cy.createSample("component1", "This is a component");
+    cy.createSample("component2", "This is another component");
   });
 
   it("Checks editing the sample edit page", () => {
@@ -221,16 +200,12 @@ describe("Edit Page", () => {
     cy.findByLabelText("Name").should("have.value", "This is a sample name");
 
     cy.findByText("Add a block").click();
-    cy.get(".dropdown-menu").within(() => {
-      cy.findByText("Comment").click();
-    });
+    cy.get(".dropdown-menu").findByText("Comment").click();
 
     cy.contains("Unsaved changes").should("not.exist");
 
     cy.findByText("Add a block").click();
-    cy.get(".dropdown-menu").within(() => {
-      cy.findByText("Comment").click();
-    });
+    cy.get(".dropdown-menu").findByText("Comment").click();
 
     cy.contains("Unsaved changes").should("not.exist");
 
@@ -242,7 +217,7 @@ describe("Edit Page", () => {
     cy.contains("Unsaved changes").should("not.exist");
     cy.get(".datablock-content div").eq(0).contains("the first comment box");
 
-    cy.get(".datablock-content div").eq(0).type("The first comment box; further changes.");
+    cy.get(".datablock-content div").eq(0).type("\nThe first comment box; further changes.");
     cy.contains("Unsaved changes");
 
     cy.get(".datablock-content div").eq(1).type("The second comment box");
@@ -254,7 +229,7 @@ describe("Edit Page", () => {
     cy.get('.datablock-header [aria-label="updateBlock"]').eq(0).click();
     cy.contains("Unsaved changes").should("not.exist");
 
-    cy.get(".datablock-content div").eq(1).type("The second comment box; further changes");
+    cy.get(".datablock-content div").eq(1).type("\nThe second comment box; further changes");
     cy.findByLabelText("Name").type("name change");
     cy.contains("Unsaved changes");
 

@@ -2,7 +2,13 @@
 // all code using fetch should be collected into this file
 
 import store from "@/store/index.js";
-import { API_URL, API_TOKEN, SAMPLE_TABLE_TYPES, INVENTORY_TABLE_TYPES } from "@/resources.js";
+import {
+  API_URL,
+  API_TOKEN,
+  SAMPLE_TABLE_TYPES,
+  INVENTORY_TABLE_TYPES,
+  EQUIPMENT_TABLE_TYPES,
+} from "@/resources.js";
 
 // ****************************************************************************
 // A simple wrapper to simplify response handling for fetch calls
@@ -126,6 +132,9 @@ export function createNewItem(
     if (INVENTORY_TABLE_TYPES.includes(response_json.sample_list_entry.type)) {
       store.commit("prependToStartingMaterialList", response_json.sample_list_entry);
     }
+    if (EQUIPMENT_TABLE_TYPES.includes(response_json.sample_list_entry.type)) {
+      store.commit("prependToEquipmentList", response_json.sample_list_entry);
+    }
     return "success";
   });
 }
@@ -180,7 +189,7 @@ export async function getStats() {
 }
 
 export async function getInfo() {
-  return fetch_get(`${API_URL}/info/`)
+  return fetch_get(`${API_URL}/info`)
     .then(function (response_json) {
       return { apiVersion: response_json.data.attributes.server_version };
     })
@@ -246,6 +255,18 @@ export function getStartingMaterialList() {
     })
     .catch((error) => {
       console.error("Error when fetching starting material list");
+      console.error(error);
+      throw error;
+    });
+}
+
+export function getEquipmentList() {
+  return fetch_get(`${API_URL}/equipment/`)
+    .then(function (response_json) {
+      store.commit("setEquipmentList", response_json.items);
+    })
+    .catch((error) => {
+      console.error("Error when fetching equipment list");
       console.error(error);
       throw error;
     });
@@ -327,6 +348,17 @@ export function deleteCollection(collection_id, collection_summary) {
       store.commit("deleteFromCollectionList", collection_summary);
     })
     .catch((error) => alert("Collection delete failed for " + collection_id + ": " + error));
+}
+
+export function deleteEquipment(item_id) {
+  return fetch_post(`${API_URL}/delete-sample/`, {
+    item_id: item_id,
+  })
+    .then(function (response_json) {
+      console.log("delete successful" + response_json);
+      store.commit("deleteFromEquipmentList", item_id);
+    })
+    .catch((error) => alert("Item delete failed for " + item_id + ": " + error));
 }
 
 export function deletSampleFromCollection(collection_id, collection_summary) {

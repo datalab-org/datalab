@@ -1,58 +1,42 @@
 <template>
-  <form @submit.prevent="submitForm" class="modal-enclosure" data-testid="create-item-form">
+  <form @submit.prevent="submitForm" class="modal-enclosure" data-testid="create-equipment-form">
     <Modal
       :modelValue="modelValue"
       @update:modelValue="$emit('update:modelValue', $event)"
-      :disableSubmit="
-        Boolean(itemIDValidationMessage) || (!generateIDAutomatically && !Boolean(item_id))
-      "
+      :disableSubmit="Boolean(equipmentIDValidationMessage) || !Boolean(item_id)"
     >
-      <template v-slot:header> Add new item </template>
+      <template v-slot:header> Add equipment </template>
 
       <template v-slot:body>
         <div class="form-row">
           <div class="form-group col-md-6">
-            <label for="create-item-item_id" class="col-form-label">ID:</label>
-            <input
-              v-model="item_id"
-              type="text"
-              class="form-control"
-              id="create-item-item_id"
-              :disabled="generateIDAutomatically"
-              :required="!generateIDAutomatically"
-            />
-            <div class="form-error" v-html="itemIDValidationMessage"></div>
-            <div class="form-check mt-1 ml-1">
-              <input
-                type="checkbox"
-                v-model="generateIDAutomatically"
-                class="form-check-input clickable"
-                id="create-item-auto-id-checkbox"
-                @input="item_id = null"
-              />
-              <label
-                id="create-item-automatic-id-label"
-                class="form-check-label clickable"
-                for="create-item-auto-id-checkbox"
-                >generate automatically</label
-              >
-            </div>
+            <label for="equipment-id" class="col-form-label">ID:</label>
+            <input v-model="item_id" type="text" class="form-control" id="equipment-id" required />
+            <div class="form-error" v-html="equipmentIDValidationMessage"></div>
           </div>
           <div class="form-group col-md-6">
-            <label for="item-type-select" class="col-form-label">Type:</label>
-            <select v-model="item_type" class="form-control" id="item-type-select" required>
-              <option v-for="type in allowedTypes" :key="type" :value="type">
-                {{ itemTypes[type].display }}
+            <label for="create-equipment-modal-item-type-select" class="col-form-label"
+              >Type:</label
+            >
+            <select
+              v-model="item_type"
+              class="form-control"
+              id="create-equipment-modal-item-type-select"
+              required
+              disabled
+            >
+              <option v-for="(obj, type) in availableTypes" :key="type" :value="type">
+                {{ obj.display }}
               </option>
             </select>
           </div>
-          <div class="form-group col-md-6 pt-0">
-            <label for="create-item-date" class="col-form-label">Date Created:</label>
+          <div class="form-group col-md-6">
+            <label for="create-equipment-modal-date" class="col-form-label">Date Created:</label>
             <input
               type="datetime-local"
               v-model="date"
               class="form-control"
-              id="create-item-date"
+              id="create-equipment-modal-date"
               :min="agesAgo"
               :max="oneYearOn()"
               required
@@ -61,12 +45,17 @@
         </div>
         <div class="form-row">
           <div class="form-group col-md-12">
-            <label for="create-item-name">Name:</label>
-            <input id="create-item-name" type="text" v-model="name" class="form-control" />
+            <label for="create-equipment-modal-name">Name:</label>
+            <input
+              id="create-equipment-modal-name"
+              type="text"
+              v-model="name"
+              class="form-control"
+            />
           </div>
         </div>
         <!-- All item types can be added to a collection, so this is always available -->
-        <div class="form-row">
+        <!--         <div class="form-row">
           <div class="col-md-12 form-group">
             <label id="startInCollection">(Optional) Insert into collection:</label>
             <CollectionSelect
@@ -75,7 +64,7 @@
               v-model="startInCollection"
             />
           </div>
-        </div>
+        </div> -->
         <div class="form-row">
           <div class="col-md-12 form-group">
             <label id="copyFromSelectLabel"
@@ -95,10 +84,10 @@
         <!-- dynamically insert addons to this modal for each item type. On mount, the component
         should emit a callback that can be called to get properly formatted
         data to provide to the server -->
-        <component
+        <!--         <component
           :is="itemCreateModalAddonComponent"
           @startingDataCallback="(callback) => (startingDataCallback = callback)"
-        />
+        /> -->
       </template>
     </Modal>
   </form>
@@ -108,54 +97,50 @@
 import Modal from "@/components/Modal.vue";
 import ItemSelect from "@/components/ItemSelect.vue";
 import { createNewItem } from "@/server_fetch_utils.js";
-import { itemTypes, SAMPLE_TABLE_TYPES } from "@/resources.js";
-import CollectionSelect from "@/components/CollectionSelect.vue";
+import { itemTypes } from "@/resources.js";
+// import CollectionSelect from "@/components/CollectionSelect.vue";
 export default {
-  name: "CreateItemModal",
+  name: "CreateEquipmentModal",
   data() {
     return {
       item_id: null,
-      item_type: "",
+      item_type: "equipment",
       date: this.now(),
       name: "",
       startingDataCallback: null,
-      startInCollection: null,
-      takenItemIds: [], // this holds ids that have been tried, whereas the computed takenSampleIds holds ids in the sample table
+      // startInCollection: null,
+      takenItemIds: [], // this holds ids that have been tried, whereas the computed takenEquipmentIds holds ids in the equipment table
       selectedItemToCopy: null,
-      startingConstituents: [],
-      generateIDAutomatically: false,
       agesAgo: new Date("1970-01-01").toISOString().slice(0, -8), // a datetime for the unix epoch start
+      //this is all just to filter an object in javascript:
+      availableTypes: { equipment: itemTypes["equipment"] },
     };
   },
   props: {
     modelValue: Boolean,
-    allowedTypes: {
-      type: Array,
-      default: () => SAMPLE_TABLE_TYPES,
-    },
   },
   emits: ["update:modelValue"],
   computed: {
-    itemTypes() {
-      return itemTypes;
-    },
     itemTypeDisplayName() {
       return itemTypes[this.item_type].display;
     },
     itemCreateModalAddonComponent() {
       return itemTypes[this.item_type].itemCreateModalAddon;
     },
-    takenSampleIds() {
-      return this.$store.state.sample_list
-        ? this.$store.state.sample_list.map((x) => x.item_id)
+    takenEquipmentIds() {
+      return this.$store.state.equipment_list
+        ? this.$store.state.equipment_list.map((x) => x.item_id)
         : [];
     },
-    itemIDValidationMessage() {
+    equipmentIDValidationMessage() {
       if (this.item_id == null) {
         return "";
       } // Don't throw an error before the user starts typing
 
-      if (this.takenItemIds.includes(this.item_id) || this.takenSampleIds.includes(this.item_id)) {
+      if (
+        this.takenItemIds.includes(this.item_id) ||
+        this.takenEquipmentIds.includes(this.item_id)
+      ) {
         return `<a href='edit/${this.item_id}'>${this.item_id}</a> already in use.`;
       }
       if (!/^[a-zA-Z0-9._-]+$/.test(this.item_id)) {
@@ -172,40 +157,38 @@ export default {
   },
   methods: {
     async submitForm() {
-      console.log("new item form submit triggered");
+      console.log("new equipment form submit triggered");
 
       // get any extra data by calling the optional callback from the type-specific addon component
-      const extraData = this.startingDataCallback && this.startingDataCallback();
-      let startingCollection = [];
-      if (this.startInCollection != null) {
-        startingCollection = this.startInCollection.map((x) => ({
-          collection_id: x.collection_id,
-          immutable_id: x.immutable_id,
-          type: "collections",
-        }));
-      }
+      // const extraData = this.startingDataCallback && this.startingDataCallback();
+      // let startingCollection = [];
+      // if (this.startInCollection != null) {
+      //   startingCollection = this.startInCollection.map((x) => ({
+      //     collection_id: x.collection_id,
+      //     immutable_id: x.immutable_id,
+      //     type: "collections",
+      //   }));
+      // }
 
       await createNewItem(
         this.item_id,
         this.item_type,
         this.date,
         this.name,
-        startingCollection,
-        extraData,
+        null, // no startingCollection
+        {}, // no extra data
         this.selectedItemToCopy && this.selectedItemToCopy.item_id,
-        this.generateIDAutomatically,
       )
         .then(() => {
           this.$emit("update:modelValue", false); // close this modal
-          // can enable the following line to get smooth scrolling into view, but will fail
-          // if generateIDAutomatically. It's currently not necessary because
-          // new items always show up at the top of the sample table
-          // // document.getElementById(this.item_id).scrollIntoView({ behavior: "smooth" });
+          document.getElementById(this.item_id).scrollIntoView({ behavior: "smooth" });
           this.item_id = null;
           this.name = null;
           this.date = this.now(); // reset date to the new current time
         })
         .catch((error) => {
+          console.log("THERE WAS AN ERROR");
+          console.log(error);
           let is_item_id_error = false;
           try {
             if (error.includes("item_id_validation_error")) {
@@ -216,7 +199,7 @@ export default {
             console.log("error parsing error message", e);
           } finally {
             if (!is_item_id_error) {
-              alert("Error with creating new item: " + error);
+              alert("Error with creating new equipment: " + error);
             }
           }
         });
@@ -235,26 +218,20 @@ export default {
     setCopiedName() {
       if (!this.selectedItemToCopy) {
         this.name = "";
+      } else {
+        this.name = `COPY OF ${this.selectedItemToCopy.name}`;
       }
-      this.name = `COPY OF ${this.selectedItemToCopy.name}`;
     },
-  },
-  created() {
-    this.item_type = this.allowedTypes[0];
   },
   components: {
     Modal,
     ItemSelect,
-    CollectionSelect,
+    // CollectionSelect,
   },
 };
 </script>
 
 <style scoped>
-#create-item-automatic-id-label {
-  color: #555;
-}
-
 .form-error {
   color: red;
 }

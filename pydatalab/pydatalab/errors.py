@@ -22,9 +22,8 @@ class UserRegistrationForbidden(Forbidden):
 
 <p>
 The OAuth identity used for registration is not on the allow list.
-If you believe this to be an error, please first verify that your membership of the allowed
-group (e.g., a GitHub organization) is public, and verify with the deployment manager that
-the organization is indeed on the allow list.
+If you believe this to be an error, please first verify with the deployment manager
+that you are allowed to make an account.
 </p>
 
 <p>If this was not an error, you may wish to revoke any permissions given to the datalab OAuth application.</p>

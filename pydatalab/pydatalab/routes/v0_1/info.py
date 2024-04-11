@@ -110,6 +110,6 @@ def get_stats():
 
 
 ENDPOINTS: Dict[str, Callable] = {
-    "/info/": get_info,
+    "/info": get_info,
     "/info/stats": get_stats,
 }

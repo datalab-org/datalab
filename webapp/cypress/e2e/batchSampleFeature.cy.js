@@ -29,16 +29,44 @@ function getBatchAddError(row, additionalSelectors = "") {
 }
 
 // Any sample ID touched by these tests should be listed here for clean-up
-let sample_ids = [];
+let sample_ids = [
+  "testA",
+  "testB",
+  "testC",
+  "baseA",
+  "baseB",
+  "component1",
+  "component2",
+  "component3",
+  "component4",
+  "baseA_copy",
+  "baseB_copy2",
+  "baseB_copy",
+  "test101",
+  "test102",
+  "test103",
+  "test104",
+  "test_1",
+  "test_2",
+  "test_3",
+  "test_4",
+  "test_5",
+  "test_6",
+  "test_7",
+  "test102_unique",
+  "test103_unique",
+  "test101_unique2",
+  "test101_unique",
+];
 
 before(() => {
   cy.visit("/");
-  cy.removeAllTestSamples(sample_ids);
+  cy.removeAllTestSamples(sample_ids, true);
 });
 
 after(() => {
   cy.visit("/");
-  cy.removeAllTestSamples(sample_ids);
+  cy.removeAllTestSamples(sample_ids, true);
 });
 
 describe("Batch sample creation", () => {
@@ -74,7 +102,7 @@ describe("Batch sample creation", () => {
     cy.contains("Add batch of samples").click();
     cy.findByLabelText("Number of rows:").clear().type(2);
 
-    cy.get("#sample-submit").should("be.disabled");
+    cy.get('[data-testid="batch-modal-container"]').findByText("Submit").should("be.disabled");
     getBatchAddCell(1, 1).type("baseA");
     getBatchAddCell(2, 1).type("baseB");
     getBatchAddCell(2, 2).type("the name of baseB");
@@ -93,7 +121,7 @@ describe("Batch sample creation", () => {
     cy.contains("Add batch of samples").click();
     cy.findByLabelText("Number of rows:").clear().type(4);
 
-    cy.get("#sample-submit").should("be.disabled");
+    cy.get('[data-testid="batch-modal-container"]').findByText("Submit").should("be.disabled");
     getBatchAddCell(1, 1).type("component1");
     getBatchAddCell(1, 2).type("this component has a name");
     getBatchAddCell(2, 1).type("component2");
@@ -155,21 +183,15 @@ describe("Batch sample creation", () => {
     getBatchAddCell(1, 1).type("baseA_copy");
     getBatchAddCell(1, 2).type("a copied sample");
     getBatchAddCell(1, 4, ".vs__search").type("BaseA");
-    cy.get(".vs__dropdown-menu").within(() => {
-      cy.contains(".badge", "baseA").click();
-    });
+    cy.get(".vs__dropdown-menu").contains(".badge", "baseA").click();
 
     getBatchAddCell(2, 1).type("baseB_copy");
     getBatchAddCell(2, 4, ".vs__search").type("BaseB");
-    cy.get(".vs__dropdown-menu").within(() => {
-      cy.contains(".badge", "baseB").click();
-    });
+    cy.get(".vs__dropdown-menu").contains(".badge", "baseB").click();
 
     getBatchAddCell(3, 1).type("baseB_copy2");
     getBatchAddCell(3, 4, ".vs__search").type("BaseB");
-    cy.get(".vs__dropdown-menu").within(() => {
-      cy.contains(".badge", "baseB").click();
-    });
+    cy.get(".vs__dropdown-menu").contains(".badge", "baseB").click();
 
     getSubmitButton().click();
 
@@ -228,13 +250,10 @@ describe("Batch sample creation", () => {
     getBatchAddCell(1, 1).type("test101");
     getBatchAddCell(1, 2).type("sample with two components");
     getBatchAddCell(1, 5, ".vs__search").type("component1");
-    cy.get(".vs__dropdown-menu").within(() => {
-      cy.contains(".badge", "component1").click();
-    });
+    cy.get(".vs__dropdown-menu").contains(".badge", "component1").click();
+
     getBatchAddCell(1, 5, ".vs__search").type("component2");
-    cy.get(".vs__dropdown-menu").within(() => {
-      cy.contains(".badge", "component2").click();
-    });
+    cy.get(".vs__dropdown-menu").contains(".badge", "component2").click();
 
     // sample with two components, copied from a sample with no components
     getBatchAddCell(2, 1).type("test102");
@@ -242,17 +261,13 @@ describe("Batch sample creation", () => {
       "sample with two components, copied from a sample with no components",
     );
     getBatchAddCell(2, 4, ".vs__search").type("baseA");
-    cy.get(".vs__dropdown-menu").within(() => {
-      cy.contains(".badge", "baseA").click();
-    });
+    cy.get(".vs__dropdown-menu").contains(".badge", "baseA").click();
+
     getBatchAddCell(2, 5, ".vs__search").type("component1");
-    cy.get(".vs__dropdown-menu").within(() => {
-      cy.contains(".badge", "component1").click();
-    });
+    cy.get(".vs__dropdown-menu").contains(".badge", "component1").click();
+
     getBatchAddCell(2, 5, ".vs__search").type("component2");
-    cy.get(".vs__dropdown-menu").within(() => {
-      cy.contains(".badge", "component2").click();
-    });
+    cy.get(".vs__dropdown-menu").contains(".badge", "component2").click();
 
     // sample with one components, copied from a sample with two components
     getBatchAddCell(3, 1).type("test103");
@@ -260,13 +275,10 @@ describe("Batch sample creation", () => {
       "sample with one component, copied from a sample with two components",
     );
     getBatchAddCell(3, 4, ".vs__search").type("baseB");
-    cy.get(".vs__dropdown-menu").within(() => {
-      cy.contains(".badge", "baseB").click();
-    });
+    cy.get(".vs__dropdown-menu").contains(".badge", "baseB").click();
+
     getBatchAddCell(3, 5, ".vs__search").type("component1");
-    cy.get(".vs__dropdown-menu").within(() => {
-      cy.contains(".badge", "component1").click();
-    });
+    cy.get(".vs__dropdown-menu").contains(".badge", "component1").click();
 
     // sample with three components, copied from a sample with some of the same components
     getBatchAddCell(4, 1).type("test104");
@@ -274,21 +286,16 @@ describe("Batch sample creation", () => {
       "sample with three components, copied from a sample with some of the same components",
     );
     getBatchAddCell(4, 4, ".vs__search").type("baseB");
-    cy.get(".vs__dropdown-menu").within(() => {
-      cy.contains(".badge", "baseB").click();
-    });
+    cy.get(".vs__dropdown-menu").contains(".badge", "baseB").click();
+
     getBatchAddCell(4, 5, ".vs__search").type("component2");
-    cy.get(".vs__dropdown-menu").within(() => {
-      cy.contains(".badge", "component2").click();
-    });
+    cy.get(".vs__dropdown-menu").contains(".badge", "component2").click();
+
     getBatchAddCell(4, 5, ".vs__search").type("component3");
-    cy.get(".vs__dropdown-menu").within(() => {
-      cy.contains(".badge", "component3").click();
-    });
+    cy.get(".vs__dropdown-menu").contains(".badge", "component3").click();
+
     getBatchAddCell(4, 5, ".vs__search").type("component4");
-    cy.get(".vs__dropdown-menu").within(() => {
-      cy.contains(".badge", "component4").click();
-    });
+    cy.get(".vs__dropdown-menu").contains(".badge", "component4").click();
 
     getSubmitButton().click();
     cy.get("[data-testid=batch-modal-container]").contains("a", "test101");
@@ -458,9 +465,7 @@ describe("Batch sample creation", () => {
 
     // select copyFrom sample, check that it is applied correctly
     getBatchTemplateCell(4, ".vs__search").type("baseA");
-    cy.get(".vs__dropdown-menu").within(() => {
-      cy.contains(".badge", "baseA").click();
-    });
+    cy.get(".vs__dropdown-menu").contains(".badge", "baseA").click();
 
     getBatchAddCell(1, 4).contains("baseA");
     getBatchAddCell(2, 4).contains("baseA");
@@ -468,9 +473,7 @@ describe("Batch sample creation", () => {
 
     // change the copyFrom sample, check that it is applied correctly
     getBatchTemplateCell(4, ".vs__search").type("baseB");
-    cy.get(".vs__dropdown-menu").within(() => {
-      cy.contains(".badge", "baseB").click();
-    });
+    cy.get(".vs__dropdown-menu").contains(".badge", "baseB").click();
 
     getBatchAddCell(1, 4).contains("baseB");
     getBatchAddCell(2, 4).contains("baseB");
@@ -478,18 +481,16 @@ describe("Batch sample creation", () => {
 
     // add a component, check that it is applied correctly
     getBatchTemplateCell(5, ".vs__search").type("component1");
-    cy.get(".vs__dropdown-menu").within(() => {
-      cy.contains(".badge", "component1").click();
-    });
+    cy.get(".vs__dropdown-menu").contains(".badge", "component1").click();
+
     getBatchAddCell(1, 5).contains("component1");
     getBatchAddCell(2, 5).contains("component1");
     getBatchAddCell(3, 5).contains("component1");
 
     // add another component, check that it is applied correctly
     getBatchTemplateCell(5, ".vs__search").type("component2");
-    cy.get(".vs__dropdown-menu").within(() => {
-      cy.contains(".badge", "component2").click();
-    });
+    cy.get(".vs__dropdown-menu").contains(".badge", "component2").click();
+
     getBatchAddCell(1, 5).contains("component1");
     getBatchAddCell(1, 5).contains("component2");
     getBatchAddCell(2, 5).contains("component1");
@@ -548,24 +549,16 @@ describe("Batch sample creation", () => {
     getBatchTemplateCell(2).type("name{{}#{}}");
 
     getBatchTemplateCell(4, ".vs__search").type("baseB");
-    cy.get(".vs__dropdown-menu").within(() => {
-      cy.contains(".badge", "baseB").click();
-    });
+    cy.get(".vs__dropdown-menu").contains(".badge", "baseB").click();
 
     getBatchTemplateCell(5, ".vs__search").type("component1");
-    cy.get(".vs__dropdown-menu").within(() => {
-      cy.contains(".badge", "component1").click();
-    });
+    cy.get(".vs__dropdown-menu").contains(".badge", "component1").click();
 
     getBatchTemplateCell(5, ".vs__search").type("component3");
-    cy.get(".vs__dropdown-menu").within(() => {
-      cy.contains(".badge", "component3").click();
-    });
+    cy.get(".vs__dropdown-menu").contains(".badge", "component3").click();
 
     getBatchTemplateCell(5, ".vs__search").type("component4");
-    cy.get(".vs__dropdown-menu").within(() => {
-      cy.contains(".badge", "component4").click();
-    });
+    cy.get(".vs__dropdown-menu").contains(".badge", "component4").click();
 
     cy.findByLabelText("Number of rows:").clear().type(100);
     cy.get("[data-testid=batch-add-table] > tbody > tr").should("have.length", 100);
