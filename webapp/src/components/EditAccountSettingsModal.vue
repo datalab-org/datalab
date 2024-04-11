@@ -72,17 +72,17 @@
                 user.identities.find((identity) => identity.identity_type === 'orcid').name
               "
             >
-              <font-awesome-icon :icon="['fab', 'github']" />
+              <font-awesome-icon class="orcid-icon" :icon="['fab', 'orcid']" />
               {{ user.identities.find((identity) => identity.identity_type === "orcid").name }}
             </a>
             <a
               v-else
               type="button"
-              class="disabled dropdown-item btn login btn-link btn-default"
-              aria-label="Login via ORCID"
+              class="dropdown-item btn login btn-link btn-default"
+              aria-label="Connect ORCID account"
               :href="this.apiUrl + '/login/orcid'"
               ><font-awesome-icon class="orcid-icon" :icon="['fab', 'orcid']" /> Connect your
-              ORCiD</a
+              ORCID</a
             >
           </div>
         </div>

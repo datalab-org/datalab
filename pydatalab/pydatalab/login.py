@@ -54,6 +54,11 @@ class LoginUser(UserMixin):
         return self.person.display_name
 
     @property
+    def contact_email(self) -> Optional[str]:
+        """Returns the top-level contact email for the user, if set."""
+        return self.person.contact_email
+
+    @property
     def identities(self) -> List[Identity]:
         """Returns the list of identities of the user."""
         return self.person.identities

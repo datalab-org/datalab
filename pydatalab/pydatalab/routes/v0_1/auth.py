@@ -6,6 +6,7 @@ with their local accounts.
 
 import datetime
 import json
+import os
 import random
 import re
 from hashlib import sha512
@@ -35,7 +36,6 @@ LINK_EXPIRATION: datetime.timedelta = datetime.timedelta(hours=1)
 
 @logged_route
 def wrapped_login_user(*args, **kwargs):
-    # LOGGER.warning("Logging in user %s with role %s", args[0].display_name, args[0].role)
     login_user(*args, **kwargs)
 
 
@@ -45,7 +45,7 @@ EMAIL_BLUEPRINT = Blueprint("email", __name__)
 AUTH_BLUEPRINTS: Dict[IdentityType, Blueprint] = {
     IdentityType.ORCID: make_orcid_blueprint(
         scope="/authenticate",
-        sandbox=True,
+        sandbox=os.environ.get("OAUTH_ORCID_SANDBOX", False),
     ),
     IdentityType.GITHUB: make_github_blueprint(
         scope="read:org,read:user",
@@ -426,6 +426,10 @@ def orcid_logged_in(_, token):
         token["orcid"],
         display_name=token["name"],
         verified=True,
+        # TODO: For now, this does not create a new user account if missing, but can be used
+        # to connect an existing user account with an ORCID identity (which can then be used
+        # for login).
+        create_account=False,
     )
 
     # Return false to prevent Flask-dance from trying to store the token elsewhere
