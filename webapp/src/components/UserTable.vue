@@ -75,7 +75,7 @@ export default {
       }
     },
     async updateUserRole(user_id, user_role) {
-      await saveRole(user_id, user_role);
+      await saveRole(user_id, { role: user_role });
       this.original_users = JSON.parse(JSON.stringify(this.users));
     },
   },

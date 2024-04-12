@@ -57,8 +57,6 @@ def get_users():
 def save_role(user_id):
     request_json = request.get_json()
 
-    user_role: str | None = None
-
     if request_json is not None:
         user_role = request_json
 
@@ -83,13 +81,13 @@ def save_role(user_id):
         if not user_role:
             return (jsonify({"status": "error", "message": "Role not provided for new user."}), 400)
 
-        new_user_role = {"_id": ObjectId(user_id), "role": user_role}
+        new_user_role = {"_id": ObjectId(user_id), **user_role}
         flask_mongo.db.roles.insert_one(new_user_role)
 
         return (jsonify({"status": "success", "message": "New user's role created."}), 201)
 
     update_result = flask_mongo.db.roles.update_one(
-        {"_id": ObjectId(user_id)}, {"$set": {"role": user_role}}
+        {"_id": ObjectId(user_id)}, {"$set": user_role}
     )
 
     if update_result.matched_count != 1:
