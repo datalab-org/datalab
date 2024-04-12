@@ -13,7 +13,7 @@ admin = Blueprint("admins", __name__)
 @admin.before_request
 def check_authentication():
 
-    if request.method == 'OPTIONS':
+    if request.method == "OPTIONS":
         return
 
     if not current_user.is_authenticated:
