@@ -5,16 +5,21 @@ from flask_login import current_user
 from pydatalab.config import CONFIG
 from pydatalab.mongo import flask_mongo
 from pydatalab.permissions import get_default_permissions
+from pydatalab.models.utils import UserRole
 
 admin = Blueprint("admins", __name__)
 
 
 @admin.before_request
 def check_authentication():
+
+    if request.method == 'OPTIONS':
+        return
+
     if not current_user.is_authenticated:
         return jsonify({"error": "Unauthorized"}), 401
 
-    if current_user.role != "admin":
+    if not current_user.role == UserRole.ADMIN:
         return jsonify({"error": "Insufficient privileges"}), 403
 
 
@@ -52,7 +57,7 @@ def get_users():
 def save_role(user_id):
     request_json = request.get_json()
 
-    user_role: str
+    user_role: str | None = None
 
     if request_json is not None:
         user_role = request_json
@@ -62,7 +67,8 @@ def save_role(user_id):
 
     if not CONFIG.TESTING and current_user.role != "admin":
         return (
-            jsonify({"status": "error", "message": "User not allowed to edit this profile."}),
+            jsonify(
+                {"status": "error", "message": "User not allowed to edit this profile."}),
             403,
         )
 

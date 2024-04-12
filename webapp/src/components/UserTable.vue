@@ -74,8 +74,8 @@ export default {
         this.users.find((user) => user._id.$oid === user_id).role = originalCurrentUser.role;
       }
     },
-    async updateUserRole(user_id, role) {
-      await saveRole(user_id, role);
+    async updateUserRole(user_id, user_role) {
+      await saveRole(user_id, user_role);
       this.original_users = JSON.parse(JSON.stringify(this.users));
     },
   },
