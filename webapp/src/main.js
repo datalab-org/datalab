@@ -40,6 +40,7 @@ import {
   faSearch,
   faSpinner,
   faEllipsisH,
+  faCopy,
 } from "@fortawesome/free-solid-svg-icons";
 import { faPlusSquare } from "@fortawesome/free-regular-svg-icons";
 import { faGithub, faOrcid } from "@fortawesome/free-brands-svg-icons";
@@ -79,6 +80,7 @@ library.add(
   faPlusSquare,
   faSpinner,
   faEllipsisH,
+  faCopy,
 );
 
 // Import TinyMCE
