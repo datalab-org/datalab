@@ -1,6 +1,6 @@
 # <div align="center"><i>datalab</i></div>
 
-<div align="center">
+<div align="center" style="padding-bottom: 5px">
 <a href="https://public.datalab.odbx.science"><img src="https://img.shields.io/badge/try_it_out!-public_demo_server-orange?style=for-the-badge&logo=firefox"></a>
 </div>
 
@@ -27,7 +27,7 @@ in the Department of Chemistry at the University of Cambridge.
 
 
 <div align="center">
-<video controls src="https://github.com/the-grey-group/datalab/assets/7916000/0065cdd6-a5f0-4391-b192-0137fe208acc">
+<video width="400" controls src="https://github.com/the-grey-group/datalab/assets/7916000/0065cdd6-a5f0-4391-b192-0137fe208acc">
 </video>
 </div>
 
