@@ -64,7 +64,7 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
         </div>
       </div>
     </div>
-    <div v-if="errorMessage" class="alert alert-warning">
+    <div style="white-space: pre-line" v-if="errorMessage" class="alert alert-warning">
       {{ errorMessage }}
     </div>
     <div class="alert alert-info col-lg-6 col-md-8 mt-3 mx-auto" v-show="estimatedCost > 0.1">
@@ -86,7 +86,7 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
       <button
         type="button"
         class="btn btn-default send-button"
-        :disabled="!prompt || isLoading"
+        :disabled="!prompt || /^\s*$/.test(prompt) || isLoading"
         @click="updateBlock()"
       >
         Send
@@ -112,16 +112,16 @@ export default {
       isLoading: false,
       isRegenerating: false,
       advancedHidden: true,
+      prompt: "",
     };
   },
   computed: {
     messages: createComputedSetterForBlockField("messages"),
-    prompt: createComputedSetterForBlockField("prompt"),
     temperature: createComputedSetterForBlockField("temperature"),
     modelName: createComputedSetterForBlockField("model"),
     availableModels: createComputedSetterForBlockField("available_models"),
     modelObj() {
-      return this.availableModels[this.modelName];
+      return this.availableModels[this.modelName] || {};
     },
     tempInvalid() {
       return (
@@ -154,13 +154,20 @@ export default {
   methods: {
     async updateBlock() {
       this.isLoading = true;
+      this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id].prompt =
+        this.prompt;
 
-      await updateBlockFromServer(
+      updateBlockFromServer(
         this.item_id,
         this.block_id,
         this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id],
-      );
-      this.isLoading = false;
+      )
+        .then(() => {
+          this.prompt = "";
+        })
+        .finally(() => {
+          this.isLoading = false;
+        });
     },
     async regenerateLastResponse() {
       this.isLoading = true;
