@@ -1,7 +1,7 @@
 # <div align="center"><i>datalab</i></div>
 
 <div align="center">
-<img src="https://img.shields.io/badge/try_it_out!-public_demo_server-orange?style=for-the-badge&link=https%3A%2F%2Fpublic.datalab.odbx.science&logo=firefox">
+<a href="https://public.datalab.odbx.science"><img src="https://img.shields.io/badge/try_it_out!-public_demo_server-orange?style=for-the-badge&logo=firefox"></a>
 </div>
 
 <div align="center">
