@@ -1,16 +1,14 @@
 # <div align="center"><i>datalab</i></div>
 
 <div align="center">
-<a href="https://github.com/the-grey-group/datalab/actions/workflows/ci.yml">
-<img src="https://img.shields.io/github/actions/workflow/status/the-grey-group/datalab/ci.yml?logo=github">
-</a>
-<a href="https://cloud.cypress.io/projects/4kqx5i/runs">
-<img src="https://img.shields.io/endpoint?url=https://cloud.cypress.io/badge/simple/4kqx5i/main&style=flat&logo=cypress">
-</a>
-<a href="https://the-datalab.readthedocs.io/en/latest/?badge=latest">
-<img
-src="https://img.shields.io/readthedocs/the-datalab?logo=readthedocs&color=blueviolet">
-</a>
+<a href="https://github.com/the-grey-group/datalab/releases"><img src="https://badgen.net/github/release/the-grey-group/datalab?icon=github"></a>
+<a href="https://github.com/the-grey-group/datalab#MIT-1-ov-file"><img src="https://badgen.net/github/license/the-grey-group/datalab?icon=license&color=purple"></a>
+</div>
+
+<div align="center">
+<a href="https://github.com/the-grey-group/datalab/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/the-grey-group/datalab/ci.yml?logo=github"></a>
+<a href="https://cloud.cypress.io/projects/4kqx5i/runs"><img src="https://img.shields.io/endpoint?url=https://cloud.cypress.io/badge/simple/4kqx5i/main&style=flat&logo=cypress"></a>
+<a href="https://the-datalab.readthedocs.io/en/latest/?badge=latest"><img src="https://img.shields.io/readthedocs/the-datalab?logo=readthedocs"></a>
 </div>
 
 </h1>
@@ -27,6 +25,18 @@ The main aim of *datalab* is to provide a platform for capturing the significant
 The platform provides researchers with a way to record sample- and cell-specific metadata, attach and sync raw data from instruments, and perform analysis and visualisation of many characterisation techniques in the browser (XRD, NMR, electrochemical cycling, TEM, TGA, Mass Spec, Raman).
 Importantly, *datalab* stores a network of interconnected research objects in the lab, such that individual pieces of data are stored with the context needed to make them scientifically useful.
 
+The system was originally developed in and is currently deployed for the
+[Grey Group](https://www.ch.cam.ac.uk/group/grey/)
+in the Department of Chemistry at the University of Cambridge.
+
+
+<div align="center">
+<video controls src="https://github.com/the-grey-group/datalab/assets/7916000/0065cdd6-a5f0-4391-b192-0137fe208acc">
+</video>
+</div>
+
+## Features
+
 *datalab* consists of two main components:
 
 - a Flask-based Python web server (`pydatalab`) that communicates with a MongoDB
@@ -34,24 +44,12 @@ Importantly, *datalab* stores a network of interconnected research objects in th
 - a Vue 3 web application for a GUI that can be used to record information on
   samples alongside raw data files and analysis documents.
 
-The system was originally developed in and is currently deployed for the
-[Grey Group](https://www.ch.cam.ac.uk/group/grey/)
-in the Department of Chemistry at the University of Cambridge.
-
-
-## Features
-
-### Introductory video
-
-<div align="center">
-<video controls src="https://github.com/the-grey-group/datalab/assets/7916000/0065cdd6-a5f0-4391-b192-0137fe208acc">
-</video>
-</div>
 
 ### Server
 
 - A REST API for accessing data and analysis related to chemical samples,
-  inventory and their connections.
+  inventory and their connections, with ergonomic access provided via the
+  [*datalab* Python API](https://github.com/datalab-org/datalab-api).
 - OAuth2-based user authentication via GitHub or ORCID and simple user role
   management.
 - Real-time data streaming and syncing with remote data sources (e.g., instrumentation, archives and file stores).
