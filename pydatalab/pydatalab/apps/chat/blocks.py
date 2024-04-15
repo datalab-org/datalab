@@ -3,6 +3,7 @@ import os
 from typing import Sequence
 
 from langchain_anthropic import ChatAnthropic
+from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_openai import ChatOpenAI
 
 from pydatalab.blocks.base import DataBlock
@@ -17,7 +18,7 @@ class ChatBlock(DataBlock):
     blocktype = "chat"
     description = "Virtual assistant"
     accepted_file_extensions: Sequence[str] = []
-    ChatClient = None
+    chat_client: BaseChatModel | None = None
 
     __supports_collections = True
     defaults = {
@@ -99,7 +100,7 @@ Be as concise as possible. When saying your name, type a bird emoji right after 
                 {
                     "role": "user",
                     "content": f"""Here is the JSON data for the current item(s): {info_json}.
-                    Start with a friendly introduction and give me a one sentence summary of what this is (not detailed, no information about specific masses). """,
+Start with a friendly introduction and give me a one sentence summary of what this is (not detailed, no information about specific masses). """,
                 },
             ]
 
@@ -128,13 +129,13 @@ Be as concise as possible. When saying your name, type a bird emoji right after 
             model_dict = self.data["available_models"][model_name]
             LOGGER.warning(f"Initializing chatblock with model: {model_name}")
 
-            if "claude" in model_name:
-                self.ChatClient = ChatAnthropic(
+            if model_name.startswith("claude"):
+                self.chat_client = ChatAnthropic(
                     anthropic_api_key=os.environ["ANTHROPIC_API_KEY"],
                     model=model_name,
                 )
-            elif "gpt" in model_name:
-                self.ChatClient = ChatOpenAI(
+            elif model_name.startswith("gpt"):
+                self.chat_client = ChatOpenAI(
                     api_key=os.environ.get("OPENAI_API_KEY"),
                     model=model_name,
                 )
@@ -154,7 +155,7 @@ Be as concise as possible. When saying your name, type a bird emoji right after 
                 else:
                     langchain_messages.append(AIMessage(content=message["content"]))
 
-            token_count = self.ChatClient.get_num_tokens_from_messages(langchain_messages)
+            token_count = self.chat_client.get_num_tokens_from_messages(langchain_messages)
 
             self.data["token_count"] = token_count
 
@@ -165,12 +166,12 @@ Be as concise as possible. When saying your name, type a bird emoji right after 
                 ] = f"""This conversation has reached its maximum context size and the chatbot won't be able to respond further ({token_count} tokens, max: {model_dict['context_window']}). Please make a new chat block to start fresh, or use a model with a larger context window"""
                 return
 
-            # Call the ChatClient client with the invoke method
-            response = self.ChatClient.invoke(langchain_messages)
+            # Call the chat client with the invoke method
+            response = self.chat_client.invoke(langchain_messages)
 
             langchain_messages.append(response)
 
-            token_count = self.ChatClient.get_num_tokens_from_messages(langchain_messages)
+            token_count = self.chat_client.get_num_tokens_from_messages(langchain_messages)
 
             self.data["token_count"] = token_count
             self.data["messages"].append({"role": "assistant", "content": response.content})
