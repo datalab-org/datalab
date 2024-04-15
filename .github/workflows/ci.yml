@@ -116,11 +116,16 @@ jobs:
         run: yarn build
 
   e2e:
-    name: Run e2e tests across app and API
+    name: e2e tests
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        browser-backend: ["firefox", "chrome"]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -153,26 +158,6 @@ jobs:
           config: baseUrl=http://localhost:8081
           working-directory: ./webapp
           record: true
-          browser: "electron"
-        env:
-          CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
-
-      - name: Run end-to-end tests (Chrome)
-        uses: cypress-io/github-action@v6
-        with:
-          config: baseUrl=http://localhost:8081
-          working-directory: ./webapp
-          record: true
-          browser: "chrome"
-        env:
-          CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
-
-      - name: Run end-to-end tests (Firefox)
-        uses: cypress-io/github-action@v6
-        with:
-          config: baseUrl=http://localhost:8081
-          working-directory: ./webapp
-          record: true
-          browser: "firefox"
+          browser: ${{ matrix.browser-backend }}
         env:
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
