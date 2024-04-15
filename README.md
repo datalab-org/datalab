@@ -1,6 +1,10 @@
 # <div align="center"><i>datalab</i></div>
 
 <div align="center">
+<img src="https://img.shields.io/badge/try_it_out!-public_demo_server-orange?style=for-the-badge&link=https%3A%2F%2Fpublic.datalab.odbx.science&logo=firefox">
+</div>
+
+<div align="center">
 <a href="https://github.com/the-grey-group/datalab/releases"><img src="https://badgen.net/github/release/the-grey-group/datalab?icon=github"></a>
 <a href="https://github.com/the-grey-group/datalab#MIT-1-ov-file"><img src="https://badgen.net/github/license/the-grey-group/datalab?icon=license&color=purple"></a>
 </div>
@@ -10,14 +14,6 @@
 <a href="https://cloud.cypress.io/projects/4kqx5i/runs"><img src="https://img.shields.io/endpoint?url=https://cloud.cypress.io/badge/simple/4kqx5i/main&style=flat&logo=cypress"></a>
 <a href="https://the-datalab.readthedocs.io/en/latest/?badge=latest"><img src="https://img.shields.io/readthedocs/the-datalab?logo=readthedocs"></a>
 </div>
-
-</h1>
-
-> 📢 If you are interested in joining the *datalab* mailing list and helping decide its future, please fill out [the survey](https://forms.gle/etq4pcsQJ3omLBmj6).
-
-> ℹ️ We have created a public deployment of *datalab* for potential users to test. Please register via the magic-link email sign in at [public.datalab.odbx.science](https://public.datalab.odbx.science). Any data stored here will not be visible to others except the admins of the deployment, where it will only be used for debugging purposes. We provide no assurances for availability or data backups on this deployment, so please do not use this for production work.
-
-<!-- datalab logo -->
 
 This repository contains the code for the *datalab* data management system, targeted (broadly) at materials chemistry labs but with customisability and extensability in mind.
 
