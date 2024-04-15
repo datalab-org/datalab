@@ -103,7 +103,7 @@ Be as concise as possible. When saying your name, type a bird emoji right after 
                 },
             ]
 
-        if self.data.get("prompt"):
+        if self.data.get("prompt") and self.data.get("prompt").strip():
             self.data["messages"].append(
                 {
                     "role": "user",
@@ -111,6 +111,10 @@ Be as concise as possible. When saying your name, type a bird emoji right after 
                 }
             )
             self.data["prompt"] = None
+        else:
+            LOGGER.debug(
+                "Chat block: no prompt was provided (or prompt was entirely whitespace), so no inference will be performed"
+            )
 
         try:
             if self.data["messages"][-1].role not in ("user", "system"):
@@ -174,7 +178,9 @@ Be as concise as possible. When saying your name, type a bird emoji right after 
 
         except Exception as exc:
             LOGGER.debug("Received an error from API: %s", exc)
-            self.data["error_message"] = f"Received an error from the API: {exc}."
+            self.data[
+                "error_message"
+            ] = f"Received an error from the API: {exc}.\n\n Consider choosing a different model and reloading the block."
             return
 
     def _prepare_item_json_for_chat(self, item_id: str):
