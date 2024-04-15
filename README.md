@@ -9,7 +9,7 @@
 </a>
 </div>
 
-<div>
+<div align="center">
 <a href="https://github.com/the-grey-group/datalab/actions/workflows/ci.yml">
 <img src="https://img.shields.io/github/actions/workflow/status/the-grey-group/datalab/ci.yml?logo=github">
 </a>
@@ -18,7 +18,7 @@
 </a>
 <a href="https://the-datalab.readthedocs.io/en/latest/?badge=latest">
 <img
-src="https://img.shields.io/readthedocs/the-datalab?logo=readthedocs&color=blueviolet">
+src="https://img.shields.io/readthedocs/the-datalab?logo=readthedocs">
 </a>
 </div>
 
