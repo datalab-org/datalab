@@ -1,5 +1,9 @@
 # <div align="center"><i>datalab</i></div>
 
+<div align="center" style="padding-bottom: 5px">
+<a href="https://public.datalab.odbx.science"><img src="https://img.shields.io/badge/try_it_out!-public_demo_server-orange?logo=firefox"></a>
+</div>
+
 <div align="center">
 <a href="https://github.com/the-grey-group/datalab/releases"><img src="https://badgen.net/github/release/the-grey-group/datalab?icon=github"></a>
 <a href="https://github.com/the-grey-group/datalab#MIT-1-ov-file"><img src="https://badgen.net/github/license/the-grey-group/datalab?icon=license&color=purple"></a>
@@ -11,13 +15,9 @@
 <a href="https://the-datalab.readthedocs.io/en/latest/?badge=latest"><img src="https://img.shields.io/readthedocs/the-datalab?logo=readthedocs"></a>
 </div>
 
-</h1>
-
-> 📢 If you are interested in joining the *datalab* mailing list and helping decide its future, please fill out [the survey](https://forms.gle/etq4pcsQJ3omLBmj6).
-
-> ℹ️ We have created a public deployment of *datalab* for potential users to test. Please register via the magic-link email sign in at [public.datalab.odbx.science](https://public.datalab.odbx.science). Any data stored here will not be visible to others except the admins of the deployment, where it will only be used for debugging purposes. We provide no assurances for availability or data backups on this deployment, so please do not use this for production work.
-
-<!-- datalab logo -->
+<div align="center">
+<a href="https://join.slack.com/t/datalab-world/shared_invite/zt-2h58ev3pc-VV496~5je~QoT2TgFIwn4g"><img src="https://img.shields.io/badge/Slack-chat_with_us-yellow?logo=slack"></a>
+</div>
 
 This repository contains the code for the *datalab* data management system, targeted (broadly) at materials chemistry labs but with customisability and extensability in mind.
 
@@ -31,7 +31,7 @@ in the Department of Chemistry at the University of Cambridge.
 
 
 <div align="center">
-<video controls src="https://github.com/the-grey-group/datalab/assets/7916000/0065cdd6-a5f0-4391-b192-0137fe208acc">
+<video width="400" controls src="https://github.com/the-grey-group/datalab/assets/7916000/0065cdd6-a5f0-4391-b192-0137fe208acc">
 </video>
 </div>
 
@@ -92,7 +92,7 @@ A full list of code contributions can be found on [GitHub](https://github.com/th
 ## Contact
 
 We are available for consultations on setting up and managing *datalab* deployments, as well as collaborating on or sponsoring additions of new features and techniques.
-Please contact Josh or Matthew on their academic emails, or use the catch-all address datalab@odbx.science if you are interested.
+Please contact Josh or Matthew on their academic emails, or join the [public *datalab* Slack workspace](https://join.slack.com/t/datalab-world/shared_invite/zt-2h58ev3pc-VV496~5je~QoT2TgFIwn4g).
 
 ## Funding
 
