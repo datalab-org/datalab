@@ -1,6 +1,15 @@
 # <div align="center"><i>datalab</i></div>
 
 <div align="center">
+<a href="https://github.com/the-grey-group/datalab/releases">
+<img src="https://badgen.net/github/release/the-grey-group/datalab?icon=github">
+</a>
+<a href="https://github.com/the-grey-group/datalab#MIT-1-ov-file">
+<img src="https://badgen.net/github/license/the-grey-group/datalab?icon=license&color=purple">
+</a>
+</div>
+
+<div>
 <a href="https://github.com/the-grey-group/datalab/actions/workflows/ci.yml">
 <img src="https://img.shields.io/github/actions/workflow/status/the-grey-group/datalab/ci.yml?logo=github">
 </a>
@@ -51,7 +60,7 @@ in the Department of Chemistry at the University of Cambridge.
 
 - A REST API for accessing data and analysis related to chemical samples,
   inventory and their connections, with ergonomic access provided via the
-  [*datalab* Python API](https://github.com/datalab-org/datalab-python-api).
+  [*datalab* Python API](https://github.com/datalab-org/datalab-api).
 - OAuth2-based user authentication via GitHub or ORCID and simple user role
   management.
 - Real-time data streaming and syncing with remote data sources (e.g., instrumentation, archives and file stores).
