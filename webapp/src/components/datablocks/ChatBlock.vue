@@ -154,11 +154,6 @@ export default {
   methods: {
     async updateBlock() {
       this.isLoading = true;
-      this.messages.push({
-        content: this.prompt,
-        role: "user",
-      });
-      this.prompt = "";
 
       await updateBlockFromServer(
         this.item_id,
