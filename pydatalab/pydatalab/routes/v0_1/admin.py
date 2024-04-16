@@ -3,16 +3,15 @@ from flask import Blueprint, jsonify, request
 from flask_login import current_user
 
 from pydatalab.config import CONFIG
+from pydatalab.models.utils import UserRole
 from pydatalab.mongo import flask_mongo
 from pydatalab.permissions import get_default_permissions
-from pydatalab.models.utils import UserRole
 
 admin = Blueprint("admins", __name__)
 
 
 @admin.before_request
 def check_authentication():
-
     if request.method == "OPTIONS":
         return
 
@@ -65,8 +64,7 @@ def save_role(user_id):
 
     if not CONFIG.TESTING and current_user.role != "admin":
         return (
-            jsonify(
-                {"status": "error", "message": "User not allowed to edit this profile."}),
+            jsonify({"status": "error", "message": "User not allowed to edit this profile."}),
             403,
         )
 
@@ -86,9 +84,7 @@ def save_role(user_id):
 
         return (jsonify({"status": "success", "message": "New user's role created."}), 201)
 
-    update_result = flask_mongo.db.roles.update_one(
-        {"_id": ObjectId(user_id)}, {"$set": user_role}
-    )
+    update_result = flask_mongo.db.roles.update_one({"_id": ObjectId(user_id)}, {"$set": user_role})
 
     if update_result.matched_count != 1:
         return (jsonify({"status": "error", "message": "Unable to update user."}), 400)

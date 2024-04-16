@@ -92,6 +92,5 @@ def test_user_update(client, admin_client, real_mongo_client, user_id, admin_use
     user_request = {"display_name": "Test Person"}
     resp = client.patch(endpoint, json=user_request)
     assert resp.status_code == 403
-    user = real_mongo_client.get_database(
-    ).users.find_one({"_id": admin_user_id})
+    user = real_mongo_client.get_database().users.find_one({"_id": admin_user_id})
     assert user["display_name"] == "Test Admin"
