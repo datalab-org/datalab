@@ -2,7 +2,7 @@
   <form @submit.prevent="submitForm" class="modal-enclosure">
     <Modal
       :modelValue="modelValue"
-      @update:modelValue="$emit('update:modelValue', $event)"
+      @update:modelValue="resetForm"
       :disableSubmit="
         Boolean(displayNameValidationMessage) || Boolean(contactEmailValidationMessage)
       "
@@ -86,6 +86,30 @@
             >
           </div>
         </div>
+        <div class="form-row">
+          <div class="form-group col-md-12">
+            <label for="api-key" class="col-form-label">API Key:</label>
+            <div v-if="apiKeyDisplayed" class="input-group">
+              <input
+                type="text"
+                class="form-control"
+                style="text-overflow: ellipsis"
+                :value="apiKey"
+                readonly
+              />
+              <div class="input-group-append">
+                <button class="btn btn-outline-secondary" type="button" @click="copyToClipboard">
+                  <font-awesome-icon icon="copy" />
+                </button>
+              </div>
+            </div>
+            <div>
+              <button class="btn btn-default mt-2" @click="requestAPIKey">
+                Regenerate API Key
+              </button>
+            </div>
+          </div>
+        </div>
       </template>
     </Modal>
   </form>
@@ -94,7 +118,7 @@
 <script>
 import { API_URL } from "@/resources.js";
 import Modal from "@/components/Modal.vue";
-import { getUserInfo, saveUser } from "@/server_fetch_utils.js";
+import { getUserInfo, saveUser, requestNewAPIKey } from "@/server_fetch_utils.js";
 export default {
   name: "EditAccountSettingsModal",
   data() {
@@ -105,6 +129,8 @@ export default {
         identities: [],
       },
       apiUrl: API_URL,
+      apiKeyDisplayed: false,
+      apiKey: null,
     };
   },
   props: {
@@ -140,6 +166,29 @@ export default {
       if (user != null) {
         this.user = user;
       }
+    },
+    async requestAPIKey(event) {
+      event.preventDefault();
+      if (
+        window.confirm(
+          "Requesting a new API key will remove your old one. Are you sure you want to proceed?",
+        )
+      ) {
+        const newKey = await requestNewAPIKey();
+        this.apiKey = newKey;
+        this.apiKeyDisplayed = true;
+        window.alert(
+          `A new API key has been generated. Please note that when you close the "Account Settings" window, the key will not be displayed again. `,
+        );
+      }
+    },
+    copyToClipboard() {
+      navigator.clipboard.writeText(this.apiKey);
+    },
+    resetForm() {
+      this.apiKeyDisplayed = false;
+      this.apiKey = null;
+      this.$emit("update:modelValue", false);
     },
   },
   mounted() {

@@ -616,6 +616,21 @@ export async function getItemGraph({ item_id = null, collection_id = null } = {}
     .catch((error) => `getItemGraph unsuccessful. Error: ${error}`);
 }
 
+export async function requestNewAPIKey() {
+  try {
+    const response_json = await fetch_get(`${API_URL}/get-api-key/`);
+
+    if (response_json.key) {
+      console.log("New API key requested successfully!");
+      return response_json.key;
+    } else {
+      throw new Error(response_json.message);
+    }
+  } catch (error) {
+    throw new Error(`Failed to request new API key: ${error.message}`);
+  }
+}
+
 // export async function addRemoteFilesToSample(file_entries, item_id) {
 //  console.log('loadSelectedRemoteFiles')
 //  return fetch_post(`${API_URL}/add-remote-files-to-sample/`, {
