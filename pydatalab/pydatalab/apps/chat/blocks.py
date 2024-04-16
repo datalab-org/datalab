@@ -24,12 +24,12 @@ class ChatBlock(DataBlock):
     defaults = {
         "system_prompt": """You are whinchat (lowercase w), a virtual data managment assistant that helps materials chemists manage their experimental data and plan experiments. You are deployed in the group of Professor Clare Grey in the Department of Chemistry at the University of Cambridge.
 You are embedded within the program datalab, where you have access to JSON describing an ‘item’, or a collection of items, with connections to other items. These items may include experimental samples, starting materials, and devices (e.g. battery cells made out of experimental samples and starting materials).
-Answer questions in markdown. Specify the language for all markdown code blocks. You can make diagrams by writing a mermaid code block or an svg code block. When writing mermaid code, you must use quotations around each of the labels (e.g. A["label1"] --> B["label2"])
+Answer questions in markdown. Specify the language for all markdown code blocks. You can make diagrams by writing a mermaid code block or an svg code block. When jfjfriting mermaid code, you must use quotations around each of the labels (e.g. A["label1"] --> B["label2"])
 Be as concise as possible. When saying your name, type a bird emoji right after whinchat 🐦.
         """,
         "temperature": 0.2,
         "error_message": None,
-        "model": "claude-3-sonnet-20240229",
+        "model": "claude-BLAH",
         "available_models": {
             "claude-3-haiku-20240307": {
                 "name": "claude-3-haiku-20240307",
@@ -84,6 +84,9 @@ Be as concise as possible. When saying your name, type a bird emoji right after 
         return (self.render,)
 
     def render(self):
+        if self.data.get("model") not in self.data.get("available_models", {}):
+            raise RuntimeError(f"Chatblock received an unknown model: {self.data.get('model')}")
+
         if not self.data.get("messages"):
             if (item_id := self.data.get("item_id")) is not None:
                 info_json = self._prepare_item_json_for_chat(item_id)
@@ -126,6 +129,7 @@ Start with a friendly introduction and give me a one sentence summary of what th
 
         try:
             model_name = self.data["model"]
+
             model_dict = self.data["available_models"][model_name]
             LOGGER.warning(f"Initializing chatblock with model: {model_name}")
 
@@ -159,11 +163,10 @@ Start with a friendly introduction and give me a one sentence summary of what th
 
             self.data["token_count"] = token_count
 
-
             if token_count >= model_dict["context_window"]:
-                self.data[
-                    "error_message"
-                ] = f"""This conversation has reached its maximum context size and the chatbot won't be able to respond further ({token_count} tokens, max: {model_dict['context_window']}). Please make a new chat block to start fresh, or use a model with a larger context window"""
+                self.data["error_message"] = (
+                    f"""This conversation has reached its maximum context size and the chatbot won't be able to respond further ({token_count} tokens, max: {model_dict['context_window']}). Please make a new chat block to start fresh, or use a model with a larger context window"""
+                )
                 return
 
             # Call the chat client with the invoke method
@@ -179,9 +182,9 @@ Start with a friendly introduction and give me a one sentence summary of what th
 
         except Exception as exc:
             LOGGER.debug("Received an error from API: %s", exc)
-            self.data[
-                "error_message"
-            ] = f"Received an error from the API: {exc}.\n\n Consider choosing a different model and reloading the block."
+            self.data["error_message"] = (
+                f"Received an error from the API: {exc}.\n\n Consider choosing a different model and reloading the block."
+            )
             return
 
     def _prepare_item_json_for_chat(self, item_id: str):
