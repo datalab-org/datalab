@@ -15,6 +15,7 @@ import TestTree from "@/components/TestTree.vue";
 import CycleParameterTable from "@/components/CycleParameterTable.vue";
 import ExampleGraph from "@/views/ExampleGraph.vue";
 import ItemGraphPage from "@/views/ItemGraphPage.vue";
+import Admin from "@/views/Admin.vue";
 const routes = [
   {
     path: "/about",
@@ -89,6 +90,12 @@ const routes = [
   },
   { path: "/404", name: "notfound", component: NotFound },
   { path: "/:pathMatch(.*)*", component: NotFound },
+  {
+    path: "/admin",
+    name: "admin",
+    alias: "/",
+    component: Admin,
+  },
 ];
 
 const router = createRouter({
