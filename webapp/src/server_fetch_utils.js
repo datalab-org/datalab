@@ -236,6 +236,18 @@ export function getCollectionList() {
     });
 }
 
+export function getUsersList() {
+  return fetch_get(`${API_URL}/users`)
+    .then(function (response_json) {
+      return response_json.data;
+    })
+    .catch((error) => {
+      console.error("Error when fetching users list");
+      console.error(error);
+      throw error;
+    });
+}
+
 export function getStartingMaterialList() {
   return fetch_get(`${API_URL}/starting-materials/`)
     .then(function (response_json) {
@@ -491,6 +503,20 @@ export function saveUser(user_id, user) {
     })
     .catch(function (error) {
       alert(`User save unsuccessful: ${error}`);
+    });
+}
+
+export function saveRole(user_id, role) {
+  fetch_patch(`${API_URL}/roles/${user_id}`, role)
+    .then(function (response_json) {
+      if (response_json.status === "success") {
+        console.log("Save successful!");
+      } else {
+        alert("Role save unsuccessful", response_json.detail);
+      }
+    })
+    .catch(function (error) {
+      alert(`Role save unsuccessful: ${error}`);
     });
 }
 

@@ -5,6 +5,24 @@ def test_get_current_user(client):
     assert resp.status_code == 200
 
 
+def test_role(client, admin_client, real_mongo_client, user_id):
+    endpoint = f"/roles/{str(user_id)}"
+
+    # Test role update by admin
+    admin_request = {"role": "manager"}
+    resp = admin_client.patch(endpoint, json=admin_request)
+    assert resp.status_code == 200
+    user = real_mongo_client.get_database().roles.find_one({"_id": user_id})
+    assert user["role"] == "manager"
+
+    # Test role update by user
+    user_request = {"role": "admin"}
+    resp = client.patch(endpoint, json=user_request)
+    assert resp.status_code == 403
+    user = real_mongo_client.get_database().roles.find_one({"_id": user_id})
+    assert user["role"] == "manager"
+
+
 def test_user_update(client, admin_client, real_mongo_client, user_id, admin_user_id):
     endpoint = f"/users/{str(user_id)}"
 

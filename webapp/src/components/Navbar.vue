@@ -32,6 +32,7 @@ export default {
       apiUrl: API_URL,
       logo_url: LOGO_URL,
       homepage_url: HOMEPAGE_URL,
+      user: null,
     };
   },
   components: {
