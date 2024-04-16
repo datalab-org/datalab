@@ -29,7 +29,7 @@ Be as concise as possible. When saying your name, type a bird emoji right after 
         """,
         "temperature": 0.2,
         "error_message": None,
-        "model": "claude-BLAH",
+        "model": "gpt-3.5-turbo-0613",
         "available_models": {
             "claude-3-haiku-20240307": {
                 "name": "claude-3-haiku-20240307",
