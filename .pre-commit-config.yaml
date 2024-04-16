@@ -5,6 +5,7 @@ default_language_version:
 ci:
   skip: [generate-schemas]
   autoupdate_schedule: "monthly"
+  autofix_prs: false
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
