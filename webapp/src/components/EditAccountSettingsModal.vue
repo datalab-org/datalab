@@ -90,7 +90,13 @@
           <div class="form-group col-md-12">
             <label for="api-key" class="col-form-label">API Key:</label>
             <div v-if="apiKeyDisplayed" class="input-group">
-              <input type="text" class="form-control" style='text-overflow: ellipsis' :value="apiKey" readonly />
+              <input
+                type="text"
+                class="form-control"
+                style="text-overflow: ellipsis"
+                :value="apiKey"
+                readonly
+              />
               <div class="input-group-append">
                 <button class="btn btn-outline-secondary" type="button" @click="copyToClipboard">
                   <font-awesome-icon icon="copy" />
@@ -98,7 +104,9 @@
               </div>
             </div>
             <div>
-                <button class="btn btn-default mt-2" @click="requestAPIKey">Regenerate API Key</button>
+              <button class="btn btn-default mt-2" @click="requestAPIKey">
+                Regenerate API Key
+              </button>
             </div>
           </div>
         </div>
