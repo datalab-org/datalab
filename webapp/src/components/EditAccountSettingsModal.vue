@@ -90,7 +90,6 @@
           <div class="form-group col-md-12">
             <div class="form-row">
               <label for="api-key" class="col-form-label">API Key:</label>
-              <HelpBubble :message="apiKeyHelpMessage" />
             </div>
             <div v-if="apiKeyDisplayed" class="input-group">
               <input
@@ -106,10 +105,11 @@
                 </button>
               </div>
             </div>
-            <div>
+            <div class="form-row">
               <button class="btn btn-default mt-2" @click="requestAPIKey">
                 Regenerate API Key
               </button>
+              <HelpBubble :message="apiKeyHelpMessage" />
             </div>
           </div>
         </div>
