@@ -26,7 +26,7 @@
         <td align="left">
           <select
             v-model="user.account_status"
-            @change="updateUserStatus(user._id.$oid, $event.target.value)"
+            @change="confirmUpdateUserStatus(user._id.$oid, $event.target.value)"
           >
             <option value="active">Active</option>
             <option value="unverified">Unverified</option>
@@ -76,6 +76,20 @@ export default {
         await this.updateUserRole(user_id, new_role);
       } else {
         this.users.find((user) => user._id.$oid === user_id).role = originalCurrentUser.role;
+      }
+    },
+    async confirmUpdateUserStatus(user_id, new_status) {
+      const originalCurrentUser = this.original_users.find((user) => user._id.$oid === user_id);
+
+      if (
+        window.confirm(
+          `Are you sure you want to change ${originalCurrentUser.display_name}'s status from "${originalCurrentUser.account_status}" to "${new_status}" ?`,
+        )
+      ) {
+        await this.updateUserStatus(user_id, new_status);
+      } else {
+        this.users.find((user) => user._id.$oid === user_id).account_status =
+          originalCurrentUser.account_status;
       }
     },
     async updateUserRole(user_id, user_role) {
