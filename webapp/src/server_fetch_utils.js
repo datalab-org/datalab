@@ -631,6 +631,34 @@ export async function requestNewAPIKey() {
   }
 }
 
+export async function getPublicSettings() {
+  try {
+    const response_json = await fetch_get(`${API_URL}/info/settings`);
+
+    if (response_json) {
+      return response_json;
+    } else {
+      throw new Error(response_json.message);
+    }
+  } catch (error) {
+    throw new Error(`Failed: ${error.message}`);
+  }
+}
+
+export async function getAllSettings() {
+  try {
+    const response_json = await fetch_get(`${API_URL}/admin/settings`);
+
+    if (response_json) {
+      return response_json.data;
+    } else {
+      throw new Error(response_json.message);
+    }
+  } catch (error) {
+    throw new Error(`Failed: ${error.message}`);
+  }
+}
+
 // export async function addRemoteFilesToSample(file_entries, item_id) {
 //  console.log('loadSelectedRemoteFiles')
 //  return fetch_post(`${API_URL}/add-remote-files-to-sample/`, {

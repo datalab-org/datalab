@@ -1,5 +1,6 @@
 """This submodule defines introspective info endpoints of the API."""
 
+from flask import jsonify
 import json
 from datetime import datetime
 from functools import lru_cache
@@ -73,7 +74,8 @@ def _get_deployment_metadata_once() -> Dict:
 
     identifier_prefix = CONFIG.IDENTIFIER_PREFIX
     metadata = (
-        CONFIG.DEPLOYMENT_METADATA.dict(exclude_none=True) if CONFIG.DEPLOYMENT_METADATA else {}
+        CONFIG.DEPLOYMENT_METADATA.dict(
+            exclude_none=True) if CONFIG.DEPLOYMENT_METADATA else {}
     )
     metadata.update({"identifier_prefix": identifier_prefix})
     return metadata
@@ -86,7 +88,8 @@ def get_info():
         jsonify(
             json.loads(
                 JSONAPIResponse(
-                    data=Data(id="/", type="info", attributes=Info(**metadata)),
+                    data=Data(id="/", type="info",
+                              attributes=Info(**metadata)),
                     meta=Meta(query=request.query_string),
                     links=Links(self=request.url),
                 ).json()
@@ -104,12 +107,19 @@ def get_stats():
     cell_count = flask_mongo.db.items.count_documents({"type": "cells"})
 
     return (
-        jsonify({"counts": {"users": user_count, "samples": sample_count, "cells": cell_count}}),
+        jsonify({"counts": {"users": user_count,
+                "samples": sample_count, "cells": cell_count}}),
         200,
     )
+
+
+def get_public_settings():
+    public_settings = flask_mongo.db.settings.find({"access_level": "public"})
+    return jsonify({"status": "success", "settings": list(public_settings)}), 200
 
 
 ENDPOINTS: Dict[str, Callable] = {
     "/info": get_info,
     "/info/stats": get_stats,
+    "/info/settings": get_public_settings,
 }
