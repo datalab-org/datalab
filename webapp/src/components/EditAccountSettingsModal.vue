@@ -88,7 +88,10 @@
         </div>
         <div class="form-row">
           <div class="form-group col-md-12">
-            <label for="api-key" class="col-form-label">API Key:</label>
+            <div class="form-row">
+              <label for="api-key" class="col-form-label">API Key:</label>
+              <HelpBubble :message="apiKeyHelpMessage" />
+            </div>
             <div v-if="apiKeyDisplayed" class="input-group">
               <input
                 type="text"
@@ -118,7 +121,9 @@
 <script>
 import { API_URL } from "@/resources.js";
 import Modal from "@/components/Modal.vue";
+import HelpBubble from "./HelpBubble.vue";
 import { getUserInfo, saveUser, requestNewAPIKey } from "@/server_fetch_utils.js";
+
 export default {
   name: "EditAccountSettingsModal",
   data() {
@@ -131,6 +136,8 @@ export default {
       apiUrl: API_URL,
       apiKeyDisplayed: false,
       apiKey: null,
+      apiKeyHelpMessage:
+        "Lorem, ipsum dolor sit amet consectetur adipisicing elit. Minus adipisci quod earum maxime vero architecto molestiae ipsum est debitis saepe blanditiis repellat, libero numquam. Autem, qui? Libero tenetur deleniti numquam!",
     };
   },
   props: {
@@ -196,6 +203,7 @@ export default {
   },
   components: {
     Modal,
+    HelpBubble,
   },
 };
 </script>
