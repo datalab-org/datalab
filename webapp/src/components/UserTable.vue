@@ -6,6 +6,7 @@
         <th scope="col">Email</th>
         <th scope="col">Role</th>
         <th scope="col">Status</th>
+        <th scope="col">Change status</th>
       </tr>
     </thead>
     <tbody>
@@ -24,14 +25,39 @@
           </select>
         </td>
         <td align="left">
-          <select
-            v-model="user.account_status"
-            @change="confirmUpdateUserStatus(user._id.$oid, $event.target.value)"
+          <button v-if="user.account_status === 'active'" class="btn btn-success btn-sm">
+            Active
+          </button>
+          <button v-else-if="user.account_status === 'unverified'" class="btn btn-warning btn-sm">
+            Unverified
+          </button>
+          <button v-else-if="user.account_status === 'disabled'" class="btn btn-danger btn-sm">
+            Disabled
+          </button>
+        </td>
+
+        <td align="left">
+          <button
+            v-if="user.account_status === 'active'"
+            class="btn btn-danger btn-sm"
+            @click="confirmUpdateUserStatus(user._id.$oid, 'disabled')"
           >
-            <option value="active">Active</option>
-            <option value="unverified">Unverified</option>
-            <option value="disabled">Disabled</option>
-          </select>
+            Disable
+          </button>
+          <button
+            v-else-if="user.account_status === 'unverified'"
+            class="btn btn-success btn-sm"
+            @click="confirmUpdateUserStatus(user._id.$oid, 'active')"
+          >
+            Activate
+          </button>
+          <button
+            v-else-if="user.account_status === 'disabled'"
+            class="btn btn-success btn-sm"
+            @click="confirmUpdateUserStatus(user._id.$oid, 'active')"
+          >
+            Activate
+          </button>
         </td>
       </tr>
     </tbody>
@@ -80,6 +106,7 @@ export default {
     },
     async confirmUpdateUserStatus(user_id, new_status) {
       const originalCurrentUser = this.original_users.find((user) => user._id.$oid === user_id);
+      const currentUser = this.users.find((user) => user._id.$oid === user_id);
 
       if (
         window.confirm(
@@ -87,6 +114,7 @@ export default {
         )
       ) {
         await this.updateUserStatus(user_id, new_status);
+        currentUser.account_status = new_status;
       } else {
         this.users.find((user) => user._id.$oid === user_id).account_status =
           originalCurrentUser.account_status;
