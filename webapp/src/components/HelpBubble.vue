@@ -2,6 +2,7 @@
   <div class="help-bubble">
     <Tooltip ref="tooltip">
       <span
+        tabindex="0"
         id="icon"
         aria-describedby="tooltip"
         @mouseenter="showTooltip"
