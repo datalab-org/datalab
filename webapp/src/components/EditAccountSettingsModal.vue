@@ -88,9 +88,7 @@
         </div>
         <div class="form-row">
           <div class="form-group col-md-12">
-            <div class="form-row">
-              <label for="api-key" class="col-form-label">API Key:</label>
-            </div>
+            <label for="api-key" class="col-form-label">API Key:</label>
             <div v-if="apiKeyDisplayed" class="input-group">
               <input
                 type="text"
