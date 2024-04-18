@@ -37,6 +37,7 @@ paramiko = "*"
 langchain = "*"
 langchain-openai = "*"
 langchain-anthropic = "*"
+navani = { path = "../lib/navani" }
 
 [dev-packages]
 pytest = "*"

@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "15c4c35f4cf4e5fd24e6cabbdde3aae34f40ece42da11385aa39fe68914d4060"
+            "sha256": "e08d0d2d8fb7ac2f65b032db97e87849dcb96e75246de44f2549d2b2b0ce2ebf"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -1374,6 +1374,9 @@
             ],
             "markers": "python_version >= '3.5'",
             "version": "==1.0.0"
+        },
+        "navani": {
+            "path": "../lib/navani"
         },
         "newarenda": {
             "hashes": [

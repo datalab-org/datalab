@@ -30,14 +30,14 @@ CMD ["/bin/bash", "-c", "pipenv run flask run --port ${PORT} --host 0.0.0.0"]
 
 # Create production image using gunicorn and minimal dependencies
 FROM app as production
-RUN --mount=type=cache,target=/root/.cache/pip pipenv sync
 
 # Navani install patch for containers with no GitHub access
-COPY ./lib/navani /app/lib/navani
-WORKDIR /app/lib/navani
-RUN [ "pipenv", "run", "pip", "install", "." ]
+COPY ./lib/navani /lib/navani
 WORKDIR /app
+
 # End navani patch
+RUN --mount=type=cache,target=/root/.cache/pip pipenv sync
+
 
 RUN [ "pipenv", "run", "pip", "install", "gunicorn" ]
 COPY ./pydatalab/ ./
