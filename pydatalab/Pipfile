@@ -27,7 +27,6 @@ flask-compress = "*"
 pillow = "*"
 tiktoken = "*"
 galvani = "~= 0.4"
-navani = {git = "git+https://github.com/the-grey-group/navani.git@v0.1.5"}
 NewareNDA = ">= 2024"
 python-dateutil = "*"
 pybaselines = "*"
