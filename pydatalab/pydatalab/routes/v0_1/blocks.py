@@ -1,5 +1,6 @@
 from typing import Callable, Dict
 
+import pymongo.errors
 from flask import jsonify, request
 
 from pydatalab.blocks import BLOCK_TYPES
@@ -139,20 +140,34 @@ def _save_block_to_db(block: DataBlock) -> bool:
     overwriting previous data saved there.
     returns true if successful, false if unsuccessful
     """
-    if block.data.get("item_id"):
-        result = flask_mongo.db.items.update_one(
-            {"item_id": block.data["item_id"], **get_default_permissions(user_only=False)},
-            {"$set": {f"blocks_obj.{block.block_id}": block.to_db()}},
+    updated_block = block.to_db()
+    update = {"$set": {f"blocks_obj.{block.block_id}": updated_block}}
+
+    if block.data.get("collection_id"):
+        match = {
+            "collection_id": block.data["collection_id"],
+            f"blocks_obj.{block.block_id}": {"$exists": True},
+            **get_default_permissions(user_only=False),
+        }
+    else:
+        match = {
+            "item_id": block.data["item_id"],
+            f"blocks_obj.{block.block_id}": {"$exists": True},
+            **get_default_permissions(user_only=False),
+        }
+
+    try:
+        result = flask_mongo.db.items.update_one(match, update)
+    except pymongo.errors.DocumentTooLarge:
+        LOGGER.warning(
+            "DocumentTooLarge error occurred while saving block to db, block.block_id='%s'",
+            block.block_id,
         )
-    elif block.data.get("collection_id"):
-        result = flask_mongo.db.collections.update_one(
-            {"item_id": block.data["collection_id"], **get_default_permissions(user_only=False)},
-            {"$set": {f"blocks_obj.{block.block_id}": block.to_db()}},
-        )
+        return False
 
     if result.matched_count != 1:
         LOGGER.warning(
-            f"_save_block_to_db failed, likely because item_id ({block.data.get('item_id')}), collection_id ({block.data.get('collection_id')}) and/or block_id ({block.block_id})  wasn't found"
+            f"_save_block_to_db failed, likely because item_id ({block.data.get('item_id')}), collection_id ({block.data.get('collection_id')}) and/or block_id ({block.block_id}) wasn't found"
         )
         return False
     else:
