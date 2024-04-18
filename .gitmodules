@@ -1,0 +1,3 @@
+[submodule "navani"]
+	path = lib/navani
+	url = git@github.com:the-grey-group/navani
