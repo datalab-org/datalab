@@ -22,7 +22,7 @@
   <div class="container mt-2">
     <div class="mx-auto text-center alert alert-primary pb-1" role="alert">
       <p class="pb-0">
-        This is the public demo deployment of datalab. Data may be removed at any time.
+        This is the public demo deployment of datalab, please register an account above via ORCID or email to try it out. Data may be removed at any time.
       </p>
       <p class="pb-0">
         If you wish to deploy your own instance you can find instructions and contact details for assistance on the <a href="https://github.com/the-grey-group/datalab">GitHub repository</a>.

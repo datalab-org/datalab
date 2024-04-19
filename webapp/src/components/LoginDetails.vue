@@ -71,7 +71,7 @@
         >
           <a
             type="button"
-            class="dropdown-item btn login btn-link btn-default"
+            class="disabled dropdown-item btn login btn-link btn-default"
             aria-label="Login via GitHub"
             :href="this.apiUrl + '/login/github'"
             ><font-awesome-icon :icon="['fab', 'github']" /> Login via GitHub</a
