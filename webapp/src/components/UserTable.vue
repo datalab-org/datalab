@@ -31,8 +31,8 @@
           <button v-else-if="user.account_status === 'unverified'" class="btn btn-warning btn-sm">
             Unverified
           </button>
-          <button v-else-if="user.account_status === 'disabled'" class="btn btn-danger btn-sm">
-            Disabled
+          <button v-else-if="user.account_status === 'deactivated'" class="btn btn-danger btn-sm">
+            Deactivated
           </button>
         </td>
 
@@ -40,9 +40,9 @@
           <button
             v-if="user.account_status === 'active'"
             class="btn btn-danger btn-sm"
-            @click="confirmUpdateUserStatus(user._id.$oid, 'disabled')"
+            @click="confirmUpdateUserStatus(user._id.$oid, 'deactivated')"
           >
-            Disable
+            Deactivate
           </button>
           <button
             v-else-if="user.account_status === 'unverified'"
@@ -52,7 +52,7 @@
             Activate
           </button>
           <button
-            v-else-if="user.account_status === 'disabled'"
+            v-else-if="user.account_status === 'deactivated'"
             class="btn btn-success btn-sm"
             @click="confirmUpdateUserStatus(user._id.$oid, 'active')"
           >

@@ -95,7 +95,7 @@ class AccountStatus(str, Enum):
 
     ACTIVE = "active"
     UNVERIFIED = "unverified"
-    DISABLED = "disabled"
+    DEACTIVATED = "deactivated"
 
 
 class Person(Entry):

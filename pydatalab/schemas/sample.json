@@ -115,10 +115,7 @@
     },
     "chemform": {
       "title": "Chemform",
-      "example": [
-        "Na3P",
-        "LiNiO2@C"
-      ],
+      "example": ["Na3P", "LiNiO2@C"],
       "type": "string"
     },
     "synthesis_constituents": {
@@ -134,33 +131,18 @@
       "type": "string"
     }
   },
-  "required": [
-    "item_id"
-  ],
+  "required": ["item_id"],
   "definitions": {
     "RelationshipType": {
       "title": "RelationshipType",
       "description": "An enumeration of the possible types of relationship between two entries.\n\n```mermaid\nclassDiagram\nclass entryC\nentryC --|> entryA: parent\nentryC ..|> entryD\nentryA <..> entryD: sibling\nentryA --|> entryB : child\n```",
-      "enum": [
-        "parent",
-        "child",
-        "sibling",
-        "is_part_of",
-        "other"
-      ],
+      "enum": ["parent", "child", "sibling", "is_part_of", "other"],
       "type": "string"
     },
     "KnownType": {
       "title": "KnownType",
       "description": "An enumeration of the types of entry known by this implementation, should be made dynamic in the future.",
-      "enum": [
-        "samples",
-        "starting_materials",
-        "blocks",
-        "files",
-        "people",
-        "collections"
-      ],
+      "enum": ["samples", "starting_materials", "blocks", "files", "people", "collections"],
       "type": "string"
     },
     "TypedRelationship": {
@@ -210,18 +192,12 @@
           "type": "string"
         }
       },
-      "required": [
-        "type"
-      ]
+      "required": ["type"]
     },
     "IdentityType": {
       "title": "IdentityType",
       "description": "A string enum representing the supported verifiable identity types.",
-      "enum": [
-        "email",
-        "orcid",
-        "github"
-      ],
+      "enum": ["email", "orcid", "github"],
       "type": "string"
     },
     "Identity": {
@@ -250,20 +226,12 @@
           "type": "string"
         }
       },
-      "required": [
-        "identity_type",
-        "identifier",
-        "name"
-      ]
+      "required": ["identity_type", "identifier", "name"]
     },
     "AccountStatus": {
       "title": "AccountStatus",
       "description": "A string enum representing the account status.",
-      "enum": [
-        "active",
-        "unverified",
-        "disabled"
-      ],
+      "enum": ["active", "unverified", "deactivated"],
       "type": "string"
     },
     "Person": {
@@ -544,14 +512,7 @@
           "type": "boolean"
         }
       },
-      "required": [
-        "item_ids",
-        "blocks",
-        "name",
-        "extension",
-        "time_added",
-        "is_live"
-      ]
+      "required": ["item_ids", "blocks", "name", "extension", "time_added", "is_live"]
     },
     "EntryReference": {
       "title": "EntryReference",
@@ -585,9 +546,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "type"
-      ]
+      "required": ["type"]
     },
     "InlineSubstance": {
       "title": "InlineSubstance",
@@ -602,9 +561,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "name"
-      ]
+      "required": ["name"]
     },
     "Constituent": {
       "title": "Constituent",
@@ -633,10 +590,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "item",
-        "quantity"
-      ]
+      "required": ["item", "quantity"]
     }
   }
 }
