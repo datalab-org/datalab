@@ -300,7 +300,11 @@
     "AccountStatus": {
       "title": "AccountStatus",
       "description": "A string enum representing the account status.",
-      "enum": ["active", "unverified", "deactivated"],
+      "enum": [
+        "active",
+        "unverified",
+        "deactivated"
+      ],
       "type": "string"
     },
     "Person": {
