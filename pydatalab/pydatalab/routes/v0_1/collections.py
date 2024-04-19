@@ -37,7 +37,7 @@ def get_collection(collection_id):
             {
                 "$match": {
                     "collection_id": collection_id,
-                    **get_default_permissions(user_only=True),
+                    **get_default_permissions(user_only=False),
                 }
             },
             {"$lookup": creators_lookup()},
