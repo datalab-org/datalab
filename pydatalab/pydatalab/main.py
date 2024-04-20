@@ -69,6 +69,10 @@ def _warn_startup_settings(app):
         ),
         ("ORCID_OAUTH_CLIENT_ID", "No ORCID OAuth client ID provided, ORCID login will not work"),
         ("OPENAI_API_KEY", "No OpenAI API key provided, OpenAI-based ChatBlock will not work"),
+        (
+            "ANTHROPIC_API_KEY",
+            "No Anthropic API key provided, Claude-based ChatBlock will not work",
+        ),
     ]
 
     for secret, error in secrets_and_errors:
