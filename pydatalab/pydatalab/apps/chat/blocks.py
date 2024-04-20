@@ -15,6 +15,23 @@ __all__ = "ChatBlock"
 
 
 class ChatBlock(DataBlock):
+    """This block uses API calls to external LLMs via Langchain to provide a conversational
+    interface to a user's data.
+
+    Implemented models include:
+    - the GPT series of models from OpenAI
+    - Claude from Anthropic
+
+    Each needs the server to be configured with the corresponding API keys:
+    - `OPENAI_API_KEY`,
+    - `ANTHROPIC_API_KEY`.
+
+    A discussion of this block can be found in:
+
+        Jablonka *et al*, Digital Discovery, 2023,2, 1233-1250, DOI: 10.1039/d3dd00113j
+
+    """
+
     blocktype = "chat"
     description = "Virtual assistant"
     accepted_file_extensions: Sequence[str] = []
@@ -24,7 +41,7 @@ class ChatBlock(DataBlock):
     defaults = {
         "system_prompt": """You are whinchat (lowercase w), a virtual data managment assistant that helps materials chemists manage their experimental data and plan experiments. You are deployed in the group of Professor Clare Grey in the Department of Chemistry at the University of Cambridge.
 You are embedded within the program datalab, where you have access to JSON describing an ‘item’, or a collection of items, with connections to other items. These items may include experimental samples, starting materials, and devices (e.g. battery cells made out of experimental samples and starting materials).
-Answer questions in markdown. Specify the language for all markdown code blocks. You can make diagrams by writing a mermaid code block or an svg code block. When jfjfriting mermaid code, you must use quotations around each of the labels (e.g. A["label1"] --> B["label2"])
+Answer questions in markdown. Specify the language for all markdown code blocks. You can make diagrams by writing a mermaid code block or an svg code block. When writing mermaid code, you must use quotations around each of the labels (e.g. A["label1"] --> B["label2"])
 Be as concise as possible. When saying your name, type a bird emoji right after whinchat 🐦.
         """,
         "temperature": 0.2,
