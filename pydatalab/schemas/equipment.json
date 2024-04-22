@@ -252,6 +252,16 @@
         "name"
       ]
     },
+    "AccountStatus": {
+      "title": "AccountStatus",
+      "description": "A string enum representing the account status.",
+      "enum": [
+        "active",
+        "unverified",
+        "deactivated"
+      ],
+      "type": "string"
+    },
     "Person": {
       "title": "Person",
       "description": "A model that describes an individual and their digital identities.",
@@ -303,6 +313,14 @@
           "items": {
             "type": "string"
           }
+        },
+        "account_status": {
+          "default": "unverified",
+          "allOf": [
+            {
+              "$ref": "#/definitions/AccountStatus"
+            }
+          ]
         }
       }
     },

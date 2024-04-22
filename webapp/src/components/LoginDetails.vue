@@ -30,14 +30,23 @@
               editAccountSettingIsOpen = true;
               isUserDropdownVisible = false;
             "
-            ><font-awesome-icon icon="cog" /> Account settings</a
+            ><font-awesome-icon icon="cog" /> &nbsp;&nbsp;Account settings</a
           >
+          <span v-if="currentUserInfo.role === 'admin'">
+            <router-link
+              to="/admin"
+              class="dropdown-item btn login btn-link btn-default"
+              aria-label="Administration"
+            >
+              <font-awesome-icon icon="users-cog" /> &nbsp;Administration
+            </router-link>
+          </span>
           <a
             type="button"
             class="dropdown-item btn login btn-link btn-default"
             aria-label="Logout"
             :href="this.apiUrl + '/logout'"
-            ><font-awesome-icon icon="sign-out-alt" /> Logout</a
+            ><font-awesome-icon icon="sign-out-alt" /> &nbsp;&nbsp;Logout</a
           >
         </div>
       </div>
@@ -146,6 +155,7 @@ export default {
           display_name: user.display_name || "",
           immutable_id: user.immutable_id,
           contact_email: user.contact_email || "",
+          role: user.role || "",
         };
       }
     },

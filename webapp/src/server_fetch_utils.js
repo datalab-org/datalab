@@ -236,6 +236,18 @@ export function getCollectionList() {
     });
 }
 
+export function getUsersList() {
+  return fetch_get(`${API_URL}/users`)
+    .then(function (response_json) {
+      return response_json.data;
+    })
+    .catch((error) => {
+      console.error("Error when fetching users list");
+      console.error(error);
+      throw error;
+    });
+}
+
 export function getStartingMaterialList() {
   return fetch_get(`${API_URL}/starting-materials/`)
     .then(function (response_json) {
@@ -507,6 +519,20 @@ export function saveUser(user_id, user) {
     });
 }
 
+export function saveRole(user_id, role) {
+  fetch_patch(`${API_URL}/roles/${user_id}`, role)
+    .then(function (response_json) {
+      if (response_json.status === "success") {
+        console.log("Save successful!");
+      } else {
+        alert("Role save unsuccessful", response_json.detail);
+      }
+    })
+    .catch(function (error) {
+      alert(`Role save unsuccessful: ${error}`);
+    });
+}
+
 export function deleteBlock(item_id, block_id) {
   console.log("deleteBlock called!");
   fetch_post(`${API_URL}/delete-block/`, {
@@ -601,6 +627,21 @@ export async function getItemGraph({ item_id = null, collection_id = null } = {}
       store.commit("setItemGraph", { nodes: response_json.nodes, edges: response_json.edges });
     })
     .catch((error) => `getItemGraph unsuccessful. Error: ${error}`);
+}
+
+export async function requestNewAPIKey() {
+  try {
+    const response_json = await fetch_get(`${API_URL}/get-api-key/`);
+
+    if (response_json.key) {
+      console.log("New API key requested successfully!");
+      return response_json.key;
+    } else {
+      throw new Error(response_json.message);
+    }
+  } catch (error) {
+    throw new Error(`Failed to request new API key: ${error.message}`);
+  }
 }
 
 // export async function addRemoteFilesToSample(file_entries, item_id) {
