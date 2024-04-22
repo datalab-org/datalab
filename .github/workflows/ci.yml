@@ -145,8 +145,6 @@ jobs:
 
       - name: Start Docker images
         run: |
-          # Create a named docker network that all containers attach to
-          docker network create nginx
           # Add default API URL argument to Vue prod build
           echo "VUE_APP_API_URL=http://localhost:5001" >> .env
           # Launch production container profiles and wait for them to come up

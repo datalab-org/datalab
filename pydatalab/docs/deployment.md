@@ -17,6 +17,26 @@ These instructions assume that Docker is installed (a recent version that includ
 See the [Docker website](https://docs.docker.com/compose/install/) for instructions for your system.
 Note that pulling and building the images can require significant disk space (~5 GB for a full setup), especially when multiple versions of images have been built (you can use `docker system df` to see how much spaace is being used).
 
+## Automated provisioning and deployments
+
+There are many more advanced tools for provisioning containers and services.
+[Terraform](https://www.terraform.io/) or its open source fork
+[OpenTofu](https://opentofu.org/) can be used to define and provision cloud resources with
+code.
+[Ansible](https://www.ansible.com/) can be used to automate the deployment of
+containers and configuration to such resources.
+
+Configurations/rules/playbooks for these systems have been written for *datalab*
+and are used in production by many deployments.
+They are available with their own instructions at
+[datalab-org/datalab-ansible-terraform](https://github.com/datalab-org/datalab-ansible-terraform)
+on GitHub.
+
+These automated configurations require a bit more work and understanding, but
+can greatly accelerate the deployment process and make it much more
+reproducible.
+
+
 ## Deployment with Docker and Docker Compose
 
 Dockerfiles for the web app, server and database can be found in the `.docker` directory.
@@ -129,7 +149,6 @@ The process may look something like the following:
     ports:
       - "5001:5001"
     networks:
-      - nginx  # connect container to external network named 'nginx' that could communicate with the outside world
       - backend
     environment:
       - PYDATALAB_MONGO_URI=mongodb://database:27017/datalab
@@ -183,21 +202,6 @@ docker compose --file docker-compose.prod.yml --profile prod build
 # If nothing went wrong, launch the new containers (these will replace any running containers)
 docker compose --file docker-compose.prod.yml --profile prod up
 ```
-
-
-### Advanced provisioning
-
-There are many more advanced tools for provisioning containers and services.
-[Terraform](https://www.terraform.io/) or its open source fork
-[OpenTofu](https://opentofu.org/) can be used to define and provision cloud resources with
-code.
-[Ansible](https://www.ansible.com/) can be used to automate the deployment of
-containers and configuration to such resources.
-
-Configurations/rules/playbooks for these systems have been written for *datalab*
-and are used in production by many deployments; they are not yet general enough
-to be open sourced, but if you are interested please contact the *datalab*
-developers (via email or GitHub issues).
 
 
 ## General Server administration
