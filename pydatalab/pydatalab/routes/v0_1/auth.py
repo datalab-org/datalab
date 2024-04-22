@@ -6,6 +6,7 @@ with their local accounts.
 
 import datetime
 import json
+import os
 import random
 import re
 from hashlib import sha512
@@ -35,7 +36,6 @@ LINK_EXPIRATION: datetime.timedelta = datetime.timedelta(hours=1)
 
 @logged_route
 def wrapped_login_user(*args, **kwargs):
-    # LOGGER.warning("Logging in user %s with role %s", args[0].display_name, args[0].role)
     login_user(*args, **kwargs)
 
 
@@ -45,7 +45,7 @@ EMAIL_BLUEPRINT = Blueprint("email", __name__)
 AUTH_BLUEPRINTS: Dict[IdentityType, Blueprint] = {
     IdentityType.ORCID: make_orcid_blueprint(
         scope="/authenticate",
-        sandbox=True,
+        sandbox=os.environ.get("OAUTH_ORCID_SANDBOX", False),
     ),
     IdentityType.GITHUB: make_github_blueprint(
         scope="read:org,read:user",
@@ -381,7 +381,7 @@ def github_logged_in(blueprint, token):
     github_info = resp.json()
     github_user_id = str(github_info["id"])
     username = str(github_info["login"])
-    name = str(github_info["name"])
+    name = str(github_info["name"] if github_info["name"] is not None else github_info["login"])
 
     create_account: bool = False
     # Use the read:org scope to check if the user is a member of at least one of the allowed orgs
@@ -426,6 +426,10 @@ def orcid_logged_in(_, token):
         token["orcid"],
         display_name=token["name"],
         verified=True,
+        # TODO: For now, this does not create a new user account if missing, but can be used
+        # to connect an existing user account with an ORCID identity (which can then be used
+        # for login).
+        create_account=False,
     )
 
     # Return false to prevent Flask-dance from trying to store the token elsewhere
@@ -444,14 +448,16 @@ def redirect_to_ui(blueprint, token):  # pylint: disable=unused-argument
 def get_authenticated_user_info():
     """Returns metadata associated with the currently authenticated user."""
     if current_user.is_authenticated:
-        return jsonify(json.loads(current_user.person.json())), 200
+        current_user_response = json.loads(current_user.person.json())
+        current_user_response["role"] = current_user.role.value
+        return jsonify(current_user_response), 200
     else:
         return jsonify({"status": "failure", "message": "User must be authenticated."}), 401
 
 
 def generate_user_api_key():
     """Returns metadata associated with the currently authenticated user."""
-    if current_user.is_authenticated and current_user.role == "admin":
+    if current_user.is_authenticated:
         new_key = "".join(random.choices(ascii_letters, k=KEY_LENGTH))
         flask_mongo.db.api_keys.update_one(
             {"_id": ObjectId(current_user.id)},

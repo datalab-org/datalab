@@ -1,5 +1,5 @@
 <template>
-  <div class="pt-1" v-if="this.logo_url != null">
+  <div class="pt-3" v-if="this.logo_url != null">
     <a v-if="this.homepage_url != null" :href="this.homepage_url" target="_blank">
       <img class="logo-banner" :src="this.logo_url" />
     </a>
@@ -13,6 +13,7 @@
     <router-link to="/samples">Samples</router-link> |
     <router-link to="/collections">Collections</router-link> |
     <router-link to="/starting-materials">Inventory</router-link> |
+    <router-link to="/equipment">Equipment</router-link> |
     <router-link to="/item-graph"
       ><font-awesome-icon icon="project-diagram" />&nbsp;Graph View</router-link
     >
@@ -30,6 +31,7 @@ export default {
       apiUrl: API_URL,
       logo_url: LOGO_URL,
       homepage_url: HOMEPAGE_URL,
+      user: null,
     };
   },
   components: {

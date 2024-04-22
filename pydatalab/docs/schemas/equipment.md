@@ -1,0 +1,3 @@
+# Equipment
+
+::: pydatalab.models.equipment

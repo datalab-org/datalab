@@ -26,7 +26,7 @@ class EISBlock(DataBlock):
     accepted_file_extensions = [".txt"]
     blocktype = "eis"
     name = "Electrochemical Impedance Spectroscopy"
-    description = "This block can plot EIS data from Ivium .txt files"
+    description = "Electrochemical Impedance Spectroscopy"
 
     @property
     def plot_functions(self):

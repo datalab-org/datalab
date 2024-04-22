@@ -3,7 +3,8 @@ from typing import List, Optional
 
 import bson
 import bson.errors
-from pydantic import BaseModel, EmailStr, Field, validator
+from pydantic import BaseModel, ConstrainedStr, Field, parse_obj_as, validator
+from pydantic import EmailStr as PydanticEmailStr
 
 from pydatalab.models.entries import Entry
 from pydatalab.models.utils import PyObjectId
@@ -62,6 +63,41 @@ class Identity(BaseModel):
         return v
 
 
+class DisplayName(ConstrainedStr):
+    """A constrained string less than 150 characters long but with
+    non-empty content, intended to be entered by the user.
+
+    """
+
+    max_length = 150
+    min_length = 1
+    strip_whitespace = True
+
+    def __new__(cls, value):
+        return parse_obj_as(cls, value)
+
+
+class EmailStr(PydanticEmailStr):
+    """A constrained string that represents a valid email address,
+    using pydantic's EmailStr type but with validators accesible outside
+    of models for partial validation.
+
+    """
+
+    max_length = 1000
+
+    def __new__(cls, value):
+        return cls.validate(value)
+
+
+class AccountStatus(str, Enum):
+    """A string enum representing the account status."""
+
+    ACTIVE = "active"
+    UNVERIFIED = "unverified"
+    DEACTIVATED = "deactivated"
+
+
 class Person(Entry):
     """A model that describes an individual and their digital identities."""
 
@@ -71,7 +107,7 @@ class Person(Entry):
     identities: List[Identity] = Field(default_factory=list)
     """A list of identities attached to this person, e.g., email addresses, OAuth accounts."""
 
-    display_name: Optional[str]
+    display_name: Optional[DisplayName]
     """The user-chosen display name."""
 
     contact_email: Optional[EmailStr]
@@ -79,6 +115,9 @@ class Person(Entry):
 
     managers: Optional[List[PyObjectId]]
     """A list of user IDs that can manage this person's items."""
+
+    account_status: AccountStatus = Field(AccountStatus.UNVERIFIED)
+    """The status of the user's account."""
 
     @validator("type", pre=True, always=True)
     def add_missing_type(cls, v):

@@ -8,9 +8,6 @@ on:
 
 env:
   FORCE_COLOR: true
-  # Need to set this to avoid pipenv syncing an entire LFS repo and failing with bandwidth quota (see
-  # https://github.com/the-grey-group/datalab/issues/603)
-  GIT_LFS_SKIP_SMUDGE: 1
 
 concurrency:
   group: ${{ github.head_ref || github.run_id }}
@@ -89,8 +86,11 @@ jobs:
           pipenv run pytest -rs -vvv --cov-report=term --cov-report=xml --cov ./pydatalab ./tests
 
       - name: Upload coverage to Codecov
-        if: matrix.python-version == '3.10' && github.repository == 'the-grey-group/datalabvue'
+        if: matrix.python-version == '3.10' && github.repository == 'the-grey-group/datalab'
         uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: the-grey-group/datalab
 
   webapp:
     name: Test the app build
@@ -116,11 +116,16 @@ jobs:
         run: yarn build
 
   e2e:
-    name: Run e2e tests across app and API
+    name: e2e tests
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        browser-backend: ["electron", "chrome"]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -142,9 +147,10 @@ jobs:
         run: |
           # Create a named docker network that all containers attach to
           docker network create nginx
-          # Set API runtime config for testing mode to disable auth
-          echo "PYDATALAB_TESTING=true" >> pydatalab/.env
-          docker compose --env-file pydatalab/.env --profile prod up -d --wait
+          # Add default API URL argument to Vue prod build
+          echo "VUE_APP_API_URL=http://localhost:5001" >> .env
+          # Launch production container profiles and wait for them to come up
+          docker compose up database api_dev app -d --wait
 
       - name: Run end-to-end tests
         uses: cypress-io/github-action@v6
@@ -152,35 +158,6 @@ jobs:
           config: baseUrl=http://localhost:8081
           working-directory: ./webapp
           record: true
-          spec: |
-            ./cypress/e2e/sampleTablePage.cy.js
-            ./cypress/e2e/editPage.cy.js
-          browser: "electron"
-        env:
-          CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
-
-      - name: Run end-to-end tests (Chrome)
-        uses: cypress-io/github-action@v6
-        with:
-          config: baseUrl=http://localhost:8081
-          working-directory: ./webapp
-          record: true
-          spec: |
-            ./cypress/e2e/sampleTablePage.cy.js
-            ./cypress/e2e/editPage.cy.js
-          browser: "electron"
-        env:
-          CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
-
-      - name: Run end-to-end tests (Firefox)
-        uses: cypress-io/github-action@v6
-        with:
-          config: baseUrl=http://localhost:8081
-          working-directory: ./webapp
-          record: true
-          spec: |
-            ./cypress/e2e/sampleTablePage.cy.js
-            ./cypress/e2e/editPage.cy.js
-          browser: "firefox"
+          browser: ${{ matrix.browser-backend }}
         env:
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}

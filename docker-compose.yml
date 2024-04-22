@@ -13,6 +13,11 @@ services:
       - VUE_APP_HOMEPAGE_URL=https://www.titiricigroup.com/
     volumes:
       - ./logs:/logs
+    environment:
+      - VUE_APP_API_URL
+      - VUE_APP_LOGO_URL
+      - VUE_APP_HOMEPAGE_URL
+      - VUE_APP_EDITABLE_INVENTORY
     ports:
       - "8081:8081"
     networks:

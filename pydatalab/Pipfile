@@ -25,16 +25,19 @@ pint = "*"
 periodictable = "*"
 flask-compress = "*"
 pillow = "*"
-openai = "~= 0.28"
 tiktoken = "*"
-galvani = {git = "git+https://github.com/echemdata/galvani.git@1fd9f84"}
-navani = {git = "git+https://github.com/the-grey-group/navani.git@v0.1.5-rc2"}
+galvani = "~= 0.4"
+navani = {git = "git+https://github.com/the-grey-group/navani.git@v0.1.5"}
+NewareNDA = ">= 2024"
 python-dateutil = "*"
 pybaselines = "*"
 rosettasciio = "*"
 pyjwt = "*"
 invoke = "*"
 paramiko = "*"
+langchain = "*"
+langchain-openai = "*"
+langchain-anthropic = "*"
 
 [dev-packages]
 pytest = "*"

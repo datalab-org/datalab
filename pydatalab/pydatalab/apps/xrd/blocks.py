@@ -111,10 +111,8 @@ class XRDBlock(DataBlock):
             ]
 
             if not all_files:
-                LOGGER.warning(
-                    "XRDBlock.generate_xrd_plot(): Unsupported file extension (must be .xrdml or .xy)"
-                )
-                raise RuntimeError("XRDBlock.generate_xrd_plot(): No file set in DataBlock")
+                LOGGER.warning("XRDBlock.generate_xrd_plot(): No files found on sample")
+                return
 
             pattern_dfs = []
             for f in all_files:

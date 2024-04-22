@@ -4,7 +4,7 @@
   <div id="tableContainer" class="container">
     <div class="row">
       <div class="col-sm-12 mx-auto mb-3">
-        <button class="btn btn-default" @click="createSampleModalIsOpen = true">Add an item</button>
+        <button class="btn btn-default" @click="createItemModalIsOpen = true">Add an item</button>
         <button class="btn btn-default ml-2" @click="batchCreateSampleModalIsOpen = true">
           Add batch of samples
         </button>
@@ -16,28 +16,30 @@
       </div>
     </div>
   </div>
-  <CreateSampleModal v-model="createSampleModalIsOpen" />
+  <CreateItemModal v-model="createItemModalIsOpen" :allowedTypes="allowedTypes" />
   <BatchCreateSampleModal v-model="batchCreateSampleModalIsOpen" />
 </template>
 
 <script>
 import Navbar from "@/components/Navbar";
 import SampleTable from "@/components/SampleTable";
-import CreateSampleModal from "@/components/CreateSampleModal";
+import CreateItemModal from "@/components/CreateItemModal";
 import BatchCreateSampleModal from "@/components/BatchCreateSampleModal";
+import { SAMPLE_TABLE_TYPES } from "@/resources.js";
 
 export default {
   name: "Samples",
   data() {
     return {
-      createSampleModalIsOpen: false,
+      createItemModalIsOpen: false,
       batchCreateSampleModalIsOpen: false,
+      allowedTypes: SAMPLE_TABLE_TYPES,
     };
   },
   components: {
     Navbar,
     SampleTable,
-    CreateSampleModal,
+    CreateItemModal,
     BatchCreateSampleModal,
   },
 };
