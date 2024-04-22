@@ -25,11 +25,6 @@ class ChatBlock(DataBlock):
     Each needs the server to be configured with the corresponding API keys:
     - `OPENAI_API_KEY`,
     - `ANTHROPIC_API_KEY`.
-
-    A discussion of this block can be found in:
-
-        Jablonka *et al*, Digital Discovery, 2023,2, 1233-1250, DOI: 10.1039/d3dd00113j
-
     """
 
     blocktype = "chat"
