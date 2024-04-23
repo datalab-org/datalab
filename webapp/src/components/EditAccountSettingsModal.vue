@@ -135,7 +135,7 @@ export default {
       apiKeyDisplayed: false,
       apiKey: null,
       apiKeyHelpMessage:
-        "Lorem, ipsum dolor sit amet consectetur adipisicing elit. Minus adipisci quod earum maxime vero architecto molestiae ipsum est debitis saepe blanditiis repellat, libero numquam. Autem, qui? Libero tenetur deleniti numquam!",
+        "Lorem, ipsum dolor sit amet consectetur adipisicing elit. Minus adipisci quod earum maxime vero architecto molestiae ipsum est debitis saepe blanditiis repellat, libero numquam. Autem, qui? Libero tenetur deleniti numquam!Lorem, ipsum dolor sit amet consectetur adipisicing elit. Minus adipisci quod earum maxime vero architecto molestiae ipsum est debitis saepe blanditiis repellat, libero numquam. Autem, qui? Libero tenetur deleniti numquam!",
     };
   },
   props: {

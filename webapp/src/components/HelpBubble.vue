@@ -66,8 +66,9 @@ export default {
 }
 
 #tooltip {
-  position: absolute;
+  position: fixed;
   z-index: 9999;
+  max-width: 50%;
   border: 1px solid grey;
   background: #333;
   color: white;
