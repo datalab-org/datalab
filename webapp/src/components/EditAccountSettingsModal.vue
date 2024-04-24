@@ -90,24 +90,17 @@
           <div class="form-group col-md-12">
             <label for="api-key" class="col-form-label">API Key:</label>
             <div v-if="apiKeyDisplayed" class="input-group">
-              <input
-                type="text"
-                class="form-control"
-                style="text-overflow: ellipsis"
-                :value="apiKey"
-                readonly
-              />
+              <StyledInput v-model="apiKey" :readonly="true" :helpMessage="apiKeyHelpMessage" />
               <div class="input-group-append">
                 <button class="btn btn-outline-secondary" type="button" @click="copyToClipboard">
                   <font-awesome-icon icon="copy" />
                 </button>
               </div>
             </div>
-            <div class="form-row">
+            <div class="input-group">
               <button class="btn btn-default mt-2" @click="requestAPIKey">
                 Regenerate API Key
               </button>
-              <HelpBubble :message="apiKeyHelpMessage" />
             </div>
           </div>
         </div>
@@ -119,8 +112,8 @@
 <script>
 import { API_URL } from "@/resources.js";
 import Modal from "@/components/Modal.vue";
-import HelpBubble from "./HelpBubble.vue";
 import { getUserInfo, saveUser, requestNewAPIKey } from "@/server_fetch_utils.js";
+import StyledInput from "./StyledInput.vue";
 
 export default {
   name: "EditAccountSettingsModal",
@@ -201,7 +194,7 @@ export default {
   },
   components: {
     Modal,
-    HelpBubble,
+    StyledInput,
   },
 };
 </script>
