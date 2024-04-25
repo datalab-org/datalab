@@ -2,8 +2,14 @@ import json
 import os
 from typing import Sequence
 
+from langchain.agents import AgentExecutor, tool
+from langchain.agents.format_scratchpad.openai_tools import (
+    format_to_openai_tool_messages,
+)
+from langchain.agents.output_parsers.openai_tools import OpenAIToolsAgentOutputParser
 from langchain_anthropic import ChatAnthropic
 from langchain_core.language_models.chat_models import BaseChatModel
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_openai import ChatOpenAI
 
 from pydatalab.blocks.base import DataBlock
@@ -12,6 +18,12 @@ from pydatalab.models import ITEM_MODELS
 from pydatalab.utils import CustomJSONEncoder
 
 __all__ = "ChatBlock"
+
+
+@tool
+def multiply(a: float, b: float) -> float:
+    """Multiply two numbers."""
+    return a * b
 
 
 class ChatBlock(DataBlock):
@@ -181,18 +193,43 @@ Start with a friendly introduction and give me a one sentence summary of what th
                 )
                 return
 
-            # Call the chat client with the invoke method
-            response = self.chat_client.invoke(langchain_messages)
+            messages_template = ChatPromptTemplate.from_messages(
+                [
+                    MessagesPlaceholder(variable_name="chat_history"),
+                    MessagesPlaceholder(variable_name="agent_scratchpad"),
+                ]
+            )
 
-            langchain_messages.append(response)
+            tools = [multiply]
+
+            llm_with_tools = self.chat_client.bind_tools(tools)
+
+            agent = (
+                {
+                    "agent_scratchpad": lambda x: format_to_openai_tool_messages(
+                        x["intermediate_steps"]
+                    ),
+                    "chat_history": lambda x: x["chat_history"],
+                }
+                | messages_template
+                | llm_with_tools
+                | OpenAIToolsAgentOutputParser()
+            )
+
+            agentExecutor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+
+            response = agentExecutor.invoke({"chat_history": langchain_messages})
+
+            langchain_messages.append(AIMessage(content=response["output"]))
 
             token_count = self.chat_client.get_num_tokens_from_messages(langchain_messages)
 
             self.data["token_count"] = token_count
-            self.data["messages"].append({"role": "assistant", "content": response.content})
+            self.data["messages"].append({"role": "assistant", "content": response["output"]})
             self.data["error_message"] = None
 
         except Exception as exc:
+            raise (exc)
             LOGGER.debug("Received an error from API: %s", exc)
             self.data["error_message"] = (
                 f"Received an error from the API: {exc}.\n\n Consider choosing a different model and reloading the block."
