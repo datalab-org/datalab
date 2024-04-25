@@ -520,6 +520,20 @@ export function saveRole(user_id, role) {
     });
 }
 
+export function saveSetting(setting_id, setting) {
+  fetch_patch(`${API_URL}/admin/settings/${setting_id}`, setting)
+    .then(function (response_json) {
+      if (response_json.status === "success") {
+        console.log("Save successful!");
+      } else {
+        alert("Setting save unsuccessful", response_json.detail);
+      }
+    })
+    .catch(function (error) {
+      alert(`Setting save unsuccessful: ${error}`);
+    });
+}
+
 export function deleteBlock(item_id, block_id) {
   console.log("deleteBlock called!");
   fetch_post(`${API_URL}/delete-block/`, {
@@ -631,11 +645,15 @@ export async function requestNewAPIKey() {
   }
 }
 
-export async function getPublicSettings() {
+export async function getPublicSettingsList() {
   try {
     const response_json = await fetch_get(`${API_URL}/info/settings`);
 
     if (response_json) {
+      console.log("TEST TEST TEST TEST");
+      console.log(response_json.settings);
+      console.log("TEST TEST TEST TEST");
+      store.commit("setPublicSettings", response_json.settings);
       return response_json;
     } else {
       throw new Error(response_json.message);

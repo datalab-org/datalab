@@ -1,9 +1,9 @@
 <template>
-  <div class="pt-3" v-if="this.logo_url != null">
-    <a v-if="this.homepage_url != null" :href="this.homepage_url" target="_blank">
-      <img class="logo-banner" :src="this.logo_url" />
+  <div class="pt-3" v-if="logoURL != null">
+    <a v-if="homepageURL != null" :href="homepageURL" target="_blank">
+      <img class="logo-banner" :src="logoURL" />
     </a>
-    <img v-else class="logo-banner" :src="this.logo_url" />
+    <img v-else class="logo-banner" :src="logoURL" />
   </div>
 
   <LoginDetails></LoginDetails>
@@ -22,21 +22,34 @@
 </template>
 
 <script>
-import { API_URL, LOGO_URL, HOMEPAGE_URL } from "@/resources.js";
 import LoginDetails from "@/components/LoginDetails.vue";
+import { getPublicSettingsList } from "@/server_fetch_utils.js";
 
 export default {
   name: "Navbar",
-  data() {
-    return {
-      apiUrl: API_URL,
-      logo_url: LOGO_URL,
-      homepage_url: HOMEPAGE_URL,
-      user: null,
-    };
+  computed: {
+    publicSettings() {
+      return this.$store.getters.getPublicSettings;
+    },
+    logoURL() {
+      const logoURL = this.publicSettings.find((setting) => setting.name === "LOGO_URL");
+      return logoURL ? logoURL.value : null;
+    },
+    homepageURL() {
+      const homepageURL = this.publicSettings.find((setting) => setting.name === "HOMEPAGE_URL");
+      return homepageURL ? homepageURL.value : null;
+    },
   },
   components: {
     LoginDetails,
+  },
+  methods: {
+    async getPublicSettings() {
+      await getPublicSettingsList();
+    },
+  },
+  mounted() {
+    this.getPublicSettings();
   },
 };
 </script>

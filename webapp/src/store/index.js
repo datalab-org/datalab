@@ -27,6 +27,7 @@ export default createStore({
     remoteDirectoryTreeIsLoading: false,
     fileSelectModalIsOpen: false,
     currentUserDisplayName: null,
+    publicSettings: [],
   },
   mutations: {
     setSampleList(state, sampleSummaries) {
@@ -263,6 +264,9 @@ export default createStore({
     setItemGraph(state, payload) {
       state.itemGraphData = payload;
     },
+    setPublicSettings(state, settings) {
+      state.publicSettings = settings;
+    },
   },
   getters: {
     getItem: (state) => (item_id) => {
@@ -274,6 +278,9 @@ export default createStore({
     },
     getCurrentUserDisplayName(state) {
       return state.currentUserDisplayName;
+    },
+    getPublicSettings(state) {
+      return state.publicSettings;
     },
   },
   actions: {},

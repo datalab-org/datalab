@@ -15,8 +15,8 @@ def check_authentication():
     if request.method == "OPTIONS":
         return
 
-    if not current_user.is_authenticated:
-        return jsonify({"error": "Unauthorized"}), 401
+    if not current_user.is_authenticated and not CONFIG.TESTING:
+        return (jsonify({"status": "error", "message": "No user authenticated: Unauthorized"}), 401)
 
     if not current_user.role == UserRole.ADMIN:
         return jsonify({"error": "Insufficient privileges"}), 403
@@ -59,16 +59,6 @@ def save_role(user_id):
     if request_json is not None:
         user_role = request_json
 
-    if not current_user.is_authenticated and not CONFIG.TESTING:
-        return (jsonify({"status": "error", "message": "No user authenticated."}), 401)
-
-    if not CONFIG.TESTING and current_user.role != "admin":
-        return (
-            jsonify(
-                {"status": "error", "message": "User not allowed to edit this profile."}),
-            403,
-        )
-
     existing_user = flask_mongo.db.users.find_one({"_id": ObjectId(user_id)})
 
     if not existing_user:
@@ -109,3 +99,36 @@ def save_role(user_id):
 def get_all_settings():
     settings = flask_mongo.db.settings.find()
     return jsonify({"status": "success", "data": list(settings)}), 200
+
+
+@admin.route("/admin/settings/<setting_id>", methods=["PATCH"])
+def save_settings(setting_id):
+    request_json = request.get_json()
+
+    if request_json is not None:
+        new_setting = {"value": request_json}
+
+    existing_setting = flask_mongo.db.settings.find_one(
+        {"_id": ObjectId(setting_id)})
+
+    if not existing_setting:
+        return (jsonify({"status": "error", "message": "Setting not found."}), 404)
+
+    update_setting = flask_mongo.db.settings.update_one(
+        {"_id": ObjectId(setting_id)}, {"$set": new_setting})
+
+    if update_setting.matched_count != 1:
+        return (jsonify({"status": "error", "message": "Unable to update setting."}), 400)
+
+    if update_setting.modified_count != 1:
+        return (
+            jsonify(
+                {
+                    "status": "success",
+                    "message": "No update was performed",
+                }
+            ),
+            200,
+        )
+
+    return (jsonify({"status": "success"}), 200)
