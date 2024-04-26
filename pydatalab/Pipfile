@@ -4,52 +4,10 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [packages]
-Flask = "~=3.0"
-Flask-Cors = "*"
-Flask-Dance = "*"
-Flask-Login = "*"
-Flask-PyMongo = "*"
-Flask-Mail = "~= 0.9, < 0.10"
-Werkzeug = "~=3.0"
-bokeh = "<3"
-pandas = "*"
-scipy = "~= 1.13, < 1.14"
-matplotlib = "*"
-pymongo = "~= 4.7, < 5"
-openpyxl = "*"
-nmrglue = "*"
-python-dotenv = "*"
-pydantic = {extras = ["email"], version = "<2.0"}
-blinker = "*"
-pint = "~= 0.23, < 0.24"
-periodictable = "*"
-flask-compress = "*"
-pillow = "*"
-tiktoken = "~= 0.7, < 0.8"
-galvani = "~= 0.4"
-navani = {git = "git+https://github.com/the-grey-group/navani.git@v0.1.7"}
-NewareNDA = ">= 2024"
-python-dateutil = "*"
-pybaselines = "*"
-rosettasciio = "~= 0.3, < 0.4"
-pyjwt = "*"
-invoke = "*"
-paramiko = "*"
-langchain = "==0.2.6"
-langchain-openai = "*"
-langchain-anthropic = "*"
-transformers = "~= 4.42, < 5"
+datalab-server = {path = ".", extras = ["all"]}
 
 [dev-packages]
-pytest = "*"
-pytest-cov = "*"
-pytest-dependency = "*"
-pre-commit = "*"
-mongomock = "*"
-mkdocs = "*"
-mkdocs-material = "*"
-mkdocstrings = { version = "*", extras = ["python-legacy"] }
-mkdocs-awesome-pages-plugin = "*"
+datalab-server = {path = ".", extras = ["dev"]}
 
 [requires]
 python_version = "3"
