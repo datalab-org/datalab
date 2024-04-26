@@ -16,27 +16,36 @@ FROM base as app
 
 WORKDIR /app
 
-RUN pip install pipenv
+# Set up uv venv in /opt/.venv to avoid polluting the mounted /app dir
+RUN pip install uv
+WORKDIR /opt
+RUN uv venv
 
-COPY pydatalab/Pipfile pydatalab/Pipfile.lock pydatalab/pyproject.toml .
+COPY pydatalab/requirements/requirements-all.txt .
+RUN uv pip install -r requirements-all.txt
 
+WORKDIR /app
+COPY pydatalab/pyproject.toml .
 # Create development image using flask's dev server with hot-reload
 FROM app as development
-RUN --mount=type=cache,target=/root/.cache/pip pipenv sync
+
 ENV FLASK_APP "pydatalab.main:create_app()"
 ENV FLASK_ENV "development"
 ENV PORT=5001
 
-CMD ["/bin/bash", "-c", "pipenv run flask run --reload --port ${PORT} --host 0.0.0.0"]
+CMD ["/bin/bash", "-c", "/opt/.venv/bin/python -m flask run --reload --port ${PORT} --host 0.0.0.0"]
 
 # Create production image using gunicorn and minimal dependencies
 FROM app as production
-RUN --mount=type=cache,target=/root/.cache/pip pipenv sync
-RUN [ "pipenv", "run", "pip", "install", "gunicorn" ]
+
+WORKDIR /opt
+RUN [ "uv", "pip", "install", "gunicorn" ]
+
+WORKDIR /app
 COPY ./pydatalab/ ./
 
 # Install the local version of the package and mount the repository data to get version info
-RUN --mount=type=bind,target=/app/.git,source=./.git ["pipenv", "run", "pip", "install", "."]
+ RUN --mount=type=bind,target=/app/.git,source=./.git ["uv", "pip", "install", "--python", "/opt/.venv/bin/python", "."]
 
 # This will define the number of gunicorn workers
 ARG WEB_CONCURRENCY=4
@@ -46,6 +55,6 @@ ARG PORT=5001
 EXPOSE ${PORT}
 ENV PORT=${PORT}
 
-CMD ["/bin/bash", "-c", "pipenv run gunicorn --preload -w ${WEB_CONCURRENCY} --error-logfile /logs/pydatalab_error.log --access-logfile - -b 0.0.0.0:${PORT} 'pydatalab.main:create_app()'"]
+CMD ["/bin/bash", "-c", "/opt/.venv/bin/python -m gunicorn --preload -w ${WEB_CONCURRENCY} --error-logfile /logs/pydatalab_error.log --access-logfile - -b 0.0.0.0:${PORT} 'pydatalab.main:create_app()'"]
 
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 CMD curl --fail http://localhost:${PORT}/healthcheck/is_ready || exit 1
