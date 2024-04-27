@@ -17,7 +17,7 @@ class NMRBlock(DataBlock):
     name = "NMR"
     description = "A simple NMR block for visualizing 1D NMR data from Bruker projects."
 
-    accepted_file_extensions = ".zip"
+    accepted_file_extensions = (".zip",)
     defaults = {"process number": 1}
     _supports_collections = False
 
@@ -27,10 +27,12 @@ class NMRBlock(DataBlock):
 
     def read_bruker_nmr_data(self):
         if "file_id" not in self.data:
-            LOGGER.warning("NMRPlot.read_bruker_nmr_data(): No file set in the DataBlock")
+            LOGGER.warning(
+                "NMRPlot.read_bruker_nmr_data(): No file set in the DataBlock")
             return
 
-        zip_file_info = get_file_info_by_id(self.data["file_id"], update_if_live=True)
+        zip_file_info = get_file_info_by_id(
+            self.data["file_id"], update_if_live=True)
         filename = zip_file_info["name"]
 
         name, ext = os.path.splitext(filename)
@@ -47,7 +49,8 @@ class NMRBlock(DataBlock):
             zip_ref.extractall(directory_location)
 
         extracted_directory_name = os.path.join(directory_location, name)
-        available_processes = os.listdir(os.path.join(extracted_directory_name, "pdata"))
+        available_processes = os.listdir(
+            os.path.join(extracted_directory_name, "pdata"))
 
         if self.data.get("selected_process") not in available_processes:
             self.data["selected_process"] = available_processes[0]
@@ -59,7 +62,8 @@ class NMRBlock(DataBlock):
                 verbose=False,
             )
         except Exception as error:
-            LOGGER.critical(f"Unable to parse {name} as Bruker project. {error}")
+            LOGGER.critical(
+                f"Unable to parse {name} as Bruker project. {error}")
             return
 
         serialized_df = df.to_dict() if (df is not None) else None
@@ -85,7 +89,8 @@ class NMRBlock(DataBlock):
         self.data["topspin_title"] = topspin_title
 
     def generate_nmr_plot(self):
-        self.read_bruker_nmr_data()  # currently calls every time plotting happens, but it should only happen if the file was updated
+        # currently calls every time plotting happens, but it should only happen if the file was updated
+        self.read_bruker_nmr_data()
         if "processed_data" not in self.data or not self.data["processed_data"]:
             self.data["bokeh_plot_data"] = None
             return
@@ -104,7 +109,8 @@ class NMRBlock(DataBlock):
             plot_line=True,
             point_size=3,
         )
-        bokeh_layout.children[0].x_range.flipped = True  # flip x axis, per NMR convention
+        # flip x axis, per NMR convention
+        bokeh_layout.children[0].x_range.flipped = True
 
         self.data["bokeh_plot_data"] = bokeh.embed.json_item(
             bokeh_layout, theme=DATALAB_BOKEH_THEME

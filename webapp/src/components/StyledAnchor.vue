@@ -11,6 +11,12 @@
   <div ref="tooltipContent" id="tooltip" role="tooltip">
     <p class="tooltipTitle">{{ blockInfo.name }}</p>
     <p>{{ blockInfo.description }}</p>
+    <p v-if="blockInfo.accepted_file_extensions.length > 0">
+      Accepted file extensions:
+      <span v-for="(extension, index) in blockInfo.accepted_file_extensions" :key="index">
+        {{ extension }}{{ index < blockInfo.accepted_file_extensions.length - 1 ? ", " : "" }}
+      </span>
+    </p>
   </div>
 </template>
 
