@@ -643,3 +643,15 @@ export async function requestNewAPIKey() {
     throw new Error(`Failed to request new API key: ${error.message}`);
   }
 }
+
+export function getBlocksInfos() {
+  return fetch_get(`${API_URL}/info/blocks`)
+    .then(function (response_json) {
+      return response_json.data;
+    })
+    .catch((error) => {
+      console.error("Error when fetching blocks info");
+      console.error(error);
+      throw error;
+    });
+}

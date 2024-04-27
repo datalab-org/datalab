@@ -28,14 +28,11 @@
           aria-labelledby="navbarDropdown"
           v-show="isMenuDropdownVisible"
         >
-          <a
-            v-for="(blockType, id) in blockTypes"
-            :key="id"
-            class="dropdown-item"
-            @click="newBlock($event, id)"
-          >
-            {{ blockType.name }}
-          </a>
+          <template v-for="blockInfo in blocksInfos" :key="blockInfo.id">
+            <span v-if="blockInfo.id !== 'notsupported'" @click="newBlock($event, blockInfo.id)">
+              <StyledAnchor :blockInfo="blockInfo.attributes" />
+            </span>
+          </template>
         </div>
       </div>
       <a class="nav-item nav-link" :href="this.itemApiUrl" target="_blank">
@@ -97,7 +94,13 @@ import SelectableFileTree from "@/components/SelectableFileTree";
 
 import FileList from "@/components/FileList";
 import FileSelectModal from "@/components/FileSelectModal";
-import { getItemData, addABlock, saveItem, updateBlockFromServer } from "@/server_fetch_utils";
+import {
+  getItemData,
+  addABlock,
+  saveItem,
+  updateBlockFromServer,
+  getBlocksInfos,
+} from "@/server_fetch_utils";
 import FormattedItemName from "@/components/FormattedItemName";
 
 import setupUppy from "@/file_upload.js";
@@ -108,6 +111,8 @@ import { blockTypes, itemTypes } from "@/resources.js";
 import NotImplementedBlock from "@/components/datablocks/NotImplementedBlock.vue";
 import { API_URL } from "@/resources.js";
 import { formatDistanceToNow } from "date-fns";
+
+import StyledAnchor from "@/components/StyledAnchor";
 
 export default {
   data() {
@@ -120,6 +125,7 @@ export default {
       isLoadingRemoteFiles: false,
       isLoadingNewBlock: false,
       lastModified: null,
+      blocksInfos: null,
     };
   },
   methods: {
@@ -200,6 +206,13 @@ export default {
         this.lastModified = formatDistanceToNow(save_date, { addSuffix: true });
       }
     },
+    async getBlocksInfo() {
+      let data = await getBlocksInfos();
+      this.blocksInfos = data;
+      console.log("$$$$$$$$$$$$$$$");
+      console.log(this.blocksInfos);
+      console.log("$$$$$$$$$$$$$$$");
+    },
   },
   computed: {
     itemType() {
@@ -247,6 +260,7 @@ export default {
     FileList,
     FileSelectModal,
     FormattedItemName,
+    StyledAnchor,
   },
   beforeMount() {
     this.blockTypes = blockTypes; // bind blockTypes as a NON-REACTIVE object to the this context so that it is accessible by the template.
@@ -268,6 +282,7 @@ export default {
 
     // setup the uppy instsance
     setupUppy(this.item_id, "#uppy-trigger", this.stored_files);
+    this.getBlocksInfo();
   },
   beforeUnmount() {
     document.removeEventListener("keydown", this._keyListener);
