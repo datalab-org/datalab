@@ -209,9 +209,6 @@ export default {
     async getBlocksInfo() {
       let data = await getBlocksInfos();
       this.blocksInfos = data;
-      console.log("$$$$$$$$$$$$$$$");
-      console.log(this.blocksInfos);
-      console.log("$$$$$$$$$$$$$$$");
     },
   },
   computed: {
