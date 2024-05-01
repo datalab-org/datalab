@@ -15,7 +15,7 @@ from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER, logged_route, setup_log
 from pydatalab.login import LOGIN_MANAGER
 from pydatalab.send_email import MAIL
-from pydatalab.utils import CustomJSONEncoder
+from pydatalab.utils import BSONProvider
 
 COMPRESS = Compress()
 
@@ -142,7 +142,8 @@ def create_app(
         supports_credentials=True,
     )
 
-    app.json_encoder = CustomJSONEncoder
+    # Override the default provider with a version that can handle ObjectIDs and returns isofromat dates
+    app.json = BSONProvider(app)
 
     # Must use the full path so that this object can be mocked for testing
 
