@@ -1,7 +1,7 @@
-def test_get_current_user_unauthorized(unauthorized_client):
+def test_get_current_user_unauthenticated(unauthenticated_client):
     """Test that the API key for the demo user has been set correctly."""
 
-    resp = unauthorized_client.get("/get-current-user/")
+    resp = unauthenticated_client.get("/get-current-user/")
     assert resp.status_code == 401
 
 
