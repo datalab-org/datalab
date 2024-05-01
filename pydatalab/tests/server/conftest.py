@@ -12,7 +12,7 @@ import pydatalab.mongo
 from pydatalab.main import create_app
 from pydatalab.models import Cell, Collection, Equipment, Sample, StartingMaterial
 
-TEST_DATABASE_NAME = "datalab-testing"
+TEST_DATABASE_NAME = "__datalab-testing__"
 
 
 class PyMongoMock(mongomock.MongoClient):
@@ -101,10 +101,7 @@ def app(real_mongo_client, monkeypatch_session, app_config):
         databases = mongo_cli.list_database_names()
 
         if TEST_DATABASE_NAME in databases:
-            raise RuntimeError(
-                f"Not running tests over the top of existing database named {TEST_DATABASE_NAME!r} at {MONGO_URI}; "
-                "try dropping it before running the tests if this is desired."
-            )
+            mongo_cli.drop_database(TEST_DATABASE_NAME)
 
     except pymongo.errors.ServerSelectionTimeoutError:
         with patch.object(
