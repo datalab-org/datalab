@@ -4,13 +4,13 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [packages]
-Flask = "==2.0.3"
+Flask = "~=2.3"
 Flask-Cors = "*"
 Flask-Dance = "*"
 Flask-Login = "*"
 Flask-PyMongo = "*"
 Flask-Mail = "*"
-Werkzeug = ">=2.0,<2.1"
+Werkzeug = "~=2.3"
 bokeh = "<3"
 pandas = "*"
 scipy = "*"
