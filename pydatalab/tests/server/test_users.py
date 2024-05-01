@@ -3,6 +3,32 @@ def test_get_current_user(client):
 
     resp = client.get("/get-current-user/")
     assert resp.status_code == 200
+    assert (resp_json := resp.json)
+    assert resp_json["immutable_id"] == 24 * "1"
+    assert resp_json["role"] == "user"
+
+
+def test_get_current_user_admin(admin_client):
+    """Test that the API key for the demo admin has been set correctly."""
+    resp = admin_client.get("/get-current-user/")
+    assert (resp_json := resp.json)
+    assert resp_json["immutable_id"] == 24 * "0"
+    assert resp_json["role"] == "admin"
+
+
+def test_get_current_users(client, admin_client):
+    """Test that the API keys for user and admin can be used from the same test."""
+
+    resp = client.get("/get-current-user/")
+    assert resp.status_code == 200
+    assert (resp_json := resp.json)
+    assert resp_json["immutable_id"] == 24 * "1"
+    assert resp_json["role"] == "user"
+
+    resp = admin_client.get("/get-current-user/")
+    assert (resp_json := resp.json)
+    assert resp_json["immutable_id"] == 24 * "0"
+    assert resp_json["role"] == "admin"
 
 
 def test_role(client, admin_client, real_mongo_client, user_id):
