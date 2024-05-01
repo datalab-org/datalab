@@ -8,6 +8,7 @@ from langchain.agents.format_scratchpad.openai_tools import (
 )
 from langchain.agents.output_parsers.openai_tools import OpenAIToolsAgentOutputParser
 from langchain_anthropic import ChatAnthropic
+from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_openai import ChatOpenAI
@@ -200,7 +201,9 @@ Start with a friendly introduction and give me a one sentence summary of what th
                 ]
             )
 
-            tools = [multiply]
+            search = TavilySearchResults()
+
+            tools = [multiply, search]
 
             llm_with_tools = self.chat_client.bind_tools(tools)
 
