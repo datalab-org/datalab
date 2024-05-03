@@ -90,20 +90,14 @@
           <div class="form-group col-md-12">
             <label for="api-key" class="col-form-label">API Key:</label>
             <div v-if="apiKeyDisplayed" class="input-group">
-              <input
-                type="text"
-                class="form-control"
-                style="text-overflow: ellipsis"
-                :value="apiKey"
-                readonly
-              />
+              <StyledInput v-model="apiKey" :readonly="true" :helpMessage="apiKeyHelpMessage" />
               <div class="input-group-append">
                 <button class="btn btn-outline-secondary" type="button" @click="copyToClipboard">
                   <font-awesome-icon icon="copy" />
                 </button>
               </div>
             </div>
-            <div>
+            <div class="input-group">
               <button class="btn btn-default mt-2" @click="requestAPIKey">
                 Regenerate API Key
               </button>
@@ -119,6 +113,8 @@
 import { API_URL } from "@/resources.js";
 import Modal from "@/components/Modal.vue";
 import { getUserInfo, saveUser, requestNewAPIKey } from "@/server_fetch_utils.js";
+import StyledInput from "./StyledInput.vue";
+
 export default {
   name: "EditAccountSettingsModal",
   data() {
@@ -131,6 +127,8 @@ export default {
       apiUrl: API_URL,
       apiKeyDisplayed: false,
       apiKey: null,
+      apiKeyHelpMessage:
+        "You can use your API key via the datalab-api Python package, or pass it as an HTTP header "DATALAB-API-KEY" with the tool of your choice (e.g., curl).",
     };
   },
   props: {
@@ -196,6 +194,7 @@ export default {
   },
   components: {
     Modal,
+    StyledInput,
   },
 };
 </script>
