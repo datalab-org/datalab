@@ -28,6 +28,7 @@ export default createStore({
     fileSelectModalIsOpen: false,
     currentUserDisplayName: null,
     blocksInfos: {},
+    hasUnverifiedUser: false,
   },
   mutations: {
     setSampleList(state, sampleSummaries) {
@@ -269,6 +270,9 @@ export default createStore({
         state.blocksInfos[info.id] = info;
       });
     },
+    updateUnverifiedUserStatus(state, hasUnverified) {
+      state.hasUnverifiedUser = hasUnverified;
+    },
   },
   getters: {
     getItem: (state) => (item_id) => {
@@ -280,6 +284,9 @@ export default createStore({
     },
     getCurrentUserDisplayName(state) {
       return state.currentUserDisplayName;
+    },
+    getHasUnverifiedUser(state) {
+      return state.hasUnverifiedUser;
     },
   },
   actions: {},

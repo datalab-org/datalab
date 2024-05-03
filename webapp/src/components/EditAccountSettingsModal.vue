@@ -12,7 +12,9 @@
       <template v-slot:body>
         <div class="form-row">
           <div class="form-group col-md-6">
-            <label for="account-name" class="col-form-label">Name:</label>
+            <label for="account-name" class="col-form-label"
+              >Name: <span class="notification-dot" v-if="true"></span>
+            </label>
             <input
               v-model="user.display_name"
               type="text"
@@ -20,6 +22,7 @@
               id="account-name"
               required
             />
+
             <div class="form-error" v-html="displayNameValidationMessage"></div>
           </div>
         </div>
@@ -217,5 +220,14 @@ export default {
 
 .btn:disabled {
   cursor: not-allowed;
+}
+
+.notification-dot {
+  position: absolute;
+  margin-left: 2px;
+  width: 8px;
+  height: 8px;
+  background-color: red;
+  border-radius: 50%;
 }
 </style>

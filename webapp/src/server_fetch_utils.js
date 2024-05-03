@@ -239,6 +239,10 @@ export function getCollectionList() {
 export function getUsersList() {
   return fetch_get(`${API_URL}/users`)
     .then(function (response_json) {
+      const users = response_json.data;
+      const hasUnverified = users.some((user) => user.account_status === "unverified");
+      store.commit("updateUnverifiedUserStatus", hasUnverified);
+
       return response_json.data;
     })
     .catch((error) => {

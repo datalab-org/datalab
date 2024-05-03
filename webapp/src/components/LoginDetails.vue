@@ -13,7 +13,11 @@
           @click="isUserDropdownVisible = !isUserDropdownVisible"
         >
           <UserBubble :creator="this.currentUserInfo" :size="24" />&nbsp;
-          <span class="user-display-name">{{ userDisplayName }}</span
+          <span class="user-display-name">{{ userDisplayName }}</span>
+          <span
+            class="notification-dot"
+            v-if="currentUserInfo.account_status == 'unverified'"
+          ></span
           >&nbsp;
         </button>
         <div
@@ -30,8 +34,11 @@
               editAccountSettingIsOpen = true;
               isUserDropdownVisible = false;
             "
-            ><font-awesome-icon icon="cog" /> &nbsp;&nbsp;Account settings</a
-          >
+            ><font-awesome-icon icon="cog" /> &nbsp;&nbsp;Account settings<span
+              class="notification-dot"
+              v-if="currentUserInfo.account_status == 'unverified'"
+            ></span
+          ></a>
           <span v-if="currentUserInfo.role === 'admin'">
             <router-link
               to="/admin"
@@ -39,6 +46,7 @@
               aria-label="Administration"
             >
               <font-awesome-icon icon="users-cog" /> &nbsp;Administration
+              <span class="notification-dot" v-if="hasUnverifiedUser"></span>
             </router-link>
           </span>
           <a
@@ -127,6 +135,9 @@ export default {
     userDisplayName() {
       return this.$store.getters.getCurrentUserDisplayName;
     },
+    hasUnverifiedUser() {
+      return this.$store.getters.getHasUnverifiedUser;
+    },
   },
   props: {
     modelValue: Boolean,
@@ -156,6 +167,7 @@ export default {
           immutable_id: user.immutable_id,
           contact_email: user.contact_email || "",
           role: user.role || "",
+          account_status: user.account_status || "",
         };
       }
     },
@@ -177,5 +189,14 @@ export default {
 
 .orcid-icon {
   color: #a6ce39;
+}
+
+.notification-dot {
+  position: absolute;
+  margin-left: 2px;
+  width: 8px;
+  height: 8px;
+  background-color: red;
+  border-radius: 50%;
 }
 </style>
