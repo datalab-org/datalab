@@ -41,6 +41,7 @@ import {
   faSpinner,
   faEllipsisH,
   faCopy,
+  faInfoCircle,
 } from "@fortawesome/free-solid-svg-icons";
 import { faPlusSquare } from "@fortawesome/free-regular-svg-icons";
 import { faGithub, faOrcid } from "@fortawesome/free-brands-svg-icons";
@@ -81,6 +82,7 @@ library.add(
   faSpinner,
   faEllipsisH,
   faCopy,
+  faInfoCircle,
 );
 
 // Import TinyMCE
