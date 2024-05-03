@@ -1,4 +1,4 @@
-x<template>
+<template>
   <form @submit.prevent="submitForm" class="modal-enclosure">
     <Modal
       :modelValue="modelValue"
