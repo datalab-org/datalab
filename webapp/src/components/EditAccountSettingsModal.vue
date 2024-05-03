@@ -20,7 +20,6 @@
               id="account-name"
               required
             />
-
             <div class="form-error" v-html="displayNameValidationMessage"></div>
           </div>
         </div>
