@@ -128,7 +128,7 @@ export default {
       apiKeyDisplayed: false,
       apiKey: null,
       apiKeyHelpMessage:
-        "You can use your API key via the datalab-api Python package, or pass it as an HTTP header "DATALAB-API-KEY" with the tool of your choice (e.g., curl).",
+        'You can use your API key via the datalab-api Python package, or pass it as an HTTP header "DATALAB-API-KEY" with the tool of your choice (e.g., curl).',
     };
   },
   props: {
