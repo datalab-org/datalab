@@ -13,8 +13,8 @@
           @click="isUserDropdownVisible = !isUserDropdownVisible"
         >
           <UserBubble :creator="this.currentUserInfo" :size="24" />&nbsp;
-          <span class="user-display-name">{{ userDisplayName }}</span>
-          &nbsp;
+          <span class="user-display-name">{{ userDisplayName }}</span
+          >&nbsp;
         </button>
         <div
           class="dropdown-menu"
