@@ -128,7 +128,7 @@ export default {
       apiKeyDisplayed: false,
       apiKey: null,
       apiKeyHelpMessage:
-        "Lorem, ipsum dolor sit amet consectetur adipisicing elit. Minus adipisci quod earum maxime vero architecto molestiae ipsum est debitis saepe blanditiis repellat, libero numquam. Autem, qui? Libero tenetur deleniti numquam!Lorem, ipsum dolor sit amet consectetur adipisicing elit. Minus adipisci quod earum maxime vero architecto molestiae ipsum est debitis saepe blanditiis repellat, libero numquam. Autem, qui? Libero tenetur deleniti numquam!",
+        "You can use your API key via the datalab-api Python package, or pass it as an HTTP header "DATALAB-API-KEY" with the tool of your choice (e.g., curl).",
     };
   },
   props: {
