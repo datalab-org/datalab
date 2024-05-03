@@ -110,7 +110,7 @@
 <script>
 import { API_URL } from "@/resources.js";
 import UserBubble from "@/components/UserBubble.vue";
-import { getUserInfo } from "@/server_fetch_utils.js";
+import { getUserInfo, getUsersList } from "@/server_fetch_utils.js";
 import GetEmailModal from "@/components/GetEmailModal.vue";
 import EditAccountSettingsModal from "@/components/EditAccountSettingsModal.vue";
 
@@ -169,6 +169,9 @@ export default {
           role: user.role || "",
           account_status: user.account_status || "",
         };
+        if (user.role == "admin") {
+          await getUsersList();
+        }
       }
     },
   },
