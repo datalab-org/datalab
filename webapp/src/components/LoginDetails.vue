@@ -14,11 +14,7 @@
         >
           <UserBubble :creator="this.currentUserInfo" :size="24" />&nbsp;
           <span class="user-display-name">{{ userDisplayName }}</span>
-          <span
-            class="notification-dot"
-            v-if="currentUserInfo.account_status == 'unverified'"
-          ></span
-          >&nbsp;
+          &nbsp;
         </button>
         <div
           class="dropdown-menu"
@@ -34,11 +30,8 @@
               editAccountSettingIsOpen = true;
               isUserDropdownVisible = false;
             "
-            ><font-awesome-icon icon="cog" /> &nbsp;&nbsp;Account settings<span
-              class="notification-dot"
-              v-if="currentUserInfo.account_status == 'unverified'"
-            ></span
-          ></a>
+            ><font-awesome-icon icon="cog" /> &nbsp;&nbsp;Account settings</a
+          >
           <span v-if="currentUserInfo.role === 'admin'">
             <router-link
               to="/admin"
@@ -46,7 +39,6 @@
               aria-label="Administration"
             >
               <font-awesome-icon icon="users-cog" /> &nbsp;Administration
-              <span class="notification-dot" v-if="hasUnverifiedUser"></span>
             </router-link>
           </span>
           <a
@@ -110,7 +102,7 @@
 <script>
 import { API_URL } from "@/resources.js";
 import UserBubble from "@/components/UserBubble.vue";
-import { getUserInfo, getUsersList } from "@/server_fetch_utils.js";
+import { getUserInfo } from "@/server_fetch_utils.js";
 import GetEmailModal from "@/components/GetEmailModal.vue";
 import EditAccountSettingsModal from "@/components/EditAccountSettingsModal.vue";
 
@@ -134,9 +126,6 @@ export default {
   computed: {
     userDisplayName() {
       return this.$store.getters.getCurrentUserDisplayName;
-    },
-    hasUnverifiedUser() {
-      return this.$store.getters.getHasUnverifiedUser;
     },
   },
   props: {
@@ -169,9 +158,6 @@ export default {
           role: user.role || "",
           account_status: user.account_status || "",
         };
-        if (user.role == "admin") {
-          await getUsersList();
-        }
       }
     },
   },
@@ -192,14 +178,5 @@ export default {
 
 .orcid-icon {
   color: #a6ce39;
-}
-
-.notification-dot {
-  position: absolute;
-  margin-left: 2px;
-  width: 8px;
-  height: 8px;
-  background-color: red;
-  border-radius: 50%;
 }
 </style>
