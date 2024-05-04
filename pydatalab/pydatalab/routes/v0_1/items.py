@@ -1,9 +1,9 @@
 import datetime
 import json
-from typing import Callable, Dict, List, Optional, Set, Union
+from typing import Dict, List, Optional, Set, Union
 
 from bson import ObjectId
-from flask import jsonify, request
+from flask import Blueprint, jsonify, request
 from flask_login import current_user
 from pydantic import ValidationError
 from pymongo.command_cursor import CommandCursor
@@ -16,7 +16,15 @@ from pydatalab.models.items import Item
 from pydatalab.models.relationships import RelationshipType
 from pydatalab.models.utils import generate_unique_refcode
 from pydatalab.mongo import flask_mongo
-from pydatalab.permissions import get_default_permissions
+from pydatalab.permissions import active_users_only, get_default_permissions
+
+items = Blueprint("items", __name__)
+
+
+@items.before_request
+@active_users_only
+def _():
+    """Collect decorators to apply to the Items blueprint."""
 
 
 def reserialize_blocks(display_order: List[str], blocks_obj: Dict[str, Dict]) -> Dict[str, Dict]:
@@ -74,16 +82,8 @@ def dereference_files(file_ids: List[Union[str, ObjectId]]) -> Dict[str, Dict]:
     return results
 
 
+@items.route("/equipment/", methods=["GET"])
 def get_equipment_summary():
-    if not current_user.is_authenticated and not CONFIG.TESTING:
-        return (
-            jsonify(
-                status="error",
-                message="Authorization required to access equipment list.",
-            ),
-            401,
-        )
-
     _project = {
         "_id": 0,
         "item_id": 1,
@@ -110,19 +110,8 @@ def get_equipment_summary():
     return jsonify({"status": "success", "items": items})
 
 
-get_equipment_summary.methods = ("GET",)  # type: ignore
-
-
+@items.route("/starting-materials/", methods=["GET"])
 def get_starting_materials():
-    if not current_user.is_authenticated and not CONFIG.TESTING:
-        return (
-            jsonify(
-                status="error",
-                message="Authorization required to access chemical inventory.",
-            ),
-            401,
-        )
-
     items = [
         doc
         for doc in flask_mongo.db.items.aggregate(
@@ -289,13 +278,12 @@ def _check_collections(sample_dict: dict) -> list[dict[str, str]]:
     return sample_dict.get("collections", []) or []
 
 
+@items.route("/samples/", methods=["GET"])
 def get_samples():
     return jsonify({"status": "success", "samples": list(get_samples_summary())})
 
 
-get_samples.methods = ("GET",)  # type: ignore
-
-
+@items.route("/search-items/", methods=["GET"])
 def search_items():
     """Perform free text search on items and return the top results.
     GET parameters:
@@ -343,24 +331,11 @@ def search_items():
     return jsonify({"status": "success", "items": list(cursor)}), 200
 
 
-search_items.methods = ("GET",)  # type: ignore
-
-
 def _create_sample(
     sample_dict: dict,
     copy_from_item_id: Optional[str] = None,
     generate_id_automatically: bool = False,
 ) -> tuple[dict, int]:
-    if not current_user.is_authenticated and not CONFIG.TESTING:
-        return (
-            dict(
-                status="error",
-                message="Unable to create new item without user authentication.",
-                item_id=sample_dict["item_id"],
-            ),
-            401,
-        )
-
     sample_dict["item_id"] = sample_dict.get("item_id", None)
     if generate_id_automatically and sample_dict["item_id"]:
         return (
@@ -574,6 +549,7 @@ def _create_sample(
     return data
 
 
+@items.route("/new-sample/", methods=["POST"])
 def create_sample():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
     if "new_sample_data" in request_json:
@@ -588,9 +564,7 @@ def create_sample():
     return jsonify(response), http_code
 
 
-create_sample.methods = ("POST",)  # type: ignore
-
-
+@items.route("/new-samples/", methods=["POST"])
 def create_samples():
     """attempt to create multiple samples at once.
     Because each may result in success or failure, 207 is returned along with a
@@ -630,9 +604,7 @@ def create_samples():
     )  # 207: multi-status
 
 
-create_samples.methods = ("POST",)  # type: ignore
-
-
+@items.route("/delete-sample/", methods=["POST"])
 def delete_sample():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
     item_id = request_json["item_id"]
@@ -661,9 +633,7 @@ def delete_sample():
     )
 
 
-delete_sample.methods = ("POST",)  # type: ignore
-
-
+@items.route("/get-item-data/<item_id>", methods=["GET"])
 def get_item_data(item_id, load_blocks: bool = False):
     """Generates a JSON response for the item with the given `item_id`,
     additionally resolving relationships to files and other items.
@@ -796,9 +766,7 @@ def get_item_data(item_id, load_blocks: bool = False):
     )
 
 
-get_item_data.methods = ("GET",)  # type: ignore
-
-
+@items.route("/save-item/", methods=["POST"])
 def save_item():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
 
@@ -894,9 +862,7 @@ def save_item():
     return jsonify(status="success", last_modified=updated_data["last_modified"]), 200
 
 
-save_item.methods = ("POST",)  # type: ignore
-
-
+@items.route("/search-users/", methods=["GET"])
 def search_users():
     """Perform free text search on users and return the top results.
     GET parameters:
@@ -932,17 +898,3 @@ def search_users():
     )
 
     return jsonify({"status": "success", "users": list(cursor)}), 200
-
-
-ENDPOINTS: Dict[str, Callable] = {
-    "/samples/": get_samples,
-    "/starting-materials/": get_starting_materials,
-    "/equipment/": get_equipment_summary,
-    "/search-items/": search_items,
-    "/search-users/": search_users,
-    "/new-sample/": create_sample,
-    "/new-samples/": create_samples,
-    "/delete-sample/": delete_sample,
-    "/get-item-data/<item_id>": get_item_data,
-    "/save-item/": save_item,
-}
