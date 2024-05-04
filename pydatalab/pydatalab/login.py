@@ -10,7 +10,7 @@ from bson import ObjectId
 from flask_login import LoginManager, UserMixin
 
 from pydatalab.models import Person
-from pydatalab.models.people import Identity, IdentityType
+from pydatalab.models.people import AccountStatus, Identity, IdentityType
 from pydatalab.models.utils import UserRole
 from pydatalab.mongo import flask_mongo
 
@@ -57,6 +57,11 @@ class LoginUser(UserMixin):
     def contact_email(self) -> Optional[str]:
         """Returns the top-level contact email for the user, if set."""
         return self.person.contact_email
+
+    @property
+    def account_status(self) -> AccountStatus:
+        """Returns the account status of the user."""
+        return self.person.account_status
 
     @property
     def identities(self) -> List[Identity]:
