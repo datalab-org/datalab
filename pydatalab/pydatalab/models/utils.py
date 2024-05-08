@@ -106,8 +106,7 @@ class PintType(str):
     def validate(self, v):
         q = self.Q(v)
         if not q.check(self._dimensions):
-            raise ValueError(
-                "Value {v} must have dimensions of mass, not {v.dimensions}")
+            raise ValueError("Value {v} must have dimensions of mass, not {v.dimensions}")
         return q
 
     @classmethod
@@ -289,7 +288,6 @@ class AccessLevel(str, Enum):
 
 
 class Setting(BaseModel):
-
     name: str
 
     value: str

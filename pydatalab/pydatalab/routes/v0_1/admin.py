@@ -75,8 +75,7 @@ def save_role(user_id):
 
         return (jsonify({"status": "success", "message": "New user's role created."}), 201)
 
-    update_result = flask_mongo.db.roles.update_one(
-        {"_id": ObjectId(user_id)}, {"$set": user_role})
+    update_result = flask_mongo.db.roles.update_one({"_id": ObjectId(user_id)}, {"$set": user_role})
 
     if update_result.matched_count != 1:
         return (jsonify({"status": "error", "message": "Unable to update user."}), 400)
@@ -108,14 +107,14 @@ def save_settings(setting_id):
     if request_json is not None:
         new_setting = {"value": request_json}
 
-    existing_setting = flask_mongo.db.settings.find_one(
-        {"_id": ObjectId(setting_id)})
+    existing_setting = flask_mongo.db.settings.find_one({"_id": ObjectId(setting_id)})
 
     if not existing_setting:
         return (jsonify({"status": "error", "message": "Setting not found."}), 404)
 
     update_setting = flask_mongo.db.settings.update_one(
-        {"_id": ObjectId(setting_id)}, {"$set": new_setting})
+        {"_id": ObjectId(setting_id)}, {"$set": new_setting}
+    )
 
     if update_setting.matched_count != 1:
         return (jsonify({"status": "error", "message": "Unable to update setting."}), 400)
