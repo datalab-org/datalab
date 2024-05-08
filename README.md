@@ -16,8 +16,12 @@
 </div>
 
 <div align="center">
-<img alt="Static Badge" src="https://img.shields.io/badge/Ansible-playbook-white?logo=ansible&link=https%3A%2F%2Fgithub.com%2Fdatalab-org%2Fdatalab-ansible-terraform">
-<img alt="PyPI - Version" src="https://img.shields.io/pypi/v/datalab-api?logo=pypi&label=Python%20API">
+<a href="https://github.com/datalab-org/datalab-ansible-terraform">
+  <img alt="Static Badge" src="https://img.shields.io/badge/Ansible-playbook-white?logo=ansible">
+</a>
+<a href="https://pypi.org/project/datalab-api">
+  <img alt="PyPI - Version" src="https://img.shields.io/pypi/v/datalab-api?logo=pypi&label=Python%20API">
+</a>
 </div>
 
 <div align="center">
