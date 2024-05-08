@@ -1,21 +1,39 @@
+def test_get_current_user_unauthenticated(unauthenticated_client):
+    """Test that the API key for the demo user has been set correctly."""
+
+    resp = unauthenticated_client.get("/get-current-user/")
+    assert resp.status_code == 401
+
+
 def test_get_current_user(client):
     """Test that the API key for the demo user has been set correctly."""
 
     resp = client.get("/get-current-user/")
     assert resp.status_code == 200
+    assert (resp_json := resp.json)
+    assert resp_json["immutable_id"] == 24 * "1"
+    assert resp_json["role"] == "user"
 
 
-def test_role(client, admin_client, real_mongo_client, user_id):
+def test_get_current_user_admin(admin_client):
+    """Test that the API key for the demo admin has been set correctly."""
+    resp = admin_client.get("/get-current-user/")
+    assert (resp_json := resp.json)
+    assert resp_json["immutable_id"] == 24 * "0"
+    assert resp_json["role"] == "admin"
+
+
+def test_role(admin_client, real_mongo_client, user_id):
     endpoint = f"/roles/{str(user_id)}"
-
-    # Test role update by admin
     admin_request = {"role": "manager"}
     resp = admin_client.patch(endpoint, json=admin_request)
     assert resp.status_code == 200
     user = real_mongo_client.get_database().roles.find_one({"_id": user_id})
     assert user["role"] == "manager"
 
-    # Test role update by user
+
+def test_role_update_by_user(client, real_mongo_client, user_id):
+    endpoint = f"/roles/{str(user_id)}"
     user_request = {"role": "admin"}
     resp = client.patch(endpoint, json=user_request)
     assert resp.status_code == 403
@@ -23,22 +41,14 @@ def test_role(client, admin_client, real_mongo_client, user_id):
     assert user["role"] == "manager"
 
 
-def test_user_update(client, admin_client, real_mongo_client, user_id, admin_user_id):
+def test_user_update(client, real_mongo_client, user_id, admin_user_id):
     endpoint = f"/users/{str(user_id)}"
-
     # Test display name update
     user_request = {"display_name": "Test Person II"}
     resp = client.patch(endpoint, json=user_request)
     assert resp.status_code == 200
     user = real_mongo_client.get_database().users.find_one({"_id": user_id})
     assert user["display_name"] == "Test Person II"
-
-    # Test admin override of display name
-    user_request = {"display_name": "Test Person"}
-    resp = admin_client.patch(endpoint, json=user_request)
-    assert resp.status_code == 200
-    user = real_mongo_client.get_database().users.find_one({"_id": user_id})
-    assert user["display_name"] == "Test Person"
 
     # Test contact email update
     user_request = {"contact_email": "test2@example.org"}
@@ -52,7 +62,7 @@ def test_user_update(client, admin_client, real_mongo_client, user_id, admin_use
     resp = client.patch(endpoint, json=user_request)
     assert resp.status_code == 200
     user = real_mongo_client.get_database().users.find_one({"_id": user_id})
-    assert user["display_name"] == "Test Person"
+    assert user["display_name"] == "Test Person II"
 
     # Test that contact_email -> None or empty DOES remove email
     user_request = {"contact_email": None}
@@ -78,7 +88,7 @@ def test_user_update(client, admin_client, real_mongo_client, user_id, admin_use
     resp = client.patch(endpoint, json=user_request)
     assert resp.status_code == 400
     user = real_mongo_client.get_database().users.find_one({"_id": user_id})
-    assert user["display_name"] == "Test Person"
+    assert user["display_name"] == "Test Person II"
 
     # Test bad contact email does not update
     user_request = {"contact_email": "not_an_email"}
@@ -94,3 +104,13 @@ def test_user_update(client, admin_client, real_mongo_client, user_id, admin_use
     assert resp.status_code == 403
     user = real_mongo_client.get_database().users.find_one({"_id": admin_user_id})
     assert user["display_name"] == "Test Admin"
+
+
+def test_user_update_admin(admin_client, real_mongo_client, user_id):
+    endpoint = f"/users/{str(user_id)}"
+    # Test admin override of display name
+    user_request = {"display_name": "Test Person"}
+    resp = admin_client.patch(endpoint, json=user_request)
+    assert resp.status_code == 200
+    user = real_mongo_client.get_database().users.find_one({"_id": user_id})
+    assert user["display_name"] == "Test Person"

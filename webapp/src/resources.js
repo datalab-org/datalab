@@ -45,15 +45,15 @@ export const UPPY_MAX_NUMBER_OF_FILES =
 export const debounceTime = 250; // time after user stops typing before request is sent
 
 export const blockTypes = {
-  comment: { description: "Comment", component: DataBlockBase },
-  media: { description: "Media", component: MediaBlock },
-  xrd: { description: "Powder XRD", component: XRDBlock },
-  raman: { description: "Raman", component: RamanBlock },
-  cycle: { description: "Electrochemistry", component: CycleBlock },
-  eis: { description: "EIS", component: EISBlock },
-  nmr: { description: "NMR", component: NMRBlock },
-  ms: { description: "Mass spectrometry", component: MassSpecBlock },
-  chat: { description: "Virtual assistant", component: ChatBlock },
+  comment: { description: "Comment", component: DataBlockBase, name: "Comment" },
+  media: { description: "Media", component: MediaBlock, name: "Media" },
+  xrd: { description: "Powder XRD", component: XRDBlock, name: "Powder XRD" },
+  raman: { description: "Raman", component: RamanBlock, name: "Raman" },
+  cycle: { description: "Electrochemistry", component: CycleBlock, name: "Electrochemistry" },
+  eis: { description: "Electrochemical Impedance Spectroscopy", component: EISBlock, name: "EIS" },
+  nmr: { description: "Nuclear Magnetic Resonance Spectroscopy", component: NMRBlock, name: "NMR" },
+  ms: { description: "Mass Spectrometry", component: MassSpecBlock, name: "Mass Spectrometry" },
+  chat: { description: "Virtual assistant", component: ChatBlock, name: "Virtual Assistant" },
 };
 
 export const itemTypes = {

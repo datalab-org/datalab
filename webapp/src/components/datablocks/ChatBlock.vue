@@ -12,10 +12,25 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
     <div class="row">
       <div id="chatWindowContainer" class="col-xl-9 col-lg-10 col-md-12 mx-auto">
         <div class="advanced-information" v-if="!advancedHidden">
-          <label>Model</label>: {{ modelName }} <br />
-          <label>Current conversation token count</label>: {{ tokenCount }}/4097
+          <div class="input-group">
+            <label class="mr-2">Model:</label>
+            <select class="form-control" v-model="modelName">
+              <option v-for="model in Object.keys(availableModels)" :key="model">
+                {{ model }}
+              </option>
+            </select>
+          </div>
+          <br />
+          <div class="input-group">
+            <label>Current conversation token count:</label>
+            <span class="pl-1">{{ tokenCount }}/ {{ modelObj.context_window }}</span>
+          </div>
+          <div class="form-row input-group">
+            <label>est. cost for next message:</label>
+            <span class="pl-1">${{ estimatedCost.toPrecision(2) }}</span>
+          </div>
 
-          <div class="input-group form-inline">
+          <div class="form-row input-group">
             <label for="temperatureInput" class="mr-2"><b>temperature:</b></label>
             <input
               id="temperatureInput"
@@ -49,9 +64,15 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
         </div>
       </div>
     </div>
-    <div v-if="errorMessage" class="alert alert-warning">
+    <div style="white-space: pre-line" v-if="errorMessage" class="alert alert-warning">
       {{ errorMessage }}
     </div>
+    <div class="alert alert-info col-lg-6 col-md-8 mt-3 mx-auto" v-show="estimatedCost > 0.1">
+      <font-awesome-icon icon="exclamation-circle" /> sending a message is estimated to cost: ${{
+        estimatedCost.toPrecision(2)
+      }}
+    </div>
+
     <div class="input-group form-inline col-md-10 mx-auto align-items-end">
       <textarea
         rows="3"
@@ -65,7 +86,7 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
       <button
         type="button"
         class="btn btn-default send-button"
-        :disabled="!prompt || isLoading"
+        :disabled="!prompt || /^\s*$/.test(prompt) || isLoading"
         @click="updateBlock()"
       >
         Send
@@ -91,12 +112,17 @@ export default {
       isLoading: false,
       isRegenerating: false,
       advancedHidden: true,
+      prompt: "",
     };
   },
   computed: {
     messages: createComputedSetterForBlockField("messages"),
-    prompt: createComputedSetterForBlockField("prompt"),
     temperature: createComputedSetterForBlockField("temperature"),
+    modelName: createComputedSetterForBlockField("model"),
+    availableModels: createComputedSetterForBlockField("available_models"),
+    modelObj() {
+      return this.availableModels[this.modelName] || {};
+    },
     tempInvalid() {
       return (
         this.temperature == null ||
@@ -105,16 +131,20 @@ export default {
         this.temperature > 1
       );
     },
-
+    estimatedCost() {
+      // a rough estimation of cost, assuming the next input will be about 50 tokens
+      // and the output will be about 250.
+      return (
+        (this.modelObj["input_cost_usd_per_MTok"] * (this.tokenCount + 50)) / 1e6 +
+        (this.modelObj["output_cost_usd_per_MTok"] * 250) / 1e6
+      );
+    },
     errorMessage() {
       return this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id]
         .error_message;
     },
     tokenCount() {
       return this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id].token_count;
-    },
-    modelName() {
-      return this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id].model_name;
     },
   },
   components: {
@@ -124,18 +154,20 @@ export default {
   methods: {
     async updateBlock() {
       this.isLoading = true;
-      this.messages.push({
-        content: this.prompt,
-        role: "user",
-      });
-      this.prompt = "";
+      this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id].prompt =
+        this.prompt;
 
-      await updateBlockFromServer(
+      updateBlockFromServer(
         this.item_id,
         this.block_id,
         this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id],
-      );
-      this.isLoading = false;
+      )
+        .then(() => {
+          this.prompt = "";
+        })
+        .finally(() => {
+          this.isLoading = false;
+        });
     },
     async regenerateLastResponse() {
       this.isLoading = true;

@@ -2,6 +2,8 @@ import json
 import os
 from typing import Sequence
 
+from langchain_anthropic import ChatAnthropic
+from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_openai import ChatOpenAI
 
 from pydatalab.blocks.base import DataBlock
@@ -10,15 +12,34 @@ from pydatalab.models import ITEM_MODELS
 from pydatalab.utils import CustomJSONEncoder
 
 __all__ = "ChatBlock"
-MODEL = "gpt-3.5-turbo-0613"
-MAX_CONTEXT_SIZE = 4097
 
 
 class ChatBlock(DataBlock):
+    """This block uses API calls to external LLMs via Langchain to provide a conversational
+    interface to a user's data.
+
+    Implemented models include:
+    - the GPT series of models from OpenAI
+    - Claude from Anthropic
+
+    Each needs the server to be configured with the corresponding API keys:
+    - `OPENAI_API_KEY`,
+    - `ANTHROPIC_API_KEY`.
+
+    A discussion of this block can be found in:
+
+        Jablonka *et al*, Digital Discovery, 2023,2, 1233-1250, DOI: 10.1039/d3dd00113j
+
+    """
+
     blocktype = "chat"
-    description = "Virtual assistant"
+    description = "Virtual LLM assistant block allows you to converse with your data."
+    name = "💬 Chat with Whinchat"
     accepted_file_extensions: Sequence[str] = []
+    chat_client: BaseChatModel | None = None
+
     __supports_collections = True
+
     defaults = {
         "system_prompt": """You are whinchat (lowercase w), a virtual data managment assistant that helps materials chemists manage their experimental data and plan experiments. You are deployed in the group of Professor Clare Grey in the Department of Chemistry at the University of Cambridge.
 You are embedded within the program datalab, where you have access to JSON describing an ‘item’, or a collection of items, with connections to other items. These items may include experimental samples, starting materials, and devices (e.g. battery cells made out of experimental samples and starting materials).
@@ -27,11 +48,49 @@ Be as concise as possible. When saying your name, type a bird emoji right after 
         """,
         "temperature": 0.2,
         "error_message": None,
+        "model": "gpt-3.5-turbo-0613",
+        "available_models": {
+            "claude-3-haiku-20240307": {
+                "name": "claude-3-haiku-20240307",
+                "context_window": 200000,
+                "input_cost_usd_per_MTok": 0.25,
+                "output_cost_usd_per_MTok": 1.25,
+            },
+            "claude-3-opus-20240229": {
+                "name": "claude-3-opus-20240229",
+                "context_window": 200000,
+                "input_cost_usd_per_MTok": 15.00,
+                "output_cost_usd_per_MTok": 75.00,
+            },
+            "claude-3-sonnet-20240229": {
+                "name": "claude-3-sonnet-20240229",
+                "context_window": 200000,
+                "input_cost_usd_per_MTok": 3.00,
+                "output_cost_usd_per_MTok": 15.00,
+            },
+            "gpt-3.5-turbo-0613": {
+                "name": "gpt-3.5-turbo-0613",
+                "context_window": 4096,
+                "input_cost_usd_per_MTok": 1.50,
+                "output_cost_usd_per_MTok": 2.00,
+            },
+            "gpt-4": {
+                "name": "gpt-4",
+                "context_window": 8192,
+                "input_cost_usd_per_MTok": 30.00,
+                "output_cost_usd_per_MTok": 60.00,
+            },
+            "gpt-4-0125-preview": {
+                "name": "gpt-4-0125-preview",
+                "context_window": 128000,
+                "input_cost_usd_per_MTok": 10.00,
+                "output_cost_usd_per_MTok": 30.00,
+            },
+        },
     }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.openai_client = ChatOpenAI(api_key=os.environ.get("OPENAI_API_KEY"), model=MODEL)
 
     def to_db(self):
         """returns a dictionary with the data for this
@@ -64,7 +123,7 @@ Start with a friendly introduction and give me a one sentence summary of what th
                 },
             ]
 
-        if self.data.get("prompt"):
+        if self.data.get("prompt") and self.data.get("prompt").strip():
             self.data["messages"].append(
                 {
                     "role": "user",
@@ -72,6 +131,10 @@ Start with a friendly introduction and give me a one sentence summary of what th
                 }
             )
             self.data["prompt"] = None
+        else:
+            LOGGER.debug(
+                "Chat block: no prompt was provided (or prompt was entirely whitespace), so no inference will be performed"
+            )
 
         try:
             if self.data["messages"][-1].role not in ("user", "system"):
@@ -80,9 +143,31 @@ Start with a friendly introduction and give me a one sentence summary of what th
             if self.data["messages"][-1]["role"] not in ("user", "system"):
                 return
 
+        if self.data.get("model") not in self.data.get("available_models", {}):
+            self.data["error_message"] = (
+                f"Chatblock received an unknown model: {self.data.get('model')}"
+            )
+            return
+
         try:
+            model_name = self.data["model"]
+
+            model_dict = self.data["available_models"][model_name]
+            LOGGER.warning(f"Initializing chatblock with model: {model_name}")
+
+            if model_name.startswith("claude"):
+                self.chat_client = ChatAnthropic(
+                    anthropic_api_key=os.environ["ANTHROPIC_API_KEY"],
+                    model=model_name,
+                )
+            elif model_name.startswith("gpt"):
+                self.chat_client = ChatOpenAI(
+                    api_key=os.environ.get("OPENAI_API_KEY"),
+                    model=model_name,
+                )
+
             LOGGER.debug(
-                f"submitting request to OpenAI API for completion with last message role \"{self.data['messages'][-1]['role']}\" (message = {self.data['messages'][-1:]}). Temperature = {self.data['temperature']} (type {type(self.data['temperature'])})"
+                f"submitting request to API for completion with last message role \"{self.data['messages'][-1]['role']}\" (message = {self.data['messages'][-1:]}). Temperature = {self.data['temperature']} (type {type(self.data['temperature'])})"
             )
             from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
@@ -96,26 +181,32 @@ Start with a friendly introduction and give me a one sentence summary of what th
                 else:
                     langchain_messages.append(AIMessage(content=message["content"]))
 
-            token_count = self.openai_client.get_num_tokens_from_messages(langchain_messages)
+            token_count = self.chat_client.get_num_tokens_from_messages(langchain_messages)
+
             self.data["token_count"] = token_count
 
-            if token_count >= MAX_CONTEXT_SIZE:
+            if token_count >= model_dict["context_window"]:
                 self.data["error_message"] = (
-                    f"""This conversation has reached its maximum context size and the chatbot won't be able to respond further ({token_count} tokens, max: {MAX_CONTEXT_SIZE}). Please make a new chat block to start fresh."""
+                    f"""This conversation has reached its maximum context size and the chatbot won't be able to respond further ({token_count} tokens, max: {model_dict['context_window']}). Please make a new chat block to start fresh, or use a model with a larger context window"""
                 )
                 return
 
-            # Call the OpenAI client with the invoke method
-            response = self.openai_client.invoke(langchain_messages)
+            # Call the chat client with the invoke method
+            response = self.chat_client.invoke(langchain_messages)
+
             langchain_messages.append(response)
-            token_count = self.openai_client.get_num_tokens_from_messages(langchain_messages)
+
+            token_count = self.chat_client.get_num_tokens_from_messages(langchain_messages)
+
             self.data["token_count"] = token_count
             self.data["messages"].append({"role": "assistant", "content": response.content})
             self.data["error_message"] = None
 
         except Exception as exc:
-            LOGGER.debug("Received an error from OpenAI API: %s", exc)
-            self.data["error_message"] = f"Received an error from the OpenAi API: {exc}."
+            LOGGER.debug("Received an error from API: %s", exc)
+            self.data["error_message"] = (
+                f"Received an error from the API: {exc}.\n\n Consider choosing a different model and reloading the block."
+            )
             return
 
     def _prepare_item_json_for_chat(self, item_id: str):

@@ -18,8 +18,8 @@ BLOCKS: Sequence[Type["DataBlock"]] = (
     CycleBlock,
     RamanBlock,
     NMRBlock,
-    MassSpecBlock,
     NotSupportedBlock,
+    MassSpecBlock,
     ChatBlock,
     EISBlock,
 )
@@ -33,6 +33,7 @@ __all__ = (
     "ChatBlock",
     "EISBlock",
     "CycleBlock",
+    "NotSupportedBlock",
     "NMRBlock",
     "RamanBlock",
     "MassSpecBlock",

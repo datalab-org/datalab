@@ -12,7 +12,7 @@ import pydatalab.mongo
 from pydatalab.main import create_app
 from pydatalab.models import Cell, Collection, Equipment, Sample, StartingMaterial
 
-TEST_DATABASE_NAME = "datalab-testing"
+TEST_DATABASE_NAME = "__datalab-testing__"
 
 
 class PyMongoMock(mongomock.MongoClient):
@@ -101,10 +101,7 @@ def app(real_mongo_client, monkeypatch_session, app_config):
         databases = mongo_cli.list_database_names()
 
         if TEST_DATABASE_NAME in databases:
-            raise RuntimeError(
-                f"Not running tests over the top of existing database named {TEST_DATABASE_NAME!r} at {MONGO_URI}; "
-                "try dropping it before running the tests if this is desired."
-            )
+            mongo_cli.drop_database(TEST_DATABASE_NAME)
 
     except pymongo.errors.ServerSelectionTimeoutError:
         with patch.object(
@@ -131,7 +128,7 @@ def app(real_mongo_client, monkeypatch_session, app_config):
         mongo_cli.drop_database(TEST_DATABASE_NAME)
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def admin_client(app, admin_api_key):
     """Returns a test client for the API with admin access."""
 
@@ -146,7 +143,7 @@ def admin_client(app, admin_api_key):
         yield cli
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def client(app, user_api_key):
     """Returns a test client for the API with normal user access."""
 
@@ -161,9 +158,12 @@ def client(app, user_api_key):
         yield cli
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def unauthenticated_client(app):
     """Returns an unauthenticated test client for the API."""
+
+    app.test_client_class = FlaskClient
+
     with app.test_client() as cli:
         yield cli
 
@@ -451,3 +451,12 @@ def fixture_default_starting_material_dict(default_starting_material):
 @pytest.fixture(scope="module", name="default_equipment_dict")
 def fixture_default_equipment_dict(default_equipment):
     return default_equipment.dict(exclude_unset=True)
+
+
+@pytest.fixture(scope="module", name="insert_default_sample")
+def fixture_insert_default_sample(default_sample):
+    from pydatalab.mongo import flask_mongo
+
+    flask_mongo.db.items.insert_one(default_sample.dict(exclude_unset=False))
+    yield
+    flask_mongo.db.items.delete_one({"item_id": default_sample.item_id})

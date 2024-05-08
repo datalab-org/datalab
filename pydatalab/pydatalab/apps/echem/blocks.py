@@ -1,7 +1,7 @@
 import os
 import time
 from pathlib import Path
-from typing import Any, Dict, Union
+from typing import Union
 
 import bokeh
 import pandas as pd
@@ -30,7 +30,8 @@ class CycleBlock(DataBlock):
     """
 
     blocktype = "cycle"
-    description = "Electrochemical cycling"
+    name = "Electrochemical cycling"
+    description = "This block can plot data from electrochemical cycling experiments from many different cycler's file formats."
 
     accepted_file_extensions = (
         ".mpr",
@@ -42,8 +43,6 @@ class CycleBlock(DataBlock):
         ".nda",
         ".ndax",
     )
-
-    cache: Dict[str, Any]
 
     defaults = {
         "p_spline": 5,

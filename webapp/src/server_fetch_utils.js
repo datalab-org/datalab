@@ -306,6 +306,19 @@ export async function getUserInfo() {
     });
 }
 
+export async function requestMagicLink(email_address) {
+  return fetch_post(`${API_URL}/login/magic-link`, {
+    email: email_address,
+    referrer: window.location.origin,
+  })
+    .then((response_json) => {
+      return response_json;
+    })
+    .catch((err) => {
+      return err;
+    });
+}
+
 export function searchUsers(query, nresults = 100) {
   // construct a url with parameters:
   var url = new URL(`${API_URL}/search-users/`);
@@ -676,15 +689,3 @@ export async function getAllSettings() {
     throw new Error(`Failed: ${error.message}`);
   }
 }
-
-// export async function addRemoteFilesToSample(file_entries, item_id) {
-//  console.log('loadSelectedRemoteFiles')
-//  return fetch_post(`${API_URL}/add-remote-files-to-sample/`, {
-//    file_entries: file_entries,
-//    item_id: item_id,
-//  }).then( function(response_json) {
-//    //handle response
-//    console.log("received remote samples!")
-//    console.log(response_json)
-//  }).catch( error => (`addRemoteFilesToSample unsuccessful. Error: ${error}`))
-// }

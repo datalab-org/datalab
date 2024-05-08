@@ -4,7 +4,7 @@ import pathlib
 from typing import Any, Dict
 
 from dotenv import dotenv_values
-from flask import Flask, redirect, request, session, url_for
+from flask import Flask, redirect, request, url_for
 from flask_compress import Compress
 from flask_cors import CORS
 from flask_login import current_user, logout_user
@@ -15,7 +15,7 @@ from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER, logged_route, setup_log
 from pydatalab.login import LOGIN_MANAGER
 from pydatalab.send_email import MAIL
-from pydatalab.utils import CustomJSONEncoder
+from pydatalab.utils import BSONProvider
 
 COMPRESS = Compress()
 
@@ -69,6 +69,10 @@ def _warn_startup_settings(app):
         ),
         ("ORCID_OAUTH_CLIENT_ID", "No ORCID OAuth client ID provided, ORCID login will not work"),
         ("OPENAI_API_KEY", "No OpenAI API key provided, OpenAI-based ChatBlock will not work"),
+        (
+            "ANTHROPIC_API_KEY",
+            "No Anthropic API key provided, Claude-based ChatBlock will not work",
+        ),
     ]
 
     for secret, error in secrets_and_errors:
@@ -138,10 +142,13 @@ def create_app(
         supports_credentials=True,
     )
 
-    app.json_encoder = CustomJSONEncoder
+    # Override the default provider with a version that can handle ObjectIDs and returns isofromat dates
+    app.json = BSONProvider(app)
+
+    # Make the session permanent so that it doesn't expire on browser close, but instead adds a lifetime
+    app.permanent_session_lifetime = datetime.timedelta(hours=CONFIG.SESSION_LIFETIME)
 
     # Must use the full path so that this object can be mocked for testing
-
     flask_mongo = pydatalab.mongo.flask_mongo
     flask_mongo.init_app(app, connectTimeoutMS=100, serverSelectionTimeoutMS=100)
 
@@ -161,12 +168,6 @@ def create_app(
         """Logs out the local user from the current session."""
         logout_user()
         return redirect(request.environ.get("HTTP_REFERER", "/"))
-
-    @app.before_first_request  # runs before FIRST request (only once)
-    def make_session_permanent():
-        """Make the session permanent so that it doesn't expire on browser close, but instead adds a lifetime."""
-        session.permanent = True
-        app.permanent_session_lifetime = datetime.timedelta(hours=CONFIG.SESSION_LIFETIME)
 
     @app.route("/")
     def index():

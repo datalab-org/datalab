@@ -5,7 +5,7 @@
 </div>
 
 <div align="center">
-<a href="https://github.com/the-grey-group/datalab/releases"><img src="https://badgen.net/github/release/the-grey-group/datalab?icon=github"></a>
+<a href="https://github.com/the-grey-group/datalab/releases"><img src="https://badgen.net/github/release/the-grey-group/datalab?icon=github&color=blue"></a>
 <a href="https://github.com/the-grey-group/datalab#MIT-1-ov-file"><img src="https://badgen.net/github/license/the-grey-group/datalab?icon=license&color=purple"></a>
 </div>
 
@@ -13,6 +13,11 @@
 <a href="https://github.com/the-grey-group/datalab/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/the-grey-group/datalab/ci.yml?logo=github"></a>
 <a href="https://cloud.cypress.io/projects/4kqx5i/runs"><img src="https://img.shields.io/endpoint?url=https://cloud.cypress.io/badge/simple/4kqx5i/main&style=flat&logo=cypress"></a>
 <a href="https://the-datalab.readthedocs.io/en/latest/?badge=latest"><img src="https://img.shields.io/readthedocs/the-datalab?logo=readthedocs"></a>
+</div>
+
+<div align="center">
+<img alt="Static Badge" src="https://img.shields.io/badge/Ansible-playbook-white?logo=ansible&link=https%3A%2F%2Fgithub.com%2Fdatalab-org%2Fdatalab-ansible-terraform">
+<img alt="PyPI - Version" src="https://img.shields.io/pypi/v/datalab-api?logo=pypi&label=Python%20API">
 </div>
 
 <div align="center">
