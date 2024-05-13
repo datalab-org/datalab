@@ -241,7 +241,7 @@ export function getUsersList() {
     .then(function (response_json) {
       const users = response_json.data;
       const hasUnverified = users.some((user) => user.account_status === "unverified");
-      store.commit("updateUnverifiedUserStatus", hasUnverified);
+      store.commit("updateHasUnverified", hasUnverified);
 
       return response_json.data;
     })
@@ -303,6 +303,7 @@ export async function getUserInfo() {
   return fetch_get(`${API_URL}/get-current-user/`)
     .then((response_json) => {
       store.commit("setDisplayName", response_json.display_name);
+      store.commit("setIsUnverified", response_json.account_status == "unverified" ? true : false);
       return response_json;
     })
     .catch(() => {
@@ -513,6 +514,10 @@ export function saveUser(user_id, user) {
   fetch_patch(`${API_URL}/users/${user_id}`, user)
     .then(function (response_json) {
       if (response_json.status === "success") {
+        if (user.account_status) {
+          getUserInfo();
+          getUsersList();
+        }
         console.log("Save successful!");
       } else {
         alert("User save unsuccessful", response_json.detail);

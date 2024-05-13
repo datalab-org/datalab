@@ -28,6 +28,7 @@ export default createStore({
     fileSelectModalIsOpen: false,
     currentUserDisplayName: null,
     blocksInfos: {},
+    currentUserIsUnverified: false,
     hasUnverifiedUser: false,
   },
   mutations: {
@@ -46,9 +47,12 @@ export default createStore({
     setDisplayName(state, displayName) {
       state.currentUserDisplayName = displayName;
     },
+    setIsUnverified(state, isUnverified) {
+      state.currentUserIsUnverified = isUnverified;
+    },
     setEquipmentList(state, equipmentSummaries) {
       // equipmentSummary is an array of json objects summarizing the available samples
-      state.equipment_list = equipmentSummaries;
+        state.equipment_list = equipmentSummaries;
     },
     appendToSampleList(state, sampleSummary) {
       // sampleSummary is a json object summarizing the new sample
@@ -271,6 +275,9 @@ export default createStore({
       });
     },
     updateUnverifiedUserStatus(state, hasUnverified) {
+        state.currentUserIsUnverified = hasUnverified;
+    },
+    updateHasUnverified(state, hasUnverified) {
       state.hasUnverifiedUser = hasUnverified;
     },
   },
@@ -284,6 +291,9 @@ export default createStore({
     },
     getCurrentUserDisplayName(state) {
       return state.currentUserDisplayName;
+    },
+    getCurrentUserIsUnverified(state) {
+      return state.currentUserIsUnverified;
     },
     getHasUnverifiedUser(state) {
       return state.hasUnverifiedUser;

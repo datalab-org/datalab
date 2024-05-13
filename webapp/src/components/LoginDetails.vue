@@ -12,7 +12,7 @@
           data-toggle="dropdown"
           @click="isUserDropdownVisible = !isUserDropdownVisible"
         >
-          <UserBubble :creator="this.currentUserInfo" :size="24" />&nbsp;
+          <UserBubbleLogin :creator="this.currentUserInfo" :size="24" />&nbsp;
           <span class="user-display-name">{{ userDisplayName }}</span
           >&nbsp;
         </button>
@@ -30,8 +30,9 @@
               editAccountSettingIsOpen = true;
               isUserDropdownVisible = false;
             "
-            ><font-awesome-icon icon="cog" /> &nbsp;&nbsp;Account settings</a
-          >
+            ><font-awesome-icon icon="cog" /> &nbsp;&nbsp;Account settings
+            <span v-if="isUnverified"><NotificationDot /></span>
+          </a>
           <span v-if="currentUserInfo.role === 'admin'">
             <router-link
               to="/admin"
@@ -39,6 +40,7 @@
               aria-label="Administration"
             >
               <font-awesome-icon icon="users-cog" /> &nbsp;Administration
+              <span v-if="hasUnverifiedUser"><NotificationDot /></span>
             </router-link>
           </span>
           <a
@@ -101,7 +103,8 @@
 
 <script>
 import { API_URL } from "@/resources.js";
-import UserBubble from "@/components/UserBubble.vue";
+import UserBubbleLogin from "@/components/UserBubbleLogin.vue";
+import NotificationDot from "@/components/NotificationDot.vue";
 import { getUserInfo } from "@/server_fetch_utils.js";
 import GetEmailModal from "@/components/GetEmailModal.vue";
 import EditAccountSettingsModal from "@/components/EditAccountSettingsModal.vue";
@@ -119,13 +122,20 @@ export default {
     };
   },
   components: {
-    UserBubble,
+    UserBubbleLogin,
     GetEmailModal,
     EditAccountSettingsModal,
+    NotificationDot,
   },
   computed: {
     userDisplayName() {
       return this.$store.getters.getCurrentUserDisplayName;
+    },
+    isUnverified() {
+      return this.$store.getters.getCurrentUserIsUnverified;
+    },
+    hasUnverifiedUser() {
+      return this.$store.getters.getHasUnverifiedUser;
     },
   },
   props: {
@@ -158,6 +168,7 @@ export default {
           role: user.role || "",
           account_status: user.account_status || "",
         };
+        this.$store.commit("setIsUnverified", user.account_status == "unverified" ? true : false);
       }
     },
   },
