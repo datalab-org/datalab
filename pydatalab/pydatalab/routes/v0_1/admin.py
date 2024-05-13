@@ -124,7 +124,7 @@ def create_setting():
         "name": name,
         "value": value,
         "description": description,
-        "access_level": access_level
+        "access_level": access_level,
     }
 
     try:
@@ -178,15 +178,13 @@ def delete_setting(setting_id):
     except Exception as e:
         return jsonify({"status": "error", "message": f"Invalid setting_id: {str(e)}"}), 400
 
-    existing_setting = flask_mongo.db.settings.find_one(
-        {"_id": setting_object_id})
+    existing_setting = flask_mongo.db.settings.find_one({"_id": setting_object_id})
 
     if not existing_setting:
         return jsonify({"status": "error", "message": "Setting not found."}), 404
 
     try:
-        delete_result = flask_mongo.db.settings.delete_one(
-            {"_id": setting_object_id})
+        delete_result = flask_mongo.db.settings.delete_one({"_id": setting_object_id})
     except Exception as e:
         return jsonify({"status": "error", "message": f"Failed to delete setting: {str(e)}"}), 500
 
