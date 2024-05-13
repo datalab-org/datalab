@@ -23,7 +23,7 @@
 import { createPopper } from "@popperjs/core";
 
 export default {
-  name: "StyledAnchor",
+  name: "StyledBlockHelp",
   props: {
     blockInfo: {
       type: Object,

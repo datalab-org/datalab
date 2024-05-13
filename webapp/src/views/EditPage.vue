@@ -30,7 +30,7 @@
         >
           <template v-for="blockInfo in blocksInfos" :key="blockInfo.id">
             <span v-if="blockInfo.id !== 'notsupported'" @click="newBlock($event, blockInfo.id)">
-              <StyledAnchor :blockInfo="blockInfo.attributes" />
+              <StyledBlockHelp :blockInfo="blockInfo.attributes" />
             </span>
           </template>
         </div>
@@ -112,7 +112,7 @@ import NotImplementedBlock from "@/components/datablocks/NotImplementedBlock.vue
 import { API_URL } from "@/resources.js";
 import { formatDistanceToNow } from "date-fns";
 
-import StyledAnchor from "@/components/StyledAnchor";
+import StyledBlockHelp from "@/components/StyledBlockHelp";
 
 export default {
   data() {
@@ -262,7 +262,7 @@ export default {
     FileList,
     FileSelectModal,
     FormattedItemName,
-    StyledAnchor,
+    StyledBlockHelp,
   },
   beforeMount() {
     this.blockTypes = blockTypes; // bind blockTypes as a NON-REACTIVE object to the this context so that it is accessible by the template.
