@@ -125,7 +125,6 @@ export default {
       isLoadingRemoteFiles: false,
       isLoadingNewBlock: false,
       lastModified: null,
-      blocksInfos: null,
     };
   },
   methods: {
@@ -207,8 +206,10 @@ export default {
       }
     },
     async getBlocksInfo() {
-      let data = await getBlocksInfos();
-      this.blocksInfos = data;
+      if (!this.blocksInfos) {
+        let data = await getBlocksInfos();
+        this.$store.commit("setBlocksInfos", data);
+      }
     },
   },
   computed: {
@@ -246,8 +247,12 @@ export default {
     stored_files() {
       return this.$store.state.files;
     },
+    blocksInfos() {
+      return this.$store.state.blocksInfos;
+    },
   },
   created() {
+    this.getBlocksInfo();
     this.getSampleData();
     this.interval = setInterval(() => this.setLastModified(), 30000);
   },
