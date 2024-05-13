@@ -100,6 +100,44 @@ def get_all_settings():
     return jsonify({"status": "success", "data": list(settings)}), 200
 
 
+@admin.route("/admin/new_setting", methods=["POST"])
+def create_setting():
+    request_json = request.get_json()
+
+    if not request_json:
+        return jsonify({"status": "error", "message": "Invalid request body."}), 400
+
+    name = request_json.get("name")
+    value = request_json.get("value")
+    description = request_json.get("description")
+    access_level = request_json.get("access_level")
+
+    if not name or not value or not access_level:
+        return jsonify({"status": "error", "message": "Missing required fields."}), 400
+
+    existing_setting = flask_mongo.db.settings.find_one({"name": name})
+
+    if existing_setting:
+        return jsonify({"status": "error", "message": f"Setting '{name}' already exists."}), 409
+
+    new_setting = {
+        "name": name,
+        "value": value,
+        "description": description,
+        "access_level": access_level
+    }
+
+    try:
+        result = flask_mongo.db.settings.insert_one(new_setting)
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+    if result.inserted_id:
+        return jsonify({"status": "success", "message": "Setting created successfully."}), 200
+    else:
+        return jsonify({"status": "error", "message": "Failed to create setting."}), 500
+
+
 @admin.route("/admin/settings/<setting_id>", methods=["PATCH"])
 def save_settings(setting_id):
     request_json = request.get_json()
@@ -131,3 +169,28 @@ def save_settings(setting_id):
         )
 
     return (jsonify({"status": "success"}), 200)
+
+
+@admin.route("/admin/delete_setting/<setting_id>", methods=["DELETE"])
+def delete_setting(setting_id):
+    try:
+        setting_object_id = ObjectId(setting_id)
+    except Exception as e:
+        return jsonify({"status": "error", "message": f"Invalid setting_id: {str(e)}"}), 400
+
+    existing_setting = flask_mongo.db.settings.find_one(
+        {"_id": setting_object_id})
+
+    if not existing_setting:
+        return jsonify({"status": "error", "message": "Setting not found."}), 404
+
+    try:
+        delete_result = flask_mongo.db.settings.delete_one(
+            {"_id": setting_object_id})
+    except Exception as e:
+        return jsonify({"status": "error", "message": f"Failed to delete setting: {str(e)}"}), 500
+
+    if delete_result.deleted_count == 1:
+        return jsonify({"status": "success", "message": "Setting deleted successfully."}), 200
+    else:
+        return jsonify({"status": "error", "message": "Failed to delete setting."}), 500

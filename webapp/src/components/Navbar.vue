@@ -1,9 +1,9 @@
 <template>
   <div class="pt-3" v-if="logoURL != null">
-    <a v-if="homepageURL != null" :href="homepageURL" target="_blank">
-      <img class="logo-banner" :src="logoURL" />
+    <a v-if="homepageURL != null" :href="homepageURL.value" target="_blank">
+      <img class="logo-banner" :alt="logoURL.description" :src="logoURL.value" />
     </a>
-    <img v-else class="logo-banner" :src="logoURL" />
+    <img v-else class="logo-banner" :alt="logoURL.description" :src="logoURL.value" />
   </div>
 
   <LoginDetails></LoginDetails>
@@ -32,11 +32,11 @@ export default {
     },
     logoURL() {
       const logoURL = this.publicSettings.find((setting) => setting.name === "LOGO_URL");
-      return logoURL ? logoURL.value : null;
+      return logoURL ? logoURL : null;
     },
     homepageURL() {
       const homepageURL = this.publicSettings.find((setting) => setting.name === "HOMEPAGE_URL");
-      return homepageURL ? homepageURL.value : null;
+      return homepageURL ? homepageURL : null;
     },
   },
   components: {
