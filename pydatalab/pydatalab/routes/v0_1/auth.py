@@ -11,7 +11,7 @@ import random
 import re
 from hashlib import sha512
 from string import ascii_letters
-from typing import Callable, Dict, Optional, Union
+from typing import Dict, Optional, Union
 
 import jwt
 from bson import ObjectId
@@ -41,8 +41,10 @@ def wrapped_login_user(*args, **kwargs):
 
 EMAIL_BLUEPRINT = Blueprint("email", __name__)
 
+AUTH = Blueprint("auth", __name__)
 
-AUTH_BLUEPRINTS: Dict[IdentityType, Blueprint] = {
+
+OAUTH: Dict[IdentityType, Blueprint] = {
     IdentityType.ORCID: make_orcid_blueprint(
         scope="/authenticate",
         sandbox=os.environ.get("OAUTH_ORCID_SANDBOX", False),
@@ -389,7 +391,7 @@ def email_logged_in():
     return redirect(referer, 307)
 
 
-@oauth_authorized.connect_via(AUTH_BLUEPRINTS[IdentityType.GITHUB])
+@oauth_authorized.connect_via(OAUTH[IdentityType.GITHUB])
 def github_logged_in(blueprint, token):
     """This Flask signal hooks into any attempt to use the GitHub blueprint, and will
     make a user account with this identity if not already present in the database.
@@ -437,7 +439,7 @@ def github_logged_in(blueprint, token):
     return False
 
 
-@oauth_authorized.connect_via(AUTH_BLUEPRINTS[IdentityType.ORCID])
+@oauth_authorized.connect_via(OAUTH[IdentityType.ORCID])
 def orcid_logged_in(_, token):
     """This signal hooks into any attempt to use the ORCID blueprint, and will
     associate a user account with this identity if not already present in the database.
@@ -475,6 +477,7 @@ def redirect_to_ui(blueprint, token):  # pylint: disable=unused-argument
     return redirect(referer)
 
 
+@AUTH.route("/get-current-user/", methods=["GET"])
 def get_authenticated_user_info():
     """Returns metadata associated with the currently authenticated user."""
     if current_user.is_authenticated:
@@ -485,6 +488,7 @@ def get_authenticated_user_info():
         return jsonify({"status": "failure", "message": "User must be authenticated."}), 401
 
 
+@AUTH.route("/get-api-key/", methods=["GET"])
 def generate_user_api_key():
     """Returns metadata associated with the currently authenticated user."""
     if current_user.is_authenticated:
@@ -505,9 +509,3 @@ def generate_user_api_key():
             ),
             401,
         )
-
-
-ENDPOINTS: Dict[str, Callable] = {
-    "/get-current-user/": get_authenticated_user_info,
-    "/get-api-key/": generate_user_api_key,
-}

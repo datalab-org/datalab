@@ -1,8 +1,9 @@
-from typing import Callable, Dict
+from flask import Blueprint, jsonify
 
-from flask import jsonify
+HEALTHCHECK = Blueprint("healthcheck", __name__)
 
 
+@HEALTHCHECK.route("/healthcheck/is_ready", methods=["GET"])
 def is_ready():
     from pydatalab.mongo import check_mongo_connection
 
@@ -16,15 +17,6 @@ def is_ready():
     return (jsonify(status="success", message="Server and database are ready"), 200)
 
 
+@HEALTHCHECK.route("/healthcheck/is_alive", methods=["GET"])
 def is_alive():
     return (jsonify(status="success", message="Server is alive"), 200)
-
-
-is_alive.methods = ("GET",)  # type: ignore
-is_ready.methods = ("GET",)  # type: ignore
-
-
-ENDPOINTS: Dict[str, Callable] = {
-    "/healthcheck/is_alive": is_alive,
-    "/healthcheck/is_ready": is_ready,
-}

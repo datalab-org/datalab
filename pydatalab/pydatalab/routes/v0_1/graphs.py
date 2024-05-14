@@ -1,11 +1,15 @@
-from typing import Callable, Dict, Optional, Set
+from typing import Optional, Set
 
-from flask import jsonify, request
+from flask import Blueprint, jsonify, request
 
 from pydatalab.mongo import flask_mongo
 from pydatalab.permissions import get_default_permissions
 
+GRAPHS = Blueprint("graphs", __name__)
 
+
+@GRAPHS.route("/item-graph", methods=["GET"])
+@GRAPHS.route("/item-graph/<item_id>", methods=["GET"])
 def get_graph_cy_format(item_id: Optional[str] = None, collection_id: Optional[str] = None):
     collection_id = request.args.get("collection_id", type=str)
 
@@ -155,12 +159,3 @@ def get_graph_cy_format(item_id: Optional[str] = None, collection_id: Optional[s
     ]
 
     return (jsonify(status="success", nodes=nodes, edges=edges), 200)
-
-
-get_graph_cy_format.methods = ("GET",)  # type: ignore
-
-
-ENDPOINTS: Dict[str, Callable] = {
-    "/item-graph/<item_id>": get_graph_cy_format,
-    "/item-graph": get_graph_cy_format,
-}

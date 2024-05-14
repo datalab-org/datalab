@@ -12,7 +12,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 import pydatalab.mongo
 from pydatalab.config import CONFIG
-from pydatalab.logger import LOGGER, logged_route, setup_log
+from pydatalab.logger import LOGGER, setup_log
 from pydatalab.login import LOGIN_MANAGER
 from pydatalab.send_email import MAIL
 from pydatalab.utils import BSONProvider
@@ -180,11 +180,10 @@ def create_app(
 
         """
         from pydatalab.routes import (  # pylint: disable=import-outside-toplevel
-            ENDPOINTS,
-            auth,
+            AUTH,
         )
 
-        OAUTH_PROXIES = auth.OAUTH_PROXIES
+        OAUTH_PROXIES = AUTH.OAUTH_PROXIES
 
         connected = True
         try:
@@ -267,19 +266,10 @@ def create_app(
 
             auth_string += "</ul>"
 
-            endpoints_string = "\n".join(
-                [
-                    f'<li><a href="{endp[0]}"><pre>{endp[0]}</pre></a></li>'
-                    for endp in ENDPOINTS.items()
-                ]
-            )
-            endpoints_string = f"""<h3>Available endpoints:</h3><ul>{endpoints_string}</ul>"""
-
         else:
             auth_string = ""
             logout_string = ""
             welcome_string = ""
-            endpoints_string = ""
 
         return f"""<head>
             <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
@@ -290,7 +280,6 @@ def create_app(
 <p>{logout_string}</p>
 <h3>API status:</h3>
 <h4>{database_string}</h4>
-{endpoints_string}
 """
 
     return app
@@ -299,27 +288,17 @@ def create_app(
 def register_endpoints(app: Flask):
     """Loops through the implemented endpoints, blueprints and error handlers adds them to the app."""
     from pydatalab.errors import ERROR_HANDLERS
-    from pydatalab.routes import BLUEPRINTS, ENDPOINTS, __api_version__, auth
-
-    AUTH_BLUEPRINTS = auth.AUTH_BLUEPRINTS
+    from pydatalab.routes import BLUEPRINTS, OAUTH, __api_version__
 
     major, minor, patch = __api_version__.split(".")
     versions = ["", f"/v{major}", f"/v{major}.{minor}", f"/v{major}.{minor}.{patch}"]
-
-    for rule, func in ENDPOINTS.items():
-        for ver in versions:
-            app.add_url_rule(
-                f"{ver}{rule}",
-                f"{ver}{rule}",
-                logged_route(func),
-            )
 
     for bp in BLUEPRINTS:
         for ver in versions:
             app.register_blueprint(bp, url_prefix=f"{ver}", name=f"{ver}/{bp.name}")
 
-    for bp in AUTH_BLUEPRINTS:  # type: ignore
-        app.register_blueprint(AUTH_BLUEPRINTS[bp], url_prefix="/login")  # type: ignore
+    for bp in OAUTH:  # type: ignore
+        app.register_blueprint(OAUTH[bp], url_prefix="/login")  # type: ignore
 
     for exception_type, handler in ERROR_HANDLERS:
         app.register_error_handler(exception_type, handler)
