@@ -16,15 +16,14 @@ from pydatalab.models.items import Item
 from pydatalab.models.relationships import RelationshipType
 from pydatalab.models.utils import generate_unique_refcode
 from pydatalab.mongo import flask_mongo
-from pydatalab.permissions import active_users_only, get_default_permissions
+from pydatalab.permissions import active_users_or_get_only, get_default_permissions
 
-items = Blueprint("items", __name__)
+ITEMS = Blueprint("items", __name__)
 
 
-@items.before_request
-@active_users_only
-def _():
-    """Collect decorators to apply to the Items blueprint."""
+@ITEMS.before_request
+@active_users_or_get_only
+def _(): ...
 
 
 def reserialize_blocks(display_order: List[str], blocks_obj: Dict[str, Dict]) -> Dict[str, Dict]:
@@ -82,7 +81,7 @@ def dereference_files(file_ids: List[Union[str, ObjectId]]) -> Dict[str, Dict]:
     return results
 
 
-@items.route("/equipment/", methods=["GET"])
+@ITEMS.route("/equipment/", methods=["GET"])
 def get_equipment_summary():
     _project = {
         "_id": 0,
@@ -110,7 +109,7 @@ def get_equipment_summary():
     return jsonify({"status": "success", "items": items})
 
 
-@items.route("/starting-materials/", methods=["GET"])
+@ITEMS.route("/starting-materials/", methods=["GET"])
 def get_starting_materials():
     items = [
         doc
@@ -278,12 +277,12 @@ def _check_collections(sample_dict: dict) -> list[dict[str, str]]:
     return sample_dict.get("collections", []) or []
 
 
-@items.route("/samples/", methods=["GET"])
+@ITEMS.route("/samples/", methods=["GET"])
 def get_samples():
     return jsonify({"status": "success", "samples": list(get_samples_summary())})
 
 
-@items.route("/search-items/", methods=["GET"])
+@ITEMS.route("/search-items/", methods=["GET"])
 def search_items():
     """Perform free text search on items and return the top results.
     GET parameters:
@@ -549,7 +548,7 @@ def _create_sample(
     return data
 
 
-@items.route("/new-sample/", methods=["POST"])
+@ITEMS.route("/new-sample/", methods=["POST"])
 def create_sample():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
     if "new_sample_data" in request_json:
@@ -564,7 +563,7 @@ def create_sample():
     return jsonify(response), http_code
 
 
-@items.route("/new-samples/", methods=["POST"])
+@ITEMS.route("/new-samples/", methods=["POST"])
 def create_samples():
     """attempt to create multiple samples at once.
     Because each may result in success or failure, 207 is returned along with a
@@ -604,7 +603,7 @@ def create_samples():
     )  # 207: multi-status
 
 
-@items.route("/delete-sample/", methods=["POST"])
+@ITEMS.route("/delete-sample/", methods=["POST"])
 def delete_sample():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
     item_id = request_json["item_id"]
@@ -633,7 +632,7 @@ def delete_sample():
     )
 
 
-@items.route("/get-item-data/<item_id>", methods=["GET"])
+@ITEMS.route("/get-item-data/<item_id>", methods=["GET"])
 def get_item_data(item_id, load_blocks: bool = False):
     """Generates a JSON response for the item with the given `item_id`,
     additionally resolving relationships to files and other items.
@@ -766,7 +765,7 @@ def get_item_data(item_id, load_blocks: bool = False):
     )
 
 
-@items.route("/save-item/", methods=["POST"])
+@ITEMS.route("/save-item/", methods=["POST"])
 def save_item():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
 
@@ -862,7 +861,7 @@ def save_item():
     return jsonify(status="success", last_modified=updated_data["last_modified"]), 200
 
 
-@items.route("/search-users/", methods=["GET"])
+@ITEMS.route("/search-users/", methods=["GET"])
 def search_users():
     """Perform free text search on users and return the top results.
     GET parameters:
