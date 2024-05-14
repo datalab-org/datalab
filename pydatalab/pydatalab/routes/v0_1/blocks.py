@@ -5,17 +5,17 @@ from pydatalab.blocks import BLOCK_TYPES
 from pydatalab.blocks.base import DataBlock
 from pydatalab.logger import LOGGER
 from pydatalab.mongo import flask_mongo
-from pydatalab.permissions import active_users_only, get_default_permissions
+from pydatalab.permissions import active_users_or_get_only, get_default_permissions
 
-blocks = Blueprint("blocks", __name__)
+BLOCKS = Blueprint("blocks", __name__)
 
 
-@blocks.before_request
-@active_users_only
+@BLOCKS.before_request
+@active_users_or_get_only
 def _(): ...
 
 
-@blocks.route("/add-data-block/", methods=["POST"])
+@BLOCKS.route("/add-data-block/", methods=["POST"])
 def add_data_block():
     """Call with AJAX to add a block to the sample"""
 
@@ -75,7 +75,7 @@ def add_data_block():
     )
 
 
-@blocks.route("/add-collection-data-block/", methods=["POST"])
+@BLOCKS.route("/add-collection-data-block/", methods=["POST"])
 def add_collection_data_block():
     """Call with AJAX to add a block to the collection."""
 
@@ -175,7 +175,7 @@ def _save_block_to_db(block: DataBlock) -> bool:
         return True
 
 
-@blocks.route("/update-block/", methods=["POST"])
+@BLOCKS.route("/update-block/", methods=["POST"])
 def update_block():
     """Take in json block data from site, process, and spit
     out updated data. May be used, for example, when the user
@@ -202,7 +202,7 @@ def update_block():
     )
 
 
-@blocks.route("/delete-block/", methods=["POST"])
+@BLOCKS.route("/delete-block/", methods=["POST"])
 def delete_block():
     """Completely delete a data block from the database. In the future,
     we may consider preserving data by moving it to a different array,
@@ -238,7 +238,7 @@ def delete_block():
     )  # could try to switch to http 204 is "No Content" success with no json
 
 
-@blocks.route("/delete-collection-block/", methods=["POST"])
+@BLOCKS.route("/delete-collection-block/", methods=["POST"])
 def delete_collection_block():
     """Completely delete a data block from the database that is currently
     attached to a collection.

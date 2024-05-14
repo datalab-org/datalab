@@ -10,13 +10,18 @@ from pydatalab.config import CONFIG
 from pydatalab.logger import logged_route
 from pydatalab.models.collections import Collection
 from pydatalab.mongo import flask_mongo
-from pydatalab.permissions import get_default_permissions
+from pydatalab.permissions import active_users_or_get_only, get_default_permissions
 from pydatalab.routes.v0_1.items import creators_lookup, get_samples_summary
 
-collection = Blueprint("collections", __name__)
+COLLECTIONS = Blueprint("collections", __name__)
 
 
-@collection.route("/collections")
+@COLLECTIONS.before_request
+@active_users_or_get_only
+def _(): ...
+
+
+@COLLECTIONS.route("/collections")
 def get_collections():
     collections = flask_mongo.db.collections.aggregate(
         [
@@ -30,7 +35,7 @@ def get_collections():
     return jsonify({"status": "success", "data": list(collections)})
 
 
-@collection.route("/collections/<collection_id>", methods=["GET"])
+@COLLECTIONS.route("/collections/<collection_id>", methods=["GET"])
 def get_collection(collection_id):
     cursor = flask_mongo.db.collections.aggregate(
         [
@@ -85,7 +90,7 @@ def get_collection(collection_id):
     )
 
 
-@collection.route("/collections", methods=["PUT"])
+@COLLECTIONS.route("/collections", methods=["PUT"])
 def create_collection():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
     data = request_json.get("data", {})
@@ -204,7 +209,7 @@ def create_collection():
     )
 
 
-@collection.route("/collections/<collection_id>", methods=["PATCH"])
+@COLLECTIONS.route("/collections/<collection_id>", methods=["PATCH"])
 @logged_route
 def save_collection(collection_id):
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
@@ -271,7 +276,7 @@ def save_collection(collection_id):
     return jsonify(status="success"), 200
 
 
-@collection.route("/collections/<collection_id>", methods=["DELETE"])
+@COLLECTIONS.route("/collections/<collection_id>", methods=["DELETE"])
 def delete_collection(collection_id: str):
     result = flask_mongo.db.collections.delete_one(
         {"collection_id": collection_id, **get_default_permissions(user_only=True)}
@@ -297,7 +302,7 @@ def delete_collection(collection_id: str):
     )
 
 
-@collection.route("/search-collections", methods=["GET"])
+@COLLECTIONS.route("/search-collections", methods=["GET"])
 def search_collections():
     query = request.args.get("query", type=str)
     nresults = request.args.get("nresults", default=100, type=int)

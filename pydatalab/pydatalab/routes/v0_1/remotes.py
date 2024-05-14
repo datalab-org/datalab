@@ -22,11 +22,11 @@ def _check_invalidate_cache(args: Dict[str, str]) -> Optional[bool]:
     return invalidate_cache
 
 
-remote = Blueprint("remotes", __name__)
+REMOTES = Blueprint("remotes", __name__)
 
 
-@remote.route("/list-remote-directories", methods=["GET"])
-@remote.route("/remotes", methods=["GET"])
+@REMOTES.route("/list-remote-directories", methods=["GET"])
+@REMOTES.route("/remotes", methods=["GET"])
 def list_remote_directories():
     """Returns the most recent directory structures from the server.
 
@@ -77,7 +77,7 @@ def list_remote_directories():
 list_remote_directories.methods = ("GET",)  # type: ignore
 
 
-@remote.route("/remotes/<path:remote_id>", methods=["GET"])
+@REMOTES.route("/remotes/<path:remote_id>", methods=["GET"])
 def get_remote_directory(remote_id: str):
     """Returns the directory structure from the server for the
     given configured remote name.
