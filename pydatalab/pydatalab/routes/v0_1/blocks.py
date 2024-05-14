@@ -1,15 +1,21 @@
-from typing import Callable, Dict
-
 import pymongo.errors
-from flask import jsonify, request
+from flask import Blueprint, jsonify, request
 
 from pydatalab.blocks import BLOCK_TYPES
 from pydatalab.blocks.base import DataBlock
 from pydatalab.logger import LOGGER
 from pydatalab.mongo import flask_mongo
-from pydatalab.permissions import get_default_permissions
+from pydatalab.permissions import active_users_only, get_default_permissions
+
+blocks = Blueprint("blocks", __name__)
 
 
+@blocks.before_request
+@active_users_only
+def _(): ...
+
+
+@blocks.route("/add-data-block/", methods=["POST"])
 def add_data_block():
     """Call with AJAX to add a block to the sample"""
 
@@ -69,9 +75,7 @@ def add_data_block():
     )
 
 
-add_data_block.methods = ("POST",)  # type: ignore
-
-
+@blocks.route("/add-collection-data-block/", methods=["POST"])
 def add_collection_data_block():
     """Call with AJAX to add a block to the collection."""
 
@@ -132,9 +136,6 @@ def add_collection_data_block():
     )
 
 
-add_collection_data_block.methods = ("POST",)  # type: ignore
-
-
 def _save_block_to_db(block: DataBlock) -> bool:
     """Save data for a single block within an item to the database,
     overwriting previous data saved there.
@@ -174,6 +175,7 @@ def _save_block_to_db(block: DataBlock) -> bool:
         return True
 
 
+@blocks.route("/update-block/", methods=["POST"])
 def update_block():
     """Take in json block data from site, process, and spit
     out updated data. May be used, for example, when the user
@@ -200,9 +202,7 @@ def update_block():
     )
 
 
-update_block.methods = ("POST",)  # type: ignore
-
-
+@blocks.route("/delete-block/", methods=["POST"])
 def delete_block():
     """Completely delete a data block from the database. In the future,
     we may consider preserving data by moving it to a different array,
@@ -238,9 +238,7 @@ def delete_block():
     )  # could try to switch to http 204 is "No Content" success with no json
 
 
-delete_block.methods = ("POST",)  # type: ignore
-
-
+@blocks.route("/delete-collection-block/", methods=["POST"])
 def delete_collection_block():
     """Completely delete a data block from the database that is currently
     attached to a collection.
@@ -276,14 +274,3 @@ def delete_collection_block():
         jsonify({"status": "success"}),
         200,
     )
-
-
-delete_collection_block.methods = ("POST",)  # type: ignore
-
-ENDPOINTS: Dict[str, Callable] = {
-    "/add-data-block/": add_data_block,
-    "/add-collection-data-block/": add_collection_data_block,
-    "/update-block/": update_block,
-    "/delete-block/": delete_block,
-    "/delete-collection-block/": delete_collection_block,
-}
