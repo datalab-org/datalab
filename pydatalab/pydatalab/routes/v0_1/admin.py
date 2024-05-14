@@ -3,26 +3,18 @@ from flask import Blueprint, jsonify, request
 from flask_login import current_user
 
 from pydatalab.config import CONFIG
-from pydatalab.models.utils import UserRole
 from pydatalab.mongo import flask_mongo
-from pydatalab.permissions import get_default_permissions
+from pydatalab.permissions import admin_only, get_default_permissions
 
-admin = Blueprint("admins", __name__)
-
-
-@admin.before_request
-def check_authentication():
-    if request.method == "OPTIONS":
-        return
-
-    if not current_user.is_authenticated:
-        return jsonify({"error": "Unauthorized"}), 401
-
-    if not current_user.role == UserRole.ADMIN:
-        return jsonify({"error": "Insufficient privileges"}), 403
+ADMIN = Blueprint("admins", __name__)
 
 
-@admin.route("/users")
+@ADMIN.before_request
+@admin_only
+def _(): ...
+
+
+@ADMIN.route("/users")
 def get_users():
     users = flask_mongo.db.users.aggregate(
         [
@@ -52,7 +44,7 @@ def get_users():
     return jsonify({"status": "success", "data": list(users)})
 
 
-@admin.route("/roles/<user_id>", methods=["PATCH"])
+@ADMIN.route("/roles/<user_id>", methods=["PATCH"])
 def save_role(user_id):
     request_json = request.get_json()
 
