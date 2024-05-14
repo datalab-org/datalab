@@ -3,9 +3,9 @@
 import json
 from datetime import datetime
 from functools import lru_cache
-from typing import Callable, Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union
 
-from flask import jsonify, request
+from flask import Blueprint, jsonify, request
 from pydantic import AnyUrl, BaseModel, Field, validator
 
 from pydatalab import __version__
@@ -14,6 +14,8 @@ from pydatalab.models import Person
 from pydatalab.mongo import flask_mongo
 
 from ._version import __api_version__
+
+INFO = Blueprint("info", __name__)
 
 
 class Attributes(BaseModel):
@@ -80,6 +82,7 @@ def _get_deployment_metadata_once() -> Dict:
     return metadata
 
 
+@INFO.route("/info", methods=["GET"])
 def get_info():
     metadata = _get_deployment_metadata_once()
 
@@ -97,6 +100,7 @@ def get_info():
     )
 
 
+@INFO.route("/info/stats", methods=["GET"])
 def get_stats():
     """Returns a dictionary of counts of each entry type in the deployment"""
 
@@ -110,6 +114,7 @@ def get_stats():
     )
 
 
+@INFO.route("/info/blocks", methods=["GET"])
 def list_block_types():
     """Returns a list of all blocks implemented in this server."""
     return jsonify(
@@ -134,10 +139,3 @@ def list_block_types():
             ).json()
         )
     )
-
-
-ENDPOINTS: Dict[str, Callable] = {
-    "/info": get_info,
-    "/info/stats": get_stats,
-    "/info/blocks": list_block_types,
-}

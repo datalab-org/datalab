@@ -6,10 +6,10 @@ from pydatalab.config import CONFIG
 from pydatalab.models.people import DisplayName, EmailStr
 from pydatalab.mongo import flask_mongo
 
-user = Blueprint("users", __name__)
+USERS = Blueprint("users", __name__)
 
 
-@user.route("/users/<user_id>", methods=["PATCH"])
+@USERS.route("/users/<user_id>", methods=["PATCH"])
 def save_user(user_id):
     request_json = request.get_json()
 

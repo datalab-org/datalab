@@ -1,27 +1,30 @@
-from typing import Callable, Dict
+from flask import Blueprint
 
 from ._version import __api_version__
-from .admin import admin
-from .auth import ENDPOINTS as auth_endpoints
-from .blocks import ENDPOINTS as blocks_endpoints
-from .collections import collection
-from .files import ENDPOINTS as files_endpoints
-from .graphs import ENDPOINTS as graphs_endpoints
-from .healthcheck import ENDPOINTS as healthcheck_endpoints
-from .info import ENDPOINTS as info_endpoints
-from .items import items
-from .remotes import remote
-from .users import user
+from .admin import ADMIN
+from .auth import AUTH, OAUTH
+from .blocks import BLOCKS
+from .collections import COLLECTIONS
+from .files import FILES
+from .graphs import GRAPHS
+from .healthcheck import HEALTHCHECK
+from .info import INFO
+from .items import ITEMS
+from .remotes import REMOTES
+from .users import USERS
 
-ENDPOINTS: Dict[str, Callable] = {
-    **blocks_endpoints,
-    **files_endpoints,
-    **healthcheck_endpoints,
-    **auth_endpoints,
-    **graphs_endpoints,
-    **info_endpoints,
-}
+BLUEPRINTS: tuple[Blueprint, ...] = (
+    AUTH,
+    COLLECTIONS,
+    REMOTES,
+    USERS,
+    ADMIN,
+    ITEMS,
+    BLOCKS,
+    FILES,
+    HEALTHCHECK,
+    INFO,
+    GRAPHS,
+)
 
-BLUEPRINTS = [collection, remote, user, admin, items]
-
-__all__ = ("ENDPOINTS", "BLUEPRINTS", "__api_version__")
+__all__ = ("BLUEPRINTS", "OAUTH", "__api_version__")
