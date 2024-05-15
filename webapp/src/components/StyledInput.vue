@@ -2,7 +2,7 @@
   <input
     ref="input"
     :type="inputType"
-    :class="{ 'form-control': !readonly, 'form-control': readonly }"
+    :class="{ 'form-control': !readonly, 'form-control-plaintext': readonly }"
     :readonly="readonly"
     v-model="vmodelvalue"
     @mouseenter="delayedShowTooltip"
@@ -97,10 +97,6 @@ export default {
 </script>
 
 <style scoped>
-input {
-  border: 1px solid grey;
-}
-
 #tooltip {
   z-index: 9999;
   border: 1px solid grey;
