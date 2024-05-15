@@ -318,8 +318,3 @@ def register_endpoints(app: Flask):
 
     for exception_type, handler in ERROR_HANDLERS:
         app.register_error_handler(exception_type, handler)
-
-
-if __name__ == "__main__":
-    app_ = create_app()
-    app_.run(host="0.0.0.0", debug=CONFIG.DEBUG, port=5001)
