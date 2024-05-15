@@ -643,3 +643,89 @@ export async function requestNewAPIKey() {
     throw new Error(`Failed to request new API key: ${error.message}`);
   }
 }
+
+export async function getPublicSettingsList() {
+  try {
+    const response_json = await fetch_get(`${API_URL}/info/settings`);
+
+    if (response_json) {
+      console.log("TEST TEST TEST TEST");
+      console.log(response_json.settings);
+      console.log("TEST TEST TEST TEST");
+      store.commit("setPublicSettings", response_json.settings);
+      return response_json;
+    } else {
+      throw new Error(response_json.message);
+    }
+  } catch (error) {
+    throw new Error(`Failed: ${error.message}`);
+  }
+}
+
+export async function getAllSettings() {
+  try {
+    const response_json = await fetch_get(`${API_URL}/admin/settings`);
+
+    if (response_json) {
+      return response_json.data;
+    } else {
+      throw new Error(response_json.message);
+    }
+  } catch (error) {
+    throw new Error(`Failed: ${error.message}`);
+  }
+}
+
+export function createNewSetting(new_setting) {
+  fetch_post(`${API_URL}/admin/new_setting`, new_setting)
+    .then(function (response_json) {
+      if (response_json.status === "success") {
+        console.log("Save successful!");
+      } else {
+        alert("Setting save unsuccessful", response_json.detail);
+      }
+    })
+    .catch(function (error) {
+      alert(`Setting save unsuccessful: ${error}`);
+    });
+}
+
+export function saveSetting(setting_id, setting) {
+  fetch_patch(`${API_URL}/admin/settings/${setting_id}`, setting)
+    .then(function (response_json) {
+      if (response_json.status === "success") {
+        console.log("Save successful!");
+      } else {
+        alert("Setting save unsuccessful", response_json.detail);
+      }
+    })
+    .catch(function (error) {
+      alert(`Setting save unsuccessful: ${error}`);
+    });
+}
+
+export async function deleteSetting(setting_id) {
+  try {
+    const response_json = await fetch_delete(`${API_URL}/admin/delete_setting/${setting_id}`);
+
+    if (response_json.status === "success") {
+      console.log("Delete successful!");
+    } else {
+      throw new Error(response_json.message);
+    }
+  } catch (error) {
+    throw new Error(`Failed to delete setting: ${error.message}`);
+  }
+}
+
+// export async function addRemoteFilesToSample(file_entries, item_id) {
+//  console.log('loadSelectedRemoteFiles')
+//  return fetch_post(`${API_URL}/add-remote-files-to-sample/`, {
+//    file_entries: file_entries,
+//    item_id: item_id,
+//  }).then( function(response_json) {
+//    //handle response
+//    console.log("received remote samples!")
+//    console.log(response_json)
+//  }).catch( error => (`addRemoteFilesToSample unsuccessful. Error: ${error}`))
+// }

@@ -110,6 +110,11 @@ def get_stats():
     )
 
 
+def get_public_settings():
+    public_settings = flask_mongo.db.settings.find({"access_level": "public"})
+    return jsonify({"status": "success", "settings": list(public_settings)}), 200
+
+
 def list_block_types():
     """Returns a list of all blocks implemented in this server."""
     return jsonify(
@@ -139,5 +144,6 @@ def list_block_types():
 ENDPOINTS: Dict[str, Callable] = {
     "/info": get_info,
     "/info/stats": get_stats,
+    "/info/settings": get_public_settings,
     "/info/blocks": list_block_types,
 }
