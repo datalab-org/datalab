@@ -205,12 +205,6 @@ export default {
         this.lastModified = formatDistanceToNow(save_date, { addSuffix: true });
       }
     },
-    async getBlocksInfo() {
-      if (!this.blocksInfos) {
-        let data = await getBlocksInfos();
-        this.$store.commit("setBlocksInfos", data);
-      }
-    },
   },
   computed: {
     itemType() {
@@ -252,7 +246,7 @@ export default {
     },
   },
   created() {
-    this.getBlocksInfo();
+    getBlocksInfos();
     this.getSampleData();
     this.interval = setInterval(() => this.setLastModified(), 30000);
   },
@@ -284,7 +278,6 @@ export default {
 
     // setup the uppy instsance
     setupUppy(this.item_id, "#uppy-trigger", this.stored_files);
-    this.getBlocksInfo();
   },
   beforeUnmount() {
     document.removeEventListener("keydown", this._keyListener);

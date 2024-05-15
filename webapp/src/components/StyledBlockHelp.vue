@@ -43,7 +43,7 @@ export default {
           this.$refs.tooltipContent.setAttribute("data-show", "");
           this.popperInstance.update();
         }
-      }, 1000);
+      }, 500);
     },
 
     hideTooltip() {
@@ -85,6 +85,10 @@ input {
   font-weight: bold;
   padding: 1em;
   border-radius: 4px;
+}
+
+#tooltip p {
+  margin: 0;
 }
 
 #tooltip {

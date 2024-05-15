@@ -647,6 +647,7 @@ export async function requestNewAPIKey() {
 export function getBlocksInfos() {
   return fetch_get(`${API_URL}/info/blocks`)
     .then(function (response_json) {
+      store.commit("setBlocksInfos", response_json.data);
       return response_json.data;
     })
     .catch((error) => {
