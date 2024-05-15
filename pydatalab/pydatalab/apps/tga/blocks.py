@@ -17,7 +17,7 @@ class MassSpecBlock(DataBlock):
     blocktype = "ms"
     name = "Mass spectrometry"
     description = "Read and visualize mass spectrometry data as a grid plot per channel"
-    accepted_file_extensions = (".asc",)
+    accepted_file_extensions = (".asc", ".txt")
 
     @property
     def plot_functions(self):
