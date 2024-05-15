@@ -2,13 +2,19 @@
 
 *datalab* is intended to be deployed on a persistent server accessible on the web that can act as a data management platform
 for a group of researchers.
+
+You may personally be looking for how to interact with an existing *datalab*
+instance, in which case please check out the separate Python API package at
+[datalab-org/datalab-api](https://github.com/datalab-org/datalab-python-api).
+
 The instructions below outline how to make a development installation on your local machine.
-We strongly recommend following the [deployment instructions](deployment.md) (or [here](https://the-datalab.readthedocs.io/en/latest/deployment) if you are reading this directly on GitHub) if you are deploying for use in production; these instructions may also be useful for developers who want to use Docker to create a reproducible development environment.
+We strongly recommend following the [deployment instructions](deployment.md) on [docs.datalab-org.io](docs.datalab-org.io/en/stable/deployment/) if you are deploying for use in production.
+These instructions are also useful for developers who want to use Docker to create a reproducible development environment.
 
 This repository consists of two components:
 
 - a Flask-based Python web server (`pydatalab`) that communicates with the database backend
-- a JavaScript+Vue web application for the user interface.
+- a Vue.js web application for the user interface.
 
 `pydatalab` can in principle be used without the web app frontend through its JSON API.
 
@@ -20,39 +26,106 @@ Firstly, from the desired folder, clone this repository from GitHub to your loca
 
 ### `pydatalab` server installation
 
-The instructions in this section will leave you with a running JSON API on your host machine.
-This can hypothetically be used entirely independently from the web front-end through the JSON API.
+The instructions in this section will leave you with a running *datalab* server on your host machine, as implemented in the `pydatalab` Python package.
+
+#### Database installation
+
+*datalab* uses MongoDB as its database backend.
+This requires a MongoDB server to be running on your desired host machine.
+
+1. Install the free MongoDB community edition (full instructions on the [MongoDB website](https://docs.mongodb.com/manual/installation/)).
+    * For Mac users, MongoDB is available via [HomeBrew](https://github.com/mongodb/homebrew-brew).
+    - You can alternatively run the MongoDB via Docker using the config in this package with `docker compose up database` (see further instructions [below](#deployment-with-docker).
+    * If you wish to view the database directly, MongoDB has several GUIs, e.g. [MongoDB Compass](https://www.mongodb.com/products/compass) or [Studio 3T](https://robomongo.org/).
+    - For persistence, you will need to set up MongoDB to run as a service on your computer (or run manually each time you run the `pydatalab` server).
+
+#### Python setup
+
+The next step is to set up a Python environment that contains all of the required dependencies with the correct versions.
+You will need Python 3.10 or higher to run *datalab*; we recommend using
+something like [`pyenv`](https://github.com/pyenv/pyenv) to manage Python versions on your machine, to avoid breakages based on your OS's Python versioning.
+
+##### Using virtual environments with `uv` or `venv`
+
+We recommend using a virtual environment tool of your choice to manage the dependencies for the
+Python server, for example [`uv`](https://github.com/astral-sh/uv) (see
+repository for installation instructions), or the
+standard library Python `venv` module.
+
+1. Create a virtual environment for *datalab*, ideally inside the `pydatalab` directory.
+    - For `uv`, this can be done with `uv venv`.
+    - For `venv`, this can be done with `python -m venv .venv`.
+    - You will be left with a folder called `.venv` that bundles a Python
+      environment.
+2. Activate the virtual environment (optional for `uv`) and install dependencies. One can either use the loosely pinned dependencies in `pyproject.toml`, or the locked versions in the `requirements/requirements-all-dev.txt` and `requirements/requirements-all.txt` files.
+
+=== "`uv`"
+
+    ```shell
+    # EITHER: Install all dependencies with locked versions
+    uv pip install -r requirements/requirements-all-dev.txt
+    # OR: Install all dependencies with loosely pinned versions
+    uv pip install -e '.[all]'
+    ```
+
+=== "`venv`"
+
+    ```shell
+    source .venv/bin/activate
+    # EITHER: Install all dependencies with locked versions
+    pip install -r requirements/requirements-all-dev.txt
+    # OR: Install all dependencies with loosely pinned versions
+    pip install -e '.[all]'
+    ```
+
+##### Using `pipenv` (DEPRECATED)
+
+Previously, *datalab* used `pipenv` for dependency management.
+We maintain a `pipenv` lockfile (`Pipfile.lock`) of all dependencies that must be installed to run the server, though this will be removed in future versions.
+
+To make use of this file:
 
 1. Install `pipenv` on your machine.
-    - Detailed instructions for installing `pipenv`, `pip` and Python itself can be found on the [`pipenv` website](https://pipenv.pypa.io/en/latest/install/#installing-pipenv). You will need Python 3.10 or higher to run pydatalab.
+    - Detailed instructions for installing `pipenv`, `pip` and Python itself can be found on the [`pipenv` website](https://pipenv.pypa.io/en/latest/install/#installing-pipenv).
     - We recommend you install `pipenv` from PyPI (with `pip install pipenv` or `pip install --user pipenv`) for the Python distribution of your choice (in a virtual environment or otherwise). `pipenv` will be used to create its own virtual environment for installation of the `pydatalab` package.
-1. Set up MongoDB.
-    1. Install the free MongoDB community edition (full instructions on the [MongoDB website](https://docs.mongodb.com/manual/installation/)).
-        * For Mac users, MongoDB is available via [HomeBrew](https://github.com/mongodb/homebrew-brew).
-        - You can alternatively run the MongoDB via Docker using the config in this package with `docker-compose up mongo` (see further instructions [below](#deployment-with-docker).
-        * If you wish to view the database directly, MongoDB has several GUIs, e.g. [MongoDB Compass](https://www.mongodb.com/products/compass) or [Studio 3T](https://robomongo.org/).
-        - For persistence, you will need to set up MongoDB to run as a service on your computer (or run manually each time you run the `pydatalab` server).
-    1. In MongoDB, create a database called "datalabvue" ([further instructions on the MongoDB website](https://www.mongodb.com/basics/create-database)).
-        - You can do this with the `mongo` shell (`echo "use datalabvue" | mongo`) or with Compass.
-1. Install the `pydatalab` dependencies.
-    1. Navigate to the `datalab/pydatalab` folder and run `pipenv install`.
+1. Install the `pydatalab` package.
+    - Navigate to the `pydatalab` folder and run `pipenv install --dev`.
+        - The default Python executable on your machine must be 3.10+, otherwise this must be specified explicitly at this point).
         - This will create a `pipenv` environment for `pydatalab` and all of its dependencies that is registered within *this folder* only.
-1. Run the server from the `pydatalab` folder with `pipenv run python pydatalab/main.py`.
-    1.  If you get an error `No module named pydatalab`, run `pipenv run pip install -e .` from the `datalab/pydatalab` folder and then try again.
+        - You can remove this environment to start fresh at any time by running `pipenv --rm` from within this directory.
 
-The server should now be accessible at [http://localhost:5001](http://localhost:5001). If the server is running, navigating to this URL will display a simple dashboard with a textual list of available endpoints.
+#### Running the development server
+
+1. Run the server from the `pydatalab` folder with either:
+
+=== "`uv` or `venv`
+    ```shell
+    cd pydatalab
+    source .venv/bin/activate
+    flask --app 'pydatalab:main.create_app()' --reload run
+    ```
+
+=== "`pipenv`"
+
+    ```shell
+    cd pydatalab
+    pipenv run flask --app 'pydatalab:main.create_app()' --reload run
+    ```
+
+The server should now be accessible at [http://localhost:5001](http://localhost:5001).
+If the server is running, navigating to this URL will display a simple dashboard.
 
 Should you wish to contribute to/modify the Python code, you may wish to perform these extra steps:
 
-1. From within the `pydatalab` folder, run `pipenv install --dev` to pull the development dependencies (e.g., `pre-commit`, `pytest`).
-1. Run `pre-commit install` to begin using `pre-commit` to check all of your modifications when you run `git commit`.
+1. From an activated virtual environment, run `pre-commit install` to begin using `pre-commit` to check all of your modifications when you run `git commit`.
     - The hooks that run on each commit can be found in the top-level `.pre-commit-config.yml` file.
-1. The tests on the Python code can be run by executing `py.test` from the `pydatalab/` folder.
+1. From an activate virtual environment, the tests on the Python code can be run by executing `pytest` from the `pydatalab/` folder.
 
 #### Additional notes
 
 - If the Flask server is running when the source code is changed, it will generally hot-reload without needing to manually restart the server.
-- You may have to set `MONGO_URI` in your config file or environment variables (`PYDATALAB_MONGO_URI`) depending on your MongoDB setup.
+This can be controlled with the `--reload` flag to the `flask run` command.
+- You may have to set `MONGO_URI` in your config file or environment variables (`PYDATALAB_MONGO_URI`) depending on your MongoDB setup, to e.g., `PYDATALAB_MONGO_URI=mongodb://localhost:27017/datalabvue`.
 
 ### Web app
 
@@ -76,3 +149,60 @@ Various other development scripts are available through `yarn`:
 - `yarn test:unit`: run the unit/component tests using `jest`. These test individual functions or components.
 - `yarn test:e2e`: run end-to-end tests using `cypress`. This will build and serve the app, and launch an instance of Chrome where the tests can be interactively viewed. The tests can also be run without the gui using ```yarn test:e2e --headless```. Note: currently, the tests make requests to the server running on `localhost:5001`.
 - `yarn build`: Compile an optimized, minimized, version of the app for production.
+
+## Development notes
+
+### Adding new dependencies
+
+Previously, *datalab* used `pipenv` for dependency management, which enforced a
+strict lockfile of dependencies that effectively forced all dependencies to be updated when
+adding a new one.
+This is no longer the case, and the `pyproject.toml` file is now the canonical
+source of dependencies, however, `requirements` files are maintained for the
+purpose of strict locking for deployment and testing.
+Now, we use the `pip-tools`-esque functionality of `uv` to create lock files
+(and thus it is assumed that you installed the package in a `uv` virtual
+environment, as described above).
+
+To add a new dependency, add it to the `pyproject.toml` file in the
+appropriate section (e.g., `[project.optional-dependencies.server]` for general dependencies, or `[project.optional-dependencies.apps]` for block-specific dependencies).
+Ideally, this should be added with a "tilde" version specifier (`~=`) to ensure
+that the dependency is updated to the latest compatible version when the
+underlying project updates.
+
+Finally, recreate the lock files with:
+
+```shell
+uv pip compile pyproject.toml -o requirements/requirements-all-dev.txt --extra all --extra dev
+uv pip compile pyproject.toml -o requirements/requirements-all.txt --extra all
+```
+
+You should then inspect the changes to the requirements files (only your new
+package and its subdependencies should have been added) and commit the changes.
+
+### Test server authentication/authorisation
+
+There are two approaches to authentication when developing *datalab* features locally.
+
+1. Disable authentication entirely with the `PYDATALAB_TESTING=true` environment
+   variable (or corresponding config file option `TESTING`). This will perform
+   every API operation as if the user is authenticated, and will not require any
+   further configuration.
+   - This mode of development is fine for e.g., developing new blocks, but in
+     cases where new API functionality is being added, it is recommended to set
+     up authentication locally (see below).
+1. Local OAuth setup. This requires registering an OAuth app with one of the
+   implemented providers (e.g., GitHub, ORCID), configuring the credentials
+   locally (see the [deployment instructions](deployment.md) for more details) and then logging into *datalab* normally.
+   - In this case, the user will also need to be activated when it is created.
+     This can be done by manually editing the user in the database (setting
+     `account_status` to `'active'`), or by running the `admin.activate-user`
+     invoke task.
+   - For testing admin functionality, the user can also be promoted with
+     the `admin.change-user-role` invoke task.
+
+Finally, all API tests can be run with variable authentication.
+There are [pytest fixtures](https://docs.pytest.org/en/7.1.x/how-to/fixtures.html) that provide
+test clients for unauthenticated, unauthorized, normal user and admin user
+access.
+As many authorisation cases should be tested as possible.
