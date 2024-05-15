@@ -45,7 +45,7 @@ class DataBlock:
     """A longer description outlining the purpose and capability
     of the block."""
 
-    accepted_file_extensions: Sequence[str]
+    accepted_file_extensions: tuple[str, ...] | None
     """A list of file extensions that the block will attempt to read."""
 
     defaults: Dict[str, Any] = {}

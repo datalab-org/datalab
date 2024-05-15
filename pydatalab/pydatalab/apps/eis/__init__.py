@@ -23,7 +23,7 @@ def parse_ivium_eis_txt(filename: Path):
 
 
 class EISBlock(DataBlock):
-    accepted_file_extensions = [".txt"]
+    accepted_file_extensions = (".txt",)
     blocktype = "eis"
     name = "EIS"
     description = "This block can plot electrochemical impedance spectroscopy (EIS) data from Ivium .txt files"

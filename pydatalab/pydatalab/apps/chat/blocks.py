@@ -1,6 +1,5 @@
 import json
 import os
-from typing import Sequence
 
 from langchain_anthropic import ChatAnthropic
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -35,7 +34,7 @@ class ChatBlock(DataBlock):
     blocktype = "chat"
     description = "Virtual LLM assistant block allows you to converse with your data."
     name = "💬 Chat with Whinchat"
-    accepted_file_extensions: Sequence[str] = []
+    accepted_file_extensions = None
     chat_client: BaseChatModel | None = None
 
     __supports_collections = True
