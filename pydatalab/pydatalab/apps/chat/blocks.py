@@ -2,17 +2,14 @@ import json
 import os
 from typing import Sequence
 
-from langchain.agents import AgentExecutor, tool
-from langchain.agents.format_scratchpad.openai_tools import (
-    format_to_openai_tool_messages,
-)
-from langchain.agents.output_parsers.openai_tools import OpenAIToolsAgentOutputParser
+from langchain.agents import AgentExecutor, create_tool_calling_agent, tool
 from langchain_anthropic import ChatAnthropic
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_openai import ChatOpenAI
 
+from pydatalab.apps.chat.tools import codeboxtool
 from pydatalab.blocks.base import DataBlock
 from pydatalab.logger import LOGGER
 from pydatalab.models import ITEM_MODELS
@@ -203,23 +200,26 @@ Start with a friendly introduction and give me a one sentence summary of what th
 
             search = TavilySearchResults()
 
-            tools = [multiply, search]
+            tools = [multiply, search, codeboxtool]
 
             llm_with_tools = self.chat_client.bind_tools(tools)
 
-            agent = (
-                {
-                    "agent_scratchpad": lambda x: format_to_openai_tool_messages(
-                        x["intermediate_steps"]
-                    ),
-                    "chat_history": lambda x: x["chat_history"],
-                }
-                | messages_template
-                | llm_with_tools
-                | OpenAIToolsAgentOutputParser()
-            )
+            agent = create_tool_calling_agent(llm_with_tools, tools, messages_template)
+            # agent = (
+            #     {
+            #         "agent_scratchpad": lambda x: format_to_openai_tool_messages(
+            #             x["intermediate_steps"]
+            #         ),
+            #         "chat_history": lambda x: x["chat_history"],
+            #     }
+            #     | messages_template
+            #     | llm_with_tools
+            #     | OpenAIToolsAgentOutputParser()
+            # )
 
-            agentExecutor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+            agentExecutor = AgentExecutor(
+                agent=agent, tools=tools, verbose=True, return_intermediate_steps=True
+            )
 
             response = agentExecutor.invoke({"chat_history": langchain_messages})
 
@@ -228,6 +228,21 @@ Start with a friendly introduction and give me a one sentence summary of what th
             token_count = self.chat_client.get_num_tokens_from_messages(langchain_messages)
 
             self.data["token_count"] = token_count
+
+            for step in response["intermediate_steps"]:
+                call, result = step
+                self.data["messages"].append(
+                    {
+                        "role": "tool_call",
+                        "content": call.log.strip("\n") + f"result: {result}",
+                        "tool_call": {
+                            "tool": call.tool,
+                            "input": call.tool_input,
+                            "output": result,
+                        },
+                    }
+                )
+
             self.data["messages"].append({"role": "assistant", "content": response["output"]})
             self.data["error_message"] = None
 
