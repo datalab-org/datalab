@@ -265,7 +265,6 @@ export default createStore({
       state.itemGraphData = payload;
     },
     setBlocksInfos(state, blocksInfos) {
-      state.blocksInfos = {};
       blocksInfos.forEach((info) => {
         state.blocksInfos[info.id] = info;
       });
