@@ -132,7 +132,10 @@ class Person(Entry):
 
     @staticmethod
     def new_user_from_identity(
-        identity: Identity, use_display_name: bool = True, use_contact_email: bool = True
+        identity: Identity,
+        use_display_name: bool = True,
+        use_contact_email: bool = True,
+        account_status: AccountStatus = AccountStatus.UNVERIFIED,
     ) -> "Person":
         """Create a new `Person` object with the given identity.
 
@@ -143,6 +146,7 @@ class Person(Entry):
             use_contact_email: If the identity provided is an email address,
                 this argument decides whether to populate the top-level
                 `contact_email` field with the address of this identity.
+            account_status: The starting account status of the user.
 
         Returns:
             A `Person` object with only the provided identity.
@@ -163,4 +167,5 @@ class Person(Entry):
             identities=[identity],
             display_name=display_name,
             contact_email=contact_email,
+            account_status=account_status,
         )
