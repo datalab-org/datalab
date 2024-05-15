@@ -5,7 +5,7 @@
         v-model="file_id"
         :item_id="item_id"
         :block_id="block_id"
-        :extensions="['.mpr', '.txt', '.xls', '.xlsx', '.txt', '.res', '.nda', '.ndax']"
+        :extensions="blockInfo.attributes.accepted_file_extensions"
         updateBlockOnChange
       />
     </div>
@@ -183,6 +183,9 @@ export default {
     },
     isUpdating() {
       return this.$store.state.updating[this.block_id];
+    },
+    blockInfo() {
+      return this.$store.state.blocksInfos["cycle"];
     },
     // normalizingMass() {
     //   return this.$store.all_item_data[this.item_id]["characteristic_mass"] || null;

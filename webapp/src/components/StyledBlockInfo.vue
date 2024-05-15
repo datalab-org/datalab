@@ -1,26 +1,32 @@
 <template>
-    <a
+  <a
     ref="anchor"
-    class="dropdown-item"
     @mouseenter="delayedShowTooltip"
     @mouseleave="hideTooltip"
     @focus="delayedShowTooltip"
     @blur="hideTooltip"
-    >{{ blockInfo.name }}</a
   >
+    <font-awesome-icon :icon="['fas', 'info-circle']" @click="showBlockInfo" />
+  </a>
   <div ref="tooltipContent" id="tooltip" role="tooltip">
-    <p>{{ blockInfo.description }}</p>
-    <p
-      class="accepted-file"
+    <h4 class="block-info-title">{{ blockInfo.attributes.name }}</h4>
+    <p>{{ blockInfo.attributes.description }}</p>
+    <div
       v-if="
-        blockInfo.accepted_file_extensions != null && blockInfo.accepted_file_extensions.length > 0
+        blockInfo.attributes.accepted_file_extensions != null &&
+        blockInfo.attributes.accepted_file_extensions.length > 0
       "
     >
       Accepted file extensions:
-      <span v-for="(extension, index) in blockInfo.accepted_file_extensions" :key="index">
-        {{ extension }}{{ index < blockInfo.accepted_file_extensions.length - 1 ? ", " : "" }}
-      </span>
-    </p>
+      <ul>
+        <span
+          v-for="(extension, index) in blockInfo.attributes.accepted_file_extensions"
+          :key="index"
+        >
+          <li class="filetype-li">{{ extension }}</li>
+        </span>
+      </ul>
+    </div>
   </div>
 </template>
 
@@ -28,7 +34,7 @@
 import { createPopper } from "@popperjs/core";
 
 export default {
-  name: "StyledBlockHelp",
+  name: "StyledBlockInfo",
   props: {
     blockInfo: {
       type: Object,
@@ -48,7 +54,7 @@ export default {
           this.$refs.tooltipContent.setAttribute("data-show", "");
           this.popperInstance.update();
         }
-      }, 500);
+      }, 100);
     },
 
     hideTooltip() {
@@ -84,20 +90,24 @@ input {
 #tooltip {
   z-index: 9999;
   border: 1px solid grey;
-  width: auto;
+  width: 25%;
   background: #333;
+  box-shadow: 0 0 10px cornflowerblue;
   color: white;
   font-weight: bold;
   padding: 1em;
   border-radius: 4px;
 }
 
-#tooltip p {
-  margin: 0;
+.block-info-title {
+  /* add wavy blue underline */
+  text-decoration: underline;
+  text-decoration-color: cornflowerblue;
+  text-decoration-style: wavy;
 }
 
-.accepted-file {
-  padding-top: 0.5em;
+.filetype-li {
+  font-family: "Roboto Mono", monospace;
 }
 
 #tooltip {
