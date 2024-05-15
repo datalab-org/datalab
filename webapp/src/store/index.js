@@ -27,7 +27,7 @@ export default createStore({
     remoteDirectoryTreeIsLoading: false,
     fileSelectModalIsOpen: false,
     currentUserDisplayName: null,
-    blocksInfos: null,
+    blocksInfos: {},
   },
   mutations: {
     setSampleList(state, sampleSummaries) {
@@ -265,7 +265,10 @@ export default createStore({
       state.itemGraphData = payload;
     },
     setBlocksInfos(state, blocksInfos) {
-      state.blocksInfos = blocksInfos;
+      state.blocksInfos = {};
+      blocksInfos.forEach((info) => {
+        state.blocksInfos[info.id] = info;
+      });
     },
   },
   getters: {

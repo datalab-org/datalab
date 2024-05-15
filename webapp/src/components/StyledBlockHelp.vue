@@ -10,7 +10,7 @@
   >
   <div ref="tooltipContent" id="tooltip" role="tooltip">
     <p>{{ blockInfo.description }}</p>
-    <p v-if="blockInfo.accepted_file_extensions.length > 0">
+    <p class="accepted-file" v-if="blockInfo.accepted_file_extensions.length > 0">
       Accepted file extensions:
       <span v-for="(extension, index) in blockInfo.accepted_file_extensions" :key="index">
         {{ extension }}{{ index < blockInfo.accepted_file_extensions.length - 1 ? ", " : "" }}
@@ -89,6 +89,10 @@ input {
 
 #tooltip p {
   margin: 0;
+}
+
+.accepted-file {
+  padding-top: 0.5em;
 }
 
 #tooltip {
