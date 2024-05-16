@@ -1,5 +1,5 @@
 <template>
-    <a
+  <a
     ref="anchor"
     class="dropdown-item"
     @mouseenter="delayedShowTooltip"
