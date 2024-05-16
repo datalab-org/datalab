@@ -52,7 +52,7 @@ export default createStore({
     },
     setEquipmentList(state, equipmentSummaries) {
       // equipmentSummary is an array of json objects summarizing the available samples
-        state.equipment_list = equipmentSummaries;
+      state.equipment_list = equipmentSummaries;
     },
     appendToSampleList(state, sampleSummary) {
       // sampleSummary is a json object summarizing the new sample
@@ -275,7 +275,7 @@ export default createStore({
       });
     },
     updateUnverifiedUserStatus(state, hasUnverified) {
-        state.currentUserIsUnverified = hasUnverified;
+      state.currentUserIsUnverified = hasUnverified;
     },
     updateHasUnverified(state, hasUnverified) {
       state.hasUnverifiedUser = hasUnverified;
