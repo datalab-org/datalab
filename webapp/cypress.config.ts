@@ -13,4 +13,10 @@ export default defineConfig({
     projectId: "4kqx5i",
     defaultCommandTimeout: 10000,
   },
+  component: {
+    devServer: {
+      framework: "vue-cli",
+      bundler: "webpack",
+    },
+  },
 });
