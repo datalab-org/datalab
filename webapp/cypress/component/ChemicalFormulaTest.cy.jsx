@@ -1,4 +1,4 @@
-import { ChemFormulaInput } from "@components/ChemFormulaInput.vue";
+import { ChemFormulaInput } from "@/components/ChemFormulaInput.vue";
 
 describe("ChemFormulaInput", () => {
   beforeEach(() => {
