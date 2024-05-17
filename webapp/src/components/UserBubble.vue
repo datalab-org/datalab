@@ -4,7 +4,9 @@
       'https://www.gravatar.com/avatar/' +
       md5(this.creator.contact_email || this.creator.display_name) +
       '?d=' +
-      this.gravatar_style
+      this.gravatar_style +
+      '&s=' +
+      size
     "
     class="avatar"
     :width="size"
