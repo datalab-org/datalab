@@ -6,7 +6,7 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
       v-model="file_id"
       :item_id="item_id"
       :block_id="block_id"
-      :extensions="['.txt', '.wdf']"
+      :extensions="blockInfo.attributes.accepted_file_extensions"
       updateBlockOnChange
     />
 
@@ -35,6 +35,9 @@ export default {
     bokehPlotData() {
       return this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id]
         .bokeh_plot_data;
+    },
+    blockInfo() {
+      return this.$store.state.blocksInfos["raman"];
     },
     file_id: createComputedSetterForBlockField("file_id"),
   },
