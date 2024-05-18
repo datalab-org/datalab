@@ -60,7 +60,8 @@ class TabularDataBlock(DataBlock):
     """
 
     blocktype = "tabular"
-    description = "Tabular Data Block"
+    name = "Tabular Data Block"
+    description = "This block will load tabular data from common plain text files and allow you to create simple scatter plots of the columns within."
     accepted_file_extensions = (".csv", ".txt", ".tsv", ".dat")
 
     @property
