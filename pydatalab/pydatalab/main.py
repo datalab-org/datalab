@@ -179,11 +179,7 @@ def create_app(
             the embedded inputs.
 
         """
-        from pydatalab.routes import (  # pylint: disable=import-outside-toplevel
-            AUTH,
-        )
-
-        OAUTH_PROXIES = AUTH.OAUTH_PROXIES
+        from pydatalab.routes import OAUTH_PROXIES
 
         connected = True
         try:
