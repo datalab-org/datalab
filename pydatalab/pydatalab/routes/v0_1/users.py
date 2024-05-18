@@ -6,19 +6,21 @@ from pydatalab.config import CONFIG
 from pydatalab.models.people import DisplayName, EmailStr
 from pydatalab.mongo import flask_mongo
 
-user = Blueprint("users", __name__)
+USERS = Blueprint("users", __name__)
 
 
-@user.route("/users/<user_id>", methods=["PATCH"])
+@USERS.route("/users/<user_id>", methods=["PATCH"])
 def save_user(user_id):
     request_json = request.get_json()
 
     display_name: str | None = None
     contact_email: str | None = None
+    account_status: str | None = None
 
     if request_json is not None:
         display_name = request_json.get("display_name", False)
         contact_email = request_json.get("contact_email", False)
+        account_status = request_json.get("account_status", None)
 
     if not current_user.is_authenticated and not CONFIG.TESTING:
         return (jsonify({"status": "error", "message": "No user authenticated."}), 401)
@@ -40,6 +42,9 @@ def save_user(user_id):
                 update["contact_email"] = None
             else:
                 update["contact_email"] = EmailStr(contact_email)
+
+        if account_status:
+            update["account_status"] = account_status
 
     except ValueError as e:
         return jsonify(

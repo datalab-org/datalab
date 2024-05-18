@@ -90,6 +90,14 @@ class EmailStr(PydanticEmailStr):
         return cls.validate(value)
 
 
+class AccountStatus(str, Enum):
+    """A string enum representing the account status."""
+
+    ACTIVE = "active"
+    UNVERIFIED = "unverified"
+    DEACTIVATED = "deactivated"
+
+
 class Person(Entry):
     """A model that describes an individual and their digital identities."""
 
@@ -108,6 +116,9 @@ class Person(Entry):
     managers: Optional[List[PyObjectId]]
     """A list of user IDs that can manage this person's items."""
 
+    account_status: AccountStatus = Field(AccountStatus.UNVERIFIED)
+    """The status of the user's account."""
+
     @validator("type", pre=True, always=True)
     def add_missing_type(cls, v):
         """Fill in missing `type` field if not provided."""
@@ -121,7 +132,10 @@ class Person(Entry):
 
     @staticmethod
     def new_user_from_identity(
-        identity: Identity, use_display_name: bool = True, use_contact_email: bool = True
+        identity: Identity,
+        use_display_name: bool = True,
+        use_contact_email: bool = True,
+        account_status: AccountStatus = AccountStatus.UNVERIFIED,
     ) -> "Person":
         """Create a new `Person` object with the given identity.
 
@@ -132,6 +146,7 @@ class Person(Entry):
             use_contact_email: If the identity provided is an email address,
                 this argument decides whether to populate the top-level
                 `contact_email` field with the address of this identity.
+            account_status: The starting account status of the user.
 
         Returns:
             A `Person` object with only the provided identity.
@@ -152,4 +167,5 @@ class Person(Entry):
             identities=[identity],
             display_name=display_name,
             contact_email=contact_email,
+            account_status=account_status,
         )

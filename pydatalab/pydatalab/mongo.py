@@ -94,7 +94,6 @@ def create_default_indices(
         A list of messages returned by each `create_index` call.
 
     """
-    from pydatalab.logger import LOGGER
     from pydatalab.models import ITEM_MODELS
 
     if client is None:
@@ -149,22 +148,39 @@ def create_default_indices(
 
     user_fts_fields = {"identities.name", "display_name"}
 
-    ret += db.users.create_index(
-        [
-            ("identities.identifier", pymongo.ASCENDING),
-            ("identities.identity_type", pymongo.ASCENDING),
-        ],
-        unique=True,
-        name="unique user identifiers",
-        background=background,
-    )
-    try:
-        ret += db.users.create_index(
-            [(k, pymongo.TEXT) for k in user_fts_fields],
-            name="user identities full-text search",
+    user_index_name = "unique user identifiers"
+
+    def create_user_index(user_index_name):
+        return db.users.create_index(
+            [
+                ("identities.identifier", pymongo.ASCENDING),
+                ("identities.identity_type", pymongo.ASCENDING),
+            ],
+            unique=True,
+            partialFilterExpression={"identities": {"$exists": True}},
+            name=user_index_name,
             background=background,
         )
-    except Exception as exc:
-        LOGGER.warning("Failed to create text index: %s", exc)
+
+    try:
+        ret += create_user_index(user_index_name)
+    except pymongo.errors.OperationFailure:
+        db.users.drop_index(user_index_name)
+        ret += create_user_index(user_index_name)
+
+    user_fts_name = "user identities full-text search"
+
+    def create_user_fts():
+        return db.users.create_index(
+            [(k, pymongo.TEXT) for k in user_fts_fields],
+            name=user_fts_name,
+            background=background,
+        )
+
+    try:
+        ret += create_user_fts()
+    except pymongo.errors.OperationFailure:
+        db.users.drop_index(user_fts_name)
+        ret += create_user_fts()
 
     return ret

@@ -12,6 +12,7 @@ export default createStore({
     all_collection_children: {},
     all_collection_parents: {},
     sample_list: [],
+    equipment_list: [],
     starting_material_list: [],
     collection_list: [],
     saved_status_items: {},
@@ -26,6 +27,9 @@ export default createStore({
     remoteDirectoryTreeIsLoading: false,
     fileSelectModalIsOpen: false,
     currentUserDisplayName: null,
+    blocksInfos: {},
+    currentUserIsUnverified: false,
+    hasUnverifiedUser: false,
   },
   mutations: {
     setSampleList(state, sampleSummaries) {
@@ -43,6 +47,13 @@ export default createStore({
     setDisplayName(state, displayName) {
       state.currentUserDisplayName = displayName;
     },
+    setIsUnverified(state, isUnverified) {
+      state.currentUserIsUnverified = isUnverified;
+    },
+    setEquipmentList(state, equipmentSummaries) {
+      // equipmentSummary is an array of json objects summarizing the available samples
+      state.equipment_list = equipmentSummaries;
+    },
     appendToSampleList(state, sampleSummary) {
       // sampleSummary is a json object summarizing the new sample
       state.sample_list.push(sampleSummary);
@@ -54,6 +65,10 @@ export default createStore({
     prependToStartingMaterialList(state, itemSummary) {
       // sampleSummary is a json object summarizing the new sample
       state.starting_material_list.unshift(itemSummary);
+    },
+    prependToEquipmentList(state, equipmentSummary) {
+      // sampleSummary is a json object summarizing the new sample
+      state.equipment_list.unshift(equipmentSummary);
     },
     prependToCollectionList(state, collectionSummary) {
       // collectionSummary is a json object summarizing the new collection
@@ -81,6 +96,14 @@ export default createStore({
         state.collection_list.splice(index, 1);
       } else {
         console.log("deleteFromCollectionList couldn't find the object");
+      }
+    },
+    deleteFromEquipmentList(state, item_id) {
+      const index = state.equipment_list.map((e) => e.item_id).indexOf(item_id);
+      if (index > -1) {
+        state.equipment_list.splice(index, 1);
+      } else {
+        console.log(`deleteFromEquipmentList couldn't find the item with id ${item_id}`);
       }
     },
     createItemData(state, payload) {
@@ -156,6 +179,13 @@ export default createStore({
         state.all_item_data[payload.item_id]["blocks_obj"][payload.block_id],
         payload.block_data,
       );
+      // if there are no block warnings or errors, make sure they are not in the store
+      if (!payload.block_data.errors) {
+        delete state.all_item_data[payload.item_id]["blocks_obj"][payload.block_id].errors;
+      }
+      if (!payload.block_data.warnings) {
+        delete state.all_item_data[payload.item_id]["blocks_obj"][payload.block_id].warnings;
+      }
       state.saved_status_blocks[payload.block_id] = false;
     },
     updateItemData(state, payload) {
@@ -239,6 +269,17 @@ export default createStore({
     setItemGraph(state, payload) {
       state.itemGraphData = payload;
     },
+    setBlocksInfos(state, blocksInfos) {
+      blocksInfos.forEach((info) => {
+        state.blocksInfos[info.id] = info;
+      });
+    },
+    updateUnverifiedUserStatus(state, hasUnverified) {
+      state.currentUserIsUnverified = hasUnverified;
+    },
+    updateHasUnverified(state, hasUnverified) {
+      state.hasUnverifiedUser = hasUnverified;
+    },
   },
   getters: {
     getItem: (state) => (item_id) => {
@@ -250,6 +291,12 @@ export default createStore({
     },
     getCurrentUserDisplayName(state) {
       return state.currentUserDisplayName;
+    },
+    getCurrentUserIsUnverified(state) {
+      return state.currentUserIsUnverified;
+    },
+    getHasUnverifiedUser(state) {
+      return state.hasUnverifiedUser;
     },
   },
   actions: {},

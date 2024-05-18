@@ -4,7 +4,11 @@ from pydatalab.models import Cell, Sample
 from pydatalab.models.samples import Constituent
 
 
-def test_simple_graph(client):
+def test_simple_graph(admin_client):
+    """Test the graph API with a simple manually constructed graph.
+    All samples are uploaded without a creator so the test client needs admin priveleges.
+
+    """
     parent = Sample(
         item_id="parent",
     )
@@ -43,7 +47,7 @@ def test_simple_graph(client):
 
     new_samples = [json.loads(d.json()) for d in [parent, child_1, child_2, missing_child, cell]]
 
-    response = client.post(
+    response = admin_client.post(
         "/new-samples/",
         json={"new_sample_datas": new_samples},
     )
@@ -51,7 +55,7 @@ def test_simple_graph(client):
     assert response.status_code == 207
     assert all(d == 201 for d in response.json["http_codes"])
 
-    graph = client.get("/item-graph").json
+    graph = admin_client.get("/item-graph").json
     assert {n["data"]["id"] for n in graph["nodes"]} == {
         "parent",
         "child_1",
@@ -61,10 +65,10 @@ def test_simple_graph(client):
     }
     assert len(graph["edges"]) == 4
 
-    response = client.post("/delete-sample/", json={"item_id": "missing_child"})
+    response = admin_client.post("/delete-sample/", json={"item_id": "missing_child"})
     assert response
 
-    graph = client.get("/item-graph").json
+    graph = admin_client.get("/item-graph").json
     assert {n["data"]["id"] for n in graph["nodes"]} == {
         "parent",
         "child_1",
@@ -74,11 +78,11 @@ def test_simple_graph(client):
 
     assert len(graph["edges"]) == 3
 
-    graph = client.get("/item-graph/child_1").json
+    graph = admin_client.get("/item-graph/child_1").json
     assert len(graph["nodes"]) == 2
     assert len(graph["edges"]) == 1
 
-    graph = client.get("/item-graph/parent").json
+    graph = admin_client.get("/item-graph/parent").json
     assert len(graph["nodes"]) == 4
     assert len(graph["edges"]) == 3
 
@@ -94,14 +98,14 @@ def test_simple_graph(client):
             ],
         }
     }
-    response = client.put("/collections", json=collection_json)
+    response = admin_client.put("/collections", json=collection_json)
     assert response.status_code == 201
     assert response.json["status"] == "success"
 
-    graph = client.get(f"/item-graph?collection_id={collection_id}").json
+    graph = admin_client.get(f"/item-graph?collection_id={collection_id}").json
     assert len(graph["nodes"]) == 3
     assert len(graph["edges"]) == 2
 
-    graph = client.get("/item-graph/parent").json
+    graph = admin_client.get("/item-graph/parent").json
     assert len(graph["nodes"]) == 5
     assert len(graph["edges"]) == 8

@@ -13,6 +13,7 @@
     <router-link to="/samples">Samples</router-link> |
     <router-link to="/collections">Collections</router-link> |
     <router-link to="/starting-materials">Inventory</router-link> |
+    <router-link to="/equipment">Equipment</router-link> |
     <router-link to="/item-graph"
       ><font-awesome-icon icon="project-diagram" />&nbsp;Graph View</router-link
     >
@@ -30,6 +31,7 @@ export default {
       apiUrl: API_URL,
       logo_url: LOGO_URL,
       homepage_url: HOMEPAGE_URL,
+      user: null,
     };
   },
   components: {

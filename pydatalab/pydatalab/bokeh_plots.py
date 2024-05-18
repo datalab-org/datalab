@@ -1,3 +1,4 @@
+import warnings
 from typing import Dict, List, Optional, Sequence, Union
 
 import matplotlib
@@ -7,6 +8,7 @@ import pandas as pd
 from bokeh.events import DoubleTap
 from bokeh.layouts import column, gridplot
 from bokeh.models import (
+    Button,
     ColorBar,
     ColorMapper,
     CrosshairTool,
@@ -39,7 +41,25 @@ SELECTABLE_CALLBACK_y = """
   source.change.emit();
   yaxis.axis_label = column;
 """
-
+GENERATE_CSV_CALLBACK = """
+  let columns = Object.keys(source.data);
+  console.log(columns);
+  // Add double quotes around each column name
+  const values = columns.map((column, i) => source.data[column]);
+  columns = columns.map((column) => '"' + column + '"');
+  var csvContent = "data:text/csv;charset=utf-8," + columns.join(",") + "\\n"
+  // loop over columns and add each row value one at a time
+  for (var i = 0; i < values[0].length; i++) {
+      csvContent = csvContent + values.map((row) => row[i]).join(",") + "\\n";
+  };
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", "data.csv");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+"""
 
 style = {
     "attrs": {
@@ -190,6 +210,7 @@ def selectable_axes_plot(
 
     callbacks_x = []
     callbacks_y = []
+    source = None
 
     if color_options:
         if color_mapper is None:
@@ -306,6 +327,21 @@ def selectable_axes_plot(
     if len(y_options) > 1:
         plot_columns.append(yaxis_select)
 
+    # Only enable csv export for simple 'single dataframe' plots, for now
+    if (
+        source is not None
+        and len(df) == 1
+        and isinstance(df, list)
+        and isinstance(df[0], pd.DataFrame)
+    ):
+        save_data = Button(label="Download .csv", button_type="primary", width_policy="min")
+        save_data_callback = CustomJS(
+            args=dict(source=source),
+            code=GENERATE_CSV_CALLBACK,
+        )
+        save_data.js_on_click(save_data_callback)
+        plot_columns = [save_data] + plot_columns
+
     layout = column(*plot_columns)
 
     p.js_on_event(DoubleTap, CustomJS(args=dict(p=p), code="p.reset.emit()"))
@@ -365,6 +401,7 @@ def double_axes_echem_plot(
     # x_label = "Capacity (mAh/g)" if x_default == "Capacity normalized" else x_default
     x_label = x_default
     p1 = figure(x_axis_label=x_label, y_axis_label="voltage (V)", **common_options)
+    p1.xaxis.ticker.desired_num_ticks = 5
     plots.append(p1)
 
     # the differential plot
@@ -376,10 +413,12 @@ def double_axes_echem_plot(
                 y_range=p1.y_range,
                 **common_options,
             )
+            p2.xaxis.ticker.desired_num_ticks = 3
         else:
             p2 = figure(
                 x_axis_label=x_default, y_axis_label=mode, x_range=p1.x_range, **common_options
             )
+            p2.xaxis.ticker.desired_num_ticks = 5
         plots.append(p2)
 
     elif mode == "final capacity" and cycle_summary is not None:
@@ -432,6 +471,7 @@ def double_axes_echem_plot(
 
         p3.legend.location = "right"
         p3.y_range.start = 0
+        p3.xaxis.ticker.desired_num_ticks = 5
 
     lines = []
     grouped_by_half_cycle = df.groupby("half cycle")
@@ -526,7 +566,17 @@ def double_axes_echem_plot(
     elif mode == "dV/dQ":
         grid = [[p1], [p2]]
     elif mode == "final capacity":
-        grid = [[p3]]
+        if cycle_summary is not None:
+            save_data = Button(label="Download .csv", button_type="primary", width_policy="min")
+            save_data_callback = CustomJS(
+                args=dict(source=ColumnDataSource(cycle_summary)),
+                code=GENERATE_CSV_CALLBACK,
+            )
+            save_data.js_on_click(save_data_callback)
+            grid = [[save_data], [p3]]
+        else:
+            warnings.warn("Unable to generate cycle summary plot for this dataset.")
+            return None
     else:
         grid = [[p1], [xaxis_select], [yaxis_select]]
 

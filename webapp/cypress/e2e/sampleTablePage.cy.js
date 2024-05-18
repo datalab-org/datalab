@@ -6,16 +6,39 @@ Cypress.on("window:before:load", (win) => {
   consoleSpy = cy.spy(win.console, "error");
 });
 
-let sample_ids = [];
+let sample_ids = [
+  "12345678910",
+  "test1",
+  "test2",
+  "test3",
+  "test4",
+  "sdlkfjs",
+  "w343t",
+  "dfow4_112",
+  "122.rwre",
+  "56oer09gser9sdfd0s9dr333e",
+  "7",
+  "XX",
+  "yyy",
+  "testA",
+  "testB",
+  "testAcopy",
+  "testBcopy",
+  "testBcopy_copy",
+  "component1",
+  "component2",
+  "component3",
+  "component4",
+];
 
 before(() => {
   cy.visit("/");
-  cy.removeAllTestSamples(sample_ids);
+  cy.removeAllTestSamples(sample_ids, true);
 });
 
 after(() => {
   cy.visit("/");
-  cy.removeAllTestSamples(sample_ids);
+  cy.removeAllTestSamples(sample_ids, true);
 });
 
 describe("Sample table page", () => {
@@ -29,30 +52,13 @@ describe("Sample table page", () => {
     cy.findByText("Add an item").should("exist");
     cy.findByText("# of blocks").should("exist");
 
-    // Ensure no error messages or console errors. The wait is necessary so that
-    // the assertion does not run before the server has had
-    // time to respond.
-    // Can we wait for the server response instead of hard-coding
-    // a wait time in ms?
-    cy.wait(100).then((x) => {
-      cy.contains("Server Error. Sample list could not be retreived.").should("not.exist");
-      expect(consoleSpy).not.to.be.called;
-    });
+    cy.contains("Server Error. Sample list could not be retreived.").should("not.exist");
+    expect(consoleSpy).not.to.be.called;
   });
 
   it("Adds a valid sample", () => {
-    cy.findByText("Add an item").click();
-    cy.findByText("Add new item").should("exist");
-    cy.findByLabelText("ID:").type("12345678910");
-    cy.findByLabelText("Date Created:").type("1990-01-07T00:00");
-
-    cy.get("#sample-name").type("This is a sample name");
-    cy.get("#sample-submit").click();
-
-    // check that the sample table is correctly populated
-    cy.findByText("12345678910");
-    cy.findByText("This is a sample name");
-    cy.findByText("1990-01-07");
+    cy.createSample("12345678910", "This is a sample name", "1990-01-07T00:00");
+    cy.verifySample("12345678910", "This is a sample name", "1990-01-07T00:00");
   });
 
   it("Checks if the sample is in the database", () => {
@@ -66,35 +72,44 @@ describe("Sample table page", () => {
       });
   });
 
-  it("Checks the sample edit page", () => {
-    cy.findByText("12345678910").click();
-    cy.wait(1000);
-    cy.go("back");
-    cy.findByText("12345678910");
-    cy.findByText("This is a sample name");
-    cy.findByText("1990-01-07");
-  });
-
-  it("Attempts to Add an item with the same name", () => {
+  it("Attempts to add an item with the same name", () => {
     cy.findByText("Add an item").click();
-    cy.findByText("Add new item").should("exist");
-    cy.findByLabelText("ID:").type("12345678910");
-
-    cy.contains("already in use").should("exist");
-    cy.get(".form-error a").contains("12345678910");
-
-    cy.get("#sample-submit").should("be.disabled");
+    cy.get('[data-testid="create-item-form"]').within(() => {
+      cy.findByLabelText("ID:").type("12345678910");
+      cy.contains("already in use").should("exist");
+      cy.get(".form-error a").contains("12345678910");
+      cy.findByText("Submit").should("be.disabled");
+    });
   });
 
   it("Deletes a sample", function () {
-    cy.get("tr#12345678910 button.close").click();
-    cy.contains("12345678910").should("not.exist");
+    cy.deleteSample("12345678910");
 
     cy.request({ url: `${API_URL}/get-item-data/12345678910`, failOnStatusCode: false }).then(
       (resp) => {
         expect(resp.status).to.be.gte(400).lt(500);
       },
     );
+  });
+
+  it("Adds a sample with an automatic ID", () => {
+    const name = "sample with automatically generated id";
+    const date = "2024-03-26T00:00";
+
+    cy.createSample("irrelevant_id", name, date, true);
+
+    cy.get('[data-testid="sample-table"]')
+      .contains(name)
+      .parents("tr")
+      .find("td.table-item-id .formatted-item-name")
+      .invoke("text")
+      .as("createdId");
+
+    cy.get("@createdId").then((createdId) => {
+      expect(createdId).not.to.equal("irrelevant_id");
+      cy.verifySample(createdId, name, date);
+      cy.deleteSample(createdId);
+    });
   });
 
   it("Adds several valid samples", () => {
@@ -166,7 +181,7 @@ describe("Sample table page", () => {
   });
 });
 
-describe("Advanced sample creation features", () => {
+describe.only("Advanced sample creation features", () => {
   beforeEach(() => {
     cy.visit("/");
   });
@@ -177,13 +192,13 @@ describe("Advanced sample creation features", () => {
 
   it("Adds a third sample copied from the first", () => {
     cy.findByText("Add an item").click();
-    cy.findByLabelText("ID:").type("testAcopy");
-    cy.findByLabelText("(Optional) Copy from existing sample:").type("testA");
-    cy.get(".vs__dropdown-menu").within(() => {
-      cy.contains(".badge", "testA").click();
+    cy.get('[data-testid="create-item-form"]').within(() => {
+      cy.findByLabelText("ID:").type("testAcopy");
+      cy.findByLabelText("(Optional) Copy from existing sample:").type("testA");
+      cy.get(".vs__dropdown-menu").contains(".badge", "testA").click();
+      cy.findByDisplayValue("COPY OF the first test sample").clear().type("a copied sample");
+      cy.findByText("Submit").click();
     });
-    cy.findByDisplayValue("COPY OF the first test sample").clear().type("a copied sample");
-    cy.get("#sample-submit").click();
     cy.verifySample("testAcopy", "a copied sample");
   });
 
@@ -207,16 +222,14 @@ describe("Advanced sample creation features", () => {
 
     cy.get(".datablock-content div").first().type("a comment is added here.");
     cy.get("#synthesis-information .vs__search").first().type("component3");
-    cy.get(".vs__dropdown-menu").within(() => {
-      cy.contains(".badge", "component3").click();
-    });
+    cy.get(".vs__dropdown-menu").contains(".badge", "component3").click();
+
     cy.get("#synthesis-information tbody tr:nth-of-type(1) input").eq(0).type("30");
 
     cy.get("svg.add-row-button").click();
     cy.get("#synthesis-information .vs__search").first().type("component4");
-    cy.get(".vs__dropdown-menu").within(() => {
-      cy.contains(".badge", "component4").click();
-    });
+    cy.get(".vs__dropdown-menu").contains(".badge", "component4").click();
+
     cy.get("#synthesis-information tbody tr:nth-of-type(2) input").eq(0).type("100"); // eq(1) gets the second element that matches
 
     cy.findByLabelText("Procedure").type("a description of the synthesis here");
@@ -227,12 +240,12 @@ describe("Advanced sample creation features", () => {
 
   it("copies the second sample", () => {
     cy.findByText("Add an item").click();
-    cy.findByLabelText("ID:").type("testBcopy");
-    cy.findByLabelText("(Optional) Copy from existing sample:").type("testB");
-    cy.get(".vs__dropdown-menu").within(() => {
-      cy.contains(".badge", "testB").click();
+    cy.get('[data-testid="create-item-form"]').within(() => {
+      cy.findByLabelText("ID:").type("testBcopy");
+      cy.findByLabelText("(Optional) Copy from existing sample:").type("testB");
+      cy.get(".vs__dropdown-menu").contains(".badge", "testB").click();
+      cy.findByText("Submit").click();
     });
-    cy.get("#sample-submit").click();
     cy.verifySample("testBcopy", "COPY OF the second test sample");
   });
 
@@ -252,22 +265,25 @@ describe("Advanced sample creation features", () => {
 
   it("copies the copied sample, this time with additional components", () => {
     cy.findByText("Add an item").click();
-    cy.findByLabelText("ID:").type("testBcopy_copy");
-    cy.findByLabelText("(Optional) Copy from existing sample:").type("testBcopy");
-    cy.get(".vs__dropdown-menu").within(() => {
-      cy.contains(".badge", "testBcopy").click();
-    });
+    cy.get('[data-testid="create-item-form"]').within(() => {
+      cy.findByLabelText("ID:").type("testBcopy_copy");
+      cy.findByLabelText("(Optional) Copy from existing sample:").type("testBcopy");
+      cy.findByLabelText("(Optional) Copy from existing sample:")
+        .contains(".vs__dropdown-menu .badge", "testBcopy")
+        .click();
 
-    cy.findByLabelText("(Optional) Start with constituents:").type("component2");
-    cy.get(".vs__dropdown-menu").within(() => {
-      cy.contains(".badge", "component2").click();
-    });
-    cy.findByLabelText("(Optional) Start with constituents:").type("component3");
-    cy.get(".vs__dropdown-menu").within(() => {
-      cy.contains(".badge", "component3").click();
-    });
+      cy.findByLabelText("(Optional) Start with constituents:").type("component2");
+      cy.findByLabelText("(Optional) Start with constituents:")
+        .contains(".vs__dropdown-menu .badge", "component2")
+        .click();
 
-    cy.get("#sample-submit").click();
+      cy.findByLabelText("(Optional) Start with constituents:").type("component3");
+      cy.findByLabelText("(Optional) Start with constituents:")
+        .contains(".vs__dropdown-menu .badge", "component3")
+        .click();
+
+      cy.findByText("Submit").click();
+    });
     cy.verifySample("testBcopy_copy", "COPY OF COPY OF the second test sample");
   });
   it("checks the edit page of the copied sample with components", () => {

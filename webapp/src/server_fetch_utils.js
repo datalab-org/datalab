@@ -2,7 +2,13 @@
 // all code using fetch should be collected into this file
 
 import store from "@/store/index.js";
-import { API_URL, API_TOKEN, SAMPLE_TABLE_TYPES, INVENTORY_TABLE_TYPES } from "@/resources.js";
+import {
+  API_URL,
+  API_TOKEN,
+  SAMPLE_TABLE_TYPES,
+  INVENTORY_TABLE_TYPES,
+  EQUIPMENT_TABLE_TYPES,
+} from "@/resources.js";
 
 // ****************************************************************************
 // A simple wrapper to simplify response handling for fetch calls
@@ -101,9 +107,11 @@ export function createNewItem(
   startingCollection = null,
   startingData = {},
   copyFrom = null,
+  generateIDAutomatically = false,
 ) {
   return fetch_post(`${API_URL}/new-sample/`, {
     copy_from_item_id: copyFrom,
+    generate_id_automatically: generateIDAutomatically,
     new_sample_data: {
       item_id: item_id,
       date: date,
@@ -124,14 +132,22 @@ export function createNewItem(
     if (INVENTORY_TABLE_TYPES.includes(response_json.sample_list_entry.type)) {
       store.commit("prependToStartingMaterialList", response_json.sample_list_entry);
     }
+    if (EQUIPMENT_TABLE_TYPES.includes(response_json.sample_list_entry.type)) {
+      store.commit("prependToEquipmentList", response_json.sample_list_entry);
+    }
     return "success";
   });
 }
 
-export function createNewSamples(newSampleDatas, copyFromItemIds = null) {
+export function createNewSamples(
+  newSampleDatas,
+  copyFromItemIds = null,
+  generateIDsAutomatically = false,
+) {
   return fetch_post(`${API_URL}/new-samples/`, {
     copy_from_item_ids: copyFromItemIds,
     new_sample_datas: newSampleDatas,
+    generate_ids_automatically: generateIDsAutomatically,
   }).then(function (response_json) {
     console.log("received the following data from fetch new-samples:");
     console.log(response_json);
@@ -173,7 +189,7 @@ export async function getStats() {
 }
 
 export async function getInfo() {
-  return fetch_get(`${API_URL}/info/`)
+  return fetch_get(`${API_URL}/info`)
     .then(function (response_json) {
       return { apiVersion: response_json.data.attributes.server_version };
     })
@@ -220,6 +236,22 @@ export function getCollectionList() {
     });
 }
 
+export function getUsersList() {
+  return fetch_get(`${API_URL}/users`)
+    .then(function (response_json) {
+      const users = response_json.data;
+      const hasUnverified = users.some((user) => user.account_status === "unverified");
+      store.commit("updateHasUnverified", hasUnverified);
+
+      return response_json.data;
+    })
+    .catch((error) => {
+      console.error("Error when fetching users list");
+      console.error(error);
+      throw error;
+    });
+}
+
 export function getStartingMaterialList() {
   return fetch_get(`${API_URL}/starting-materials/`)
     .then(function (response_json) {
@@ -227,6 +259,18 @@ export function getStartingMaterialList() {
     })
     .catch((error) => {
       console.error("Error when fetching starting material list");
+      console.error(error);
+      throw error;
+    });
+}
+
+export function getEquipmentList() {
+  return fetch_get(`${API_URL}/equipment/`)
+    .then(function (response_json) {
+      store.commit("setEquipmentList", response_json.items);
+    })
+    .catch((error) => {
+      console.error("Error when fetching equipment list");
       console.error(error);
       throw error;
     });
@@ -259,10 +303,24 @@ export async function getUserInfo() {
   return fetch_get(`${API_URL}/get-current-user/`)
     .then((response_json) => {
       store.commit("setDisplayName", response_json.display_name);
+      store.commit("setIsUnverified", response_json.account_status == "unverified" ? true : false);
       return response_json;
     })
     .catch(() => {
       return null;
+    });
+}
+
+export async function requestMagicLink(email_address) {
+  return fetch_post(`${API_URL}/login/magic-link`, {
+    email: email_address,
+    referrer: window.location.origin,
+  })
+    .then((response_json) => {
+      return response_json;
+    })
+    .catch((err) => {
+      return err;
     });
 }
 
@@ -308,6 +366,17 @@ export function deleteCollection(collection_id, collection_summary) {
       store.commit("deleteFromCollectionList", collection_summary);
     })
     .catch((error) => alert("Collection delete failed for " + collection_id + ": " + error));
+}
+
+export function deleteEquipment(item_id) {
+  return fetch_post(`${API_URL}/delete-sample/`, {
+    item_id: item_id,
+  })
+    .then(function (response_json) {
+      console.log("delete successful" + response_json);
+      store.commit("deleteFromEquipmentList", item_id);
+    })
+    .catch((error) => alert("Item delete failed for " + item_id + ": " + error));
 }
 
 export function deletSampleFromCollection(collection_id, collection_summary) {
@@ -445,6 +514,10 @@ export function saveUser(user_id, user) {
   fetch_patch(`${API_URL}/users/${user_id}`, user)
     .then(function (response_json) {
       if (response_json.status === "success") {
+        if (user.account_status) {
+          getUserInfo();
+          getUsersList();
+        }
         console.log("Save successful!");
       } else {
         alert("User save unsuccessful", response_json.detail);
@@ -452,6 +525,20 @@ export function saveUser(user_id, user) {
     })
     .catch(function (error) {
       alert(`User save unsuccessful: ${error}`);
+    });
+}
+
+export function saveRole(user_id, role) {
+  fetch_patch(`${API_URL}/roles/${user_id}`, role)
+    .then(function (response_json) {
+      if (response_json.status === "success") {
+        console.log("Save successful!");
+      } else {
+        alert("Role save unsuccessful", response_json.detail);
+      }
+    })
+    .catch(function (error) {
+      alert(`Role save unsuccessful: ${error}`);
     });
 }
 
@@ -551,14 +638,30 @@ export async function getItemGraph({ item_id = null, collection_id = null } = {}
     .catch((error) => `getItemGraph unsuccessful. Error: ${error}`);
 }
 
-// export async function addRemoteFilesToSample(file_entries, item_id) {
-//  console.log('loadSelectedRemoteFiles')
-//  return fetch_post(`${API_URL}/add-remote-files-to-sample/`, {
-//    file_entries: file_entries,
-//    item_id: item_id,
-//  }).then( function(response_json) {
-//    //handle response
-//    console.log("received remote samples!")
-//    console.log(response_json)
-//  }).catch( error => (`addRemoteFilesToSample unsuccessful. Error: ${error}`))
-// }
+export async function requestNewAPIKey() {
+  try {
+    const response_json = await fetch_get(`${API_URL}/get-api-key/`);
+
+    if (response_json.key) {
+      console.log("New API key requested successfully!");
+      return response_json.key;
+    } else {
+      throw new Error(response_json.message);
+    }
+  } catch (error) {
+    throw new Error(`Failed to request new API key: ${error.message}`);
+  }
+}
+
+export function getBlocksInfos() {
+  return fetch_get(`${API_URL}/info/blocks`)
+    .then(function (response_json) {
+      store.commit("setBlocksInfos", response_json.data);
+      return response_json.data;
+    })
+    .catch((error) => {
+      console.error("Error when fetching blocks info");
+      console.error(error);
+      throw error;
+    });
+}

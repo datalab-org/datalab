@@ -3,16 +3,19 @@
 import json
 from datetime import datetime
 from functools import lru_cache
-from typing import Callable, Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union
 
-from flask import jsonify, request
+from flask import Blueprint, jsonify, request
 from pydantic import AnyUrl, BaseModel, Field, validator
 
 from pydatalab import __version__
+from pydatalab.blocks import BLOCK_TYPES
 from pydatalab.models import Person
 from pydatalab.mongo import flask_mongo
 
 from ._version import __api_version__
+
+INFO = Blueprint("info", __name__)
 
 
 class Attributes(BaseModel):
@@ -45,7 +48,7 @@ class Data(BaseModel):
 class JSONAPIResponse(BaseModel):
     data: Union[Data, List[Data]]
     meta: Meta
-    links: Links
+    links: Optional[Links]
 
 
 class MetaPerson(BaseModel):
@@ -79,6 +82,7 @@ def _get_deployment_metadata_once() -> Dict:
     return metadata
 
 
+@INFO.route("/info", methods=["GET"])
 def get_info():
     metadata = _get_deployment_metadata_once()
 
@@ -96,6 +100,7 @@ def get_info():
     )
 
 
+@INFO.route("/info/stats", methods=["GET"])
 def get_stats():
     """Returns a dictionary of counts of each entry type in the deployment"""
 
@@ -109,7 +114,28 @@ def get_stats():
     )
 
 
-ENDPOINTS: Dict[str, Callable] = {
-    "/info/": get_info,
-    "/info/stats": get_stats,
-}
+@INFO.route("/info/blocks", methods=["GET"])
+def list_block_types():
+    """Returns a list of all blocks implemented in this server."""
+    return jsonify(
+        json.loads(
+            JSONAPIResponse(
+                data=[
+                    Data(
+                        id=block_type,
+                        type="block_type",
+                        attributes={
+                            "name": getattr(block, "name", ""),
+                            "description": getattr(block, "description", ""),
+                            "version": getattr(block, "version", __version__),
+                            "accepted_file_extensions": getattr(
+                                block, "accepted_file_extensions", []
+                            ),
+                        },
+                    )
+                    for block_type, block in BLOCK_TYPES.items()
+                ],
+                meta=Meta(query=request.query_string),
+            ).json()
+        )
+    )

@@ -2,7 +2,7 @@
   <form @submit.prevent="submitForm" class="modal-enclosure">
     <Modal
       :modelValue="modelValue"
-      @update:modelValue="$emit('update:modelValue', $event)"
+      @update:modelValue="resetForm"
       :disableSubmit="
         Boolean(displayNameValidationMessage) || Boolean(contactEmailValidationMessage)
       "
@@ -72,18 +72,36 @@
                 user.identities.find((identity) => identity.identity_type === 'orcid').name
               "
             >
-              <font-awesome-icon :icon="['fab', 'github']" />
+              <font-awesome-icon class="orcid-icon" :icon="['fab', 'orcid']" />
               {{ user.identities.find((identity) => identity.identity_type === "orcid").name }}
             </a>
             <a
               v-else
               type="button"
-              class="disabled dropdown-item btn login btn-link btn-default"
-              aria-label="Login via ORCID"
+              class="dropdown-item btn login btn-link btn-default"
+              aria-label="Connect ORCID account"
               :href="this.apiUrl + '/login/orcid'"
               ><font-awesome-icon class="orcid-icon" :icon="['fab', 'orcid']" /> Connect your
-              ORCiD</a
+              ORCID</a
             >
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group col-md-12">
+            <label for="api-key" class="col-form-label">API Key:</label>
+            <div v-if="apiKeyDisplayed" class="input-group">
+              <StyledInput v-model="apiKey" :readonly="true" :helpMessage="apiKeyHelpMessage" />
+              <div class="input-group-append">
+                <button class="btn btn-outline-secondary" type="button" @click="copyToClipboard">
+                  <font-awesome-icon icon="copy" />
+                </button>
+              </div>
+            </div>
+            <div class="input-group">
+              <button class="btn btn-default mt-2" @click="requestAPIKey">
+                Regenerate API Key
+              </button>
+            </div>
           </div>
         </div>
       </template>
@@ -94,7 +112,9 @@
 <script>
 import { API_URL } from "@/resources.js";
 import Modal from "@/components/Modal.vue";
-import { getUserInfo, saveUser } from "@/server_fetch_utils.js";
+import { getUserInfo, saveUser, requestNewAPIKey } from "@/server_fetch_utils.js";
+import StyledInput from "./StyledInput.vue";
+
 export default {
   name: "EditAccountSettingsModal",
   data() {
@@ -105,6 +125,10 @@ export default {
         identities: [],
       },
       apiUrl: API_URL,
+      apiKeyDisplayed: false,
+      apiKey: null,
+      apiKeyHelpMessage:
+        'You can use your API key via the datalab-api Python package, or pass it as an HTTP header "DATALAB-API-KEY" with the tool of your choice (e.g., curl).',
     };
   },
   props: {
@@ -141,12 +165,36 @@ export default {
         this.user = user;
       }
     },
+    async requestAPIKey(event) {
+      event.preventDefault();
+      if (
+        window.confirm(
+          "Requesting a new API key will remove your old one. Are you sure you want to proceed?",
+        )
+      ) {
+        const newKey = await requestNewAPIKey();
+        this.apiKey = newKey;
+        this.apiKeyDisplayed = true;
+        window.alert(
+          `A new API key has been generated. Please note that when you close the "Account Settings" window, the key will not be displayed again. `,
+        );
+      }
+    },
+    copyToClipboard() {
+      navigator.clipboard.writeText(this.apiKey);
+    },
+    resetForm() {
+      this.apiKeyDisplayed = false;
+      this.apiKey = null;
+      this.$emit("update:modelValue", false);
+    },
   },
   mounted() {
     this.getUser();
   },
   components: {
     Modal,
+    StyledInput,
   },
 };
 </script>

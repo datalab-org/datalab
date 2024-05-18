@@ -1,11 +1,51 @@
+from functools import wraps
 from typing import Any, Dict
 
+from flask import request
 from flask_login import current_user
 
 from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER
 from pydatalab.login import UserRole
+from pydatalab.models.people import AccountStatus
 from pydatalab.mongo import get_database
+
+
+def active_users_or_get_only(func):
+    """Decorator to ensure that only active user accounts can access a non-GET route."""
+
+    @wraps(func)
+    def wrapped_route(*args, **kwargs):
+        if (
+            (current_user.is_authenticated and current_user.account_status == AccountStatus.ACTIVE)
+            or CONFIG.TESTING
+            or request.method in ("OPTIONS", "GET")
+        ):
+            return func(*args, **kwargs)
+
+        return {"error": "Unauthorized"}, 401
+
+    return wrapped_route
+
+
+def admin_only(func):
+    """Decorator to ensure that only admin user accounts can access a route."""
+
+    @wraps(func)
+    def wrapped_route(*args, **kwargs):
+        if (
+            current_user.is_authenticated
+            and current_user.role == UserRole.ADMIN
+            and current_user.account_status == AccountStatus.ACTIVE
+        ) or request.method in ("OPTIONS", "GET"):
+            return func(*args, **kwargs)
+
+        if not current_user.is_authenticated:
+            return {"error": "Unauthorized"}, 401
+
+        return {"error": "Insufficient privileges"}, 403
+
+    return wrapped_route
 
 
 def get_default_permissions(user_only: bool = True) -> Dict[str, Any]:
@@ -27,6 +67,7 @@ def get_default_permissions(user_only: bool = True) -> Dict[str, Any]:
     if (
         current_user.is_authenticated
         and current_user.person is not None
+        and current_user.account_status == AccountStatus.ACTIVE
         and current_user.role == UserRole.ADMIN
     ):
         return {}

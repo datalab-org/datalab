@@ -1,6 +1,7 @@
 nav:
     - index.md
     - INSTALL.md
+    - deployment.md
     - config.md
     - design
     - schemas

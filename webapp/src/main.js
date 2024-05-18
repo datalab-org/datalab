@@ -15,6 +15,7 @@ import {
   faCode,
   faEnvelope,
   faCog,
+  faUsersCog,
   faChevronRight,
   faArrowUp,
   faArrowDown,
@@ -39,6 +40,8 @@ import {
   faSearch,
   faSpinner,
   faEllipsisH,
+  faCopy,
+  faInfoCircle,
 } from "@fortawesome/free-solid-svg-icons";
 import { faPlusSquare } from "@fortawesome/free-regular-svg-icons";
 import { faGithub, faOrcid } from "@fortawesome/free-brands-svg-icons";
@@ -50,6 +53,7 @@ library.add(
   faCode,
   faEnvelope,
   faCog,
+  faUsersCog,
   faChevronRight,
   faProjectDiagram,
   faArrowUp,
@@ -77,6 +81,8 @@ library.add(
   faPlusSquare,
   faSpinner,
   faEllipsisH,
+  faCopy,
+  faInfoCircle,
 );
 
 // Import TinyMCE
@@ -88,13 +94,14 @@ import "tinymce/themes/silver";
 import "tinymce/skins/ui/oxide/skin.min.css";
 import "tinymce/skins/ui/oxide/content.min.css";
 import "tinymce/skins/content/default/content.min.css";
-// import "tinymce/plugins/emoticons" // not working for some reason
 import "tinymce/plugins/hr";
 import "tinymce/plugins/image";
 import "tinymce/plugins/link";
 import "tinymce/plugins/lists";
 import "tinymce/plugins/charmap";
 import "tinymce/plugins/table";
+import "tinymce/plugins/emoticons";
+import "tinymce/plugins/emoticons/js/emojis";
 
 // import "@uppy/vue"
 
