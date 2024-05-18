@@ -10,8 +10,17 @@
       <template v-slot:header> Account settings </template>
 
       <template v-slot:body>
+        <div class="mx-auto align-center text-center p-4">
+          <UserBubble :creator="this.user" :size="128" />&nbsp;
+        </div>
         <div class="form-row">
-          <div class="form-group col-md-6">
+          <div class="form-group col-md-8 mx-auto text-justify">
+            You can add an avatar by registering your <i>datalab</i> contact email at
+            <a href="https://gravatar.com" target="_blank">gravatar.com</a>.
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group col-md-8">
             <label for="account-name" class="col-form-label">Name:</label>
             <input
               v-model="user.display_name"
@@ -24,7 +33,7 @@
           </div>
         </div>
         <div class="form-row">
-          <div class="form-group col-md-6">
+          <div class="form-group col-md-8">
             <label for="account-email" class="col-form-label">Contact email:</label>
             <input
               v-model="user.contact_email"
@@ -38,6 +47,7 @@
         </div>
         <div class="form-row">
           <div class="form-group col-md-6">
+            <label for="connected-accounts" class="col-form-label">Connected accounts:</label>
             <a
               v-if="user.identities.some((identity) => identity.identity_type === 'github')"
               type="button"
@@ -112,6 +122,7 @@
 <script>
 import { API_URL } from "@/resources.js";
 import Modal from "@/components/Modal.vue";
+import UserBubble from "@/components/UserBubble.vue";
 import { getUserInfo, saveUser, requestNewAPIKey } from "@/server_fetch_utils.js";
 import StyledInput from "./StyledInput.vue";
 
@@ -120,8 +131,8 @@ export default {
   data() {
     return {
       user: {
-        display_name: null,
-        contact_email: null,
+        display_name: "",
+        contact_email: "",
         identities: [],
       },
       apiUrl: API_URL,
@@ -163,6 +174,13 @@ export default {
       let user = await getUserInfo();
       if (user != null) {
         this.user = user;
+      } else {
+        this.user = {
+          display_name: "",
+          contact_email: "",
+          identities: [],
+          role: "user",
+        };
       }
     },
     async requestAPIKey(event) {
@@ -195,6 +213,7 @@ export default {
   components: {
     Modal,
     StyledInput,
+    UserBubble,
   },
 };
 </script>
