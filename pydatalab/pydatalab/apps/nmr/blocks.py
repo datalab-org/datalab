@@ -105,8 +105,9 @@ class NMRBlock(DataBlock):
             plot_line=True,
             point_size=3,
         )
-        # flip x axis, per NMR convention
-        bokeh_layout.children[0].x_range.flipped = True
+        # flip x axis, per NMR convention. Note that the figure is the second element
+        # of the layout in the current implementation, but this could be fragile.
+        bokeh_layout.children[1].x_range.flipped = True
 
         self.data["bokeh_plot_data"] = bokeh.embed.json_item(
             bokeh_layout, theme=DATALAB_BOKEH_THEME
