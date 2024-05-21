@@ -2,7 +2,10 @@
   <input
     ref="input"
     :type="inputType"
-    :class="{ 'form-control': !readonly, 'form-control-plaintext': readonly }"
+    :class="{
+      'form-control': !readonly || forceFormControl,
+      'form-control-plaintext': readonly && !forceFormControl,
+    }"
     :readonly="readonly"
     v-model="vmodelvalue"
     @mouseenter="delayedShowTooltip"
@@ -32,6 +35,10 @@ export default {
     },
     type: { default: "string" },
     helpMessage: { type: String },
+    forceFormControl: {
+      type: Boolean,
+      default: false,
+    },
   },
   data() {
     return {

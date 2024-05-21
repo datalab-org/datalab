@@ -100,7 +100,12 @@
           <div class="form-group col-md-12">
             <label for="api-key" class="col-form-label">API Key:</label>
             <div v-if="apiKeyDisplayed" class="input-group">
-              <StyledInput v-model="apiKey" :readonly="true" :helpMessage="apiKeyHelpMessage" />
+              <StyledInput
+                v-model="apiKey"
+                :readonly="true"
+                :forceFormControl="true"
+                :helpMessage="apiKeyHelpMessage"
+              />
               <div class="input-group-append">
                 <button class="btn btn-outline-secondary" type="button" @click="copyToClipboard">
                   <font-awesome-icon icon="copy" />
