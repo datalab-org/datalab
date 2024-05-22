@@ -100,11 +100,9 @@
   </div>
   <EditAccountSettingsModal v-model="editAccountSettingIsOpen" />
 
-  <div class="container mt-2 alert alert-warning" v-if="isUnverified">
-    <p>
-      Your account is currently unverified, and you will be unable to make or edit entries. Please
-      contact an administrator.
-    </p>
+  <div class="container mt-4 mb-0 alert alert-warning text-center" v-if="isUnverified">
+    Your account is currently unverified, and you will be unable to make or edit entries. Please
+    contact an administrator.
   </div>
 </template>
 

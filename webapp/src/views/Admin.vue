@@ -23,8 +23,7 @@ export default {
   },
   data() {
     return {
-      // Disable collections and samples for now, until we can add the functionality in a future PR
-      items: ["Users", "test1", "test2", "test3"], // , "Collections", "Samples"],
+      items: ["Users"],
       selectedItem: "Users",
       user: null,
     };
