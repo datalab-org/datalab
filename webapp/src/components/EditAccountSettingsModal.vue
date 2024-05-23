@@ -102,9 +102,9 @@
             <div v-if="apiKeyDisplayed" class="input-group">
               <StyledInput
                 v-model="apiKey"
-                :readonly="true"
-                :forceFormControl="true"
                 :helpMessage="apiKeyHelpMessage"
+                readonly
+                class="form-control"
               />
               <div class="input-group-append">
                 <button class="btn btn-outline-secondary" type="button" @click="copyToClipboard">

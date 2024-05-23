@@ -1,20 +1,19 @@
 <template>
-  <input
-    ref="input"
-    :type="inputType"
-    :class="{
-      'form-control': !readonly || forceFormControl,
-      'form-control-plaintext': readonly && !forceFormControl,
-    }"
-    :readonly="readonly"
-    v-model="vmodelvalue"
-    @mouseenter="delayedShowTooltip"
-    @mouseleave="hideTooltip"
-    @focus="delayedShowTooltip"
-    @blur="hideTooltip"
-  />
-  <div ref="tooltipContent" id="tooltip" role="tooltip">
-    {{ helpMessage }}
+  <div class="flex-grow-1">
+    <input
+      ref="input"
+      :type="inputType"
+      :readonly="readonly"
+      v-model="vmodelvalue"
+      v-bind="$attrs"
+      @mouseenter="delayedShowTooltip"
+      @mouseleave="hideTooltip"
+      @focus="delayedShowTooltip"
+      @blur="hideTooltip"
+    />
+    <div ref="tooltipContent" id="tooltip" role="tooltip">
+      {{ helpMessage }}
+    </div>
   </div>
 </template>
 
@@ -27,18 +26,11 @@ import { createPopper } from "@popperjs/core";
 // (but, the time is discarded!)
 
 export default {
+  inheritAttrs: false,
   props: {
     modelValue: { default: "" },
-    readonly: {
-      type: Boolean,
-      default: false,
-    },
     type: { default: "string" },
     helpMessage: { type: String },
-    forceFormControl: {
-      type: Boolean,
-      default: false,
-    },
   },
   data() {
     return {
@@ -49,7 +41,7 @@ export default {
   },
   computed: {
     inputType() {
-      if (this.readonly && (this.type == "date" || this.type == "datetime-local")) {
+      if (this.$attrs.readonly && (this.type == "date" || this.type == "datetime-local")) {
         return "text";
       }
       return this.type;

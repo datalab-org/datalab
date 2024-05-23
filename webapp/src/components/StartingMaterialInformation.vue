@@ -8,11 +8,21 @@
       </div>
       <div class="form-group col-md-2 col-sm-3 col-6">
         <label for="startmat-item_id">Item ID</label>
-        <StyledInput id="startmat-item_id" readonly :modelValue="ItemID" />
+        <StyledInput
+          id="startmat-item_id"
+          readonly
+          class="form-control-plaintext"
+          :modelValue="ItemID"
+        />
       </div>
       <div class="form-group col-lg-7 col-md-8 col-sm-6">
         <label for="startmat-name">Name</label>
-        <StyledInput id="startmat-name" v-model="Name" :readonly="!isEditable" />
+        <StyledInput
+          id="startmat-name"
+          v-model="Name"
+          :class="{ 'form-control': isEditable, 'form-control-plaintext': !isEditable }"
+          :readonly="!isEditable"
+        />
       </div>
     </div>
     <div class="form-row">
@@ -25,11 +35,21 @@
       </div>
       <div class="form-group col-lg-3 col-sm-4">
         <label for="startmat-supplier">Supplier</label>
-        <StyledInput id="startmat-supplier" v-model="Supplier" :readonly="!isEditable" />
+        <StyledInput
+          id="startmat-supplier"
+          v-model="Supplier"
+          :class="{ 'form-control': isEditable, 'form-control-plaintext': !isEditable }"
+          :readonly="!isEditable"
+        />
       </div>
       <div class="form-group col-lg-3 col-sm-4">
         <label for="startmat-purity">Chemical purity</label>
-        <StyledInput id="startmat-purity" v-model="ChemicalPurity" :readonly="!isEditable" />
+        <StyledInput
+          id="startmat-purity"
+          v-model="ChemicalPurity"
+          :class="{ 'form-control': isEditable, 'form-control-plaintext': !isEditable }"
+          :readonly="!isEditable"
+        />
       </div>
     </div>
     <div class="form-row">
@@ -39,6 +59,7 @@
           id="startmat-date-acquired"
           type="date"
           v-model="DateAcquired"
+          :class="{ 'form-control': isEditable, 'form-control-plaintext': !isEditable }"
           :readonly="!isEditable"
         />
       </div>
@@ -48,23 +69,39 @@
           id="startmat-date-opened"
           type="date"
           v-model="DateOpened"
+          :class="{ 'form-control': isEditable, 'form-control-plaintext': !isEditable }"
           :readonly="!isEditable"
         />
       </div>
       <div class="form-group col-lg-3 col-sm-4">
         <label for="startmat-location">Location</label>
-        <StyledInput id="startmat-location" v-model="Location" :readonly="!isEditable" />
+        <StyledInput
+          id="startmat-location"
+          v-model="Location"
+          :class="{ 'form-control': isEditable, 'form-control-plaintext': !isEditable }"
+          :readonly="!isEditable"
+        />
       </div>
     </div>
 
     <div class="form-row">
       <div class="form-group col-lg-3 col-sm-4">
         <label for="startmat-cas">CAS</label>
-        <StyledInput id="startmat-cas" v-model="CAS" :readonly="!isEditable" />
+        <StyledInput
+          id="startmat-cas"
+          v-model="CAS"
+          :class="{ 'form-control': isEditable, 'form-control-plaintext': !isEditable }"
+          :readonly="!isEditable"
+        />
       </div>
       <div class="form-group col-lg-3 col-sm-4">
         <label for="startmat-hazards">GHS Hazard Codes</label>
-        <StyledInput id="startmat-hazards" v-model="GHS" :readonly="!isEditable" />
+        <StyledInput
+          id="startmat-hazards"
+          v-model="GHS"
+          :class="{ 'form-control': isEditable, 'form-control-plaintext': !isEditable }"
+          :readonly="!isEditable"
+        />
       </div>
       <div class="col-lg-3 col-sm-4">
         <ToggleableCollectionFormGroup v-model="Collections" />
