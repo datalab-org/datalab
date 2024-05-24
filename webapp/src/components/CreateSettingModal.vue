@@ -8,8 +8,8 @@
           <div class="form-group col-md-6">
             <label for="create-setting-name" class="col-form-label">Name:</label>
             <select v-model="setting.name" class="form-control" id="create-setting-name">
-              <option value="public">LOGO_URL</option>
-              <option value="private">HOMEPAGE_URL</option>
+              <option value="LOGO_URL">LOGO_URL</option>
+              <option value="HOMEPAGE_URL">HOMEPAGE_URL</option>
             </select>
           </div>
         </div>
