@@ -4,7 +4,7 @@
       v-model="file_id"
       :item_id="item_id"
       :block_id="block_id"
-      :extensions="['.png', '.jpeg', '.jpg', '.tiff', '.tif', '.mp4', '.mov', '.webm']"
+      :extensions="blockInfo.attributes.accepted_file_extensions"
       class="mb-3"
       updateBlockOnChange
     />
@@ -31,6 +31,9 @@ export default {
     },
     block_data() {
       return this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id];
+    },
+    blockInfo() {
+      return this.$store.state.blocksInfos["media"];
     },
     media_url() {
       // If the API has already base64 encoded the image, then use it,
