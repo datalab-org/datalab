@@ -18,6 +18,9 @@ module.exports = {
   chainWebpack: (config) => {
     config.plugin("html").tap((args) => {
       args[0].title = process.env.VUE_APP_WEBSITE_TITLE || "datalab";
+      args[0].meta = {
+        x_datalab_api_url: process.env.VUE_APP_API_URL,
+      };
       return args;
     });
   },
