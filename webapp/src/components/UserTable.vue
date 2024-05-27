@@ -110,15 +110,14 @@ export default {
     },
     async confirmUpdateUserStatus(user_id, new_status) {
       const originalCurrentUser = this.original_users.find((user) => user._id.$oid === user_id);
-      const currentUser = this.users.find((user) => user._id.$oid === user_id);
 
       if (
         window.confirm(
           `Are you sure you want to change ${originalCurrentUser.display_name}'s status from "${originalCurrentUser.account_status}" to "${new_status}" ?`,
         )
       ) {
+        this.users.find((user) => user._id.$oid == user_id).account_status = new_status;
         await this.updateUserStatus(user_id, new_status);
-        currentUser.account_status = new_status;
       } else {
         this.users.find((user) => user._id.$oid === user_id).account_status =
           originalCurrentUser.account_status;
@@ -130,6 +129,7 @@ export default {
     },
     async updateUserStatus(user_id, status) {
       await saveUser(user_id, { account_status: status });
+      this.original_users = JSON.parse(JSON.stringify(this.users));
     },
   },
   created() {
