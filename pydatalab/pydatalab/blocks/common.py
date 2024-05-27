@@ -1,5 +1,7 @@
 import base64
 import io
+import warnings
+from pathlib import Path
 
 import pandas as pd
 from PIL import Image
@@ -73,12 +75,39 @@ class TabularDataBlock(DataBlock):
 
         file_info = get_file_info_by_id(self.data["file_id"], update_if_live=True)
 
+        return self.load(file_info["location"])
+
+    @classmethod
+    def load(cls, location: Path) -> pd.DataFrame:
         try:
-            return pd.read_csv(
-                file_info["location"], sep=None, skip_blank_lines=False, engine="python"
+            df = pd.read_csv(
+                location,
+                sep=None,
+                encoding_errors="backslashreplace",
+                skip_blank_lines=False,
+                engine="python",
             )
+
+            if df.isnull().values.any():
+                warnings.warn(
+                    "Loading file with less strict parser: columns were previously detected as {df.columns}"
+                )
+                df = pd.read_csv(
+                    location,
+                    sep=None,
+                    names=range(df.shape[1]),
+                    comment="#",
+                    header=None,
+                    encoding_errors="backslashreplace",
+                    skip_blank_lines=False,
+                    engine="python",
+                )
+                # Drop a row if entirety is NaN
+                df.dropna(axis=1, inplace=True)
         except Exception as e:
             raise RuntimeError(f"`pandas.read_csv()` was not able to read the file. Error: {e}")
+
+        return df
 
     def plot_df(self):
         import bokeh.embed
