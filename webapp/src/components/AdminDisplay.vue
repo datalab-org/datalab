@@ -16,10 +16,9 @@ export default {
 
 <style scoped>
 .admin-display {
-  width: 100%;
+  max-width: 100%;
+  min-width: 80%;
   padding: 1em;
   margin: 0.5em;
-  border: 1px solid lightgray;
-  border-radius: 0.5em;
 }
 </style>

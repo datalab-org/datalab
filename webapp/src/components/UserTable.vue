@@ -5,13 +5,29 @@
         <th scope="col">Name</th>
         <th scope="col">Email</th>
         <th scope="col">Role</th>
-        <th scope="col">Status</th>
-        <th scope="col">Change status</th>
+        <th scope="col">Actions</th>
       </tr>
     </thead>
     <tbody>
       <tr v-for="user in users" :key="user._id">
-        <td align="left">{{ user.display_name }}</td>
+        <td align="left">
+          {{ user.display_name }}
+          <span v-if="user.account_status === 'active'" class="badge badge-success text-uppercase">
+            Active
+          </span>
+          <span
+            v-else-if="user.account_status === 'unverified'"
+            class="badge badge-warning text-uppercase"
+          >
+            Unverified
+          </span>
+          <span
+            v-else-if="user.account_status === 'deactivated'"
+            class="badge badge-danger text-uppercase"
+          >
+            Deactivated
+          </span>
+        </td>
         <td align="left">{{ user.contact_email }}</td>
         <td align="left">
           <select
@@ -25,35 +41,23 @@
           </select>
         </td>
         <td align="left">
-          <button v-if="user.account_status === 'active'" class="btn btn-success btn-sm">
-            Active
-          </button>
-          <button v-else-if="user.account_status === 'unverified'" class="btn btn-warning btn-sm">
-            Unverified
-          </button>
-          <button v-else-if="user.account_status === 'deactivated'" class="btn btn-danger btn-sm">
-            Deactivated
-          </button>
-        </td>
-
-        <td align="left">
           <button
             v-if="user.account_status === 'active'"
-            class="btn btn-danger btn-sm"
+            class="btn btn-outline-danger btn-sm text-uppercase text-monospace"
             @click="confirmUpdateUserStatus(user._id.$oid, 'deactivated')"
           >
             Deactivate
           </button>
           <button
             v-else-if="user.account_status === 'unverified'"
-            class="btn btn-success btn-sm"
+            class="btn btn-outline-success btn-sm text-uppercase text-monospace"
             @click="confirmUpdateUserStatus(user._id.$oid, 'active')"
           >
             Activate
           </button>
           <button
             v-else-if="user.account_status === 'deactivated'"
-            class="btn btn-success btn-sm"
+            class="btn btn-outline-success btn-sm text-uppercase text-monospace"
             @click="confirmUpdateUserStatus(user._id.$oid, 'active')"
           >
             Activate
@@ -135,13 +139,21 @@ export default {
 </script>
 
 <style scoped>
+td {
+  vertical-align: middle;
+}
+
 .table-item-id {
   font-size: 1.2em;
   font-weight: normal;
 }
 select {
-  padding: 0.1em;
   border: 1px solid #ccc;
   border-radius: 0.25rem;
+}
+
+.badge {
+  margin-left: 1em;
+  font-family: "Andalé Mono", monospace;
 }
 </style>

@@ -36,8 +36,7 @@ export default {
 .sidebar {
   padding: 1em;
   margin: 0.5em;
-  border-radius: 0.5em;
-  border: 1px solid lightgray;
+  border-right: 1px solid lightgray;
   cursor: pointer;
 }
 
