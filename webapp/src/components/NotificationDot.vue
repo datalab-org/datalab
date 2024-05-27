@@ -88,6 +88,7 @@ export default {
 }
 
 #tooltip {
+  text-align: center;
   z-index: 9999;
   border: 1px solid grey;
   width: 30%;
