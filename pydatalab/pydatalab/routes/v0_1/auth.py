@@ -258,8 +258,6 @@ def generate_and_share_magic_link():
     in the database and sends it to the verified email address.
 
     """
-    from flask import request
-
     request_json = request.get_json()
     email = request_json.get("email")
     referrer = request_json.get("referrer")
@@ -387,6 +385,8 @@ def email_logged_in():
         create_account=create_account,
     )
 
+    if CONFIG.APP_URL:
+        return redirect(CONFIG.APP_URL, 307)
     referer = request.headers.get("Referer", "/")
     return redirect(referer, 307)
 
@@ -471,10 +471,10 @@ def orcid_logged_in(_, token):
 @oauth_authorized.connect
 def redirect_to_ui(blueprint, token):  # pylint: disable=unused-argument
     """Intercepts the default Flask-Dance and redirects to the referring page."""
-    from flask import request
-
+    if CONFIG.APP_URL:
+        return redirect(CONFIG.APP_URL, 307)
     referer = request.headers.get("Referer", "/")
-    return redirect(referer)
+    return redirect(referer, 307)
 
 
 @AUTH.route("/get-current-user/", methods=["GET"])
