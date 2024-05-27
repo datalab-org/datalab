@@ -1,10 +1,10 @@
 <template>
   <Navbar />
-  <div v-if="!user || (user && user.role !== 'admin')" class="error-message">
+  <div v-if="!canAccessAdminPage" class="error-message">
     <p class="error-text">You do not have permission to access this page.</p>
   </div>
   <div v-else class="admin-container">
-    <AdminNavbar :items="items" @item-selected="onItemSelected" />
+    <AdminNavbar :items="items" @item-selected="onItemSelected" :selectedItem="selectedItem" />
     <AdminDisplay :selectedItem="selectedItem" />
   </div>
 </template>
@@ -23,14 +23,13 @@ export default {
   },
   data() {
     return {
-      // Disable collections and samples for now, until we can add the functionality in a future PR
-      items: ["Users"], // , "Collections", "Samples"],
+      items: ["Users"],
       selectedItem: "Users",
       user: null,
     };
   },
-  async mounted() {
-    await this.getUser();
+  created() {
+    this.getUser();
   },
   methods: {
     async getUser() {
@@ -41,6 +40,9 @@ export default {
     },
     onItemSelected(item) {
       this.selectedItem = item;
+    },
+    canAccessAdminPage() {
+      return !this.user || (this.user && this.user.role !== "admin");
     },
   },
 };
