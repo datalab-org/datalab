@@ -1,6 +1,5 @@
 import base64
 import io
-import warnings
 
 import pandas as pd
 from PIL import Image
@@ -70,15 +69,14 @@ class TabularDataBlock(DataBlock):
 
     def _load(self) -> pd.DataFrame:
         if "file_id" not in self.data:
-            warnings.warn(
-                f"{self.__class__.__name__}.read_data_file(): No file set in the DataBlock"
-            )
             return
 
         file_info = get_file_info_by_id(self.data["file_id"], update_if_live=True)
 
         try:
-            return pd.read_csv(file_info["location"], sep=None, skip_blank_lines=False)
+            return pd.read_csv(
+                file_info["location"], sep=None, skip_blank_lines=False, engine="python"
+            )
         except Exception as e:
             raise RuntimeError(f"`pandas.read_csv()` was not able to read the file. Error: {e}")
 
