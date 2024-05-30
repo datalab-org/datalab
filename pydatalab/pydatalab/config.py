@@ -124,6 +124,11 @@ class SMTPSettings(BaseModel):
 class ServerConfig(BaseSettings):
     """A model that provides settings for deploying the API."""
 
+    APP_URL: str | None = Field(
+        None,
+        description="The canonical URL for any UI associated with this instance; will be used for redirects on user login/registration.",
+    )
+
     SECRET_KEY: str = Field(
         hashlib.sha512((platform.platform() + str(platform.python_build)).encode()).hexdigest(),
         description="The secret key to use for Flask. This value should be changed and/or loaded from an environment variable for production deployments.",
