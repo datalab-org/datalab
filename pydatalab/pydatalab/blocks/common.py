@@ -1,6 +1,9 @@
 import base64
 import io
+import warnings
+from pathlib import Path
 
+import pandas as pd
 from PIL import Image
 
 from pydatalab.file_utils import get_file_info_by_id
@@ -49,3 +52,80 @@ class MediaBlock(DataBlock):
                 self.data["b64_encoded_image"][self.data["file_id"]] = base64.b64encode(
                     f.getvalue()
                 ).decode()
+
+
+class TabularDataBlock(DataBlock):
+    """This block simply tries to read the given file with pandas, and
+    expose an interface to plot its columns as scatter points.
+
+    """
+
+    blocktype = "tabular"
+    name = "Tabular Data Block"
+    description = "This block will load tabular data from common plain text files and allow you to create simple scatter plots of the columns within."
+    accepted_file_extensions = (".csv", ".txt", ".tsv", ".dat")
+
+    @property
+    def plot_functions(self):
+        return (self.plot_df,)
+
+    def _load(self) -> pd.DataFrame:
+        if "file_id" not in self.data:
+            return
+
+        file_info = get_file_info_by_id(self.data["file_id"], update_if_live=True)
+
+        return self.load(file_info["location"])
+
+    @classmethod
+    def load(cls, location: Path) -> pd.DataFrame:
+        try:
+            df = pd.read_csv(
+                location,
+                sep=None,
+                encoding_errors="backslashreplace",
+                skip_blank_lines=False,
+                engine="python",
+            )
+
+            if df.isnull().values.any():
+                warnings.warn(
+                    "Loading file with less strict parser: columns were previously detected as {df.columns}"
+                )
+                df = pd.read_csv(
+                    location,
+                    sep=None,
+                    names=range(df.shape[1]),
+                    comment="#",
+                    header=None,
+                    encoding_errors="backslashreplace",
+                    skip_blank_lines=False,
+                    engine="python",
+                )
+                # Drop a row if entirety is NaN
+                df.dropna(axis=1, inplace=True)
+        except Exception as e:
+            raise RuntimeError(f"`pandas.read_csv()` was not able to read the file. Error: {e}")
+
+        return df
+
+    def plot_df(self):
+        import bokeh.embed
+
+        from pydatalab.bokeh_plots import DATALAB_BOKEH_THEME, selectable_axes_plot
+
+        df = self._load()
+        if df is None:
+            return
+        columns = list(df.columns)
+        plot = selectable_axes_plot(
+            df,
+            x_options=columns,
+            y_options=columns,
+            x_default=columns[0],
+            y_default=columns[1],
+            plot_points=True,
+            plot_line=False,
+        )
+
+        self.data["bokeh_plot_data"] = bokeh.embed.json_item(plot, theme=DATALAB_BOKEH_THEME)
