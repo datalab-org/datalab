@@ -25,3 +25,16 @@ def test_deactivated_user_permissions(deactivated_client):
 
     response = client.get("/starting-materials/")
     assert response.status_code == 200
+
+
+def test_unauthenticated_user_permissions(unauthenticated_client):
+    """Test permissions for an unauthenticated user."""
+    client = unauthenticated_client
+    response = client.get("/samples/")
+    assert response.status_code == 401
+
+    response = client.post("/new-sample/", json={"item_id": "test"})
+    assert response.status_code == 401
+
+    response = client.get("/starting-materials/")
+    assert response.status_code == 401
