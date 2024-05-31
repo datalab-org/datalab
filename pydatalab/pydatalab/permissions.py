@@ -11,7 +11,7 @@ from pydatalab.models.people import AccountStatus
 from pydatalab.mongo import get_database
 
 
-def active_users_only(func):
+def active_users_or_get_only(func):
     """Decorator to ensure that only active user accounts can access the route,
     unless it is a GET-route, in which case deactivated accounts can also access it.
 

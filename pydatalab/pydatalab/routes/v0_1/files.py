@@ -10,13 +10,13 @@ from werkzeug.utils import secure_filename
 import pydatalab.mongo
 from pydatalab import file_utils
 from pydatalab.config import CONFIG
-from pydatalab.permissions import active_users_only, get_default_permissions
+from pydatalab.permissions import active_users_or_get_only, get_default_permissions
 
 FILES = Blueprint("files", __name__)
 
 
 @FILES.before_request
-@active_users_only
+@active_users_or_get_only
 def _(): ...
 
 

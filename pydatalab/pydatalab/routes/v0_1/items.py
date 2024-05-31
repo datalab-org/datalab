@@ -16,13 +16,13 @@ from pydatalab.models.items import Item
 from pydatalab.models.relationships import RelationshipType
 from pydatalab.models.utils import generate_unique_refcode
 from pydatalab.mongo import flask_mongo
-from pydatalab.permissions import active_users_only, get_default_permissions
+from pydatalab.permissions import active_users_or_get_only, get_default_permissions
 
 ITEMS = Blueprint("items", __name__)
 
 
 @ITEMS.before_request
-@active_users_only
+@active_users_or_get_only
 def _(): ...
 
 
