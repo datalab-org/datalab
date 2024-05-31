@@ -12,12 +12,21 @@ from pydatalab.mongo import get_database
 
 
 def active_users_only(func):
-    """Decorator to ensure that only active user accounts can access."""
+    """Decorator to ensure that only active user accounts can access the route,
+    unless it is a GET-route, in which case deactivated accounts can also access it.
+
+    """
 
     @wraps(func)
     def wrapped_route(*args, **kwargs):
         if (
-            (current_user.is_authenticated and current_user.account_status == AccountStatus.ACTIVE)
+            (
+                current_user.is_authenticated
+                and (
+                    current_user.account_status == AccountStatus.ACTIVE
+                    or request.method in ("OPTIONS", "GET")
+                )
+            )
             or CONFIG.TESTING
             or request.method in ("OPTIONS",)
         ):
