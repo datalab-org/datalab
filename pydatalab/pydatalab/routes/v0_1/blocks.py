@@ -5,13 +5,13 @@ from pydatalab.blocks import BLOCK_TYPES
 from pydatalab.blocks.base import DataBlock
 from pydatalab.logger import LOGGER
 from pydatalab.mongo import flask_mongo
-from pydatalab.permissions import active_users_or_get_only, get_default_permissions
+from pydatalab.permissions import active_users_only, get_default_permissions
 
 BLOCKS = Blueprint("blocks", __name__)
 
 
 @BLOCKS.before_request
-@active_users_or_get_only
+@active_users_only
 def _(): ...
 
 
