@@ -2,13 +2,14 @@
   <input
     ref="input"
     :type="inputType"
-    :class="{ 'form-control': !readonly, 'form-control': readonly }"
+    :class="formControlClass"
     :readonly="readonly"
     v-model="vmodelvalue"
     @mouseenter="delayedShowTooltip"
     @mouseleave="hideTooltip"
     @focus="delayedShowTooltip"
     @blur="hideTooltip"
+    v-bind="$attrs"
   />
   <div ref="tooltipContent" id="tooltip" role="tooltip">
     {{ helpMessage }}
@@ -46,6 +47,16 @@ export default {
         return "text";
       }
       return this.type;
+    },
+    formControlClass() {
+      // If the component $attrs specify "form-control" or "form-control-plaintext",
+      // don't set any class. Otherwise, set the appropriate class based on whether
+      // readonly is specified
+      const classes = this.$attrs.class ? this.$attrs.class.split(" ") : [];
+      if (classes.includes("form-control") || classes.includes("form-control-plaintext")) {
+        return "";
+      }
+      return this.readonly ? "form-control-plaintext" : "form-control";
     },
     vmodelvalue: {
       get() {
@@ -97,10 +108,6 @@ export default {
 </script>
 
 <style scoped>
-input {
-  border: 1px solid grey;
-}
-
 #tooltip {
   z-index: 9999;
   border: 1px solid grey;
