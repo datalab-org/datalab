@@ -15,15 +15,16 @@
       <label for="sample-table-search" class="sr-only">Search items</label>
       <input
         id="sample-table-search"
+        v-model="searchValue"
         type="text"
         class="form-control"
-        v-model="searchValue"
         placeholder="search"
       />
     </div>
   </div>
 
   <Vue3EasyDataTable
+    v-model:items-selected="itemsSelected"
     :headers="headers"
     :items="samples"
     :search-value="searchValue"
@@ -31,10 +32,9 @@
     header-class-name="customize-table-header"
     buttons-pagination
     @click-row="goToEditPage"
-    v-model:items-selected="itemsSelected"
   >
     <template #item-item_id="item">
-      <FormattedItemName :item_id="item.item_id" :itemType="item?.type" enableModifiedClick />
+      <FormattedItemName :item_id="item.item_id" :item-type="item?.type" enable-modified-click />
     </template>
 
     <template #item-type="item">
@@ -66,6 +66,12 @@ import { getSampleList, deleteSample } from "@/server_fetch_utils.js";
 import { GRAVATAR_STYLE, itemTypes } from "@/resources.js";
 
 export default {
+  components: {
+    Vue3EasyDataTable,
+    ChemicalFormula,
+    Creators,
+    FormattedItemName,
+  },
   data() {
     return {
       isSampleFetchError: false,
@@ -89,6 +95,9 @@ export default {
     samples() {
       return this.$store.state.sample_list;
     },
+  },
+  created() {
+    this.getSamples();
   },
   methods: {
     goToEditPage(row, event) {
@@ -131,15 +140,6 @@ export default {
         console.log("delete cancelled...");
       }
     },
-  },
-  created() {
-    this.getSamples();
-  },
-  components: {
-    Vue3EasyDataTable,
-    ChemicalFormula,
-    Creators,
-    FormattedItemName,
   },
 };
 </script>

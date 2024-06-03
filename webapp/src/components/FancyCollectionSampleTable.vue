@@ -8,9 +8,9 @@
       <label for="sample-table-search" class="sr-only">Search items</label>
       <input
         id="sample-table-search"
+        v-model="searchValue"
         type="text"
         class="form-control"
-        v-model="searchValue"
         placeholder="Search within collection"
       />
     </div>
@@ -31,7 +31,7 @@
     <template #empty-message>Collection is empty.</template>
 
     <template #item-item_id="item">
-      <FormattedItemName :item_id="item.item_id" :itemType="item?.type" enableModifiedClick />
+      <FormattedItemName :item_id="item.item_id" :item-type="item?.type" enable-modified-click />
     </template>
 
     <template #item-type="item">
@@ -63,6 +63,12 @@ import { getCollectionSampleList } from "@/server_fetch_utils.js";
 import { itemTypes } from "@/resources.js";
 
 export default {
+  components: {
+    Vue3EasyDataTable,
+    ChemicalFormula,
+    Creators,
+    FormattedItemName,
+  },
   props: {
     collection_id: String,
   },
@@ -88,6 +94,9 @@ export default {
     samples() {
       return this.$store.state.all_collection_children[this.collection_id] || [];
     },
+  },
+  created() {
+    this.getCollectionSamples();
   },
   methods: {
     getCollectionSamples() {
@@ -128,15 +137,6 @@ export default {
         console.log("delete cancelled...");
       }
     },
-  },
-  created() {
-    this.getCollectionSamples();
-  },
-  components: {
-    Vue3EasyDataTable,
-    ChemicalFormula,
-    Creators,
-    FormattedItemName,
   },
 };
 </script>

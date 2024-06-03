@@ -2,16 +2,16 @@
   <img
     :src="
       'https://www.gravatar.com/avatar/' +
-      md5(this.creator.contact_email || this.creator.display_name) +
+      md5(creator.contact_email || creator.display_name) +
       '?d=' +
-      this.gravatar_style +
+      gravatar_style +
       '&s=' +
       size
     "
     class="avatar"
     :width="size"
     :height="size"
-    :title="this.creator.display_name"
+    :title="creator.display_name"
   />
 </template>
 
@@ -19,11 +19,6 @@
 import crypto from "crypto";
 import { GRAVATAR_STYLE } from "@/resources.js";
 export default {
-  data() {
-    return {
-      gravatar_style: GRAVATAR_STYLE,
-    };
-  },
   props: {
     creator: {
       type: Object,
@@ -34,6 +29,11 @@ export default {
       default: 32,
       required: false,
     },
+  },
+  data() {
+    return {
+      gravatar_style: GRAVATAR_STYLE,
+    };
   },
   methods: {
     md5(value) {

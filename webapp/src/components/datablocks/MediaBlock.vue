@@ -6,7 +6,7 @@
       :block_id="block_id"
       :extensions="blockInfo.attributes.accepted_file_extensions"
       class="mb-3"
-      updateBlockOnChange
+      update-block-on-change
     />
     <img v-if="isPhoto" :src="media_url" class="img-fluid mx-auto" />
     <video v-if="isVideo" :src="media_url" controls class="mx-auto" />

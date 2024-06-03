@@ -4,8 +4,8 @@
     <p class="error-text">You do not have permission to access this page.</p>
   </div>
   <div v-else class="admin-container">
-    <AdminNavbar :items="items" @item-selected="onItemSelected" :selectedItem="selectedItem" />
-    <AdminDisplay :selectedItem="selectedItem" />
+    <AdminNavbar :items="items" :selected-item="selectedItem" @item-selected="onItemSelected" />
+    <AdminDisplay :selected-item="selectedItem" />
   </div>
 </template>
 

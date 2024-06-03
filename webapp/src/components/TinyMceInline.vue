@@ -1,8 +1,6 @@
 <template>
   <editor
     v-model="content"
-    @change="$emit('update:modelValue', content)"
-    @SaveContent="$emit('update:modelValue', content)"
     :init="{
       inline: true,
       menubar: false,
@@ -42,18 +40,20 @@
       skin: false, // important so that skin is loaded correctly, oddly
       content_css: false, // ^ same
     }"
+    @change="$emit('update:modelValue', content)"
+    @SaveContent="$emit('update:modelValue', content)"
   />
 </template>
 
 <script>
 export default {
+  props: ["modelValue", "placeholder"],
+  emits: ["update:modelValue"],
   data: function () {
     return {
       content: this.modelValue,
     };
   },
-  props: ["modelValue", "placeholder"],
-  emits: ["update:modelValue"],
   watch: {
     modelValue() {
       this.content = this.modelValue;

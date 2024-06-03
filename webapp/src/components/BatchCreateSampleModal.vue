@@ -1,24 +1,24 @@
 <template>
   <form data-testid="batch-modal-container" class="modal-enclosure" @submit.prevent="submitForm">
     <Modal
-      :modelValue="modelValue"
-      @update:modelValue="$emit('update:modelValue', $event)"
-      :disableSubmit="
+      :model-value="modelValue"
+      :disable-submit="
         sampleIDValidationMessages.some((e) => e) ||
         (!generateIDsAutomatically && samples.some((s) => !Boolean(s.item_id)))
       "
+      @update:modelValue="$emit('update:modelValue', $event)"
     >
-      <template v-slot:header>
+      <template #header>
         <template v-if="beforeSubmit">Add new samples</template>
         <template v-else>
-          <a role="button" id="back-arrow" @click="beforeSubmit = true">←</a>
+          <a id="back-arrow" role="button" @click="beforeSubmit = true">←</a>
           Samples added
         </template>
       </template>
-      <template v-slot:body>
+      <template #body>
         <div id="screens-container">
           <transition name="slide-content-left">
-            <div id="left-screen" v-show="beforeSubmit">
+            <div v-show="beforeSubmit" id="left-screen">
               <div class="row">
                 <div class="col-md-8 mt-2" @click="templateIsOpen = !templateIsOpen">
                   <font-awesome-icon
@@ -63,18 +63,18 @@
                   <tbody>
                     <td>
                       <input
-                        class="form-control"
                         v-model="sampleTemplate.item_id"
-                        @input="applyIdTemplate"
+                        class="form-control"
                         :placeholder="generateIDsAutomatically ? null : 'ex_{#}'"
                         :disabled="generateIDsAutomatically"
+                        @input="applyIdTemplate"
                       />
                       <div class="form-check mt-1 ml-1">
                         <input
-                          type="checkbox"
-                          v-model="generateIDsAutomatically"
-                          class="form-check-input clickable"
                           id="automatic-batch-id-label"
+                          v-model="generateIDsAutomatically"
+                          type="checkbox"
+                          class="form-check-input clickable"
                           @input="setIDsNull"
                         />
                         <label
@@ -88,35 +88,35 @@
                     </td>
                     <td>
                       <input
-                        class="form-control"
-                        @input="applyNameTemplate"
                         v-model="sampleTemplate.name"
+                        class="form-control"
                         placeholder="Example name {#}"
+                        @input="applyNameTemplate"
                       />
                     </td>
                     <td>
                       <input
+                        v-model="sampleTemplate.date"
                         class="form-control"
                         type="datetime-local"
-                        v-model="sampleTemplate.date"
-                        @input="applyDateTemplate"
                         :min="epochStart"
                         :max="oneYearOn"
+                        @input="applyDateTemplate"
                       />
                     </td>
                     <td>
                       <ItemSelect
                         v-model="sampleTemplate.copyFrom"
+                        :formatted-item-name-max-length="8"
                         @update:modelValue="applyCopyFromTemplate"
-                        :formattedItemNameMaxLength="8"
                       />
                     </td>
                     <td>
                       <ItemSelect
                         v-model="sampleTemplate.components"
                         multiple
+                        :formatted-item-name-max-length="8"
                         @update:modelValue="applyComponentsTemplate"
-                        :formattedItemNameMaxLength="8"
                       />
                     </td>
                   </tbody>
@@ -124,19 +124,19 @@
 
                 <div class="form-group mt-2 mb-1" style="display: flex">
                   <label
-                    for="start-counting"
                     id="start-counting-label"
+                    for="start-counting"
                     class="px-3 col-form-label-sm"
                   >
                     start counting {#} at:
                   </label>
                   <input
-                    type="number"
                     id="start-counting"
                     v-model="templateStartNumber"
+                    type="number"
                     class="form-control form-control-sm"
-                    @input="applyIdAndNameTemplates"
                     style="width: 5em"
+                    @input="applyIdAndNameTemplates"
                   />
                 </div>
               </div>
@@ -157,44 +157,44 @@
                     <tr>
                       <td>
                         <input
-                          class="form-control"
                           v-model="sample.item_id"
-                          @input="this.sampleTemplate.item_id = ''"
-                          :disabled="generateIDsAutomatically"
-                        />
-                      </td>
-                      <td>
-                        <input
                           class="form-control"
-                          v-model="sample.name"
-                          @input="this.sampleTemplate.name = ''"
+                          :disabled="generateIDsAutomatically"
+                          @input="sampleTemplate.item_id = ''"
                         />
                       </td>
                       <td>
                         <input
+                          v-model="sample.name"
+                          class="form-control"
+                          @input="sampleTemplate.name = ''"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          v-model="sample.date"
                           class="form-control"
                           type="datetime-local"
-                          v-model="sample.date"
                           :min="epochStart"
                           :max="oneYearOn"
                         />
                       </td>
                       <td>
-                        <ItemSelect v-model="sample.copyFrom" :formattedItemNameMaxLength="8" />
+                        <ItemSelect v-model="sample.copyFrom" :formatted-item-name-max-length="8" />
                       </td>
                       <td>
                         <ItemSelect
                           v-model="sample.components"
                           multiple
-                          :formattedItemNameMaxLength="8"
+                          :formatted-item-name-max-length="8"
                         />
                       </td>
                       <td>
                         <button
                           type="button"
                           class="close"
-                          @click.stop="removeRow(index)"
                           aria-label="delete"
+                          @click.stop="removeRow(index)"
                         >
                           <span aria-hidden="true">&times;</span>
                         </button>
@@ -209,27 +209,27 @@
             </div>
           </transition>
           <transition name="slide-content-right">
-            <div id="right-screen" v-show="!beforeSubmit">
+            <div v-show="!beforeSubmit" id="right-screen">
               <div v-for="(response, index) in serverResponses" :key="index">
-                <div class="callout callout-info" v-if="response.status == 'success'">
+                <div v-if="response.status == 'success'" class="callout callout-info">
                   <a class="item-id-link" :href="`edit/${response.item_id}`">
                     {{ response.item_id }}
                   </a>
                   Successfully created.
                 </div>
                 <div
-                  class="callout callout-danger form-error"
                   v-if="
                     response.status == 'error' &&
                     response.message.includes('item_id_validation_error')
                   "
+                  class="callout callout-danger form-error"
                 >
                   <a :href="`edit/${response.item_id}`">
                     {{ response.item_id }}
                   </a>
                   was not added as it already exists in the database.
                 </div>
-                <div class="callout callout-danger" v-else-if="response.status == 'error'">
+                <div v-else-if="response.status == 'error'" class="callout callout-danger">
                   {{ response.message }}
                 </div>
               </div>
@@ -237,7 +237,7 @@
           </transition>
         </div>
       </template>
-      <template v-if="!beforeSubmit" v-slot:footer>
+      <template v-if="!beforeSubmit" #footer>
         <button type="button" class="btn btn-info" @click="openEditPagesInNewTabs">Open all</button>
         <button
           type="button"
@@ -258,6 +258,14 @@ import ItemSelect from "@/components/ItemSelect.vue";
 import { createNewSamples } from "@/server_fetch_utils.js";
 export default {
   name: "BatchCreateSampleModal",
+  components: {
+    Modal,
+    ItemSelect,
+  },
+  props: {
+    modelValue: Boolean,
+  },
+  emits: ["update:modelValue"],
   data() {
     return {
       beforeSubmit: true,
@@ -303,10 +311,6 @@ export default {
       serverResponses: {}, // after the server responds, store error messages if any
     };
   },
-  props: {
-    modelValue: Boolean,
-  },
-  emits: ["update:modelValue"],
   computed: {
     takenSampleIds() {
       return this.$store.state.sample_list
@@ -352,6 +356,25 @@ export default {
         }
         return "";
       });
+    },
+  },
+
+  watch: {
+    nSamples(newValue, oldValue) {
+      if (newValue < oldValue) {
+        this.samples = this.samples.slice(0, newValue);
+      }
+      if (newValue > oldValue) {
+        for (let i = 0; i < newValue - oldValue; i++) {
+          this.samples.push({ ...this.sampleTemplate });
+        }
+        if (this.sampleTemplate.item_id) {
+          this.applyIdTemplate();
+        }
+        if (this.sampleTemplate.name) {
+          this.applyNameTemplate();
+        }
+      }
     },
   },
   methods: {
@@ -447,29 +470,6 @@ export default {
           window.open(`/edit/${response.item_id}`, "_blank");
         });
     },
-  },
-
-  watch: {
-    nSamples(newValue, oldValue) {
-      if (newValue < oldValue) {
-        this.samples = this.samples.slice(0, newValue);
-      }
-      if (newValue > oldValue) {
-        for (let i = 0; i < newValue - oldValue; i++) {
-          this.samples.push({ ...this.sampleTemplate });
-        }
-        if (this.sampleTemplate.item_id) {
-          this.applyIdTemplate();
-        }
-        if (this.sampleTemplate.name) {
-          this.applyNameTemplate();
-        }
-      }
-    },
-  },
-  components: {
-    Modal,
-    ItemSelect,
   },
 };
 </script>

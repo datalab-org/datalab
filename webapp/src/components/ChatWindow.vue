@@ -8,13 +8,16 @@
       <MessageBubble :message="message" />
     </ul>
   </transition-group>
-  <font-awesome-icon class="ellipsis" :icon="['fas', 'ellipsis-h']" beat-fade v-if="isLoading" />
+  <font-awesome-icon v-if="isLoading" class="ellipsis" :icon="['fas', 'ellipsis-h']" beat-fade />
 </template>
 
 <script>
 import MessageBubble from "@/components/MessageBubble.vue";
 
 export default {
+  components: {
+    MessageBubble,
+  },
   props: {
     chatMessages: Array,
     isLoading: Boolean,
@@ -30,9 +33,6 @@ export default {
     chatMessages() {
       this.windowHeight = "auto";
     },
-  },
-  components: {
-    MessageBubble,
   },
 };
 </script>

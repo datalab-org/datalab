@@ -7,27 +7,27 @@
         class="collapse-arrow"
         @click="toggleExpandBlock"
       />
-      <input class="form-control-plaintext block-title" type="text" v-model="BlockTitle" />
+      <input v-model="BlockTitle" class="form-control-plaintext block-title" type="text" />
       <span class="blocktype-label ml-auto mr-3">{{ blockType }}</span>
-      <span class="block-header-icon"><StyledBlockInfo :blockInfo="blockInfo" /></span>
+      <span class="block-header-icon"><StyledBlockInfo :block-info="blockInfo" /></span>
       <font-awesome-icon
         :icon="['fa', 'sync']"
         class="block-header-icon"
-        @click="updateBlock"
         :class="{ spin: isUpdating }"
         aria-label="updateBlock"
+        @click="updateBlock"
       />
       <font-awesome-icon
+        v-if="displayIndex != 0"
         :icon="['fas', 'arrow-up']"
         class="block-header-icon"
         @click="swapUp"
-        v-if="displayIndex != 0"
       />
       <font-awesome-icon
+        v-if="displayIndex != displayOrder.length - 1"
         :icon="['fas', 'arrow-down']"
         class="block-header-icon"
         @click="swapDown"
-        v-if="displayIndex != displayOrder.length - 1"
       />
       <font-awesome-icon
         :icon="['fas', 'times']"
@@ -43,9 +43,9 @@
     >
       <!-- Show any warnings or errors reported by the block -->
       <div
+        v-if="block.errors"
         class="alert alert-danger d-flex align-items-center ml-3"
         role="alert"
-        v-if="block.errors"
       >
         <ul class="fa-ul">
           <li v-for="(error, index) in block.errors" :key="index">
@@ -55,9 +55,9 @@
         </ul>
       </div>
       <div
+        v-if="block.warnings"
         class="alert alert-warning d-flex align-items-center ml-3"
         role="alert"
-        v-if="block.warnings"
       >
         <ul class="fa-ul">
           <li v-for="(warning, index) in block.warnings" :key="index">
@@ -122,7 +122,21 @@ export default {
     BlockTitle: createComputedSetterForBlockField("title"),
     BlockDescription: createComputedSetterForBlockField("freeform_comment"),
   },
+  components: {
+    TinyMceInline,
+    StyledBlockInfo,
+  },
   props: ["item_id", "block_id"],
+  mounted() {
+    // this is to help toggleExpandBlock() work properly. Resets contentMaxHeight to "none"
+    // after expand transition finishes so that height can be set automatically if content changes
+    var content = this.$refs.datablockContent;
+    content.addEventListener("transitionend", () => {
+      if (this.isExpanded) {
+        this.contentMaxHeight = "none";
+      }
+    });
+  },
   methods: {
     async updateBlock() {
       // check for any tinymce editors within the block. If so, trigger them
@@ -171,20 +185,6 @@ export default {
         });
       }
     },
-  },
-  mounted() {
-    // this is to help toggleExpandBlock() work properly. Resets contentMaxHeight to "none"
-    // after expand transition finishes so that height can be set automatically if content changes
-    var content = this.$refs.datablockContent;
-    content.addEventListener("transitionend", () => {
-      if (this.isExpanded) {
-        this.contentMaxHeight = "none";
-      }
-    });
-  },
-  components: {
-    TinyMceInline,
-    StyledBlockInfo,
   },
 };
 </script>

@@ -1,18 +1,18 @@
 <template>
   <span
     v-if="isUnverified || hasUnverifiedUser"
+    ref="tooltipTarget"
     class="notification-dot"
     :class="{
       'user-unverified': isUnverified,
       'admin-unverified': hasUnverifiedUser,
     }"
-    ref="tooltipTarget"
     @mouseenter="delayedShowTooltip"
     @mouseleave="hideTooltip"
     @focus="delayedShowTooltip"
     @blur="hideTooltip"
   ></span>
-  <div ref="tooltipContent" id="tooltip" role="tooltip">
+  <div id="tooltip" ref="tooltipContent" role="tooltip">
     <p v-if="isUnverified">
       Your account is currently unverified, please contact an administrator.
     </p>
@@ -31,16 +31,12 @@ export default {
       popperInstance: null,
     };
   },
-  methods: {
-    delayedShowTooltip() {
-      this.tooltipTimeout = setTimeout(() => {
-        this.$refs.tooltipContent.setAttribute("data-show", "");
-        this.popperInstance.update();
-      }, 500);
+  computed: {
+    isUnverified() {
+      return this.$store.getters.getCurrentUserIsUnverified;
     },
-    hideTooltip() {
-      clearTimeout(this.tooltipTimeout);
-      this.$refs.tooltipContent.removeAttribute("data-show");
+    hasUnverifiedUser() {
+      return this.$store.getters.getHasUnverifiedUser;
     },
   },
   mounted() {
@@ -59,12 +55,16 @@ export default {
       ],
     });
   },
-  computed: {
-    isUnverified() {
-      return this.$store.getters.getCurrentUserIsUnverified;
+  methods: {
+    delayedShowTooltip() {
+      this.tooltipTimeout = setTimeout(() => {
+        this.$refs.tooltipContent.setAttribute("data-show", "");
+        this.popperInstance.update();
+      }, 500);
     },
-    hasUnverifiedUser() {
-      return this.$store.getters.getHasUnverifiedUser;
+    hideTooltip() {
+      clearTimeout(this.tooltipTimeout);
+      this.$refs.tooltipContent.removeAttribute("data-show");
     },
   },
 };

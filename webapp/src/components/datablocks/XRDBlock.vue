@@ -8,7 +8,7 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
         :item_id="item_id"
         :block_id="block_id"
         :extensions="blockInfo.attributes.accepted_file_extensions"
-        updateBlockOnChange
+        update-block-on-change
       />
     </div>
 
@@ -17,10 +17,10 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
         <div class="input-group form-inline">
           <label class="mr-2"><b>Wavelength (Å):</b></label>
           <input
+            v-model="wavelength"
             type="text"
             class="form-control"
             :class="{ 'is-invalid': wavelengthParseError }"
-            v-model="wavelength"
             @keydown.enter="
               parseWavelength();
               updateBlock();
@@ -38,7 +38,7 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
 
       <div class="row">
         <div id="bokehPlotContainer" class="col-xl-9 col-lg-10 col-md-11 mx-auto">
-          <BokehPlot :bokehPlotData="bokehPlotData" />
+          <BokehPlot :bokeh-plot-data="bokehPlotData" />
         </div>
       </div>
     </div>
@@ -54,14 +54,14 @@ import { createComputedSetterForBlockField } from "@/field_utils.js";
 import { updateBlockFromServer } from "@/server_fetch_utils.js";
 
 export default {
+  props: {
+    item_id: String,
+    block_id: String,
+  },
   data() {
     return {
       wavelengthParseError: "",
     };
-  },
-  props: {
-    item_id: String,
-    block_id: String,
   },
   computed: {
     bokehPlotData() {

@@ -8,9 +8,9 @@
       <label for="sample-table-search" class="sr-only">Search items</label>
       <input
         id="sample-table-search"
+        v-model="searchValue"
         type="text"
         class="form-control"
-        v-model="searchValue"
         placeholder="search"
       />
     </div>
@@ -28,8 +28,8 @@
     <template #item-item_id="item">
       <FormattedItemName
         :item_id="item.item_id"
-        :itemType="item?.type || 'starting_materials'"
-        enableModifiedClick
+        :item-type="item?.type || 'starting_materials'"
+        enable-modified-click
       />
     </template>
     <template #item-chemform="item">
@@ -51,6 +51,11 @@ import FormattedItemName from "@/components/FormattedItemName";
 import { getStartingMaterialList } from "@/server_fetch_utils.js";
 
 export default {
+  components: {
+    ChemicalFormula,
+    FormattedItemName,
+    Vue3EasyDataTable,
+  },
   data() {
     return {
       isFetchError: false,
@@ -68,6 +73,9 @@ export default {
     startingMaterials() {
       return this.$store.state.starting_material_list;
     },
+  },
+  created() {
+    this.getStartingMaterials();
   },
   methods: {
     goToEditPage(row, event) {
@@ -89,14 +97,6 @@ export default {
         this.isFetchError = true;
       });
     },
-  },
-  created() {
-    this.getStartingMaterials();
-  },
-  components: {
-    ChemicalFormula,
-    FormattedItemName,
-    Vue3EasyDataTable,
   },
 };
 </script>
