@@ -13,18 +13,18 @@
     </thead>
     <tbody>
       <tr
-        :id="collection.collection_id"
         v-for="collection in collections"
+        :id="collection.collection_id"
         :key="collection.collection_id"
-        v-on:click.exact="goToEditPage(collection.collection_id)"
-        v-on:click.meta="openEditPageInNewTab(collection.collection_id)"
-        v-on:click.ctrl="openEditPageInNewTab(collection.collection_id)"
+        @click.exact="goToEditPage(collection.collection_id)"
+        @click.meta="openEditPageInNewTab(collection.collection_id)"
+        @click.ctrl="openEditPageInNewTab(collection.collection_id)"
       >
         <td align="left">
           <FormattedItemName
             :item_id="collection.collection_id"
-            :itemType="collection.type"
-            enableModifiedClick
+            :item-type="collection.type"
+            enable-modified-click
           />
         </td>
         <td align="left">{{ collection.title }}</td>
@@ -33,8 +33,8 @@
           <button
             type="button"
             class="close"
-            @click.stop="deleteCollection(collection)"
             aria-label="delete"
+            @click.stop="deleteCollection(collection)"
           >
             <span aria-hidden="true" style="color: grey">&times;</span>
           </button>
@@ -51,6 +51,10 @@ import Creators from "@/components/Creators";
 import { GRAVATAR_STYLE } from "@/resources.js";
 
 export default {
+  components: {
+    FormattedItemName,
+    Creators,
+  },
   data() {
     return {
       isFetchError: false,
@@ -61,6 +65,9 @@ export default {
     collections() {
       return this.$store.state.collection_list;
     },
+  },
+  created() {
+    this.getCollections();
   },
   methods: {
     goToEditPage(collection_id) {
@@ -84,13 +91,6 @@ export default {
         deleteCollection(collection.collection_id, collection);
       }
     },
-  },
-  created() {
-    this.getCollections();
-  },
-  components: {
-    FormattedItemName,
-    Creators,
   },
 };
 </script>

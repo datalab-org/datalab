@@ -29,6 +29,7 @@ export default {
       default: NaN,
     },
   },
+  emits: ["itemIdClicked"],
   computed: {
     badgeColor() {
       return "LightGrey";
@@ -40,7 +41,6 @@ export default {
       window.open(`/edit/${this.item_id}`, "_blank");
     },
   },
-  emits: ["itemIdClicked"],
 };
 </script>
 

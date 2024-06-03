@@ -12,10 +12,10 @@
           <div class="form-group col">
             <label for="name" class="mr">Title</label>
             <input
-              placeholder="Add a title"
               id="name"
-              class="form-control"
               v-model="Title"
+              placeholder="Add a title"
+              class="form-control"
               style="border: none"
             />
           </div>
@@ -23,8 +23,8 @@
 
         <label id="description-label" class="mr-2">Description</label>
         <TinyMceInline
-          aria-labelledby="description-label"
           v-model="CollectionDescription"
+          aria-labelledby="description-label"
         ></TinyMceInline>
       </div>
       <div class="col-md-4">

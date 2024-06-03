@@ -7,12 +7,12 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
       :item_id="item_id"
       :block_id="block_id"
       :extensions="blockInfo.attributes.accepted_file_extensions"
-      updateBlockOnChange
+      update-block-on-change
     />
 
     <div class="row">
       <div id="bokehPlotContainer" class="col-xl-9 col-lg-10 col-md-11 mx-auto">
-        <BokehPlot :bokehPlotData="bokehPlotData" />
+        <BokehPlot :bokeh-plot-data="bokehPlotData" />
       </div>
     </div>
   </DataBlockBase>

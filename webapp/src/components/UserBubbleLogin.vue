@@ -4,14 +4,14 @@
     <img
       :src="
         'https://www.gravatar.com/avatar/' +
-        md5(this.creator.contact_email || this.creator.display_name) +
+        md5(creator.contact_email || creator.display_name) +
         '?d=' +
-        this.gravatar_style
+        gravatar_style
       "
       class="avatar"
       :width="size"
       :height="size"
-      :title="this.creator.display_name"
+      :title="creator.display_name"
     />
   </div>
 </template>
@@ -25,10 +25,8 @@ import NotificationDot from "./NotificationDot.vue";
 import { getUsersList } from "@/server_fetch_utils.js";
 
 export default {
-  data() {
-    return {
-      gravatar_style: GRAVATAR_STYLE,
-    };
+  components: {
+    NotificationDot,
   },
   props: {
     creator: {
@@ -41,14 +39,10 @@ export default {
       required: false,
     },
   },
-  components: {
-    NotificationDot,
-  },
-  methods: {
-    md5(value) {
-      // Returns the MD5 hash of the given string.
-      return crypto.createHash("md5").update(value).digest("hex");
-    },
+  data() {
+    return {
+      gravatar_style: GRAVATAR_STYLE,
+    };
   },
   computed: {
     hasUnverifiedUser() {
@@ -59,6 +53,12 @@ export default {
     if (this.creator.role == "admin") {
       getUsersList();
     }
+  },
+  methods: {
+    md5(value) {
+      // Returns the MD5 hash of the given string.
+      return crypto.createHash("md5").update(value).digest("hex");
+    },
   },
 };
 </script>

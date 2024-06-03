@@ -17,18 +17,18 @@
     </thead>
     <tbody>
       <tr
-        :id="equipment.item_id"
         v-for="equipment in equipments"
+        :id="equipment.item_id"
         :key="equipment.item_id"
-        v-on:click.exact="goToEditPage(equipment.item_id)"
-        v-on:click.meta="openEditPageInNewTab(equipment.item_id)"
-        v-on:click.ctrl="openEditPageInNewTab(equipment.item_id)"
+        @click.exact="goToEditPage(equipment.item_id)"
+        @click.meta="openEditPageInNewTab(equipment.item_id)"
+        @click.ctrl="openEditPageInNewTab(equipment.item_id)"
       >
         <td align="left" class="table-item-id">
           <FormattedItemName
             :item_id="equipment.item_id"
-            :itemType="equipment?.type"
-            enableModifiedClick
+            :item-type="equipment?.type"
+            enable-modified-click
           />
         </td>
         <td align="left">{{ equipment.name }}</td>
@@ -39,8 +39,8 @@
           <button
             type="button"
             class="close"
-            @click.stop="deleteEquipment(equipment)"
             aria-label="delete"
+            @click.stop="deleteEquipment(equipment)"
           >
             <span aria-hidden="true" style="color: grey">&times;</span>
           </button>
@@ -57,6 +57,10 @@ import { getEquipmentList, deleteEquipment } from "@/server_fetch_utils.js";
 import { itemTypes } from "@/resources.js";
 
 export default {
+  components: {
+    FormattedItemName,
+    Creators,
+  },
   data() {
     return {
       isEquipmentFetchError: false,
@@ -67,6 +71,9 @@ export default {
     equipments() {
       return this.$store.state.equipment_list;
     },
+  },
+  created() {
+    this.getEquipment();
   },
   methods: {
     goToEditPage(item_id) {
@@ -87,13 +94,6 @@ export default {
       }
       console.log("delete cancelled...");
     },
-  },
-  created() {
-    this.getEquipment();
-  },
-  components: {
-    FormattedItemName,
-    Creators,
   },
 };
 </script>

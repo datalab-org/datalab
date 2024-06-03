@@ -25,15 +25,15 @@ import CreateCollectionModal from "@/components/CreateCollectionModal";
 
 export default {
   name: "Collections",
-  data() {
-    return {
-      createCollectionModalIsOpen: false,
-    };
-  },
   components: {
     Navbar,
     CollectionTable,
     CreateCollectionModal,
+  },
+  data() {
+    return {
+      createCollectionModalIsOpen: false,
+    };
   },
 };
 </script>

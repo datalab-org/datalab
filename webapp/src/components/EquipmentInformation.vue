@@ -16,7 +16,7 @@
       </div>
       <div class="form-group col-md-2 col-sm-4">
         <label for="equip-date" class="mr-2">Date</label>
-        <input type="datetime-local" v-model="EquipmentDate" id="equip-date" class="form-control" />
+        <input id="equip-date" v-model="EquipmentDate" type="datetime-local" class="form-control" />
       </div>
     </div>
     <div class="form-row">
@@ -56,12 +56,12 @@
       </div>
     </div>
     <label id="equip-description-label" class="mr-2">Description</label>
-    <TinyMceInline aria-labelledby="equip-description-label" v-model="ItemDescription" />
+    <TinyMceInline v-model="ItemDescription" aria-labelledby="equip-description-label" />
 
     <TableOfContents
       class="mb-3"
       :item_id="item_id"
-      :informationSections="tableOfContentsSections"
+      :information-sections="tableOfContentsSections"
     />
   </div>
 </template>
@@ -75,6 +75,9 @@ import FormattedRefcode from "@/components/FormattedRefcode";
 import Creators from "@/components/Creators";
 
 export default {
+  props: {
+    item_id: String,
+  },
   data() {
     return {
       tableOfContentsSections: [
@@ -82,9 +85,6 @@ export default {
         { title: "Table of Contents", targetID: "table-of-contents" },
       ],
     };
-  },
-  props: {
-    item_id: String,
   },
   computed: {
     item() {

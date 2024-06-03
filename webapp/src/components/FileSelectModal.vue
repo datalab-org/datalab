@@ -1,26 +1,26 @@
 <template>
   <div class="modal-enclosure">
     <Modal v-model="fileSelectModalIsOpen">
-      <template v-slot:header>
+      <template #header>
         Select files to add
         <button
-          @click="fetchRemoteTree"
           :disabled="isLoadingRemoteTree"
           class="ml-4 btn btn-small btn-default"
+          @click="fetchRemoteTree"
         >
           <font-awesome-icon v-show="isLoadingRemoteTree" :icon="['fa', 'sync']" class="fa-spin" />
           Update tree
         </button>
       </template>
 
-      <template v-slot:body>
+      <template #body>
         <SelectableFileTree
-          :defaultSearchTerm="item_id"
+          :default-search-term="item_id"
           @update:selectedEntries="selectedRemoteFiles = $event"
         />
       </template>
 
-      <template v-slot:footer>
+      <template #footer>
         <button
           type="button"
           class="btn btn-info"
@@ -50,17 +50,21 @@ import SelectableFileTree from "@/components/SelectableFileTree";
 import { fetchRemoteTree, addRemoteFileToSample } from "@/server_fetch_utils";
 
 export default {
-  data() {
-    return {
-      selectedRemoteFiles: [],
-      isLoadingRemoteFiles: false,
-    };
+  components: {
+    Modal,
+    SelectableFileTree,
   },
   props: {
     item_id: {
       type: String,
       required: true,
     },
+  },
+  data() {
+    return {
+      selectedRemoteFiles: [],
+      isLoadingRemoteFiles: false,
+    };
   },
   computed: {
     isLoadingRemoteTree() {
@@ -86,6 +90,9 @@ export default {
         this.$store.commit("setFileSelectModalOpenStatus", value);
       },
     },
+  },
+  mounted() {
+    this.loadCachedTree();
   },
   methods: {
     fetchRemoteTree: fetchRemoteTree, // imported directly from server_fetch_utils. Note: automatically sets and usets the remote tree loading status.
@@ -119,13 +126,6 @@ export default {
       await Promise.all(promises);
       this.isLoadingRemoteFiles = false;
     },
-  },
-  components: {
-    Modal,
-    SelectableFileTree,
-  },
-  mounted() {
-    this.loadCachedTree();
   },
 };
 </script>

@@ -7,13 +7,13 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
       :item_id="item_id"
       :block_id="block_id"
       :extensions="blockInfo.attributes.accepted_file_extensions"
-      updateBlockOnChange
+      update-block-on-change
     />
     <div v-show="file_id">
       <div class="form-inline mt-2">
         <div class="form-group">
           <label class="mr-2"><b>Process number:</b></label>
-          <select class="form-control" v-model="selected_process" @change="updateBlock">
+          <select v-model="selected_process" class="form-control" @change="updateBlock">
             <option v-for="process_number in block.available_processes" :key="process_number">
               {{ process_number }}
             </option>
@@ -23,7 +23,7 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
 
       <div class="mt-4">
         <span class="mr-2">
-          <Isotope :isotopeString="block.nucleus" /> {{ block.pulse_program_name }}
+          <Isotope :isotope-string="block.nucleus" /> {{ block.pulse_program_name }}
         </span>
         <a type="button" class="btn btn-default btn-sm mb-2" @click="titleShown = !titleShown">{{
           titleShown ? "hide title" : "show title"
@@ -42,7 +42,7 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
       </div>
       <div class="row">
         <div id="bokehPlotContainer" class="col-xl-8 col-lg-8 col-md-11 mx-auto">
-          <BokehPlot v-if="bokehPlotData" :bokehPlotData="bokehPlotData" />
+          <BokehPlot v-if="bokehPlotData" :bokeh-plot-data="bokehPlotData" />
           <div v-else class="alert alert-secondary">
             Plotting currently not available for data with dimension > 1
           </div>
@@ -52,7 +52,7 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
             <tbody>
               <tr>
                 <th scope="row">nucleus</th>
-                <td><Isotope :isotopeString="block.nucleus" /></td>
+                <td><Isotope :isotope-string="block.nucleus" /></td>
               </tr>
               <tr>
                 <th scope="row">pulse program</th>
@@ -112,16 +112,16 @@ import { createComputedSetterForBlockField } from "@/field_utils.js";
 import { updateBlockFromServer } from "@/server_fetch_utils.js";
 
 export default {
+  props: {
+    item_id: String,
+    block_id: String,
+  },
   data() {
     return {
       wavelengthParseError: "",
       detailsShown: false,
       titleShown: false,
     };
-  },
-  props: {
-    item_id: String,
-    block_id: String,
   },
   computed: {
     block() {

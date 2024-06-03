@@ -1,17 +1,17 @@
 <template>
   <input
     ref="input"
+    v-model="vmodelvalue"
     :type="inputType"
     :class="formControlClass"
     :readonly="readonly"
-    v-model="vmodelvalue"
+    v-bind="$attrs"
     @mouseenter="delayedShowTooltip"
     @mouseleave="hideTooltip"
     @focus="delayedShowTooltip"
     @blur="hideTooltip"
-    v-bind="$attrs"
   />
-  <div ref="tooltipContent" id="tooltip" role="tooltip">
+  <div id="tooltip" ref="tooltipContent" role="tooltip">
     {{ helpMessage }}
   </div>
 </template>
@@ -70,21 +70,6 @@ export default {
       },
     },
   },
-  methods: {
-    delayedShowTooltip() {
-      this.tooltipTimeout = setTimeout(() => {
-        if (this.helpMessage) {
-          this.$refs.tooltipContent.setAttribute("data-show", "");
-          this.popperInstance.update();
-        }
-      }, 1000);
-    },
-
-    hideTooltip() {
-      clearTimeout(this.tooltipTimeout);
-      this.$refs.tooltipContent.removeAttribute("data-show");
-    },
-  },
   mounted() {
     const input = this.$refs.input;
     const tooltip = this.$refs.tooltipContent;
@@ -103,6 +88,21 @@ export default {
         },
       ],
     });
+  },
+  methods: {
+    delayedShowTooltip() {
+      this.tooltipTimeout = setTimeout(() => {
+        if (this.helpMessage) {
+          this.$refs.tooltipContent.setAttribute("data-show", "");
+          this.popperInstance.update();
+        }
+      }, 1000);
+    },
+
+    hideTooltip() {
+      clearTimeout(this.tooltipTimeout);
+      this.$refs.tooltipContent.removeAttribute("data-show");
+    },
   },
 };
 </script>

@@ -6,7 +6,7 @@
         <div id="sample-information" class="form-row">
           <div class="form-group col-sm-4 pr-2">
             <label for="samp-name">Name</label>
-            <input id="samp-name" class="form-control" v-model="Name" />
+            <input id="samp-name" v-model="Name" class="form-control" />
           </div>
           <div class="form-group col-sm-4 col-6 pr-2">
             <label for="samp-chemform">Chemical formula</label>
@@ -16,8 +16,8 @@
             <label for="samp-date">Date Created</label>
             <input
               id="samp-date"
-              type="datetime-local"
               v-model="DateCreated"
+              type="datetime-local"
               class="form-control"
             />
           </div>
@@ -42,7 +42,7 @@
         <div class="form-row">
           <div class="col">
             <label id="samp-description-label">Description</label>
-            <TinyMceInline aria-labelledby="samp-description-label" v-model="SampleDescription" />
+            <TinyMceInline v-model="SampleDescription" aria-labelledby="samp-description-label" />
           </div>
         </div>
       </div>
@@ -51,7 +51,7 @@
       </div>
     </div>
 
-    <TableOfContents :item_id="item_id" :informationSections="tableOfContentsSections" />
+    <TableOfContents :item_id="item_id" :information-sections="tableOfContentsSections" />
 
     <SynthesisInformation class="mt-3" :item_id="item_id" />
   </div>

@@ -6,14 +6,14 @@
         <CompactConstituentTable
           id="synthesis-table"
           v-model="constituents"
-          :typesToQuery="['samples', 'starting_materials']"
+          :types-to-query="['samples', 'starting_materials']"
         />
       </div>
     </div>
     <span id="synthesis-procedure-label" class="subheading ml-2">Procedure</span>
     <TinyMceInline
-      aria-labelledby="synthesis-procedure-label"
       v-model="SynthesisDescription"
+      aria-labelledby="synthesis-procedure-label"
     ></TinyMceInline>
   </div>
 </template>
@@ -28,6 +28,9 @@ export default {
     TinyMceInline,
     CompactConstituentTable,
   },
+  props: {
+    item_id: String,
+  },
   data() {
     return {
       selectedNewConstituent: null,
@@ -35,12 +38,22 @@ export default {
       selectShown: [],
     };
   },
-  props: {
-    item_id: String,
-  },
   computed: {
     constituents: createComputedSetterForItemField("synthesis_constituents"),
     SynthesisDescription: createComputedSetterForItemField("synthesis_description"),
+  },
+  watch: {
+    // since constituents is an object, the computed setter never fires and
+    // saved status is never updated. So, use a watcher:
+    constituents: {
+      handler() {
+        this.$store.commit("setItemSaved", { item_id: this.item_id, isSaved: false });
+      },
+      deep: true,
+    },
+  },
+  mounted() {
+    this.selectShown = new Array(this.constituents.length).fill(false);
   },
   methods: {
     addConstituent(selectedItem) {
@@ -68,19 +81,6 @@ export default {
       this.constituents.splice(index, 1);
       this.selectShown.splice(index, 1);
     },
-  },
-  watch: {
-    // since constituents is an object, the computed setter never fires and
-    // saved status is never updated. So, use a watcher:
-    constituents: {
-      handler() {
-        this.$store.commit("setItemSaved", { item_id: this.item_id, isSaved: false });
-      },
-      deep: true,
-    },
-  },
-  mounted() {
-    this.selectShown = new Array(this.constituents.length).fill(false);
   },
 };
 </script>

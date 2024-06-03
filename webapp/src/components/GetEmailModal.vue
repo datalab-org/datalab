@@ -1,21 +1,21 @@
 <template>
-  <form @submit.prevent="submitForm" class="modal-enclosure">
+  <form class="modal-enclosure" @submit.prevent="submitForm">
     <Modal
-      :modelValue="modelValue"
+      :model-value="modelValue"
+      :disable-submit="Boolean(successMessage) || !Boolean(emailAddress)"
       @update:modelValue="$emit('update:modelValue', $event)"
-      :disableSubmit="Boolean(successMessage) || !Boolean(emailAddress)"
     >
-      <template v-slot:body>
+      <template #body>
         <div class="form-row">
           <div class="form-group">
             <label for="sample-id" class="col-form-label"
               >Enter your email address to receive a sign-in/registration link:</label
             >
             <input
+              id="email-address"
               v-model="emailAddress"
               type="text"
               class="form-control"
-              id="email-address"
               required
             />
             <div class="form-error">{{ emailValidationMessage }}</div>
@@ -32,6 +32,13 @@ import Modal from "@/components/Modal.vue";
 import { requestMagicLink } from "@/server_fetch_utils.js";
 export default {
   name: "CreateSampleModal",
+  components: {
+    Modal,
+  },
+  props: {
+    modelValue: Boolean,
+  },
+  emits: ["update:modelValue"],
   data() {
     return {
       emailAddress: null,
@@ -41,10 +48,6 @@ export default {
       successMessage: "",
     };
   },
-  props: {
-    modelValue: Boolean,
-  },
-  emits: ["update:modelValue"],
   methods: {
     async submitForm() {
       this.validateEmail();
@@ -72,9 +75,6 @@ export default {
         this.emailValidationMessage = "";
       }
     },
-  },
-  components: {
-    Modal,
   },
 };
 </script>

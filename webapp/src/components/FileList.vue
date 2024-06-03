@@ -2,8 +2,8 @@
   <div class="container">
     <label class="mr-2">Files</label>
     <div class="card">
-      <div class="card-body overflow-auto" id="filearea">
-        <div class="file-group" v-for="file_id in file_ids" :key="file_id">
+      <div id="filearea" class="card-body overflow-auto">
+        <div v-for="file_id in file_ids" :key="file_id" class="file-group">
           <a @click="deleteFile($event, file_id)">
             <font-awesome-icon icon="times" fixed-width class="delete-file-button" />
           </a>
@@ -16,14 +16,14 @@
           </a>
           <font-awesome-icon
             v-if="stored_files[file_id].is_live == true"
-            class="link-icon"
             v-show="true"
+            class="link-icon"
             :icon="['fa', 'link']"
           />
           <font-awesome-icon
             v-else-if="stored_files[file_id].source_server_name != null"
-            class="unlink-icon"
             v-show="true"
+            class="unlink-icon"
             :icon="['fa', 'unlink']"
           />
           <span v-if="stored_files[file_id].source_server_name != null">
@@ -76,15 +76,15 @@ import { deleteFileFromSample } from "@/server_fetch_utils";
 import { formatDistance } from "date-fns";
 
 export default {
-  data() {
-    return {
-      serverFileModalIsOpen: false,
-    };
-  },
   props: {
     item_id: String,
     file_ids: Array,
     stored_files: Object,
+  },
+  data() {
+    return {
+      serverFileModalIsOpen: false,
+    };
   },
   methods: {
     formatDistance,

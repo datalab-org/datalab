@@ -1,21 +1,21 @@
 <template>
   <form @submit.prevent="submitForm">
     <Modal
-      :modelValue="modelValue"
+      :model-value="modelValue"
+      :disable-submit="Boolean(IDValidationMessage) || !Boolean(collection_id)"
       @update:modelValue="$emit('update:modelValue', $event)"
-      :disableSubmit="Boolean(IDValidationMessage) || !Boolean(collection_id)"
     >
-      <template v-slot:header> Create new collection </template>
+      <template #header> Create new collection </template>
 
-      <template v-slot:body>
+      <template #body>
         <div class="form-row">
           <div class="form-group col-md-6">
             <label for="collection-id" class="col-form-label">Collection ID:</label>
             <input
+              id="collection-id"
               v-model="collection_id"
               type="text"
               class="form-control"
-              id="collection-id"
               required
             />
             <div class="form-error" v-html="IDValidationMessage"></div>
@@ -24,16 +24,16 @@
         <div class="form-row">
           <div class="form-group col-md-12">
             <label for="title">Full title:</label>
-            <input id="title" type="text" v-model="title" class="form-control" />
+            <input id="title" v-model="title" type="text" class="form-control" />
           </div>
         </div>
         <div class="form-row">
           <div class="col-md-12 form-group">
             <label id="startWithMembers">(Optional) Start with members:</label>
             <ItemSelect
+              v-model="startingMembers"
               aria-labelledby="startWithMembersLabel"
               multiple
-              v-model="startingMembers"
             />
           </div>
         </div>
@@ -49,6 +49,14 @@ import { createNewCollection } from "@/server_fetch_utils.js";
 
 export default {
   name: "CreateCollectionModal",
+  components: {
+    Modal,
+    ItemSelect,
+  },
+  props: {
+    modelValue: Boolean,
+  },
+  emits: ["update:modelValue"],
   data() {
     return {
       collection_id: null,
@@ -57,10 +65,6 @@ export default {
       startingMembers: [],
     };
   },
-  props: {
-    modelValue: Boolean,
-  },
-  emits: ["update:modelValue"],
   computed: {
     takenCollectionIds() {
       return this.$store.state.collection_list
@@ -118,10 +122,6 @@ export default {
       }
       this.name = `COPY OF ${this.selectedCollectionToCopy.name}`;
     },
-  },
-  components: {
-    Modal,
-    ItemSelect,
   },
 };
 </script>

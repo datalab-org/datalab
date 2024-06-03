@@ -8,13 +8,13 @@
     @blur="hideTooltip"
     >{{ blockInfo.name }}</a
   >
-  <div ref="tooltipContent" id="tooltip" role="tooltip">
+  <div id="tooltip" ref="tooltipContent" role="tooltip">
     <p>{{ blockInfo.description }}</p>
     <p
-      class="accepted-file"
       v-if="
         blockInfo.accepted_file_extensions != null && blockInfo.accepted_file_extensions.length > 0
       "
+      class="accepted-file"
     >
       Accepted file extensions:
       <span v-for="(extension, index) in blockInfo.accepted_file_extensions" :key="index">
@@ -41,21 +41,6 @@ export default {
       popperInstance: null,
     };
   },
-  methods: {
-    delayedShowTooltip() {
-      this.tooltipTimeout = setTimeout(() => {
-        if (this.blockInfo) {
-          this.$refs.tooltipContent.setAttribute("data-show", "");
-          this.popperInstance.update();
-        }
-      }, 500);
-    },
-
-    hideTooltip() {
-      clearTimeout(this.tooltipTimeout);
-      this.$refs.tooltipContent.removeAttribute("data-show");
-    },
-  },
   mounted() {
     const anchor = this.$refs.anchor;
     const tooltip = this.$refs.tooltipContent;
@@ -72,6 +57,21 @@ export default {
         },
       ],
     });
+  },
+  methods: {
+    delayedShowTooltip() {
+      this.tooltipTimeout = setTimeout(() => {
+        if (this.blockInfo) {
+          this.$refs.tooltipContent.setAttribute("data-show", "");
+          this.popperInstance.update();
+        }
+      }, 500);
+    },
+
+    hideTooltip() {
+      clearTimeout(this.tooltipTimeout);
+      this.$refs.tooltipContent.removeAttribute("data-show");
+    },
   },
 };
 </script>

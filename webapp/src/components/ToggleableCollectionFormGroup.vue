@@ -1,7 +1,7 @@
 <template>
   <div
-    class="h-100 form-group clickable"
     ref="outerdiv"
+    class="h-100 form-group clickable"
     @click="isEditingCollections = !isEditingCollections"
   >
     <label id="collections" class="clickable">
@@ -25,7 +25,7 @@
         :options="{ ignore: [outerDivRef] }"
         @trigger="isEditingCollections = false"
       >
-        <CollectionSelect aria-labelledby="collections" multiple v-model="value" @click.stop />
+        <CollectionSelect v-model="value" aria-labelledby="collections" multiple @click.stop />
       </OnClickOutside>
     </div>
   </div>
@@ -37,6 +37,11 @@ import CollectionList from "@/components/CollectionList";
 import { OnClickOutside } from "@vueuse/components";
 
 export default {
+  components: {
+    CollectionSelect,
+    CollectionList,
+    OnClickOutside,
+  },
   props: {
     modelValue: {},
   },
@@ -59,11 +64,6 @@ export default {
   },
   mounted() {
     this.outerDivRef = this.$refs.outerdiv; // we need to get the editIcon's ref to be accessible in the template so we can exclude it from the ClickOutside
-  },
-  components: {
-    CollectionSelect,
-    CollectionList,
-    OnClickOutside,
   },
 };
 </script>

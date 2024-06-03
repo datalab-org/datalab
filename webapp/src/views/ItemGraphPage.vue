@@ -1,6 +1,6 @@
 <template>
   <Navbar />
-  <ItemGraph :graphData="graphData" />
+  <ItemGraph :graph-data="graphData" />
 </template>
 
 <script>
@@ -9,6 +9,10 @@ import ItemGraph from "@/components/ItemGraph";
 import { getItemGraph } from "@/server_fetch_utils.js";
 
 export default {
+  components: {
+    Navbar,
+    ItemGraph,
+  },
   data() {
     return {
       isLoaded: false,
@@ -21,10 +25,6 @@ export default {
   },
   async mounted() {
     await getItemGraph();
-  },
-  components: {
-    Navbar,
-    ItemGraph,
   },
 };
 </script>

@@ -17,7 +17,7 @@
         /> -->
     </div>
     <transition name="sidebar-open">
-      <div class="sidenav shadow-sm" v-show="sidebarShown">
+      <div v-show="sidebarShown" class="sidenav shadow-sm">
         <!--         <font-awesome-icon
           :icon="['fas', 'chevron-right']"
           fixed-width
@@ -27,17 +27,17 @@
         /> -->
         <ol id="contents-ol">
           <li
-            class="contents-item"
             v-for="section in informationSections"
             :key="section.targetID"
+            class="contents-item"
             @click="scrollToID($event, section.targetID)"
           >
             <span class="contents-blocktitle"> {{ section.title }} </span>
           </li>
           <li
-            class="contents-item"
             v-for="block_id in display_order"
             :key="block_id"
+            class="contents-item"
             @click="scrollToID($event, block_id)"
           >
             <span class="contents-blocktitle">{{ blocks[block_id].title }}</span>
@@ -50,17 +50,17 @@
       <div class="card-body overflow-auto">
         <ol id="contents-ol">
           <li
-            class="contents-item"
             v-for="section in informationSections"
             :key="section.targetID"
+            class="contents-item"
             @click="scrollToID($event, section.targetID)"
           >
             <span class="contents-blocktitle"> {{ section.title }} </span>
           </li>
           <li
-            class="contents-item"
             v-for="block_id in display_order"
             :key="block_id"
+            class="contents-item"
             @click="scrollToID($event, block_id)"
           >
             <span class="contents-blocktitle">{{ blocks[block_id].title }}</span>
@@ -73,15 +73,15 @@
 
 <script>
 export default {
+  props: {
+    informationSections: Array,
+    item_id: String,
+  },
   data() {
     return {
       sidebarShown: false,
       sidebarWidth: 250,
     };
-  },
-  props: {
-    informationSections: Array,
-    item_id: String,
   },
   computed: {
     display_order() {

@@ -16,11 +16,6 @@
 import { itemTypes } from "@/resources.js";
 
 export default {
-  data() {
-    return {
-      itemType: "collections",
-    };
-  },
   props: {
     collection_id: String,
     title: {
@@ -40,6 +35,12 @@ export default {
       default: NaN,
     },
   },
+  emits: ["collectionIdClicked"],
+  data() {
+    return {
+      itemType: "collections",
+    };
+  },
   computed: {
     badgeColor() {
       return itemTypes[this.itemType]?.navbarColor || "LightGrey";
@@ -58,7 +59,6 @@ export default {
       window.open(`/collections/${this.collection_id}`, "_blank");
     },
   },
-  emits: ["collectionIdClicked"],
 };
 </script>
 

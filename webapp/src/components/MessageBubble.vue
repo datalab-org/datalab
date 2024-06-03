@@ -15,9 +15,9 @@
         'bubble-system': role === 'system',
       }"
     >
-      <span class="system-prompt-label" v-if="role === 'system'">system prompt:</span>
-      <div ref="markdownDiv" v-show="!showRaw" class="markdown-content" v-html="markdownContent" />
-      <div class="raw-content" v-show="showRaw">{{ message.content }}</div>
+      <span v-if="role === 'system'" class="system-prompt-label">system prompt:</span>
+      <div v-show="!showRaw" ref="markdownDiv" class="markdown-content" v-html="markdownContent" />
+      <div v-show="showRaw" class="raw-content">{{ message.content }}</div>
       <div class="float-right raw-toggle clickable" @click="showRaw = !showRaw">
         <span :class="{ 'font-weight-bold': showRaw }"> raw </span> |
         <span :class="{ 'font-weight-bold': !showRaw }">formatted</span>
@@ -61,7 +61,6 @@ export default {
       return this.md?.render(this.message.content);
     },
   },
-  methods: {},
   watch: {
     markdownContent: {
       flush: "post",
@@ -107,6 +106,7 @@ export default {
       return '<table class="table table-sm">';
     };
   },
+  methods: {},
 };
 </script>
 

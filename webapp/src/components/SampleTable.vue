@@ -19,18 +19,18 @@
     </thead>
     <tbody>
       <tr
-        :id="sample.item_id"
         v-for="sample in samples"
+        :id="sample.item_id"
         :key="sample.item_id"
-        v-on:click.exact="goToEditPage(sample.item_id)"
-        v-on:click.meta="openEditPageInNewTab(sample.item_id)"
-        v-on:click.ctrl="openEditPageInNewTab(sample.item_id)"
+        @click.exact="goToEditPage(sample.item_id)"
+        @click.meta="openEditPageInNewTab(sample.item_id)"
+        @click.ctrl="openEditPageInNewTab(sample.item_id)"
       >
         <td align="left" class="table-item-id">
           <FormattedItemName
             :item_id="sample.item_id"
-            :itemType="sample?.type"
-            enableModifiedClick
+            :item-type="sample?.type"
+            enable-modified-click
           />
         </td>
         <td align="center">{{ itemTypes[sample.type].display }}</td>
@@ -44,8 +44,8 @@
           <button
             type="button"
             class="close"
-            @click.stop="deleteSample(sample)"
             aria-label="delete"
+            @click.stop="deleteSample(sample)"
           >
             <span aria-hidden="true" style="color: grey">&times;</span>
           </button>
@@ -64,6 +64,12 @@ import { getSampleList, deleteSample } from "@/server_fetch_utils.js";
 import { itemTypes } from "@/resources.js";
 
 export default {
+  components: {
+    ChemicalFormula,
+    FormattedItemName,
+    Creators,
+    CollectionList,
+  },
   data() {
     return {
       isSampleFetchError: false,
@@ -74,6 +80,9 @@ export default {
     samples() {
       return this.$store.state.sample_list;
     },
+  },
+  created() {
+    this.getSamples();
   },
   methods: {
     goToEditPage(item_id) {
@@ -95,15 +104,6 @@ export default {
       }
       console.log("delete cancelled...");
     },
-  },
-  created() {
-    this.getSamples();
-  },
-  components: {
-    ChemicalFormula,
-    FormattedItemName,
-    Creators,
-    CollectionList,
   },
 };
 </script>
