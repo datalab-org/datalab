@@ -1,11 +1,11 @@
 <template>
   <div>
     <FormattedCollectionName
-      :collection_id="collection.collection_id"
-      enableClick
-      enableModifiedClick
       v-for="collection in collections"
       :key="collection.collection_id"
+      :collection_id="collection.collection_id"
+      enable-click
+      enable-modified-click
     />
   </div>
 </template>
@@ -14,16 +14,16 @@
 import FormattedCollectionName from "@/components/FormattedCollectionName.vue";
 
 export default {
-  data() {
-    return {};
+  components: {
+    FormattedCollectionName,
   },
   props: {
     collections: {
       type: Array,
     },
   },
-  components: {
-    FormattedCollectionName,
+  data() {
+    return {};
   },
 };
 </script>

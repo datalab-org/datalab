@@ -1,7 +1,7 @@
 <template>
   <!-- <div v-if="!loaded" class="alert alert-secondary mt-3">Data will be displayed here</div> -->
   <div v-if="loading" class="alert alert-secondary mt-3">Setting up bokeh plot...</div>
-  <div ref="bokehPlotContainer" :id="unique_id" :style="{ height: bokehPlotContainerHeight }" />
+  <div :id="unique_id" ref="bokehPlotContainer" :style="{ height: bokehPlotContainerHeight }" />
 </template>
 
 <script>
@@ -18,6 +18,27 @@ export default {
       bokeh_views: null,
       bokehPlotContainerHeight: "auto",
     };
+  },
+  watch: {
+    bokehPlotData() {
+      var scrollHeight = this.$refs.bokehPlotContainer.scrollHeight;
+      this.bokehPlotContainerHeight = `${scrollHeight}px`;
+      this.cleanupBokehPlot();
+      this.startBokehPlot();
+      window.requestAnimationFrame(() => {
+        this.bokehPlotContainerHeight = "auto";
+      });
+      // this.bokehPlotContainerHeight = 'auto'
+    },
+  },
+  mounted() {
+    this.unique_id = this.guidGenerator();
+    this.$nextTick(() => {
+      this.startBokehPlot();
+    });
+  },
+  unmounted() {
+    this.cleanupBokehPlot();
   },
   // BokehDoc: null, // this is a non-reactive property. We don't put this is in Data so Vue doesn't wrap it in a Proxy, which breaks its document.clear() functionality (for some reason)
   methods: {
@@ -67,27 +88,6 @@ export default {
       };
       return S4() + S4() + "-" + S4();
     },
-  },
-  watch: {
-    bokehPlotData() {
-      var scrollHeight = this.$refs.bokehPlotContainer.scrollHeight;
-      this.bokehPlotContainerHeight = `${scrollHeight}px`;
-      this.cleanupBokehPlot();
-      this.startBokehPlot();
-      window.requestAnimationFrame(() => {
-        this.bokehPlotContainerHeight = "auto";
-      });
-      // this.bokehPlotContainerHeight = 'auto'
-    },
-  },
-  mounted() {
-    this.unique_id = this.guidGenerator();
-    this.$nextTick(() => {
-      this.startBokehPlot();
-    });
-  },
-  unmounted() {
-    this.cleanupBokehPlot();
   },
 };
 </script>

@@ -6,14 +6,14 @@
   >
     <span class="navbar-brand clickable" @click="scrollToID($event, 'topScrollPoint')"
       >{{ itemTypeEntry?.navbarName || "loading..." }}&nbsp;&nbsp;|&nbsp;&nbsp;
-      <FormattedItemName :item_id="item_id" :itemType="itemType" />
+      <FormattedItemName :item_id="item_id" :item-type="itemType" />
     </span>
     <div class="navbar-nav">
       <a class="nav-item nav-link" href="/">Home</a>
       <div class="nav-item dropdown">
         <a
-          class="nav-link dropdown-toggle ml-2"
           id="navbarDropdown"
+          class="nav-link dropdown-toggle ml-2"
           role="button"
           data-toggle="dropdown"
           aria-haspopup="true"
@@ -23,19 +23,19 @@
           Add a block
         </a>
         <div
+          v-show="isMenuDropdownVisible"
           class="dropdown-menu"
           style="display: block"
           aria-labelledby="navbarDropdown"
-          v-show="isMenuDropdownVisible"
         >
           <template v-for="blockInfo in blocksInfos" :key="blockInfo.id">
             <span v-if="blockInfo.id !== 'notsupported'" @click="newBlock($event, blockInfo.id)">
-              <StyledBlockHelp :blockInfo="blockInfo.attributes" />
+              <StyledBlockHelp :block-info="blockInfo.attributes" />
             </span>
           </template>
         </div>
       </div>
-      <a class="nav-item nav-link" :href="this.itemApiUrl" target="_blank">
+      <a class="nav-item nav-link" :href="itemApiUrl" target="_blank">
         <font-awesome-icon icon="code" fixed-width /> View JSON
       </a>
     </div>
@@ -68,7 +68,7 @@
     <!-- Display the blocks -->
     <div class="container block-container">
       <transition-group name="block-list" tag="div">
-        <div class="block-list-item" v-for="block_id in item_data.display_order" :key="block_id">
+        <div v-for="block_id in item_data.display_order" :key="block_id" class="block-list-item">
           <component :is="getBlockDisplayType(block_id)" :item_id="item_id" :block_id="block_id" />
         </div>
       </transition-group>
@@ -115,6 +115,26 @@ import { formatDistanceToNow } from "date-fns";
 import StyledBlockHelp from "@/components/StyledBlockHelp";
 
 export default {
+  components: {
+    TinyMceInline,
+    SelectableFileTree,
+    FileList,
+    FileSelectModal,
+    FormattedItemName,
+    StyledBlockHelp,
+  },
+  beforeRouteLeave(to, from, next) {
+    // give warning before leaving the page by the vue router (which would not trigger "beforeunload")
+    if (this.savedStatus) {
+      next();
+    } else {
+      if (window.confirm("Unsaved changes present. Would you like to leave without saving?")) {
+        next();
+      } else {
+        next(false);
+      }
+    }
+  },
   data() {
     return {
       item_id: this.$route.params.id,
@@ -126,6 +146,84 @@ export default {
       isLoadingNewBlock: false,
       lastModified: null,
     };
+  },
+  computed: {
+    itemType() {
+      return this.$store.state.all_item_data[this.item_id]?.type;
+    },
+    itemTypeEntry() {
+      return itemTypes[this.itemType] || null;
+    },
+    navbarColor() {
+      return this.itemTypeEntry?.navbarColor || "DarkGrey";
+    },
+    item_data() {
+      return this.$store.state.all_item_data[this.item_id] || {};
+    },
+    blocks() {
+      return this.item_data.blocks_obj;
+    },
+    savedStatus() {
+      if (!this.itemDataLoaded) {
+        return true;
+      }
+      let allSavedStatusBlocks = this.$store.state.saved_status_blocks;
+      let allBlocksAreSaved = this.item_data.display_order.every(
+        (block_id) => allSavedStatusBlocks[block_id] !== false,
+      );
+      return allBlocksAreSaved && this.$store.state.saved_status_items[this.item_id];
+    },
+    files() {
+      return this.item_data.files;
+    },
+    file_ids() {
+      return this.item_data.file_ObjectIds;
+    },
+    stored_files() {
+      return this.$store.state.files;
+    },
+    blocksInfos() {
+      return this.$store.state.blocksInfos;
+    },
+  },
+  watch: {
+    // add a warning before leaving page if unsaved
+    savedStatus(newValue) {
+      if (!newValue) {
+        window.addEventListener("beforeunload", this.leavePageWarningListener, true);
+      } else {
+        window.removeEventListener("beforeunload", this.leavePageWarningListener, true);
+      }
+    },
+  },
+  created() {
+    getBlocksInfos();
+    this.getSampleData();
+    this.interval = setInterval(() => this.setLastModified(), 30000);
+  },
+  beforeMount() {
+    this.blockTypes = blockTypes; // bind blockTypes as a NON-REACTIVE object to the this context so that it is accessible by the template.
+    this.itemApiUrl = API_URL + "/get-item-data/" + this.item_id;
+  },
+  mounted() {
+    // overwrite ctrl-s and cmd-s to save the page
+    this._keyListener = function (e) {
+      if (e.key === "s" && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault(); // present "Save Page" from getting triggered.
+        this.saveSample();
+      }
+    };
+    document.addEventListener("keydown", this._keyListener.bind(this));
+
+    // Retreive the cached file tree
+    // this.loadCachedTree()
+    // this.updateRemoteTree()
+
+    // setup the uppy instsance
+    setupUppy(this.item_id, "#uppy-trigger", this.stored_files);
+  },
+  beforeUnmount() {
+    document.removeEventListener("keydown", this._keyListener);
   },
   methods: {
     async newBlock(event, blockType, index = null) {
@@ -205,104 +303,6 @@ export default {
         this.lastModified = formatDistanceToNow(save_date, { addSuffix: true });
       }
     },
-  },
-  computed: {
-    itemType() {
-      return this.$store.state.all_item_data[this.item_id]?.type;
-    },
-    itemTypeEntry() {
-      return itemTypes[this.itemType] || null;
-    },
-    navbarColor() {
-      return this.itemTypeEntry?.navbarColor || "DarkGrey";
-    },
-    item_data() {
-      return this.$store.state.all_item_data[this.item_id] || {};
-    },
-    blocks() {
-      return this.item_data.blocks_obj;
-    },
-    savedStatus() {
-      if (!this.itemDataLoaded) {
-        return true;
-      }
-      let allSavedStatusBlocks = this.$store.state.saved_status_blocks;
-      let allBlocksAreSaved = this.item_data.display_order.every(
-        (block_id) => allSavedStatusBlocks[block_id] !== false,
-      );
-      return allBlocksAreSaved && this.$store.state.saved_status_items[this.item_id];
-    },
-    files() {
-      return this.item_data.files;
-    },
-    file_ids() {
-      return this.item_data.file_ObjectIds;
-    },
-    stored_files() {
-      return this.$store.state.files;
-    },
-    blocksInfos() {
-      return this.$store.state.blocksInfos;
-    },
-  },
-  created() {
-    getBlocksInfos();
-    this.getSampleData();
-    this.interval = setInterval(() => this.setLastModified(), 30000);
-  },
-  components: {
-    TinyMceInline,
-    SelectableFileTree,
-    FileList,
-    FileSelectModal,
-    FormattedItemName,
-    StyledBlockHelp,
-  },
-  beforeMount() {
-    this.blockTypes = blockTypes; // bind blockTypes as a NON-REACTIVE object to the this context so that it is accessible by the template.
-    this.itemApiUrl = API_URL + "/get-item-data/" + this.item_id;
-  },
-  mounted() {
-    // overwrite ctrl-s and cmd-s to save the page
-    this._keyListener = function (e) {
-      if (e.key === "s" && (e.ctrlKey || e.metaKey)) {
-        e.preventDefault(); // present "Save Page" from getting triggered.
-        this.saveSample();
-      }
-    };
-    document.addEventListener("keydown", this._keyListener.bind(this));
-
-    // Retreive the cached file tree
-    // this.loadCachedTree()
-    // this.updateRemoteTree()
-
-    // setup the uppy instsance
-    setupUppy(this.item_id, "#uppy-trigger", this.stored_files);
-  },
-  beforeUnmount() {
-    document.removeEventListener("keydown", this._keyListener);
-  },
-  watch: {
-    // add a warning before leaving page if unsaved
-    savedStatus(newValue) {
-      if (!newValue) {
-        window.addEventListener("beforeunload", this.leavePageWarningListener, true);
-      } else {
-        window.removeEventListener("beforeunload", this.leavePageWarningListener, true);
-      }
-    },
-  },
-  beforeRouteLeave(to, from, next) {
-    // give warning before leaving the page by the vue router (which would not trigger "beforeunload")
-    if (this.savedStatus) {
-      next();
-    } else {
-      if (window.confirm("Unsaved changes present. Would you like to leave without saving?")) {
-        next();
-      } else {
-        next(false);
-      }
-    }
   },
 };
 </script>

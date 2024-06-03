@@ -11,8 +11,8 @@
       <li
         v-for="item in items"
         :key="item.id"
-        @click="selectItem(item)"
         :class="{ selected: item === selectedItem }"
+        @click="selectItem(item)"
       >
         {{ item }}
       </li>
@@ -22,13 +22,13 @@
 
 <script>
 export default {
+  name: "AdminNavbar",
   props: ["items", "selectedItem"],
   methods: {
     selectItem(item) {
       this.$emit("item-selected", item);
     },
   },
-  name: "AdminNavbar",
 };
 </script>
 

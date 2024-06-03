@@ -3,11 +3,11 @@
     <div class="col-md-12 form-group">
       <label id="startWithConstituentsLabel">(Optional) Start with constituents:</label>
       <ItemSelect
+        v-model="constituents"
         aria-labelledby="startWithConstituentsLabel"
         multiple
-        :typesToQuery="['samples', 'starting_materials']"
+        :types-to-query="['samples', 'starting_materials']"
         taggable
-        v-model="constituents"
       />
     </div>
   </div>
@@ -17,6 +17,9 @@
 import ItemSelect from "@/components/ItemSelect.vue";
 
 export default {
+  components: {
+    ItemSelect,
+  },
   props: {
     initialConstituents: {
       type: Array,
@@ -29,6 +32,10 @@ export default {
       constituents: [],
     };
   },
+  mounted() {
+    this.initialConstituents && (this.constituents = this.initialconstituents);
+    this.$emit("startingDataCallback", this.createStartingConstituentsCallback);
+  },
   methods: {
     createStartingConstituentsCallback() {
       const startingSynthesisBlock = this.constituents.map((x) => ({
@@ -40,13 +47,6 @@ export default {
         synthesis_constituents: startingSynthesisBlock,
       };
     },
-  },
-  mounted() {
-    this.initialConstituents && (this.constituents = this.initialconstituents);
-    this.$emit("startingDataCallback", this.createStartingConstituentsCallback);
-  },
-  components: {
-    ItemSelect,
   },
 };
 </script>

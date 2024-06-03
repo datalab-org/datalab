@@ -2,42 +2,42 @@
   <div class="row form-inline">
     <label class="pl-3">(Optional) Cell components:</label>
     <div class="col-md-12 form-group form-row ml-2 mt-3">
-      <label class="col-sm-3 text-right cell-component-label" id="posConstituentsLabel"
+      <label id="posConstituentsLabel" class="col-sm-3 text-right cell-component-label"
         >Pos. electrode:
       </label>
       <ItemSelect
+        v-model="posElectrodeConstituents"
         aria-labelledby="posConstituentsLabel"
         multiple
-        v-model="posElectrodeConstituents"
-        :typesToQuery="['samples', 'starting_materials']"
+        :types-to-query="['samples', 'starting_materials']"
         taggable
         class="col-sm-9"
       />
     </div>
 
     <div class="col-md-12 form-group form-row ml-2 mt-3">
-      <label class="col-sm-3 text-right cell-component-label" id="elyteConstituentsLabel"
+      <label id="elyteConstituentsLabel" class="col-sm-3 text-right cell-component-label"
         >Electrolyte:
       </label>
       <ItemSelect
+        v-model="electrolyteConstituents"
         aria-labelledby="elyteConstituentsLabel"
         multiple
-        v-model="electrolyteConstituents"
-        :typesToQuery="['samples', 'starting_materials']"
+        :types-to-query="['samples', 'starting_materials']"
         taggable
         class="col-sm-9"
       />
     </div>
 
     <div class="col-md-12 form-group form-row ml-2 mt-3">
-      <label class="col-sm-3 text-right cell-component-label" id="negConstituentsLabel"
+      <label id="negConstituentsLabel" class="col-sm-3 text-right cell-component-label"
         >Neg. electrode:</label
       >
       <ItemSelect
+        v-model="negElectrodeConstituents"
         aria-labelledby="negConstituentsLabel"
         multiple
-        v-model="negElectrodeConstituents"
-        :typesToQuery="['samples', 'starting_materials']"
+        :types-to-query="['samples', 'starting_materials']"
         taggable
         class="col-sm-9"
       />
@@ -49,6 +49,9 @@
 import ItemSelect from "@/components/ItemSelect.vue";
 
 export default {
+  components: {
+    ItemSelect,
+  },
   emits: ["startingDataCallback"],
   data() {
     return {
@@ -56,6 +59,9 @@ export default {
       electrolyteConstituents: [],
       negElectrodeConstituents: [],
     };
+  },
+  mounted() {
+    this.$emit("startingDataCallback", this.createStartingConstituentsCallback);
   },
   methods: {
     createStartingConstituentsCallback() {
@@ -87,12 +93,6 @@ export default {
         negative_electrode: negElectrode,
       };
     },
-  },
-  mounted() {
-    this.$emit("startingDataCallback", this.createStartingConstituentsCallback);
-  },
-  components: {
-    ItemSelect,
   },
 };
 </script>

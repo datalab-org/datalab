@@ -8,9 +8,9 @@
 import UserTable from "./UserTable.vue";
 
 export default {
+  name: "AdminDisplay",
   components: { UserTable },
   props: ["selectedItem"],
-  name: "AdminDisplay",
 };
 </script>
 

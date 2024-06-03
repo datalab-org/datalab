@@ -1,9 +1,9 @@
 <template>
   <span v-for="creator in creators" :key="creator.display_name">
     <span v-if="showBubble">
-      <UserBubble :creator="creator" :size="size" v-if="showBubble" />
+      <UserBubble v-if="showBubble" :creator="creator" :size="size" />
     </span>
-    <span class="display-name" v-if="showNames && creator.display_name">
+    <span v-if="showNames && creator.display_name" class="display-name">
       {{ creator.display_name }}
       <span v-if="creator !== creators[creators.length - 1]">,</span>
     </span>
@@ -14,8 +14,8 @@
 import UserBubble from "@/components/UserBubble.vue";
 
 export default {
-  data() {
-    return {};
+  components: {
+    UserBubble,
   },
   props: {
     creators: {
@@ -37,8 +37,8 @@ export default {
       required: false,
     },
   },
-  components: {
-    UserBubble,
+  data() {
+    return {};
   },
 };
 </script>

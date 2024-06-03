@@ -18,7 +18,7 @@
       </div>
     </div>
   </div>
-  <CreateItemModal v-model="createItemModalIsOpen" :allowedTypes="allowedTypes" />
+  <CreateItemModal v-model="createItemModalIsOpen" :allowed-types="allowedTypes" />
 </template>
 
 <script>
@@ -29,16 +29,16 @@ import { INVENTORY_TABLE_TYPES, EDITABLE_INVENTORY } from "@/resources.js";
 
 export default {
   name: "StartingMaterials",
+  components: {
+    Navbar,
+    StartingMaterialTable,
+    CreateItemModal,
+  },
   data() {
     return {
       createItemModalIsOpen: false,
       allowedTypes: INVENTORY_TABLE_TYPES,
     };
-  },
-  components: {
-    Navbar,
-    StartingMaterialTable,
-    CreateItemModal,
   },
   created() {
     this.editable_inventory = EDITABLE_INVENTORY;

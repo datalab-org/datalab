@@ -8,7 +8,7 @@
   >
     <font-awesome-icon :icon="['fas', 'info-circle']" @click="showBlockInfo" />
   </a>
-  <div ref="tooltipContent" id="tooltip" role="tooltip">
+  <div id="tooltip" ref="tooltipContent" role="tooltip">
     <h4 class="block-info-title">{{ blockInfo.attributes.name }}</h4>
     <p>{{ blockInfo.attributes.description }}</p>
     <div
@@ -47,21 +47,6 @@ export default {
       popperInstance: null,
     };
   },
-  methods: {
-    delayedShowTooltip() {
-      this.tooltipTimeout = setTimeout(() => {
-        if (this.blockInfo) {
-          this.$refs.tooltipContent.setAttribute("data-show", "");
-          this.popperInstance.update();
-        }
-      }, 100);
-    },
-
-    hideTooltip() {
-      clearTimeout(this.tooltipTimeout);
-      this.$refs.tooltipContent.removeAttribute("data-show");
-    },
-  },
   mounted() {
     const anchor = this.$refs.anchor;
     const tooltip = this.$refs.tooltipContent;
@@ -78,6 +63,21 @@ export default {
         },
       ],
     });
+  },
+  methods: {
+    delayedShowTooltip() {
+      this.tooltipTimeout = setTimeout(() => {
+        if (this.blockInfo) {
+          this.$refs.tooltipContent.setAttribute("data-show", "");
+          this.popperInstance.update();
+        }
+      }, 100);
+    },
+
+    hideTooltip() {
+      clearTimeout(this.tooltipTimeout);
+      this.$refs.tooltipContent.removeAttribute("data-show");
+    },
   },
 };
 </script>

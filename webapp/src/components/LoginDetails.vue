@@ -4,23 +4,23 @@
     <template v-if="currentUser != null">
       <div class="dropdown">
         <button
+          id="userDropdown"
           class="btn btn-default dropdown-toggle"
           type="button"
-          id="userDropdown"
           aria-haspopup="true"
           aria-expanded="false"
           data-toggle="dropdown"
           @click="isUserDropdownVisible = !isUserDropdownVisible"
         >
-          <UserBubbleLogin :creator="this.currentUserInfo" :size="24" />&nbsp;
+          <UserBubbleLogin :creator="currentUserInfo" :size="24" />&nbsp;
           <span class="user-display-name">{{ userDisplayName }}</span
           >&nbsp;
         </button>
         <div
+          v-show="isUserDropdownVisible"
           class="dropdown-menu"
           style="display: block"
           aria-labelledby="UserDropdown"
-          v-show="isUserDropdownVisible"
         >
           <a
             type="button"
@@ -47,7 +47,7 @@
             type="button"
             class="dropdown-item btn login btn-link btn-default"
             aria-label="Logout"
-            :href="this.apiUrl + '/logout'"
+            :href="apiUrl + '/logout'"
             ><font-awesome-icon icon="sign-out-alt" /> &nbsp;&nbsp;Logout</a
           >
         </div>
@@ -56,9 +56,9 @@
     <template v-else>
       <div class="dropdown">
         <button
+          id="loginDropdown"
           class="btn btn-default dropdown-toggle"
           type="button"
-          id="loginDropdown"
           data-toggle="dropdown"
           aria-haspopup="true"
           aria-expanded="false"
@@ -67,23 +67,23 @@
           <font-awesome-icon icon="sign-in-alt" />&nbsp;Login/Register
         </button>
         <div
+          v-show="isLoginDropdownVisible"
           class="dropdown-menu"
           style="display: block"
           aria-labelledby="loginButton"
-          v-show="isLoginDropdownVisible"
         >
           <a
             type="button"
             class="dropdown-item btn login btn-link btn-default"
             aria-label="Login via GitHub"
-            :href="this.apiUrl + '/login/github'"
+            :href="apiUrl + '/login/github'"
             ><font-awesome-icon :icon="['fab', 'github']" /> Login via GitHub</a
           >
           <a
             type="button"
             class="dropdown-item btn login btn-link btn-default"
             aria-label="Login via ORCID"
-            :href="this.apiUrl + '/login/orcid'"
+            :href="apiUrl + '/login/orcid'"
             ><font-awesome-icon class="orcid-icon" :icon="['fab', 'orcid']" /> Login via ORCID</a
           >
           <button
@@ -100,7 +100,7 @@
   </div>
   <EditAccountSettingsModal v-model="editAccountSettingIsOpen" />
 
-  <div class="container mt-4 mb-0 alert alert-warning text-center" v-if="isUnverified">
+  <div v-if="isUnverified" class="container mt-4 mb-0 alert alert-warning text-center">
     Your account is currently unverified, and you will be unable to make or edit entries. Please
     contact an administrator.
   </div>
@@ -115,6 +115,15 @@ import GetEmailModal from "@/components/GetEmailModal.vue";
 import EditAccountSettingsModal from "@/components/EditAccountSettingsModal.vue";
 
 export default {
+  components: {
+    UserBubbleLogin,
+    GetEmailModal,
+    EditAccountSettingsModal,
+    NotificationDot,
+  },
+  props: {
+    modelValue: Boolean,
+  },
   data() {
     return {
       isLoginDropdownVisible: false,
@@ -125,12 +134,6 @@ export default {
       currentUserInfo: {},
       editAccountSettingIsOpen: false,
     };
-  },
-  components: {
-    UserBubbleLogin,
-    GetEmailModal,
-    EditAccountSettingsModal,
-    NotificationDot,
   },
   computed: {
     userDisplayName() {
@@ -143,9 +146,6 @@ export default {
       return this.$store.getters.getHasUnverifiedUser;
     },
   },
-  props: {
-    modelValue: Boolean,
-  },
   watch: {
     modelValue(newValue) {
       if (newValue) {
@@ -154,6 +154,9 @@ export default {
         this.closeModal();
       }
     },
+  },
+  mounted() {
+    this.getUser();
   },
   methods: {
     async getUser() {
@@ -176,9 +179,6 @@ export default {
         this.$store.commit("setIsUnverified", user.account_status == "unverified" ? true : false);
       }
     },
-  },
-  mounted() {
-    this.getUser();
   },
 };
 </script>

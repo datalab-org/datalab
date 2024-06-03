@@ -2,10 +2,10 @@
   <label class="pr-2">Relationships</label>
   <div>
     <ItemGraph
-      :graphData="graphData"
+      :graph-data="graphData"
       style="height: 200px; width: 100%; border: 1px solid transparent; border-radius: 5px"
-      :defaultGraphStyle="'elk-stress'"
-      :showOptions="false"
+      :default-graph-style="'elk-stress'"
+      :show-options="false"
     />
   </div>
 </template>
@@ -16,19 +16,19 @@ import ItemGraph from "@/components/ItemGraph";
 import { getItemGraph } from "@/server_fetch_utils.js";
 
 export default {
+  components: {
+    ItemGraph,
+  },
+  props: {
+    item_id: String,
+  },
   computed: {
     graphData() {
       return this.$store.state.itemGraphData;
     },
   },
-  props: {
-    item_id: String,
-  },
   async mounted() {
     await getItemGraph({ item_id: this.item_id });
-  },
-  components: {
-    ItemGraph,
   },
 };
 </script>

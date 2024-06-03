@@ -17,18 +17,18 @@
     </thead>
     <tbody>
       <tr
-        :id="item.item_id"
         v-for="item in startingMaterials"
+        :id="item.item_id"
         :key="item.item_id"
-        v-on:click.exact="goToEditPage(item.item_id)"
-        v-on:click.meta="openEditPageInNewTab(item.item_id)"
-        v-on:click.ctrl="openEditPageInNewTab(item.item_id)"
+        @click.exact="goToEditPage(item.item_id)"
+        @click.meta="openEditPageInNewTab(item.item_id)"
+        @click.ctrl="openEditPageInNewTab(item.item_id)"
       >
         <td>
           <FormattedItemName
             :item_id="item.item_id"
-            :itemType="item?.type || 'starting_materials'"
-            enableModifiedClick
+            :item-type="item?.type || 'starting_materials'"
+            enable-modified-click
           />
         </td>
         <td>{{ item.name }}</td>
@@ -37,7 +37,7 @@
         <td>{{ item.chemical_purity }}</td>
         <td>{{ item.nblocks }}</td>
         <td align="right">
-          <button type="button" class="close" @click.stop="deleteItem(item)" aria-label="delete">
+          <button type="button" class="close" aria-label="delete" @click.stop="deleteItem(item)">
             <span aria-hidden="true" style="color: grey">&times;</span>
           </button>
         </td>
@@ -52,6 +52,10 @@ import FormattedItemName from "@/components/FormattedItemName";
 import { getStartingMaterialList, deleteStartingMaterial } from "@/server_fetch_utils.js";
 
 export default {
+  components: {
+    ChemicalFormula,
+    FormattedItemName,
+  },
   data() {
     return {
       isFetchError: false,
@@ -61,6 +65,9 @@ export default {
     startingMaterials() {
       return this.$store.state.starting_material_list;
     },
+  },
+  created() {
+    this.getStartingMaterials();
   },
   methods: {
     goToEditPage(item_id) {
@@ -81,13 +88,6 @@ export default {
       }
       console.log("delete cancelled.");
     },
-  },
-  created() {
-    this.getStartingMaterials();
-  },
-  components: {
-    ChemicalFormula,
-    FormattedItemName,
   },
 };
 </script>

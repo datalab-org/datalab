@@ -1,9 +1,9 @@
 <template>
-  <div class="pt-3" v-if="this.logo_url != null">
-    <a v-if="this.homepage_url != null" :href="this.homepage_url" target="_blank">
-      <img class="logo-banner" :src="this.logo_url" />
+  <div v-if="logo_url != null" class="pt-3">
+    <a v-if="homepage_url != null" :href="homepage_url" target="_blank">
+      <img class="logo-banner" :src="logo_url" />
     </a>
-    <img v-else class="logo-banner" :src="this.logo_url" />
+    <img v-else class="logo-banner" :src="logo_url" />
   </div>
 
   <LoginDetails></LoginDetails>
@@ -31,6 +31,9 @@ import LoginDetails from "@/components/LoginDetails.vue";
 
 export default {
   name: "Navbar",
+  components: {
+    LoginDetails,
+  },
   data() {
     return {
       apiUrl: API_URL,
@@ -43,9 +46,6 @@ export default {
     isLoggedIn() {
       return Boolean(this.$store.state.currentUserDisplayName);
     },
-  },
-  components: {
-    LoginDetails,
   },
 };
 </script>

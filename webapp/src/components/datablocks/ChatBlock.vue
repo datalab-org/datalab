@@ -2,19 +2,19 @@
   <!-- think about elegant two-way binding to DataBlockBase... or, just pass all the block data into
 DataBlockBase as a prop, and save from within DataBlockBase  -->
   <DataBlockBase :item_id="item_id" :block_id="block_id">
-    <div v-if="advancedHidden" @click="advancedHidden = !advancedHidden" class="context-button">
+    <div v-if="advancedHidden" class="context-button" @click="advancedHidden = !advancedHidden">
       [show advanced]
     </div>
-    <div v-if="!advancedHidden" @click="advancedHidden = !advancedHidden" class="context-button">
+    <div v-if="!advancedHidden" class="context-button" @click="advancedHidden = !advancedHidden">
       [hide advanced]
     </div>
 
     <div class="row">
       <div id="chatWindowContainer" class="col-xl-9 col-lg-10 col-md-12 mx-auto">
-        <div class="advanced-information" v-if="!advancedHidden">
+        <div v-if="!advancedHidden" class="advanced-information">
           <div class="input-group">
             <label class="mr-2">Model:</label>
-            <select class="form-control" v-model="modelName">
+            <select v-model="modelName" class="form-control">
               <option v-for="model in Object.keys(availableModels)" :key="model">
                 {{ model }}
               </option>
@@ -34,25 +34,28 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
             <label for="temperatureInput" class="mr-2"><b>temperature:</b></label>
             <input
               id="temperatureInput"
+              v-model="temperature"
               type="number"
               min="0"
               max="1"
               step="0.1"
               class="form-control-sm"
-              v-model="temperature"
               :class="{ 'red-border': tempInvalid }"
             />
-            <small class="text-danger" v-show="tempInvalid">
+            <small v-show="tempInvalid" class="text-danger">
               Temperature must must be a number between 0 and 1
             </small>
           </div>
         </div>
-        <ChatWindow :chatMessages="messages.slice(advancedHidden ? 2 : 0)" :isLoading="isLoading" />
+        <ChatWindow
+          :chat-messages="messages.slice(advancedHidden ? 2 : 0)"
+          :is-loading="isLoading"
+        />
         <div class="d-flex justify-content-center">
           <button
             class="btn btn-default btn-sm regenerate-button"
-            @click="regenerateLastResponse"
             :disabled="messages[messages.length - 1]['role'] != 'assistant'"
+            @click="regenerateLastResponse"
           >
             <font-awesome-icon
               :icon="['fa', 'sync']"
@@ -64,10 +67,10 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
         </div>
       </div>
     </div>
-    <div style="white-space: pre-line" v-if="errorMessage" class="alert alert-warning">
+    <div v-if="errorMessage" style="white-space: pre-line" class="alert alert-warning">
       {{ errorMessage }}
     </div>
-    <div class="alert alert-info col-lg-6 col-md-8 mt-3 mx-auto" v-show="estimatedCost > 0.1">
+    <div v-show="estimatedCost > 0.1" class="alert alert-info col-lg-6 col-md-8 mt-3 mx-auto">
       <font-awesome-icon icon="exclamation-circle" /> sending a message is estimated to cost: ${{
         estimatedCost.toPrecision(2)
       }}
@@ -75,11 +78,11 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
 
     <div class="input-group form-inline col-md-10 mx-auto align-items-end">
       <textarea
+        v-model="prompt"
         rows="3"
         type="text"
         class="form-control"
         :disabled="isLoading"
-        v-model="prompt"
         placeholder="Type your message to send to the LLM, then press enter or hit send (shift-enter for newline)."
         @keydown.enter.exact.prevent="updateBlock"
       />
