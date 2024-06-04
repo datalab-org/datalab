@@ -459,7 +459,7 @@ def orcid_logged_in(_, token):
         token["orcid"],
         IdentityType.ORCID,
         token["orcid"],
-        display_name=token["name"],
+        display_name=token.get("name", token["orcid"]),
         verified=True,
         create_account=create_account,
     )
