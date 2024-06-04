@@ -42,7 +42,7 @@ services:
     volumes:
       - ./logs:/logs
       - /data/files:/app/files
-      - /data/backups:/data/backups
+      - /data/backups:/tmp/datalab-backups
     ports:
       - "5001:5001"
     networks:
