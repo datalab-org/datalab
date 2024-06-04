@@ -24,15 +24,18 @@ echo ""
 echo "  API_URL: ${VUE_APP_API_URL}"
 echo "  LOGO_URL: ${VUE_APP_LOGO_URL}"
 echo "  HOMEPAGE_URL: ${VUE_APP_HOMPAGE_URL}"
+echo "  EDITABLE_INVENTORY: ${VUE_APP_EDITABLE_INVENTORY}"
+echo "  WEBSITE_TITLE: ${VUE_APP_WEBSITE_TITLE}"
 echo ""
 echo "Patching..."
 
-for file in $ROOT_DIR/js/app.*.js*; do
+for file in $ROOT_DIR/js/app.*.js* $ROOT_DIR/*html; do
     echo "$file"
     sed -i "s|magic-api-url|${VUE_APP_API_URL}|g" $file
     sed -i "s|magic-logo-url|${VUE_APP_LOGO_URL}|g" $file
     sed -i "s|magic-homepage-url|${VUE_APP_HOMEPAGE_URL}|g" $file
     sed -i "s|magic-setting|${VUE_APP_EDITABLE_INVENTORY}|g" $file
+    sed -i "s|magic-title|${VUE_APP_WEBSITE_TITLE}|g" $file
     done
 
 echo "Done!"
