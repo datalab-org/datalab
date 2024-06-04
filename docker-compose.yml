@@ -57,7 +57,7 @@ services:
       dockerfile: .docker/server_dockerfile
       target: development
     depends_on:
-      - database
+      - database_dev
     volumes:
       - ./logs:/logs
       - ./pydatalab:/app
@@ -67,9 +67,23 @@ services:
       - backend
     environment:
       - PYDATALAB_TESTING=true
-      - PYDATALAB_MONGO_URI=mongodb://database:27017/datalabvue
+      - PYDATALAB_MONGO_URI=mongodb://database_dev:27017/datalabvue
+
+  database_dev:
+    profiles: ["dev"]
+    build:
+      context: .
+      dockerfile: .docker/mongo_dockerfile
+    volumes:
+      - ./logs:/var/logs/mongod
+    restart: always
+    networks:
+      - backend
+    ports:
+      - "27017:27017"
 
   database:
+    profiles: ["prod"]
     build:
       context: .
       dockerfile: .docker/mongo_dockerfile
@@ -79,8 +93,6 @@ services:
     restart: always
     networks:
       - backend
-    ports:
-      - "27017:27017"
 
 networks:
   backend:
