@@ -37,6 +37,7 @@ export default {
       default: false,
     },
   },
+  emits: ["update:modelValue"],
   computed: {
     all_files() {
       return this.$store.state.files;

@@ -21,7 +21,7 @@
               :disabled="generateIDAutomatically"
               :required="!generateIDAutomatically"
             />
-            <div class="form-error" v-html="itemIDValidationMessage"></div>
+            <div class="form-error">{{ itemIDValidationMessage }}</div>
             <div class="form-check mt-1 ml-1">
               <input
                 id="create-item-auto-id-checkbox"

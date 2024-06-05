@@ -20,6 +20,10 @@ import { createComputedSetterForBlockField } from "@/field_utils.js";
 import { API_URL } from "@/resources.js";
 
 export default {
+  components: {
+    DataBlockBase,
+    FileSelectDropdown,
+  },
   props: {
     item_id: String,
     block_id: String,
@@ -51,10 +55,6 @@ export default {
     isVideo() {
       return [".mp4", ".mov", ".webm"].includes(this.all_files[this.file_id]?.extension);
     },
-  },
-  components: {
-    DataBlockBase,
-    FileSelectDropdown,
   },
 };
 </script>

@@ -88,6 +88,14 @@ import tinymce from "tinymce/tinymce";
 import { deleteBlock, updateBlockFromServer } from "@/server_fetch_utils";
 
 export default {
+  components: {
+    TinyMceInline,
+    StyledBlockInfo,
+  },
+  props: {
+    item_id: String,
+    block_id: String,
+  },
   data() {
     return {
       isExpanded: true,
@@ -122,11 +130,6 @@ export default {
     BlockTitle: createComputedSetterForBlockField("title"),
     BlockDescription: createComputedSetterForBlockField("freeform_comment"),
   },
-  components: {
-    TinyMceInline,
-    StyledBlockInfo,
-  },
-  props: ["item_id", "block_id"],
   mounted() {
     // this is to help toggleExpandBlock() work properly. Resets contentMaxHeight to "none"
     // after expand transition finishes so that height can be set automatically if content changes

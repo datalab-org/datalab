@@ -45,6 +45,7 @@ export default {
   props: {
     modelValue: {},
   },
+  emits: ["update:modelValue"],
   data() {
     return {
       isEditingCollections: false,

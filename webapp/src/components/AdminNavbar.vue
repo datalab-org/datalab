@@ -23,7 +23,17 @@
 <script>
 export default {
   name: "AdminNavbar",
-  props: ["items", "selectedItem"],
+  props: {
+    items: {
+      type: Object,
+      required: true,
+    },
+    selectedItem: {
+      type: String,
+      required: true,
+    },
+  },
+  emits: ["item-selected"],
   methods: {
     selectItem(item) {
       this.$emit("item-selected", item);

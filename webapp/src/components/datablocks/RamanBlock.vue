@@ -27,6 +27,11 @@ import { createComputedSetterForBlockField } from "@/field_utils.js";
 import { updateBlockFromServer } from "@/server_fetch_utils.js";
 
 export default {
+  components: {
+    DataBlockBase,
+    FileSelectDropdown,
+    BokehPlot,
+  },
   props: {
     item_id: String,
     block_id: String,
@@ -40,11 +45,6 @@ export default {
       return this.$store.state.blocksInfos["raman"];
     },
     file_id: createComputedSetterForBlockField("file_id"),
-  },
-  components: {
-    DataBlockBase,
-    FileSelectDropdown,
-    BokehPlot,
   },
   methods: {
     updateBlock() {

@@ -155,6 +155,11 @@ import { updateBlockFromServer } from "@/server_fetch_utils.js";
 import { createComputedSetterForBlockField } from "@/field_utils.js";
 
 export default {
+  components: {
+    DataBlockBase,
+    FileSelectDropdown,
+    BokehPlot,
+  },
   props: {
     item_id: String,
     block_id: String,
@@ -249,11 +254,6 @@ export default {
         this.isReplotButtonDisplayed = false;
       });
     },
-  },
-  components: {
-    DataBlockBase,
-    FileSelectDropdown,
-    BokehPlot,
   },
 };
 </script>

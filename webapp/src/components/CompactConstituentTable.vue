@@ -118,6 +118,7 @@ export default {
       default: () => ["samples", "starting_materials", "cells"],
     },
   },
+  emits: ["update:modelValue"],
   data() {
     return {
       selectedNewConstituent: null,
