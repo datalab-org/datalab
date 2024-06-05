@@ -23,6 +23,7 @@ export default {
     ChemicalFormula,
   },
   props: { modelValue: String },
+  emits: ["update:modelValue"],
   data() {
     return {
       editable: false,

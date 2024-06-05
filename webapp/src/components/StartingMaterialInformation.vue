@@ -95,6 +95,15 @@ import StyledInput from "@/components/StyledInput";
 import { EDITABLE_INVENTORY } from "@/resources.js";
 
 export default {
+  components: {
+    StyledInput,
+    ChemicalFormula,
+    ChemFormulaInput,
+    TinyMceInline,
+    ToggleableCollectionFormGroup,
+    TableOfContents,
+    FormattedRefcode,
+  },
   props: {
     item_id: String,
   },
@@ -126,15 +135,6 @@ export default {
   },
   created() {
     this.isEditable = EDITABLE_INVENTORY;
-  },
-  components: {
-    StyledInput,
-    ChemicalFormula,
-    ChemFormulaInput,
-    TinyMceInline,
-    ToggleableCollectionFormGroup,
-    TableOfContents,
-    FormattedRefcode,
   },
 };
 </script>

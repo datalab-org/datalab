@@ -68,6 +68,10 @@ import { createComputedSetterForItemField } from "@/field_utils.js";
 import CompactConstituentTable from "@/components/CompactConstituentTable";
 
 export default {
+  components: {
+    TinyMceInline,
+    CompactConstituentTable,
+  },
   props: {
     item_id: String,
   },
@@ -105,10 +109,6 @@ export default {
       },
       deep: true,
     },
-  },
-  components: {
-    TinyMceInline,
-    CompactConstituentTable,
   },
 };
 </script>

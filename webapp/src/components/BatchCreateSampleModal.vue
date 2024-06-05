@@ -201,7 +201,7 @@
                       </td>
                     </tr>
                     <td colspan="3">
-                      <span class="form-error" v-html="sampleIDValidationMessages[index]" />
+                      <span class="form-error">{{ sampleIDValidationMessages[index] }}</span>
                     </td>
                   </template>
                 </tbody>

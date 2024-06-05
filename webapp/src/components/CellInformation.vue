@@ -119,6 +119,16 @@ import Creators from "@/components/Creators";
 import { cellFormats } from "@/resources.js";
 
 export default {
+  components: {
+    ChemFormulaInput,
+    TinyMceInline,
+    CellPreparationInformation,
+    TableOfContents,
+    ItemRelationshipVisualization,
+    FormattedRefcode,
+    ToggleableCollectionFormGroup,
+    Creators,
+  },
   props: {
     item_id: String,
   },
@@ -145,16 +155,6 @@ export default {
     CellFormatDescription: createComputedSetterForItemField("cell_format_description"),
     CharacteristicMass: createComputedSetterForItemField("characteristic_mass"),
     Collections: createComputedSetterForItemField("collections"),
-  },
-  components: {
-    ChemFormulaInput,
-    TinyMceInline,
-    CellPreparationInformation,
-    TableOfContents,
-    ItemRelationshipVisualization,
-    FormattedRefcode,
-    ToggleableCollectionFormGroup,
-    Creators,
   },
 };
 </script>

@@ -106,6 +106,10 @@ import { createComputedSetterForBlockField } from "@/field_utils.js";
 import { updateBlockFromServer } from "@/server_fetch_utils.js";
 
 export default {
+  components: {
+    DataBlockBase,
+    ChatWindow,
+  },
   props: {
     item_id: String,
     block_id: String,
@@ -149,10 +153,6 @@ export default {
     tokenCount() {
       return this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id].token_count;
     },
-  },
-  components: {
-    DataBlockBase,
-    ChatWindow,
   },
   methods: {
     async updateBlock() {

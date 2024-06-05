@@ -43,6 +43,12 @@ import Creators from "@/components/Creators";
 import CollectionRelationshipVisualization from "@/components/CollectionRelationshipVisualization";
 
 export default {
+  components: {
+    TinyMceInline,
+    FancyCollectionSampleTable,
+    Creators,
+    CollectionRelationshipVisualization,
+  },
   props: {
     collection_id: String,
   },
@@ -52,12 +58,6 @@ export default {
     Title: createComputedSetterForCollectionField("title"),
     Name: createComputedSetterForCollectionField("name"),
     CollectionCreators: createComputedSetterForCollectionField("creators"),
-  },
-  components: {
-    TinyMceInline,
-    FancyCollectionSampleTable,
-    Creators,
-    CollectionRelationshipVisualization,
   },
 };
 </script>
