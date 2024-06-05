@@ -69,6 +69,16 @@ import ItemRelationshipVisualization from "@/components/ItemRelationshipVisualiz
 import Creators from "@/components/Creators";
 
 export default {
+  components: {
+    ChemFormulaInput,
+    TinyMceInline,
+    SynthesisInformation,
+    TableOfContents,
+    ItemRelationshipVisualization,
+    FormattedRefcode,
+    ToggleableCollectionFormGroup,
+    Creators,
+  },
   props: {
     item_id: String,
     refcode: String,
@@ -91,16 +101,6 @@ export default {
     DateCreated: createComputedSetterForItemField("date"),
     ItemCreators: createComputedSetterForItemField("creators"),
     Collections: createComputedSetterForItemField("collections"),
-  },
-  components: {
-    ChemFormulaInput,
-    TinyMceInline,
-    SynthesisInformation,
-    TableOfContents,
-    ItemRelationshipVisualization,
-    FormattedRefcode,
-    ToggleableCollectionFormGroup,
-    Creators,
   },
 };
 </script>

@@ -76,8 +76,6 @@ export default {
     return {
       users: null,
       original_users: null,
-      test: "unverified",
-      role: ["user", "manager", "admin"],
       tempRole: null,
     };
   },

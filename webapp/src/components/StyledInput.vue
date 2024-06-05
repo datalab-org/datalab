@@ -34,6 +34,7 @@ export default {
     type: { default: "string" },
     helpMessage: { type: String },
   },
+  emits: ["update:modelValue"],
   data() {
     return {
       tooltipDisplay: false,

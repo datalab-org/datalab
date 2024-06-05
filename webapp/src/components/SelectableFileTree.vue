@@ -66,6 +66,7 @@ export default {
       default: "",
     },
   },
+  emits: ["update:selectedEntries"],
   data() {
     return {
       selectedEntries: [],

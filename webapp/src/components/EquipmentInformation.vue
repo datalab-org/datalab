@@ -75,6 +75,13 @@ import FormattedRefcode from "@/components/FormattedRefcode";
 import Creators from "@/components/Creators";
 
 export default {
+  components: {
+    TinyMceInline,
+    CollectionList,
+    TableOfContents,
+    FormattedRefcode,
+    Creators,
+  },
   props: {
     item_id: String,
   },
@@ -100,13 +107,6 @@ export default {
     SerialNos: createComputedSetterForItemField("serial_numbers"),
     Maintainers: createComputedSetterForItemField("creators"),
     Contact: createComputedSetterForItemField("contact"),
-  },
-  components: {
-    TinyMceInline,
-    CollectionList,
-    TableOfContents,
-    FormattedRefcode,
-    Creators,
   },
 };
 </script>

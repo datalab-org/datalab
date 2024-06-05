@@ -12,7 +12,7 @@
           <div class="form-group col-md-6">
             <label for="equipment-id" class="col-form-label">ID:</label>
             <input id="equipment-id" v-model="item_id" type="text" class="form-control" required />
-            <div class="form-error" v-html="equipmentIDValidationMessage"></div>
+            <div class="form-error">{{ equipmentIDValidationMessage }}</div>
           </div>
           <div class="form-group col-md-6">
             <label for="create-equipment-modal-item-type-select" class="col-form-label"

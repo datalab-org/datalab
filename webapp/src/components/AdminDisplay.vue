@@ -10,7 +10,12 @@ import UserTable from "./UserTable.vue";
 export default {
   name: "AdminDisplay",
   components: { UserTable },
-  props: ["selectedItem"],
+  props: {
+    selectedItem: {
+      type: String,
+      required: true,
+    },
+  },
 };
 </script>
 
