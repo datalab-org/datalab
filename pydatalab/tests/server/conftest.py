@@ -183,6 +183,11 @@ def generate_api_key():
     return "".join(random.choices("abcdef0123456789", k=24))
 
 
+@pytest.fixture(scope="function")
+def random_string():
+    return generate_api_key()
+
+
 @pytest.fixture(scope="session")
 def admin_api_key() -> str:
     return generate_api_key()
