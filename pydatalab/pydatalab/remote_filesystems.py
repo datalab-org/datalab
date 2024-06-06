@@ -4,6 +4,7 @@ import json
 import multiprocessing
 import os
 import subprocess
+import time
 from typing import Any, Dict, List, Optional, Union
 
 import pydatalab.mongo
@@ -50,6 +51,7 @@ def get_directory_structures(
 def get_directory_structure(
     directory: RemoteFilesystem,
     invalidate_cache: Optional[bool] = False,
+    max_retries: int = 5,
 ) -> Dict[str, Any]:
     """For the given remote directory, either reconstruct the directory
     structure in full, or access the cached version if is it recent
@@ -65,6 +67,8 @@ def get_directory_structure(
             be reset, provided the cache was not updated very recently. If `False`,
             the cache will not be reset, even if it is older than the maximum configured
             age.
+        max_retries: Used when called recursively to limit the number of attempts each PID
+            will make to acquire the lock on the directory structure before returning an error.
 
     Returns:
         A dictionary with keys "name", "type" and "contents" for the
@@ -93,6 +97,7 @@ def get_directory_structure(
         #        `invalidate_cache` has not been explicitly set to false,
         #     3) the `invalidate_cache` parameter is true, and the cache
         #        is older than the min age,
+        # AND, if no other processes is updating the cache,
         # then rebuild the cache.
         if (
             (not cached_dir_structure)
@@ -105,17 +110,32 @@ def get_directory_structure(
                 and cache_age > datetime.timedelta(minutes=CONFIG.REMOTE_CACHE_MIN_AGE)
             )
         ):
-            dir_structure = _get_latest_directory_structure(directory.path, directory.hostname)
-            last_updated = _save_directory_structure(
-                directory,
-                dir_structure,
-            )
-            LOGGER.debug(
-                "Remote filesystems cache miss for '%s': last updated %s",
-                directory.name,
-                cache_last_updated,
-            )
-            status = "updated"
+            owns_lock = _acquire_lock_dir_structure(directory)
+            if owns_lock:
+                dir_structure = _get_latest_directory_structure(directory.path, directory.hostname)
+                # Save the directory structure to the database, which also releases the lock
+                last_updated = _save_directory_structure(
+                    directory,
+                    dir_structure,
+                )
+                LOGGER.debug(
+                    "Remote filesystems cache miss for '%s': last updated %s",
+                    directory.name,
+                    cache_last_updated,
+                )
+                status = "updated"
+            else:
+                if max_retries <= 0:
+                    raise RuntimeError(
+                        f"Failed to acquire lock for {directory.name} after the max number of attempts. This may indicate something wrong with the filesystem; please try again later."
+                    )
+                LOGGER.debug(
+                    "PID %s waiting 5 seconds until FS %s is updated", os.getpid(), directory.name
+                )
+                time.sleep(5)
+                return get_directory_structure(
+                    directory, invalidate_cache=invalidate_cache, max_retries=max_retries - 1
+                )
 
         else:
             last_updated = cached_dir_structure["last_updated"]
@@ -131,6 +151,9 @@ def get_directory_structure(
         dir_structure = [{"type": "error", "name": directory.name, "details": str(exc)}]
         last_updated = datetime.datetime.now()
         status = "error"
+
+    finally:
+        _release_lock_dir_structure(directory)
 
     return {
         "name": directory.name,
@@ -333,6 +356,7 @@ def _save_directory_structure(
                 "contents": dir_structure,
                 "last_updated": last_updated,
                 "type": "toplevel",
+                "_lock": None,
             }
         },
         upsert=True,
@@ -345,6 +369,101 @@ def _save_directory_structure(
     )
 
     return last_updated
+
+
+def _acquire_lock_dir_structure(
+    directory: RemoteFilesystem,
+) -> bool:
+    """Attempt to acquire the lock on the directory structure to hint to other processes
+    to not update it.
+
+    Parameters:
+        directory: The remote filesystem entry to lock.
+
+    Returns:
+        `True` if the lock was acquired, `False` otherwise.
+
+    """
+    client = pydatalab.mongo._get_active_mongo_client()
+    with client.start_session() as session:
+        collection = client.get_database().remoteFilesystems
+        doc = collection.find_one({"name": directory.name}, projection=["_lock"], session=session)
+        if doc and doc.get("_lock") is not None:
+            pid = doc["_lock"].get("pid")
+            ctime = doc["_lock"].get("ctime")
+            lock_age = datetime.datetime.now() - ctime
+            if lock_age > datetime.timedelta(minutes=CONFIG.REMOTE_CACHE_MIN_AGE):
+                LOGGER.debug(
+                    "Lock for %s already held by process %s for %s, forcing this process to acquire lock",
+                    directory.name,
+                    pid,
+                    lock_age,
+                )
+            else:
+                LOGGER.debug(
+                    "Lock for %s already held by process %s since %s", directory.name, pid, ctime
+                )
+                return False
+
+        collection.update_one(
+            {"name": directory.name},
+            {"$set": {"_lock": {"pid": os.getpid(), "ctime": datetime.datetime.now()}}},
+            upsert=True,
+            session=session,
+        )
+        LOGGER.debug("Acquired lock for %s as PID %s", directory.name, os.getpid())
+
+    return True
+
+
+def _release_lock_dir_structure(directory) -> bool:
+    """Attempt to release the lock on the directory structure.
+
+    Parameters:
+        directory: The remote filesystem entry to lock.
+
+    Returns:
+        `True` if the lock was released successfully, `False` otherwise.
+
+    """
+    client = pydatalab.mongo._get_active_mongo_client()
+    with client.start_session() as session:
+        collection = client.get_database().remoteFilesystems
+        doc = collection.find_one({"name": directory.name}, session=session)
+        if doc:
+            if doc.get("_lock") is not None:
+                pid = doc["_lock"].get("pid")
+
+                if pid != os.getpid():
+                    LOGGER.debug(
+                        "PID %s tried to release lock for %s, but lock was held by PID %s",
+                        os.getpid(),
+                        directory.name,
+                        pid,
+                    )
+                    return False
+
+            if doc.get("contents") is None:
+                # If the lock is held by this process, but the directory structure has not been updated, then delete it
+                collection.delete_one({"name": directory.name}, session=session)
+                LOGGER.debug(
+                    "PID %s is removed dir_structure stub %s",
+                    os.getpid(),
+                    doc,
+                )
+                return True
+
+            # Otherwise just release the lock
+            collection.update_one(
+                {"name": directory.name}, {"$set": {"_lock": None}}, session=session
+            )
+            LOGGER.debug(
+                "PID %s released locked on %s",
+                os.getpid(),
+                directory.name,
+            )
+
+    return True
 
 
 def _get_cached_directory_structure(

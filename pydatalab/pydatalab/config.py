@@ -101,9 +101,12 @@ class RemoteFilesystem(BaseModel):
     accessible from the server.
     """
 
-    name: str
-    hostname: Optional[str]
-    path: Path
+    name: str = Field(description="The name of the filesystem to use in the UI.")
+    hostname: Optional[str] = Field(
+        None,
+        description="The hostname for the filesystem. `None` indicates the filesystem is already mounted locally.",
+    )
+    path: Path = Field(description="The path to the base of the filesystem to include.")
 
 
 class SMTPSettings(BaseModel):
