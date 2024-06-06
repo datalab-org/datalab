@@ -7,3 +7,4 @@ nav:
     - schemas
     - blocks
     - rest_api.md
+    - CHANGELOG.md
