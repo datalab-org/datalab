@@ -202,12 +202,17 @@ export async function getInfo() {
 export function getSampleList() {
   return fetch_get(`${API_URL}/samples/`)
     .then(function (response_json) {
+      console.log(response_json);
       store.commit("setSampleList", response_json.samples);
     })
     .catch((error) => {
-      console.error("Error when fetching sample list");
-      console.error(error);
-      throw error;
+      if (error === "UNAUTHORIZED") {
+        store.commit("setSampleList", []);
+      } else {
+        console.error("Error when fetching sample list");
+        console.error(error);
+        throw error;
+      }
     });
 }
 
@@ -218,9 +223,16 @@ export function getCollectionSampleList(collection_id) {
       store.commit("setCollectionSampleList", response_json);
     })
     .catch((error) => {
-      console.error("Error when fetching collection sample list for collection_id", collection_id);
-      console.error(error);
-      throw error;
+      if (error === "UNAUTHORIZED") {
+        store.commit("setCollectionSampleList", []);
+      } else {
+        console.error(
+          "Error when fetching collection sample list for collection_id",
+          collection_id,
+        );
+        console.error(error);
+        throw error;
+      }
     });
 }
 
@@ -230,9 +242,13 @@ export function getCollectionList() {
       store.commit("setCollectionList", response_json.data);
     })
     .catch((error) => {
-      console.error("Error when fetching collection list");
-      console.error(error);
-      throw error;
+      if (error === "UNAUTHORIZED") {
+        store.commit("setCollectionList", []);
+      } else {
+        console.error("Error when fetching collection list");
+        console.error(error);
+        throw error;
+      }
     });
 }
 
@@ -258,9 +274,13 @@ export function getStartingMaterialList() {
       store.commit("setStartingMaterialList", response_json.items);
     })
     .catch((error) => {
-      console.error("Error when fetching starting material list");
-      console.error(error);
-      throw error;
+      if (error === "UNAUTHORIZED") {
+        store.commit("setStartingMaterialList", []);
+      } else {
+        console.error("Error when fetching starting material list");
+        console.error(error);
+        throw error;
+      }
     });
 }
 
@@ -270,9 +290,13 @@ export function getEquipmentList() {
       store.commit("setEquipmentList", response_json.items);
     })
     .catch((error) => {
-      console.error("Error when fetching equipment list");
-      console.error(error);
-      throw error;
+      if (error === "UNAUTHORIZED") {
+        store.commit("setEquipmentList", []);
+      } else {
+        console.error("Error when fetching equipment list");
+        console.error(error);
+        throw error;
+      }
     });
 }
 

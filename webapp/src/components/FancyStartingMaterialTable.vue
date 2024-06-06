@@ -1,7 +1,7 @@
 <template>
   <div v-if="isFetchError" class="alert alert-danger">
-    <font-awesome-icon icon="exclamation-circle" />&nbsp;Inventory could not be retreived. Are you
-    logged in?
+    <font-awesome-icon icon="exclamation-circle" />&nbsp;Server error: inventory could not be
+    retrieved.
   </div>
   <div class="form-inline ml-auto col-3 mb-2">
     <div class="form-group">

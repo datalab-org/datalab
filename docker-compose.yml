@@ -66,7 +66,6 @@ services:
     networks:
       - backend
     environment:
-      - PYDATALAB_TESTING=true
       - PYDATALAB_MONGO_URI=mongodb://database_dev:27017/datalabvue
 
   database_dev:

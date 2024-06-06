@@ -18,6 +18,11 @@
       ><font-awesome-icon icon="project-diagram" />&nbsp;Graph View</router-link
     >
   </div>
+  <div v-if="!isLoggedIn" class="container">
+    <div class="alert alert-info col-md-6 col-lg-4 text-center mx-auto">
+      Please login to view or create items.
+    </div>
+  </div>
 </template>
 
 <script>
@@ -33,6 +38,11 @@ export default {
       homepage_url: HOMEPAGE_URL,
       user: null,
     };
+  },
+  computed: {
+    isLoggedIn() {
+      return Boolean(this.$store.state.currentUserDisplayName);
+    },
   },
   components: {
     LoginDetails,
