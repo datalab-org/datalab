@@ -147,8 +147,9 @@ jobs:
         run: |
           # Add default API URL argument to Vue prod build
           echo "VUE_APP_API_URL=http://localhost:5001" >> .env
+          echo "PYDATALAB_TESTING=true" >> .env
           # Launch production container profiles and wait for them to come up
-          docker compose up database api_dev app -d --wait
+          docker compose up database api app -d --wait
 
       - name: Run end-to-end tests
         uses: cypress-io/github-action@v6
