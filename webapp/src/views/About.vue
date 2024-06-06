@@ -34,7 +34,7 @@
             </tr>
             <tr>
               <td>App version</td>
-              <td><code>0.4.0-rc.4</code></td>
+              <td><code>0.4.0</code></td>
             </tr>
           </table>
         </div>
