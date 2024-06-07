@@ -41,7 +41,7 @@
       content_css: false, // ^ same
     }"
     @change="$emit('update:modelValue', content)"
-    @SaveContent="$emit('update:modelValue', content)"
+    @save-content="$emit('update:modelValue', content)"
   />
 </template>
 

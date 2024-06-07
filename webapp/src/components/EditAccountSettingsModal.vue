@@ -5,7 +5,7 @@
       :disable-submit="
         Boolean(displayNameValidationMessage) || Boolean(contactEmailValidationMessage)
       "
-      @update:modelValue="resetForm"
+      @update:model-value="resetForm"
     >
       <template #header> Account settings </template>
 

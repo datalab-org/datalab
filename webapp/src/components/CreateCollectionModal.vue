@@ -3,7 +3,7 @@
     <Modal
       :model-value="modelValue"
       :disable-submit="Boolean(IDValidationMessage) || !Boolean(collection_id)"
-      @update:modelValue="$emit('update:modelValue', $event)"
+      @update:model-value="$emit('update:modelValue', $event)"
     >
       <template #header> Create new collection </template>
 

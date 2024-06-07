@@ -62,8 +62,8 @@
             :depth="depth + 1"
             :selected-entries="selectedEntries"
             :search-term="searchTerm"
-            @setSelectedEntry="$emit('setSelectedEntry', $event)"
-            @appendToSelectedEntries="$emit('appendToSelectedEntries', $event)"
+            @set-selected-entry="$emit('setSelectedEntry', $event)"
+            @append-to-selected-entries="$emit('appendToSelectedEntries', $event)"
           />
         </li>
       </ol>
