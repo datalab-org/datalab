@@ -3,7 +3,7 @@
     <Modal
       :model-value="modelValue"
       :disable-submit="Boolean(equipmentIDValidationMessage) || !Boolean(item_id)"
-      @update:modelValue="$emit('update:modelValue', $event)"
+      @update:model-value="$emit('update:modelValue', $event)"
     >
       <template #header> Add equipment </template>
 
@@ -74,7 +74,7 @@
               aria-labelledby="copyFromSelectLabel"
               :model-value="selectedItemToCopy"
               :types-to-query="[item_type]"
-              @update:modelValue="
+              @update:model-value="
                 selectedItemToCopy = $event;
                 setCopiedName();
               "

@@ -6,7 +6,7 @@
         sampleIDValidationMessages.some((e) => e) ||
         (!generateIDsAutomatically && samples.some((s) => !Boolean(s.item_id)))
       "
-      @update:modelValue="$emit('update:modelValue', $event)"
+      @update:model-value="$emit('update:modelValue', $event)"
     >
       <template #header>
         <template v-if="beforeSubmit">Add new samples</template>
@@ -108,7 +108,7 @@
                       <ItemSelect
                         v-model="sampleTemplate.copyFrom"
                         :formatted-item-name-max-length="8"
-                        @update:modelValue="applyCopyFromTemplate"
+                        @update:model-value="applyCopyFromTemplate"
                       />
                     </td>
                     <td>
@@ -116,7 +116,7 @@
                         v-model="sampleTemplate.components"
                         multiple
                         :formatted-item-name-max-length="8"
-                        @update:modelValue="applyComponentsTemplate"
+                        @update:model-value="applyComponentsTemplate"
                       />
                     </td>
                   </tbody>

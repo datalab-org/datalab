@@ -3,7 +3,7 @@
     <Modal
       :model-value="modelValue"
       :disable-submit="Boolean(successMessage) || !Boolean(emailAddress)"
-      @update:modelValue="$emit('update:modelValue', $event)"
+      @update:model-value="$emit('update:modelValue', $event)"
     >
       <template #body>
         <div class="form-row">

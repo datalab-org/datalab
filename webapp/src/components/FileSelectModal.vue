@@ -16,7 +16,7 @@
       <template #body>
         <SelectableFileTree
           :default-search-term="item_id"
-          @update:selectedEntries="selectedRemoteFiles = $event"
+          @update:selected-entries="selectedRemoteFiles = $event"
         />
       </template>
 

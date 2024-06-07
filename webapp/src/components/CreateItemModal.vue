@@ -5,7 +5,7 @@
       :disable-submit="
         Boolean(itemIDValidationMessage) || (!generateIDAutomatically && !Boolean(item_id))
       "
-      @update:modelValue="$emit('update:modelValue', $event)"
+      @update:model-value="$emit('update:modelValue', $event)"
     >
       <template #header> Add new item </template>
 
@@ -85,7 +85,7 @@
               aria-labelledby="copyFromSelectLabel"
               :model-value="selectedItemToCopy"
               :types-to-query="[item_type]"
-              @update:modelValue="
+              @update:model-value="
                 selectedItemToCopy = $event;
                 setCopiedName();
               "
@@ -97,7 +97,7 @@
         data to provide to the server -->
         <component
           :is="itemCreateModalAddonComponent"
-          @startingDataCallback="(callback) => (startingDataCallback = callback)"
+          @starting-data-callback="(callback) => (startingDataCallback = callback)"
         />
       </template>
     </Modal>
