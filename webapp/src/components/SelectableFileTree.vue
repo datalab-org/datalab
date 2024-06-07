@@ -11,8 +11,8 @@
           :depth="0"
           :selected-entries="selectedEntries"
           :search-term="searchTerm"
-          @setSelectedEntry="setSelectedEntry($event, toplevel.name)"
-          @appendToSelectedEntries="appendToSelectedEntries($event, toplevel.name)"
+          @set-selected-entry="setSelectedEntry($event, toplevel.name)"
+          @append-to-selected-entries="appendToSelectedEntries($event, toplevel.name)"
         />
       </div>
 
