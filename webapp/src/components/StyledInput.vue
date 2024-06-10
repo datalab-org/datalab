@@ -32,7 +32,7 @@ export default {
       default: false,
     },
     type: { default: "string" },
-    helpMessage: { type: String },
+    helpMessage: { type: String, default: "" },
   },
   emits: ["update:modelValue"],
   data() {

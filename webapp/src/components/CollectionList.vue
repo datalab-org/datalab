@@ -20,6 +20,7 @@ export default {
   props: {
     collections: {
       type: Array,
+      default: () => [],
     },
   },
   data() {

@@ -8,7 +8,12 @@
 
 <script>
 export default {
-  props: { isotopeString: String },
+  props: {
+    isotopeString: {
+      type: String,
+      default: null,
+    },
+  },
   computed: {
     isotopeFormat() {
       const re = /(\d+)([A-z][a-z]?)/;

@@ -38,6 +38,7 @@ export default {
   props: {
     blockInfo: {
       type: Object,
+      default: () => ({}),
     },
   },
   data() {

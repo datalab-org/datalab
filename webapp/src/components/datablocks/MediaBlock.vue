@@ -25,8 +25,14 @@ export default {
     FileSelectDropdown,
   },
   props: {
-    item_id: String,
-    block_id: String,
+    item_id: {
+      type: String,
+      required: true,
+    },
+    block_id: {
+      type: String,
+      required: true,
+    },
   },
   computed: {
     file_id: createComputedSetterForBlockField("file_id"),

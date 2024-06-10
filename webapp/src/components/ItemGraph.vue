@@ -71,7 +71,10 @@ const layoutOptions = {
 
 export default {
   props: {
-    graphData: Object,
+    graphData: {
+      type: Object,
+      default: null,
+    },
     defaultGraphStyle: {
       type: String,
       default: "elk-stress",

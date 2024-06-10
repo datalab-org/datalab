@@ -51,7 +51,7 @@ export default {
     FormattedItemName,
   },
   props: {
-    modelValue: {},
+    modelValue: { default: "" },
     formattedItemNameMaxLength: {
       type: Number,
       default: NaN,

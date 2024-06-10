@@ -42,7 +42,7 @@ export default {
     FormattedCollectionName,
   },
   props: {
-    modelValue: {},
+    modelValue: { default: "" },
     formattedItemNameMaxLength: {
       type: Number,
       default: NaN,
