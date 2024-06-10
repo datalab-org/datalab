@@ -26,13 +26,22 @@ import { createPopper } from "@popperjs/core";
 
 export default {
   props: {
-    modelValue: { default: "" },
+    modelValue: {
+      type: String,
+      default: "",
+    },
     readonly: {
       type: Boolean,
       default: false,
     },
-    type: { default: "string" },
-    helpMessage: { type: String, default: "" },
+    type: {
+      type: String,
+      default: "string",
+    },
+    helpMessage: {
+      type: String,
+      default: "",
+    },
   },
   emits: ["update:modelValue"],
   data() {

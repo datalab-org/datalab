@@ -112,7 +112,10 @@ export default {
     OnClickOutside,
   },
   props: {
-    modelValue: { default: "" },
+    modelValue: {
+      type: String,
+      default: "",
+    },
     typesToQuery: {
       type: Array,
       default: () => ["samples", "starting_materials", "cells"],

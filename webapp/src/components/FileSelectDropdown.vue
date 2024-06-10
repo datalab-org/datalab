@@ -25,7 +25,10 @@ import { updateBlockFromServer } from "@/server_fetch_utils.js";
 
 export default {
   props: {
-    modelValue: { default: "" },
+    modelValue: {
+      type: String,
+      default: "",
+    },
     item_id: { type: String, required: true },
     block_id: { type: String, required: true },
     extensions: {
