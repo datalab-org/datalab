@@ -9,7 +9,12 @@ import * as Bokeh from "bokeh";
 // var BokehDoc = null
 
 export default {
-  props: ["bokehPlotData"],
+  props: {
+    bokehPlotData: {
+      type: Object,
+      required: true,
+    },
+  },
   data: function () {
     return {
       unique_id: "dummy-bokeh-id",

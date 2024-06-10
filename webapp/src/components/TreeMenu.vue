@@ -74,7 +74,24 @@
 <script>
 export default {
   name: "TreeMenu",
-  props: ["entry", "depth", "selectedEntries", "searchTerm"],
+  props: {
+    entry: {
+      type: Object,
+      required: true,
+    },
+    depth: {
+      type: Number,
+      required: true,
+    },
+    selectedEntries: {
+      type: Array,
+      required: true,
+    },
+    searchTerm: {
+      type: String,
+      required: true,
+    },
+  },
   emits: ["setSelectedEntry", "appendToSelectedEntries"],
   data() {
     return {
