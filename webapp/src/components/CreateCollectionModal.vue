@@ -18,7 +18,7 @@
               class="form-control"
               required
             />
-            <div class="form-error">{{ IDValidationMessage }}</div>
+            <div class="form-error" v-html="IDValidationMessage"></div>
           </div>
         </div>
         <div class="form-row">
