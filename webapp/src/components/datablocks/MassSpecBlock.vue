@@ -37,7 +37,7 @@ export default {
         .bokeh_plot_data;
     },
     blockInfo() {
-      return this.$store.state.blocksInfos["tga"];
+      return this.$store.state.blocksInfos["ms"];
     },
     file_id: createComputedSetterForBlockField("file_id"),
   },
