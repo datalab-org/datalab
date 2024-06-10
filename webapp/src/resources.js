@@ -55,6 +55,7 @@ export const blockTypes = {
   eis: { description: "Electrochemical Impedance Spectroscopy", component: EISBlock, name: "EIS" },
   nmr: { description: "Nuclear Magnetic Resonance Spectroscopy", component: NMRBlock, name: "NMR" },
   ms: { description: "Mass Spectrometry", component: MassSpecBlock, name: "Mass Spectrometry" },
+  tga_dta: { description: "TGA-DTA", component: BokehBlock, name: "tga-dta" },
   chat: { description: "Virtual assistant", component: ChatBlock, name: "Virtual Assistant" },
 };
 
