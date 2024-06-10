@@ -19,7 +19,10 @@ export default {
     MessageBubble,
   },
   props: {
-    chatMessages: Array,
+    chatMessages: {
+      type: Array,
+      default: () => [],
+    },
     isLoading: Boolean,
   },
   data: function () {

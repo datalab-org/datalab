@@ -50,7 +50,10 @@ export default {
     CollectionRelationshipVisualization,
   },
   props: {
-    collection_id: String,
+    collection_id: {
+      type: String,
+      default: null,
+    },
   },
   computed: {
     CollectionID: createComputedSetterForCollectionField("collection_id"),

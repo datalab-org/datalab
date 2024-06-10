@@ -43,7 +43,7 @@ export default {
     OnClickOutside,
   },
   props: {
-    modelValue: {},
+    modelValue: { default: "" },
   },
   emits: ["update:modelValue"],
   data() {

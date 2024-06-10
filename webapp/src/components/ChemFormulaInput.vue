@@ -22,7 +22,7 @@ export default {
   components: {
     ChemicalFormula,
   },
-  props: { modelValue: String },
+  props: { modelValue: { default: "" } },
   emits: ["update:modelValue"],
   data() {
     return {

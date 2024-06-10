@@ -111,8 +111,14 @@ export default {
     ChatWindow,
   },
   props: {
-    item_id: String,
-    block_id: String,
+    item_id: {
+      type: String,
+      required: true,
+    },
+    block_id: {
+      type: String,
+      required: true,
+    },
   },
   data() {
     return {

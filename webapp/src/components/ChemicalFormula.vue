@@ -8,7 +8,12 @@
 
 <script>
 export default {
-  props: { formula: String },
+  props: {
+    formula: {
+      type: String,
+      default: null,
+    },
+  },
   computed: {
     chemFormulaFormat() {
       if (!this.formula) {

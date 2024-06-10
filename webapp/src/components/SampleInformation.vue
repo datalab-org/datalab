@@ -80,8 +80,11 @@ export default {
     Creators,
   },
   props: {
-    item_id: String,
-    refcode: String,
+    item_id: { type: String, required: true },
+    refcode: {
+      type: String,
+      default: null,
+    },
   },
   data() {
     return {
