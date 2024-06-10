@@ -11,10 +11,8 @@ module.exports = {
     //"no-console": process.env.NODE_ENV === "production" ? "warn" : "off",
     "no-debugger": process.env.NODE_ENV === "production" ? "warn" : "off",
     "vue/multi-word-component-names": "off",
+    // Rule disable for item_id, block_id and collection_id
     "vue/prop-name-casing": "off",
-    "vue/require-default-prop": "off",
-    "vue/require-prop-types": "off",
-    "vue/v-on-event-hyphenation": "off",
   },
   overrides: [
     {
