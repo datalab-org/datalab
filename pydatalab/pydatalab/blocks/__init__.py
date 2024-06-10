@@ -7,6 +7,7 @@ from pydatalab.apps.eis import EISBlock
 from pydatalab.apps.nmr import NMRBlock
 from pydatalab.apps.raman import RamanBlock
 from pydatalab.apps.tga import MassSpecBlock
+from pydatalab.apps.tga_dta import TgaDtaBlock
 from pydatalab.apps.xrd import XRDBlock
 from pydatalab.blocks.base import DataBlock
 from pydatalab.blocks.common import CommentBlock, MediaBlock, NotSupportedBlock, TabularDataBlock
@@ -20,6 +21,7 @@ BLOCKS: Sequence[Type["DataBlock"]] = (
     NMRBlock,
     NotSupportedBlock,
     MassSpecBlock,
+    TgaDtaBlock,
     ChatBlock,
     EISBlock,
     TabularDataBlock,
@@ -38,6 +40,7 @@ __all__ = (
     "NMRBlock",
     "RamanBlock",
     "MassSpecBlock",
+    "TgaDtaBlock",
     "TabularDataBlock",
     "BLOCK_TYPES",
     "BLOCKS",
