@@ -68,7 +68,7 @@ export default {
     ItemGraph,
   },
   props: {
-    item_id: String,
+    item_id: { type: String, required: true },
   },
   data() {
     return {

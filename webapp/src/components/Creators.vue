@@ -20,6 +20,7 @@ export default {
   props: {
     creators: {
       type: Array,
+      default: () => [],
     },
     showNames: {
       type: Boolean,

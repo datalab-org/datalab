@@ -28,8 +28,8 @@ export default {
     ChemicalFormula,
   },
   props: {
-    item_id: String,
-    itemType: String,
+    item_id: { type: String, required: true },
+    itemType: { type: String, required: true },
     selecting: {
       type: Boolean,
       default: false,

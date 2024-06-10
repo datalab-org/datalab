@@ -14,8 +14,11 @@
 <script>
 export default {
   props: {
-    refcode: String,
-    item_id: String,
+    refcode: {
+      type: String,
+      default: null,
+    },
+    item_id: { type: String, required: true },
     enableClick: {
       type: Boolean,
       default: false,

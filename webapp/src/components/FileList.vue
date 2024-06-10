@@ -77,9 +77,18 @@ import { formatDistance } from "date-fns";
 
 export default {
   props: {
-    item_id: String,
-    file_ids: Array,
-    stored_files: Object,
+    item_id: {
+      type: String,
+      required: true,
+    },
+    file_ids: {
+      type: Array,
+      default: () => [],
+    },
+    stored_files: {
+      type: Object,
+      default: () => ({}),
+    },
   },
   data() {
     return {

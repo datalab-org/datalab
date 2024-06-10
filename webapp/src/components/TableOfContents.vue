@@ -74,8 +74,11 @@
 <script>
 export default {
   props: {
-    informationSections: Array,
-    item_id: String,
+    informationSections: { type: Array, required: true },
+    item_id: {
+      type: String,
+      required: true,
+    },
   },
   data() {
     return {

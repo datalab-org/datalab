@@ -70,7 +70,10 @@ export default {
     FormattedItemName,
   },
   props: {
-    collection_id: String,
+    collection_id: {
+      type: String,
+      default: null,
+    },
   },
   data() {
     return {
