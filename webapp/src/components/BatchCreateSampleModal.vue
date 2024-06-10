@@ -201,7 +201,7 @@
                       </td>
                     </tr>
                     <td colspan="3">
-                      <span class="form-error">{{ sampleIDValidationMessages[index] }}</span>
+                      <span class="form-error" v-html="sampleIDValidationMessages[index]" />
                     </td>
                   </template>
                 </tbody>
@@ -375,6 +375,12 @@ export default {
           this.applyNameTemplate();
         }
       }
+    },
+    sampleIDValidationMessages(newValue) {
+      console.log("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$");
+      console.log("Sample ID validation messages changed:");
+      console.log(newValue);
+      console.log("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$");
     },
   },
   methods: {
