@@ -10,36 +10,36 @@
           <a
             class="filelink"
             target="_blank"
-            :href="`${$API_URL}/files/${file_id}/${storedFiles[file_id].name}`"
+            :href="`${$API_URL}/files/${file_id}/${stored_files[file_id].name}`"
           >
-            {{ storedFiles[file_id].name }}
+            {{ stored_files[file_id].name }}
           </a>
           <font-awesome-icon
-            v-if="storedFiles[file_id].is_live == true"
+            v-if="stored_files[file_id].is_live == true"
             v-show="true"
             class="link-icon"
             :icon="['fa', 'link']"
           />
           <font-awesome-icon
-            v-else-if="storedFiles[file_id].source_server_name != null"
+            v-else-if="stored_files[file_id].source_server_name != null"
             v-show="true"
             class="unlink-icon"
             :icon="['fa', 'unlink']"
           />
-          <span v-if="storedFiles[file_id].source_server_name != null">
+          <span v-if="stored_files[file_id].source_server_name != null">
             <span class="server-name">
               <font-awesome-icon :icon="['fas', 'hdd']" class="toplevel-icon" />
-              {{ storedFiles[file_id].source_server_name }}
+              {{ stored_files[file_id].source_server_name }}
             </span>
             <span class="last-updated-text">
               (updated
               {{
-                formatDistance(new Date(storedFiles[file_id].last_modified_remote), new Date(), {
+                formatDistance(new Date(stored_files[file_id].last_modified_remote), new Date(), {
                   addSuffix: true,
                 })
               }}, last synced
               {{
-                formatDistance(new Date(storedFiles[file_id].last_modified), new Date(), {
+                formatDistance(new Date(stored_files[file_id].last_modified), new Date(), {
                   addSuffix: true,
                 })
               }})
@@ -48,7 +48,7 @@
           <span v-else class="last-updated-text">
             (uploaded
             {{
-              formatDistance(new Date(storedFiles[file_id].last_modified), new Date(), {
+              formatDistance(new Date(stored_files[file_id].last_modified), new Date(), {
                 addSuffix: true,
               })
             }})
@@ -85,7 +85,7 @@ export default {
       type: Array,
       default: () => [],
     },
-    storedFiles: {
+    stored_files: {
       type: Object,
       default: () => ({}),
     },
