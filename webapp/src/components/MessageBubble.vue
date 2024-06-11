@@ -16,6 +16,7 @@
       }"
     >
       <span v-if="role === 'system'" class="system-prompt-label">system prompt:</span>
+      <!-- eslint-disable-next-line vue/no-v-html -->
       <div v-show="!showRaw" ref="markdownDiv" class="markdown-content" v-html="markdownContent" />
       <div v-show="showRaw" class="raw-content">{{ message.content }}</div>
       <div class="float-right raw-toggle clickable" @click="showRaw = !showRaw">
