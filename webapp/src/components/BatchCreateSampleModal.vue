@@ -201,6 +201,7 @@
                       </td>
                     </tr>
                     <td colspan="3">
+                      <!-- eslint-disable-next-line vue/no-v-html -->
                       <span class="form-error" v-html="sampleIDValidationMessages[index]" />
                     </td>
                   </template>
@@ -375,12 +376,6 @@ export default {
           this.applyNameTemplate();
         }
       }
-    },
-    sampleIDValidationMessages(newValue) {
-      console.log("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$");
-      console.log("Sample ID validation messages changed:");
-      console.log(newValue);
-      console.log("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$");
     },
   },
   methods: {

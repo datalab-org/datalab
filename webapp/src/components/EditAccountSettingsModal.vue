@@ -29,7 +29,7 @@
               class="form-control"
               required
             />
-            <div class="form-error" v-html="displayNameValidationMessage"></div>
+            <div class="form-error">{{ displayNameValidationMessage }}</div>
           </div>
         </div>
         <div class="form-row">
@@ -42,7 +42,7 @@
               class="form-control"
               placeholder="Please enter your email"
             />
-            <div class="form-error" v-html="contactEmailValidationMessage"></div>
+            <div class="form-error">{{ contactEmailValidationMessage }}</div>
           </div>
         </div>
         <div class="form-row">

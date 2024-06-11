@@ -18,6 +18,7 @@
               class="form-control"
               required
             />
+            <!-- eslint-disable-next-line vue/no-v-html -->
             <div class="form-error" v-html="IDValidationMessage"></div>
           </div>
         </div>
