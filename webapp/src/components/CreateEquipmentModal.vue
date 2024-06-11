@@ -12,6 +12,7 @@
           <div class="form-group col-md-6">
             <label for="equipment-id" class="col-form-label">ID:</label>
             <input id="equipment-id" v-model="item_id" type="text" class="form-control" required />
+            <!-- eslint-disable-next-line vue/no-v-html -->
             <div class="form-error" v-html="equipmentIDValidationMessage"></div>
           </div>
           <div class="form-group col-md-6">
