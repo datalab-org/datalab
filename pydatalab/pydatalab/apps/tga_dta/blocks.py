@@ -35,16 +35,42 @@ def _extract_oxidation_parameters(df):
     weight_change_temp_5percent = np.nonzero(mass_change_filt >= 5)[0][0]
     weight_change_temp_10percent = np.nonzero(mass_change_filt >= 10)[0][0]
 
+    differential_weight_change = medfilt(df["relative differential mass (%/min)"], kernel_size=5)
+    max_weight_change_idx = np.argmax(np.abs(differential_weight_change))
+    max_weight_change_temp = df["temperature (°C)"].iloc[max_weight_change_idx]
+
+    # check if the max weight change is near the boundary. If it is, then this is a sign that
+    # there is no oxidation event in the data, and we potentially shouldn't report it.
+    max_temp = df["temperature (°C)"].max()
+    min_temp = df["temperature (°C)"].min()
+    if (max_temp - max_weight_change_temp < 5) or (max_weight_change_temp - min_temp < 5):
+        LOGGER.debug(
+            "the max point of fastest weight change is close to the boundaries of the measurement, so no max weight change is recorded."
+        )
+        # max_weight_change_temp = None
+        # max_weight_change_slope = None
+        # max_weight_change_relweight = None
+        # onset_temperature = None
+
+    # calculate slope of %/°C (different from DTG, which is %/min!) for 5 points on either side of the max
+    local_df = -df.iloc[max_weight_change_idx - 5 : max_weight_change_idx + 5]
+    p = np.polyfit(local_df["temperature (°C)"], local_df["mass change (%)"], deg=1)
+    max_weight_change_slope = p[0]
+
+    max_weight_change_relweight = df["mass change (%)"].iloc[max_weight_change_idx]
+    onset_temperature = (
+        max_weight_change_temp - max_weight_change_relweight / max_weight_change_slope
+    )
+
     return (
         weight_change_temp_1percent,
         weight_change_temp_5percent,
         weight_change_temp_10percent,
+        max_weight_change_temp,
+        max_weight_change_slope,
+        max_weight_change_relweight,
+        onset_temperature,
     )
-
-    # df["relative differential mass (%/min)"]
-
-    # dtg_filt = medfilt(df["relative differential mass (%/min)"], kernal=5) # use a median filter to get rid of any spikes
-    # dtg_1percent = np.nonzero(dtg_filt >= 1)[0][0]
 
 
 class TgaDtaBlock(DataBlock):
@@ -63,7 +89,9 @@ class TgaDtaBlock(DataBlock):
     def _process_data(self, df):
         initial_mass = df["mass (μg)"].iloc[0]
         df["mass change (%)"] = (df["mass (μg)"] - initial_mass) / initial_mass * 100
-        # df["relative differential mass (%/min)"] = df["differential mass (μg/min)"]/initial_mass*100
+        df["relative differential mass (%/min)"] = (
+            df["differential mass (μg/min)"] / initial_mass * 100
+        )
 
         nsteps = len(self.metadata.temperature_program.steps)
         step_boundaries = _split_df(df, nsteps)
@@ -73,6 +101,10 @@ class TgaDtaBlock(DataBlock):
             weight_change_temp_1percent,
             weight_change_temp_5percent,
             weight_change_temp_10percent,
+            max_weight_change_temp,
+            max_weight_change_slope,
+            max_weight_change_relweight,
+            onset_temperature,
         ) = _extract_oxidation_parameters(dfs[0])
 
         self.analysis = TgaAnalysis(
@@ -82,9 +114,12 @@ class TgaDtaBlock(DataBlock):
                 "weight_change_temp_1percent": weight_change_temp_1percent,
                 "weight_change_temp_5percent": weight_change_temp_5percent,
                 "weight_change_temp_10percent": weight_change_temp_10percent,
+                "max_weight_change_temp": max_weight_change_temp,
+                "max_weight_change_slope": max_weight_change_slope,
+                "max_weight_change_relweight": max_weight_change_relweight,
+                "onset_temperature": onset_temperature,
             }
         )
-        return df
 
     @property
     def plot_functions(self):
@@ -110,7 +145,15 @@ class TgaDtaBlock(DataBlock):
         df, metadata = parse_tga_xlsx(Path(file_info["location"]))
         self.metadata = metadata
 
-        df = self._process_data(df)
+        self._process_data(df)
+
+        if self.analysis.onset_temperature:
+            df["tangent_line"] = (
+                self.analysis.max_weight_change_slope
+                * (df["temperature (°C)"] - self.analysis.max_weight_change_temp)
+                + self.analysis.max_weight_change_relweight
+            )
+            df["tangent_line"] = df["tangent_line"].where(df["tangent_line"] > 0, np.nan)
 
         # x_options = [""]
         bokeh_layout = selectable_axes_plot(
@@ -118,10 +161,18 @@ class TgaDtaBlock(DataBlock):
             x_options=["temperature (°C)", "elapsed time (min)"],
             y_options=[
                 "mass (μg)",
+                "mass change (%)",
                 "differential mass (μg/min)",
+                "relative differential mass (%/min)",
                 "DTA voltage (μV)",
                 "elapsed time (min)",
                 "temperature (°C)",
+            ],
+            x_default="temperature (°C)",
+            y_default=[
+                "mass change (%)",
+                "relative differential mass (%/min)",
+                "tangent_line",
             ],
             plot_line=True,
             point_size=3,

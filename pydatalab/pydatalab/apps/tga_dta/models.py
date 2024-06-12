@@ -65,6 +65,10 @@ class TgaAnalysis(BaseModel):
     weight_change_temp_1percent: float
     weight_change_temp_5percent: float
     weight_change_temp_10percent: float
+    max_weight_change_temp: Optional[float]
+    max_weight_change_slope: Optional[float]
+    max_weight_change_relweight: Optional[float]
+    onset_temperature: Optional[float]
 
     @validator("step_boundaries")
     def check_boundaries_length(cls, v, values):
