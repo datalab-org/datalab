@@ -163,10 +163,11 @@ class DataBlock:
                     try:
                         plot()
                     except Exception as e:
-                        block_errors.append(f"{self.__class__.__name__} raised error: {e}")
+                        block_errors.append(f"{self.__class__.__name__} raised error: {e}.")
                         LOGGER.warning(
                             f"Could not create plot for {self.__class__.__name__}: {self.data}"
                         )
+                        LOGGER.error(e, exc_info=True)
                     finally:
                         if captured_warnings:
                             block_warnings.extend(
