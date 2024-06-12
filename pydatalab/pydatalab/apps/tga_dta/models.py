@@ -1,7 +1,7 @@
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import pandas as pd
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 
 
 class TgaTemperatureStep(BaseModel):
@@ -52,3 +52,22 @@ class TgaData(BaseModel):
 
     class Config:
         arbitrary_types_allowed = True
+
+
+class TgaAnalysis(BaseModel):
+    """Model to hold parameters from processed tga data"""
+
+    nsteps: int = Field(description="number of program steps in the tga file")
+    step_boundaries: Optional[List[Tuple[int, int]]] = Field(
+        description="the starting and ending indices of each step in the tga file"
+    )
+
+    weight_change_temp_1percent: float
+    weight_change_temp_5percent: float
+    weight_change_temp_10percent: float
+
+    @validator("step_boundaries")
+    def check_boundaries_length(cls, v, values):
+        if "nsteps" in values and len(v) != values["nsteps"]:
+            raise ValueError(f"Expected {values['nsteps']} step boundaries, got {len(v)}")
+        return v
