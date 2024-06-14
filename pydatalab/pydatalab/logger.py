@@ -1,7 +1,10 @@
 import logging
+import logging.handlers
 import time
 from functools import wraps
 from typing import Callable, Optional
+
+LOG_FORMAT_STRING = "%(asctime)s | %(levelname)-8s: %(message)s (PID: %(process)d - %(name)s: %(pathname)s:%(funcName)s:%(lineno)d)"
 
 
 class AnsiColorHandler(logging.StreamHandler):
@@ -14,29 +17,19 @@ class AnsiColorHandler(logging.StreamHandler):
     LOGLEVEL_COLORS = {
         logging.DEBUG: "36m",
         logging.INFO: "32m",
-        logging.WARNING: "33m",
+        logging.WARNING: "103;30m",
         logging.ERROR: "1;91m",
         logging.CRITICAL: "101;30m",
     }
 
     max_width = 2000
 
-    def __init__(self) -> None:
-        super().__init__()
-        self.formatter = logging.Formatter("%(asctime)s - %(name)s | %(levelname)-8s: %(message)s")
-
     def format(self, record: logging.LogRecord) -> str:
-        from flask_login import current_user
-
-        prefix = "🔓"
-        if current_user and current_user.is_authenticated:
-            prefix = "🔒"
         message: str = super().format(record)
         if len(message) > self.max_width:
             message = message[: self.max_width] + "[...]"
         color = self.LOGLEVEL_COLORS[record.levelno]
-        message = f"\x1b[{color} {prefix} {message}\x1b[0m"
-        return message
+        return f"\x1b[{color} {message}\x1b[0m"
 
 
 def setup_log(log_name: str = "pydatalab", log_level: Optional[int] = None) -> logging.Logger:
@@ -58,8 +51,14 @@ def setup_log(log_name: str = "pydatalab", log_level: Optional[int] = None) -> l
     logger = logging.getLogger(log_name)
     logger.handlers = []
     logger.propagate = False
-    handler = AnsiColorHandler()
-    logger.addHandler(handler)
+    stream_handler = AnsiColorHandler()
+    stream_handler.setFormatter(logging.Formatter(LOG_FORMAT_STRING))
+    rotating_file_handler = logging.handlers.RotatingFileHandler(
+        CONFIG.LOG_FILE, maxBytes=1000000, backupCount=100
+    )
+    rotating_file_handler.setFormatter(logging.Formatter(LOG_FORMAT_STRING))
+    logger.addHandler(stream_handler)
+    logger.addHandler(rotating_file_handler)
     if log_level is None:
         log_level = logging.INFO
 

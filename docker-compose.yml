@@ -34,6 +34,8 @@ services:
       context: .
       dockerfile: .docker/server_dockerfile
       target: production
+      args:
+        - WEB_CONCURRENCY=16
     depends_on:
       - database
     volumes:
@@ -62,6 +64,9 @@ services:
     networks:
       - nginx
       - backend
+    environment:
+      - PYDATALAB_TESTING=true
+      - PYDATALAB_MONGO_URI=mongodb://database:27017/datalabvue
 
   database:
     build:

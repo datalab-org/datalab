@@ -2,10 +2,10 @@
 
 *datalab* has 3 main configuration sources.
 
-1. The Python `ServerConfig` (described below) that allows for *datalab*-specific configuration, such as database connection info, filestore locations and remote filesystem configuration.
-    - This can be provided via a JSON or YAML config file at the location provided by the `PYDATALAB_CONFIG_FILE` environment variable, or as environment variables themselves, prefixed with `PYDATALAB_`.
-    - The available configuration variables and their default values are listed below.
-2. Additional server configuration provided as environment variables, such as secrets like Flask's `SECRET_KEY`, API keys for external services (e.g., Sendgrid) and OAuth client credentials (for logging in via GitHub or ORCID).
+1. The Python [`ServerConfig`][pydatalab.config.ServerConfig] (described below) that allows for *datalab*-specific configuration, such as database connection info, filestore locations and remote filesystem configuration.
+.
+    - This can be provided via a JSON or YAML config file at the location provided by the `PYDATALAB_CONFIG_FILE` environment variable, or as environment variables themselves, prefixed with `PYDATALAB_`. The available configuration variables and their default values are listed below.
+2. Additional server configuration provided as environment variables, such as secrets like Flask's [`SECRET_KEY`][pydatalab.config.ServerConfig.SECRET_KEY], API keys for external services (e.g., SMTP) and OAuth client credentials (for logging in via GitHub or ORCID).
     - These can be provided as environment variables or in a `.env` file in the directory from which `pydatalab` is launched.
 3. Web app configuration, such as the URL of the relevant *datalab* API and branding (logo URLs, external homepage links).
     - These are typically provided as a `.env` file in the directory from which the webapp is built/served.
@@ -13,7 +13,7 @@
 ## Mandatory settings
 
 There is only one mandatory setting when creating a deployment.
-This is the `IDENTIFIER_PREFIX`, which shall be prepended to every entry's refcode to enable global uniqueness of *datalab* entries.
+This is the [`IDENTIFIER_PREFIX`][pydatalab.config.ServerConfig.IDENTIFIER_PREFIX], which shall be prepended to every entry's refcode to enable global uniqueness of *datalab* entries.
 For now, the prefixes themselves are not checked for uniqueness across the fledling *datalab* federation, but will in the future.
 
 This prefix should be set to something relatively short (max 10 chars.) that describes your group or your deployment, e.g., the PI's surname, project ID or department.
@@ -26,8 +26,7 @@ Be warned, if the prefix changes between server launches, all entries will have 
 *datalab* has three supported user registration/authentication
 mechanisms:
 
-1. OAuth2 via GitHub accounts that are public members of appropriate GitHub
-organizations
+1. OAuth2 via GitHub accounts that are public members of appropriate GitHub organizations
 2. OAuth2 via ORCID
 3. via magic links sent to email addresses
 
@@ -43,7 +42,7 @@ The authorization callback URL in the GitHub app settings should be set to `<YOU
 A user's first login may direct them to this page rather than the web app, depending on their browser.
 The user will then simply have to navigate back to the URL of the web app, where they should find themselves to be logged in.
 
-Then, you can configure `GITHUB_ORG_ALLOW_LIST` with a list of string IDs of GitHub organizations that user's must be a public member of to register an account.
+Then, you can configure [`GITHUB_ORG_ALLOW_LIST`][pydatalab.config.ServerConfig.GITHUB_ORG_ALLOW_LIST] with a list of string IDs of GitHub organizations that user's must be a public member of to register an account.
 If this value is set to `None`, then no accounts will be able to register, and if it is set to an empty list, then no restrictions will apply.
 You can find the relevant organization IDs using the GitHub API, for example at `https://api.github.com/orgs/<org_name>`.
 
@@ -55,21 +54,24 @@ We are looking for ways around this in the future.
 
 #### Email magic links
 
-To support sign-in via email magic-links, you must currently provide
-additional configuration for the [SendGrid](https://sendgrid.com/) web API, i.e., your default email sender (`MAIL_DEFAULT_SENDER`) and SendGrid API key (`MAIL_PASSWORD`), as environment variables for the API container.
-There are currently no restrictions on which email addresses can sign up.
-This approach will soon also support using any configured SMTP server.
+To support sign-in via email magic-links, you must currently provide additional configuration for authorized SMTP server.
+The SMTP server must be configured via the settings [`EMAIL_AUTH_SMTP_SETTINGS`][pydatalab.config.ServerConfig.EMAIL_AUTH_SMTP_SETTINGS], with expected values `MAIL_SERVER`, `MAIL_USER`, `MAIL_PASSWORD`, `MAIL_DEFAULT_SENDER`, `MAIL_PORT` and `MAIL_USE_TLS`, following the environment variables described in the [Flask-Mail documentation](https://flask-mail.readthedocs.io/en/latest/#configuring-flask-mail).
+
+Third-party options could include [SendGrid](https://sendgrid.com/), which can be configured to use the `MAIL_USER` `apikey` with an appropriate API key, after verifying ownership of the `MAIL_DEFAULT_SENDER` address via DNS (see [the SendGrid documentation](https://sendgrid.com/en-us/blog/sending-emails-from-python-flask-applications-with-twilio-sendgrid) for an example configuration).
+
+The email addresses that are allowed to sign up can be restricted by domain/subdomain using the [`EMAIL_DOMAIN_ALLOW_LIST`][pydatalab.config.ServerConfig.EMAIL_DOMAIN_ALLOW_LIST] setting.
 
 ## Remote filesystems
 
 This package allows you to attach files from remote filesystems to samples and other entries.
-These filesystems can be configured in the config file with the `REMOTE_FILESYSTEMS` option.
+These filesystems can be configured in the config file with the [`REMOTE_FILESYSTEMS`][pydatalab.config.ServerConfig.REMOTE_FILESYSTEMS] option.
 In practice, these options should be set in a centralised deployment.
 
 Currently, there are two mechanisms for accessing remote files:
 
 1. You can mount the filesystem locally and provide the path in your datalab config file. For example, for Cambridge Chemistry users, you will have to (connect to the ChemNet VPN and) mount the Grey Group backup servers on your local machine, then define these folders in your config.
-2. Access over `ssh`: alternatively, you can set up passwordless `ssh` access to a machine (e.g., using `citadel` as a proxy jump), and paths on that remote machine can be configured as separate filesystems. The filesystem metadata will be synced periodically, and any files attached in `datalab` will be downloaded and stored locally on the `pydatalab` server (with the file being kept younger than 1 hour old on each access).
+2. Access over SSH: alternatively, you can set up passwordless `ssh` access to a machine (e.g., using `citadel` as a proxy jump), and paths on that remote machine can be configured as separate filesystems. The filesystem metadata will be synced periodically, and any files attached in `datalab` will be downloaded and stored locally on the `pydatalab` server (with the file being kept younger than 1 hour old on each access).
+
 
 ## General Server administration
 
@@ -85,6 +87,55 @@ It relies on the Excel export feature of ChemInventory and is achieved with `inv
 If a future export is made and reimported, the old entries will be kept and updated, rather than overwritten.
 *datalab* currently has no functionality for chemical inventory management itself; if you wish to support importing from another inventory system, please [raise an issue](https://github.com/the-grey-group/datalab/issues/new).
 
-# Config API Reference
+### Backups
 
-::: pydatalab.config
+*datalab* provides a way to configure and create a snapshot backups of the database and filestore.
+The option [`BACKUP_STRATEGIES`][pydatalab.config.ServerConfig.BACKUP_STRATEGIES] allows you to list strategies for scheduled backups, with their frequency, storage location (can be local or remote) and retention.
+These backups are only performed when scheduled externally (e.g., via `cron` on the hosting server), or when triggered manually using the `invoke admin.create-backup` task.
+
+The simplest way to create a backup is to run `invoke admin.create-backup --output-path /tmp/backup.tar.gz`, which will create a compressed backup.
+This should be run from the server or container for the API, and will make use of the config to connect to the database and file store.
+This approach will not follow any retention strategy.
+
+Alternatively, you can create a backup given the strategy name defined in the server config, using the same task:
+
+```
+invoke admin.create-backup --strategy-name daily-snapshots
+```
+
+This will apply the retention strategy and any copying to remote resources as configured.
+
+When scheduling backups externally, it is recommended you do not use `cron` inside the server Docker container.
+Instead, you could schedule a job that calls, for example:
+
+```shell
+#              <container name>          <invoke task name>            <configured strategy name>
+#                    ^                           ^                                  ^
+docker compose exec api invoke pipenv run admin.create-backup --strategy-name daily-snapshots
+```
+
+Care must be taken to schedule this command to run from the correct directory.
+
+In the future, this may be integrated directly into the *datalab* server using a Python-based scheduler.
+
+## Config API Reference
+
+::: pydatalab.config.ServerConfig
+    options:
+      show_source: false
+      heading_level: 3
+
+::: pydatalab.config.RemoteFilesystem
+    options:
+      show_source: false
+      heading_level: 3
+
+::: pydatalab.config.SMTPSettings
+    options:
+      show_source: false
+      heading_level: 3
+
+::: pydatalab.config.DeploymentMetadata
+    options:
+      show_source: false
+      heading_level: 3

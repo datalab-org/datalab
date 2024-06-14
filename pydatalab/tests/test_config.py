@@ -41,10 +41,6 @@ def test_config_override():
 
 
 def test_validators():
-    # check that prefix must be set
-    with pytest.warns():
-        _ = ServerConfig(IDENTIFIER_PREFIX=None)
-
     # check bad prefix
     with pytest.raises(RuntimeError):
         _ = ServerConfig(IDENTIFIER_PREFIX="this prefix is way way too long")

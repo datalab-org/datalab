@@ -122,8 +122,13 @@ class RamanMapBlock(DataBlock):
             y_range=(origin[1] + y_span, origin[1]),
         )
         p.image_rgba(image=[img_vector], x=origin[0], y=origin[1], dw=x_span, dh=y_span)
-        p = bokeh.plotting.figure(width=image_array.shape[1], height=image_array.shape[0], x_range=(origin[0], origin[0] + x_span), y_range=(origin[1]+y_span,origin[1]))
-        p.image_rgba(image=[img_vector], x=origin[0], y=origin[1]+y_span, dw=x_span, dh=y_span)
+        p = bokeh.plotting.figure(
+            width=image_data.shape[1],
+            height=image_data.shape[0],
+            x_range=(origin[0], origin[0] + x_span),
+            y_range=(origin[1] + y_span, origin[1]),
+        )
+        p.image_rgba(image=[img_vector], x=origin[0], y=origin[1] + y_span, dw=x_span, dh=y_span)
         # plot scatter points and colorbar
         p.circle("x", "y", size=10, source=source, color={"field": "col", "transform": exp_cmap})
         color_bar = ColorBar(
@@ -137,7 +142,7 @@ class RamanMapBlock(DataBlock):
         return col, p, metadata
 
     def plot_raman_spectra(self, location: str | Path, col):
-        """Read the .wdf file with RosettaSciIO and extract relevant 
+        """Read the .wdf file with RosettaSciIO and extract relevant
         data.
 
         Parameters:

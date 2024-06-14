@@ -1,5 +1,6 @@
 site_name: datalab
 site_description: Documentation for datalab
+site_url: https://the-datalab.readthedocs.io
 
 theme:
   name: material
@@ -7,11 +8,29 @@ theme:
     repo: fontawesome/brands/github
   language: en
   palette:
-    - scheme: default
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
       primary: amber
       accent: brown
+
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+      primary: amber
+      accent: brown
+
   font:
     text: Figtree
+    code: Iosevka Web
+    features:
+      - content.code.copy
 
 repo_name: the-grey-group/datalab
 repo_url: https://github.com/the-grey-group/datalab
@@ -74,6 +93,8 @@ plugins:
               - "!^Config$"
   - awesome-pages
   - autorefs
+  - search:
+      lang: en
 
 watch:
   - pydatalab
