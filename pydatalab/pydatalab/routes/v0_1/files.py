@@ -1,9 +1,8 @@
 import os
-from typing import Callable, Dict
 
 from bson import ObjectId
 from bson.errors import InvalidId
-from flask import jsonify, request, send_from_directory
+from flask import Blueprint, jsonify, request, send_from_directory
 from flask_login import current_user
 from pymongo import ReturnDocument
 from werkzeug.utils import secure_filename
@@ -11,9 +10,17 @@ from werkzeug.utils import secure_filename
 import pydatalab.mongo
 from pydatalab import file_utils
 from pydatalab.config import CONFIG
-from pydatalab.permissions import get_default_permissions
+from pydatalab.permissions import active_users_or_get_only, get_default_permissions
+
+FILES = Blueprint("files", __name__)
 
 
+@FILES.before_request
+@active_users_or_get_only
+def _(): ...
+
+
+@FILES.route("/files/<string:file_id>/<string:filename>", methods=["GET"])
 def get_file(file_id: str, filename: str):
     try:
         _file_id = ObjectId(file_id)
@@ -38,6 +45,7 @@ def get_file(file_id: str, filename: str):
     return send_from_directory(path, filename)
 
 
+@FILES.route("/upload-file/", methods=["POST"])
 def upload():
     """method to upload files to the server
     todo: think more about security, size limits, and about nested folders
@@ -92,9 +100,7 @@ def upload():
     )
 
 
-upload.methods = ("POST",)  # type: ignore
-
-
+@FILES.route("/add-remote-file-to-sample/", methods=["POST"])
 def add_remote_file_to_sample():
     if not current_user.is_authenticated and not CONFIG.TESTING:
         return (
@@ -133,9 +139,7 @@ def add_remote_file_to_sample():
     )
 
 
-add_remote_file_to_sample.methods = ("POST",)  # type: ignore
-
-
+@FILES.route("/delete-file-from-sample/", methods=["POST"])
 def delete_file_from_sample():
     """Remove a file from a sample, but don't delete the actual file (for now)"""
 
@@ -194,9 +198,7 @@ def delete_file_from_sample():
     )
 
 
-delete_file_from_sample.methods = ("POST",)  # type: ignore
-
-
+@FILES.route("/delete-file/", methods=["POST"])
 def delete_file():
     """delete a data file from the uploads/item_id folder"""
 
@@ -248,14 +250,3 @@ def delete_file():
     os.remove(path)
 
     return jsonify({"status": "success"}), 200
-
-
-delete_file.methods = ("POST",)  # type: ignore
-
-ENDPOINTS: Dict[str, Callable] = {
-    "/files/<string:file_id>/<string:filename>": get_file,
-    "/upload-file/": upload,
-    "/add-remote-file-to-sample/": add_remote_file_to_sample,
-    "/delete-file-from-sample/": delete_file_from_sample,
-    "/delete-file/": delete_file,
-}

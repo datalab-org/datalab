@@ -15,7 +15,8 @@ from pydatalab.file_utils import get_file_info_by_id
 
 class RamanBlock(DataBlock):
     blocktype = "raman"
-    description = "Raman spectroscopy"
+    name = "Raman spectroscopy"
+    description = "Visualize 1D Raman spectroscopy data."
     accepted_file_extensions = (".txt", ".wdf")
 
     @property
@@ -130,7 +131,10 @@ class RamanBlock(DataBlock):
 
         """
 
-        raman_data = file_reader(location)
+        try:
+            raman_data = file_reader(location)
+        except Exception as e:
+            raise RuntimeError(f"Could not read file with RosettaSciIO. Error: {e}")
 
         if len(raman_data[0]["axes"]) == 1:
             pass

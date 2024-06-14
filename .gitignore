@@ -3,6 +3,7 @@ files/
 uploads/
 ssh_config
 logs/
+site/
 
 # App testing files
 webapp/cypress/screenshots

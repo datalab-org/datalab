@@ -9,6 +9,7 @@
         aria-labelledby="posConstituentsLabel"
         multiple
         v-model="posElectrodeConstituents"
+        :typesToQuery="['samples', 'starting_materials']"
         taggable
         class="col-sm-9"
       />
@@ -22,6 +23,7 @@
         aria-labelledby="elyteConstituentsLabel"
         multiple
         v-model="electrolyteConstituents"
+        :typesToQuery="['samples', 'starting_materials']"
         taggable
         class="col-sm-9"
       />
@@ -35,6 +37,7 @@
         aria-labelledby="negConstituentsLabel"
         multiple
         v-model="negElectrodeConstituents"
+        :typesToQuery="['samples', 'starting_materials']"
         taggable
         class="col-sm-9"
       />

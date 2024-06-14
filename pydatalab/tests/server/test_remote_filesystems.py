@@ -3,10 +3,8 @@ import subprocess as sp
 import time
 from pathlib import Path
 
-import mongomock
 import pytest
 
-import pydatalab.mongo
 from pydatalab.config import CONFIG, RemoteFilesystem
 from pydatalab.remote_filesystems import (
     get_directory_structure,
@@ -22,13 +20,13 @@ if _ == 0:
 
 
 @pytest.mark.skipif(not TREE_AVAILABLE, reason="`tree` utility not installed locally")
-@mongomock.patch(on_new="create")
-def test_get_directory_structure_local():
+def test_get_directory_structure_local(random_string):
     """Check that the file directory cache is used on the second
     attempt to query a directory.
 
     """
-    test_dir = RemoteFilesystem(**{"path": Path(__file__).parent, "name": "test"})
+    dir_name = random_string
+    test_dir = RemoteFilesystem(**{"path": Path(__file__).parent.parent, "name": dir_name})
     dir_structure = get_directory_structure(test_dir)
     dir_structure.pop("last_updated")
     assert dir_structure
@@ -77,31 +75,31 @@ def test_get_directory_structure_local():
 
 
 @pytest.mark.skipif(not TREE_AVAILABLE, reason="`tree` utility not installed locally")
-@mongomock.patch(on_new="create")
-def test_get_missing_directory_structure_local():
+def test_get_missing_directory_structure_local(random_string):
     """Check that missing directories do not crash everything, and that
     they still get cached.
     """
-    test_dir = RemoteFilesystem(**{"path": "this_directory_does_not_exist", "name": "test"})
+    dir_name = random_string
+    test_dir = RemoteFilesystem(**{"path": "this_directory_does_not_exist", "name": dir_name})
     dir_structure = get_directory_structure(test_dir)
-    dir_structure.pop("last_updated")
     assert dir_structure
     assert all(k in dir_structure for k in ("type", "name", "contents"))
     dir_structure_cached = get_directory_structure(test_dir)
     last_updated_cached = dir_structure_cached.pop("last_updated")
+    dir_structure.pop("last_updated")
     assert dir_structure_cached == dir_structure
     assert last_updated_cached
 
 
 @pytest.mark.skipif(not TREE_AVAILABLE, reason="`tree` utility not installed locally")
-@mongomock.patch(on_new="create")
-def test_get_directory_structure_remote():
+def test_get_directory_structure_remote(real_mongo_client, random_string):
     """Check that a fake ssh server initially fails, then successfully returns
     once the cache has been mocked.
 
     """
+    dir_name = random_string
     test_dir = RemoteFilesystem(
-        **{"name": "test", "hostname": "ssh://fake.host", "path": Path(__file__).parent}
+        **{"name": dir_name, "hostname": "ssh://fake.host", "path": Path(__file__).parent.parent}
     )
     dir_structure = get_directory_structure(test_dir)
     assert dir_structure["contents"][0]["type"] == "error"
@@ -111,9 +109,7 @@ def test_get_directory_structure_remote():
         "last_updated": datetime.datetime.now(),
         "type": "toplevel",
     }
-    pydatalab.mongo._get_active_mongo_client().get_database().remoteFilesystems.insert_one(
-        dummy_dir_structure
-    )
+    real_mongo_client.get_database().remoteFilesystems.insert_one(dummy_dir_structure)
     dir_structure = get_directory_structure(test_dir)
     assert dir_structure["last_updated"]
 

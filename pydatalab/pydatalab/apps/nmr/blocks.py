@@ -14,8 +14,10 @@ from .utils import read_bruker_1d
 
 class NMRBlock(DataBlock):
     blocktype = "nmr"
-    description = "Simple NMR Block"
-    accepted_file_extensions = ".zip"
+    name = "NMR"
+    description = "A simple NMR block for visualizing 1D NMR data from Bruker projects."
+
+    accepted_file_extensions = (".zip",)
     defaults = {"process number": 1}
     _supports_collections = False
 
@@ -83,7 +85,8 @@ class NMRBlock(DataBlock):
         self.data["topspin_title"] = topspin_title
 
     def generate_nmr_plot(self):
-        self.read_bruker_nmr_data()  # currently calls every time plotting happens, but it should only happen if the file was updated
+        # currently calls every time plotting happens, but it should only happen if the file was updated
+        self.read_bruker_nmr_data()
         if "processed_data" not in self.data or not self.data["processed_data"]:
             self.data["bokeh_plot_data"] = None
             return
@@ -102,7 +105,9 @@ class NMRBlock(DataBlock):
             plot_line=True,
             point_size=3,
         )
-        bokeh_layout.children[0].x_range.flipped = True  # flip x axis, per NMR convention
+        # flip x axis, per NMR convention. Note that the figure is the second element
+        # of the layout in the current implementation, but this could be fragile.
+        bokeh_layout.children[1].x_range.flipped = True
 
         self.data["bokeh_plot_data"] = bokeh.embed.json_item(
             bokeh_layout, theme=DATALAB_BOKEH_THEME

@@ -1,4 +1,5 @@
 import random
+import warnings
 from typing import Any, Callable, Dict, Optional, Sequence
 
 from bson import ObjectId
@@ -30,28 +31,51 @@ def generate_random_id():
 
 
 class DataBlock:
-    """base class for a data block."""
+    """Base class for a data block."""
+
+    name: str
+    """The human-readable block name specifying which technique
+    or file format it pertains to.
+    """
 
     blocktype: str = "generic"
+    """A short (unique) string key specifying the type of block."""
+
     description: str = "Generic Block"
-    accepted_file_extensions: Sequence[str]
-    # values that are set by default if they are not supplied by the dictionary in init()
+    """A longer description outlining the purpose and capability
+    of the block."""
+
+    accepted_file_extensions: tuple[str, ...] | None
+    """A list of file extensions that the block will attempt to read."""
+
     defaults: Dict[str, Any] = {}
-    # values cached on the block instance for faster retrieval
-    cache: Optional[Dict[str, Any]] = None
+    """Any default values that should be set if they are not
+    supplied during block init.
+    """
+
     plot_functions: Optional[Sequence[Callable[[], None]]] = None
-    # whether this datablock can operate on collection data, or just individual items
+    """A list of methods that will generate plots for this block."""
+
     _supports_collections: bool = False
+    """Whether this datablock can operate on collection data, or just individual items"""
 
     def __init__(
         self,
         item_id: Optional[str] = None,
         collection_id: Optional[str] = None,
-        dictionary=None,
+        init_data=None,
         unique_id=None,
     ):
-        if dictionary is None:
-            dictionary = {}
+        """Create a data block object for the given `item_id` or `collection_id`.
+
+        Parameters:
+            item_id: The item to which the block is attached, or
+            collection_id: The collection to which the block is attached.
+            init_data: A dictionary of data to initialise the block with.
+            unique_id: A unique id for the block, used in the DOM and database.
+        """
+        if init_data is None:
+            init_data = {}
 
         if item_id is None and not self._supports_collections:
             raise RuntimeError(f"Must supply `item_id` to make {self.__class__.__name__}.")
@@ -63,9 +87,6 @@ class DataBlock:
 
         if item_id is not None and collection_id is not None:
             raise RuntimeError("Must provide only one of `item_id` and `collection_id`.")
-
-        # Initialise cache
-        self.cache = {}
 
         LOGGER.debug(
             "Creating new block '%s' associated with item_id '%s'",
@@ -88,9 +109,9 @@ class DataBlock:
             self.data["file_id"] = str(self.data["file_id"])
 
         if "title" not in self.data:
-            self.data["title"] = self.description
+            self.data["title"] = self.name
         self.data.update(
-            dictionary
+            init_data
         )  # this could overwrite blocktype and block_id. I think that's reasonable... maybe
         LOGGER.debug(
             "Initialised block %s for item ID %s or collection ID %s.",
@@ -102,15 +123,17 @@ class DataBlock:
     def to_db(self):
         """returns a dictionary with the data for this
         block, ready to be input into mongodb"""
+
         LOGGER.debug("Casting block %s to database object.", self.__class__.__name__)
+
+        if "bokeh_plot_data" in self.data:
+            self.data.pop("bokeh_plot_data")
 
         if "file_id" in self.data:
             dict_for_db = self.data.copy()  # gross, I know
             dict_for_db["file_id"] = ObjectId(dict_for_db["file_id"])
             return dict_for_db
 
-        if "bokeh_plot_data" in self.data:
-            self.data.pop("bokeh_plot_data")
         return self.data
 
     @classmethod
@@ -124,18 +147,45 @@ class DataBlock:
         )
         if "file_id" in new_block.data:
             new_block.data["file_id"] = str(new_block.data["file_id"])
+
+        if new_block.data.get("title", "") == new_block.description:
+            new_block.data["title"] = new_block.name
+
         return new_block
 
-    def to_web(self):
-        """returns a json-able dictionary to render the block on the web"""
+    def to_web(self) -> Dict[str, Any]:
+        """Returns a JSON serializable dictionary to render the data block on the web."""
+        block_errors = []
+        block_warnings = []
         if self.plot_functions:
             for plot in self.plot_functions:
-                try:
-                    plot()
-                except RuntimeError:
-                    LOGGER.warning(
-                        f"Could not create plot for {self.__class__.__name__}: {self.data}"
-                    )
+                with warnings.catch_warnings(record=True) as captured_warnings:
+                    try:
+                        plot()
+                    except Exception as e:
+                        block_errors.append(f"{self.__class__.__name__} raised error: {e}")
+                        LOGGER.warning(
+                            f"Could not create plot for {self.__class__.__name__}: {self.data}"
+                        )
+                    finally:
+                        if captured_warnings:
+                            block_warnings.extend(
+                                [
+                                    f"{self.__class__.__name__} raised warning: {w.message}"
+                                    for w in captured_warnings
+                                ]
+                            )
+
+        # If the last plotting run did not raise any errors or warnings, remove any old ones
+        if block_errors:
+            self.data["errors"] = block_errors
+        else:
+            self.data.pop("errors", None)
+        if block_warnings:
+            self.data["warnings"] = block_warnings
+        else:
+            self.data.pop("warnings", None)
+
         return self.data
 
     @classmethod

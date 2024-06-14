@@ -22,6 +22,8 @@ def test_new_sample(client, default_sample_dict):
     assert response.status_code == 201, response.json
     assert response.json["status"] == "success"
     for key in default_sample_dict.keys():
+        if key == "creator_ids":
+            continue
         if isinstance(v := default_sample_dict[key], datetime.datetime):
             v = v.isoformat()
         assert response.json["sample_list_entry"][key] == v
@@ -33,6 +35,8 @@ def test_get_item_data(client, default_sample_dict):
     assert response.status_code == 200
     assert response.json["status"] == "success"
     for key in default_sample_dict.keys():
+        if key == "creator_ids":
+            continue
         if isinstance(v := default_sample_dict[key], datetime.datetime):
             v = v.isoformat()
         assert response.json["item_data"][key] == v
@@ -47,6 +51,42 @@ def test_new_sample_collision(client, default_sample_dict):
     assert (
         response.json["message"] == "item_id_validation_error: '12345' already exists in database."
     )
+
+
+@pytest.mark.dependency(depends=["test_new_sample", "test_get_item_data"])
+def test_new_sample_with_automatically_generated_id(client, user_id):
+    new_sample_data = {
+        "name": "sample with random id",
+        "date": datetime.datetime.fromisoformat("1995-03-02"),
+        "chemform": "H2O",
+        "type": "samples",
+        "synthesis_description": "2 parts hydrogen were added to 1 part oxygen",
+        "creator_ids": [user_id],
+    }
+
+    request_json = dict(
+        new_sample_data=new_sample_data,
+        generate_id_automatically=True,
+    )
+
+    response = client.post("/new-sample/", json=request_json)
+    # Test that 201: Created is emitted
+    assert response.status_code == 201, response.json
+    assert response.json["status"] == "success"
+    created_item_id = response.json["item_id"]
+    assert created_item_id
+
+    response = client.get(f"/get-item-data/{created_item_id}")
+    assert response.status_code == 200
+    assert response.json["status"] == "success"
+    assert response.json["item_data"]["refcode"].split(":")[1] == created_item_id
+
+    for key in new_sample_data.keys():
+        if isinstance(v := new_sample_data[key], datetime.datetime):
+            v = v.isoformat()
+        if key == "creator_ids":
+            continue
+        assert response.json["item_data"][key] == v
 
 
 @pytest.mark.dependency(depends=["test_new_sample"])

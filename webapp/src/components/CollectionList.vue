@@ -1,11 +1,13 @@
 <template>
-  <span v-for="collection in collections" :key="collection.collection_id">
+  <div>
     <FormattedCollectionName
       :collection_id="collection.collection_id"
       enableClick
       enableModifiedClick
+      v-for="collection in collections"
+      :key="collection.collection_id"
     />
-  </span>
+  </div>
 </template>
 
 <script>

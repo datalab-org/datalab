@@ -1,7 +1,7 @@
 import os
 import time
 from pathlib import Path
-from typing import Any, Dict, Union
+from typing import Union
 
 import bokeh
 import pandas as pd
@@ -30,7 +30,8 @@ class CycleBlock(DataBlock):
     """
 
     blocktype = "cycle"
-    description = "Electrochemical cycling"
+    name = "Electrochemical cycling"
+    description = "This block can plot data from electrochemical cycling experiments from many different cycler's file formats."
 
     accepted_file_extensions = (
         ".mpr",
@@ -39,9 +40,9 @@ class CycleBlock(DataBlock):
         ".xlsx",
         ".txt",
         ".res",
+        ".nda",
+        ".ndax",
     )
-
-    cache: Dict[str, Any]
 
     defaults = {
         "p_spline": 5,
@@ -132,15 +133,21 @@ class CycleBlock(DataBlock):
                 raise RuntimeError(f"Navani raised an error when parsing: {exc}") from exc
             raw_df.to_pickle(parsed_file_loc)
 
-        if cycle_summary_df is None:
-            cycle_summary_df = ec.cycle_summary(raw_df)
-            cycle_summary_df.to_pickle(cycle_summary_file_loc)
+        try:
+            if cycle_summary_df is None:
+                cycle_summary_df = ec.cycle_summary(raw_df)
+                cycle_summary_df.to_pickle(cycle_summary_file_loc)
+        except Exception:
+            pass
 
         raw_df = raw_df.filter(required_keys)
         raw_df.rename(columns=keys_with_units, inplace=True)
 
-        cycle_summary_df.rename(columns=keys_with_units, inplace=True)
-        cycle_summary_df["cycle index"] = pd.to_numeric(cycle_summary_df.index, downcast="integer")
+        if cycle_summary_df is not None:
+            cycle_summary_df.rename(columns=keys_with_units, inplace=True)
+            cycle_summary_df["cycle index"] = pd.to_numeric(
+                cycle_summary_df.index, downcast="integer"
+            )
 
         return raw_df, cycle_summary_df
 
@@ -209,9 +216,12 @@ class CycleBlock(DataBlock):
             df, cycle_summary=cycle_summary_df, mode=mode, normalized=bool(characteristic_mass_g)
         )
 
-        self.data["bokeh_plot_data"] = bokeh.embed.json_item(
-            layout, theme=bokeh_plots.DATALAB_BOKEH_THEME
-        )
+        if layout is not None:
+            # Don't overwrite the previous plot data in cases where the plot is not generated
+            # for a 'normal' reason
+            self.data["bokeh_plot_data"] = bokeh.embed.json_item(
+                layout, theme=bokeh_plots.DATALAB_BOKEH_THEME
+            )
         return
 
     @property

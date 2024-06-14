@@ -1,7 +1,6 @@
 import { createRouter, createWebHistory } from "vue-router";
-// import Home from '../views/Home.vue'
-// import Test from '../views/Test.vue'
 import Samples from "../views/Samples.vue";
+import Equipment from "../views/Equipment.vue";
 import SamplesNext from "../views/SamplesNext.vue";
 import StartingMaterials from "../views/StartingMaterials.vue";
 import StartingMaterialsNext from "../views/StartingMaterialsNext.vue";
@@ -9,11 +8,9 @@ import Collections from "@/views/Collections.vue";
 import NotFound from "../views/NotFound.vue";
 import EditPage from "../views/EditPage.vue";
 import CollectionPage from "../views/CollectionPage.vue";
-import Test from "@/components/Test.vue";
-import TestTree from "@/components/TestTree.vue";
-import CycleParameterTable from "@/components/CycleParameterTable.vue";
 import ExampleGraph from "@/views/ExampleGraph.vue";
 import ItemGraphPage from "@/views/ItemGraphPage.vue";
+import Admin from "@/views/Admin.vue";
 const routes = [
   {
     path: "/about",
@@ -28,6 +25,12 @@ const routes = [
     name: "samples",
     alias: "/",
     component: Samples,
+  },
+  {
+    path: "/equipment",
+    name: "equipment",
+    alias: "/",
+    component: Equipment,
   },
   { path: "/next/samples", name: "samples-next", alias: "/next", component: SamplesNext },
   {
@@ -56,16 +59,6 @@ const routes = [
     component: CollectionPage,
   },
   {
-    path: "/test/",
-    name: "test",
-    component: Test,
-  },
-  {
-    path: "/test-tree/",
-    name: "test-tree",
-    component: TestTree,
-  },
-  {
     path: "/test-graph/",
     name: "test-graph",
     component: ExampleGraph,
@@ -75,13 +68,14 @@ const routes = [
     name: "item-graph",
     component: ItemGraphPage,
   },
-  {
-    path: "/test-cycle-parameter-table/",
-    name: "test-cycle-parameter-table",
-    component: CycleParameterTable,
-  },
   { path: "/404", name: "notfound", component: NotFound },
   { path: "/:pathMatch(.*)*", component: NotFound },
+  {
+    path: "/admin",
+    name: "admin",
+    alias: "/",
+    component: Admin,
+  },
 ];
 
 const router = createRouter({

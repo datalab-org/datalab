@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   app:
     profiles: ["prod"]
@@ -9,10 +7,14 @@ services:
       target: production
     volumes:
       - ./logs:/logs
+    restart: always
+    environment:
+      - VUE_APP_API_URL
+      - VUE_APP_LOGO_URL
+      - VUE_APP_HOMEPAGE_URL
+      - VUE_APP_EDITABLE_INVENTORY
     ports:
       - "8081:8081"
-    networks:
-      - nginx
 
   app_dev:
     profiles: ["dev"]
@@ -25,8 +27,6 @@ services:
       - ./webapp:/app
     ports:
       - "8081:8081"
-    networks:
-      - nginx
 
   api:
     profiles: ["prod"]
@@ -35,15 +35,17 @@ services:
       dockerfile: .docker/server_dockerfile
       target: production
       args:
-        - WEB_CONCURRENCY=16
+        - WEB_CONCURRENCY=4
     depends_on:
       - database
+    restart: always
     volumes:
       - ./logs:/logs
+      - /data/files:/app/files
+      - /data/backups:/tmp/datalab-backups
     ports:
       - "5001:5001"
     networks:
-      - nginx
       - backend
     environment:
       - PYDATALAB_MONGO_URI=mongodb://database:27017/datalabvue
@@ -55,33 +57,42 @@ services:
       dockerfile: .docker/server_dockerfile
       target: development
     depends_on:
-      - database
+      - database_dev
     volumes:
       - ./logs:/logs
       - ./pydatalab:/app
     ports:
       - "5001:5001"
     networks:
-      - nginx
       - backend
     environment:
-      - PYDATALAB_TESTING=true
-      - PYDATALAB_MONGO_URI=mongodb://database:27017/datalabvue
+      - PYDATALAB_MONGO_URI=mongodb://database_dev:27017/datalabvue
 
-  database:
+  database_dev:
+    profiles: ["dev"]
     build:
       context: .
       dockerfile: .docker/mongo_dockerfile
     volumes:
       - ./logs:/var/logs/mongod
+    restart: always
     networks:
       - backend
     ports:
       - "27017:27017"
 
-networks:
-  nginx:
-    external: true
+  database:
+    profiles: ["prod"]
+    build:
+      context: .
+      dockerfile: .docker/mongo_dockerfile
+    volumes:
+      - ./logs:/var/logs/mongod
+      - /data/db:/data/db
+    restart: always
+    networks:
+      - backend
 
+networks:
   backend:
     driver: bridge

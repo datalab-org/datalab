@@ -4,7 +4,7 @@ import pathlib
 from typing import Any, Dict
 
 from dotenv import dotenv_values
-from flask import Flask, redirect, request, session, url_for
+from flask import Flask, redirect, request, url_for
 from flask_compress import Compress
 from flask_cors import CORS
 from flask_login import current_user, logout_user
@@ -12,10 +12,10 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 import pydatalab.mongo
 from pydatalab.config import CONFIG
-from pydatalab.logger import LOGGER, logged_route, setup_log
+from pydatalab.logger import LOGGER, setup_log
 from pydatalab.login import LOGIN_MANAGER
 from pydatalab.send_email import MAIL
-from pydatalab.utils import CustomJSONEncoder
+from pydatalab.utils import BSONProvider
 
 COMPRESS = Compress()
 
@@ -27,7 +27,23 @@ def _warn_startup_settings(app):
     """
 
     if CONFIG.EMAIL_AUTH_SMTP_SETTINGS is None:
-        LOGGER.warning("No email auth SMTP settings provided, email registration will not work.")
+        LOGGER.warning(
+            "No email auth SMTP settings provided, email registration will not be enabled."
+        )
+    else:
+        if app.config["MAIL_SERVER"] and not app.config.get("MAIL_PASSWORD"):
+            LOGGER.critical(
+                "CONFIG.EMAIL_AUTH_SMTP_SETTINGS.MAIL_SERVER was set to '%s' but no `MAIL_PASSWORD` was provided. "
+                "This can be passed in a `.env` file (as `MAIL_PASSWORD`) or as an environment variable.",
+                app.config["MAIL_SERVER"],
+            )
+        if not app.config["MAIL_DEFAULT_SENDER"]:
+            LOGGER.critical(
+                "CONFIG.EMAIL_AUTH_SMTP_SETTINGS.MAIL_DEFAULT_SENDER is not set in the config. "
+                "Email authentication may not work correctly."
+                "This can be set in the config above or equivalently via `MAIL_DEFAULT_SENDER` in a `.env` file, "
+                "or as an environment variable."
+            )
 
     if CONFIG.IDENTIFIER_PREFIX == "test":
         LOGGER.critical(
@@ -53,6 +69,10 @@ def _warn_startup_settings(app):
         ),
         ("ORCID_OAUTH_CLIENT_ID", "No ORCID OAuth client ID provided, ORCID login will not work"),
         ("OPENAI_API_KEY", "No OpenAI API key provided, OpenAI-based ChatBlock will not work"),
+        (
+            "ANTHROPIC_API_KEY",
+            "No Anthropic API key provided, Claude-based ChatBlock will not work",
+        ),
     ]
 
     for secret, error in secrets_and_errors:
@@ -73,7 +93,9 @@ def _warn_startup_settings(app):
         )
 
 
-def create_app(config_override: Dict[str, Any] | None = None) -> Flask:
+def create_app(
+    config_override: Dict[str, Any] | None = None, env_file: pathlib.Path | None = None
+) -> Flask:
     """Create the main `Flask` app with the given config.
 
     Parameters:
@@ -93,8 +115,18 @@ def create_app(config_override: Dict[str, Any] | None = None) -> Flask:
         CONFIG.update(config_override)
 
     app.config.update(CONFIG.dict())
-    app.config["MAIL_DEBUG"] = CONFIG.TESTING
-    app.config.update(dotenv_values())
+
+    # This value will still be overwritten by any dotenv values
+    app.config["MAIL_DEBUG"] = app.config.get("MAIL_DEBUG") or CONFIG.TESTING
+
+    # percolate datalab mail settings up to the `MAIL_` env vars/app config
+    # for use by Flask Mail
+    if CONFIG.EMAIL_AUTH_SMTP_SETTINGS is not None:
+        mail_settings = CONFIG.EMAIL_AUTH_SMTP_SETTINGS.dict()
+        for key in mail_settings:
+            app.config[key] = mail_settings[key]
+
+    app.config.update(dotenv_values(dotenv_path=env_file))
 
     LOGGER.info("Starting app with Flask app.config: %s", app.config)
     _warn_startup_settings(app)
@@ -110,10 +142,13 @@ def create_app(config_override: Dict[str, Any] | None = None) -> Flask:
         supports_credentials=True,
     )
 
-    app.json_encoder = CustomJSONEncoder
+    # Override the default provider with a version that can handle ObjectIDs and returns isofromat dates
+    app.json = BSONProvider(app)
+
+    # Make the session permanent so that it doesn't expire on browser close, but instead adds a lifetime
+    app.permanent_session_lifetime = datetime.timedelta(hours=CONFIG.SESSION_LIFETIME)
 
     # Must use the full path so that this object can be mocked for testing
-
     flask_mongo = pydatalab.mongo.flask_mongo
     flask_mongo.init_app(app, connectTimeoutMS=100, serverSelectionTimeoutMS=100)
 
@@ -134,12 +169,6 @@ def create_app(config_override: Dict[str, Any] | None = None) -> Flask:
         logout_user()
         return redirect(request.environ.get("HTTP_REFERER", "/"))
 
-    @app.before_first_request  # runs before FIRST request (only once)
-    def make_session_permanent():
-        """Make the session permanent so that it doesn't expire on browser close, but instead adds a lifetime."""
-        session.permanent = True
-        app.permanent_session_lifetime = datetime.timedelta(hours=CONFIG.SESSION_LIFETIME)
-
     @app.route("/")
     def index():
         """Landing page endpoint that renders a rudimentary welcome page based on the currently
@@ -150,12 +179,7 @@ def create_app(config_override: Dict[str, Any] | None = None) -> Flask:
             the embedded inputs.
 
         """
-        from pydatalab.routes import (  # pylint: disable=import-outside-toplevel
-            ENDPOINTS,
-            auth,
-        )
-
-        OAUTH_PROXIES = auth.OAUTH_PROXIES
+        from pydatalab.routes import OAUTH_PROXIES
 
         connected = True
         try:
@@ -238,19 +262,10 @@ def create_app(config_override: Dict[str, Any] | None = None) -> Flask:
 
             auth_string += "</ul>"
 
-            endpoints_string = "\n".join(
-                [
-                    f'<li><a href="{endp[0]}"><pre>{endp[0]}</pre></a></li>'
-                    for endp in ENDPOINTS.items()
-                ]
-            )
-            endpoints_string = f"""<h3>Available endpoints:</h3><ul>{endpoints_string}</ul>"""
-
         else:
             auth_string = ""
             logout_string = ""
             welcome_string = ""
-            endpoints_string = ""
 
         return f"""<head>
             <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
@@ -261,7 +276,6 @@ def create_app(config_override: Dict[str, Any] | None = None) -> Flask:
 <p>{logout_string}</p>
 <h3>API status:</h3>
 <h4>{database_string}</h4>
-{endpoints_string}
 """
 
     return app
@@ -270,27 +284,17 @@ def create_app(config_override: Dict[str, Any] | None = None) -> Flask:
 def register_endpoints(app: Flask):
     """Loops through the implemented endpoints, blueprints and error handlers adds them to the app."""
     from pydatalab.errors import ERROR_HANDLERS
-    from pydatalab.routes import BLUEPRINTS, ENDPOINTS, __api_version__, auth
-
-    AUTH_BLUEPRINTS = auth.AUTH_BLUEPRINTS
+    from pydatalab.routes import BLUEPRINTS, OAUTH, __api_version__
 
     major, minor, patch = __api_version__.split(".")
     versions = ["", f"/v{major}", f"/v{major}.{minor}", f"/v{major}.{minor}.{patch}"]
-
-    for rule, func in ENDPOINTS.items():
-        for ver in versions:
-            app.add_url_rule(
-                f"{ver}{rule}",
-                f"{ver}{rule}",
-                logged_route(func),
-            )
 
     for bp in BLUEPRINTS:
         for ver in versions:
             app.register_blueprint(bp, url_prefix=f"{ver}", name=f"{ver}/{bp.name}")
 
-    for bp in AUTH_BLUEPRINTS:  # type: ignore
-        app.register_blueprint(AUTH_BLUEPRINTS[bp], url_prefix="/login")  # type: ignore
+    for bp in OAUTH:  # type: ignore
+        app.register_blueprint(OAUTH[bp], url_prefix="/login")  # type: ignore
 
     for exception_type, handler in ERROR_HANDLERS:
         app.register_error_handler(exception_type, handler)

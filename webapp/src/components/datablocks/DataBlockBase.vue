@@ -9,6 +9,7 @@
       />
       <input class="form-control-plaintext block-title" type="text" v-model="BlockTitle" />
       <span class="blocktype-label ml-auto mr-3">{{ blockType }}</span>
+      <span class="block-header-icon"><StyledBlockInfo :blockInfo="blockInfo" /></span>
       <font-awesome-icon
         :icon="['fa', 'sync']"
         class="block-header-icon"
@@ -40,6 +41,31 @@
       :style="{ 'max-height': contentMaxHeight }"
       class="datablock-content"
     >
+      <!-- Show any warnings or errors reported by the block -->
+      <div
+        class="alert alert-danger d-flex align-items-center ml-3"
+        role="alert"
+        v-if="block.errors"
+      >
+        <ul class="fa-ul">
+          <li v-for="(error, index) in block.errors" :key="index">
+            <font-awesome-icon class="fa-li" icon="exclamation-circle" />
+            {{ error }}
+          </li>
+        </ul>
+      </div>
+      <div
+        class="alert alert-warning d-flex align-items-center ml-3"
+        role="alert"
+        v-if="block.warnings"
+      >
+        <ul class="fa-ul">
+          <li v-for="(warning, index) in block.warnings" :key="index">
+            <font-awesome-icon class="fa-li" icon="exclamation-triangle" />
+            {{ warning }}
+          </li>
+        </ul>
+      </div>
       <slot></slot>
       <TinyMceInline v-model="BlockDescription"></TinyMceInline>
     </div>
@@ -47,8 +73,16 @@
 </template>
 
 <script>
+/**
+ * DataBlockBase - A base component for all data blocks.
+ *
+ * This component is used to create a data block that can be expanded, collapsed,
+ * moved, deleted and annotated with a title and description.
+ *
+ */
 import { createComputedSetterForBlockField } from "@/field_utils.js";
 import TinyMceInline from "@/components/TinyMceInline";
+import StyledBlockInfo from "@/components/StyledBlockInfo";
 import tinymce from "tinymce/tinymce";
 
 import { deleteBlock, updateBlockFromServer } from "@/server_fetch_utils";
@@ -67,7 +101,7 @@ export default {
     },
     blockType() {
       try {
-        return this.block["blockType"];
+        return this.block["blocktype"];
       } catch {
         return "Block type not found";
       }
@@ -81,6 +115,9 @@ export default {
     },
     isUpdating() {
       return this.$store.state.updatingDelayed[this.block_id];
+    },
+    blockInfo() {
+      return this.$store.state.blocksInfos[this.blockType];
     },
     BlockTitle: createComputedSetterForBlockField("title"),
     BlockDescription: createComputedSetterForBlockField("freeform_comment"),
@@ -147,6 +184,7 @@ export default {
   },
   components: {
     TinyMceInline,
+    StyledBlockInfo,
   },
 };
 </script>

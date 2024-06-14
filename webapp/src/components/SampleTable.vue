@@ -33,7 +33,7 @@
             enableModifiedClick
           />
         </td>
-        <td aligh="center">{{ itemTypes[sample.type].display }}</td>
+        <td align="center">{{ itemTypes[sample.type].display }}</td>
         <td align="left">{{ sample.name }}</td>
         <td><ChemicalFormula :formula="sample.chemform" /></td>
         <td class="text-center">{{ $filters.IsoDatetimeToDate(sample.date) }}</td>
@@ -109,7 +109,8 @@ export default {
 </script>
 
 <style scoped>
-.clickable {
-  cursor: pointer;
+.table-item-id {
+  font-size: 1.2em;
+  font-weight: normal;
 }
 </style>

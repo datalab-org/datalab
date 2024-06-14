@@ -1,9 +1,9 @@
 import datetime
 import json
-from typing import Callable, Dict, List, Optional, Set, Union
+from typing import Dict, List, Optional, Set, Union
 
 from bson import ObjectId
-from flask import jsonify, request
+from flask import Blueprint, jsonify, request
 from flask_login import current_user
 from pydantic import ValidationError
 from pymongo.command_cursor import CommandCursor
@@ -16,7 +16,14 @@ from pydatalab.models.items import Item
 from pydatalab.models.relationships import RelationshipType
 from pydatalab.models.utils import generate_unique_refcode
 from pydatalab.mongo import flask_mongo
-from pydatalab.permissions import get_default_permissions
+from pydatalab.permissions import active_users_or_get_only, get_default_permissions
+
+ITEMS = Blueprint("items", __name__)
+
+
+@ITEMS.before_request
+@active_users_or_get_only
+def _(): ...
 
 
 def reserialize_blocks(display_order: List[str], blocks_obj: Dict[str, Dict]) -> Dict[str, Dict]:
@@ -74,16 +81,36 @@ def dereference_files(file_ids: List[Union[str, ObjectId]]) -> Dict[str, Dict]:
     return results
 
 
-def get_starting_materials():
-    if not current_user.is_authenticated and not CONFIG.TESTING:
-        return (
-            jsonify(
-                status="error",
-                message="Authorization required to access chemical inventory.",
-            ),
-            401,
-        )
+@ITEMS.route("/equipment/", methods=["GET"])
+def get_equipment_summary():
+    _project = {
+        "_id": 0,
+        "item_id": 1,
+        "name": 1,
+        "type": 1,
+        "date": 1,
+        "refcode": 1,
+        "location": 1,
+    }
 
+    items = [
+        doc
+        for doc in flask_mongo.db.items.aggregate(
+            [
+                {
+                    "$match": {
+                        "type": "equipment",
+                    }
+                },
+                {"$project": _project},
+            ]
+        )
+    ]
+    return jsonify({"status": "success", "items": items})
+
+
+@ITEMS.route("/starting-materials/", methods=["GET"])
+def get_starting_materials():
     items = [
         doc
         for doc in flask_mongo.db.items.aggregate(
@@ -99,7 +126,7 @@ def get_starting_materials():
                         "_id": 0,
                         "item_id": 1,
                         "nblocks": {"$size": "$display_order"},
-                        "date_acquired": 1,
+                        "date": 1,
                         "chemform": 1,
                         "name": 1,
                         "chemical_purity": 1,
@@ -222,7 +249,20 @@ def collections_lookup() -> Dict:
     }
 
 
-def _check_collections(sample_dict):
+def _check_collections(sample_dict: dict) -> list[dict[str, str]]:
+    """Loop through the provided collection metadata for the sample and
+    return the list of references to store (i.e., just the `immutable_id`
+    of the collection).
+
+    Raises:
+        ValueError: if any of the linked collections cannot be found in
+        the database.
+
+    Returns:
+        A list of dictionaries with singular key `immutable_id` returning
+        the database ID of the collection.
+
+    """
     if sample_dict.get("collections", []):
         for ind, c in enumerate(sample_dict.get("collections", [])):
             query = {}
@@ -237,13 +277,12 @@ def _check_collections(sample_dict):
     return sample_dict.get("collections", []) or []
 
 
+@ITEMS.route("/samples/", methods=["GET"])
 def get_samples():
     return jsonify({"status": "success", "samples": list(get_samples_summary())})
 
 
-get_samples.methods = ("GET",)  # type: ignore
-
-
+@ITEMS.route("/search-items/", methods=["GET"])
 def search_items():
     """Perform free text search on items and return the top results.
     GET parameters:
@@ -263,7 +302,10 @@ def search_items():
     if isinstance(types, str):
         types = types.split(",")  # should figure out how to parse as list automatically
 
-    match_obj = {"$text": {"$search": query}, **get_default_permissions(user_only=False)}
+    match_obj = {
+        "$text": {"$search": query},
+        **get_default_permissions(user_only=False),
+    }
     if types is not None:
         match_obj["type"] = {"$in": types}
 
@@ -288,18 +330,20 @@ def search_items():
     return jsonify({"status": "success", "items": list(cursor)}), 200
 
 
-search_items.methods = ("GET",)  # type: ignore
-
-
-def _create_sample(sample_dict: dict, copy_from_item_id: Optional[str] = None) -> tuple[dict, int]:
-    if not current_user.is_authenticated and not CONFIG.TESTING:
+def _create_sample(
+    sample_dict: dict,
+    copy_from_item_id: Optional[str] = None,
+    generate_id_automatically: bool = False,
+) -> tuple[dict, int]:
+    sample_dict["item_id"] = sample_dict.get("item_id", None)
+    if generate_id_automatically and sample_dict["item_id"]:
         return (
             dict(
                 status="error",
-                message="Unable to create new item without user authentication.",
-                item_id=sample_dict["item_id"],
+                messages=f"""Request to create item with generate_id_automatically = true is incompatible with the provided item data,
+                which has an item_id included (provided id: {sample_dict['item_id']}")""",
             ),
-            401,
+            400,
         )
 
     if copy_from_item_id:
@@ -347,7 +391,11 @@ def _create_sample(sample_dict: dict, copy_from_item_id: Optional[str] = None) -
             sample_dict = copied_doc
 
         elif copied_doc["type"] == "cells":
-            for component in ("positive_electrode", "negative_electrode", "electrolyte"):
+            for component in (
+                "positive_electrode",
+                "negative_electrode",
+                "electrolyte",
+            ):
                 if copied_doc.get(component):
                     existing_consituent_ids = [
                         constituent["item"].get("item_id", None)
@@ -380,16 +428,29 @@ def _create_sample(sample_dict: dict, copy_from_item_id: Optional[str] = None) -
     if type not in ITEM_MODELS:
         raise RuntimeError("Invalid type")
     model = ITEM_MODELS[type]
-    schema = model.schema()
 
-    new_sample = {k: sample_dict[k] for k in schema["properties"] if k in sample_dict}
+    ## the following code was used previously to explicitely check schema properties.
+    ## it doesn't seem to be necessary now, with extra = "ignore" turned on in the pydantic models,
+    ## and it breaks in instances where the models use aliases (e.g., in the starting_material model)
+    ## so we are taking it out now, but leaving this comment in case it needs to be reverted.
+    # schema = model.schema()
+    # new_sample = {k: sample_dict[k] for k in schema["properties"] if k in sample_dict}
+    new_sample = sample_dict
 
-    if CONFIG.TESTING:
+    if type in ("starting_materials", "equipment"):
+        # starting_materials and equipment are open to all in the deploment at this point,
+        # so no creators are assigned
+        new_sample["creator_ids"] = []
+        new_sample["creators"] = []
+    elif CONFIG.TESTING:
         # Set fake ID to ObjectId("000000000000000000000000") so a dummy user can be created
         # locally for testing creator UI elements
         new_sample["creator_ids"] = [24 * "0"]
         new_sample["creators"] = [
-            {"display_name": "Public testing user", "contact_email": "datalab@odbx.science"}
+            {
+                "display_name": "Public testing user",
+                "contact_email": "datalab@odbx.science",
+            }
         ]
     else:
         new_sample["creator_ids"] = [current_user.person.immutable_id]
@@ -399,6 +460,14 @@ def _create_sample(sample_dict: dict, copy_from_item_id: Optional[str] = None) -
                 "contact_email": current_user.person.contact_email,
             }
         ]
+
+    # Generate a unique refcode for the sample
+    new_sample["refcode"] = generate_unique_refcode()
+    if generate_id_automatically:
+        new_sample["item_id"] = new_sample["refcode"].split(":")[1]
+        LOGGER.debug(
+            "an automatic item_id was generated for the new sample: {new_sample['item_id']}"
+        )
 
     # check to make sure that item_id isn't taken already
     if flask_mongo.db.items.find_one({"item_id": sample_dict["item_id"]}):
@@ -410,9 +479,6 @@ def _create_sample(sample_dict: dict, copy_from_item_id: Optional[str] = None) -
             ),
             409,  # 409: Conflict
         )
-
-    # Generate a unique refcode for the sample
-    new_sample["refcode"] = generate_unique_refcode()
 
     new_sample["date"] = new_sample.get("date", datetime.datetime.now())
     try:
@@ -429,7 +495,7 @@ def _create_sample(sample_dict: dict, copy_from_item_id: Optional[str] = None) -
             400,
         )
 
-    # Do not store the fields `collections` or `creators` in the dataabse as these should be populated
+    # Do not store the fields `collections` or `creators` in the database as these should be populated
     # via joins for a specific query.
     # TODO: encode this at the model level, via custom schema properties or hard-coded `.store()` methods
     # the `Entry` model.
@@ -445,29 +511,36 @@ def _create_sample(sample_dict: dict, copy_from_item_id: Optional[str] = None) -
             400,
         )
 
+    sample_list_entry = {
+        "refcode": data_model.refcode,
+        "item_id": data_model.item_id,
+        "nblocks": 0,
+        "date": data_model.date,
+        "name": data_model.name,
+        "creator_ids": data_model.creator_ids,
+        # TODO: This workaround for creators & collections is still gross, need to figure this out properly
+        "creators": [json.loads(c.json(exclude_unset=True)) for c in data_model.creators]
+        if data_model.creators
+        else [],
+        "collections": [
+            json.loads(c.json(exclude_unset=True, exclude_none=True))
+            for c in data_model.collections
+        ]
+        if data_model.collections
+        else [],
+        "type": data_model.type,
+    }
+
+    # hack to let us use _create_sample() for equipment too. We probably want to make
+    # a more general create_item() to more elegantly handle different returns.
+    if data_model.type == "equipment":
+        sample_list_entry["location"] = data_model.location
+
     data = (
         {
             "status": "success",
             "item_id": data_model.item_id,
-            "sample_list_entry": {
-                "refcode": data_model.refcode,
-                "item_id": data_model.item_id,
-                "nblocks": 0,
-                "date": data_model.date,
-                "name": data_model.name,
-                "creator_ids": data_model.creator_ids,
-                # TODO: This workaround for creators & collections is still gross, need to figure this out properly
-                "creators": [json.loads(c.json(exclude_unset=True)) for c in data_model.creators]
-                if data_model.creators
-                else [],
-                "collections": [
-                    json.loads(c.json(exclude_unset=True, exclude_none=True))
-                    for c in data_model.collections
-                ]
-                if data_model.collections
-                else [],
-                "type": data_model.type,
-            },
+            "sample_list_entry": sample_list_entry,
         },
         201,  # 201: Created
     )
@@ -475,11 +548,14 @@ def _create_sample(sample_dict: dict, copy_from_item_id: Optional[str] = None) -
     return data
 
 
+@ITEMS.route("/new-sample/", methods=["POST"])
 def create_sample():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
     if "new_sample_data" in request_json:
         response, http_code = _create_sample(
-            request_json["new_sample_data"], request_json.get("copy_from_item_id")
+            sample_dict=request_json["new_sample_data"],
+            copy_from_item_id=request_json.get("copy_from_item_id"),
+            generate_id_automatically=request_json.get("generate_id_automatically", False),
         )
     else:
         response, http_code = _create_sample(request_json)
@@ -487,9 +563,7 @@ def create_sample():
     return jsonify(response), http_code
 
 
-create_sample.methods = ("POST",)  # type: ignore
-
-
+@ITEMS.route("/new-samples/", methods=["POST"])
 def create_samples():
     """attempt to create multiple samples at once.
     Because each may result in success or failure, 207 is returned along with a
@@ -499,12 +573,17 @@ def create_samples():
 
     sample_jsons = request_json["new_sample_datas"]
     copy_from_item_ids = request_json.get("copy_from_item_ids")
+    generate_ids_automatically = request_json.get("generate_ids_automatically")
 
     if copy_from_item_ids is None:
         copy_from_item_ids = [None] * len(sample_jsons)
 
     outputs = [
-        _create_sample(sample_json, copy_from_item_id)
+        _create_sample(
+            sample_dict=sample_json,
+            copy_from_item_id=copy_from_item_id,
+            generate_id_automatically=generate_ids_automatically,
+        )
         for sample_json, copy_from_item_id in zip(sample_jsons, copy_from_item_ids)
     ]
     responses, http_codes = zip(*outputs)
@@ -524,9 +603,7 @@ def create_samples():
     )  # 207: multi-status
 
 
-create_samples.methods = ("POST",)  # type: ignore
-
-
+@ITEMS.route("/delete-sample/", methods=["POST"])
 def delete_sample():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
     item_id = request_json["item_id"]
@@ -555,9 +632,7 @@ def delete_sample():
     )
 
 
-delete_sample.methods = ("POST",)  # type: ignore
-
-
+@ITEMS.route("/get-item-data/<item_id>", methods=["GET"])
 def get_item_data(item_id, load_blocks: bool = False):
     """Generates a JSON response for the item with the given `item_id`,
     additionally resolving relationships to files and other items.
@@ -572,7 +647,12 @@ def get_item_data(item_id, load_blocks: bool = False):
     # retrieve the entry from the database:
     cursor = flask_mongo.db.items.aggregate(
         [
-            {"$match": {"item_id": item_id, **get_default_permissions(user_only=False)}},
+            {
+                "$match": {
+                    "item_id": item_id,
+                    **get_default_permissions(user_only=False),
+                }
+            },
             {"$lookup": creators_lookup()},
             {"$lookup": collections_lookup()},
             {"$lookup": files_lookup()},
@@ -685,9 +765,7 @@ def get_item_data(item_id, load_blocks: bool = False):
     )
 
 
-get_item_data.methods = ("GET",)  # type: ignore
-
-
+@ITEMS.route("/save-item/", methods=["POST"])
 def save_item():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
 
@@ -695,7 +773,14 @@ def save_item():
     updated_data = request_json["data"]
 
     # These keys should not be updated here and cannot be modified by the user through this endpoint
-    for k in ("_id", "file_ObjectIds", "creators", "creator_ids", "item_id", "relationships"):
+    for k in (
+        "_id",
+        "file_ObjectIds",
+        "creators",
+        "creator_ids",
+        "item_id",
+        "relationships",
+    ):
         if k in updated_data:
             del updated_data[k]
 
@@ -708,11 +793,16 @@ def save_item():
 
         updated_data["blocks_obj"][block_id] = block.to_db()
 
+    user_only = updated_data["type"] not in ("starting_materials", "equipment")
+
     item = flask_mongo.db.items.find_one(
-        {"item_id": item_id, **get_default_permissions(user_only=True)}
+        {"item_id": item_id, **get_default_permissions(user_only=user_only)}
     )
 
-    if not item:
+    # Bit of a hack for now: starting materials and equipment should be editable by anyone,
+    # so we adjust the query above to be more permissive when the user is requesting such an item
+    # but before returning we need to check that the actual item did indeed have that type
+    if not item or not user_only and item["type"] not in ("starting_materials", "equipment"):
         return (
             jsonify(
                 status="error",
@@ -771,9 +861,7 @@ def save_item():
     return jsonify(status="success", last_modified=updated_data["last_modified"]), 200
 
 
-save_item.methods = ("POST",)  # type: ignore
-
-
+@ITEMS.route("/search-users/", methods=["GET"])
 def search_users():
     """Perform free text search on users and return the top results.
     GET parameters:
@@ -809,16 +897,3 @@ def search_users():
     )
 
     return jsonify({"status": "success", "users": list(cursor)}), 200
-
-
-ENDPOINTS: Dict[str, Callable] = {
-    "/samples/": get_samples,
-    "/starting-materials/": get_starting_materials,
-    "/search-items/": search_items,
-    "/search-users/": search_users,
-    "/new-sample/": create_sample,
-    "/new-samples/": create_samples,
-    "/delete-sample/": delete_sample,
-    "/get-item-data/<item_id>": get_item_data,
-    "/save-item/": save_item,
-}

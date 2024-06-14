@@ -1,14 +1,21 @@
-from typing import Callable, Dict
-
-from flask import jsonify, request
+import pymongo.errors
+from flask import Blueprint, jsonify, request
 
 from pydatalab.blocks import BLOCK_TYPES
 from pydatalab.blocks.base import DataBlock
 from pydatalab.logger import LOGGER
 from pydatalab.mongo import flask_mongo
-from pydatalab.permissions import get_default_permissions
+from pydatalab.permissions import active_users_or_get_only, get_default_permissions
+
+BLOCKS = Blueprint("blocks", __name__)
 
 
+@BLOCKS.before_request
+@active_users_or_get_only
+def _(): ...
+
+
+@BLOCKS.route("/add-data-block/", methods=["POST"])
 def add_data_block():
     """Call with AJAX to add a block to the sample"""
 
@@ -68,9 +75,7 @@ def add_data_block():
     )
 
 
-add_data_block.methods = ("POST",)  # type: ignore
-
-
+@BLOCKS.route("/add-collection-data-block/", methods=["POST"])
 def add_collection_data_block():
     """Call with AJAX to add a block to the collection."""
 
@@ -131,34 +136,46 @@ def add_collection_data_block():
     )
 
 
-add_collection_data_block.methods = ("POST",)  # type: ignore
-
-
 def _save_block_to_db(block: DataBlock) -> bool:
     """Save data for a single block within an item to the database,
     overwriting previous data saved there.
     returns true if successful, false if unsuccessful
     """
-    if block.data.get("item_id"):
-        result = flask_mongo.db.items.update_one(
-            {"item_id": block.data["item_id"], **get_default_permissions(user_only=False)},
-            {"$set": {f"blocks_obj.{block.block_id}": block.to_db()}},
+    updated_block = block.to_db()
+    update = {"$set": {f"blocks_obj.{block.block_id}": updated_block}}
+
+    if block.data.get("collection_id"):
+        match = {
+            "collection_id": block.data["collection_id"],
+            f"blocks_obj.{block.block_id}": {"$exists": True},
+            **get_default_permissions(user_only=False),
+        }
+    else:
+        match = {
+            "item_id": block.data["item_id"],
+            f"blocks_obj.{block.block_id}": {"$exists": True},
+            **get_default_permissions(user_only=False),
+        }
+
+    try:
+        result = flask_mongo.db.items.update_one(match, update)
+    except pymongo.errors.DocumentTooLarge:
+        LOGGER.warning(
+            "DocumentTooLarge error occurred while saving block to db, block.block_id='%s'",
+            block.block_id,
         )
-    elif block.data.get("collection_id"):
-        result = flask_mongo.db.collections.update_one(
-            {"item_id": block.data["collection_id"], **get_default_permissions(user_only=False)},
-            {"$set": {f"blocks_obj.{block.block_id}": block.to_db()}},
-        )
+        return False
 
     if result.matched_count != 1:
         LOGGER.warning(
-            f"_save_block_to_db failed, likely because item_id ({block.data.get('item_id')}), collection_id ({block.data.get('collection_id')}) and/or block_id ({block.block_id})  wasn't found"
+            f"_save_block_to_db failed, likely because item_id ({block.data.get('item_id')}), collection_id ({block.data.get('collection_id')}) and/or block_id ({block.block_id}) wasn't found"
         )
         return False
     else:
         return True
 
 
+@BLOCKS.route("/update-block/", methods=["POST"])
 def update_block():
     """Take in json block data from site, process, and spit
     out updated data. May be used, for example, when the user
@@ -185,9 +202,7 @@ def update_block():
     )
 
 
-update_block.methods = ("POST",)  # type: ignore
-
-
+@BLOCKS.route("/delete-block/", methods=["POST"])
 def delete_block():
     """Completely delete a data block from the database. In the future,
     we may consider preserving data by moving it to a different array,
@@ -223,9 +238,7 @@ def delete_block():
     )  # could try to switch to http 204 is "No Content" success with no json
 
 
-delete_block.methods = ("POST",)  # type: ignore
-
-
+@BLOCKS.route("/delete-collection-block/", methods=["POST"])
 def delete_collection_block():
     """Completely delete a data block from the database that is currently
     attached to a collection.
@@ -261,14 +274,3 @@ def delete_collection_block():
         jsonify({"status": "success"}),
         200,
     )
-
-
-delete_collection_block.methods = ("POST",)  # type: ignore
-
-ENDPOINTS: Dict[str, Callable] = {
-    "/add-data-block/": add_data_block,
-    "/add-collection-data-block/": add_collection_data_block,
-    "/update-block/": update_block,
-    "/delete-block/": delete_block,
-    "/delete-collection-block/": delete_collection_block,
-}

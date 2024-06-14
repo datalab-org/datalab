@@ -4,10 +4,9 @@
   </div>
   <table class="table table-hover table-sm" data-testid="collection-table">
     <thead>
-      <tr align="center">
+      <tr>
         <th scope="col">ID</th>
         <th scope="col">Title</th>
-        <th scope="col"># of items</th>
         <th scope="col">Creators</th>
         <th scope="col"></th>
       </tr>
@@ -29,7 +28,6 @@
           />
         </td>
         <td align="left">{{ collection.title }}</td>
-        <td align="right">{{ collection.num_items || 0 }}</td>
         <td align="center"><Creators :creators="collection.creators" /></td>
         <td align="right">
           <button

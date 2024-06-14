@@ -6,11 +6,12 @@ with their local accounts.
 
 import datetime
 import json
+import os
 import random
 import re
 from hashlib import sha512
 from string import ascii_letters
-from typing import Callable, Dict, Optional, Union
+from typing import Dict, Optional, Union
 
 import jwt
 from bson import ObjectId
@@ -25,7 +26,7 @@ from pydatalab.config import CONFIG
 from pydatalab.errors import UserRegistrationForbidden
 from pydatalab.logger import LOGGER, logged_route
 from pydatalab.login import get_by_id
-from pydatalab.models.people import Identity, IdentityType, Person
+from pydatalab.models.people import AccountStatus, Identity, IdentityType, Person
 from pydatalab.mongo import flask_mongo, insert_pydantic_model_fork_safe
 from pydatalab.send_email import send_mail
 
@@ -35,17 +36,18 @@ LINK_EXPIRATION: datetime.timedelta = datetime.timedelta(hours=1)
 
 @logged_route
 def wrapped_login_user(*args, **kwargs):
-    # LOGGER.warning("Logging in user %s with role %s", args[0].display_name, args[0].role)
     login_user(*args, **kwargs)
 
 
 EMAIL_BLUEPRINT = Blueprint("email", __name__)
 
+AUTH = Blueprint("auth", __name__)
 
-AUTH_BLUEPRINTS: Dict[IdentityType, Blueprint] = {
+
+OAUTH: Dict[IdentityType, Blueprint] = {
     IdentityType.ORCID: make_orcid_blueprint(
         scope="/authenticate",
-        sandbox=True,
+        sandbox=os.environ.get("OAUTH_ORCID_SANDBOX", False),
     ),
     IdentityType.GITHUB: make_github_blueprint(
         scope="read:org,read:user",
@@ -64,10 +66,14 @@ requests out to the providers.
 """
 
 
-def _check_email_domain(email: str, allow_list: Optional[list[str]]) -> bool:
+def _check_email_domain(email: str, allow_list: list[str] | None) -> bool:
     """Checks whether the provided email address is allowed to
-    register an account based on the configured domain allow list. If the user already exists,
-    they will be allowed to login either way.
+    register an account based on the configured domain allow list.
+
+    If the configured allow list is None, any email address is allowed to register.
+    If it is an empty list, no email addresses are allowed to register.
+
+    If the user already exists, they will be allowed to login either way.
 
     Parameters:
         email: The email address to check.
@@ -78,8 +84,11 @@ def _check_email_domain(email: str, allow_list: Optional[list[str]]) -> bool:
 
     """
     domain = email.split("@")[-1]
-    if allow_list is None:
+    if isinstance(allow_list, list) and not allow_list:
         return False
+
+    if allow_list is None:
+        return True
 
     for allowed in allow_list:
         if domain.endswith(allowed):
@@ -139,7 +148,7 @@ def find_create_or_modify_user(
     identity_name: str,
     display_name: Optional[str] = None,
     verified: bool = False,
-    create_account: bool = False,
+    create_account: bool | AccountStatus = False,
 ) -> None:
     """Search for a user account with the given identifier and identity type, creating
     or connecting one if it does not exist.
@@ -223,7 +232,14 @@ def find_create_or_modify_user(
             if not create_account:
                 raise UserRegistrationForbidden
 
-            user = Person.new_user_from_identity(identity, use_display_name=True)
+            if isinstance(create_account, bool):
+                account_status = AccountStatus.UNVERIFIED
+            else:
+                account_status = create_account
+
+            user = Person.new_user_from_identity(
+                identity, use_display_name=True, account_status=account_status
+            )
             LOGGER.debug("Inserting new user model %s into database", user)
             insert_pydantic_model_fork_safe(user, "users")
             user_model = get_by_id(str(user.immutable_id))
@@ -242,8 +258,6 @@ def generate_and_share_magic_link():
     in the database and sends it to the verified email address.
 
     """
-    from flask import request
-
     request_json = request.get_json()
     email = request_json.get("email")
     referrer = request_json.get("referrer")
@@ -349,20 +363,35 @@ def email_logged_in():
     if not email:
         raise RuntimeError("No email found; please request a new token.")
 
+    # If the email domain list is explicitly configured to None, this allows any
+    # email address to make an active account, otherwise the email domain must match
+    # the list of allowed domains and the admin must verify the user
+    allowed = _check_email_domain(email, CONFIG.EMAIL_DOMAIN_ALLOW_LIST)
+    if not allowed:
+        # If this point is reached, the token is valid but the server settings have
+        # changed since the link was generated, so best to fail safe
+        raise UserRegistrationForbidden
+
+    create_account = AccountStatus.UNVERIFIED
+    if CONFIG.EMAIL_DOMAIN_ALLOW_LIST is None:
+        create_account = AccountStatus.ACTIVE
+
     find_create_or_modify_user(
         email,
         IdentityType.EMAIL,
         email,
         display_name=email,
         verified=True,
-        create_account=True,
+        create_account=create_account,
     )
 
+    if CONFIG.APP_URL:
+        return redirect(CONFIG.APP_URL, 307)
     referer = request.headers.get("Referer", "/")
     return redirect(referer, 307)
 
 
-@oauth_authorized.connect_via(AUTH_BLUEPRINTS[IdentityType.GITHUB])
+@oauth_authorized.connect_via(OAUTH[IdentityType.GITHUB])
 def github_logged_in(blueprint, token):
     """This Flask signal hooks into any attempt to use the GitHub blueprint, and will
     make a user account with this identity if not already present in the database.
@@ -381,16 +410,17 @@ def github_logged_in(blueprint, token):
     github_info = resp.json()
     github_user_id = str(github_info["id"])
     username = str(github_info["login"])
-    name = str(github_info["name"])
+    name = str(github_info["name"] if github_info["name"] is not None else github_info["login"])
 
-    create_account: bool = False
+    create_account: bool | AccountStatus = False
     # Use the read:org scope to check if the user is a member of at least one of the allowed orgs
     if CONFIG.GITHUB_ORG_ALLOW_LIST:
         for org in CONFIG.GITHUB_ORG_ALLOW_LIST:
             if str(int(org)) == org:
                 org = int(org)
             if blueprint.session.get(f"/orgs/{org}/members/{username}").ok:
-                create_account = True
+                # If this person has a GH account on the org allow list, activate their account
+                create_account = AccountStatus.ACTIVE
                 break
 
     elif CONFIG.GITHUB_ORG_ALLOW_LIST is None:
@@ -409,7 +439,7 @@ def github_logged_in(blueprint, token):
     return False
 
 
-@oauth_authorized.connect_via(AUTH_BLUEPRINTS[IdentityType.ORCID])
+@oauth_authorized.connect_via(OAUTH[IdentityType.ORCID])
 def orcid_logged_in(_, token):
     """This signal hooks into any attempt to use the ORCID blueprint, and will
     associate a user account with this identity if not already present in the database.
@@ -420,12 +450,18 @@ def orcid_logged_in(_, token):
     if not token:
         return False
 
+    # New ORCID accounts must be activated by an admin unless configured otherwise
+    create_account = AccountStatus.UNVERIFIED
+    if CONFIG.ORCID_AUTO_ACTIVATE_ACCOUNTS:
+        create_account = AccountStatus.ACTIVE
+
     find_create_or_modify_user(
         token["orcid"],
         IdentityType.ORCID,
         token["orcid"],
-        display_name=token["name"],
+        display_name=token.get("name", token["orcid"]),
         verified=True,
+        create_account=create_account,
     )
 
     # Return false to prevent Flask-dance from trying to store the token elsewhere
@@ -435,23 +471,27 @@ def orcid_logged_in(_, token):
 @oauth_authorized.connect
 def redirect_to_ui(blueprint, token):  # pylint: disable=unused-argument
     """Intercepts the default Flask-Dance and redirects to the referring page."""
-    from flask import request
-
+    if CONFIG.APP_URL:
+        return redirect(CONFIG.APP_URL, 307)
     referer = request.headers.get("Referer", "/")
-    return redirect(referer)
+    return redirect(referer, 307)
 
 
+@AUTH.route("/get-current-user/", methods=["GET"])
 def get_authenticated_user_info():
     """Returns metadata associated with the currently authenticated user."""
     if current_user.is_authenticated:
-        return jsonify(json.loads(current_user.person.json())), 200
+        current_user_response = json.loads(current_user.person.json())
+        current_user_response["role"] = current_user.role.value
+        return jsonify(current_user_response), 200
     else:
         return jsonify({"status": "failure", "message": "User must be authenticated."}), 401
 
 
+@AUTH.route("/get-api-key/", methods=["GET"])
 def generate_user_api_key():
     """Returns metadata associated with the currently authenticated user."""
-    if current_user.is_authenticated and current_user.role == "admin":
+    if current_user.is_authenticated:
         new_key = "".join(random.choices(ascii_letters, k=KEY_LENGTH))
         flask_mongo.db.api_keys.update_one(
             {"_id": ObjectId(current_user.id)},
@@ -469,9 +509,3 @@ def generate_user_api_key():
             ),
             401,
         )
-
-
-ENDPOINTS: Dict[str, Callable] = {
-    "/get-current-user/": get_authenticated_user_info,
-    "/get-api-key/": generate_user_api_key,
-}

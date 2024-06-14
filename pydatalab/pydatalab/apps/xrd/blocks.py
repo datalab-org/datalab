@@ -17,7 +17,8 @@ from .utils import parse_xrdml
 
 class XRDBlock(DataBlock):
     blocktype = "xrd"
-    description = "Powder XRD"
+    name = "Powder XRD"
+    description = "Visualize XRD patterns and perform simple baseline corrections."
     accepted_file_extensions = (".xrdml", ".xy", ".dat", ".xye")
 
     defaults = {"wavelength": 1.54060}
@@ -111,10 +112,8 @@ class XRDBlock(DataBlock):
             ]
 
             if not all_files:
-                LOGGER.warning(
-                    "XRDBlock.generate_xrd_plot(): Unsupported file extension (must be .xrdml or .xy)"
-                )
-                raise RuntimeError("XRDBlock.generate_xrd_plot(): No file set in DataBlock")
+                LOGGER.warning("XRDBlock.generate_xrd_plot(): No files found on sample")
+                return
 
             pattern_dfs = []
             for f in all_files:

@@ -3,7 +3,11 @@
     <label class="mr-2 pb-2">Synthesis Information</label>
     <div class="card component-card">
       <div class="card-body pt-2 pb-0 mb-0 pl-5">
-        <CompactConstituentTable id="synthesis-table" v-model="constituents" />
+        <CompactConstituentTable
+          id="synthesis-table"
+          v-model="constituents"
+          :typesToQuery="['samples', 'starting_materials']"
+        />
       </div>
     </div>
     <span id="synthesis-procedure-label" class="subheading ml-2">Procedure</span>
@@ -82,59 +86,11 @@ export default {
 </script>
 
 <style scoped>
-.first-column {
-  position: relative;
-}
-
-.swap-constituent-icon {
-  cursor: pointer;
-  position: absolute;
-  font-size: regular;
-  color: #bbb;
-  float: right;
-  transform: translateY(30%);
-  transition: transform 0.4s ease;
-  width: 1.5rem;
-  left: -1.5rem;
-}
-
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-
-.select-in-row {
-  width: 100%;
-}
-
 .subheading {
   color: darkslategrey;
   font-size: small;
   font-weight: 600;
   text-transform: uppercase;
   margin-bottom: 0px;
-}
-
-table {
-  margin-bottom: 0rem;
-}
-
-.borderless td,
-.borderless th {
-  border: none;
-}
-
-.red-border {
-  border-color: red;
-}
-
-.empty-search {
-  opacity: 0.5;
-  font-style: italic;
 }
 </style>

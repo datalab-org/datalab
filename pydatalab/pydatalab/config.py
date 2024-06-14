@@ -101,9 +101,12 @@ class RemoteFilesystem(BaseModel):
     accessible from the server.
     """
 
-    name: str
-    hostname: Optional[str]
-    path: Path
+    name: str = Field(description="The name of the filesystem to use in the UI.")
+    hostname: Optional[str] = Field(
+        None,
+        description="The hostname for the filesystem. `None` indicates the filesystem is already mounted locally.",
+    )
+    path: Path = Field(description="The path to the base of the filesystem to include.")
 
 
 class SMTPSettings(BaseModel):
@@ -111,8 +114,10 @@ class SMTPSettings(BaseModel):
 
     MAIL_SERVER: str = Field("127.0.0.1", description="The SMTP server to use for sending emails.")
     MAIL_PORT: int = Field(587, description="The port to use for the SMTP server.")
-    MAIL_USERNAME: str = Field("", description="The username to use for the SMTP server.")
-    MAIL_PASSWORD: str = Field("", description="The password to use for the SMTP server.")
+    MAIL_USERNAME: str = Field(
+        "",
+        description="The username to use for the SMTP server. Will use the externally provided `MAIL_PASSWORD` environment variable for authentication.",
+    )
     MAIL_USE_TLS: bool = Field(True, description="Whether to use TLS for the SMTP connection.")
     MAIL_DEFAULT_SENDER: str = Field(
         "", description="The email address to use as the sender for emails."
@@ -121,6 +126,11 @@ class SMTPSettings(BaseModel):
 
 class ServerConfig(BaseSettings):
     """A model that provides settings for deploying the API."""
+
+    APP_URL: str | None = Field(
+        None,
+        description="The canonical URL for any UI associated with this instance; will be used for redirects on user login/registration.",
+    )
 
     SECRET_KEY: str = Field(
         hashlib.sha512((platform.platform() + str(platform.python_build)).encode()).hexdigest(),
@@ -141,8 +151,8 @@ class ServerConfig(BaseSettings):
         description="The path under which to place stored files uploaded to the server.",
     )
 
-    LOG_FILE: Union[str, Path] = Field(
-        Path(__file__).parent.joinpath("../logs/datalab.log").resolve(),
+    LOG_FILE: str | Path | None = Field(
+        None,
         description="The path to the log file to use for the server and all associated processes (e.g., invoke tasks)",
     )
 
@@ -190,13 +200,18 @@ class ServerConfig(BaseSettings):
         None, description="A dictionary containing metadata to serve at `/info`."
     )
 
-    EMAIL_DOMAIN_ALLOW_LIST: Optional[List[str]] = Field(
-        [],
-        description="A list of domains for which user's will be able to register accounts if they have a matching email address. Setting the value to `None` will allow any email addresses at any domain to register an account, otherwise the default `[]` will not allow any email addresses.",
+    ORCID_AUTO_ACTIVATE_ACCOUNTS: bool = Field(
+        False,
+        description="Whether to automatically activate accounts created via ORCID registration.",
     )
 
-    EMAIL_AUTH_SMTP_SETTINGS: SMTPSettings = Field(
-        SMTPSettings(),
+    EMAIL_DOMAIN_ALLOW_LIST: Optional[List[str]] = Field(
+        [],
+        description="A list of domains for which users will be able to register accounts if they have a matching verified email address, which still need to be verified by an admin. Setting the value to `None` will allow any email addresses at any domain to register *and activate* an account, otherwise the default `[]` will not allow any email addresses registration.",
+    )
+
+    EMAIL_AUTH_SMTP_SETTINGS: Optional[SMTPSettings] = Field(
+        None,
         description="A dictionary containing SMTP settings for sending emails for account registration.",
     )
 
@@ -213,19 +228,19 @@ its importance when deploying a datalab instance.""",
         {
             "daily-snapshots": BackupStrategy(
                 hostname=None,
-                location="/tmp/daily-snapshots/",
+                location="/tmp/datalab-backups/daily-snapshots/",
                 frequency="5 4 * * *",  # 4:05 every day
                 retention=7,
             ),
             "weekly-snapshots": BackupStrategy(
                 hostname=None,
-                location="/tmp/weekly-snapshots/",
+                location="/tmp/datalab-backups/weekly-snapshots/",
                 frequency="5 3 * * 1",  # 03:05 every Monday
                 retention=5,
             ),
             "quarterly-snapshots": BackupStrategy(
                 hostname=None,
-                location="/tmp/quarterly-snapshots/",
+                location="/tmp/datalab-backups/quarterly-snapshots/",
                 frequency="5 2 1 1,4,7,10 *",  # first of January, April, July, October at 02:05
                 retention=4,
             ),
@@ -249,7 +264,6 @@ its importance when deploying a datalab instance.""",
         The app startup will test for this value and should also warn aggressively that this is unset.
 
         """
-
         if values.get("TESTING") or v is None:
             return "test"
 
@@ -281,6 +295,8 @@ its importance when deploying a datalab instance.""",
     @validator("LOG_FILE")
     def make_missing_log_directory(cls, v):
         """Make sure that the log directory exists and is writable."""
+        if v is None:
+            return v
         try:
             v = Path(v)
             v.parent.mkdir(exist_ok=True, parents=True)

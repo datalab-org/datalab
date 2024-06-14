@@ -4,7 +4,8 @@
       :modelValue="modelValue"
       @update:modelValue="$emit('update:modelValue', $event)"
       :disableSubmit="
-        sampleIDValidationMessages.some((e) => e) || samples.some((s) => !Boolean(s.item_id))
+        sampleIDValidationMessages.some((e) => e) ||
+        (!generateIDsAutomatically && samples.some((s) => !Boolean(s.item_id)))
       "
     >
       <template v-slot:header>
@@ -23,10 +24,10 @@
                   <font-awesome-icon
                     :icon="['fas', 'chevron-right']"
                     fixed-width
-                    class="collapse-arrow"
+                    class="collapse-arrow clickable"
                     :class="{ expanded: templateIsOpen }"
                   />
-                  <label class="blue-label collapse-clickable ml-2"> Template: </label>
+                  <label class="blue-label clickable pl-2"> Template: </label>
                 </div>
                 <label
                   for="batchSampleNRows"
@@ -65,8 +66,25 @@
                         class="form-control"
                         v-model="sampleTemplate.item_id"
                         @input="applyIdTemplate"
-                        placeholder="ex_{#}"
+                        :placeholder="generateIDsAutomatically ? null : 'ex_{#}'"
+                        :disabled="generateIDsAutomatically"
                       />
+                      <div class="form-check mt-1 ml-1">
+                        <input
+                          type="checkbox"
+                          v-model="generateIDsAutomatically"
+                          class="form-check-input clickable"
+                          id="automatic-batch-id-label"
+                          @input="setIDsNull"
+                        />
+                        <label
+                          id="automatic-id-label"
+                          class="form-check-label clickable"
+                          for="automatic-batch-id-label"
+                        >
+                          auto IDs
+                        </label>
+                      </div>
                     </td>
                     <td>
                       <input
@@ -142,6 +160,7 @@
                           class="form-control"
                           v-model="sample.item_id"
                           @input="this.sampleTemplate.item_id = ''"
+                          :disabled="generateIDsAutomatically"
                         />
                       </td>
                       <td>
@@ -245,6 +264,7 @@ export default {
       epochStart: new Date("1970-01-01").toISOString().slice(0, -8),
       oneYearOn: this.determineOneYearOn(),
       nSamples: 3,
+      generateIDsAutomatically: false,
       samples: [
         {
           item_id: null,
@@ -382,6 +402,12 @@ export default {
         this.sampleTemplate.name = "";
       }
     },
+    setIDsNull() {
+      this.sampleTemplate["item_id"] = null;
+      this.samples.forEach((entry) => {
+        entry["item_id"] = null;
+      });
+    },
     async submitForm() {
       console.log("batch sample create form submit triggered");
 
@@ -399,7 +425,7 @@ export default {
 
       const copyFromItemIds = this.samples.map((sample) => sample.copyFrom?.item_id);
 
-      await createNewSamples(newSampleDatas, copyFromItemIds)
+      await createNewSamples(newSampleDatas, copyFromItemIds, this.generateIDsAutomatically)
         .then((responses) => {
           console.log("samples added");
           this.serverResponses = responses;
@@ -468,6 +494,10 @@ export default {
   float: left;
 }
 
+#automatic-batch-id-label {
+  color: #555;
+}
+
 .slide-content-left-leave-active,
 .slide-content-left-enter-active {
   transition: all 0.8s ease;
@@ -523,15 +553,10 @@ export default {
 
 .collapse-arrow {
   transition: all 0.4s;
-  cursor: pointer;
 }
 
 .collapse-arrow:hover {
   color: #7ca7ca;
-}
-
-.collapse-clickable {
-  cursor: pointer;
 }
 
 .expanded {

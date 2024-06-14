@@ -1,73 +1,75 @@
 <template>
-  <div class="container">
+  <div class="container-lg px-5 px-lg-0">
     <!-- Sample information -->
     <div id="starting-material-information" class="form-row">
-      <div class="form-group col-md-2 col-sm-4">
-        <label for="item_id" class="mr-2">Refcode</label>
-        <div><FormattedRefcode :refcode="Refcode" /></div>
+      <div class="form-group col-md-2 col-sm-3 col-6">
+        <label for="startmat-refcode">Refcode</label>
+        <div id="startmat-refcode"><FormattedRefcode :refcode="Refcode" /></div>
       </div>
-      <div class="form-group col-md-2 col-sm-4">
-        <label for="item_id" class="mr-2">Barcode</label>
-        <input id="item_id" class="form-control-plaintext" readonly="true" :value="item_id" />
+      <div class="form-group col-md-2 col-sm-3 col-6">
+        <label for="startmat-item_id">Item ID</label>
+        <StyledInput id="startmat-item_id" readonly :modelValue="ItemID" />
       </div>
-      <div class="form-group col-md-6 col-sm-8">
-        <label for="name" class="mr-2">Name</label>
-        <input id="name" :value="item.name" class="form-control-plaintext" readonly="true" />
-      </div>
-      <div class="form-group col-md-2 col-sm-4">
-        <label for="date-opened" class="mr-2">Date acquired</label>
-        <input
-          id="date-opened"
-          :value="$filters.IsoDatetimeToDate(item.date_acquired)"
-          class="form-control-plaintext"
-          readonly="true"
-        />
-      </div>
-      <div class="form-group col-md-2 col-sm-4">
-        <label for="date-opened" class="mr-2">Date opened</label>
-        <input
-          id="date-opened"
-          :value="$filters.IsoDatetimeToDate(item.date_opened)"
-          class="form-control-plaintext"
-          readonly="true"
-        />
+      <div class="form-group col-lg-7 col-md-8 col-sm-6">
+        <label for="startmat-name">Name</label>
+        <StyledInput id="startmat-name" v-model="Name" :readonly="!isEditable" />
       </div>
     </div>
     <div class="form-row">
-      <div class="form-group col-md-3">
-        <label id="collections" class="mr-2">Collections</label>
-        <div>
-          <CollectionList aria-labelledby="collections" :collections="Collections" />
-        </div>
-      </div>
-      <div class="form-group col-md-3">
-        <label for="chemform" class="mr-2">Chemical formula</label>
-        <span class="form-control-plaintext" readonly="true">
-          <ChemicalFormula :formula="item.chemform" />
+      <div class="form-group col-lg-3 col-sm-4">
+        <label for="startmat-chemform">Chemical formula</label>
+        <ChemFormulaInput v-if="isEditable" id="startmat-chemform" v-model="ChemForm" />
+        <span v-if="!isEditable" class="form-control-plaintext" readonly>
+          <ChemicalFormula id="startmat-chemform" :formula="ChemForm" />
         </span>
       </div>
-      <div class="form-group col-md-3">
-        <label for="supplier" class="mr-2">Supplier</label>
-        <input
-          id="supplier"
-          :value="item.supplier"
-          class="form-control-plaintext"
-          readonly="true"
+      <div class="form-group col-lg-3 col-sm-4">
+        <label for="startmat-supplier">Supplier</label>
+        <StyledInput id="startmat-supplier" v-model="Supplier" :readonly="!isEditable" />
+      </div>
+      <div class="form-group col-lg-3 col-sm-4">
+        <label for="startmat-purity">Chemical purity</label>
+        <StyledInput id="startmat-purity" v-model="ChemicalPurity" :readonly="!isEditable" />
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group col-lg-3 col-sm-4">
+        <label for="startmat-date-acquired">Date acquired</label>
+        <StyledInput
+          id="startmat-date-acquired"
+          type="date"
+          v-model="DateAcquired"
+          :readonly="!isEditable"
         />
       </div>
-      <div class="form-group col-md-3">
-        <label for="purity" class="mr-2">Chemical purity</label>
-        <input
-          id="purity"
-          :value="item.chemical_purity"
-          class="form-control-plaintext"
-          readonly="true"
+      <div class="form-group col-lg-3 col-sm-4">
+        <label for="startmat-date-opened">Date opened</label>
+        <StyledInput
+          id="startmat-date-opened"
+          type="date"
+          v-model="DateOpened"
+          :readonly="!isEditable"
         />
+      </div>
+      <div class="form-group col-lg-3 col-sm-4">
+        <label for="startmat-location">Location</label>
+        <StyledInput id="startmat-location" v-model="Location" :readonly="!isEditable" />
       </div>
     </div>
 
-    <label for="location" class="mr-2">Location</label>
-    <input id="location" :value="item.location" class="form-control-plaintext" readonly="true" />
+    <div class="form-row">
+      <div class="form-group col-lg-3 col-sm-4">
+        <label for="startmat-cas">CAS</label>
+        <StyledInput id="startmat-cas" v-model="CAS" :readonly="!isEditable" />
+      </div>
+      <div class="form-group col-lg-3 col-sm-4">
+        <label for="startmat-hazards">GHS Hazard Codes</label>
+        <StyledInput id="startmat-hazards" v-model="GHS" :readonly="!isEditable" />
+      </div>
+      <div class="col-lg-3 col-sm-4">
+        <ToggleableCollectionFormGroup v-model="Collections" />
+      </div>
+    </div>
 
     <label class="mr-2">Description</label>
     <TinyMceInline v-model="ItemDescription"></TinyMceInline>
@@ -84,9 +86,13 @@
 import { createComputedSetterForItemField } from "@/field_utils.js";
 import TinyMceInline from "@/components/TinyMceInline";
 import ChemicalFormula from "@/components/ChemicalFormula";
+import ChemFormulaInput from "@/components/ChemFormulaInput";
 import TableOfContents from "@/components/TableOfContents";
-import CollectionList from "@/components/CollectionList";
+import ToggleableCollectionFormGroup from "@/components/ToggleableCollectionFormGroup";
 import FormattedRefcode from "@/components/FormattedRefcode";
+import StyledInput from "@/components/StyledInput";
+
+import { EDITABLE_INVENTORY } from "@/resources.js";
 
 export default {
   data() {
@@ -104,14 +110,29 @@ export default {
     item() {
       return this.$store.state.all_item_data[this.item_id];
     },
+    ItemID: createComputedSetterForItemField("item_id"),
+    Name: createComputedSetterForItemField("name"),
+    CAS: createComputedSetterForItemField("CAS"),
+    GHS: createComputedSetterForItemField("GHS_codes"),
+    DateAcquired: createComputedSetterForItemField("date"),
+    DateOpened: createComputedSetterForItemField("date_opened"),
+    ChemForm: createComputedSetterForItemField("chemform"),
+    Supplier: createComputedSetterForItemField("supplier"),
+    ChemicalPurity: createComputedSetterForItemField("chemical_purity"),
+    Location: createComputedSetterForItemField("location"),
     ItemDescription: createComputedSetterForItemField("description"),
     Collections: createComputedSetterForItemField("collections"),
     Refcode: createComputedSetterForItemField("refcode"),
   },
+  created() {
+    this.isEditable = EDITABLE_INVENTORY;
+  },
   components: {
+    StyledInput,
     ChemicalFormula,
+    ChemFormulaInput,
     TinyMceInline,
-    CollectionList,
+    ToggleableCollectionFormGroup,
     TableOfContents,
     FormattedRefcode,
   },

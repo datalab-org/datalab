@@ -4,7 +4,7 @@
     class="navbar navbar-expand sticky-top navbar-dark py-0 editor-navbar"
     :style="{ backgroundColor: navbarColor }"
   >
-    <span class="navbar-brand" @click="scrollToID($event, 'topScrollPoint')"
+    <span class="navbar-brand clickable" @click="scrollToID($event, 'topScrollPoint')"
       >{{ itemTypeEntry?.navbarName || "loading..." }}&nbsp;&nbsp;|&nbsp;&nbsp;
       <FormattedItemName :item_id="item_id" :itemType="itemType" />
     </span>
@@ -28,14 +28,11 @@
           aria-labelledby="navbarDropdown"
           v-show="isMenuDropdownVisible"
         >
-          <a
-            v-for="(blockType, id) in blockTypes"
-            :key="id"
-            class="dropdown-item"
-            @click="newBlock($event, id)"
-          >
-            {{ blockType.description }}
-          </a>
+          <template v-for="blockInfo in blocksInfos" :key="blockInfo.id">
+            <span v-if="blockInfo.id !== 'notsupported'" @click="newBlock($event, blockInfo.id)">
+              <StyledBlockHelp :blockInfo="blockInfo.attributes" />
+            </span>
+          </template>
         </div>
       </div>
       <a class="nav-item nav-link" :href="this.itemApiUrl" target="_blank">
@@ -97,7 +94,13 @@ import SelectableFileTree from "@/components/SelectableFileTree";
 
 import FileList from "@/components/FileList";
 import FileSelectModal from "@/components/FileSelectModal";
-import { getItemData, addABlock, saveItem, updateBlockFromServer } from "@/server_fetch_utils";
+import {
+  getItemData,
+  addABlock,
+  saveItem,
+  updateBlockFromServer,
+  getBlocksInfos,
+} from "@/server_fetch_utils";
 import FormattedItemName from "@/components/FormattedItemName";
 
 import setupUppy from "@/file_upload.js";
@@ -108,6 +111,8 @@ import { blockTypes, itemTypes } from "@/resources.js";
 import NotImplementedBlock from "@/components/datablocks/NotImplementedBlock.vue";
 import { API_URL } from "@/resources.js";
 import { formatDistanceToNow } from "date-fns";
+
+import StyledBlockHelp from "@/components/StyledBlockHelp";
 
 export default {
   data() {
@@ -236,8 +241,12 @@ export default {
     stored_files() {
       return this.$store.state.files;
     },
+    blocksInfos() {
+      return this.$store.state.blocksInfos;
+    },
   },
   created() {
+    getBlocksInfos();
     this.getSampleData();
     this.interval = setInterval(() => this.setLastModified(), 30000);
   },
@@ -247,6 +256,7 @@ export default {
     FileList,
     FileSelectModal,
     FormattedItemName,
+    StyledBlockHelp,
   },
   beforeMount() {
     this.blockTypes = blockTypes; // bind blockTypes as a NON-REACTIVE object to the this context so that it is accessible by the template.
@@ -324,13 +334,13 @@ label,
   padding: 0.3rem;
 }
 
+::v-deep(.navbar-brand:hover .formatted-item-name) {
+  outline: 2px solid rgba(0, 0, 0, 0.3);
+}
+
 .unsaved-warning {
   font-weight: 600;
   color: #ffc845;
-}
-
-.navbar-brand {
-  cursor: pointer;
 }
 
 .block-container {

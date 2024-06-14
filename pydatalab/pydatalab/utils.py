@@ -4,11 +4,12 @@ anywhere in the package.
 """
 
 import datetime
+from json import JSONEncoder
 from math import ceil
 
 import pandas as pd
 from bson import json_util
-from flask.json import JSONEncoder
+from flask.json.provider import DefaultJSONProvider
 
 
 def reduce_df_size(df: pd.DataFrame, target_nrows: int, endpoint: bool = True) -> pd.DataFrame:
@@ -34,9 +35,21 @@ def reduce_df_size(df: pd.DataFrame, target_nrows: int, endpoint: bool = True) -
 
 
 class CustomJSONEncoder(JSONEncoder):
-    """Use a JSON encoder that can handle pymongo's bson."""
+    """A custom JSON encoder that uses isoformat datetime strings and
+    BSON for other serialization."""
 
-    def default(self, obj):
-        if isinstance(obj, datetime.datetime):
-            return datetime.datetime.isoformat(obj)
-        return json_util.default(obj)
+    @staticmethod
+    def default(o):
+        if isinstance(o, (datetime.date, datetime.datetime)):
+            return o.isoformat()
+
+        return json_util.default(o)
+
+
+class BSONProvider(DefaultJSONProvider):
+    """A custom JSON provider that uses isoformat datetime strings and
+    BSON for other serialization."""
+
+    @staticmethod
+    def default(o):
+        return CustomJSONEncoder.default(o)

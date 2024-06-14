@@ -1,7 +1,7 @@
 <template>
   <div v-if="isFetchError" class="alert alert-danger">
-    <font-awesome-icon icon="exclamation-circle" />&nbsp;Inventory could not be retreived. Are you
-    logged in?
+    <font-awesome-icon icon="exclamation-circle" />&nbsp;Server error: inventory could not be
+    retrieved.
   </div>
   <div class="form-inline ml-auto col-3 mb-2">
     <div class="form-group">
@@ -36,8 +36,8 @@
       <ChemicalFormula :formula="item.chemform" />
     </template>
 
-    <template #item-date_acquired="item">
-      {{ $filters.IsoDatetimeToDate(item.date_acquired) }}
+    <template #item-date="item">
+      {{ $filters.IsoDatetimeToDate(item.date) }}
     </template>
   </Vue3EasyDataTable>
 </template>
@@ -59,7 +59,7 @@ export default {
         { text: "ID", value: "item_id", sortable: true },
         { text: "Name", value: "name", sortable: true },
         { text: "Formula", value: "chemform", sortable: true },
-        { text: "Date", value: "date_acquired", sortable: true },
+        { text: "Date Acquired", value: "date", sortable: true },
         { text: "# of blocks", value: "nblocks", sortable: true },
       ],
     };
