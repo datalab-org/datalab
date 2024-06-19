@@ -6,7 +6,7 @@
     @focus="delayedShowTooltip"
     @blur="hideTooltip"
   >
-    <font-awesome-icon :icon="['fas', 'info-circle']" @click="showBlockInfo" />
+    <font-awesome-icon :icon="['fas', 'info-circle']" />
   </a>
   <div id="tooltip" ref="tooltipContent" role="tooltip">
     <h4 class="block-info-title">{{ blockInfo.attributes.name }}</h4>
