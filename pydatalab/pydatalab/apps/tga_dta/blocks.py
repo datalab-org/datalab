@@ -77,7 +77,7 @@ class TgaDtaBlock(DataBlock):
     blocktype = "tga_dta"
     name = "TGA-DTA"
     description = "Read and visualize thermogravimetric analysis / differential thermal analysis data from Exstar SII Tg/DTA6300, and perform automated analysis"
-    accepted_file_extensions = ".xlsx"
+    accepted_file_extensions = [".xlsx", ".xls"]
 
     data_model = TgaData
     metadata_model = TgaMetadata
