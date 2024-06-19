@@ -43,7 +43,7 @@ class TgaMetadata(BaseModel):
     organization_name: Optional[str] = Field(None, alias="Organization Name")
     operator: Optional[str] = Field(None, alias="Operator")
     gas1: Optional[str] = Field(None, alias="Gas1")
-    gas2: Optional[str] = Field(None, alias="Gas1")
+    gas2: Optional[str] = Field(None, alias="Gas2")
     pan: Optional[str] = Field(None, alias="Pan")
 
 
