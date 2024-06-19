@@ -33,7 +33,7 @@ class ChatBlock(DataBlock):
 
     blocktype = "chat"
     description = "Virtual LLM assistant block allows you to converse with your data."
-    name = "💬 Chat with Whinchat"
+    name = "Whinchat assistant"
     accepted_file_extensions = None
     chat_client: BaseChatModel | None = None
 
