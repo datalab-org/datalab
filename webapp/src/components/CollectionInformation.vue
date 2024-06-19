@@ -12,10 +12,10 @@
           <div class="form-group col">
             <label for="name" class="mr">Title</label>
             <input
-              placeholder="Add a title"
               id="name"
-              class="form-control"
               v-model="Title"
+              placeholder="Add a title"
+              class="form-control"
               style="border: none"
             />
           </div>
@@ -23,8 +23,8 @@
 
         <label id="description-label" class="mr-2">Description</label>
         <TinyMceInline
-          aria-labelledby="description-label"
           v-model="CollectionDescription"
+          aria-labelledby="description-label"
         ></TinyMceInline>
       </div>
       <div class="col-md-4">
@@ -43,8 +43,17 @@ import Creators from "@/components/Creators";
 import CollectionRelationshipVisualization from "@/components/CollectionRelationshipVisualization";
 
 export default {
+  components: {
+    TinyMceInline,
+    FancyCollectionSampleTable,
+    Creators,
+    CollectionRelationshipVisualization,
+  },
   props: {
-    collection_id: String,
+    collection_id: {
+      type: String,
+      default: null,
+    },
   },
   computed: {
     CollectionID: createComputedSetterForCollectionField("collection_id"),
@@ -52,12 +61,6 @@ export default {
     Title: createComputedSetterForCollectionField("title"),
     Name: createComputedSetterForCollectionField("name"),
     CollectionCreators: createComputedSetterForCollectionField("creators"),
-  },
-  components: {
-    TinyMceInline,
-    FancyCollectionSampleTable,
-    Creators,
-    CollectionRelationshipVisualization,
   },
 };
 </script>

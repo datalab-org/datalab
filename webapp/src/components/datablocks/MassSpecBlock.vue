@@ -7,12 +7,12 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
       :item_id="item_id"
       :block_id="block_id"
       :extensions="blockInfo.attributes.accepted_file_extensions"
-      updateBlockOnChange
+      update-block-on-change
     />
 
     <div class="row">
       <div id="bokehPlotContainer" class="col-xl-9 col-lg-10 col-md-11 mx-auto">
-        <BokehPlot :bokehPlotData="bokehPlotData" />
+        <BokehPlot :bokeh-plot-data="bokehPlotData" />
       </div>
     </div>
   </DataBlockBase>
@@ -27,9 +27,20 @@ import { createComputedSetterForBlockField } from "@/field_utils.js";
 import { updateBlockFromServer } from "@/server_fetch_utils.js";
 
 export default {
+  components: {
+    DataBlockBase,
+    FileSelectDropdown,
+    BokehPlot,
+  },
   props: {
-    item_id: String,
-    block_id: String,
+    item_id: {
+      type: String,
+      required: true,
+    },
+    block_id: {
+      type: String,
+      required: true,
+    },
   },
   computed: {
     bokehPlotData() {
@@ -40,11 +51,6 @@ export default {
       return this.$store.state.blocksInfos["ms"];
     },
     file_id: createComputedSetterForBlockField("file_id"),
-  },
-  components: {
-    DataBlockBase,
-    FileSelectDropdown,
-    BokehPlot,
   },
   methods: {
     updateBlock() {

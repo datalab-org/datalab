@@ -11,7 +11,7 @@
           <CompactConstituentTable
             id="pos-electrode-table"
             v-model="PosElectrodeConstituents"
-            :typesToQuery="['starting_materials', 'samples']"
+            :types-to-query="['starting_materials', 'samples']"
           />
         </div>
       </div>
@@ -26,7 +26,7 @@
           <CompactConstituentTable
             id="electrolyte-table"
             v-model="ElectrolyteConstituents"
-            :typesToQuery="['starting_materials', 'samples']"
+            :types-to-query="['starting_materials', 'samples']"
           />
         </div>
       </div>
@@ -41,7 +41,7 @@
           <CompactConstituentTable
             id="neg-electrode-table"
             v-model="NegElectrodeConstituents"
-            :typesToQuery="['starting_materials', 'samples']"
+            :types-to-query="['starting_materials', 'samples']"
           />
         </div>
       </div>
@@ -50,8 +50,8 @@
     <div class="form-group ml-5 mt-3">
       <label id="synthesis-procedure-label" class="subheading">Procedure</label>
       <TinyMceInline
-        aria-labelledby="synthesis-procedure-label"
         v-model="CellPreparationDescription"
+        aria-labelledby="synthesis-procedure-label"
       />
     </div>
   </div>
@@ -68,15 +68,19 @@ import { createComputedSetterForItemField } from "@/field_utils.js";
 import CompactConstituentTable from "@/components/CompactConstituentTable";
 
 export default {
+  components: {
+    TinyMceInline,
+    CompactConstituentTable,
+  },
+  props: {
+    item_id: { type: String, required: true },
+  },
   data() {
     return {
       selectedNewConstituent: null,
       selectedChangedConstituent: null,
       selectShown: [],
     };
-  },
-  props: {
-    item_id: String,
   },
   computed: {
     PosElectrodeConstituents: createComputedSetterForItemField("positive_electrode"),
@@ -105,10 +109,6 @@ export default {
       },
       deep: true,
     },
-  },
-  components: {
-    TinyMceInline,
-    CompactConstituentTable,
   },
 };
 </script>

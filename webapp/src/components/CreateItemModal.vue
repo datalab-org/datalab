@@ -1,33 +1,34 @@
 <template>
-  <form @submit.prevent="submitForm" class="modal-enclosure" data-testid="create-item-form">
+  <form class="modal-enclosure" data-testid="create-item-form" @submit.prevent="submitForm">
     <Modal
-      :modelValue="modelValue"
-      @update:modelValue="$emit('update:modelValue', $event)"
-      :disableSubmit="
+      :model-value="modelValue"
+      :disable-submit="
         Boolean(itemIDValidationMessage) || (!generateIDAutomatically && !Boolean(item_id))
       "
+      @update:model-value="$emit('update:modelValue', $event)"
     >
-      <template v-slot:header> Add new item </template>
+      <template #header> Add new item </template>
 
-      <template v-slot:body>
+      <template #body>
         <div class="form-row">
           <div class="form-group col-md-6">
             <label for="create-item-item_id" class="col-form-label">ID:</label>
             <input
+              id="create-item-item_id"
               v-model="item_id"
               type="text"
               class="form-control"
-              id="create-item-item_id"
               :disabled="generateIDAutomatically"
               :required="!generateIDAutomatically"
             />
+            <!-- eslint-disable-next-line vue/no-v-html -->
             <div class="form-error" v-html="itemIDValidationMessage"></div>
             <div class="form-check mt-1 ml-1">
               <input
-                type="checkbox"
-                v-model="generateIDAutomatically"
-                class="form-check-input clickable"
                 id="create-item-auto-id-checkbox"
+                v-model="generateIDAutomatically"
+                type="checkbox"
+                class="form-check-input clickable"
                 @input="item_id = null"
               />
               <label
@@ -40,7 +41,7 @@
           </div>
           <div class="form-group col-md-6">
             <label for="item-type-select" class="col-form-label">Type:</label>
-            <select v-model="item_type" class="form-control" id="item-type-select" required>
+            <select id="item-type-select" v-model="item_type" class="form-control" required>
               <option v-for="type in allowedTypes" :key="type" :value="type">
                 {{ itemTypes[type].display }}
               </option>
@@ -49,10 +50,10 @@
           <div class="form-group col-md-6 pt-0">
             <label for="create-item-date" class="col-form-label">Date Created:</label>
             <input
-              type="datetime-local"
-              v-model="date"
-              class="form-control"
               id="create-item-date"
+              v-model="date"
+              type="datetime-local"
+              class="form-control"
               :min="agesAgo"
               :max="oneYearOn()"
               required
@@ -62,7 +63,7 @@
         <div class="form-row">
           <div class="form-group col-md-12">
             <label for="create-item-name">Name:</label>
-            <input id="create-item-name" type="text" v-model="name" class="form-control" />
+            <input id="create-item-name" v-model="name" type="text" class="form-control" />
           </div>
         </div>
         <!-- All item types can be added to a collection, so this is always available -->
@@ -70,9 +71,9 @@
           <div class="col-md-12 form-group">
             <label id="startInCollection">(Optional) Insert into collection:</label>
             <CollectionSelect
+              v-model="startInCollection"
               aria-labelledby="startInCollection"
               multiple
-              v-model="startInCollection"
             />
           </div>
         </div>
@@ -83,9 +84,9 @@
             >
             <ItemSelect
               aria-labelledby="copyFromSelectLabel"
-              :modelValue="selectedItemToCopy"
-              :typesToQuery="[item_type]"
-              @update:modelValue="
+              :model-value="selectedItemToCopy"
+              :types-to-query="[item_type]"
+              @update:model-value="
                 selectedItemToCopy = $event;
                 setCopiedName();
               "
@@ -97,7 +98,7 @@
         data to provide to the server -->
         <component
           :is="itemCreateModalAddonComponent"
-          @startingDataCallback="(callback) => (startingDataCallback = callback)"
+          @starting-data-callback="(callback) => (startingDataCallback = callback)"
         />
       </template>
     </Modal>
@@ -112,6 +113,19 @@ import { itemTypes, SAMPLE_TABLE_TYPES } from "@/resources.js";
 import CollectionSelect from "@/components/CollectionSelect.vue";
 export default {
   name: "CreateItemModal",
+  components: {
+    Modal,
+    ItemSelect,
+    CollectionSelect,
+  },
+  props: {
+    modelValue: Boolean,
+    allowedTypes: {
+      type: Array,
+      default: () => SAMPLE_TABLE_TYPES,
+    },
+  },
+  emits: ["update:modelValue"],
   data() {
     return {
       item_id: null,
@@ -127,14 +141,6 @@ export default {
       agesAgo: new Date("1970-01-01").toISOString().slice(0, -8), // a datetime for the unix epoch start
     };
   },
-  props: {
-    modelValue: Boolean,
-    allowedTypes: {
-      type: Array,
-      default: () => SAMPLE_TABLE_TYPES,
-    },
-  },
-  emits: ["update:modelValue"],
   computed: {
     itemTypes() {
       return itemTypes;
@@ -169,6 +175,9 @@ export default {
       }
       return "";
     },
+  },
+  created() {
+    this.item_type = this.allowedTypes[0];
   },
   methods: {
     async submitForm() {
@@ -238,14 +247,6 @@ export default {
       }
       this.name = `COPY OF ${this.selectedItemToCopy.name}`;
     },
-  },
-  created() {
-    this.item_type = this.allowedTypes[0];
-  },
-  components: {
-    Modal,
-    ItemSelect,
-    CollectionSelect,
   },
 };
 </script>

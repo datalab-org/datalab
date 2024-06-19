@@ -24,9 +24,12 @@ import { itemTypes } from "@/resources.js";
 import ChemicalFormula from "@/components/ChemicalFormula.vue";
 
 export default {
+  components: {
+    ChemicalFormula,
+  },
   props: {
-    item_id: String,
-    itemType: String,
+    item_id: { type: String, required: true },
+    itemType: { type: String, required: true },
     selecting: {
       type: Boolean,
       default: false,
@@ -52,6 +55,7 @@ export default {
       default: NaN,
     },
   },
+  emits: ["itemIdClicked"],
   computed: {
     badgeColor() {
       return itemTypes[this.itemType]?.lightColor || "LightGrey";
@@ -70,10 +74,6 @@ export default {
       window.open(`/edit/${this.item_id}`, "_blank");
     },
   },
-  components: {
-    ChemicalFormula,
-  },
-  emits: ["itemIdClicked"],
 };
 </script>
 

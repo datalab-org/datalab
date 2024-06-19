@@ -6,7 +6,7 @@
       :block_id="block_id"
       :extensions="blockInfo.attributes.accepted_file_extensions"
       class="mb-3"
-      updateBlockOnChange
+      update-block-on-change
     />
     <img v-if="isPhoto" :src="media_url" class="img-fluid mx-auto" />
     <video v-if="isVideo" :src="media_url" controls class="mx-auto" />
@@ -20,9 +20,19 @@ import { createComputedSetterForBlockField } from "@/field_utils.js";
 import { API_URL } from "@/resources.js";
 
 export default {
+  components: {
+    DataBlockBase,
+    FileSelectDropdown,
+  },
   props: {
-    item_id: String,
-    block_id: String,
+    item_id: {
+      type: String,
+      required: true,
+    },
+    block_id: {
+      type: String,
+      required: true,
+    },
   },
   computed: {
     file_id: createComputedSetterForBlockField("file_id"),
@@ -51,10 +61,6 @@ export default {
     isVideo() {
       return [".mp4", ".mov", ".webm"].includes(this.all_files[this.file_id]?.extension);
     },
-  },
-  components: {
-    DataBlockBase,
-    FileSelectDropdown,
   },
 };
 </script>

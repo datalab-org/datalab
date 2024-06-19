@@ -28,17 +28,17 @@ import BatchCreateSampleModal from "@/components/BatchCreateSampleModal";
 
 export default {
   name: "Samples",
-  data() {
-    return {
-      createItemModalIsOpen: false,
-      batchCreateSampleModalIsOpen: false,
-    };
-  },
   components: {
     Navbar,
     FancySampleTable,
     CreateItemModal,
     BatchCreateSampleModal,
+  },
+  data() {
+    return {
+      createItemModalIsOpen: false,
+      batchCreateSampleModalIsOpen: false,
+    };
   },
 };
 </script>

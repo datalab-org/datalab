@@ -6,14 +6,14 @@
         <div id="sample-information" class="form-row">
           <div class="form-group col-sm-8">
             <label for="cell-name" class="mr-2">Name</label>
-            <input id="cell-name" class="form-control" v-model="Name" />
+            <input id="cell-name" v-model="Name" class="form-control" />
           </div>
           <div class="form-group col-sm-4">
             <label for="cell-date" class="mr-2">Date Created</label>
             <input
               id="cell-date"
-              type="datetime-local"
               v-model="DateCreated"
+              type="datetime-local"
               class="form-control"
             />
           </div>
@@ -41,8 +41,8 @@
             <select id="cell-format-dropdown" v-model="CellFormat" class="form-control">
               <option
                 v-for="(description, key) in availableCellFormats"
-                :value="description"
                 :key="key"
+                :value="description"
               >
                 {{ description }}
               </option>
@@ -52,9 +52,9 @@
             <label for="cell-format-description">Cell format description</label>
             <input
               id="cell-format-description"
+              v-model="CellFormatDescription"
               type="text"
               class="form-control"
-              v-model="CellFormatDescription"
             />
           </div>
         </div>
@@ -64,9 +64,9 @@
             <label for="cell-characteristic-mass">Active mass (mg)</label>
             <input
               id="cell-characteristic-mass"
+              v-model="CharacteristicMass"
               class="form-control"
               type="text"
-              v-model="CharacteristicMass"
               :class="{ 'red-border': isNaN(CharacteristicMass) }"
             />
           </div>
@@ -78,9 +78,9 @@
             <label for="cell-characteristic-molar-mass">Molar mass</label>
             <input
               id="cell-characteristic-molar-mass"
+              v-model="MolarMass"
               class="form-control"
               type="text"
-              v-model="MolarMass"
               :class="{ 'red-border': isNaN(MolarMass) }"
             />
           </div>
@@ -89,8 +89,8 @@
           <div class="col">
             <label id="cell-description-label">Description</label>
             <TinyMceInline
-              aria-labelledby="cell-description-label"
               v-model="SampleDescription"
+              aria-labelledby="cell-description-label"
             ></TinyMceInline>
           </div>
         </div>
@@ -100,7 +100,7 @@
       </div>
     </div>
 
-    <TableOfContents :item_id="item_id" :informationSections="tableOfContentsSections" />
+    <TableOfContents :item_id="item_id" :information-sections="tableOfContentsSections" />
 
     <CellPreparationInformation class="mt-3" :item_id="item_id" />
   </div>
@@ -119,8 +119,21 @@ import Creators from "@/components/Creators";
 import { cellFormats } from "@/resources.js";
 
 export default {
+  components: {
+    ChemFormulaInput,
+    TinyMceInline,
+    CellPreparationInformation,
+    TableOfContents,
+    ItemRelationshipVisualization,
+    FormattedRefcode,
+    ToggleableCollectionFormGroup,
+    Creators,
+  },
   props: {
-    item_id: String,
+    item_id: {
+      type: String,
+      required: true,
+    },
   },
   data() {
     return {
@@ -145,16 +158,6 @@ export default {
     CellFormatDescription: createComputedSetterForItemField("cell_format_description"),
     CharacteristicMass: createComputedSetterForItemField("characteristic_mass"),
     Collections: createComputedSetterForItemField("collections"),
-  },
-  components: {
-    ChemFormulaInput,
-    TinyMceInline,
-    CellPreparationInformation,
-    TableOfContents,
-    ItemRelationshipVisualization,
-    FormattedRefcode,
-    ToggleableCollectionFormGroup,
-    Creators,
   },
 };
 </script>

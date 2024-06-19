@@ -6,11 +6,11 @@
   >
     <span class="navbar-brand" @click="scrollToID($event, 'topScrollPoint')">
       {{ itemTypeEntry?.navbarName || "loading..." }}&nbsp;&nbsp;|&nbsp;&nbsp;
-      <FormattedItemName :item_id="collection_id" itemType="collections" />
+      <FormattedItemName :item_id="collection_id" item-type="collections" />
     </span>
     <div class="navbar-nav">
       <a class="nav-item nav-link" href="/">Home</a>
-      <a class="nav-item nav-link" :href="this.collectionApiUrl" target="_blank">
+      <a class="nav-item nav-link" :href="collectionApiUrl" target="_blank">
         <font-awesome-icon icon="code" fixed-width /> View JSON
       </a>
     </div>
@@ -46,6 +46,22 @@ import { API_URL } from "@/resources.js";
 import { formatDistanceToNow } from "date-fns";
 
 export default {
+  components: {
+    CollectionInformation,
+    FormattedItemName,
+  },
+  beforeRouteLeave(to, from, next) {
+    // give warning before leaving the page by the vue router (which would not trigger "beforeunload")
+    if (this.savedStatus) {
+      next();
+    } else {
+      if (window.confirm("Unsaved changes present. Would you like to leave without saving?")) {
+        next();
+      } else {
+        next(false);
+      }
+    }
+  },
   data() {
     return {
       collection_id: this.$route.params.id,
@@ -54,6 +70,50 @@ export default {
       isLoadingNewBlock: false,
       lastModified: null,
     };
+  },
+  computed: {
+    itemTypeEntry() {
+      return itemTypes.collections;
+    },
+    navbarColor() {
+      return this.itemTypeEntry?.navbarColor || "DarkGrey";
+    },
+    collection_data() {
+      return this.$store.state.all_collection_data[this.collection_id] || {};
+    },
+    savedStatus() {
+      return this.$store.state.saved_status_collections[this.collection_id];
+    },
+  },
+  watch: {
+    // add a warning before leaving page if unsaved
+    savedStatus(newValue) {
+      if (!newValue) {
+        window.addEventListener("beforeunload", this.leavePageWarningListener, true);
+      } else {
+        window.removeEventListener("beforeunload", this.leavePageWarningListener, true);
+      }
+    },
+  },
+  created() {
+    this.getCollection();
+    this.interval = setInterval(() => this.setLastModified(), 30000);
+  },
+  beforeMount() {
+    this.collectionApiUrl = API_URL + "/collections/" + this.collection_id;
+  },
+  mounted() {
+    // overwrite ctrl-s and cmd-s to save the page
+    this._keyListener = function (e) {
+      if (e.key === "s" && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault(); // present "Save Page" from getting triggered.
+        this.saveCollectionData();
+      }
+    };
+    document.addEventListener("keydown", this._keyListener.bind(this));
+  },
+  beforeUnmount() {
+    document.removeEventListener("keydown", this._keyListener);
   },
   methods: {
     scrollToID(event, id) {
@@ -89,66 +149,6 @@ export default {
         this.lastModified = formatDistanceToNow(save_date, { addSuffix: true });
       }
     },
-  },
-  computed: {
-    itemTypeEntry() {
-      return itemTypes.collections;
-    },
-    navbarColor() {
-      return this.itemTypeEntry?.navbarColor || "DarkGrey";
-    },
-    collection_data() {
-      return this.$store.state.all_collection_data[this.collection_id] || {};
-    },
-    savedStatus() {
-      return this.$store.state.saved_status_collections[this.collection_id];
-    },
-  },
-  created() {
-    this.getCollection();
-    this.interval = setInterval(() => this.setLastModified(), 30000);
-  },
-  components: {
-    CollectionInformation,
-    FormattedItemName,
-  },
-  beforeMount() {
-    this.collectionApiUrl = API_URL + "/collections/" + this.collection_id;
-  },
-  mounted() {
-    // overwrite ctrl-s and cmd-s to save the page
-    this._keyListener = function (e) {
-      if (e.key === "s" && (e.ctrlKey || e.metaKey)) {
-        e.preventDefault(); // present "Save Page" from getting triggered.
-        this.saveCollectionData();
-      }
-    };
-    document.addEventListener("keydown", this._keyListener.bind(this));
-  },
-  beforeUnmount() {
-    document.removeEventListener("keydown", this._keyListener);
-  },
-  watch: {
-    // add a warning before leaving page if unsaved
-    savedStatus(newValue) {
-      if (!newValue) {
-        window.addEventListener("beforeunload", this.leavePageWarningListener, true);
-      } else {
-        window.removeEventListener("beforeunload", this.leavePageWarningListener, true);
-      }
-    },
-  },
-  beforeRouteLeave(to, from, next) {
-    // give warning before leaving the page by the vue router (which would not trigger "beforeunload")
-    if (this.savedStatus) {
-      next();
-    } else {
-      if (window.confirm("Unsaved changes present. Would you like to leave without saving?")) {
-        next();
-      } else {
-        next(false);
-      }
-    }
   },
 };
 </script>

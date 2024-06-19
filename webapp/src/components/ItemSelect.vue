@@ -1,39 +1,39 @@
 <template>
   <!-- See https://github.com/sagalbot/vue-select/issues/1399 for why filterBy is included-->
   <vSelect
+    ref="selectComponent"
     v-model="value"
     :options="items"
-    @search="debouncedAsyncSearch"
     label="name"
     :filterable="false"
-    ref="selectComponent"
-    :createOption="createOption"
-    :filterBy="() => true"
+    :create-option="createOption"
+    :filter-by="() => true"
     placeholder="type to search..."
+    @search="debouncedAsyncSearch"
   >
     <template #no-options="{ searching }">
       <span v-if="searching"> Sorry, no matches found. </span>
       <span v-else class="empty-search"> Type a search term... </span>
     </template>
-    <template v-slot:option="{ type, item_id, name, chemform }">
+    <template #option="{ type, item_id, name, chemform }">
       <FormattedItemName
         :item_id="item_id"
-        :itemType="type"
+        :item-type="type"
         :name="name"
         :selecting="true"
         :chemform="chemform"
-        enableModifiedClick
-        :maxLength="formattedItemNameMaxLength"
+        enable-modified-click
+        :max-length="formattedItemNameMaxLength"
       />
     </template>
-    <template v-slot:selected-option="{ type, item_id, name }">
+    <template #selected-option="{ type, item_id, name }">
       <FormattedItemName
         :item_id="item_id"
-        :itemType="type"
+        :item-type="type"
         :selecting="true"
         :name="name"
-        enableModifiedClick
-        :maxLength="formattedItemNameMaxLength"
+        enable-modified-click
+        :max-length="formattedItemNameMaxLength"
       />
     </template>
   </vSelect>
@@ -46,8 +46,15 @@ import { searchItems } from "@/server_fetch_utils.js";
 import { debounceTime } from "@/resources.js";
 
 export default {
+  components: {
+    vSelect,
+    FormattedItemName,
+  },
   props: {
-    modelValue: {},
+    modelValue: {
+      type: String,
+      default: "",
+    },
     formattedItemNameMaxLength: {
       type: Number,
       default: NaN,
@@ -105,10 +112,6 @@ export default {
         type: "none",
       };
     },
-  },
-  components: {
-    vSelect,
-    FormattedItemName,
   },
 };
 </script>

@@ -1,6 +1,6 @@
 <template>
   <div class="tree-menu">
-    <div v-if="entry.type == 'toplevel'" @click="toggleChildren" class="my-2">
+    <div v-if="entry.type == 'toplevel'" class="my-2" @click="toggleChildren">
       <span :class="{ expanded: showChildren }" class="directory-arrow">&#9656;</span>
       <font-awesome-icon :icon="['fas', 'hdd']" class="toplevel-icon" />
       <span class="toplevel-name" :class="{ 'search-match': searchMatched }">
@@ -43,27 +43,27 @@
 
     <transition
       name="collapse"
+      :css="true"
       @enter="setMaxHeightToScrollHeight"
       @after-enter="removeMaxHeightStyle"
       @before-leave="setMaxHeightToScrollHeight"
       @leave="removeMaxHeightStyle"
-      :css="true"
     >
       <ol
-        ref="childrenBlock"
         v-if="showChildren"
+        ref="childrenBlock"
         class="child-list"
         :style="{ 'margin-left': depth * 1.5 + ' rem' }"
       >
-        <li class="child-entry" v-for="childEntry in entry.contents" :key="childEntry.name">
+        <li v-for="childEntry in entry.contents" :key="childEntry.name" class="child-entry">
           <!-- note: passes selection events up the tree -->
           <tree-menu
             :entry="childEntry"
             :depth="depth + 1"
-            :selectedEntries="selectedEntries"
-            :searchTerm="searchTerm"
-            @setSelectedEntry="$emit('setSelectedEntry', $event)"
-            @appendToSelectedEntries="$emit('appendToSelectedEntries', $event)"
+            :selected-entries="selectedEntries"
+            :search-term="searchTerm"
+            @set-selected-entry="$emit('setSelectedEntry', $event)"
+            @append-to-selected-entries="$emit('appendToSelectedEntries', $event)"
           />
         </li>
       </ol>
@@ -73,8 +73,25 @@
 
 <script>
 export default {
-  name: "tree-menu",
-  props: ["entry", "depth", "selectedEntries", "searchTerm"],
+  name: "TreeMenu",
+  props: {
+    entry: {
+      type: Object,
+      required: true,
+    },
+    depth: {
+      type: Number,
+      required: true,
+    },
+    selectedEntries: {
+      type: Array,
+      required: true,
+    },
+    searchTerm: {
+      type: String,
+      required: true,
+    },
+  },
   emits: ["setSelectedEntry", "appendToSelectedEntries"],
   data() {
     return {

@@ -2,36 +2,36 @@
   <div class="container-fluid">
     <div class="row">
       <div class="col-lg-6 col-xl-6 tree-column" style="border-right: 1px solid #ccc">
-        <input class="form-control" type="text" placeholder="Search" v-model="searchTerm" />
+        <input v-model="searchTerm" class="form-control" type="text" placeholder="Search" />
 
         <TreeMenu
           v-for="toplevel in remoteTree"
           :key="toplevel.name"
           :entry="toplevel"
           :depth="0"
-          :selectedEntries="selectedEntries"
-          :searchTerm="searchTerm"
-          @setSelectedEntry="setSelectedEntry($event, toplevel.name)"
-          @appendToSelectedEntries="appendToSelectedEntries($event, toplevel.name)"
+          :selected-entries="selectedEntries"
+          :search-term="searchTerm"
+          @set-selected-entry="setSelectedEntry($event, toplevel.name)"
+          @append-to-selected-entries="appendToSelectedEntries($event, toplevel.name)"
         />
       </div>
 
       <div class="col-lg-6 col-xl-6 selected-entries-column">
         <p>Selected files:</p>
         <div
-          class="selected-entry mr-4"
           v-for="selectedEntry in selectedEntries"
           :key="selectedEntry.relative_path"
+          class="selected-entry mr-4"
         >
           <p class="mb-1 selected-file">
             {{ selectedEntry.name }}
             <span class="selected-size">[{{ prettyBytes(selectedEntry.size) }}]</span>
           </p>
           <button
-            @click="unselectEntry($event, selectedEntry)"
             type="button"
             class="close"
             aria-label="Close"
+            @click="unselectEntry($event, selectedEntry)"
           >
             <span aria-hidden="true">&times;</span>
           </button>
@@ -57,12 +57,16 @@
 import TreeMenu from "@/components/TreeMenu.vue";
 
 export default {
+  components: {
+    TreeMenu,
+  },
   props: {
     defaultSearchTerm: {
       type: String,
       default: "",
     },
   },
+  emits: ["update:selectedEntries"],
   data() {
     return {
       selectedEntries: [],
@@ -73,6 +77,18 @@ export default {
     remoteTree() {
       return this.$store.state.remoteDirectoryTree;
     },
+  },
+  watch: {
+    selectedEntries: {
+      deep: true, // watch elements of the array, not just the array itself. unclear how well this is working.
+      handler(val) {
+        console.log("emitting selectedEntries");
+        this.$emit("update:selectedEntries", val);
+      },
+    },
+  },
+  mounted() {
+    this.searchTerm = this.defaultSearchTerm;
   },
   methods: {
     prettyBytes(num, precision = 3, addSpace = true) {
@@ -110,21 +126,6 @@ export default {
         this.selectedEntries.splice(index, 1);
       }
     },
-  },
-  watch: {
-    selectedEntries: {
-      deep: true, // watch elements of the array, not just the array itself. unclear how well this is working.
-      handler(val) {
-        console.log("emitting selectedEntries");
-        this.$emit("update:selectedEntries", val);
-      },
-    },
-  },
-  mounted() {
-    this.searchTerm = this.defaultSearchTerm;
-  },
-  components: {
-    TreeMenu,
   },
 };
 </script>

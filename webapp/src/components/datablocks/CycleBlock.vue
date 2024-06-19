@@ -6,7 +6,7 @@
         :item_id="item_id"
         :block_id="block_id"
         :extensions="blockInfo.attributes.accepted_file_extensions"
-        updateBlockOnChange
+        update-block-on-change
       />
     </div>
     <div v-if="file_id">
@@ -15,11 +15,11 @@
           <label class="mr-2"><b>Cycles to plot:</b></label>
           <input
             id="cycles-input"
+            v-model="cyclesString"
             type="text"
             class="form-control"
             placeholder="e.g., 1-5, 7, 9-10. Starts at 1."
             :class="{ 'is-invalid': cycle_num_error }"
-            v-model="cyclesString"
             @keydown.enter="
               parseCycleString();
               updateBlock();
@@ -82,10 +82,10 @@
       >
         <div class="col-md slider" style="max-width: 250px">
           <input
+            id="s_spline"
+            v-model="s_spline"
             type="range"
             class="form-control-range"
-            v-model="s_spline"
-            id="s_spline"
             name="s_spline"
             min="1"
             max="10"
@@ -93,19 +93,19 @@
             @change="isReplotButtonDisplayed = true"
           />
           <label
+            for="s_spline"
             @mouseover="showDescription1 = true"
             @mouseleave="showDescription1 = false"
-            for="s_spline"
           >
             <span>Spline fit:</span> {{ -s_spline }}
           </label>
         </div>
         <div class="col-md slider" style="max-width: 250px">
           <input
+            id="win_size_1"
+            v-model="win_size_1"
             type="range"
             class="form-control-range"
-            v-model="win_size_1"
-            id="win_size_1"
             name="win_size_1"
             min="501"
             max="1501"
@@ -124,13 +124,13 @@
         </button>
       </div>
 
-      <div class="alert alert-info" v-show="showDescription1">
+      <div v-show="showDescription1" class="alert alert-info">
         <p>
           Smoothing parameter that determines how close the spline fits to the real data. Larger
           values result in a smoother fit with decreased detail.
         </p>
       </div>
-      <div class="alert alert-info" v-show="showDescription2">
+      <div v-show="showDescription2" class="alert alert-info">
         <p>Window size for the Savitzky-Golay filter to apply to the derivatives.</p>
       </div>
 
@@ -139,7 +139,7 @@
           class="col mx-auto"
           :class="{ 'limited-width': bokehPlotLimitedWidth, blurry: isUpdating }"
         >
-          <BokehPlot :bokehPlotData="bokehPlotData" />
+          <BokehPlot :bokeh-plot-data="bokehPlotData" />
         </div>
       </div>
     </div>
@@ -155,6 +155,21 @@ import { updateBlockFromServer } from "@/server_fetch_utils.js";
 import { createComputedSetterForBlockField } from "@/field_utils.js";
 
 export default {
+  components: {
+    DataBlockBase,
+    FileSelectDropdown,
+    BokehPlot,
+  },
+  props: {
+    item_id: {
+      type: String,
+      required: true,
+    },
+    block_id: {
+      type: String,
+      required: true,
+    },
+  },
   data() {
     return {
       cycle_num_error: "",
@@ -164,10 +179,6 @@ export default {
       bokehPlotLimitedWidth: true,
       isReplotButtonDisplayed: false,
     };
-  },
-  props: {
-    item_id: String,
-    block_id: String,
   },
   computed: {
     bokehPlotData() {
@@ -249,11 +260,6 @@ export default {
         this.isReplotButtonDisplayed = false;
       });
     },
-  },
-  components: {
-    DataBlockBase,
-    FileSelectDropdown,
-    BokehPlot,
   },
 };
 </script>

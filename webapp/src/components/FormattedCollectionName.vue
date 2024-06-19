@@ -16,13 +16,11 @@
 import { itemTypes } from "@/resources.js";
 
 export default {
-  data() {
-    return {
-      itemType: "collections",
-    };
-  },
   props: {
-    collection_id: String,
+    collection_id: {
+      type: String,
+      default: null,
+    },
     title: {
       type: String,
       default: "",
@@ -39,6 +37,12 @@ export default {
       type: Number,
       default: NaN,
     },
+  },
+  emits: ["collectionIdClicked"],
+  data() {
+    return {
+      itemType: "collections",
+    };
   },
   computed: {
     badgeColor() {
@@ -58,7 +62,6 @@ export default {
       window.open(`/collections/${this.collection_id}`, "_blank");
     },
   },
-  emits: ["collectionIdClicked"],
 };
 </script>
 

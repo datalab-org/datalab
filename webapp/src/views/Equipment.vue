@@ -25,15 +25,15 @@ import CreateEquipmentModal from "@/components/CreateEquipmentModal";
 
 export default {
   name: "Equipments",
-  data() {
-    return {
-      createEquipmentModalIsOpen: false,
-    };
-  },
   components: {
     Navbar,
     EquipmentTable,
     CreateEquipmentModal,
+  },
+  data() {
+    return {
+      createEquipmentModalIsOpen: false,
+    };
   },
 };
 </script>

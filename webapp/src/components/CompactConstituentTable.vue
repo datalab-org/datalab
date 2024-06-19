@@ -18,23 +18,23 @@
             /> -->
           <!-- </transition> -->
           <ItemSelect
-            class="select-in-row"
             v-if="selectShown[index]"
             :ref="`select${index}`"
             v-model="selectedChangedConstituent"
+            class="select-in-row"
             :clearable="false"
-            :typesToQuery="typesToQuery"
+            :types-to-query="typesToQuery"
             @option:selected="swapConstituent($event, index)"
             @search:blur="selectShown[index] = false"
           />
           <FormattedItemName
             v-else
             :item_id="constituent.item.item_id"
-            :itemType="constituent.item.type"
+            :item-type="constituent.item.type"
             :name="constituent.item.name"
             :chemform="constituent.item.chemform || ''"
-            enableClick
-            enableModifiedClick
+            enable-click
+            enable-modified-click
             @dblclick="turnOnRowSelect(index)"
           />
         </td>
@@ -43,16 +43,16 @@
         </td> -->
         <td>
           <input
+            v-model="constituent.quantity"
             class="form-control form-control-sm quantity-input"
             :class="{ 'red-border': isNaN(constituent.quantity) }"
-            v-model="constituent.quantity"
             placeholder="quantity"
           />
         </td>
         <td>
           <input
-            class="form-control form-control-sm"
             v-model="constituent.unit"
+            class="form-control form-control-sm"
             placeholder="unit"
           />
         </td>
@@ -61,8 +61,8 @@
           <button
             type="button"
             class="close"
-            @click.stop="removeConstituent(index)"
             aria-label="delete"
+            @click.stop="removeConstituent(index)"
           >
             <span aria-hidden="true">&times;</span>
           </button>
@@ -79,18 +79,18 @@
         >
           <transition name="fade">
             <font-awesome-icon
-              class="add-row-button clickable"
               v-if="!newSelectIsShown"
+              class="add-row-button clickable"
               :icon="['far', 'plus-square']"
             />
           </transition>
           <span v-if="!newSelectIsShown">&nbsp;</span>
           <OnClickOutside v-if="newSelectIsShown" @trigger="addNewConstituentIsActive = false">
             <ItemSelect
-              taggable
               ref="newSelect"
-              :typesToQuery="typesToQuery"
               v-model="selectedNewConstituent"
+              taggable
+              :types-to-query="typesToQuery"
               @option:selected="addConstituent"
             />
           </OnClickOutside>
@@ -106,13 +106,22 @@ import FormattedItemName from "@/components/FormattedItemName.vue";
 import { OnClickOutside } from "@vueuse/components";
 
 export default {
+  components: {
+    ItemSelect,
+    FormattedItemName,
+    OnClickOutside,
+  },
   props: {
-    modelValue: Object,
+    modelValue: {
+      type: String,
+      default: "",
+    },
     typesToQuery: {
       type: Array,
       default: () => ["samples", "starting_materials", "cells"],
     },
   },
+  emits: ["update:modelValue"],
   data() {
     return {
       selectedNewConstituent: null,
@@ -166,11 +175,6 @@ export default {
         this.$refs["newSelect"].$refs.selectComponent.$refs.search.focus();
       });
     },
-  },
-  components: {
-    ItemSelect,
-    FormattedItemName,
-    OnClickOutside,
   },
 };
 </script>

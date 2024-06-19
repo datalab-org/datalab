@@ -1,30 +1,30 @@
 <template>
   <vSelect
+    ref="selectComponent"
     v-model="value"
     :options="collections"
     multiple
-    @search="debouncedAsyncSearch"
     label="collection_id"
     :filterable="false"
-    ref="selectComponent"
+    @search="debouncedAsyncSearch"
   >
     <template #no-options="{ searching }">
       <span v-if="searching"> Sorry, no matches found. </span>
       <span v-else class="empty-search"> Search for a collection... </span>
     </template>
-    <template v-slot:option="{ collection_id, title }">
+    <template #option="{ collection_id, title }">
       <FormattedCollectionName
         :collection_id="collection_id"
         :title="title"
-        enableModifiedClick
-        :maxLength="formattedItemNameMaxLength"
+        enable-modified-click
+        :max-length="formattedItemNameMaxLength"
       />
     </template>
-    <template v-slot:selected-option="{ collection_id }">
+    <template #selected-option="{ collection_id }">
       <FormattedCollectionName
         :collection_id="collection_id"
-        enableModifiedClick
-        :maxLength="formattedItemNameMaxLength"
+        enable-modified-click
+        :max-length="formattedItemNameMaxLength"
       />
     </template>
   </vSelect>
@@ -37,8 +37,15 @@ import { searchCollections } from "@/server_fetch_utils.js";
 import { debounceTime } from "@/resources.js";
 
 export default {
+  components: {
+    vSelect,
+    FormattedCollectionName,
+  },
   props: {
-    modelValue: {},
+    modelValue: {
+      type: String,
+      default: "",
+    },
     formattedItemNameMaxLength: {
       type: Number,
       default: NaN,
@@ -90,10 +97,6 @@ export default {
         loading(false);
       }, debounceTime);
     },
-  },
-  components: {
-    vSelect,
-    FormattedCollectionName,
   },
 };
 </script>

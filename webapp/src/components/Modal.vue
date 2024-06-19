@@ -41,12 +41,6 @@
 
 <script>
 export default {
-  data() {
-    return {
-      modalDisplayed: false,
-      modalOpaque: false,
-    };
-  },
   props: {
     modelValue: Boolean,
     disableSubmit: {
@@ -57,6 +51,13 @@ export default {
       type: Boolean,
       default: false,
     },
+  },
+  emits: ["update:modelValue"],
+  data() {
+    return {
+      modalDisplayed: false,
+      modalOpaque: false,
+    };
   },
   watch: {
     modelValue(newValue) {

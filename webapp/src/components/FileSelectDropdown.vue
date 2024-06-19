@@ -25,9 +25,12 @@ import { updateBlockFromServer } from "@/server_fetch_utils.js";
 
 export default {
   props: {
-    modelValue: String,
-    item_id: String,
-    block_id: String,
+    modelValue: {
+      type: String,
+      default: "",
+    },
+    item_id: { type: String, required: true },
+    block_id: { type: String, required: true },
     extensions: {
       type: Array, // array of strings, file extensions
       default: () => [""], // show all files
@@ -37,6 +40,7 @@ export default {
       default: false,
     },
   },
+  emits: ["update:modelValue"],
   computed: {
     all_files() {
       return this.$store.state.files;

@@ -1,17 +1,17 @@
 <template>
-  <form @submit.prevent="submitForm" class="modal-enclosure">
+  <form class="modal-enclosure" @submit.prevent="submitForm">
     <Modal
-      :modelValue="modelValue"
-      @update:modelValue="resetForm"
-      :disableSubmit="
+      :model-value="modelValue"
+      :disable-submit="
         Boolean(displayNameValidationMessage) || Boolean(contactEmailValidationMessage)
       "
+      @update:model-value="resetForm"
     >
-      <template v-slot:header> Account settings </template>
+      <template #header> Account settings </template>
 
-      <template v-slot:body>
+      <template #body>
         <div class="mx-auto align-center text-center p-4">
-          <UserBubble :creator="this.user" :size="128" />&nbsp;
+          <UserBubble :creator="user" :size="128" />&nbsp;
         </div>
         <div class="form-row">
           <div class="form-group col-md-8 mx-auto text-justify">
@@ -23,26 +23,26 @@
           <div class="form-group col-md-8">
             <label for="account-name" class="col-form-label">Name:</label>
             <input
+              id="account-name"
               v-model="user.display_name"
               type="text"
               class="form-control"
-              id="account-name"
               required
             />
-            <div class="form-error" v-html="displayNameValidationMessage"></div>
+            <div class="form-error">{{ displayNameValidationMessage }}</div>
           </div>
         </div>
         <div class="form-row">
           <div class="form-group col-md-8">
             <label for="account-email" class="col-form-label">Contact email:</label>
             <input
+              id="account-email"
               v-model="user.contact_email"
               type="text"
               class="form-control"
-              id="account-email"
               placeholder="Please enter your email"
             />
-            <div class="form-error" v-html="contactEmailValidationMessage"></div>
+            <div class="form-error">{{ contactEmailValidationMessage }}</div>
           </div>
         </div>
         <div class="form-row">
@@ -66,7 +66,7 @@
               type="button"
               class="dropdown-item btn login btn-link btn-default"
               aria-label="Login via GitHub"
-              :href="this.apiUrl + '/login/github'"
+              :href="apiUrl + '/login/github'"
               ><font-awesome-icon :icon="['fab', 'github']" /> Connect your GitHub account</a
             >
           </div>
@@ -90,7 +90,7 @@
               type="button"
               class="dropdown-item btn login btn-link btn-default"
               aria-label="Connect ORCID account"
-              :href="this.apiUrl + '/login/orcid'"
+              :href="apiUrl + '/login/orcid'"
               ><font-awesome-icon class="orcid-icon" :icon="['fab', 'orcid']" /> Connect your
               ORCID</a
             >
@@ -103,7 +103,7 @@
               <StyledInput
                 v-model="apiKey"
                 :readonly="true"
-                :helpMessage="apiKeyHelpMessage"
+                :help-message="apiKeyHelpMessage"
                 class="form-control"
               />
               <div class="input-group-append">
@@ -133,6 +133,15 @@ import StyledInput from "./StyledInput.vue";
 
 export default {
   name: "EditAccountSettingsModal",
+  components: {
+    Modal,
+    StyledInput,
+    UserBubble,
+  },
+  props: {
+    modelValue: Boolean,
+  },
+  emits: ["update:modelValue"],
   data() {
     return {
       user: {
@@ -147,10 +156,6 @@ export default {
         'You can use your API key via the datalab-api Python package, or pass it as an HTTP header "DATALAB-API-KEY" with the tool of your choice (e.g., curl).',
     };
   },
-  props: {
-    modelValue: Boolean,
-  },
-  emits: ["update:modelValue"],
   computed: {
     displayNameValidationMessage() {
       if (!this.user.display_name || /^\s*$/.test(this.user.display_name)) {
@@ -168,6 +173,9 @@ export default {
       }
       return "";
     },
+  },
+  mounted() {
+    this.getUser();
   },
   methods: {
     async submitForm() {
@@ -211,14 +219,6 @@ export default {
       this.apiKey = null;
       this.$emit("update:modelValue", false);
     },
-  },
-  mounted() {
-    this.getUser();
-  },
-  components: {
-    Modal,
-    StyledInput,
-    UserBubble,
   },
 };
 </script>

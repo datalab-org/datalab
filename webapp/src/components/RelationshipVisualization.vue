@@ -5,8 +5,8 @@
       <a
         class="nav-link"
         :class="{ active: activeTab == 'parents' }"
-        @click.prevent="activeTab = 'parents'"
         href="#"
+        @click.prevent="activeTab = 'parents'"
       >
         Parents
       </a>
@@ -15,8 +15,8 @@
       <a
         class="nav-link"
         :class="{ active: activeTab == 'children' }"
-        @click.prevent="activeTab = 'children'"
         href="#"
+        @click.prevent="activeTab = 'children'"
       >
         Children
       </a>
@@ -25,8 +25,8 @@
       <a
         class="nav-link"
         :class="{ active: activeTab == 'graph' }"
-        @click.prevent="activeTab = 'graph'"
         href="#"
+        @click.prevent="activeTab = 'graph'"
       >
         Graph
       </a>
@@ -35,20 +35,20 @@
 
   <div class="card">
     <div class="card-body">
-      <ul id="contents-ol" v-show="activeTab == 'parents'">
-        <li class="contents-item" v-for="parent in parents" :key="parent">
+      <ul v-show="activeTab == 'parents'" id="contents-ol">
+        <li v-for="parent in parents" :key="parent" class="contents-item">
           <span class="contents-blocktitle" @click="openEditPageInNewTab(parent)">{{
             parent
           }}</span>
         </li>
       </ul>
-      <ul id="contents-ol" v-show="activeTab == 'children'">
-        <li class="contents-item" v-for="child in children" :key="child">
+      <ul v-show="activeTab == 'children'" id="contents-ol">
+        <li v-for="child in children" :key="child" class="contents-item">
           <span class="contents-blocktitle" @click="openEditPageInNewTab(child)">{{ child }}</span>
         </li>
       </ul>
       <div v-show="activeTab == 'graph'">
-        <ItemGraph :graphData="graphData" style="height: 400px" />
+        <ItemGraph :graph-data="graphData" style="height: 400px" />
       </div>
       <!--       <div class="alert alert-info" role="alert" v-show="activeTab == 'graph'">
         Graph view not yet implemented
@@ -63,6 +63,13 @@ import ItemGraph from "@/components/ItemGraph";
 import { getItemGraph } from "@/server_fetch_utils.js";
 
 export default {
+  components: {
+    // FormattedItemName
+    ItemGraph,
+  },
+  props: {
+    item_id: { type: String, required: true },
+  },
   data() {
     return {
       activeTab: "graph",
@@ -79,20 +86,13 @@ export default {
       return this.$store.state.itemGraphData;
     },
   },
+  async mounted() {
+    await getItemGraph({ item_id: this.item_id });
+  },
   methods: {
     openEditPageInNewTab(item_id) {
       window.open(`/edit/${item_id}`, "_blank");
     },
-  },
-  props: {
-    item_id: String,
-  },
-  async mounted() {
-    await getItemGraph({ item_id: this.item_id });
-  },
-  components: {
-    // FormattedItemName
-    ItemGraph,
   },
 };
 </script>

@@ -1,5 +1,5 @@
 <template>
-  <div class="dflex text-right" v-if="showOptions">
+  <div v-if="showOptions" class="dflex text-right">
     <div class="btn-group mr-2" role="group">
       <button
         :class="graphStyle == 'elk-stress' ? 'btn btn-default active' : 'btn btn-default'"
@@ -71,7 +71,10 @@ const layoutOptions = {
 
 export default {
   props: {
-    graphData: Object,
+    graphData: {
+      type: Object,
+      default: null,
+    },
     defaultGraphStyle: {
       type: String,
       default: "elk-stress",
@@ -85,6 +88,18 @@ export default {
     return {
       graphStyle: this.defaultGraphStyle,
     };
+  },
+  watch: {
+    graphData() {
+      this.generateCyNetworkPlot();
+    },
+    graphStyle() {
+      console.log("graphStyle changed");
+      this.generateCyNetworkPlot();
+    },
+  },
+  async mounted() {
+    this.generateCyNetworkPlot();
   },
   methods: {
     generateCyNetworkPlot() {
@@ -161,18 +176,6 @@ export default {
         }
       });
     },
-  },
-  watch: {
-    graphData() {
-      this.generateCyNetworkPlot();
-    },
-    graphStyle() {
-      console.log("graphStyle changed");
-      this.generateCyNetworkPlot();
-    },
-  },
-  async mounted() {
-    this.generateCyNetworkPlot();
   },
 };
 </script>

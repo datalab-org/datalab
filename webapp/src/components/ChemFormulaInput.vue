@@ -6,25 +6,44 @@
     @click="handleSpanClick"
   />
   <input
-    v-bind="$attrs"
     v-show="editable"
-    @blur="editable = false"
+    v-bind="$attrs"
     ref="input"
-    @keyup.enter="$refs['input'].blur()"
-    class="form-control"
     v-model="internal_chemform"
+    class="form-control"
+    @blur="editable = false"
+    @keyup.enter="$refs['input'].blur()"
   />
 </template>
 
 <script>
 import ChemicalFormula from "@/components/ChemicalFormula";
 export default {
+  components: {
+    ChemicalFormula,
+  },
+  props: {
+    modelValue: {
+      type: String,
+      default: "",
+    },
+  },
+  emits: ["update:modelValue"],
   data() {
     return {
       editable: false,
     };
   },
-  props: { modelValue: String },
+  computed: {
+    internal_chemform: {
+      get() {
+        return this.modelValue;
+      },
+      set(value) {
+        this.$emit("update:modelValue", value);
+      },
+    },
+  },
   methods: {
     chemFormulaFormat(chemform) {
       if (!chemform) {
@@ -43,19 +62,6 @@ export default {
         this.$refs["input"].focus();
       });
     },
-  },
-  computed: {
-    internal_chemform: {
-      get() {
-        return this.modelValue;
-      },
-      set(value) {
-        this.$emit("update:modelValue", value);
-      },
-    },
-  },
-  components: {
-    ChemicalFormula,
   },
 };
 </script>

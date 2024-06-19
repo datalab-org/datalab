@@ -31,8 +31,8 @@
         <td align="left">{{ user.contact_email }}</td>
         <td align="left">
           <select
-            class="dropdown"
             v-model="user.role"
+            class="dropdown"
             @change="confirmUpdateUserRole(user._id.$oid, $event.target.value)"
           >
             <option value="user">User</option>
@@ -76,10 +76,11 @@ export default {
     return {
       users: null,
       original_users: null,
-      test: "unverified",
-      role: ["user", "manager", "admin"],
       tempRole: null,
     };
+  },
+  created() {
+    this.getUsers();
   },
   methods: {
     async getUsers() {
@@ -131,9 +132,6 @@ export default {
       await saveUser(user_id, { account_status: status });
       this.original_users = JSON.parse(JSON.stringify(this.users));
     },
-  },
-  created() {
-    this.getUsers();
   },
 };
 </script>

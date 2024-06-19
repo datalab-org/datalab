@@ -8,7 +8,7 @@
       </div>
       <div class="form-group col-md-2 col-sm-3 col-6">
         <label for="startmat-item_id">Item ID</label>
-        <StyledInput id="startmat-item_id" readonly :modelValue="ItemID" />
+        <StyledInput id="startmat-item_id" readonly :model-value="ItemID" />
       </div>
       <div class="form-group col-lg-7 col-md-8 col-sm-6">
         <label for="startmat-name">Name</label>
@@ -37,8 +37,8 @@
         <label for="startmat-date-acquired">Date acquired</label>
         <StyledInput
           id="startmat-date-acquired"
-          type="date"
           v-model="DateAcquired"
+          type="date"
           :readonly="!isEditable"
         />
       </div>
@@ -46,8 +46,8 @@
         <label for="startmat-date-opened">Date opened</label>
         <StyledInput
           id="startmat-date-opened"
-          type="date"
           v-model="DateOpened"
+          type="date"
           :readonly="!isEditable"
         />
       </div>
@@ -77,7 +77,7 @@
     <TableOfContents
       class="mb-3"
       :item_id="item_id"
-      :informationSections="tableOfContentsSections"
+      :information-sections="tableOfContentsSections"
     />
   </div>
 </template>
@@ -95,6 +95,18 @@ import StyledInput from "@/components/StyledInput";
 import { EDITABLE_INVENTORY } from "@/resources.js";
 
 export default {
+  components: {
+    StyledInput,
+    ChemicalFormula,
+    ChemFormulaInput,
+    TinyMceInline,
+    ToggleableCollectionFormGroup,
+    TableOfContents,
+    FormattedRefcode,
+  },
+  props: {
+    item_id: { type: String, required: true },
+  },
   data() {
     return {
       tableOfContentsSections: [
@@ -102,9 +114,6 @@ export default {
         { title: "Table of Contents", targetID: "table-of-contents" },
       ],
     };
-  },
-  props: {
-    item_id: String,
   },
   computed: {
     item() {
@@ -126,15 +135,6 @@ export default {
   },
   created() {
     this.isEditable = EDITABLE_INVENTORY;
-  },
-  components: {
-    StyledInput,
-    ChemicalFormula,
-    ChemFormulaInput,
-    TinyMceInline,
-    ToggleableCollectionFormGroup,
-    TableOfContents,
-    FormattedRefcode,
   },
 };
 </script>

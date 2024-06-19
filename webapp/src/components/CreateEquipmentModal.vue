@@ -1,17 +1,18 @@
 <template>
-  <form @submit.prevent="submitForm" class="modal-enclosure" data-testid="create-equipment-form">
+  <form class="modal-enclosure" data-testid="create-equipment-form" @submit.prevent="submitForm">
     <Modal
-      :modelValue="modelValue"
-      @update:modelValue="$emit('update:modelValue', $event)"
-      :disableSubmit="Boolean(equipmentIDValidationMessage) || !Boolean(item_id)"
+      :model-value="modelValue"
+      :disable-submit="Boolean(equipmentIDValidationMessage) || !Boolean(item_id)"
+      @update:model-value="$emit('update:modelValue', $event)"
     >
-      <template v-slot:header> Add equipment </template>
+      <template #header> Add equipment </template>
 
-      <template v-slot:body>
+      <template #body>
         <div class="form-row">
           <div class="form-group col-md-6">
             <label for="equipment-id" class="col-form-label">ID:</label>
-            <input v-model="item_id" type="text" class="form-control" id="equipment-id" required />
+            <input id="equipment-id" v-model="item_id" type="text" class="form-control" required />
+            <!-- eslint-disable-next-line vue/no-v-html -->
             <div class="form-error" v-html="equipmentIDValidationMessage"></div>
           </div>
           <div class="form-group col-md-6">
@@ -19,9 +20,9 @@
               >Type:</label
             >
             <select
+              id="create-equipment-modal-item-type-select"
               v-model="item_type"
               class="form-control"
-              id="create-equipment-modal-item-type-select"
               required
               disabled
             >
@@ -33,10 +34,10 @@
           <div class="form-group col-md-6">
             <label for="create-equipment-modal-date" class="col-form-label">Date Created:</label>
             <input
-              type="datetime-local"
-              v-model="date"
-              class="form-control"
               id="create-equipment-modal-date"
+              v-model="date"
+              type="datetime-local"
+              class="form-control"
               :min="agesAgo"
               :max="oneYearOn()"
               required
@@ -48,8 +49,8 @@
             <label for="create-equipment-modal-name">Name:</label>
             <input
               id="create-equipment-modal-name"
-              type="text"
               v-model="name"
+              type="text"
               class="form-control"
             />
           </div>
@@ -72,9 +73,9 @@
             >
             <ItemSelect
               aria-labelledby="copyFromSelectLabel"
-              :modelValue="selectedItemToCopy"
-              :typesToQuery="[item_type]"
-              @update:modelValue="
+              :model-value="selectedItemToCopy"
+              :types-to-query="[item_type]"
+              @update:model-value="
                 selectedItemToCopy = $event;
                 setCopiedName();
               "
@@ -101,6 +102,15 @@ import { itemTypes } from "@/resources.js";
 // import CollectionSelect from "@/components/CollectionSelect.vue";
 export default {
   name: "CreateEquipmentModal",
+  components: {
+    Modal,
+    ItemSelect,
+    // CollectionSelect,
+  },
+  props: {
+    modelValue: Boolean,
+  },
+  emits: ["update:modelValue"],
   data() {
     return {
       item_id: null,
@@ -116,10 +126,6 @@ export default {
       availableTypes: { equipment: itemTypes["equipment"] },
     };
   },
-  props: {
-    modelValue: Boolean,
-  },
-  emits: ["update:modelValue"],
   computed: {
     itemTypeDisplayName() {
       return itemTypes[this.item_type].display;
@@ -222,11 +228,6 @@ export default {
         this.name = `COPY OF ${this.selectedItemToCopy.name}`;
       }
     },
-  },
-  components: {
-    Modal,
-    ItemSelect,
-    // CollectionSelect,
   },
 };
 </script>
