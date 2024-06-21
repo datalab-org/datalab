@@ -46,7 +46,8 @@ repos:
     rev: v1.10.0
     hooks:
       - id: mypy
-        additional_dependencies: ["types-all", "pydantic~=1.10"]
+        additional_dependencies:
+          ["types-python-dateutil", "types-requests", "types-paramiko", "pydantic~=1.10"]
 
   - repo: local
     hooks:
