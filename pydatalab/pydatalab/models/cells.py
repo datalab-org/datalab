@@ -19,6 +19,7 @@ class CellFormat(str, Enum):
     in_situ_xrd = "in situ (XRD)"
     in_situ_nmr = "in situ (NMR)"
     in_situ_squid = "in situ (SQUID)"
+    in_situ_optical = "in situ (optical)"
     swagelok = "swagelok"
     cylindrical = "cylindrical"
     other = "other"
