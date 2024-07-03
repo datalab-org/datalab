@@ -47,8 +47,14 @@ Be as concise as possible. When saying your name, type a bird emoji right after 
         """,
         "temperature": 0.2,
         "error_message": None,
-        "model": "gpt-4o-2024-05-13",
+        "model": "gpt-4o",
         "available_models": {
+            "claude-3-5-sonnet-20240620": {
+                "name": "claude-3-5-sonnet-20240620",
+                "context_window": 200000,
+                "input_cost_usd_per_MTok": 3.00,
+                "output_cost_usd_per_MTok": 15.00,
+            },
             "claude-3-haiku-20240307": {
                 "name": "claude-3-haiku-20240307",
                 "context_window": 200000,
@@ -67,14 +73,14 @@ Be as concise as possible. When saying your name, type a bird emoji right after 
                 "input_cost_usd_per_MTok": 3.00,
                 "output_cost_usd_per_MTok": 15.00,
             },
-            "gpt-4o-2024-05-13": {
-                "name": "gpt-4o-2024-05-13",
+            "gpt-4o": {
+                "name": "gpt-4o",
                 "context_window": 128000,
                 "input_cost_usd_per_MTok": 5.00,
                 "output_cost_usd_per_MTok": 15.00,
             },
-            "gpt-3.5-turbo-0125": {
-                "name": "gpt-3.5-turbo-0125",
+            "gpt-3.5-turbo": {
+                "name": "gpt-3.5-turbo",
                 "context_window": 16385,
                 "input_cost_usd_per_MTok": 1.50,
                 "output_cost_usd_per_MTok": 2.00,
@@ -85,8 +91,8 @@ Be as concise as possible. When saying your name, type a bird emoji right after 
                 "input_cost_usd_per_MTok": 30.00,
                 "output_cost_usd_per_MTok": 60.00,
             },
-            "gpt-4-turbo-2024-04-09": {
-                "name": "gpt-4-turbo-2024-04-09",
+            "gpt-4-turbo": {
+                "name": "gpt-4-turbo",
                 "context_window": 128000,
                 "input_cost_usd_per_MTok": 10.00,
                 "output_cost_usd_per_MTok": 30.00,
