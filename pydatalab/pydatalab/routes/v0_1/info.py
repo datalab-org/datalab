@@ -10,6 +10,7 @@ from pydantic import AnyUrl, BaseModel, Field, validator
 
 from pydatalab import __version__
 from pydatalab.blocks import BLOCK_TYPES
+from pydatalab.config import CONFIG, FEATURE_FLAGS, FeatureFlags
 from pydatalab.models import Person
 from pydatalab.mongo import flask_mongo
 
@@ -62,6 +63,7 @@ class Info(Attributes, Meta):
     homepage: Optional[AnyUrl]
     source_repository: Optional[AnyUrl]
     identifier_prefix: str
+    features: FeatureFlags = FEATURE_FLAGS
 
     @validator("maintainer")
     def strip_maintainer_fields(cls, v):
@@ -72,8 +74,6 @@ class Info(Attributes, Meta):
 
 @lru_cache(maxsize=1)
 def _get_deployment_metadata_once() -> Dict:
-    from pydatalab.config import CONFIG
-
     identifier_prefix = CONFIG.IDENTIFIER_PREFIX
     metadata = (
         CONFIG.DEPLOYMENT_METADATA.dict(exclude_none=True) if CONFIG.DEPLOYMENT_METADATA else {}
@@ -84,6 +84,10 @@ def _get_deployment_metadata_once() -> Dict:
 
 @INFO.route("/info", methods=["GET"])
 def get_info():
+    """Returns the runtime metadata for the deployment, e.g.,
+    versions, features and so on.
+
+    """
     metadata = _get_deployment_metadata_once()
 
     return (
