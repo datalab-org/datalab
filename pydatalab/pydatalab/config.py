@@ -329,3 +329,29 @@ CONFIG: ServerConfig = ServerConfig()
 """The global server configuration object.
 This is a singleton instance of the `ServerConfig` model.
 """
+
+
+class AuthMechanisms(BaseModel):
+    github: bool = False
+    orcid: bool = False
+    email: bool = False
+
+
+class AIIntegrations(BaseModel):
+    openai: bool = False
+    anthropic: bool = False
+
+
+class FeatureFlags(BaseModel):
+    auth_mechanisms: AuthMechanisms = AuthMechanisms()
+    ai_integrations: AIIntegrations = AIIntegrations()
+    email_notifications: bool = False
+
+
+FEATURE_FLAGS: FeatureFlags = FeatureFlags()
+"""The global feature flags object.
+
+This is a singleton of `FeatureFlags` that can be used to see
+the enabled features of the app at a higher-level to the
+configuration (e.g., includes runtime environment checks).
+"""

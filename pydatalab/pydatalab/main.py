@@ -11,7 +11,7 @@ from flask_login import current_user, logout_user
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 import pydatalab.mongo
-from pydatalab.config import CONFIG
+from pydatalab.config import CONFIG, FEATURE_FLAGS
 from pydatalab.logger import LOGGER, setup_log
 from pydatalab.login import LOGIN_MANAGER
 from pydatalab.send_email import MAIL
@@ -20,9 +20,10 @@ from pydatalab.utils import BSONProvider
 COMPRESS = Compress()
 
 
-def _warn_startup_settings(app):
+def _check_feature_flags(app):
     """Loop over various secrets and settings and populate the logs if
-    missing or invalid.
+    missing or invalid, as well as setting the global `FEATURE_FLAGS`
+    object reported by the API for use in UIs.
 
     """
 
@@ -31,18 +32,28 @@ def _warn_startup_settings(app):
             "No email auth SMTP settings provided, email registration will not be enabled."
         )
     else:
+        FEATURE_FLAGS.email_notifications = True
         if app.config["MAIL_SERVER"] and not app.config.get("MAIL_PASSWORD"):
             LOGGER.critical(
                 "CONFIG.EMAIL_AUTH_SMTP_SETTINGS.MAIL_SERVER was set to '%s' but no `MAIL_PASSWORD` was provided. "
                 "This can be passed in a `.env` file (as `MAIL_PASSWORD`) or as an environment variable.",
                 app.config["MAIL_SERVER"],
             )
+            FEATURE_FLAGS.email_notifications = False
         if not app.config["MAIL_DEFAULT_SENDER"]:
             LOGGER.critical(
                 "CONFIG.EMAIL_AUTH_SMTP_SETTINGS.MAIL_DEFAULT_SENDER is not set in the config. "
                 "Email authentication may not work correctly."
                 "This can be set in the config above or equivalently via `MAIL_DEFAULT_SENDER` in a `.env` file, "
                 "or as an environment variable."
+            )
+            FEATURE_FLAGS.email_notifications = False
+
+        if CONFIG.EMAIL_DOMAIN_ALLOW_LIST:
+            FEATURE_FLAGS.auth_mechanisms.email = True
+        else:
+            LOGGER.warning(
+                "`CONFIG.EMAIL_DOMAIN_ALLOW_LIST` is usnet or empty; email registration will not be enabled."
             )
 
     if CONFIG.IDENTIFIER_PREFIX == "test":
@@ -54,30 +65,39 @@ def _warn_startup_settings(app):
             CONFIG.IDENTIFIER_PREFIX,
         )
 
-    secrets_and_errors = [
-        (
-            "GITHUB_OAUTH_CLIENT_ID",
-            "No GitHub OAuth client ID provided, GitHub login will not work",
-        ),
-        (
-            "GITHUB_OAUTH_CLIENT_SECRET",
-            "No GitHub OAuth client secret provided, GitHub login will not work",
-        ),
-        (
-            "ORCID_OAUTH_CLIENT_SECRET",
-            "No ORCID OAuth client secret provided, ORCID login will not work",
-        ),
-        ("ORCID_OAUTH_CLIENT_ID", "No ORCID OAuth client ID provided, ORCID login will not work"),
-        ("OPENAI_API_KEY", "No OpenAI API key provided, OpenAI-based ChatBlock will not work"),
-        (
-            "ANTHROPIC_API_KEY",
-            "No Anthropic API key provided, Claude-based ChatBlock will not work",
-        ),
-    ]
+    def _check_secret_and_warn(secret, error) -> bool:
+        """Checks if a secret has been set, and if so, return True.
 
-    for secret, error in secrets_and_errors:
+        Otherwise, warn and return False.
+        """
         if not app.config.get(secret):
             LOGGER.warning("%s: please set `%s`", error, secret)
+            return False
+        return True
+
+    if _check_secret_and_warn(
+        "GITHUB_OAUTH_CLIENT_ID",
+        "No GitHub OAuth client ID provided, GitHub login will not work",
+    ) and _check_secret_and_warn(
+        "GITHUB_OAUTH_CLIENT_SECRET",
+        "No GitHub OAuth client secret provided, GitHub login will not work",
+    ):
+        FEATURE_FLAGS.auth_mechanisms.github = True
+    if _check_secret_and_warn(
+        "ORCID_OAUTH_CLIENT_SECRET",
+        "No ORCID OAuth client secret provided, ORCID login will not work",
+    ) and _check_secret_and_warn(
+        "ORCID_OAUTH_CLIENT_ID", "No ORCID OAuth client ID provided, ORCID login will not work"
+    ):
+        FEATURE_FLAGS.auth_mechanisms.orcid = True
+    if _check_secret_and_warn(
+        "OPENAI_API_KEY", "No OpenAI API key provided, OpenAI-based ChatBlock will not work"
+    ):
+        FEATURE_FLAGS.ai_integrations.openai = True
+    if _check_secret_and_warn(
+        "ANTHROPIC_API_KEY", "No Anthropic API key provided, Claude-based ChatBlock will not work"
+    ):
+        FEATURE_FLAGS.ai_integrations.anthropic = True
 
     if CONFIG.DEBUG:
         LOGGER.warning("Running with debug logs enabled")
@@ -129,7 +149,7 @@ def create_app(
     app.config.update(dotenv_values(dotenv_path=env_file))
 
     LOGGER.info("Starting app with Flask app.config: %s", app.config)
-    _warn_startup_settings(app)
+    _check_feature_flags(app)
 
     if CONFIG.BEHIND_REVERSE_PROXY:
         # Fix headers for reverse proxied app:
