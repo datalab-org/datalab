@@ -1,7 +1,7 @@
 <template>
   <div class="row justify-content-center pt-3">
     <GetEmailModal v-model="emailModalIsOpen" />
-    <template v-if="currentUser != null">
+    <template v-if="user != null">
       <div class="dropdown">
         <button
           id="userDropdown"
@@ -12,7 +12,7 @@
           data-toggle="dropdown"
           @click="isUserDropdownVisible = !isUserDropdownVisible"
         >
-          <UserBubbleLogin :creator="currentUserInfo" :size="24" />&nbsp;
+          <UserBubbleLogin :creator="user" :size="24" />&nbsp;
           <span class="user-display-name">{{ userDisplayName }}</span
           >&nbsp;
         </button>
@@ -33,7 +33,7 @@
             ><font-awesome-icon icon="cog" /> &nbsp;&nbsp;Account settings
             <span v-if="isUnverified"><NotificationDot /></span>
           </a>
-          <span v-if="currentUserInfo.role === 'admin'">
+          <span v-if="user.role === 'admin'">
             <router-link
               to="/admin"
               class="dropdown-item btn login btn-link btn-default"
@@ -52,6 +52,7 @@
           >
         </div>
       </div>
+      <EditAccountSettingsModal v-model="editAccountSettingIsOpen" />
     </template>
     <template v-else>
       <div class="dropdown">
@@ -98,7 +99,6 @@
       </div>
     </template>
   </div>
-  <EditAccountSettingsModal v-model="editAccountSettingIsOpen" />
 
   <div v-if="isUnverified" class="container mt-4 mb-0 alert alert-warning text-center">
     Your account is currently unverified, and you will be unable to make or edit entries. Please
@@ -130,8 +130,7 @@ export default {
       isUserDropdownVisible: false,
       emailModalIsOpen: false,
       apiUrl: API_URL,
-      currentUser: null,
-      currentUserInfo: {},
+      user: null,
       editAccountSettingIsOpen: false,
     };
   },
@@ -166,17 +165,12 @@ export default {
         window.location.href = this.apiUrl + "/login/email?token=" + token;
       }
 
-      let user = await getUserInfo();
-      if (user != null) {
-        this.currentUser = user.display_name;
-        this.currentUserInfo = {
-          display_name: user.display_name || "",
-          immutable_id: user.immutable_id,
-          contact_email: user.contact_email || "",
-          role: user.role || "",
-          account_status: user.account_status || "",
-        };
-        this.$store.commit("setIsUnverified", user.account_status == "unverified" ? true : false);
+      this.user = await getUserInfo();
+      if (this.user != null) {
+        this.$store.commit(
+          "setIsUnverified",
+          this.user.account_status == "unverified" ? true : false,
+        );
       }
     },
   },
