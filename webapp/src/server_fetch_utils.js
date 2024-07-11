@@ -538,10 +538,7 @@ export function saveUser(user_id, user) {
   fetch_patch(`${API_URL}/users/${user_id}`, user)
     .then(function (response_json) {
       if (response_json.status === "success") {
-        if (user.account_status) {
-          getUserInfo();
-          getUsersList();
-        }
+        getUserInfo();
         console.log("Save successful!");
       } else {
         alert("User save unsuccessful", response_json.detail);
