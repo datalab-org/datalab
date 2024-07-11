@@ -29,7 +29,7 @@
             <tr>
               <td>API version</td>
               <td>
-                <code>{{ apiInfo.apiVersion }}</code>
+                <code>{{ apiInfo?.server_version ?? "unknown" }}</code>
               </td>
             </tr>
             <tr>
@@ -80,11 +80,14 @@ export default {
   components: { Navbar, StatisticsTable },
   data() {
     return {
-      apiInfo: { apiVersion: "unknown" },
+      apiInfo: { server_version: "unknown" },
     };
   },
   async mounted() {
-    this.apiInfo = await getInfo();
+    this.apiInfo = this.$store.state.serverInfo;
+    if (this.apiInfo == null) {
+      this.apiInfo = await getInfo();
+    }
   },
 };
 </script>

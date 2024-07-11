@@ -75,6 +75,7 @@
         >
           <a
             type="button"
+            :class="{ disabled: !showGitHub }"
             class="dropdown-item btn login btn-link btn-default"
             aria-label="Login via GitHub"
             :href="apiUrl + '/login/github'"
@@ -82,6 +83,7 @@
           >
           <a
             type="button"
+            :class="{ disabled: !showORCID }"
             class="dropdown-item btn login btn-link btn-default"
             aria-label="Login via ORCID"
             :href="apiUrl + '/login/orcid'"
@@ -89,6 +91,7 @@
           >
           <button
             type="button"
+            :class="{ disabled: !showEmail }"
             class="dropdown-item btn login btn-link btn-default"
             aria-label="Login via email"
             @click="emailModalIsOpen = true"
@@ -110,7 +113,7 @@
 import { API_URL } from "@/resources.js";
 import UserBubbleLogin from "@/components/UserBubbleLogin.vue";
 import NotificationDot from "@/components/NotificationDot.vue";
-import { getUserInfo } from "@/server_fetch_utils.js";
+import { getUserInfo, getInfo } from "@/server_fetch_utils.js";
 import GetEmailModal from "@/components/GetEmailModal.vue";
 import EditAccountSettingsModal from "@/components/EditAccountSettingsModal.vue";
 
@@ -144,6 +147,15 @@ export default {
     hasUnverifiedUser() {
       return this.$store.getters.getHasUnverifiedUser;
     },
+    showGitHub() {
+      return this.$store.state.serverInfo?.features?.auth_mechanisms?.github ?? false;
+    },
+    showORCID() {
+      return this.$store.state.serverInfo?.features?.auth_mechanisms?.orcid ?? false;
+    },
+    showEmail() {
+      return this.$store.state.serverInfo?.features?.auth_mechanisms?.email ?? false;
+    },
   },
   watch: {
     modelValue(newValue) {
@@ -154,8 +166,11 @@ export default {
       }
     },
   },
-  mounted() {
+  async mounted() {
     this.getUser();
+    if (this.$store.state.serverInfo == null) {
+      getInfo();
+    }
   },
   methods: {
     async getUser() {

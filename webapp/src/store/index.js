@@ -27,11 +27,16 @@ export default createStore({
     remoteDirectoryTreeIsLoading: false,
     fileSelectModalIsOpen: false,
     currentUserDisplayName: null,
+    serverInfo: null,
     blocksInfos: {},
     currentUserIsUnverified: false,
     hasUnverifiedUser: false,
   },
   mutations: {
+    setServerInfo(state, serverInfo) {
+      // set the server metadata
+      state.serverInfo = serverInfo;
+    },
     setSampleList(state, sampleSummaries) {
       // sampleSummaries is an array of json objects summarizing the available samples
       state.sample_list = sampleSummaries;

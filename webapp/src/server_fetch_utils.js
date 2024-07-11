@@ -191,7 +191,8 @@ export async function getStats() {
 export async function getInfo() {
   return fetch_get(`${API_URL}/info`)
     .then(function (response_json) {
-      return { apiVersion: response_json.data.attributes.server_version };
+      store.commit("setServerInfo", response_json.data.attributes);
+      return response_json.data.attributes;
     })
     .catch((error) => {
       console.error("Error when fetching info");
