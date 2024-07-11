@@ -75,7 +75,7 @@ describe("Batch sample creation", () => {
     cy.visit("/");
   });
   it("Adds 3 valid samples", () => {
-    cy.contains("Add batch of samples").click();
+    cy.contains("Add batch of items").click();
     getSubmitButton().should("be.disabled");
     getBatchAddCell(1, 1).type("testA");
     getBatchAddCell(2, 1).type("testB");
@@ -100,7 +100,7 @@ describe("Batch sample creation", () => {
   });
 
   it("adds two valid samples", () => {
-    cy.contains("Add batch of samples").click();
+    cy.contains("Add batch of items").click();
     cy.findByLabelText("Number of rows:").clear().type(2);
 
     cy.get('[data-testid="batch-modal-container"]').findByText("Submit").should("be.disabled");
@@ -119,7 +119,7 @@ describe("Batch sample creation", () => {
   });
 
   it("adds four base samples", () => {
-    cy.contains("Add batch of samples").click();
+    cy.contains("Add batch of items").click();
     cy.findByLabelText("Number of rows:").clear().type(4);
 
     cy.get('[data-testid="batch-modal-container"]').findByText("Submit").should("be.disabled");
@@ -180,7 +180,7 @@ describe("Batch sample creation", () => {
   });
 
   it("makes samples copied from others", () => {
-    cy.contains("Add batch of samples").click();
+    cy.contains("Add batch of items").click();
     getBatchAddCell(1, 1).type("baseA_copy");
     getBatchAddCell(1, 2).type("a copied sample");
     getBatchAddCell(1, 4, ".vs__search").type("BaseA");
@@ -244,7 +244,7 @@ describe("Batch sample creation", () => {
   });
 
   it("creates samples using components", () => {
-    cy.contains("Add batch of samples").click();
+    cy.contains("Add batch of items").click();
     cy.findByLabelText("Number of rows:").clear().type(4);
 
     // sample with two components
@@ -407,7 +407,7 @@ describe("Batch sample creation", () => {
   });
 
   it("uses the template id", () => {
-    cy.contains("Add batch of samples").click();
+    cy.contains("Add batch of items").click();
     getBatchTemplateCell(1).type("test_{{}#{}}");
 
     // manually type names and a date
@@ -434,7 +434,7 @@ describe("Batch sample creation", () => {
   });
 
   it("uses the template id, name, and date", () => {
-    cy.contains("Add batch of samples").click();
+    cy.contains("Add batch of items").click();
     getBatchTemplateCell(1).type("test_{{}#{}}");
     getBatchTemplateCell(2).type("this is the test sample #{{}#{}}");
     getBatchTemplateCell(3).type("1980-02-01T05:35");
@@ -459,7 +459,7 @@ describe("Batch sample creation", () => {
   });
 
   it("uses the template id, name, date, copyFrom, and components", () => {
-    cy.contains("Add batch of samples").click();
+    cy.contains("Add batch of items").click();
     getBatchTemplateCell(1).type("test_{{}#{}}");
     getBatchTemplateCell(2).type("this is the test sample #{{}#{}}");
     getBatchTemplateCell(3).type("1980-02-01T23:59");
@@ -539,7 +539,7 @@ describe("Batch sample creation", () => {
   });
 
   it("plays with the number of rows", () => {
-    cy.contains("Add batch of samples").click();
+    cy.contains("Add batch of items").click();
     cy.findByLabelText("Number of rows:").clear().type(3);
     cy.get("[data-testid=batch-add-table] > tbody > tr").should("have.length", 3);
 
@@ -648,7 +648,7 @@ describe("Batch sample creation", () => {
   });
 
   it("checks errors on the row", () => {
-    cy.contains("Add batch of samples").click();
+    cy.contains("Add batch of items").click();
     getBatchTemplateCell("1").type("test10{{}#{}}");
     cy.wait(100);
     getSubmitButton().should("be.disabled");
