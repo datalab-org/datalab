@@ -133,9 +133,7 @@ def create_backup(strategy: BackupStrategy) -> bool:
 
     """
 
-    snapshot_name = (
-        f"datalab-snapshot-{datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.tar.gz"
-    )
+    snapshot_name = f"{strategy.backup_filename_prefix}-{datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.tar.gz"
 
     if strategy.hostname is None:
         snapshot_path = strategy.location / snapshot_name
@@ -146,7 +144,9 @@ def create_backup(strategy: BackupStrategy) -> bool:
         take_snapshot(snapshot_path)
 
         existing_snapshots = [
-            str(s) for s in strategy.location.iterdir() if s.name.startswith("datalab-snapshot-")
+            str(s)
+            for s in strategy.location.iterdir()
+            if s.name.startswith(strategy.backup_filename_prefix)
         ]
 
         retention = strategy.retention or 100
@@ -193,7 +193,7 @@ def create_backup(strategy: BackupStrategy) -> bool:
                 existing_snapshots = [
                     s
                     for s in sftp.listdir(str(strategy.location))
-                    if s.startswith("datalab-snapshot-")
+                    if s.startswith(strategy.backup_filename_prefix)
                 ]
                 if len(existing_snapshots) > strategy.retention:
                     # Sort into reverse order then remove from the end of the list
