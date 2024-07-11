@@ -396,17 +396,16 @@ def _create_sample(
                 "negative_electrode",
                 "electrolyte",
             ):
-                if copied_doc.get(component):
-                    existing_consituent_ids = [
-                        constituent["item"].get("item_id", None)
-                        for constituent in copied_doc[component]
-                    ]
-                    copied_doc[component] += [
-                        constituent
-                        for constituent in sample_dict.get(component, [])
-                        if constituent["item"].get("item_id", None) is None
-                        or constituent["item"].get("item_id") not in existing_consituent_ids
-                    ]
+                existing_consituent_ids = [
+                    constituent["item"].get("item_id", None)
+                    for constituent in copied_doc[component]
+                ]
+                copied_doc[component] += [
+                    constituent
+                    for constituent in sample_dict.get(component, [])
+                    if constituent["item"].get("item_id", None) is None
+                    or constituent["item"].get("item_id") not in existing_consituent_ids
+                ]
 
             sample_dict = copied_doc
 
