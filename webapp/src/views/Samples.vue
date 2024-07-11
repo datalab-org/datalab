@@ -5,8 +5,8 @@
     <div class="row">
       <div class="col-sm-12 mx-auto mb-3">
         <button class="btn btn-default" @click="createItemModalIsOpen = true">Add an item</button>
-        <button class="btn btn-default ml-2" @click="batchCreateSampleModalIsOpen = true">
-          Add batch of samples
+        <button class="btn btn-default ml-2" @click="batchCreateItemModalIsOpen = true">
+          Add batch of items
         </button>
       </div>
     </div>
@@ -17,14 +17,14 @@
     </div>
   </div>
   <CreateItemModal v-model="createItemModalIsOpen" :allowed-types="allowedTypes" />
-  <BatchCreateSampleModal v-model="batchCreateSampleModalIsOpen" />
+  <BatchCreateItemModal v-model="batchCreateItemModalIsOpen" />
 </template>
 
 <script>
 import Navbar from "@/components/Navbar";
 import SampleTable from "@/components/SampleTable";
 import CreateItemModal from "@/components/CreateItemModal";
-import BatchCreateSampleModal from "@/components/BatchCreateSampleModal";
+import BatchCreateItemModal from "@/components/BatchCreateItemModal";
 import { SAMPLE_TABLE_TYPES } from "@/resources.js";
 
 export default {
@@ -33,12 +33,12 @@ export default {
     Navbar,
     SampleTable,
     CreateItemModal,
-    BatchCreateSampleModal,
+    BatchCreateItemModal,
   },
   data() {
     return {
       createItemModalIsOpen: false,
-      batchCreateSampleModalIsOpen: false,
+      batchCreateItemModalIsOpen: false,
       allowedTypes: SAMPLE_TABLE_TYPES,
     };
   },
