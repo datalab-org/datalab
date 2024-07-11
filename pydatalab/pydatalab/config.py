@@ -1,3 +1,4 @@
+import datetime
 import hashlib
 import json
 import logging
@@ -63,6 +64,25 @@ class DeploymentMetadata(BaseModel):
 
     class Config:
         extra = "allow"
+
+
+class BackupHealth(BaseModel):
+    location: str | None
+    stats: dict
+    size_gb: float
+    timestamp: datetime.datetime
+
+
+class BackupHealthCheck(BaseModel):
+    status: str
+    message: str
+    trigger_url: str
+    last_backup_timestamp: datetime.datetime
+    last_backup_size_gb: float
+    used_space_gb: float
+    num_backups: int
+    free_space_gb: float
+    backups: list[BackupHealth]
 
 
 class BackupStrategy(BaseModel):

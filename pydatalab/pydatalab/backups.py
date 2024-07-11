@@ -5,7 +5,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-from pydatalab.config import CONFIG, BackupStrategy
+from pydatalab.config import CONFIG, BackupHealth, BackupHealthCheck, BackupStrategy
 from pydatalab.logger import LOGGER
 
 
@@ -204,3 +204,41 @@ def create_backup(strategy: BackupStrategy) -> bool:
             sftp.put(snapshot_path, str(strategy.location / snapshot_name), confirm=True)
 
     return True
+
+
+def backup_healthcheck(strategy: BackupStrategy) -> BackupHealthCheck:
+    """Check the health of the backup strategy.
+
+    Loop over the location where backups have been written and assess
+    their health and the health of the disk.
+
+    Assumes any folders gz files in the backup directory are backups for
+    the given strategy.
+
+    Returns:
+        A dictionary used to create the backup healthcheck response.
+
+    """
+
+    backup_files = strategy.location.glob(f"{strategy.backup_filename_prefix}-*.gz")
+    if not backup_files:
+        raise RuntimeError(f"No backups found with strategy: {strategy}")
+
+    backups: list[BackupHealth] = []
+    for file in backup_files:
+        backup_timestamp = datetime.datetime.strptime(
+            file.name.split(strategy.backup_filename_prefix + "-")[1], "%Y-%m-%d-%H-%M-%S"
+        )
+        backup_health = BackupHealth(
+            location=str(file.absolute()),
+            size_gb=file.stat().st_size / 1e9,
+            timestamp=backup_timestamp,
+        )
+
+        backups.append(backup_health)
+
+    return BackupHealthCheck(
+        status="success",
+        message=f"Found {len(backups)} backups.",
+        backups=backups,
+    )
