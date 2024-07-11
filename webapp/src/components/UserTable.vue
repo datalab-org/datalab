@@ -130,6 +130,7 @@ export default {
     },
     async updateUserStatus(user_id, status) {
       await saveUser(user_id, { account_status: status });
+      this.users = JSON.parse(JSON.stringify(getUsersList()));
       this.original_users = JSON.parse(JSON.stringify(this.users));
     },
   },
