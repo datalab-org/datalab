@@ -7,6 +7,7 @@ module.exports = {
   extends: [
     "plugin:vue/vue3-recommended",
     "eslint:recommended",
+    "plugin:prettier/recommended",
     "@vue/prettier",
     "plugin:cypress/recommended",
   ],
@@ -29,5 +30,6 @@ module.exports = {
     "cypress/no-assigning-return-values": "warn",
     "cypress/no-unnecessary-waiting": "warn",
     "cypress/unsafe-to-chain-command": "warn",
+    "prettier/prettier": "error",
   },
 };
