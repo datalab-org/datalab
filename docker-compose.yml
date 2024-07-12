@@ -1,3 +1,4 @@
+name: datalab
 services:
   app:
     profiles: ["prod"]
