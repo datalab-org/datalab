@@ -91,18 +91,15 @@ Cypress.Commands.add("deleteSampleViaAPI", (item_id) => {
   });
 });
 
-Cypress.Commands.add(
-  "searchAndSelectItem",
-  (search_text, selector, clickPlus = false) => {
-    // searches in the dropdown for the first real item with the given name, looking for a badge
-    // if clickPlus, then also click the add row button before looking for the search bar
-    if (clickPlus) {
-      cy.get("#synthesis-information svg.add-row-button").click();
-    }
-    cy.get(selector).first().type(search_text);
-    cy.get(".vs__dropdown-menu").contains(".badge", search_text).click();
-  },
-);
+Cypress.Commands.add("searchAndSelectItem", (search_text, selector, clickPlus = false) => {
+  // searches in the dropdown for the first real item with the given name, looking for a badge
+  // if clickPlus, then also click the add row button before looking for the search bar
+  if (clickPlus) {
+    cy.get("#synthesis-information svg.add-row-button").click();
+  }
+  cy.get(selector).first().type(search_text);
+  cy.get(".vs__dropdown-menu").contains(".badge", search_text).click();
+});
 
 Cypress.Commands.add("createEquipment", (item_id, name = null, date = null) => {
   cy.findByText("Add an item").click();
