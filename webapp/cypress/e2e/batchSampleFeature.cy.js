@@ -1,6 +1,7 @@
 const API_URL = Cypress.config("apiUrl");
 console.log(API_URL);
 
+// eslint-disable-next-line no-unused-vars
 let consoleSpy; // keeps track of every time an error is written to the console
 Cypress.on("window:before:load", (win) => {
   consoleSpy = cy.spy(win.console, "error");

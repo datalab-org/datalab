@@ -40,7 +40,7 @@ describe("Equipment table page", () => {
     // time to respond.
     // Can we wait for the server response instead of hard-coding
     // a wait time in ms?
-    cy.wait(100).then((x) => {
+    cy.wait(100).then(() => {
       cy.contains("Server Error. Equipment list could not be retreived.").should("not.exist");
       expect(consoleSpy).not.to.be.called;
     });
