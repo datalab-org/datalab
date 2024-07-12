@@ -49,7 +49,7 @@ def _check_feature_flags(app):
             )
             FEATURE_FLAGS.email_notifications = False
 
-        if CONFIG.EMAIL_DOMAIN_ALLOW_LIST:
+        if CONFIG.EMAIL_DOMAIN_ALLOW_LIST and FEATURE_FLAGS.email_notifications:
             FEATURE_FLAGS.auth_mechanisms.email = True
         else:
             LOGGER.warning(
