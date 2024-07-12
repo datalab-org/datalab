@@ -29,20 +29,30 @@
       <!-- v-model:expandedRows="expandedRows" -->
 
       <template #header>
-        <div class="button-group">
-          <Button
-            label="Delete selected..."
-            @click="deleteSelectedItems"
-            severity="danger"
-            text
-            raised
-          ></Button>
-          <IconField>
-            <InputIcon>
-              <i class="pi pi-search"></i>
-            </InputIcon>
-            <InputText v-model="filters['global'].value" placeholder="Search" />
-          </IconField>
+        <div class="button-group d-flex justify-content-between align-items-center">
+          <div class="button-left">
+            <button class="btn btn-default" @click="createItemModalIsOpen = true">
+              Add an item
+            </button>
+            <button class="btn btn-default ml-2" @click="batchCreateSampleModalIsOpen = true">
+              Add batch of samples
+            </button>
+          </div>
+          <div class="button-right d-flex">
+            <Button
+              label="Delete selected..."
+              @click="deleteSelectedItems"
+              severity="danger"
+              text
+              raised
+            ></Button>
+            <IconField class="ml-2">
+              <InputIcon>
+                <i class="pi pi-search"></i>
+              </InputIcon>
+              <InputText v-model="filters['global'].value" placeholder="Search" />
+            </IconField>
+          </div>
         </div>
       </template>
       <template #empty> No samples found. </template>
@@ -118,9 +128,14 @@
       </template> -->
     </DataTable>
   </div>
+  <CreateItemModal v-model="createItemModalIsOpen" />
+  <BatchCreateSampleModal v-model="batchCreateSampleModalIsOpen" />
 </template>
 
 <script>
+import CreateItemModal from "@/components/CreateItemModal";
+import BatchCreateSampleModal from "@/components/BatchCreateSampleModal";
+
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
 import Button from "primevue/button";
@@ -138,6 +153,8 @@ import Creators from "@/components/Creators";
 
 export default {
   components: {
+    CreateItemModal,
+    BatchCreateSampleModal,
     DataTable,
     Column,
     Button,
@@ -151,6 +168,8 @@ export default {
   },
   data() {
     return {
+      createItemModalIsOpen: false,
+      batchCreateSampleModalIsOpen: false,
       isSampleFetchError: false,
       itemsSelected: [],
       expandedRows: [],
@@ -245,12 +264,6 @@ export default {
 <style>
 .customize-table .ag-header {
   font-size: 1rem;
-}
-
-.button-group {
-  display: flex;
-  justify-content: flex-end;
-  gap: 1em;
 }
 
 .p-datatable-column-header-content .p-datatable-sort-icon {

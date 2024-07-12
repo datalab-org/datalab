@@ -3,42 +3,22 @@
 
   <div id="tableContainer" class="container">
     <div class="row">
-      <div class="col-sm-12 mx-auto mb-3">
-        <button class="btn btn-default" @click="createItemModalIsOpen = true">Add an item</button>
-        <button class="btn btn-default ml-2" @click="batchCreateSampleModalIsOpen = true">
-          Add batch of samples
-        </button>
-      </div>
-    </div>
-    <div class="row">
       <div class="col-sm-12 mx-auto">
         <SampleTablePrime />
       </div>
     </div>
   </div>
-  <CreateItemModal v-model="createItemModalIsOpen" />
-  <BatchCreateSampleModal v-model="batchCreateSampleModalIsOpen" />
 </template>
 
 <script>
 import Navbar from "@/components/Navbar";
 import SampleTablePrime from "@/components/SampleTablePrime";
-import CreateItemModal from "@/components/CreateItemModal";
-import BatchCreateSampleModal from "@/components/BatchCreateSampleModal";
 
 export default {
   name: "Samples",
-  data() {
-    return {
-      createItemModalIsOpen: false,
-      batchCreateSampleModalIsOpen: false,
-    };
-  },
   components: {
     Navbar,
     SampleTablePrime,
-    CreateItemModal,
-    BatchCreateSampleModal,
   },
 };
 </script>
