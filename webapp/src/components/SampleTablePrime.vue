@@ -7,27 +7,27 @@
     <DataTable
       v-model:filters="filters"
       v-model:selection="itemsSelected"
-      v-model:expandedRows="expandedRows"
       v-on:filter="onFilter"
       :value="samples"
       paginator
       :rows="10"
       :rowsPerPageOptions="[10, 20, 50, 100]"
       filterDisplay="menu"
-      :loading="loading"
       :globalFilterFields="[
         'item_id',
         'type',
         'name',
         'chemform',
-        'date',
         'collectionsList',
         'creatorsList',
         'nblocks',
       ]"
       removableSort
       sortMode="multiple"
+      @row-click="goToEditPage"
     >
+      <!-- v-model:expandedRows="expandedRows" -->
+
       <template #header>
         <div class="button-group">
           <Button
@@ -43,21 +43,13 @@
             </InputIcon>
             <InputText v-model="filters['global'].value" placeholder="Search" />
           </IconField>
-          <!-- <MultiSelect
-            v-model="selectedColumns"
-            :options="availableColumns"
-            option-label="header"
-            option-value="field"
-            placeholder="Select columns"
-            multiple
-          /> -->
         </div>
       </template>
       <template #empty> No samples found. </template>
       <template #loading> Loading samples data. Please wait. </template>
 
       <Column selectionMode="multiple"></Column>
-      <Column expander style="width: 5rem" />
+      <!-- <Column expander style="width: 5rem" /> -->
       <Column field="item_id" header="ID" sortable>
         <template #body="slotProps">
           <FormattedItemName
@@ -66,19 +58,16 @@
             enableClick
           />
         </template>
-        <template #filter="{ filterModel, filterCallback }">
-          <InputText
-            v-model="filterModel.value"
-            type="text"
-            @input="filterCallback()"
-            placeholder="Search by ID"
-          />
+        <template #filter="{ filterModel }">
+          <InputText v-model="filterModel.value" type="text" placeholder="Search by ID" />
         </template>
-        <template> <InputText v-model="filterModel.value" type="text" /> </template>
       </Column>
       <Column field="type" header="Type" sortable>
         <template>
           <InputText v-model="filterModel.value" type="text" />
+        </template>
+        <template #filter="{ filterModel }">
+          <InputText v-model="filterModel.value" type="text" placeholder="Search by type" />
         </template>
       </Column>
       <Column field="name" header="Sample name" sortable>
@@ -122,11 +111,11 @@
         <template> <InputText v-model="filterModel.value" type="text" /> </template
       ></Column>
 
-      <template #expansion="slotProps">
+      <!-- <template #expansion="slotProps">
         <div class="p-4">
           <h5>Test Expandable {{ slotProps.data.item_id }}</h5>
         </div>
-      </template>
+      </template> -->
     </DataTable>
   </div>
 </template>
@@ -135,11 +124,10 @@
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
 import Button from "primevue/button";
-// import MultiSelect from "primevue/multiselect";
 import IconField from "primevue/iconfield";
 import InputIcon from "primevue/inputicon";
 import InputText from "primevue/inputtext";
-import { FilterMatchMode } from "@primevue/core/api";
+import { FilterMatchMode, FilterOperator } from "@primevue/core/api";
 import "primeicons/primeicons.css";
 
 import { getSampleList, deleteSample } from "@/server_fetch_utils.js";
@@ -153,7 +141,6 @@ export default {
     DataTable,
     Column,
     Button,
-    // MultiSelect,
     IconField,
     InputIcon,
     InputText,
@@ -180,26 +167,16 @@ export default {
         { field: "creators", header: "Creators" },
         { field: "nblocks", header: "# of blocks" },
       ],
-      selectedColumns: [
-        "item_id",
-        "type",
-        "name",
-        "chemform",
-        "date",
-        "collections",
-        "creators",
-        "nblocks",
-      ],
       filters: {
         global: { value: null },
-        item_id: { value: null, matchMode: FilterMatchMode.CONTAINS },
-        type: { value: null },
-        name: { value: null },
-        chemform: { value: null },
-        date: { value: null },
-        collections: { value: null },
-        creators: { value: null },
-        nblocks: { value: null },
+        item_id: {
+          operator: FilterOperator.AND,
+          constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
+        },
+        type: {
+          operator: null,
+          constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
+        },
       },
     };
   },
@@ -219,10 +196,13 @@ export default {
     onFilter: function (event) {
       console.log(event.filteredValue);
     },
-    goToEditPage(params) {
-      const row = params.data;
-      const event = params.event;
-      if (event.ctrlKey || event.metaKey || event.altKey) {
+    goToEditPage(event) {
+      const row = event.data;
+      if (
+        event.originalEvent.ctrlKey ||
+        event.originalEvent.metaKey ||
+        event.originalEvent.altKey
+      ) {
         window.open(`/edit/${row.item_id}`, "_blank");
       } else {
         this.$router.push(`/edit/${row.item_id}`);
@@ -271,5 +251,12 @@ export default {
   display: flex;
   justify-content: flex-end;
   gap: 1em;
+}
+
+.p-datatable-column-header-content .p-datatable-sort-icon {
+  visibility: hidden !important;
+}
+.p-datatable-column-header-content:hover .p-datatable-sort-icon {
+  visibility: visible !important;
 }
 </style>
