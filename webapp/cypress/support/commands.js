@@ -93,7 +93,7 @@ Cypress.Commands.add("deleteSampleViaAPI", (item_id) => {
 
 Cypress.Commands.add(
   "searchAndSelectItem",
-  (search_text, selector, clickPlus = false, delay = 100) => {
+  (search_text, selector, clickPlus = false) => {
     // searches in the dropdown for the first real item with the given name, looking for a badge
     // if clickPlus, then also click the add row button before looking for the search bar
     if (clickPlus) {
