@@ -26,7 +26,7 @@ ENV FLASK_APP "pydatalab.main:create_app()"
 ENV FLASK_ENV "development"
 ENV PORT=5001
 
-CMD ["/bin/bash", "-c", "pipenv run flask run --port ${PORT} --host 0.0.0.0"]
+CMD ["/bin/bash", "-c", "pipenv run flask run --reload --port ${PORT} --host 0.0.0.0"]
 
 # Create production image using gunicorn and minimal dependencies
 FROM app as production
