@@ -2,10 +2,23 @@ module.exports = {
   root: true,
   env: {
     node: true,
+    "cypress/globals": true,
   },
-  extends: ["plugin:vue/vue3-recommended", "eslint:recommended", "@vue/prettier"],
+  extends: [
+    "plugin:vue/vue3-recommended",
+    "eslint:recommended",
+    "@vue/prettier",
+    "plugin:cypress/recommended",
+  ],
   parserOptions: {
     parser: "@babel/eslint-parser",
+    requireConfigFile: false,
+    babelOptions: {
+      babelrc: false,
+      configFile: false,
+      presets: ["@vue/cli-plugin-babel/preset"],
+      plugins: ["@babel/plugin-transform-export-namespace-from"],
+    },
   },
   rules: {
     //"no-console": process.env.NODE_ENV === "production" ? "warn" : "off",
@@ -13,13 +26,8 @@ module.exports = {
     "vue/multi-word-component-names": "off",
     // Rule disable for item_id, block_id and collection_id
     "vue/prop-name-casing": "off",
+    "cypress/no-assigning-return-values": "warn",
+    "cypress/no-unnecessary-waiting": "warn",
+    "cypress/unsafe-to-chain-command": "warn",
   },
-  overrides: [
-    {
-      files: ["**/__tests__/*.{j,t}s?(x)", "**/tests/unit/**/*.spec.{j,t}s?(x)"],
-      env: {
-        jest: true,
-      },
-    },
-  ],
 };
