@@ -16,7 +16,7 @@ from pydatalab.models.items import Item
 from pydatalab.models.relationships import RelationshipType
 from pydatalab.models.utils import generate_unique_refcode
 from pydatalab.mongo import flask_mongo
-from pydatalab.permissions import active_users_or_get_only, get_default_permissions
+from pydatalab.permissions import PUBLIC_USER_ID, active_users_or_get_only, get_default_permissions
 
 ITEMS = Blueprint("items", __name__)
 
@@ -423,10 +423,10 @@ def _create_sample(
         )
 
     sample_dict.pop("refcode", None)
-    type = sample_dict["type"]
-    if type not in ITEM_MODELS:
+    type_ = sample_dict["type"]
+    if type_ not in ITEM_MODELS:
         raise RuntimeError("Invalid type")
-    model = ITEM_MODELS[type]
+    model = ITEM_MODELS[type_]
 
     ## the following code was used previously to explicitely check schema properties.
     ## it doesn't seem to be necessary now, with extra = "ignore" turned on in the pydantic models,
@@ -436,7 +436,7 @@ def _create_sample(
     # new_sample = {k: sample_dict[k] for k in schema["properties"] if k in sample_dict}
     new_sample = sample_dict
 
-    if type in ("starting_materials", "equipment"):
+    if type_ in ("starting_materials", "equipment"):
         # starting_materials and equipment are open to all in the deploment at this point,
         # so no creators are assigned
         new_sample["creator_ids"] = []
@@ -444,7 +444,7 @@ def _create_sample(
     elif CONFIG.TESTING:
         # Set fake ID to ObjectId("000000000000000000000000") so a dummy user can be created
         # locally for testing creator UI elements
-        new_sample["creator_ids"] = [24 * "0"]
+        new_sample["creator_ids"] = [PUBLIC_USER_ID]
         new_sample["creators"] = [
             {
                 "display_name": "Public testing user",
