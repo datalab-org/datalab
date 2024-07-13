@@ -52,7 +52,9 @@ repos:
           - "@babel/core@7.24.8"
           - "@babel/eslint-parser@7.24.8"
           - "@babel/plugin-transform-export-namespace-from@7.24.7"
-        types_or: [javascript, jsx, vue, html, yaml]
+        types: [file]
+        files: \.(js|jsx|ts|tsx|vue)$
+        args: [--fix]
 
   - repo: https://github.com/asottile/pyupgrade
     rev: v3.16.0
