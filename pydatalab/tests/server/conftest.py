@@ -215,7 +215,7 @@ def user_id():
 
 @pytest.fixture(scope="session")
 def admin_user_id():
-    yield ObjectId(24 * "0")
+    yield ObjectId(24 * "8")
 
 
 @pytest.fixture(scope="session")
@@ -348,7 +348,6 @@ def fixture_default_starting_material(admin_user_id):
             "location": "SR1 room 22",
             "GHS_codes": "H303, H316, H319",
             "type": "starting_materials",
-            "creator_ids": [admin_user_id],
         }
     )
 
@@ -509,10 +508,42 @@ def fixture_default_equipment_dict(default_equipment):
     return default_equipment.dict(exclude_unset=True)
 
 
-@pytest.fixture(scope="module", name="insert_default_sample")
-def fixture_insert_default_sample(default_sample):
+def _insert_and_cleanup_item_from_model(model):
+    from pydatalab.models.utils import generate_unique_refcode
     from pydatalab.mongo import flask_mongo
 
-    flask_mongo.db.items.insert_one(default_sample.dict(exclude_unset=False))
-    yield
-    flask_mongo.db.items.delete_one({"item_id": default_sample.item_id})
+    refcode = generate_unique_refcode()
+    model.refcode = refcode
+    flask_mongo.db.items.insert_one(model.dict(exclude_unset=False))
+    yield model
+    flask_mongo.db.items.delete_one({"refcode": model.refcode})
+
+
+@pytest.fixture(scope="module", name="insert_default_sample")
+def fixture_insert_default_sample(default_sample):
+    yield from _insert_and_cleanup_item_from_model(default_sample)
+
+
+@pytest.fixture(scope="module", name="insert_default_cell")
+def fixture_insert_default_cell(default_cell):
+    yield from _insert_and_cleanup_item_from_model(default_cell)
+
+
+@pytest.fixture(scope="module", name="insert_default_starting_material")
+def fixture_insert_default_starting_material(default_starting_material):
+    yield from _insert_and_cleanup_item_from_model(default_starting_material)
+
+
+@pytest.fixture(scope="module", name="insert_default_equipment")
+def fixture_insert_default_equipment(default_equipment):
+    yield from _insert_and_cleanup_item_from_model(default_equipment)
+
+
+@pytest.fixture(scope="module", name="inserted_default_items")
+def fixture_inserted_default_items(
+    insert_default_sample,
+    insert_default_cell,
+    insert_default_starting_material,
+    insert_default_equipment,
+):
+    return [insert_default_sample, insert_default_cell, insert_default_starting_material]

@@ -630,8 +630,12 @@ def delete_sample():
     )
 
 
+@ITEMS.route("/items/by-refcode/<refcode>", methods=["GET"])
+@ITEMS.route("/items/by-id/<item_id>", methods=["GET"])
 @ITEMS.route("/get-item-data/<item_id>", methods=["GET"])
-def get_item_data(item_id, load_blocks: bool = False):
+def get_item_data(
+    item_id: str | None = None, refcode: str | None = None, load_blocks: bool = False
+):
     """Generates a JSON response for the item with the given `item_id`,
     additionally resolving relationships to files and other items.
 
@@ -642,12 +646,30 @@ def get_item_data(item_id, load_blocks: bool = False):
 
     """
 
+    if item_id:
+        match = {"item_id": item_id}
+    elif refcode:
+        if not len(refcode.split(":")) == 2:
+            refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
+
+        match = {"refcode": refcode}
+    else:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "No item_id or refcode provided.",
+                }
+            ),
+            400,
+        )
+
     # retrieve the entry from the database:
     cursor = flask_mongo.db.items.aggregate(
         [
             {
                 "$match": {
-                    "item_id": item_id,
+                    **match,
                     **get_default_permissions(user_only=False),
                 }
             },
@@ -671,7 +693,7 @@ def get_item_data(item_id, load_blocks: bool = False):
             jsonify(
                 {
                     "status": "error",
-                    "message": f"No matching item {item_id=} with current authorization.",
+                    "message": f"No matching items for {match=} with current authorization.",
                 }
             ),
             404,
