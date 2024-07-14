@@ -192,7 +192,7 @@
                 <thead>
                   <tr class="subheading">
                     <th style="width: calc(12%)">ID</th>
-                    <th>Name</th>
+                    <th style="width: calc(25%)">Name</th>
                     <th style="width: calc(15%)">Date</th>
                     <th style="width: calc(22%)">Copy from</th>
                     <th style="width: calc(22%) - 2rem">Components</th>
