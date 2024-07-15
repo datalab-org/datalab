@@ -50,9 +50,9 @@ class DeploymentMetadata(BaseModel):
     """A model for specifying metadata about a datalab deployment."""
 
     maintainer: Optional[Person]
-    issue_tracker: Optional[AnyUrl] = Field("https://github.com/the-grey-group/datalab/issues")
+    issue_tracker: Optional[AnyUrl] = Field("https://github.com/datalab-org/datalab/issues")
     homepage: Optional[AnyUrl]
-    source_repository: Optional[AnyUrl] = Field("https://github.com/the-grey-group/datalab")
+    source_repository: Optional[AnyUrl] = Field("https://github.com/datalab-org/datalab")
 
     @validator("maintainer")
     def strip_fields_from_person(cls, v):

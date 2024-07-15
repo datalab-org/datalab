@@ -16,7 +16,7 @@ This repository consists of two components:
 
 To run *datalab*, you will need to install the environments for each component.
 
-Firstly, from the desired folder, clone this repository from GitHub to your local machine with `git clone https://github.com/the-grey-group/datalab`.
+Firstly, from the desired folder, clone this repository from GitHub to your local machine with `git clone https://github.com/datalab-org/datalab`.
 
 ### `pydatalab` server installation
 
