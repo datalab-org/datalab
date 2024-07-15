@@ -9,8 +9,8 @@
 
         <p>
           datalab is open source (MIT license) and development occurs on GitHub at
-          <a href="https://github.com/the-grey-group/datalab"
-            ><font-awesome-icon :icon="['fab', 'github']" />&nbsp;the-grey-group/datalab</a
+          <a href="https://github.com/datalab-org/datalab"
+            ><font-awesome-icon :icon="['fab', 'github']" />&nbsp;datalab-org/datalab</a
           >
           with documentation available on
           <a href="https://the-datalab.readthedocs.io"

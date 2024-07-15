@@ -52,7 +52,7 @@ The following shell snippets will download *datalab* and launch containers on th
 Clone and enter the repository, if not done already
 
 ```shell
-git clone git@github.com:the-grey-group/datalab; cd datalab
+git clone git@github.com:datalab-org/datalab; cd datalab
 ```
 
 Build the development containers:
@@ -111,7 +111,7 @@ The process may look something like the following:
 
 - Add *datalab* as a [Git submodule](https://git-scm.com/book/en/v2/Git-Tools-Submodules):
   ```shell
-  git submodule add git@github.com:the-grey-group/datalab
+  git submodule add git@github.com:datalab-org/datalab
   cd datalab; git checkout v0.4.0  # at this point you can set any default version, or just track the main branch
   git commit -a -m "Add datalab as submodule"
   ```
@@ -174,7 +174,7 @@ If not using the above approach, then the process will still be similar.
 You must somehow download the latest *datalab* changes to your server (ideally with `git`) and then rebuild and relaunch the relevant Docker containers.
 
 !!! warning Understand the CHANGELOG before updating
-    You **should** read the *datalab* CHANGELOG and [release notes](https://github.com/the-grey-group/datalab/releases) before deciding to update.
+    You **should** read the *datalab* CHANGELOG and [release notes](https://github.com/datalab-org/datalab/releases) before deciding to update.
     These may contain specific instructions on required migrations or other steps required in the future that are not covered by this current state
     of the documentation.
 
@@ -216,7 +216,7 @@ In the future, many admin tasks (e.g., updating user info, allowing/blocking use
 One such `invoke` task implements the ingestion of a [ChemInventory](https://cheminventory.net) chemical inventory into *datalab*.
 It relies on the Excel export feature of ChemInventory and is achieved with `invoke admin.import-cheminventory <filename>`.
 If a future export is made and reimported, the old entries will be kept and updated, rather than overwritten.
-*datalab* currently has no functionality for chemical inventory management itself; if you wish to support importing from another inventory system, please [raise an issue](https://github.com/the-grey-group/datalab/issues/new).
+*datalab* currently has no functionality for chemical inventory management itself; if you wish to support importing from another inventory system, please [raise an issue](https://github.com/datalab-org/datalab/issues/new).
 
 ### Backups
 
