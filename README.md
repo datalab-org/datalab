@@ -5,12 +5,12 @@
 </div>
 
 <div align="center">
-<a href="https://github.com/the-grey-group/datalab/releases"><img src="https://badgen.net/github/release/the-grey-group/datalab?icon=github&color=blue"></a>
-<a href="https://github.com/the-grey-group/datalab#MIT-1-ov-file"><img src="https://badgen.net/github/license/the-grey-group/datalab?icon=license&color=purple"></a>
+<a href="https://github.com/datalab-org/datalab/releases"><img src="https://badgen.net/github/release/datalab-org/datalab?icon=github&color=blue"></a>
+<a href="https://github.com/datalab-org/datalab#MIT-1-ov-file"><img src="https://badgen.net/github/license/datalab-org/datalab?icon=license&color=purple"></a>
 </div>
 
 <div align="center">
-<a href="https://github.com/the-grey-group/datalab/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/the-grey-group/datalab/ci.yml?logo=github"></a>
+<a href="https://github.com/datalab-org/datalab/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/datalab-org/datalab/ci.yml?logo=github"></a>
 <a href="https://cloud.cypress.io/projects/4kqx5i/runs"><img src="https://img.shields.io/endpoint?url=https://cloud.cypress.io/badge/simple/4kqx5i/main&style=flat&logo=cypress"></a>
 <a href="https://the-datalab.readthedocs.io/en/latest/?badge=latest"><img src="https://img.shields.io/readthedocs/the-datalab?logo=readthedocs"></a>
 </div>
@@ -40,7 +40,7 @@ in the Department of Chemistry at the University of Cambridge.
 
 
 <div align="center">
-<video width="400" controls src="https://github.com/the-grey-group/datalab/assets/7916000/0065cdd6-a5f0-4391-b192-0137fe208acc">
+<video width="400" controls src="https://github.com/datalab-org/datalab/assets/7916000/0065cdd6-a5f0-4391-b192-0137fe208acc">
 </video>
 </div>
 
@@ -96,7 +96,7 @@ This software was conceived and developed by:
 
 with contributions and testing performed by other members of the Grey Group.
 
-A full list of code contributions can be found on [GitHub](https://github.com/the-grey-group/datalab/graphs/contributors).
+A full list of code contributions can be found on [GitHub](https://github.com/datalab-org/datalab/graphs/contributors).
 
 ## Contact
 
