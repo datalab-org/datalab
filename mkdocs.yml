@@ -32,15 +32,15 @@ theme:
     features:
       - content.code.copy
 
-repo_name: the-grey-group/datalab
-repo_url: https://github.com/the-grey-group/datalab
+repo_name: datalab-org/datalab
+repo_url: https://github.com/datalab-org/datalab
 
 docs_dir: "pydatalab/docs"
 
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/the-grey-group
+      link: https://github.com/datalab-org
 
 markdown_extensions:
   - admonition
