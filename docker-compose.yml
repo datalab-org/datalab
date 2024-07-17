@@ -8,7 +8,7 @@ services:
       target: production
     volumes:
       - ./logs:/logs
-    restart: always
+    restart: unless-stopped
     environment:
       - VUE_APP_API_URL
       - VUE_APP_LOGO_URL
@@ -39,7 +39,7 @@ services:
         - WEB_CONCURRENCY=4
     depends_on:
       - database
-    restart: always
+    restart: unless-stopped
     volumes:
       - ./logs:/logs
       - /data/files:/app/files
@@ -76,7 +76,7 @@ services:
       dockerfile: .docker/mongo_dockerfile
     volumes:
       - ./logs:/var/logs/mongod
-    restart: always
+    restart: unless-stopped
     networks:
       - backend
     ports:
@@ -90,7 +90,7 @@ services:
     volumes:
       - ./logs:/var/logs/mongod
       - /data/db:/data/db
-    restart: always
+    restart: unless-stopped
     networks:
       - backend
 
