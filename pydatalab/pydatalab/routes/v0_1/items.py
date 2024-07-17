@@ -630,14 +630,13 @@ def delete_sample():
     )
 
 
-@ITEMS.route("/items/by-refcode/<refcode>", methods=["GET"])
-@ITEMS.route("/items/by-id/<item_id>", methods=["GET"])
+@ITEMS.route("/items/<refcode>", methods=["GET"])
 @ITEMS.route("/get-item-data/<item_id>", methods=["GET"])
 def get_item_data(
     item_id: str | None = None, refcode: str | None = None, load_blocks: bool = False
 ):
     """Generates a JSON response for the item with the given `item_id`,
-    additionally resolving relationships to files and other items.
+    or `refcode` additionally resolving relationships to files and other items.
 
     Parameters:
        load_blocks: Whether to regenerate any data blocks associated with this
