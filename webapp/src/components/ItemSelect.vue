@@ -52,7 +52,7 @@ export default {
   },
   props: {
     modelValue: {
-      type: [String, Array],
+      type: [String, Array], // Array only if "multiple" is specified
       default: "",
     },
     formattedItemNameMaxLength: {
