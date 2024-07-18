@@ -1,4 +1,4 @@
-FROM mongo:3.6-xenial
+FROM mongo:7.0-jammy
 
 COPY .docker/mongod.conf /etc/mongod.conf
 EXPOSE 27017
