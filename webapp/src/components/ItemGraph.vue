@@ -44,6 +44,18 @@
 
       <label for="ignore-collections">Ignore connections to collections:</label>
       <CollectionSelect id="ignore-collections" v-model="ignoreCollections" multiple />
+
+      <div class="form-group form-check mt-3 checkbox-group">
+        <input
+          id="label-starting-materials-by-name"
+          v-model="labelStartingMaterialsByName"
+          class="form-check-input"
+          type="checkbox"
+        />
+        <label class="form-check-label" for="label-starting-materials-by-name">
+          label starting materials by name</label
+        >
+      </div>
     </div>
   </div>
   <div id="cy" v-bind="$attrs" />
@@ -115,6 +127,7 @@ export default {
       optionsDisplayed: false,
       ignoreItems: [],
       ignoreCollections: [],
+      labelStartingMaterialsByName: true,
     };
   },
   computed: {
@@ -150,8 +163,11 @@ export default {
     ignoreCollections() {
       this.generateCyNetworkPlot();
     },
+    labelStartingMaterialsByName() {
+      this.generateCyNetworkPlot();
+    },
   },
-  async mounted() {
+  async created() {
     this.generateCyNetworkPlot();
   },
   methods: {
@@ -173,11 +189,15 @@ export default {
           {
             selector: "node",
             style: {
-              "background-color": "#11479e",
               label: "data(id)",
             },
           },
-
+          {
+            selector: 'node[type = "starting_materials"]',
+            style: {
+              label: this.labelStartingMaterialsByName ? "data(name)" : "data(id)",
+            },
+          },
           {
             selector: "edge",
             style: {
@@ -234,7 +254,8 @@ export default {
 </script>
 
 <style>
-.configure-button {
+.configure-button,
+.checkbox-group {
   position: relative;
   z-index: 99;
 }
