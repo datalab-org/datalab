@@ -1,37 +1,53 @@
 <template>
-  <div v-if="showOptions" class="dflex text-right">
-    <div class="btn-group mr-2" role="group">
-      <button
-        :class="graphStyle == 'elk-stress' ? 'btn btn-default active' : 'btn btn-default'"
-        @click="graphStyle = 'elk-stress'"
-      >
-        stress
-      </button>
-      <button
-        :class="graphStyle == 'cola' ? 'btn btn-default active' : 'btn btn-default'"
-        @click="graphStyle = 'cola'"
-      >
-        force
-      </button>
-      <button
-        :class="graphStyle == 'elk-layered-down' ? 'btn btn-default active' : 'btn btn-default'"
-        @click="graphStyle = 'elk-layered-down'"
-      >
-        horizontal
-      </button>
-      <button
-        :class="graphStyle == 'elk-layered-right' ? 'btn btn-default active' : 'btn btn-default'"
-        @click="graphStyle = 'elk-layered-right'"
-      >
-        vertical
-      </button>
+  <div v-if="showOptions">
+    <button
+      class="btn btn-default mr-5 mb-2 float-right configure-button"
+      @click="optionsDisplayed = !optionsDisplayed"
+    >
+      configure
+    </button>
+    <div
+      v-show="optionsDisplayed"
+      class="card card-body col-lg-4 col-md-5 col-sm-6"
+      style="float: right !important"
+    >
+      <label for="graph-style">Graph layout:</label>
+      <div id="graph-style" class="btn-group mr-2" role="group">
+        <button
+          :class="graphStyle == 'elk-stress' ? 'btn btn-default active' : 'btn btn-default'"
+          @click="graphStyle = 'elk-stress'"
+        >
+          stress
+        </button>
+        <button
+          :class="graphStyle == 'cola' ? 'btn btn-default active' : 'btn btn-default'"
+          @click="graphStyle = 'cola'"
+        >
+          force
+        </button>
+        <button
+          :class="graphStyle == 'elk-layered-down' ? 'btn btn-default active' : 'btn btn-default'"
+          @click="graphStyle = 'elk-layered-down'"
+        >
+          horizontal
+        </button>
+        <button
+          :class="graphStyle == 'elk-layered-right' ? 'btn btn-default active' : 'btn btn-default'"
+          @click="graphStyle = 'elk-layered-right'"
+        >
+          vertical
+        </button>
+      </div>
+
+      <label for="ignore-items">Ignore connections to items:</label>
+      <ItemSelect id="ignore-items" v-model="ignoreItems" multiple />
     </div>
   </div>
   <div id="cy" v-bind="$attrs" />
 </template>
 
 <script>
-// import { getItemGraph } from "@/server_fetch_utils.js";
+import ItemSelect from "@/components/ItemSelect.vue";
 import { itemTypes } from "@/resources.js";
 import cytoscape from "cytoscape";
 import dagre from "cytoscape-dagre";
@@ -70,6 +86,10 @@ const layoutOptions = {
 };
 
 export default {
+  name: "ItemGraph",
+  components: {
+    ItemSelect,
+  },
   props: {
     graphData: {
       type: Object,
@@ -87,7 +107,23 @@ export default {
   data() {
     return {
       graphStyle: this.defaultGraphStyle,
+      optionsDisplayed: false,
+      ignoreItems: [],
     };
+  },
+  computed: {
+    filteredGraphData() {
+      const ignoredItemIds = this.ignoreItems.map((d) => d.item_id);
+      return {
+        edges: this.graphData.edges.filter(
+          (edge) =>
+            !(
+              ignoredItemIds.includes(edge.data.source) || ignoredItemIds.includes(edge.data.target)
+            ),
+        ),
+        nodes: this.graphData.nodes,
+      };
+    },
   },
   watch: {
     graphData() {
@@ -95,6 +131,9 @@ export default {
     },
     graphStyle() {
       console.log("graphStyle changed");
+      this.generateCyNetworkPlot();
+    },
+    ignoreItems() {
       this.generateCyNetworkPlot();
     },
   },
@@ -108,7 +147,7 @@ export default {
       }
       var cy = cytoscape({
         container: document.getElementById("cy"),
-        elements: this.graphData,
+        elements: this.filteredGraphData,
         userPanningEnabled: true,
         minZoom: 0.5,
         maxZoom: 1,
@@ -181,6 +220,11 @@ export default {
 </script>
 
 <style>
+.configure-button {
+  position: relative;
+  z-index: 99;
+}
+
 #flex-container {
   flex-flow: column;
 }
