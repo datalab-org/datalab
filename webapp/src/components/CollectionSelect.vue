@@ -6,6 +6,7 @@
     multiple
     label="collection_id"
     :filterable="false"
+    placeholder="type to search..."
     @search="debouncedAsyncSearch"
   >
     <template #no-options="{ searching }">
