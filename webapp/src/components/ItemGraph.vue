@@ -41,6 +41,9 @@
 
       <label for="ignore-items">Ignore connections to items:</label>
       <ItemSelect id="ignore-items" v-model="ignoreItems" multiple />
+
+      <label for="ignore-collections">Ignore connections to collections:</label>
+      <CollectionSelect id="ignore-collections" v-model="ignoreCollections" multiple />
     </div>
   </div>
   <div id="cy" v-bind="$attrs" />
@@ -48,6 +51,7 @@
 
 <script>
 import ItemSelect from "@/components/ItemSelect.vue";
+import CollectionSelect from "@/components/CollectionSelect.vue";
 import { itemTypes } from "@/resources.js";
 import cytoscape from "cytoscape";
 import dagre from "cytoscape-dagre";
@@ -89,6 +93,7 @@ export default {
   name: "ItemGraph",
   components: {
     ItemSelect,
+    CollectionSelect,
   },
   props: {
     graphData: {
@@ -109,16 +114,22 @@ export default {
       graphStyle: this.defaultGraphStyle,
       optionsDisplayed: false,
       ignoreItems: [],
+      ignoreCollections: [],
     };
   },
   computed: {
     filteredGraphData() {
       const ignoredItemIds = this.ignoreItems.map((d) => d.item_id);
+      const ignoredCollectionIds = this.ignoreCollections.map(
+        (d) => `Collection: ${d.collection_id}`,
+      );
       return {
         edges: this.graphData.edges.filter(
           (edge) =>
             !(
-              ignoredItemIds.includes(edge.data.source) || ignoredItemIds.includes(edge.data.target)
+              ignoredItemIds.includes(edge.data.source) ||
+              ignoredItemIds.includes(edge.data.target) ||
+              ignoredCollectionIds.includes(edge.data.source)
             ),
         ),
         nodes: this.graphData.nodes,
@@ -134,6 +145,9 @@ export default {
       this.generateCyNetworkPlot();
     },
     ignoreItems() {
+      this.generateCyNetworkPlot();
+    },
+    ignoreCollections() {
       this.generateCyNetworkPlot();
     },
   },
