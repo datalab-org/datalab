@@ -1,16 +1,12 @@
 <template>
-  <div v-if="showOptions">
+  <div v-if="showOptions" class="options">
     <button
-      class="btn btn-default mr-5 mb-2 float-right configure-button"
+      class="btn btn-default mr-5 mb-2 dropdown-toggle"
       @click="optionsDisplayed = !optionsDisplayed"
     >
       configure
     </button>
-    <div
-      v-show="optionsDisplayed"
-      class="card card-body col-lg-4 col-md-5 col-sm-6"
-      style="float: right !important"
-    >
+    <div v-show="optionsDisplayed" class="card card-body dropdown-menu">
       <label for="graph-style">Graph layout:</label>
       <div id="graph-style" class="btn-group mr-2" role="group">
         <button
@@ -45,7 +41,7 @@
       <label for="ignore-collections">Ignore connections to collections:</label>
       <CollectionSelect id="ignore-collections" v-model="ignoreCollections" multiple />
 
-      <div class="form-group form-check mt-3 checkbox-group">
+      <div class="form-group form-check mt-3">
         <input
           id="label-starting-materials-by-name"
           v-model="labelStartingMaterialsByName"
@@ -253,20 +249,16 @@ export default {
 };
 </script>
 
-<style>
-.configure-button,
-.checkbox-group {
-  position: relative;
-  z-index: 99;
-}
-
-#flex-container {
-  flex-flow: column;
+<style scoped>
+.options {
+  position: absolute;
+  z-index: 10;
+  right: 2rem;
 }
 
 #cy {
   width: 100%;
-  height: 800px;
+  height: 90vh;
   /* display: block;*/
 }
 </style>
