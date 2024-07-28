@@ -7,13 +7,12 @@
     <DataTable
       v-model:filters="filters"
       v-model:selection="itemsSelected"
-      v-on:filter="onFilter"
       :value="samples"
       paginator
       :rows="10"
-      :rowsPerPageOptions="[10, 20, 50, 100]"
-      filterDisplay="menu"
-      :globalFilterFields="[
+      :rows-per-page-options="[10, 20, 50, 100]"
+      filter-display="menu"
+      :global-filter-fields="[
         'item_id',
         'type',
         'name',
@@ -22,8 +21,9 @@
         'creatorsList',
         'nblocks',
       ]"
-      removableSort
-      sortMode="multiple"
+      removable-sort
+      sort-mode="multiple"
+      @filter="onFilter"
       @row-click="goToEditPage"
     >
       <!-- v-model:expandedRows="expandedRows" -->
@@ -40,13 +40,22 @@
           </div>
           <div class="button-right d-flex">
             <Button
-              label="Delete selected..."
-              @click="deleteSelectedItems"
-              severity="danger"
+              v-if="itemsSelected.length > 0"
+              label="Add to collections..."
+              @click="addToCollectionsModalIsOpen = true"
+              severity="info"
               text
               raised
             ></Button>
-            <IconField class="ml-2">
+            <Button
+              v-if="itemsSelected.length > 0"
+              label="Delete selected..."
+              severity="danger"
+              text
+              raised
+              @click="deleteSelectedItems"
+            ></Button>
+            <IconField>
               <InputIcon>
                 <i class="pi pi-search"></i>
               </InputIcon>
@@ -58,18 +67,15 @@
       <template #empty> No samples found. </template>
       <template #loading> Loading samples data. Please wait. </template>
 
-      <Column selectionMode="multiple"></Column>
+      <Column selection-mode="multiple"></Column>
       <!-- <Column expander style="width: 5rem" /> -->
       <Column field="item_id" header="ID" sortable>
         <template #body="slotProps">
           <FormattedItemName
             :item_id="slotProps.data.item_id"
-            :itemType="slotProps.data.type"
-            enableClick
+            :item-type="slotProps.data.type"
+            enable-click
           />
-        </template>
-        <template #filter="{ filterModel }">
-          <InputText v-model="filterModel.value" type="text" placeholder="Search by ID" />
         </template>
       </Column>
       <Column field="type" header="Type" sortable>
@@ -77,7 +83,7 @@
           <InputText v-model="filterModel.value" type="text" />
         </template>
         <template #filter="{ filterModel }">
-          <InputText v-model="filterModel.value" type="text" placeholder="Search by type" />
+          <InputText v-model="filterModel.value" type="text" placeholder="Search by ID" />
         </template>
       </Column>
       <Column field="name" header="Sample name" sortable>
@@ -130,11 +136,13 @@
   </div>
   <CreateItemModal v-model="createItemModalIsOpen" />
   <BatchCreateSampleModal v-model="batchCreateSampleModalIsOpen" />
+  <AddToCollectionsModal v-model="addToCollectionsModalIsOpen" :itemsSelected="itemsSelected" />
 </template>
 
 <script>
 import CreateItemModal from "@/components/CreateItemModal";
 import BatchCreateSampleModal from "@/components/BatchCreateSampleModal";
+import AddToCollectionsModal from "@/components/AddToCollectionsModal";
 
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
@@ -155,6 +163,7 @@ export default {
   components: {
     CreateItemModal,
     BatchCreateSampleModal,
+    AddToCollectionsModal,
     DataTable,
     Column,
     Button,
@@ -170,6 +179,7 @@ export default {
     return {
       createItemModalIsOpen: false,
       batchCreateSampleModalIsOpen: false,
+      addToCollectionsModalIsOpen: false,
       isSampleFetchError: false,
       itemsSelected: [],
       expandedRows: [],
@@ -210,6 +220,9 @@ export default {
     samples() {
       return this.samplesWithComputedFields;
     },
+  },
+  mounted() {
+    this.getSamples();
   },
   methods: {
     onFilter: function (event) {
@@ -255,9 +268,6 @@ export default {
       }
     },
   },
-  mounted() {
-    this.getSamples();
-  },
 };
 </script>
 
@@ -271,5 +281,8 @@ export default {
 }
 .p-datatable-column-header-content:hover .p-datatable-sort-icon {
   visibility: visible !important;
+}
+.button-right {
+  gap: 0.5em;
 }
 </style>
