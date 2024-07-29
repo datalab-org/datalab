@@ -9,6 +9,7 @@ export default defineConfig({
     defaultCommandTimeout: 10000,
   },
   component: {
+    projectId: "4kqx5i",
     devServer: {
       framework: "vue-cli",
       bundler: "webpack",
