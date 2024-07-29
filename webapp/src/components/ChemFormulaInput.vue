@@ -5,6 +5,7 @@
     :formula="internal_chemform"
     @click="handleSpanClick"
   />
+
   <input
     v-show="editable"
     v-bind="$attrs"
