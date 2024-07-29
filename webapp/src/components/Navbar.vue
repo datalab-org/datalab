@@ -1,6 +1,15 @@
 <template>
-  <div v-if="logo_url != null" class="pt-3">
-    <a v-if="homepage_url != null" :href="homepage_url" target="_blank">
+  <div
+    v-if="logo_url != null"
+    class="pt-3"
+    style="display: flex; justify-content: center; align-items: center"
+  >
+    <a
+      v-if="homepage_url != null"
+      :href="homepage_url"
+      style="display: inline-block"
+      target="_blank"
+    >
       <img class="logo-banner" :src="logo_url" />
     </a>
     <img v-else class="logo-banner" :src="logo_url" />
