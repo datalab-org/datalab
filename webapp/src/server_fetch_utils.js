@@ -496,9 +496,6 @@ export function addABlock(item_id, block_type, index = null) {
 export function saveItem(item_id) {
   console.log("saveItem Called!");
   var item_data = store.state.all_item_data[item_id];
-  console.log("####");
-  console.log(item_data);
-  console.log("####");
   store.commit("setItemSaved", { item_id: item_id, isSaved: false });
   fetch_post(`${API_URL}/save-item/`, {
     item_id: item_id,
