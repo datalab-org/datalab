@@ -36,11 +36,11 @@ export default {
     },
     name: {
       type: String,
-      default: null,
+      default: "",
     },
     chemform: {
       type: String,
-      default: null,
+      default: "",
     },
     enableClick: {
       type: Boolean,
