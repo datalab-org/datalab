@@ -7,8 +7,7 @@
     <DataTable
       v-model:filters="filters"
       v-model:selection="itemsSelected"
-      v-on:filter="onFilter"
-      selectionMode="multiple"
+      selection-mode="multiple"
       :value="samples"
       paginator
       :rows="10"
@@ -25,6 +24,7 @@
       ]"
       removable-sort
       sort-mode="multiple"
+      @v-on:filter="onFilter"
       @filter="onFilter"
       @row-click="goToEditPage"
     >
