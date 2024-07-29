@@ -7,6 +7,8 @@
     <DataTable
       v-model:filters="filters"
       v-model:selection="itemsSelected"
+      v-on:filter="onFilter"
+      selectionMode="multiple"
       :value="samples"
       paginator
       :rows="10"
@@ -39,22 +41,13 @@
             </button>
           </div>
           <div class="button-right d-flex">
-            <Button
+            <button
               v-if="itemsSelected.length > 0"
-              label="Add to collections..."
-              @click="addToCollectionsModalIsOpen = true"
-              severity="info"
-              text
-              raised
-            ></Button>
-            <Button
-              v-if="itemsSelected.length > 0"
-              label="Delete selected..."
-              severity="danger"
-              text
-              raised
+              class="btn btn-default ml-2"
               @click="deleteSelectedItems"
-            ></Button>
+            >
+              Delete selected
+            </button>
             <IconField>
               <InputIcon>
                 <i class="pi pi-search"></i>
@@ -77,55 +70,37 @@
             enable-click
           />
         </template>
-      </Column>
-      <Column field="type" header="Type" sortable>
-        <template>
-          <InputText v-model="filterModel.value" type="text" />
-        </template>
         <template #filter="{ filterModel }">
           <InputText v-model="filterModel.value" type="text" placeholder="Search by ID" />
         </template>
       </Column>
-      <Column field="name" header="Sample name" sortable>
-        <template>
-          <InputText v-model="filterModel.value" type="text" />
+      <Column field="type" header="Type" sortable>
+        <template #filter="{ filterModel }">
+          <InputText v-model="filterModel.value" type="text" placeholder="Search by type" />
         </template>
       </Column>
+      <Column field="name" header="Sample name" sortable> </Column>
       <Column field="chemform" header="Formula" sortable>
         <template #body="slotProps">
           <ChemicalFormula :formula="slotProps.data.chemform" />
-        </template>
-        <template>
-          <InputText v-model="filterModel.value" type="text" />
         </template>
       </Column>
       <Column field="date" header="Date" sortable>
         <template #body="slotProps">
           {{ $filters.IsoDatetimeToDate(slotProps.data.date) }}
         </template>
-        <template>
-          <InputText v-model="filterModel.value" type="text" />
-        </template>
       </Column>
       <Column field="collectionsList" header="Collections" sortable>
         <template #body="slotProps">
           <CollectionList :collections="slotProps.data.collections" />
-        </template>
-        <template>
-          <InputText v-model="filterModel.value" type="text" />
         </template>
       </Column>
       <Column field="creatorsList" header="Creators" sortable>
         <template #body="slotProps">
           <Creators :creators="slotProps.data.creators" />
         </template>
-        <template>
-          <InputText v-model="filterModel.value" type="text" />
-        </template>
       </Column>
-      <Column field="nblocks" header="# of blocks" sortable>
-        <template> <InputText v-model="filterModel.value" type="text" /> </template
-      ></Column>
+      <Column field="nblocks" header="# of blocks" sortable> ></Column>
 
       <!-- <template #expansion="slotProps">
         <div class="p-4">
@@ -136,17 +111,14 @@
   </div>
   <CreateItemModal v-model="createItemModalIsOpen" />
   <BatchCreateSampleModal v-model="batchCreateSampleModalIsOpen" />
-  <AddToCollectionsModal v-model="addToCollectionsModalIsOpen" :itemsSelected="itemsSelected" />
 </template>
 
 <script>
 import CreateItemModal from "@/components/CreateItemModal";
 import BatchCreateSampleModal from "@/components/BatchCreateSampleModal";
-import AddToCollectionsModal from "@/components/AddToCollectionsModal";
 
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
-import Button from "primevue/button";
 import IconField from "primevue/iconfield";
 import InputIcon from "primevue/inputicon";
 import InputText from "primevue/inputtext";
@@ -163,10 +135,8 @@ export default {
   components: {
     CreateItemModal,
     BatchCreateSampleModal,
-    AddToCollectionsModal,
     DataTable,
     Column,
-    Button,
     IconField,
     InputIcon,
     InputText,
@@ -179,7 +149,6 @@ export default {
     return {
       createItemModalIsOpen: false,
       batchCreateSampleModalIsOpen: false,
-      addToCollectionsModalIsOpen: false,
       isSampleFetchError: false,
       itemsSelected: [],
       expandedRows: [],
@@ -203,7 +172,7 @@ export default {
           constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
         },
         type: {
-          operator: null,
+          operator: FilterOperator.AND,
           constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
         },
       },
@@ -229,16 +198,8 @@ export default {
       console.log(event.filteredValue);
     },
     goToEditPage(event) {
-      const row = event.data;
-      if (
-        event.originalEvent.ctrlKey ||
-        event.originalEvent.metaKey ||
-        event.originalEvent.altKey
-      ) {
-        window.open(`/edit/${row.item_id}`, "_blank");
-      } else {
-        this.$router.push(`/edit/${row.item_id}`);
-      }
+      const item_id = event.data.item_id;
+      window.open(`/edit/${item_id}`, "_blank");
     },
     getSamples() {
       getSampleList()
@@ -282,6 +243,7 @@ export default {
 .p-datatable-column-header-content:hover .p-datatable-sort-icon {
   visibility: visible !important;
 }
+
 .button-right {
   gap: 0.5em;
 }
