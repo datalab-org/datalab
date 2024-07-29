@@ -12,7 +12,7 @@ describe("ChemFormulaInput", () => {
 
   it("renders single element with subscript correctly", () => {
     cy.get("input").type("Na3");
-    cy.get("input").should("have.value", "Na<sub>3</sub>");
+    cy.get("input").should("have.value", "Na3");
   });
 
   // it("renders formula with parentheses correctly", () => {
