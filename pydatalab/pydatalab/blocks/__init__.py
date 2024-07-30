@@ -10,9 +10,11 @@ from pydatalab.apps.tga import MassSpecBlock
 from pydatalab.apps.xrd import XRDBlock
 from pydatalab.blocks.base import DataBlock
 from pydatalab.blocks.common import CommentBlock, MediaBlock, NotSupportedBlock, TabularDataBlock
+from pydatalab.blocks.buba import BubaBlock
 
 BLOCKS: Sequence[Type["DataBlock"]] = (
     CommentBlock,
+    BubaBlock,
     MediaBlock,
     XRDBlock,
     CycleBlock,
@@ -31,6 +33,7 @@ __all__ = (
     "CommentBlock",
     "MediaBlock",
     "XRDBlock",
+    "BubaBlock",
     "ChatBlock",
     "EISBlock",
     "CycleBlock",
