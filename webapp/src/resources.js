@@ -51,7 +51,7 @@ export const blockTypes = {
   tabular: { description: "Tabular Data", component: BokehBlock, name: "Tabular data" },
   xrd: { description: "Powder XRD", component: XRDBlock, name: "Powder XRD" },
   raman: { description: "Raman", component: RamanBlock, name: "Raman" },
-  buba: {description: "Buba", component: BokehBlock, name: "Buba"},
+  buba: { description: "Buba", component: BokehBlock, name: "Buba" },
   cycle: { description: "Electrochemistry", component: CycleBlock, name: "Electrochemistry" },
   eis: { description: "Electrochemical Impedance Spectroscopy", component: EISBlock, name: "EIS" },
   nmr: { description: "Nuclear Magnetic Resonance Spectroscopy", component: NMRBlock, name: "NMR" },

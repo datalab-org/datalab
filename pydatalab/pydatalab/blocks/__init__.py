@@ -8,9 +8,9 @@ from pydatalab.apps.nmr import NMRBlock
 from pydatalab.apps.raman import RamanBlock
 from pydatalab.apps.tga import MassSpecBlock
 from pydatalab.apps.xrd import XRDBlock
+from pydatalab.apps.buba import BubaBlock
 from pydatalab.blocks.base import DataBlock
 from pydatalab.blocks.common import CommentBlock, MediaBlock, NotSupportedBlock, TabularDataBlock
-from pydatalab.blocks.buba import BubaBlock
 
 BLOCKS: Sequence[Type["DataBlock"]] = (
     CommentBlock,
