@@ -205,6 +205,21 @@ class ServerConfig(BaseSettings):
         description="Whether to automatically activate accounts created via ORCID registration.",
     )
 
+    GITHUB_AUTO_ACTIVATE_ACCOUNTS: bool = Field(
+        False,
+        description="Whether to automatically activate accounts created via GitHub registration.",
+    )
+
+    EMAIL_AUTO_ACTIVATE_ACCOUNTS: bool = Field(
+        False,
+        description="Whether to automatically activate accounts created via email registration.",
+    )
+
+    AUTO_ACTIVATE_ACCOUNTS: bool = Field(
+        False,
+        description="Whether to automatically activate accounts created via any registration method.",
+    )
+
     EMAIL_DOMAIN_ALLOW_LIST: Optional[List[str]] = Field(
         [],
         description="A list of domains for which users will be able to register accounts if they have a matching verified email address, which still need to be verified by an admin. Setting the value to `None` will allow any email addresses at any domain to register *and activate* an account, otherwise the default `[]` will not allow any email addresses registration.",
