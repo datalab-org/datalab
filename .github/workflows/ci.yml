@@ -160,3 +160,13 @@ jobs:
           browser: ${{ matrix.browser-backend }}
         env:
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
+
+      - name: Run component tests
+        uses: cypress-io/github-action@v6
+        with:
+          working-directory: ./webapp
+          record: true
+          component: true
+          browser: ${{ matrix.browser-backend }}
+        env:
+          CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
