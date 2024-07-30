@@ -1,5 +1,51 @@
 # Changelog
 
+## v0.4.3 (July 2024
+
+This release simply re-enables Firefox testing in the CI, and reorganises the associated cloud runs.
+
+## What's Changed
+* Re-enable Firefox e2e tests by @ml-evs in https://github.com/datalab-org/datalab/pull/711
+
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.4.2...v0.4.3
+
+
+## v0.4.2 (July 2024)
+
+This release adds an update to the batch item creation UI to include other item types, and includes a new preview of the tabular UI which can be accessed at the path `/next`, as well as several UI tweaks and fixes.
+
+## What's Changed
+
+* Rebrand repo to the group-agnostic gh organisation by @ml-evs in https://github.com/datalab-org/datalab/pull/809
+* Change docker compose restart policy to "unless-stopped" by @ml-evs in https://github.com/datalab-org/datalab/pull/810
+* Update INSTALL.md by @jdbocarsly in https://github.com/datalab-org/datalab/pull/816
+* Fix logo link taking full screen width by @ml-evs in https://github.com/datalab-org/datalab/pull/821
+* Improve sample table component by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/784
+* Add simple component test for `ChemFormInput` by @ml-evs in https://github.com/datalab-org/datalab/pull/743
+* Add ability to add batch of cells by @jdbocarsly in https://github.com/datalab-org/datalab/pull/797
+* Add config options to automatically activate accounts from GitHub, email or any auth source by @ml-evs in https://github.com/datalab-org/datalab/pull/822
+* Bump version number to 0.4.2 by @ml-evs in https://github.com/datalab-org/datalab/pull/824
+
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.4.1...v0.4.2
+
+## v0.4.1 (July 2024)
+
+This minor release adds some quality-of-life fixes to the UI, a new cell format type "in situ (optical)" and tweaks to our development workflow.
+
+## What's Changed
+
+* Run vue3-recommended linting by @jdbocarsly in https://github.com/the-grey-group/datalab/pull/756
+* Corrected blockInfo computed property value by @BenjaminCharmes in https://github.com/the-grey-group/datalab/pull/775
+* Changes to pre-commit  by @jdbocarsly in https://github.com/the-grey-group/datalab/pull/785
+* Add 'optical' cellFormat by @BenjaminCharmes in https://github.com/the-grey-group/datalab/pull/788
+* Remove cheminventory import task (which is now in `datalab-api`) by @ml-evs in https://github.com/the-grey-group/datalab/pull/793
+* Add gpt4o and other updated models by @jdbocarsly in https://github.com/the-grey-group/datalab/pull/736
+* Report runtime server config at `/info` and use this in UI by @ml-evs in https://github.com/the-grey-group/datalab/pull/801
+* Development docker, pre-commit and eslint updates & refactoring by @ml-evs in https://github.com/the-grey-group/datalab/pull/805
+* Disable `ChemicalFormula` component by @ml-evs in https://github.com/the-grey-group/datalab/pull/806
+
+**Full Changelog**: https://github.com/the-grey-group/datalab/compare/v0.4.0...v0.4.1
+
 ## v0.4.0 (June 2024)
 
 This release of *datalab* contains significant new functionality whilst broadly maintaining compatibility with the 0.3.x series.
