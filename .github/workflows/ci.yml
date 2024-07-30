@@ -86,11 +86,11 @@ jobs:
           pipenv run pytest -rs -vvv --cov-report=term --cov-report=xml --cov ./pydatalab ./tests
 
       - name: Upload coverage to Codecov
-        if: matrix.python-version == '3.10' && github.repository == 'the-grey-group/datalab'
+        if: matrix.python-version == '3.10' && github.repository == 'datalab-org/datalab'
         uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          slug: the-grey-group/datalab
+          slug: datalab-org/datalab
 
   webapp:
     name: Test the app build
@@ -157,6 +157,16 @@ jobs:
           config: baseUrl=http://localhost:8081
           working-directory: ./webapp
           record: true
+          browser: ${{ matrix.browser-backend }}
+        env:
+          CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
+
+      - name: Run component tests
+        uses: cypress-io/github-action@v6
+        with:
+          working-directory: ./webapp
+          record: true
+          component: true
           browser: ${{ matrix.browser-backend }}
         env:
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}

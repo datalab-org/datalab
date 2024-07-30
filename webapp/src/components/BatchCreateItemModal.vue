@@ -3,16 +3,16 @@
     <Modal
       :model-value="modelValue"
       :disable-submit="
-        sampleIDValidationMessages.some((e) => e) ||
-        (!generateIDsAutomatically && samples.some((s) => !Boolean(s.item_id)))
+        itemIDValidationMessages.some((e) => e) ||
+        (!generateIDsAutomatically && items.some((s) => !Boolean(s.item_id)))
       "
       @update:model-value="$emit('update:modelValue', $event)"
     >
       <template #header>
-        <template v-if="beforeSubmit">Add new samples</template>
+        <template v-if="beforeSubmit">Add new items</template>
         <template v-else>
           <a id="back-arrow" role="button" @click="beforeSubmit = true">←</a>
-          Samples added
+          Items added
         </template>
       </template>
       <template #body>
@@ -20,7 +20,37 @@
           <transition name="slide-content-left">
             <div v-show="beforeSubmit" id="left-screen">
               <div class="row">
-                <div class="col-md-8 mt-2" @click="templateIsOpen = !templateIsOpen">
+                <div class="input-group col-lg-3 col-6">
+                  <label for="batch-item-type-select" class="blue-label col-form-label mr-3">
+                    Type:
+                  </label>
+                  <select
+                    id="batch-item-type-select"
+                    v-model="item_type"
+                    class="form-control"
+                    required
+                  >
+                    <option v-for="type in allowedTypes" :key="type" :value="type">
+                      {{ itemTypes[type].display }}
+                    </option>
+                  </select>
+                </div>
+                <div class="input-group col-lg-3 col-6">
+                  <label for="batchItemNRows" class="blue-label col-form-label text-left mb-2 mr-3">
+                    Number of rows:
+                  </label>
+                  <input
+                    id="batchItemNRows"
+                    v-model="nSamples"
+                    class="form-control"
+                    type="number"
+                    min="0"
+                    max="100"
+                  />
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-6 mt-2" @click="templateIsOpen = !templateIsOpen">
                   <font-awesome-icon
                     :icon="['fas', 'chevron-right']"
                     fixed-width
@@ -29,20 +59,6 @@
                   />
                   <label class="blue-label clickable pl-2"> Template: </label>
                 </div>
-                <label
-                  for="batchSampleNRows"
-                  class="blue-label col-md-2 col-3 col-form-label text-left mb-2"
-                >
-                  Number of rows:
-                </label>
-                <input
-                  id="batchSampleNRows"
-                  v-model="nSamples"
-                  class="form-control col-md-1 col-2"
-                  type="number"
-                  min="0"
-                  max="100"
-                />
               </div>
 
               <div
@@ -63,7 +79,7 @@
                   <tbody>
                     <td>
                       <input
-                        v-model="sampleTemplate.item_id"
+                        v-model="itemTemplate.item_id"
                         class="form-control"
                         :placeholder="generateIDsAutomatically ? null : 'ex_{#}'"
                         :disabled="generateIDsAutomatically"
@@ -88,7 +104,7 @@
                     </td>
                     <td>
                       <input
-                        v-model="sampleTemplate.name"
+                        v-model="itemTemplate.name"
                         class="form-control"
                         placeholder="Example name {#}"
                         @input="applyNameTemplate"
@@ -96,7 +112,7 @@
                     </td>
                     <td>
                       <input
-                        v-model="sampleTemplate.date"
+                        v-model="itemTemplate.date"
                         class="form-control"
                         type="datetime-local"
                         :min="epochStart"
@@ -106,18 +122,49 @@
                     </td>
                     <td>
                       <ItemSelect
-                        v-model="sampleTemplate.copyFrom"
+                        v-model="itemTemplate.copyFrom"
                         :formatted-item-name-max-length="8"
                         @update:model-value="applyCopyFromTemplate"
                       />
                     </td>
                     <td>
-                      <ItemSelect
-                        v-model="sampleTemplate.components"
-                        multiple
-                        :formatted-item-name-max-length="8"
-                        @update:model-value="applyComponentsTemplate"
-                      />
+                      <div v-if="item_type == 'samples'">
+                        <ItemSelect
+                          v-model="itemTemplate.components"
+                          multiple
+                          :formatted-item-name-max-length="8"
+                          taggable
+                          @update:model-value="applyComponentsTemplate"
+                        />
+                      </div>
+                      <div v-if="item_type == 'cells'">
+                        <ItemSelect
+                          v-model="itemTemplate.positiveElectrode"
+                          multiple
+                          :formatted-item-name-max-length="8"
+                          taggable
+                          placeholder="positive electrode"
+                          @update:model-value="applyPositiveElectrodeTemplate"
+                        />
+                        <ItemSelect
+                          v-model="itemTemplate.electrolyte"
+                          multiple
+                          :formatted-item-name-max-length="8"
+                          class="pt-1"
+                          taggable
+                          placeholder="electrolyte"
+                          @update:model-value="applyElectrolyteTemplate"
+                        />
+                        <ItemSelect
+                          v-model="itemTemplate.negativeElectrode"
+                          multiple
+                          :formatted-item-name-max-length="8"
+                          class="pt-1"
+                          taggable
+                          placeholder="negative electrode"
+                          @update:model-value="applyNegativeElectrodeTemplate"
+                        />
+                      </div>
                     </td>
                   </tbody>
                 </table>
@@ -145,7 +192,7 @@
                 <thead>
                   <tr class="subheading">
                     <th style="width: calc(12%)">ID</th>
-                    <th>Name</th>
+                    <th style="width: calc(25%)">Name</th>
                     <th style="width: calc(15%)">Date</th>
                     <th style="width: calc(22%)">Copy from</th>
                     <th style="width: calc(22%) - 2rem">Components</th>
@@ -153,26 +200,26 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <template v-for="(sample, index) in samples" :key="index">
+                  <template v-for="(item, index) in items" :key="index">
                     <tr>
                       <td>
                         <input
-                          v-model="sample.item_id"
+                          v-model="item.item_id"
                           class="form-control"
                           :disabled="generateIDsAutomatically"
-                          @input="sampleTemplate.item_id = ''"
+                          @input="itemTemplate.item_id = ''"
                         />
                       </td>
                       <td>
                         <input
-                          v-model="sample.name"
+                          v-model="item.name"
                           class="form-control"
-                          @input="sampleTemplate.name = ''"
+                          @input="itemTemplate.name = ''"
                         />
                       </td>
                       <td>
                         <input
-                          v-model="sample.date"
+                          v-model="item.date"
                           class="form-control"
                           type="datetime-local"
                           :min="epochStart"
@@ -180,14 +227,42 @@
                         />
                       </td>
                       <td>
-                        <ItemSelect v-model="sample.copyFrom" :formatted-item-name-max-length="8" />
+                        <ItemSelect v-model="item.copyFrom" :formatted-item-name-max-length="8" />
                       </td>
                       <td>
-                        <ItemSelect
-                          v-model="sample.components"
-                          multiple
-                          :formatted-item-name-max-length="8"
-                        />
+                        <div v-if="item_type == 'samples'">
+                          <ItemSelect
+                            v-model="item.components"
+                            multiple
+                            :formatted-item-name-max-length="8"
+                            taggable
+                          />
+                        </div>
+                        <div v-if="item_type == 'cells'">
+                          <ItemSelect
+                            v-model="item.positiveElectrode"
+                            multiple
+                            :formatted-item-name-max-length="8"
+                            taggable
+                            placeholder="positive electrode"
+                          />
+                          <ItemSelect
+                            v-model="item.electrolyte"
+                            multiple
+                            :formatted-item-name-max-length="8"
+                            class="pt-1"
+                            taggable
+                            placeholder="electrolyte"
+                          />
+                          <ItemSelect
+                            v-model="item.negativeElectrode"
+                            multiple
+                            :formatted-item-name-max-length="8"
+                            class="pt-1"
+                            taggable
+                            placeholder="negative electrode"
+                          />
+                        </div>
                       </td>
                       <td>
                         <button
@@ -202,7 +277,7 @@
                     </tr>
                     <td colspan="3">
                       <!-- eslint-disable-next-line vue/no-v-html -->
-                      <span class="form-error" v-html="sampleIDValidationMessages[index]" />
+                      <span class="form-error" v-html="itemIDValidationMessages[index]" />
                     </td>
                   </template>
                 </tbody>
@@ -257,14 +332,19 @@
 import Modal from "@/components/Modal.vue";
 import ItemSelect from "@/components/ItemSelect.vue";
 import { createNewSamples } from "@/server_fetch_utils.js";
+import { itemTypes, SAMPLE_TABLE_TYPES } from "@/resources.js";
 export default {
-  name: "BatchCreateSampleModal",
+  name: "BatchCreateItemModal",
   components: {
     Modal,
     ItemSelect,
   },
   props: {
     modelValue: Boolean,
+    allowedTypes: {
+      type: Array,
+      default: () => SAMPLE_TABLE_TYPES,
+    },
   },
   emits: ["update:modelValue"],
   data() {
@@ -274,12 +354,16 @@ export default {
       oneYearOn: this.determineOneYearOn(),
       nSamples: 3,
       generateIDsAutomatically: false,
-      samples: [
+      item_type: "samples",
+      items: [
         {
           item_id: null,
           name: "",
           copyFrom: null,
           components: [],
+          positiveElectrode: [],
+          electrolyte: [],
+          negativeElectrode: [],
           date: this.now(),
         },
         {
@@ -287,6 +371,9 @@ export default {
           name: "",
           copyFrom: null,
           components: [],
+          positiveElectrode: [],
+          electrolyte: [],
+          negativeElectrode: [],
           date: this.now(),
         },
         {
@@ -294,18 +381,24 @@ export default {
           name: "",
           copyFrom: null,
           components: [],
+          positiveElectrode: [],
+          electrolyte: [],
+          negativeElectrode: [],
           date: this.now(),
         },
       ],
-      takenItemIds: [], // this holds ids that have been tried, whereas the computed takenSampleIds holds ids in the sample table
+      takenItemIds: [], // this holds ids that have been tried, whereas the computed takenSampleIds holds ids in the item table
 
       templateIsOpen: true,
       templateStartNumber: 1,
-      sampleTemplate: {
+      itemTemplate: {
         item_id: null,
         name: "",
         copyFrom: null,
         components: null,
+        positiveElectrode: null,
+        electrolyte: null,
+        negativeElectrode: null,
         date: this.now(),
       },
 
@@ -313,46 +406,49 @@ export default {
     };
   },
   computed: {
+    itemTypes() {
+      return itemTypes;
+    },
     takenSampleIds() {
       return this.$store.state.sample_list
         ? this.$store.state.sample_list.map((x) => x.item_id)
         : [];
     },
     someValidationMessagePresent() {
-      return this.sampleIDValidationMessages.some();
+      return this.itemIDValidationMessages.some();
     },
-    sampleIDValidationMessages() {
-      return this.samples.map((sample, index, samples) => {
-        if (sample.item_id == null) {
+    itemIDValidationMessages() {
+      return this.items.map((item, index, items) => {
+        if (item.item_id == null) {
           return "";
         } // Don't throw an error before the user starts typing
 
-        // check that sample id isn't repeated in this table
+        // check that item id isn't repeated in this table
         if (
-          samples
+          items
             .slice(0, index)
             .map((el) => el.item_id)
-            .includes(sample.item_id)
+            .includes(item.item_id)
         ) {
           return "ID is repeated from an above row.";
         }
 
         if (
-          this.takenItemIds.includes(sample.item_id) ||
-          this.takenSampleIds.includes(sample.item_id)
+          this.takenItemIds.includes(item.item_id) ||
+          this.takenSampleIds.includes(item.item_id)
         ) {
-          return `<a href='edit/${sample.item_id}'>${sample.item_id}</a> already in use.`;
+          return `<a href='edit/${item.item_id}'>${item.item_id}</a> already in use.`;
         }
-        if (!/^[a-zA-Z0-9._-]+$/.test(sample.item_id)) {
+        if (!/^[a-zA-Z0-9._-]+$/.test(item.item_id)) {
           return "ID can only contain alphanumeric characters, dashes ('-') and underscores ('_') and periods ('.')";
         }
-        if (/^[._-]/.test(sample.item_id) | /[._-]$/.test(sample.item_id)) {
+        if (/^[._-]/.test(item.item_id) | /[._-]$/.test(item.item_id)) {
           return "ID cannot start or end with puncutation";
         }
-        if (/\s/.test(sample.item_id)) {
+        if (/\s/.test(item.item_id)) {
           return "ID cannot have any spaces";
         }
-        if (sample.item_id.length < 1 || sample.item_id.length > 40) {
+        if (item.item_id.length < 1 || item.item_id.length > 40) {
           return "ID must be between 1 and 40 characters in length";
         }
         return "";
@@ -363,16 +459,16 @@ export default {
   watch: {
     nSamples(newValue, oldValue) {
       if (newValue < oldValue) {
-        this.samples = this.samples.slice(0, newValue);
+        this.items = this.items.slice(0, newValue);
       }
       if (newValue > oldValue) {
         for (let i = 0; i < newValue - oldValue; i++) {
-          this.samples.push({ ...this.sampleTemplate });
+          this.items.push({ ...this.itemTemplate });
         }
-        if (this.sampleTemplate.item_id) {
+        if (this.itemTemplate.item_id) {
           this.applyIdTemplate();
         }
-        if (this.sampleTemplate.name) {
+        if (this.itemTemplate.name) {
           this.applyNameTemplate();
         }
       }
@@ -389,69 +485,106 @@ export default {
       return d.toISOString().slice(0, -8);
     },
     applyIdTemplate() {
-      this.samples.forEach((sample, i) => {
-        sample.item_id = this.sampleTemplate.item_id.replace("{#}", i + this.templateStartNumber);
+      this.items.forEach((item, i) => {
+        item.item_id = this.itemTemplate.item_id.replace("{#}", i + this.templateStartNumber);
       });
     },
     applyNameTemplate() {
-      this.samples.forEach((sample, i) => {
-        sample.name = this.sampleTemplate.name.replace("{#}", i + this.templateStartNumber);
+      this.items.forEach((item, i) => {
+        item.name = this.itemTemplate.name.replace("{#}", i + this.templateStartNumber);
       });
     },
     applyIdAndNameTemplates() {
-      this.sampleTemplate.name && this.applyNameTemplate();
-      this.sampleTemplate.item_id && this.applyIdTemplate();
+      this.itemTemplate.name && this.applyNameTemplate();
+      this.itemTemplate.item_id && this.applyIdTemplate();
     },
     applyDateTemplate() {
-      this.samples.forEach((sample) => {
-        sample.date = this.sampleTemplate.date;
+      this.items.forEach((item) => {
+        item.date = this.itemTemplate.date;
       });
     },
     applyCopyFromTemplate() {
-      this.samples.forEach((sample) => {
-        sample.copyFrom = this.sampleTemplate.copyFrom;
+      this.items.forEach((item) => {
+        item.copyFrom = this.itemTemplate.copyFrom;
       });
     },
     applyComponentsTemplate() {
-      this.samples.forEach((sample) => {
-        sample.components = this.sampleTemplate.components;
+      this.items.forEach((item) => {
+        item.components = this.itemTemplate.components;
+      });
+    },
+    applyPositiveElectrodeTemplate() {
+      this.items.forEach((item) => {
+        item.positiveElectrode = this.itemTemplate.positiveElectrode;
+      });
+    },
+    applyElectrolyteTemplate() {
+      this.items.forEach((item) => {
+        item.electrolyte = this.itemTemplate.electrolyte;
+      });
+    },
+    applyNegativeElectrodeTemplate() {
+      this.items.forEach((item) => {
+        item.negativeElectrode = this.itemTemplate.negativeElectrode;
       });
     },
     removeRow(index) {
-      this.samples.splice(index, 1);
+      this.items.splice(index, 1);
       this.nSamples = this.nSamples - 1;
       // unless the removed row is the last one, reset the template and name id
-      if (index != this.samples.length) {
-        this.sampleTemplate.item_id = "";
-        this.sampleTemplate.name = "";
+      if (index != this.items.length) {
+        this.itemTemplate.item_id = "";
+        this.itemTemplate.name = "";
       }
     },
     setIDsNull() {
-      this.sampleTemplate["item_id"] = null;
-      this.samples.forEach((entry) => {
+      this.itemTemplate["item_id"] = null;
+      this.items.forEach((entry) => {
         entry["item_id"] = null;
       });
     },
     async submitForm() {
-      console.log("batch sample create form submit triggered");
+      console.log("batch item create form submit triggered");
 
-      const newSampleDatas = this.samples.map((sample) => {
-        return {
-          item_id: sample.item_id,
-          date: sample.date,
-          name: sample.name,
-          type: "samples",
-          synthesis_constituents: sample.components
-            ? sample.components.map((x) => ({ item: x, quantity: null }))
-            : [],
-        };
-      });
+      let newSampleDatas;
 
-      const copyFromItemIds = this.samples.map((sample) => sample.copyFrom?.item_id);
+      if (this.item_type == "samples") {
+        newSampleDatas = this.items.map((item) => {
+          return {
+            item_id: item.item_id,
+            date: item.date,
+            name: item.name,
+            type: "samples",
+            synthesis_constituents: item.components
+              ? item.components.map((x) => ({ item: x, quantity: null }))
+              : [],
+          };
+        });
+      } else {
+        newSampleDatas = this.items.map((item) => {
+          return {
+            item_id: item.item_id,
+            date: item.date,
+            name: item.name,
+            type: "cells",
+            positive_electrode: item.positiveElectrode
+              ? item.positiveElectrode.map((x) => ({ item: x, quantity: null }))
+              : [],
+            electrolyte: item.electrolyte
+              ? item.electrolyte.map((x) => ({ item: x, quantity: null }))
+              : [],
+            negative_electrode: item.negativeElectrode
+              ? item.negativeElectrode.map((x) => ({ item: x, quantity: null }))
+              : [],
+          };
+        });
+      }
+
+      const copyFromItemIds = this.items.map((item) => item.copyFrom?.item_id);
 
       await createNewSamples(newSampleDatas, copyFromItemIds, this.generateIDsAutomatically)
         .then((responses) => {
-          console.log("samples added");
+          console.log("items added");
           this.serverResponses = responses;
 
           document
@@ -460,7 +593,7 @@ export default {
           this.beforeSubmit = false;
         })
         .catch((error) => {
-          console.log("Error with creating new samples: " + error);
+          console.log("Error with creating new items: " + error);
         });
     },
     openEditPagesInNewTabs() {

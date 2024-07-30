@@ -58,6 +58,15 @@ let sample_ids = [
   "test103_unique",
   "test101_unique2",
   "test101_unique",
+  "cell_A",
+  "cell_B",
+  "cell_C",
+  "cell_D",
+  "comp1",
+  "comp2",
+  "cell_1",
+  "cell_2",
+  "cell_3",
 ];
 
 before(() => {
@@ -75,7 +84,7 @@ describe("Batch sample creation", () => {
     cy.visit("/");
   });
   it("Adds 3 valid samples", () => {
-    cy.contains("Add batch of samples").click();
+    cy.contains("Add batch of items").click();
     getSubmitButton().should("be.disabled");
     getBatchAddCell(1, 1).type("testA");
     getBatchAddCell(2, 1).type("testB");
@@ -100,7 +109,7 @@ describe("Batch sample creation", () => {
   });
 
   it("adds two valid samples", () => {
-    cy.contains("Add batch of samples").click();
+    cy.contains("Add batch of items").click();
     cy.findByLabelText("Number of rows:").clear().type(2);
 
     cy.get('[data-testid="batch-modal-container"]').findByText("Submit").should("be.disabled");
@@ -119,7 +128,7 @@ describe("Batch sample creation", () => {
   });
 
   it("adds four base samples", () => {
-    cy.contains("Add batch of samples").click();
+    cy.contains("Add batch of items").click();
     cy.findByLabelText("Number of rows:").clear().type(4);
 
     cy.get('[data-testid="batch-modal-container"]').findByText("Submit").should("be.disabled");
@@ -180,7 +189,7 @@ describe("Batch sample creation", () => {
   });
 
   it("makes samples copied from others", () => {
-    cy.contains("Add batch of samples").click();
+    cy.contains("Add batch of items").click();
     getBatchAddCell(1, 1).type("baseA_copy");
     getBatchAddCell(1, 2).type("a copied sample");
     getBatchAddCell(1, 4, ".vs__search").type("BaseA");
@@ -244,7 +253,7 @@ describe("Batch sample creation", () => {
   });
 
   it("creates samples using components", () => {
-    cy.contains("Add batch of samples").click();
+    cy.contains("Add batch of items").click();
     cy.findByLabelText("Number of rows:").clear().type(4);
 
     // sample with two components
@@ -407,7 +416,7 @@ describe("Batch sample creation", () => {
   });
 
   it("uses the template id", () => {
-    cy.contains("Add batch of samples").click();
+    cy.contains("Add batch of items").click();
     getBatchTemplateCell(1).type("test_{{}#{}}");
 
     // manually type names and a date
@@ -434,7 +443,7 @@ describe("Batch sample creation", () => {
   });
 
   it("uses the template id, name, and date", () => {
-    cy.contains("Add batch of samples").click();
+    cy.contains("Add batch of items").click();
     getBatchTemplateCell(1).type("test_{{}#{}}");
     getBatchTemplateCell(2).type("this is the test sample #{{}#{}}");
     getBatchTemplateCell(3).type("1980-02-01T05:35");
@@ -459,7 +468,7 @@ describe("Batch sample creation", () => {
   });
 
   it("uses the template id, name, date, copyFrom, and components", () => {
-    cy.contains("Add batch of samples").click();
+    cy.contains("Add batch of items").click();
     getBatchTemplateCell(1).type("test_{{}#{}}");
     getBatchTemplateCell(2).type("this is the test sample #{{}#{}}");
     getBatchTemplateCell(3).type("1980-02-01T23:59");
@@ -539,7 +548,7 @@ describe("Batch sample creation", () => {
   });
 
   it("plays with the number of rows", () => {
-    cy.contains("Add batch of samples").click();
+    cy.contains("Add batch of items").click();
     cy.findByLabelText("Number of rows:").clear().type(3);
     cy.get("[data-testid=batch-add-table] > tbody > tr").should("have.length", 3);
 
@@ -648,7 +657,7 @@ describe("Batch sample creation", () => {
   });
 
   it("checks errors on the row", () => {
-    cy.contains("Add batch of samples").click();
+    cy.contains("Add batch of items").click();
     getBatchTemplateCell("1").type("test10{{}#{}}");
     cy.wait(100);
     getSubmitButton().should("be.disabled");
@@ -702,5 +711,141 @@ describe("Batch sample creation", () => {
     cy.verifySample("test102_unique", "", "2000-01-01T10:05");
     cy.verifySample("test103_unique");
     cy.verifySample("test101_unique2");
+  });
+});
+
+describe("Batch cell creation", () => {
+  beforeEach(() => {
+    cy.visit("/");
+  });
+
+  it("creates a simple batch of cells", () => {
+    cy.contains("Add batch of items").click();
+    cy.get("[data-testid=batch-modal-container]").findByLabelText("Type:").select("cell");
+    cy.findByLabelText("Number of rows:").clear().type(4);
+    cy.get("[data-testid=batch-add-table] > tbody > tr").should("have.length", 4);
+
+    getSubmitButton().should("be.disabled");
+    getBatchAddCell(1, 1, "input").type("cell_A");
+    // set positive electrode for the first cell
+    getBatchAddCell(1, 5, "input.vs__search").eq(0).type("abcdef");
+    cy.get(".vs__dropdown-menu").contains("abcdef").click();
+
+    getBatchAddCell(2, 1, "input").type("cell_B");
+    getBatchAddCell(2, 2, "input").type("this cell has a name");
+
+    getSubmitButton().should("be.disabled");
+    getBatchAddCell(3, 1, "input").type("cell_C");
+    getBatchAddCell(3, 3, "input").type("2017-06-01T08:30");
+    getBatchAddCell(4, 1, "input").type("cell_D");
+
+    getSubmitButton().click();
+
+    cy.verifySample("cell_A");
+    cy.verifySample("cell_B", "this cell has a name");
+    cy.verifySample("cell_C", null, "2017-06-01");
+    cy.verifySample("cell_D");
+  });
+
+  it("adds some component samples to be used for the next tests", () => {
+    cy.contains("Add batch of items").click();
+    cy.findByLabelText("Number of rows:").clear().type(2);
+
+    getBatchAddCell(1, 1).type("comp1");
+    getBatchAddCell(1, 2).type("comp1 name");
+    getBatchAddCell(2, 1).type("comp2");
+
+    getSubmitButton().click();
+    cy.get("[data-testid=batch-modal-container]").contains("a", "comp1");
+    cy.get("[data-testid=batch-modal-container]").contains("a", "comp2");
+  });
+
+  it("creates a batch of cells using the template id, name, date, copyFrom, and components", () => {
+    cy.contains("Add batch of items").click();
+
+    cy.get("[data-testid=batch-modal-container]").findByLabelText("Type:").select("cell");
+
+    getBatchTemplateCell(1, "input").eq(0).type("cell_{{}#{}}");
+    getBatchTemplateCell(2, "input").type("this is the test cell #{{}#{}}");
+    getBatchTemplateCell(3, "input").type("1980-02-01T23:59");
+
+    // select copyFrom sample, check that it is applied correctly
+    getBatchTemplateCell(4, ".vs__search").type("cell_B");
+    cy.get(".vs__dropdown-menu").contains(".badge", "cell_B").click();
+
+    getBatchAddCell(1, 4).contains("cell_B");
+    getBatchAddCell(2, 4).contains("cell_B");
+    getBatchAddCell(3, 4).contains("cell_B");
+
+    // change the copyFrom sample, check that it is applied correctly
+    getBatchTemplateCell(4, ".vs__search").type("cell_A");
+    cy.get(".vs__dropdown-menu").contains(".badge", "cell_A").click();
+
+    getBatchAddCell(1, 4).contains("cell_A");
+    getBatchAddCell(2, 4).contains("cell_A");
+    getBatchAddCell(3, 4).contains("cell_A");
+
+    // add a positive electrode, check that it is applied correctly
+    getBatchTemplateCell(5, ".vs__search").eq(0).type("comp1");
+    cy.get(".vs__dropdown-menu").contains(".badge", "comp1").click();
+
+    getBatchAddCell(1, 5).contains("comp1");
+    getBatchAddCell(2, 5).contains("comp1");
+    getBatchAddCell(3, 5).contains("comp1");
+
+    // add another component, this one tagged (i.e., not in the db) check that it is applied correctly
+    getBatchTemplateCell(5, ".vs__search").eq(0).type("tagged");
+    cy.get(".vs__dropdown-menu").eq(0).contains("tagged").click();
+
+    getBatchAddCell(1, 5).contains("comp1");
+    getBatchAddCell(1, 5).contains("tagged");
+    getBatchAddCell(2, 5).contains("comp1");
+    getBatchAddCell(2, 5).contains("tagged");
+    getBatchAddCell(3, 5).contains("comp1");
+    getBatchAddCell(3, 5).contains("tagged");
+
+    // add electrolyte
+    getBatchTemplateCell(5, ".vs__search").eq(1).type("elyte");
+    cy.get(".vs__dropdown-menu").eq(0).contains("elyte").click();
+    getBatchAddCell(1, 5).contains("elyte");
+    getBatchAddCell(2, 5).contains("elyte");
+    getBatchAddCell(3, 5).contains("elyte");
+
+    // add negative electrode
+    getBatchTemplateCell(5, ".vs__search").eq(2).type("comp2");
+    cy.get(".vs__dropdown-menu").eq(0).contains(".badge", "comp2").click();
+    getBatchAddCell(1, 5).contains("comp2");
+    getBatchAddCell(2, 5).contains("comp2");
+    getBatchAddCell(3, 5).contains("comp2");
+
+    getSubmitButton().click();
+    cy.get("[data-testid=batch-modal-container]").contains("a", "cell_1");
+    cy.get("[data-testid=batch-modal-container]").contains("a", "cell_2");
+    cy.get("[data-testid=batch-modal-container]").contains("a", "cell_3");
+
+    cy.findAllByText("Successfully created.").should("have.length", 3);
+
+    cy.get("[data-testid=batch-modal-container]").contains("Close").click();
+
+    cy.verifySample("cell_1", "this is the test cell #1", "1980-02-01T23:59");
+    cy.verifySample("cell_2", "this is the test cell #2", "1980-02-01T23:59");
+    cy.verifySample("cell_3", "this is the test cell #3", "1980-02-01T23:59");
+
+    function checkCreatedCell(item_id) {
+      cy.contains(item_id).click();
+      cy.get("#pos-electrode-table").contains("comp1");
+      cy.get("#pos-electrode-table").contains("tagged");
+      cy.get("#pos-electrode-table").contains("comp1 name");
+
+      cy.get("#electrolyte-table").contains("elyte");
+
+      cy.get("#neg-electrode-table").contains("comp2");
+
+      cy.findByText("Home").click();
+    }
+
+    checkCreatedCell("cell_1");
+    checkCreatedCell("cell_2");
+    checkCreatedCell("cell_3");
   });
 });

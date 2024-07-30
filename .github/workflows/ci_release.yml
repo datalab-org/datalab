@@ -16,7 +16,7 @@ env:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    if: github.repository == 'the-grey-group/datalab' && startsWith(github.ref, 'refs/tags/v')
+    if: github.repository == 'datalab-org/datalab' && startsWith(github.ref, 'refs/tags/v')
     env:
       PUBLISH_UPDATE_BRANCH: main
 

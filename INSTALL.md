@@ -16,7 +16,7 @@ This repository consists of two components:
 
 To run *datalab*, you will need to install the environments for each component.
 
-Firstly, from the desired folder, clone this repository from GitHub to your local machine with `git clone https://github.com/the-grey-group/datalab`.
+Firstly, from the desired folder, clone this repository from GitHub to your local machine with `git clone https://github.com/datalab-org/datalab`.
 
 ### `pydatalab` server installation
 
@@ -24,7 +24,7 @@ The instructions in this section will leave you with a running JSON API on your 
 This can hypothetically be used entirely independently from the web front-end through the JSON API.
 
 1. Install `pipenv` on your machine.
-    - Detailed instructions for installing `pipenv`, `pip` and Python itself can be found on the [`pipenv` website](https://pipenv.pypa.io/en/latest/install/#installing-pipenv).
+    - Detailed instructions for installing `pipenv`, `pip` and Python itself can be found on the [`pipenv` website](https://pipenv.pypa.io/en/latest/install/#installing-pipenv). You will need Python 3.10 or higher to run pydatalab.
     - We recommend you install `pipenv` from PyPI (with `pip install pipenv` or `pip install --user pipenv`) for the Python distribution of your choice (in a virtual environment or otherwise). `pipenv` will be used to create its own virtual environment for installation of the `pydatalab` package.
 1. Set up MongoDB.
     1. Install the free MongoDB community edition (full instructions on the [MongoDB website](https://docs.mongodb.com/manual/installation/)).
@@ -34,10 +34,11 @@ This can hypothetically be used entirely independently from the web front-end th
         - For persistence, you will need to set up MongoDB to run as a service on your computer (or run manually each time you run the `pydatalab` server).
     1. In MongoDB, create a database called "datalabvue" ([further instructions on the MongoDB website](https://www.mongodb.com/basics/create-database)).
         - You can do this with the `mongo` shell (`echo "use datalabvue" | mongo`) or with Compass.
-1. Install the `pydatalab` package.
-    1. Navigate to the `pydatalab` folder and run `pipenv install`.
+1. Install the `pydatalab` dependencies.
+    1. Navigate to the `datalab/pydatalab` folder and run `pipenv install`.
         - This will create a `pipenv` environment for `pydatalab` and all of its dependencies that is registered within *this folder* only.
 1. Run the server from the `pydatalab` folder with `pipenv run python pydatalab/main.py`.
+    1.  If you get an error `No module named pydatalab`, run `pipenv run pip install -e .` from the `datalab/pydatalab` folder and then try again.
 
 The server should now be accessible at [http://localhost:5001](http://localhost:5001). If the server is running, navigating to this URL will display a simple dashboard with a textual list of available endpoints.
 
@@ -55,7 +56,7 @@ Should you wish to contribute to/modify the Python code, you may wish to perform
 
 ### Web app
 
-1. If you do not already have it, install `node.js` and the Node Package Manager (`npm`).
+1. If you do not already have it, install `node.js` v20 or above and the Node Package Manager (`npm`).
 It is recommended not to install node using the official installer, since it is difficult to manage or uninstall, and permissions issues may arise.
 Intead, it is recommended to install and manage versions using the [node version manager (nvm)](https://github.com/nvm-sh/nvm#installing-and-updating): `nvm install --lts`.
 This will install the current recommended version of node and nvm.

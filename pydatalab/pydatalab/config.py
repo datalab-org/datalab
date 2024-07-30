@@ -50,9 +50,9 @@ class DeploymentMetadata(BaseModel):
     """A model for specifying metadata about a datalab deployment."""
 
     maintainer: Optional[Person]
-    issue_tracker: Optional[AnyUrl] = Field("https://github.com/the-grey-group/datalab/issues")
+    issue_tracker: Optional[AnyUrl] = Field("https://github.com/datalab-org/datalab/issues")
     homepage: Optional[AnyUrl]
-    source_repository: Optional[AnyUrl] = Field("https://github.com/the-grey-group/datalab")
+    source_repository: Optional[AnyUrl] = Field("https://github.com/datalab-org/datalab")
 
     @validator("maintainer")
     def strip_fields_from_person(cls, v):
@@ -203,6 +203,21 @@ class ServerConfig(BaseSettings):
     ORCID_AUTO_ACTIVATE_ACCOUNTS: bool = Field(
         False,
         description="Whether to automatically activate accounts created via ORCID registration.",
+    )
+
+    GITHUB_AUTO_ACTIVATE_ACCOUNTS: bool = Field(
+        False,
+        description="Whether to automatically activate accounts created via GitHub registration.",
+    )
+
+    EMAIL_AUTO_ACTIVATE_ACCOUNTS: bool = Field(
+        False,
+        description="Whether to automatically activate accounts created via email registration.",
+    )
+
+    AUTO_ACTIVATE_ACCOUNTS: bool = Field(
+        False,
+        description="Whether to automatically activate accounts created via any registration method.",
     )
 
     EMAIL_DOMAIN_ALLOW_LIST: Optional[List[str]] = Field(

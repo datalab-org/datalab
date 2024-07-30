@@ -5,7 +5,7 @@
     <div class="row">
       <div class="col-sm-12 mx-auto mb-3">
         <button class="btn btn-default" @click="createItemModalIsOpen = true">Add an item</button>
-        <button class="btn btn-default ml-2" @click="batchCreateSampleModalIsOpen = true">
+        <button class="btn btn-default ml-2" @click="BatchCreateItemModalIsOpen = true">
           Add batch of samples
         </button>
       </div>
@@ -17,14 +17,14 @@
     </div>
   </div>
   <CreateItemModal v-model="createItemModalIsOpen" />
-  <BatchCreateSampleModal v-model="batchCreateSampleModalIsOpen" />
+  <BatchCreateItemModal v-model="BatchCreateItemModalIsOpen" />
 </template>
 
 <script>
 import Navbar from "@/components/Navbar";
 import FancySampleTable from "@/components/FancySampleTable";
 import CreateItemModal from "@/components/CreateItemModal";
-import BatchCreateSampleModal from "@/components/BatchCreateSampleModal";
+import BatchCreateItemModal from "@/components/BatchCreateItemModal";
 
 export default {
   name: "Samples",
@@ -32,12 +32,12 @@ export default {
     Navbar,
     FancySampleTable,
     CreateItemModal,
-    BatchCreateSampleModal,
+    BatchCreateItemModal,
   },
   data() {
     return {
       createItemModalIsOpen: false,
-      batchCreateSampleModalIsOpen: false,
+      BatchCreateItemModalIsOpen: false,
     };
   },
 };

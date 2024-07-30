@@ -8,7 +8,7 @@
     :filterable="false"
     :create-option="createOption"
     :filter-by="() => true"
-    placeholder="type to search..."
+    :placeholder="placeholder"
     @search="debouncedAsyncSearch"
   >
     <template #no-options="{ searching }">
@@ -52,7 +52,7 @@ export default {
   },
   props: {
     modelValue: {
-      type: String,
+      type: [String, Array],
       default: "",
     },
     formattedItemNameMaxLength: {
@@ -62,6 +62,10 @@ export default {
     typesToQuery: {
       type: Array,
       default: () => ["samples", "starting_materials", "cells"],
+    },
+    placeholder: {
+      type: String,
+      default: "type to search...",
     },
   },
   emits: ["update:modelValue"],
