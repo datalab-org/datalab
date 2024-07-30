@@ -421,9 +421,54 @@ def test_create_cell(client, default_cell):
     }
     copy_request = {"new_sample_data": copy_doc, "copy_from_item_id": default_cell.item_id}
     response = client.post("/new-sample/", json=copy_request)
-
+    # Check that the copy retains the old components and the new
     assert response.status_code == 201, response.json
     assert response.json["status"] == "success"
+    response = client.get(f"/get-item-data/{test_id}")
+    cell = response.json["item_data"]
+    assert cell["electrolyte"][0]["item"]["name"] == "inlined reference"
+    assert cell["electrolyte"][1]["item"]["name"] == "salt"
+    assert cell["electrolyte"][1]["item"]["chemform"] == "NaCl"
+
+    assert (
+        cell["positive_electrode"][0]["item"]["name"]
+        == default_cell.positive_electrode[0].item.name
+    )
+    assert (
+        cell["negative_electrode"][0]["item"]["name"]
+        == default_cell.negative_electrode[0].item.name
+    )
+
+
+@pytest.mark.dependency(depends=["test_create_cell"])
+def test_cell_from_scratch(client):
+    cell = {
+        "item_id": "test_cell_from_scratch",
+        "type": "cells",
+        "negative_electrode": [{"quantity": None, "item": {"name": "inline test"}}],
+    }
+
+    response = client.post("/new-sample/", json=cell)
+    assert response.status_code == 201
+
+    # copy a cell with additional components, where previously there were none
+    copy_id = "copy_of_scratch"
+    cell.update(
+        {
+            "item_id": copy_id,
+            "positive_electrode": [{"quantity": None, "item": {"name": "inline cathode"}}],
+        }
+    )
+    response = client.post(
+        "/new-sample/",
+        json={"new_sample_data": cell, "copy_from_item_id": "test_cell_from_scratch"},
+    )
+    assert response.status_code == 201
+
+    response = client.get(f"/get-item-data/{copy_id}")
+    new_cell = response.json["item_data"]
+    assert new_cell["negative_electrode"][0]["item"]["name"] == "inline test"
+    assert new_cell["positive_electrode"][0]["item"]["name"] == "inline cathode"
 
 
 @pytest.mark.dependency(depends=["test_create_cell"])
