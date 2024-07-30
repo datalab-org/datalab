@@ -158,6 +158,7 @@ jobs:
           working-directory: ./webapp
           record: true
           browser: ${{ matrix.browser-backend }}
+          group: "End-to-end tests (${{ matrix.browser-backend }})"
         env:
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
 
@@ -166,7 +167,10 @@ jobs:
         with:
           working-directory: ./webapp
           record: true
+          install: false
           component: true
+          publish-summary: false
           browser: ${{ matrix.browser-backend }}
+          group: "Component tests (${{ matrix.browser-backend }})"
         env:
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
