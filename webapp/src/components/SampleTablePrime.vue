@@ -36,7 +36,7 @@
             <button class="btn btn-default" @click="createItemModalIsOpen = true">
               Add an item
             </button>
-            <button class="btn btn-default ml-2" @click="batchCreateSampleModalIsOpen = true">
+            <button class="btn btn-default ml-2" @click="batchCreateItemModalIsOpen = true">
               Add batch of samples
             </button>
           </div>
@@ -110,12 +110,12 @@
     </DataTable>
   </div>
   <CreateItemModal v-model="createItemModalIsOpen" />
-  <BatchCreateSampleModal v-model="batchCreateSampleModalIsOpen" />
+  <BatchCreateItemModal v-model="batchCreateItemModalIsOpen" />
 </template>
 
 <script>
 import CreateItemModal from "@/components/CreateItemModal";
-import BatchCreateSampleModal from "@/components/BatchCreateSampleModal";
+import BatchCreateItemModal from "@/components/BatchCreateItemModal";
 
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
@@ -134,7 +134,7 @@ import Creators from "@/components/Creators";
 export default {
   components: {
     CreateItemModal,
-    BatchCreateSampleModal,
+    BatchCreateItemModal,
     DataTable,
     Column,
     IconField,
@@ -148,7 +148,7 @@ export default {
   data() {
     return {
       createItemModalIsOpen: false,
-      batchCreateSampleModalIsOpen: false,
+      batchCreateItemModalIsOpen: false,
       isSampleFetchError: false,
       itemsSelected: [],
       expandedRows: [],
