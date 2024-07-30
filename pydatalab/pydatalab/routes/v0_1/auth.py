@@ -373,7 +373,11 @@ def email_logged_in():
         raise UserRegistrationForbidden
 
     create_account = AccountStatus.UNVERIFIED
-    if CONFIG.EMAIL_DOMAIN_ALLOW_LIST is None:
+    if (
+        CONFIG.EMAIL_DOMAIN_ALLOW_LIST is None
+        or CONFIG.EMAIL_AUTO_ACTIVATE_ACCOUNTS
+        or CONFIG.AUTO_ACTIVATE_ACCOUNTS
+    ):
         create_account = AccountStatus.ACTIVE
 
     find_create_or_modify_user(
@@ -426,6 +430,9 @@ def github_logged_in(blueprint, token):
     elif CONFIG.GITHUB_ORG_ALLOW_LIST is None:
         create_account = True
 
+    if CONFIG.GITHUB_AUTO_ACTIVATE_ACCOUNTS or CONFIG.AUTO_ACTIVATE_ACCOUNTS:
+        create_account = AccountStatus.ACTIVE
+
     find_create_or_modify_user(
         github_user_id,
         IdentityType.GITHUB,
@@ -452,7 +459,7 @@ def orcid_logged_in(_, token):
 
     # New ORCID accounts must be activated by an admin unless configured otherwise
     create_account = AccountStatus.UNVERIFIED
-    if CONFIG.ORCID_AUTO_ACTIVATE_ACCOUNTS:
+    if CONFIG.ORCID_AUTO_ACTIVATE_ACCOUNTS or CONFIG.AUTO_ACTIVATE_ACCOUNTS:
         create_account = AccountStatus.ACTIVE
 
     find_create_or_modify_user(
