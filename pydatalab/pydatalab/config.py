@@ -212,7 +212,7 @@ class ServerConfig(BaseSettings):
 
     EMAIL_AUTO_ACTIVATE_ACCOUNTS: bool = Field(
         False,
-        description="Whether to automatically activate accounts created via GitHub registration.",
+        description="Whether to automatically activate accounts created via email registration.",
     )
 
     AUTO_ACTIVATE_ACCOUNTS: bool = Field(
