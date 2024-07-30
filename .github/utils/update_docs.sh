@@ -11,7 +11,7 @@ pipenv run invoke dev.set-version -v ${GITHUB_REF#refs/tags/}
 
 echo "\n-o- Commit updates - Changelog -o-"
 git add pydatalab/__init__.py
-git commit -m "Release ${GITHUB_REF#refs/tags/}"
+git commit --allow-empty -m "Release ${GITHUB_REF#refs/tags/}"
 
 echo -e "\n-o- Update version tag -o-"
 git tag -f ${GITHUB_REF#refs/tags/}
