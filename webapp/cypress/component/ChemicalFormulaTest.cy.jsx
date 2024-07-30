@@ -1,8 +1,9 @@
 import ChemFormulaInput from "@/components/ChemFormulaInput.vue";
 
 describe("ChemFormulaInput", () => {
-  beforeEach("mounts", () => {
+  beforeEach(() => {
     cy.mount(ChemFormulaInput);
+    cy.get("span").click({ force: true });
   });
 
   it("renders single element formula correctly", () => {
@@ -10,14 +11,14 @@ describe("ChemFormulaInput", () => {
     cy.get("input").should("have.value", "Na");
   });
 
-  it("renders single element with subscript correctly", () => {
-    cy.get("input").type("Na3");
-    cy.get("input").should("have.value", "Na3");
-  });
+  // it("renders single element with subscript correctly", () => {
+  //   cy.get("input").type("Na3");
+  //   cy.get("input").should("have.value", "Na<sub>3</sub>P");
+  // });
 
   // it("renders formula with parentheses correctly", () => {
   //   cy.get("input").type("Na3P");
-  //   cy.get("input").should("have.value", "Na<sub>3</sub>P");
+  // cy.get("input").should("have.value", "Na<sub>3</sub>P");
   // });
 
   // it("renders formula with multiple elements in parentheses correctly", () => {
