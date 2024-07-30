@@ -1658,6 +1658,37 @@
   resolved "https://registry.yarnpkg.com/@popperjs/core/-/core-2.11.8.tgz#6b79032e760a0899cd4204710beede972a3a185f"
   integrity sha512-P1st0aksCrn9sGZhp8GMYwBnQsbvAWsZAX44oXNNvLHGqAOcoVxmjZiohstwQ7SqKnbR47akdNi+uleWD8+g6A==
 
+"@primeuix/styled@^0.0.5":
+  version "0.0.5"
+  resolved "https://registry.yarnpkg.com/@primeuix/styled/-/styled-0.0.5.tgz#430d06554470fddc28814059d76e63c9c21535b9"
+  integrity sha512-pVoGn/uPkVm/DyF3TR3EmH/pL/dP4nR42FcYbVduFq9VfO3KVeOEqvcCULHXos66RZO9MCbCFUoLy6ctf9GUGQ==
+  dependencies:
+    "@primeuix/utils" "^0.0.5"
+
+"@primeuix/utils@^0.0.5":
+  version "0.0.5"
+  resolved "https://registry.yarnpkg.com/@primeuix/utils/-/utils-0.0.5.tgz#4bb032a3338fba51c1a2df8010d91973b6fa2520"
+  integrity sha512-ntUiUgtRtkF8KuaxHffzhYxQxoXk6LAPHm7CVlFjdqS8Rx8xRkLkZVyo84E+pO2hcNFkOGVP/GxHhQ2s94O8zA==
+
+"@primevue/core@4.0.0":
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/@primevue/core/-/core-4.0.0.tgz#b4199eec0abfbdcfc5d2951a9166a944f12a00ff"
+  integrity sha512-M+GF1HYnl/x5J6uevXh1k42J0XnFhp0XHce+cHddWg7v3bVwgsn7LD3AKKcf0A/iQQPXVKX9nY/4/9eFVct67w==
+  dependencies:
+    "@primeuix/styled" "^0.0.5"
+
+"@primevue/icons@4.0.0":
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/@primevue/icons/-/icons-4.0.0.tgz#9bd7f87e53432942f9819564858ee0e3718cfc0b"
+  integrity sha512-gv9pbj7JjCuW59tW2csIJgg6btTJpkr/mjlfqscEIrYzDGqzCrbfxLur48gA2dyhYsiQPPTbIHFwL944piFgIg==
+  dependencies:
+    "@primevue/core" "4.0.0"
+
+"@primevue/themes@^4.0.0":
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/@primevue/themes/-/themes-4.0.0.tgz#f0c1a08583ba8d294f55f097d47ca35fd3e1919e"
+  integrity sha512-y1HKYTuWma3T8NM9xVsLeJJeFWMxLIdJqNvQ+l8CnASgU+GH+KxMXOpPXqTAiJ2zpPmBL5VwpCCJWX93DjjvMQ==
+
 "@protobufjs/aspromise@^1.1.1", "@protobufjs/aspromise@^1.1.2":
   version "1.1.2"
   resolved "https://registry.yarnpkg.com/@protobufjs/aspromise/-/aspromise-1.1.2.tgz#9b8b0cc663d669a7d8f6f5d0893a14d348f30fbf"
@@ -9621,6 +9652,19 @@ pretty-format@^27.0.2:
     ansi-regex "^5.0.1"
     ansi-styles "^5.0.0"
     react-is "^17.0.1"
+
+primeicons@^7.0.0:
+  version "7.0.0"
+  resolved "https://registry.yarnpkg.com/primeicons/-/primeicons-7.0.0.tgz#6b25c3fdcb29bb745a3035bdc1ed5902f4a419cf"
+  integrity sha512-jK3Et9UzwzTsd6tzl2RmwrVY/b8raJ3QZLzoDACj+oTJ0oX7L9Hy+XnVwgo4QVKlKpnP/Ur13SXV/pVh4LzaDw==
+
+primevue@^4.0.0:
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/primevue/-/primevue-4.0.0.tgz#f845daab943d3fe3a93d4efa3c31aa0b41bdf210"
+  integrity sha512-2PFmmJqyXpOcKOdF+gbps5fpSXfoXZp2LwX+hya/b5SDseMt3UNboyEgVI6B+DNbJRrib35EbDiMw+7RIANQ1w==
+  dependencies:
+    "@primevue/core" "4.0.0"
+    "@primevue/icons" "4.0.0"
 
 prismjs@^1.23.0:
   version "1.29.0"

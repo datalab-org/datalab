@@ -114,11 +114,23 @@ import store from "./store";
 // css for vue-select
 import "vue-select/dist/vue-select.css";
 
+// import "primevue";
+import PrimeVue from "primevue/config";
+import Aura from "@primevue/themes/aura";
+
 const app = createApp(App);
 
 app
   .use(store)
   .use(router)
+  .use(PrimeVue, {
+    theme: {
+      preset: Aura,
+      options: {
+        darkModeSelector: "none",
+      },
+    },
+  })
   .component("font-awesome-icon", FontAwesomeIcon)
   .component("editor", Editor)
   .mount("#app");
