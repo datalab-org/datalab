@@ -47,14 +47,6 @@ export default {
 </script>
 
 <style scoped>
-.fade {
-  opacity: 0;
-  transition: opacity 0.15s linear;
-}
-.fade.show {
-  opacity: 1;
-}
-
 #tableContainer.overlay:after {
   content: "";
   display: block;
