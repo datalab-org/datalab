@@ -448,7 +448,6 @@ def _create_sample(
         new_sample["creators"] = [
             {
                 "display_name": "Public testing user",
-                "contact_email": "datalab@odbx.science",
             }
         ]
     else:
