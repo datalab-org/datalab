@@ -16,7 +16,7 @@ from pydatalab.models.items import Item
 from pydatalab.models.relationships import RelationshipType
 from pydatalab.models.utils import generate_unique_refcode
 from pydatalab.mongo import flask_mongo
-from pydatalab.permissions import active_users_or_get_only, get_default_permissions
+from pydatalab.permissions import PUBLIC_USER_ID, active_users_or_get_only, get_default_permissions
 
 ITEMS = Blueprint("items", __name__)
 
@@ -423,10 +423,10 @@ def _create_sample(
         )
 
     sample_dict.pop("refcode", None)
-    type = sample_dict["type"]
-    if type not in ITEM_MODELS:
+    type_ = sample_dict["type"]
+    if type_ not in ITEM_MODELS:
         raise RuntimeError("Invalid type")
-    model = ITEM_MODELS[type]
+    model = ITEM_MODELS[type_]
 
     ## the following code was used previously to explicitely check schema properties.
     ## it doesn't seem to be necessary now, with extra = "ignore" turned on in the pydantic models,
@@ -436,7 +436,7 @@ def _create_sample(
     # new_sample = {k: sample_dict[k] for k in schema["properties"] if k in sample_dict}
     new_sample = sample_dict
 
-    if type in ("starting_materials", "equipment"):
+    if type_ in ("starting_materials", "equipment"):
         # starting_materials and equipment are open to all in the deploment at this point,
         # so no creators are assigned
         new_sample["creator_ids"] = []
@@ -444,7 +444,7 @@ def _create_sample(
     elif CONFIG.TESTING:
         # Set fake ID to ObjectId("000000000000000000000000") so a dummy user can be created
         # locally for testing creator UI elements
-        new_sample["creator_ids"] = [24 * "0"]
+        new_sample["creator_ids"] = [PUBLIC_USER_ID]
         new_sample["creators"] = [
             {
                 "display_name": "Public testing user",
@@ -630,10 +630,13 @@ def delete_sample():
     )
 
 
+@ITEMS.route("/items/<refcode>", methods=["GET"])
 @ITEMS.route("/get-item-data/<item_id>", methods=["GET"])
-def get_item_data(item_id, load_blocks: bool = False):
+def get_item_data(
+    item_id: str | None = None, refcode: str | None = None, load_blocks: bool = False
+):
     """Generates a JSON response for the item with the given `item_id`,
-    additionally resolving relationships to files and other items.
+    or `refcode` additionally resolving relationships to files and other items.
 
     Parameters:
        load_blocks: Whether to regenerate any data blocks associated with this
@@ -642,12 +645,30 @@ def get_item_data(item_id, load_blocks: bool = False):
 
     """
 
+    if item_id:
+        match = {"item_id": item_id}
+    elif refcode:
+        if not len(refcode.split(":")) == 2:
+            refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
+
+        match = {"refcode": refcode}
+    else:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "No item_id or refcode provided.",
+                }
+            ),
+            400,
+        )
+
     # retrieve the entry from the database:
     cursor = flask_mongo.db.items.aggregate(
         [
             {
                 "$match": {
-                    "item_id": item_id,
+                    **match,
                     **get_default_permissions(user_only=False),
                 }
             },
@@ -671,7 +692,7 @@ def get_item_data(item_id, load_blocks: bool = False):
             jsonify(
                 {
                     "status": "error",
-                    "message": f"No matching item {item_id=} with current authorization.",
+                    "message": f"No matching items for {match=} with current authorization.",
                 }
             ),
             404,

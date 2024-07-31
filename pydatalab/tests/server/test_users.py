@@ -19,7 +19,7 @@ def test_get_current_user_admin(admin_client):
     """Test that the API key for the demo admin has been set correctly."""
     resp = admin_client.get("/get-current-user/")
     assert (resp_json := resp.json)
-    assert resp_json["immutable_id"] == 24 * "0"
+    assert resp_json["immutable_id"] == 24 * "8"
     assert resp_json["role"] == "admin"
 
 
