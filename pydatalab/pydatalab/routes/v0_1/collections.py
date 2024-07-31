@@ -112,9 +112,7 @@ def create_collection():
 
     if CONFIG.TESTING:
         data["creator_ids"] = [24 * "0"]
-        data["creators"] = [
-            {"display_name": "Public testing user", "contact_email": "datalab@odbx.science"}
-        ]
+        data["creators"] = [{"display_name": "Public testing user"}]
     else:
         data["creator_ids"] = [current_user.person.immutable_id]
         data["creators"] = [
