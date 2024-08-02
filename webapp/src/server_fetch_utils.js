@@ -328,6 +328,7 @@ export async function getUserInfo() {
   return fetch_get(`${API_URL}/get-current-user/`)
     .then((response_json) => {
       store.commit("setDisplayName", response_json.display_name);
+      store.commit("setCurrentUserID", response_json.immutable_id);
       store.commit("setIsUnverified", response_json.account_status == "unverified" ? true : false);
       return response_json;
     })
@@ -505,6 +506,21 @@ export function addABlock(item_id, block_type, index = null) {
     })
     .catch((error) => console.error("Error in addABlock:", error));
   return block_id_promise;
+}
+
+export function updateItemPermissions(refcode, creators) {
+  console.log("updateItemPermissions called with", refcode, creators);
+  fetch_patch(`${API_URL}/items/${refcode}/permissions`, {
+    creators: creators,
+  })
+    .then(function (response_json) {
+      if (response_json.status === "error") {
+        throw new Error(response_json.message);
+      }
+    })
+    .catch(function (error) {
+      throw new Error(error);
+    });
 }
 
 export function saveItem(item_id) {

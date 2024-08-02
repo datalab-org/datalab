@@ -4,6 +4,8 @@
     class="navbar navbar-expand sticky-top navbar-dark py-0 editor-navbar"
     :style="{ backgroundColor: navbarColor }"
   >
+    <div v-show="false" class="navbar-nav"><LoginDetails /></div>
+    <div v-show="false" class="navbar-nav"><LoginDetails /></div>
     <span class="navbar-brand clickable" @click="scrollToID($event, 'topScrollPoint')"
       >{{ itemTypeEntry?.navbarName || "loading..." }}&nbsp;&nbsp;|&nbsp;&nbsp;
       <FormattedItemName :item_id="item_id" :item-type="itemType" />
@@ -103,6 +105,7 @@ import {
   updateBlockFromServer,
   getBlocksInfos,
 } from "@/server_fetch_utils";
+import LoginDetails from "@/components/LoginDetails";
 import FormattedItemName from "@/components/FormattedItemName";
 
 import setupUppy from "@/file_upload.js";
@@ -121,6 +124,7 @@ export default {
     TinyMceInline,
     SelectableFileTree,
     FileList,
+    LoginDetails,
     FileSelectModal,
     FormattedItemName,
     StyledBlockHelp,
