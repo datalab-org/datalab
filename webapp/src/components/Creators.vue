@@ -26,7 +26,7 @@ export default {
     },
     showNames: {
       type: Boolean,
-      default: false,
+      default: true,
       required: false,
     },
     showBubble: {
