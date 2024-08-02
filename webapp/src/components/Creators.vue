@@ -3,7 +3,7 @@
     <span v-if="showBubble">
       <UserBubble v-if="showBubble" :creator="creator" :size="size" />
     </span>
-    <span v-if="showNames && creator.display_name" class="display-name">
+    <span v-if="showNames && creator.display_name && creators.length === 1" class="display-name">
       {{ creator.display_name }}
       <span v-if="creator !== creators[creators.length - 1]">,</span>
     </span>
@@ -24,7 +24,7 @@ export default {
     },
     showNames: {
       type: Boolean,
-      default: false,
+      default: true,
       required: false,
     },
     showBubble: {
