@@ -3,7 +3,8 @@ from pathlib import Path
 import pytest
 
 
-def test_ms_parse():
+def test_ms_parse_and_plot():
+    from pydatalab.apps.tga.blocks import MassSpecBlock
     from pydatalab.apps.tga.parsers import parse_mt_mass_spec_ascii
 
     ms = parse_mt_mass_spec_ascii(
@@ -40,6 +41,8 @@ def test_ms_parse():
         assert ms["data"][k].shape == expected_shapes[ind]
 
     assert all(k in ms["meta"] for k in ("Start Time", "End Time", "Sourcefile", "Exporttime"))
+
+    assert MassSpecBlock._plot_ms_data(ms)
 
 
 @pytest.mark.parametrize(
