@@ -13,6 +13,7 @@ from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER
 from pydatalab.models import ITEM_MODELS
 from pydatalab.models.items import Item
+from pydatalab.models.people import Person
 from pydatalab.models.relationships import RelationshipType
 from pydatalab.models.utils import generate_unique_refcode
 from pydatalab.mongo import flask_mongo
@@ -211,7 +212,7 @@ def creators_lookup() -> Dict:
                     },
                 }
             },
-            {"$project": {"_id": 0, "display_name": 1, "contact_email": 1}},
+            {"$project": {"_id": 1, "display_name": 1, "contact_email": 1}},
         ],
         "as": "creators",
     }
@@ -603,6 +604,83 @@ def create_samples():
     )  # 207: multi-status
 
 
+@ITEMS.route("/items/<refcode>/permissions", methods=["PATCH"])
+def update_item_permissions(refcode: str):
+    """Update the permissions of an item with the given refcode."""
+
+    request_json = request.get_json()
+    creator_ids: list[ObjectId] = []
+
+    if not len(refcode.split(":")) == 2:
+        refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
+
+    current_item = flask_mongo.db.items.find_one(
+        {"refcode": refcode, **get_default_permissions(user_only=True)},
+        {"_id": 1, "creator_ids": 1},
+    )  # type: ignore
+
+    if not current_item:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": f"No valid item found with the given {refcode=}.",
+                }
+            ),
+            401,
+        )
+
+    current_creator_ids = current_item["creator_ids"]
+
+    if "creators" in request_json:
+        creator_ids = [
+            ObjectId(creator.get("immutable_id", None))
+            for creator in request_json["creators"]
+            if creator.get("immutable_id", None) is not None
+        ]
+
+    # Validate all creator IDs are present in the database
+    found_ids = [d for d in flask_mongo.db.users.find({"_id": {"$in": creator_ids}}, {"_id": 1})]  # type: ignore
+    if not len(found_ids) == len(creator_ids):
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "One or more creator IDs not found in the database.",
+                }
+            ),
+            400,
+        )
+
+    # Make sure a user cannot remove their own access to an item
+    current_user_id = current_user.person.immutable_id
+    try:
+        creator_ids.remove(current_user_id)
+    except ValueError:
+        pass
+    creator_ids.insert(0, current_user_id)
+
+    # The first ID in the creator list takes precedence; always make sure this is included to avoid orphaned items
+    if current_creator_ids:
+        base_owner = current_creator_ids[0]
+    try:
+        creator_ids.remove(base_owner)
+    except ValueError:
+        pass
+    creator_ids.insert(0, base_owner)
+
+    LOGGER.warning("Setting permissions for item %s to %s", refcode, creator_ids)
+    result = flask_mongo.db.items.update_one(
+        {"refcode": refcode, **get_default_permissions(user_only=True)},
+        {"$set": {"creator_ids": creator_ids}},
+    )
+
+    if not result.modified_count == 1:
+        return jsonify({"status": "error", "message": "Failed to update permissions"}), 400
+
+    return jsonify({"status": "success"}), 200
+
+
 @ITEMS.route("/delete-sample/", methods=["POST"])
 def delete_sample():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
@@ -922,5 +1000,6 @@ def search_users():
             },
         ]
     )
-
-    return jsonify({"status": "success", "users": list(cursor)}), 200
+    return jsonify(
+        {"status": "success", "users": list(json.loads(Person(**d).json()) for d in cursor)}
+    ), 200
