@@ -1,108 +1,66 @@
 <template>
-  <div class="row justify-content-center pt-3">
-    <GetEmailModal v-model="emailModalIsOpen" />
-    <template v-if="user != null">
-      <div class="dropdown">
-        <button
-          id="userDropdown"
-          class="btn btn-default dropdown-toggle"
-          type="button"
-          aria-haspopup="true"
-          aria-expanded="false"
-          data-toggle="dropdown"
-          @click="isUserDropdownVisible = !isUserDropdownVisible"
-        >
-          <UserBubbleLogin :creator="user" :size="24" />&nbsp;
-          <span class="user-display-name">{{ userDisplayName }}</span
-          >&nbsp;
-        </button>
-        <div
-          v-show="isUserDropdownVisible"
-          class="dropdown-menu"
-          style="display: block"
-          aria-labelledby="UserDropdown"
-        >
-          <a
-            type="button"
-            class="dropdown-item btn login btn-link btn-default"
-            aria-label="Account settings"
-            @click="
-              editAccountSettingIsOpen = true;
-              isUserDropdownVisible = false;
-            "
-            ><font-awesome-icon icon="cog" /> &nbsp;&nbsp;Account settings
-            <span v-if="isUnverified"><NotificationDot /></span>
-          </a>
-          <span v-if="user.role === 'admin'">
-            <router-link
-              to="/admin"
-              class="dropdown-item btn login btn-link btn-default"
-              aria-label="Administration"
-            >
-              <font-awesome-icon icon="users-cog" /> &nbsp;Administration
-              <span v-if="hasUnverifiedUser"><NotificationDot /></span>
-            </router-link>
-          </span>
-          <a
-            type="button"
-            class="dropdown-item btn login btn-link btn-default"
-            aria-label="Logout"
-            :href="apiUrl + '/logout'"
-            ><font-awesome-icon icon="sign-out-alt" /> &nbsp;&nbsp;Logout</a
-          >
-        </div>
+  <template v-if="user != null">
+    <div class="dropdown">
+      <button
+        id="userDropdown"
+        class="btn dropdown-toggle border"
+        type="button"
+        aria-haspopup="true"
+        aria-expanded="false"
+        data-toggle="dropdown"
+        @click="isUserDropdownVisible = !isUserDropdownVisible"
+      >
+        <UserBubbleLogin :creator="user" :size="24" />&nbsp;
+        <span class="user-display-name">{{ userDisplayName }}</span
+        >&nbsp;
+      </button>
+      <div
+        v-show="isUserDropdownVisible"
+        class="dropdown-menu"
+        style="display: block"
+        aria-labelledby="UserDropdown"
+      >
+        <UserDropdown :user="user" />
       </div>
-      <EditAccountSettingsModal v-model="editAccountSettingIsOpen" />
-    </template>
-    <template v-else>
-      <div class="dropdown">
-        <button
-          id="loginDropdown"
-          class="btn btn-default dropdown-toggle"
-          type="button"
-          data-toggle="dropdown"
-          aria-haspopup="true"
-          aria-expanded="false"
-          @click="isLoginDropdownVisible = !isLoginDropdownVisible"
-        >
-          <font-awesome-icon icon="sign-in-alt" />&nbsp;Login/Register
-        </button>
-        <div
-          v-show="isLoginDropdownVisible"
-          class="dropdown-menu"
-          style="display: block"
-          aria-labelledby="loginButton"
-        >
-          <a
-            type="button"
-            :class="{ disabled: !showGitHub }"
-            class="dropdown-item btn login btn-link btn-default"
-            aria-label="Login via GitHub"
-            :href="apiUrl + '/login/github'"
-            ><font-awesome-icon :icon="['fab', 'github']" /> Login via GitHub</a
-          >
-          <a
-            type="button"
-            :class="{ disabled: !showORCID }"
-            class="dropdown-item btn login btn-link btn-default"
-            aria-label="Login via ORCID"
-            :href="apiUrl + '/login/orcid'"
-            ><font-awesome-icon class="orcid-icon" :icon="['fab', 'orcid']" /> Login via ORCID</a
-          >
-          <button
-            type="button"
-            :class="{ disabled: !showEmail }"
-            class="dropdown-item btn login btn-link btn-default"
-            aria-label="Login via email"
-            @click="emailModalIsOpen = true"
-          >
-            <font-awesome-icon :icon="['fa', 'envelope']" /> Login via email
-          </button>
-        </div>
+    </div>
+  </template>
+  <template v-else-if="!isUserLoaded">
+    <div class="dropdown">
+      <button
+        id="userDropdown"
+        class="btn dropdown-toggle border"
+        type="button"
+        aria-haspopup="true"
+        aria-expanded="false"
+        data-toggle="dropdown"
+      >
+        <font-awesome-icon icon="spinner" spin />&nbsp;Loading...
+      </button>
+    </div>
+  </template>
+  <template v-else>
+    <div class="dropdown">
+      <button
+        id="loginDropdown"
+        class="btn border dropdown-toggle"
+        type="button"
+        data-toggle="dropdown"
+        aria-haspopup="true"
+        aria-expanded="false"
+        @click="isLoginDropdownVisible = !isLoginDropdownVisible"
+      >
+        <font-awesome-icon icon="sign-in-alt" />&nbsp;Login/Register
+      </button>
+      <div
+        v-show="isLoginDropdownVisible"
+        class="dropdown-menu"
+        style="display: block"
+        aria-labelledby="loginButton"
+      >
+        <LoginDropdown />
       </div>
-    </template>
-  </div>
-
+    </div>
+  </template>
   <div v-if="isUnverified" class="container mt-4 mb-0 alert alert-warning text-center">
     Your account is currently unverified, and you will be unable to make or edit entries. Please
     contact an administrator.
@@ -112,17 +70,15 @@
 <script>
 import { API_URL } from "@/resources.js";
 import UserBubbleLogin from "@/components/UserBubbleLogin.vue";
-import NotificationDot from "@/components/NotificationDot.vue";
 import { getUserInfo, getInfo } from "@/server_fetch_utils.js";
-import GetEmailModal from "@/components/GetEmailModal.vue";
-import EditAccountSettingsModal from "@/components/EditAccountSettingsModal.vue";
+import UserDropdown from "@/components/UserDropdown.vue";
+import LoginDropdown from "@/components/LoginDropdown.vue";
 
 export default {
   components: {
     UserBubbleLogin,
-    GetEmailModal,
-    EditAccountSettingsModal,
-    NotificationDot,
+    UserDropdown,
+    LoginDropdown,
   },
   props: {
     modelValue: Boolean,
@@ -131,10 +87,10 @@ export default {
     return {
       isLoginDropdownVisible: false,
       isUserDropdownVisible: false,
-      emailModalIsOpen: false,
       apiUrl: API_URL,
       user: null,
       editAccountSettingIsOpen: false,
+      isUserLoaded: false,
     };
   },
   computed: {
@@ -146,15 +102,6 @@ export default {
     },
     hasUnverifiedUser() {
       return this.$store.getters.getHasUnverifiedUser;
-    },
-    showGitHub() {
-      return this.$store.state.serverInfo?.features?.auth_mechanisms?.github ?? false;
-    },
-    showORCID() {
-      return this.$store.state.serverInfo?.features?.auth_mechanisms?.orcid ?? false;
-    },
-    showEmail() {
-      return this.$store.state.serverInfo?.features?.auth_mechanisms?.email ?? false;
     },
   },
   watch: {
@@ -181,6 +128,7 @@ export default {
       }
 
       this.user = await getUserInfo();
+      this.isUserLoaded = true;
       if (this.user != null) {
         this.$store.commit(
           "setIsUnverified",
@@ -199,9 +147,5 @@ export default {
 
 .user-display-name {
   font-weight: bold;
-}
-
-.orcid-icon {
-  color: #a6ce39;
 }
 </style>

@@ -15,7 +15,9 @@
     <img v-else class="logo-banner" :src="logo_url" />
   </div>
 
-  <LoginDetails></LoginDetails>
+  <div class="row justify-content-center pt-3">
+    <LoginDetails />
+  </div>
 
   <div id="nav">
     <router-link to="/about">About</router-link> |
