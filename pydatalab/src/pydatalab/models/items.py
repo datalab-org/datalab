@@ -10,6 +10,7 @@ from pydatalab.models.traits import (
     HasOwner,
     HasRevisionControl,
     IsCollectable,
+    IsDeletable,
 )
 from pydatalab.models.utils import (
     HumanReadableIdentifier,
@@ -19,7 +20,7 @@ from pydatalab.models.utils import (
 )
 
 
-class Item(Entry, HasOwner, HasRevisionControl, IsCollectable, HasBlocks, abc.ABC):
+class Item(Entry, IsDeletable, HasOwner, HasRevisionControl, IsCollectable, HasBlocks, abc.ABC):
     """The generic model for data types that will be exposed with their own named endpoints."""
 
     refcode: Refcode = None  # type: ignore

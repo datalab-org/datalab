@@ -134,7 +134,29 @@ def test_delete_sample(client, default_sample_dict):
     response = client.get(
         f"/get-item-data/{default_sample_dict['item_id']}",
     )
-    assert response.status_code == 404
+    assert response.status_code == 200
+    assert "has been deleted" in response.json["warnings"][0]
+
+    # Check that the ID is freed up, and that delete by refcode also works
+    response = client.post("/new-sample/", json=default_sample_dict)
+    # Test that 201: Created is emitted
+    assert response.status_code == 201, response.json
+    assert response.json["status"] == "success"
+
+    response = client.get(
+        f"/get-item-data/{default_sample_dict['item_id']}",
+    )
+    refcode = response.json["item_data"]["refcode"]
+
+    del_response = client.delete(
+        f"/items/{refcode}",
+    )
+    assert del_response.status_code == 200
+    assert del_response.json["status"] == "success"
+
+    response = client.get(f"/items/{refcode}")
+    assert response.status_code == 200
+    assert f"The item with refcode {refcode!r} has been deleted." == response.json["warnings"][0]
 
 
 @pytest.mark.dependency(depends=["test_delete_sample"])
@@ -146,7 +168,16 @@ def test_create_indices(real_mongo_client):
 
     create_default_indices(real_mongo_client)
     indexes = list(real_mongo_client.get_database().items.list_indexes())
-    expected_index_names = ("_id_", "items full-text search", "item type", "unique item ID")
+    expected_index_names = (
+        "_id_",
+        "items full-text search",
+        "item type",
+        "unique item ID",
+        "unique refcode",
+        "last modified",
+        "creators",
+        "deleted items",
+    )
     names = [index["name"] for index in indexes]
 
     assert all(name in names for name in expected_index_names)

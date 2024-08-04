@@ -288,6 +288,7 @@ def search_items():
         nresults: Maximum number of  (default 100)
         types: If None, search all types of items. Otherwise, a list of strings
                giving the types to consider. (e.g. ["samples","starting_materials"])
+        match_deleted: Whether to include items that have been soft-deleted.
 
     Returns:
         response list of dictionaries containing the matching items in order of
@@ -297,13 +298,14 @@ def search_items():
     query = request.args.get("query", type=str)
     nresults = request.args.get("nresults", default=100, type=int)
     types = request.args.get("types", default=None)
+    match_deleted = request.args.get("match_deleted", default=False, type=bool)
     if isinstance(types, str):
         # should figure out how to parse as list automatically
         types = types.split(",")
 
     match_obj = {
         "$text": {"$search": query},
-        **get_default_permissions(user_only=False),
+        **get_default_permissions(user_only=False, match_deleted=match_deleted),
     }
     if types is not None:
         match_obj["type"] = {"$in": types}
@@ -467,7 +469,7 @@ def _create_sample(
         )
 
     # check to make sure that item_id isn't taken already
-    if flask_mongo.db.items.find_one({"item_id": sample_dict["item_id"]}):
+    if flask_mongo.db.items.find_one({"item_id": sample_dict["item_id"], "deleted": {"$ne": True}}):
         return (
             dict(
                 status="error",
@@ -697,21 +699,44 @@ def update_item_permissions(refcode: str):
     return jsonify({"status": "success"}), 200
 
 
+@ITEMS.route("/items/<refcode>", methods=["DELETE"])
 @ITEMS.route("/delete-sample/", methods=["POST"])
-def delete_sample():
-    request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
-    item_id = request_json["item_id"]
+def delete_sample(refcode: str | None = None, item_id: str | None = None):
+    """Sets the `deleted` status an item with the given refcode."""
 
-    result = flask_mongo.db.items.delete_one(
-        {"item_id": item_id, **get_default_permissions(user_only=True)}
-    )
+    if refcode is None:
+        request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
+        item_id = request_json["item_id"]
 
-    if result.deleted_count != 1:
+    if item_id:
+        match = {"item_id": item_id}
+    elif refcode:
+        if not len(refcode.split(":")) == 2:
+            refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
+
+        match = {"refcode": refcode}
+    else:
         return (
             jsonify(
                 {
                     "status": "error",
-                    "message": f"Authorization required to attempt to delete sample with {item_id=} from the database.",
+                    "message": "No item_id or refcode provided.",
+                }
+            ),
+            400,
+        )
+
+    result = flask_mongo.db.items.update_one(
+        {**match, **get_default_permissions(user_only=True)},
+        {"$set": {"deleted": True}},
+    )
+
+    if result.modified_count != 1:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": f"Authorization required to attempt to delete sample with {refcode=} / {item_id=} from the database.",
                 }
             ),
             401,
@@ -733,6 +758,8 @@ def get_item_data(
 ):
     """Generates a JSON response for the item with the given `item_id`,
     or `refcode` additionally resolving relationships to files and other items.
+
+    Will return deleted items if specifically requested.
 
     Parameters:
        load_blocks: Whether to regenerate any data blocks associated with this
@@ -768,9 +795,10 @@ def get_item_data(
             {
                 "$match": {
                     **match,
-                    **get_default_permissions(user_only=False),
+                    **get_default_permissions(user_only=False, match_deleted=True),
                 }
             },
+            {"$sort": {"deleted": 1}},
             {"$lookup": creators_lookup()},
             {"$lookup": collections_lookup()},
             {"$lookup": files_lookup()},
@@ -874,9 +902,14 @@ def get_item_data(
         f["immutable_id"]: f for f in return_dict.get("files") or []
     }
 
+    warnings = []
+    if return_dict.get("deleted"):
+        warnings += [f"The item with refcode {return_dict['refcode']!r} has been deleted."]
+
     return jsonify(
         {
             "status": "success",
+            "warnings": warnings,
             "item_id": item_id,
             "item_data": return_dict,
             "files_data": files_data,
