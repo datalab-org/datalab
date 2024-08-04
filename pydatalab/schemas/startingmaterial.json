@@ -48,6 +48,10 @@
         "$ref": "#/definitions/Person"
       }
     },
+    "deleted": {
+      "title": "Deleted",
+      "type": "boolean"
+    },
     "type": {
       "title": "Type",
       "default": "starting_materials",

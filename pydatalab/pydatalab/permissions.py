@@ -60,7 +60,7 @@ def admin_only(func):
     return wrapped_route
 
 
-def get_default_permissions(user_only: bool = True) -> Dict[str, Any]:
+def get_default_permissions(user_only: bool = True, match_deleted: bool = False) -> Dict[str, Any]:
     """Return the MongoDB query terms corresponding to the current user.
 
     Will return open permissions if a) the `CONFIG.TESTING` parameter is `True`,
@@ -70,11 +70,17 @@ def get_default_permissions(user_only: bool = True) -> Dict[str, Any]:
         user_only: Whether to exclude items that also have no attached user (`False`),
             i.e., public items. This should be set to `False` when reading (and wanting
             to return public items), but left as `True` when modifying or removing items.
+        match_deleted: Whether to include items that have been soft-deleted.
 
     """
 
+    return_match: dict = {"$and": []}
+
+    if not match_deleted:
+        return_match["$and"].append({"deleted": {"$ne": True}})
+
     if CONFIG.TESTING:
-        return {}
+        return return_match
 
     if (
         current_user.is_authenticated
@@ -104,10 +110,15 @@ def get_default_permissions(user_only: bool = True) -> Dict[str, Any]:
 
         user_perm = {"creator_ids": {"$in": [current_user.person.immutable_id] + managed_users}}
         if user_only:
-            return user_perm
-        return {"$or": [user_perm, null_perm]}
+            return_match["$and"].append(user_perm)
+            return return_match
+
+        return_match["$and"].append({"$or": [user_perm, null_perm]})
+
+        return return_match
 
     elif user_only:
         return {"_id": -1}
 
-    return null_perm
+    return_match["$and"].append(null_perm)
+    return return_match

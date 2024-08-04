@@ -132,4 +132,5 @@ def test_delete_starting_mateiral(admin_client, default_starting_material_dict):
     response = admin_client.get(
         f"/get-item-data/{default_starting_material_dict['item_id']}",
     )
-    assert response.status_code == 404
+    assert response.status_code == 200
+    assert "has been deleted" in response.json["warnings"][0]
