@@ -6,6 +6,8 @@ from flask_pymongo import PyMongo
 from pydantic import BaseModel
 from pymongo.errors import ConnectionFailure
 
+from pydatalab.logger import LOGGER
+
 __all__ = (
     "flask_mongo",
     "check_mongo_connection",
@@ -148,7 +150,7 @@ def create_default_indices(
                 "name": "unique item ID",
                 "unique": True,
                 "background": background,
-                "partialFilterExpression": {"deleted": {"$type": "bool"}},
+                "partialFilterExpression": {"deleted": {"$eq": None}},
             }
         },
         {"refcode": {"name": "unique refcode", "unique": True, "background": background}},
@@ -161,7 +163,8 @@ def create_default_indices(
         for field, options in index.items():
             try:
                 ret += db.items.create_index(field, **options)
-            except pymongo.errors.OperationFailure:
+            except pymongo.errors.OperationFailure as exc:
+                LOGGER.warning("Rebuilding index %s", options["name"], exc_info=exc)
                 db.items.drop_index(options["name"])
                 ret += db.items.create_index(field, **options)
 
