@@ -124,4 +124,5 @@ def test_delete_equipment(admin_client, default_equipment_dict):
     response = admin_client.get(
         f"/get-item-data/{default_equipment_dict['item_id']}",
     )
-    assert response.status_code == 404
+    assert response.status_code == 200
+    assert "has been deleted" in response.json["warnings"][0]
