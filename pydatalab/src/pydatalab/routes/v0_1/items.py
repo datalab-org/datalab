@@ -726,6 +726,8 @@ def delete_sample(refcode: str | None = None, item_id: str | None = None):
             400,
         )
 
+    LOGGER.warning(f"Setting deleted status for {refcode=}, {item_id=}.")
+
     result = flask_mongo.db.items.update_one(
         {**match, **get_default_permissions(user_only=True)},
         {"$set": {"deleted": True}},
