@@ -20,7 +20,7 @@ class BubaBlock(DataBlock):
     blocktype = "buba"
     name = "Buba test rig"
     description = "Analyse data from the Buba test rig"
-    accepted_file_extensions = (".csv", )
+    accepted_file_extensions = (".csv",)
 
     @property
     def plot_functions(self):
@@ -28,8 +28,9 @@ class BubaBlock(DataBlock):
 
     def plot_buba(self):
         file_info = None
-        # all_files = None
-        ms_data = None
+        trial = 1
+        instrument_id = 1
+        sorbent_mass = 0.0267
 
         if "file_id" not in self.data:
             LOGGER.warning("No file set in the DataBlock")
@@ -45,11 +46,44 @@ class BubaBlock(DataBlock):
                 )
                 return
 
-            df = parse_buba(Path(file_info["location"]), instrument_id=1)
+            df = parse_buba(Path(file_info["location"]), instrument_id=instrument_id)
             analysis = AdsorbAnalyze(df)
 
-            breakpoint()
+            ads_capacity_co2 = analysis.co2_uptake(sorbent_mass, single_point=True)
 
-            p = selectable_axes_plot(df)
+            # Calculate CO2 uptake
+            ads_uptakes = analysis.co2_uptake(sorbent_mass, single_point=False)
+
+            # Extract specific adsorption trial
+            ads_uptake = ads_uptakes[trial]
+
+            df["co2_in_ppm"] = analysis.adsorb_trials[trial]["co2_in_ppm"]
+            df["co2_out_ppm"] = analysis.adsorb_trials[trial]["co2_out_ppm"]
+            df["co2_uptake_mmolco2_per_gsorbent"] = ads_uptake["co2_uptake_mmolco2_per_gsorbent"]
+            df["relative_humidity_in_percent"] = analysis.adsorb_trials[trial][
+                "relative_humidity_in_percent"
+            ]
+            df["relative_humidity_out_percent"] = analysis.adsorb_trials[trial][
+                "relative_humidity_out_percent"
+            ]
+
+            time_column = "time_min" if "time_min" in df.columns else "time_s"
+
+            df[time_column] = analysis.adsorb_trials[trial][time_column]
+
+            p = selectable_axes_plot(
+                df,
+                x_options=[time_column],
+                y_options=[
+                    "co2_out_ppm",
+                    "co2_uptake_mmolco2_per_gsorbent",
+                    "co2_in_ppm",
+                    "relative_humidity_in_percent",
+                    "relative_humidity_out_percent",
+                ],
+                plot_points=False,
+                plot_line=True,
+                # plot_title="CO₂ Breakthrough Curve",
+            )
 
             self.data["bokeh_plot_data"] = bokeh.embed.json_item(p, theme=DATALAB_BOKEH_GRID_THEME)
