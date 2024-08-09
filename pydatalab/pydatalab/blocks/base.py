@@ -167,6 +167,9 @@ class DataBlock:
                         LOGGER.warning(
                             f"Could not create plot for {self.__class__.__name__}: {self.data}"
                         )
+                        from traceback import print_exc
+
+                        print_exc()
                     finally:
                         if captured_warnings:
                             block_warnings.extend(
