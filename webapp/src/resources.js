@@ -3,6 +3,7 @@ import DataBlockBase from "@/components/datablocks/DataBlockBase";
 import BokehBlock from "@/components/datablocks/BokehBlock";
 import MediaBlock from "@/components/datablocks/MediaBlock";
 import XRDBlock from "@/components/datablocks/XRDBlock";
+import BubaBlock from "@/components/datablocks/BubaBlock";
 import ChatBlock from "@/components/datablocks/ChatBlock";
 import RamanBlock from "@/components/datablocks/RamanBlock";
 import CycleBlock from "@/components/datablocks/CycleBlock";
@@ -51,7 +52,7 @@ export const blockTypes = {
   tabular: { description: "Tabular Data", component: BokehBlock, name: "Tabular data" },
   xrd: { description: "Powder XRD", component: XRDBlock, name: "Powder XRD" },
   raman: { description: "Raman", component: RamanBlock, name: "Raman" },
-  buba: { description: "Buba", component: BokehBlock, name: "Buba" },
+  buba: { description: "Buba", component: BubaBlock, name: "Buba" },
   cycle: { description: "Electrochemistry", component: CycleBlock, name: "Electrochemistry" },
   eis: { description: "Electrochemical Impedance Spectroscopy", component: EISBlock, name: "EIS" },
   nmr: { description: "Nuclear Magnetic Resonance Spectroscopy", component: NMRBlock, name: "NMR" },
