@@ -156,7 +156,7 @@ jobs:
         with:
           config: baseUrl=http://localhost:8081
           working-directory: ./webapp
-          record: true
+          record: ${{ github.repository == 'datalab-org/datalab' }}
           browser: ${{ matrix.browser-backend }}
           group: "End-to-end tests (${{ matrix.browser-backend }})"
         env:
@@ -166,7 +166,7 @@ jobs:
         uses: cypress-io/github-action@v6
         with:
           working-directory: ./webapp
-          record: true
+          record: ${{ github.repository == 'datalab-org/datalab' }}
           install: false
           component: true
           publish-summary: false
