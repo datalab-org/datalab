@@ -1,0 +1,37 @@
+version: 2
+updates:
+  #- package-ecosystem: pip
+  #  directory: "/"
+  #  schedule:
+  #    interval: weekly
+  #    day: monday
+  #    time: "05:43"
+  #  # Needs to be larger than the number of total requirements (currently 31)
+  #  open-pull-requests-limit: 50
+  #  target-branch: master
+  #  labels:
+  #  - dependency_updates
+  #  # Turn off automatic rebases so that auto-merge can work without needed N**2 CI runs
+  #  rebase-strategy: "disabled"
+  #  groups:
+  #    python-dependencies:
+  #      applies-to: version-updates
+  #      dependency-type: production
+  #    python-dependencies-dev:
+  #      applies-to: version-updates
+  #      dependency-type: development
+  #    python-dependencies-security:
+  #      applies-to: security-updates
+  #      dependency-type: production
+- package-ecosystem: github-actions
+  directory: "/"
+  schedule:
+    interval: daily
+    time: "05:33"
+  target-branch: master
+  labels:
+  - CI
+  groups:
+    github-actions:
+      applies-to: version-updates
+      dependency-type: production
