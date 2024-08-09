@@ -21,6 +21,8 @@ class BubaBlock(DataBlock):
     description = "Analyse data from the Buba test rig"
     accepted_file_extensions = (".csv",)
 
+    defaults = {"sorbent_mass_g": None}
+
     @property
     def plot_functions(self):
         return (self.plot_buba,)
@@ -36,7 +38,12 @@ class BubaBlock(DataBlock):
             LOGGER.warning("No file set in the DataBlock")
             return
         else:
-            self.data["sorbent_mass_g"] = sorbent_mass_g
+            if sorbent_mass_g is None:
+                if self.data.get("sorbent_mass_g") is not None:
+                    sorbent_mass_g = float(self.data["sorbent_mass_g"])
+            else:
+                self.data["sorbent_mass_g"] = float(sorbent_mass_g)
+
             if not sorbent_mass_g:
                 warnings.warn("No sorbent mass provided; data will not be normalized.")
                 sorbent_mass_g = 1.0
@@ -89,5 +96,5 @@ class BubaBlock(DataBlock):
             if time_column == "time_min":
                 analysed["time_s"] = [t * 60 for t in analysed["time_min"]]
 
-            p = buba_plot(analysed, time_unit="min")
+            p = buba_plot(analysed, sorbent_mass_g=sorbent_mass_g, time_unit="min")
             self.data["bokeh_plot_data"] = bokeh.embed.json_item(p, theme=DATALAB_BOKEH_GRID_THEME)
