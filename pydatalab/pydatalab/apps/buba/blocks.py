@@ -1,19 +1,15 @@
 import os
 from pathlib import Path
-from typing import List, Tuple
 
 import bokeh
-from bokeh.layouts import gridplot
-from scipy.signal import savgol_filter
+import pandas as pd
+from buba_utils.adsorb_analyze import AdsorbAnalyze
+from buba_utils.pre_process import PreProcess
 
-from pydatalab.apps.tga.parsers import parse_mt_mass_spec_ascii
 from pydatalab.blocks.base import DataBlock
 from pydatalab.bokeh_plots import DATALAB_BOKEH_GRID_THEME, selectable_axes_plot
 from pydatalab.file_utils import get_file_info_by_id
 from pydatalab.logger import LOGGER
-
-from .parsers import parse_buba
-from .analysis import AdsorbAnalyze
 
 
 class BubaBlock(DataBlock):
@@ -25,6 +21,10 @@ class BubaBlock(DataBlock):
     @property
     def plot_functions(self):
         return (self.plot_buba,)
+
+    @classmethod
+    def parse_buba(cls, path: Path, instrument_id: int = 1) -> pd.DataFrame:
+        return PreProcess(path, instrument_id).df
 
     def plot_buba(self):
         file_info = None
@@ -46,10 +46,10 @@ class BubaBlock(DataBlock):
                 )
                 return
 
-            df = parse_buba(Path(file_info["location"]), instrument_id=instrument_id)
+            df = self.parse_buba(Path(file_info["location"]), instrument_id=instrument_id)
             analysis = AdsorbAnalyze(df)
 
-            ads_capacity_co2 = analysis.co2_uptake(sorbent_mass, single_point=True)
+            self.data["ads_capacity_co2"] = analysis.co2_uptake(sorbent_mass, single_point=True)
 
             # Calculate CO2 uptake
             ads_uptakes = analysis.co2_uptake(sorbent_mass, single_point=False)

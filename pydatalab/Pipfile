@@ -28,6 +28,7 @@ pillow = "*"
 tiktoken = "~= 0.7, < 0.8"
 galvani = "~= 0.4"
 navani = {git = "git+https://github.com/the-grey-group/navani.git@v0.1.5"}
+buba-utils = {git = "git+ssh://git@github.com/avnos-research/test-rig.git@ml-evs/packaging"}
 NewareNDA = ">= 2024"
 python-dateutil = "*"
 pybaselines = "*"

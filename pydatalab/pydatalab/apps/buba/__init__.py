@@ -1,3 +1,3 @@
-from .blocks import BubaBlock 
+from .blocks import BubaBlock
 
 __all__ = ("BubaBlock",)
