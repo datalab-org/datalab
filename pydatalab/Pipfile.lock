@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "843656ee5a60748c108237185554425ec5cb2e2fdb5972dee0a66ad651b25e86"
+            "sha256": "70b1b39e2406db5541c0de819da98907567574176f9d58f0f58efcd4e7406d76"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -287,8 +287,7 @@
             "version": "==1.1.0"
         },
         "buba-utils": {
-            "git": "git+ssh://git@github.com/avnos-research/test-rig.git@ml-evs/packaging",
-            "ref": "becb4894faf231597823ad44b02cb867e4277c06"
+            "path": "./plugins/test-rig"
         },
         "certifi": {
             "hashes": [
@@ -964,16 +963,8 @@
                 "sha256:11901fa0c2f97919b288679932bb64febaeacf289d18ac84dd68cb2e74213369",
                 "sha256:72e8d4399996132204f9a16dcc751af254a48f8d1b20b9ff0f98d4a8f901e73d"
             ],
-            "markers": "python_version < '3.10'",
+            "markers": "python_version < '3.12'",
             "version": "==8.2.0"
-        },
-        "importlib-resources": {
-            "hashes": [
-                "sha256:50d10f043df931902d4194ea07ec57960f66a80449ff867bfe782b4c486ba78c",
-                "sha256:cdb2b453b8046ca4e3798eb1d84f3cce1446a0e8e7b5ef4efb600f19fc398145"
-            ],
-            "markers": "python_version < '3.10'",
-            "version": "==6.4.0"
         },
         "invoke": {
             "hashes": [
@@ -1539,11 +1530,11 @@
         },
         "openai": {
             "hashes": [
-                "sha256:2180e9070bd36084328248b3ce668964e8ddd2e9019e1d426e31dc54cc117bb5",
-                "sha256:38068f858f310b4fd4b0ea8734c3efcfde3c15a2978311e1453bd84817231b96"
+                "sha256:09396cb6e2e15c921a5d872bf92841a60a9425da10dcd962b45fe7c4f48f8395",
+                "sha256:f2ffe907618240938c59d7ccc67dd01dc8c50be203c0077240db6758d2f02480"
             ],
             "markers": "python_full_version >= '3.7.1'",
-            "version": "==1.40.2"
+            "version": "==1.40.3"
         },
         "openpyxl": {
             "hashes": [
@@ -3140,14 +3131,6 @@
             "markers": "python_version >= '3.5'",
             "version": "==3.7"
         },
-        "importlib-metadata": {
-            "hashes": [
-                "sha256:11901fa0c2f97919b288679932bb64febaeacf289d18ac84dd68cb2e74213369",
-                "sha256:72e8d4399996132204f9a16dcc751af254a48f8d1b20b9ff0f98d4a8f901e73d"
-            ],
-            "markers": "python_version < '3.10'",
-            "version": "==8.2.0"
-        },
         "iniconfig": {
             "hashes": [
                 "sha256:2d91e135bf72d31a410b17c16da610a82cb55f6b0477d1a902134b24a455b8b3",
@@ -3635,14 +3618,6 @@
             "markers": "python_version < '3.11'",
             "version": "==2.0.1"
         },
-        "typing-extensions": {
-            "hashes": [
-                "sha256:04e5ca0351e0f3f85c6853954072df659d0d13fac324d0072316b67d7794700d",
-                "sha256:1a7ead55c7e559dd4dee8856e3a88b41225abfe1ce8df57b7c13915fe121ffb8"
-            ],
-            "markers": "python_version >= '3.8'",
-            "version": "==4.12.2"
-        },
         "urllib3": {
             "hashes": [
                 "sha256:a448b2f64d686155468037e1ace9f2d2199776e17f0a46610480d311f73e3472",
@@ -3704,14 +3679,6 @@
             ],
             "markers": "python_version >= '3.8'",
             "version": "==9.0"
-        },
-        "zipp": {
-            "hashes": [
-                "sha256:bf1dcf6450f873a13e952a29504887c89e6de7506209e5b1bcc3460135d4de19",
-                "sha256:f091755f667055f2d02b32c53771a7a6c8b47e1fdbc4b72a8b9072b3eef8015c"
-            ],
-            "markers": "python_version >= '3.8'",
-            "version": "==3.19.2"
         }
     }
 }
