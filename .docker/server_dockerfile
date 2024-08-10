@@ -44,3 +44,5 @@ ENV PORT=${PORT}
 
 
 CMD ["/bin/bash", "-c", "pipenv run gunicorn --preload -w ${WEB_CONCURRENCY} --error-logfile /logs/pydatalab_error.log --access-logfile - -b 0.0.0.0:${PORT} 'pydatalab.main:create_app()'"]
+
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 CMD curl --fail http://localhost:${PORT}/healthcheck/is_ready || exit 1
