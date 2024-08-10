@@ -30,9 +30,9 @@ CMD ["/bin/bash", "-c", "pipenv run flask run --reload --port ${PORT} --host 0.0
 
 # Create production image using gunicorn and minimal dependencies
 FROM app as production
+COPY ./pydatalab/ ./
 RUN --mount=type=cache,target=/root/.cache/pip pipenv sync
 RUN [ "pipenv", "run", "pip", "install", "gunicorn" ]
-COPY ./pydatalab/ ./
 
 # This will define the number of gunicorn workers
 ARG WEB_CONCURRENCY=4
