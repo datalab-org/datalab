@@ -1413,8 +1413,8 @@
             "version": "==6.0.5"
         },
         "navani": {
-            "git": "git+https://github.com/the-grey-group/navani.git@v0.1.5",
-            "ref": "32aa742c3b84aa63fb4e3bd7b1824acb89e2b61d"
+            "git": "git+https://github.com/the-grey-group/navani.git@v0.1.6",
+            "ref": "4947f3c9fbf730e783800a58c9689936ed273eb2"
         },
         "newarenda": {
             "hashes": [
