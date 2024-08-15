@@ -62,7 +62,7 @@ class CycleBlock(DataBlock):
             return characteristic_mass_mg / 1000.0
         return None
 
-    def _load(self, file_id: Union[str, ObjectId], reload: bool = False):
+    def _load(self, file_id: Union[str, ObjectId], reload: bool = True):
         """Loads the echem data using navani, summarises it, then caches the results
         to disk with suffixed names.
 
