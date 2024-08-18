@@ -93,6 +93,8 @@ services:
     restart: unless-stopped
     networks:
       - backend
+    ports:
+      - "27017:27017"
 
 networks:
   backend:
