@@ -323,6 +323,7 @@ its importance when deploying a datalab instance.""",
     class Config:
         env_prefix = "pydatalab_"
         extra = "allow"
+        env_file = ".env"
         env_file_encoding = "utf-8"
         validate_assignment = True
 
