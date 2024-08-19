@@ -28,6 +28,7 @@ blinker==1.8.2
     #   flask
     #   flask-mail
 bokeh==2.4.3
+    # via datalab-server (pyproject.toml)
 brotli==1.1.0
     # via flask-compress
 certifi==2024.7.4
@@ -79,6 +80,7 @@ filelock==3.15.4
     #   transformers
 flask==3.0.3
     # via
+    #   datalab-server (pyproject.toml)
     #   flask-compress
     #   flask-cors
     #   flask-dance
@@ -86,11 +88,17 @@ flask==3.0.3
     #   flask-mail
     #   flask-pymongo
 flask-compress==1.15
+    # via datalab-server (pyproject.toml)
 flask-cors==4.0.1
+    # via datalab-server (pyproject.toml)
 flask-dance==7.1.0
+    # via datalab-server (pyproject.toml)
 flask-login==0.6.3
+    # via datalab-server (pyproject.toml)
 flask-mail==0.10.0
+    # via datalab-server (pyproject.toml)
 flask-pymongo==2.3.0
+    # via datalab-server (pyproject.toml)
 flexcache==0.3
     # via pint
 flexparser==0.3.1
@@ -106,7 +114,9 @@ fsspec==2024.6.1
     #   dask
     #   huggingface-hub
 galvani==0.4.1
-    # via navani
+    # via
+    #   datalab-server (pyproject.toml)
+    #   navani
 greenlet==3.0.3
     # via sqlalchemy
 h11==0.14.0
@@ -117,7 +127,7 @@ httpx==0.27.0
     # via
     #   anthropic
     #   openai
-huggingface-hub==0.24.5
+huggingface-hub==0.24.6
     # via
     #   tokenizers
     #   transformers
@@ -131,6 +141,7 @@ idna==3.7
 importlib-metadata==8.2.0
     # via dask
 invoke==2.2.0
+    # via datalab-server (pyproject.toml)
 itsdangerous==2.2.0
     # via flask
 jinja2==3.1.4
@@ -148,7 +159,9 @@ jsonpointer==3.0.0
 kiwisolver==1.4.5
     # via matplotlib
 langchain==0.2.6
+    # via datalab-server (pyproject.toml)
 langchain-anthropic==0.1.23
+    # via datalab-server (pyproject.toml)
 langchain-core==0.2.33
     # via
     #   langchain
@@ -156,6 +169,7 @@ langchain-core==0.2.33
     #   langchain-openai
     #   langchain-text-splitters
 langchain-openai==0.1.22
+    # via datalab-server (pyproject.toml)
 langchain-text-splitters==0.2.2
     # via langchain
 langsmith==0.1.99
@@ -169,15 +183,21 @@ markupsafe==2.1.5
     #   jinja2
     #   werkzeug
 matplotlib==3.9.2
-    # via navani
+    # via
+    #   datalab-server (pyproject.toml)
+    #   navani
 multidict==6.0.5
     # via
     #   aiohttp
     #   yarl
 navani @ git+https://github.com/the-grey-group/navani.git@32aa742c3b84aa63fb4e3bd7b1824acb89e2b61d
+    # via datalab-server (pyproject.toml)
 newarenda==2024.8.1
-    # via navani
+    # via
+    #   datalab-server (pyproject.toml)
+    #   navani
 nmrglue==0.10
+    # via datalab-server (pyproject.toml)
 numpy==1.26.4
     # via
     #   bokeh
@@ -218,31 +238,42 @@ packaging==24.1
     #   transformers
 pandas==2.2.2
     # via
+    #   datalab-server (pyproject.toml)
     #   navani
     #   newarenda
 paramiko==3.4.1
+    # via datalab-server (pyproject.toml)
 partd==1.4.2
     # via dask
 periodictable==1.7.1
+    # via datalab-server (pyproject.toml)
 pillow==10.4.0
     # via
+    #   datalab-server (pyproject.toml)
     #   bokeh
     #   matplotlib
 pint==0.24.3
-    # via rosettasciio
+    # via
+    #   datalab-server (pyproject.toml)
+    #   rosettasciio
 pybaselines==1.1.0
+    # via datalab-server (pyproject.toml)
 pycparser==2.22
     # via cffi
 pydantic==1.10.17
     # via
+    #   datalab-server (pyproject.toml)
     #   anthropic
     #   langchain
     #   langchain-core
     #   langsmith
     #   openai
 pyjwt==2.9.0
+    # via datalab-server (pyproject.toml)
 pymongo==4.8.0
-    # via flask-pymongo
+    # via
+    #   datalab-server (pyproject.toml)
+    #   flask-pymongo
 pynacl==1.5.0
     # via paramiko
 pyparsing==3.1.2
@@ -255,10 +286,14 @@ python-calamine==0.2.3
     # via pandas
 python-dateutil==2.9.0.post0
     # via
+    #   datalab-server (pyproject.toml)
     #   matplotlib
     #   pandas
     #   rosettasciio
 python-dotenv==1.0.1
+    # via
+    #   datalab-server (pyproject.toml)
+    #   pydantic
 pytz==2024.1
     # via pandas
 pyxlsb==1.0.10
@@ -288,10 +323,12 @@ requests==2.32.3
 requests-oauthlib==2.0.0
     # via flask-dance
 rosettasciio==0.3
+    # via datalab-server (pyproject.toml)
 safetensors==0.4.4
     # via transformers
 scipy==1.14.0
     # via
+    #   datalab-server (pyproject.toml)
     #   navani
     #   nmrglue
     #   pybaselines
@@ -310,7 +347,9 @@ tenacity==8.5.0
     #   langchain
     #   langchain-core
 tiktoken==0.7.0
-    # via langchain-openai
+    # via
+    #   datalab-server (pyproject.toml)
+    #   langchain-openai
 tokenizers==0.19.1
     # via
     #   anthropic
@@ -327,6 +366,7 @@ tqdm==4.66.5
     #   openai
     #   transformers
 transformers==4.44.0
+    # via datalab-server (pyproject.toml)
 typing-extensions==4.12.2
     # via
     #   anthropic
@@ -348,6 +388,7 @@ urlobject==2.4.3
     # via flask-dance
 werkzeug==3.0.3
     # via
+    #   datalab-server (pyproject.toml)
     #   flask
     #   flask-dance
     #   flask-login
