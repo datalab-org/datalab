@@ -37,3 +37,5 @@ RUN /node_modules/.bin/vue-cli-service build
 
 COPY ./.docker/app_entrypoint.sh /app/
 CMD [ "/bin/bash", "-c", "/app/app_entrypoint.sh" ]
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 CMD curl --fail http://localhost:8081 || exit 1

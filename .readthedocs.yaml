@@ -6,21 +6,11 @@ build:
   os: ubuntu-22.04
   tools:
     python: "3.10"
-
-  jobs:
-    pre_install:
-      # Generate a requirements file for the whole project based on the latest lock
-      # For some reasn the path isn't set
-      - "pip install pipenv"
-      - "echo $(which python)"
-      - "cd ./pydatalab && $(find /home/docs/checkouts/readthedocs.org/user_builds/the-datalab/ -type f -name pipenv | head -n 1) requirements --dev > ./docs/tmp-requirements-docs.txt"
-
-python:
-  install:
-    - requirements: pydatalab/docs/tmp-requirements-docs.txt
-    - method: pip
-      path: ./pydatalab
-
-mkdocs:
-  configuration: ./mkdocs.yml
-  fail_on_warning: false
+  commands:
+    - asdf plugin add uv
+    - asdf install uv latest
+    - asdf global uv latest
+    - cd pydatalab && uv venv
+    - cd pydatalab && uv pip install -r requirements/requirements-all-dev.txt
+    - cd pydatalab && uv pip install .
+    - cd pydatalab && .venv/bin/mkdocs build --site-dir $READTHEDOCS_OUTPUT/html
