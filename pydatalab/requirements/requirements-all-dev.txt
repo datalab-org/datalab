@@ -446,7 +446,7 @@ scipy==1.14.0
     #   pybaselines
 sentinels==1.0.0
     # via mongomock
-setuptools==72.2.0
+setuptools==73.0.0
     # via pytest-dependency
 six==1.16.0
     # via python-dateutil
