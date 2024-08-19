@@ -131,12 +131,15 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build Docker images and cache them
+      - name: Build Docker containers
         uses: docker/bake-action@v5
         with:
           files: docker-compose.yml
           load: true
           targets: ${{ matrix.target }}
+          set: |
+            *.cache-to=type=gha,scope=build-${{ matrix.target }},mode=max
+            *.cache-from=type=gha,scope=build-${{ matrix.target }}
 
   e2e:
     name: e2e tests
@@ -179,7 +182,7 @@ jobs:
       - name: Start services
         run: |
           # Launch production container profiles and wait for them to come up
-          docker compose up database api app -d --wait
+          docker compose up database api app --no-build -d --wait
 
       - name: Run end-to-end tests
         uses: cypress-io/github-action@v6
