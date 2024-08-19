@@ -1,10 +1,40 @@
 # Changelog
 
-## v0.4.3 (July 2024
+## v0.5.0-rc.1 (August 2024)
+
+This release candidate changes how the Python server is packaged in a potentially breaking way, with the aim to make it significantly easier to develop datalab plugins. Attempts at backwards compatibility with the former pipenv approach will be maintained for at least this minor release cycle.
+
+### What's Changed
+
+* CI build time and fork compatibility improvements by @ml-evs in https://github.com/datalab-org/datalab/pull/833
+* Tweak cache usage on docker builds by @ml-evs in https://github.com/datalab-org/datalab/pull/841
+* Repackage server as proper Python package, removing `pipenv` by @ml-evs in https://github.com/datalab-org/datalab/pull/604
+* Re-enable dependabot for Python dependencies by @ml-evs in https://github.com/datalab-org/datalab/pull/845
+
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.4.4...v0.5.0-rc.1
+
+
+## v0.4.4 (August 2024)
+
+This release primarily contains some bugfixes for the echem block, as well as tidying in preparation of the next release.
+
+### What's Changed
+* Removed unused css by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/826
+* Remove final mentions of odbx.science by @ml-evs in https://github.com/datalab-org/datalab/pull/827
+* Add routes for resolving items by refcode by @ml-evs in https://github.com/datalab-org/datalab/pull/807
+* Fix block errors caused by seemingly defunct theme options in bokeh  by @ml-evs in https://github.com/datalab-org/datalab/pull/829
+* Update to latest navani version, fixing Neware normalisation issues by @ml-evs in https://github.com/datalab-org/datalab/pull/836
+* Reload echem data by default, unless disabled by @ml-evs in https://github.com/datalab-org/datalab/pull/840
+
+
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.4.3...v0.4.4
+
+
+## v0.4.3 (July 2024)
 
 This release simply re-enables Firefox testing in the CI, and reorganises the associated cloud runs.
 
-## What's Changed
+### What's Changed
 * Re-enable Firefox e2e tests by @ml-evs in https://github.com/datalab-org/datalab/pull/711
 
 **Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.4.2...v0.4.3
@@ -14,7 +44,7 @@ This release simply re-enables Firefox testing in the CI, and reorganises the as
 
 This release adds an update to the batch item creation UI to include other item types, and includes a new preview of the tabular UI which can be accessed at the path `/next`, as well as several UI tweaks and fixes.
 
-## What's Changed
+### What's Changed
 
 * Rebrand repo to the group-agnostic gh organisation by @ml-evs in https://github.com/datalab-org/datalab/pull/809
 * Change docker compose restart policy to "unless-stopped" by @ml-evs in https://github.com/datalab-org/datalab/pull/810
@@ -32,7 +62,7 @@ This release adds an update to the batch item creation UI to include other item 
 
 This minor release adds some quality-of-life fixes to the UI, a new cell format type "in situ (optical)" and tweaks to our development workflow.
 
-## What's Changed
+### What's Changed
 
 * Run vue3-recommended linting by @jdbocarsly in https://github.com/the-grey-group/datalab/pull/756
 * Corrected blockInfo computed property value by @BenjaminCharmes in https://github.com/the-grey-group/datalab/pull/775
