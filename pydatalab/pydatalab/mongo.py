@@ -1,5 +1,3 @@
-from typing import List, Optional
-
 # Must be imported in this way to allow for easy patching with mongomock
 import pymongo
 from flask_pymongo import PyMongo
@@ -76,9 +74,9 @@ def check_mongo_connection() -> None:
 
 
 def create_default_indices(
-    client: Optional[pymongo.MongoClient] = None,
+    client: pymongo.MongoClient | None = None,
     background: bool = False,
-) -> List[str]:
+) -> list[str]:
     """Creates indices for the configured or passed MongoClient.
 
     Indexes created are:

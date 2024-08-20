@@ -1,7 +1,6 @@
 import os
 import time
 from pathlib import Path
-from typing import Union
 
 import bokeh
 import pandas as pd
@@ -14,11 +13,7 @@ from pydatalab.file_utils import get_file_info_by_id
 from pydatalab.logger import LOGGER
 from pydatalab.mongo import flask_mongo
 
-from .utils import (
-    compute_gpcl_differential,
-    filter_df_by_cycle_index,
-    reduce_echem_cycle_sampling,
-)
+from .utils import compute_gpcl_differential, filter_df_by_cycle_index, reduce_echem_cycle_sampling
 
 
 class CycleBlock(DataBlock):
@@ -62,7 +57,7 @@ class CycleBlock(DataBlock):
             return characteristic_mass_mg / 1000.0
         return None
 
-    def _load(self, file_id: Union[str, ObjectId], reload: bool = True):
+    def _load(self, file_id: str | ObjectId, reload: bool = True):
         """Loads the echem data using navani, summarises it, then caches the results
         to disk with suffixed names.
 

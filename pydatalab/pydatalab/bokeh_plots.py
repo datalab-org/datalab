@@ -1,5 +1,5 @@
 import warnings
-from typing import Dict, List, Optional, Sequence, Union
+from collections.abc import Sequence
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -135,21 +135,21 @@ DATALAB_BOKEH_GRID_THEME = Theme(json=grid_style)
 
 
 def selectable_axes_plot(
-    df: Union[Dict[str, pd.DataFrame], List[pd.DataFrame], pd.DataFrame],
-    x_options: List[str],
-    y_options: List[str],
-    color_options: Optional[List[str]] = None,
-    color_mapper: Optional[ColorMapper] = None,
-    x_default: Optional[str] = None,
-    y_default: Optional[Union[str, List[str]]] = None,
+    df: dict[str, pd.DataFrame] | list[pd.DataFrame] | pd.DataFrame,
+    x_options: list[str],
+    y_options: list[str],
+    color_options: list[str] | None = None,
+    color_mapper: ColorMapper | None = None,
+    x_default: str | None = None,
+    y_default: str | list[str] | None = None,
     label_x: bool = True,
     label_y: bool = True,
     plot_points: bool = True,
     point_size: int = 4,
     plot_line: bool = True,
-    plot_title: Optional[str] = None,
-    plot_index: Optional[int] = None,
-    tools: Optional[List] = None,
+    plot_title: str | None = None,
+    plot_index: int | None = None,
+    tools: list | None = None,
     **kwargs,
 ):
     """
@@ -348,7 +348,7 @@ def selectable_axes_plot(
 
 def double_axes_echem_plot(
     df: pd.DataFrame,
-    mode: Optional[str] = None,
+    mode: str | None = None,
     cycle_summary: pd.DataFrame = None,
     x_options: Sequence[str] = [],
     pick_peaks: bool = True,

@@ -1,8 +1,8 @@
 import logging
 import logging.handlers
 import time
+from collections.abc import Callable
 from functools import wraps
-from typing import Callable, Optional
 
 LOG_FORMAT_STRING = "%(asctime)s | %(levelname)-8s: %(message)s (PID: %(process)d - %(name)s: %(pathname)s:%(funcName)s:%(lineno)d)"
 
@@ -32,7 +32,7 @@ class AnsiColorHandler(logging.StreamHandler):
         return f"\x1b[{color} {message}\x1b[0m"
 
 
-def setup_log(log_name: str = "pydatalab", log_level: Optional[int] = None) -> logging.Logger:
+def setup_log(log_name: str = "pydatalab", log_level: int | None = None) -> logging.Logger:
     """Creates a logger a simple coloured stdout output.
 
     Verbosity can be set to debug in the config file via

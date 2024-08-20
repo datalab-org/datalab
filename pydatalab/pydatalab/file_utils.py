@@ -4,7 +4,7 @@ import pathlib
 import re
 import shutil
 import subprocess
-from typing import Any, Dict, Union
+from typing import Any
 
 from bson.objectid import ObjectId
 from pymongo import ReturnDocument
@@ -227,9 +227,7 @@ def _check_and_sync_file(file_info: File, file_id: ObjectId) -> File:
 
 
 @logged_route
-def get_file_info_by_id(
-    file_id: Union[str, ObjectId], update_if_live: bool = True
-) -> Dict[str, Any]:
+def get_file_info_by_id(file_id: str | ObjectId, update_if_live: bool = True) -> dict[str, Any]:
     """Query the files collection for the given ID.
 
     If the `update_if_live` and the file has been updated on the
@@ -543,7 +541,7 @@ def retrieve_file_path(file_ObjectId):
     return result.location
 
 
-def remove_file_from_sample(item_id: Union[str, ObjectId], file_id: Union[str, ObjectId]) -> None:
+def remove_file_from_sample(item_id: str | ObjectId, file_id: str | ObjectId) -> None:
     """Detach the file at `file_id` from the item at `item_id`.
 
     Args:

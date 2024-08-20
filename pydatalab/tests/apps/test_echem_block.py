@@ -10,7 +10,7 @@ from pydatalab.apps.echem.utils import (
 )
 
 
-@pytest.fixture
+@pytest.fixture()
 def echem_dataframe():
     """Yields example echem data as a dataframe."""
     df = echem_file_loader(
@@ -36,12 +36,12 @@ def echem_dataframe():
     return df
 
 
-@pytest.fixture
+@pytest.fixture()
 def reduced_echem_dataframe(echem_dataframe):
     return reduce_echem_cycle_sampling(echem_dataframe, 100)
 
 
-@pytest.fixture
+@pytest.fixture()
 def reduced_and_filtered_echem_dataframe(reduced_echem_dataframe):
     return filter_df_by_cycle_index(reduced_echem_dataframe)
 

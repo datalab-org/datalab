@@ -70,7 +70,7 @@ def test_new_equipment_with_automatically_generated_id(client):
     assert response.json["status"] == "success"
     assert response.json["item_data"]["refcode"].split(":")[1] == created_item_id
 
-    for key in new_equipment_data.keys():
+    for key in new_equipment_data:
         if isinstance(v := new_equipment_data[key], datetime.datetime):
             v = v.isoformat()
         assert response.json["item_data"][key] == v

@@ -24,7 +24,7 @@ def test_get_current_user_admin(admin_client):
 
 
 def test_role(admin_client, real_mongo_client, user_id):
-    endpoint = f"/roles/{str(user_id)}"
+    endpoint = f"/roles/{user_id!s}"
     admin_request = {"role": "manager"}
     resp = admin_client.patch(endpoint, json=admin_request)
     assert resp.status_code == 200
@@ -33,7 +33,7 @@ def test_role(admin_client, real_mongo_client, user_id):
 
 
 def test_role_update_by_user(client, real_mongo_client, user_id):
-    endpoint = f"/roles/{str(user_id)}"
+    endpoint = f"/roles/{user_id!s}"
     user_request = {"role": "admin"}
     resp = client.patch(endpoint, json=user_request)
     assert resp.status_code == 403
@@ -42,7 +42,7 @@ def test_role_update_by_user(client, real_mongo_client, user_id):
 
 
 def test_user_update(client, real_mongo_client, user_id, admin_user_id):
-    endpoint = f"/users/{str(user_id)}"
+    endpoint = f"/users/{user_id!s}"
     # Test display name update
     user_request = {"display_name": "Test Person II"}
     resp = client.patch(endpoint, json=user_request)
@@ -98,7 +98,7 @@ def test_user_update(client, real_mongo_client, user_id, admin_user_id):
     assert user["contact_email"] is None
 
     # Test that user cannot update admin account
-    endpoint = f"/users/{str(admin_user_id)}"
+    endpoint = f"/users/{admin_user_id!s}"
     user_request = {"display_name": "Test Person"}
     resp = client.patch(endpoint, json=user_request)
     assert resp.status_code == 403
@@ -107,7 +107,7 @@ def test_user_update(client, real_mongo_client, user_id, admin_user_id):
 
 
 def test_user_update_admin(admin_client, real_mongo_client, user_id):
-    endpoint = f"/users/{str(user_id)}"
+    endpoint = f"/users/{user_id!s}"
     # Test admin override of display name
     user_request = {"display_name": "Test Person"}
     resp = admin_client.patch(endpoint, json=user_request)

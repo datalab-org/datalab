@@ -1,5 +1,3 @@
-from typing import Optional, Set
-
 from flask import Blueprint, jsonify, request
 
 from pydatalab.mongo import flask_mongo
@@ -10,7 +8,7 @@ GRAPHS = Blueprint("graphs", __name__)
 
 @GRAPHS.route("/item-graph", methods=["GET"])
 @GRAPHS.route("/item-graph/<item_id>", methods=["GET"])
-def get_graph_cy_format(item_id: Optional[str] = None, collection_id: Optional[str] = None):
+def get_graph_cy_format(item_id: str | None = None, collection_id: str | None = None):
     collection_id = request.args.get("collection_id", type=str)
 
     if item_id is None:
@@ -33,7 +31,7 @@ def get_graph_cy_format(item_id: Optional[str] = None, collection_id: Optional[s
             {**query, **get_default_permissions(user_only=False)},
             projection={"item_id": 1, "name": 1, "type": 1, "relationships": 1},
         )
-        node_ids: Set[str] = {document["item_id"] for document in all_documents}
+        node_ids: set[str] = {document["item_id"] for document in all_documents}
         all_documents.rewind()
 
     else:

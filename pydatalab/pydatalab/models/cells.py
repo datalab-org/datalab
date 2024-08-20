@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import List, Optional
 
 from pydantic import Field, root_validator, validator
 
@@ -30,33 +29,33 @@ class Cell(Item):
 
     type: str = Field("cells", const="cells", pattern="^cells$")
 
-    cell_format: Optional[CellFormat] = Field(
+    cell_format: CellFormat | None = Field(
         description="The form factor of the cell, e.g., coin, pouch, in situ or otherwise.",
     )
 
-    cell_format_description: Optional[str] = Field(
+    cell_format_description: str | None = Field(
         description="Additional human-readable description of the cell form factor, e.g., 18650, AMPIX, CAMPIX"
     )
 
-    cell_preparation_description: Optional[str] = Field()
+    cell_preparation_description: str | None = Field()
 
-    characteristic_mass: Optional[float] = Field(
+    characteristic_mass: float | None = Field(
         description="The characteristic mass of the cell in milligrams. Can be used to normalize capacities."
     )
 
-    characteristic_chemical_formula: Optional[str] = Field(
+    characteristic_chemical_formula: str | None = Field(
         description="The chemical formula of the active material. Can be used to calculated molar mass in g/mol for normalizing capacities."
     )
 
-    characteristic_molar_mass: Optional[float] = Field(
+    characteristic_molar_mass: float | None = Field(
         description="The molar mass of the active material, in g/mol. Will be inferred from the chemical formula, or can be supplied if it cannot be supplied"
     )
 
-    positive_electrode: List[CellComponent] = Field([])
+    positive_electrode: list[CellComponent] = Field([])
 
-    negative_electrode: List[CellComponent] = Field([])
+    negative_electrode: list[CellComponent] = Field([])
 
-    electrolyte: List[CellComponent] = Field([])
+    electrolyte: list[CellComponent] = Field([])
 
     active_ion_charge: float = Field(1)
 

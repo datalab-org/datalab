@@ -1,7 +1,6 @@
 import os
 import re
 import warnings
-from typing import List, Tuple
 
 import numpy as np
 import pandas as pd
@@ -99,7 +98,7 @@ def convertSinglePattern(
     return outfn
 
 
-def getStartEnd(s: str) -> Tuple[float, float]:
+def getStartEnd(s: str) -> tuple[float, float]:
     """Parse a given string representation of an xrdml file to find the start and end 2Theta points of the scan.
     Note: this could match either Omega or 2Theta depending on their order in the XRDML file.
 
@@ -120,7 +119,7 @@ def getStartEnd(s: str) -> Tuple[float, float]:
     return start, end
 
 
-def getIntensities(s: str) -> List[float]:
+def getIntensities(s: str) -> list[float]:
     """Parse a given string representation of an xrdml file to find the peak intensities.
 
     Raises:
@@ -138,11 +137,11 @@ def getIntensities(s: str) -> List[float]:
     return out
 
 
-def toXY(intensities: List[float], start: float, end: float) -> str:
+def toXY(intensities: list[float], start: float, end: float) -> str:
     """Converts a given list of intensities, along with a start and end angle,
     to a string in XY format.
 
     """
     angles = np.linspace(start, end, num=len(intensities))
-    xylines = ["{:.5f} {:.3f}\r\n".format(a, i) for a, i in zip(angles, intensities)]
+    xylines = [f"{a:.5f} {i:.3f}\r\n" for a, i in zip(angles, intensities, strict=False)]
     return "".join(xylines)

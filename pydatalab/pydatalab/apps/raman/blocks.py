@@ -158,7 +158,7 @@ class RamanBlock(DataBlock):
         pattern_dfs = None
 
         if "file_id" not in self.data:
-            return None
+            return
 
         else:
             file_info = get_file_info_by_id(self.data["file_id"], update_if_live=True)

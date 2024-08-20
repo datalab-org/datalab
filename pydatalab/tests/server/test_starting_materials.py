@@ -77,7 +77,7 @@ def test_new_starting_material_with_automatically_generated_id(client):
     assert response.json["status"] == "success"
     assert response.json["item_data"]["refcode"].split(":")[1] == created_item_id
 
-    for key in new_starting_material_data.keys():
+    for key in new_starting_material_data:
         if key == "creator_ids":
             continue
         if isinstance(v := new_starting_material_data[key], datetime.datetime):

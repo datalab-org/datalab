@@ -4,7 +4,6 @@ import pathlib
 import re
 import sys
 import time
-from typing import Tuple
 
 from invoke import Collection, task
 
@@ -17,7 +16,7 @@ admin = Collection("admin")
 migration = Collection("migration")
 
 
-def update_file(filename: str, sub_line: Tuple[str, str], strip: str | None = None):
+def update_file(filename: str, sub_line: tuple[str, str], strip: str | None = None):
     """Utility function for tasks to read, update, and write files.
 
     Modified from optimade-python-tools.
@@ -65,7 +64,7 @@ def set_version(_, ver=""):
         (r'__version__ = ".*"', f'__version__ = "{ver}"'),
     )
 
-    print("Bumped version to {}".format(ver))
+    print(f"Bumped version to {ver}")
 
 
 dev.add_task(set_version)

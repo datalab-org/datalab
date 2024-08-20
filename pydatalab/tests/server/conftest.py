@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Union
 from unittest.mock import patch
 
 import mongomock
@@ -34,7 +33,7 @@ def monkeypatch_session():
 
 
 @pytest.fixture(scope="module")
-def real_mongo_client() -> Union[pymongo.MongoClient, None]:
+def real_mongo_client() -> pymongo.MongoClient | None:
     """Returns a connected MongoClient if available, otherwise `None`."""
     client = pymongo.MongoClient(
         MONGO_URI, connect=True, connectTimeoutMS=100, serverSelectionTimeoutMS=100
@@ -49,7 +48,7 @@ def real_mongo_client() -> Union[pymongo.MongoClient, None]:
 
 @pytest.fixture(scope="module")
 def database(real_mongo_client):
-    yield real_mongo_client.get_database(TEST_DATABASE_NAME)
+    return real_mongo_client.get_database(TEST_DATABASE_NAME)
 
 
 @pytest.fixture(scope="session")
@@ -66,7 +65,7 @@ def app_config(tmp_path_factory):
             "path": Path(__file__).parent.parent.joinpath("../example_data/"),
         },
     ]
-    yield {
+    return {
         "MONGO_URI": MONGO_URI,
         "REMOTE_FILESYSTEMS": example_remotes,
         "FILE_DIRECTORY": str(tmp_path_factory.mktemp("files")),
@@ -150,31 +149,31 @@ def client_factory(app, api_key: str | None = None):
 @pytest.fixture(scope="function")
 def admin_client(app, admin_api_key):
     """Returns a test client for the API with admin access."""
-    yield client_factory(app, admin_api_key)
+    return client_factory(app, admin_api_key)
 
 
 @pytest.fixture(scope="function")
 def client(app, user_api_key):
     """Returns a test client for the API with normal user access."""
-    yield client_factory(app, user_api_key)
+    return client_factory(app, user_api_key)
 
 
 @pytest.fixture(scope="function")
 def unauthenticated_client(app):
     """Returns an unauthenticated test client for the API."""
-    yield client_factory(app, None)
+    return client_factory(app, None)
 
 
 @pytest.fixture(scope="function")
 def unverified_client(app, unverified_user_api_key):
     """Returns a test client for the API with an unverified user's credentials."""
-    yield client_factory(app, unverified_user_api_key)
+    return client_factory(app, unverified_user_api_key)
 
 
 @pytest.fixture(scope="function")
 def deactivated_client(app, deactivated_user_api_key):
     """Returns a test client for the API with a deactivated user's credentials."""
-    yield client_factory(app, deactivated_user_api_key)
+    return client_factory(app, deactivated_user_api_key)
 
 
 def generate_api_key():
@@ -210,22 +209,22 @@ def deactivated_user_api_key() -> str:
 
 @pytest.fixture(scope="session")
 def user_id():
-    yield ObjectId(24 * "1")
+    return ObjectId(24 * "1")
 
 
 @pytest.fixture(scope="session")
 def admin_user_id():
-    yield ObjectId(24 * "8")
+    return ObjectId(24 * "8")
 
 
 @pytest.fixture(scope="session")
 def unverified_user_id():
-    yield ObjectId(24 * "2")
+    return ObjectId(24 * "2")
 
 
 @pytest.fixture(scope="session")
 def deactivated_user_id():
-    yield ObjectId(24 * "3")
+    return ObjectId(24 * "3")
 
 
 def insert_user(id, api_key, role, real_mongo_client, status: AccountStatus = AccountStatus.ACTIVE):
@@ -279,92 +278,82 @@ def insert_demo_users(
 @pytest.fixture(scope="module", name="default_sample")
 def fixture_default_sample(admin_user_id, user_id):
     return Sample(
-        **{
-            "item_id": "12345",
-            "name": "other_sample",
-            "date": "1970-02-01",
-            "type": "samples",
-            "creator_ids": [admin_user_id, user_id],
-        }
+        item_id="12345",
+        name="other_sample",
+        date="1970-02-01",
+        type="samples",
+        creator_ids=[admin_user_id, user_id],
     )
 
 
 @pytest.fixture(scope="module", name="default_cell")
 def fixture_default_cell():
     return Cell(
-        **{
-            "item_id": "test_cell",
-            "name": "test cell",
-            "date": "1970-02-01",
-            "negative_electrode": [
-                {
-                    "item": {"item_id": "test", "chemform": "Li15Si4", "type": "samples"},
-                    "quantity": 2.0,
-                    "unit": "mg",
-                },
-                {
-                    "item": {"item_id": "test", "chemform": "C", "type": "samples"},
-                    "quantity": 2.0,
-                    "unit": "mg",
-                },
-            ],
-            "positive_electrode": [
-                {
-                    "item": {"item_id": "test_cathode", "chemform": "LiCoO2", "type": "samples"},
-                    "quantity": 2000,
-                    "unit": "kg",
-                }
-            ],
-            "electrolyte": [{"item": {"name": "inlined reference"}, "quantity": 100, "unit": "ml"}],
-            "cell_format": "swagelok",
-            "type": "cells",
-        }
+        item_id="test_cell",
+        name="test cell",
+        date="1970-02-01",
+        negative_electrode=[
+            {
+                "item": {"item_id": "test", "chemform": "Li15Si4", "type": "samples"},
+                "quantity": 2.0,
+                "unit": "mg",
+            },
+            {
+                "item": {"item_id": "test", "chemform": "C", "type": "samples"},
+                "quantity": 2.0,
+                "unit": "mg",
+            },
+        ],
+        positive_electrode=[
+            {
+                "item": {"item_id": "test_cathode", "chemform": "LiCoO2", "type": "samples"},
+                "quantity": 2000,
+                "unit": "kg",
+            }
+        ],
+        electrolyte=[{"item": {"name": "inlined reference"}, "quantity": 100, "unit": "ml"}],
+        cell_format="swagelok",
+        type="cells",
     )
 
 
 @pytest.fixture(scope="module", name="default_collection")
 def fixture_default_collection():
     return Collection(
-        **{
-            "collection_id": "test_collection",
-            "title": "My Test Collection",
-            "date": "1970-02-02",
-            "type": "collections",
-        }
+        collection_id="test_collection",
+        title="My Test Collection",
+        date="1970-02-02",
+        type="collections",
     )
 
 
 @pytest.fixture(scope="module", name="default_starting_material")
 def fixture_default_starting_material(admin_user_id):
     return StartingMaterial(
-        **{
-            "item_id": "test_sm",
-            "chemform": "Na2CO3",
-            "name": "Sodium carbonate",
-            "date": "1992-12-11",
-            "date_opened": "2022-12-11",
-            "CAS": "497-19-8",
-            "chemical_purity": "99%",
-            "location": "SR1 room 22",
-            "GHS_codes": "H303, H316, H319",
-            "type": "starting_materials",
-        }
+        item_id="test_sm",
+        chemform="Na2CO3",
+        name="Sodium carbonate",
+        date="1992-12-11",
+        date_opened="2022-12-11",
+        CAS="497-19-8",
+        chemical_purity="99%",
+        location="SR1 room 22",
+        GHS_codes="H303, H316, H319",
+        type="starting_materials",
     )
 
 
 @pytest.fixture(scope="module", name="default_equipment")
 def fixture_default_equipment():
     return Equipment(
-        **{
-            "item_id": "test_e1",
-            "name": "a scientific instrument",
-            "date": "1999-12-31",
-            "location": "SR1 room 22",
-            "manufacturer": "science inc.",
-            "contact": "test@example.com",
-            "serial_numbers": "1, 2a, 00-123-456z",
-            "type": "equipment",
-        }
+        item_id="test_e1",
+        name="a scientific instrument",
+        date="1999-12-31",
+        location="SR1 room 22",
+        manufacturer="science inc.",
+        contact="test@example.com",
+        serial_numbers="1, 2a, 00-123-456z",
+        type="equipment",
     )
 
 
@@ -373,52 +362,44 @@ def fixture_complicated_sample(user_id):
     from pydatalab.models.samples import Constituent
 
     return Sample(
-        **{
-            "item_id": "sample_with_synthesis",
-            "name": "complex_sample",
-            "date": "1970-02-01",
-            "chemform": "Na3P",
-            "type": "samples",
-            "creator_ids": [user_id],
-            "synthesis_constituents": [
-                Constituent(
-                    **{
-                        "item": {
-                            "item_id": "starting_material_1",
-                            "name": "first Na",
-                            "chemform": "Na",
-                            "type": "starting_materials",
-                        },
-                        "quantity": 1,
-                    }
-                ),
-                Constituent(
-                    **{
-                        "item": {
-                            "item_id": "starting_material_2",
-                            "name": "second Na",
-                            "chemform": "Na",
-                            "type": "starting_materials",
-                        },
-                        "quantity": 2,
-                        "unit": "kg",
-                    }
-                ),
-                Constituent(
-                    **{
-                        "item": {
-                            "item_id": "starting_material_3",
-                            "name": "liquid Na",
-                            "chemform": "Na",
-                            "type": "starting_materials",
-                        },
-                        "quantity": 3,
-                        "unit": "ml",
-                    }
-                ),
-            ],
-            "synthesis_description": "Take one gram of sodium and add 2 kg of...sodium, then 3 ml of liquid sodium(??) <i>et voila</i>, you have some real good sodium!",
-        }
+        item_id="sample_with_synthesis",
+        name="complex_sample",
+        date="1970-02-01",
+        chemform="Na3P",
+        type="samples",
+        creator_ids=[user_id],
+        synthesis_constituents=[
+            Constituent(
+                item={
+                    "item_id": "starting_material_1",
+                    "name": "first Na",
+                    "chemform": "Na",
+                    "type": "starting_materials",
+                },
+                quantity=1,
+            ),
+            Constituent(
+                item={
+                    "item_id": "starting_material_2",
+                    "name": "second Na",
+                    "chemform": "Na",
+                    "type": "starting_materials",
+                },
+                quantity=2,
+                unit="kg",
+            ),
+            Constituent(
+                item={
+                    "item_id": "starting_material_3",
+                    "name": "liquid Na",
+                    "chemform": "Na",
+                    "type": "starting_materials",
+                },
+                quantity=3,
+                unit="ml",
+            ),
+        ],
+        synthesis_description="Take one gram of sodium and add 2 kg of...sodium, then 3 ml of liquid sodium(??) <i>et voila</i>, you have some real good sodium!",
     )
 
 
@@ -428,61 +409,44 @@ def example_items(user_id):
         d.dict(exclude_unset=False)
         for d in [
             Sample(
-                **{
-                    "item_id": "12345",
-                    "name": "new material",
-                    "description": "NaNiO2",
-                    "date": "1970-02-01",
-                    "refcode": "grey:TEST1",
-                    "creator_ids": [user_id],
-                }
+                item_id="12345",
+                name="new material",
+                description="NaNiO2",
+                date="1970-02-01",
+                refcode="grey:TEST1",
+                creator_ids=[user_id],
+            ),
+            Sample(item_id="56789", name="alice", date="1970-02-01", creator_ids=[user_id]),
+            Sample(
+                item_id="sample_1",
+                name="bob",
+                description="12345",
+                date="1970-02-01",
+                refcode="grey:TEST2",
+                creator_ids=[user_id],
             ),
             Sample(
-                **{
-                    "item_id": "56789",
-                    "name": "alice",
-                    "date": "1970-02-01",
-                    "creator_ids": [user_id],
-                }
-            ),
-            Sample(
-                **{
-                    "item_id": "sample_1",
-                    "name": "bob",
-                    "description": "12345",
-                    "date": "1970-02-01",
-                    "refcode": "grey:TEST2",
-                    "creator_ids": [user_id],
-                }
-            ),
-            Sample(
-                **{
-                    "item_id": "sample_2",
-                    "name": "other_sample",
-                    "date": "1970-02-01",
-                    "refcode": "grey:TEST3",
-                    "creator_ids": [user_id],
-                }
+                item_id="sample_2",
+                name="other_sample",
+                date="1970-02-01",
+                refcode="grey:TEST3",
+                creator_ids=[user_id],
             ),
             StartingMaterial(
-                **{
-                    "item_id": "material",
-                    "chemform": "NaNiO2",
-                    "name": "new material",
-                    "date": "1970-02-01",
-                    "refcode": "grey:TEST4",
-                    "creator_ids": [user_id],
-                }
+                item_id="material",
+                chemform="NaNiO2",
+                name="new material",
+                date="1970-02-01",
+                refcode="grey:TEST4",
+                creator_ids=[user_id],
             ),
             StartingMaterial(
-                **{
-                    "item_id": "test",
-                    "chemform": "NaNiO2",
-                    "name": "NaNiO2",
-                    "date": "1970-02-01",
-                    "refcode": "grey:TEST5",
-                    "creator_ids": [user_id],
-                }
+                item_id="test",
+                chemform="NaNiO2",
+                name="NaNiO2",
+                date="1970-02-01",
+                refcode="grey:TEST5",
+                creator_ids=[user_id],
             ),
         ]
     ]

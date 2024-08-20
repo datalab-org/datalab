@@ -1,4 +1,5 @@
-from typing import Dict, Sequence, Type
+from collections.abc import Sequence
+from typing import Dict, Type
 
 # These app imports will be replaced by dynamic plugins in a future version
 from pydatalab.apps.chat.blocks import ChatBlock
@@ -11,7 +12,7 @@ from pydatalab.apps.xrd import XRDBlock
 from pydatalab.blocks.base import DataBlock
 from pydatalab.blocks.common import CommentBlock, MediaBlock, NotSupportedBlock, TabularDataBlock
 
-BLOCKS: Sequence[Type["DataBlock"]] = (
+BLOCKS: Sequence[type["DataBlock"]] = (
     CommentBlock,
     MediaBlock,
     XRDBlock,
@@ -25,7 +26,7 @@ BLOCKS: Sequence[Type["DataBlock"]] = (
     TabularDataBlock,
 )
 
-BLOCK_TYPES: Dict[str, Type["DataBlock"]] = {block.blocktype: block for block in BLOCKS}
+BLOCK_TYPES: dict[str, type["DataBlock"]] = {block.blocktype: block for block in BLOCKS}
 
 __all__ = (
     "CommentBlock",

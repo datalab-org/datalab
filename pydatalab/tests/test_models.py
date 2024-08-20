@@ -9,11 +9,7 @@ from pydatalab.models import ITEM_MODELS, Sample
 from pydatalab.models.files import File
 from pydatalab.models.items import Item
 from pydatalab.models.people import DisplayName, EmailStr
-from pydatalab.models.relationships import (
-    KnownType,
-    RelationshipType,
-    TypedRelationship,
-)
+from pydatalab.models.relationships import KnownType, RelationshipType, TypedRelationship
 from pydatalab.models.utils import HumanReadableIdentifier, Refcode
 
 

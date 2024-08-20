@@ -48,7 +48,7 @@ def save_user(user_id):
 
     except ValueError as e:
         return jsonify(
-            {"status": "error", "message": f"Invalid display name or email was passed: {str(e)}"}
+            {"status": "error", "message": f"Invalid display name or email was passed: {e!s}"}
         ), 400
 
     if not update:

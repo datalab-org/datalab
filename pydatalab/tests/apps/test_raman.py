@@ -5,7 +5,7 @@ import pytest
 from pydatalab.apps.raman.blocks import RamanBlock
 
 
-@pytest.fixture
+@pytest.fixture()
 def data_files():
     return (Path(__file__).parent.parent.parent / "example_data" / "raman").glob("*")
 

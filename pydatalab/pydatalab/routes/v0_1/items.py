@@ -1,6 +1,5 @@
 import datetime
 import json
-from typing import Dict, List, Optional, Set, Union
 
 from bson import ObjectId
 from flask import Blueprint, jsonify, request
@@ -26,7 +25,7 @@ ITEMS = Blueprint("items", __name__)
 def _(): ...
 
 
-def reserialize_blocks(display_order: List[str], blocks_obj: Dict[str, Dict]) -> Dict[str, Dict]:
+def reserialize_blocks(display_order: list[str], blocks_obj: dict[str, dict]) -> dict[str, dict]:
     """Create the corresponding Python objects from JSON block data, then
     serialize it again as JSON to populate any missing properties.
 
@@ -52,7 +51,7 @@ def reserialize_blocks(display_order: List[str], blocks_obj: Dict[str, Dict]) ->
 
 
 # Seems to be obselete now?
-def dereference_files(file_ids: List[Union[str, ObjectId]]) -> Dict[str, Dict]:
+def dereference_files(file_ids: list[str | ObjectId]) -> dict[str, dict]:
     """For a list of Object IDs (as strings or otherwise), query the files collection
     and return a dictionary of the data stored under each ID.
 
@@ -143,9 +142,7 @@ def get_starting_materials():
 get_starting_materials.methods = ("GET",)  # type: ignore
 
 
-def get_samples_summary(
-    match: Optional[Dict] = None, project: Optional[Dict] = None
-) -> CommandCursor:
+def get_samples_summary(match: dict | None = None, project: dict | None = None) -> CommandCursor:
     """Return a summary of item entries that match some criteria.
 
     Parameters:
@@ -198,7 +195,7 @@ def get_samples_summary(
     )
 
 
-def creators_lookup() -> Dict:
+def creators_lookup() -> dict:
     return {
         "from": "users",
         "let": {"creator_ids": "$creator_ids"},
@@ -216,7 +213,7 @@ def creators_lookup() -> Dict:
     }
 
 
-def files_lookup() -> Dict:
+def files_lookup() -> dict:
     return {
         "from": "files",
         "localField": "file_ObjectIds",
@@ -225,7 +222,7 @@ def files_lookup() -> Dict:
     }
 
 
-def collections_lookup() -> Dict:
+def collections_lookup() -> dict:
     """Looks inside the relationships of the item, searches for IDs in the collections
     table and then projects only the collection ID and name for the response.
 
@@ -332,10 +329,10 @@ def search_items():
 
 def _create_sample(
     sample_dict: dict,
-    copy_from_item_id: Optional[str] = None,
+    copy_from_item_id: str | None = None,
     generate_id_automatically: bool = False,
 ) -> tuple[dict, int]:
-    sample_dict["item_id"] = sample_dict.get("item_id", None)
+    sample_dict["item_id"] = sample_dict.get("item_id")
     if generate_id_automatically and sample_dict["item_id"]:
         return (
             dict(
@@ -486,7 +483,7 @@ def _create_sample(
         return (
             dict(
                 status="error",
-                message=f"Unable to create new item with ID {new_sample['item_id']}: {str(error)}.",
+                message=f"Unable to create new item with ID {new_sample['item_id']}: {error!s}.",
                 item_id=new_sample["item_id"],
                 output=str(error),
             ),
@@ -548,7 +545,7 @@ def _create_sample(
 
 @ITEMS.route("/new-sample/", methods=["POST"])
 def create_sample():
-    request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
+    request_json = request.get_json()  # pylint: disable=undefined-variable
     if "new_sample_data" in request_json:
         response, http_code = _create_sample(
             sample_dict=request_json["new_sample_data"],
@@ -567,7 +564,7 @@ def create_samples():
     Because each may result in success or failure, 207 is returned along with a
     json field containing all the individual http_codes"""
 
-    request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
+    request_json = request.get_json()  # pylint: disable=undefined-variable
 
     sample_jsons = request_json["new_sample_datas"]
     copy_from_item_ids = request_json.get("copy_from_item_ids")
@@ -582,9 +579,9 @@ def create_samples():
             copy_from_item_id=copy_from_item_id,
             generate_id_automatically=generate_ids_automatically,
         )
-        for sample_json, copy_from_item_id in zip(sample_jsons, copy_from_item_ids)
+        for sample_json, copy_from_item_id in zip(sample_jsons, copy_from_item_ids, strict=False)
     ]
-    responses, http_codes = zip(*outputs)
+    responses, http_codes = zip(*outputs, strict=False)
 
     statuses = [response["status"] for response in responses]
     nsuccess = statuses.count("success")
@@ -603,7 +600,7 @@ def create_samples():
 
 @ITEMS.route("/delete-sample/", methods=["POST"])
 def delete_sample():
-    request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
+    request_json = request.get_json()  # pylint: disable=undefined-variable
     item_id = request_json["item_id"]
 
     result = flask_mongo.db.items.delete_one(
@@ -648,7 +645,7 @@ def get_item_data(
     if item_id:
         match = {"item_id": item_id}
     elif refcode:
-        if not len(refcode.split(":")) == 2:
+        if len(refcode.split(":")) != 2:
             refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
 
         match = {"refcode": refcode}
@@ -686,7 +683,7 @@ def get_item_data(
     if not doc or (
         not current_user.is_authenticated
         and not CONFIG.TESTING
-        and not doc["type"] == "starting_materials"
+        and doc["type"] != "starting_materials"
     ):
         return (
             jsonify(
@@ -735,7 +732,7 @@ def get_item_data(
     )
 
     # loop over and collect all 'outer' relationships presented by other items
-    incoming_relationships: Dict[RelationshipType, Set[str]] = {}
+    incoming_relationships: dict[RelationshipType, set[str]] = {}
     for d in relationships_query_results:
         for k in d["relationships"]:
             if k["relation"] not in incoming_relationships:
@@ -745,7 +742,7 @@ def get_item_data(
             )
 
     # loop over and aggregate all 'inner' relationships presented by this item
-    inlined_relationships: Dict[RelationshipType, Set[str]] = {}
+    inlined_relationships: dict[RelationshipType, set[str]] = {}
     if doc.relationships is not None:
         inlined_relationships = {
             relation: {
@@ -768,7 +765,7 @@ def get_item_data(
     return_dict = json.loads(doc.json(exclude_unset=True))
 
     # create the files_data dictionary keyed by file ObjectId
-    files_data: Dict[ObjectId, Dict] = {
+    files_data: dict[ObjectId, dict] = {
         f["immutable_id"]: f for f in return_dict.get("files") or []
     }
 
@@ -786,7 +783,7 @@ def get_item_data(
 
 @ITEMS.route("/save-item/", methods=["POST"])
 def save_item():
-    request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
+    request_json = request.get_json()  # pylint: disable=undefined-variable
 
     item_id = request_json["item_id"]
     updated_data = request_json["data"]

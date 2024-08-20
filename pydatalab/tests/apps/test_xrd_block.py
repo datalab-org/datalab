@@ -6,7 +6,7 @@ from pydatalab.apps.xrd.blocks import XRDBlock
 from pydatalab.bokeh_plots import selectable_axes_plot
 
 
-@pytest.fixture
+@pytest.fixture()
 def data_files():
     return (Path(__file__).parent.parent.parent / "example_data" / "XRD").glob("*")
 

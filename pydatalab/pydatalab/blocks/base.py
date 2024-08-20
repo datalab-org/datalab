@@ -1,6 +1,7 @@
 import random
 import warnings
-from typing import Any, Callable, Dict, Optional, Sequence
+from collections.abc import Callable, Sequence
+from typing import Any
 
 from bson import ObjectId
 
@@ -48,12 +49,12 @@ class DataBlock:
     accepted_file_extensions: tuple[str, ...] | None
     """A list of file extensions that the block will attempt to read."""
 
-    defaults: Dict[str, Any] = {}
+    defaults: dict[str, Any] = {}
     """Any default values that should be set if they are not
     supplied during block init.
     """
 
-    plot_functions: Optional[Sequence[Callable[[], None]]] = None
+    plot_functions: Sequence[Callable[[], None]] | None = None
     """A list of methods that will generate plots for this block."""
 
     _supports_collections: bool = False
@@ -61,8 +62,8 @@ class DataBlock:
 
     def __init__(
         self,
-        item_id: Optional[str] = None,
-        collection_id: Optional[str] = None,
+        item_id: str | None = None,
+        collection_id: str | None = None,
         init_data=None,
         unique_id=None,
     ):
@@ -153,7 +154,7 @@ class DataBlock:
 
         return new_block
 
-    def to_web(self) -> Dict[str, Any]:
+    def to_web(self) -> dict[str, Any]:
         """Returns a JSON serializable dictionary to render the data block on the web."""
         block_errors = []
         block_warnings = []

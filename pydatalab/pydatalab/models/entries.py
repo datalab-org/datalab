@@ -1,15 +1,9 @@
 import abc
-from typing import List, Optional
 
 from pydantic import BaseModel, Field, root_validator
 
 from pydatalab.models.relationships import TypedRelationship
-from pydatalab.models.utils import (
-    JSON_ENCODERS,
-    EntryReference,
-    IsoformatDateTime,
-    PyObjectId,
-)
+from pydatalab.models.utils import JSON_ENCODERS, EntryReference, IsoformatDateTime, PyObjectId
 
 
 class Entry(BaseModel, abc.ABC):
@@ -28,10 +22,10 @@ class Entry(BaseModel, abc.ABC):
     )
     """The immutable database ID of the entry."""
 
-    last_modified: Optional[IsoformatDateTime] = None
+    last_modified: IsoformatDateTime | None = None
     """The timestamp at which the entry was last modified."""
 
-    relationships: Optional[List[TypedRelationship]] = None
+    relationships: list[TypedRelationship] | None = None
     """A list of related entries and their types."""
 
     @root_validator(pre=True)
@@ -44,7 +38,7 @@ class Entry(BaseModel, abc.ABC):
 
         return values
 
-    def to_reference(self, additional_fields: Optional[List[str]] = None) -> "EntryReference":
+    def to_reference(self, additional_fields: list[str] | None = None) -> "EntryReference":
         """Populate an EntryReference model from this entry, selecting additional fields to inline.
 
         Parameters:

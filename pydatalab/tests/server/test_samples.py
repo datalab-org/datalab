@@ -81,7 +81,7 @@ def test_new_sample_with_automatically_generated_id(client, user_id):
     assert response.json["status"] == "success"
     assert response.json["item_data"]["refcode"].split(":")[1] == created_item_id
 
-    for key in new_sample_data.keys():
+    for key in new_sample_data:
         if isinstance(v := new_sample_data[key], datetime.datetime):
             v = v.isoformat()
         if key == "creator_ids":

@@ -6,10 +6,7 @@ from pathlib import Path
 import pytest
 
 from pydatalab.config import CONFIG, RemoteFilesystem
-from pydatalab.remote_filesystems import (
-    get_directory_structure,
-    get_directory_structures,
-)
+from pydatalab.remote_filesystems import get_directory_structure, get_directory_structures
 
 """The Unix `tree` utility is required for many of these tests,
 this variable checks whether it is installed locally."""
@@ -26,7 +23,7 @@ def test_get_directory_structure_local(random_string):
 
     """
     dir_name = random_string
-    test_dir = RemoteFilesystem(**{"path": Path(__file__).parent.parent, "name": dir_name})
+    test_dir = RemoteFilesystem(path=Path(__file__).parent.parent, name=dir_name)
     dir_structure = get_directory_structure(test_dir)
     dir_structure.pop("last_updated")
     assert dir_structure
@@ -80,7 +77,7 @@ def test_get_missing_directory_structure_local(random_string):
     they still get cached.
     """
     dir_name = random_string
-    test_dir = RemoteFilesystem(**{"path": "this_directory_does_not_exist", "name": dir_name})
+    test_dir = RemoteFilesystem(path="this_directory_does_not_exist", name=dir_name)
     dir_structure = get_directory_structure(test_dir)
     assert dir_structure
     assert all(k in dir_structure for k in ("type", "name", "contents"))
@@ -99,7 +96,7 @@ def test_get_directory_structure_remote(real_mongo_client, random_string):
     """
     dir_name = random_string
     test_dir = RemoteFilesystem(
-        **{"name": dir_name, "hostname": "ssh://fake.host", "path": Path(__file__).parent.parent}
+        name=dir_name, hostname="ssh://fake.host", path=Path(__file__).parent.parent
     )
     dir_structure = get_directory_structure(test_dir)
     assert dir_structure["contents"][0]["type"] == "error"

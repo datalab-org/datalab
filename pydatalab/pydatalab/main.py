@@ -1,7 +1,7 @@
 import datetime
 import logging
 import pathlib
-from typing import Any, Dict
+from typing import Any
 
 from dotenv import dotenv_values
 from flask import Flask, redirect, request, url_for
@@ -115,7 +115,7 @@ def _check_feature_flags(app):
 
 
 def create_app(
-    config_override: Dict[str, Any] | None = None, env_file: pathlib.Path | None = None
+    config_override: dict[str, Any] | None = None, env_file: pathlib.Path | None = None
 ) -> Flask:
     """Create the main `Flask` app with the given config.
 
@@ -157,7 +157,7 @@ def create_app(
     if CONFIG.BEHIND_REVERSE_PROXY:
         # Fix headers for reverse proxied app:
         # https://flask.palletsprojects.com/en/2.2.x/deploying/proxy_fix/
-        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)  # type: ignore
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
     CORS(
         app,
@@ -316,8 +316,8 @@ def register_endpoints(app: Flask):
         for ver in versions:
             app.register_blueprint(bp, url_prefix=f"{ver}", name=f"{ver}/{bp.name}")
 
-    for bp in OAUTH:  # type: ignore
-        app.register_blueprint(OAUTH[bp], url_prefix="/login")  # type: ignore
+    for bp in OAUTH:
+        app.register_blueprint(OAUTH[bp], url_prefix="/login")
 
     for exception_type, handler in ERROR_HANDLERS:
         app.register_error_handler(exception_type, handler)

@@ -1,5 +1,6 @@
 import os
-from typing import Any, Callable, Iterable, Tuple
+from collections.abc import Callable, Iterable
+from typing import Any
 
 from flask import Response, jsonify
 from pydantic import ValidationError
@@ -32,7 +33,7 @@ that you are allowed to make an account.
 """
 
 
-def handle_http_exception(exc: HTTPException) -> Tuple[Response, int]:
+def handle_http_exception(exc: HTTPException) -> tuple[Response, int]:
     """Return a specific error message and status code if the exception stores them."""
     response = {
         "title": exc.__class__.__name__,
@@ -43,12 +44,12 @@ def handle_http_exception(exc: HTTPException) -> Tuple[Response, int]:
     return jsonify(response), status_code
 
 
-def render_unauthorised_user_template(exc: UserRegistrationForbidden) -> Tuple[Response, int]:
+def render_unauthorised_user_template(exc: UserRegistrationForbidden) -> tuple[Response, int]:
     """Return a rich HTML page on user account creation failure."""
     return Response(response=exc.description), exc.code
 
 
-def handle_pydantic_validation_error(exc: ValidationError) -> Tuple[Response, int]:
+def handle_pydantic_validation_error(exc: ValidationError) -> tuple[Response, int]:
     """Handle pydantic validation errors separately from other exceptions.
     These always come from malformed data, so should not necessarily trigger the
     Flask debugger.
@@ -60,7 +61,7 @@ def handle_pydantic_validation_error(exc: ValidationError) -> Tuple[Response, in
     return jsonify(response), 500
 
 
-def handle_generic_exception(exc: Exception) -> Tuple[Response, int]:
+def handle_generic_exception(exc: Exception) -> tuple[Response, int]:
     """Return a specific error message and status code if the exception stores them."""
     if os.environ.get("FLASK_ENV") == "development":
         raise exc
@@ -72,7 +73,7 @@ def handle_generic_exception(exc: Exception) -> Tuple[Response, int]:
     return jsonify(response), 500
 
 
-ERROR_HANDLERS: Iterable[Tuple[Any, Callable[[Any], Tuple[Response, int]]]] = [
+ERROR_HANDLERS: Iterable[tuple[Any, Callable[[Any], tuple[Response, int]]]] = [
     (UserRegistrationForbidden, render_unauthorised_user_template),
     (HTTPException, handle_http_exception),
     (ValidationError, handle_pydantic_validation_error),

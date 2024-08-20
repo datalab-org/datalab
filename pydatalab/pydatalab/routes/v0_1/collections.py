@@ -92,7 +92,7 @@ def get_collection(collection_id):
 
 @COLLECTIONS.route("/collections", methods=["PUT"])
 def create_collection():
-    request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
+    request_json = request.get_json()  # pylint: disable=undefined-variable
     data = request_json.get("data", {})
     copy_from_id = request_json.get("copy_from_collection_id", None)
     starting_members = data.get("starting_members", [])
@@ -210,7 +210,7 @@ def create_collection():
 @COLLECTIONS.route("/collections/<collection_id>", methods=["PATCH"])
 @logged_route
 def save_collection(collection_id):
-    request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
+    request_json = request.get_json()  # pylint: disable=undefined-variable
     updated_data = request_json.get("data")
 
     if not updated_data:

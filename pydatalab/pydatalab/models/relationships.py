@@ -1,14 +1,8 @@
 from enum import Enum
-from typing import Optional
 
 from pydantic import BaseModel, Field, root_validator, validator
 
-from pydatalab.models.utils import (
-    HumanReadableIdentifier,
-    KnownType,
-    PyObjectId,
-    Refcode,
-)
+from pydatalab.models.utils import HumanReadableIdentifier, KnownType, PyObjectId, Refcode
 
 
 class RelationshipType(str, Enum):
@@ -22,7 +16,6 @@ class RelationshipType(str, Enum):
     entryA <..> entryD: sibling
     entryA --|> entryB : child
     ```
-
     """
 
     PARENT = "parent"
@@ -33,27 +26,27 @@ class RelationshipType(str, Enum):
 
 
 class TypedRelationship(BaseModel):
-    description: Optional[str] = Field(
+    description: str | None = Field(
         None,
         description="A description of the relationship.",
     )
 
-    relation: Optional[RelationshipType] = Field(
+    relation: RelationshipType | None = Field(
         None,
         description="The type of relationship between the two items. If the type is 'other', then a human-readable description should be provided.",
     )
 
     type: KnownType = Field(description="The type of the related resource.")
 
-    immutable_id: Optional[PyObjectId] = Field(
+    immutable_id: PyObjectId | None = Field(
         description="The immutable ID of the entry that is related to this entry."
     )
 
-    item_id: Optional[HumanReadableIdentifier] = Field(
+    item_id: HumanReadableIdentifier | None = Field(
         description="The ID of the entry that is related to this entry."
     )
 
-    refcode: Optional[Refcode] = Field(
+    refcode: Refcode | None = Field(
         description="The refcode of the entry that is related to this entry."
     )
 

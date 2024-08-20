@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field, root_validator
 
@@ -7,10 +7,10 @@ from pydatalab.models.utils import PyObjectId
 
 
 class HasOwner(BaseModel):
-    creator_ids: List[PyObjectId] = Field([])
+    creator_ids: list[PyObjectId] = Field([])
     """The database IDs of the user(s) who created the item."""
 
-    creators: Optional[List[Person]] = Field(None)
+    creators: list[Person] | None = Field(None)
     """Inlined info for the people associated with this item."""
 
 
@@ -18,15 +18,15 @@ class HasRevisionControl(BaseModel):
     revision: int = 1
     """The revision number of the entry."""
 
-    revisions: Optional[Dict[int, Any]] = None
+    revisions: dict[int, Any] | None = None
     """An optional mapping from old revision numbers to the model state at that revision."""
 
 
 class HasBlocks(BaseModel):
-    blocks_obj: Dict[str, Any] = Field({})
+    blocks_obj: dict[str, Any] = Field({})
     """A mapping from block ID to block data."""
 
-    display_order: List[str] = Field([])
+    display_order: list[str] = Field([])
     """The order in which to display block data in the UI."""
 
 
@@ -37,7 +37,7 @@ class IsCollectable(BaseModel):
 
     from pydatalab.models.collections import Collection
 
-    collections: List[Collection] = Field([])
+    collections: list[Collection] = Field([])
     """Inlined info for the collections associated with this item."""
 
     @root_validator
