@@ -38,7 +38,8 @@ include = ["pydatalab"]
 namespaces = false
 
 [tool.setuptools_scm]
-fallback_version = "0.1"
+root = ".."
+fallback_version = "0.1.0"
 
 [project.optional-dependencies]
 dev = [

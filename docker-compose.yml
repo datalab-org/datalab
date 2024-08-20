@@ -61,6 +61,7 @@ services:
       - database_dev
     volumes:
       - ./logs:/logs
+      - ./.git:/.git
       - ./pydatalab:/app
     ports:
       - "5001:5001"

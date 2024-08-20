@@ -11,6 +11,7 @@ from flask_login import current_user, logout_user
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 import pydatalab.mongo
+from pydatalab import __version__
 from pydatalab.config import CONFIG, FEATURE_FLAGS
 from pydatalab.logger import LOGGER, setup_log
 from pydatalab.login import LOGIN_MANAGER
@@ -148,7 +149,9 @@ def create_app(
 
     app.config.update(dotenv_values(dotenv_path=env_file))
 
+    LOGGER.info("Launching datalab version %s", __version__)
     LOGGER.info("Starting app with Flask app.config: %s", app.config)
+
     _check_feature_flags(app)
 
     if CONFIG.BEHIND_REVERSE_PROXY:
