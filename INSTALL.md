@@ -8,7 +8,7 @@ instance, in which case please check out the separate Python API package at
 [datalab-org/datalab-api](https://github.com/datalab-org/datalab-python-api).
 
 The instructions below outline how to make a development installation on your local machine.
-We strongly recommend following the [deployment instructions](deployment.md) on [docs.datalab-org.io](docs.datalab-org.io/en/stable/deployment/) if you are deploying for use in production.
+We strongly recommend following the [deployment instructions](deployment.md) on [docs.datalab-org.io](https://docs.datalab-org.io/en/stable/deployment/) if you are deploying for use in production.
 These instructions are also useful for developers who want to use Docker to create a reproducible development environment.
 
 This repository consists of two components:
@@ -35,7 +35,7 @@ This requires a MongoDB server to be running on your desired host machine.
 
 1. Install the free MongoDB community edition (full instructions on the [MongoDB website](https://docs.mongodb.com/manual/installation/)).
     * For Mac users, MongoDB is available via [HomeBrew](https://github.com/mongodb/homebrew-brew).
-    - You can alternatively run the MongoDB via Docker using the config in this package with `docker compose up database` (see further instructions [below](#deployment-with-docker).
+    - You can alternatively run the MongoDB via Docker using the config in this package with `docker compose up database` (see [deployment instructions](deploy.md).
     * If you wish to view the database directly, MongoDB has several GUIs, e.g. [MongoDB Compass](https://www.mongodb.com/products/compass) or [Studio 3T](https://robomongo.org/).
     - For persistence, you will need to set up MongoDB to run as a service on your computer (or run manually each time you run the `pydatalab` server).
 
@@ -59,23 +59,25 @@ standard library Python `venv` module.
       environment.
 2. Activate the virtual environment (optional for `uv`) and install dependencies. One can either use the loosely pinned dependencies in `pyproject.toml`, or the locked versions in the `requirements/requirements-all-dev.txt` and `requirements/requirements-all.txt` files.
 
-=== "`uv`"
+=== "Installation with `uv`"
 
     ```shell
-    # EITHER: Install all dependencies with locked versions
+    # EITHER: Install all dependencies with locked versions, then install the local package
     uv pip install -r requirements/requirements-all-dev.txt
+    uv pip install -e '.[all,dev]'
     # OR: Install all dependencies with loosely pinned versions
-    uv pip install -e '.[all]'
+    uv pip install -e '.[all,dev]'
     ```
 
-=== "`venv`"
+=== "Installation with `venv`"
 
     ```shell
     source .venv/bin/activate
-    # EITHER: Install all dependencies with locked versions
+    # EITHER: Install all dependencies with locked versions, then install the local package
     pip install -r requirements/requirements-all-dev.txt
+    pip install -e '.[all, dev]'
     # OR: Install all dependencies with loosely pinned versions
-    pip install -e '.[all]'
+    pip install -e '.[all, dev]'
     ```
 
 ##### Using `pipenv` (DEPRECATED)
@@ -98,14 +100,15 @@ To make use of this file:
 
 1. Run the server from the `pydatalab` folder with either:
 
-=== "`uv` or `venv`
+=== "Launching with `uv` or `venv`"
+
     ```shell
     cd pydatalab
     source .venv/bin/activate
     flask --app 'pydatalab:main.create_app()' --reload run
     ```
 
-=== "`pipenv`"
+=== "Launching with `pipenv`"
 
     ```shell
     cd pydatalab

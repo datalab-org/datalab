@@ -4,7 +4,8 @@ This document describes the different options for configuring a *datalab*
 instance.
 It is primarily intended for those who are *deploying* *datalab* on persistent
 hardware, but may also be useful for developers.
-Deployment instructions can be found under [](deployment.md).
+Deployment instructions can be found under ["Deploying datalab and server
+administration"](deployment.md).
 
 *datalab* has 3 main configuration sources.
 
