@@ -44,9 +44,6 @@ RUN [ "uv", "pip", "install", "gunicorn" ]
 WORKDIR /app
 COPY ./pydatalab/ ./
 
-# Install the local version of the package and mount the repository data to get version info
- RUN --mount=type=bind,target=/app/.git,source=./.git ["uv", "pip", "install", "--python", "/opt/.venv/bin/python", "."]
-
 # This will define the number of gunicorn workers
 ARG WEB_CONCURRENCY=4
 ENV WEB_CONCURRENCY=${WEB_CONCURRENCY}
@@ -54,6 +51,10 @@ ENV WEB_CONCURRENCY=${WEB_CONCURRENCY}
 ARG PORT=5001
 EXPOSE ${PORT}
 ENV PORT=${PORT}
+
+# Install the local version of the package and mount the repository data to get version info
+RUN git config --global --add safe.directory /
+RUN --mount=type=bind,target=/.git,source=./.git ["uv", "pip", "install", "--python", "/opt/.venv/bin/python", "."]
 
 CMD ["/bin/bash", "-c", "/opt/.venv/bin/python -m gunicorn --preload -w ${WEB_CONCURRENCY} --error-logfile /logs/pydatalab_error.log --access-logfile - -b 0.0.0.0:${PORT} 'pydatalab.main:create_app()'"]
 

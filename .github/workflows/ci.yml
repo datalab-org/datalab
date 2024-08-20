@@ -59,6 +59,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # tests need an unshallowed version of the repository to check the version
+          fetch-depth: 0
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
