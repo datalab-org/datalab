@@ -1,25 +1,5 @@
 version: 2
 updates:
-# Update rule for lockfiles only: will bump requirements within the
-# compatible versions found in pyproject.toml
-- package-ecosystem: pip
-  directory: "./pydatalab"
-  schedule:
-    interval: monthly
-    day: monday
-    time: "05:43"
-  # Needs to be larger than the number of total requirements (currently 31)
-  open-pull-requests-limit: 50
-  target-branch: main
-  labels:
-  - dependency_updates
-  versioning-strategy: "lockfile-only"
-  groups:
-    python-dependencies-compat:
-      applies-to: version-updates
-      dependency-type: production
-# Will make a separate PR to bump versions explicitly to the latest versions, in all cases
-# May trigger incompatibilities in many cases, in which case additional constraints may be needed here
 - package-ecosystem: pip
   directory: "./pydatalab"
   schedule:
