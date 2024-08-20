@@ -75,6 +75,6 @@ repos:
         name: Regenerate item model JSONSchemas
         files: "^pydatalab/pydatalab/models/.*.$"
         description: Check if the current code changes have enacted changes to the resulting JSONSchemas
-        entry: bash -c "PIPENV_PIPFILE=pydatalab/Pipfile pipenv run invoke -r pydatalab dev.generate-schemas"
+        entry: invoke -r pydatalab dev.generate-schemas
         pass_filenames: false
         language: system
