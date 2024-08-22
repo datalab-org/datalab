@@ -44,7 +44,7 @@
     "vue-select": "^4.0.0-beta.6",
     "vue3-easy-data-table": "^1.5.45",
     "vuex": "^4.0.0-0",
-		"qrcode-vue3": "^1.6.8"
+    "qrcode-vue3": "^1.6.8"
   },
   "devDependencies": {
     "@babel/core": "^7.24.8",
