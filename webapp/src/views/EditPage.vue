@@ -38,6 +38,12 @@
       <a class="nav-item nav-link" :href="itemApiUrl" target="_blank">
         <font-awesome-icon icon="code" fixed-width /> View JSON
       </a>
+      <a id="showQR" class="nav-item nav-link" role="button" @click="isQRVisible = !isQRVisible">
+        <font-awesome-icon icon="qrcode" fixed-width />Show QR Code
+      </a>
+      <div v-show="isQRVisible" style="display: block" aria-labelledby="QRCode">
+        <QRCode :url="appUrl + '/items/' + refcode" />
+      </div>
     </div>
     <div class="navbar-nav ml-auto">
       <span v-if="itemDataLoaded && !savedStatus" class="navbar-text unsaved-warning">
@@ -96,6 +102,7 @@ import FileList from "@/components/FileList";
 import FileSelectModal from "@/components/FileSelectModal";
 import {
   getItemData,
+  getItemByRefcode,
   addABlock,
   saveItem,
   updateBlockFromServer,
@@ -109,6 +116,7 @@ import tinymce from "tinymce/tinymce";
 
 import { blockTypes, itemTypes } from "@/resources.js";
 import NotImplementedBlock from "@/components/datablocks/NotImplementedBlock.vue";
+import QRCode from "@/components/QRCode.vue";
 import { API_URL } from "@/resources.js";
 import { formatDistanceToNow } from "date-fns";
 
@@ -122,6 +130,7 @@ export default {
     FileSelectModal,
     FormattedItemName,
     StyledBlockHelp,
+    QRCode,
   },
   beforeRouteLeave(to, from, next) {
     // give warning before leaving the page by the vue router (which would not trigger "beforeunload")
@@ -137,7 +146,8 @@ export default {
   },
   data() {
     return {
-      item_id: this.$route.params.id,
+      item_id: this.$route.params?.id || null,
+      refcode: this.$route.params?.refcode || null,
       itemDataLoaded: false,
       isMenuDropdownVisible: false,
       selectedRemoteFiles: [],
@@ -203,7 +213,6 @@ export default {
   },
   beforeMount() {
     this.blockTypes = blockTypes; // bind blockTypes as a NON-REACTIVE object to the this context so that it is accessible by the template.
-    this.itemApiUrl = API_URL + "/get-item-data/" + this.item_id;
   },
   mounted() {
     // overwrite ctrl-s and cmd-s to save the page
@@ -277,16 +286,26 @@ export default {
       this.lastModified = "just now";
     },
     getSampleData() {
-      getItemData(this.item_id).then(() => {
-        this.itemDataLoaded = true;
-
-        // update each block asynchronously
-        this.item_data.display_order.forEach((block_id) => {
-          console.log(`calling update on block ${block_id}`);
-          updateBlockFromServer(this.item_id, block_id, this.item_data.blocks_obj[block_id]);
+      if (this.item_id != null) {
+        getItemByRefcode(this.refcode).then(() => {
+          this.itemDataLoaded = true;
+          this.item_id = this.item_data.item_id;
+          this.itemApiUrl = API_URL + "/items/" + this.refcode;
         });
-        this.setLastModified();
+      } else {
+        getItemData(this.item_id).then(() => {
+          this.itemDataLoaded = true;
+          this.refcode = this.item_data.refcode;
+          this.itemApiUrl = API_URL + "/items/" + this.refcode;
+        });
+      }
+
+      // update each block asynchronously
+      this.item_data.display_order.forEach((block_id) => {
+        console.log(`calling update on block ${block_id}`);
+        updateBlockFromServer(this.item_id, block_id, this.item_data.blocks_obj[block_id]);
       });
+      this.setLastModified();
     },
     leavePageWarningListener(event) {
       event.preventDefault;
