@@ -62,7 +62,7 @@
             </a>
 
             <a
-              v-else
+              v-else-if="showGitHub"
               type="button"
               class="dropdown-item btn login btn-link btn-default"
               aria-label="Login via GitHub"
@@ -86,7 +86,7 @@
               {{ user.identities.find((identity) => identity.identity_type === "orcid").name }}
             </a>
             <a
-              v-else
+              v-else-if="showORCID"
               type="button"
               class="dropdown-item btn login btn-link btn-default"
               aria-label="Connect ORCID account"
@@ -157,6 +157,12 @@ export default {
     };
   },
   computed: {
+    showGitHub() {
+      return this.$store.state.serverInfo?.features?.auth_mechanisms?.github ?? false;
+    },
+    showORCID() {
+      return this.$store.state.serverInfo?.features?.auth_mechanisms?.orcid ?? false;
+    },
     displayNameValidationMessage() {
       if (!this.user.display_name || /^\s*$/.test(this.user.display_name)) {
         return "Name is required.";
