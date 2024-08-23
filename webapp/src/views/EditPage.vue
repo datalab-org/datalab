@@ -38,12 +38,6 @@
       <a class="nav-item nav-link" :href="itemApiUrl" target="_blank">
         <font-awesome-icon icon="code" fixed-width /> View JSON
       </a>
-      <a id="showQR" class="nav-item nav-link" role="button" @click="isQRVisible = !isQRVisible">
-        <font-awesome-icon icon="qrcode" fixed-width />Show QR Code
-      </a>
-      <div v-show="isQRVisible" style="display: block" aria-labelledby="QRCode">
-        <QRCode :url="appUrl + '/items/' + refcode" />
-      </div>
     </div>
     <div class="navbar-nav ml-auto">
       <span v-if="itemDataLoaded && !savedStatus" class="navbar-text unsaved-warning">
@@ -116,7 +110,6 @@ import tinymce from "tinymce/tinymce";
 
 import { blockTypes, itemTypes } from "@/resources.js";
 import NotImplementedBlock from "@/components/datablocks/NotImplementedBlock.vue";
-import QRCode from "@/components/QRCode.vue";
 import { API_URL } from "@/resources.js";
 import { formatDistanceToNow } from "date-fns";
 
@@ -130,7 +123,6 @@ export default {
     FileSelectModal,
     FormattedItemName,
     StyledBlockHelp,
-    QRCode,
   },
   beforeRouteLeave(to, from, next) {
     // give warning before leaving the page by the vue router (which would not trigger "beforeunload")
@@ -159,7 +151,7 @@ export default {
   },
   computed: {
     itemType() {
-      return this.$store.state.all_item_data[this.item_id]?.type;
+      return this.$store.state.all_item_data[this.item_id]?.type || null;
     },
     itemTypeEntry() {
       return itemTypes[this.itemType] || null;
@@ -168,7 +160,7 @@ export default {
       return this.itemTypeEntry?.navbarColor || "DarkGrey";
     },
     item_data() {
-      return this.$store.state.all_item_data[this.item_id] || {};
+      return this.$store.state.all_item_data[this.item_id] || { display_order: [] };
     },
     blocks() {
       return this.item_data.blocks_obj;
@@ -194,6 +186,9 @@ export default {
     },
     blocksInfos() {
       return this.$store.state.blocksInfos;
+    },
+    itemApiUrl() {
+      return API_URL + "/items/" + this.refcode;
     },
   },
   watch: {
@@ -286,17 +281,16 @@ export default {
       this.lastModified = "just now";
     },
     getSampleData() {
-      if (this.item_id != null) {
+      if (this.item_id == null) {
         getItemByRefcode(this.refcode).then(() => {
           this.itemDataLoaded = true;
+          console.log(this.item_data);
           this.item_id = this.item_data.item_id;
-          this.itemApiUrl = API_URL + "/items/" + this.refcode;
         });
       } else {
         getItemData(this.item_id).then(() => {
           this.itemDataLoaded = true;
           this.refcode = this.item_data.refcode;
-          this.itemApiUrl = API_URL + "/items/" + this.refcode;
         });
       }
 
