@@ -3,12 +3,18 @@
     <Modal :model-value="modelValue" @update:model-value="$emit('update:modelValue', $event)">
       <template #header>Scan QR Code</template>
       <template #body>
-        <div class="form-row">
-          <div ref="qrcode-scanner" class="form-group mx-auto" data-testid="qrcode-scanner">
-            <QrcodeStream @detect="onDetect"></QrcodeStream>
-          </div>
+        <div v-if="modelValue" class="form-row">
           <div v-if="decodedQR != null">
             <p>Decoded QR: {{ decodedQR }}</p>
+          </div>
+          <div v-else>
+            <div ref="qrcode-scanner" class="form-group mx-auto" data-testid="qrcode-scanner">
+              <QrcodeStream @detect="onDetect" />
+            </div>
+            <div ref="qrcode-upload" data-testid="qrcode-upload">
+              <div>Or upload an image:</div>
+              <QrcodeCapture id="upload-qr" class="button button-default" @detect="onDetect" />
+            </div>
           </div>
         </div>
       </template>
@@ -28,11 +34,12 @@
 
 <script>
 import Modal from "@/components/Modal.vue";
-import { QrcodeStream } from "vue-qrcode-reader";
+import { QrcodeStream, QrcodeCapture } from "vue-qrcode-reader";
 export default {
   name: "QRScannerModal",
   components: {
     Modal,
+    QrcodeCapture,
     QrcodeStream,
   },
   props: {
