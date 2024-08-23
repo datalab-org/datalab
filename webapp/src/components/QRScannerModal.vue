@@ -1,0 +1,53 @@
+<template>
+  <form class="modal-enclosure" data-testid="qrcode-scanner">
+    <Modal :model-value="modelValue" @update:model-value="$emit('update:modelValue', $event)">
+      <template #header>Scan QR Code</template>
+      <template #body>
+        <div class="form-row">
+          <div ref="qrcode-scanner" class="form-group mx-auto" data-testid="qrcode-scanner">
+            <QrcodeStream @detect="onDetect"></QrcodeStream>
+          </div>
+          <div v-if="decodedQR != null">
+            <p>Decoded QR: {{ decodedQR }}</p>
+          </div>
+        </div>
+      </template>
+      <template #footer>
+        <button
+          type="button"
+          class="btn btn-secondary"
+          data-dismiss="modal"
+          @click="$emit('update:modelValue', false)"
+        >
+          Close
+        </button>
+      </template>
+    </Modal>
+  </form>
+</template>
+
+<script>
+import Modal from "@/components/Modal.vue";
+import { QrcodeStream } from "vue-qrcode-reader";
+export default {
+  name: "QRScannerModal",
+  components: {
+    Modal,
+    QrcodeStream,
+  },
+  props: {
+    modelValue: Boolean,
+  },
+  emits: ["update:modelValue"],
+  data() {
+    return {
+      decodedQR: null,
+    };
+  },
+  methods: {
+    onDetect(detectedQRs) {
+      this.decodedQR = detectedQRs[0].rawValue;
+    },
+  },
+};
+</script>
