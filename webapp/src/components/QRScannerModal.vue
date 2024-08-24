@@ -8,8 +8,27 @@
             <p>Decoded QR: {{ decodedQR }}</p>
           </div>
           <div v-else>
-            <div ref="qrcode-scanner" class="form-group mx-auto" data-testid="qrcode-scanner">
-              <QrcodeStream @detect="onDetect" />
+            <div v-show="!cameraReady">
+              <font-awesome-icon
+                v-if="!cameraReady"
+                icon="spinner"
+                class="fa-spin mx-auto"
+                fixed-width
+                style="color: gray"
+                size="2x"
+              />
+              <div class="alert alert-info text-center">
+                No camera available. You may need to allow this page to have camera access in your
+                browser.
+              </div>
+            </div>
+            <div
+              v-show="cameraReady"
+              ref="qrcode-scanner"
+              class="form-group mx-auto"
+              data-testid="qrcode-scanner"
+            >
+              <QrcodeStream @camera-on="cameraReady = true" @detect="onDetect" />
             </div>
             <div ref="qrcode-upload" data-testid="qrcode-upload">
               <div>Or upload an image:</div>
@@ -49,11 +68,14 @@ export default {
   data() {
     return {
       decodedQR: null,
+      cameraReady: false,
     };
   },
   methods: {
     onDetect(detectedQRs) {
       this.decodedQR = detectedQRs[0].rawValue;
+      // Reset camera stream div
+      this.cameraReady = false;
     },
   },
 };
