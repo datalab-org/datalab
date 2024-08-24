@@ -35,7 +35,7 @@ export default {
   },
   props: {
     modelValue: Boolean,
-    refcode: String,
+    refcode: { type: String, required: true },
   },
   emits: ["update:modelValue"],
   methods: {
