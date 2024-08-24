@@ -108,7 +108,7 @@ jobs:
         env:
           FORCE_COLOR: 0
         with:
-          node-version: "16.15.0"
+          node-version: "20"
           cache: "yarn"
           cache-dependency-path: ./webapp/yarn.lock
 
