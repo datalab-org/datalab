@@ -10,7 +10,7 @@ services:
       - ./logs:/logs
     restart: unless-stopped
     environment:
-      - VUE_APP_API_URL
+      - VUE_APP_API_URL=http://localhost:5001
       - VUE_APP_LOGO_URL
       - VUE_APP_HOMEPAGE_URL
       - VUE_APP_EDITABLE_INVENTORY
@@ -28,6 +28,8 @@ services:
       - ./webapp:/app
     ports:
       - "8081:8081"
+    environment:
+      - VUE_APP_API_URL=http://localhost:5001
 
   api:
     profiles: ["prod"]
