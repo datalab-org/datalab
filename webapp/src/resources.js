@@ -21,7 +21,7 @@ import CellCreateModalAddon from "@/components/itemCreateModalAddons/CellCreateM
 
 // Look for values set in .env file. Use defaults if `null` is not explicitly handled elsewhere in the code.
 export const API_URL =
-  process.env.VUE_APP_API_URL != null ? process.env.VUE_APP_API_URL : "http://localhost:5001";
+  process.env.VUE_APP_API_URL != null ? process.env.VUE_APP_API_URL : "http://localhost:5000";
 export const API_TOKEN = process.env.VUE_APP_API_TOKEN;
 
 export const LOGO_URL = process.env.VUE_APP_LOGO_URL;
