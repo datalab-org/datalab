@@ -27,7 +27,7 @@ export const API_TOKEN = process.env.VUE_APP_API_TOKEN;
 export const QR_CODE_RESOLVER_URL =
   process.env.VUE_APP_QR_CODE_RESOLVER_URL != null
     ? process.env.VUE_APP_QR_CODE_RESOLVER_URL
-    : "https://qr.datalab-org.io";
+    : "https://purl.datalab-org.io";
 
 export const LOGO_URL = process.env.VUE_APP_LOGO_URL;
 export const HOMEPAGE_URL = process.env.VUE_APP_HOMEPAGE_URL;
