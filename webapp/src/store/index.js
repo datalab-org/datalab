@@ -11,6 +11,7 @@ export default createStore({
     all_collection_data: {},
     all_collection_children: {},
     all_collection_parents: {},
+    refcode_to_id: {},
     sample_list: [],
     equipment_list: [],
     starting_material_list: [],
@@ -113,12 +114,13 @@ export default createStore({
     },
     createItemData(state, payload) {
       // payload should have the following fields:
-      // item_id, item_data, child_items, parent_items
+      // refcode, item_id, item_data, child_items, parent_items
       // Object.assign(state.all_sample_data[payload.item_data], payload.item_data)
       state.all_item_data[payload.item_id] = payload.item_data;
       state.all_item_children[payload.item_id] = payload.child_items;
       state.all_item_parents[payload.item_id] = payload.parent_items;
       state.saved_status_items[payload.item_id] = true;
+      state.refcode_to_id[payload.refcode] = payload.item_id;
     },
     setCollectionData(state, payload) {
       // payload should have the following fields:

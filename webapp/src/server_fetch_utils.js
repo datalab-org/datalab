@@ -433,7 +433,6 @@ export async function getItemData(item_id) {
 export async function getItemByRefcode(refcode) {
   return fetch_get(`${API_URL}/items/${refcode}`)
     .then((response_json) => {
-      console.log(response_json);
       store.commit("createItemData", {
         refcode: refcode,
         item_id: response_json.item_data.item_id,

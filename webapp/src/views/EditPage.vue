@@ -283,16 +283,14 @@ export default {
     getSampleData() {
       if (this.item_id == null) {
         getItemByRefcode(this.refcode).then(() => {
-          this.itemDataLoaded = true;
-          console.log(this.item_data);
-          this.item_id = this.item_data.item_id;
+          this.item_id = this.$store.state.refcode_to_id[this.refcode];
         });
       } else {
         getItemData(this.item_id).then(() => {
-          this.itemDataLoaded = true;
           this.refcode = this.item_data.refcode;
         });
       }
+      this.itemDataLoaded = true;
 
       // update each block asynchronously
       this.item_data.display_order.forEach((block_id) => {
