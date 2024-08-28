@@ -27,9 +27,11 @@ module.exports = {
     "vue/multi-word-component-names": "off",
     // Rule disable for item_id, block_id and collection_id
     "vue/prop-name-casing": "off",
+    "vue/no-unused-components": process.env.NODE_ENV === "production" ? "error" : "warn",
+    "vue/no-unused-vars": process.env.NODE_ENV === "production" ? "error" : "warn",
     "cypress/no-assigning-return-values": "warn",
     "cypress/no-unnecessary-waiting": "warn",
     "cypress/unsafe-to-chain-command": "warn",
-    "prettier/prettier": "error",
+    "prettier/prettier": process.env.NODE_ENV === "production" ? "error" : "warn",
   },
 };
