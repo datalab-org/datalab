@@ -13,6 +13,7 @@ from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER
 from pydatalab.models import ITEM_MODELS
 from pydatalab.models.items import Item
+from pydatalab.models.people import Person
 from pydatalab.models.relationships import RelationshipType
 from pydatalab.models.utils import generate_unique_refcode
 from pydatalab.mongo import flask_mongo
@@ -210,7 +211,7 @@ def creators_lookup() -> Dict:
                     },
                 }
             },
-            {"$project": {"_id": 0, "display_name": 1, "contact_email": 1}},
+            {"$project": {"_id": 1, "display_name": 1, "contact_email": 1}},
         ],
         "as": "creators",
     }
@@ -914,5 +915,6 @@ def search_users():
             },
         ]
     )
-
-    return jsonify({"status": "success", "users": list(cursor)}), 200
+    return jsonify(
+        {"status": "success", "users": list(json.loads(Person(**d).json()) for d in cursor)}
+    ), 200

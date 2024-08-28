@@ -27,6 +27,7 @@ export default createStore({
     remoteDirectoryTreeIsLoading: false,
     fileSelectModalIsOpen: false,
     currentUserDisplayName: null,
+    currentUserID: null,
     serverInfo: null,
     blocksInfos: {},
     currentUserIsUnverified: false,
@@ -51,6 +52,9 @@ export default createStore({
     },
     setDisplayName(state, displayName) {
       state.currentUserDisplayName = displayName;
+    },
+    setCurrentUserID(state, userID) {
+      state.currentUserID = userID;
     },
     setIsUnverified(state, isUnverified) {
       state.currentUserIsUnverified = isUnverified;
@@ -296,6 +300,9 @@ export default createStore({
     },
     getCurrentUserDisplayName(state) {
       return state.currentUserDisplayName;
+    },
+    getCurrentUserID(state) {
+      return state.currentUserID;
     },
     getCurrentUserIsUnverified(state) {
       return state.currentUserIsUnverified;

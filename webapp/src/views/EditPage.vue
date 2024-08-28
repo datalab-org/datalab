@@ -1,62 +1,74 @@
 <template>
   <div id="topScrollPoint"></div>
-  <nav
-    class="navbar navbar-expand sticky-top navbar-dark py-0 editor-navbar"
-    :style="{ backgroundColor: navbarColor }"
-  >
-    <span class="navbar-brand clickable" @click="scrollToID($event, 'topScrollPoint')"
-      >{{ itemTypeEntry?.navbarName || "loading..." }}&nbsp;&nbsp;|&nbsp;&nbsp;
-      <FormattedItemName :item_id="item_id" :item-type="itemType" />
-    </span>
-    <div class="navbar-nav">
-      <a class="nav-item nav-link" href="/">Home</a>
-      <div class="nav-item dropdown">
-        <a
-          id="navbarDropdown"
-          class="nav-link dropdown-toggle ml-2"
-          role="button"
-          data-toggle="dropdown"
-          aria-haspopup="true"
-          aria-expanded="false"
-          @click="isMenuDropdownVisible = !isMenuDropdownVisible"
-        >
-          Add a block
-        </a>
-        <div
-          v-show="isMenuDropdownVisible"
-          class="dropdown-menu"
-          style="display: block"
-          aria-labelledby="navbarDropdown"
-        >
-          <template v-for="blockInfo in blocksInfos" :key="blockInfo.id">
-            <span v-if="blockInfo.id !== 'notsupported'" @click="newBlock($event, blockInfo.id)">
-              <StyledBlockHelp :block-info="blockInfo.attributes" />
-            </span>
-          </template>
-        </div>
-      </div>
-      <a class="nav-item nav-link" :href="itemApiUrl" target="_blank">
-        <font-awesome-icon icon="code" fixed-width /> View JSON
-      </a>
-    </div>
-    <div class="navbar-nav ml-auto">
-      <span v-if="itemDataLoaded && !savedStatus" class="navbar-text unsaved-warning">
-        Unsaved changes
+  <div>
+    <nav
+      class="navbar navbar-expand-md sticky-top navbar-dark py-0 editor-navbar"
+      :style="{ backgroundColor: navbarColor }"
+    >
+      <div v-show="false" class="navbar-nav"><LoginDetails /></div>
+      <span class="navbar-brand clickable" @click="scrollToID($event, 'topScrollPoint')">
+        {{ itemTypeEntry?.navbarName || "loading..." }}&nbsp;&nbsp;|&nbsp;&nbsp;
+        <FormattedItemName :item_id="item_id" :item-type="itemType" />
       </span>
-      <span v-if="itemDataLoaded && lastModified" class="navbar-text small mx-2"
-        ><i>Last saved: {{ lastModified }}</i></span
-      >
-      <font-awesome-icon
-        icon="save"
-        fixed-width
-        class="nav-item nav-link navbar-icon"
-        @click="saveSample"
-      />
-    </div>
-  </nav>
+      <div class="navbar-nav">
+        <a class="nav-item nav-link" href="/">
+          <font-awesome-icon icon="home" fixed-width />
+        </a>
+        <div class="nav-item dropdown">
+          <a
+            id="navbarDropdown"
+            class="nav-link dropdown-toggle"
+            role="button"
+            data-toggle="dropdown"
+            aria-haspopup="true"
+            aria-expanded="false"
+            @click="isMenuDropdownVisible = !isMenuDropdownVisible"
+          >
+            <font-awesome-icon icon="cubes" fixed-width />
+          </a>
+          <div
+            v-show="isMenuDropdownVisible"
+            class="dropdown-menu"
+            style="display: block"
+            aria-labelledby="navbarDropdown"
+          >
+            <template v-for="blockInfo in blocksInfos" :key="blockInfo.id">
+              <span v-if="blockInfo.id !== 'notsupported'" @click="newBlock($event, blockInfo.id)">
+                <StyledBlockHelp :block-info="blockInfo.attributes" />
+              </span>
+            </template>
+          </div>
+        </div>
+        <a class="nav-item nav-link" :href="itemApiUrl" target="_blank">
+          <font-awesome-icon icon="code" fixed-width />
+        </a>
+      </div>
+      <div class="navbar-nav ml-auto">
+        <span v-if="itemDataLoaded && !savedStatus" class="navbar-text unsaved-warning">
+          Unsaved changes
+        </span>
+        <span v-if="itemDataLoaded && lastModified" class="navbar-text small mx-2"
+          ><i>Last saved: {{ lastModified }}</i></span
+        >
+        <a class="nav-item nav-link">
+          <font-awesome-icon
+            icon="save"
+            fixed-width
+            class="nav-item nav-link navbar-icon"
+            @click="saveSample"
+          />
+        </a>
+      </div>
+    </nav>
+  </div>
 
+  <div v-if="!itemDataLoaded" class="container">
+    <div class="mx-auto p-10 text-center">
+      <font-awesome-icon icon="spinner" class="fa-spin" fixed-width size="2x" />
+    </div>
+  </div>
   <!-- Item-type header information goes here -->
-  <div class="editor-body">
+  <div v-else class="editor-body">
     <component :is="itemTypeEntry?.itemInformationComponent" :item_id="item_id" />
 
     <FileList :item_id="item_id" :file_ids="file_ids" :stored_files="stored_files" />
@@ -101,6 +113,7 @@ import {
   updateBlockFromServer,
   getBlocksInfos,
 } from "@/server_fetch_utils";
+import LoginDetails from "@/components/LoginDetails";
 import FormattedItemName from "@/components/FormattedItemName";
 
 import setupUppy from "@/file_upload.js";
@@ -119,6 +132,7 @@ export default {
     TinyMceInline,
     SelectableFileTree,
     FileList,
+    LoginDetails,
     FileSelectModal,
     FormattedItemName,
     StyledBlockHelp,
@@ -324,8 +338,9 @@ label,
 }
 
 .nav-link:hover {
-  background-color: black;
   color: white;
+  text-decoration: underline wavy;
+  text-underline-offset: 0.2em;
 }
 
 .navbar-icon {

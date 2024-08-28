@@ -328,6 +328,7 @@ export async function getUserInfo() {
   return fetch_get(`${API_URL}/get-current-user/`)
     .then((response_json) => {
       store.commit("setDisplayName", response_json.display_name);
+      store.commit("setCurrentUserID", response_json.immutable_id);
       store.commit("setIsUnverified", response_json.account_status == "unverified" ? true : false);
       return response_json;
     })
