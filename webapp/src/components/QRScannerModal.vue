@@ -4,8 +4,15 @@
       <template #header>Scan QR Code</template>
       <template #body>
         <div v-if="modelValue" class="form-row">
-          <div v-if="decodedQR != null">
-            <p>Decoded QR: {{ decodedQR }}</p>
+          <div v-if="decodedQRs != null">
+            <div>
+              Decoded QRs:
+              <ul>
+                <li v-for="qr in decodedQRs" :key="qr">
+                  <a :href="qr">{{ qr }}</a>
+                </li>
+              </ul>
+            </div>
           </div>
           <div v-else>
             <div v-show="!cameraReady">
@@ -67,13 +74,14 @@ export default {
   emits: ["update:modelValue"],
   data() {
     return {
-      decodedQR: null,
+      decodedQRs: null,
       cameraReady: false,
     };
   },
   methods: {
     onDetect(detectedQRs) {
-      this.decodedQR = detectedQRs[0].rawValue;
+      // get all raw values from decoded QRs
+      this.decodedQRs = detectedQRs.map((qr) => qr.rawValue);
       // Reset camera stream div
       this.cameraReady = false;
     },
