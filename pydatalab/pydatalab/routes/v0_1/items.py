@@ -646,7 +646,7 @@ def get_item_data(
     """
     redirect_to_ui = bool(request.args.get("redirect-to-ui", default=False, type=json.loads))
     if refcode and redirect_to_ui and CONFIG.APP_URL:
-        return redirect(f"{CONFIG.APP_URL}/item/{refcode}", code=307)
+        return redirect(f"{CONFIG.APP_URL}/items/{refcode}", code=307)
 
     if item_id:
         match = {"item_id": item_id}
