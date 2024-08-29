@@ -20,7 +20,7 @@
         style="display: block"
         aria-labelledby="UserDropdown"
       >
-        <UserDropdown :user="user" />
+        <UserDropdown v-model="isUserDropdownVisible" :user="user" />
       </div>
     </div>
   </template>
@@ -89,7 +89,6 @@ export default {
       isUserDropdownVisible: false,
       apiUrl: API_URL,
       user: null,
-      editAccountSettingIsOpen: false,
       isUserLoaded: false,
     };
   },

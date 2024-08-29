@@ -37,6 +37,7 @@ export default {
     modelValue: Boolean,
     user: { type: Object, required: true },
   },
+  emits: ["update:modelValue"],
   data() {
     return {
       editAccountSettingIsOpen: false,
@@ -49,6 +50,13 @@ export default {
     },
     hasUnverifiedUser() {
       return this.$store.getters.getHasUnverifiedUser;
+    },
+  },
+  watch: {
+    editAccountSettingIsOpen: function (val) {
+      if (!val) {
+        this.$emit("update:modelValue", false);
+      }
     },
   },
 };
