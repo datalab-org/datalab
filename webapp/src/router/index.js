@@ -39,6 +39,11 @@ const routes = [
     component: EditPage,
   },
   {
+    path: "/items/:refcode",
+    name: "edit item",
+    component: EditPage,
+  },
+  {
     path: "/starting-materials",
     name: "starting-materials",
     component: StartingMaterials,

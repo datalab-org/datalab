@@ -1,4 +1,11 @@
 <template>
+  <span v-if="enableQRCode" class="badge clickable" @click="QRCodeModalOpen = true">
+    <font-awesome-icon
+      icon="qrcode"
+      title="Click to show QR Code for this item"
+      aria-label="Click to show QR Code for this item"
+    />
+  </span>
   <span
     class="badge"
     :class="{ clickable: enableClick || enableModifiedClick }"
@@ -9,19 +16,28 @@
   >
     {{ refcode }}
   </span>
+  <QRCodeModal v-model="QRCodeModalOpen" :refcode="refcode" />
 </template>
 
 <script>
+import QRCodeModal from "@/components/QRCodeModal.vue";
+
 export default {
+  components: {
+    QRCodeModal,
+  },
   props: {
     refcode: {
       type: String,
-      default: null,
+      required: true,
     },
-    item_id: { type: String, required: true },
     enableClick: {
       type: Boolean,
       default: false,
+    },
+    enableQRCode: {
+      type: Boolean,
+      default: true,
     },
     enableModifiedClick: {
       type: Boolean,
@@ -33,6 +49,11 @@ export default {
     },
   },
   emits: ["itemIdClicked"],
+  data() {
+    return {
+      QRCodeModalOpen: false,
+    };
+  },
   computed: {
     badgeColor() {
       return "LightGrey";
@@ -41,7 +62,7 @@ export default {
   methods: {
     openEditPageInNewTab() {
       this.$emit("itemIdClicked");
-      window.open(`/edit/${this.item_id}`, "_blank");
+      window.open(`/items/${this.refcode}`, "_blank");
     },
   },
 };
