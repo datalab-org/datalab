@@ -1,0 +1,56 @@
+<template>
+  <PrimeTable
+    :columns="sampleColumns"
+    :data="samples"
+    :data-type="'samples'"
+    :global-filter-fields="[
+      'item_id',
+      'type',
+      'name',
+      'chemform',
+      'collectionsList',
+      'creatorsList',
+      'nblocks',
+    ]"
+  />
+</template>
+
+<script>
+import PrimeTable from "@/components/PrimeTable";
+import { getSampleList } from "@/server_fetch_utils.js";
+
+export default {
+  components: { PrimeTable },
+  data() {
+    return {
+      sampleColumns: [
+        { field: "item_id", header: "ID", body: "FormattedItemName", filter: true },
+        { field: "type", header: "Type", filter: true },
+        { field: "name", header: "Sample name" },
+        { field: "chemform", header: "Formula", body: "ChemicalFormula" },
+        { field: "date", header: "Date" },
+        { field: "collections", header: "Collections", body: "CollectionList" },
+        { field: "creators", header: "Creators", body: "Creators" },
+        { field: "nblocks", header: "# of blocks" },
+      ],
+    };
+  },
+  computed: {
+    samples() {
+      return this.$store.state.sample_list.map((sample) => ({
+        ...sample,
+        collectionsList: sample.collections.join(", "),
+        creatorsList: sample.creators.map((creator) => creator.display_name).join(", "),
+      }));
+    },
+  },
+  mounted() {
+    this.getSamples();
+  },
+  methods: {
+    getSamples() {
+      getSampleList();
+    },
+  },
+};
+</script>

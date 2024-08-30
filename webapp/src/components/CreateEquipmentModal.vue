@@ -187,7 +187,9 @@ export default {
       )
         .then(() => {
           this.$emit("update:modelValue", false); // close this modal
-          document.getElementById(this.item_id).scrollIntoView({ behavior: "smooth" });
+          if (document.getElementById(this.item_id)) {
+            document.getElementById(this.item_id).scrollIntoView({ behavior: "smooth" });
+          }
           this.item_id = null;
           this.name = null;
           this.date = this.now(); // reset date to the new current time

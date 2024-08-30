@@ -97,7 +97,7 @@ export default createStore({
       }
     },
     deleteFromCollectionList(state, collection_summary) {
-      const index = state.collection_list.indexOf(collection_summary);
+      const index = state.collection_list.map((e) => e.item_id).indexOf(collection_summary.item_id);
       if (index > -1) {
         state.collection_list.splice(index, 1);
       } else {

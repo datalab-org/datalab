@@ -1,0 +1,42 @@
+<template>
+  <PrimeTable
+    :columns="startingMaterialColumn"
+    :data="startingMaterials"
+    :data-type="'startingMaterials'"
+    :global-filter-fields="['item_id', 'name', 'chemform', 'chemical_purity', 'nblocks']"
+  />
+</template>
+
+<script>
+import PrimeTable from "@/components/PrimeTable";
+import { getStartingMaterialList } from "@/server_fetch_utils.js";
+
+export default {
+  components: { PrimeTable },
+  data() {
+    return {
+      startingMaterialColumn: [
+        { field: "item_id", header: "ID", body: "FormattedItemName", filter: true },
+        { field: "name", header: "Name", filter: true },
+        { field: "chemform", header: "Formula", body: "ChemicalFormula" },
+        { field: "date", header: "Date" },
+        { field: "chemical_purity", header: "Purity" },
+        { field: "nblocks", header: "# of blocks" },
+      ],
+    };
+  },
+  computed: {
+    startingMaterials() {
+      return this.$store.state.starting_material_list;
+    },
+  },
+  mounted() {
+    this.getStartingMaterials();
+  },
+  methods: {
+    getStartingMaterials() {
+      getStartingMaterialList();
+    },
+  },
+};
+</script>

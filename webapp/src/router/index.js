@@ -11,6 +11,12 @@ import CollectionPage from "../views/CollectionPage.vue";
 import ExampleGraph from "@/views/ExampleGraph.vue";
 import ItemGraphPage from "@/views/ItemGraphPage.vue";
 import Admin from "@/views/Admin.vue";
+
+import TestPrime from "../views/TestPrime.vue";
+import TestPrime2 from "../views/TestPrime2.vue";
+import TestPrime3 from "../views/TestPrime3.vue";
+import TestPrime4 from "../views/TestPrime4.vue";
+
 const routes = [
   {
     path: "/about",
@@ -25,6 +31,26 @@ const routes = [
     name: "samples",
     alias: "/",
     component: Samples,
+  },
+  {
+    path: "/test",
+    name: "test",
+    component: TestPrime,
+  },
+  {
+    path: "/test2",
+    name: "test2",
+    component: TestPrime2,
+  },
+  {
+    path: "/test3",
+    name: "test3",
+    component: TestPrime3,
+  },
+  {
+    path: "/test4",
+    name: "test4",
+    component: TestPrime4,
   },
   {
     path: "/equipment",
