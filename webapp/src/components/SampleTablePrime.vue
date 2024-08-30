@@ -10,7 +10,7 @@
       selection-mode="multiple"
       :value="samples"
       paginator
-      :rows="10"
+      :rows="20"
       :rows-per-page-options="[10, 20, 50, 100]"
       filter-display="menu"
       :global-filter-fields="[
