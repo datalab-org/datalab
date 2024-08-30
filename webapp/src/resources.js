@@ -24,6 +24,10 @@ export const API_URL =
   process.env.VUE_APP_API_URL != null ? process.env.VUE_APP_API_URL : "http://localhost:5001";
 export const API_TOKEN = process.env.VUE_APP_API_TOKEN;
 
+export const QR_CODE_RESOLVER_URL = process.env.VUE_APP_QR_CODE_RESOLVER_URL;
+
+export const FEDERATION_QR_CODE_RESOLVER_URL = "https://purl.datalab-org.io";
+
 export const LOGO_URL = process.env.VUE_APP_LOGO_URL;
 export const HOMEPAGE_URL = process.env.VUE_APP_HOMEPAGE_URL;
 

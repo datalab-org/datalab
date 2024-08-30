@@ -96,6 +96,7 @@ import FileList from "@/components/FileList";
 import FileSelectModal from "@/components/FileSelectModal";
 import {
   getItemData,
+  getItemByRefcode,
   addABlock,
   saveItem,
   updateBlockFromServer,
@@ -137,7 +138,8 @@ export default {
   },
   data() {
     return {
-      item_id: this.$route.params.id,
+      item_id: this.$route.params?.id || null,
+      refcode: this.$route.params?.refcode || null,
       itemDataLoaded: false,
       isMenuDropdownVisible: false,
       selectedRemoteFiles: [],
@@ -149,7 +151,7 @@ export default {
   },
   computed: {
     itemType() {
-      return this.$store.state.all_item_data[this.item_id]?.type;
+      return this.$store.state.all_item_data[this.item_id]?.type || null;
     },
     itemTypeEntry() {
       return itemTypes[this.itemType] || null;
@@ -158,7 +160,7 @@ export default {
       return this.itemTypeEntry?.navbarColor || "DarkGrey";
     },
     item_data() {
-      return this.$store.state.all_item_data[this.item_id] || {};
+      return this.$store.state.all_item_data[this.item_id] || { display_order: [] };
     },
     blocks() {
       return this.item_data.blocks_obj;
@@ -185,6 +187,9 @@ export default {
     blocksInfos() {
       return this.$store.state.blocksInfos;
     },
+    itemApiUrl() {
+      return API_URL + "/items/" + this.refcode;
+    },
   },
   watch: {
     // add a warning before leaving page if unsaved
@@ -203,7 +208,6 @@ export default {
   },
   beforeMount() {
     this.blockTypes = blockTypes; // bind blockTypes as a NON-REACTIVE object to the this context so that it is accessible by the template.
-    this.itemApiUrl = API_URL + "/get-item-data/" + this.item_id;
   },
   mounted() {
     // overwrite ctrl-s and cmd-s to save the page
@@ -277,16 +281,23 @@ export default {
       this.lastModified = "just now";
     },
     getSampleData() {
-      getItemData(this.item_id).then(() => {
-        this.itemDataLoaded = true;
-
-        // update each block asynchronously
-        this.item_data.display_order.forEach((block_id) => {
-          console.log(`calling update on block ${block_id}`);
-          updateBlockFromServer(this.item_id, block_id, this.item_data.blocks_obj[block_id]);
+      if (this.item_id == null) {
+        getItemByRefcode(this.refcode).then(() => {
+          this.item_id = this.$store.state.refcode_to_id[this.refcode];
         });
-        this.setLastModified();
+      } else {
+        getItemData(this.item_id).then(() => {
+          this.refcode = this.item_data.refcode;
+        });
+      }
+      this.itemDataLoaded = true;
+
+      // update each block asynchronously
+      this.item_data.display_order.forEach((block_id) => {
+        console.log(`calling update on block ${block_id}`);
+        updateBlockFromServer(this.item_id, block_id, this.item_data.blocks_obj[block_id]);
       });
+      this.setLastModified();
     },
     leavePageWarningListener(event) {
       event.preventDefault;

@@ -3,7 +3,7 @@ import json
 from typing import Dict, List, Optional, Set, Union
 
 from bson import ObjectId
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, redirect, request
 from flask_login import current_user
 from pydantic import ValidationError
 from pymongo.command_cursor import CommandCursor
@@ -644,6 +644,9 @@ def get_item_data(
            call its render function).
 
     """
+    redirect_to_ui = bool(request.args.get("redirect-to-ui", default=False, type=json.loads))
+    if refcode and redirect_to_ui and CONFIG.APP_URL:
+        return redirect(f"{CONFIG.APP_URL}/items/{refcode}", code=307)
 
     if item_id:
         match = {"item_id": item_id}
@@ -766,6 +769,9 @@ def get_item_data(
 
     # Must be exported to JSON first to apply the custom pydantic JSON encoders
     return_dict = json.loads(doc.json(exclude_unset=True))
+
+    if item_id is None:
+        item_id = return_dict["item_id"]
 
     # create the files_data dictionary keyed by file ObjectId
     files_data: Dict[ObjectId, Dict] = {

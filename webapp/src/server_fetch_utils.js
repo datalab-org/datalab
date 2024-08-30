@@ -430,6 +430,23 @@ export async function getItemData(item_id) {
     .catch((error) => alert("Error getting sample data: " + error));
 }
 
+export async function getItemByRefcode(refcode) {
+  return fetch_get(`${API_URL}/items/${refcode}`)
+    .then((response_json) => {
+      store.commit("createItemData", {
+        refcode: refcode,
+        item_id: response_json.item_data.item_id,
+        item_data: response_json.item_data,
+        child_items: response_json.child_items,
+        parent_items: response_json.parent_items,
+      });
+      store.commit("updateFiles", response_json.files_data);
+
+      return "success";
+    })
+    .catch((error) => alert("Error getting item data: " + error));
+}
+
 export async function getCollectionData(collection_id) {
   return fetch_get(`${API_URL}/collections/${collection_id}`)
     .then((response_json) => {
