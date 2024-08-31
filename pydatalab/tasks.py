@@ -2,12 +2,10 @@ import json
 import os
 import pathlib
 import re
-import sys
 import time
 from typing import Tuple
 
 from invoke import Collection, task
-
 from pydatalab.logger import setup_log
 from pydatalab.models.utils import UserRole
 
@@ -47,30 +45,6 @@ def generate_schemas(_):
 dev.add_task(generate_schemas)
 
 
-@task(help={"ver": "New Datalab version to set"})
-def set_version(_, ver=""):
-    """Sets the datalab package version
-
-    Modified from optimade-python-tools.
-
-    """
-    match = re.fullmatch(r"v?([0-9]+\.[0-9]+\.[0-9]+)", ver)
-    if not match or (match and len(match.groups()) != 1):
-        print("Error: Please specify version as 'Major.Minor.Patch' or 'vMajor.Minor.Patch'")
-        sys.exit(1)
-    ver = match.group(1)
-
-    update_file(
-        pathlib.Path(__file__).parent.resolve().joinpath("pydatalab/__init__.py"),
-        (r'__version__ = ".*"', f'__version__ = "{ver}"'),
-    )
-
-    print("Bumped version to {}".format(ver))
-
-
-dev.add_task(set_version)
-
-
 @task
 def create_mongo_indices(_):
     """This task creates the default MongoDB indices defined in the main code."""
@@ -86,7 +60,6 @@ admin.add_task(create_mongo_indices)
 def change_user_role(_, display_name: str, role: UserRole):
     """This task takes a user's name and gives them the desired role."""
     from bson import ObjectId
-
     from pydatalab.mongo import _get_active_mongo_client
 
     try:

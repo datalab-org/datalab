@@ -101,4 +101,4 @@ plugins:
       lang: en
 
 watch:
-  - pydatalab
+  - src
