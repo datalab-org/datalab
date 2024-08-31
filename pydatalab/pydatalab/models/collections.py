@@ -13,10 +13,10 @@ class Collection(Entry, HasOwner, HasBlocks):
     collection_id: HumanReadableIdentifier = Field(None)
     """A short human-readable/usable name for the collection."""
 
-    title: Optional[str]
+    title: Optional[str] = None
     """A descriptive title for the collection."""
 
-    description: Optional[str]
+    description: Optional[str] = None
     """A description of the collection, either in plain-text or a markup language."""
 
     num_items: Optional[int] = Field(None)

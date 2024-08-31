@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 __all__ = ("XRDPattern", "XRDMeasurement")
 
@@ -30,15 +30,13 @@ class XRDProcessing(BaseModel):
     peak_widths: List[float]
 
     baselines: List[List[float]]
-
-    class Config:
-        extra = "allow"
+    model_config = ConfigDict(extra="allow")
 
 
 class XRDMetadata(BaseModel): ...
 
 
 class XRDMeasurement(BaseModel):
-    data: Optional[XRDPattern]
-    processing: Optional[XRDProcessing]
-    metadata: Optional[XRDMetadata]
+    data: Optional[XRDPattern] = None
+    processing: Optional[XRDProcessing] = None
+    metadata: Optional[XRDMetadata] = None

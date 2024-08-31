@@ -6,7 +6,7 @@ from functools import lru_cache
 from typing import Dict, List, Optional, Union
 
 from flask import Blueprint, jsonify, request
-from pydantic import AnyUrl, BaseModel, Field, validator
+from pydantic import AnyUrl, BaseModel, ConfigDict, Field, field_validator
 
 from pydatalab import __version__
 from pydatalab.blocks import BLOCK_TYPES
@@ -20,8 +20,7 @@ INFO = Blueprint("info", __name__)
 
 
 class Attributes(BaseModel):
-    class Config:
-        extra = "allow"
+    model_config = ConfigDict(extra="allow")
 
 
 class Meta(BaseModel):
@@ -35,9 +34,7 @@ class Meta(BaseModel):
 
 class Links(BaseModel):
     self: AnyUrl
-
-    class Config:
-        extra = "allow"
+    model_config = ConfigDict(extra="allow")
 
 
 class Data(BaseModel):
@@ -49,23 +46,24 @@ class Data(BaseModel):
 class JSONAPIResponse(BaseModel):
     data: Union[Data, List[Data]]
     meta: Meta
-    links: Optional[Links]
+    links: Optional[Links] = None
 
 
 class MetaPerson(BaseModel):
-    dislay_name: Optional[str]
+    dislay_name: Optional[str] = None
     contact_email: str
 
 
 class Info(Attributes, Meta):
-    maintainer: Optional[MetaPerson]
-    issue_tracker: Optional[AnyUrl]
-    homepage: Optional[AnyUrl]
-    source_repository: Optional[AnyUrl]
+    maintainer: Optional[MetaPerson] = None
+    issue_tracker: Optional[AnyUrl] = None
+    homepage: Optional[AnyUrl] = None
+    source_repository: Optional[AnyUrl] = None
     identifier_prefix: str
     features: FeatureFlags = FEATURE_FLAGS
 
-    @validator("maintainer")
+    @field_validator("maintainer")
+    @classmethod
     def strip_maintainer_fields(cls, v):
         if isinstance(v, Person):
             return MetaPerson(contact_email=v.contact_email, display_name=v.display_name)

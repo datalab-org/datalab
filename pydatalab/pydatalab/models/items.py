@@ -30,21 +30,23 @@ class Item(Entry, HasOwner, HasRevisionControl, IsCollectable, HasBlocks, abc.AB
     item_id: HumanReadableIdentifier
     """A locally unique, human-readable identifier for the entry. This ID is mutable."""
 
-    description: Optional[str]
+    description: Optional[str] = None
     """A description of the item, either in plain-text or a markup language."""
 
-    date: Optional[IsoformatDateTime]
+    date: Optional[IsoformatDateTime] = None
     """A relevant 'creation' timestamp for the entry (e.g., purchase date, synthesis date)."""
 
-    name: Optional[str]
+    name: Optional[str] = None
     """An optional human-readable/usable name for the entry."""
 
-    files: Optional[List[File]]
+    files: Optional[List[File]] = None
     """Any files attached to this sample."""
 
     file_ObjectIds: List[PyObjectId] = Field([])
     """Links to object IDs of files stored within the database."""
 
+    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
     @validator("refcode", pre=True, always=True)
     def refcode_validator(cls, v):
         """Generate a refcode if not provided."""
