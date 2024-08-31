@@ -1,9 +1,11 @@
 [project]
 name = "datalab-server"
-readme = "README.md"
 keywords = []
 license = { text = "MIT" }
-authors = [{ name = "Matthew Evans", email = "matthew@ml-evs.science" }, { name = "Joshua Bocarsly" }]
+authors = [
+    { name = "Matthew Evans", email = "matthew@ml-evs.science" },
+    { name = "Joshua Bocarsly" },
+]
 dynamic = ["version"]
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -27,19 +29,14 @@ dependencies = [
 ]
 
 [project.urls]
-homepage = "https://github.com/the-grey-group/datalab"
-repository = "https://github.com/the-grey-group/datalab"
-documentation = "https://the-datalab.readthedocs.io"
-changelog = "https://github.com/the-grey-group/datalab/releases"
+homepage = "https://github.com/datalab-org/datalab"
+repository = "https://github.com/datalab-org/datalab"
+documentation = "https://docs.datalab-org.io"
+changelog = "https://github.com/datalab-org/datalab/releases"
 
 [build-system]
 requires = ["setuptools >= 62", "setuptools_scm ~= 8.1", "wheel"]
 build-backend = "setuptools.build_meta"
-
-[tool.setuptools.packages.find]
-where = ["pydatalab"]
-include = ["pydatalab"]
-namespaces = false
 
 [tool.setuptools_scm]
 root = ".."
@@ -55,7 +52,7 @@ dev = [
     "mkdocs ~= 1.6",
     "mkdocs-material ~= 9.5",
     "mkdocstrings[python-legacy] ~= 0.25",
-    "mkdocs-awesome-pages-plugin ~= 2.9"
+    "mkdocs-awesome-pages-plugin ~= 2.9",
 ]
 
 server = [
@@ -96,7 +93,7 @@ chat = [
     "langchain-openai ~= 0.1",
     "langchain-anthropic ~= 0.1",
     "tiktoken ~= 0.7",
-    "transformers ~= 4.42"
+    "transformers ~= 4.42",
 ]
 
 
@@ -119,3 +116,6 @@ unfixable = []
 per-file-ignores = {}
 # Allow unused variables when underscore-prefixed.
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.lint.isort]
+known-first-party = ["pydatalab"]

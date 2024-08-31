@@ -29,7 +29,7 @@ repos:
       - id: mixed-line-ending
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: "v0.5.0"
+    rev: v0.6.3
     hooks:
       - id: ruff
         args: [--fix]
@@ -57,12 +57,12 @@ repos:
         args: [--fix]
 
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.16.0
+    rev: v3.17.0
     hooks:
       - id: pyupgrade
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.10.1
+    rev: v1.11.2
     hooks:
       - id: mypy
         additional_dependencies:
@@ -73,7 +73,7 @@ repos:
     hooks:
       - id: generate-schemas
         name: Regenerate item model JSONSchemas
-        files: "^pydatalab/pydatalab/models/.*.$"
+        files: "^pydatalab/src/pydatalab/models/.*.$"
         description: Check if the current code changes have enacted changes to the resulting JSONSchemas
         entry: invoke -r pydatalab dev.generate-schemas
         pass_filenames: false

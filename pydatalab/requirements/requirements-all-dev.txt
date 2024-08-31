@@ -364,7 +364,7 @@ pymdown-extensions==10.11.2
     # via
     #   mkdocs-material
     #   mkdocstrings
-pymongo==4.10.0
+pymongo==4.10.1
     # via
     #   datalab-server (pyproject.toml)
     #   flask-pymongo

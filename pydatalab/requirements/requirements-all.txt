@@ -271,7 +271,7 @@ pydantic==1.10.18
     #   openai
 pyjwt==2.9.0
     # via datalab-server (pyproject.toml)
-pymongo==4.10.0
+pymongo==4.10.1
     # via
     #   datalab-server (pyproject.toml)
     #   flask-pymongo
