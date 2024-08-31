@@ -1,4 +1,4 @@
-FROM mongo:7.0-jammy
+FROM mongo:4.4-focal
 
 COPY .docker/mongod.conf /etc/mongod.conf
 EXPOSE 27017
