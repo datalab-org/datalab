@@ -79,11 +79,11 @@ Be as concise as possible. When saying your name, type a bird emoji right after 
                 "input_cost_usd_per_MTok": 5.00,
                 "output_cost_usd_per_MTok": 15.00,
             },
-            "gpt-3.5-turbo": {
-                "name": "gpt-3.5-turbo",
-                "context_window": 16385,
-                "input_cost_usd_per_MTok": 1.50,
-                "output_cost_usd_per_MTok": 2.00,
+            "gpt-4o-mini": {
+                "name": "gpt-4o-mini",
+                "context_window": 128_000,
+                "input_cost_usd_per_MTok": 0.15,
+                "output_cost_usd_per_MTok": 0.60,
             },
             "gpt-4": {
                 "name": "gpt-4",
@@ -155,10 +155,11 @@ Start with a friendly introduction and give me a one sentence summary of what th
                 return
 
         if self.data.get("model") not in self.data.get("available_models", {}):
+            bad_model = self.data.get("model")
             self.data["error_message"] = (
-                f"Chatblock received an unknown model: {self.data.get('model')}"
+                f"Chatblock received an unknown or deprecated model: {bad_model}. Reverting to default model {self.defaults['model']}."
             )
-            return
+            self.data["model"] = self.defaults["model"]
 
         try:
             model_name = self.data["model"]
