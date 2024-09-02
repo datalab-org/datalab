@@ -105,14 +105,14 @@ To make use of this file:
     ```shell
     cd pydatalab
     source .venv/bin/activate
-    flask --app 'pydatalab:main.create_app()' --reload run
+    flask --app 'pydatalab:main' run --reload
     ```
 
 === "Launching with `pipenv`"
 
     ```shell
     cd pydatalab
-    pipenv run flask --app 'pydatalab:main.create_app()' --reload run
+    pipenv run flask --app 'pydatalab:main' run --reload
     ```
 
 The server should now be accessible at [http://localhost:5001](http://localhost:5001).
