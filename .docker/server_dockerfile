@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:experimental
+# syntax=docker/dockerfile:1
 FROM python:3.10 as base
 SHELL ["/bin/bash", "--login", "-c"]
 
@@ -58,4 +58,4 @@ RUN --mount=type=bind,target=/.git,source=./.git ["uv", "pip", "install", "--pyt
 
 CMD ["/bin/bash", "-c", "/opt/.venv/bin/python -m gunicorn --preload -w ${WEB_CONCURRENCY} --error-logfile /logs/pydatalab_error.log --access-logfile - -b 0.0.0.0:${PORT} 'pydatalab.main:create_app()'"]
 
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 CMD curl --fail http://localhost:${PORT}/healthcheck/is_ready || exit 1
+HEALTHCHECK --interval=30s --timeout=30s --start-interval=5s --start-period=30s --retries=3 CMD curl --fail http://localhost:${PORT}/healthcheck/is_ready || exit 1
