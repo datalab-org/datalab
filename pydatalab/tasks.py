@@ -6,6 +6,7 @@ import time
 from typing import Tuple
 
 from invoke import Collection, task
+
 from pydatalab.logger import setup_log
 from pydatalab.models.utils import UserRole
 
@@ -60,6 +61,7 @@ admin.add_task(create_mongo_indices)
 def change_user_role(_, display_name: str, role: UserRole):
     """This task takes a user's name and gives them the desired role."""
     from bson import ObjectId
+
     from pydatalab.mongo import _get_active_mongo_client
 
     try:
