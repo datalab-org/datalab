@@ -46,17 +46,19 @@ class TypedRelationship(BaseModel):
     type: KnownType = Field(description="The type of the related resource.")
 
     immutable_id: Optional[PyObjectId] = Field(
-        description="The immutable ID of the entry that is related to this entry."
+        None, description="The immutable ID of the entry that is related to this entry."
     )
 
     item_id: Optional[HumanReadableIdentifier] = Field(
-        description="The ID of the entry that is related to this entry."
+        None, description="The ID of the entry that is related to this entry."
     )
 
     refcode: Optional[Refcode] = Field(
-        description="The refcode of the entry that is related to this entry."
+        None, description="The refcode of the entry that is related to this entry."
     )
 
+    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
     @validator("relation")
     def check_for_description(cls, v, values):
         if v == RelationshipType.OTHER and values.get("description") is None:

@@ -7,8 +7,6 @@ from pydatalab.models.entries import EntryReference
 from pydatalab.models.items import Item
 from pydatalab.models.utils import Constituent
 
-# from pydatalab.logger import LOGGER
-
 
 class CellComponent(Constituent): ...
 
@@ -31,25 +29,30 @@ class Cell(Item):
     type: str = Field("cells", const="cells", pattern="^cells$")
 
     cell_format: Optional[CellFormat] = Field(
+        None,
         description="The form factor of the cell, e.g., coin, pouch, in situ or otherwise.",
     )
 
     cell_format_description: Optional[str] = Field(
-        description="Additional human-readable description of the cell form factor, e.g., 18650, AMPIX, CAMPIX"
+        None,
+        description="Additional human-readable description of the cell form factor, e.g., 18650, AMPIX, CAMPIX",
     )
 
-    cell_preparation_description: Optional[str] = Field()
+    cell_preparation_description: Optional[str] = Field(None)
 
     characteristic_mass: Optional[float] = Field(
-        description="The characteristic mass of the cell in milligrams. Can be used to normalize capacities."
+        None,
+        description="The characteristic mass of the cell in milligrams. Can be used to normalize capacities.",
     )
 
     characteristic_chemical_formula: Optional[str] = Field(
-        description="The chemical formula of the active material. Can be used to calculated molar mass in g/mol for normalizing capacities."
+        None,
+        description="The chemical formula of the active material. Can be used to calculated molar mass in g/mol for normalizing capacities.",
     )
 
     characteristic_molar_mass: Optional[float] = Field(
-        description="The molar mass of the active material, in g/mol. Will be inferred from the chemical formula, or can be supplied if it cannot be supplied"
+        None,
+        description="The molar mass of the active material, in g/mol. Will be inferred from the chemical formula, or can be supplied if it cannot be supplied",
     )
 
     positive_electrode: List[CellComponent] = Field([])
@@ -60,6 +63,8 @@ class Cell(Item):
 
     active_ion_charge: float = Field(1)
 
+    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
     @validator("characteristic_molar_mass", always=True, pre=True)
     def set_molar_mass(cls, v, values):
         from periodictable import formula

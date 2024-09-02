@@ -11,13 +11,13 @@ class Sample(Item):
 
     type: str = Field("samples", const="samples", pattern="^samples$")
 
-    chemform: Optional[str] = Field(example=["Na3P", "LiNiO2@C"])
+    chemform: Optional[str] = Field(None, examples=[["Na3P", "LiNiO2@C"]])
     """A string representation of the chemical formula or composition associated with this sample."""
 
     synthesis_constituents: List[Constituent] = Field([])
     """A list of references to constituent materials giving the amount and relevant inlined details of consituent items."""
 
-    synthesis_description: Optional[str]
+    synthesis_description: Optional[str] = None
     """Free-text details of the procedure applied to synthesise the sample"""
 
     @root_validator
