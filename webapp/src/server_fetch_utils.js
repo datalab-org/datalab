@@ -735,6 +735,7 @@ export async function getBlocksInfos() {
     });
 }
 
+<<<<<<< HEAD
 export function addItemsToCollection(collection_id, refcodes) {
   return fetch_post(`${API_URL}/collections/${collection_id}`, {
     data: { refcodes },
@@ -780,6 +781,17 @@ export async function getSchema(type) {
     })
     .catch(function (error) {
       alert(`Error to get ${type} schema from API: ${error}`);
+      throw error;
+    });
+
+export function getItemStatusOptions() {
+  return fetch_get(`${API_URL}/item_status_options`)
+    .then(function (response_json) {
+      return response_json;
+    })
+    .catch((error) => {
+      console.error("Error when fetching item status options");
+      console.error(error);
       throw error;
     });
 }

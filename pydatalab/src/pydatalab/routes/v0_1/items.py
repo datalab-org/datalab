@@ -15,7 +15,7 @@ from pydatalab.models import ITEM_MODELS
 from pydatalab.models.items import Item
 from pydatalab.models.people import Person
 from pydatalab.models.relationships import RelationshipType
-from pydatalab.models.utils import generate_unique_refcode
+from pydatalab.models.utils import generate_unique_refcode, ItemStatus
 from pydatalab.mongo import ITEMS_FTS_FIELDS, flask_mongo
 from pydatalab.permissions import PUBLIC_USER_ID, active_users_or_get_only, get_default_permissions
 
@@ -1037,3 +1037,9 @@ def search_users():
     return jsonify(
         {"status": "success", "users": list(json.loads(Person(**d).json()) for d in cursor)}
     ), 200
+
+
+@ITEMS.route("/item_status_options", methods=["GET"])
+def get_item_status_options():
+    status_options = [status.value for status in ItemStatus]
+    return jsonify(status_options)
