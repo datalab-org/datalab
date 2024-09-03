@@ -2,7 +2,7 @@ from bson import ObjectId
 from flask import Blueprint, jsonify, request
 from flask_login import current_user
 
-from pydatalab.config import CONFIG
+from pydatalab.config import CONFIG, BackupHealthCheck
 from pydatalab.mongo import flask_mongo
 from pydatalab.permissions import admin_only, get_default_permissions
 
@@ -93,3 +93,22 @@ def save_role(user_id):
         )
 
     return (jsonify({"status": "success"}), 200)
+
+
+@ADMIN.route("/health/backups")
+def check_backup_health():
+    """Loop over all backup strategies and provide information on their health,
+    and provide download links.
+
+    """
+    results = {}
+
+    if not CONFIG.BACKUP_STRATEGIES:
+        return jsonify({"status": "success", "message": "No backup strategies configured."}), 204
+
+    for strat_name, strat in CONFIG.BACKUP_STRATEGIES.items():
+        results[strat_name] = BackupHealthCheck(strat.healthcheck())
+
+    response = {"status": "success", "data": results}
+
+    return jsonify(response), 200

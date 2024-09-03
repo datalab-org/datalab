@@ -5,7 +5,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-from pydatalab.config import CONFIG, BackupStrategy
+from pydatalab.config import CONFIG, BackupHealth, BackupHealthCheck, BackupStrategy
 from pydatalab.logger import LOGGER
 
 
@@ -133,9 +133,7 @@ def create_backup(strategy: BackupStrategy) -> bool:
 
     """
 
-    snapshot_name = (
-        f"datalab-snapshot-{datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.tar.gz"
-    )
+    snapshot_name = f"{strategy.backup_filename_prefix}-{datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.tar.gz"
 
     if strategy.hostname is None:
         snapshot_path = strategy.location / snapshot_name
@@ -146,7 +144,9 @@ def create_backup(strategy: BackupStrategy) -> bool:
         take_snapshot(snapshot_path)
 
         existing_snapshots = [
-            str(s) for s in strategy.location.iterdir() if s.name.startswith("datalab-snapshot-")
+            str(s)
+            for s in strategy.location.iterdir()
+            if s.name.startswith(strategy.backup_filename_prefix)
         ]
 
         retention = strategy.retention or 100
@@ -193,7 +193,7 @@ def create_backup(strategy: BackupStrategy) -> bool:
                 existing_snapshots = [
                     s
                     for s in sftp.listdir(str(strategy.location))
-                    if s.startswith("datalab-snapshot-")
+                    if s.startswith(strategy.backup_filename_prefix)
                 ]
                 if len(existing_snapshots) > strategy.retention:
                     # Sort into reverse order then remove from the end of the list
@@ -204,3 +204,41 @@ def create_backup(strategy: BackupStrategy) -> bool:
             sftp.put(snapshot_path, str(strategy.location / snapshot_name), confirm=True)
 
     return True
+
+
+def backup_healthcheck(strategy: BackupStrategy) -> BackupHealthCheck:
+    """Check the health of the backup strategy.
+
+    Loop over the location where backups have been written and assess
+    their health and the health of the disk.
+
+    Assumes any folders gz files in the backup directory are backups for
+    the given strategy.
+
+    Returns:
+        A dictionary used to create the backup healthcheck response.
+
+    """
+
+    backup_files = strategy.location.glob(f"{strategy.backup_filename_prefix}-*.gz")
+    if not backup_files:
+        raise RuntimeError(f"No backups found with strategy: {strategy}")
+
+    backups: list[BackupHealth] = []
+    for file in backup_files:
+        backup_timestamp = datetime.datetime.strptime(
+            file.name.split(strategy.backup_filename_prefix + "-")[1], "%Y-%m-%d-%H-%M-%S"
+        )
+        backup_health = BackupHealth(
+            location=str(file.absolute()),
+            size_gb=file.stat().st_size / 1e9,
+            timestamp=backup_timestamp,
+        )
+
+        backups.append(backup_health)
+
+    return BackupHealthCheck(
+        status="success",
+        message=f"Found {len(backups)} backups.",
+        backups=backups,
+    )

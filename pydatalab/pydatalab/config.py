@@ -1,3 +1,4 @@
+import datetime
 import hashlib
 import json
 import logging
@@ -65,6 +66,25 @@ class DeploymentMetadata(BaseModel):
         extra = "allow"
 
 
+class BackupHealth(BaseModel):
+    location: str | None
+    stats: dict
+    size_gb: float
+    timestamp: datetime.datetime
+
+
+class BackupHealthCheck(BaseModel):
+    status: str
+    message: str
+    trigger_url: str
+    last_backup_timestamp: datetime.datetime
+    last_backup_size_gb: float
+    used_space_gb: float
+    num_backups: int
+    free_space_gb: float
+    backups: list[BackupHealth]
+
+
 class BackupStrategy(BaseModel):
     """This model describes the config of a particular backup strategy."""
 
@@ -72,6 +92,12 @@ class BackupStrategy(BaseModel):
         True,
         description="Whether this backup strategy is active; i.e., whether it is actually used. All strategies will be disabled in testing scenarios.",
     )
+
+    backup_filename_prefix: str = Field(
+        "datalab-snapshot",
+        description="The prefix to use for the backup filenames. The full filename will be the prefix followed by a datestamp and `.gz`.",
+    )
+
     hostname: str | None = Field(
         description="The hostname of the SSH-accessible server on which to store the backup (`None` indicates local backups)."
     )
