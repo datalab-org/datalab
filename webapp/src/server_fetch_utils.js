@@ -795,3 +795,15 @@ export function getItemStatusOptions() {
       throw error;
     });
 }
+
+export function getEquipmentStatusOptions() {
+  return fetch_get(`${API_URL}/equipment_status_options`)
+    .then(function (response_json) {
+      return response_json;
+    })
+    .catch((error) => {
+      console.error("Error when fetching equipment status options");
+      console.error(error);
+      throw error;
+    });
+}
