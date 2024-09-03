@@ -32,8 +32,16 @@
           <div class="form-group col-md-3 col-sm-3 col-6 pb-3">
             <ToggleableCreatorsFormGroup v-model="ItemCreators" :refcode="Refcode" />
           </div>
-          <div class="col-md-6 col-sm-7 pr-2">
+          <div class="form-group col-md-3 col-sm-3 col-6 pb-3">
             <ToggleableCollectionFormGroup v-model="Collections" />
+          </div>
+          <div class="form-group col-md-3 col-sm-3 col-6 pb-3">
+            <label for="samp-status">Status</label>
+            <select id="samp-status" v-model="Status" class="form-control">
+              <option v-for="option in statusOptions" :key="option" :value="option">
+                {{ formatStatusOption(option) }}
+              </option>
+            </select>
           </div>
         </div>
         <div class="form-row">
@@ -56,6 +64,7 @@
 
 <script>
 import { createComputedSetterForItemField } from "@/field_utils.js";
+import { getItemStatusOptions } from "@/server_fetch_utils.js";
 import ChemFormulaInput from "@/components/ChemFormulaInput";
 import FormattedRefcode from "@/components/FormattedRefcode";
 import ToggleableCollectionFormGroup from "@/components/ToggleableCollectionFormGroup";
@@ -90,6 +99,7 @@ export default {
         { title: "Table of Contents", targetID: "table-of-contents" },
         { title: "Synthesis Information", targetID: "synthesis-information" },
       ],
+      statusOptions: [],
     };
   },
   computed: {
@@ -101,6 +111,24 @@ export default {
     DateCreated: createComputedSetterForItemField("date"),
     ItemCreators: createComputedSetterForItemField("creators"),
     Collections: createComputedSetterForItemField("collections"),
+    Status: createComputedSetterForItemField("status"),
+  },
+  mounted() {
+    this.fetchStatusOptions();
+  },
+  methods: {
+    fetchStatusOptions() {
+      getItemStatusOptions()
+        .then((data) => {
+          this.statusOptions = data;
+        })
+        .catch((error) => {
+          console.error("Failed to load status options:", error);
+        });
+    },
+    formatStatusOption(option) {
+      return option.charAt(0).toUpperCase() + option.slice(1);
+    },
   },
 };
 </script>
