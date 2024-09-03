@@ -15,6 +15,7 @@ from pydatalab.models import ITEM_MODELS
 from pydatalab.models.items import Item
 from pydatalab.models.relationships import RelationshipType
 from pydatalab.models.utils import generate_unique_refcode
+from pydatalab.models.utils import ItemStatus
 from pydatalab.mongo import flask_mongo
 from pydatalab.permissions import PUBLIC_USER_ID, active_users_or_get_only, get_default_permissions
 
@@ -41,11 +42,13 @@ def reserialize_blocks(display_order: List[str], blocks_obj: Dict[str, Dict]) ->
         try:
             block_data = blocks_obj[block_id]
         except KeyError:
-            LOGGER.warning(f"block_id {block_id} found in display order but not in blocks_obj")
+            LOGGER.warning(
+                f"block_id {block_id} found in display order but not in blocks_obj")
             continue
         blocktype = block_data["blocktype"]
         blocks_obj[block_id] = (
-            BLOCK_TYPES.get(blocktype, BLOCK_TYPES["notsupported"]).from_db(block_data).to_web()
+            BLOCK_TYPES.get(blocktype, BLOCK_TYPES["notsupported"]).from_db(
+                block_data).to_web()
         )
 
     return blocks_obj
@@ -269,7 +272,8 @@ def _check_collections(sample_dict: dict) -> list[dict[str, str]]:
             query.update(c)
             if "immutable_id" in c:
                 query["_id"] = ObjectId(query.pop("immutable_id"))
-            result = flask_mongo.db.collections.find_one({**query, **get_default_permissions()})
+            result = flask_mongo.db.collections.find_one(
+                {**query, **get_default_permissions()})
             if not result:
                 raise ValueError(f"No collection found matching request: {c}")
             sample_dict["collections"][ind] = {"immutable_id": result["_id"]}
@@ -300,7 +304,8 @@ def search_items():
     nresults = request.args.get("nresults", default=100, type=int)
     types = request.args.get("types", default=None)
     if isinstance(types, str):
-        types = types.split(",")  # should figure out how to parse as list automatically
+        # should figure out how to parse as list automatically
+        types = types.split(",")
 
     match_obj = {
         "$text": {"$search": query},
@@ -347,9 +352,11 @@ def _create_sample(
         )
 
     if copy_from_item_id:
-        copied_doc = flask_mongo.db.items.find_one({"item_id": copy_from_item_id})
+        copied_doc = flask_mongo.db.items.find_one(
+            {"item_id": copy_from_item_id})
 
-        LOGGER.debug(f"Copying from pre-existing item {copy_from_item_id} with data:\n{copied_doc}")
+        LOGGER.debug(
+            f"Copying from pre-existing item {copy_from_item_id} with data:\n{copied_doc}")
         if not copied_doc:
             return (
                 dict(
@@ -428,10 +435,10 @@ def _create_sample(
         raise RuntimeError("Invalid type")
     model = ITEM_MODELS[type_]
 
-    ## the following code was used previously to explicitely check schema properties.
-    ## it doesn't seem to be necessary now, with extra = "ignore" turned on in the pydantic models,
-    ## and it breaks in instances where the models use aliases (e.g., in the starting_material model)
-    ## so we are taking it out now, but leaving this comment in case it needs to be reverted.
+    # the following code was used previously to explicitely check schema properties.
+    # it doesn't seem to be necessary now, with extra = "ignore" turned on in the pydantic models,
+    # and it breaks in instances where the models use aliases (e.g., in the starting_material model)
+    # so we are taking it out now, but leaving this comment in case it needs to be reverted.
     # schema = model.schema()
     # new_sample = {k: sample_dict[k] for k in schema["properties"] if k in sample_dict}
     new_sample = sample_dict
@@ -497,7 +504,8 @@ def _create_sample(
     # via joins for a specific query.
     # TODO: encode this at the model level, via custom schema properties or hard-coded `.store()` methods
     # the `Entry` model.
-    result = flask_mongo.db.items.insert_one(data_model.dict(exclude={"creators", "collections"}))
+    result = flask_mongo.db.items.insert_one(
+        data_model.dict(exclude={"creators", "collections"}))
     if not result.acknowledged:
         return (
             dict(
@@ -553,7 +561,8 @@ def create_sample():
         response, http_code = _create_sample(
             sample_dict=request_json["new_sample_data"],
             copy_from_item_id=request_json.get("copy_from_item_id"),
-            generate_id_automatically=request_json.get("generate_id_automatically", False),
+            generate_id_automatically=request_json.get(
+                "generate_id_automatically", False),
         )
     else:
         response, http_code = _create_sample(request_json)
@@ -644,7 +653,8 @@ def get_item_data(
            call its render function).
 
     """
-    redirect_to_ui = bool(request.args.get("redirect-to-ui", default=False, type=json.loads))
+    redirect_to_ui = bool(request.args.get(
+        "redirect-to-ui", default=False, type=json.loads))
     if refcode and redirect_to_ui and CONFIG.APP_URL:
         return redirect(f"{CONFIG.APP_URL}/items/{refcode}", code=307)
 
@@ -814,7 +824,8 @@ def save_item():
     for block_id, block_data in updated_data.get("blocks_obj", {}).items():
         blocktype = block_data["blocktype"]
 
-        block = BLOCK_TYPES.get(blocktype, BLOCK_TYPES["notsupported"]).from_web(block_data)
+        block = BLOCK_TYPES.get(
+            blocktype, BLOCK_TYPES["notsupported"]).from_web(block_data)
 
         updated_data["blocks_obj"][block_id] = block.to_db()
 
@@ -922,3 +933,9 @@ def search_users():
     )
 
     return jsonify({"status": "success", "users": list(cursor)}), 200
+
+
+@ITEMS.route('/item_status_options', methods=['GET'])
+def get_item_status_options():
+    status_options = [status.value for status in ItemStatus]
+    return jsonify(status_options)

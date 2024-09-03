@@ -704,3 +704,15 @@ export function getBlocksInfos() {
       throw error;
     });
 }
+
+export function getItemStatusOptions() {
+  return fetch_get(`${API_URL}/item_status_options`)
+    .then(function (response_json) {
+      return response_json;
+    })
+    .catch((error) => {
+      console.error("Error when fetching item status options");
+      console.error(error);
+      throw error;
+    });
+}
