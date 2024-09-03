@@ -5,6 +5,7 @@ import MediaBlock from "@/components/datablocks/MediaBlock";
 import XRDBlock from "@/components/datablocks/XRDBlock";
 import ChatBlock from "@/components/datablocks/ChatBlock";
 import RamanBlock from "@/components/datablocks/RamanBlock";
+import RamanMapBlock from "@/components/datablocks/RamanMapBlock";
 import CycleBlock from "@/components/datablocks/CycleBlock";
 import NMRBlock from "@/components/datablocks/NMRBlock";
 import EISBlock from "@/components/datablocks/EISBlock";
