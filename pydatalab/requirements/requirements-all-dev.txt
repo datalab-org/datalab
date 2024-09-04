@@ -106,7 +106,7 @@ flask==3.0.3
     #   flask-pymongo
 flask-compress==1.15
     # via datalab-server (pyproject.toml)
-flask-cors==4.0.1
+flask-cors==5.0.0
     # via datalab-server (pyproject.toml)
 flask-dance==7.1.0
     # via datalab-server (pyproject.toml)
