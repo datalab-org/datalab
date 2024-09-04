@@ -7,6 +7,7 @@
       'user-unverified': isUnverified,
       'admin-unverified': hasUnverifiedUser,
     }"
+    tabindex="0"
     @mouseenter="delayedShowTooltip"
     @mouseleave="hideTooltip"
     @focus="delayedShowTooltip"
