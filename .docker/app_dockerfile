@@ -31,6 +31,7 @@ ARG VUE_APP_LOGO_URL=magic-logo-url
 ARG VUE_APP_HOMEPAGE_URL=magic-homepage-url
 ARG VUE_APP_EDITABLE_INVENTORY=magic-setting
 ARG VUE_APP_WEBSITE_TITLE=magic-title
+ARG VUE_APP_QR_CODE_RESOLVER_URL=magic-qr-code-resolver-url
 
 COPY webapp ./
 RUN /node_modules/.bin/vue-cli-service build
