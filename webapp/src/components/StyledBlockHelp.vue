@@ -2,6 +2,7 @@
   <a
     ref="anchor"
     class="dropdown-item"
+    tabindex="0"
     @mouseenter="delayedShowTooltip"
     @mouseleave="hideTooltip"
     @focus="delayedShowTooltip"
