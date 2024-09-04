@@ -12,6 +12,8 @@ webapp/cypress/videos
 #starting material files
 greyGroup_chemInventory*
 
+pydatalab/Pipfile
+
 
 *.sublime-workspace
 *.sublime-project
