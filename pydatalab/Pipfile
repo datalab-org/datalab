@@ -3,11 +3,5 @@ name = "pypi"
 url = "https://pypi.org/simple"
 verify_ssl = true
 
-[packages]
-datalab-server = {path = ".", extras = ["all"]}
-
-[dev-packages]
-datalab-server = {path = ".", extras = ["dev"]}
-
 [requires]
 python_version = "3"
