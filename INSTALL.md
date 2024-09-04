@@ -91,7 +91,7 @@ To make use of this file:
     - Detailed instructions for installing `pipenv`, `pip` and Python itself can be found on the [`pipenv` website](https://pipenv.pypa.io/en/latest/install/#installing-pipenv).
     - We recommend you install `pipenv` from PyPI (with `pip install pipenv` or `pip install --user pipenv`) for the Python distribution of your choice (in a virtual environment or otherwise). `pipenv` will be used to create its own virtual environment for installation of the `pydatalab` package.
 1. Install the `pydatalab` package.
-    - Navigate to the `pydatalab` folder and run `pipenv install --dev`.
+    - Navigate to the `pydatalab` folder and run `pipenv sync --dev`.
         - The default Python executable on your machine must be 3.10+, otherwise this must be specified explicitly at this point).
         - This will create a `pipenv` environment for `pydatalab` and all of its dependencies that is registered within *this folder* only.
         - You can remove this environment to start fresh at any time by running `pipenv --rm` from within this directory.
