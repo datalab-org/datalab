@@ -1,6 +1,7 @@
 <template>
   <a
     ref="anchor"
+    tabindex="0"
     @mouseenter="delayedShowTooltip"
     @mouseleave="hideTooltip"
     @focus="delayedShowTooltip"
