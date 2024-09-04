@@ -238,10 +238,10 @@ Start with a friendly introduction and give me a one sentence summary of what th
         item_filenames = {
             str(file["immutable_id"]): file["name"] for file in item_info.get("files", [])
         }
-        for block in item_info.get("blocks_obj", {}).values():
-            block.pop("bokeh_plot_data", None)
 
-            block_fields_to_remove = ["item_id", "block_id"]
+        big_data_keys = ["bokeh_plot_data", "b64_encoded_image"]
+        for block in item_info.get("blocks_obj", {}).values():
+            block_fields_to_remove = ["item_id", "block_id", "collection_id"] + big_data_keys
             [block.pop(field, None) for field in block_fields_to_remove]
 
             # nmr block fields to remove (need a more general way to do this)
