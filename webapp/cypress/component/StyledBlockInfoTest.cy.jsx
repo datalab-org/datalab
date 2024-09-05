@@ -1,6 +1,6 @@
 import StyledBlockInfo from "@/components/StyledBlockInfo.vue";
 
-describe("StyledBlockInfo Component", () => {
+describe("StyledBlockInfo", () => {
   const blockInfo = {
     attributes: {
       name: "Example Block",
