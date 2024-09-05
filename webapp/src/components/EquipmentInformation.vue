@@ -119,15 +119,15 @@ export default {
     getStatusBadgeClass(status) {
       switch (status) {
         case "working":
-          return "badge badge-success";
+          return "badge-success";
         case "broken":
-          return "badge badge-warning";
+          return "badge-warning";
         case "being_fixed":
-          return "badge badge-info";
+          return "badge-info";
         case "defunct":
-          return "badge badge-dark";
+          return "badge-dark";
         case "not_being_fixed":
-          return "badge badge-danger";
+          return "badge-danger";
       }
     },
     formatStatus(status) {
