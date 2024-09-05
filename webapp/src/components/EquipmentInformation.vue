@@ -54,13 +54,10 @@
         <label for="equip-contact" class="mr-2">Contact information</label>
         <input id="equip-contact" v-model="Contact" class="form-control" />
       </div>
-      <div class="col-md-4 pb-3">
-        <label for="samp-status" class="mr-2">Status</label>
-        <select id="samp-status" v-model="Status" class="form-control">
-          <option v-for="option in statusOptions" :key="option" :value="option">
-            {{ formatStatusOption(option) }}
-          </option>
-        </select>
+      <div class="col-md-4 pb-3 d-flex justify-content-center align-items-center">
+        <span :class="getStatusBadgeClass(Status)" class="badge text-uppercase">
+          {{ formatStatus(Status) }}
+        </span>
       </div>
     </div>
     <label id="equip-description-label" class="mr-2">Description</label>
@@ -76,7 +73,6 @@
 
 <script>
 import { createComputedSetterForItemField } from "@/field_utils.js";
-import { getEquipmentStatusOptions } from "@/server_fetch_utils.js";
 import TinyMceInline from "@/components/TinyMceInline";
 import TableOfContents from "@/components/TableOfContents";
 import CollectionList from "@/components/CollectionList";
@@ -100,7 +96,6 @@ export default {
         { title: "Equipment Information", targetID: "equipment-information" },
         { title: "Table of Contents", targetID: "table-of-contents" },
       ],
-      statusOptions: [],
     };
   },
   computed: {
@@ -119,21 +114,24 @@ export default {
     Contact: createComputedSetterForItemField("contact"),
     Status: createComputedSetterForItemField("status"),
   },
-  mounted() {
-    this.fetchStatusOptions();
-  },
+
   methods: {
-    fetchStatusOptions() {
-      getEquipmentStatusOptions()
-        .then((data) => {
-          this.statusOptions = data;
-        })
-        .catch((error) => {
-          console.error("Failed to load status options:", error);
-        });
+    getStatusBadgeClass(status) {
+      switch (status) {
+        case "working":
+          return "badge badge-success";
+        case "broken":
+          return "badge badge-warning";
+        case "being_fixed":
+          return "badge badge-info";
+        case "defunct":
+          return "badge badge-dark";
+        case "not_being_fixed":
+          return "badge badge-danger";
+      }
     },
-    formatStatusOption(option) {
-      return option.charAt(0).toUpperCase() + option.slice(1);
+    formatStatus(status) {
+      return status.split("_").join(" ");
     },
   },
 };
@@ -143,5 +141,8 @@ export default {
 label {
   font-weight: 500;
   color: #298651;
+}
+.badge {
+  font-size: 1em;
 }
 </style>
