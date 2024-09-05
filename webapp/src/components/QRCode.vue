@@ -23,8 +23,8 @@
       {{ refcode }}
     </div>
   </div>
-  <div class="alert alert-info">
-    QR_CODE_RESOLVER_URL is not set for this deployment.<br />
+  <div v-if="!federatedQR" class="alert alert-info">
+    QR_CODE_RESOLVER_URL is not set to the federation resolver URL for this deployment.<br />
     Links embedded within QR codes generated here will only work if this <i>datalab</i> instance
     remains at the same URL.<br /><br />
 
@@ -58,6 +58,9 @@ export default {
     };
   },
   computed: {
+    federatedQR() {
+      return FEDERATION_QR_CODE_RESOLVER_URL == QR_CODE_RESOLVER_URL;
+    },
     QRCodeUrl() {
       // If the QR_CODE_RESOLVER_URL is not set, use the API_URL
       // with the redirect-to-ui option
