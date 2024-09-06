@@ -794,6 +794,8 @@ def get_item_data(
 def save_item():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
 
+    warnings = []
+
     item_id = request_json["item_id"]
     updated_data = request_json["data"]
 
@@ -840,13 +842,8 @@ def save_item():
         try:
             updated_data["collections"] = _check_collections(updated_data)
         except ValueError as exc:
-            return (
-                dict(
-                    status="error",
-                    message=f"Cannot update {item_id!r} with missing collections {updated_data['collections']!r}: {exc}",
-                    item_id=item_id,
-                ),
-                401,
+            warnings.append(
+                f"Cannot update {item_id!r} with missing collections {updated_data['collections']!r}: {exc}"
             )
 
     item_type = item["type"]
