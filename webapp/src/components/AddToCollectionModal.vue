@@ -63,7 +63,7 @@ export default {
   methods: {
     async submitForm() {
       try {
-        const collectionIds = this.startInCollection.map((collection) => collection.immutable_id);
+        const collectionIds = this.startInCollection.map((collection) => collection.collection_id);
         const refcodes = this.itemsSelected.map((item) => item.refcode);
 
         for (const collectionId of collectionIds) {

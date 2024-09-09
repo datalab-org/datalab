@@ -333,27 +333,32 @@ def add_items_to_collection(collection_id):
     data = request.get_json()
     refcodes = data.get("data", {}).get("refcodes", [])
 
-    collection = flask_mongo.db.collections.find_one({"_id": ObjectId(collection_id)})
+    collection = flask_mongo.db.collections.find_one(
+        {"collection_id": collection_id, **get_default_permissions()}
+    )
+
     if not collection:
         return jsonify({"error": "Collection not found"}), 404
 
     if not refcodes:
         return jsonify({"error": "No item provided"}), 400
 
-    item_count = flask_mongo.db.items.count_documents({"refcode": {"$in": refcodes}})
+    item_count = flask_mongo.db.items.count_documents(
+        {"refcode": {"$in": refcodes}, **get_default_permissions()}
+    )
 
     if item_count == 0:
         return jsonify({"error": "No matching items found"}), 404
 
     update_result = flask_mongo.db.items.update_many(
-        {"refcode": {"$in": refcodes}},
+        {"refcode": {"$in": refcodes}, **get_default_permissions()},
         {
             "$addToSet": {
                 "relationships": {
                     "description": "Is a member of",
                     "relation": None,
                     "type": "collections",
-                    "immutable_id": ObjectId(collection_id),
+                    "immutable_id": ObjectId(collection["_id"]),
                 }
             }
         },
