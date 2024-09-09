@@ -642,3 +642,56 @@ def test_items_added_to_existing_collection(client, default_collection, default_
         len([d for d in response.json["item_data"]["relationships"] if d["type"] == "collections"])
         == 1
     )
+
+
+@pytest.mark.dependency()
+def test_add_items_to_collection_not_found(client):
+    collection_id = "invalid_collection_id"
+
+    response = client.post(f"/collections/{collection_id}", json={"data": {"refcodes": []}})
+    assert response.status_code == 404
+    assert response.json["error"] == "Collection not found"
+
+
+@pytest.mark.dependency(depends=["test_add_items_to_collection_not_found"])
+def test_add_items_to_collection_no_items(client, default_collection):
+    response = client.post(
+        f"/collections/{default_collection.collection_id}", json={"data": {"refcodes": []}}
+    )
+
+    assert response.status_code == 400
+    assert response.json["error"] == "No item provided"
+
+
+@pytest.mark.dependency(depends=["test_add_items_to_collection_no_items"])
+def test_add_items_to_collection_no_matching_items(client, default_collection):
+    refcodes = ["item123", "item456"]
+
+    response = client.post(
+        f"/collections/{default_collection.collection_id}", json={"data": {"refcodes": refcodes}}
+    )
+    assert response.status_code == 404
+    assert response.json["error"] == "No matching items found"
+
+
+@pytest.mark.dependency(depends=["test_add_items_to_collection_no_matching_items"])
+def test_add_items_to_collection_success(client, default_collection, example_items):
+    refcodes = [
+        item["refcode"] for item in example_items if item["item_id"] in {"12345", "sample_1"}
+    ]
+
+    response = client.post(
+        f"/collections/{default_collection.collection_id}",
+        json={"data": {"refcodes": refcodes}},
+    )
+
+    assert response.status_code == 200
+    assert response.json["status"] == "success"
+
+    response = client.get(f"/collections/{default_collection.collection_id}")
+    assert response.status_code == 200
+
+    collection_data = response.json
+    child_refcodes = [item["refcode"] for item in collection_data["child_items"]]
+
+    assert all(refcode in child_refcodes for refcode in refcodes)
