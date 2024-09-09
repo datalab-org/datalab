@@ -513,6 +513,8 @@ export function addABlock(item_id, block_type, index = null) {
 export function saveItem(item_id) {
   console.log("saveItem Called!");
   var item_data = store.state.all_item_data[item_id];
+  console.log("Item data before saving:", item_data);
+
   store.commit("setItemSaved", { item_id: item_id, isSaved: false });
   fetch_post(`${API_URL}/save-item/`, {
     item_id: item_id,
@@ -705,8 +707,8 @@ export function getBlocksInfos() {
     });
 }
 
-export function addItemsToCollection(collectionId, refcodes) {
-  return fetch_post(`${API_URL}/collections/${collectionId}`, {
+export function addItemsToCollection(collection_id, refcodes) {
+  return fetch_post(`${API_URL}/collections/${collection_id}`, {
     data: { refcodes },
   })
     .then(function (response_json) {
