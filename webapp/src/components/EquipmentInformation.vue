@@ -54,6 +54,11 @@
         <label for="equip-contact" class="mr-2">Contact information</label>
         <input id="equip-contact" v-model="Contact" class="form-control" />
       </div>
+      <div class="col-md-4 pb-3 d-flex justify-content-center align-items-center">
+        <span :class="getStatusBadgeClass(Status)" class="badge text-uppercase">
+          {{ formatStatus(Status) }}
+        </span>
+      </div>
     </div>
     <label id="equip-description-label" class="mr-2">Description</label>
     <TinyMceInline v-model="ItemDescription" aria-labelledby="equip-description-label" />
@@ -107,6 +112,27 @@ export default {
     SerialNos: createComputedSetterForItemField("serial_numbers"),
     Maintainers: createComputedSetterForItemField("creators"),
     Contact: createComputedSetterForItemField("contact"),
+    Status: createComputedSetterForItemField("status"),
+  },
+
+  methods: {
+    getStatusBadgeClass(status) {
+      switch (status) {
+        case "working":
+          return "badge-success";
+        case "broken":
+          return "badge-warning";
+        case "being_fixed":
+          return "badge-info";
+        case "defunct":
+          return "badge-dark";
+        case "not_being_fixed":
+          return "badge-danger";
+      }
+    },
+    formatStatus(status) {
+      return status.split("_").join(" ");
+    },
   },
 };
 </script>
@@ -115,5 +141,8 @@ export default {
 label {
   font-weight: 500;
   color: #298651;
+}
+.badge {
+  font-size: 1em;
 }
 </style>

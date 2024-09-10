@@ -16,6 +16,7 @@ from pydatalab.models.utils import (
     IsoformatDateTime,
     PyObjectId,
     Refcode,
+    ItemStatus,
 )
 
 
@@ -45,6 +46,9 @@ class Item(Entry, HasOwner, HasRevisionControl, IsCollectable, HasBlocks, abc.AB
     file_ObjectIds: List[PyObjectId] = Field([])
     """Links to object IDs of files stored within the database."""
 
+    status: ItemStatus = Field(default=ItemStatus.PLANNED)
+    """The status of the item, indicating its current state."""
+
     @validator("refcode", pre=True, always=True)
     def refcode_validator(cls, v):
         """Generate a refcode if not provided."""
@@ -54,6 +58,7 @@ class Item(Entry, HasOwner, HasRevisionControl, IsCollectable, HasBlocks, abc.AB
             id = None
             prefix, id = v.split(":")
             if prefix is None or id is None:
-                raise ValueError(f"refcode missing prefix or ID {id=}, {prefix=} from {v=}")
+                raise ValueError(
+                    f"refcode missing prefix or ID {id=}, {prefix=} from {v=}")
 
         return v

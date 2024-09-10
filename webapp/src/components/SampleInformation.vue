@@ -35,8 +35,15 @@
               <Creators :creators="ItemCreators" :size="36" />
             </div>
           </div>
-          <div class="col-md-6 col-sm-7 pr-2">
+          <div class="form-group col-md-3 col-sm-3 col-6 pb-3">
             <ToggleableCollectionFormGroup v-model="Collections" />
+          </div>
+          <div
+            class="form-group col-md-3 col-sm-3 col-6 pb-3 d-flex justify-content-center align-items-center"
+          >
+            <span :class="getStatusBadgeClass(Status)" class="badge text-uppercase">
+              {{ Status }}
+            </span>
           </div>
         </div>
         <div class="form-row">
@@ -104,6 +111,27 @@ export default {
     DateCreated: createComputedSetterForItemField("date"),
     ItemCreators: createComputedSetterForItemField("creators"),
     Collections: createComputedSetterForItemField("collections"),
+    Status: createComputedSetterForItemField("status"),
+  },
+  methods: {
+    getStatusBadgeClass(status) {
+      switch (status) {
+        case "planned":
+          return "badge-secondary";
+        case "active":
+          return "badge-primary";
+        case "completed":
+          return "badge-success";
+        case "failed":
+          return "badge-danger";
+      }
+    },
   },
 };
 </script>
+
+<style scoped>
+.badge {
+  font-size: 1em;
+}
+</style>
