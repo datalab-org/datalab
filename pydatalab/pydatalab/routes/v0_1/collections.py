@@ -1,6 +1,7 @@
 import datetime
 import json
 
+from bson import ObjectId
 from flask import Blueprint, jsonify, request
 from flask_login import current_user
 from pydantic import ValidationError
@@ -325,3 +326,51 @@ def search_collections():
     ]
 
     return jsonify({"status": "success", "data": list(cursor)}), 200
+
+
+@COLLECTIONS.route("/collections/<collection_id>", methods=["POST"])
+def add_items_to_collection(collection_id):
+    data = request.get_json()
+    refcodes = data.get("data", {}).get("refcodes", [])
+
+    collection = flask_mongo.db.collections.find_one({"_id": ObjectId(collection_id)})
+    if not collection:
+        return jsonify({"error": "Collection not found"}), 404
+
+    if not refcodes:
+        return jsonify({"error": "No item provided"}), 400
+
+    item_count = flask_mongo.db.items.count_documents({"refcode": {"$in": refcodes}})
+
+    if item_count == 0:
+        return jsonify({"error": "No matching items found"}), 404
+
+    update_result = flask_mongo.db.items.update_many(
+        {"refcode": {"$in": refcodes}},
+        {
+            "$addToSet": {
+                "relationships": {
+                    "description": "Is a member of",
+                    "relation": None,
+                    "type": "collections",
+                    "immutable_id": ObjectId(collection_id),
+                }
+            }
+        },
+    )
+
+    if update_result.matched_count == 0:
+        return (jsonify({"status": "error", "message": "Unable to add to collection."}), 400)
+
+    if update_result.modified_count == 0:
+        return (
+            jsonify(
+                {
+                    "status": "success",
+                    "message": "No update was performed",
+                }
+            ),
+            200,
+        )
+
+    return (jsonify({"status": "success"}), 200)
