@@ -704,3 +704,22 @@ export function getBlocksInfos() {
       throw error;
     });
 }
+
+export function addItemsToCollection(collectionId, refcodes) {
+  return fetch_post(`${API_URL}/collections/${collectionId}`, {
+    data: { refcodes },
+  })
+    .then(function (response_json) {
+      if (response_json.status === "success") {
+        console.log("Items added to collection successfully!");
+        return response_json;
+      } else {
+        console.error("Failed to add items to collection.");
+        throw new Error("Failed to add items to collection.");
+      }
+    })
+    .catch(function (error) {
+      alert("Error adding items to collection: ", error);
+      throw error;
+    });
+}
