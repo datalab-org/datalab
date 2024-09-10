@@ -32,18 +32,27 @@
 
       <template #header>
         <div class="button-group d-flex justify-content-between align-items-center">
-          <div class="button-left">
+          <div>
             <button class="btn btn-default" @click="createItemModalIsOpen = true">
               Add an item
             </button>
-            <button class="btn btn-default ml-2" @click="batchCreateItemModalIsOpen = true">
+            <button class="btn btn-default" @click="batchCreateItemModalIsOpen = true">
               Add batch of samples
             </button>
           </div>
-          <div class="button-right d-flex">
+          <div>
             <button
               v-if="itemsSelected.length > 0"
-              class="btn btn-default ml-2"
+              class="btn btn-default"
+              :disabled="itemsSelected.length === 0"
+              @click="addToCollectionModalIsOpen = true"
+            >
+              Add to collection
+            </button>
+            <button
+              v-if="itemsSelected.length > 0"
+              class="btn btn-default"
+              :disabled="itemsSelected.length === 0"
               @click="deleteSelectedItems"
             >
               Delete selected
@@ -111,11 +120,17 @@
   </div>
   <CreateItemModal v-model="createItemModalIsOpen" />
   <BatchCreateItemModal v-model="batchCreateItemModalIsOpen" />
+  <AddToCollectionModal
+    v-model="addToCollectionModalIsOpen"
+    :items-selected="itemsSelected"
+    @items-updated="refreshDataTable"
+  />
 </template>
 
 <script>
 import CreateItemModal from "@/components/CreateItemModal";
 import BatchCreateItemModal from "@/components/BatchCreateItemModal";
+import AddToCollectionModal from "@/components/AddToCollectionModal";
 
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
@@ -135,6 +150,7 @@ export default {
   components: {
     CreateItemModal,
     BatchCreateItemModal,
+    AddToCollectionModal,
     DataTable,
     Column,
     IconField,
@@ -149,6 +165,7 @@ export default {
     return {
       createItemModalIsOpen: false,
       batchCreateItemModalIsOpen: false,
+      addToCollectionModalIsOpen: false,
       isSampleFetchError: false,
       itemsSelected: [],
       expandedRows: [],
@@ -226,7 +243,11 @@ export default {
         idsSelected.forEach((item_id) => {
           deleteSample(item_id);
         });
+        this.itemsSelected = [];
       }
+    },
+    refreshDataTable() {
+      this.getSamples();
     },
   },
 };
@@ -244,7 +265,8 @@ export default {
   visibility: visible !important;
 }
 
-.button-right {
+.button-group > * {
+  display: flex;
   gap: 0.5em;
 }
 </style>
