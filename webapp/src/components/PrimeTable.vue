@@ -113,6 +113,7 @@ import Creators from "@/components/Creators";
 
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
+import InputText from "primevue/inputtext";
 
 export default {
   components: {
@@ -124,6 +125,7 @@ export default {
     AddToCollectionModal,
     DataTable,
     Column,
+    InputText,
     FormattedItemName,
     ChemicalFormula,
     CollectionList,
