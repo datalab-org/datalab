@@ -91,7 +91,7 @@
   <AddToCollectionModal
     v-model="addToCollectionModalIsOpen"
     :items-selected="itemsSelected"
-    @items-updated="refreshDataTable"
+    @items-updated="handleItemsUpdated"
   />
 </template>
 
@@ -228,7 +228,8 @@ export default {
           this.isSampleFetchError = true;
         });
     },
-    refreshDataTable() {
+    handleItemsUpdated() {
+      this.itemsSelected = [];
       this.getSamples();
     },
   },
