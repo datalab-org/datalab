@@ -2,7 +2,7 @@
   <vSelect
     ref="selectComponent"
     v-model="value"
-    :options="collections"
+    :options="collectionOrNewCollection"
     multiple
     label="collection_id"
     :filterable="false"
@@ -14,11 +14,15 @@
     </template>
     <template #option="{ collection_id, title }">
       <FormattedCollectionName
+        v-if="collection_id"
         :collection_id="collection_id"
         :title="title"
         enable-modified-click
         :max-length="formattedItemNameMaxLength"
       />
+      <div v-else @click.prevent="handleCreateNewCollection">
+        {{ title }}
+      </div>
     </template>
     <template #selected-option="{ collection_id }">
       <FormattedCollectionName
@@ -33,7 +37,7 @@
 <script>
 import vSelect from "vue-select";
 import FormattedCollectionName from "@/components/FormattedCollectionName.vue";
-import { searchCollections } from "@/server_fetch_utils.js";
+import { searchCollections, createNewCollection } from "@/server_fetch_utils.js";
 import { debounceTime } from "@/resources.js";
 
 export default {
@@ -43,8 +47,8 @@ export default {
   },
   props: {
     modelValue: {
-      type: String,
-      default: "",
+      type: Array,
+      default: () => [],
     },
     formattedItemNameMaxLength: {
       type: Number,
@@ -57,6 +61,7 @@ export default {
       debounceTimeout: null,
       collections: [],
       isSearchFetchError: false,
+      searchQuery: "",
     };
   },
   computed: {
@@ -69,12 +74,28 @@ export default {
         this.$emit("update:modelValue", newValue);
       },
     },
+    collectionOrNewCollection() {
+      if (
+        this.searchQuery &&
+        !this.collections.some((item) => item.collection_id === this.searchQuery)
+      ) {
+        return [
+          ...this.collections,
+          {
+            collection_id: null,
+            title: `Create new collection: "${this.searchQuery}"`,
+          },
+        ];
+      }
+      return this.collections;
+    },
   },
   methods: {
     async debouncedAsyncSearch(query, loading) {
       // if (query == "") {
       //   return;
       // }
+      this.searchQuery = query;
       loading(true);
       clearTimeout(this.debounceTimeout); // reset the timer
       // start the timer
@@ -96,6 +117,24 @@ export default {
           });
         loading(false);
       }, debounceTime);
+    },
+    async handleCreateNewCollection() {
+      try {
+        let collection_id = this.searchQuery;
+        const newCollection = await createNewCollection(this.searchQuery);
+        if (newCollection) {
+          this.value = [
+            ...this.value.filter((item) => item.collection_id !== null),
+            {
+              collection_id: collection_id,
+            },
+          ];
+        }
+        await this.debouncedAsyncSearch(this.searchQuery, () => {});
+      } catch (error) {
+        console.error("Error:", error);
+        alert("An error occurred while creating the collection. Please try again.");
+      }
     },
   },
 };
