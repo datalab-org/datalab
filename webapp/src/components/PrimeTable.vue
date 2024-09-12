@@ -104,7 +104,6 @@ import CreateEquipmentModal from "@/components/CreateEquipmentModal";
 import AddToCollectionModal from "@/components/AddToCollectionModal";
 
 import { INVENTORY_TABLE_TYPES, EDITABLE_INVENTORY } from "@/resources.js";
-import { getSampleList } from "@/server_fetch_utils.js";
 
 import FormattedItemName from "@/components/FormattedItemName";
 import ChemicalFormula from "@/components/ChemicalFormula";
@@ -219,18 +218,8 @@ export default {
     deleteSelectedItems() {
       this.itemsSelected = [];
     },
-    getSamples() {
-      getSampleList()
-        .then(() => {
-          console.log("sample list received!");
-        })
-        .catch(() => {
-          this.isSampleFetchError = true;
-        });
-    },
     handleItemsUpdated() {
       this.itemsSelected = [];
-      this.getSamples();
     },
   },
 };
