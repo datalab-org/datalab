@@ -158,7 +158,7 @@ export default {
         )
       ) {
         idsSelected.forEach((collection_id) => {
-          deleteCollection(collection_id, collection_id);
+          deleteCollection(collection_id, { collection_id: collection_id });
         });
       }
     },
