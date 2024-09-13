@@ -28,6 +28,7 @@
           :editable-inventory="editable_inventory"
           @open-create-item-modal="createItemModalIsOpen = true"
           @open-batch-create-item-modal="batchCreateItemModalIsOpen = true"
+          @open-qr-scanner-modal="qrScannerModalIsOpen = true"
           @open-create-collection-modal="createCollectionModalIsOpen = true"
           @open-create-equipment-modal="createEquipmentModalIsOpen = true"
           @open-add-to-collection-modal="addToCollectionModalIsOpen = true"
@@ -86,6 +87,7 @@
     :allowed-types="dataType == 'startingMaterials' ? allowedTypes : undefined"
   />
   <BatchCreateItemModal v-model="batchCreateItemModalIsOpen" />
+  <QRScannerModal v-model="qrScannerModalIsOpen" />
   <CreateCollectionModal v-model="createCollectionModalIsOpen" />
   <CreateEquipmentModal v-model="createEquipmentModalIsOpen" />
   <AddToCollectionModal
@@ -99,6 +101,7 @@
 import DynamicButtonDataTable from "@/components/DynamicButtonDataTable";
 import CreateItemModal from "@/components/CreateItemModal";
 import BatchCreateItemModal from "@/components/BatchCreateItemModal";
+import QRScannerModal from "@/components/QRScannerModal";
 import CreateCollectionModal from "@/components/CreateCollectionModal";
 import CreateEquipmentModal from "@/components/CreateEquipmentModal";
 import AddToCollectionModal from "@/components/AddToCollectionModal";
@@ -119,6 +122,7 @@ export default {
     DynamicButtonDataTable,
     CreateItemModal,
     BatchCreateItemModal,
+    QRScannerModal,
     CreateCollectionModal,
     CreateEquipmentModal,
     AddToCollectionModal,
@@ -152,6 +156,7 @@ export default {
     return {
       createItemModalIsOpen: false,
       batchCreateItemModalIsOpen: false,
+      qrScannerModalIsOpen: false,
       createCollectionModalIsOpen: false,
       createEquipmentModalIsOpen: false,
       addToCollectionModalIsOpen: false,
