@@ -237,6 +237,21 @@ export default {
   visibility: visible !important;
 }
 
+.p-datatable .p-datatable-tbody > tr > td {
+  min-width: 1em;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.p-datatable .p-datatable-thead > tr > th {
+  min-width: 1em;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .button-right {
   gap: 0.5em;
 }
