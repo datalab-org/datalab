@@ -1,9 +1,7 @@
 import { createRouter, createWebHistory } from "vue-router";
 import Samples from "../views/Samples.vue";
-import Equipment from "../views/Equipment.vue";
-import SamplePrime from "../views/SamplePrime.vue";
+import Equipments from "../views/Equipments.vue";
 import StartingMaterials from "../views/StartingMaterials.vue";
-import StartingMaterialsNext from "../views/StartingMaterialsNext.vue";
 import Collections from "@/views/Collections.vue";
 import NotFound from "../views/NotFound.vue";
 import EditPage from "../views/EditPage.vue";
@@ -11,11 +9,6 @@ import CollectionPage from "../views/CollectionPage.vue";
 import ExampleGraph from "@/views/ExampleGraph.vue";
 import ItemGraphPage from "@/views/ItemGraphPage.vue";
 import Admin from "@/views/Admin.vue";
-
-import TestPrime from "../views/TestPrime.vue";
-import TestPrime2 from "../views/TestPrime2.vue";
-import TestPrime3 from "../views/TestPrime3.vue";
-import TestPrime4 from "../views/TestPrime4.vue";
 
 const routes = [
   {
@@ -33,32 +26,11 @@ const routes = [
     component: Samples,
   },
   {
-    path: "/test",
-    name: "test",
-    component: TestPrime,
-  },
-  {
-    path: "/test2",
-    name: "test2",
-    component: TestPrime2,
-  },
-  {
-    path: "/test3",
-    name: "test3",
-    component: TestPrime3,
-  },
-  {
-    path: "/test4",
-    name: "test4",
-    component: TestPrime4,
-  },
-  {
-    path: "/equipment",
-    name: "equipment",
+    path: "/equipments",
+    name: "equipments",
     alias: "/",
-    component: Equipment,
+    component: Equipments,
   },
-  { path: "/next/samples", name: "samples-next", alias: "/next", component: SamplePrime },
   {
     path: "/edit/:id",
     name: "edit",
@@ -73,11 +45,6 @@ const routes = [
     path: "/starting-materials",
     name: "starting-materials",
     component: StartingMaterials,
-  },
-  {
-    path: "/next/starting-materials",
-    name: "starting-materials-next",
-    component: StartingMaterialsNext,
   },
   {
     path: "/collections",

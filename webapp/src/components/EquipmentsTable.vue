@@ -1,5 +1,5 @@
 <template>
-  <PrimeTable
+  <DynamicDataTable
     :columns="equipmentColumn"
     :data="equipments"
     :data-type="'equipments'"
@@ -8,11 +8,11 @@
 </template>
 
 <script>
-import PrimeTable from "@/components/PrimeTable";
+import DynamicDataTable from "@/components/DynamicDataTable";
 import { getEquipmentList } from "@/server_fetch_utils.js";
 
 export default {
-  components: { PrimeTable },
+  components: { DynamicDataTable },
   data() {
     return {
       equipmentColumn: [

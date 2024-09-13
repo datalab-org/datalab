@@ -3,37 +3,22 @@
 
   <div id="tableContainer" class="container">
     <div class="row">
-      <div class="col-sm-12 mx-auto mb-3">
-        <button class="btn btn-default" @click="createEquipmentModalIsOpen = true">
-          Add an item
-        </button>
-      </div>
-    </div>
-    <div class="row">
       <div class="col-sm-12 mx-auto">
-        <EquipmentTable />
+        <EquipmentsTable />
       </div>
     </div>
   </div>
-  <CreateEquipmentModal v-model="createEquipmentModalIsOpen" />
 </template>
 
 <script>
 import Navbar from "@/components/Navbar";
-import EquipmentTable from "@/components/EquipmentTable";
-import CreateEquipmentModal from "@/components/CreateEquipmentModal";
+import EquipmentsTable from "@/components/EquipmentsTable";
 
 export default {
   name: "Equipments",
   components: {
     Navbar,
-    EquipmentTable,
-    CreateEquipmentModal,
-  },
-  data() {
-    return {
-      createEquipmentModalIsOpen: false,
-    };
+    EquipmentsTable,
   },
 };
 </script>

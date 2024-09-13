@@ -21,7 +21,7 @@
       <!-- v-model:expandedRows="expandedRows" -->
 
       <template #header>
-        <ButtonPrimeTable
+        <DynamicButtonDataTable
           :data-type="dataType"
           :items-selected="itemsSelected"
           :filters="filters"
@@ -96,7 +96,7 @@
 </template>
 
 <script>
-import ButtonPrimeTable from "@/components/ButtonPrimeTable";
+import DynamicButtonDataTable from "@/components/DynamicButtonDataTable";
 import CreateItemModal from "@/components/CreateItemModal";
 import BatchCreateItemModal from "@/components/BatchCreateItemModal";
 import CreateCollectionModal from "@/components/CreateCollectionModal";
@@ -116,7 +116,7 @@ import InputText from "primevue/inputtext";
 
 export default {
   components: {
-    ButtonPrimeTable,
+    DynamicButtonDataTable,
     CreateItemModal,
     BatchCreateItemModal,
     CreateCollectionModal,

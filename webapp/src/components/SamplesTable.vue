@@ -1,5 +1,5 @@
 <template>
-  <PrimeTable
+  <DynamicDataTable
     :columns="sampleColumns"
     :data="samples"
     :data-type="'samples'"
@@ -16,11 +16,11 @@
 </template>
 
 <script>
-import PrimeTable from "@/components/PrimeTable";
+import DynamicDataTable from "@/components/DynamicDataTable";
 import { getSampleList } from "@/server_fetch_utils.js";
 
 export default {
-  components: { PrimeTable },
+  components: { DynamicDataTable },
   data() {
     return {
       sampleColumns: [
