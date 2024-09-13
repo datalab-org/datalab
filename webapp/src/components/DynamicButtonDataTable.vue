@@ -13,7 +13,7 @@
         class="btn btn-default ml-2"
         @click="$emit('open-batch-create-item-modal')"
       >
-        Add batch of samples
+        Add batch of items
       </button>
       <button
         v-if="dataType === 'samples'"
