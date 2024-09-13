@@ -38,7 +38,12 @@ import Modal from "@/components/Modal.vue";
 import FormattedItemName from "@/components/FormattedItemName";
 import CollectionSelect from "@/components/CollectionSelect.vue";
 
-import { addItemsToCollection } from "@/server_fetch_utils";
+import {
+  addItemsToCollection,
+  getSampleList,
+  getStartingMaterialList,
+  getEquipmentList,
+} from "@/server_fetch_utils";
 
 export default {
   name: "AddToCollectionsModal",
@@ -70,7 +75,13 @@ export default {
           await addItemsToCollection(collectionId, refcodes);
         }
         this.$emit("itemsUpdated");
-
+        if (this.itemsSelected.some((item) => item.type === "samples")) {
+          getSampleList();
+        } else if (this.itemsSelected.some((item) => item.type === "startingMaterials")) {
+          getStartingMaterialList();
+        } else if (this.itemsSelected.some((item) => item.type === "equipments")) {
+          getEquipmentList();
+        }
         console.log("Items added successfully.");
         this.$emit("update:modelValue", false);
       } catch (error) {

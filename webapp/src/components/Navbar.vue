@@ -22,13 +22,9 @@
   <div id="nav">
     <router-link to="/about">About</router-link> |
     <router-link to="/samples">Samples</router-link> |
-    <router-link to="/test">Test PrimeSamples</router-link> |
     <router-link to="/collections">Collections</router-link> |
-    <router-link to="/test2">Test PrimeCollections</router-link> |
     <router-link to="/starting-materials">Inventory</router-link> |
-    <router-link to="/test3">Test PrimeStartMats</router-link> |
-    <router-link to="/equipment">Equipment</router-link> |
-    <router-link to="/test4">Test PrimeEquip</router-link> |
+    <router-link to="/equipments">Equipment</router-link> |
     <router-link to="/item-graph"
       ><font-awesome-icon icon="project-diagram" />&nbsp;Graph View</router-link
     >

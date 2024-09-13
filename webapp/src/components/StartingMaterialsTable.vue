@@ -1,5 +1,5 @@
 <template>
-  <PrimeTable
+  <DynamicDataTable
     :columns="startingMaterialColumn"
     :data="startingMaterials"
     :data-type="'startingMaterials'"
@@ -8,11 +8,11 @@
 </template>
 
 <script>
-import PrimeTable from "@/components/PrimeTable";
+import DynamicDataTable from "@/components/DynamicDataTable";
 import { getStartingMaterialList } from "@/server_fetch_utils.js";
 
 export default {
-  components: { PrimeTable },
+  components: { DynamicDataTable },
   data() {
     return {
       startingMaterialColumn: [
