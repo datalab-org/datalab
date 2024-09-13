@@ -16,6 +16,13 @@
         Add batch of samples
       </button>
       <button
+        v-if="dataType === 'samples'"
+        class="btn btn-default ml-2"
+        @click="$emit('open-qr-scanner-modal')"
+      >
+        <font-awesome-icon icon="qrcode" /> Scan QR
+      </button>
+      <button
         v-if="dataType === 'collections'"
         class="btn btn-default"
         @click="$emit('open-create-collection-modal')"
@@ -111,6 +118,7 @@ export default {
   emits: [
     "open-create-item-modal",
     "open-batch-create-item-modal",
+    "open-qr-scanner-modal",
     "open-create-collection-modal",
     "open-create-equipment-modal",
     "open-add-to-collection-modal",
