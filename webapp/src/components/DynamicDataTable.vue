@@ -7,6 +7,7 @@
     <DataTable
       v-model:filters="filters"
       v-model:selection="itemsSelected"
+      data-testid="sample-table"
       selection-mode="multiple"
       :value="data"
       paginator

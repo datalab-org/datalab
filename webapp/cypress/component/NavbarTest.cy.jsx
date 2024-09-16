@@ -21,7 +21,7 @@ describe("Navbar", () => {
         { path: "/samples", name: "Samples" },
         { path: "/collections", name: "Collections" },
         { path: "/starting-materials", name: "Inventory" },
-        { path: "/equipment", name: "Equipment" },
+        { path: "/equipments", name: "Equipment" },
         { path: "/item-graph", name: "GraphView" },
       ],
     });
@@ -91,7 +91,7 @@ describe("Navbar", () => {
       cy.contains("Samples").should("have.attr", "href", "/samples");
       cy.contains("Collections").should("have.attr", "href", "/collections");
       cy.contains("Inventory").should("have.attr", "href", "/starting-materials");
-      cy.contains("Equipment").should("have.attr", "href", "/equipment");
+      cy.contains("Equipment").should("have.attr", "href", "/equipments");
       cy.contains("Graph View").should("have.attr", "href", "/item-graph");
     });
   });
@@ -116,7 +116,7 @@ describe("Navbar", () => {
     cy.url().should("include", "/starting-materials");
 
     cy.contains("Equipment").click();
-    cy.url().should("include", "/equipment");
+    cy.url().should("include", "/equipments");
 
     cy.contains("Graph View").click();
     cy.url().should("include", "/item-graph");

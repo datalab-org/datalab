@@ -10,6 +10,9 @@ import ExampleGraph from "@/views/ExampleGraph.vue";
 import ItemGraphPage from "@/views/ItemGraphPage.vue";
 import Admin from "@/views/Admin.vue";
 
+import OldSample from "../views/OldSamples.vue";
+import OldEquipment from "../views/OldEquipments.vue";
+
 const routes = [
   {
     path: "/about",
@@ -73,6 +76,18 @@ const routes = [
     name: "admin",
     alias: "/",
     component: Admin,
+  },
+  {
+    path: "/old-sample",
+    name: "old-sample",
+    alias: "/",
+    component: OldSample,
+  },
+  {
+    path: "/old-equipment",
+    name: "old-equipment",
+    alias: "/",
+    component: OldEquipment,
   },
 ];
 
