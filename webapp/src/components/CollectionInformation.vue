@@ -31,13 +31,11 @@
         <CollectionRelationshipVisualization :collection_id="collection_id" />
       </div>
     </div>
-    <FancyCollectionSampleTable :collection_id="collection_id" />
   </div>
 </template>
 
 <script>
 import { createComputedSetterForCollectionField } from "@/field_utils.js";
-import FancyCollectionSampleTable from "@/components/FancyCollectionSampleTable";
 import TinyMceInline from "@/components/TinyMceInline";
 import Creators from "@/components/Creators";
 import CollectionRelationshipVisualization from "@/components/CollectionRelationshipVisualization";
@@ -45,7 +43,6 @@ import CollectionRelationshipVisualization from "@/components/CollectionRelation
 export default {
   components: {
     TinyMceInline,
-    FancyCollectionSampleTable,
     Creators,
     CollectionRelationshipVisualization,
   },

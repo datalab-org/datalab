@@ -199,7 +199,7 @@ Cypress.Commands.add("removeAllTestSamples", (item_ids, check_sample_table) => {
     cy.deleteSampleViaAPI(item_id);
   });
   if (check_sample_table) {
-    cy.visit("/").then(() => {
+    cy.visit("/old-sample").then(() => {
       cy.get("[data-testid=sample-table] > tbody > tr").should("have.length", 0);
     });
   }
