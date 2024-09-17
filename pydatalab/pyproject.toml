@@ -93,7 +93,7 @@ apps = [
 ]
 
 chat = [
-    "langchain == 0.2.6",
+    "langchain == 0.2.10",
     "langchain-openai ~= 0.1",
     "langchain-anthropic ~= 0.1",
     "tiktoken ~= 0.7",

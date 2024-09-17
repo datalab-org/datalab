@@ -158,7 +158,7 @@ jsonpointer==3.0.0
     # via jsonpatch
 kiwisolver==1.4.5
     # via matplotlib
-langchain==0.2.6
+langchain==0.2.10
     # via datalab-server (pyproject.toml)
 langchain-anthropic==0.1.23
     # via datalab-server (pyproject.toml)
