@@ -32,18 +32,18 @@ let sample_ids = [
 ];
 
 before(() => {
-  cy.visit("/old-sample");
+  cy.visit("/");
   cy.removeAllTestSamples(sample_ids, true);
 });
 
 after(() => {
-  cy.visit("/old-sample");
+  cy.visit("/");
   cy.removeAllTestSamples(sample_ids, true);
 });
 
 describe("Sample table page", () => {
   beforeEach(() => {
-    cy.visit("/old-sample");
+    cy.visit("/");
   });
 
   it("Loads the main page without any errors", () => {
@@ -183,7 +183,7 @@ describe("Sample table page", () => {
 
 describe.only("Advanced sample creation features", () => {
   beforeEach(() => {
-    cy.visit("/old-sample");
+    cy.visit("/");
   });
   it("Adds some valid samples", () => {
     cy.createSample("testA", "the first test sample");
