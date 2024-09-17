@@ -70,18 +70,18 @@ let sample_ids = [
 ];
 
 before(() => {
-  cy.visit("/old-sample");
+  cy.visit("/");
   cy.removeAllTestSamples(sample_ids, true);
 });
 
 after(() => {
-  cy.visit("/old-sample");
+  cy.visit("/");
   cy.removeAllTestSamples(sample_ids, true);
 });
 
 describe("Batch sample creation", () => {
   beforeEach(() => {
-    cy.visit("/old-sample");
+    cy.visit("/");
   });
   it("Adds 3 valid samples", () => {
     cy.contains("Add batch of items").click();
@@ -162,8 +162,7 @@ describe("Batch sample creation", () => {
     cy.get(".datablock-content div").first().type("a comment is added here.");
 
     cy.get(".fa-save").click();
-    // cy.findByText("Home").click();
-    cy.visit("/old-sample");
+    cy.findByText("Home").click();
   });
 
   it("modifies some data in the second sample", () => {
@@ -186,8 +185,7 @@ describe("Batch sample creation", () => {
     cy.get("#synthesis-information tbody tr:nth-of-type(2) input").eq(0).type("100");
 
     cy.get(".fa-save").click();
-    // cy.findByText("Home").click();
-    cy.visit("/old-sample");
+    cy.findByText("Home").click();
   });
 
   it("makes samples copied from others", () => {
@@ -225,8 +223,7 @@ describe("Batch sample creation", () => {
     cy.findByLabelText("Name").should("have.value", "a copied sample");
     cy.findByText("this is a description of baseA.");
     cy.findByText("a comment is added here.");
-    // cy.findByText("Home").click();
-    cy.visit("/old-sample");
+    cy.findByText("Home").click();
 
     cy.contains(/^baseB_copy$/).click();
     cy.findByText("this is a description of baseB.");
@@ -239,8 +236,7 @@ describe("Batch sample creation", () => {
     cy.get("#synthesis-information tbody tr:nth-of-type(2) input")
       .eq(0)
       .should("have.value", "100");
-    // cy.findByText("Home").click();
-    cy.visit("/old-sample");
+    cy.findByText("Home").click();
 
     cy.findByText("baseB_copy2").click();
     cy.findByText("this is a description of baseB.");
@@ -253,8 +249,7 @@ describe("Batch sample creation", () => {
     cy.get("#synthesis-information tbody tr:nth-of-type(2) input")
       .eq(0)
       .should("have.value", "100");
-    // cy.findByText("Home").click();
-    cy.visit("/old-sample");
+    cy.findByText("Home").click();
   });
 
   it("creates samples using components", () => {
@@ -329,8 +324,7 @@ describe("Batch sample creation", () => {
     cy.get("#synthesis-information table").contains("component2");
     cy.get("#synthesis-information tbody tr:nth-of-type(1) input").eq(0).should("have.value", "");
     cy.get("#synthesis-information tbody tr:nth-of-type(2) input").eq(0).should("have.value", "");
-    // cy.findByText("Home").click();
-    cy.visit("/old-sample");
+    cy.findByText("Home").click();
 
     cy.contains("test102").click();
     cy.findByLabelText("Name").should(
@@ -343,8 +337,7 @@ describe("Batch sample creation", () => {
     cy.get("#synthesis-information tbody tr:nth-of-type(1) input").eq(0).should("have.value", "");
     cy.get("#synthesis-information tbody tr:nth-of-type(2) input").eq(0).should("have.value", "");
     cy.findByText("a comment is added here.");
-    // cy.findByText("Home").click();
-    cy.visit("/old-sample");
+    cy.findByText("Home").click();
 
     cy.contains("test103").click();
     cy.findByLabelText("Name").should(
@@ -377,8 +370,7 @@ describe("Batch sample creation", () => {
 
     cy.findByText("a comment is added here.");
     cy.findByText("a second comment is added here.");
-    // cy.findByText("Home").click();
-    cy.visit("/old-sample");
+    cy.findByText("Home").click();
 
     cy.contains("test104").click();
     cy.findByLabelText("Name").should(
@@ -420,8 +412,7 @@ describe("Batch sample creation", () => {
     cy.findByText("a comment is added here.");
     cy.findByText("a second comment is added here.");
 
-    // cy.findByText("Home").click();
-    cy.visit("/old-sample");
+    cy.findByText("Home").click();
   });
 
   it("uses the template id", () => {
@@ -548,8 +539,7 @@ describe("Batch sample creation", () => {
 
       cy.findByText("a comment is added here.");
       cy.findByText("a second comment is added here.");
-      // cy.findByText("Home").click();
-      cy.visit("/old-sample");
+      cy.findByText("Home").click();
     }
 
     checkCreatedSample("test_1");
@@ -655,8 +645,7 @@ describe("Batch sample creation", () => {
 
       cy.findByText("a comment is added here.");
       cy.findByText("a second comment is added here.");
-      // cy.findByText("Home").click();
-      cy.visit("/old-sample");
+      cy.findByText("Home").click();
     }
 
     cy.verifySample("test1", "name1");
@@ -727,7 +716,7 @@ describe("Batch sample creation", () => {
 
 describe("Batch cell creation", () => {
   beforeEach(() => {
-    cy.visit("/old-sample");
+    cy.visit("/");
   });
 
   it("creates a simple batch of cells", () => {
@@ -852,8 +841,7 @@ describe("Batch cell creation", () => {
 
       cy.get("#neg-electrode-table").contains("comp2");
 
-      // cy.findByText("Home").click();
-      cy.visit("/old-sample");
+      cy.findByText("Home").click();
     }
 
     checkCreatedCell("cell_1");

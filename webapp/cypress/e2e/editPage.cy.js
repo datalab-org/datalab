@@ -9,18 +9,18 @@ Cypress.on("window:before:load", (win) => {
 let item_ids = ["editable_sample", "component1", "component2"];
 
 before(() => {
-  cy.visit("/old-sample");
+  cy.visit("/");
   cy.removeAllTestSamples(item_ids, true);
 });
 
 after(() => {
-  cy.visit("/old-sample");
+  cy.visit("/");
   cy.removeAllTestSamples(item_ids, true);
 });
 
 describe("Edit Page", () => {
   beforeEach(() => {
-    cy.visit("/old-sample");
+    cy.visit("/");
   });
 
   it("Loads the main page without any errors", () => {
@@ -51,8 +51,7 @@ describe("Edit Page", () => {
     cy.findByText("Unsaved changes");
     cy.get(".fa-save").click();
     cy.contains("Unsaved changes").should("not.exist");
-    // cy.findByText("Home").click();
-    cy.visit("/old-sample");
+    cy.findByText("Home").click();
 
     cy.findByText("editable_sample");
     cy.findByText("This is a sample name");
@@ -237,8 +236,7 @@ describe("Edit Page", () => {
     cy.get(".fa-save").click();
     cy.contains("Unsaved changes").should("not.exist");
 
-    // cy.findByText("Home").click();
-    cy.visit("/old-sample");
+    cy.findByText("Home").click();
     cy.get("[data-testid=sample-table] tr:nth-of-type(3) > td:nth-of-type(8)").contains(2); // 2 blocks are present
   });
 });

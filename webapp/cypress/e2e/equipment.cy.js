@@ -9,24 +9,24 @@ Cypress.on("window:before:load", (win) => {
 let item_ids = ["test_e1", "test_e2", "test_e3", "123equipment", "test_e3_copy"];
 
 before(() => {
-  cy.visit("/old-equipment");
+  cy.visit("/equipments");
   cy.removeAllTestSamples(item_ids);
-  cy.visit("/old-equipment").then(() => {
+  cy.visit("/equipments").then(() => {
     cy.get("[data-testid='equipment-table'] > tbody > tr").should("have.length", 0);
   });
 });
 
 after(() => {
-  cy.visit("/old-equipment");
+  cy.visit("/equipments");
   cy.removeAllTestSamples(item_ids);
-  cy.visit("/old-equipment").then(() => {
+  cy.visit("/equipments").then(() => {
     cy.get("[data-testid='equipment-table'] > tbody > tr").should("have.length", 0);
   });
 });
 
 describe("Equipment table page", () => {
   beforeEach(() => {
-    cy.visit("/old-equipment");
+    cy.visit("/equipments");
   });
 
   it("Loads the equipment page without any errors", () => {
@@ -113,7 +113,7 @@ describe("Equipment table page", () => {
 
 describe("Equipment edit page", () => {
   beforeEach(() => {
-    cy.visit("/old-equipment/");
+    cy.visit("/equipments");
   });
 
   it("Checks the equipment edit page", () => {
@@ -135,7 +135,7 @@ describe("Equipment edit page", () => {
     cy.get(".datablock-content div").first().type("a comment is added here.");
 
     cy.get(".fa-save").click();
-    cy.visit("/old-equipment");
+    cy.visit("/equipments");
     cy.verifyEquipment("test_e3", "my inst", "2000-01-01T00:00", "room 101");
   });
 });
