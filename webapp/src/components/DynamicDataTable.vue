@@ -7,9 +7,9 @@
     <DataTable
       v-model:filters="filters"
       v-model:selection="itemsSelected"
-      data-testid="sample-table"
       selection-mode="multiple"
       :value="data"
+      :data-testid="computedDataTestId"
       paginator
       :rows="20"
       :rows-per-page-options="[10, 20, 50, 100]"
@@ -169,15 +169,27 @@ export default {
       allowedTypes: INVENTORY_TABLE_TYPES,
     };
   },
+  computed: {
+    computedDataTestId() {
+      const dataTestIdMap = {
+        samples: "sample-table",
+        collections: "collection-table",
+        startingMaterials: "starting-material-table",
+        equipments: "equipment-table",
+      };
+      return dataTestIdMap[this.dataType] || "default-table";
+    },
+  },
   created() {
     this.editable_inventory = EDITABLE_INVENTORY;
   },
+
   methods: {
     goToEditPage(event) {
       const { item_id, collection_id } = event.data;
 
       if (item_id) {
-        window.open(`/edit/${item_id}`, "_blank");
+        this.$router.push(`/edit/${item_id}`);
       } else if (collection_id) {
         window.open(`/collections/${collection_id}`, "_blank");
       }
@@ -187,7 +199,7 @@ export default {
         FormattedItemName: {
           item_id: data.item_id !== undefined ? "item_id" : "collection_id",
           itemType: "type",
-          enableClick: true,
+          enableModifiedClick: true,
         },
         ChemicalFormula: {
           formula: "chemform",
