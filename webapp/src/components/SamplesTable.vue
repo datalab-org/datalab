@@ -24,7 +24,12 @@ export default {
   data() {
     return {
       sampleColumns: [
-        { field: "item_id", header: "ID", body: "FormattedItemName", filter: true },
+        {
+          field: "item_id",
+          header: "ID",
+          body: "FormattedItemName",
+          filter: true,
+        },
         { field: "type", header: "Type", filter: true },
         { field: "name", header: "Sample name" },
         { field: "chemform", header: "Formula", body: "ChemicalFormula" },

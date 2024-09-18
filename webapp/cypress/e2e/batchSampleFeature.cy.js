@@ -103,9 +103,7 @@ describe("Batch sample creation", () => {
     cy.verifySample("testB", "this sample has a name");
     cy.verifySample("testC");
 
-    cy.deleteSample("testA");
-    cy.deleteSample("testB");
-    cy.deleteSample("testC");
+    cy.deleteSamples(["testA", "testB", "testC"]);
   });
 
   it("adds two valid samples", () => {
@@ -154,6 +152,7 @@ describe("Batch sample creation", () => {
   });
 
   it("modifies some data in the first sample", () => {
+    cy.get('[data-testid="search-input"]').type("baseA");
     cy.findByText("baseA").click();
     cy.findByLabelText("Description").type("this is a description of baseA.");
     cy.findByText("Add a block").click();
@@ -166,6 +165,7 @@ describe("Batch sample creation", () => {
   });
 
   it("modifies some data in the second sample", () => {
+    cy.get('[data-testid="search-input"]').type("baseB");
     cy.findByText("baseB").click();
     cy.findByLabelText("Description").type("this is a description of baseB.");
     cy.findByText("Add a block").click();
@@ -437,9 +437,7 @@ describe("Batch sample creation", () => {
     cy.verifySample("test_2", "testing 1,2");
     cy.verifySample("test_3", "testing 1,2,3");
 
-    cy.deleteSample("test_1");
-    cy.deleteSample("test_2");
-    cy.deleteSample("test_3");
+    cy.deleteSamples(["test_1", "test_2", "test_3"]);
   });
 
   it("uses the template id, name, and date", () => {
@@ -462,9 +460,7 @@ describe("Batch sample creation", () => {
     cy.verifySample("test_6", "this is the test sample #6", "1980-02-01T05:35");
     cy.verifySample("test_7", "this is the test sample #7", "1980-02-01T05:35");
 
-    cy.deleteSample("test_5");
-    cy.deleteSample("test_6");
-    cy.deleteSample("test_7");
+    cy.deleteSamples(["test_5", "test_6", "test_7"]);
   });
 
   it("uses the template id, name, date, copyFrom, and components", () => {
@@ -522,6 +518,7 @@ describe("Batch sample creation", () => {
     cy.get("[data-testid=batch-modal-container]").contains("Close").click();
 
     function checkCreatedSample(item_id) {
+      cy.get('[data-testid="search-input"]').type(item_id);
       cy.contains(item_id).click();
       cy.contains("this is a description of baseB.");
       cy.get("#synthesis-information table").contains("component3");
@@ -652,8 +649,7 @@ describe("Batch sample creation", () => {
     cy.verifySample("test2", "name2");
     checkCreatedSample("test1");
     checkCreatedSample("test2");
-    cy.deleteSample("test1");
-    cy.deleteSample("test2");
+    cy.deleteSamples(["test1", "test2"]);
   });
 
   it("checks errors on the row", () => {
@@ -832,6 +828,7 @@ describe("Batch cell creation", () => {
     cy.verifySample("cell_3", "this is the test cell #3", "1980-02-01T23:59");
 
     function checkCreatedCell(item_id) {
+      cy.get('[data-testid="search-input"]').type(item_id);
       cy.contains(item_id).click();
       cy.get("#pos-electrode-table").contains("comp1");
       cy.get("#pos-electrode-table").contains("tagged");

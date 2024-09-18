@@ -35,7 +35,7 @@ describe("Edit Page", () => {
 
   it("Adds a valid sample", () => {
     cy.createSample("editable_sample", "This is a sample name", "1990-01-07T00:00");
-    cy.get("tr>td").eq(7).contains(0); // 0 blocks are present
+    cy.get("tr>td").eq(8).contains(0); // 0 blocks are present
   });
 
   it("Add some more samples, to use as components", () => {
@@ -44,6 +44,7 @@ describe("Edit Page", () => {
   });
 
   it("Checks editing the sample edit page", () => {
+    cy.get('[data-testid="search-input"]').type("editable_sample");
     cy.findByText("editable_sample").click();
     cy.findByLabelText("Name").should("have.value", "This is a sample name");
     cy.findByLabelText("Chemical formula").type("NaCoO2", { force: true });
@@ -53,6 +54,7 @@ describe("Edit Page", () => {
     cy.contains("Unsaved changes").should("not.exist");
     cy.findByText("Home").click();
 
+    cy.get('[data-testid="search-input"]').type("editable_sample");
     cy.findByText("editable_sample");
     cy.findByText("This is a sample name");
     cy.findByText("1990-01-07");
@@ -69,6 +71,7 @@ describe("Edit Page", () => {
   });
 
   it("adds some synthesis information", () => {
+    cy.get('[data-testid="search-input"]').type("editable_sample");
     cy.findByText("editable_sample").click();
     cy.get("#synthesis-information .vs__search").first().type("component1");
     cy.get(".vs__dropdown-menu").contains(".badge", "component1").click();
@@ -122,6 +125,7 @@ describe("Edit Page", () => {
   });
 
   it("deletes synthesis components and re-adds them", () => {
+    cy.get('[data-testid="search-input"]').type("editable_sample");
     cy.findByText("editable_sample").click();
     cy.get("#synthesis-information tbody > tr:nth-of-type(1) .close").click();
     cy.get("#synthesis-information tbody > tr").should("have.length", 2);
@@ -160,6 +164,7 @@ describe("Edit Page", () => {
   });
 
   it("tries to add a non-numeric value into quantity", () => {
+    cy.get('[data-testid="search-input"]').type("editable_sample");
     cy.findByText("editable_sample").click();
     cy.get("#synthesis-information tbody > tr:nth-of-type(1) td:nth-of-type(2) input").type(
       "100.001",
@@ -196,6 +201,7 @@ describe("Edit Page", () => {
   });
 
   it("Add some blocks to the sample and checks unsaved warning behavior", () => {
+    cy.get('[data-testid="search-input"]').type("editable_sample");
     cy.findByText("editable_sample").click();
     cy.findByLabelText("Name").should("have.value", "This is a sample name");
 
@@ -237,6 +243,7 @@ describe("Edit Page", () => {
     cy.contains("Unsaved changes").should("not.exist");
 
     cy.findByText("Home").click();
-    cy.get("[data-testid=sample-table] tr:nth-of-type(3) > td:nth-of-type(8)").contains(2); // 2 blocks are present
+    cy.get('[data-testid="search-input"]').type("editable_sample");
+    cy.get("[data-testid=sample-table] tr:nth-of-type(1) > td:nth-of-type(9)").contains(2); // 2 blocks are present
   });
 });

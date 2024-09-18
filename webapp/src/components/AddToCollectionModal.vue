@@ -1,5 +1,5 @@
 <template>
-  <form class="modal-enclosure" data-testid="create-equipment-form" @submit.prevent="submitForm">
+  <form class="modal-enclosure" data-testid="add-to-collection-form" @submit.prevent="submitForm">
     <Modal :model-value="modelValue" @update:model-value="$emit('update:modelValue', $event)">
       <template #header> Add to collections </template>
       <template #body>

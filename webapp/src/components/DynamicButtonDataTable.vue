@@ -57,6 +57,7 @@
       <button
         v-if="itemsSelected.length > 0"
         class="btn btn-default ml-2"
+        data-testid="delete-selected-button"
         :disabled="itemsSelected.length === 0"
         @click="confirmDeletion"
       >
@@ -69,6 +70,7 @@
         </InputIcon>
         <InputText
           v-model="localFilters.global.value"
+          data-testid="search-input"
           placeholder="Search"
           @input="updateFilters"
         />
