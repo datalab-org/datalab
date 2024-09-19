@@ -6,11 +6,19 @@ export default defineConfig({
     baseUrl: "http://localhost:8080",
     apiUrl: "http://localhost:5001",
     defaultCommandTimeout: 10000,
+    setupNodeEvents(on, config) {
+      require("@cypress/code-coverage/task")(on, config);
+      return config;
+    },
   },
   component: {
     devServer: {
       framework: "vue-cli",
       bundler: "webpack",
+    },
+    setupNodeEvents(on, config) {
+      require("@cypress/code-coverage/task")(on, config);
+      return config;
     },
   },
 });

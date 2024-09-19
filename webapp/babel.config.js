@@ -9,7 +9,7 @@ module.exports = function override(api) {
       "transform-remove-console",
     ];
   } else {
-    config["plugins"] = ["@babel/plugin-transform-export-namespace-from"];
+    config["plugins"] = ["@babel/plugin-transform-export-namespace-from", "istanbul"];
   }
   config["presets"] = ["@vue/cli-plugin-babel/preset"];
   return config;

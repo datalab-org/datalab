@@ -15,6 +15,7 @@
 
 // Import commands.js using ES2015 syntax:
 import "./commands";
+import "@cypress/code-coverage/support";
 
 // eslint-disable-next-line no-unused-vars
 Cypress.on("uncaught:exception", (err, runnable) => {
