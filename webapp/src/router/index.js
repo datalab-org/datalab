@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from "vue-router";
 import Samples from "../views/Samples.vue";
-import Equipments from "../views/Equipments.vue";
+import Equipment from "../views/Equipment.vue";
 import StartingMaterials from "../views/StartingMaterials.vue";
 import Collections from "@/views/Collections.vue";
 import NotFound from "../views/NotFound.vue";
@@ -26,10 +26,10 @@ const routes = [
     component: Samples,
   },
   {
-    path: "/equipments",
-    name: "equipments",
+    path: "/equipment",
+    name: "equipment",
     alias: "/",
-    component: Equipments,
+    component: Equipment,
   },
   {
     path: "/edit/:id",

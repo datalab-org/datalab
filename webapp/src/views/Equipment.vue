@@ -4,7 +4,7 @@
   <div id="tableContainer" class="container">
     <div class="row">
       <div class="col-sm-12 mx-auto">
-        <EquipmentsTable />
+        <EquipmentTable />
       </div>
     </div>
   </div>
@@ -12,13 +12,13 @@
 
 <script>
 import Navbar from "@/components/Navbar";
-import EquipmentsTable from "@/components/EquipmentsTable";
+import EquipmentTable from "@/components/EquipmentTable";
 
 export default {
-  name: "Equipments",
+  name: "Equipment",
   components: {
     Navbar,
-    EquipmentsTable,
+    EquipmentTable,
   },
 };
 </script>

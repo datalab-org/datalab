@@ -4,7 +4,7 @@
   <div id="tableContainer" class="container">
     <div class="row">
       <div class="col-sm-12 mx-auto">
-        <CollectionsTable />
+        <CollectionTable />
       </div>
     </div>
   </div>
@@ -12,13 +12,13 @@
 
 <script>
 import Navbar from "@/components/Navbar";
-import CollectionsTable from "@/components/CollectionsTable";
+import CollectionTable from "@/components/CollectionTable";
 
 export default {
   name: "Collections",
   components: {
     Navbar,
-    CollectionsTable,
+    CollectionTable,
   },
 };
 </script>

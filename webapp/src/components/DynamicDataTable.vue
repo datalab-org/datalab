@@ -175,7 +175,7 @@ export default {
         samples: "sample-table",
         collections: "collection-table",
         startingMaterials: "starting-material-table",
-        equipments: "equipment-table",
+        equipment: "equipment-table",
       };
       return dataTestIdMap[this.dataType] || "default-table";
     },
