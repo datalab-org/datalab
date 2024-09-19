@@ -1430,7 +1430,7 @@
   resolved "https://registry.yarnpkg.com/@colors/colors/-/colors-1.5.0.tgz#bb504579c1cae923e6576a4f5da43d25f97bdbd9"
   integrity sha512-ooWCrlZP11i8GImSjTHYHLkvFDP48nS4+204nGb1RiX/WXYHmJA2III9/e2DWVabCESdW7hBAEzHRqUn9OUVvQ==
 
-"@cypress/code-coverage@^3.0.0":
+"@cypress/code-coverage@^3.13.1":
   version "3.13.1"
   resolved "https://registry.yarnpkg.com/@cypress/code-coverage/-/code-coverage-3.13.1.tgz#fff5db899c41fd363b1c5c5e12626801a33f7297"
   integrity sha512-8OxblrX44F4MnY0y9bDybYbhqoLM1DvSuKTHfw7yZlCc2U/C8WyDoRzBoKe/z3f72qjWwO8BBhDFmU3ZPI5yEA==
