@@ -1,8 +1,8 @@
 <template>
   <DynamicDataTable
     :columns="equipmentColumn"
-    :data="equipments"
-    :data-type="'equipments'"
+    :data="equipment"
+    :data-type="'equipment'"
     :global-filter-fields="['item_id', 'name', 'location', 'creatorsList']"
   />
 </template>
@@ -25,7 +25,7 @@ export default {
     };
   },
   computed: {
-    equipments() {
+    equipment() {
       return this.$store.state.equipment_list.map((equipment) => ({
         ...equipment,
         // creatorsList: equipment.creators.map((creator) => creator.display_name).join(", "),

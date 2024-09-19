@@ -4,7 +4,7 @@
   <div id="tableContainer" class="container">
     <div class="row">
       <div class="col-sm-12 mx-auto">
-        <StartingMaterialsTable />
+        <StartingMaterialTable />
       </div>
     </div>
   </div>
@@ -12,13 +12,13 @@
 
 <script>
 import Navbar from "@/components/Navbar";
-import StartingMaterialsTable from "@/components/StartingMaterialsTable";
+import StartingMaterialTable from "@/components/StartingMaterialTable";
 
 export default {
   name: "StartingMaterials",
   components: {
     Navbar,
-    StartingMaterialsTable,
+    StartingMaterialTable,
   },
 };
 </script>

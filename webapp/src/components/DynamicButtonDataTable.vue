@@ -38,7 +38,7 @@
         Add a starting material
       </button>
       <button
-        v-if="dataType === 'equipments'"
+        v-if="dataType === 'equipment'"
         class="btn btn-default"
         @click="$emit('open-create-equipment-modal')"
       >
@@ -143,7 +143,7 @@ export default {
         this.deleteCollections();
       } else if (this.dataType === "startingMaterials") {
         this.deleteStartingMaterials();
-      } else if (this.dataType === "equipments") {
+      } else if (this.dataType === "equipment") {
         this.deleteEquipments();
       }
       this.$emit("delete-selected-items");

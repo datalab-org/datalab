@@ -79,7 +79,7 @@ export default {
           getSampleList();
         } else if (this.itemsSelected.some((item) => item.type === "startingMaterials")) {
           getStartingMaterialList();
-        } else if (this.itemsSelected.some((item) => item.type === "equipments")) {
+        } else if (this.itemsSelected.some((item) => item.type === "equipment")) {
           getEquipmentList();
         }
         console.log("Items added successfully.");

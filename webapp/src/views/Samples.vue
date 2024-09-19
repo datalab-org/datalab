@@ -4,7 +4,7 @@
   <div id="tableContainer" class="container">
     <div class="row">
       <div class="col-sm-12 mx-auto">
-        <SamplesTable />
+        <SampleTable />
       </div>
     </div>
   </div>
@@ -12,13 +12,13 @@
 
 <script>
 import Navbar from "@/components/Navbar";
-import SamplesTable from "@/components/SamplesTable";
+import SampleTable from "@/components/SampleTable";
 
 export default {
   name: "Samples",
   components: {
     Navbar,
-    SamplesTable,
+    SampleTable,
   },
 };
 </script>
