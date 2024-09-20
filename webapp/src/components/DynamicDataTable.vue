@@ -114,6 +114,7 @@ import ChemicalFormula from "@/components/ChemicalFormula";
 import CollectionList from "@/components/CollectionList";
 import Creators from "@/components/Creators";
 
+import { FilterMatchMode, FilterOperator } from "@primevue/core/api";
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
 import InputText from "primevue/inputtext";
@@ -165,6 +166,18 @@ export default {
       itemsSelected: [],
       filters: {
         global: { value: null },
+        item_id: {
+          operator: FilterOperator.AND,
+          constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
+        },
+        collection_id: {
+          operator: FilterOperator.AND,
+          constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
+        },
+        type: {
+          operator: FilterOperator.AND,
+          constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
+        },
       },
       allowedTypes: INVENTORY_TABLE_TYPES,
     };

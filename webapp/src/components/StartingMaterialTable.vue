@@ -17,7 +17,7 @@ export default {
     return {
       startingMaterialColumn: [
         { field: "item_id", header: "ID", body: "FormattedItemName", filter: true },
-        { field: "name", header: "Name", filter: true },
+        { field: "name", header: "Name" },
         { field: "chemform", header: "Formula", body: "ChemicalFormula" },
         { field: "date", header: "Date" },
         { field: "chemical_purity", header: "Purity" },
