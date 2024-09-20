@@ -32,7 +32,6 @@
       <button
         v-if="dataType === 'startingMaterials' && editableInventory"
         class="btn btn-default"
-        :disabled="itemsSelected.length === 0"
         @click="$emit('open-create-item-modal')"
       >
         Add a starting material
