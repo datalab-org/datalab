@@ -58,7 +58,7 @@
             }"
         /></template> -->
 
-        <template v-if="column.body && editable_inventory" #body="slotProps">
+        <template v-if="column.body" #body="slotProps">
           <component :is="column.body" v-bind="getComponentProps(column.body, slotProps.data)" />
         </template>
         <template v-else-if="column.field === 'date'" #body="slotProps">
