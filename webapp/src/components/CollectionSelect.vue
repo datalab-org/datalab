@@ -9,7 +9,7 @@
     @search="debouncedAsyncSearch"
   >
     <template #no-options="{ searching }">
-      <span v-if="searching"> Sorry, no matches found. </span>
+      <span v-if="searching"> Collection already selected </span>
       <span v-else class="empty-search"> Search for a collection... </span>
     </template>
     <template #option="{ collection_id, title }">
@@ -20,7 +20,7 @@
         enable-modified-click
         :max-length="formattedItemNameMaxLength"
       />
-      <div v-else @click.prevent="handleCreateNewCollection">
+      <div v-else @click="handleCreateNewCollection">
         {{ title }}
       </div>
     </template>
@@ -77,7 +77,8 @@ export default {
     collectionOrNewCollection() {
       if (
         this.searchQuery &&
-        !this.collections.some((item) => item.collection_id === this.searchQuery)
+        !this.collections.some((item) => item.collection_id === this.searchQuery) &&
+        !this.value.some((item) => item.collection_id === this.searchQuery)
       ) {
         return [
           ...this.collections,
@@ -130,7 +131,6 @@ export default {
             },
           ];
         }
-        await this.debouncedAsyncSearch(this.searchQuery, () => {});
       } catch (error) {
         console.error("Error:", error);
         alert("An error occurred while creating the collection. Please try again.");
