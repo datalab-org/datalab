@@ -359,6 +359,8 @@ def add_items_to_collection(collection_id):
                     "relation": None,
                     "type": "collections",
                     "immutable_id": ObjectId(collection["_id"]),
+                    "item_id": None,
+                    "refcode": None,
                 }
             }
         },
