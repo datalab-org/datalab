@@ -7,9 +7,9 @@
     <DataTable
       v-model:filters="filters"
       v-model:selection="itemsSelected"
-      selection-mode="multiple"
       :value="data"
       :data-testid="computedDataTestId"
+      selection-mode="multiple"
       paginator
       :rows="20"
       :rows-per-page-options="[10, 20, 50, 100]"
@@ -47,6 +47,7 @@
         :field="column.field"
         :header="column.header"
         sortable
+        :class="{ 'filter-active': isFilterActive(column.field) }"
       >
         <!-- <template v-if="column.field === 'item_id'" #body="slotProps">
           <component
@@ -110,6 +111,7 @@ import AddToCollectionModal from "@/components/AddToCollectionModal";
 import { INVENTORY_TABLE_TYPES, EDITABLE_INVENTORY } from "@/resources.js";
 
 import FormattedItemName from "@/components/FormattedItemName";
+import FormattedCollectionName from "@/components/FormattedCollectionName";
 import ChemicalFormula from "@/components/ChemicalFormula";
 import CollectionList from "@/components/CollectionList";
 import Creators from "@/components/Creators";
@@ -132,6 +134,7 @@ export default {
     Column,
     InputText,
     FormattedItemName,
+    FormattedCollectionName,
     ChemicalFormula,
     CollectionList,
     Creators,
@@ -193,10 +196,14 @@ export default {
       return dataTestIdMap[this.dataType] || "default-table";
     },
   },
+  watch: {
+    itemsSelected(newSelection) {
+      console.log("Selected items:", newSelection);
+    },
+  },
   created() {
     this.editable_inventory = EDITABLE_INVENTORY;
   },
-
   methods: {
     goToEditPage(event) {
       const { item_id, collection_id } = event.data;
@@ -210,8 +217,12 @@ export default {
     getComponentProps(componentName, data) {
       const propsConfig = {
         FormattedItemName: {
-          item_id: data.item_id !== undefined ? "item_id" : "collection_id",
+          item_id: "item_id",
           itemType: "type",
+          enableModifiedClick: true,
+        },
+        FormattedCollectionName: {
+          collection_id: "collection_id",
           enableModifiedClick: true,
         },
         ChemicalFormula: {
@@ -245,6 +256,13 @@ export default {
       });
 
       return props;
+    },
+    isFilterActive(field) {
+      const filter = this.filters[field];
+      if (filter && filter.constraints) {
+        return filter.constraints.some((constraint) => constraint.value);
+      }
+      return false;
     },
     deleteSelectedItems() {
       this.itemsSelected = [];
@@ -285,5 +303,12 @@ export default {
 
 .button-right {
   gap: 0.5em;
+}
+
+.p-datatable-header-cell.filter-active svg {
+  color: #10b981;
+}
+.p-datatable-header-cell.filter-active {
+  color: #047857;
 }
 </style>
