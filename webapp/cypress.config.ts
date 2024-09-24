@@ -8,11 +8,19 @@ export default defineConfig({
     experimentalMemoryManagement: true,
     numTestsKeptInMemory: 0,
     defaultCommandTimeout: 10000,
+    setupNodeEvents(on, config) {
+      require("@cypress/code-coverage/task")(on, config);
+      return config;
+    },
   },
   component: {
     devServer: {
       framework: "vue-cli",
       bundler: "webpack",
+    },
+    setupNodeEvents(on, config) {
+      require("@cypress/code-coverage/task")(on, config);
+      return config;
     },
   },
 });
