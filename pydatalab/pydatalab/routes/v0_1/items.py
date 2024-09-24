@@ -129,6 +129,7 @@ def get_starting_materials():
                         "date": 1,
                         "chemform": 1,
                         "name": 1,
+                        "type": 1,
                         "chemical_purity": 1,
                         "supplier": 1,
                         "location": 1,
@@ -300,7 +301,8 @@ def search_items():
     nresults = request.args.get("nresults", default=100, type=int)
     types = request.args.get("types", default=None)
     if isinstance(types, str):
-        types = types.split(",")  # should figure out how to parse as list automatically
+        # should figure out how to parse as list automatically
+        types = types.split(",")
 
     match_obj = {
         "$text": {"$search": query},
@@ -428,10 +430,10 @@ def _create_sample(
         raise RuntimeError("Invalid type")
     model = ITEM_MODELS[type_]
 
-    ## the following code was used previously to explicitely check schema properties.
-    ## it doesn't seem to be necessary now, with extra = "ignore" turned on in the pydantic models,
-    ## and it breaks in instances where the models use aliases (e.g., in the starting_material model)
-    ## so we are taking it out now, but leaving this comment in case it needs to be reverted.
+    # the following code was used previously to explicitely check schema properties.
+    # it doesn't seem to be necessary now, with extra = "ignore" turned on in the pydantic models,
+    # and it breaks in instances where the models use aliases (e.g., in the starting_material model)
+    # so we are taking it out now, but leaving this comment in case it needs to be reverted.
     # schema = model.schema()
     # new_sample = {k: sample_dict[k] for k in schema["properties"] if k in sample_dict}
     new_sample = sample_dict
