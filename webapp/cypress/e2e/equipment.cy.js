@@ -73,7 +73,10 @@ describe("Equipment table page", () => {
 
   it("Attempts to Add an item with the same name", () => {
     cy.findByText("Add an item").click();
-    cy.findByLabelText("ID:").type("test_e3");
+    cy.get('[data-testid="create-equipment-form"]').within(() => {
+      cy.findByText("Add equipment").should("exist");
+      cy.findByLabelText("ID:").type("test_e3");
+    });
 
     cy.contains("already in use").should("exist");
     cy.get(".form-error a").contains("test_e3");
@@ -82,7 +85,19 @@ describe("Equipment table page", () => {
   });
 
   it("Deletes an item", function () {
-    cy.get("tr#test_e2 button.close").click();
+    cy.get("[data-testid=equipment-table]")
+      .contains(new RegExp("^" + "test_e2" + "$", "g"))
+      .parents("tr")
+      .find("input[type='checkbox']")
+      .click();
+
+    cy.get("[data-testid=delete-selected-button]").click();
+
+    cy.on("window:confirm", (text) => {
+      expect(text).to.contains("test_e2");
+      return true;
+    });
+
     cy.contains("test_e2").should("not.exist");
 
     cy.request({ url: `${API_URL}/get-item-data/test_e2`, failOnStatusCode: false }).then(
@@ -113,7 +128,7 @@ describe("Equipment table page", () => {
 
 describe("Equipment edit page", () => {
   beforeEach(() => {
-    cy.visit("/equipment/");
+    cy.visit("/equipment");
   });
 
   it("Checks the equipment edit page", () => {

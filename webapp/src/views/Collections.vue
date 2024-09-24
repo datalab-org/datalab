@@ -3,37 +3,22 @@
 
   <div id="tableContainer" class="container">
     <div class="row">
-      <div class="col-sm-10 mx-auto mb-3">
-        <button class="btn btn-default" @click="createCollectionModalIsOpen = true">
-          Create new collection
-        </button>
-      </div>
-    </div>
-    <div class="row">
-      <div class="col-sm-10 mx-auto">
+      <div class="col-sm-12 mx-auto">
         <CollectionTable />
       </div>
     </div>
   </div>
-  <CreateCollectionModal v-model="createCollectionModalIsOpen" />
 </template>
 
 <script>
 import Navbar from "@/components/Navbar";
 import CollectionTable from "@/components/CollectionTable";
-import CreateCollectionModal from "@/components/CreateCollectionModal";
 
 export default {
   name: "Collections",
   components: {
     Navbar,
     CollectionTable,
-    CreateCollectionModal,
-  },
-  data() {
-    return {
-      createCollectionModalIsOpen: false,
-    };
   },
 };
 </script>

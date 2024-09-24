@@ -1,9 +1,7 @@
 import { createRouter, createWebHistory } from "vue-router";
 import Samples from "../views/Samples.vue";
 import Equipment from "../views/Equipment.vue";
-import SamplePrime from "../views/SamplePrime.vue";
 import StartingMaterials from "../views/StartingMaterials.vue";
-import StartingMaterialsNext from "../views/StartingMaterialsNext.vue";
 import Collections from "@/views/Collections.vue";
 import NotFound from "../views/NotFound.vue";
 import EditPage from "../views/EditPage.vue";
@@ -11,6 +9,7 @@ import CollectionPage from "../views/CollectionPage.vue";
 import ExampleGraph from "@/views/ExampleGraph.vue";
 import ItemGraphPage from "@/views/ItemGraphPage.vue";
 import Admin from "@/views/Admin.vue";
+
 const routes = [
   {
     path: "/about",
@@ -32,7 +31,6 @@ const routes = [
     alias: "/",
     component: Equipment,
   },
-  { path: "/next/samples", name: "samples-next", alias: "/next", component: SamplePrime },
   {
     path: "/edit/:id",
     name: "edit",
@@ -47,11 +45,6 @@ const routes = [
     path: "/starting-materials",
     name: "starting-materials",
     component: StartingMaterials,
-  },
-  {
-    path: "/next/starting-materials",
-    name: "starting-materials-next",
-    component: StartingMaterialsNext,
   },
   {
     path: "/collections",

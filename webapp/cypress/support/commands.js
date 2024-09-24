@@ -68,17 +68,28 @@ Cypress.Commands.add("verifySample", (item_id, name = null, date = null) => {
     });
 });
 
-Cypress.Commands.add("deleteSample", (item_id) => {
-  cy.log("search for and delete: " + item_id);
-  cy.get("[data-testid=sample-table]")
-    .contains(new RegExp("^" + item_id + "$", "g"))
-    .parents("tr")
-    .find("button.close")
-    .click();
+Cypress.Commands.add("deleteSamples", (items_id) => {
+  cy.log("search for and delete: " + items_id);
+  items_id.forEach((item_id) => {
+    cy.get("[data-testid=sample-table]")
+      .contains(new RegExp("^" + item_id + "$", "g"))
+      .parents("tr")
+      .find("input[type='checkbox']")
+      .click();
+  });
 
-  cy.get("[data-testid=sample-table]")
-    .contains(new RegExp("^" + item_id + "$", "g"))
-    .should("not.exist");
+  cy.get("[data-testid=delete-selected-button]").click();
+
+  cy.on("window:confirm", (text) => {
+    expect(text).to.contains(items_id);
+    return true;
+  });
+
+  items_id.forEach((item_id) => {
+    cy.get("[data-testid=sample-table]")
+      .contains(new RegExp("^" + item_id + "$", "g"))
+      .should("not.exist");
+  });
 });
 
 Cypress.Commands.add("deleteSampleViaAPI", (item_id) => {
@@ -103,6 +114,7 @@ Cypress.Commands.add("searchAndSelectItem", (search_text, selector, clickPlus = 
 
 Cypress.Commands.add("createEquipment", (item_id, name = null, date = null) => {
   cy.findByText("Add an item").click();
+
   cy.get('[data-testid="create-equipment-form"]').within(() => {
     cy.findByText("Add equipment").should("exist");
     cy.findByLabelText("ID:").type(item_id);

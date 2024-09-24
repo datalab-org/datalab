@@ -1,5 +1,5 @@
 <template>
-  <form class="modal-enclosure" data-testid="create-equipment-form" @submit.prevent="submitForm">
+  <form class="modal-enclosure" data-testid="add-to-collection-form" @submit.prevent="submitForm">
     <Modal :model-value="modelValue" @update:model-value="$emit('update:modelValue', $event)">
       <template #header> Add to collections </template>
       <template #body>
@@ -38,7 +38,12 @@ import Modal from "@/components/Modal.vue";
 import FormattedItemName from "@/components/FormattedItemName";
 import CollectionSelect from "@/components/CollectionSelect.vue";
 
-import { addItemsToCollection } from "@/server_fetch_utils";
+import {
+  addItemsToCollection,
+  getSampleList,
+  getStartingMaterialList,
+  getEquipmentList,
+} from "@/server_fetch_utils";
 
 export default {
   name: "AddToCollectionsModal",
@@ -70,7 +75,13 @@ export default {
           await addItemsToCollection(collectionId, refcodes);
         }
         this.$emit("itemsUpdated");
-
+        if (this.itemsSelected.some((item) => item.type === "samples")) {
+          getSampleList();
+        } else if (this.itemsSelected.some((item) => item.type === "startingMaterials")) {
+          getStartingMaterialList();
+        } else if (this.itemsSelected.some((item) => item.type === "equipment")) {
+          getEquipmentList();
+        }
         console.log("Items added successfully.");
         this.$emit("update:modelValue", false);
       } catch (error) {
