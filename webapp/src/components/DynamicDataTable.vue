@@ -7,17 +7,20 @@
     <DataTable
       v-model:filters="filters"
       v-model:selection="itemsSelected"
+      v-model:select-all="allSelected"
       :value="data"
       :data-testid="computedDataTestId"
       selection-mode="multiple"
       paginator
-      :rows="20"
+      :rows="rows"
       :rows-per-page-options="[10, 20, 50, 100]"
       filter-display="menu"
       :global-filter-fields="globalFilterFields"
       removable-sort
       sort-mode="multiple"
       @row-click="goToEditPage"
+      @select-all-change="onSelectAllChange"
+      @page="onPageChange"
     >
       <!-- v-model:expandedRows="expandedRows" -->
 
@@ -40,6 +43,7 @@
       <template #loading> Loading data. Please wait. </template>
 
       <Column class="checkbox" selection-mode="multiple"></Column>
+
       <!-- <Column expander style="width: 5rem" /> -->
       <Column
         v-for="column in columns"
@@ -183,6 +187,9 @@ export default {
         },
       },
       allowedTypes: INVENTORY_TABLE_TYPES,
+      allSelected: false,
+      page: 0,
+      rows: 20,
     };
   },
   computed: {
@@ -195,10 +202,14 @@ export default {
       };
       return dataTestIdMap[this.dataType] || "default-table";
     },
+    isAllSelected() {
+      return this.itemsSelected.length === this.data.length;
+    },
   },
   watch: {
     itemsSelected(newSelection) {
       console.log("Selected items:", newSelection);
+      console.log("Selected items:", newSelection.length);
     },
   },
   created() {
@@ -272,11 +283,27 @@ export default {
       }
       return false;
     },
+    onSelectAllChange(event) {
+      if (event.checked) {
+        this.allSelected = event.checked;
+        const newItems = this.data.slice(this.page * this.rows, (this.page + 1) * this.rows);
+        this.itemsSelected.push(...newItems);
+      } else {
+        const itemsToRemove = this.data.slice(this.page * this.rows, (this.page + 1) * this.rows);
+        this.itemsSelected = this.itemsSelected.filter((item) => !itemsToRemove.includes(item));
+        this.allSelected = event.checked;
+      }
+    },
     deleteSelectedItems() {
       this.itemsSelected = [];
     },
     handleItemsUpdated() {
       this.itemsSelected = [];
+    },
+    onPageChange(event) {
+      this.page = event.page;
+      this.rows = event.rows;
+      this.allSelected = false;
     },
   },
 };
