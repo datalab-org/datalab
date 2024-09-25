@@ -75,10 +75,12 @@ export default {
       },
     },
     collectionOrNewCollection() {
+      const valueSafe = Array.isArray(this.value) ? this.value : [];
+
       if (
         this.searchQuery &&
         !this.collections.some((item) => item.collection_id === this.searchQuery) &&
-        !this.value.some((item) => item.collection_id === this.searchQuery)
+        !valueSafe.some((item) => item.collection_id === this.searchQuery)
       ) {
         return [
           ...this.collections,
