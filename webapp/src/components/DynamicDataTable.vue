@@ -39,7 +39,7 @@
       <template #empty> No data found. </template>
       <template #loading> Loading data. Please wait. </template>
 
-      <Column selection-mode="multiple"></Column>
+      <Column class="checkbox" selection-mode="multiple"></Column>
       <!-- <Column expander style="width: 5rem" /> -->
       <Column
         v-for="column in columns"
@@ -206,12 +206,20 @@ export default {
   },
   methods: {
     goToEditPage(event) {
-      const { item_id, collection_id } = event.data;
+      const row = event.data;
 
-      if (item_id) {
-        this.$router.push(`/edit/${item_id}`);
-      } else if (collection_id) {
-        window.open(`/collections/${collection_id}`, "_blank");
+      if (event.originalEvent.target.classList.contains("checkbox")) {
+        return null;
+      }
+
+      if (
+        event.originalEvent.ctrlKey ||
+        event.originalEvent.metaKey ||
+        event.originalEvent.altKey
+      ) {
+        window.open(`/edit/${row.item_id}`, "_blank");
+      } else {
+        this.$router.push(`/edit/${row.item_id}`);
       }
     },
     getComponentProps(componentName, data) {
