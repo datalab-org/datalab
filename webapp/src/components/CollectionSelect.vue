@@ -9,7 +9,8 @@
     @search="debouncedAsyncSearch"
   >
     <template #no-options="{ searching }">
-      <span v-if="searching"> Collection already selected </span>
+      <span v-if="validationMessage" class="form-error">{{ validationMessage }}</span>
+      <span v-else-if="searching"> Collection already selected </span>
       <span v-else class="empty-search"> Search for a collection... </span>
     </template>
     <template #option="{ collection_id, title }">
@@ -80,7 +81,8 @@ export default {
       if (
         this.searchQuery &&
         !this.collections.some((item) => item.collection_id === this.searchQuery) &&
-        !valueSafe.some((item) => item.collection_id === this.searchQuery)
+        !valueSafe.some((item) => item.collection_id === this.searchQuery) &&
+        !this.IDValidationMessage()
       ) {
         return [
           ...this.collections,
@@ -91,6 +93,9 @@ export default {
         ];
       }
       return this.collections;
+    },
+    validationMessage() {
+      return this.IDValidationMessage();
     },
   },
   methods: {
@@ -121,23 +126,52 @@ export default {
         loading(false);
       }, debounceTime);
     },
+    IDValidationMessage() {
+      if (this.searchQuery && !/^[a-zA-Z0-9_-]+$/.test(this.searchQuery)) {
+        return "ID can only contain alphanumeric characters, dashes ('-'), and underscores ('_').";
+      }
+      if (/^[._-]/.test(this.searchQuery) | /[._-]$/.test(this.searchQuery)) {
+        return "ID cannot start or end with punctuation";
+      }
+      if ((this.searchQuery && this.searchQuery.length < 1) || this.searchQuery.length > 40) {
+        return "ID must be between 1 and 40 characters.";
+      }
+      return "";
+    },
     async handleCreateNewCollection() {
-      try {
-        let collection_id = this.searchQuery;
-        const newCollection = await createNewCollection(this.searchQuery);
-        if (newCollection) {
-          this.value = [
-            ...this.value.filter((item) => item.collection_id !== null),
-            {
-              collection_id: collection_id,
-            },
-          ];
+      if (this.IDValidationMessage()) {
+        return;
+      } else {
+        try {
+          let collection_id = this.searchQuery;
+          const newCollection = await createNewCollection(this.searchQuery);
+          if (newCollection) {
+            this.value = [
+              ...this.value.filter((item) => item.collection_id !== null),
+              {
+                collection_id: collection_id,
+              },
+            ];
+          }
+        } catch (error) {
+          console.error("Error:", error);
+          alert(
+            "An error occurred while creating the collection. Please check that your desired collection ID is valid.",
+          );
         }
-      } catch (error) {
-        console.error("Error:", error);
-        alert("An error occurred while creating the collection. Please try again.");
       }
     },
   },
 };
 </script>
+
+<style scoped>
+.form-error {
+  color: red;
+}
+
+:deep(.form-error a) {
+  color: #820000;
+  font-weight: 600;
+}
+</style>
