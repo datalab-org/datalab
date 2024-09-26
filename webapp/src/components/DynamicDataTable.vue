@@ -206,12 +206,6 @@ export default {
       return this.itemsSelected.length === this.data.length;
     },
   },
-  watch: {
-    itemsSelected(newSelection) {
-      console.log("Selected items:", newSelection);
-      console.log("Selected items:", newSelection.length);
-    },
-  },
   created() {
     this.editable_inventory = EDITABLE_INVENTORY;
   },
@@ -287,11 +281,16 @@ export default {
       if (event.checked) {
         this.allSelected = event.checked;
         const newItems = this.data.slice(this.page * this.rows, (this.page + 1) * this.rows);
-        this.itemsSelected.push(...newItems);
+        newItems.forEach((item) => {
+          if (!this.itemsSelected.includes(item)) {
+            this.itemsSelected.push(item);
+          }
+        });
       } else {
-        const itemsToRemove = this.data.slice(this.page * this.rows, (this.page + 1) * this.rows);
-        this.itemsSelected = this.itemsSelected.filter((item) => !itemsToRemove.includes(item));
         this.allSelected = event.checked;
+        const itemsToRemove = this.data.slice(this.page * this.rows, (this.page + 1) * this.rows);
+        const idsToRemove = new Set(itemsToRemove.map((item) => item.item_id));
+        this.itemsSelected = this.itemsSelected.filter((item) => !idsToRemove.has(item.item_id));
       }
     },
     deleteSelectedItems() {
@@ -303,7 +302,10 @@ export default {
     onPageChange(event) {
       this.page = event.page;
       this.rows = event.rows;
-      this.allSelected = false;
+      const currentItems = this.data.slice(this.page * this.rows, (this.page + 1) * this.rows);
+      this.allSelected = currentItems.every((currentItem) =>
+        this.itemsSelected.some((selectedItem) => selectedItem.item_id === currentItem.item_id),
+      );
     },
   },
 };
