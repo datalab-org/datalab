@@ -36,6 +36,7 @@
       :columns="collectionTableColumns"
       :data-type="'samples'"
       :global-filter-fields="['item_id', 'type', 'name', 'chemform', 'creatorsList', 'nblocks']"
+      :show-buttons="false"
     />
   </div>
 </template>

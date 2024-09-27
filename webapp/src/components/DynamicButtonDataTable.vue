@@ -1,5 +1,5 @@
 <template>
-  <div class="button-group d-flex justify-content-between align-items-center">
+  <div v-if="showButtons" class="button-group d-flex justify-content-between align-items-center">
     <div class="button-left">
       <button
         v-if="dataType === 'samples'"
@@ -114,6 +114,12 @@ export default {
       type: Boolean,
       required: false,
       default: false,
+    },
+    // Global toggle for all buttons and search bar
+    showButtons: {
+      type: Boolean,
+      required: false,
+      default: true,
     },
   },
   emits: [
