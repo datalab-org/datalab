@@ -30,6 +30,7 @@
           :items-selected="itemsSelected"
           :filters="filters"
           :editable-inventory="editable_inventory"
+          :show-buttons="showButtons"
           @open-create-item-modal="createItemModalIsOpen = true"
           @open-batch-create-item-modal="batchCreateItemModalIsOpen = true"
           @open-qr-scanner-modal="qrScannerModalIsOpen = true"
@@ -159,6 +160,11 @@ export default {
     globalFilterFields: {
       type: Array,
       required: true,
+    },
+    showButtons: {
+      type: Boolean,
+      required: false,
+      default: true,
     },
   },
   data() {
