@@ -166,6 +166,11 @@ export default {
       required: false,
       default: true,
     },
+    editPageRoutePrefix: {
+      type: String,
+      required: false,
+      default: "edit",
+    },
   },
   data() {
     return {
@@ -228,9 +233,9 @@ export default {
         event.originalEvent.metaKey ||
         event.originalEvent.altKey
       ) {
-        window.open(`/edit/${row.item_id}`, "_blank");
+        window.open(`/${this.editPageRoutePrefix}/${row.item_id}`, "_blank");
       } else {
-        this.$router.push(`/edit/${row.item_id}`);
+        this.$router.push(`/${this.editPageRoutePrefix}/${row.item_id}`);
       }
     },
     getComponentProps(componentName, data) {

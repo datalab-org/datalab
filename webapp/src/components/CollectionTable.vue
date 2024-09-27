@@ -4,6 +4,7 @@
     :data="collections"
     :data-type="'collections'"
     :global-filter-fields="['collection_id', 'title', 'creatorsList']"
+    :edit-page-route-prefix="'collections'"
   />
 </template>
 
