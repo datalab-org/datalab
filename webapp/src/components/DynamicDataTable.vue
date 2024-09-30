@@ -43,7 +43,7 @@
       <template #empty> No data found. </template>
       <template #loading> Loading data. Please wait. </template>
 
-      <Column class="checkbox" selection-mode="multiple"></Column>
+      <Column v-if="showButtons" class="checkbox" selection-mode="multiple"></Column>
 
       <!-- <Column expander style="width: 5rem" /> -->
       <Column
