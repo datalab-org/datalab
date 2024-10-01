@@ -96,6 +96,15 @@ Cypress.Commands.add("deleteSamples", (items_id) => {
   });
 });
 
+Cypress.Commands.add("deleteCollectionViaAPI", (collection_id) => {
+  cy.log("search for and delete: " + collection_id);
+  cy.request({
+    method: "DELETE",
+    url: API_URL + "/collections/" + collection_id,
+    failOnStatusCode: false,
+  });
+});
+
 Cypress.Commands.add("deleteSampleViaAPI", (item_id) => {
   cy.log("search for and delete: " + item_id);
   cy.request({
@@ -216,6 +225,19 @@ Cypress.Commands.add("removeAllTestSamples", (item_ids, check_sample_table) => {
   });
   if (check_sample_table) {
     cy.visit("/").then(() => {
+      cy.get("[data-testid=sample-table] > tbody > tr").should("have.length", 0);
+    });
+  }
+});
+
+Cypress.Commands.add("removeAllTestCollections", (collection_ids, check_collection_table) => {
+  collection_ids.forEach((collection_id) => {
+    cy.deleteCollectionViaAPI(collection_id);
+  });
+
+  if (check_collection_table) {
+    cy.visit("/collections").then(() => {
+      // The test ID of the collection table is still 'sample table'
       cy.get("[data-testid=sample-table] > tbody > tr").should("have.length", 0);
     });
   }
