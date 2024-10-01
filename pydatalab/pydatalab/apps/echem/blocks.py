@@ -7,6 +7,7 @@ import bokeh
 import pandas as pd
 from bson import ObjectId
 from navani import echem as ec
+import numpy as np
 
 from pydatalab import bokeh_plots
 from pydatalab.blocks.base import DataBlock
@@ -18,6 +19,8 @@ from .utils import (
     compute_gpcl_differential,
     filter_df_by_cycle_index,
     reduce_echem_cycle_sampling,
+    getdata,
+    format_DC_data,
 )
 
 
@@ -42,6 +45,7 @@ class CycleBlock(DataBlock):
         ".res",
         ".nda",
         ".ndax",
+        ".csv",
     )
 
     defaults = {
@@ -107,8 +111,10 @@ class CycleBlock(DataBlock):
                 f"Unrecognized filetype {ext}, must be one of {self.accepted_file_extensions}"
             )
 
-        parsed_file_loc = Path(file_info["location"]).with_suffix(".RAW_PARSED.pkl")
-        cycle_summary_file_loc = Path(file_info["location"]).with_suffix(".SUMMARY.pkl")
+        parsed_file_loc = Path(
+            file_info["location"]).with_suffix(".RAW_PARSED.pkl")
+        cycle_summary_file_loc = Path(
+            file_info["location"]).with_suffix(".SUMMARY.pkl")
 
         raw_df = None
         cycle_summary_df = None
@@ -123,14 +129,43 @@ class CycleBlock(DataBlock):
             try:
                 LOGGER.debug("Loading file %s", file_info["location"])
                 start_time = time.time()
-                raw_df = ec.echem_file_loader(file_info["location"])
+
+                if ext == '.csv':
+                    split_dfs = getdata(file_info["location"])
+                    DC_data = format_DC_data(split_dfs)
+
+                    #!! Temporary, maybe add this code to utils.py ?
+                    DC_temp = []
+                    cycle_index = 1
+
+                    for key, value in DC_data.items():
+                        if "Cyclic Voltammetry" in value["Name"]:
+                            df = value["Data"].astype(float)
+                            df["cycle index"] = cycle_index
+                            df["full cycle"] = cycle_index
+                            df["half cycle"] = cycle_index
+                            DC_temp.append(df)
+                            cycle_index += 1
+
+                    df_combined = pd.concat(DC_temp, ignore_index=True)
+                    df_combined.rename(
+                        columns={"V": "Voltage", "µA": "Current"}, inplace=True)
+                    df_combined["Current"] = df_combined["Current"] * 1000
+
+                    raw_df = df_combined
+
+                else:
+                    raw_df = ec.echem_file_loader(file_info["location"])
+
                 LOGGER.debug(
                     "Loaded file %s in %s seconds",
                     file_info["location"],
                     time.time() - start_time,
                 )
+
             except Exception as exc:
-                raise RuntimeError(f"Navani raised an error when parsing: {exc}") from exc
+                raise RuntimeError(
+                    f"Navani raised an error when parsing: {exc}") from exc
             raw_df.to_pickle(parsed_file_loc)
 
         try:
@@ -183,19 +218,24 @@ class CycleBlock(DataBlock):
         characteristic_mass_g = self._get_characteristic_mass_g()
 
         if characteristic_mass_g:
-            raw_df["capacity (mAh/g)"] = raw_df["capacity (mAh)"] / characteristic_mass_g
-            raw_df["current (mA/g)"] = raw_df["current (mA)"] / characteristic_mass_g
+            raw_df["capacity (mAh/g)"] = raw_df["capacity (mAh)"] / \
+                characteristic_mass_g
+            raw_df["current (mA/g)"] = raw_df["current (mA)"] / \
+                characteristic_mass_g
             if cycle_summary_df is not None:
                 cycle_summary_df["charge capacity (mAh/g)"] = (
-                    cycle_summary_df["charge capacity (mAh)"] / characteristic_mass_g
+                    cycle_summary_df["charge capacity (mAh)"] /
+                    characteristic_mass_g
                 )
                 cycle_summary_df["discharge capacity (mAh/g)"] = (
-                    cycle_summary_df["discharge capacity (mAh)"] / characteristic_mass_g
+                    cycle_summary_df["discharge capacity (mAh)"] /
+                    characteristic_mass_g
                 )
 
         df = filter_df_by_cycle_index(raw_df, cycle_list)
         if cycle_summary_df is not None:
-            cycle_summary_df = filter_df_by_cycle_index(cycle_summary_df, cycle_list)
+            cycle_summary_df = filter_df_by_cycle_index(
+                cycle_summary_df, cycle_list)
 
         if mode in ("dQ/dV", "dV/dQ"):
             df = compute_gpcl_differential(
@@ -213,7 +253,8 @@ class CycleBlock(DataBlock):
             df = reduce_echem_cycle_sampling(df, num_samples=100)
 
         layout = bokeh_plots.double_axes_echem_plot(
-            df, cycle_summary=cycle_summary_df, mode=mode, normalized=bool(characteristic_mass_g)
+            df, cycle_summary=cycle_summary_df, mode=mode, normalized=bool(
+                characteristic_mass_g)
         )
 
         if layout is not None:
