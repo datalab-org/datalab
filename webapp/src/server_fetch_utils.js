@@ -25,7 +25,7 @@ export function construct_headers(additional_headers = null) {
 }
 
 // eslint-disable-next-line no-unused-vars
-function fetch_get(url) {
+export function fetch_get(url) {
   const requestOptions = {
     method: "GET",
     headers: construct_headers(),
@@ -34,7 +34,7 @@ function fetch_get(url) {
   return fetch(url, requestOptions).then(handleResponse);
 }
 
-function fetch_post(url, body) {
+export function fetch_post(url, body) {
   let headers = construct_headers({ "Content-Type": "application/json" });
   const requestOptions = {
     method: "POST",
@@ -45,7 +45,7 @@ function fetch_post(url, body) {
   return fetch(url, requestOptions).then(handleResponse);
 }
 
-function fetch_patch(url, body) {
+export function fetch_patch(url, body) {
   let headers = construct_headers({ "Content-Type": "application/json" });
   const requestOptions = {
     method: "PATCH",
@@ -57,7 +57,7 @@ function fetch_patch(url, body) {
 }
 
 // eslint-disable-next-line no-unused-vars
-function fetch_put(url, body) {
+export function fetch_put(url, body) {
   let headers = construct_headers({ "Content-Type": "application/json" });
   const requestOptions = {
     method: "PUT",
@@ -69,7 +69,7 @@ function fetch_put(url, body) {
 }
 
 // eslint-disable-next-line no-unused-vars
-function fetch_delete(url) {
+export function fetch_delete(url) {
   let headers = construct_headers({ "Content-Type": "application/json" });
   const requestOptions = {
     method: "DELETE",

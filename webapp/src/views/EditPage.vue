@@ -38,6 +38,7 @@
       <a class="nav-item nav-link" :href="itemApiUrl" target="_blank">
         <font-awesome-icon icon="code" fixed-width /> View JSON
       </a>
+      <a class="nav-item nav-link" @click="printLabel">Print label</a>
     </div>
     <div class="navbar-nav ml-auto">
       <span v-if="itemDataLoaded && !savedStatus" class="navbar-text unsaved-warning">
@@ -102,6 +103,7 @@ import {
   updateBlockFromServer,
   getBlocksInfos,
 } from "@/server_fetch_utils";
+import { printQRCode } from "@/gateway_fetch_utils.js";
 import FormattedItemName from "@/components/FormattedItemName";
 
 import setupUppy from "@/file_upload.js";
@@ -298,6 +300,15 @@ export default {
         updateBlockFromServer(this.item_id, block_id, this.item_data.blocks_obj[block_id]);
       });
       this.setLastModified();
+    },
+    printLabel() {
+      printQRCode(
+        this.item_data.item_id,
+        this.item_data.name,
+        "https://demo.datalab-io.org",
+        this.item_data.GHS_codes,
+        false,
+      );
     },
     leavePageWarningListener(event) {
       event.preventDefault;
