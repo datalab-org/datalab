@@ -26,21 +26,21 @@ jobs:
         with:
           python-version: "3.10"
 
-      - name: Set up uv (latest)
-        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "0.4.x"
+          enable-cache: true
 
       - name: Install dependencies
         working-directory: ./pydatalab
         run: |
-          uv venv
-          uv pip install -r requirements/requirements-all-dev.txt
-          uv pip install -e '.[all, dev]'
+          uv sync --all-extras
 
       - name: Run pre-commit
         working-directory: ./pydatalab
         run: |
-          source .venv/bin/activate
-          pre-commit run --all-files --show-diff-on-failure
+          uv run pre-commit run --all-files --show-diff-on-failure
 
   pytest:
     name: Run Python unit tests
@@ -74,21 +74,21 @@ jobs:
         run: |
           wget https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2204-x86_64-100.9.0.deb && sudo apt install ./mongodb-database-tools-*-100.9.0.deb
 
-      - name: Set up uv (latest)
-        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "0.4.x"
+          enable-cache: true
 
       - name: Install locked versions of dependencies
         working-directory: ./pydatalab
         run: |
-          uv venv
-          uv pip install -r requirements/requirements-all-dev.txt
-          uv pip install -e '.[all, dev]'
+          uv sync --all-extras
 
       - name: Run all tests
         working-directory: ./pydatalab
         run: |
-          source .venv/bin/activate
-          pytest -rs -vvv --cov-report=term --cov-report=xml --cov ./pydatalab ./tests
+          uv run pytest -rs -vvv --cov-report=term --cov-report=xml --cov ./pydatalab ./tests
 
       - name: Upload coverage to Codecov
         if: matrix.python-version == '3.10' && github.repository == 'datalab-org/datalab'
