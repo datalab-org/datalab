@@ -689,7 +689,7 @@ wheels = [
 
 [[package]]
 name = "datalab-server"
-version = "0.5.0rc5.dev50+g38867b9.d20241001"
+version = "0.5.0rc5.dev52+g2028b17.d20241001"
 source = { editable = "." }
 dependencies = [
     { name = "navani" },

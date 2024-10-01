@@ -38,11 +38,6 @@ __pycache__/
 *$py.class
 .mypy_cache
 
-# Ignore any *additional* pipfile/pyprojects that get updated
-pydatalab/pyproject.toml
-Pipfile
-Pipfile.lock
-
 ## Packaging
 build/
 dist/
