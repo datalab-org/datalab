@@ -689,7 +689,7 @@ wheels = [
 
 [[package]]
 name = "datalab-server"
-version = "0.5.0rc5.dev48+g8b5f036.d20241001"
+version = "0.5.0rc5.dev50+g38867b9.d20241001"
 source = { editable = "." }
 dependencies = [
     { name = "navani" },
@@ -698,6 +698,7 @@ dependencies = [
 [package.optional-dependencies]
 all = [
     { name = "bokeh" },
+    { name = "buba-utils" },
     { name = "flask" },
     { name = "flask-compress" },
     { name = "flask-cors" },
@@ -787,7 +788,7 @@ server = [
 requires-dist = [
     { name = "bokeh", marker = "extra == 'server'", specifier = "~=2.4,<3.0" },
     { name = "buba-utils", marker = "extra == 'buba'", git = "ssh://git@github.com/avnos-research/test-rig" },
-    { name = "datalab-server", extras = ["apps", "chat", "server"], marker = "extra == 'all'" },
+    { name = "datalab-server", extras = ["apps", "buba", "chat", "server"], marker = "extra == 'all'" },
     { name = "flask", marker = "extra == 'server'", specifier = "~=3.0" },
     { name = "flask-compress", marker = "extra == 'server'", specifier = "~=1.15" },
     { name = "flask-cors", marker = "extra == 'server'", specifier = "~=5.0" },

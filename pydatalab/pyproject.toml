@@ -106,7 +106,7 @@ buba = [
 ]
 
 
-all = ["datalab-server[apps,server,chat]"]
+all = ["datalab-server[apps,server,chat,buba]"]
 
 [tool.mypy]
 plugins = "pydantic.mypy"
