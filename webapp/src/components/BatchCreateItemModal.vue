@@ -332,6 +332,7 @@
 import Modal from "@/components/Modal.vue";
 import ItemSelect from "@/components/ItemSelect.vue";
 import { createNewSamples } from "@/server_fetch_utils.js";
+import { IDValidationMessage } from "@/field_utils.js";
 import { itemTypes, SAMPLE_TABLE_TYPES } from "@/resources.js";
 export default {
   name: "BatchCreateItemModal",
@@ -421,9 +422,8 @@ export default {
       return this.items.map((item, index, items) => {
         if (item.item_id == null) {
           return "";
-        } // Don't throw an error before the user starts typing
-
-        // check that item id isn't repeated in this table
+        }
+        // Check if item ID is repeated in the table
         if (
           items
             .slice(0, index)
@@ -433,25 +433,7 @@ export default {
           return "ID is repeated from an above row.";
         }
 
-        if (
-          this.takenItemIds.includes(item.item_id) ||
-          this.takenSampleIds.includes(item.item_id)
-        ) {
-          return `<a href='edit/${item.item_id}'>${item.item_id}</a> already in use.`;
-        }
-        if (!/^[a-zA-Z0-9._-]+$/.test(item.item_id)) {
-          return "ID can only contain alphanumeric characters, dashes ('-') and underscores ('_') and periods ('.')";
-        }
-        if (/^[._-]/.test(item.item_id) | /[._-]$/.test(item.item_id)) {
-          return "ID cannot start or end with puncutation";
-        }
-        if (/\s/.test(item.item_id)) {
-          return "ID cannot have any spaces";
-        }
-        if (item.item_id.length < 1 || item.item_id.length > 40) {
-          return "ID must be between 1 and 40 characters in length";
-        }
-        return "";
+        return IDValidationMessage(item.item_id, this.takenItemIds, this.takenSampleIds);
       });
     },
   },

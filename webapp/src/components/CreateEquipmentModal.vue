@@ -98,6 +98,7 @@
 import Modal from "@/components/Modal.vue";
 import ItemSelect from "@/components/ItemSelect.vue";
 import { createNewItem } from "@/server_fetch_utils.js";
+import { IDValidationMessage } from "@/field_utils.js";
 import { itemTypes } from "@/resources.js";
 // import CollectionSelect from "@/components/CollectionSelect.vue";
 export default {
@@ -139,26 +140,7 @@ export default {
         : [];
     },
     equipmentIDValidationMessage() {
-      if (this.item_id == null) {
-        return "";
-      } // Don't throw an error before the user starts typing
-
-      if (
-        this.takenItemIds.includes(this.item_id) ||
-        this.takenEquipmentIds.includes(this.item_id)
-      ) {
-        return `<a href='edit/${this.item_id}'>${this.item_id}</a> already in use.`;
-      }
-      if (!/^[a-zA-Z0-9._-]+$/.test(this.item_id)) {
-        return "ID can only contain alphanumeric characters, dashes ('-') and underscores ('_') and periods ('.')";
-      }
-      if (/^[._-]/.test(this.item_id) | /[._-]$/.test(this.item_id)) {
-        return "ID cannot start or end with puncutation";
-      }
-      if (this.item_id.length < 1 || this.item_id.length > 40) {
-        return "ID must be between 1 and 40 characters in length";
-      }
-      return "";
+      return IDValidationMessage(this.item_id, this.takenItemIds, this.takenEquipmentIds);
     },
   },
   methods: {

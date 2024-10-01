@@ -9,7 +9,7 @@
     @search="debouncedAsyncSearch"
   >
     <template #no-options="{ searching }">
-      <span v-if="validationMessage" class="form-error">{{ validationMessage }}</span>
+      <span v-if="IDValidationMessage" class="form-error">{{ IDValidationMessage }}</span>
       <span v-else-if="searching"> Collection already selected </span>
       <span v-else class="empty-search"> Search for a collection... </span>
     </template>
@@ -39,6 +39,7 @@
 import vSelect from "vue-select";
 import FormattedCollectionName from "@/components/FormattedCollectionName.vue";
 import { searchCollections, createNewCollection } from "@/server_fetch_utils.js";
+import { IDValidationMessage } from "@/field_utils.js";
 import { debounceTime } from "@/resources.js";
 
 export default {
@@ -82,7 +83,7 @@ export default {
         this.searchQuery &&
         !this.collections.some((item) => item.collection_id === this.searchQuery) &&
         !valueSafe.some((item) => item.collection_id === this.searchQuery) &&
-        !this.IDValidationMessage()
+        !this.IDValidationMessage
       ) {
         return [
           ...this.collections,
@@ -94,8 +95,8 @@ export default {
       }
       return this.collections;
     },
-    validationMessage() {
-      return this.IDValidationMessage();
+    IDValidationMessage() {
+      return IDValidationMessage(this.searchQuery);
     },
   },
   methods: {
@@ -126,20 +127,8 @@ export default {
         loading(false);
       }, debounceTime);
     },
-    IDValidationMessage() {
-      if (this.searchQuery && !/^[a-zA-Z0-9_-]+$/.test(this.searchQuery)) {
-        return "ID can only contain alphanumeric characters, dashes ('-'), and underscores ('_').";
-      }
-      if (/^[._-]/.test(this.searchQuery) | /[._-]$/.test(this.searchQuery)) {
-        return "ID cannot start or end with punctuation";
-      }
-      if ((this.searchQuery && this.searchQuery.length < 1) || this.searchQuery.length > 40) {
-        return "ID must be between 1 and 40 characters.";
-      }
-      return "";
-    },
     async handleCreateNewCollection() {
-      if (this.IDValidationMessage()) {
+      if (this.IDValidationMessage) {
         return;
       } else {
         try {

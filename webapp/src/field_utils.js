@@ -60,3 +60,35 @@ export function createComputedSetterForCollectionField(collection_field) {
     },
   };
 }
+
+export function IDValidationMessage(
+  id,
+  takenItemIds = [],
+  takenSampleIds = [],
+  takenCollectionIds = [],
+  takenEquipmentIds = [],
+) {
+  if (id == null) {
+    return "";
+  }
+
+  if (
+    takenItemIds.includes(id) ||
+    takenSampleIds.includes(id) ||
+    takenCollectionIds.includes(id) ||
+    takenEquipmentIds.includes(id)
+  ) {
+    return `<a href='edit/${id}'>${id}</a> already in use.`;
+  }
+
+  if (!/^[a-zA-Z0-9_-]+$/.test(id)) {
+    return "ID can only contain alphanumeric characters, dashes ('-'), and underscores ('_').";
+  }
+  if (/^[._-]/.test(id) | /[._-]$/.test(id)) {
+    return "ID cannot start or end with punctuation";
+  }
+  if (id.length < 1 || id.length > 40) {
+    return "ID must be between 1 and 40 characters.";
+  }
+  return "";
+}

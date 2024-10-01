@@ -47,6 +47,7 @@
 import Modal from "@/components/Modal.vue";
 import ItemSelect from "@/components/ItemSelect.vue";
 import { createNewCollection } from "@/server_fetch_utils.js";
+import { IDValidationMessage } from "@/field_utils.js";
 
 export default {
   name: "CreateCollectionModal",
@@ -73,20 +74,7 @@ export default {
         : [];
     },
     IDValidationMessage() {
-      if (this.collection_id == null) {
-        return "";
-      } // Don't throw an error before the user starts typing
-
-      if (this.takenCollectionIds.includes(this.collection_id)) {
-        return `<a href='edit/${this.collection_id}'>${this.collection_id}</a> already in use.`;
-      }
-      if (!/^[a-zA-Z0-9_-]+$/.test(this.collection_id)) {
-        return "ID can only contain alphanumeric characters, dashes ('-') and underscores ('_')";
-      }
-      if (this.collection_id.length < 1 || this.collection_id.length > 40) {
-        return "ID must be between 1 and 40 characters in length";
-      }
-      return "";
+      return IDValidationMessage(this.collection_id, this.takenCollectionIds);
     },
   },
   methods: {
