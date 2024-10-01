@@ -19,11 +19,11 @@
         </div>
         <div class="form-row">
           <div class="col-md-12 form-group">
-            <label for="collection-select">Insert into collection:</label>
+            <label id="addToCollectionLabel">Insert into collection:</label>
             <CollectionSelect
               id="collection-select"
-              v-model="startInCollection"
-              aria-labelledby="startInCollection"
+              v-model="addToCollection"
+              aria-labelledby="addToCollectionLabel"
               multiple
             />
           </div>
@@ -62,13 +62,13 @@ export default {
   emits: ["update:modelValue", "itemsUpdated"],
   data() {
     return {
-      startInCollection: [],
+      addToCollection: [],
     };
   },
   methods: {
     async submitForm() {
       try {
-        const collectionIds = this.startInCollection.map((collection) => collection.collection_id);
+        const collectionIds = this.addToCollection.map((collection) => collection.collection_id);
         const refcodes = this.itemsSelected.map((item) => item.refcode);
 
         for (const collectionId of collectionIds) {

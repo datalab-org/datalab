@@ -31,14 +31,18 @@ let sample_ids = [
   "component4",
 ];
 
+let collection_ids = ["test_collection"];
+
 before(() => {
   cy.visit("/");
   cy.removeAllTestSamples(sample_ids, true);
+  cy.removeAllTestCollections(collection_ids, true);
 });
 
 after(() => {
   cy.visit("/");
   cy.removeAllTestSamples(sample_ids, true);
+  cy.removeAllTestCollections(collection_ids, true);
 });
 
 describe("Sample table page", () => {
@@ -300,5 +304,21 @@ describe.only("Advanced sample creation features", () => {
       .eq(0)
       .should("have.value", "100"); // eq(1) gets the second element that matches
     cy.get("#synthesis-information tbody tr:nth-of-type(3) input").eq(0).should("have.value", ""); // eq(1) gets the second element that matches
+  });
+  it("selects a sample by checkbox, adds it to a new collection, then checks the collections page", () => {
+    // Insert 'component4' into new collection called 'test_collection'
+    let test_id = "component4";
+    cy.selectSampleCheckbox(test_id);
+    cy.findByText("Add to collection").click();
+    cy.findByLabelText("Insert into collection:").type("test_collection");
+    cy.findByText('Create new collection: "test_collection"').click();
+    cy.get('form[data-testid="add-to-collection-form"]').within(() => {
+      cy.findByText("Submit").click();
+    });
+    // Visit collections page and look for 'test_collection'
+    cy.visit("/collections");
+    // Visit edit page of collection and check that the sample is there
+    cy.findByText("test_collection").click();
+    cy.findByText(test_id).should("exist");
   });
 });
