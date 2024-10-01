@@ -1,5 +1,7 @@
 from typing import Dict, Sequence, Type
 
+from pydatalab.apps.buba import BubaBlock
+
 # These app imports will be replaced by dynamic plugins in a future version
 from pydatalab.apps.chat.blocks import ChatBlock
 from pydatalab.apps.echem import CycleBlock
@@ -13,6 +15,7 @@ from pydatalab.blocks.common import CommentBlock, MediaBlock, NotSupportedBlock,
 
 BLOCKS: Sequence[Type["DataBlock"]] = (
     CommentBlock,
+    BubaBlock,
     MediaBlock,
     XRDBlock,
     CycleBlock,
@@ -31,6 +34,7 @@ __all__ = (
     "CommentBlock",
     "MediaBlock",
     "XRDBlock",
+    "BubaBlock",
     "ChatBlock",
     "EISBlock",
     "CycleBlock",

@@ -9,6 +9,8 @@ site/
 webapp/cypress/screenshots
 webapp/cypress/videos
 
+pydatalab/plugins
+
 #starting material files
 greyGroup_chemInventory*
 
