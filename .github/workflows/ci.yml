@@ -123,12 +123,6 @@ jobs:
   docker:
     name: Test dev Docker builds
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        target:
-          - "app_dev"
-          - "api_dev"
-          - "database_dev"
 
     steps:
       - uses: actions/checkout@v4
@@ -143,8 +137,20 @@ jobs:
           load: true
           targets: ${{ matrix.target }}
           set: |
-            *.cache-to=type=gha,scope=build-${{ matrix.target }},mode=max
-            *.cache-from=type=gha,scope=build-${{ matrix.target }}
+            app_dev.cache-to=type=gha,scope=build-app_dev,mode=max
+            app_dev.cache-from=type=gha,scope=build-app_dev
+            app_dev.tags=datalab-app_dev:latest
+            api_dev.cache-to=type=gha,scope=build-api_dev,mode=max
+            api_dev.cache-from=type=gha,scope=build-api_dev
+            api_dev.tags=datalab-api_dev:latest
+            database_dev.cache-to=type=gha,scope=build-database-dev,mode=max
+            database_dev.cache-from=type=gha,scope=build-database_dev
+            database_dev.tags=datalab-database_dev:latest
+
+      - name: Start services
+        run: |
+          # Launch dev container profiles and wait for them to come up with healthchecks
+          docker compose up app_dev api_dev database_dev --wait --no-build --force-recreate -d
 
   e2e:
     name: e2e tests

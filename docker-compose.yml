@@ -64,7 +64,7 @@ services:
     volumes:
       - ./logs:/logs
       - ./.git:/.git
-      - ./pydatalab:/app
+      - ./pydatalab/src:/app
     ports:
       - "5001:5001"
     networks:
