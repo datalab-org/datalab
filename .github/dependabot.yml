@@ -7,7 +7,6 @@ updates:
     day: monday
     time: "05:43"
   target-branch: main
-  versioning-strategy: lockfile-only
   labels:
   - dependency_updates
   groups:
