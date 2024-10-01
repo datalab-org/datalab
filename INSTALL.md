@@ -178,10 +178,15 @@ Finally, recreate the lock files with:
 ```shell
 uv pip compile pyproject.toml -o requirements/requirements-all-dev.txt --extra all --extra dev
 uv pip compile pyproject.toml -o requirements/requirements-all.txt --extra all
+uv lock
 ```
 
 You should then inspect the changes to the requirements files (only your new
 package and its subdependencies should have been added) and commit the changes.
+
+> Regenerating the `Pipfile.lock` will not be necessary for long, but in this
+> case it can be synced with the requirements.txt files via `pipenv install -r requirements/requirements-all-dev.txt`,
+> and the resulting `Pipfile.lock` can be committed to the repository.
 
 ### Test server authentication/authorisation
 
