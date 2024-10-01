@@ -223,6 +223,14 @@ export default {
   methods: {
     goToEditPage(event) {
       const row = event.data;
+      let row_id = null;
+
+      // Check if the row has an item ID, otherwise default to collection ID
+      if (!row.item_id && row.collection_id) {
+        row_id = row.collection_id;
+      } else {
+        row_id = row.item_id;
+      }
 
       if (event.originalEvent.target.classList.contains("checkbox")) {
         return null;
@@ -233,9 +241,9 @@ export default {
         event.originalEvent.metaKey ||
         event.originalEvent.altKey
       ) {
-        window.open(`/${this.editPageRoutePrefix}/${row.item_id}`, "_blank");
+        window.open(`/${this.editPageRoutePrefix}/${row_id}`, "_blank");
       } else {
-        this.$router.push(`/${this.editPageRoutePrefix}/${row.item_id}`);
+        this.$router.push(`/${this.editPageRoutePrefix}/${row_id}`);
       }
     },
     getComponentProps(componentName, data) {
