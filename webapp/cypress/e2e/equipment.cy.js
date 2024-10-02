@@ -91,7 +91,8 @@ describe("Equipment table page", () => {
       .find("input[type='checkbox']")
       .click();
 
-    cy.get("[data-testid=delete-selected-button]").click();
+    cy.get(".p-splitbutton-dropdown").click();
+    cy.contains("Delete selected").click({ force: true });
 
     cy.on("window:confirm", (text) => {
       expect(text).to.contains("test_e2");

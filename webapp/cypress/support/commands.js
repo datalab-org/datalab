@@ -82,7 +82,8 @@ Cypress.Commands.add("deleteSamples", (items_id) => {
     cy.selectSampleCheckbox(item_id);
   });
 
-  cy.get("[data-testid=delete-selected-button]").click();
+  cy.get(".p-splitbutton-dropdown").click();
+  cy.contains("Delete selected").click({ force: true });
 
   cy.on("window:confirm", (text) => {
     expect(text).to.contains(items_id);
