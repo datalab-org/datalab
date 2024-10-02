@@ -70,7 +70,7 @@ Cypress.Commands.add("verifySample", (item_id, name = null, date = null) => {
 
 Cypress.Commands.add("selectSampleCheckbox", (item_id) => {
   cy.get("[data-testid=sample-table]")
-    .contains(item_id)
+    .contains(new RegExp("^" + item_id + "$", "g"))
     .parents("tr")
     .find("input[type='checkbox']")
     .click();
@@ -79,7 +79,11 @@ Cypress.Commands.add("selectSampleCheckbox", (item_id) => {
 Cypress.Commands.add("deleteSamples", (items_id) => {
   cy.log("search for and delete: " + items_id);
   items_id.forEach((item_id) => {
-    cy.selectSampleCheckbox(item_id);
+    cy.get("[data-testid=sample-table]")
+      .contains(new RegExp("^" + item_id + "$", "g"))
+      .parents("tr")
+      .find("input[type='checkbox']")
+      .click();
   });
 
   cy.get("[data-testid=delete-selected-button]").click();
