@@ -102,7 +102,7 @@ chat = [
 
 # Install local plugin
 buba = [
-    "buba-utils @ git+ssh://git@github.com/avnos-research/test-rig#egg=buba-utils"
+    "buba-utils",
 ]
 
 
@@ -125,3 +125,6 @@ unfixable = []
 per-file-ignores = {}
 # Allow unused variables when underscore-prefixed.
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.uv.sources]
+buba-utils = { path = "plugins/test-rig" }

@@ -312,12 +312,26 @@ wheels = [
 [[package]]
 name = "buba-utils"
 version = "0.0.1"
-source = { git = "ssh://git@github.com/avnos-research/test-rig#301754893727936002c9a88aa294244be13599a0" }
+source = { directory = "plugins/test-rig" }
 dependencies = [
     { name = "datalab-api" },
     { name = "matplotlib" },
     { name = "numpy" },
     { name = "pandas" },
+    { name = "scikit-learn" },
+    { name = "scipy" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "datalab-api" },
+    { name = "datalab-server", extras = ["all"], marker = "extra == 'dev'", git = "https://github.com/datalab-org/datalab?subdirectory=pydatalab&rev=v0.5.0-rc.4" },
+    { name = "matplotlib" },
+    { name = "numpy" },
+    { name = "pandas" },
+    { name = "pre-commit", marker = "extra == 'dev'" },
+    { name = "pytest", marker = "extra == 'dev'" },
+    { name = "pytest-cov", marker = "extra == 'dev'" },
     { name = "scikit-learn" },
     { name = "scipy" },
 ]
@@ -689,16 +703,16 @@ wheels = [
 
 [[package]]
 name = "datalab-server"
-version = "0.5.0rc5.dev52+g2028b17.d20241001"
+version = "0.5.0rc5.dev53+ga891ec8.d20241002"
 source = { editable = "." }
 dependencies = [
+    { name = "buba-utils" },
     { name = "navani" },
 ]
 
 [package.optional-dependencies]
 all = [
     { name = "bokeh" },
-    { name = "buba-utils" },
     { name = "flask" },
     { name = "flask-compress" },
     { name = "flask-cors" },
@@ -739,9 +753,6 @@ apps = [
     { name = "python-dateutil" },
     { name = "rosettasciio" },
     { name = "scipy" },
-]
-buba = [
-    { name = "buba-utils" },
 ]
 chat = [
     { name = "langchain" },
@@ -787,7 +798,7 @@ server = [
 [package.metadata]
 requires-dist = [
     { name = "bokeh", marker = "extra == 'server'", specifier = "~=2.4,<3.0" },
-    { name = "buba-utils", marker = "extra == 'buba'", git = "ssh://git@github.com/avnos-research/test-rig" },
+    { name = "buba-utils", directory = "plugins/test-rig" },
     { name = "datalab-server", extras = ["apps", "buba", "chat", "server"], marker = "extra == 'all'" },
     { name = "flask", marker = "extra == 'server'", specifier = "~=3.0" },
     { name = "flask-compress", marker = "extra == 'server'", specifier = "~=1.15" },
