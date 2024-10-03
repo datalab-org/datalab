@@ -40,11 +40,7 @@ class XRDBlock(DataBlock):
             df = parse_xrdml(location)
 
         else:
-            if ext == ".xye":
-                columns = ["twotheta", "intensity", "error"]
-            else:
-                columns = ["twotheta", "intensity"]
-
+            columns = ["twotheta", "intensity", "error"]
             # Try to parse the file by incrementing skiprows until all lines can be cast to np.float64
             skiprows: int = 0
             # Set arbitrary limit to avoid infinite loop; a header of 10,000 lines is unlikely to be useful
