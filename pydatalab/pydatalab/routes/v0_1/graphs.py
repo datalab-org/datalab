@@ -31,7 +31,7 @@ def get_graph_cy_format(item_id: Optional[str] = None, collection_id: Optional[s
             query = {}
         all_documents = flask_mongo.db.items.find(
             {**query, **get_default_permissions(user_only=False)},
-            projection={"item_id": 1, "name": 1, "type": 1, "relationships": 1},
+            projection={"item_id": 1, "name": 1, "type": 1, "relationships": 1, "deleted": 1},
         )
         node_ids: Set[str] = {document["item_id"] for document in all_documents}
         all_documents.rewind()
@@ -43,7 +43,7 @@ def get_graph_cy_format(item_id: Optional[str] = None, collection_id: Optional[s
                     "$or": [{"item_id": item_id}, {"relationships.item_id": item_id}],
                     **get_default_permissions(user_only=False),
                 },
-                projection={"item_id": 1, "name": 1, "type": 1, "relationships": 1},
+                projection={"item_id": 1, "name": 1, "type": 1, "relationships": 1, "deleted": 1},
             )
         )
 
@@ -59,7 +59,7 @@ def get_graph_cy_format(item_id: Optional[str] = None, collection_id: Optional[s
                     "$or": or_query,
                     **get_default_permissions(user_only=False),
                 },
-                projection={"item_id": 1, "name": 1, "type": 1, "relationships": 1},
+                projection={"item_id": 1, "name": 1, "type": 1, "relationships": 1, "deleted": 1},
             )
 
             all_documents.extend(next_shell)
@@ -71,7 +71,12 @@ def get_graph_cy_format(item_id: Optional[str] = None, collection_id: Optional[s
     # Collect the elements that have already been added to the graph, to avoid duplication
     drawn_elements = set()
     node_collections = set()
+    deleted_items = set()
     for document in all_documents:
+        if document.get("deleted", None):
+            deleted_items.add(document["item_id"])
+            continue
+
         for relationship in document.get("relationships", []):
             # only considering child-parent relationships
             if relationship.get("type") == "collections" and not collection_id:
@@ -122,6 +127,8 @@ def get_graph_cy_format(item_id: Optional[str] = None, collection_id: Optional[s
             source = relationship["item_id"]
             if source not in node_ids:
                 continue
+            if target not in node_ids:
+                continue
             edge_id = f"{source}->{target}"
             if edge_id not in drawn_elements:
                 drawn_elements.add(edge_id)
@@ -148,6 +155,14 @@ def get_graph_cy_format(item_id: Optional[str] = None, collection_id: Optional[s
                     }
                 }
             )
+
+    # Filter out any edges to deleted nodes
+    edges_to_remove = []
+    for ind, edge in enumerate(edges):
+        if edge["data"]["source"] in deleted_items or edge["data"]["target"] in deleted_items:
+            edges_to_remove.append(edge["data"]["id"])
+
+    edges = [edge for edge in edges if edge["data"]["id"] not in edges_to_remove]
 
     # We want to filter out all the starting materials that don't have relationships since there are so many of them:
     whitelist = {edge["data"]["source"] for edge in edges}

@@ -78,3 +78,18 @@ class IsCollectable(BaseModel):
             raise RuntimeError("Relationships and collections mismatch")
 
         return values
+
+
+class IsDeletable(BaseModel):
+    """Adds a 'private' trait for whether the item is deleted.
+    This can be used to soft-delete entries in the database.
+    """
+
+    deleted: bool = Field(None)
+
+    @root_validator(pre=True)
+    def check_deleted(cls, values):
+        """If `deleted` is set to anything but `True`, drop the field."""
+        if "deleted" in values and values["deleted"] is not True:
+            values.pop("deleted")
+        return values

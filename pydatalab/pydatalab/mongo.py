@@ -6,6 +6,8 @@ from flask_pymongo import PyMongo
 from pydantic import BaseModel
 from pymongo.errors import ConnectionFailure
 
+from pydatalab.logger import LOGGER
+
 __all__ = (
     "flask_mongo",
     "check_mongo_connection",
@@ -78,6 +80,7 @@ def check_mongo_connection() -> None:
 def create_default_indices(
     client: Optional[pymongo.MongoClient] = None,
     background: bool = False,
+    allow_rebuild: bool = False,
 ) -> List[str]:
     """Creates indices for the configured or passed MongoClient.
 
@@ -88,7 +91,10 @@ def create_default_indices(
         - A text index over user names and identities.
 
     Parameters:
+        client: The MongoClient to use. If None, a new one will be created.
         background: If true, indexes will be created as background jobs.
+        allow_rebuild: If true, named indexes will be recreated if they already exist
+            with alternative options.
 
     Returns:
         A list of messages returned by each `create_index` call.
@@ -137,14 +143,30 @@ def create_default_indices(
         weights={"collection_id": 3, "title": 3, "description": 3},
     )
 
-    ret += db.items.create_index("type", name="item type", background=background)
-    ret += db.items.create_index(
-        "item_id", unique=True, name="unique item ID", background=background
-    )
-    ret += db.items.create_index(
-        "refcode", unique=True, name="unique refcode", background=background
-    )
-    ret += db.items.create_index("last_modified", name="last modified", background=background)
+    indices = [
+        {"type": {"name": "item type", "background": background}},
+        {
+            "item_id": {
+                "name": "unique item ID",
+                "unique": True,
+                "background": background,
+                "partialFilterExpression": {"deleted": {"$eq": None}},
+            }
+        },
+        {"refcode": {"name": "unique refcode", "unique": True, "background": background}},
+        {"last_modified": {"name": "last modified", "background": background}},
+        {"creator_ids": {"name": "creators", "background": background}},
+        {"deleted": {"name": "deleted items", "background": background}},
+    ]
+
+    for index in indices:
+        for field, options in index.items():
+            try:
+                ret += db.items.create_index(field, **options)
+            except pymongo.errors.OperationFailure as exc:
+                LOGGER.warning("Rebuilding index %s", options["name"], exc_info=exc)
+                db.items.drop_index(options["name"])
+                ret += db.items.create_index(field, **options)
 
     user_fts_fields = {"identities.name", "display_name"}
 
