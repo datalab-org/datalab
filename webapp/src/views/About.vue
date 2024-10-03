@@ -34,7 +34,9 @@
             </tr>
             <tr>
               <td>App version</td>
-              <td><code>0.4.0</code></td>
+              <td>
+                <code>{{ appVersion }}</code>
+              </td>
             </tr>
           </table>
         </div>
@@ -75,12 +77,14 @@
 import Navbar from "@/components/Navbar";
 import { getInfo } from "@/server_fetch_utils.js";
 import StatisticsTable from "@/components/StatisticsTable";
+import packageInfo from "../../package.json";
 
 export default {
   components: { Navbar, StatisticsTable },
   data() {
     return {
       apiInfo: { server_version: "unknown" },
+      appVersion: packageInfo.version,
     };
   },
   async mounted() {
