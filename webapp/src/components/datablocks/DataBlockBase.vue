@@ -56,12 +56,12 @@
           @click="toggleExpandErrors"
         />
         <ul v-if="isErrorsExpanded" class="fa-ul">
-          <li v-for="(error, index) in testErrors.slice(0, 5)" :key="index">
+          <li v-for="(error, index) in block.errors.slice(0, 5)" :key="index">
             <font-awesome-icon class="fa-li" icon="exclamation-circle" />
             {{ error }}
           </li>
-          <p v-if="testErrors.length > 5">
-            And {{ testErrors.length - 5 }} more error{{ testErrors.length - 5 > 1 ? "s" : "" }} ...
+          <p v-if="block.errors.length > 5">
+            And {{ block.errors - 5 }} more error{{ block.errors.length - 5 > 1 ? "s" : "" }} ...
           </p>
         </ul>
         <ul v-if="!isErrorsExpanded" class="fa-ul">
@@ -85,13 +85,13 @@
           @click="toggleExpandWarnings"
         />
         <ul v-if="isWarningsExpanded" class="fa-ul">
-          <li v-for="(warning, index) in testWarnings.slice(0, 5)" :key="index">
+          <li v-for="(warning, index) in block.warnings.slice(0, 5)" :key="index">
             <font-awesome-icon class="fa-li" icon="exclamation-triangle" />
             {{ warning }}
           </li>
-          <p v-if="testWarnings.length > 5">
-            And {{ testWarnings.length - 5 }} more warning{{
-              testWarnings.length - 5 > 1 ? "s" : ""
+          <p v-if="block.warnings.length > 5">
+            And {{ block.warnings.length - 5 }} more warning{{
+              block.warnings.length - 5 > 1 ? "s" : ""
             }}
             ...
           </p>
