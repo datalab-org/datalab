@@ -67,7 +67,7 @@
         <ul v-if="!isErrorsExpanded" class="fa-ul">
           <li>
             <font-awesome-icon class="fa-li" icon="exclamation-circle" />
-            {{ block.errors.length }} Error(s)
+            {{ block.errors.length }} error(s) (click to expand)
           </li>
         </ul>
       </div>
@@ -99,7 +99,7 @@
         <ul v-if="!isWarningsExpanded" class="fa-ul">
           <li>
             <font-awesome-icon class="fa-li" icon="exclamation-triangle" />
-            {{ block.warnings.length }} Warning(s)
+            {{ block.warnings.length }} warning(s) (click to expand)
           </li>
         </ul>
       </div>
