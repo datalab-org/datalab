@@ -85,19 +85,7 @@ describe("Equipment table page", () => {
   });
 
   it("Deletes an item", function () {
-    cy.get("[data-testid=equipment-table]")
-      .contains(new RegExp("^" + "test_e2" + "$", "g"))
-      .parents("tr")
-      .find("input[type='checkbox']")
-      .click();
-
-    cy.get(".p-splitbutton-dropdown").click();
-    cy.contains("Delete selected").click({ force: true });
-
-    cy.on("window:confirm", (text) => {
-      expect(text).to.contains("test_e2");
-      return true;
-    });
+    cy.deleteItems("equipment", ["test_e2"]);
 
     cy.contains("test_e2").should("not.exist");
 

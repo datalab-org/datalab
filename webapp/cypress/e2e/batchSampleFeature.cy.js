@@ -103,7 +103,7 @@ describe("Batch sample creation", () => {
     cy.verifySample("testB", "this sample has a name");
     cy.verifySample("testC");
 
-    cy.deleteSamples(["testA", "testB", "testC"]);
+    cy.deleteItems("sample", ["testA", "testB", "testC"]);
   });
 
   it("adds two valid samples", () => {
@@ -437,7 +437,7 @@ describe("Batch sample creation", () => {
     cy.verifySample("test_2", "testing 1,2");
     cy.verifySample("test_3", "testing 1,2,3");
 
-    cy.deleteSamples(["test_1", "test_2", "test_3"]);
+    cy.deleteItems("sample", ["test_1", "test_2", "test_3"]);
   });
 
   it("uses the template id, name, and date", () => {
@@ -460,7 +460,7 @@ describe("Batch sample creation", () => {
     cy.verifySample("test_6", "this is the test sample #6", "1980-02-01T05:35");
     cy.verifySample("test_7", "this is the test sample #7", "1980-02-01T05:35");
 
-    cy.deleteSamples(["test_5", "test_6", "test_7"]);
+    cy.deleteItems("sample", ["test_5", "test_6", "test_7"]);
   });
 
   it("uses the template id, name, date, copyFrom, and components", () => {
@@ -649,7 +649,7 @@ describe("Batch sample creation", () => {
     cy.verifySample("test2", "name2");
     checkCreatedSample("test1");
     checkCreatedSample("test2");
-    cy.deleteSamples(["test1", "test2"]);
+    cy.deleteItems("sample", ["test1", "test2"]);
   });
 
   it("checks errors on the row", () => {

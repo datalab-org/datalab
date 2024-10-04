@@ -47,7 +47,7 @@
     <div class="button-right d-flex">
       <div class="dropdown">
         <button
-          id="selectedDropdown"
+          data-testid="selected-dropdown"
           class="btn btn-default dropdown-toggle"
           type="button"
           data-toggle="dropdown"
@@ -66,18 +66,24 @@
         >
           <a
             v-if="itemsSelected.length !== 0 && dataType !== 'collections'"
+            data-testid="add-to-collection-button"
             class="dropdown-item"
             @click="handleAddToCollection"
           >
             Add to collection
           </a>
-          <a v-if="itemsSelected.length !== 0" class="dropdown-item" @click="confirmDeletion">
+          <a
+            v-if="itemsSelected.length !== 0"
+            data-testid="delete-selected-button"
+            class="dropdown-item"
+            @click="confirmDeletion"
+          >
             Delete selected
           </a>
         </div>
       </div>
 
-      <IconField class="">
+      <IconField>
         <InputIcon>
           <i class="pi pi-search"></i>
         </InputIcon>
@@ -152,6 +158,13 @@ export default {
       localFilters: { ...this.filters },
       isSelectedDropdownVisible: false,
     };
+  },
+  watch: {
+    itemsSelected(newVal) {
+      if (newVal.length === 0) {
+        this.isSelectedDropdownVisible = false;
+      }
+    },
   },
   methods: {
     confirmDeletion() {

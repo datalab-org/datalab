@@ -68,22 +68,22 @@ Cypress.Commands.add("verifySample", (item_id, name = null, date = null) => {
     });
 });
 
-Cypress.Commands.add("selectSampleCheckbox", (item_id) => {
-  cy.get("[data-testid=sample-table]")
+Cypress.Commands.add("selectItemCheckbox", (type, item_id) => {
+  cy.get(`[data-testid=${type}-table]`)
     .contains(new RegExp("^" + item_id + "$", "g"))
     .parents("tr")
     .find("input[type='checkbox']")
     .click();
 });
 
-Cypress.Commands.add("deleteSamples", (items_id) => {
+Cypress.Commands.add("deleteItems", (type, items_id) => {
   cy.log("search for and delete: " + items_id);
   items_id.forEach((item_id) => {
-    cy.selectSampleCheckbox(item_id);
+    cy.selectItemCheckbox(type, item_id);
   });
 
-  cy.get(".p-splitbutton-dropdown").click();
-  cy.contains("Delete selected").click({ force: true });
+  cy.get('[data-testid="selected-dropdown"]').click();
+  cy.get('[data-testid="delete-selected-button"]').click();
 
   cy.on("window:confirm", (text) => {
     expect(text).to.contains(items_id);
@@ -91,7 +91,7 @@ Cypress.Commands.add("deleteSamples", (items_id) => {
   });
 
   items_id.forEach((item_id) => {
-    cy.get("[data-testid=sample-table]")
+    cy.get(`[data-testid=${type}-table]`)
       .contains(new RegExp("^" + item_id + "$", "g"))
       .should("not.exist");
   });

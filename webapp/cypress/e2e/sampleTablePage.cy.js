@@ -308,8 +308,9 @@ describe.only("Advanced sample creation features", () => {
   it("selects a sample by checkbox, adds it to a new collection, then checks the collections page", () => {
     // Insert 'component4' into new collection called 'test_collection'
     let test_id = "component4";
-    cy.selectSampleCheckbox(test_id);
-    cy.findByText("Add to collection").click();
+    cy.selectItemCheckbox("sample", test_id);
+    cy.get('[data-testid="selected-dropdown"]').click();
+    cy.get('[data-testid="add-to-collection-button"]').click();
     cy.findByLabelText("Insert into collection:").type("test_collection");
     cy.findByText('Create new collection: "test_collection"').click();
     cy.get('form[data-testid="add-to-collection-form"]').within(() => {
@@ -318,6 +319,7 @@ describe.only("Advanced sample creation features", () => {
     // Visit collections page and look for 'test_collection'
     cy.visit("/collections");
     // Visit edit page of collection and check that the sample is there
+    cy.get('[data-testid="search-input"]').type("test_collection");
     cy.findByText("test_collection").click();
     cy.findByText(test_id).should("exist");
   });
