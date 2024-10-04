@@ -9,6 +9,13 @@ import CollectionPage from "../views/CollectionPage.vue";
 import ExampleGraph from "@/views/ExampleGraph.vue";
 import ItemGraphPage from "@/views/ItemGraphPage.vue";
 import Admin from "@/views/Admin.vue";
+import Login from "../views/Login.vue";
+import { getUserInfo } from "@/server_fetch_utils.js";
+
+const isAuthenticated = async () => {
+  const user = await getUserInfo();
+  return user !== null;
+};
 
 const routes = [
   {
@@ -24,6 +31,12 @@ const routes = [
     name: "samples",
     alias: "/",
     component: Samples,
+  },
+  {
+    path: "/login",
+    name: "login",
+    alias: "/",
+    component: Login,
   },
   {
     path: "/equipment",
@@ -79,6 +92,19 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(process.env.BASE_URL),
   routes,
+});
+
+router.beforeEach(async (to, from, next) => {
+  const isPublicRoute = to.name === "login" || to.name === "About";
+  const authenticated = await isAuthenticated();
+
+  if (isPublicRoute && authenticated) {
+    next({ name: "samples" });
+  } else if (!isPublicRoute && !authenticated) {
+    next({ name: "login" });
+  } else {
+    next();
+  }
 });
 
 export default router;
