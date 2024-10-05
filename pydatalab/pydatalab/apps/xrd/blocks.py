@@ -39,11 +39,31 @@ class XRDBlock(DataBlock):
         if ext == ".xrdml":
             df = parse_xrdml(location)
 
-        elif ext == ".xy":
-            df = pd.read_csv(location, sep=r"\s+", names=["twotheta", "intensity"])
-
         else:
-            df = pd.read_csv(location, sep=r"\s+", names=["twotheta", "intensity", "error"])
+            columns = ["twotheta", "intensity", "error"]
+            # Try to parse the file by incrementing skiprows until all lines can be cast to np.float64
+            skiprows: int = 0
+            # Set arbitrary limit to avoid infinite loop; a header of 10,000 lines is unlikely to be useful
+            while skiprows < 10_000:
+                try:
+                    df = pd.read_csv(
+                        location, sep=r"\s+", names=columns, dtype=np.float64, skiprows=skiprows
+                    )
+                    break
+                except ValueError:
+                    skiprows += 1
+            else:
+                raise RuntimeError(
+                    f"Unable to extract XRD data from file {location}; check file header for irregularities"
+                )
+
+            if skiprows > 0:
+                with open(location) as f:
+                    header = "".join([next(f) for _ in range(skiprows)])
+                    df.attrs["header"] = header
+
+        if len(df) == 0:
+            raise RuntimeError(f"No compatible data found in {location}")
 
         df = df.rename(columns={"twotheta": "2θ (°)"})
 
