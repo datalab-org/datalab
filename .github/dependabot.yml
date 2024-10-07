@@ -9,6 +9,9 @@ updates:
   target-branch: main
   labels:
   - dependency_updates
+  ignore:
+    - dependency-name: "pydantic"
+      versions: [ ">=2" ]
   groups:
     python-dependencies:
       applies-to: version-updates
