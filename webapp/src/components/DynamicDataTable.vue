@@ -26,7 +26,7 @@
       <!-- v-model:expandedRows="expandedRows" -->
 
       <template #header>
-        <DynamicButtonDataTable
+        <DynamicDataTableButtons
           :data-type="dataType"
           :items-selected="itemsSelected"
           :filters="filters"
@@ -106,7 +106,7 @@
 </template>
 
 <script>
-import DynamicButtonDataTable from "@/components/DynamicButtonDataTable";
+import DynamicDataTableButtons from "@/components/DynamicDataTableButtons";
 import CreateItemModal from "@/components/CreateItemModal";
 import BatchCreateItemModal from "@/components/BatchCreateItemModal";
 import QRScannerModal from "@/components/QRScannerModal";
@@ -129,7 +129,7 @@ import InputText from "primevue/inputtext";
 
 export default {
   components: {
-    DynamicButtonDataTable,
+    DynamicDataTableButtons,
     CreateItemModal,
     BatchCreateItemModal,
     QRScannerModal,
@@ -352,7 +352,7 @@ export default {
 };
 </script>
 
-<style>
+<style scoped>
 .customize-table .ag-header {
   font-size: 1rem;
 }
@@ -377,10 +377,6 @@ export default {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.button-right {
-  gap: 0.5em;
 }
 
 .p-datatable-header-cell.filter-active svg {
