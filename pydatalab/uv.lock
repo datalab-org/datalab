@@ -662,12 +662,11 @@ array = [
 
 [[package]]
 name = "datalab-server"
-version = "0.5.0rc5.dev49+gce95aea.d20241007"
+version = "0.5.0rc5.dev49+gc73904f.d20241007"
 source = { editable = "." }
 dependencies = [
     { name = "bokeh" },
     { name = "matplotlib" },
-    { name = "navani" },
     { name = "pandas", extra = ["excel"] },
     { name = "periodictable" },
     { name = "pint" },
@@ -688,6 +687,7 @@ all = [
     { name = "langchain" },
     { name = "langchain-anthropic" },
     { name = "langchain-openai" },
+    { name = "navani" },
     { name = "newarenda" },
     { name = "nmrglue" },
     { name = "paramiko" },
@@ -705,6 +705,7 @@ all = [
 ]
 apps = [
     { name = "galvani" },
+    { name = "navani" },
     { name = "newarenda" },
     { name = "nmrglue" },
     { name = "pybaselines" },
@@ -769,7 +770,7 @@ requires-dist = [
     { name = "mkdocs-material", marker = "extra == 'dev'", specifier = "~=9.5" },
     { name = "mkdocstrings", extras = ["python-legacy"], marker = "extra == 'dev'", specifier = "~=0.25" },
     { name = "mongomock", marker = "extra == 'dev'", specifier = "~=4.1" },
-    { name = "navani", git = "https://github.com/the-grey-group/navani.git?rev=v0.1.5" },
+    { name = "navani", marker = "extra == 'apps'", git = "https://github.com/the-grey-group/navani.git?rev=v0.1.7" },
     { name = "newarenda", marker = "extra == 'apps'", specifier = ">=2024" },
     { name = "nmrglue", marker = "extra == 'apps'", specifier = "~=0.10" },
     { name = "pandas", extras = ["excel"], specifier = "~=2.2" },
@@ -1880,7 +1881,7 @@ wheels = [
 [[package]]
 name = "navani"
 version = "0.1.5"
-source = { git = "https://github.com/the-grey-group/navani.git?rev=v0.1.5#32aa742c3b84aa63fb4e3bd7b1824acb89e2b61d" }
+source = { git = "https://github.com/the-grey-group/navani.git?rev=v0.1.7#d171781b483f0a17a0ada7a043c8f1e243499245" }
 dependencies = [
     { name = "galvani" },
     { name = "matplotlib" },
