@@ -20,8 +20,6 @@ requires-python = ">= 3.10, < 3.12"
 dependencies = [
     "bokeh ~= 2.4, < 3.0",
     "matplotlib ~= 3.8",
-    # Slightly confusing, but git dependencies cannot be included as extra by uv at the moment
-    "navani @ git+https://github.com/the-grey-group/navani.git@v0.1.5",
     "periodictable ~= 1.7",
     "pydantic[email, dotenv] < 2.0",
     "pint ~= 0.24",
@@ -83,6 +81,7 @@ apps = [
     # NMR
     "nmrglue ~= 0.10",
     # Electrochemistry
+    "navani @ git+https://github.com/the-grey-group/navani.git@v0.1.7",
     "galvani ~= 0.4, < 0.5",
     "NewareNDA >= 2024",
     # Raman

@@ -191,7 +191,7 @@ multidict==6.1.0
     # via
     #   aiohttp
     #   yarl
-navani @ git+https://github.com/the-grey-group/navani.git@32aa742c3b84aa63fb4e3bd7b1824acb89e2b61d
+navani @ git+https://github.com/the-grey-group/navani.git@d171781b483f0a17a0ada7a043c8f1e243499245
     # via datalab-server (pyproject.toml)
 newarenda==2024.10.1
     # via
