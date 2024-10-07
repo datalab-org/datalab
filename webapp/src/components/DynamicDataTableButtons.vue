@@ -3,7 +3,7 @@
     <div class="button-left">
       <button
         v-if="dataType === 'samples'"
-        class="btn btn-default"
+        class="btn btn-default ml-2"
         @click="$emit('open-create-item-modal')"
       >
         Add an item
@@ -56,7 +56,7 @@
           :disabled="itemsSelected.length === 0"
           @click="isSelectedDropdownVisible = !isSelectedDropdownVisible"
         >
-          {{ itemsSelected.length > 0 ? `${itemsSelected.length} selected ` : "Selected ... " }}
+          {{ itemsSelected.length > 0 ? `${itemsSelected.length} selected ... ` : "Selected ... " }}
         </button>
         <div
           v-show="isSelectedDropdownVisible"
@@ -205,5 +205,9 @@ export default {
   font-size: 1rem;
   line-height: 1.5;
   border-radius: 0.25rem;
+}
+
+.button-right {
+  gap: 0.5em;
 }
 </style>
