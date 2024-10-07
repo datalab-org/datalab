@@ -662,15 +662,20 @@ array = [
 
 [[package]]
 name = "datalab-server"
-version = "0.5.0rc5.dev33+g788a185.d20241001"
+version = "0.5.0rc5.dev49+gce95aea.d20241007"
 source = { editable = "." }
 dependencies = [
+    { name = "bokeh" },
+    { name = "matplotlib" },
     { name = "navani" },
+    { name = "pandas", extra = ["excel"] },
+    { name = "periodictable" },
+    { name = "pint" },
+    { name = "pydantic", extra = ["dotenv", "email"] },
 ]
 
 [package.optional-dependencies]
 all = [
-    { name = "bokeh" },
     { name = "flask" },
     { name = "flask-compress" },
     { name = "flask-cors" },
@@ -683,16 +688,11 @@ all = [
     { name = "langchain" },
     { name = "langchain-anthropic" },
     { name = "langchain-openai" },
-    { name = "matplotlib" },
     { name = "newarenda" },
     { name = "nmrglue" },
-    { name = "pandas", extra = ["excel"] },
     { name = "paramiko" },
-    { name = "periodictable" },
     { name = "pillow" },
-    { name = "pint" },
     { name = "pybaselines" },
-    { name = "pydantic", extra = ["dotenv", "email"] },
     { name = "pyjwt" },
     { name = "pymongo" },
     { name = "python-dateutil" },
@@ -731,7 +731,6 @@ dev = [
     { name = "pytest-dependency" },
 ]
 server = [
-    { name = "bokeh" },
     { name = "flask" },
     { name = "flask-compress" },
     { name = "flask-cors" },
@@ -740,13 +739,8 @@ server = [
     { name = "flask-mail" },
     { name = "flask-pymongo" },
     { name = "invoke" },
-    { name = "matplotlib" },
-    { name = "pandas", extra = ["excel"] },
     { name = "paramiko" },
-    { name = "periodictable" },
     { name = "pillow" },
-    { name = "pint" },
-    { name = "pydantic", extra = ["dotenv", "email"] },
     { name = "pyjwt" },
     { name = "pymongo" },
     { name = "python-dotenv" },
@@ -755,7 +749,7 @@ server = [
 
 [package.metadata]
 requires-dist = [
-    { name = "bokeh", marker = "extra == 'server'", specifier = "~=2.4,<3.0" },
+    { name = "bokeh", specifier = "~=2.4,<3.0" },
     { name = "datalab-server", extras = ["apps", "chat", "server"], marker = "extra == 'all'" },
     { name = "flask", marker = "extra == 'server'", specifier = "~=3.0" },
     { name = "flask-compress", marker = "extra == 'server'", specifier = "~=1.15" },
@@ -769,7 +763,7 @@ requires-dist = [
     { name = "langchain", marker = "extra == 'chat'", specifier = "==0.2.6" },
     { name = "langchain-anthropic", marker = "extra == 'chat'", specifier = "~=0.1" },
     { name = "langchain-openai", marker = "extra == 'chat'", specifier = "~=0.1" },
-    { name = "matplotlib", marker = "extra == 'server'", specifier = "~=3.8" },
+    { name = "matplotlib", specifier = "~=3.8" },
     { name = "mkdocs", marker = "extra == 'dev'", specifier = "~=1.6" },
     { name = "mkdocs-awesome-pages-plugin", marker = "extra == 'dev'", specifier = "~=2.9" },
     { name = "mkdocs-material", marker = "extra == 'dev'", specifier = "~=9.5" },
@@ -778,14 +772,14 @@ requires-dist = [
     { name = "navani", git = "https://github.com/the-grey-group/navani.git?rev=v0.1.5" },
     { name = "newarenda", marker = "extra == 'apps'", specifier = ">=2024" },
     { name = "nmrglue", marker = "extra == 'apps'", specifier = "~=0.10" },
-    { name = "pandas", extras = ["excel"], marker = "extra == 'server'", specifier = "~=2.2" },
+    { name = "pandas", extras = ["excel"], specifier = "~=2.2" },
     { name = "paramiko", marker = "extra == 'server'", specifier = "~=3.4" },
-    { name = "periodictable", marker = "extra == 'server'", specifier = "~=1.7" },
+    { name = "periodictable", specifier = "~=1.7" },
     { name = "pillow", marker = "extra == 'server'", specifier = "~=10.4" },
-    { name = "pint", marker = "extra == 'server'", specifier = "~=0.24" },
+    { name = "pint", specifier = "~=0.24" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = "~=3.7" },
     { name = "pybaselines", marker = "extra == 'apps'", specifier = "~=1.1" },
-    { name = "pydantic", extras = ["dotenv", "email"], marker = "extra == 'server'", specifier = "<2.0" },
+    { name = "pydantic", extras = ["dotenv", "email"], specifier = "<2.0" },
     { name = "pyjwt", marker = "extra == 'server'", specifier = "~=2.9" },
     { name = "pymongo", marker = "extra == 'server'", specifier = "~=4.7" },
     { name = "pytest", marker = "extra == 'dev'", specifier = "~=8.2" },
