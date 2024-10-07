@@ -56,7 +56,7 @@
           :disabled="itemsSelected.length === 0"
           @click="isSelectedDropdownVisible = !isSelectedDropdownVisible"
         >
-          {{ itemsSelected.length > 0 ? `${itemsSelected.length} selected ... ` : "Selected ... " }}
+          {{ itemsSelected.length > 0 ? `${itemsSelected.length} selected... ` : "Selected... " }}
         </button>
         <div
           v-show="isSelectedDropdownVisible"
