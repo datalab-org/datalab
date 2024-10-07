@@ -9,6 +9,7 @@ updates:
   target-branch: main
   labels:
   - dependency_updates
+  versioning-strategy: lockfile-only
   ignore:
     - dependency-name: "pydantic"
       versions: [ ">=2" ]
