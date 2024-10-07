@@ -18,8 +18,14 @@ classifiers = [
 requires-python = ">= 3.10, < 3.12"
 
 dependencies = [
+    "bokeh ~= 2.4, < 3.0",
+    "matplotlib ~= 3.8",
     # Slightly confusing, but git dependencies cannot be included as extra by uv at the moment
     "navani @ git+https://github.com/the-grey-group/navani.git@v0.1.5",
+    "periodictable ~= 1.7",
+    "pydantic[email, dotenv] < 2.0",
+    "pint ~= 0.24",
+    "pandas[excel] ~= 2.2",
 ]
 
 [project.urls]
@@ -55,9 +61,7 @@ dev = [
 ]
 
 server = [
-    "pydantic[email, dotenv] < 2.0",
     "pymongo ~= 4.7",
-    "bokeh ~= 2.4, < 3.0",
     "Flask ~= 3.0",
     "Flask-Login ~= 0.6",
     "Flask-Cors ~= 5.0",
@@ -66,11 +70,7 @@ server = [
     "Flask-Mail ~= 0.10",
     "Flask-Compress ~= 1.15",
     "Werkzeug ~= 3.0",
-    "pandas[excel] ~= 2.2",
-    "matplotlib ~= 3.8",
     "python-dotenv ~= 1.0",
-    "pint ~= 0.24",
-    "periodictable ~= 1.7",
     "pillow ~= 10.4",
     "pyjwt ~= 2.9",
     "invoke ~= 2.2",
