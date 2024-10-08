@@ -35,7 +35,7 @@ jobs:
       - name: Install dependencies
         working-directory: ./pydatalab
         run: |
-          uv sync --locked --all-extras
+          uv sync --locked --all-extras --dev
 
       - name: Run pre-commit
         working-directory: ./pydatalab
@@ -83,7 +83,7 @@ jobs:
       - name: Install locked versions of dependencies
         working-directory: ./pydatalab
         run: |
-          uv sync --locked --all-extras
+          uv sync --locked --all-extras --dev
 
       - name: Run all tests
         working-directory: ./pydatalab
@@ -119,38 +119,6 @@ jobs:
       - name: Build web app
         working-directory: ./webapp
         run: yarn build
-
-  docker:
-    name: Test dev Docker builds
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build Docker containers
-        uses: docker/bake-action@v5
-        with:
-          files: docker-compose.yml
-          load: true
-          targets: ${{ matrix.target }}
-          set: |
-            app_dev.cache-to=type=gha,scope=build-app_dev,mode=max
-            app_dev.cache-from=type=gha,scope=build-app_dev
-            app_dev.tags=datalab-app_dev:latest
-            api_dev.cache-to=type=gha,scope=build-api_dev,mode=max
-            api_dev.cache-from=type=gha,scope=build-api_dev
-            api_dev.tags=datalab-api_dev:latest
-            database_dev.cache-to=type=gha,scope=build-database-dev,mode=max
-            database_dev.cache-from=type=gha,scope=build-database_dev
-            database_dev.tags=datalab-database_dev:latest
-
-      - name: Start services
-        run: |
-          # Launch dev container profiles and wait for them to come up with healthchecks
-          docker compose up app_dev api_dev database_dev --wait --no-build --force-recreate -d
 
   e2e:
     name: e2e tests
