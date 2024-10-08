@@ -71,8 +71,6 @@ export function createComputedSetterForCollectionField(collection_field) {
  * @returns {string} An empty string if the ID is valid and not in use, otherwise an error message.
  *                   If the ID is in use, it returns a string error message with an HTML link to edit the ID.
  *
- * @throws {TypeError} If id is not a string when it's not null.
- *
  * @example
  * // Returns an empty string for a valid ID
  * validateEntryID("valid_id_123");
