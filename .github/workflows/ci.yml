@@ -26,12 +26,16 @@ jobs:
         with:
           python-version: "3.10"
 
-      - name: Set up uv (latest)
-        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "0.4.x"
+          enable-cache: true
 
       - name: Install dependencies
         working-directory: ./pydatalab
-        run: uv sync --all-extras
+        run: |
+          uv sync --locked --all-extras --dev
 
       - name: Run pre-commit
         working-directory: ./pydatalab
@@ -70,13 +74,16 @@ jobs:
         run: |
           wget https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2204-x86_64-100.9.0.deb && sudo apt install ./mongodb-database-tools-*-100.9.0.deb
 
-      - name: Set up uv (latest)
-        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "0.4.x"
+          enable-cache: true
 
       - name: Install locked versions of dependencies
         working-directory: ./pydatalab
         run: |
-          uv sync --all-extras
+          uv sync --locked --all-extras --dev
 
       - name: Run all tests
         working-directory: ./pydatalab
@@ -112,32 +119,6 @@ jobs:
       - name: Build web app
         working-directory: ./webapp
         run: yarn build
-
-  docker:
-    name: Test dev Docker builds
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        target:
-          - "app_dev"
-          - "api_dev"
-          - "database_dev"
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build Docker containers
-        uses: docker/bake-action@v5
-        with:
-          files: docker-compose.yml
-          load: true
-          targets: ${{ matrix.target }}
-          set: |
-            *.cache-to=type=gha,scope=build-${{ matrix.target }},mode=max
-            *.cache-from=type=gha,scope=build-${{ matrix.target }}
 
   e2e:
     name: e2e tests

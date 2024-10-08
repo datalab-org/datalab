@@ -68,17 +68,22 @@ Cypress.Commands.add("verifySample", (item_id, name = null, date = null) => {
     });
 });
 
-Cypress.Commands.add("deleteSamples", (items_id) => {
+Cypress.Commands.add("selectItemCheckbox", (type, item_id) => {
+  cy.get(`[data-testid=${type}-table]`)
+    .contains(new RegExp("^" + item_id + "$", "g"))
+    .parents("tr")
+    .find("input[type='checkbox']")
+    .click();
+});
+
+Cypress.Commands.add("deleteItems", (type, items_id) => {
   cy.log("search for and delete: " + items_id);
   items_id.forEach((item_id) => {
-    cy.get("[data-testid=sample-table]")
-      .contains(new RegExp("^" + item_id + "$", "g"))
-      .parents("tr")
-      .find("input[type='checkbox']")
-      .click();
+    cy.selectItemCheckbox(type, item_id);
   });
 
-  cy.get("[data-testid=delete-selected-button]").click();
+  cy.get('[data-testid="selected-dropdown"]').click();
+  cy.get('[data-testid="delete-selected-button"]').click();
 
   cy.on("window:confirm", (text) => {
     expect(text).to.contains(items_id);
@@ -86,9 +91,18 @@ Cypress.Commands.add("deleteSamples", (items_id) => {
   });
 
   items_id.forEach((item_id) => {
-    cy.get("[data-testid=sample-table]")
+    cy.get(`[data-testid=${type}-table]`)
       .contains(new RegExp("^" + item_id + "$", "g"))
       .should("not.exist");
+  });
+});
+
+Cypress.Commands.add("deleteCollectionViaAPI", (collection_id) => {
+  cy.log("search for and delete: " + collection_id);
+  cy.request({
+    method: "DELETE",
+    url: API_URL + "/collections/" + collection_id,
+    failOnStatusCode: false,
   });
 });
 
@@ -212,6 +226,19 @@ Cypress.Commands.add("removeAllTestSamples", (item_ids, check_sample_table) => {
   });
   if (check_sample_table) {
     cy.visit("/").then(() => {
+      cy.get("[data-testid=sample-table] > tbody > tr").should("have.length", 0);
+    });
+  }
+});
+
+Cypress.Commands.add("removeAllTestCollections", (collection_ids, check_collection_table) => {
+  collection_ids.forEach((collection_id) => {
+    cy.deleteCollectionViaAPI(collection_id);
+  });
+
+  if (check_collection_table) {
+    cy.visit("/collections").then(() => {
+      // The test ID of the collection table is still 'sample table'
       cy.get("[data-testid=sample-table] > tbody > tr").should("have.length", 0);
     });
   }

@@ -44,25 +44,62 @@
       <!-- Show any warnings or errors reported by the block -->
       <div
         v-if="block.errors"
+        ref="errorsContent"
         class="alert alert-danger d-flex align-items-center ml-3"
+        :class="{ expanded: isErrorsExpanded }"
         role="alert"
       >
-        <ul class="fa-ul">
-          <li v-for="(error, index) in block.errors" :key="index">
+        <font-awesome-icon
+          :icon="['fas', 'chevron-right']"
+          fixed-width
+          class="collapse-arrow"
+          @click="toggleExpandErrors"
+        />
+        <ul v-if="isErrorsExpanded" class="fa-ul">
+          <li v-for="(error, index) in block.errors.slice(0, 5)" :key="index">
             <font-awesome-icon class="fa-li" icon="exclamation-circle" />
             {{ error }}
+          </li>
+          <p v-if="block.errors.length > 5">
+            And {{ block.errors - 5 }} more error{{ block.errors.length - 5 > 1 ? "s" : "" }} ...
+          </p>
+        </ul>
+        <ul v-if="!isErrorsExpanded" class="fa-ul">
+          <li>
+            <font-awesome-icon class="fa-li" icon="exclamation-circle" />
+            {{ block.errors.length }} error(s) (click to expand)
           </li>
         </ul>
       </div>
       <div
         v-if="block.warnings"
+        ref="warningsContent"
         class="alert alert-warning d-flex align-items-center ml-3"
+        :class="{ expanded: isWarningsExpanded }"
         role="alert"
       >
-        <ul class="fa-ul">
-          <li v-for="(warning, index) in block.warnings" :key="index">
+        <font-awesome-icon
+          :icon="['fas', 'chevron-right']"
+          fixed-width
+          class="collapse-arrow"
+          @click="toggleExpandWarnings"
+        />
+        <ul v-if="isWarningsExpanded" class="fa-ul">
+          <li v-for="(warning, index) in block.warnings.slice(0, 5)" :key="index">
             <font-awesome-icon class="fa-li" icon="exclamation-triangle" />
             {{ warning }}
+          </li>
+          <p v-if="block.warnings.length > 5">
+            And {{ block.warnings.length - 5 }} more warning{{
+              block.warnings.length - 5 > 1 ? "s" : ""
+            }}
+            ...
+          </p>
+        </ul>
+        <ul v-if="!isWarningsExpanded" class="fa-ul">
+          <li>
+            <font-awesome-icon class="fa-li" icon="exclamation-triangle" />
+            {{ block.warnings.length }} warning(s) (click to expand)
           </li>
         </ul>
       </div>
@@ -107,6 +144,8 @@ export default {
       isExpanded: true,
       contentMaxHeight: "none",
       padding_height: 18,
+      isErrorsExpanded: true,
+      isWarningsExpanded: true,
     };
   },
   computed: {
@@ -194,6 +233,36 @@ export default {
         });
       }
     },
+    toggleExpandErrors() {
+      var content = this.$refs.errorsContent;
+      if (!this.isErrorsExpanded) {
+        this.errorsMaxHeight = content.scrollHeight + 2 * this.padding_height + "px";
+        this.isErrorsExpanded = true;
+      } else {
+        requestAnimationFrame(() => {
+          this.errorsMaxHeight = content.scrollHeight + "px";
+          requestAnimationFrame(() => {
+            this.errorsMaxHeight = "0px";
+            this.isErrorsExpanded = false;
+          });
+        });
+      }
+    },
+    toggleExpandWarnings() {
+      var content = this.$refs.warningsContent;
+      if (!this.isWarningsExpanded) {
+        this.warningsMaxHeight = content.scrollHeight + 2 * this.padding_height + "px";
+        this.isWarningsExpanded = true;
+      } else {
+        requestAnimationFrame(() => {
+          this.warningsMaxHeight = content.scrollHeight + "px";
+          requestAnimationFrame(() => {
+            this.warningsMaxHeight = "0px";
+            this.isWarningsExpanded = false;
+          });
+        });
+      }
+    },
   },
 };
 </script>
@@ -201,6 +270,10 @@ export default {
 <style scoped>
 .data-block {
   padding-bottom: 18px;
+}
+
+ul {
+  margin-bottom: 0;
 }
 
 /* Style the button that is used to open and close the collapsible content */

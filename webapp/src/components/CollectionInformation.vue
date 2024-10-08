@@ -31,20 +31,30 @@
         <CollectionRelationshipVisualization :collection_id="collection_id" />
       </div>
     </div>
+    <DynamicDataTable
+      :data="children"
+      :columns="collectionTableColumns"
+      :data-type="'samples'"
+      :global-filter-fields="['item_id', 'type', 'name', 'chemform', 'creatorsList', 'nblocks']"
+      :show-buttons="false"
+    />
   </div>
 </template>
 
 <script>
 import { createComputedSetterForCollectionField } from "@/field_utils.js";
+import { getCollectionSampleList } from "@/server_fetch_utils";
 import TinyMceInline from "@/components/TinyMceInline";
 import Creators from "@/components/Creators";
 import CollectionRelationshipVisualization from "@/components/CollectionRelationshipVisualization";
+import DynamicDataTable from "@/components/DynamicDataTable";
 
 export default {
   components: {
     TinyMceInline,
     Creators,
     CollectionRelationshipVisualization,
+    DynamicDataTable,
   },
   props: {
     collection_id: {
@@ -58,6 +68,41 @@ export default {
     Title: createComputedSetterForCollectionField("title"),
     Name: createComputedSetterForCollectionField("name"),
     CollectionCreators: createComputedSetterForCollectionField("creators"),
+    children() {
+      return this.$store.state.all_collection_children[this.collection_id] || [];
+    },
+  },
+  created() {
+    this.getCollectionChildren();
+  },
+  data() {
+    return {
+      collectionTableColumns: [
+        {
+          field: "item_id",
+          header: "ID",
+          body: "FormattedItemName",
+          filter: true,
+        },
+        { field: "type", header: "Type", filter: true },
+        { field: "name", header: "Sample name" },
+        { field: "chemform", header: "Formula", body: "ChemicalFormula" },
+        { field: "date", header: "Date" },
+        { field: "creators", header: "Creators", body: "Creators" },
+        { field: "nblocks", header: "# of blocks" },
+      ],
+    };
+  },
+  methods: {
+    getCollectionChildren() {
+      getCollectionSampleList(this.collection_id)
+        .then(() => {
+          this.tableIsReady = true;
+        })
+        .catch(() => {
+          this.fetchError = true;
+        });
+    },
   },
 };
 </script>

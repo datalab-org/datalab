@@ -19,18 +19,6 @@ services:
     ports:
       - "8081:8081"
 
-  app_dev:
-    profiles: ["dev"]
-    build:
-      context: .
-      dockerfile: .docker/app_dockerfile
-      target: development
-    volumes:
-      - ./logs:/logs
-      - ./webapp:/app
-    ports:
-      - "8081:8081"
-
   api:
     profiles: ["prod"]
     build:
@@ -52,38 +40,6 @@ services:
       - backend
     environment:
       - PYDATALAB_MONGO_URI=mongodb://database:27017/datalabvue
-
-  api_dev:
-    profiles: ["dev"]
-    build:
-      context: .
-      dockerfile: .docker/server_dockerfile
-      target: development
-    depends_on:
-      - database_dev
-    volumes:
-      - ./logs:/logs
-      - ./.git:/.git
-      - ./pydatalab:/app
-    ports:
-      - "5001:5001"
-    networks:
-      - backend
-    environment:
-      - PYDATALAB_MONGO_URI=mongodb://database_dev:27017/datalabvue
-
-  database_dev:
-    profiles: ["dev"]
-    build:
-      context: .
-      dockerfile: .docker/mongo_dockerfile
-    volumes:
-      - ./logs:/var/logs/mongod
-    restart: unless-stopped
-    networks:
-      - backend
-    ports:
-      - "27017:27017"
 
   database:
     profiles: ["prod"]

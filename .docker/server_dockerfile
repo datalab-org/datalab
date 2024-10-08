@@ -1,5 +1,5 @@
-# syntax=docker/dockerfile:experimental
-FROM python:3.10 as base
+# syntax=docker/dockerfile:1
+FROM python:3.10 AS base
 SHELL ["/bin/bash", "--login", "-c"]
 
 # Useful for installing deps from git, preventing big downloads and bandwith quotas
@@ -12,37 +12,27 @@ RUN apt update && apt install -y gnupg curl tree mdbtools && apt clean
 WORKDIR /opt
 RUN wget https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2204-x86_64-100.9.0.deb && apt install ./mongodb-database-tools-*-100.9.0.deb
 
-FROM base as app
+FROM base AS app
+
+COPY --from=ghcr.io/astral-sh/uv:0.4 /uv /usr/local/bin/uv
+ENV UV_LINK_MODE=copy \
+    UV_COMPILE_BYTECODE=1 \
+    UV_PYTHON_DOWNLOADS=never \
+    UV_PROJECT_ENVIRONMENT=/opt/.venv \
+    UV_PYTHON=python3.10
 
 WORKDIR /app
+COPY ./pydatalab/pyproject.toml .
+COPY ./pydatalab/uv.lock .
+RUN uv sync --locked --no-dev --all-extras
 
-# Set up uv venv in /opt/.venv to avoid polluting the mounted /app dir
-RUN pip install uv
-WORKDIR /opt
-RUN uv venv
-
-COPY pydatalab/requirements/requirements-all.txt .
-RUN uv pip install -r requirements-all.txt
-
+FROM app AS production
 WORKDIR /app
-COPY pydatalab/pyproject.toml .
-# Create development image using flask's dev server with hot-reload
-FROM app as development
 
-ENV FLASK_APP "pydatalab.main:create_app()"
-ENV FLASK_ENV "development"
-ENV PORT=5001
-
-CMD ["/bin/bash", "-c", "/opt/.venv/bin/python -m flask run --reload --port ${PORT} --host 0.0.0.0"]
-
-# Create production image using gunicorn and minimal dependencies
-FROM app as production
-
-WORKDIR /opt
-RUN [ "uv", "pip", "install", "gunicorn" ]
-
-WORKDIR /app
+# Install the local version of the package and mount the repository data to get version info
 COPY ./pydatalab/ ./
+RUN git config --global --add safe.directory /
+RUN --mount=type=bind,target=/.git,source=./.git uv pip install --python /opt/.venv/bin/python --no-deps .
 
 # This will define the number of gunicorn workers
 ARG WEB_CONCURRENCY=4
@@ -52,10 +42,6 @@ ARG PORT=5001
 EXPOSE ${PORT}
 ENV PORT=${PORT}
 
-# Install the local version of the package and mount the repository data to get version info
-RUN git config --global --add safe.directory /
-RUN --mount=type=bind,target=/.git,source=./.git ["uv", "pip", "install", "--python", "/opt/.venv/bin/python", "."]
-
 CMD ["/bin/bash", "-c", "/opt/.venv/bin/python -m gunicorn --preload -w ${WEB_CONCURRENCY} --error-logfile /logs/pydatalab_error.log --access-logfile - -b 0.0.0.0:${PORT} 'pydatalab.main:create_app()'"]
 
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 CMD curl --fail http://localhost:${PORT}/healthcheck/is_ready || exit 1
+HEALTHCHECK --interval=30s --timeout=30s --start-interval=15s --start-period=30s --retries=3 CMD curl --fail http://localhost:${PORT}/healthcheck/is_ready || exit 1

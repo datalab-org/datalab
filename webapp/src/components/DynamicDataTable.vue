@@ -18,6 +18,7 @@
       :global-filter-fields="globalFilterFields"
       removable-sort
       sort-mode="multiple"
+      @filter="onFilter"
       @row-click="goToEditPage"
       @select-all-change="onSelectAllChange"
       @page="onPageChange"
@@ -25,11 +26,12 @@
       <!-- v-model:expandedRows="expandedRows" -->
 
       <template #header>
-        <DynamicButtonDataTable
+        <DynamicDataTableButtons
           :data-type="dataType"
           :items-selected="itemsSelected"
           :filters="filters"
           :editable-inventory="editable_inventory"
+          :show-buttons="showButtons"
           @open-create-item-modal="createItemModalIsOpen = true"
           @open-batch-create-item-modal="batchCreateItemModalIsOpen = true"
           @open-qr-scanner-modal="qrScannerModalIsOpen = true"
@@ -42,7 +44,7 @@
       <template #empty> No data found. </template>
       <template #loading> Loading data. Please wait. </template>
 
-      <Column class="checkbox" selection-mode="multiple"></Column>
+      <Column v-if="showButtons" class="checkbox" selection-mode="multiple"></Column>
 
       <!-- <Column expander style="width: 5rem" /> -->
       <Column
@@ -104,7 +106,7 @@
 </template>
 
 <script>
-import DynamicButtonDataTable from "@/components/DynamicButtonDataTable";
+import DynamicDataTableButtons from "@/components/DynamicDataTableButtons";
 import CreateItemModal from "@/components/CreateItemModal";
 import BatchCreateItemModal from "@/components/BatchCreateItemModal";
 import QRScannerModal from "@/components/QRScannerModal";
@@ -127,7 +129,7 @@ import InputText from "primevue/inputtext";
 
 export default {
   components: {
-    DynamicButtonDataTable,
+    DynamicDataTableButtons,
     CreateItemModal,
     BatchCreateItemModal,
     QRScannerModal,
@@ -160,6 +162,16 @@ export default {
       type: Array,
       required: true,
     },
+    showButtons: {
+      type: Boolean,
+      required: false,
+      default: true,
+    },
+    editPageRoutePrefix: {
+      type: String,
+      required: false,
+      default: "edit",
+    },
   },
   data() {
     return {
@@ -171,6 +183,7 @@ export default {
       addToCollectionModalIsOpen: false,
       isSampleFetchError: false,
       itemsSelected: [],
+      allSelected: false,
       filters: {
         global: { value: null },
         item_id: {
@@ -186,8 +199,8 @@ export default {
           constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
         },
       },
+      filteredData: [],
       allowedTypes: INVENTORY_TABLE_TYPES,
-      allSelected: false,
       page: 0,
       rows: 20,
     };
@@ -212,6 +225,14 @@ export default {
   methods: {
     goToEditPage(event) {
       const row = event.data;
+      let row_id = null;
+
+      // Check if the row has an item ID, otherwise default to collection ID
+      if (!row.item_id && row.collection_id) {
+        row_id = row.collection_id;
+      } else {
+        row_id = row.item_id;
+      }
 
       if (event.originalEvent.target.classList.contains("checkbox")) {
         return null;
@@ -222,9 +243,9 @@ export default {
         event.originalEvent.metaKey ||
         event.originalEvent.altKey
       ) {
-        window.open(`/edit/${row.item_id}`, "_blank");
+        window.open(`/${this.editPageRoutePrefix}/${row_id}`, "_blank");
       } else {
-        this.$router.push(`/edit/${row.item_id}`);
+        this.$router.push(`/${this.editPageRoutePrefix}/${row_id}`);
       }
     },
     getComponentProps(componentName, data) {
@@ -277,19 +298,42 @@ export default {
       }
       return false;
     },
+    getVisibleItems() {
+      const start = this.page * this.rows;
+      const end = start + this.rows;
+      if (this.filteredData.length <= this.rows) {
+        return this.filteredData.slice(start, end);
+      }
+
+      return this.data.slice(start, end);
+    },
+    checkAllSelected() {
+      const visibleItems = this.getVisibleItems();
+
+      if (visibleItems.length === 0) {
+        return false;
+      }
+      return visibleItems.every((currentItem) =>
+        this.itemsSelected.some((selectedItem) => selectedItem.item_id === currentItem.item_id),
+      );
+    },
+    onFilter(event) {
+      this.filteredData = event.filteredValue;
+      this.allSelected = this.checkAllSelected();
+    },
     onSelectAllChange(event) {
-      if (event.checked) {
-        this.allSelected = event.checked;
-        const newItems = this.data.slice(this.page * this.rows, (this.page + 1) * this.rows);
-        newItems.forEach((item) => {
-          if (!this.itemsSelected.includes(item)) {
+      this.allSelected = event.checked;
+      const itemsToSelect = this.getVisibleItems();
+
+      if (this.allSelected) {
+        const selectedIds = new Set(this.itemsSelected.map((item) => item.item_id));
+        itemsToSelect.forEach((item) => {
+          if (!selectedIds.has(item.item_id)) {
             this.itemsSelected.push(item);
           }
         });
       } else {
-        this.allSelected = event.checked;
-        const itemsToRemove = this.data.slice(this.page * this.rows, (this.page + 1) * this.rows);
-        const idsToRemove = new Set(itemsToRemove.map((item) => item.item_id));
+        const idsToRemove = new Set(itemsToSelect.map((item) => item.item_id));
         this.itemsSelected = this.itemsSelected.filter((item) => !idsToRemove.has(item.item_id));
       }
     },
@@ -302,16 +346,13 @@ export default {
     onPageChange(event) {
       this.page = event.page;
       this.rows = event.rows;
-      const currentItems = this.data.slice(this.page * this.rows, (this.page + 1) * this.rows);
-      this.allSelected = currentItems.every((currentItem) =>
-        this.itemsSelected.some((selectedItem) => selectedItem.item_id === currentItem.item_id),
-      );
+      this.allSelected = this.checkAllSelected();
     },
   },
 };
 </script>
 
-<style>
+<style scoped>
 .customize-table .ag-header {
   font-size: 1rem;
 }
@@ -336,10 +377,6 @@ export default {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.button-right {
-  gap: 0.5em;
 }
 
 .p-datatable-header-cell.filter-active svg {
