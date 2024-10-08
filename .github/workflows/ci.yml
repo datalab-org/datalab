@@ -35,7 +35,7 @@ jobs:
       - name: Install dependencies
         working-directory: ./pydatalab
         run: |
-          uv sync --all-extras
+          uv sync --locked --all-extras
 
       - name: Run pre-commit
         working-directory: ./pydatalab
@@ -83,7 +83,7 @@ jobs:
       - name: Install locked versions of dependencies
         working-directory: ./pydatalab
         run: |
-          uv sync --all-extras
+          uv sync --locked --all-extras
 
       - name: Run all tests
         working-directory: ./pydatalab
