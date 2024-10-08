@@ -22,8 +22,7 @@ ENV UV_LINK_MODE=copy \
     UV_PYTHON=python3.10
 
 WORKDIR /app
-COPY ./pydatalab/pyproject.toml .
-COPY ./pydatalab/uv.lock .
+COPY ./pydatalab .
 RUN uv sync --locked --no-dev --all-extras
 
 FROM app AS production
