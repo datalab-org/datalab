@@ -61,23 +61,36 @@ export function createComputedSetterForCollectionField(collection_field) {
   };
 }
 
-export function IDValidationMessage(
-  id,
-  takenItemIds = [],
-  takenSampleIds = [],
-  takenCollectionIds = [],
-  takenEquipmentIds = [],
-) {
+/**
+ * Validates an ID against various criteria and checks if it's already in use.
+ *
+ * @param {string} id - The ID to validate.
+ * @param {string[]} [takenIds=[]] - Array of already taken item IDs.
+ * @param {string[]} [existingIds=[]] - Array of IDs already known to exist.
+ *
+ * @returns {string} An empty string if the ID is valid and not in use, otherwise an error message.
+ *                   If the ID is in use, it returns a string error message with an HTML link to edit the ID.
+ *
+ * @throws {TypeError} If id is not a string when it's not null.
+ *
+ * @example
+ * // Returns an empty string for a valid ID
+ * validateEntryID("valid_id_123");
+ *
+ * @example
+ * // Returns an error message for an invalid ID
+ * validateEntryID("invalid id with spaces");
+ *
+ * @example
+ * // Returns a message with a link if the ID is already in use
+ * validateEntryID("taken_id", ["taken_id"]);
+ */
+export function validateEntryID(id, takenIds = [], existingIds = []) {
   if (id == null) {
     return "";
   }
 
-  if (
-    takenItemIds.includes(id) ||
-    takenSampleIds.includes(id) ||
-    takenCollectionIds.includes(id) ||
-    takenEquipmentIds.includes(id)
-  ) {
+  if (takenIds.includes(id) || existingIds.includes(id)) {
     return `<a href='edit/${id}'>${id}</a> already in use.`;
   }
 

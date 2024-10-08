@@ -2,7 +2,7 @@
   <form @submit.prevent="submitForm">
     <Modal
       :model-value="modelValue"
-      :disable-submit="Boolean(IDValidationMessage) || !Boolean(collection_id)"
+      :disable-submit="Boolean(isValidEntryID) || !Boolean(collection_id)"
       @update:model-value="$emit('update:modelValue', $event)"
     >
       <template #header> Create new collection </template>
@@ -19,7 +19,7 @@
               required
             />
             <!-- eslint-disable-next-line vue/no-v-html -->
-            <div class="form-error" v-html="IDValidationMessage"></div>
+            <div class="form-error" v-html="isValidEntryID"></div>
           </div>
         </div>
         <div class="form-row">
@@ -47,7 +47,7 @@
 import Modal from "@/components/Modal.vue";
 import ItemSelect from "@/components/ItemSelect.vue";
 import { createNewCollection } from "@/server_fetch_utils.js";
-import { IDValidationMessage } from "@/field_utils.js";
+import { validateEntryID } from "@/field_utils.js";
 
 export default {
   name: "CreateCollectionModal",
@@ -73,8 +73,8 @@ export default {
         ? this.$store.state.collection_list.map((x) => x.collection_id)
         : [];
     },
-    IDValidationMessage() {
-      return IDValidationMessage(this.collection_id, this.takenCollectionIds);
+    isValidEntryID() {
+      return validateEntryID(this.collection_id, this.takenCollectionIds);
     },
   },
   methods: {

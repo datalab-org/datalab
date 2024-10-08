@@ -3,7 +3,7 @@
     <Modal
       :model-value="modelValue"
       :disable-submit="
-        itemIDValidationMessages.some((e) => e) ||
+        isValidEntryID.some((e) => e) ||
         (!generateIDsAutomatically && items.some((s) => !Boolean(s.item_id)))
       "
       @update:model-value="$emit('update:modelValue', $event)"
@@ -277,7 +277,7 @@
                     </tr>
                     <td colspan="3">
                       <!-- eslint-disable-next-line vue/no-v-html -->
-                      <span class="form-error" v-html="itemIDValidationMessages[index]" />
+                      <span class="form-error" v-html="isValidEntryID[index]" />
                     </td>
                   </template>
                 </tbody>
@@ -332,7 +332,7 @@
 import Modal from "@/components/Modal.vue";
 import ItemSelect from "@/components/ItemSelect.vue";
 import { createNewSamples } from "@/server_fetch_utils.js";
-import { IDValidationMessage } from "@/field_utils.js";
+import { validateEntryID } from "@/field_utils.js";
 import { itemTypes, SAMPLE_TABLE_TYPES } from "@/resources.js";
 export default {
   name: "BatchCreateItemModal",
@@ -415,10 +415,7 @@ export default {
         ? this.$store.state.sample_list.map((x) => x.item_id)
         : [];
     },
-    someValidationMessagePresent() {
-      return this.itemIDValidationMessages.some();
-    },
-    itemIDValidationMessages() {
+    isValidEntryID() {
       return this.items.map((item, index, items) => {
         if (item.item_id == null) {
           return "";
@@ -433,7 +430,7 @@ export default {
           return "ID is repeated from an above row.";
         }
 
-        return IDValidationMessage(item.item_id, this.takenItemIds, this.takenSampleIds);
+        return validateEntryID(item.item_id, this.takenItemIds, this.takenSampleIds);
       });
     },
   },

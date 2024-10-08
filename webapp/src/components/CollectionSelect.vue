@@ -9,7 +9,7 @@
     @search="debouncedAsyncSearch"
   >
     <template #no-options="{ searching }">
-      <span v-if="IDValidationMessage" class="form-error">{{ IDValidationMessage }}</span>
+      <span v-if="isValidEntryID" class="form-error">{{ isValidEntryID }}</span>
       <span v-else-if="searching"> Collection already selected </span>
       <span v-else class="empty-search"> Search for a collection... </span>
     </template>
@@ -39,7 +39,7 @@
 import vSelect from "vue-select";
 import FormattedCollectionName from "@/components/FormattedCollectionName.vue";
 import { searchCollections, createNewCollection } from "@/server_fetch_utils.js";
-import { IDValidationMessage } from "@/field_utils.js";
+import { validateEntryID } from "@/field_utils.js";
 import { debounceTime } from "@/resources.js";
 
 export default {
@@ -83,7 +83,7 @@ export default {
         this.searchQuery &&
         !this.collections.some((item) => item.collection_id === this.searchQuery) &&
         !valueSafe.some((item) => item.collection_id === this.searchQuery) &&
-        !this.IDValidationMessage
+        !this.isValidEntryID
       ) {
         return [
           ...this.collections,
@@ -95,8 +95,8 @@ export default {
       }
       return this.collections;
     },
-    IDValidationMessage() {
-      return IDValidationMessage(this.searchQuery);
+    isValidEntryID() {
+      return validateEntryID(this.searchQuery);
     },
   },
   methods: {
@@ -128,7 +128,7 @@ export default {
       }, debounceTime);
     },
     async handleCreateNewCollection() {
-      if (this.IDValidationMessage) {
+      if (this.isValidEntryID) {
         return;
       } else {
         try {

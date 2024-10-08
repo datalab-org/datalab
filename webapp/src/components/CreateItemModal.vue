@@ -2,9 +2,7 @@
   <form class="modal-enclosure" data-testid="create-item-form" @submit.prevent="submitForm">
     <Modal
       :model-value="modelValue"
-      :disable-submit="
-        Boolean(itemIDValidationMessage) || (!generateIDAutomatically && !Boolean(item_id))
-      "
+      :disable-submit="Boolean(isValidEntryID) || (!generateIDAutomatically && !Boolean(item_id))"
       @update:model-value="$emit('update:modelValue', $event)"
     >
       <template #header> Add new item </template>
@@ -22,7 +20,7 @@
               :required="!generateIDAutomatically"
             />
             <!-- eslint-disable-next-line vue/no-v-html -->
-            <div class="form-error" v-html="itemIDValidationMessage"></div>
+            <div class="form-error" v-html="isValidEntryID"></div>
             <div class="form-check mt-1 ml-1">
               <input
                 id="create-item-auto-id-checkbox"
@@ -109,7 +107,7 @@
 import Modal from "@/components/Modal.vue";
 import ItemSelect from "@/components/ItemSelect.vue";
 import { createNewItem } from "@/server_fetch_utils.js";
-import { IDValidationMessage } from "@/field_utils.js";
+import { validateEntryID } from "@/field_utils.js";
 import { itemTypes, SAMPLE_TABLE_TYPES } from "@/resources.js";
 import CollectionSelect from "@/components/CollectionSelect.vue";
 export default {
@@ -157,8 +155,8 @@ export default {
         ? this.$store.state.sample_list.map((x) => x.item_id)
         : [];
     },
-    itemIDValidationMessage() {
-      return IDValidationMessage(this.item_id, this.takenItemIds, this.takenSampleIds);
+    isValidEntryID() {
+      return validateEntryID(this.item_id, this.takenItemIds, this.takenSampleIds);
     },
   },
   created() {
