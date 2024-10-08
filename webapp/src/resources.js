@@ -145,3 +145,118 @@ export const cellFormats = {
   cylindrical: "cylindrical",
   other: "other",
 };
+
+export const HazardPictograms = {
+  GHS01: {
+    label: "Explosives",
+    pictogram: "https://pubchem.ncbi.nlm.nih.gov/images/ghs/GHS01.svg",
+  },
+  GHS02: {
+    label: "Flammables",
+    pictogram: "https://pubchem.ncbi.nlm.nih.gov/images/ghs/GHS02.svg",
+  },
+  GHS03: {
+    label: "Oxidizers",
+    pictogram: "https://pubchem.ncbi.nlm.nih.gov/images/ghs/GHS03.svg",
+  },
+  GHS04: {
+    label: "Compressed Gases",
+    pictogram: "https://pubchem.ncbi.nlm.nih.gov/images/ghs/GHS04.svg",
+  },
+  GHS05: {
+    label: "Corrosives",
+    pictogram: "https://pubchem.ncbi.nlm.nih.gov/images/ghs/GHS05.svg",
+  },
+  GHS06: {
+    label: "Acute Toxicity",
+    pictogram: "https://pubchem.ncbi.nlm.nih.gov/images/ghs/GHS06.svg",
+  },
+  GHS07: {
+    label: "Irritant",
+    pictogram: "https://pubchem.ncbi.nlm.nih.gov/images/ghs/GHS07.svg",
+  },
+  GHS08: {
+    label: "Health Hazard",
+    pictogram: "https://pubchem.ncbi.nlm.nih.gov/images/ghs/GHS08.svg",
+  },
+  GHS09: {
+    label: "Environment",
+    pictogram: "https://pubchem.ncbi.nlm.nih.gov/images/ghs/GHS09.svg",
+  },
+};
+
+export function getPictogramsFromHazardInformation(hazardInformation) {
+  const hazardCodeRegex = /H\d{3}/g;
+  const hCodes = hazardInformation.match(hazardCodeRegex) || [];
+
+  const pictograms = [];
+  hCodes.forEach((code) => {
+    const numericCode = code.replace("H", "");
+    const codePictograms = getPictogramsFromHazardCode(numericCode);
+    codePictograms.forEach((pictogram) => {
+      if (!pictograms.some((p) => p.label === pictogram.label)) {
+        pictograms.push(pictogram);
+      }
+    });
+  });
+
+  return pictograms;
+}
+
+export function getPictogramsFromHazardCode(code) {
+  if (
+    (code >= 200 && code <= 204) ||
+    (code >= 209 && code <= 211) ||
+    (code >= 240 && code <= 241)
+  ) {
+    return [HazardPictograms.GHS01];
+  } else if (
+    (code >= 205 && code <= 208) ||
+    (code >= 220 && code <= 226) ||
+    (code >= 228 && code <= 232) ||
+    (code >= 241 && code <= 242) ||
+    (code >= 250 && code <= 252) ||
+    (code >= 260 && code <= 261) ||
+    (code >= 282 && code <= 283)
+  ) {
+    return [HazardPictograms.GHS02];
+  } else if (code >= 270 && code <= 272) {
+    return [HazardPictograms.GHS03];
+  } else if (code >= 280 && code <= 284) {
+    return [HazardPictograms.GHS04];
+  } else if (code === 290 || code === 314 || code === 318) {
+    return [HazardPictograms.GHS05];
+  } else if (
+    (code >= 300 && code <= 301) ||
+    (code >= 310 && code <= 311) ||
+    (code >= 330 && code <= 331)
+  ) {
+    return [HazardPictograms.GHS06];
+  } else if (
+    code === 204 ||
+    code === 302 ||
+    code === 312 ||
+    code === 315 ||
+    code === 317 ||
+    code === 319 ||
+    code === 332 ||
+    (code >= 335 && code <= 336) ||
+    code === 420
+  ) {
+    return [HazardPictograms.GHS07];
+  } else if (
+    (code >= 304 && code <= 305) ||
+    (code >= 2 && code <= 2) ||
+    code === 334 ||
+    (code >= 340 && code <= 341) ||
+    (code >= 350 && code <= 351) ||
+    (code >= 360 && code <= 361) ||
+    (code >= 370 && code <= 373)
+  ) {
+    return [HazardPictograms.GHS08];
+  } else if (code === 400 || (code >= 410 && code <= 411)) {
+    return [HazardPictograms.GHS09];
+  } else {
+    return [];
+  }
+}
