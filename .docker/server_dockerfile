@@ -14,8 +14,6 @@ RUN wget https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2204-x
 
 FROM base as app
 
-WORKDIR /app
-
 COPY --from=ghcr.io/astral-sh/uv:0.4 /uv /usr/local/bin/uv
 ENV UV_LINK_MODE=copy \
     UV_COMPILE_BYTECODE=1 \
@@ -23,31 +21,18 @@ ENV UV_LINK_MODE=copy \
     UV_PROJECT_ENVIRONMENT=/opt/.venv \
     UV_PYTHON=python3.10
 
-WORKDIR /opt
-COPY pydatalab/pyproject.toml /_lock/
-COPY pydatalab/uv.lock /_lock/
-COPY pydatalab/requirements/requirements-all.txt /_lock/
-RUN uv venv
-RUN uv pip install -r /_lock/requirements-all.txt
-
-# Create development image using flask's dev server with hot-reload
-FROM app as development
-
-
 WORKDIR /app
-ENV FLASK_APP "pydatalab.main"
-ENV FLASK_ENV "development"
-ENV PORT=5001
-CMD [ "/bin/bash", "-c", "source /opt/.venv/bin/activate && exec flask run --reload --port ${PORT} --host 0.0.0.0" ]
+COPY ./pydatalab/pyproject.toml .
+COPY ./pydatalab/uv.lock .
+RUN uv sync --locked --no-dev --all-extras
 
-# Create production image using gunicorn and minimal dependencies
 FROM app as production
-
-WORKDIR /opt
-RUN [ "uv", "pip", "install", "gunicorn" ]
-
 WORKDIR /app
+
+# Install the local version of the package and mount the repository data to get version info
 COPY ./pydatalab/ ./
+RUN git config --global --add safe.directory /
+RUN --mount=type=bind,target=/.git,source=./.git uv pip install --python /opt/.venv/bin/python --no-deps .
 
 # This will define the number of gunicorn workers
 ARG WEB_CONCURRENCY=4
@@ -56,10 +41,6 @@ ENV WEB_CONCURRENCY=${WEB_CONCURRENCY}
 ARG PORT=5001
 EXPOSE ${PORT}
 ENV PORT=${PORT}
-
-# Install the local version of the package and mount the repository data to get version info
-RUN git config --global --add safe.directory /
-RUN --mount=type=bind,target=/.git,source=./.git ["uv", "pip", "install", "--python", "/opt/.venv/bin/python", "--no-deps", "."]
 
 CMD ["/bin/bash", "-c", "/opt/.venv/bin/python -m gunicorn --preload -w ${WEB_CONCURRENCY} --error-logfile /logs/pydatalab_error.log --access-logfile - -b 0.0.0.0:${PORT} 'pydatalab.main:create_app()'"]
 
