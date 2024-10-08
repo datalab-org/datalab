@@ -9,7 +9,6 @@ instance, in which case please check out the separate Python API package at
 
 The instructions below outline how to make a development installation on your local machine.
 We strongly recommend following the [deployment instructions](deployment.md) on [docs.datalab-org.io](https://docs.datalab-org.io/en/stable/deployment/) if you are deploying for use in production.
-These instructions are also useful for developers who want to use Docker to create a reproducible development environment.
 
 This repository consists of two components:
 
@@ -23,6 +22,7 @@ This repository consists of two components:
 To run *datalab*, you will need to install the environments for each component.
 
 Firstly, from the desired folder, clone this repository from GitHub to your local machine with `git clone https://github.com/datalab-org/datalab`.
+If you are not familiar with `git` or GitHub, you can do worse than reading through the [GitHub getting started documentation](https://docs.github.com/en/get-started/start-your-journey/about-github-and-git).
 
 ### `pydatalab` server installation
 
@@ -33,86 +33,63 @@ The instructions in this section will leave you with a running *datalab* server 
 *datalab* uses MongoDB as its database backend.
 This requires a MongoDB server to be running on your desired host machine.
 
-1. Install the free MongoDB community edition (full instructions on the [MongoDB website](https://docs.mongodb.com/manual/installation/)).
-    * For Mac users, MongoDB is available via [HomeBrew](https://github.com/mongodb/homebrew-brew).
-    - You can alternatively run the MongoDB via Docker using the config in this package with `docker compose up database` (see [deployment instructions](deploy.md).
+1. Install the free MongoDB community edition (see the full instructions for your OS on the [MongoDB website](https://docs.mongodb.com/manual/installation/)).
+    * For MacOS users, MongoDB is available via [HomeBrew](https://github.com/mongodb/homebrew-brew).
+    * You can alternatively run the MongoDB via Docker using the config in this package with `docker compose up database` (see [deployment instructions](deploy.md)).
     * If you wish to view the database directly, MongoDB has several GUIs, e.g. [MongoDB Compass](https://www.mongodb.com/products/compass) or [Studio 3T](https://robomongo.org/).
-    - For persistence, you will need to set up MongoDB to run as a service on your computer (or run manually each time you run the `pydatalab` server).
+    * For persistence, you will need to set up MongoDB to run as a service on your computer (or run manually each time you run the `pydatalab` server).
 
 #### Python setup
 
 The next step is to set up a Python environment that contains all of the required dependencies with the correct versions.
-You will need Python 3.10 or higher to run *datalab*; we recommend using
-something like [`pyenv`](https://github.com/pyenv/pyenv) to manage Python versions on your machine, to avoid breakages based on your OS's Python versioning.
+You will need Python 3.10 or higher to run *datalab*; we recommend using a tool to manage Python versions on your machine, to avoid breakages based on your OS's Python versioning (e.g., [`pyenv`](https://github.com/pyenv/pyenv) or [`uv`](https://github.com/astral-sh/uv)).
 
-##### Using virtual environments with `uv` or `venv`
+##### Installation with `uv` or `venv`
 
-We recommend using a virtual environment tool of your choice to manage the dependencies for the
-Python server, for example [`uv`](https://github.com/astral-sh/uv) (see
-repository for installation instructions), or the
-standard library Python `venv` module.
+We recommend using [`uv`](https://github.com/astral-sh/uv) (see the linked repository or https://docs.astral.sh/uv for installation instructions) for managing your *datalab* installation.
+
+You could also use the standard library `venv` module, but this will not allow you to install pinned dependencies as easily, and is significantly slower than `uv`.
 
 1. Create a virtual environment for *datalab*, ideally inside the `pydatalab` directory.
-    - For `uv`, this can be done with `uv venv`.
+    - For `uv`, you can run `uv venv` (when installing using `uv sync`, this will be done automatically on installation).
     - For `venv`, this can be done with `python -m venv .venv`.
-    - You will be left with a folder called `.venv` that bundles a Python
-      environment.
-2. Activate the virtual environment (optional for `uv`) and install dependencies. One can either use the loosely pinned dependencies in `pyproject.toml`, or the locked versions in the `requirements/requirements-all-dev.txt` and `requirements/requirements-all.txt` files.
+    - Either way, you will be left with a folder called `.venv` in your `pydatalab` directory that bundles an entire Python environment.
+2. Activate the virtual environment (again, optional for `uv`) and install dependencies. One can either use the loosely pinned dependencies in `pyproject.toml`, or the locked versions in `uv.lock`.
 
 === "Installation with `uv`"
 
     ```shell
-    # EITHER: Install all dependencies with locked versions, then install the local package
-    uv pip install -r requirements/requirements-all-dev.txt
-    uv pip install -e '.[all,dev]'
+    # EITHER: Install all dependencies with locked versions (recommended)
+    uv sync --all-extras --dev --locked
     # OR: Install all dependencies with loosely pinned versions
-    uv pip install -e '.[all,dev]'
+    uv pip install -e '.[all]'
     ```
 
 === "Installation with `venv`"
 
     ```shell
     source .venv/bin/activate
-    # EITHER: Install all dependencies with locked versions, then install the local package
-    pip install -r requirements/requirements-all-dev.txt
-    pip install -e '.[all, dev]'
-    # OR: Install all dependencies with loosely pinned versions
-    pip install -e '.[all, dev]'
+    # Install all dependencies with loosely pinned versions
+    pip install -e '.[all]'
     ```
-
-##### Using `pipenv` (DEPRECATED)
-
-Previously, *datalab* used `pipenv` for dependency management.
-We maintain a `pipenv` lockfile (`Pipfile.lock`) of all dependencies that must be installed to run the server, though this will be removed in future versions.
-
-To make use of this file:
-
-1. Install `pipenv` on your machine.
-    - Detailed instructions for installing `pipenv`, `pip` and Python itself can be found on the [`pipenv` website](https://pipenv.pypa.io/en/latest/install/#installing-pipenv).
-    - We recommend you install `pipenv` from PyPI (with `pip install pipenv` or `pip install --user pipenv`) for the Python distribution of your choice (in a virtual environment or otherwise). `pipenv` will be used to create its own virtual environment for installation of the `pydatalab` package.
-1. Install the `pydatalab` package.
-    - Navigate to the `pydatalab` folder and run `pipenv sync --dev`.
-        - The default Python executable on your machine must be 3.10+, otherwise this must be specified explicitly at this point).
-        - This will create a `pipenv` environment for `pydatalab` and all of its dependencies that is registered within *this folder* only.
-        - You can remove this environment to start fresh at any time by running `pipenv --rm` from within this directory.
 
 #### Running the development server
 
 1. Run the server from the `pydatalab` folder with either:
 
-=== "Launching with `uv` or `venv`"
+=== "Launching with `uv`"
+
+    ```shell
+    cd pydatalab
+    uv run flask --app 'pydatalab.main' run --reload --port 5001
+    ```
+
+=== "Launching with `venv`"
 
     ```shell
     cd pydatalab
     source .venv/bin/activate
-    flask --app 'pydatalab:main' run --reload
-    ```
-
-=== "Launching with `pipenv`"
-
-    ```shell
-    cd pydatalab
-    pipenv run flask --app 'pydatalab:main' run --reload
+    flask --app 'pydatalab.main' run --reload --port 5001
     ```
 
 The server should now be accessible at [http://localhost:5001](http://localhost:5001).
@@ -120,9 +97,9 @@ If the server is running, navigating to this URL will display a simple dashboard
 
 Should you wish to contribute to/modify the Python code, you may wish to perform these extra steps:
 
-1. From an activated virtual environment, run `pre-commit install` to begin using `pre-commit` to check all of your modifications when you run `git commit`.
+1. From an activated virtual environment (or prepending `uv run`), run `pre-commit install` to begin using `pre-commit` to check all of your modifications when you run `git commit`.
     - The hooks that run on each commit can be found in the top-level `.pre-commit-config.yml` file.
-1. From an activate virtual environment, the tests on the Python code can be run by executing `pytest` from the `pydatalab/` folder.
+1. From an activated virtual environment, the tests on the Python code can be run by executing `pytest` from the `pydatalab/` folder (or `uv run pytest`).
 
 #### Additional notes
 
@@ -161,9 +138,9 @@ Previously, *datalab* used `pipenv` for dependency management, which enforced a
 strict lockfile of dependencies that effectively forced all dependencies to be updated when
 adding a new one.
 This is no longer the case, and the `pyproject.toml` file is now the canonical
-source of dependencies, however, `requirements` files are maintained for the
-purpose of strict locking for deployment and testing.
-Now, we use the `pip-tools`-esque functionality of `uv` to create lock files
+source of dependencies, with `uv.lock` providing the strict locked versions for
+testing.
+Now, we use the `uv` functionality to create lock files
 (and thus it is assumed that you installed the package in a `uv` virtual
 environment, as described above).
 
@@ -176,18 +153,8 @@ underlying project updates.
 Finally, recreate the lock files with:
 
 ```shell
-uv pip compile pyproject.toml -o requirements/requirements-all-dev.txt --extra all --extra dev
-uv pip compile pyproject.toml -o requirements/requirements-all.txt --extra all
 uv lock
 ```
-
-You should then inspect the changes to the requirements files (only your new
-package and its subdependencies should have been added) and commit the changes.
-
-> Regenerating the `Pipfile.lock` will not be necessary for long, but in this
-> case it can be synced with the requirements.txt files via `pipenv install -r requirements/requirements-all-dev.txt`,
-> and the resulting `Pipfile.lock` can be committed to the repository.
-
 ### Test server authentication/authorisation
 
 There are two approaches to authentication when developing *datalab* features locally.
