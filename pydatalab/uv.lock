@@ -662,7 +662,7 @@ array = [
 
 [[package]]
 name = "datalab-server"
-version = "0.5.0rc5"
+version = "0.5.0rc6.dev1+gec5d977.d20241008"
 source = { editable = "." }
 dependencies = [
     { name = "bokeh" },
@@ -720,16 +720,8 @@ chat = [
     { name = "tiktoken" },
     { name = "transformers" },
 ]
-dev = [
-    { name = "mkdocs" },
-    { name = "mkdocs-awesome-pages-plugin" },
-    { name = "mkdocs-material" },
-    { name = "mkdocstrings", extra = ["python-legacy"] },
-    { name = "mongomock" },
-    { name = "pre-commit" },
-    { name = "pytest" },
-    { name = "pytest-cov" },
-    { name = "pytest-dependency" },
+deploy = [
+    { name = "gunicorn" },
 ]
 server = [
     { name = "flask" },
@@ -748,6 +740,19 @@ server = [
     { name = "werkzeug" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "mkdocs" },
+    { name = "mkdocs-awesome-pages-plugin" },
+    { name = "mkdocs-material" },
+    { name = "mkdocstrings", extra = ["python-legacy"] },
+    { name = "mongomock" },
+    { name = "pre-commit" },
+    { name = "pytest" },
+    { name = "pytest-cov" },
+    { name = "pytest-dependency" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "bokeh", specifier = "~=2.4,<3.0" },
@@ -760,16 +765,12 @@ requires-dist = [
     { name = "flask-mail", marker = "extra == 'server'", specifier = "~=0.10" },
     { name = "flask-pymongo", marker = "extra == 'server'", specifier = "~=2.3" },
     { name = "galvani", marker = "extra == 'apps'", specifier = "~=0.4,<0.5" },
+    { name = "gunicorn", marker = "extra == 'deploy'", specifier = "~=23.0" },
     { name = "invoke", marker = "extra == 'server'", specifier = "~=2.2" },
     { name = "langchain", marker = "extra == 'chat'", specifier = "==0.2.6" },
     { name = "langchain-anthropic", marker = "extra == 'chat'", specifier = "~=0.1" },
     { name = "langchain-openai", marker = "extra == 'chat'", specifier = "~=0.1" },
     { name = "matplotlib", specifier = "~=3.8" },
-    { name = "mkdocs", marker = "extra == 'dev'", specifier = "~=1.6" },
-    { name = "mkdocs-awesome-pages-plugin", marker = "extra == 'dev'", specifier = "~=2.9" },
-    { name = "mkdocs-material", marker = "extra == 'dev'", specifier = "~=9.5" },
-    { name = "mkdocstrings", extras = ["python-legacy"], marker = "extra == 'dev'", specifier = "~=0.25" },
-    { name = "mongomock", marker = "extra == 'dev'", specifier = "~=4.1" },
     { name = "navani", marker = "extra == 'apps'", git = "https://github.com/the-grey-group/navani.git?rev=v0.1.7" },
     { name = "newarenda", marker = "extra == 'apps'", specifier = ">=2024" },
     { name = "nmrglue", marker = "extra == 'apps'", specifier = "~=0.10" },
@@ -778,14 +779,10 @@ requires-dist = [
     { name = "periodictable", specifier = "~=1.7" },
     { name = "pillow", marker = "extra == 'server'", specifier = "~=10.4" },
     { name = "pint", specifier = "~=0.24" },
-    { name = "pre-commit", marker = "extra == 'dev'", specifier = "~=4.0" },
     { name = "pybaselines", marker = "extra == 'apps'", specifier = "~=1.1" },
     { name = "pydantic", extras = ["dotenv", "email"], specifier = "<2.0" },
     { name = "pyjwt", marker = "extra == 'server'", specifier = "~=2.9" },
     { name = "pymongo", marker = "extra == 'server'", specifier = "~=4.7" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = "~=8.2" },
-    { name = "pytest-cov", marker = "extra == 'dev'", specifier = "~=5.0" },
-    { name = "pytest-dependency", marker = "extra == 'dev'", specifier = "~=0.6" },
     { name = "python-dateutil", marker = "extra == 'apps'", specifier = "~=2.9" },
     { name = "python-dotenv", marker = "extra == 'server'", specifier = "~=1.0" },
     { name = "rosettasciio", marker = "extra == 'apps'", specifier = "~=0.3,<0.4" },
@@ -793,6 +790,19 @@ requires-dist = [
     { name = "tiktoken", marker = "extra == 'chat'", specifier = "~=0.7" },
     { name = "transformers", marker = "extra == 'chat'", specifier = "~=4.42" },
     { name = "werkzeug", marker = "extra == 'server'", specifier = "~=3.0" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "mkdocs", specifier = "~=1.6" },
+    { name = "mkdocs-awesome-pages-plugin", specifier = "~=2.9" },
+    { name = "mkdocs-material", specifier = "~=9.5" },
+    { name = "mkdocstrings", extras = ["python-legacy"], specifier = "~=0.25" },
+    { name = "mongomock", specifier = "~=4.1" },
+    { name = "pre-commit", specifier = "~=4.0" },
+    { name = "pytest", specifier = "~=8.2" },
+    { name = "pytest-cov", specifier = "~=5.0" },
+    { name = "pytest-dependency", specifier = "~=0.6" },
 ]
 
 [[package]]
@@ -1170,6 +1180,18 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/18/87/470e01a940307796f1d25f8167b551a968540fbe0551c0ebb853cb527dd6/greenlet-3.1.1-cp313-cp313t-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:6510bf84a6b643dabba74d3049ead221257603a253d0a9873f55f6a59a65f822", size = 602753 },
     { url = "https://files.pythonhosted.org/packages/e2/72/576815ba674eddc3c25028238f74d7b8068902b3968cbe456771b166455e/greenlet-3.1.1-cp313-cp313t-musllinux_1_1_aarch64.whl", hash = "sha256:04b013dc07c96f83134b1e99888e7a79979f1a247e2a9f59697fa14b5862ed01", size = 1122731 },
     { url = "https://files.pythonhosted.org/packages/ac/38/08cc303ddddc4b3d7c628c3039a61a3aae36c241ed01393d00c2fd663473/greenlet-3.1.1-cp313-cp313t-musllinux_1_1_x86_64.whl", hash = "sha256:411f015496fec93c1c8cd4e5238da364e1da7a124bcb293f085bf2860c32c6f6", size = 1142112 },
+]
+
+[[package]]
+name = "gunicorn"
+version = "23.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "packaging" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/34/72/9614c465dc206155d93eff0ca20d42e1e35afc533971379482de953521a4/gunicorn-23.0.0.tar.gz", hash = "sha256:f014447a0101dc57e294f6c18ca6b40227a4c90e9bdb586042628030cba004ec", size = 375031 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/cb/7d/6dac2a6e1eba33ee43f318edbed4ff29151a49b5d37f080aad1e6469bca4/gunicorn-23.0.0-py3-none-any.whl", hash = "sha256:ec400d38950de4dfd418cff8328b2c8faed0edb0d517d3394e457c317908ca4d", size = 85029 },
 ]
 
 [[package]]
