@@ -43,18 +43,6 @@ root = ".."
 fallback_version = "0.1.0"
 
 [project.optional-dependencies]
-dev = [
-    "pytest ~= 8.2",
-    "pytest-cov ~= 5.0",
-    "pytest-dependency ~= 0.6",
-    "pre-commit ~= 4.0",
-    "mongomock ~= 4.1",
-    "mkdocs ~= 1.6",
-    "mkdocs-material ~= 9.5",
-    "mkdocstrings[python-legacy] ~= 0.25",
-    "mkdocs-awesome-pages-plugin ~= 2.9",
-]
-
 server = [
     "pymongo ~= 4.7",
     "Flask ~= 3.0",
@@ -71,7 +59,6 @@ server = [
     "invoke ~= 2.2",
     "paramiko ~= 3.4",
 ]
-
 apps = [
     # General
     "scipy ~= 1.13",
@@ -87,7 +74,6 @@ apps = [
     # TGA
     "python-dateutil ~= 2.9",
 ]
-
 chat = [
     "langchain == 0.2.6",
     "langchain-openai ~= 0.1",
@@ -95,8 +81,7 @@ chat = [
     "tiktoken ~= 0.7",
     "transformers ~= 4.42",
 ]
-
-
+deploy = ["gunicorn ~= 23.0"]
 all = ["datalab-server[apps,server,chat]"]
 
 [tool.mypy]
@@ -119,3 +104,16 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
 [tool.ruff.lint.isort]
 known-first-party = ["pydatalab"]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest ~= 8.2",
+    "pytest-cov ~= 5.0",
+    "pytest-dependency ~= 0.6",
+    "pre-commit ~= 4.0",
+    "mongomock ~= 4.1",
+    "mkdocs ~= 1.6",
+    "mkdocs-material ~= 9.5",
+    "mkdocstrings[python-legacy] ~= 0.25",
+    "mkdocs-awesome-pages-plugin ~= 2.9",
+]
