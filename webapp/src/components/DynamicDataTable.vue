@@ -353,25 +353,28 @@ export default {
 </script>
 
 <style scoped>
-.customize-table .ag-header {
-  font-size: 1rem;
-}
-
-.p-datatable-column-header-content .p-datatable-sort-icon {
+:deep .p-datatable-column-header-content .p-datatable-sort-icon {
   visibility: hidden !important;
 }
-.p-datatable-column-header-content:hover .p-datatable-sort-icon {
+
+:deep
+  .p-datatable-column-header-content[data-pc-section="columnheadercontent"]
+  .p-datatable-sort-icon[sorted="true"] {
   visibility: visible !important;
 }
 
-.p-datatable .p-datatable-tbody > tr > td {
+:deep .p-datatable-header-cell:hover .p-datatable-column-header-content .p-datatable-sort-icon {
+  visibility: visible !important;
+}
+
+:deep .p-datatable .p-datatable-tbody > tr > td {
   min-width: 1em;
   max-width: 200px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.p-datatable .p-datatable-thead > tr > th {
+:deep .p-datatable .p-datatable-thead > tr > th {
   min-width: 1em;
   max-width: 200px;
   overflow: hidden;
@@ -379,10 +382,17 @@ export default {
   white-space: nowrap;
 }
 
-.p-datatable-header-cell.filter-active svg {
+:deep .p-datatable-header-cell.filter-active svg {
   color: #10b981;
 }
-.p-datatable-header-cell.filter-active {
+:deep .p-datatable-header-cell.filter-active {
   color: #047857;
+}
+
+:deep .p-datatable-thead th {
+  padding: 0.5rem !important;
+}
+:deep .p-datatable-tbody tr td {
+  padding: 0.5rem !important;
 }
 </style>
