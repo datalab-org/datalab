@@ -325,7 +325,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "datalab-api" },
-    { name = "datalab-server", extras = ["all"], marker = "extra == 'dev'", git = "https://github.com/datalab-org/datalab?subdirectory=pydatalab&rev=ml-evs%2Ffix-python-package" },
+    { name = "datalab-server", extras = ["all"], marker = "extra == 'dev'", git = "https://github.com/datalab-org/datalab?subdirectory=pydatalab&rev=v0.5.0-rc.4" },
     { name = "matplotlib" },
     { name = "numpy" },
     { name = "pandas" },
