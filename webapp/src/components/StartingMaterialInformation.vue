@@ -64,7 +64,8 @@
       </div>
       <div class="form-group col-lg-3 col-sm-4">
         <label for="startmat-hazards">GHS Hazard Codes</label>
-        <StyledInput id="startmat-hazards" v-model="GHS" :readonly="!isEditable" />
+        <!-- <StyledInput id="startmat-hazards" v-model="GHS" :readonly="!isEditable" /> -->
+        <GHSHazardInformation v-model="GHS" :item_id="item.item_id" :type="item.type" />
       </div>
       <div class="col-lg-3 col-sm-4">
         <ToggleableCollectionFormGroup v-model="Collections" />
@@ -91,6 +92,7 @@ import TableOfContents from "@/components/TableOfContents";
 import ToggleableCollectionFormGroup from "@/components/ToggleableCollectionFormGroup";
 import FormattedRefcode from "@/components/FormattedRefcode";
 import StyledInput from "@/components/StyledInput";
+import GHSHazardInformation from "@/components/GHSHazardInformation";
 
 import { EDITABLE_INVENTORY } from "@/resources.js";
 
@@ -103,6 +105,7 @@ export default {
     ToggleableCollectionFormGroup,
     TableOfContents,
     FormattedRefcode,
+    GHSHazardInformation,
   },
   props: {
     item_id: { type: String, required: true },
