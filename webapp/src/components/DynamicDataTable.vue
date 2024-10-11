@@ -236,6 +236,15 @@ export default {
 
       if (event.originalEvent.target.classList.contains("checkbox")) {
         return null;
+      } else if (event.originalEvent.target.classList.contains("p-checkbox-input")) {
+        const selectedIndex = this.itemsSelected.findIndex((item) => item.item_id === row.item_id);
+
+        if (selectedIndex === -1) {
+          this.itemsSelected.push(row);
+        } else {
+          this.itemsSelected.splice(selectedIndex, 1);
+        }
+        return null;
       }
 
       if (
@@ -314,7 +323,11 @@ export default {
         return false;
       }
       return visibleItems.every((currentItem) =>
-        this.itemsSelected.some((selectedItem) => selectedItem.item_id === currentItem.item_id),
+        this.itemsSelected.some(
+          (selectedItem) =>
+            (selectedItem.item_id || selectedItem.collection_id) ===
+            (currentItem.item_id || currentItem.collection_id),
+        ),
       );
     },
     onFilter(event) {
@@ -326,15 +339,21 @@ export default {
       const itemsToSelect = this.getVisibleItems();
 
       if (this.allSelected) {
-        const selectedIds = new Set(this.itemsSelected.map((item) => item.item_id));
+        const selectedIds = new Set(
+          this.itemsSelected.map((item) => item.item_id || item.collection_id),
+        );
         itemsToSelect.forEach((item) => {
-          if (!selectedIds.has(item.item_id)) {
+          if (!selectedIds.has(item.item_id || item.collection_id)) {
             this.itemsSelected.push(item);
           }
         });
       } else {
-        const idsToRemove = new Set(itemsToSelect.map((item) => item.item_id));
-        this.itemsSelected = this.itemsSelected.filter((item) => !idsToRemove.has(item.item_id));
+        const idsToRemove = new Set(
+          itemsToSelect.map((item) => item.item_id || item.collection_id),
+        );
+        this.itemsSelected = this.itemsSelected.filter(
+          (item) => !idsToRemove.has(item.item_id || item.collection_id),
+        );
       }
     },
     deleteSelectedItems() {
@@ -351,38 +370,3 @@ export default {
   },
 };
 </script>
-
-<style scoped>
-.customize-table .ag-header {
-  font-size: 1rem;
-}
-
-.p-datatable-column-header-content .p-datatable-sort-icon {
-  visibility: hidden !important;
-}
-.p-datatable-column-header-content:hover .p-datatable-sort-icon {
-  visibility: visible !important;
-}
-
-.p-datatable .p-datatable-tbody > tr > td {
-  min-width: 1em;
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.p-datatable .p-datatable-thead > tr > th {
-  min-width: 1em;
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.p-datatable-header-cell.filter-active svg {
-  color: #10b981;
-}
-.p-datatable-header-cell.filter-active {
-  color: #047857;
-}
-</style>
