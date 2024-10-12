@@ -1,0 +1,51 @@
+name: Start datalab test services
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: The commit or tag to run the test server from
+        type: string
+        # Using the current commit by default; if called from outside this repo, the SHA will not exist, so will fallback to `main`
+        default: ${{ github.sha }}
+jobs:
+  start-services:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          repository: datalab-org/datalab
+          path: /opt/datalab
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Set some environment variables for CI containers pre-build
+        working-directory: /opt/datalab
+        run: |
+          cp webapp/.env.test_e2e .env
+          echo "PYDATALAB_TESTING=true" >> pydatalab/.env
+
+      - name: Load previously built Docker images
+        uses: docker/bake-action@v5
+        with:
+          files: /opt/datalab/docker-compose.yml
+          load: true
+          targets: 'app,api,database'
+          set: |
+            app.cache-to=type=gha,scope=build-app,mode=max
+            app.cache-from=type=gha,scope=build-app
+            app.tags=datalab-app:latest
+            api.cache-to=type=gha,scope=build-api,mode=max
+            api.cache-from=type=gha,scope=build-api
+            api.tags=datalab-api:latest
+            database.cache-to=type=gha,scope=build-database,mode=max
+            database.cache-from=type=gha,scope=build-database
+            database.tags=datalab-database:latest
+
+      - name: Start services
+        working-directory: /opt/datalab
+        run: |
+          # Launch production container profiles and wait for them to come up
+          docker compose up database api app --no-build --force-recreate -d --wait

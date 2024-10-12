@@ -130,37 +130,11 @@ jobs:
         browser-backend: ["electron", "chrome", "firefox"]
 
     steps:
+
       - uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Set some environment variables for CI containers pre-build
-        run: |
-          cp webapp/.env.test_e2e .env
-          echo "PYDATALAB_TESTING=true" >> pydatalab/.env
-
-      - name: Load previously built Docker images
-        uses: docker/bake-action@v5
-        with:
-          files: docker-compose.yml
-          load: true
-          targets: 'app,api,database'
-          set: |
-            app.cache-to=type=gha,scope=build-app,mode=max
-            app.cache-from=type=gha,scope=build-app
-            app.tags=datalab-app:latest
-            api.cache-to=type=gha,scope=build-api,mode=max
-            api.cache-from=type=gha,scope=build-api
-            api.tags=datalab-api:latest
-            database.cache-to=type=gha,scope=build-database,mode=max
-            database.cache-from=type=gha,scope=build-database
-            database.tags=datalab-database:latest
-
-      - name: Start services
-        run: |
-          # Launch production container profiles and wait for them to come up
-          docker compose up database api app --no-build --force-recreate -d --wait
+      - name: Start test servers
+        uses: ./.github/workflows/launch_services.yml@ml-evs/refactor-ci
 
       - name: Run end-to-end tests
         uses: cypress-io/github-action@v6
