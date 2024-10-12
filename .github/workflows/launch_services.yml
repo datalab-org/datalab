@@ -3,18 +3,18 @@ name: Start datalab test services
 on:
   workflow_call:
     inputs:
-      ref:
-        description: The commit or tag to run the test server from
-        type: string
+      # ref:
+        # description: The commit or tag to run the test server from
+        # type: string
         # Using the current commit by default; if called from outside this repo, the SHA will not exist, so will fallback to `main`
-        default: ${{ github.sha }}
+        # default: ${{ github.sha }}
 jobs:
   start-services:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.ref }}
+          # ref: ${{ inputs.ref }}
           repository: datalab-org/datalab
           path: /opt/datalab
 
