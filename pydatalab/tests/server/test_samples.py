@@ -485,12 +485,14 @@ def test_create_collections(client, default_collection):
     assert response.json["data"]["collection_id"] == "test_collection"
     assert response.json["data"]["title"] == "My Test Collection"
     assert response.json["data"]["num_items"] == 0
+    assert response.json["data"]["immutable_id"]
 
     response = client.get("/collections")
     assert response.status_code == 200
     assert len(response.json["data"]) == 1
     assert response.json["data"][0]["collection_id"] == "test_collection"
     assert response.json["data"][0]["title"] == "My Test Collection"
+    assert response.json["data"]["immutable_id"]
     assert response.status_code == 200
 
     # Create a collection with initial items
