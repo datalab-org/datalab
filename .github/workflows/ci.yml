@@ -134,7 +134,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Start test servers
-        uses: ./.github/workflows/launch_services.yml
+        uses: ./.github/workflows/launch_services
 
       - name: Run end-to-end tests
         uses: cypress-io/github-action@v6
