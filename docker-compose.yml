@@ -5,7 +5,6 @@ services:
     build:
       context: .
       dockerfile: .docker/app_dockerfile
-      target: production
     volumes:
       - ./logs:/logs
     restart: unless-stopped
@@ -24,7 +23,6 @@ services:
     build:
       context: .
       dockerfile: .docker/server_dockerfile
-      target: production
       args:
         - WEB_CONCURRENCY=4
     depends_on:

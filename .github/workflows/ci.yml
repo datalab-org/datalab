@@ -147,14 +147,14 @@ jobs:
           load: true
           targets: 'app,api,database'
           set: |
-            app.cache-to=type=gha,scope=build-app,mode=max
             app.cache-from=type=gha,scope=build-app
+            app.cache-to=type=gha,scope=build-app,mode=max
             app.tags=datalab-app:latest
-            api.cache-to=type=gha,scope=build-api,mode=max
             api.cache-from=type=gha,scope=build-api
+            api.cache-to=type=gha,scope=build-api,mode=max
             api.tags=datalab-api:latest
-            database.cache-to=type=gha,scope=build-database,mode=max
             database.cache-from=type=gha,scope=build-database
+            database.cache-to=type=gha,scope=build-database,mode=max
             database.tags=datalab-database:latest
 
       - name: Start services
