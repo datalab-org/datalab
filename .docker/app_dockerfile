@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM node:20-bullseye AS base
+FROM node:20-bullseye
 SHELL ["/bin/bash", "--login", "-c"]
 
 WORKDIR /app
@@ -10,9 +10,8 @@ COPY webapp/package.json webapp/yarn.lock ./
 
 # Using a custom node_modules location to avoid mounting it outside of docker
 RUN --mount=type=cache,target=/root/.cache/yarn yarn install --frozen-lockfile --modules-folder /node_modules
-ENV PATH=$PATH:/node_modules/.bin
 
-FROM base AS production
+ENV PATH=$PATH:/node_modules/.bin
 ENV NODE_ENV=production
 
 # These get replaced by the entrypoint script for production builds.
