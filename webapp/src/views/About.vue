@@ -77,14 +77,14 @@
 import Navbar from "@/components/Navbar";
 import { getInfo } from "@/server_fetch_utils.js";
 import StatisticsTable from "@/components/StatisticsTable";
-import packageInfo from "../../package.json";
+import { APP_VERSION } from "@/resources.js";
 
 export default {
   components: { Navbar, StatisticsTable },
   data() {
     return {
       apiInfo: { server_version: "unknown" },
-      appVersion: packageInfo.version,
+      appVersion: APP_VERSION,
     };
   },
   async mounted() {
