@@ -88,7 +88,7 @@ jobs:
       - name: Run all tests
         working-directory: ./pydatalab
         run: |
-          uv run pytest -rs -vvv --cov-report=term --cov-report=xml --cov ./pydatalab ./tests
+          uv run pytest -rs -vvv ./tests
 
       - name: Upload coverage to Codecov
         if: matrix.python-version == '3.10' && github.repository == 'datalab-org/datalab'
