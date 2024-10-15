@@ -185,6 +185,9 @@ export default {
       return this.$store.state.files;
     },
     blocksInfos() {
+      if (Object.keys(this.$store.state.blocksInfos).length == 0) {
+        getBlocksInfos();
+      }
       return this.$store.state.blocksInfos;
     },
     itemApiUrl() {
@@ -202,7 +205,6 @@ export default {
     },
   },
   created() {
-    getBlocksInfos();
     this.getSampleData();
     this.interval = setInterval(() => this.setLastModified(), 30000);
   },
@@ -248,19 +250,6 @@ export default {
       var element = document.getElementById(id);
       element.scrollIntoView({
         behavior: "smooth",
-      });
-    },
-    change_a_block(event, block_id) {
-      let item_id = this.item_id;
-      let new_data = {
-        block_id: 7,
-        a_new_field: "foo bar",
-      };
-      console.log(new_data);
-      this.$store.commit("updateBlockData", {
-        item_id,
-        block_id,
-        block_data: new_data,
       });
     },
     getBlockDisplayType(block_id) {
