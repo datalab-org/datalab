@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM node:20-bullseye
+FROM node:20-bullseye AS app
 SHELL ["/bin/bash", "--login", "-c"]
 
 WORKDIR /app
@@ -24,7 +24,7 @@ ARG VUE_APP_WEBSITE_TITLE=magic-title
 ARG VUE_APP_QR_CODE_RESOLVER_URL=magic-qr-code-resolver-url
 
 COPY webapp ./
-RUN /node_modules/.bin/vue-cli-service build
+RUN --mount=type=bind,target=/.git,src=./.git VUE_APP_GIT_VERSION=$(node scripts/get-version.js) /node_modules/.bin/vue-cli-service build
 
 COPY ./.docker/app_entrypoint.sh /app/
 CMD [ "/bin/bash", "-c", "/app/app_entrypoint.sh" ]
