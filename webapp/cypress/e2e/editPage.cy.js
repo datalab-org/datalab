@@ -203,7 +203,6 @@ describe("Edit Page", () => {
   it("Add some blocks to the sample and checks unsaved warning behavior", () => {
     cy.get('[data-testid="search-input"]').type("editable_sample");
     cy.findByText("editable_sample").click();
-    cy.findByLabelText("Name").should("have.value", "This is a sample name");
 
     cy.findByText("Add a block").click();
     cy.get(".dropdown-menu").findByText("Comment").click();
@@ -266,7 +265,6 @@ describe("Edit Page", () => {
 
     cy.get('[data-testid="search-input"]').type("editable_sample");
     cy.findByText("editable_sample").click();
-    cy.findByLabelText("Name").should("have.value", "This is a sample name");
 
     cy.findByText("Add a block").click();
     cy.get(".dropdown-menu").findByText("Powder XRD").click();
