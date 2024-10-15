@@ -118,7 +118,7 @@ import "vue-select/dist/vue-select.css";
 
 // import "primevue";
 import PrimeVue from "primevue/config";
-import Aura from "@primevue/themes/aura";
+import DatalabPreset from "./primevue-theme-preset.js";
 
 const app = createApp(App);
 
@@ -126,12 +126,7 @@ app
   .use(store)
   .use(router)
   .use(PrimeVue, {
-    theme: {
-      preset: Aura,
-      options: {
-        darkModeSelector: "none",
-      },
-    },
+    theme: DatalabPreset,
   })
   .component("font-awesome-icon", FontAwesomeIcon)
   .component("editor", Editor)
