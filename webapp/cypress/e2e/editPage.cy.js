@@ -246,4 +246,33 @@ describe("Edit Page", () => {
     cy.get('[data-testid="search-input"]').type("editable_sample");
     cy.get("[data-testid=sample-table] tr:nth-of-type(1) > td:nth-of-type(9)").contains(2); // 2 blocks are present
   });
+
+  it("Clicks the upload buttons and checks that the modals are shown", () => {
+    cy.get('[data-testid="search-input"]').type("editable_sample");
+    cy.findByText("editable_sample").click();
+    cy.findByLabelText("Name").should("have.value", "This is a sample name");
+
+    cy.findByText("Upload files...").click();
+    cy.findByText("Drop files here, browse files or import from:").should("exist");
+    cy.findByLabelText("Close Modal").click();
+
+    cy.findByText("Add files from server...").click();
+    cy.findByText("Select files to add").should("exist");
+    cy.findByLabelText("Close").click();
+  });
+
+  it("Uploads an XRD file, makes an XRD block and checks that the plot works", () => {
+    cy.uploadFileViaAPI("editable_sample", "XRD/example_bmb.xye");
+
+    cy.get('[data-testid="search-input"]').type("editable_sample");
+    cy.findByText("editable_sample").click();
+    cy.findByLabelText("Name").should("have.value", "This is a sample name");
+
+    cy.findByText("Add a block").click();
+    cy.get(".dropdown-menu").findByText("Powder XRD").click();
+
+    cy.findByLabelText("Select a file:").click();
+    cy.get(".file-select-dropdown").findByText("example_bmb.xye").click();
+    cy.findByText("X axis").exists();
+  });
 });
