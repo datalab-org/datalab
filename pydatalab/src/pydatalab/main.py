@@ -1,5 +1,6 @@
 import datetime
 import logging
+import os
 import pathlib
 from typing import Any, Dict
 
@@ -147,7 +148,15 @@ def create_app(
         for key in mail_settings:
             app.config[key] = mail_settings[key]
 
+    # Load config values from a provided .env file into the flask app config
+    # This useful for non-datalab settings like OAuth secrets
     app.config.update(dotenv_values(dotenv_path=env_file))
+
+    # Testing config: to enable OAuth2 on dev servers without https, we need to control the
+    # OAUTHLIB_INSECURE_TRANSPORT setting. If this is provided in the .env file, we also need
+    # to set it as an environment variable for the underlying oauthlib library to pick it up
+    if app.config.get("OAUTHLIB_INSECURE_TRANSPORT"):
+        os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = app.config["OAUTHLIB_INSECURE_TRANSPORT"]
 
     LOGGER.info("Launching datalab version %s", __version__)
     LOGGER.info("Starting app with Flask app.config: %s", app.config)

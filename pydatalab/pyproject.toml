@@ -117,3 +117,6 @@ dev-dependencies = [
     "mkdocstrings[python-legacy] ~= 0.25",
     "mkdocs-awesome-pages-plugin ~= 2.9",
 ]
+
+[tool.pytest.ini_options]
+addopts = "--cov-report=term --cov-report=xml --cov ./src/pydatalab"

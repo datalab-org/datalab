@@ -30,6 +30,7 @@ export const FEDERATION_QR_CODE_RESOLVER_URL = "https://purl.datalab-org.io";
 
 export const LOGO_URL = process.env.VUE_APP_LOGO_URL;
 export const HOMEPAGE_URL = process.env.VUE_APP_HOMEPAGE_URL;
+export const APP_VERSION = process.env.VUE_APP_GIT_VERSION;
 
 export const GRAVATAR_STYLE = "identicon";
 

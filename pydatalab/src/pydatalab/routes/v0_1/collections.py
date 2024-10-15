@@ -164,7 +164,7 @@ def create_collection():
             400,
         )
 
-    immutable_id = result.inserted_id
+    data_model.immutable_id = result.inserted_id
 
     errors = []
     if starting_members:
@@ -177,7 +177,14 @@ def create_collection():
                 "item_id": {"$in": list(item_ids)},
                 **get_default_permissions(user_only=True),
             },
-            {"$push": {"relationships": {"type": "collections", "immutable_id": immutable_id}}},
+            {
+                "$push": {
+                    "relationships": {
+                        "type": "collections",
+                        "immutable_id": data_model.immutable_id,
+                    }
+                }
+            },
         )
 
         data_model.num_items = results.modified_count
