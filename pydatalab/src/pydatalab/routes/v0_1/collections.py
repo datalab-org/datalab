@@ -284,20 +284,46 @@ def save_collection(collection_id):
 
 @COLLECTIONS.route("/collections/<collection_id>", methods=["DELETE"])
 def delete_collection(collection_id: str):
-    result = flask_mongo.db.collections.delete_one(
-        {"collection_id": collection_id, **get_default_permissions(user_only=True)}
-    )
+    with flask_mongo.cx.start_session() as session:
+        with session.start_transaction():
+            collection_immutable_id = flask_mongo.db.collections.find_one(
+                {"collection_id": collection_id, **get_default_permissions(user_only=True)},
+                projection={"_id": 1},
+            )["_id"]
+            result = flask_mongo.db.collections.delete_one(
+                {"collection_id": collection_id, **get_default_permissions(user_only=True)}
+            )
+            if result.deleted_count != 1:
+                return (
+                    jsonify(
+                        {
+                            "status": "error",
+                            "message": f"Authorization required to attempt to delete collection with {collection_id=} from the database.",
+                        }
+                    ),
+                    401,
+                )
 
-    if result.deleted_count != 1:
-        return (
-            jsonify(
+            # If successful, remove collection from all matching items relationships
+            flask_mongo.db.items.update_many(
                 {
-                    "status": "error",
-                    "message": f"Authorization required to attempt to delete collection with {collection_id=} from the database.",
-                }
-            ),
-            401,
-        )
+                    "relationships": {
+                        "$elemMatch": {
+                            "immutable_id": collection_immutable_id,
+                            "type": "collections",
+                        }
+                    }
+                },
+                {
+                    "$pull": {
+                        "relationships": {
+                            "immutable_id": collection_immutable_id,
+                            "type": "collections",
+                        }
+                    }
+                },
+            )
+
     return (
         jsonify(
             {
