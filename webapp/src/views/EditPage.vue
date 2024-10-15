@@ -57,7 +57,7 @@
   </nav>
 
   <!-- Item-type header information goes here -->
-  <div v-if="itemDataLoaded" class="editor-body">
+  <div class="editor-body">
     <component :is="itemTypeEntry?.itemInformationComponent" :item_id="item_id" />
 
     <FileList :item_id="item_id" :file_ids="file_ids" :stored_files="stored_files" />
@@ -163,7 +163,7 @@ export default {
       return this.itemTypeEntry?.navbarColor || "DarkGrey";
     },
     item_data() {
-      return this.$store.state.all_item_data[this.item_id] || null;
+      return this.$store.state.all_item_data[this.item_id] || {};
     },
     blocks() {
       return this.item_data.blocks_obj;
