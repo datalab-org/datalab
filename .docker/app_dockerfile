@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM node:20-bullseye as app
+FROM node:20-bullseye AS app
 SHELL ["/bin/bash", "--login", "-c"]
 
 WORKDIR /app
@@ -13,7 +13,6 @@ RUN --mount=type=cache,target=/root/.cache/yarn yarn install --frozen-lockfile -
 
 ENV PATH=$PATH:/node_modules/.bin
 ENV NODE_ENV=production
-
 
 # These get replaced by the entrypoint script for production builds.
 # Set the real values in `.env` files or an external docker-compose.

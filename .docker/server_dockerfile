@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM python:3.10 as api
+FROM python:3.10 AS api
 SHELL ["/bin/bash", "--login", "-c"]
 
 # Useful for installing deps from git, preventing big downloads and bandwith quotas
