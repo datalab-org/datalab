@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM node:20-bullseye
+FROM node:20-bullseye as app
 SHELL ["/bin/bash", "--login", "-c"]
 
 WORKDIR /app
@@ -14,6 +14,7 @@ RUN --mount=type=cache,target=/root/.cache/yarn yarn install --frozen-lockfile -
 ENV PATH=$PATH:/node_modules/.bin
 ENV NODE_ENV=production
 
+
 # These get replaced by the entrypoint script for production builds.
 # Set the real values in `.env` files or an external docker-compose.
 ARG VUE_APP_API_URL=magic-api-url
@@ -24,7 +25,7 @@ ARG VUE_APP_WEBSITE_TITLE=magic-title
 ARG VUE_APP_QR_CODE_RESOLVER_URL=magic-qr-code-resolver-url
 
 COPY webapp ./
-RUN /node_modules/.bin/vue-cli-service build
+RUN --mount=type=bind,target=/.git,src=./.git VUE_APP_GIT_VERSION=$(node scripts/get-version.js) /node_modules/.bin/vue-cli-service build
 
 COPY ./.docker/app_entrypoint.sh /app/
 CMD [ "/bin/bash", "-c", "/app/app_entrypoint.sh" ]
