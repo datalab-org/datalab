@@ -1,4 +1,5 @@
 import os
+import warnings
 from pathlib import Path
 
 import bokeh
@@ -189,6 +190,10 @@ class RamanMapBlock(DataBlock):
 
     def generate_raman_map_plot(self):
         file_info = None
+
+        warnings.warn(
+            "The alignment of spectra grid and image cannot yet be guaranteed; please verify any plot you create."
+        )
 
         if "file_id" not in self.data:
             return None
