@@ -9,7 +9,9 @@
       />
       <input v-model="BlockTitle" class="form-control-plaintext block-title" type="text" />
       <span class="blocktype-label ml-auto mr-3">{{ blockType }}</span>
-      <span class="block-header-icon"><StyledBlockInfo :block-info="blockInfo" /></span>
+      <span v-if="blockInfo" class="block-header-icon"
+        ><StyledBlockInfo :block-info="blockInfo"
+      /></span>
       <font-awesome-icon
         :icon="['fa', 'sync']"
         class="block-header-icon"
@@ -170,7 +172,7 @@ export default {
       return this.$store.state.updatingDelayed[this.block_id];
     },
     blockInfo() {
-      return this.$store.state.blocksInfos[this.blockType];
+      return this.$store.state.blocksInfos?.[this.blockType];
     },
     BlockTitle: createComputedSetterForBlockField("title"),
     BlockDescription: createComputedSetterForBlockField("freeform_comment"),
