@@ -14,17 +14,20 @@ const DatalabPreset = definePreset(Aura, {
         whitespace: "nowrap",
         overflow: "hidden",
         textOverflow: "ellipsis",
+        divCheckboxHover: "#6C757D",
+        divCheckboxCheckedHover: "#5A6268",
       },
       bodyCellPadding: "0.4rem",
       sortIconColor: "transparent",
     },
     checkbox: {
-      checkedBackground: "#fff",
-      checkedBorderColor: "#ccc",
-      iconCheckedColor: "#ccc",
-      checkedHoverBackground: "#ccc",
-      checkedHoverBorderColor: "#fff",
-      iconCheckedHoverColor: "#fff",
+      hoverBorderColor: "#6C757D",
+      checkedBackground: "#6C757D",
+      checkedBorderColor: "#6C757D",
+      iconCheckedColor: "#F8F9FA",
+      checkedHoverBackground: "#5A6268",
+      checkedHoverBorderColor: "#5A6268",
+      iconCheckedHoverColor: "#F8F9FA",
     },
     button: {
       extend: {
@@ -45,7 +48,14 @@ const DatalabPreset = definePreset(Aura, {
           white-space: ${dt("datatable.whitespace")};
           overflow: ${dt("datatable.overflow")};
           text-overflow: ${dt("datatable.textOverflow")};
-s        }
+        }
+        .checkbox:hover .p-checkbox-box {
+          border-color: ${dt("datatable.divCheckboxHover")};
+        }
+        .checkbox:hover .p-checkbox-checked .p-checkbox-box {
+          border-color: ${dt("datatable.divCheckboxCheckedHover")};
+          background: ${dt("datatable.divCheckboxCheckedHover")};
+        }
       `,
 });
 
