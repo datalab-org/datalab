@@ -116,6 +116,30 @@ Cypress.Commands.add("deleteSampleViaAPI", (item_id) => {
   });
 });
 
+Cypress.Commands.add("uploadFileViaAPI", (itemId, path) => {
+  cy.log("Upload a test file via the API: " + path);
+  cy.fixture(path, "binary")
+    .then(Cypress.Blob.binaryStringToBlob)
+    .then((blob) => {
+      const formData = new FormData();
+      formData.append("relativePath", "null");
+      formData.append("name", path);
+      formData.append("type", "application/octet-stream");
+      formData.append("size", blob.size.toString());
+      formData.append("item_id", itemId);
+      formData.append("replace_file", "null");
+      formData.append("files[]", blob, path);
+
+      return cy.request({
+        method: "POST",
+        url: API_URL + "/upload-file/",
+        body: formData,
+        headers: { "Content-Type": "multipart/form-data" },
+        form: true,
+      });
+    });
+});
+
 Cypress.Commands.add("searchAndSelectItem", (search_text, selector, clickPlus = false) => {
   // searches in the dropdown for the first real item with the given name, looking for a badge
   // if clickPlus, then also click the add row button before looking for the search bar
