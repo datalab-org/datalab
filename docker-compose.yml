@@ -5,11 +5,11 @@ services:
     build:
       context: .
       dockerfile: .docker/app_dockerfile
-      target: production
     volumes:
       - ./logs:/logs
     restart: unless-stopped
     environment:
+      - VUE_APP_GIT_VERSION
       - VUE_APP_API_URL
       - VUE_APP_LOGO_URL
       - VUE_APP_HOMEPAGE_URL
@@ -24,7 +24,6 @@ services:
     build:
       context: .
       dockerfile: .docker/server_dockerfile
-      target: production
       args:
         - WEB_CONCURRENCY=4
     depends_on:

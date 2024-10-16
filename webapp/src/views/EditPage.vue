@@ -23,6 +23,7 @@
           Add a block
         </a>
         <div
+          v-if="blockInfoLoaded"
           v-show="isMenuDropdownVisible"
           class="dropdown-menu"
           style="display: block"
@@ -66,7 +67,7 @@
     </div>
 
     <!-- Display the blocks -->
-    <div class="container block-container">
+    <div v-if="blocksLoaded" class="container block-container">
       <transition-group name="block-list" tag="div">
         <div v-for="block_id in item_data.display_order" :key="block_id" class="block-list-item">
           <component :is="getBlockDisplayType(block_id)" :item_id="item_id" :block_id="block_id" />
@@ -141,6 +142,8 @@ export default {
       item_id: this.$route.params?.id || null,
       refcode: this.$route.params?.refcode || null,
       itemDataLoaded: false,
+      blockInfoLoaded: false,
+      blocksLoaded: false,
       isMenuDropdownVisible: false,
       selectedRemoteFiles: [],
       isLoadingRemoteTree: false,
@@ -151,16 +154,16 @@ export default {
   },
   computed: {
     itemType() {
-      return this.$store.state.all_item_data[this.item_id]?.type || null;
+      return this.$store.state.all_item_data[this.item_id]?.type || undefined;
     },
     itemTypeEntry() {
-      return itemTypes[this.itemType] || null;
+      return itemTypes[this.itemType] || undefined;
     },
     navbarColor() {
       return this.itemTypeEntry?.navbarColor || "DarkGrey";
     },
     item_data() {
-      return this.$store.state.all_item_data[this.item_id] || { display_order: [] };
+      return this.$store.state.all_item_data[this.item_id] || {};
     },
     blocks() {
       return this.item_data.blocks_obj;
@@ -202,7 +205,7 @@ export default {
     },
   },
   created() {
-    getBlocksInfos();
+    this.getBlocksInfo();
     this.getSampleData();
     this.interval = setInterval(() => this.setLastModified(), 30000);
   },
@@ -250,19 +253,6 @@ export default {
         behavior: "smooth",
       });
     },
-    change_a_block(event, block_id) {
-      let item_id = this.item_id;
-      let new_data = {
-        block_id: 7,
-        a_new_field: "foo bar",
-      };
-      console.log(new_data);
-      this.$store.commit("updateBlockData", {
-        item_id,
-        block_id,
-        block_data: new_data,
-      });
-    },
     getBlockDisplayType(block_id) {
       var type = this.blocks[block_id].blocktype;
       if (type in blockTypes) {
@@ -280,24 +270,38 @@ export default {
       saveItem(this.item_id);
       this.lastModified = "just now";
     },
-    getSampleData() {
+    async getSampleData() {
       if (this.item_id == null) {
         getItemByRefcode(this.refcode).then(() => {
+          this.itemDataLoaded = true;
           this.item_id = this.$store.state.refcode_to_id[this.refcode];
+          this.updateBlocks();
         });
       } else {
         getItemData(this.item_id).then(() => {
+          this.itemDataLoaded = true;
           this.refcode = this.item_data.refcode;
+          this.updateBlocks();
         });
       }
-      this.itemDataLoaded = true;
+    },
 
-      // update each block asynchronously
-      this.item_data.display_order.forEach((block_id) => {
-        console.log(`calling update on block ${block_id}`);
-        updateBlockFromServer(this.item_id, block_id, this.item_data.blocks_obj[block_id]);
-      });
-      this.setLastModified();
+    async updateBlocks() {
+      if (this.itemDataLoaded) {
+        // update each block asynchronously
+        this.item_data.display_order.forEach((block_id) => {
+          console.log(`calling update on block ${block_id}`);
+          updateBlockFromServer(this.item_id, block_id, this.item_data.blocks_obj[block_id]);
+        });
+        this.blocksLoaded = true;
+        this.setLastModified();
+      }
+    },
+    async getBlocksInfo() {
+      if (Object.keys(this.$store.state.blocksInfos).length == 0) {
+        await getBlocksInfos();
+      }
+      this.blockInfoLoaded = true;
     },
     leavePageWarningListener(event) {
       event.preventDefault;

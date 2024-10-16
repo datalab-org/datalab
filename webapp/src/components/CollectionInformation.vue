@@ -62,19 +62,6 @@ export default {
       default: null,
     },
   },
-  computed: {
-    CollectionID: createComputedSetterForCollectionField("collection_id"),
-    CollectionDescription: createComputedSetterForCollectionField("description"),
-    Title: createComputedSetterForCollectionField("title"),
-    Name: createComputedSetterForCollectionField("name"),
-    CollectionCreators: createComputedSetterForCollectionField("creators"),
-    children() {
-      return this.$store.state.all_collection_children[this.collection_id] || [];
-    },
-  },
-  created() {
-    this.getCollectionChildren();
-  },
   data() {
     return {
       collectionTableColumns: [
@@ -92,6 +79,19 @@ export default {
         { field: "nblocks", header: "# of blocks" },
       ],
     };
+  },
+  computed: {
+    CollectionID: createComputedSetterForCollectionField("collection_id"),
+    CollectionDescription: createComputedSetterForCollectionField("description"),
+    Title: createComputedSetterForCollectionField("title"),
+    Name: createComputedSetterForCollectionField("name"),
+    CollectionCreators: createComputedSetterForCollectionField("creators"),
+    children() {
+      return this.$store.state.all_collection_children[this.collection_id] || [];
+    },
+  },
+  created() {
+    this.getCollectionChildren();
   },
   methods: {
     getCollectionChildren() {

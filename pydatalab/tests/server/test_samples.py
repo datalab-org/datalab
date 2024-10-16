@@ -472,7 +472,7 @@ def test_cell_from_scratch(client):
 
 
 @pytest.mark.dependency(depends=["test_create_cell"])
-def test_create_collections(client, default_collection):
+def test_create_collections(client, default_collection, database):
     # Check no collections initially
     response = client.get("/collections")
     assert len(response.json["data"]) == 0, response.json
@@ -485,6 +485,7 @@ def test_create_collections(client, default_collection):
     assert response.json["data"]["collection_id"] == "test_collection"
     assert response.json["data"]["title"] == "My Test Collection"
     assert response.json["data"]["num_items"] == 0
+    assert response.json["data"]["immutable_id"]
 
     response = client.get("/collections")
     assert response.status_code == 200
@@ -529,12 +530,16 @@ def test_create_collections(client, default_collection):
     assert response.json["item_data"]["collections"][0]["collection_id"] == "test_collection_2"
 
     # Test that collections can be deleted and relationships to items are removed
+    deleted_id = database.collections.find_one({"collection_id": new_collection.collection_id})[
+        "_id"
+    ]
     response = client.delete(f"/collections/{new_collection.collection_id}")
     assert response.status_code == 200, response.json
     assert response.json["status"] == "success"
     response = client.get(f"/collections/{new_collection.collection_id}")
     assert response.status_code == 404, response.json
     test_id = ids.pop()
+    assert database.items.find_one({"relationships.immutable_id": deleted_id}) is None
     response = client.get(f"/get-item-data/{test_id}")
     assert response.status_code == 200, response.json
     assert response.json["status"] == "success"
