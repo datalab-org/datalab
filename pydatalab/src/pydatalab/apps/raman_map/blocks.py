@@ -25,7 +25,7 @@ class RamanMapBlock(DataBlock):
         return (self.generate_raman_map_plot,)
 
     @classmethod
-    def get_map_data(cls, location: Path | str):
+    def load(cls, location: Path | str) -> tuple[np.ndarray, np.ndarray, dict]:
         """Read the .wdf file with RosettaSciIO and extract the image
         and points of the Raman measurements. Plots these as an image
         overlaid by a scatter plot with points of gradient colours
@@ -34,9 +34,8 @@ class RamanMapBlock(DataBlock):
             location: The location of the file to read.
 
         Returns:
-            col: list of numbers corresponding to colors of each scatter
-            point
-            p: plot of image and points Raman was measured
+            raman_shift: list of numbers corresponding to colors of each scatter point
+            map: The raw Raman data, containing the map as a (x, y, spectra_len) array.
             metadata: metadata associated witht the measurement
 
 
@@ -44,36 +43,45 @@ class RamanMapBlock(DataBlock):
 
         raman_data = file_reader(location)
 
-        if len(raman_data[0]["axes"]) == 3:
-            pass
-        elif len(raman_data[0]["axes"]) == 1:
-            raise RuntimeError("This block is for 2D Raman data, not 1D")
-        else:
-            raise RuntimeError("Data is not compatible 1D or 2D Raman data.")
+        if len(raman_data[0]["axes"]) != 3:
+            raise RuntimeError("Data is not compatible with 1D or 2D Raman data.")
 
-        for dictionary in raman_data[0]["axes"]:
-            if dictionary["name"] == "Raman Shift":
+        for d in raman_data[0]["axes"]:
+            if d["name"] == "Raman Shift":
                 raman_shift = []
-                for i in range(int(dictionary["size"])):
-                    raman_shift.append(float(dictionary["offset"]) + float(dictionary["scale"]) * i)
-        return np.array(raman_shift), raman_data[0]["data"], raman_data[0]["metadata"]
+                for i in range(int(d["size"])):
+                    raman_shift.append(float(d["offset"]) + float(d["scale"]) * i)
 
-    def plot_raman_map(self, location: str | Path):
-        data = file_reader(location)
-        raman_shift, intensity_data, metadata = self.get_map_data(location)
+        return np.array(raman_shift), raman_data[0], raman_data[0]["metadata"]
+
+    @classmethod
+    def plot_raman_map(cls, location: str | Path):
+        """Read the .wdf file with RosettaSciIO and extract relevant
+        data.
+
+        Parameters:
+            location: The location of the file to read.
+        Returns:
+            col: list of numbers corresponding to colors of each scatter
+            point
+            p: plot of image and points Raman was measured
+            metadata: metadata associated witht the measurement
+
+        """
+        raman_shifts, data, metadata = cls.load(location)
         x_coordinates = []
         # gets the size, point spacing and original offset of x-axis
-        size_x = data[0]["original_metadata"]["WMAP_0"]["size_xyz"][0]
-        scale_x = data[0]["original_metadata"]["WMAP_0"]["scale_xyz"][0]
-        offset_x = data[0]["original_metadata"]["WMAP_0"]["offset_xyz"][0]
+        size_x = data["original_metadata"]["WMAP_0"]["size_xyz"][0]
+        scale_x = data["original_metadata"]["WMAP_0"]["scale_xyz"][0]
+        offset_x = data["original_metadata"]["WMAP_0"]["offset_xyz"][0]
         # generates x-coordinates
         for i in range(size_x):
             x_coordinates.append(i * scale_x + offset_x)
         y_coordinates = []
         # gets the size, point spacing and original offset of x-axis
-        size_y = data[0]["original_metadata"]["WMAP_0"]["size_xyz"][1]
-        scale_y = data[0]["original_metadata"]["WMAP_0"]["scale_xyz"][1]
-        offset_y = data[0]["original_metadata"]["WMAP_0"]["offset_xyz"][1]
+        size_y = data["original_metadata"]["WMAP_0"]["size_xyz"][1]
+        scale_y = data["original_metadata"]["WMAP_0"]["scale_xyz"][1]
+        offset_y = data["original_metadata"]["WMAP_0"]["offset_xyz"][1]
         # generates y-coordinates
         for i in range(size_y):
             y_coordinates.append(i * scale_y + offset_y)
@@ -84,12 +92,12 @@ class RamanMapBlock(DataBlock):
                 coordinate_pairs.append((x, y))
 
         # extracts image and gets relevant data
-        image_data = data[0]["original_metadata"]["WHTL_0"]["image"]
+        image_data = data["original_metadata"]["WHTL_0"]["image"]
         image = PIL.Image.open(image_data)
-        origin = data[0]["original_metadata"]["WHTL_0"]["FocalPlaneXYOrigins"]
+        origin = data["original_metadata"]["WHTL_0"]["FocalPlaneXYOrigins"]
         origin = [float(origin[0]), float(origin[1])]
-        x_span = float(data[0]["original_metadata"]["WHTL_0"]["FocalPlaneXResolution"])
-        y_span = float(data[0]["original_metadata"]["WHTL_0"]["FocalPlaneYResolution"])
+        x_span = float(data["original_metadata"]["WHTL_0"]["FocalPlaneXResolution"])
+        y_span = float(data["original_metadata"]["WHTL_0"]["FocalPlaneYResolution"])
         # converts image to vector compatible with bokeh
         image_array = np.array(image, dtype=np.uint8)
         image_array = np.flip(image_array, axis=0)
@@ -113,13 +121,7 @@ class RamanMapBlock(DataBlock):
         # gemerates colormap for coloured scatter poitns
         exp_cmap = LinearColorMapper(palette="Turbo256", low=min(col), high=max(col))
         # generates image figure and plots image
-        p = bokeh.plotting.figure(
-            width=image_data.shape[1],
-            height=image_data.shape[0],
-            x_range=(origin[0], origin[0] + x_span),
-            y_range=(origin[1] + y_span, origin[1]),
-        )
-        p.image_rgba(image=[img_vector], x=origin[0], y=origin[1], dw=x_span, dh=y_span)
+        # p.image_rgba(image=[img_vector], x=origin[0], y=origin[1], dw=x_span, dh=y_span)
         p = bokeh.plotting.figure(
             width=image_array.shape[1],
             height=image_array.shape[0],
@@ -139,7 +141,8 @@ class RamanMapBlock(DataBlock):
         bokeh.plotting.output_file(Path(__file__).parent / "plot.html")
         return col, p, metadata
 
-    def plot_raman_spectra(self, location: str | Path, col):
+    @classmethod
+    def plot_raman_spectra(cls, location: str | Path, col):
         """Read the .wdf file with RosettaSciIO and extract relevant
         data.
 
@@ -160,8 +163,9 @@ class RamanMapBlock(DataBlock):
             x_axis_label="Raman Shift (cm-1)",
             y_axis_label="Intensity (a.u.)",
         )
-        raman_shift, intensity_data, metadata = self.get_map_data(location)
+        raman_shift, data, metadata = cls.load(location)
         intensity_list = []
+        intensity_data = data["data"]
 
         # generates baseline to be subtracted from spectra
         def generate_baseline(x_data, y_data):
