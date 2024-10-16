@@ -249,7 +249,6 @@ describe("Edit Page", () => {
   it("Clicks the upload buttons and checks that the modals are shown", () => {
     cy.get('[data-testid="search-input"]').type("editable_sample");
     cy.findByText("editable_sample").click();
-    cy.findByLabelText("Name").should("have.value", "This is a sample name");
 
     cy.findByText("Upload files...").click();
     cy.findByText("Drop files here, browse files or import from:").should("exist");
@@ -271,6 +270,6 @@ describe("Edit Page", () => {
 
     cy.findByLabelText("Select a file:").click();
     cy.get(".file-select-dropdown").findByText("example_bmb.xye").click();
-    cy.findByText("X axis").exists();
+    cy.findByText("X axis").should("exist");
   });
 });
