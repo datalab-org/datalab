@@ -16,7 +16,8 @@ from pydatalab.file_utils import get_file_info_by_id
 
 class RamanMapBlock(DataBlock):
     blocktype = "raman_map"
-    description = "Raman spectroscopy map"
+    name = "Raman spectroscopy map"
+    description = "Visualize 2D maps of Raman spectroscopy data."
     accepted_file_extensions = (".wdf",)
 
     @property
@@ -24,7 +25,7 @@ class RamanMapBlock(DataBlock):
         return (self.generate_raman_map_plot,)
 
     @classmethod
-    def get_map_data(self, location: Path | str):
+    def get_map_data(cls, location: Path | str):
         """Read the .wdf file with RosettaSciIO and extract the image
         and points of the Raman measurements. Plots these as an image
         overlaid by a scatter plot with points of gradient colours
