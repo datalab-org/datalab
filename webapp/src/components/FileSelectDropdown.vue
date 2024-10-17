@@ -43,7 +43,7 @@ export default {
   emits: ["update:modelValue"],
   computed: {
     all_files() {
-      return this.$store.state.files;
+      return this.$store.state.all_item_data[this.item_id].files;
     },
     available_file_ids() {
       let sample_files = this.$store.state.all_item_data[this.item_id].file_ObjectIds;
