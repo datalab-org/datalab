@@ -11,7 +11,7 @@ from pydantic import AnyUrl, BaseModel, Field, validator
 from pydatalab import __version__
 from pydatalab.blocks import BLOCK_TYPES
 from pydatalab.config import CONFIG, FEATURE_FLAGS, FeatureFlags
-from pydatalab.models import Person
+from pydatalab.models import Person, Sample
 from pydatalab.mongo import flask_mongo
 
 from ._version import __api_version__
@@ -143,3 +143,19 @@ def list_block_types():
             ).json()
         )
     )
+
+
+@INFO.route("/info/types", methods=["GET"])
+def list_supported_types_schemas():
+    """Returns a dictionary of supported item types and their schemas."""
+    schemas = {
+        "sample": json.loads(Sample.schema_json()),
+    }
+    return jsonify(schemas)
+
+
+@INFO.route("/info/types/sample", methods=["GET"])
+def get_sample_schema():
+    """Returns the JSON schema for the Sample type."""
+    schema = Sample.schema_json()
+    return jsonify(json.loads(schema))
