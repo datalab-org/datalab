@@ -23,7 +23,6 @@ export default createStore({
     updatingDelayed: {},
     remoteDirectoryTree: {},
     remoteDirectoryTreeSecondsSinceLastUpdate: null,
-    files: {},
     itemGraphData: null,
     remoteDirectoryTreeIsLoading: false,
     fileSelectModalIsOpen: false,
@@ -134,19 +133,20 @@ export default createStore({
     setCollectionSampleList(state, payload) {
       state.all_collection_children[payload.collection_id] = payload.child_items;
     },
-    updateFiles(state, files_data) {
-      // payload should be an object with file ids as key and file data as values
-      // Note: this will overwrite any entries with the same file_ids
-      Object.assign(state.files, files_data);
-    },
     addFileToSample(state, payload) {
       state.all_item_data[payload.item_id].file_ObjectIds.push(payload.file_id);
+      console.log("adding file to sample with:", payload.file_info);
+      state.all_item_data[payload.item_id].files.push(payload.file_info);
     },
     removeFileFromSample(state, payload) {
-      var file_ids = state.all_item_data[payload.item_id].file_ObjectIds;
-      const index = file_ids.indexOf(payload.file_id);
+      const { item_id, file_id } = payload;
+      const files = state.all_item_data[item_id].files;
+      const file_ids = state.all_item_data[item_id].file_ObjectIds;
+      const index = files.findIndex((file) => file.immutable_id === file_id);
+
       if (index > -1) {
         file_ids.splice(index, 1);
+        files.splice(index, 1);
       }
     },
     setRemoteDirectoryTree(state, remoteDirectoryTree) {
