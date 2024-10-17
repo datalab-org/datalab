@@ -60,7 +60,7 @@
   <div class="editor-body">
     <component :is="itemTypeEntry?.itemInformationComponent" :item_id="item_id" />
 
-    <FileList :item_id="item_id" :file_ids="file_ids" :stored_files="stored_files" />
+    <FileList :item_id="item_id" :stored_files="stored_files" />
 
     <div class="container">
       <hr />
@@ -179,13 +179,10 @@ export default {
       return allBlocksAreSaved && this.$store.state.saved_status_items[this.item_id];
     },
     files() {
-      return this.item_data.files;
-    },
-    file_ids() {
-      return this.item_data.file_ObjectIds;
+      return this.item_data.files || [];
     },
     stored_files() {
-      return this.$store.state.files;
+      return Object.fromEntries(this.files.map((file) => [file.immutable_id, file]));
     },
     blocksInfos() {
       return this.$store.state.blocksInfos;
@@ -227,7 +224,7 @@ export default {
     // this.updateRemoteTree()
 
     // setup the uppy instsance
-    setupUppy(this.item_id, "#uppy-trigger", this.stored_files);
+    setupUppy(this.item_id, "#uppy-trigger", {});
   },
   beforeUnmount() {
     document.removeEventListener("keydown", this._keyListener);

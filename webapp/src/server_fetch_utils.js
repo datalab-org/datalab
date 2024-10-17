@@ -423,7 +423,6 @@ export async function getItemData(item_id) {
         child_items: response_json.child_items,
         parent_items: response_json.parent_items,
       });
-      store.commit("updateFiles", response_json.files_data);
 
       return "success";
     })
@@ -440,8 +439,6 @@ export async function getItemByRefcode(refcode) {
         child_items: response_json.child_items,
         parent_items: response_json.parent_items,
       });
-      store.commit("updateFiles", response_json.files_data);
-
       return "success";
     })
     .catch((error) => alert("Error getting item data: " + error));
@@ -602,19 +599,15 @@ export function deleteBlock(item_id, block_id) {
 }
 
 export function deleteFileFromSample(item_id, file_id) {
-  console.log("deleteFileFromSample called with item_id and file_id:");
-  console.log(item_id);
-  console.log(file_id);
   fetch_post(`${API_URL}/delete-file-from-sample/`, {
     item_id: item_id,
     file_id: file_id,
   })
-    .then(function (response_json) {
+    .then(function () {
       store.commit("removeFileFromSample", {
         item_id: item_id,
         file_id: file_id,
       });
-      store.commit("updateFiles", response_json.new_file_obj);
     })
     .catch((error) => alert(`Delete unsuccessful :(\n error: ${error}`));
 }
@@ -641,22 +634,20 @@ export async function fetchRemoteTree(invalidate_cache) {
 }
 
 export async function addRemoteFileToSample(file_entry, item_id) {
-  console.log("loadSelectedRemoteFiles");
   return fetch_post(`${API_URL}/add-remote-file-to-sample/`, {
     file_entry: file_entry,
     item_id: item_id,
   })
     .then(function (response_json) {
-      //handle response
-      console.log("received remote sample!");
-      console.log(response_json);
-      store.commit("updateFiles", {
-        [response_json.file_id]: response_json.file_information,
-      });
+      //store.commit("updateFiles", {
+      //  [response_json.file_id]: response_json.file_information,
+      //});
       if (!response_json.is_update) {
+        console.log("Adding file to sample", response_json.file_information);
         store.commit("addFileToSample", {
           item_id: item_id,
           file_id: response_json.file_id,
+          file_info: response_json.file_information,
         });
       }
     })
