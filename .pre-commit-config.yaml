@@ -28,6 +28,13 @@ repos:
       - id: check-symlinks
       - id: mixed-line-ending
 
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    rev: 0.4.24
+    hooks:
+      - id: uv-lock
+        args: [ --directory=pydatalab ]
+        always_run: true
+
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.6.3
     hooks:
