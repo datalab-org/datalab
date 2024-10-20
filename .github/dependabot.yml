@@ -9,20 +9,14 @@ updates:
   target-branch: main
   labels:
   - dependency_updates
-  versioning-strategy: lockfile-only
+  versioning-strategy: "increase-if-necessary"
   ignore:
     - dependency-name: "pydantic"
       versions: [ ">=2" ]
-  groups:
-    python-dependencies:
-      applies-to: version-updates
-      dependency-type: production
-    python-dependencies-dev:
-      applies-to: version-updates
-      dependency-type: development
-    python-dependencies-security:
-      applies-to: security-updates
-      dependency-type: production
+    - dependency-name: "bokeh"
+      versions: [ ">=3" ]
+    - dependency-name: "langchain"
+      versions: [ ">=0.3" ]
 # Updates GH actions versions as often as needed
 - package-ecosystem: github-actions
   directory: "/"

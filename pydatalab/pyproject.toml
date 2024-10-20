@@ -75,7 +75,8 @@ apps = [
     "python-dateutil ~= 2.9",
 ]
 chat = [
-    "langchain == 0.2.6",
+    # Hard upper pin on langchain is 0.3 as pydantic is not supported
+    "langchain >= 0.2.6, < 0.3",
     "langchain-openai ~= 0.1",
     "langchain-anthropic ~= 0.1",
     "tiktoken ~= 0.7",
