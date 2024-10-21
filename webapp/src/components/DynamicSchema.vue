@@ -11,7 +11,6 @@
         :value="data[field]"
         :placeholder="field.title"
         v-bind="getComponentProps(field)"
-        @input="(value) => updateData(field.name, value)"
       />
     </div>
   </div>
@@ -41,14 +40,11 @@ export default {
   },
   computed: {
     data() {
-      return this.modelValue;
+      return { ...this.modelValue };
     },
   },
   async mounted() {
     this.schema = await getSchema(this.data?.type);
-    console.log("#%#%%#%#%#%#%#%#%#");
-    console.log(this.schema);
-    console.log("#%#%%#%#%#%#%#%#%#");
   },
   methods: {
     getComponentType(field) {
@@ -153,10 +149,6 @@ export default {
       }
 
       return { readonly: true, disabled: true };
-    },
-    updateData(fieldName, value) {
-      const newData = { ...this.data, [fieldName]: value };
-      this.$emit("update:modelValue", newData);
     },
   },
 };
