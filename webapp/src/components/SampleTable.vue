@@ -17,7 +17,7 @@
 
 <script>
 import DynamicDataTable from "@/components/DynamicDataTable";
-import { getSampleList } from "@/server_fetch_utils.js";
+import { getSampleList, getSchema } from "@/server_fetch_utils.js";
 
 export default {
   components: { DynamicDataTable },
@@ -38,6 +38,7 @@ export default {
         { field: "creators", header: "Creators", body: "Creators" },
         { field: "nblocks", header: "# of blocks" },
       ],
+      sampleSchema: null,
     };
   },
   computed: {
@@ -49,12 +50,23 @@ export default {
       }));
     },
   },
-  mounted() {
+  async mounted() {
     this.getSamples();
+    await this.getSampleSchema();
   },
   methods: {
     getSamples() {
       getSampleList();
+    },
+    async getSampleSchema() {
+      try {
+        this.sampleSchema = await getSchema("sample");
+        console.log("#%#%#%#%#%#%#%");
+        console.log("Sample Schema:", this.sampleSchema);
+        console.log("#%#%#%#%#%#%#%");
+      } catch (error) {
+        console.error("Failed to fetch sample schema:", error);
+      }
     },
   },
 };
