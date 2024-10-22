@@ -46,7 +46,7 @@ jobs:
           branch: ci/update-uv-lock-main-deps
           delete-branch: true
           commit-message: "ci: update uv lock file"
-          title: "Update uv.lock with latest dependencies"
+          title: "Update `uv.lock` with latest dependencies"
           body-path: ./pydatalab/output.txt
           labels: dependency_updates,Python
           draft: always-true
