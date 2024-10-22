@@ -22,7 +22,6 @@
     "@uppy/dashboard": "^1.16.0",
     "@uppy/webcam": "^1.8.4",
     "@uppy/xhr-upload": "^1.6.10",
-    "@vue/cli": "^5.0.8",
     "@vueuse/components": "^10.7.2",
     "bootstrap": "^4.5.3",
     "crypto-browserify": "^3.12.0",
