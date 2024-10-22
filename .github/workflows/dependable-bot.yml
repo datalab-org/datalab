@@ -49,3 +49,4 @@ jobs:
           title: "Update uv.lock with latest dependencies"
           body-path: ./pydatalab/output.txt
           labels: dependency_updates,Python
+          draft: always-true
