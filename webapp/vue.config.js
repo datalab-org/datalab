@@ -1,9 +1,13 @@
+const { ProvidePlugin } = require("webpack");
+
 module.exports = {
   transpileDependencies: ["mermaid"],
   configureWebpack: (config) => {
     config.resolve.fallback = {
       crypto: require.resolve("crypto-browserify"),
       stream: require.resolve("stream-browserify"),
+      process: require.resolve("process/browser"),
+      buffer: require.resolve("buffer/"),
     };
     config.externals = {
       ...config.externals,
@@ -14,6 +18,12 @@ module.exports = {
       include: /node_modules/,
       type: "javascript/auto",
     });
+    config.plugins = [
+      ...(config.plugins || []),
+      new ProvidePlugin({
+        process: "process/browser",
+      }),
+    ];
   },
   chainWebpack: (config) => {
     config.plugin("html").tap((args) => {
