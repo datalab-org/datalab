@@ -27,7 +27,7 @@ jobs:
           cache-dependency-path: ./webapp/yarn.lock
 
       - name: Sync latest compatible dependencies and commit
-        working-directory: ./pydatalab
+        working-directory: ./webapp
         run: yarn upgrade
 
       - name: Create PR with changes
