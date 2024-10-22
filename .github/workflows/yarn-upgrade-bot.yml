@@ -1,0 +1,44 @@
+name: Automatic `yarn` dependency upgrades
+on:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+
+  yarn-update-pins:
+    name: Update `yarn.lock` pins
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        env:
+          FORCE_COLOR: 0
+        with:
+          node-version: "20"
+          cache: "yarn"
+          cache-dependency-path: ./webapp/yarn.lock
+
+      - name: Sync latest compatible dependencies and commit
+        working-directory: ./pydatalab
+        run: yarn upgrade
+
+      - name: Create PR with changes
+        uses: peter-evans/create-pull-request@v7
+        with:
+          base: main
+          add-paths: ./webapp/yarn.lock
+          sign-commits: true
+          branch: ci/update-yarn-lock-main-deps
+          delete-branch: true
+          commit-message: "ci: update yarn lock file"
+          title: "Update `yarn.lock` with latest dependencies"
+          body-path: ./pydatalab/output.txt
+          labels: dependency_updates,javascript
