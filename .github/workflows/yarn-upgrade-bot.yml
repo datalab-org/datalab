@@ -40,5 +40,5 @@ jobs:
           delete-branch: true
           commit-message: "ci: update yarn lock file"
           title: "Update `yarn.lock` with latest dependencies"
-          body-path: ./pydatalab/output.txt
+          body: "This PR updates the `yarn.lock` file with the latest compatible dependencies. The chagnes to the lockfile must be reviewed; to run the tests, mark the PR as ready-for-review."
           labels: dependency_updates,javascript
