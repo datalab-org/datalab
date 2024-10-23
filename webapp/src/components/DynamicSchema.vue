@@ -1,23 +1,33 @@
 <template>
-  <div v-if="schema?.properties && data">
-    <div v-for="(field, index) in Object.keys(schema.properties)" :key="index">
-      <label v-if="field != 'relationships'" :for="field">{{
-        schema.properties[field].title
-      }}</label>
+  <div v-if="schema?.properties" class="container-lg">
+    <div class="row">
+      <div class="col">
+        <div class="form-row">
+          <div
+            v-for="(field, index) in Object.keys(schema.properties)"
+            :key="index"
+            class="col-md-4"
+          >
+            <label v-if="field != 'relationships' && field != 'collections'" :for="field">{{
+              schema.properties[field].title
+            }}</label>
 
-      <component
-        :is="getComponentType(field)"
-        :key="index"
-        :value="data[field]"
-        :placeholder="field.title"
-        v-bind="getComponentProps(field)"
-      />
+            <component
+              :is="getComponentType(field)"
+              :key="index"
+              :placeholder="field.title"
+              v-bind="getComponentProps(field)"
+            />
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script>
 import { getSchema } from "@/server_fetch_utils";
+// import { createComputedSetterForItemField } from "@/field_utils.js";
 import FormattedItemName from "@/components/FormattedItemName";
 import FormattedRefcode from "@/components/FormattedRefcode";
 import Creators from "@/components/Creators";
@@ -27,29 +37,18 @@ import ItemRelationshipVisualization from "@/components/ItemRelationshipVisualiz
 
 export default {
   props: {
-    modelValue: {
-      type: Object,
-      required: true,
-    },
+    item_data: { type: Object, required: true },
   },
-  emits: ["update:modelValue"],
   data() {
     return {
       schema: null,
     };
   },
-  computed: {
-    data() {
-      return { ...this.modelValue };
-    },
-  },
   async mounted() {
-    this.schema = await getSchema(this.data?.type);
+    this.schema = await getSchema(this.item_data.type);
   },
   methods: {
     getComponentType(field) {
-      const fieldSchema = this.schema.properties[field];
-
       switch (field) {
         case "item_id":
           return FormattedItemName;
@@ -64,91 +63,43 @@ export default {
         case "relationships":
           return ItemRelationshipVisualization;
 
-        case fieldSchema.type:
-          if (["date", "string", "integer", "object"].includes(fieldSchema.type)) {
-            return "input";
-          }
-          if (fieldSchema.type === "array") {
-            return "textarea";
-          }
-
-          return "input";
         default:
           return "input";
       }
     },
-
     getComponentProps(field) {
       const fieldSchema = this.schema.properties[field];
+      const isComponentDefined = this.getComponentType(field) !== "input";
 
-      if (field === "item_id") {
+      if (isComponentDefined && field == "item_id") {
         return {
-          itemType: this.data.type,
-          item_id: this.data.item_id,
+          itemType: this.item_data.type,
+          item_id: this.item_data.item_id,
           enableClick: true,
         };
-      }
-      if (field === "refcode") {
+      } else if ((isComponentDefined && field === "description") || field === "collections") {
         return {
-          refcode: this.data.refcode,
+          modelValue: this.item_data[field],
         };
-      }
-      if (field === "creators") {
+      } else if (isComponentDefined && field === "relationships") {
         return {
-          creators: this.data.creators,
+          item_id: this.item_data.item_id,
         };
-      }
-      if (field === "collections") {
+      } else if (isComponentDefined) {
         return {
-          modelValue: this.data.collections,
-        };
-      }
-      if (field === "description") {
-        return {
-          modelValue: this.data.description,
-        };
-      }
-      if (field === "relationships") {
-        return {
-          item_id: this.data.item_id,
+          [field]: this.item_data[field],
         };
       }
 
-      if (fieldSchema.type === "date") {
-        return {
-          value: this.data[field],
-          type: "datetime-local",
-          class: "form-control",
-        };
-      }
-      if (fieldSchema.type === "string") {
-        return {
-          value: this.data[field],
-          type: "text",
-          class: "form-control",
-        };
-      }
-      if (fieldSchema.type === "integer") {
-        return {
-          value: this.data[field],
-          type: "number",
-          class: "form-control",
-        };
-      }
-      if (fieldSchema.type === "array") {
-        return {
-          value: this.data[field].join(", "),
-          class: "form-control",
-        };
-      }
-      if (fieldSchema.type === "object") {
-        return {
-          value: JSON.stringify(this.data[field]),
-          class: "form-control",
-        };
-      }
-
-      return { readonly: true, disabled: true };
+      return {
+        value: this.item_data[field] !== undefined ? this.item_data[field] : "",
+        class: "form-control",
+        ...(fieldSchema.type === "date" && { type: "datetime-local" }),
+        ...(fieldSchema.type === "string" && { type: "text" }),
+        ...(fieldSchema.type === "integer" && { type: "number" }),
+        ...(fieldSchema.type === "array" && { class: "form-control" }),
+        ...(fieldSchema.type === "object" && { class: "form-control" }),
+      };
     },
   },
 };

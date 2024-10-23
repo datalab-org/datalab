@@ -59,8 +59,8 @@
   <!-- Item-type header information goes here -->
   <div class="editor-body">
     <!-- <component :is="itemTypeEntry?.itemInformationComponent" :item_id="item_id" /> -->
-    <div v-if="item_data && Object.keys(item_data).length > 0">
-      <DynamicSchema v-model="item_data" />
+    <div v-if="itemType">
+      <DynamicSchema :item_data="item_data" />
     </div>
 
     <FileList :item_id="item_id" :file_ids="file_ids" :stored_files="stored_files" />
