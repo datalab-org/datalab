@@ -11,7 +11,7 @@ from pydantic import AnyUrl, BaseModel, Field, validator
 from pydatalab import __version__
 from pydatalab.blocks import BLOCK_TYPES
 from pydatalab.config import CONFIG, FEATURE_FLAGS, FeatureFlags
-from pydatalab.models import Person
+from pydatalab.models import Collection, Equipment, Person, Sample, StartingMaterial
 from pydatalab.mongo import flask_mongo
 
 from ._version import __api_version__
@@ -143,3 +143,39 @@ def list_block_types():
             ).json()
         )
     )
+
+
+@INFO.route("/info/types", methods=["GET"])
+def list_supported_types_schemas():
+    """Returns a dictionary of supported item types and their schemas."""
+    schemas = {
+        "samples": Sample.schema(),
+        "collections": Collection.schema(),
+        "starting_materials": StartingMaterial.schema(),
+        "equipment": Equipment.schema(),
+    }
+    return jsonify(schemas)
+
+
+@INFO.route("/info/types/samples", methods=["GET"])
+def get_sample_schema():
+    """Returns the JSON schema for the Sample type."""
+    return jsonify(Sample.schema())
+
+
+@INFO.route("/info/types/collections", methods=["GET"])
+def get_collection_schema():
+    """Returns the JSON schema for the Collection type."""
+    return jsonify(Collection.schema())
+
+
+@INFO.route("/info/types/starting_materials", methods=["GET"])
+def get_starting_material_schema():
+    """Returns the JSON StartingMaterial for the Sample type."""
+    return jsonify(StartingMaterial.schema())
+
+
+@INFO.route("/info/types/equipment", methods=["GET"])
+def get_equipment_schema():
+    """Returns the JSON schema for the Equipment type."""
+    return jsonify(Equipment.schema())
