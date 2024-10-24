@@ -135,7 +135,7 @@ Cypress.Commands.add("uploadFileViaAPI", (itemId, path) => {
         url: API_URL + "/upload-file/",
         body: formData,
         headers: { "Content-Type": "multipart/form-data" },
-        form: true,
+        form: false,
       });
     });
 });

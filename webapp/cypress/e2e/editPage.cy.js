@@ -270,8 +270,9 @@ describe("Edit Page", () => {
     cy.findByText("Add a block").click();
     cy.get(".dropdown-menu").findByText("Powder XRD").click();
 
-    cy.findByLabelText("Select a file:").click();
-    cy.get(".file-select-dropdown").findByText("example_bmb.xye").click();
-    cy.findByText("X axis").should("exist");
+    cy.findByText("Select a file:").should("exist");
+    cy.get("select.file-select-dropdown").select("example_data_XRD_example_bmb.xye");
+    cy.contains("label", "X axis").should("exist");
+    cy.contains("label", "X axis").should("exist");
   });
 });
