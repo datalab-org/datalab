@@ -3,7 +3,7 @@
     <label class="mr-4"><b>Select a file:</b></label>
     <select class="form-control file-select-dropdown" :value="modelValue" @input="handleInput">
       <option v-for="file_id in available_file_ids" :key="file_id" :value="file_id">
-        {{ all_files[file_id].name }}
+        {{ all_files_name(file_id) }}
       </option>
       <option disabled>
         Accepted filetypes:
@@ -48,9 +48,9 @@ export default {
     available_file_ids() {
       let sample_files = this.$store.state.all_item_data[this.item_id].file_ObjectIds;
       return sample_files.filter((file_id) => {
-        let filename = this.all_files[file_id].name;
+        let filename = this.all_files_name(file_id);
         return this.extensions
-          .map((extension) => filename.endsWith(extension))
+          .map((extension) => filename?.endsWith(extension))
           .some((element) => element); // check if the extension is any of the extensions
       });
     },
@@ -65,6 +65,9 @@ export default {
     },
   },
   methods: {
+    all_files_name(file_id) {
+      return this.all_files.find((file) => file.immutable_id === file_id)?.name || "File not found";
+    },
     handleInput(event) {
       this.$emit("update:modelValue", event.target.value);
       if (this.updateBlockOnChange) {

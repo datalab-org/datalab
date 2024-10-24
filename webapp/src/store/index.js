@@ -139,12 +139,15 @@ export default createStore({
       state.all_item_data[payload.item_id].files.push(payload.file_info);
     },
     removeFileFromSample(state, payload) {
-      var file_ids = state.all_item_data[payload.item_id].file_ObjectIds;
-      const index = file_ids.indexOf(payload.file_id);
+      const { item_id, file_id } = payload;
+      const files = state.all_item_data[item_id].files;
+      const file_ids = state.all_item_data[item_id].file_ObjectIds;
+      const index = files.findIndex((file) => file.immutable_id === file_id);
+
       if (index > -1) {
         file_ids.splice(index, 1);
+        files.splice(index, 1);
       }
-      state.all_item_data[payload.item_id].files.splice(index, 1);
     },
     setRemoteDirectoryTree(state, remoteDirectoryTree) {
       state.remoteDirectoryTree = remoteDirectoryTree.data;
