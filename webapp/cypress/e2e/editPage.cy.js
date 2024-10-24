@@ -262,7 +262,7 @@ describe("Edit Page", () => {
   });
 
   it("Uploads an XRD file, makes an XRD block and checks that the plot works", () => {
-    cy.uploadFileViaAPI("editable_sample", "XRD/example_bmb.xye");
+    cy.uploadFileViaAPI("editable_sample", "example_data/XRD/example_bmb.xye");
 
     cy.get('[data-testid="search-input"]').type("editable_sample");
     cy.findByText("editable_sample").click();
