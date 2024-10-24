@@ -11,7 +11,8 @@ from pydantic import AnyUrl, BaseModel, Field, validator
 from pydatalab import __version__
 from pydatalab.blocks import BLOCK_TYPES
 from pydatalab.config import CONFIG, FEATURE_FLAGS, FeatureFlags
-from pydatalab.models import Person
+from pydatalab.models import Collection, Person
+from pydatalab.models.items import Item
 from pydatalab.mongo import flask_mongo
 
 from ._version import __api_version__
@@ -143,3 +144,36 @@ def list_block_types():
             ).json()
         )
     )
+
+
+def get_all_models():
+    return Item.__subclasses__()
+
+
+@INFO.route("/info/types", methods=["GET"])
+def list_supported_types_schemas():
+    """Returns a dictionary of supported item types and their schemas."""
+    schemas = {cls.__name__.lower(): cls.schema() for cls in get_all_models()}
+    schemas["collections"] = Collection.schema()
+
+    return jsonify(schemas)
+
+
+for model_class in get_all_models():
+    model_name = model_class.__name__.lower()
+
+    def make_route(model_class):
+        @INFO.route(
+            f"/info/types/{model_name}", methods=["GET"], endpoint=f"get_{model_name}_schema"
+        )
+        def get_model_schema():
+            """Returns the JSON schema for the model."""
+            return jsonify(model_class.schema())
+
+    make_route(model_class)
+
+
+@INFO.route("/info/types/collections", methods=["GET"])
+def get_collection_schema():
+    """Returns the JSON schema for the Collection type."""
+    return jsonify(Collection.schema())
