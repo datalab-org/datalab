@@ -251,12 +251,14 @@ describe("Edit Page", () => {
     cy.findByText("editable_sample").click();
 
     cy.findByText("Upload files...").click();
-    cy.findByText("Drop files here, browse files or import from:").should("exist");
+    cy.get(".uppy-Dashboard-AddFiles-title").should("contain.text", "Drop files here,");
+    cy.get(".uppy-Dashboard-AddFiles-title").should("contain.text", "browse files");
+    cy.get(".uppy-Dashboard-AddFiles-title").should("contain.text", "or import from:");
     cy.findByLabelText("Close Modal").click();
 
     cy.findByText("Add files from server...").click();
     cy.findByText("Select files to add").should("exist");
-    cy.findByLabelText("Close").click();
+    cy.findAllByLabelText("Close").eq(1).click();
   });
 
   it("Uploads an XRD file, makes an XRD block and checks that the plot works", () => {
