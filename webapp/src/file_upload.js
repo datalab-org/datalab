@@ -61,7 +61,10 @@ export default function setupUppy(item_id, trigger_selector, reactive_file_list)
         store.commit("addFileToSample", {
           item_id: item_id,
           file_id: response_body.file_id,
-          file_info: response_body.file_information,
+          file_info: {
+            ...response_body.file_information,
+            immutable_id: response_body.file_information.immutable_id.$oid,
+          },
         });
       }
     });
