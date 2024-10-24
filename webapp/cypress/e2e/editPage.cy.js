@@ -251,16 +251,18 @@ describe("Edit Page", () => {
     cy.findByText("editable_sample").click();
 
     cy.findByText("Upload files...").click();
-    cy.findByText("Drop files here, browse files or import from:").should("exist");
+    cy.get(".uppy-Dashboard-AddFiles-title").should("contain.text", "Drop files here,");
+    cy.get(".uppy-Dashboard-AddFiles-title").should("contain.text", "browse files");
+    cy.get(".uppy-Dashboard-AddFiles-title").should("contain.text", "or import from:");
     cy.findByLabelText("Close Modal").click();
 
     cy.findByText("Add files from server...").click();
     cy.findByText("Select files to add").should("exist");
-    cy.findByLabelText("Close").click();
+    cy.findAllByLabelText("Close").eq(1).click();
   });
 
   it("Uploads an XRD file, makes an XRD block and checks that the plot works", () => {
-    cy.uploadFileViaAPI("editable_sample", "XRD/example_bmb.xye");
+    cy.uploadFileViaAPI("editable_sample", "example_data/XRD/example_bmb.xye");
 
     cy.get('[data-testid="search-input"]').type("editable_sample");
     cy.findByText("editable_sample").click();
@@ -268,8 +270,9 @@ describe("Edit Page", () => {
     cy.findByText("Add a block").click();
     cy.get(".dropdown-menu").findByText("Powder XRD").click();
 
-    cy.findByLabelText("Select a file:").click();
-    cy.get(".file-select-dropdown").findByText("example_bmb.xye").click();
-    cy.findByText("X axis").should("exist");
+    cy.findByText("Select a file:").should("exist");
+    cy.get("select.file-select-dropdown").select("example_data_XRD_example_bmb.xye");
+    cy.contains("label", "X axis").should("exist");
+    cy.contains("label", "Y axis").should("exist");
   });
 });
