@@ -154,6 +154,8 @@ def get_all_models():
 def list_supported_types_schemas():
     """Returns a dictionary of supported item types and their schemas."""
     schemas = {cls.__name__.lower(): cls.schema() for cls in get_all_models()}
+    schemas["collections"] = Collection.schema()
+
     return jsonify(schemas)
 
 
