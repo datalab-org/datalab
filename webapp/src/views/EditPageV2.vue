@@ -60,7 +60,7 @@
   <div class="editor-body">
     <!-- <component :is="itemTypeEntry?.itemInformationComponent" :item_id="item_id" /> -->
     <div v-if="itemType">
-      <DynamicSchema :item_data="item_data" />
+      <DynamicSchema :item_data="item_data" @update-item-data="handleItemDataUpdate" />
     </div>
 
     <FileList :item_id="item_id" :file_ids="file_ids" :stored_files="stored_files" />
@@ -267,6 +267,11 @@ export default {
         return NotImplementedBlock;
       }
     },
+    handleItemDataUpdate(payload) {
+      if (payload.item_id && payload.item_data) {
+        this.$store.commit("updateItemData", payload);
+      }
+    },
     saveSample() {
       // trigger the mce save so that they update the store with their content
       console.log("save sample clicked!");
@@ -275,6 +280,7 @@ export default {
       });
       saveItem(this.item_id);
       this.lastModified = "just now";
+      this.savedStatus = true;
     },
     async getSampleData() {
       if (this.item_id == null) {

@@ -742,16 +742,20 @@ export async function getSchemas() {
 }
 
 export async function getSchema(type) {
-  return fetch_get(`${API_URL}/info/types/${type}`)
+  const cleanedType = type.endsWith("s")
+    ? type.replace(/_/g, "").slice(0, -1)
+    : type.replace(/_/g, "");
+
+  return fetch_get(`${API_URL}/info/types/${cleanedType}`)
     .then(function (response_json) {
       if (response_json) {
         return response_json;
       } else {
-        throw new Error(`Failed to get ${type} schemas from API.`);
+        throw new Error(`Failed to get ${cleanedType} schemas from API.`);
       }
     })
     .catch(function (error) {
-      alert(`Error to get ${type} schema from API: ${error}`);
+      alert(`Error to get ${cleanedType} schema from API: ${error}`);
       throw error;
     });
 }
