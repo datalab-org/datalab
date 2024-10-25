@@ -1,25 +1,99 @@
 <template>
   <div v-if="schema?.properties" class="container-lg">
     <div class="row">
-      <div class="col">
-        <div class="form-row">
-          <div v-for="(field, index) in displayedSchemaFields" :key="index" class="col-md-4">
-            <label v-if="field != 'relationships' && field != 'collections'" :for="field">{{
-              schema.properties[field].title
-            }}</label>
+      <div class="col-md-8">
+        <div :id="`${item_data.type}-information`" class="form-row">
+          <template v-if="firstRowFields.length">
+            <div
+              v-for="field in firstRowFields"
+              :key="field"
+              :class="getFieldClass(field, 'first')"
+            >
+              <label :for="`${item_data.type}-${field}`">{{
+                schema.properties[field].title === "Chemform"
+                  ? "Chemical Formula"
+                  : schema.properties[field].title
+              }}</label>
+              <component
+                :is="getComponentType(field)"
+                :id="`${item_data.type}-${field}`"
+                v-bind="getComponentProps(field)"
+                @update:model-value="handleModelValueUpdate(field, $event)"
+                @input="handleInput(field, $event)"
+              />
+            </div>
+          </template>
+        </div>
 
+        <div class="form-row">
+          <template v-if="secondRowFields.length">
+            <div
+              v-for="field in secondRowFields"
+              :key="field"
+              :class="getFieldClass(field, 'second')"
+            >
+              <label
+                v-if="schema.properties[field].title != 'Collections'"
+                :for="`${item_data.type}-${field}`"
+                >{{ schema.properties[field].title }}</label
+              >
+              <component
+                :is="getComponentType(field)"
+                :id="`${item_data.type}-${field}`"
+                v-bind="getComponentProps(field)"
+                @update:model-value="handleModelValueUpdate(field, $event)"
+                @input="handleInput(field, $event)"
+              />
+            </div>
+          </template>
+        </div>
+
+        <div v-if="additionalRowFields.length" class="form-row">
+          <div
+            v-for="field in additionalRowFields"
+            :key="field"
+            :class="getFieldClass(field, 'additional')"
+          >
+            <label :for="`${item_data.type}-${field}`">{{ schema.properties[field].title }}</label>
             <component
               :is="getComponentType(field)"
-              :key="index"
-              :placeholder="field.title"
+              :id="`${item_data.type}-${field}`"
               v-bind="getComponentProps(field)"
               @update:model-value="handleModelValueUpdate(field, $event)"
               @input="handleInput(field, $event)"
             />
           </div>
         </div>
+
+        <div class="form-row">
+          <div class="col">
+            <label :for="`${item_data.type}-description`">Description</label>
+            <component
+              :is="getComponentType('description')"
+              :id="`${item_data.type}-description`"
+              v-bind="getComponentProps('description')"
+              @update:model-value="handleModelValueUpdate('description', $event)"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div v-if="hasRelationships" class="col-md-4">
+        <ItemRelationshipVisualization :item_id="item_data.item_id" />
       </div>
     </div>
+
+    <TableOfContents
+      :item_id="item_data.item_id"
+      :information-sections="getTableOfContentsSections()"
+    />
+
+    <component
+      :is="getAdditionalComponent()"
+      v-if="getAdditionalComponent()"
+      :item_id="item_data.item_id"
+      class="mt-3"
+    />
   </div>
 </template>
 
@@ -32,6 +106,9 @@ import Creators from "@/components/Creators";
 import ToggleableCollectionFormGroup from "@/components/ToggleableCollectionFormGroup";
 import TinyMceInline from "@/components/TinyMceInline";
 import ItemRelationshipVisualization from "@/components/ItemRelationshipVisualization";
+import ChemFormulaInput from "@/components/ChemFormulaInput";
+import SynthesisInformation from "@/components/SynthesisInformation";
+import CellPreparationInformation from "@/components/CellPreparationInformation";
 
 export default {
   props: {
@@ -42,32 +119,153 @@ export default {
     return {
       schema: null,
       localItemData: { ...this.item_data },
-      displayedFields: [],
     };
   },
   computed: {
-    displayedSchemaFields() {
-      return this.displayedFields.length > 0
-        ? Object.keys(this.schema.properties).filter((field) =>
-            this.displayedFields.includes(field),
-          )
-        : Object.keys(this.schema.properties);
+    firstRowFields() {
+      const commonFields = ["name", "date"];
+      const typeSpecificFields = {
+        samples: ["chemform"],
+        cells: ["cell_format"],
+        equipments: ["manufacturer"],
+        starting_materials: ["chemform", "supplier"],
+      };
+      return [...commonFields, ...(typeSpecificFields[this.item_data.type] || [])];
     },
-  },
-  watch: {
-    item_data: {
-      handler(newVal) {
-        this.localItemData = { ...newVal };
-      },
-      deep: true,
+    secondRowFields() {
+      const commonFields = ["refcode", "creators", "collections"];
+      return commonFields;
+    },
+    additionalRowFields() {
+      const typeSpecificFields = {
+        cells: [
+          "cell_format_description",
+          "characteristic_mass",
+          "characteristic_chemical_formula",
+        ],
+        equipments: ["location", "serial_numbers", "contact"],
+        starting_materials: ["CAS", "GHS_codes", "chemical_purity", "location", "date_opened"],
+        samples: [],
+      };
+      return typeSpecificFields[this.item_data.type] || [];
+    },
+    hasRelationships() {
+      return ["sample", "cell"].includes(this.item_data.type);
     },
   },
   async mounted() {
     this.schema = await getSchema(this.item_data.type);
-    this.setDisplayedFields(this.item_data.type);
   },
-
   methods: {
+    getFieldClass(field) {
+      const baseClasses = "form-group";
+      const fieldClasses = {
+        name: "col-sm-4 pr-2",
+        chemform: "col-sm-4 pr-2",
+        date: "col-sm-4 pr-2",
+        refcode: "d-flex flex-column col-md-3 col-sm-2 col-6",
+        creators: "d-flex flex-column col-md-3 col-sm-3 col-6 pb-3",
+        collections: "col-md-6 col-sm-7",
+        manufacturer: "col-sm-4 pr-2",
+        location: "col-lg-3 col-sm-4",
+        serial_numbers: "col-md-8",
+        contact: "col-md-8",
+        CAS: "col-lg-3 col-sm-4",
+        GHS_codes: "col-lg-3 col-sm-4",
+        chemical_purity: "col-lg-3 col-sm-4",
+        cell_format: "col-sm-4 pr-2",
+        cell_format_description: "col-sm-8",
+        characteristic_mass: "col-lg-3 col-md-4 pr-3",
+        characteristic_chemical_formula: "col-lg-4 col-md-4 pr-3",
+        characteristic_molar_mass: "col-lg-3 col-md-4",
+      };
+
+      return `${baseClasses} ${fieldClasses[field] || "col"}`;
+    },
+    getComponentType(field) {
+      const componentMap = {
+        item_id: FormattedItemName,
+        collection_id: FormattedCollectionName,
+        refcode: FormattedRefcode,
+        creators: Creators,
+        collections: ToggleableCollectionFormGroup,
+        description: TinyMceInline,
+        relationships: ItemRelationshipVisualization,
+        chemform: ChemFormulaInput,
+        characteristic_chemical_formula: ChemFormulaInput,
+      };
+      return componentMap[field] || "input";
+    },
+    getComponentProps(field) {
+      const fieldSchema = this.schema.properties[field];
+      const componentType = this.getComponentType(field);
+      const baseProps = {
+        modelValue: this.localItemData[field],
+        "onUpdate:modelValue": (value) => this.handleModelValueUpdate(field, value),
+      };
+
+      if (componentType === "input") {
+        return {
+          value: this.localItemData[field] !== undefined ? this.localItemData[field] : "",
+          class: "form-control",
+          ...(fieldSchema.type === "date" && { type: "datetime-local" }),
+          ...(fieldSchema.type === "string" && { type: "text" }),
+          ...(fieldSchema.type === "integer" && { type: "number" }),
+          ...(fieldSchema.type === "array" && { class: "form-control" }),
+          ...(fieldSchema.type === "object" && { class: "form-control" }),
+        };
+      }
+
+      switch (field) {
+        case "item_id":
+          return {
+            ...baseProps,
+            itemType: this.localItemData.type,
+            item_id: this.localItemData.item_id,
+            enableClick: true,
+          };
+        case "creators":
+          return {
+            creators: this.localItemData[field],
+            size: "36",
+          };
+        case "collections":
+          return baseProps;
+        case "relationships":
+          return {
+            ...baseProps,
+            item_id: this.localItemData.item_id,
+          };
+        default:
+          return {
+            ...baseProps,
+            [field]: this.localItemData[field],
+          };
+      }
+    },
+    getAdditionalComponent() {
+      const componentMap = {
+        samples: SynthesisInformation,
+        cells: CellPreparationInformation,
+      };
+      return componentMap[this.item_data.type];
+    },
+    getTableOfContentsSections() {
+      const baseSections = [
+        {
+          title: `${this.item_data.type.charAt(0).toUpperCase() + this.item_data.type.slice(1)} Information`,
+          targetID: `${this.item_data.type}-information`,
+        },
+        { title: "Table of Contents", targetID: "table-of-contents" },
+      ];
+
+      const additionalSections = {
+        samples: [{ title: "Synthesis Information", targetID: "synthesis-information" }],
+        cells: [{ title: "Cell Construction", targetID: "cell-preparation-information" }],
+      };
+
+      return [...baseSections, ...(additionalSections[this.item_data.type] || [])];
+    },
     handleInput(field, event) {
       const value = event?.target?.value;
       if (value !== undefined) {
@@ -123,70 +321,6 @@ export default {
             "location",
           ];
           break;
-      }
-    },
-    getComponentType(field) {
-      switch (field) {
-        case "item_id":
-          return FormattedItemName;
-        case "collection_id":
-          return FormattedCollectionName;
-        case "refcode":
-          return FormattedRefcode;
-        case "creators":
-          return Creators;
-        case "collections":
-          return ToggleableCollectionFormGroup;
-        case "description":
-          return TinyMceInline;
-        case "relationships":
-          return ItemRelationshipVisualization;
-        default:
-          return "input";
-      }
-    },
-
-    getComponentProps(field) {
-      const fieldSchema = this.schema.properties[field];
-      const componentType = this.getComponentType(field);
-      const baseProps = {
-        modelValue: this.localItemData[field],
-        "onUpdate:modelValue": (value) => this.handleModelValueUpdate(field, value),
-      };
-
-      if (componentType === "input") {
-        return {
-          value: this.localItemData[field] !== undefined ? this.localItemData[field] : "",
-          class: "form-control",
-          ...(fieldSchema.type === "date" && { type: "datetime-local" }),
-          ...(fieldSchema.type === "string" && { type: "text" }),
-          ...(fieldSchema.type === "integer" && { type: "number" }),
-          ...(fieldSchema.type === "array" && { class: "form-control" }),
-          ...(fieldSchema.type === "object" && { class: "form-control" }),
-        };
-      }
-
-      switch (field) {
-        case "item_id":
-          return {
-            ...baseProps,
-            itemType: this.localItemData.type,
-            item_id: this.localItemData.item_id,
-            enableClick: true,
-          };
-        case "description":
-        case "collections":
-          return baseProps;
-        case "relationships":
-          return {
-            ...baseProps,
-            item_id: this.localItemData.item_id,
-          };
-        default:
-          return {
-            ...baseProps,
-            [field]: this.localItemData[field],
-          };
       }
     },
   },

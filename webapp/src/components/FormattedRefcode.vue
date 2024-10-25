@@ -1,21 +1,23 @@
 <template>
-  <span v-if="enableQRCode" class="badge clickable" @click="QRCodeModalOpen = true">
-    <font-awesome-icon
-      icon="qrcode"
-      title="Click to show QR Code for this item"
-      aria-label="Click to show QR Code for this item"
-    />
-  </span>
-  <span
-    class="badge"
-    :class="{ clickable: enableClick || enableModifiedClick }"
-    :style="{ backgroundColor: badgeColor }"
-    @click.exact="enableClick ? openEditPageInNewTab() : null"
-    @click.meta.stop="enableModifiedClick ? openEditPageInNewTab() : null"
-    @click.ctrl.stop="enableModifiedClick ? openEditPageInNewTab() : null"
-  >
-    {{ refcode }}
-  </span>
+  <div class="d-inline-flex">
+    <span v-if="enableQRCode" class="badge clickable" @click="QRCodeModalOpen = true">
+      <font-awesome-icon
+        icon="qrcode"
+        title="Click to show QR Code for this item"
+        aria-label="Click to show QR Code for this item"
+      />
+    </span>
+    <span
+      class="badge"
+      :class="{ clickable: enableClick || enableModifiedClick }"
+      :style="{ backgroundColor: badgeColor }"
+      @click.exact="enableClick ? openEditPageInNewTab() : null"
+      @click.meta.stop="enableModifiedClick ? openEditPageInNewTab() : null"
+      @click.ctrl.stop="enableModifiedClick ? openEditPageInNewTab() : null"
+    >
+      {{ refcode }}
+    </span>
+  </div>
   <QRCodeModal v-model="QRCodeModalOpen" :refcode="refcode" />
 </template>
 
