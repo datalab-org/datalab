@@ -2,17 +2,17 @@
   <div v-if="schema?.properties" class="container-lg">
     <div class="row">
       <div class="col-md-8">
-        <div :id="`${item_data.type}-information`" class="form-row">
+        <div :id="`${item_data?.type}-information`" class="form-row">
           <template v-if="firstRowFields.length">
             <div
               v-for="field in firstRowFields"
               :key="field"
               :class="getFieldClass(field, 'first')"
             >
-              <label :for="`${item_data.type}-${field}`">{{
-                schema.properties[field].title === "Chemform"
+              <label :for="`${item_data?.type}-${field}`">{{
+                schema.properties[field]?.title === "Chemform"
                   ? "Chemical Formula"
-                  : schema.properties[field].title
+                  : schema.properties[field]?.title || "Untitled"
               }}</label>
               <component
                 :is="getComponentType(field)"
@@ -39,6 +39,14 @@
               >
               <component
                 :is="getComponentType(field)"
+                v-if="field == 'collections'"
+                :id="`${item_data.type}-${field}`"
+                v-bind="getComponentProps(field)"
+                v-model="localItemData.collections"
+              />
+              <component
+                :is="getComponentType(field)"
+                v-else
                 :id="`${item_data.type}-${field}`"
                 v-bind="getComponentProps(field)"
                 @update:model-value="handleModelValueUpdate(field, $event)"
@@ -54,9 +62,40 @@
             :key="field"
             :class="getFieldClass(field, 'additional')"
           >
-            <label :for="`${item_data.type}-${field}`">{{ schema.properties[field].title }}</label>
+            <label v-if="field == 'cell_format'" :for="`${item_data.type}-${field}`"
+              >Cell format</label
+            >
+            <label v-else-if="field == 'characteristic_mass'" :for="`${item_data.type}-${field}`"
+              >Active mass (mg)</label
+            >
+            <label
+              v-else-if="field == 'characteristic_chemical_formula'"
+              :for="`${item_data.type}-${field}`"
+            >
+              Active formula</label
+            >
+            <label
+              v-else-if="field == 'characteristic_molar_mass'"
+              :for="`${item_data.type}-${field}`"
+              >Molar mass</label
+            >
+            <label v-else :for="`${item_data.type}-${field}`">{{
+              schema.properties[field]?.title
+            }}</label>
+            <select
+              v-if="field === 'cell_format'"
+              :id="`${item_data.type}-${field}`"
+              v-model="localItemData.cell_format"
+              class="form-control"
+              @change="handleModelValueUpdate('cell_format', $event.target.value)"
+            >
+              <option v-for="format in availableCellFormats" :key="format" :value="format">
+                {{ format }}
+              </option>
+            </select>
             <component
               :is="getComponentType(field)"
+              v-else
               :id="`${item_data.type}-${field}`"
               v-bind="getComponentProps(field)"
               @update:model-value="handleModelValueUpdate(field, $event)"
@@ -82,11 +121,12 @@
         <ItemRelationshipVisualization :item_id="item_data.item_id" />
       </div>
     </div>
-
-    <TableOfContents
-      :item_id="item_data.item_id"
-      :information-sections="getTableOfContentsSections()"
-    />
+    <div>
+      <TableOfContents
+        :item_id="item_data.item_id"
+        :information-sections="getTableOfContentsSections()"
+      />
+    </div>
 
     <component
       :is="getAdditionalComponent()"
@@ -99,6 +139,8 @@
 
 <script>
 import { getSchema } from "@/server_fetch_utils";
+import { cellFormats } from "@/resources.js";
+
 import FormattedItemName from "@/components/FormattedItemName";
 import FormattedCollectionName from "@/components/FormattedCollectionName";
 import FormattedRefcode from "@/components/FormattedRefcode";
@@ -106,11 +148,16 @@ import Creators from "@/components/Creators";
 import ToggleableCollectionFormGroup from "@/components/ToggleableCollectionFormGroup";
 import TinyMceInline from "@/components/TinyMceInline";
 import ItemRelationshipVisualization from "@/components/ItemRelationshipVisualization";
+import TableOfContents from "@/components/TableOfContents";
 import ChemFormulaInput from "@/components/ChemFormulaInput";
 import SynthesisInformation from "@/components/SynthesisInformation";
 import CellPreparationInformation from "@/components/CellPreparationInformation";
 
 export default {
+  components: {
+    ItemRelationshipVisualization,
+    TableOfContents,
+  },
   props: {
     item_data: { type: Object, required: true },
   },
@@ -119,6 +166,7 @@ export default {
     return {
       schema: null,
       localItemData: { ...this.item_data },
+      availableCellFormats: cellFormats,
     };
   },
   computed: {
@@ -126,22 +174,30 @@ export default {
       const commonFields = ["name", "date"];
       const typeSpecificFields = {
         samples: ["chemform"],
-        cells: ["cell_format"],
-        equipments: ["manufacturer"],
+        equipments: ["item_id", "refcode"],
         starting_materials: ["chemform", "supplier"],
       };
       return [...commonFields, ...(typeSpecificFields[this.item_data.type] || [])];
     },
     secondRowFields() {
-      const commonFields = ["refcode", "creators", "collections"];
-      return commonFields;
+      const commonFields = ["collections"];
+
+      const typeSpecificFields = {
+        samples: ["refcode", "creators"],
+        cells: ["refcode", "creators"],
+        equipments: ["manufacturer", "location"],
+        starting_materials: ["refcode", "creators", "collections"],
+      };
+      return [...(typeSpecificFields[this.item_data.type] || []), ...commonFields];
     },
     additionalRowFields() {
       const typeSpecificFields = {
         cells: [
+          "cell_format",
           "cell_format_description",
           "characteristic_mass",
           "characteristic_chemical_formula",
+          "characteristic_molar_mass",
         ],
         equipments: ["location", "serial_numbers", "contact"],
         starting_materials: ["CAS", "GHS_codes", "chemical_purity", "location", "date_opened"],
@@ -150,7 +206,10 @@ export default {
       return typeSpecificFields[this.item_data.type] || [];
     },
     hasRelationships() {
-      return ["sample", "cell"].includes(this.item_data.type);
+      return ["samples", "cells"].includes(this.item_data.type);
+    },
+    tableOfContentsSections() {
+      return this.getTableOfContentsSections();
     },
   },
   async mounted() {
@@ -190,7 +249,6 @@ export default {
         creators: Creators,
         collections: ToggleableCollectionFormGroup,
         description: TinyMceInline,
-        relationships: ItemRelationshipVisualization,
         chemform: ChemFormulaInput,
         characteristic_chemical_formula: ChemFormulaInput,
       };
@@ -230,7 +288,12 @@ export default {
             size: "36",
           };
         case "collections":
-          return baseProps;
+          return {
+            modelValue: this.item_data[field],
+            "onUpdate:modelValue": (value) => {
+              this.updateField(field, value);
+            },
+          };
         case "relationships":
           return {
             ...baseProps,
@@ -251,9 +314,18 @@ export default {
       return componentMap[this.item_data.type];
     },
     getTableOfContentsSections() {
+      const typeToTitle = {
+        samples: "Sample Information",
+        cells: "Cell Information",
+        equipments: "Equipment Information",
+        starting_materials: "Starting Material Information",
+      };
+
       const baseSections = [
         {
-          title: `${this.item_data.type.charAt(0).toUpperCase() + this.item_data.type.slice(1)} Information`,
+          title:
+            typeToTitle[this.item_data.type] ||
+            `${this.item_data.type.charAt(0).toUpperCase() + this.item_data.type.slice(1)} Information`,
           targetID: `${this.item_data.type}-information`,
         },
         { title: "Table of Contents", targetID: "table-of-contents" },
@@ -262,6 +334,8 @@ export default {
       const additionalSections = {
         samples: [{ title: "Synthesis Information", targetID: "synthesis-information" }],
         cells: [{ title: "Cell Construction", targetID: "cell-preparation-information" }],
+        starting_materials: [],
+        equipments: [],
       };
 
       return [...baseSections, ...(additionalSections[this.item_data.type] || [])];
@@ -277,6 +351,14 @@ export default {
         ...this.localItemData,
         [field]: value,
       };
+
+      this.$emit("update-item-data", {
+        item_id: this.item_data.item_id,
+        item_data: this.localItemData,
+      });
+    },
+    handleModelValueUpdate(field, value) {
+      this.localItemData[field] = value;
 
       this.$emit("update-item-data", {
         item_id: this.item_data.item_id,
