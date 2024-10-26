@@ -39,6 +39,9 @@ export const GRAVATAR_STYLE = "identicon";
 const editable_inventory = process.env.VUE_APP_EDITABLE_INVENTORY || "false";
 export const EDITABLE_INVENTORY = editable_inventory.toLowerCase() == "true";
 
+// Eventually this should be pulled from the schema
+export const DATETIME_FIELDS = new Set(["date"]);
+
 export const UPPY_MAX_TOTAL_FILE_SIZE =
   Number(process.env.VUE_APP_UPPY_MAX_TOTAL_FILE_SIZE) != null
     ? process.env.VUE_APP_UPPY_MAX_TOTAL_FILE_SIZE
