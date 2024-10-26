@@ -38,7 +38,7 @@
         <StyledInput
           id="startmat-date-acquired"
           v-model="DateAcquired"
-          type="date"
+          type="datetime-local"
           :readonly="!isEditable"
         />
       </div>
