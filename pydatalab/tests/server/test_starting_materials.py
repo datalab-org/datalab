@@ -27,7 +27,7 @@ def test_new_starting_material(client, default_starting_material_dict):
             continue
         if key in default_starting_material_dict:
             if isinstance(v := default_starting_material_dict[key], datetime.datetime):
-                v = v.isoformat()
+                v = v.replace(tzinfo=datetime.timezone.utc).isoformat()
             assert value == v
 
 
@@ -45,7 +45,7 @@ def test_get_item_data(admin_client, default_starting_material_dict):
             continue
 
         if isinstance(v := default_starting_material_dict[key], datetime.datetime):
-            v = v.isoformat()
+            v = v.replace(tzinfo=datetime.timezone.utc).isoformat()
         assert response.json["item_data"][key] == v
 
 
@@ -81,7 +81,7 @@ def test_new_starting_material_with_automatically_generated_id(client):
         if key == "creator_ids":
             continue
         if isinstance(v := new_starting_material_data[key], datetime.datetime):
-            v = v.isoformat()
+            v = v.replace(tzinfo=datetime.timezone.utc).isoformat()
         assert response.json["item_data"][key] == v
 
 
