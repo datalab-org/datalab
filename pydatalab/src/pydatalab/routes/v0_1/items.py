@@ -480,7 +480,7 @@ def _create_sample(
             409,  # 409: Conflict
         )
 
-    new_sample["date"] = new_sample.get("date", datetime.datetime.now())
+    new_sample["date"] = new_sample.get("date", datetime.datetime.now(tz=datetime.timezone.utc))
     try:
         data_model: Item = model(**new_sample)
 
@@ -811,7 +811,7 @@ def save_item():
         if k in updated_data:
             del updated_data[k]
 
-    updated_data["last_modified"] = datetime.datetime.now().isoformat()
+    updated_data["last_modified"] = datetime.datetime.now(tz=datetime.timezone.utc).isoformat()
 
     for block_id, block_data in updated_data.get("blocks_obj", {}).items():
         blocktype = block_data["blocktype"]

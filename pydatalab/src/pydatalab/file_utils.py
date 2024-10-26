@@ -112,7 +112,7 @@ def _call_remote_stat(path: str):
     if stderr:
         raise RuntimeError(f"Remote statprocess {command!r} returned: {stderr!r}")
 
-    return datetime.datetime.fromtimestamp(timestamp)
+    return datetime.datetime.fromtimestamp(timestamp, tz=datetime.timezone.utc)
 
 
 @logged_route
@@ -161,13 +161,15 @@ def _check_and_sync_file(file_info: File, file_id: ObjectId) -> File:
             "File %s was last edited at timestamp %s, %s ago",
             full_remote_path,
             remote_timestamp,
-            datetime.datetime.today() - remote_timestamp,
+            datetime.datetime.now(tz=datetime.timezone.utc) - remote_timestamp,
         )
 
     else:
         try:
             stat_results = os.stat(full_remote_path)
-            remote_timestamp = datetime.datetime.fromtimestamp(stat_results.st_mtime)
+            remote_timestamp = datetime.datetime.fromtimestamp(
+                stat_results.st_mtime, tz=datetime.timezone.utc
+            )
         except FileNotFoundError:
             LOGGER.debug(
                 "Could not access remote file when checking for latest version: %s",
@@ -196,7 +198,7 @@ def _check_and_sync_file(file_info: File, file_id: ObjectId) -> File:
 
         # If the file has not been updated in the last cutoff period, do not redownload on every access
         is_live = True
-        if datetime.datetime.now() - remote_timestamp > LIVE_FILE_CUTOFF:
+        if datetime.datetime.now(tz=datetime.timezone.utc) - remote_timestamp > LIVE_FILE_CUTOFF:
             is_live = False
 
         updated_file_info = file_collection.find_one_and_update(
@@ -204,7 +206,9 @@ def _check_and_sync_file(file_info: File, file_id: ObjectId) -> File:
             {
                 "$set": {
                     "size": local_stat_results.st_size,
-                    "last_modified": datetime.datetime.fromtimestamp(local_stat_results.st_mtime),
+                    "last_modified": datetime.datetime.fromtimestamp(
+                        local_stat_results.st_mtime, tz=datetime.timezone.utc
+                    ),
                     "last_modified_remote": remote_timestamp,
                     "is_live": is_live,
                 },
@@ -277,7 +281,7 @@ def update_uploaded_file(file: FileStorage, file_id: ObjectId, size_bytes: int |
 
     """
 
-    last_modified = datetime.datetime.now().isoformat()
+    last_modified = datetime.datetime.now(tz=datetime.timezone.utc).isoformat()
     file_collection = flask_mongo.db.files
 
     updated_file_entry = file_collection.find_one_and_update(
@@ -363,7 +367,7 @@ def save_uploaded_file(
         last_modified = last_modified.isoformat()
 
     if not last_modified:
-        last_modified = datetime.datetime.now().isoformat()
+        last_modified = datetime.datetime.now(tz=datetime.timezone.utc).isoformat()
 
     new_file_document = File(
         name=filename,
@@ -468,14 +472,18 @@ def add_file_from_remote_directory(
         remote_toplevel_path = f"{host.hostname}:{host.path}"
         full_remote_path = f"{remote_toplevel_path}/{remote_path}"
         if file_entry.get("time") is not None:
-            remote_timestamp = datetime.datetime.fromtimestamp(int(file_entry["time"]))
+            remote_timestamp = datetime.datetime.fromtimestamp(
+                int(file_entry["time"]), tz=datetime.timezone.utc
+            )
 
     # Otherwise we assume the file is mounted locally
     else:
         remote_toplevel_path = str(host.path)
         full_remote_path = os.path.join(remote_toplevel_path, remote_path)
         # check that the path is valid and get the last modified time from the server
-        remote_timestamp = datetime.datetime.fromtimestamp(int(os.path.getmtime(full_remote_path)))
+        remote_timestamp = datetime.datetime.fromtimestamp(
+            int(os.path.getmtime(full_remote_path)), tz=datetime.timezone.utc
+        )
 
     new_file_document = File(
         name=filename,
@@ -490,8 +498,8 @@ def add_file_from_remote_directory(
         item_ids=[item_id],
         blocks=block_ids,
         # last_modified is the last modified time of the db entry in isoformat. For last modified file timestamp, see last_modified_remote_timestamp
-        last_modified=datetime.datetime.now().isoformat(),
-        time_added=datetime.datetime.now().isoformat(),
+        last_modified=datetime.datetime.now(tz=datetime.timezone.utc).isoformat(),
+        time_added=datetime.datetime.now(tz=datetime.timezone.utc).isoformat(),
         metadata={},
         representation=None,
         source_server_name=file_entry["toplevel_name"],

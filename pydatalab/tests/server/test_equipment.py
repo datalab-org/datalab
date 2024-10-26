@@ -25,7 +25,7 @@ def test_new_equipment(client, default_equipment_dict):
     for key, value in response.json["sample_list_entry"].items():
         if key in default_equipment_dict:
             if isinstance(v := default_equipment_dict[key], datetime.datetime):
-                v = v.isoformat()
+                v = v.replace(tzinfo=datetime.timezone.utc).isoformat()
             assert value == v
 
 
@@ -41,7 +41,7 @@ def test_get_item_data(client, default_equipment_dict):
 
     for key in default_equipment_dict.keys():
         if isinstance(v := default_equipment_dict[key], datetime.datetime):
-            v = v.isoformat()
+            v = v.replace(tzinfo=datetime.timezone.utc).isoformat()
         assert response.json["item_data"][key] == v
 
 
@@ -72,7 +72,7 @@ def test_new_equipment_with_automatically_generated_id(client):
 
     for key in new_equipment_data.keys():
         if isinstance(v := new_equipment_data[key], datetime.datetime):
-            v = v.isoformat()
+            v = v.replace(tzinfo=datetime.timezone.utc).isoformat()
         assert response.json["item_data"][key] == v
 
 

@@ -83,7 +83,9 @@ def get_directory_structure(
         cache_last_updated = None
         if cached_dir_structure:
             cache_last_updated = cached_dir_structure["last_updated"]
-            cache_age = datetime.datetime.now() - cached_dir_structure["last_updated"]
+            if cache_last_updated.tzinfo is None:
+                cache_last_updated = cache_last_updated.replace(tzinfo=datetime.timezone.utc)
+            cache_age = datetime.datetime.now(tz=datetime.timezone.utc) - cache_last_updated
             if invalidate_cache and cache_age < datetime.timedelta(
                 minutes=CONFIG.REMOTE_CACHE_MIN_AGE
             ):
@@ -139,6 +141,8 @@ def get_directory_structure(
 
         else:
             last_updated = cached_dir_structure["last_updated"]
+            if last_updated.tzinfo is None:
+                last_updated = last_updated.replace(tzinfo=datetime.timezone.utc)
             dir_structure = cached_dir_structure["contents"]
             LOGGER.debug(
                 "Remote filesystems cache hit for '%s': last updated %s",
@@ -149,7 +153,7 @@ def get_directory_structure(
 
     except Exception as exc:
         dir_structure = [{"type": "error", "name": directory.name, "details": str(exc)}]
-        last_updated = datetime.datetime.now()
+        last_updated = datetime.datetime.now(tz=datetime.timezone.utc)
         status = "error"
 
     finally:
@@ -346,7 +350,7 @@ def _save_directory_structure(
     """
     collection = pydatalab.mongo.get_database().remoteFilesystems
 
-    last_updated = datetime.datetime.now()
+    last_updated = datetime.datetime.now(tz=datetime.timezone.utc)
     last_updated = last_updated.replace(microsecond=0)
 
     result = collection.update_one(
@@ -391,7 +395,7 @@ def _acquire_lock_dir_structure(
         if doc and doc.get("_lock") is not None:
             pid = doc["_lock"].get("pid")
             ctime = doc["_lock"].get("ctime")
-            lock_age = datetime.datetime.now() - ctime
+            lock_age = datetime.datetime.now(tz=datetime.timezone.utc) - ctime
             if lock_age > datetime.timedelta(minutes=CONFIG.REMOTE_CACHE_MIN_AGE):
                 LOGGER.debug(
                     "Lock for %s already held by process %s for %s, forcing this process to acquire lock",
@@ -407,7 +411,14 @@ def _acquire_lock_dir_structure(
 
         collection.update_one(
             {"name": directory.name},
-            {"$set": {"_lock": {"pid": os.getpid(), "ctime": datetime.datetime.now()}}},
+            {
+                "$set": {
+                    "_lock": {
+                        "pid": os.getpid(),
+                        "ctime": datetime.datetime.now(tz=datetime.timezone.utc),
+                    }
+                }
+            },
             upsert=True,
             session=session,
         )
