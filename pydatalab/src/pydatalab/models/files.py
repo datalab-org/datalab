@@ -1,4 +1,3 @@
-import datetime
 from typing import Any, Dict, List, Optional
 
 from pydantic import Field
@@ -37,7 +36,7 @@ class File(Entry, HasOwner, HasRevisionControl):
         description="The source of the file, e.g. 'remote' or 'uploaded'."
     )
 
-    time_added: datetime.datetime = Field(description="The timestamp for the original file upload.")
+    time_added: IsoformatDateTime = Field(description="The timestamp for the original file upload.")
 
     metadata: Optional[Dict[Any, Any]] = Field(description="Any additional metadata.")
 
