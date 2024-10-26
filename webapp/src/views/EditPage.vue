@@ -310,9 +310,7 @@ export default {
       if (item_date == null) {
         this.lastModified = "Unknown";
       } else {
-        // API dates are in UTC but missing Z suffix
-        const save_date = new Date(item_date + "Z");
-        this.lastModified = formatDistanceToNow(save_date, { addSuffix: true });
+        this.lastModified = formatDistanceToNow(new Date(item_date), { addSuffix: true });
       }
     },
   },
