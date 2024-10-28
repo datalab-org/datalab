@@ -214,12 +214,26 @@ export default {
   },
   async mounted() {
     this.schema = await getSchema(this.item_data.type);
+    console.log("#%#%#%#%#%%##%#%%##%#%%##%#%%##%#%%##%");
+    console.log(this.item_data.type);
+    console.log("#%#%#%#%#%%##%#%%##%#%%##%#%%##%#%%##%");
+    console.log(this.schema);
+    console.log("#%#%#%#%#%%##%#%%##%#%%##%#%%##%#%%##%");
   },
   methods: {
     getFieldClass(field) {
       const baseClasses = "form-group";
+      const firstNumFields = this.firstRowFields.length;
+      let widthClass = "col";
+
+      if (firstNumFields === 2) {
+        widthClass = "col-md-8";
+      } else if (firstNumFields === 3) {
+        widthClass = "col-md-4";
+      }
+
       const fieldClasses = {
-        name: "col-sm-4 pr-2",
+        name: `${widthClass} pr-2`,
         chemform: "col-sm-4 pr-2",
         date: "col-sm-4 pr-2",
         refcode: "d-flex flex-column col-md-3 col-sm-2 col-6",
@@ -256,6 +270,10 @@ export default {
     },
     getComponentProps(field) {
       const fieldSchema = this.schema.properties[field];
+      if (!fieldSchema) {
+        console.warn(`Field schema for "${field}" is missing`);
+        return {};
+      }
       const componentType = this.getComponentType(field);
       const baseProps = {
         modelValue: this.localItemData[field],
