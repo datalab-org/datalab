@@ -74,7 +74,46 @@
         <template v-else #body="slotProps">
           {{ slotProps.data[column.field] }}
         </template>
-        <template v-if="column.filter" #filter="{ filterModel }">
+        <template v-if="column.filter && column.field === 'creators'" #filter="{ filterModel }">
+          <MultiSelect
+            v-model="filterModel.value"
+            :options="uniqueCreators"
+            option-label="display_name"
+            placeholder="Any"
+            display="chip"
+            @click.stop
+          >
+            <template #option="slotProps">
+              <div class="flex items-center">
+                <UserBubble :creator="slotProps.option" :size="24" />
+                <span class="ml-1">{{ slotProps.option.display_name }}</span>
+              </div>
+            </template>
+          </MultiSelect>
+        </template>
+        <template
+          v-else-if="column.filter && column.field === 'collections'"
+          #filter="{ filterModel }"
+        >
+          <MultiSelect
+            v-model="filterModel.value"
+            :options="uniqueCollections"
+            option-label="collection_id"
+            placeholder="Any"
+            display="chip"
+            @click.stop
+          >
+            <template #option="slotProps">
+              <div class="flex items-center">
+                <FormattedCollectionName
+                  :collection_id="slotProps.option.collection_id"
+                  :size="24"
+                />
+              </div>
+            </template>
+          </MultiSelect>
+        </template>
+        <template v-else-if="column.filter" #filter="{ filterModel }">
           <InputText
             v-model="filterModel.value"
             type="text"
@@ -121,9 +160,11 @@ import FormattedCollectionName from "@/components/FormattedCollectionName";
 import ChemicalFormula from "@/components/ChemicalFormula";
 import CollectionList from "@/components/CollectionList";
 import Creators from "@/components/Creators";
+import UserBubble from "@/components/UserBubble.vue";
 
 import { FilterMatchMode, FilterOperator } from "@primevue/core/api";
 import DataTable from "primevue/datatable";
+import MultiSelect from "primevue/multiselect";
 import Column from "primevue/column";
 import InputText from "primevue/inputtext";
 
@@ -137,6 +178,7 @@ export default {
     CreateEquipmentModal,
     AddToCollectionModal,
     DataTable,
+    MultiSelect,
     Column,
     InputText,
     FormattedItemName,
@@ -144,6 +186,7 @@ export default {
     ChemicalFormula,
     CollectionList,
     Creators,
+    UserBubble,
   },
   props: {
     columns: {
@@ -198,6 +241,14 @@ export default {
           operator: FilterOperator.AND,
           constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
         },
+        collections: {
+          operator: FilterOperator.AND,
+          constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
+        },
+        creators: {
+          operator: FilterOperator.AND,
+          constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
+        },
       },
       filteredData: [],
       allowedTypes: INVENTORY_TABLE_TYPES,
@@ -206,6 +257,24 @@ export default {
     };
   },
   computed: {
+    uniqueCreators() {
+      return Array.from(
+        new Map(
+          this.data
+            .flatMap((item) => item.creators || [])
+            .map((creator) => [JSON.stringify(creator), creator]),
+        ).values(),
+      );
+    },
+    uniqueCollections() {
+      return Array.from(
+        new Map(
+          this.data
+            .flatMap((item) => item.collections || [])
+            .map((collection) => [JSON.stringify(collection.collection_id), collection]),
+        ).values(),
+      );
+    },
     computedDataTestId() {
       const dataTestIdMap = {
         samples: "sample-table",
