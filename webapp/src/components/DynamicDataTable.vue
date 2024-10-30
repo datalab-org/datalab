@@ -78,6 +78,7 @@
           <MultiSelect
             v-model="filterModel.value"
             :options="uniqueCreators"
+            class="multiselect-filter"
             option-label="display_name"
             placeholder="Any"
             display="chip"
@@ -87,6 +88,17 @@
               <div class="flex items-center">
                 <UserBubble :creator="slotProps.option" :size="24" />
                 <span class="ml-1">{{ slotProps.option.display_name }}</span>
+              </div>
+            </template>
+            <template #value="slotProps">
+              <div class="multiselect-filter-input">
+                <span
+                  v-for="(option, index) in slotProps.value"
+                  :key="index"
+                  class="inline-flex items-center mr-2"
+                >
+                  <UserBubble :creator="option" :size="20" />
+                </span>
               </div>
             </template>
           </MultiSelect>
@@ -99,6 +111,7 @@
             v-model="filterModel.value"
             :options="uniqueCollections"
             option-label="collection_id"
+            class="multiselect-filter"
             placeholder="Any"
             display="chip"
             @click.stop
@@ -109,6 +122,17 @@
                   :collection_id="slotProps.option.collection_id"
                   :size="24"
                 />
+              </div>
+            </template>
+            <template #value="slotProps">
+              <div class="multiselect-filter-input">
+                <div
+                  v-for="option in slotProps.value"
+                  :key="option.collection_id"
+                  class="inline-flex items-center mr-2"
+                >
+                  <FormattedCollectionName :collection_id="option.collection_id" :size="20" />
+                </div>
               </div>
             </template>
           </MultiSelect>
@@ -162,7 +186,7 @@ import CollectionList from "@/components/CollectionList";
 import Creators from "@/components/Creators";
 import UserBubble from "@/components/UserBubble.vue";
 
-import { FilterMatchMode, FilterOperator } from "@primevue/core/api";
+import { FilterMatchMode, FilterOperator, FilterService } from "@primevue/core/api";
 import DataTable from "primevue/datatable";
 import MultiSelect from "primevue/multiselect";
 import Column from "primevue/column";
@@ -243,7 +267,7 @@ export default {
         },
         collections: {
           operator: FilterOperator.AND,
-          constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
+          constraints: [{ value: null, matchMode: "exactCollectionMatch" }],
         },
         creators: {
           operator: FilterOperator.AND,
@@ -290,6 +314,18 @@ export default {
   },
   created() {
     this.editable_inventory = EDITABLE_INVENTORY;
+
+    FilterService.register("exactCollectionMatch", (value, filter) => {
+      if (!filter || !value) return true;
+
+      if (Array.isArray(filter)) {
+        return filter.every((f) =>
+          value.some((collection) => collection.collection_id === f.collection_id),
+        );
+      }
+
+      return value.some((collection) => collection.collection_id === filter.collection_id);
+    });
   },
   methods: {
     goToEditPage(event) {
@@ -439,3 +475,19 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.multiselect-filter {
+  min-height: 2.5rem;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.multiselect-filter-input {
+  display: inline-flex;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+</style>
