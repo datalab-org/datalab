@@ -78,10 +78,10 @@
           <MultiSelect
             v-model="filterModel.value"
             :options="uniqueCreators"
-            class="multiselect-filter"
             option-label="display_name"
             placeholder="Any"
             display="chip"
+            class="w-full"
             @click.stop
           >
             <template #option="slotProps">
@@ -91,18 +91,22 @@
               </div>
             </template>
             <template #value="slotProps">
-              <div class="multiselect-filter-input">
-                <span
-                  v-for="(option, index) in slotProps.value"
-                  :key="index"
-                  class="inline-flex items-center mr-2"
-                >
-                  <UserBubble :creator="option" :size="20" />
-                </span>
+              <div class="flex flex-wrap gap-2 items-center">
+                <template v-if="slotProps.value && slotProps.value.length">
+                  <span
+                    v-for="(option, index) in slotProps.value"
+                    :key="index"
+                    class="inline-flex items-center mr-2"
+                  >
+                    <UserBubble :creator="option" :size="20" />
+                  </span>
+                </template>
+                <span v-else class="text-gray-400">Any</span>
               </div>
             </template>
           </MultiSelect>
         </template>
+
         <template
           v-else-if="column.filter && column.field === 'collections'"
           #filter="{ filterModel }"
@@ -111,9 +115,9 @@
             v-model="filterModel.value"
             :options="uniqueCollections"
             option-label="collection_id"
-            class="multiselect-filter"
             placeholder="Any"
             display="chip"
+            class="w-full"
             @click.stop
           >
             <template #option="slotProps">
@@ -125,14 +129,17 @@
               </div>
             </template>
             <template #value="slotProps">
-              <div class="multiselect-filter-input">
-                <div
-                  v-for="option in slotProps.value"
-                  :key="option.collection_id"
-                  class="inline-flex items-center mr-2"
-                >
-                  <FormattedCollectionName :collection_id="option.collection_id" :size="20" />
-                </div>
+              <div class="flex flex-wrap gap-1 items-center">
+                <template v-if="slotProps.value && slotProps.value.length">
+                  <span
+                    v-for="option in slotProps.value"
+                    :key="option.collection_id"
+                    class="inline-flex items-center"
+                  >
+                    <FormattedCollectionName :collection_id="option.collection_id" :size="20" />
+                  </span>
+                </template>
+                <span v-else class="text-gray-400">Any</span>
               </div>
             </template>
           </MultiSelect>
@@ -271,7 +278,7 @@ export default {
         },
         creators: {
           operator: FilterOperator.AND,
-          constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
+          constraints: [{ value: null, matchMode: "exactCreatorMatch" }],
         },
       },
       filteredData: [],
@@ -325,6 +332,18 @@ export default {
       }
 
       return value.some((collection) => collection.collection_id === filter.collection_id);
+    });
+
+    FilterService.register("exactCreatorMatch", (value, filter) => {
+      if (!filter || !value) return true;
+
+      if (Array.isArray(filter)) {
+        return filter.every((filterCreator) =>
+          value.some((itemCreator) => itemCreator.display_name === filterCreator.display_name),
+        );
+      }
+
+      return value.some((itemCreator) => itemCreator.display_name === filter.display_name);
     });
   },
   methods: {
@@ -475,19 +494,3 @@ export default {
   },
 };
 </script>
-
-<style scoped>
-.multiselect-filter {
-  min-height: 2.5rem;
-  text-overflow: ellipsis;
-  overflow: hidden;
-  white-space: nowrap;
-}
-.multiselect-filter-input {
-  display: inline-flex;
-  max-width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-</style>

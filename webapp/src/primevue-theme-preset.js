@@ -10,7 +10,8 @@ const DatalabPreset = definePreset(Aura, {
       extend: {
         filterActiveBackground: "{primary.50}",
         filterActiveColor: "{primary.700}",
-        maxWidth: "1rem",
+        minWidth: "1rem",
+        maxWidth: "10rem",
         whitespace: "nowrap",
         overflow: "hidden",
         textOverflow: "ellipsis",
@@ -44,6 +45,7 @@ const DatalabPreset = definePreset(Aura, {
           color: ${dt("datatable.activeSVG")};
         }
         .p-datatable-tbody tr td {
+          min-width: ${dt("datatable.minWidth")};
           max-width: ${dt("datatable.maxWidth")};
           white-space: ${dt("datatable.whitespace")};
           overflow: ${dt("datatable.overflow")};
