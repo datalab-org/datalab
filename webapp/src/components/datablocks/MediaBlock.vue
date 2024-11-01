@@ -37,7 +37,7 @@ export default {
   computed: {
     file_id: createComputedSetterForBlockField("file_id"),
     all_files() {
-      return this.$store.state.files;
+      return this.$store.state.all_item_data[this.item_id].files;
     },
     block_data() {
       return this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id];
@@ -51,15 +51,20 @@ export default {
       if ((b64_encoding != null && b64_encoding[this.file_id]) || null != null) {
         return `data:image/png;base64,${b64_encoding[this.file_id]}`;
       }
-      return `${API_URL}/files/${this.file_id}/${this.all_files[this.file_id].name}`;
+      return `${API_URL}/files/${this.file_id}/${this.lookup_file_field("name", this.file_id)}`;
     },
     isPhoto() {
       return [".png", ".jpeg", ".jpg", ".tif", ".tiff"].includes(
-        this.all_files[this.file_id]?.extension,
+        this.lookup_file_field("extension", this.file_id),
       );
     },
     isVideo() {
-      return [".mp4", ".mov", ".webm"].includes(this.all_files[this.file_id]?.extension);
+      return [".mp4", ".mov", ".webm"].includes(this.lookup_file_field("extension", this.file_id));
+    },
+  },
+  methods: {
+    lookup_file_field(field, file_id) {
+      return this.all_files.find((file) => file.immutable_id === file_id)?.[field];
     },
   },
 };
