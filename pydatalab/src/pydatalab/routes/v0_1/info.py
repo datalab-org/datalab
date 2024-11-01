@@ -146,34 +146,48 @@ def list_block_types():
     )
 
 
-def get_all_models():
+def get_all_items_models():
     return Item.__subclasses__()
 
 
 @INFO.route("/info/types", methods=["GET"])
-def list_supported_types_schemas():
-    """Returns a dictionary of supported item types and their schemas."""
-    schemas = {cls.__name__.lower(): cls.schema() for cls in get_all_models()}
-    schemas["collections"] = Collection.schema()
+def list_supported_types():
+    """Returns a list of supported schemas."""
+    types = [cls.schema()["properties"]["type"]["default"] for cls in get_all_items_models()]
+    types.append(Collection.schema()["properties"]["type"]["default"])
 
-    return jsonify(schemas)
+    return jsonify(types)
 
 
-for model_class in get_all_models():
-    model_name = model_class.__name__.lower()
+for model_class in get_all_items_models():
+    model_type = model_class.schema()["properties"]["type"]["default"]
 
-    def make_route(model_class):
+    def make_route(model_class, model_type):
         @INFO.route(
-            f"/info/types/{model_name}", methods=["GET"], endpoint=f"get_{model_name}_schema"
+            f"/info/types/{model_type}", methods=["GET"], endpoint=f"get_{model_type}_schema"
         )
         def get_model_schema():
             """Returns the JSON schema for the model."""
-            return jsonify(model_class.schema())
+            schema = model_class.schema()
 
-    make_route(model_class)
+            response = {
+                "data": {
+                    "schema": schema,
+                }
+            }
+            return jsonify(response)
+
+    make_route(model_class, model_type)
 
 
 @INFO.route("/info/types/collections", methods=["GET"])
 def get_collection_schema():
     """Returns the JSON schema for the Collection type."""
-    return jsonify(Collection.schema())
+    schema = Collection.schema()
+
+    response = {
+        "data": {
+            "schema": schema,
+        }
+    }
+    return jsonify(response)
