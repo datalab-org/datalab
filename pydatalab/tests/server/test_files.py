@@ -5,6 +5,36 @@ import pytest
 from pydatalab.config import CONFIG
 
 
+def test_too_large_upload(client, tmpdir, insert_default_sample, default_sample):  # pylint: disable=unused-argument
+    """Test that an artificially large file upload is rejected (413)
+    when it exceeds the test file size (currently 10 MB).
+
+    """
+    fname = "file_larger_than_10MB"
+    path = tmpdir / fname
+    path.write("0" * 11_000_000)
+    with open(path, "rb") as f:
+        response = client.post(
+            "/upload-file/",
+            buffered=True,
+            content_type="multipart/form-data",
+            data={
+                "item_id": default_sample.item_id,
+                "file": [(f, fname)],
+                "type": "application/octet-stream",
+                "replace_file": "null",
+                "relativePath": "null",
+            },
+        )
+    assert response.status_code == 413
+    assert response.json["status"] == "error"
+    assert response.json["title"] == "RequestEntityTooLarge"
+    assert (
+        response.json["description"]
+        == "Uploaded file is too large.\nThe maximum file size is 0.01 GB.\nContact your datalab administrator if you need to upload larger files."
+    )
+
+
 @pytest.mark.dependency()
 def test_upload(client, default_filepath, insert_default_sample, default_sample):  # pylint: disable=unused-argument
     with open(default_filepath, "rb") as f:
