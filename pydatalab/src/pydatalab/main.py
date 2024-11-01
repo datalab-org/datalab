@@ -189,8 +189,31 @@ def create_app(
 
     pydatalab.mongo.create_default_indices()
 
-    if CONFIG.FILE_DIRECTORY is not None:
-        pathlib.Path(CONFIG.FILE_DIRECTORY).mkdir(parents=False, exist_ok=True)
+    _check_files_mount()
+
+    def _check_files_mount():
+        import shutil
+
+        files_path = pathlib.Path(CONFIG.FILE_DIRECTORY)
+        if not (files_path.exists() and files_path.is_dir()):
+            LOGGER.warning("FILE_DIRECTORY %s does not exist, creating it", files_path)
+            files_path.mkdir(parents=False)
+
+        disk_usage = shutil.disk_usage(CONFIG.FILE_DIRECTORY)
+        if disk_usage.free / disk_usage.total < 0.1:
+            LOGGER.critical(
+                "Less than 10% of disk space remaining in FILE_DIRECTORY %s (%s/%s)",
+                files_path,
+                disk_usage.free,
+                disk_usage.total,
+            )
+
+        if CONFIG.MAX_CONTENT_LENGTH > disk_usage.free:
+            LOGGER.critical(
+                "MAX_CONTENT_LENGTH %s is greater than free disk space %s",
+                CONFIG.MAX_CONTENT_LENGTH,
+                disk_usage.free,
+            )
 
     register_endpoints(app)
     LOGGER.info("App created.")
