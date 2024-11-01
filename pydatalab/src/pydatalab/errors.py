@@ -3,7 +3,7 @@ from typing import Any, Callable, Iterable, Tuple
 
 from flask import Response, jsonify
 from pydantic import ValidationError
-from werkzeug.exceptions import Forbidden, HTTPException
+from werkzeug.exceptions import Forbidden, HTTPException, RequestEntityTooLarge
 
 
 class UserRegistrationForbidden(Forbidden):
@@ -48,6 +48,20 @@ def render_unauthorised_user_template(exc: UserRegistrationForbidden) -> Tuple[R
     return Response(response=exc.description), exc.code
 
 
+def handle_large_file_exception(exc: RequestEntityTooLarge) -> Tuple[Response, int]:
+    """Return a JSON response with a specific error message about file size."""
+    from pydatalab.config import CONFIG
+
+    response = {
+        "title": exc.__class__.__name__,
+        "status": "error",
+        "description": f"""Uploaded file is too large.
+The maximum file size is {CONFIG.MAX_CONTENT_LENGTH / 1024 ** 3:.2f} GB.
+Contact your datalab administrator if you need to upload larger files.""",
+    }
+    return jsonify(response), 413
+
+
 def handle_pydantic_validation_error(exc: ValidationError) -> Tuple[Response, int]:
     """Handle pydantic validation errors separately from other exceptions.
     These always come from malformed data, so should not necessarily trigger the
@@ -74,6 +88,7 @@ def handle_generic_exception(exc: Exception) -> Tuple[Response, int]:
 
 ERROR_HANDLERS: Iterable[Tuple[Any, Callable[[Any], Tuple[Response, int]]]] = [
     (UserRegistrationForbidden, render_unauthorised_user_template),
+    (RequestEntityTooLarge, handle_large_file_exception),
     (HTTPException, handle_http_exception),
     (ValidationError, handle_pydantic_validation_error),
     (Exception, handle_generic_exception),
