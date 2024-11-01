@@ -275,4 +275,21 @@ describe("Edit Page", () => {
     cy.contains("label", "X axis").should("exist");
     cy.contains("label", "Y axis").should("exist");
   });
+
+  it("Uploads a fake PNG image, make a Media block and checks that the image is shown", () => {
+    let test_fname = "test_image.png";
+    cy.createTestPNG(test_fname);
+    cy.uploadFileViaAPI("editable_sample", test_fname);
+
+    cy.get('[data-testid="search-input"]').type("editable_sample");
+    cy.findByText("editable_sample").click();
+
+    cy.findByText("Add a block").click();
+    cy.get(".dropdown-menu").findByText("Media").click();
+    cy.findAllByText("Select a file:").eq(1).should("exist");
+    cy.get("select.file-select-dropdown").eq(1).select(test_fname);
+
+    // Check that the img with id "media-block-img" is present
+    cy.get('img[data-testid="media-block-img"]').should("exist");
+  });
 });
