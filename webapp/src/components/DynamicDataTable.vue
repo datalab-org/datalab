@@ -322,28 +322,46 @@ export default {
   created() {
     this.editable_inventory = EDITABLE_INVENTORY;
 
-    FilterService.register("exactCollectionMatch", (value, filter) => {
-      if (!filter || !value) return true;
+    FilterService.register("exactCollectionMatch", (value, filterValue) => {
+      if (!filterValue || !value) return true;
 
-      if (Array.isArray(filter)) {
-        return filter.every((f) =>
-          value.some((collection) => collection.collection_id === f.collection_id),
-        );
+      const filter = this.filters.collections;
+      const isAnd = filter.operator === FilterOperator.AND;
+
+      if (Array.isArray(filterValue)) {
+        if (isAnd) {
+          return filterValue.every((f) =>
+            value.some((collection) => collection.collection_id === f.collection_id),
+          );
+        } else {
+          return filterValue.some((f) =>
+            value.some((collection) => collection.collection_id === f.collection_id),
+          );
+        }
       }
 
-      return value.some((collection) => collection.collection_id === filter.collection_id);
+      return value.some((collection) => collection.collection_id === filterValue.collection_id);
     });
 
-    FilterService.register("exactCreatorMatch", (value, filter) => {
-      if (!filter || !value) return true;
+    FilterService.register("exactCreatorMatch", (value, filterValue) => {
+      if (!filterValue || !value) return true;
 
-      if (Array.isArray(filter)) {
-        return filter.every((filterCreator) =>
-          value.some((itemCreator) => itemCreator.display_name === filterCreator.display_name),
-        );
+      const filter = this.filters.creators;
+      const isAnd = filter.operator === FilterOperator.AND;
+
+      if (Array.isArray(filterValue)) {
+        if (isAnd) {
+          return filterValue.every((filterCreator) =>
+            value.some((itemCreator) => itemCreator.display_name === filterCreator.display_name),
+          );
+        } else {
+          return filterValue.some((filterCreator) =>
+            value.some((itemCreator) => itemCreator.display_name === filterCreator.display_name),
+          );
+        }
       }
 
-      return value.some((itemCreator) => itemCreator.display_name === filter.display_name);
+      return value.some((itemCreator) => itemCreator.display_name === filterValue.display_name);
     });
   },
   methods: {
