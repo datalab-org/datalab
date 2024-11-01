@@ -255,6 +255,21 @@ Cypress.Commands.add("removeAllTestSamples", (item_ids, check_sample_table) => {
   }
 });
 
+Cypress.Commands.add("createTestPNG", (fname) => {
+  const canvas = document.createElement("canvas");
+  canvas.width = 100;
+  canvas.height = 100;
+
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#ff0000";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  const base64 = canvas.toDataURL("image/png").split(",")[1];
+  const filePath = `cypress/fixtures/${fname}`;
+
+  return cy.writeFile(filePath, base64, "base64").then(() => {});
+});
+
 Cypress.Commands.add("removeAllTestCollections", (collection_ids, check_collection_table) => {
   collection_ids.forEach((collection_id) => {
     cy.deleteCollectionViaAPI(collection_id);
