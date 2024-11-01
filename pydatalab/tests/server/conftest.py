@@ -82,6 +82,9 @@ def app_config(tmp_path_factory):
         "EMAIL_DOMAIN_ALLOW_LIST": ["example.org", "ml-evs.science"],
         "MAIL_DEBUG": True,
         "MAIL_SUPPRESS_SEND": True,
+        # Set to 10 MB to check that larger files fail; this should be larger than all of our example files.
+        # Elsewhere, we can generate an artificial large file to check that it fails.
+        "MAX_CONTENT_LENGTH": 10 * 1000**2,
     }
 
 
