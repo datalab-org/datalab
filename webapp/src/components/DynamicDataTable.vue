@@ -76,13 +76,13 @@
         </template>
         <template v-if="column.filter && column.field === 'creators'" #filter="{ filterModel }">
           <MultiSelect
-            v-model="filterModel.value"
+            v-model="filters[column.field].constraints[0].value"
             :options="uniqueCreators"
             option-label="display_name"
             placeholder="Any"
             display="chip"
-            class="w-full"
-            @click.stop
+            class="d-flex w-full no-constraint"
+            :filter="true"
           >
             <template #option="slotProps">
               <div class="flex items-center">
@@ -112,13 +112,13 @@
           #filter="{ filterModel }"
         >
           <MultiSelect
-            v-model="filterModel.value"
+            v-model="filters[column.field].constraints[0].value"
             :options="uniqueCollections"
             option-label="collection_id"
             placeholder="Any"
             display="chip"
-            class="w-full"
-            @click.stop
+            class="d-flex w-full no-constraint"
+            :filter="true"
           >
             <template #option="slotProps">
               <div class="flex items-center">
@@ -418,6 +418,7 @@ export default {
         },
         Creators: {
           creators: "creators",
+          showNames: data.creators.length === 1,
         },
       };
 
@@ -448,6 +449,10 @@ export default {
         return filter.constraints.some((constraint) => constraint.value);
       }
       return false;
+    },
+    updateFilter(field, value) {
+      this.filters[field].constraints[0].value = value;
+      this.$refs.dataTable.filter(this.filteredData);
     },
     getVisibleItems() {
       const start = this.page * this.rows;

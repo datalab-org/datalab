@@ -17,6 +17,7 @@ const DatalabPreset = definePreset(Aura, {
         textOverflow: "ellipsis",
         divCheckboxHover: "#6C757D",
         divCheckboxCheckedHover: "#5A6268",
+        dropdownDisplay: "none",
       },
       bodyCellPadding: "0.4rem",
       sortIconColor: "transparent",
@@ -57,6 +58,15 @@ const DatalabPreset = definePreset(Aura, {
         .checkbox:hover .p-checkbox-checked .p-checkbox-box {
           border-color: ${dt("datatable.divCheckboxCheckedHover")};
           background: ${dt("datatable.divCheckboxCheckedHover")};
+        }
+        .p-datatable-filter-constraint-dropdown {
+          display: none !important;
+        }
+        .p-datatable-filter-remove-rule-button {
+          display: none !important;
+        }
+        .p-datatable-filter-add-rule-button {
+          display: none !important;
         }
       `,
 });
