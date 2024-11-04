@@ -74,15 +74,15 @@
         <template v-else #body="slotProps">
           {{ slotProps.data[column.field] }}
         </template>
-        <template v-if="column.filter && column.field === 'creators'" #filter="{ filterModel }">
+        <template v-if="column.filter && column.field === 'creators'" #filter>
           <MultiSelect
             v-model="filters[column.field].constraints[0].value"
             :options="uniqueCreators"
             option-label="display_name"
             placeholder="Any"
-            display="chip"
-            class="d-flex w-full no-constraint"
+            class="d-flex w-full"
             :filter="true"
+            @click.stop
           >
             <template #option="slotProps">
               <div class="flex items-center">
@@ -107,18 +107,15 @@
           </MultiSelect>
         </template>
 
-        <template
-          v-else-if="column.filter && column.field === 'collections'"
-          #filter="{ filterModel }"
-        >
+        <template v-else-if="column.filter && column.field === 'collections'" #filter="">
           <MultiSelect
             v-model="filters[column.field].constraints[0].value"
             :options="uniqueCollections"
             option-label="collection_id"
             placeholder="Any"
-            display="chip"
-            class="d-flex w-full no-constraint"
+            class="d-flex w-full"
             :filter="true"
+            @click.stop
           >
             <template #option="slotProps">
               <div class="flex items-center">
@@ -449,10 +446,6 @@ export default {
         return filter.constraints.some((constraint) => constraint.value);
       }
       return false;
-    },
-    updateFilter(field, value) {
-      this.filters[field].constraints[0].value = value;
-      this.$refs.dataTable.filter(this.filteredData);
     },
     getVisibleItems() {
       const start = this.page * this.rows;
