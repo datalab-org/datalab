@@ -15,7 +15,7 @@
     <img v-else class="logo-banner" :src="logo_url" />
   </div>
 
-  <div class="row justify-content-center pt-3">
+  <div class="container d-flex flex-column align-items-center pt-3">
     <LoginDetails />
   </div>
 
