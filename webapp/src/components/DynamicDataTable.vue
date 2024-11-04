@@ -415,7 +415,7 @@ export default {
         },
         Creators: {
           creators: "creators",
-          showNames: data.creators.length === 1,
+          showNames: data.creators?.length === 1,
         },
       };
 
