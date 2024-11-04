@@ -71,7 +71,7 @@ describe("Navbar", () => {
       },
     });
 
-    cy.get(".row")
+    cy.get(".container.d-flex")
       .should("exist")
       .within(() => {
         cy.contains("Login").should("exist");
