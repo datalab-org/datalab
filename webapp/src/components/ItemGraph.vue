@@ -1,12 +1,12 @@
 <template>
-  <div v-if="showOptions" class="options">
+  <div v-if="showOptions" class="options-button">
     <button
       class="btn btn-default mr-5 mb-2 dropdown-toggle"
       @click="optionsDisplayed = !optionsDisplayed"
     >
       configure
     </button>
-    <div v-show="optionsDisplayed" class="card card-body dropdown-menu">
+    <div v-show="optionsDisplayed" class="options card card-body dropdown-menu">
       <label for="graph-style">Graph layout:</label>
       <div id="graph-style" class="btn-group mr-2" role="group">
         <button
@@ -250,10 +250,14 @@ export default {
 </script>
 
 <style scoped>
-.options {
+.options-button {
   position: absolute;
   z-index: 10;
   right: 2rem;
+}
+
+.options {
+  width: 400px;
 }
 
 #cy {
