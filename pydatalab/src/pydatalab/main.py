@@ -158,6 +158,11 @@ def create_app(
     if app.config.get("OAUTHLIB_INSECURE_TRANSPORT"):
         os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = app.config["OAUTHLIB_INSECURE_TRANSPORT"]
 
+    # Set LLM API keys as env vars if present in the flask config
+    for key in ("OPENAI_API_KEY", "ANTHROPIC_API_KEY"):
+        if app.config.get(key):
+            os.environ[key] = app.config[key]
+
     LOGGER.info("Launching datalab version %s", __version__)
     LOGGER.info("Starting app with Flask app.config: %s", app.config)
 
