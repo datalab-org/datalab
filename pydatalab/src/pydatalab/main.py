@@ -102,11 +102,15 @@ def _check_feature_flags(app):
     ):
         FEATURE_FLAGS.auth_mechanisms.orcid = True
     if _check_secret_and_warn(
-        "OPENAI_API_KEY", "No OpenAI API key provided, OpenAI-based ChatBlock will not work", environ=True
+        "OPENAI_API_KEY",
+        "No OpenAI API key provided, OpenAI-based ChatBlock will not work",
+        environ=True,
     ):
         FEATURE_FLAGS.ai_integrations.openai = True
     if _check_secret_and_warn(
-        "ANTHROPIC_API_KEY", "No Anthropic API key provided, Claude-based ChatBlock will not work", environ=True,
+        "ANTHROPIC_API_KEY",
+        "No Anthropic API key provided, Claude-based ChatBlock will not work",
+        environ=True,
     ):
         FEATURE_FLAGS.ai_integrations.anthropic = True
 
