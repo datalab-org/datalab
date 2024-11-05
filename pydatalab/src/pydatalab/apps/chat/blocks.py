@@ -169,7 +169,7 @@ Start with a friendly introduction and give me a one sentence summary of what th
 
             if model_name.startswith("claude"):
                 self.chat_client = ChatAnthropic(
-                    anthropic_api_key=os.environ["ANTHROPIC_API_KEY"],
+                    anthropic_api_key=os.environ.get("ANTHROPIC_API_KEY"),
                     model=model_name,
                 )
             elif model_name.startswith("gpt"):
