@@ -67,6 +67,12 @@ Be as concise as possible. When saying your name, type a bird emoji right after 
                 "input_cost_usd_per_MTok": 0.25,
                 "output_cost_usd_per_MTok": 1.25,
             },
+            "claude-3-opus-20240229": {
+                "name": "claude-3-opus-20240229",
+                "context_window": 200000,
+                "input_cost_usd_per_MTok": 15.00,
+                "output_cost_usd_per_MTok": 75.00,
+            },
             "gpt-4o": {
                 "name": "gpt-4o",
                 "context_window": 128000,
