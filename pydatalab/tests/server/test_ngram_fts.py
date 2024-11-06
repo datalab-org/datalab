@@ -46,6 +46,6 @@ def test_ngram_single_field():
     assert all([ngrams[e] == 1 for e in expected])
 
 
-def test_ngram_item(default):
+def test_ngram_item():
     item = {"refcode": "ABCDEF"}
-    assert _generate_item_ngrams(item, 3) == {"abc": 1, "bcd": 1, "cde": 1, "def": 1}
+    assert _generate_item_ngrams(item, {"refcode"}, n=3) == {"abc": 1, "bcd": 1, "cde": 1, "def": 1}
