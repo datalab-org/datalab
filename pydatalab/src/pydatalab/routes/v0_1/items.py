@@ -281,6 +281,62 @@ def get_samples():
     return jsonify({"status": "success", "samples": list(get_samples_summary())})
 
 
+@ITEMS.route("/search-items-ngram/", methods=["GET"])
+def search_items_ngram():
+    """Perform n-gram-based free text search on items and return the top results.
+
+    GET parameters:
+        query: String with the search terms.
+        nresults: Maximum number of  (default 100)
+        types: If None, search all types of items. Otherwise, a list of strings
+               giving the types to consider. (e.g. ["samples","starting_materials"])
+
+    Returns:
+        response list of dictionaries containing the matching items in order of
+        descending match score.
+    """
+
+    query = request.args.get("query", type=str)
+    nresults = request.args.get("nresults", default=100, type=int)
+    types = request.args.get("types", default=None)
+    if isinstance(types, str):
+        # should figure out how to parse as list automatically
+        types = types.split(",")
+
+    # split search string into trigrams
+    if len(query) < 3:
+        trigrams = [query]
+    trigrams = [query[i:i+3] for i in range(len(query)-2)]
+
+    match_obj = {
+        "_fts_trigrams": {"$in": trigrams},
+        **get_default_permissions(user_only=False),
+    }
+
+    if types is not None:
+        match_obj["type"] = {"$in": types}
+
+    cursor = flask_mongo.db.items.aggregate(
+        [
+            {"$match": match_obj},
+            {"$sort": {"score": {"$meta": "textScore"}}},
+            {"$limit": nresults},
+            {
+                "$project": {
+                    "_id": 0,
+                    "type": 1,
+                    "item_id": 1,
+                    "name": 1,
+                    "chemform": 1,
+                    "refcode": 1,
+                }
+            },
+        ]
+    )
+
+    return jsonify({"status": "success", "items": list(cursor)}), 200
+
+
 @ITEMS.route("/search-items/", methods=["GET"])
 def search_items():
     """Perform free text search on items and return the top results.

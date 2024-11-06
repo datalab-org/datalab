@@ -1,4 +1,5 @@
 from typing import List, Optional
+import collections
 
 # Must be imported in this way to allow for easy patching with mongomock
 import pymongo
@@ -193,3 +194,83 @@ def create_default_indices(
         ret += create_user_fts()
 
     return ret
+
+
+def create_ngram_item_index(
+    client: Optional[pymongo.MongoClient] = None,
+    background: bool = False,
+    filter_top_ngrams: float | None = 0.5,
+    target_index_name: str = "ngram_fts_index",
+):
+    from pydatalab.models import ITEM_MODELS
+
+    if client is None:
+        client = _get_active_mongo_client()
+    db = client.get_database()
+
+    item_fts_fields = set()
+    for model in ITEM_MODELS:
+        schema = ITEM_MODELS[model].schema()
+        for f in schema["properties"]:
+            if schema["properties"][f].get("type") == "string":
+                item_fts_fields.add(f)
+
+    # construct manual ngram index
+    ngram_index = {}
+    item_count: int = 0
+    global_ngram_count = collections.defaultdict(int)
+    for item in db.items.find({}):
+        item_count += 1
+        ngrams = _generate_item_ngrams(item, item_fts_fields)
+        ngram_index[item["_id"]] = list(ngrams)
+        for g in ngrams:
+            global_ngram_count[g] += ngrams[g]
+
+    # filter out common ngrams that are found in filter_top_ngrams proportion of entries
+    if filter_top_ngrams is not None:
+        for ngram in global_ngram_count:
+            if global_ngram_count[ngram] / item_count > filter_top_ngrams:
+                for item in ngram_index:
+                    ngram_index[item].pop(ngram, None)
+
+    for _id, item in ngram_index.items():
+        db.items.update_one({"_id": _id}, {"$set": {"_fts_ngrams": item}})
+
+    try:
+        result = db.items.create_index("_fts_ngrams", name=target_index_name, background=background)
+    except pymongo.errors.OperationFailure:
+        db.users.drop_index(target_index_name)
+        result = db.items.create_index("_fts_ngrams", name=target_index_name, background=background)
+
+    return result
+
+def _generate_ngrams(value, n: int = 3) -> dict[str, int]:
+    import re
+
+    ngrams = collections.defaultdict(
+        int,
+    )
+    if len(value) < n:
+        return ngrams
+
+    # first, split by whitespace and punctuation
+    tokenized_value = re.split(r"[\s,.:?!=-_]", value)
+
+    # then loop over tokens and ngrammify
+    for value in tokenized_value:
+        if len(value) < n:
+            continue
+        for v in ("".join(value[i : i + n].lower()) for i in range(len(value) - (n - 1))):
+            ngrams[v] += 1
+
+    return ngrams
+
+def _generate_item_ngrams(item, fts_fields):
+    ngrams = collections.defaultdict(int)
+    for field in fts_fields:
+        field_ngrams = _generate_ngrams(item.get(field, None))
+        for k in field_ngrams:
+            ngrams[k] += field_ngrams[k]
+
+    return ngrams
+
