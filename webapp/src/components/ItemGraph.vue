@@ -7,31 +7,64 @@
       configure
     </button>
     <div v-show="optionsDisplayed" class="options card card-body dropdown-menu">
-      <label for="graph-style">Graph layout:</label>
+      <label for="graph-style"
+        >Graph layout:
+        <font-awesome-icon v-show="layoutIsRunning" class="ml-2 text-muted" icon="spinner" spin
+      /></label>
       <div id="graph-style" class="btn-group mr-2" role="group">
         <button
-          :class="graphStyle == 'elk-stress' ? 'btn btn-default active' : 'btn btn-default'"
-          @click="graphStyle = 'elk-stress'"
+          :class="graphStyle == 'euler' ? 'btn btn-default active' : 'btn btn-default'"
+          @click="
+            graphStyle = 'euler';
+            updateAndRunLayout();
+          "
         >
-          stress
+          euler
         </button>
         <button
           :class="graphStyle == 'cola' ? 'btn btn-default active' : 'btn btn-default'"
-          @click="graphStyle = 'cola'"
+          @click="
+            graphStyle = 'cola';
+            updateAndRunLayout();
+          "
         >
-          force
+          cola
         </button>
         <button
-          :class="graphStyle == 'elk-layered-down' ? 'btn btn-default active' : 'btn btn-default'"
-          @click="graphStyle = 'elk-layered-down'"
+          :class="graphStyle == 'fcose' ? 'btn btn-default active' : 'btn btn-default'"
+          @click="
+            graphStyle = 'fcose';
+            updateAndRunLayout();
+          "
         >
-          horizontal
+          fCoSE
         </button>
         <button
-          :class="graphStyle == 'elk-layered-right' ? 'btn btn-default active' : 'btn btn-default'"
-          @click="graphStyle = 'elk-layered-right'"
+          :class="graphStyle == 'elk-disco' ? 'btn btn-default active' : 'btn btn-default'"
+          @click="
+            graphStyle = 'elk-disco';
+            updateAndRunLayout();
+          "
         >
-          vertical
+          pack
+        </button>
+        <button
+          :class="graphStyle == 'random' ? 'btn btn-default active' : 'btn btn-default'"
+          @click="
+            graphStyle = 'random';
+            updateAndRunLayout();
+          "
+        >
+          random
+        </button>
+        <button
+          :class="graphStyle == 'elk-stress' ? 'btn btn-default active' : 'btn btn-default'"
+          @click="
+            graphStyle = 'elk-stress';
+            updateAndRunLayout();
+          "
+        >
+          stress (slow)
         </button>
       </div>
 
@@ -62,28 +95,26 @@ import ItemSelect from "@/components/ItemSelect.vue";
 import CollectionSelect from "@/components/CollectionSelect.vue";
 import { itemTypes } from "@/resources.js";
 import cytoscape from "cytoscape";
-import dagre from "cytoscape-dagre";
 import cola from "cytoscape-cola";
 import elk from "cytoscape-elk";
+import euler from "cytoscape-euler";
+import fcose from "cytoscape-fcose";
 
-cytoscape.use(dagre);
 cytoscape.use(cola);
+cytoscape.use(euler);
 cytoscape.use(elk);
+cytoscape.use(fcose);
 
 const layoutOptions = {
-  "elk-layered-down": {
+  "elk-disco": {
     name: "elk",
+    animate: true,
     elk: {
-      algorithm: "layered",
-      "elk.direction": "DOWN",
+      algorithm: "disco",
     },
   },
-  "elk-layered-right": {
-    name: "elk",
-    elk: {
-      algorithm: "layered",
-      "elk.direction": "RIGHT",
-    },
+  random: {
+    name: "random",
   },
   "elk-stress": {
     name: "elk",
@@ -93,7 +124,19 @@ const layoutOptions = {
   },
   cola: {
     name: "cola",
-    animate: "true",
+    animate: true,
+    centerGraph: false,
+  },
+  euler: {
+    name: "euler",
+    animate: true,
+    pull: 0.002,
+  },
+  fcose: {
+    name: "fcose",
+    animate: true,
+    randomize: false,
+    packComponents: true,
   },
 };
 
@@ -110,7 +153,7 @@ export default {
     },
     defaultGraphStyle: {
       type: String,
-      default: "elk-stress",
+      default: "euler",
     },
     showOptions: {
       type: Boolean,
@@ -124,6 +167,7 @@ export default {
       ignoreItems: [],
       ignoreCollections: [],
       labelStartingMaterialsByName: true,
+      layoutIsRunning: true,
     };
   },
   computed: {
@@ -149,10 +193,6 @@ export default {
     graphData() {
       this.generateCyNetworkPlot();
     },
-    graphStyle() {
-      console.log("graphStyle changed");
-      this.generateCyNetworkPlot();
-    },
     ignoreItems() {
       this.generateCyNetworkPlot();
     },
@@ -167,11 +207,17 @@ export default {
     this.generateCyNetworkPlot();
   },
   methods: {
+    updateAndRunLayout() {
+      this.layout && this.layout.stop();
+      this.layoutIsRunning = true;
+      this.layout = this.cy.layout(layoutOptions[this.graphStyle]);
+      this.layout.run();
+    },
     generateCyNetworkPlot() {
       if (!this.graphData) {
         return;
       }
-      var cy = cytoscape({
+      this.cy = cytoscape({
         container: document.getElementById("cy"),
         elements: this.filteredGraphData,
         userPanningEnabled: true,
@@ -209,7 +255,7 @@ export default {
       });
 
       // set colors of each of the nodes by type
-      cy.nodes().each(function (element) {
+      this.cy.nodes().each(function (element) {
         element.style(
           "background-color",
           element.data("special") == 1
@@ -221,22 +267,29 @@ export default {
         element.style("shape"), element.data("shape") == "triangle" ? "triangle" : "ellipse";
       });
 
+      this.cy.on("layoutstart", () => {
+        this.layoutIsRunning = true;
+      });
+
+      this.cy.on("layoutstop", () => {
+        this.layoutIsRunning = false;
+      });
+
       // tapdragover and tapdragout are mouseover and mouseout events
       // that also work with touch screens
-      cy.on("tapdragover", "node", function (evt) {
+      this.cy.on("tapdragover", "node", function (evt) {
         var node = evt.target;
         node.style("opacity", 0.8);
         node.style("border-width", 3);
         node.style("border-color", "black");
       });
-      cy.on("tapdragout", "node", function (evt) {
+      this.cy.on("tapdragout", "node", function (evt) {
         var node = evt.target;
         node.style("opacity", 1);
         node.style("border-width", node.data("special") == 1 ? 2 : 0);
         node.style("border-color", "grey");
       });
-
-      cy.on("click", "node", function (evt) {
+      this.cy.on("click", "node", function (evt) {
         var node = evt.target;
         if (node.data("type") == "collections") {
           window.open(`/collections/${node.data("id").replace("Collection: ", "")}`, "_blank");
@@ -257,7 +310,7 @@ export default {
 }
 
 .options {
-  width: 400px;
+  width: 450px;
 }
 
 #cy {
