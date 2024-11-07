@@ -116,7 +116,11 @@ Be as concise as possible. When saying your name, type a bird emoji right after 
     def render(self):
         if not self.data.get("messages"):
             if (item_id := self.data.get("item_id")) is not None:
-                info_json = self._prepare_item_json_for_chat(item_id)
+                info_json, collections = self._prepare_item_json_for_chat(item_id)
+                if len(collections):
+                    info_json = self._prepare_collection_json_for_chat(
+                        collections[0]["collection_id"]
+                    )
             elif (collection_id := self.data.get("collection_id")) is not None:
                 info_json = self._prepare_collection_json_for_chat(collection_id)
             else:
@@ -129,7 +133,7 @@ Be as concise as possible. When saying your name, type a bird emoji right after 
                 },
                 {
                     "role": "user",
-                    "content": f"""Here is the JSON data for the current item(s): {info_json}.
+                    "content": f"""Here is the JSON data for the current item, {item_id}. If the item is in a collection, the data for the rest of the items in the collection are also given: {info_json}.
 Start with a friendly introduction and give me a one sentence summary of what this is (not detailed, no information about specific masses). """,
                 },
             ]
@@ -315,7 +319,7 @@ Start with a friendly introduction and give me a one sentence summary of what th
             .replace(r"\n", " ")
         )
 
-        return item_info_json
+        return item_info_json, item_info.get("collections", [])
 
     def _prepare_collection_json_for_chat(self, collection_id: str):
         from pydatalab.routes.v0_1.collections import get_collection
@@ -325,8 +329,8 @@ Start with a friendly introduction and give me a one sentence summary of what th
             raise RuntimeError(f"Attempt to get collection data for {collection_id} failed.")
 
         children = collection_data["child_items"]
-        return (
-            "["
-            + ",".join([self._prepare_item_json_for_chat(child["item_id"]) for child in children])
-            + "]"
-        )
+        jsons = []
+        for child in children:
+            jsons.append(self._prepare_item_json_for_chat(child["item_id"])[0])
+
+        return "[" + ",".join(jsons) + "]"
