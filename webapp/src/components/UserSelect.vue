@@ -2,7 +2,7 @@
   <vSelect
     ref="selectComponent"
     v-model="value"
-    :options="users"
+    :options="filteredUsers"
     multiple
     label="immutable_id"
     :filterable="false"
@@ -55,6 +55,10 @@ export default {
       set(newValue) {
         this.$emit("update:modelValue", newValue);
       },
+    },
+    filteredUsers() {
+      const selectedUserIds = this.modelValue.map((user) => user.immutable_id);
+      return this.users.filter((user) => !selectedUserIds.includes(user.immutable_id));
     },
   },
   methods: {

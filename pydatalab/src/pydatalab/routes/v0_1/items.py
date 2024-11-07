@@ -996,6 +996,7 @@ def search_users():
                     "_id": 1,
                     "identities": 1,
                     "display_name": 1,
+                    "contact_email": 1,
                 }
             },
         ]
