@@ -16,7 +16,7 @@ from pydatalab.models.items import Item
 from pydatalab.models.people import Person
 from pydatalab.models.relationships import RelationshipType
 from pydatalab.models.utils import generate_unique_refcode
-from pydatalab.mongo import flask_mongo
+from pydatalab.mongo import ITEM_FTS_FIELDS, _generate_item_ngrams, flask_mongo
 from pydatalab.permissions import PUBLIC_USER_ID, active_users_or_get_only, get_default_permissions
 
 ITEMS = Blueprint("items", __name__)
@@ -304,23 +304,33 @@ def search_items_ngram():
         types = types.split(",")
 
     # split search string into trigrams
+    query = query.lower()
     if len(query) < 3:
         trigrams = [query]
-    trigrams = [query[i:i+3] for i in range(len(query)-2)]
+    trigrams = [query[i : i + 3] for i in range(len(query) - 2)]
 
     match_obj = {
-        "_fts_trigrams": {"$in": trigrams},
+        "_fts_ngrams": {"$in": trigrams},
         **get_default_permissions(user_only=False),
     }
 
     if types is not None:
         match_obj["type"] = {"$in": types}
 
-    cursor = flask_mongo.db.items.aggregate(
+    cursor = flask_mongo.db.items_fts.aggregate(
         [
             {"$match": match_obj},
-            {"$sort": {"score": {"$meta": "textScore"}}},
             {"$limit": nresults},
+            {
+                "$lookup": {
+                    "from": "items",
+                    "localField": "_id",
+                    "foreignField": "_id",
+                    "as": "items",
+                }
+            },
+            {"$unwind": "$items"},
+            {"$replaceRoot": {"newRoot": {"$mergeObjects": ["$items"]}}},
             {
                 "$project": {
                     "_id": 0,
@@ -397,7 +407,7 @@ def _create_sample(
             dict(
                 status="error",
                 messages=f"""Request to create item with generate_id_automatically = true is incompatible with the provided item data,
-                which has an item_id included (provided id: {sample_dict['item_id']}")""",
+                which has an item_id included (provided id: {sample_dict["item_id"]}")""",
             ),
             400,
         )
@@ -564,6 +574,16 @@ def _create_sample(
             ),
             400,
         )
+
+    # Update ngram index, if configured
+    ngrams = _generate_item_ngrams(
+        flask_mongo.db.items.find_one(result.inserted_id), ITEM_FTS_FIELDS
+    )
+    flask_mongo.db.items_fts.update_one(
+        {"_id": result.inserted_id},
+        {"$set": {"type": data_model.type, "_fts_ngrams": list(ngrams)}},
+        upsert=True,
+    )
 
     sample_list_entry = {
         "refcode": data_model.refcode,
@@ -759,11 +779,12 @@ def delete_sample():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
     item_id = request_json["item_id"]
 
-    result = flask_mongo.db.items.delete_one(
-        {"item_id": item_id, **get_default_permissions(user_only=True, deleting=True)}
+    deleted_doc = flask_mongo.db.items.find_one_and_delete(
+        {"item_id": item_id, **get_default_permissions(user_only=True, deleting=True)},
+        projection={"_id": 1},
     )
 
-    if result.deleted_count != 1:
+    if deleted_doc is None:
         return (
             jsonify(
                 {
@@ -773,6 +794,10 @@ def delete_sample():
             ),
             401,
         )
+
+    # Update ngram index, if configured
+    flask_mongo.db.items_fts.delete_one({"_id": deleted_doc["_id"]})
+
     return (
         jsonify(
             {
@@ -1021,20 +1046,27 @@ def save_item():
     item.pop("collections")
     item.pop("creators")
 
-    result = flask_mongo.db.items.update_one(
+    updated_doc = flask_mongo.db.items.find_one_and_update(
         {"item_id": item_id},
         {"$set": item},
     )
 
-    if result.matched_count != 1:
+    if updated_doc is None:
         return (
             jsonify(
                 status="error",
                 message=f"{item_id} item update failed. no subdocument matched",
-                output=result.raw_result,
             ),
             400,
         )
+
+    # Update ngram index, if configured
+    ngrams = _generate_item_ngrams(updated_doc, ITEM_FTS_FIELDS)
+    flask_mongo.db.items_fts.update_one(
+        {"_id": updated_doc["_id"]},
+        {"$set": {"type": updated_doc["type"], "_fts_ngrams": list(ngrams)}},
+        upsert=True,
+    )
 
     return jsonify(status="success", last_modified=updated_data["last_modified"]), 200
 

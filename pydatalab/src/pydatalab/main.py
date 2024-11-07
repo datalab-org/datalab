@@ -206,6 +206,7 @@ def create_app(
         extension.init_app(app)
 
     pydatalab.mongo.create_default_indices()
+    pydatalab.mongo.create_ngram_item_index()
 
     if CONFIG.FILE_DIRECTORY is not None:
         pathlib.Path(CONFIG.FILE_DIRECTORY).mkdir(parents=False, exist_ok=True)
