@@ -25,11 +25,8 @@
               <FormattedRefcode :refcode="Refcode" />
             </div>
           </div>
-          <div class="form-group col-md-3 col-sm-3 col-6 pb-3 pr-2">
-            <label id="cell-creators">Creators</label>
-            <div aria-labelledby="cell-creators" class="mx-auto">
-              <Creators :creators="ItemCreators" :size="36" />
-            </div>
+          <div class="form-group col-md-3 col-sm-3 col-6 pb-3">
+            <ToggleableCreatorsFormGroup v-model="ItemCreators" :refcode="Refcode" />
           </div>
           <div class="col-md-6 col-sm-7 pr-2">
             <ToggleableCollectionFormGroup v-model="Collections" />
@@ -115,7 +112,7 @@ import TableOfContents from "@/components/TableOfContents";
 import ItemRelationshipVisualization from "@/components/ItemRelationshipVisualization";
 import FormattedRefcode from "@/components/FormattedRefcode";
 import ToggleableCollectionFormGroup from "@/components/ToggleableCollectionFormGroup";
-import Creators from "@/components/Creators";
+import ToggleableCreatorsFormGroup from "@/components/ToggleableCreatorsFormGroup";
 import { cellFormats } from "@/resources.js";
 
 export default {
@@ -127,7 +124,7 @@ export default {
     ItemRelationshipVisualization,
     FormattedRefcode,
     ToggleableCollectionFormGroup,
-    Creators,
+    ToggleableCreatorsFormGroup,
   },
   props: {
     item_id: {
