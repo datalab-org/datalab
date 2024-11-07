@@ -8,6 +8,7 @@ module.exports = {
       stream: require.resolve("stream-browserify"),
       process: require.resolve("process/browser"),
       buffer: require.resolve("buffer/"),
+      vm: false,
     };
     config.externals = {
       ...config.externals,
