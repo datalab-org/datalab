@@ -13,6 +13,7 @@ __all__ = (
     "flask_mongo",
     "check_mongo_connection",
     "create_default_indices",
+    "create_ngram_item_index",
     "_get_active_mongo_client",
     "insert_pydantic_model_fork_safe",
     "ITEMS_FTS_FIELDS",
@@ -204,27 +205,20 @@ def create_ngram_item_index(
 ):
     from bson import ObjectId
 
-    from pydatalab.models import ITEM_MODELS
-
     if client is None:
         client = _get_active_mongo_client()
     db = client.get_database()
 
-    item_fts_fields = set()
-    for model in ITEM_MODELS:
-        schema = ITEM_MODELS[model].schema()
-        for f in schema["properties"]:
-            if schema["properties"][f].get("type") == "string":
-                item_fts_fields.add(f)
-
     # construct manual ngram index
     ngram_index: dict[ObjectId, set[str]] = {}
+    type_index: dict[ObjectId, str] = {}
     item_count: int = 0
     global_ngram_count: dict[str, int] = collections.defaultdict(int)
     for item in db.items.find({}):
         item_count += 1
-        ngrams: dict[str, int] = _generate_item_ngrams(item, item_fts_fields)
+        ngrams: dict[str, int] = _generate_item_ngrams(item, ITEM_FTS_FIELDS)
         ngram_index[item["_id"]] = set(ngrams)
+        type_index[item["_id"]] = item["type"]
         for g in ngrams:
             global_ngram_count[g] += ngrams[g]
 
@@ -235,8 +229,12 @@ def create_ngram_item_index(
     #             for item in ngram_index:
     #                 ngram_index[item].pop(ngram)
 
-    for _id, item in ngram_index.items():
-        db.items_fts.update_one({"_id": _id}, {"$set": {"_fts_ngrams": item}})
+    for _id, _ngrams in ngram_index.items():
+        db.items_fts.update_one(
+            {"_id": _id},
+            {"$set": {"type": type_index[_id], "_fts_ngrams": list(_ngrams)}},
+            upsert=True,
+        )
 
     try:
         result = db.items_fts.create_index(
@@ -260,7 +258,7 @@ def _generate_ngrams(value: str, n: int = 3) -> dict[str, int]:
 
     ngrams: dict[str, int] = collections.defaultdict(int)
 
-    if len(value) < n:
+    if not value or len(value) < n:
         return ngrams
 
     # first, tokenize by whitespace and punctuation (a la normal mongodb fts)
@@ -279,8 +277,12 @@ def _generate_ngrams(value: str, n: int = 3) -> dict[str, int]:
 def _generate_item_ngrams(item: dict, fts_fields: set[str], n: int = 3):
     ngrams: dict[str, int] = collections.defaultdict(int)
     for field in fts_fields:
-        field_ngrams = _generate_ngrams(item.get(field, None))
-        for k in field_ngrams:
-            ngrams[k] += field_ngrams[k]
+        value = item.get(field, None)
+        if value:
+            if field == "refcode" and ":" in value:
+                value = value.split(":")[1]
+            field_ngrams = _generate_ngrams(value)
+            for k in field_ngrams:
+                ngrams[k] += field_ngrams[k]
 
     return ngrams
