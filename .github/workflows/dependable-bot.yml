@@ -1,7 +1,7 @@
 name: Automatic `uv` dependency upgrades
 on:
   schedule:
-    - cron: "0 0 1-7,15-21 * 3"
+    - cron: "4 3 * * 3"  # Wednesday's in the early morning
   workflow_dispatch:
 
 permissions:
