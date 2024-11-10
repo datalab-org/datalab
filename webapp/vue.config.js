@@ -10,6 +10,11 @@ module.exports = {
       buffer: require.resolve("buffer/"),
       vm: false,
     };
+    // disable stats output in production due to bad `wrap-ansi` ESM/CommonJS interop
+    if (process.env.NODE_ENV === "production") {
+      config.stats = "none";
+    }
+
     config.externals = {
       ...config.externals,
       bokeh: "Bokeh",
