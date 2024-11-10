@@ -1,7 +1,7 @@
 name: Automatic `yarn` dependency upgrades
 on:
   schedule:
-    - cron: "5 3 * * 3"  # Wednesday's in the early morning
+    - cron: "5 3 * * 3"  # Wednesdays in the early morning
   workflow_dispatch:
 
 permissions:
