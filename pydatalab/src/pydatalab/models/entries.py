@@ -25,6 +25,7 @@ class Entry(BaseModel, abc.ABC):
         None,
         title="Immutable ID",
         alias="_id",
+        format="uuid",
     )
     """The immutable database ID of the entry."""
 
