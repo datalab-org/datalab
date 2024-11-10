@@ -27,7 +27,7 @@ ITEMS_FTS_FIELDS: set[str] = set().union(
     *(
         {
             f
-            for f, p in model.schema()["properties"].items()
+            for f, p in model.schema(by_alias=False)["properties"].items()
             if (p.get("type") == "string" and p.get("format") not in ("date-time", "uuid"))
         }
         for model in ITEM_MODELS.values()
