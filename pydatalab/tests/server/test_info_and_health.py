@@ -49,3 +49,22 @@ def test_block_info_endpoint(client, url_prefix):
         assert all(
             k in block["attributes"] for k in ("name", "description", "accepted_file_extensions")
         )
+
+
+def test_types_info_endpoint(client):
+    response = client.get("/info/types", follow_redirects=True)
+    assert response.status_code == 200
+    assert all(k in response.json for k in ("data", "meta"))
+    for _type in response.json["data"]:
+        type_id = _type["id"]
+        type_response = client.get(f"/info/types/{type_id}", follow_redirects=True)
+        assert type_response.status_code == 200
+        assert all(k in type_response.json for k in ("data", "meta"))
+        type_obj = type_response.json["data"]
+        assert all(k in type_obj for k in ("type", "id", "attributes"))
+        assert type_obj["id"] == type_id
+        assert type_obj["type"] == "item_type"
+        assert type_obj["attributes"]["schema"]
+
+    response = client.get("/info/types/random-type-that-doesnt-exist", follow_redirects=True)
+    assert response.status_code == 404

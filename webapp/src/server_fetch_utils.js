@@ -721,7 +721,7 @@ export async function getSupportedSchemasList() {
   return fetch_get(`${API_URL}/info/types`)
     .then(function (response_json) {
       if (response_json) {
-        return response_json;
+        return response_json.data;
       } else {
         throw new Error("Failed to get schemas from API.");
       }
@@ -736,7 +736,7 @@ export async function getSchema(type) {
   return fetch_get(`${API_URL}/info/types/${type}`)
     .then(function (response_json) {
       if (response_json) {
-        return response_json;
+        return response_json.data;
       } else {
         throw new Error(`Failed to get ${type} schemas from API.`);
       }
