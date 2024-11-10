@@ -150,44 +150,67 @@ def get_all_items_models():
     return Item.__subclasses__()
 
 
+def generate_schemas():
+    schemas: dict[str, dict] = {}
+
+    for model_class in get_all_items_models() + [Collection]:
+        model_type = model_class.schema()["properties"]["type"]["default"]
+
+        schemas[model_type] = model_class.schema(by_alias=False)
+
+    return schemas
+
+
+# Generate once on import
+SCHEMAS = generate_schemas()
+
+
 @INFO.route("/info/types", methods=["GET"])
 def list_supported_types():
     """Returns a list of supported schemas."""
-    types = [cls.schema()["properties"]["type"]["default"] for cls in get_all_items_models()]
-    types.append(Collection.schema()["properties"]["type"]["default"])
 
-    return jsonify(types)
-
-
-for model_class in get_all_items_models():
-    model_type = model_class.schema()["properties"]["type"]["default"]
-
-    def make_route(model_class, model_type):
-        @INFO.route(
-            f"/info/types/{model_type}", methods=["GET"], endpoint=f"get_{model_type}_schema"
+    return jsonify(
+        json.loads(
+            JSONAPIResponse(
+                data=[
+                    Data(
+                        id=item_type,
+                        type="item_type",
+                        attributes={
+                            "version": __version__,
+                            "api_version": __api_version__,
+                            "schema": schema,
+                        },
+                    )
+                    for item_type, schema in SCHEMAS.items()
+                ],
+                meta=Meta(query=request.query_string),
+            ).json()
         )
-        def get_model_schema():
-            """Returns the JSON schema for the model."""
-            schema = model_class.schema()
-
-            response = {
-                "data": {
-                    "schema": schema,
-                }
-            }
-            return jsonify(response)
-
-    make_route(model_class, model_type)
+    )
 
 
-@INFO.route("/info/types/collections", methods=["GET"])
-def get_collection_schema():
-    """Returns the JSON schema for the Collection type."""
-    schema = Collection.schema()
+@INFO.route("/info/types/<string:item_type>", methods=["GET"])
+def get_schema_type(item_type):
+    """Returns the schema of the given type."""
+    if item_type not in SCHEMAS:
+        return jsonify(
+            {"status": "error", "detail": f"Item type {item_type} not found for this deployment"}
+        ), 404
 
-    response = {
-        "data": {
-            "schema": schema,
-        }
-    }
-    return jsonify(response)
+    return jsonify(
+        json.loads(
+            JSONAPIResponse(
+                data=Data(
+                    id=item_type,
+                    type="item_type",
+                    attributes={
+                        "version": __version__,
+                        "api_version": __api_version__,
+                        "schema": SCHEMAS[item_type],
+                    },
+                ),
+                meta=Meta(query=request.query_string),
+            ).json()
+        )
+    )
