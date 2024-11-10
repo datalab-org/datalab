@@ -6,6 +6,7 @@ from bson import ObjectId
 from flask import Blueprint, jsonify, redirect, request
 from flask_login import current_user
 from pydantic import ValidationError
+from pymongo import ReturnDocument
 from pymongo.command_cursor import CommandCursor
 
 from pydatalab.blocks import BLOCK_TYPES
@@ -1049,6 +1050,7 @@ def save_item():
     updated_doc = flask_mongo.db.items.find_one_and_update(
         {"item_id": item_id},
         {"$set": item},
+        return_document=ReturnDocument.AFTER,
     )
 
     if updated_doc is None:
