@@ -57,6 +57,7 @@
     },
     "immutable_id": {
       "title": "Immutable ID",
+      "format": "uuid",
       "type": "string"
     },
     "last_modified": {
@@ -333,6 +334,7 @@
         },
         "immutable_id": {
           "title": "Immutable ID",
+          "format": "uuid",
           "type": "string"
         },
         "last_modified": {
@@ -424,6 +426,7 @@
         },
         "immutable_id": {
           "title": "Immutable ID",
+          "format": "uuid",
           "type": "string"
         },
         "last_modified": {
@@ -497,6 +500,7 @@
         },
         "immutable_id": {
           "title": "Immutable ID",
+          "format": "uuid",
           "type": "string"
         },
         "last_modified": {
