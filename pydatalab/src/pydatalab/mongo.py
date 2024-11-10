@@ -216,7 +216,7 @@ def create_ngram_item_index(
     global_ngram_count: dict[str, int] = collections.defaultdict(int)
     for item in db.items.find({}):
         item_count += 1
-        ngrams: dict[str, int] = _generate_item_ngrams(item, ITEM_FTS_FIELDS)
+        ngrams: dict[str, int] = _generate_item_ngrams(item, ITEMS_FTS_FIELDS)
         ngram_index[item["_id"]] = set(ngrams)
         type_index[item["_id"]] = item["type"]
         for g in ngrams:
