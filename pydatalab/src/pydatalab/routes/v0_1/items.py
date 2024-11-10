@@ -16,7 +16,7 @@ from pydatalab.models.items import Item
 from pydatalab.models.people import Person
 from pydatalab.models.relationships import RelationshipType
 from pydatalab.models.utils import generate_unique_refcode
-from pydatalab.mongo import ITEM_FTS_FIELDS, _generate_item_ngrams, flask_mongo
+from pydatalab.mongo import ITEMS_FTS_FIELDS, _generate_item_ngrams, flask_mongo
 from pydatalab.permissions import PUBLIC_USER_ID, active_users_or_get_only, get_default_permissions
 
 ITEMS = Blueprint("items", __name__)
@@ -577,7 +577,7 @@ def _create_sample(
 
     # Update ngram index, if configured
     ngrams = _generate_item_ngrams(
-        flask_mongo.db.items.find_one(result.inserted_id), ITEM_FTS_FIELDS
+        flask_mongo.db.items.find_one(result.inserted_id), ITEMS_FTS_FIELDS
     )
     flask_mongo.db.items_fts.update_one(
         {"_id": result.inserted_id},
@@ -1061,7 +1061,7 @@ def save_item():
         )
 
     # Update ngram index, if configured
-    ngrams = _generate_item_ngrams(updated_doc, ITEM_FTS_FIELDS)
+    ngrams = _generate_item_ngrams(updated_doc, ITEMS_FTS_FIELDS)
     flask_mongo.db.items_fts.update_one(
         {"_id": updated_doc["_id"]},
         {"$set": {"type": updated_doc["type"], "_fts_ngrams": list(ngrams)}},
