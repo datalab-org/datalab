@@ -9,6 +9,7 @@
     :create-option="createOption"
     :filter-by="() => true"
     :placeholder="placeholder"
+    v-bind="$attrs"
     @search="debouncedAsyncSearch"
   >
     <template #no-options="{ searching }">
