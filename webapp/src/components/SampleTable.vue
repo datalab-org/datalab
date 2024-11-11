@@ -34,8 +34,8 @@ export default {
         { field: "name", header: "Sample name" },
         { field: "chemform", header: "Formula", body: "ChemicalFormula" },
         { field: "date", header: "Date" },
-        { field: "collections", header: "Collections", body: "CollectionList" },
-        { field: "creators", header: "Creators", body: "Creators" },
+        { field: "collections", header: "Collections", body: "CollectionList", filter: true },
+        { field: "creators", header: "Creators", body: "Creators", filter: true },
         { field: "nblocks", header: "# of blocks" },
       ],
     };

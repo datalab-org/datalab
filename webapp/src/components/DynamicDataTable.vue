@@ -74,7 +74,74 @@
         <template v-else #body="slotProps">
           {{ slotProps.data[column.field] }}
         </template>
-        <template v-if="column.filter" #filter="{ filterModel }">
+        <template v-if="column.filter && column.field === 'creators'" #filter>
+          <MultiSelect
+            v-model="filters[column.field].constraints[0].value"
+            :options="uniqueCreators"
+            option-label="display_name"
+            placeholder="Any"
+            class="d-flex w-full"
+            :filter="true"
+            @click.stop
+          >
+            <template #option="slotProps">
+              <div class="flex items-center">
+                <UserBubble :creator="slotProps.option" :size="24" />
+                <span class="ml-1">{{ slotProps.option.display_name }}</span>
+              </div>
+            </template>
+            <template #value="slotProps">
+              <div class="flex flex-wrap gap-2 items-center">
+                <template v-if="slotProps.value && slotProps.value.length">
+                  <span
+                    v-for="(option, index) in slotProps.value"
+                    :key="index"
+                    class="inline-flex items-center mr-2"
+                  >
+                    <UserBubble :creator="option" :size="20" />
+                  </span>
+                </template>
+                <span v-else class="text-gray-400">Any</span>
+              </div>
+            </template>
+          </MultiSelect>
+        </template>
+
+        <template v-else-if="column.filter && column.field === 'collections'" #filter="">
+          <MultiSelect
+            v-model="filters[column.field].constraints[0].value"
+            :options="uniqueCollections"
+            option-label="collection_id"
+            placeholder="Any"
+            class="d-flex w-full"
+            :filter="true"
+            @click.stop
+          >
+            <template #option="slotProps">
+              <div class="flex items-center">
+                <FormattedCollectionName
+                  :collection_id="slotProps.option.collection_id"
+                  :size="24"
+                />
+              </div>
+            </template>
+            <template #value="slotProps">
+              <div class="flex flex-wrap gap-1 items-center">
+                <template v-if="slotProps.value && slotProps.value.length">
+                  <span
+                    v-for="option in slotProps.value"
+                    :key="option.collection_id"
+                    class="inline-flex items-center"
+                  >
+                    <FormattedCollectionName :collection_id="option.collection_id" :size="20" />
+                  </span>
+                </template>
+                <span v-else class="text-gray-400">Any</span>
+              </div>
+            </template>
+          </MultiSelect>
+        </template>
+        <template v-else-if="column.filter" #filter="{ filterModel }">
           <InputText
             v-model="filterModel.value"
             type="text"
@@ -121,9 +188,11 @@ import FormattedCollectionName from "@/components/FormattedCollectionName";
 import ChemicalFormula from "@/components/ChemicalFormula";
 import CollectionList from "@/components/CollectionList";
 import Creators from "@/components/Creators";
+import UserBubble from "@/components/UserBubble.vue";
 
-import { FilterMatchMode, FilterOperator } from "@primevue/core/api";
+import { FilterMatchMode, FilterOperator, FilterService } from "@primevue/core/api";
 import DataTable from "primevue/datatable";
+import MultiSelect from "primevue/multiselect";
 import Column from "primevue/column";
 import InputText from "primevue/inputtext";
 
@@ -137,6 +206,7 @@ export default {
     CreateEquipmentModal,
     AddToCollectionModal,
     DataTable,
+    MultiSelect,
     Column,
     InputText,
     FormattedItemName,
@@ -144,6 +214,7 @@ export default {
     ChemicalFormula,
     CollectionList,
     Creators,
+    UserBubble,
   },
   props: {
     columns: {
@@ -198,6 +269,14 @@ export default {
           operator: FilterOperator.AND,
           constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
         },
+        collections: {
+          operator: FilterOperator.AND,
+          constraints: [{ value: null, matchMode: "exactCollectionMatch" }],
+        },
+        creators: {
+          operator: FilterOperator.AND,
+          constraints: [{ value: null, matchMode: "exactCreatorMatch" }],
+        },
       },
       filteredData: [],
       allowedTypes: INVENTORY_TABLE_TYPES,
@@ -206,6 +285,24 @@ export default {
     };
   },
   computed: {
+    uniqueCreators() {
+      return Array.from(
+        new Map(
+          this.data
+            .flatMap((item) => item.creators || [])
+            .map((creator) => [JSON.stringify(creator), creator]),
+        ).values(),
+      );
+    },
+    uniqueCollections() {
+      return Array.from(
+        new Map(
+          this.data
+            .flatMap((item) => item.collections || [])
+            .map((collection) => [JSON.stringify(collection.collection_id), collection]),
+        ).values(),
+      );
+    },
     computedDataTestId() {
       const dataTestIdMap = {
         samples: "sample-table",
@@ -221,6 +318,48 @@ export default {
   },
   created() {
     this.editable_inventory = EDITABLE_INVENTORY;
+
+    FilterService.register("exactCollectionMatch", (value, filterValue) => {
+      if (!filterValue || !value) return true;
+
+      const filter = this.filters.collections;
+      const isAnd = filter.operator === FilterOperator.AND;
+
+      if (Array.isArray(filterValue)) {
+        if (isAnd) {
+          return filterValue.every((f) =>
+            value.some((collection) => collection.collection_id === f.collection_id),
+          );
+        } else {
+          return filterValue.some((f) =>
+            value.some((collection) => collection.collection_id === f.collection_id),
+          );
+        }
+      }
+
+      return value.some((collection) => collection.collection_id === filterValue.collection_id);
+    });
+
+    FilterService.register("exactCreatorMatch", (value, filterValue) => {
+      if (!filterValue || !value) return true;
+
+      const filter = this.filters.creators;
+      const isAnd = filter.operator === FilterOperator.AND;
+
+      if (Array.isArray(filterValue)) {
+        if (isAnd) {
+          return filterValue.every((filterCreator) =>
+            value.some((itemCreator) => itemCreator.display_name === filterCreator.display_name),
+          );
+        } else {
+          return filterValue.some((filterCreator) =>
+            value.some((itemCreator) => itemCreator.display_name === filterCreator.display_name),
+          );
+        }
+      }
+
+      return value.some((itemCreator) => itemCreator.display_name === filterValue.display_name);
+    });
   },
   methods: {
     goToEditPage(event) {
@@ -276,6 +415,7 @@ export default {
         },
         Creators: {
           creators: "creators",
+          showNames: data.creators?.length === 1,
         },
       };
 
