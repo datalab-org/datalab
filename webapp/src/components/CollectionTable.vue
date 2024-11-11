@@ -19,7 +19,7 @@ export default {
       collectionColumn: [
         { field: "collection_id", header: "ID", body: "FormattedCollectionName", filter: true },
         { field: "title", header: "Title" },
-        { field: "creators", header: "Creators", body: "Creators" },
+        { field: "creators", header: "Creators", body: "Creators", filter: true },
       ],
     };
   },

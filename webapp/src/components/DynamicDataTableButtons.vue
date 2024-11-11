@@ -92,7 +92,6 @@
           data-testid="search-input"
           class="search-input"
           placeholder="Search"
-          @input="updateFilters"
         />
       </IconField>
     </div>
