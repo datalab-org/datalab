@@ -29,6 +29,12 @@ WORKDIR /app
 # Install the local version of the package and mount the repository data to get version info
 COPY ./pydatalab/ ./
 RUN git config --global --add safe.directory /
+
+# Used to fake the version of the package in cases where datalab is only
+# available as a git submodule or worktree
+ARG SETUPTOOLS_SCM_PRETEND_VERSION
+ENV SETUPTOOLS_SCM_PRETEND_VERSION=${SETUPTOOLS_SCM_PRETEND_VERSION}
+
 # Install editable mode so that the server runs from a sensible place where we can stuff .env files
 RUN --mount=type=bind,target=/.git,source=./.git uv pip install --python /opt/.venv/bin/python --no-deps --editable .
 
