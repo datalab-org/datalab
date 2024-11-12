@@ -69,7 +69,13 @@
       </div>
 
       <label for="ignore-items">Ignore connections to items:</label>
-      <ItemSelect id="ignore-items" v-model="ignoreItems" multiple />
+      <ItemSelect
+        id="ignore-items"
+        v-model="ignoreItems"
+        multiple
+        @option:selected="removeItemFromGraph"
+        @option:deselected="readdItemToGraph"
+      />
 
       <label for="ignore-collections">Ignore connections to collections:</label>
       <CollectionSelect id="ignore-collections" v-model="ignoreCollections" multiple />
@@ -165,35 +171,14 @@ export default {
       graphStyle: this.defaultGraphStyle,
       optionsDisplayed: false,
       ignoreItems: [],
+      removedNodeData: {},
       ignoreCollections: [],
       labelStartingMaterialsByName: true,
       layoutIsRunning: true,
     };
   },
-  computed: {
-    filteredGraphData() {
-      const ignoredItemIds = this.ignoreItems.map((d) => d.item_id);
-      const ignoredCollectionIds = this.ignoreCollections.map(
-        (d) => `Collection: ${d.collection_id}`,
-      );
-      return {
-        edges: this.graphData.edges.filter(
-          (edge) =>
-            !(
-              ignoredItemIds.includes(edge.data.source) ||
-              ignoredItemIds.includes(edge.data.target) ||
-              ignoredCollectionIds.includes(edge.data.source)
-            ),
-        ),
-        nodes: this.graphData.nodes,
-      };
-    },
-  },
   watch: {
     graphData() {
-      this.generateCyNetworkPlot();
-    },
-    ignoreItems() {
       this.generateCyNetworkPlot();
     },
     ignoreCollections() {
@@ -207,6 +192,21 @@ export default {
     this.generateCyNetworkPlot();
   },
   methods: {
+    removeItemFromGraph(event) {
+      const itemToIgnore = event[event.length - 1];
+      const node = this.cy.$(`node[id="${itemToIgnore.item_id}"]`);
+      if (node) {
+        this.removedNodeData[itemToIgnore.item_id] = this.cy.remove(
+          node.union(node.connectedEdges()),
+        );
+      }
+    },
+    readdItemToGraph(event) {
+      if (this.removedNodeData && this.removedNodeData[event.item_id]) {
+        this.removedNodeData[event.item_id].restore();
+        delete this.removedNodeData[event.item_id];
+      }
+    },
     updateAndRunLayout() {
       this.layout && this.layout.stop();
       this.layoutIsRunning = true;
@@ -219,7 +219,7 @@ export default {
       }
       this.cy = cytoscape({
         container: document.getElementById("cy"),
-        elements: this.filteredGraphData,
+        elements: this.graphData,
         userPanningEnabled: true,
         minZoom: 0.5,
         maxZoom: 1,
