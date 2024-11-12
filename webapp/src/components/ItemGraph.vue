@@ -1,12 +1,12 @@
 <template>
-  <div v-if="showOptions" class="options-button">
+  <div v-if="showOptions" class="sidebar ml-4">
     <button
-      class="btn btn-default mr-5 mb-2 dropdown-toggle"
+      class="btn btn-default options-button mb-2"
       @click="optionsDisplayed = !optionsDisplayed"
     >
       configure
     </button>
-    <div v-show="optionsDisplayed" class="options card card-body dropdown-menu">
+    <div v-show="optionsDisplayed">
       <label for="graph-style"
         >Graph layout:
         <font-awesome-icon v-show="layoutIsRunning" class="ml-2 text-muted" icon="spinner" spin
@@ -303,14 +303,11 @@ export default {
 </script>
 
 <style scoped>
-.options-button {
-  position: absolute;
-  z-index: 10;
-  right: 2rem;
-}
-
-.options {
-  width: 450px;
+.sidebar {
+  position: fixed;
+  max-width: 400px;
+  z-index: 100;
+  background-color: rgba(255, 255, 255, 0.95);
 }
 
 #cy {
