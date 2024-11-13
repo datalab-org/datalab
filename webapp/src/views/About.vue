@@ -26,18 +26,20 @@
         <h5>Deployment info:</h5>
         <div class="p-3">
           <table>
-            <tr>
-              <td>API version</td>
-              <td>
-                <code>{{ apiInfo?.server_version ?? "unknown" }}</code>
-              </td>
-            </tr>
-            <tr>
-              <td>App version</td>
-              <td>
-                <code>{{ appVersion }}</code>
-              </td>
-            </tr>
+            <tbody>
+              <tr>
+                <td>API version</td>
+                <td>
+                  <code>{{ apiInfo?.server_version ?? "unknown" }}</code>
+                </td>
+              </tr>
+              <tr>
+                <td>App version</td>
+                <td>
+                  <code>{{ appVersion }}</code>
+                </td>
+              </tr>
+            </tbody>
           </table>
         </div>
 
