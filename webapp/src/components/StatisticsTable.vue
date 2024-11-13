@@ -1,16 +1,18 @@
 <template>
   <div v-if="counts" class="mx-auto">
     <table>
-      <tr>
-        <td :style="{ color: itemTypes['users'].navbarColor }">{{ counts["users"] }}</td>
-        <td :style="{ color: itemTypes['samples'].navbarColor }">{{ counts["samples"] }}</td>
-        <td :style="{ color: itemTypes['cells'].navbarColor }">{{ counts["cells"] }}</td>
-      </tr>
-      <tr>
-        <th>Active Users</th>
-        <th>Samples</th>
-        <th>Cells</th>
-      </tr>
+      <tbody>
+        <tr>
+          <td :style="{ color: itemTypes['users'].navbarColor }">{{ counts["users"] }}</td>
+          <td :style="{ color: itemTypes['samples'].navbarColor }">{{ counts["samples"] }}</td>
+          <td :style="{ color: itemTypes['cells'].navbarColor }">{{ counts["cells"] }}</td>
+        </tr>
+        <tr>
+          <th>Active Users</th>
+          <th>Samples</th>
+          <th>Cells</th>
+        </tr>
+      </tbody>
     </table>
   </div>
 </template>
