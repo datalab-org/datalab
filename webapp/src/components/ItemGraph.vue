@@ -189,7 +189,9 @@ export default {
     },
   },
   async created() {
-    this.generateCyNetworkPlot();
+    if (typeof this.cy !== "undefined") {
+      this.generateCyNetworkPlot();
+    }
   },
   methods: {
     removeItemFromGraph(event) {
