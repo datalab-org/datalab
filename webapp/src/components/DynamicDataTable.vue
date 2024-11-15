@@ -459,12 +459,16 @@ export default {
 
       const config = propsConfig[componentName] || {};
 
-      const props = Object.entries(config).reduce((acc, [prop, dataKey]) => {
-        if (dataKey !== true) {
+      const props = Object.entries(config).reduce((acc, [prop, setting]) => {
+        if (typeof setting === "object" && setting !== null && "value" in setting) {
+          acc[prop] = setting.value;
+        } else if (typeof setting === "boolean") {
+          acc[prop] = setting;
+        } else if (typeof setting === "string") {
           if (prop === "itemType") {
             acc[prop] = data.type !== undefined ? data.type : "starting_materials";
-          } else if (data[dataKey] !== undefined) {
-            acc[prop] = data[dataKey];
+          } else if (data[setting] !== undefined) {
+            acc[prop] = data[setting];
           }
         }
         return acc;
