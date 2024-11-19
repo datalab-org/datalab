@@ -32,6 +32,7 @@
           :filters="filters"
           :editable-inventory="editable_inventory"
           :show-buttons="showButtons"
+          @update:filters="updateFilters"
           @open-create-item-modal="createItemModalIsOpen = true"
           @open-batch-create-item-modal="batchCreateItemModalIsOpen = true"
           @open-qr-scanner-modal="qrScannerModalIsOpen = true"
@@ -362,6 +363,9 @@ export default {
     });
   },
   methods: {
+    updateFilters(newFilters) {
+      this.filters = newFilters;
+    },
     goToEditPage(event) {
       const row = event.data;
       let row_id = null;
