@@ -17,6 +17,8 @@
       filter-display="menu"
       :global-filter-fields="globalFilterFields"
       removable-sort
+      column-resize-mode="fit"
+      resizable-columns
       sort-mode="multiple"
       @filter="onFilter"
       @row-click="goToEditPage"
