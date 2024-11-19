@@ -164,6 +164,9 @@ export default {
         this.isSelectedDropdownVisible = false;
       }
     },
+    "localFilters.global.value"(newValue) {
+      this.$emit("update:filters", { ...this.filters, global: { value: newValue } });
+    },
   },
   methods: {
     confirmDeletion() {
