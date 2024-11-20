@@ -57,6 +57,7 @@
         :header="column.header"
         sortable
         :class="{ 'filter-active': isFilterActive(column.field) }"
+        :filter-menu-class="column.field === 'type' ? 'no-operator' : ''"
       >
         <!-- <template v-if="column.field === 'item_id'" #body="slotProps">
           <component
@@ -142,6 +143,18 @@
                 <span v-else class="text-gray-400">Any</span>
               </div>
             </template>
+          </MultiSelect>
+        </template>
+        <template v-else-if="column.filter && column.field === 'type'" #filter="">
+          <MultiSelect
+            v-model="filters[column.field].constraints[0].value"
+            :options="knownTypes"
+            option-label="type"
+            placeholder="Select item types"
+            class="d-flex w-full"
+            :filter="true"
+            @click.stop
+          >
           </MultiSelect>
         </template>
         <template v-else-if="column.filter" #filter="{ filterModel }">
@@ -270,7 +283,7 @@ export default {
         },
         type: {
           operator: FilterOperator.AND,
-          constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
+          constraints: [{ value: null, matchMode: "exactTypeMatch" }],
         },
         collections: {
           operator: FilterOperator.AND,
@@ -305,6 +318,10 @@ export default {
             .map((collection) => [JSON.stringify(collection.collection_id), collection]),
         ).values(),
       );
+    },
+    knownTypes() {
+      // Grab the set of types stored under the item type key
+      return Array.from(new Set(this.data.map((item) => item.type))).map((type) => ({ type }));
     },
     computedDataTestId() {
       const dataTestIdMap = {
@@ -342,7 +359,6 @@ export default {
 
       return value.some((collection) => collection.collection_id === filterValue.collection_id);
     });
-
     FilterService.register("exactCreatorMatch", (value, filterValue) => {
       if (!filterValue || !value) return true;
 
@@ -362,6 +378,17 @@ export default {
       }
 
       return value.some((itemCreator) => itemCreator.display_name === filterValue.display_name);
+    });
+    FilterService.register("exactTypeMatch", (value, filterValue) => {
+      if (!filterValue || (Array.isArray(filterValue) && filterValue.length === 0)) {
+        return true;
+      }
+
+      if (Array.isArray(filterValue)) {
+        return filterValue.some((f) => f.type === value);
+      }
+
+      return filterValue.type === value;
     });
   },
   methods: {
