@@ -72,7 +72,7 @@
     </div>
 
     <label class="mr-2">Description</label>
-    <TinyMceInline v-model="ItemDescription"></TinyMceInline>
+    <TinyMceInline v-model="ItemDescription" data-testid="item-description"></TinyMceInline>
 
     <TableOfContents
       class="mb-3"
