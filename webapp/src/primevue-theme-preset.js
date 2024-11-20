@@ -68,6 +68,9 @@ const DatalabPreset = definePreset(Aura, {
         .p-datatable-filter-add-rule-button {
           display: none !important;
         }
+        .no-operator .p-datatable-filter-operator {
+          display: none !important;
+        }
       `,
 });
 
