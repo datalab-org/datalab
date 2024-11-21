@@ -12,6 +12,7 @@ describe("Starting material table page - editable_inventory FALSE", () => {
   });
 
   it("Add a starting material button isn't displayed", () => {
+    cy.get('[data-testid="add-starting-material-button"]').should("not.exist");
     cy.contains("Add a starting material").should("not.exist");
   });
 });
