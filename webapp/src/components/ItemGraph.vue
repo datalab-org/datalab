@@ -78,7 +78,13 @@
       />
 
       <label for="ignore-collections">Ignore connections to collections:</label>
-      <CollectionSelect id="ignore-collections" v-model="ignoreCollections" multiple />
+      <CollectionSelect
+        id="ignore-collections"
+        v-model="ignoreCollections"
+        multiple
+        @option:selected="removeItemFromGraph"
+        @option:deselected="readdItemToGraph"
+      />
 
       <div class="form-group form-check mt-3">
         <input
@@ -181,9 +187,6 @@ export default {
     graphData() {
       this.generateCyNetworkPlot();
     },
-    ignoreCollections() {
-      this.generateCyNetworkPlot();
-    },
     labelStartingMaterialsByName() {
       this.generateCyNetworkPlot();
     },
@@ -196,17 +199,18 @@ export default {
   methods: {
     removeItemFromGraph(event) {
       const itemToIgnore = event[event.length - 1];
-      const node = this.cy.$(`node[id="${itemToIgnore.item_id}"]`);
+      const id = itemToIgnore.item_id || `Collection: ${itemToIgnore.collection_id}`;
+      const node = this.cy.$(`node[id="${id}"]`);
+      console.log(event, id, node);
       if (node) {
-        this.removedNodeData[itemToIgnore.item_id] = this.cy.remove(
-          node.union(node.connectedEdges()),
-        );
+        this.removedNodeData[id] = this.cy.remove(node.union(node.connectedEdges()));
       }
     },
     readdItemToGraph(event) {
-      if (this.removedNodeData && this.removedNodeData[event.item_id]) {
-        this.removedNodeData[event.item_id].restore();
-        delete this.removedNodeData[event.item_id];
+      const id = event.item_id || `Collection: ${event.collection_id}`;
+      if (this.removedNodeData && this.removedNodeData[id]) {
+        this.removedNodeData[id].restore();
+        delete this.removedNodeData[id];
       }
     },
     updateAndRunLayout() {
