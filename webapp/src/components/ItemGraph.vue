@@ -97,6 +97,17 @@
           label starting materials by name</label
         >
       </div>
+      <div class="form-group form-check mt-3">
+        <input
+          id="label-items-by-name"
+          v-model="labelItemsByName"
+          class="form-check-input"
+          type="checkbox"
+        />
+        <label class="form-check-label" for="label-items-by-name">
+          label samples/cells by name</label
+        >
+      </div>
     </div>
   </div>
   <div id="cy" v-bind="$attrs" />
@@ -180,6 +191,7 @@ export default {
       removedNodeData: {},
       ignoreCollections: [],
       labelStartingMaterialsByName: true,
+      labelItemsByName: false,
       layoutIsRunning: true,
     };
   },
@@ -188,6 +200,9 @@ export default {
       this.generateCyNetworkPlot();
     },
     labelStartingMaterialsByName() {
+      this.generateCyNetworkPlot();
+    },
+    labelItemsByName() {
       this.generateCyNetworkPlot();
     },
   },
@@ -244,6 +259,12 @@ export default {
             selector: 'node[type = "starting_materials"]',
             style: {
               label: this.labelStartingMaterialsByName ? "data(name)" : "data(id)",
+            },
+          },
+          {
+            selector: 'node[type = "samples"], node[type = "cells"]',
+            style: {
+              label: this.labelItemsByName ? "data(name)" : "data(id)",
             },
           },
           {
