@@ -12,6 +12,7 @@
       :data-testid="computedDataTestId"
       selection-mode="multiple"
       paginator
+      :first="page * rows"
       :rows="rows"
       :rows-per-page-options="[10, 20, 50, 100]"
       filter-display="menu"
@@ -296,11 +297,15 @@ export default {
       },
       filteredData: [],
       allowedTypes: INVENTORY_TABLE_TYPES,
-      page: 0,
-      rows: 20,
     };
   },
   computed: {
+    rows() {
+      return this.$store.getters.datatablePaginationSettings[this.dataType].rows;
+    },
+    page() {
+      return this.$store.getters.datatablePaginationSettings[this.dataType].page;
+    },
     uniqueCreators() {
       return Array.from(
         new Map(
@@ -535,9 +540,15 @@ export default {
     handleItemsUpdated() {
       this.itemsSelected = [];
     },
+    updateRows(rows) {
+      this.$store.commit("setRows", { type: this.dataType, rows });
+    },
+    updatePage(page) {
+      this.$store.commit("setPage", { type: this.dataType, page });
+    },
     onPageChange(event) {
-      this.page = event.page;
-      this.rows = event.rows;
+      this.updatePage(event.page);
+      this.updateRows(event.rows);
       this.allSelected = this.checkAllSelected();
     },
   },
