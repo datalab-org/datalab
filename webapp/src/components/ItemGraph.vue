@@ -200,10 +200,20 @@ export default {
       this.generateCyNetworkPlot();
     },
     labelStartingMaterialsByName() {
-      this.generateCyNetworkPlot();
+      // update the cytoscape stylesheet. Note: this adds styles, rather than overwriting the existing ones.
+      // That seems to be OK for performance.
+      this.cy
+        .style()
+        .selector('node[type = "starting_materials"]')
+        .style("label", this.labelStartingMaterialsByName ? "data(name)" : "data(id)")
+        .update();
     },
     labelItemsByName() {
-      this.generateCyNetworkPlot();
+      this.cy
+        .style()
+        .selector('node[type = "samples"], node[type = "cells"]')
+        .style("label", this.labelItemsByName ? "data(name)" : "data(id)")
+        .update();
     },
   },
   async created() {
