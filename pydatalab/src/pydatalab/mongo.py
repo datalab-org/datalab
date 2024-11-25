@@ -1,3 +1,4 @@
+import collections
 from typing import List, Optional
 
 # Must be imported in this way to allow for easy patching with mongomock
@@ -12,6 +13,7 @@ __all__ = (
     "flask_mongo",
     "check_mongo_connection",
     "create_default_indices",
+    "create_ngram_item_index",
     "_get_active_mongo_client",
     "insert_pydantic_model_fork_safe",
     "ITEMS_FTS_FIELDS",
@@ -193,3 +195,94 @@ def create_default_indices(
         ret += create_user_fts()
 
     return ret
+
+
+def create_ngram_item_index(
+    client: Optional[pymongo.MongoClient] = None,
+    background: bool = False,
+    filter_top_ngrams: float | None = 0.5,
+    target_index_name: str = "ngram_fts_index",
+):
+    from bson import ObjectId
+
+    if client is None:
+        client = _get_active_mongo_client()
+    db = client.get_database()
+
+    # construct manual ngram index
+    ngram_index: dict[ObjectId, set[str]] = {}
+    type_index: dict[ObjectId, str] = {}
+    item_count: int = 0
+    global_ngram_count: dict[str, int] = collections.defaultdict(int)
+    for item in db.items.find({}):
+        item_count += 1
+        ngrams: dict[str, int] = _generate_item_ngrams(item, ITEMS_FTS_FIELDS)
+        ngram_index[item["_id"]] = set(ngrams)
+        type_index[item["_id"]] = item["type"]
+        for g in ngrams:
+            global_ngram_count[g] += ngrams[g]
+
+    # filter out common ngrams that are found in filter_top_ngrams proportion of entries
+    # if filter_top_ngrams is not None:
+    #     for ngram in global_ngram_count:
+    #         if global_ngram_count[ngram] / item_count > filter_top_ngrams:
+    #             for item in ngram_index:
+    #                 ngram_index[item].pop(ngram)
+
+    for _id, _ngrams in ngram_index.items():
+        db.items_fts.update_one(
+            {"_id": _id},
+            {"$set": {"type": type_index[_id], "_fts_ngrams": list(_ngrams)}},
+            upsert=True,
+        )
+
+    try:
+        result = db.items_fts.create_index(
+            [("_fts_ngrams", pymongo.ASCENDING), ("type", pymongo.ASCENDING)],
+            name=target_index_name,
+            background=background,
+        )
+    except pymongo.errors.OperationFailure:
+        db.users.drop_index(target_index_name)
+        result = db.items_fts.create_index(
+            [("_fts_ngrams", pymongo.ASCENDING), ("type", pymongo.ASCENDING)],
+            name=target_index_name,
+            background=background,
+        )
+
+    return result
+
+
+def _generate_ngrams(value: str, n: int = 3) -> dict[str, int]:
+    import re
+
+    ngrams: dict[str, int] = collections.defaultdict(int)
+
+    if not value or len(value) < n:
+        return ngrams
+
+    # first, tokenize by whitespace and punctuation (a la normal mongodb fts)
+    toks = re.split(r"[\s.,!?@#$%^&*()[\]{}\-_+=;:\'\"/<>]+", value)
+
+    # then loop over tokens and ngrammify
+    for value in toks:
+        if len(value) < n:
+            continue
+        for v in ("".join(value[i : i + n].lower()) for i in range(len(value) - (n - 1))):
+            ngrams[v] += 1
+
+    return ngrams
+
+
+def _generate_item_ngrams(item: dict, fts_fields: set[str], n: int = 3):
+    ngrams: dict[str, int] = collections.defaultdict(int)
+    for field in fts_fields:
+        value = item.get(field, None)
+        if value:
+            if field == "refcode" and ":" in value:
+                value = value.split(":")[1]
+            field_ngrams = _generate_ngrams(value)
+            for k in field_ngrams:
+                ngrams[k] += field_ngrams[k]
+
+    return ngrams
