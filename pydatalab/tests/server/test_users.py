@@ -114,3 +114,16 @@ def test_user_update_admin(admin_client, real_mongo_client, user_id):
     assert resp.status_code == 200
     user = real_mongo_client.get_database().users.find_one({"_id": user_id})
     assert user["display_name"] == "Test Person"
+
+
+def test_user_remove_identity(client, real_mongo_client, user_id):
+    endpoint = f"/users/{str(user_id)}/remove-identity"
+
+    real_mongo_client.get_database().users.update_one(
+        {"_id": user_id},
+        {"$set": {"identities": [{"identity_type": "orcid", "identifier": "0000-0000-0000-0000"}]}},
+    )
+    user_request = client.delete(endpoint, json={"orcid": "0000-0000-0000-0000"})
+    assert user_request.status_code == 200
+    user = real_mongo_client.get_database().users.find_one({"_id": user_id})
+    assert not user.get("identities", None)

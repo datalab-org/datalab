@@ -48,52 +48,67 @@
         <div class="form-row">
           <div class="form-group col-md-6">
             <label for="connected-accounts" class="col-form-label">Connected accounts:</label>
-            <a
-              v-if="user.identities.some((identity) => identity.identity_type === 'github')"
-              type="button"
-              class="dropdown-item btn login btn-link btn-default"
-              :href="
-                'https://github.com/' +
-                user.identities.find((identity) => identity.identity_type === 'github').name
-              "
-            >
-              <font-awesome-icon :icon="['fab', 'github']" />
-              {{ user.identities.find((identity) => identity.identity_type === "github").name }}
-            </a>
-
-            <a
-              v-else-if="showGitHub"
-              type="button"
-              class="dropdown-item btn login btn-link btn-default"
-              aria-label="Login via GitHub"
-              :href="apiUrl + '/login/github'"
-              ><font-awesome-icon :icon="['fab', 'github']" /> Connect your GitHub account</a
-            >
+            <div v-if="user.identities.some((identity) => identity.identity_type === 'github')">
+              <div type="button" class="dropdown-item identity-section">
+                <a
+                  class="identity-link"
+                  :href="
+                    'https://github.com/' +
+                    user.identities.find((identity) => identity.identity_type === 'github').name
+                  "
+                >
+                  <font-awesome-icon :icon="['fab', 'github']" />
+                  {{ user.identities.find((identity) => identity.identity_type === "github").name }}
+                </a>
+                <font-awesome-icon
+                  class="identity-disconnect-btn"
+                  :icon="['fas', 'times']"
+                  @click="disconnectIdentity()"
+                />
+              </div>
+            </div>
+            <div v-else-if="showGitHub">
+              <a
+                type="button"
+                class="dropdown-item btn login btn-link btn-default"
+                aria-label="Login via GitHub"
+                :href="apiUrl + '/login/github'"
+                ><font-awesome-icon :icon="['fab', 'github']" /> Connect your GitHub account</a
+              >
+            </div>
           </div>
         </div>
         <div class="form-row">
           <div class="form-group col-md-6">
-            <a
-              v-if="user.identities.some((identity) => identity.identity_type === 'orcid')"
-              type="button"
-              class="dropdown-item btn login btn-link btn-default"
-              :href="
-                'https://orcid.org/' +
-                user.identities.find((identity) => identity.identity_type === 'orcid').name
-              "
-            >
-              <font-awesome-icon class="orcid-icon" :icon="['fab', 'orcid']" />
-              {{ user.identities.find((identity) => identity.identity_type === "orcid").name }}
-            </a>
-            <a
-              v-else-if="showORCID"
-              type="button"
-              class="dropdown-item btn login btn-link btn-default"
-              aria-label="Connect ORCID account"
-              :href="apiUrl + '/login/orcid'"
-              ><font-awesome-icon class="orcid-icon" :icon="['fab', 'orcid']" /> Connect your
-              ORCID</a
-            >
+            <div v-if="user.identities.some((identity) => identity.identity_type === 'orcid')">
+              <div type="button" class="dropdown-item btn login btn-link btn-default">
+                <a
+                  class="identity-link"
+                  :href="
+                    'https://orcid.org/' +
+                    user.identities.find((identity) => identity.identity_type === 'orcid').name
+                  "
+                >
+                  <font-awesome-icon class="orcid-icon" :icon="['fab', 'orcid']" />
+                  {{ user.identities.find((identity) => identity.identity_type === "orcid").name }}
+                </a>
+                <font-awesome-icon
+                  class="identity-disconnect-btn"
+                  :icon="['fas', 'times']"
+                  @click="disconnectIdentity()"
+                />
+              </div>
+            </div>
+            <div v-else-if="showORCID">
+              <a
+                type="button"
+                class="dropdown-item btn login btn-link btn-default"
+                aria-label="Connect ORCID account"
+                :href="apiUrl + '/login/orcid'"
+              >
+                <font-awesome-icon class="orcid-icon" :icon="['fab', 'orcid']" /> Connect your ORCID
+              </a>
+            </div>
           </div>
         </div>
         <div class="form-row">
@@ -128,7 +143,12 @@
 import { API_URL } from "@/resources.js";
 import Modal from "@/components/Modal.vue";
 import UserBubble from "@/components/UserBubble.vue";
-import { getUserInfo, saveUser, requestNewAPIKey } from "@/server_fetch_utils.js";
+import {
+  getUserInfo,
+  saveUser,
+  requestNewAPIKey,
+  disconnectIdentityFromUser,
+} from "@/server_fetch_utils.js";
 import StyledInput from "./StyledInput.vue";
 
 export default {
@@ -189,6 +209,9 @@ export default {
       this.$store.commit("setDisplayName", this.user.display_name);
       this.$emit("update:modelValue", false);
     },
+    async disconnectIdentity(identityType, identifier) {
+      await disconnectIdentityFromUser(this.user.immutable_id, identityType, identifier);
+    },
     async getUser() {
       let user = await getUserInfo();
       if (user != null) {
@@ -232,6 +255,23 @@ export default {
 <style scoped>
 .form-error {
   color: red;
+}
+
+.identity-section:hover {
+  background-color: inherit;
+}
+
+.identity-link {
+  color: black;
+}
+
+.identity-disconnect-btn {
+  padding-left: 10px;
+  color: darkgrey;
+}
+
+.identity-disconnect-btn:hover {
+  color: black;
 }
 
 :deep(.form-error a) {

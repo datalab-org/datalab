@@ -69,11 +69,12 @@ function fetch_put(url, body) {
 }
 
 // eslint-disable-next-line no-unused-vars
-function fetch_delete(url) {
+function fetch_delete(url, body) {
   let headers = construct_headers({ "Content-Type": "application/json" });
   const requestOptions = {
     method: "DELETE",
     headers: headers,
+    body: JSON.stringify(body),
     credentials: "include",
   };
   return fetch(url, requestOptions).then(handleResponse);
@@ -404,15 +405,6 @@ export function deleteEquipment(item_id) {
     .catch((error) => alert("Item delete failed for " + item_id + ": " + error));
 }
 
-export function deletSampleFromCollection(collection_id, collection_summary) {
-  return fetch_delete(`${API_URL}/collections/${collection_id}`)
-    .then(function (response_json) {
-      console.log("delete successful" + response_json);
-      store.commit("deleteFromCollectionList", collection_summary);
-    })
-    .catch((error) => alert("Collection delete failed for " + collection_id + ": " + error));
-}
-
 export async function getItemData(item_id) {
   return fetch_get(`${API_URL}/get-item-data/${item_id}`)
     .then((response_json) => {
@@ -566,6 +558,22 @@ export function saveUser(user_id, user) {
     })
     .catch(function (error) {
       alert(`User save unsuccessful: ${error}`);
+    });
+}
+
+export function disconnectIdentityFromUser(userId, identityType, identifier) {
+  fetch_delete(`${API_URL}/users/${userId}/remove-identity`, {
+    identity: { identityType: identifier },
+  })
+    .then(function (response_json) {
+      if (response_json.status === "success") {
+        getUserInfo();
+      } else {
+        alert("Identity disconnect unsuccessful", response_json.detail);
+      }
+    })
+    .catch(function (error) {
+      alert(`Identity disconnect unsuccessful: ${error}`);
     });
 }
 
