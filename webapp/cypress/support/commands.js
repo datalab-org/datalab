@@ -282,3 +282,35 @@ Cypress.Commands.add("removeAllTestCollections", (collection_ids, check_collecti
     });
   }
 });
+
+Cypress.Commands.add("createStartingMaterial", (item_id, name = null, date = null) => {
+  cy.findByText("Add a starting material").click();
+
+  cy.get('[data-testid="create-item-form"]').within(() => {
+    cy.findByText("Add new item").should("exist");
+    cy.findByLabelText("ID:").type(item_id);
+    if (name) {
+      cy.findByLabelText("Name:").type(name);
+    }
+    if (date) {
+      cy.findByLabelText("Date Created:").type(date);
+    }
+    cy.findByText("Submit").click();
+  });
+});
+
+Cypress.Commands.add("verifyStartingMaterial", (item_id, name = null, date = null) => {
+  cy.get("[data-testid=starting_materials-table]")
+    .contains(item_id)
+    .parents("tr")
+    .within(() => {
+      if (date) {
+        cy.contains(date.slice(0, 8));
+      } else {
+        cy.contains(TODAY.split("T")[0]);
+      }
+      if (name) {
+        cy.contains(name);
+      }
+    });
+});

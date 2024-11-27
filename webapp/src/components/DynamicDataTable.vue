@@ -327,7 +327,7 @@ export default {
       const dataTestIdMap = {
         samples: "sample-table",
         collections: "collection-table",
-        startingMaterials: "starting-material-table",
+        startingMaterials: "starting_materials-table",
         equipment: "equipment-table",
       };
       return dataTestIdMap[this.dataType] || "default-table";
