@@ -331,9 +331,6 @@ export default createStore({
     getHasUnverifiedUser(state) {
       return state.hasUnverifiedUser;
     },
-    datatablePaginationSettings(state) {
-      return state.datatablePaginationSettings;
-    },
   },
   actions: {},
   modules: {},

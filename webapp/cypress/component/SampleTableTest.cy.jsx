@@ -101,7 +101,7 @@ describe("SampleTable Component Tests", () => {
         cy.get("td").eq(2).should("contain.text", "samples");
         cy.get("td").eq(3).should("contain.text", "Sample 1");
         cy.get("td").eq(4).should("contain.text", "H2O");
-        cy.get("td").eq(5).should("contain.text", "9/1/2023");
+        cy.get("td").eq(5).should("contain.text", "01/09/2023");
         cy.get("td").eq(6).find(".badge").should("have.length", 1);
         cy.get("td").eq(7).find(".avatar").should("have.length", 1);
         cy.get("td").eq(8).should("contain.text", "1");
@@ -115,7 +115,7 @@ describe("SampleTable Component Tests", () => {
         cy.get("td").eq(2).should("contain.text", "cells");
         cy.get("td").eq(3).should("contain.text", "Cell 2");
         cy.get("td").eq(4).should("contain.text", "CH4");
-        cy.get("td").eq(5).should("contain.text", "8/15/2023");
+        cy.get("td").eq(5).should("contain.text", "15/08/2023");
         cy.get("td").eq(6).find(".badge").should("have.length", 2);
         cy.get("td").eq(7).find(".avatar").should("have.length", 2);
         cy.get("td").eq(8).should("contain.text", "2");

@@ -301,10 +301,10 @@ export default {
   },
   computed: {
     rows() {
-      return this.$store.getters.datatablePaginationSettings[this.dataType].rows;
+      return this.$store.state.datatablePaginationSettings[this.dataType].rows;
     },
     page() {
-      return this.$store.getters.datatablePaginationSettings[this.dataType].page;
+      return this.$store.state.datatablePaginationSettings[this.dataType].page;
     },
     uniqueCreators() {
       return Array.from(
