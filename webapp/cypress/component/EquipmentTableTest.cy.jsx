@@ -93,7 +93,7 @@ describe("EquipmentTable Component Tests", () => {
         cy.get("td").eq(0).should("contain.text", "");
         cy.get("td").eq(1).should("contain.text", "equipment1");
         cy.get("td").eq(2).should("contain.text", "Equipment One");
-        cy.get("td").eq(3).should("contain.text", "01/09/2023");
+        cy.get("td").eq(3).should("contain.text", "9/1/2023");
         cy.get("td").eq(4).should("contain.text", "Warehouse A");
         cy.get("td").eq(5).find(".avatar").should("have.length", 1);
       });
@@ -105,7 +105,7 @@ describe("EquipmentTable Component Tests", () => {
         cy.get("td").eq(0).should("contain.text", "");
         cy.get("td").eq(1).should("contain.text", "equipment2");
         cy.get("td").eq(2).should("contain.text", "Equipment Two");
-        cy.get("td").eq(3).should("contain.text", "15/08/2023");
+        cy.get("td").eq(3).should("contain.text", "8/15/2023");
         cy.get("td").eq(4).should("contain.text", "Warehouse B");
         cy.get("td").eq(5).find(".avatar").should("have.length", 2);
       });

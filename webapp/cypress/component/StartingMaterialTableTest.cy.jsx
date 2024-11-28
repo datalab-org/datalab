@@ -97,7 +97,7 @@ describe("StartingMaterialTable Component Tests", () => {
         cy.get("td").eq(1).should("contain.text", "material1");
         cy.get("td").eq(2).should("contain.text", "Material One");
         cy.get("td").eq(3).should("contain.text", "H2O");
-        cy.get("td").eq(4).should("contain.text", "01/09/2023");
+        cy.get("td").eq(4).should("contain.text", "9/1/2023");
         cy.get("td").eq(5).should("contain.text", "99%");
         cy.get("td").eq(6).should("contain.text", "1");
       });
@@ -110,7 +110,7 @@ describe("StartingMaterialTable Component Tests", () => {
         cy.get("td").eq(1).should("contain.text", "material2");
         cy.get("td").eq(2).should("contain.text", "Material Two");
         cy.get("td").eq(3).should("contain.text", "CH4");
-        cy.get("td").eq(4).should("contain.text", "15/08/2023");
+        cy.get("td").eq(4).should("contain.text", "8/15/2023");
         cy.get("td").eq(5).should("contain.text", "95%");
         cy.get("td").eq(6).should("contain.text", "2");
       });
