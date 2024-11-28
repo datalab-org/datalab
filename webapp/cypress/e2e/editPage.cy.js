@@ -205,12 +205,12 @@ describe("Edit Page", () => {
     cy.findByText("editable_sample").click();
 
     cy.findByText("Add a block").click();
-    cy.get(".dropdown-menu").findByText("Comment").click();
+    cy.get('[data-testid="add-block-dropdown"]').findByText("Comment").click();
 
     cy.contains("Unsaved changes").should("not.exist");
 
     cy.findByText("Add a block").click();
-    cy.get(".dropdown-menu").findByText("Comment").click();
+    cy.get('[data-testid="add-block-dropdown"]').findByText("Comment").click();
 
     cy.contains("Unsaved changes").should("not.exist");
 
@@ -258,7 +258,6 @@ describe("Edit Page", () => {
 
     cy.findByText("Add files from server...").click();
     cy.findByText("Select files to add").should("exist");
-    cy.findAllByLabelText("Close").eq(1).click();
   });
 
   it("Uploads an XRD file, makes an XRD block and checks that the plot works", () => {
@@ -268,7 +267,7 @@ describe("Edit Page", () => {
     cy.findByText("editable_sample").click();
 
     cy.findByText("Add a block").click();
-    cy.get(".dropdown-menu").findByText("Powder XRD").click();
+    cy.get('[data-testid="add-block-dropdown"]').findByText("Powder XRD").click();
 
     cy.findByText("Select a file:").should("exist");
     cy.get("select.file-select-dropdown").select("example_data_XRD_example_bmb.xye");
@@ -285,7 +284,7 @@ describe("Edit Page", () => {
     cy.findByText("editable_sample").click();
 
     cy.findByText("Add a block").click();
-    cy.get(".dropdown-menu").findByText("Media").click();
+    cy.get('[data-testid="add-block-dropdown"]').findByText("Media").click();
     cy.findAllByText("Select a file:").eq(1).should("exist");
     cy.get("select.file-select-dropdown").eq(1).select(test_fname);
 
