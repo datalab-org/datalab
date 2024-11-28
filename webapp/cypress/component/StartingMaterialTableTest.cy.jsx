@@ -15,6 +15,12 @@ describe("StartingMaterialTable Component Tests", () => {
     store = createStore({
       state() {
         return {
+          datatablePaginationSettings: {
+            startingMaterials: {
+              page: 0,
+              rows: 20,
+            },
+          },
           starting_material_list: [
             {
               item_id: "material1",

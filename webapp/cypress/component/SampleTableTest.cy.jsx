@@ -15,6 +15,12 @@ describe("SampleTable Component Tests", () => {
     store = createStore({
       state() {
         return {
+          datatablePaginationSettings: {
+            samples: {
+              page: 0,
+              rows: 20,
+            },
+          },
           sample_list: [
             {
               item_id: "sample1",

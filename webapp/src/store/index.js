@@ -31,6 +31,24 @@ export default createStore({
     blocksInfos: {},
     currentUserIsUnverified: false,
     hasUnverifiedUser: false,
+    datatablePaginationSettings: {
+      samples: {
+        page: 0,
+        rows: 20,
+      },
+      collections: {
+        page: 0,
+        rows: 20,
+      },
+      startingMaterials: {
+        page: 0,
+        rows: 20,
+      },
+      equipment: {
+        page: 0,
+        rows: 20,
+      },
+    },
   },
   mutations: {
     setServerInfo(state, serverInfo) {
@@ -288,6 +306,12 @@ export default createStore({
     },
     updateHasUnverified(state, hasUnverified) {
       state.hasUnverifiedUser = hasUnverified;
+    },
+    setRows(state, { type, rows }) {
+      state.datatablePaginationSettings[type].rows = rows;
+    },
+    setPage(state, { type, page }) {
+      state.datatablePaginationSettings[type].page = page;
     },
   },
   getters: {
