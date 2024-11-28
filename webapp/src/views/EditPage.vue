@@ -9,7 +9,7 @@
       <FormattedItemName :item_id="item_id" :item-type="itemType" />
     </span>
     <div class="navbar-nav">
-      <a class="nav-item nav-link" href="/">Home</a>
+      <router-link class="nav-item nav-link" to="/">Home</router-link>
       <div class="nav-item dropdown">
         <a
           id="navbarDropdown"
