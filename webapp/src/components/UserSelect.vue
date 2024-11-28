@@ -4,6 +4,7 @@
     v-model="value"
     :options="filteredUsers"
     multiple
+    :min="minimumOptions"
     label="immutable_id"
     :filterable="false"
     @search="debouncedAsyncSearch"
@@ -36,6 +37,10 @@ export default {
     modelValue: {
       type: Array,
       default: () => [],
+    },
+    minimumOptions: {
+      type: Number,
+      default: 0,
     },
   },
   emits: ["update:modelValue"],

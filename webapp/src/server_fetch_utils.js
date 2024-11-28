@@ -510,17 +510,14 @@ export function addABlock(item_id, block_type, index = null) {
 
 export function updateItemPermissions(refcode, creators) {
   console.log("updateItemPermissions called with", refcode, creators);
-  fetch_patch(`${API_URL}/items/${refcode}/permissions`, {
+  return fetch_patch(`${API_URL}/items/${refcode}/permissions`, {
     creators: creators,
-  })
-    .then(function (response_json) {
-      if (response_json.status === "error") {
-        throw new Error(response_json.message);
-      }
-    })
-    .catch(function (error) {
-      throw new Error(error);
-    });
+  }).then(function (response_json) {
+    if (response_json.status === "error") {
+      throw new Error(response_json.message);
+    }
+    return response_json;
+  });
 }
 
 export function saveItem(item_id) {

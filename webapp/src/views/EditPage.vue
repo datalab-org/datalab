@@ -5,7 +5,6 @@
     :style="{ backgroundColor: navbarColor }"
   >
     <div v-show="false" class="navbar-nav"><LoginDetails /></div>
-    <div v-show="false" class="navbar-nav"><LoginDetails /></div>
     <span class="navbar-brand clickable" @click="scrollToID($event, 'topScrollPoint')"
       >{{ itemTypeEntry?.navbarName || "loading..." }}&nbsp;&nbsp;|&nbsp;&nbsp;
       <FormattedItemName :item_id="item_id" :item-type="itemType" />
@@ -28,6 +27,7 @@
           v-if="blockInfoLoaded"
           v-show="isMenuDropdownVisible"
           class="dropdown-menu"
+          data-testid="add-block-dropdown"
           style="display: block"
           aria-labelledby="navbarDropdown"
         >

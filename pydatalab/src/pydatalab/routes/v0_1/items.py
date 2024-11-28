@@ -205,13 +205,9 @@ def creators_lookup() -> Dict:
         "from": "users",
         "let": {"creator_ids": "$creator_ids"},
         "pipeline": [
-            {
-                "$match": {
-                    "$expr": {
-                        "$in": ["$_id", {"$ifNull": ["$$creator_ids", []]}],
-                    },
-                }
-            },
+            {"$match": {"$expr": {"$in": ["$_id", {"$ifNull": ["$$creator_ids", []]}]}}},
+            {"$addFields": {"__order": {"$indexOfArray": ["$$creator_ids", "$_id"]}}},
+            {"$sort": {"__order": 1}},
             {"$project": {"_id": 1, "display_name": 1, "contact_email": 1}},
         ],
         "as": "creators",
@@ -639,6 +635,17 @@ def update_item_permissions(refcode: str):
             if creator.get("immutable_id", None) is not None
         ]
 
+    if not creator_ids:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "No valid creator IDs found in the request.",
+                }
+            ),
+            400,
+        )
+
     # Validate all creator IDs are present in the database
     found_ids = [d for d in flask_mongo.db.users.find({"_id": {"$in": creator_ids}}, {"_id": 1})]  # type: ignore
     if not len(found_ids) == len(creator_ids):
@@ -663,11 +670,15 @@ def update_item_permissions(refcode: str):
     # The first ID in the creator list takes precedence; always make sure this is included to avoid orphaned items
     if current_creator_ids:
         base_owner = current_creator_ids[0]
-    try:
-        creator_ids.remove(base_owner)
-    except ValueError:
-        pass
-    creator_ids.insert(0, base_owner)
+        try:
+            creator_ids.remove(base_owner)
+        except ValueError:
+            pass
+        creator_ids.insert(0, base_owner)
+
+    if set(creator_ids) == set(current_creator_ids):
+        # Short circuit if the creator IDs are the same
+        return jsonify({"status": "success"}), 200
 
     LOGGER.warning("Setting permissions for item %s to %s", refcode, creator_ids)
     result = flask_mongo.db.items.update_one(
@@ -676,7 +687,12 @@ def update_item_permissions(refcode: str):
     )
 
     if not result.modified_count == 1:
-        return jsonify({"status": "error", "message": "Failed to update permissions"}), 400
+        return jsonify(
+            {
+                "status": "error",
+                "message": "Failed to update permissions: you cannot remove yourself or the base owner as a creator.",
+            }
+        ), 400
 
     return jsonify({"status": "success"}), 200
 
