@@ -15,6 +15,12 @@ describe("EquipmentTable Component Tests", () => {
     store = createStore({
       state() {
         return {
+          datatablePaginationSettings: {
+            equipment: {
+              page: 0,
+              rows: 20,
+            },
+          },
           equipment_list: [
             {
               item_id: "equipment1",
