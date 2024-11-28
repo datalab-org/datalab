@@ -39,6 +39,11 @@ export const GRAVATAR_STYLE = "identicon";
 const editable_inventory = process.env.VUE_APP_EDITABLE_INVENTORY || "false";
 export const EDITABLE_INVENTORY = editable_inventory.toLowerCase() == "true";
 
+const automatically_generate_id_default =
+  process.env.VUE_APP_AUTOMATICALLY_GENERATE_ID_DEFAULT || "false";
+export const AUTOMATICALLY_GENERATE_ID_DEFAULT =
+  automatically_generate_id_default.toLowerCase() == "true";
+
 // Eventually this should be pulled from the schema
 export const DATETIME_FIELDS = new Set(["date"]);
 
