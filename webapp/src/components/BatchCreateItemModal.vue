@@ -335,7 +335,7 @@ import Modal from "@/components/Modal.vue";
 import ItemSelect from "@/components/ItemSelect.vue";
 import { createNewSamples } from "@/server_fetch_utils.js";
 import { validateEntryID } from "@/field_utils.js";
-import { itemTypes, SAMPLE_TABLE_TYPES } from "@/resources.js";
+import { itemTypes, SAMPLE_TABLE_TYPES, AUTOMATICALLY_GENERATE_ID_DEFAULT } from "@/resources.js";
 export default {
   name: "BatchCreateItemModal",
   components: {
@@ -356,7 +356,7 @@ export default {
       epochStart: new Date("1970-01-01").toISOString().slice(0, -8),
       oneYearOn: this.determineOneYearOn(),
       nSamples: 3,
-      generateIDsAutomatically: false,
+      generateIDsAutomatically: AUTOMATICALLY_GENERATE_ID_DEFAULT,
       item_type: "samples",
       items: [
         {

@@ -108,7 +108,7 @@ import Modal from "@/components/Modal.vue";
 import ItemSelect from "@/components/ItemSelect.vue";
 import { createNewItem } from "@/server_fetch_utils.js";
 import { validateEntryID } from "@/field_utils.js";
-import { itemTypes, SAMPLE_TABLE_TYPES } from "@/resources.js";
+import { itemTypes, SAMPLE_TABLE_TYPES, AUTOMATICALLY_GENERATE_ID_DEFAULT } from "@/resources.js";
 import CollectionSelect from "@/components/CollectionSelect.vue";
 export default {
   name: "CreateItemModal",
@@ -136,7 +136,7 @@ export default {
       takenItemIds: [], // this holds ids that have been tried, whereas the computed takenSampleIds holds ids in the sample table
       selectedItemToCopy: null,
       startingConstituents: [],
-      generateIDAutomatically: false,
+      generateIDAutomatically: AUTOMATICALLY_GENERATE_ID_DEFAULT,
       agesAgo: new Date("1970-01-01").toISOString().slice(0, -8), // a datetime for the unix epoch start
     };
   },
