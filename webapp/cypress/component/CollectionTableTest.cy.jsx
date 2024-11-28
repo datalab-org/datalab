@@ -9,6 +9,12 @@ describe("CollectionTable Component Tests", () => {
     store = createStore({
       state() {
         return {
+          datatablePaginationSettings: {
+            collections: {
+              page: 0,
+              rows: 20,
+            },
+          },
           collection_list: [
             {
               collection_id: "collection1",
