@@ -37,6 +37,7 @@ import Creators from "@/components/Creators";
 import UserSelect from "@/components/UserSelect";
 import { OnClickOutside } from "@vueuse/components";
 import { updateItemPermissions } from "@/server_fetch_utils.js";
+import { toRaw } from "vue";
 
 export default {
   components: {
@@ -71,23 +72,28 @@ export default {
     },
   },
   watch: {
-    isEditingCreators(newValue, oldValue) {
+    async isEditingCreators(newValue, oldValue) {
       // Check we are leaving the editing state
       if (newValue === false && oldValue === true) {
         // Check that the permissions have actually changed
-        if (this.shadowValue === this.value) {
+        if (JSON.stringify(toRaw(this.value)) === JSON.stringify(toRaw(this.shadowValue))) {
           return;
         }
         try {
+          // Check if the user has just removed all creators and reset if so
+          if (this.shadowValue.length == 0) {
+            throw new Error("You must have at least one creator.");
+          }
           let answer = confirm("Are you sure you want to update the permissions of this item?");
           if (answer) {
-            updateItemPermissions(this.refcode, this.shadowValue);
+            await updateItemPermissions(this.refcode, this.shadowValue);
             this.$emit("update:modelValue", [...this.shadowValue]);
           } else {
             this.shadowValue = [...this.value];
           }
         } catch (error) {
           // Reset value to original
+          alert("Error updating permissions: " + error);
           this.shadowValue = [...this.value];
         }
       }

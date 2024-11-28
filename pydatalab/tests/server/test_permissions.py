@@ -73,7 +73,9 @@ def test_basic_permissions_update(admin_client, admin_user_id, client, user_id):
     assert response.status_code == 200
 
     # Check that the admin can remove the user from the permissions
-    response = admin_client.patch(f"/items/{refcode}/permissions", json={"creators": []})
+    response = admin_client.patch(
+        f"/items/{refcode}/permissions", json={"creators": [{"immutable_id": str(admin_user_id)}]}
+    )
     assert response.status_code == 200
 
     response = client.get(f"/items/{refcode}")
