@@ -102,8 +102,14 @@ def get_default_permissions(user_only: bool = True) -> Dict[str, Any]:
             managed_users = [u["_id"] for u in managed_users]
             LOGGER.debug("Found managed users %s for user %s", managed_users, current_user.person)
 
-        user_perm = {"creator_ids": {"$in": [current_user.person.immutable_id] + managed_users}}
+        user_perm: dict[str, Any] = {
+            "creator_ids": {"$in": [current_user.person.immutable_id] + managed_users}
+        }
         if user_only:
+            # TODO: remove this hack when permissions are refactored. Currently starting_materials and equipment
+            # are a special case that should be group editable, so even when the route has asked to only edit this
+            # user's stuff, we can also let starting materials and equipment through.
+            user_perm = {"$or": [user_perm, {"type": {"$in": ["starting_materials", "equipment"]}}]}
             return user_perm
         return {"$or": [user_perm, null_perm]}
 
