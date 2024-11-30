@@ -120,7 +120,7 @@ def test_save_good_starting_material(admin_client, default_starting_material_dic
 
 
 @pytest.mark.dependency(depends=["test_save_good_starting_material"])
-def test_delete_starting_mateiral(admin_client, default_starting_material_dict):
+def test_delete_starting_material(admin_client, default_starting_material_dict):
     response = admin_client.post(
         "/delete-sample/",
         json={"item_id": default_starting_material_dict["item_id"]},
@@ -133,3 +133,62 @@ def test_delete_starting_mateiral(admin_client, default_starting_material_dict):
         f"/get-item-data/{default_starting_material_dict['item_id']}",
     )
     assert response.status_code == 404
+
+
+@pytest.mark.dependency(depends=["test_delete_starting_material"])
+def test_starting_material_permissions(
+    admin_client, client, default_starting_material_dict, default_filepath
+):
+    response = admin_client.post("/new-sample/", json=default_starting_material_dict)
+    # Test that 201: Created is emitted
+    assert response.status_code == 201, response.json
+    assert response.json["status"] == "success"
+
+    # Check that an admin-created inventory item can be edited by a normal user, and have files attached to it
+    response = client.get(
+        f"/get-item-data/{default_starting_material_dict['item_id']}",
+    )
+    assert response.status_code == 200, response.json
+    assert response.json["status"] == "success"
+
+    with open(default_filepath, "rb") as f:
+        response = client.post(
+            "/upload-file/",
+            buffered=True,
+            content_type="multipart/form-data",
+            data={
+                "item_id": default_starting_material_dict["item_id"],
+                "file": [(f, default_filepath.name)],
+                "type": "application/octet-stream",
+                "replace_file": "null",
+                "relativePath": "null",
+            },
+        )
+
+    assert isinstance(response.json["file_id"], str)
+    assert response.json["file_information"]
+    assert response.json["status"], "success"
+    assert response.status_code == 201
+
+    response = client.post(
+        "/add-data-block/",
+        json={
+            "block_type": "cycle",
+            "item_id": default_starting_material_dict["item_id"],
+            "index": 0,
+        },
+    )
+
+    assert response.status_code == 200
+    response_json = response.json
+    assert response_json["status"] == "success"
+    assert response_json["new_block_obj"]
+    block_id = response_json["new_block_obj"]["block_id"]
+    assert block_id
+    assert response_json["new_block_insert_index"] == 0
+
+    response = client.post(
+        "/delete-block/",
+        json={"item_id": default_starting_material_dict["item_id"], "block_id": block_id},
+    )
+    assert response.status_code == 200
