@@ -371,7 +371,13 @@ export function deleteSample(item_id) {
       console.log("delete successful" + response_json);
       store.commit("deleteFromSampleList", item_id);
     })
-    .catch((error) => alert("Sample delete failed for " + item_id + ": " + error));
+    .catch(() =>
+      alert(
+        "Unable to delete item with ID '" +
+          item_id +
+          "': check that you have the appropriate permissions.",
+      ),
+    );
 }
 
 export function deleteStartingMaterial(item_id) {
@@ -382,7 +388,13 @@ export function deleteStartingMaterial(item_id) {
       console.log("delete successful" + response_json);
       store.commit("deleteFromStartingMaterialList", item_id);
     })
-    .catch((error) => alert("Item delete failed for " + item_id + ": " + error));
+    .catch(() =>
+      alert(
+        "Unable to delete item with ID '" +
+          item_id +
+          "': check that you have the appropriate permissions.",
+      ),
+    );
 }
 
 export function deleteCollection(collection_id, collection_summary) {
@@ -391,7 +403,13 @@ export function deleteCollection(collection_id, collection_summary) {
       console.log("delete successful" + response_json);
       store.commit("deleteFromCollectionList", collection_summary);
     })
-    .catch((error) => alert("Collection delete failed for " + collection_id + ": " + error));
+    .catch(() =>
+      alert(
+        "Unable to delete collection with ID '" +
+          collection_id +
+          "': check that you have the appropriate permissions.",
+      ),
+    );
 }
 
 export function deleteEquipment(item_id) {
@@ -402,7 +420,13 @@ export function deleteEquipment(item_id) {
       console.log("delete successful" + response_json);
       store.commit("deleteFromEquipmentList", item_id);
     })
-    .catch((error) => alert("Item delete failed for " + item_id + ": " + error));
+    .catch(() =>
+      alert(
+        "Unable to delete item with ID '" +
+          item_id +
+          "': check that you have the appropriate permissions.",
+      ),
+    );
 }
 
 export function deletSampleFromCollection(collection_id, collection_summary) {
