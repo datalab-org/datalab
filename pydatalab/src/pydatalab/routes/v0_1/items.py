@@ -163,6 +163,7 @@ def get_samples_summary(
 
     _project = {
         "_id": 0,
+        "blocks": {"blocktype": 1, "title": 1},
         "creators": {
             "display_name": 1,
             "contact_email": 1,
