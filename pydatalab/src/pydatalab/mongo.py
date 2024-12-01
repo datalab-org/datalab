@@ -6,8 +6,8 @@ from flask_pymongo import PyMongo
 from pydantic import BaseModel
 from pymongo.errors import ConnectionFailure
 
-from pydatalab.models import ITEM_MODELS
 from pydatalab.logger import LOGGER
+from pydatalab.models import ITEM_MODELS
 
 __all__ = (
     "flask_mongo",

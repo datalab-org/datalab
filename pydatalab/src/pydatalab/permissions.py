@@ -115,7 +115,9 @@ def get_default_permissions(user_only: bool = True, match_deleted: bool = False)
             # TODO: remove this hack when permissions are refactored. Currently starting_materials and equipment
             # are a special case that should be group editable, so even when the route has asked to only edit this
             # user's stuff, we can also let starting materials and equipment through.
-            return_match["$and"].append({"$or": [user_perm, {"type": {"$in": ["starting_materials", "equipment"]}}]})
+            return_match["$and"].append(
+                {"$or": [user_perm, {"type": {"$in": ["starting_materials", "equipment"]}}]}
+            )
             return return_match
 
         return_match["$and"].append({"$or": [user_perm, null_perm]})
