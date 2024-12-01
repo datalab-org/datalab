@@ -1,17 +1,29 @@
 # Changelog
 
-## v0.5.0-rc.1 (August 2024)
+## v0.5.0 (December 2024)
 
-This release candidate changes how the Python server is packaged in a potentially breaking way, with the aim to make it significantly easier to develop datalab plugins. Attempts at backwards compatibility with the former pipenv approach will be maintained for at least this minor release cycle.
+This release is long overdue following the 8 pre-releases. The 0.5.x series now provides a stable base for us to begin some major overhauling of how we handle custom schemas and data blocks, both of which will form the basis of 0.6.x in the new year.
 
-### What's Changed
+The Ansible playbooks at [datalab-ansible-terraform](https://github.com/datalab-industries/datalab-ansible-terraform) and the Python API package at [datalab-api](https://github.com/datalab-org/datalab-api) already both support this release.
 
-* CI build time and fork compatibility improvements by @ml-evs in https://github.com/datalab-org/datalab/pull/833
-* Tweak cache usage on docker builds by @ml-evs in https://github.com/datalab-org/datalab/pull/841
-* Repackage server as proper Python package, removing `pipenv` by @ml-evs in https://github.com/datalab-org/datalab/pull/604
-* Re-enable dependabot for Python dependencies by @ml-evs in https://github.com/datalab-org/datalab/pull/845
+Many thanks to all contributors: developers, user feedback and deployment managers!
 
-**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.4.4...v0.5.0-rc.1
+## Breaking changes
+
+* The Python server has been entirely repackaged with `uv` for much more streamlined dependency management (especially for external plugins). If you are using the docker deployments, then nothing should change for you, but developers may need to adjust their development setups following the instructions at [INSTALL.md](./INSTALL.md)
+
+## Highlights
+
+* The table component used to display all items has been entirely rewritten, and is now more visually responsive and can accommodate custom schemas/components.
+* QR code generation and scanning for all items, optionally using the new [datalab pURL service](https://purl.datalab-org.io/) when configured with `VUE_APP_QR_CODE_RESOLVER_URL`.
+* Following from the block info from the last release, the API now reports the schemas it is using at `/info/types`, ready for these to become more easily configurable at the deployment level. The edit page and item table are beginning to dynamically use this information.
+* Improvements to the collections UI, allowing items to be added to collections more easily after creation.
+* Ability to selectively share items with certain users; this will soon be expanded to user groups and projects (via collections) with configurable defaults.
+* Several bug fixes to the UI, API (timezone consistency, tweaks to the LLM integration, better handling of permissions edge cases)
+* Ease-of-use features and new configuration options for deployments.
+
+
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.4.4...v0.5.0
 
 
 ## v0.4.4 (August 2024)
