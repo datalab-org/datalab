@@ -703,7 +703,7 @@ def delete_sample():
     item_id = request_json["item_id"]
 
     result = flask_mongo.db.items.delete_one(
-        {"item_id": item_id, **get_default_permissions(user_only=True)}
+        {"item_id": item_id, **get_default_permissions(user_only=True, deleting=True)}
     )
 
     if result.deleted_count != 1:

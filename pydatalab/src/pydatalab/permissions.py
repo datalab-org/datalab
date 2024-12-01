@@ -60,7 +60,7 @@ def admin_only(func):
     return wrapped_route
 
 
-def get_default_permissions(user_only: bool = True) -> Dict[str, Any]:
+def get_default_permissions(user_only: bool = True, deleting: bool = False) -> Dict[str, Any]:
     """Return the MongoDB query terms corresponding to the current user.
 
     Will return open permissions if a) the `CONFIG.TESTING` parameter is `True`,
@@ -109,6 +109,10 @@ def get_default_permissions(user_only: bool = True) -> Dict[str, Any]:
             # TODO: remove this hack when permissions are refactored. Currently starting_materials and equipment
             # are a special case that should be group editable, so even when the route has asked to only edit this
             # user's stuff, we can also let starting materials and equipment through.
+
+            # If we are trying to delete, then make sure they cannot delete items that do not match their user
+            if deleting:
+                return user_perm
             user_perm = {"$or": [user_perm, {"type": {"$in": ["starting_materials", "equipment"]}}]}
             return user_perm
         return {"$or": [user_perm, null_perm]}
