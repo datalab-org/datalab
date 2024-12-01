@@ -293,7 +293,10 @@ def delete_collection(collection_id: str):
                 projection={"_id": 1},
             )["_id"]
             result = flask_mongo.db.collections.delete_one(
-                {"collection_id": collection_id, **get_default_permissions(user_only=True)}
+                {
+                    "collection_id": collection_id,
+                    **get_default_permissions(user_only=True, deleting=True),
+                }
             )
             if result.deleted_count != 1:
                 return (

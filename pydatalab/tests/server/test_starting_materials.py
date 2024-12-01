@@ -192,3 +192,18 @@ def test_starting_material_permissions(
         json={"item_id": default_starting_material_dict["item_id"], "block_id": block_id},
     )
     assert response.status_code == 200
+
+    # Check that a normal user cannot entirely delete a starting material that has no user
+    response = client.post(
+        "/delete-sample/",
+        json={"item_id": default_starting_material_dict["item_id"]},
+    )
+
+    assert response.status_code == 401
+
+    # Check that the admin can delete a starting material that has no user
+    response = admin_client.post(
+        "/delete-sample/",
+        json={"item_id": default_starting_material_dict["item_id"]},
+    )
+    assert response.status_code == 200
