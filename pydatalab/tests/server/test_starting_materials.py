@@ -127,6 +127,7 @@ def test_delete_starting_material(admin_client, default_starting_material_dict):
     )
     assert response.status_code == 200
     assert response.json["status"] == "success"
+    assert "has been deleted" in response.json["warnings"][0]
 
     # Check it was actually deleted
     response = admin_client.get(
