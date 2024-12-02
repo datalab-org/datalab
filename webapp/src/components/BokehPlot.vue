@@ -5,7 +5,7 @@
 </template>
 
 <script>
-import * as Bokeh from "bokeh";
+import * as Bokeh from "@bokeh/bokehjs";
 // var BokehDoc = null
 
 export default {
