@@ -4,8 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "build": "VUE_APP_GIT_VERSION=$(node scripts/get-version.js) vite build",
+    "preview": "VUE_APP_GIT_VERSION=$(node scripts/get-version.js) vite preview",
+    "test:unit": "vitest",
+    "test:e2e": "cypress run",
+    "lint": "eslint . --ext .vue,.js,.ts"
   },
   "dependencies": {
     "@bokeh/bokehjs": "^3.6.1",
