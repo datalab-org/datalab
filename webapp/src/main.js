@@ -1,7 +1,7 @@
 // import BootstrapVue from 'bootstrap-vue';
 
 import "bootstrap/dist/css/bootstrap.css";
-// import 'bootstrap-vue/dist/bootstrap-vue.css'
+// import "bootstrap-vue/dist/bootstrap-vue.css";
 
 import { API_URL } from "@/resources.js";
 import { createApp } from "vue";
@@ -96,7 +96,9 @@ import "tinymce/themes/silver";
 import "tinymce/skins/ui/oxide/skin.min.css";
 import "tinymce/skins/ui/oxide/content.min.css";
 import "tinymce/skins/content/default/content.min.css";
-import "tinymce/plugins/hr";
+//! Didn't manage to make /hr work, can't understand why
+// import "tinymce/plugins/hr";
+//!
 import "tinymce/plugins/image";
 import "tinymce/plugins/link";
 import "tinymce/plugins/lists";
