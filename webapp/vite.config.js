@@ -24,6 +24,7 @@ export default defineConfig(({ mode }) => {
       exclude: ["bokeh"],
     },
     server: {
+      port: 8080,
       proxy: {
         "/api": {
           target: env.VUE_APP_API_URL,

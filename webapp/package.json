@@ -26,6 +26,7 @@
     "bootstrap": "4.5.3",
     "buffer": "^6.0.3",
     "crypto-js": "^4.2.0",
+    "cypress": "^13.16.0",
     "cytoscape": "^3.30.4",
     "cytoscape-cola": "^2.5.1",
     "cytoscape-elk": "^2.3.0",
@@ -50,7 +51,9 @@
     "yarn": "^1.22.22"
   },
   "devDependencies": {
+    "@types/node": "^22.10.1",
     "@vitejs/plugin-vue": "^5.2.1",
+    "typescript": "^5.7.2",
     "vite": "^6.0.1",
     "vite-plugin-node-polyfills": "^0.22.0"
   }
