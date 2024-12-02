@@ -42,7 +42,7 @@ const editable_inventory = import.meta.env.VUE_APP_EDITABLE_INVENTORY || "false"
 export const EDITABLE_INVENTORY = editable_inventory.toLowerCase() == "true";
 
 const automatically_generate_id_default =
-  process.env.VUE_APP_AUTOMATICALLY_GENERATE_ID_DEFAULT || "false";
+  import.meta.env.VUE_APP_AUTOMATICALLY_GENERATE_ID_DEFAULT || "false";
 export const AUTOMATICALLY_GENERATE_ID_DEFAULT =
   automatically_generate_id_default.toLowerCase() == "true";
 
