@@ -21,26 +21,28 @@ import CellCreateModalAddon from "@/components/itemCreateModalAddons/CellCreateM
 
 // Look for values set in .env file. Use defaults if `null` is not explicitly handled elsewhere in the code.
 export const API_URL =
-  process.env.VUE_APP_API_URL != null ? process.env.VUE_APP_API_URL : "http://localhost:5001";
-export const API_TOKEN = process.env.VUE_APP_API_TOKEN;
+  import.meta.env.VITE_APP_API_URL != null
+    ? import.meta.env.VITE_APP_API_URL
+    : "http://localhost:5001";
+export const API_TOKEN = import.meta.env.VITE_APP_API_TOKEN;
 
-export const QR_CODE_RESOLVER_URL = process.env.VUE_APP_QR_CODE_RESOLVER_URL;
+export const QR_CODE_RESOLVER_URL = import.meta.env.VITE_APP_QR_CODE_RESOLVER_URL;
 
 export const FEDERATION_QR_CODE_RESOLVER_URL = "https://purl.datalab-org.io";
 
-export const LOGO_URL = process.env.VUE_APP_LOGO_URL;
-export const HOMEPAGE_URL = process.env.VUE_APP_HOMEPAGE_URL;
-export const APP_VERSION = process.env.VUE_APP_GIT_VERSION;
+export const LOGO_URL = import.meta.env.VITE_APP_LOGO_URL;
+export const HOMEPAGE_URL = import.meta.env.VITE_APP_HOMEPAGE_URL;
+export const APP_VERSION = import.meta.env.VITE_APP_GIT_VERSION;
 
 export const GRAVATAR_STYLE = "identicon";
 
 // determine whether inventory should be readonly (except blocks). Note: environment
 // variables can only be strings, not bools.
-const editable_inventory = process.env.VUE_APP_EDITABLE_INVENTORY || "false";
+const editable_inventory = import.meta.env.VITE_APP_EDITABLE_INVENTORY || "false";
 export const EDITABLE_INVENTORY = editable_inventory.toLowerCase() == "true";
 
 const automatically_generate_id_default =
-  process.env.VUE_APP_AUTOMATICALLY_GENERATE_ID_DEFAULT || "false";
+  import.meta.env.VITE_APP_AUTOMATICALLY_GENERATE_ID_DEFAULT || "false";
 export const AUTOMATICALLY_GENERATE_ID_DEFAULT =
   automatically_generate_id_default.toLowerCase() == "true";
 
@@ -48,27 +50,55 @@ export const AUTOMATICALLY_GENERATE_ID_DEFAULT =
 export const DATETIME_FIELDS = new Set(["date"]);
 
 export const UPPY_MAX_TOTAL_FILE_SIZE =
-  Number(process.env.VUE_APP_UPPY_MAX_TOTAL_FILE_SIZE) != null
-    ? process.env.VUE_APP_UPPY_MAX_TOTAL_FILE_SIZE
+  Number(import.meta.env.VITE_APP_UPPY_MAX_TOTAL_FILE_SIZE) != null
+    ? import.meta.env.VITE_APP_UPPY_MAX_TOTAL_FILE_SIZE
     : 102400000000;
 export const UPPY_MAX_NUMBER_OF_FILES =
-  Number(process.env.VUE_APP_UPPY_MAX_NUMBER_OF_FILES) != null
-    ? process.env.VUE_APP_UPPY_MAX_NUMBER_OF_FILES
+  Number(import.meta.env.VITE_APP_UPPY_MAX_NUMBER_OF_FILES) != null
+    ? import.meta.env.VITE_APP_UPPY_MAX_NUMBER_OF_FILES
     : 10000;
 
 export const debounceTime = 250; // time after user stops typing before request is sent
 
 export const blockTypes = {
-  comment: { description: "Comment", component: DataBlockBase, name: "Comment" },
+  comment: {
+    description: "Comment",
+    component: DataBlockBase,
+    name: "Comment",
+  },
   media: { description: "Media", component: MediaBlock, name: "Media" },
-  tabular: { description: "Tabular Data", component: BokehBlock, name: "Tabular data" },
+  tabular: {
+    description: "Tabular Data",
+    component: BokehBlock,
+    name: "Tabular data",
+  },
   xrd: { description: "Powder XRD", component: XRDBlock, name: "Powder XRD" },
   raman: { description: "Raman", component: RamanBlock, name: "Raman" },
-  cycle: { description: "Electrochemistry", component: CycleBlock, name: "Electrochemistry" },
-  eis: { description: "Electrochemical Impedance Spectroscopy", component: EISBlock, name: "EIS" },
-  nmr: { description: "Nuclear Magnetic Resonance Spectroscopy", component: NMRBlock, name: "NMR" },
-  ms: { description: "Mass Spectrometry", component: MassSpecBlock, name: "Mass Spectrometry" },
-  chat: { description: "Virtual assistant", component: ChatBlock, name: "Virtual Assistant" },
+  cycle: {
+    description: "Electrochemistry",
+    component: CycleBlock,
+    name: "Electrochemistry",
+  },
+  eis: {
+    description: "Electrochemical Impedance Spectroscopy",
+    component: EISBlock,
+    name: "EIS",
+  },
+  nmr: {
+    description: "Nuclear Magnetic Resonance Spectroscopy",
+    component: NMRBlock,
+    name: "NMR",
+  },
+  ms: {
+    description: "Mass Spectrometry",
+    component: MassSpecBlock,
+    name: "Mass Spectrometry",
+  },
+  chat: {
+    description: "Virtual assistant",
+    component: ChatBlock,
+    name: "Virtual Assistant",
+  },
 };
 
 export const itemTypes = {
