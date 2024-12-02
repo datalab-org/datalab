@@ -24,7 +24,7 @@ ARG VUE_APP_QR_CODE_RESOLVER_URL=magic-qr-code-resolver-url
 ARG VUE_APP_AUTOMATICALLY_GENERATE_ID_DEFAULT=magic-generate-id-setting
 
 COPY webapp ./
-RUN --mount=type=bind,target=/.git,src=./.git VUE_APP_GIT_VERSION=$(node scripts/get-version.js) /node_modules/.bin/vue-cli-service build
+RUN --mount=type=bind,target=/.git,src=./.git VUE_APP_GIT_VERSION=$(node scripts/get-version.js) /node_modules/.bin/vite build
 
 FROM node:20-bullseye AS production
 
