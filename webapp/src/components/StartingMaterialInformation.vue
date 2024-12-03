@@ -1,40 +1,40 @@
 <template>
   <div class="container-lg px-5 px-lg-0">
     <!-- Sample information -->
-    <div id="starting-material-information" class="form-row">
-      <div class="form-group col-md-2 col-sm-3 col-6">
-        <label for="startmat-refcode">Refcode</label>
+    <div id="starting-material-information" class="row">
+      <div class="mb-3 col-md-2 col-sm-3 col-6">
+        <label for="startmat-refcode" class="form-label">Refcode</label>
         <div id="startmat-refcode"><FormattedRefcode :refcode="Refcode" /></div>
       </div>
-      <div class="form-group col-md-2 col-sm-3 col-6">
-        <label for="startmat-item_id">Item ID</label>
+      <div class="mb-3 col-md-2 col-sm-3 col-6">
+        <label for="startmat-item_id" class="form-label">Item ID</label>
         <StyledInput id="startmat-item_id" readonly :model-value="ItemID" />
       </div>
-      <div class="form-group col-lg-7 col-md-8 col-sm-6">
-        <label for="startmat-name">Name</label>
+      <div class="mb-3 col-lg-7 col-md-8 col-sm-6">
+        <label for="startmat-name" class="form-label">Name</label>
         <StyledInput id="startmat-name" v-model="Name" :readonly="!isEditable" />
       </div>
     </div>
-    <div class="form-row">
-      <div class="form-group col-lg-3 col-sm-4">
-        <label for="startmat-chemform">Chemical formula</label>
+    <div class="row">
+      <div class="mb-3 col-lg-3 col-sm-4">
+        <label for="startmat-chemform" class="form-label">Chemical formula</label>
         <ChemFormulaInput v-if="isEditable" id="startmat-chemform" v-model="ChemForm" />
         <span v-if="!isEditable" class="form-control-plaintext" readonly>
           <ChemicalFormula id="startmat-chemform" :formula="ChemForm" />
         </span>
       </div>
-      <div class="form-group col-lg-3 col-sm-4">
-        <label for="startmat-supplier">Supplier</label>
+      <div class="mb-3 col-lg-3 col-sm-4">
+        <label for="startmat-supplier" class="form-label">Supplier</label>
         <StyledInput id="startmat-supplier" v-model="Supplier" :readonly="!isEditable" />
       </div>
-      <div class="form-group col-lg-3 col-sm-4">
-        <label for="startmat-purity">Chemical purity</label>
+      <div class="mb-3 col-lg-3 col-sm-4">
+        <label for="startmat-purity" class="form-label">Chemical purity</label>
         <StyledInput id="startmat-purity" v-model="ChemicalPurity" :readonly="!isEditable" />
       </div>
     </div>
-    <div class="form-row">
-      <div class="form-group col-lg-3 col-sm-4">
-        <label for="startmat-date-acquired">Date acquired</label>
+    <div class="row">
+      <div class="mb-3 col-lg-3 col-sm-4">
+        <label for="startmat-date-acquired" class="form-label">Date acquired</label>
         <StyledInput
           id="startmat-date-acquired"
           v-model="DateAcquired"
@@ -42,8 +42,8 @@
           :readonly="!isEditable"
         />
       </div>
-      <div class="form-group col-lg-3 col-sm-4">
-        <label for="startmat-date-opened">Date opened</label>
+      <div class="mb-3 col-lg-3 col-sm-4">
+        <label for="startmat-date-opened" class="form-label">Date opened</label>
         <StyledInput
           id="startmat-date-opened"
           v-model="DateOpened"
@@ -51,19 +51,19 @@
           :readonly="!isEditable"
         />
       </div>
-      <div class="form-group col-lg-3 col-sm-4">
-        <label for="startmat-location">Location</label>
+      <div class="mb-3 col-lg-3 col-sm-4">
+        <label for="startmat-location" class="form-label">Location</label>
         <StyledInput id="startmat-location" v-model="Location" :readonly="!isEditable" />
       </div>
     </div>
 
-    <div class="form-row">
-      <div class="form-group col-lg-3 col-sm-4">
-        <label for="startmat-cas">CAS</label>
+    <div class="row">
+      <div class="mb-3 col-lg-3 col-sm-4">
+        <label for="startmat-cas" class="form-label">CAS</label>
         <StyledInput id="startmat-cas" v-model="CAS" :readonly="!isEditable" />
       </div>
-      <div class="form-group col-lg-3 col-sm-4">
-        <label for="startmat-hazards">GHS Hazard Codes</label>
+      <div class="mb-3 col-lg-3 col-sm-4">
+        <label for="startmat-hazards" class="form-label">GHS Hazard Codes</label>
         <StyledInput id="startmat-hazards" v-model="GHS" :readonly="!isEditable" />
       </div>
       <div class="col-lg-3 col-sm-4">
@@ -71,7 +71,7 @@
       </div>
     </div>
 
-    <label class="mr-2">Description</label>
+    <label class="form-label">Description</label>
     <TinyMceInline v-model="ItemDescription" data-testid="item-description"></TinyMceInline>
 
     <TableOfContents

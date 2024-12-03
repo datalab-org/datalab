@@ -1,6 +1,6 @@
 <template>
   <div class="container">
-    <label class="mr-2">Files</label>
+    <label class="form-label me-2">Files</label>
     <div class="card">
       <div id="filearea" class="card-body overflow-auto">
         <div v-for="(file, file_id) in stored_files" :key="file_id" class="file-group">
@@ -51,15 +51,11 @@
           </span>
         </div>
       </div>
-      <div class="row">
-        <button id="uppy-trigger" class="btn btn-default btn-sm mb-3 ml-4" type="button">
+      <div class="d-flex align-items-center mb-3 ms-3 gap-2">
+        <button id="uppy-trigger" class="btn btn-default btn-sm" type="button">
           Upload files...</button
         ><!-- Surrounding divs so that buttons  don't become full-width in the card -->
-        <button
-          class="btn btn-default btn-sm mb-3 ml-2"
-          type="button"
-          @click="setFileSelectModalOpen"
-        >
+        <button class="btn btn-default btn-sm" type="button" @click="setFileSelectModalOpen">
           Add files from server...
         </button>
       </div>

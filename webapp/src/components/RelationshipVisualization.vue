@@ -1,5 +1,5 @@
 <template>
-  <label class="mr-2">Relationships</label>
+  <label class="form-label">Relationships</label>
   <ul class="nav nav-tabs">
     <li class="nav-item">
       <a

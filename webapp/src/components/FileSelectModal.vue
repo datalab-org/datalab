@@ -5,7 +5,7 @@
         Select files to add
         <button
           :disabled="isLoadingRemoteTree"
-          class="ml-4 btn btn-small btn-default"
+          class="btn btn-small btn-default"
           @click="fetchRemoteTree"
         >
           <font-awesome-icon v-show="isLoadingRemoteTree" :icon="['fa', 'sync']" class="fa-spin" />

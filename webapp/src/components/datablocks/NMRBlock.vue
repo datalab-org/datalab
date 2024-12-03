@@ -10,10 +10,12 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
       update-block-on-change
     />
     <div v-show="file_id">
-      <div class="form-inline mt-2">
-        <div class="form-group">
-          <label class="mr-2"><b>Process number:</b></label>
-          <select v-model="selected_process" class="form-control" @change="updateBlock">
+      <div class="row mt-2 mb-2 align-items-center">
+        <div class="col-auto">
+          <label class="form-label"><b>Process number:</b></label>
+        </div>
+        <div class="col-auto">
+          <select v-model="selected_process" class="form-select" @change="updateBlock">
             <option v-for="process_number in block.available_processes" :key="process_number">
               {{ process_number }}
             </option>
@@ -21,8 +23,8 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
         </div>
       </div>
 
-      <div class="mt-4">
-        <span class="mr-2">
+      <div class="mt-2">
+        <span class="me-2">
           <Isotope :isotope-string="block.nucleus" /> {{ block.pulse_program_name }}
         </span>
         <a type="button" class="btn btn-default btn-sm mb-2" @click="titleShown = !titleShown">{{
@@ -30,7 +32,7 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
         }}</a>
         <a
           type="button"
-          class="btn btn-default btn-sm mb-2 ml-2"
+          class="btn btn-default btn-sm mb-2 ms-2"
           @click="detailsShown = !detailsShown"
           >{{ detailsShown ? "hide measurement details" : "show measurement details" }}</a
         >

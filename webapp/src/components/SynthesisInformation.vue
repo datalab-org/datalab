@@ -1,8 +1,8 @@
 <template>
   <div id="synthesis-information">
-    <label class="mr-2 pb-2">Synthesis Information</label>
+    <label class="form-label pb-2">Synthesis Information</label>
     <div class="card component-card">
-      <div class="card-body pt-2 pb-0 mb-0 pl-5">
+      <div class="card-body pb-0 mb-0">
         <CompactConstituentTable
           id="synthesis-table"
           v-model="constituents"
@@ -10,11 +10,13 @@
         />
       </div>
     </div>
-    <span id="synthesis-procedure-label" class="subheading ml-2">Procedure</span>
-    <TinyMceInline
-      v-model="SynthesisDescription"
-      aria-labelledby="synthesis-procedure-label"
-    ></TinyMceInline>
+    <div class="mt-1">
+      <span id="synthesis-procedure-label" class="subheading mt-5">Procedure</span>
+      <TinyMceInline
+        v-model="SynthesisDescription"
+        aria-labelledby="synthesis-procedure-label"
+      ></TinyMceInline>
+    </div>
   </div>
 </template>
 
