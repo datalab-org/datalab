@@ -45,7 +45,7 @@
         </ol>
       </div>
     </transition>
-    <label class="mr-2">Contents</label>
+    <label class="form-label">Contents</label>
     <div class="card">
       <div class="card-body overflow-auto">
         <ol id="contents-ol">

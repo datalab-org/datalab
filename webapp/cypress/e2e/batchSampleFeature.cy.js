@@ -25,7 +25,7 @@ function getBatchTemplateCell(column, additionalSelectors = "") {
 
 function getBatchAddError(row, additionalSelectors = "") {
   return cy.get(
-    `[data-testid=batch-add-table] > tbody > tr:nth-of-type(${row}) + td ${additionalSelectors}`,
+    `[data-testid=batch-add-table] > tbody > td:nth-of-type(${row}) ${additionalSelectors}`,
   );
 }
 
@@ -84,7 +84,7 @@ describe("Batch sample creation", () => {
     cy.visit("/");
   });
   it("Adds 3 valid samples", () => {
-    cy.contains("Add batch of items").click();
+    cy.findByTestId("batch-item-button").click();
     getSubmitButton().should("be.disabled");
     getBatchAddCell(1, 1).type("testA");
     getBatchAddCell(2, 1).type("testB");
@@ -107,7 +107,7 @@ describe("Batch sample creation", () => {
   });
 
   it("adds two valid samples", () => {
-    cy.contains("Add batch of items").click();
+    cy.findByTestId("batch-item-button").click();
     cy.findByLabelText("Number of rows:").clear().type(2);
 
     cy.get('[data-testid="batch-modal-container"]').findByText("Submit").should("be.disabled");
@@ -126,7 +126,7 @@ describe("Batch sample creation", () => {
   });
 
   it("adds four base samples", () => {
-    cy.contains("Add batch of items").click();
+    cy.findByTestId("batch-item-button").click();
     cy.findByLabelText("Number of rows:").clear().type(4);
 
     cy.get('[data-testid="batch-modal-container"]').findByText("Submit").should("be.disabled");
@@ -189,7 +189,7 @@ describe("Batch sample creation", () => {
   });
 
   it("makes samples copied from others", () => {
-    cy.contains("Add batch of items").click();
+    cy.findByTestId("batch-item-button").click();
     getBatchAddCell(1, 1).type("baseA_copy");
     getBatchAddCell(1, 2).type("a copied sample");
     getBatchAddCell(1, 4, ".vs__search").type("BaseA");
@@ -253,7 +253,7 @@ describe("Batch sample creation", () => {
   });
 
   it("creates samples using components", () => {
-    cy.contains("Add batch of items").click();
+    cy.findByTestId("batch-item-button").click();
     cy.findByLabelText("Number of rows:").clear().type(4);
 
     // sample with two components
@@ -416,7 +416,7 @@ describe("Batch sample creation", () => {
   });
 
   it("uses the template id", () => {
-    cy.contains("Add batch of items").click();
+    cy.findByTestId("batch-item-button").click();
     getBatchTemplateCell(1).type("test_{{}#{}}");
 
     // manually type names and a date
@@ -441,7 +441,7 @@ describe("Batch sample creation", () => {
   });
 
   it("uses the template id, name, and date", () => {
-    cy.contains("Add batch of items").click();
+    cy.findByTestId("batch-item-button").click();
     getBatchTemplateCell(1).type("test_{{}#{}}");
     getBatchTemplateCell(2).type("this is the test sample #{{}#{}}");
     getBatchTemplateCell(3).type("1980-02-01T05:35");
@@ -464,7 +464,7 @@ describe("Batch sample creation", () => {
   });
 
   it("uses the template id, name, date, copyFrom, and components", () => {
-    cy.contains("Add batch of items").click();
+    cy.findByTestId("batch-item-button").click();
     getBatchTemplateCell(1).type("test_{{}#{}}");
     getBatchTemplateCell(2).type("this is the test sample #{{}#{}}");
     getBatchTemplateCell(3).type("1980-02-01T23:59");
@@ -545,7 +545,7 @@ describe("Batch sample creation", () => {
   });
 
   it("plays with the number of rows", () => {
-    cy.contains("Add batch of items").click();
+    cy.findByTestId("batch-item-button").click();
     cy.findByLabelText("Number of rows:").clear().type(3);
     cy.get("[data-testid=batch-add-table] > tbody > tr").should("have.length", 3);
 
@@ -653,7 +653,7 @@ describe("Batch sample creation", () => {
   });
 
   it("checks errors on the row", () => {
-    cy.contains("Add batch of items").click();
+    cy.findByTestId("batch-item-button").click();
     getBatchTemplateCell("1").type("test10{{}#{}}");
     cy.wait(100);
     getSubmitButton().should("be.disabled");
@@ -667,17 +667,17 @@ describe("Batch sample creation", () => {
 
     getBatchAddCell(1, 1).type("_unique");
     getBatchTemplateCell(1, "input").should("have.value", ""); // test_id template should be cleared by modifying an item_id
-    getBatchAddError(1).invoke("text").invoke("trim").should("equal", ""); // expect no error for this row
+    getBatchAddError(1).should("have.text", ""); // expect no error for this row
     getSubmitButton().should("be.disabled"); // but submit is still disabled because there are still errors
 
-    getBatchAddCell(3, 1).type("_unique");
-    getBatchAddError(1).invoke("text").invoke("trim").should("equal", ""); // expect no error
-    getBatchAddError(3).invoke("text").invoke("trim").should("equal", ""); // expect no error
-
     getBatchAddCell(2, 1).type("_unique");
-    getBatchAddError(1).invoke("text").invoke("trim").should("equal", ""); // expect no error
-    getBatchAddError(2).invoke("text").invoke("trim").should("equal", ""); // expect no error
-    getBatchAddError(3).invoke("text").invoke("trim").should("equal", ""); // expect no error
+    getBatchAddError(1).should("have.text", ""); // expect no error for this row
+    getBatchAddError(2).should("have.text", ""); // expect no error for this row
+
+    getBatchAddCell(3, 1).type("_unique");
+    getBatchAddError(1).should("have.text", ""); // expect no error for this row
+    getBatchAddError(2).should("have.text", ""); // expect no error for this row
+    getBatchAddError(3).should("have.text", ""); // expect no error for this row
 
     getBatchAddCell(2, 3).type("2000-01-01T10:05");
 
@@ -690,7 +690,7 @@ describe("Batch sample creation", () => {
     getSubmitButton().should("be.disabled");
 
     getBatchAddCell(4, 1).type("2");
-    getBatchAddError(4).invoke("text").invoke("trim").should("equal", ""); // expect no error
+    getBatchAddError(4).should("have.text", ""); // expect no error for this row
 
     getSubmitButton().should("not.be.disabled"); // now all errors are fixed so submit is enabled
     getSubmitButton().click();
@@ -716,7 +716,7 @@ describe("Batch cell creation", () => {
   });
 
   it("creates a simple batch of cells", () => {
-    cy.contains("Add batch of items").click();
+    cy.findByTestId("batch-item-button").click();
     cy.get("[data-testid=batch-modal-container]").findByLabelText("Type:").select("cell");
     cy.findByLabelText("Number of rows:").clear().type(4);
     cy.get("[data-testid=batch-add-table] > tbody > tr").should("have.length", 4);
@@ -744,7 +744,7 @@ describe("Batch cell creation", () => {
   });
 
   it("adds some component samples to be used for the next tests", () => {
-    cy.contains("Add batch of items").click();
+    cy.findByTestId("batch-item-button").click();
     cy.findByLabelText("Number of rows:").clear().type(2);
 
     getBatchAddCell(1, 1).type("comp1");
@@ -757,7 +757,7 @@ describe("Batch cell creation", () => {
   });
 
   it("creates a batch of cells using the template id, name, date, copyFrom, and components", () => {
-    cy.contains("Add batch of items").click();
+    cy.findByTestId("batch-item-button").click();
 
     cy.get("[data-testid=batch-modal-container]").findByLabelText("Type:").select("cell");
 
