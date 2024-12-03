@@ -14,9 +14,13 @@
           <h5 class="modal-title">
             <slot name="header"></slot>
           </h5>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true" @click="closeModal">&times;</span>
-          </button>
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="modal"
+            aria-label="Close"
+            @click="closeModal"
+          ></button>
         </div>
         <div class="modal-body">
           <slot name="body"></slot>
