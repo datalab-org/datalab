@@ -3,8 +3,8 @@
     <Modal :model-value="modelValue" @update:model-value="$emit('update:modelValue', $event)">
       <template #header>QR Code</template>
       <template #body>
-        <div class="form-row">
-          <div ref="qrcode" class="form-group mx-auto" data-testid="qrcode">
+        <div class="row">
+          <div ref="qrcode" class="mb-3 mx-auto" data-testid="qrcode">
             <QRCode :refcode="refcode" />
           </div>
         </div>

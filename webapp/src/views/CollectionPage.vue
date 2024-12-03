@@ -1,7 +1,7 @@
 <template>
   <div id="topScrollPoint"></div>
   <nav
-    class="navbar navbar-expand sticky-top navbar-dark py-0 editor-navbar"
+    class="navbar navbar-expand sticky-top navbar-dark py-0 px-3 editor-navbar"
     :style="{ backgroundColor: navbarColor }"
   >
     <span class="navbar-brand" @click="scrollToID($event, 'topScrollPoint')">
@@ -14,7 +14,7 @@
         <font-awesome-icon icon="code" fixed-width /> View JSON
       </a>
     </div>
-    <div class="navbar-nav ml-auto">
+    <div class="navbar-nav ms-auto">
       <span v-if="data_loaded && !savedStatus" class="navbar-text unsaved-warning">
         Unsaved changes
       </span>

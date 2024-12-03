@@ -16,7 +16,7 @@
           </h5>
           <button
             type="button"
-            class="btn-close"
+            class="btn-close close-btn"
             data-bs-dismiss="modal"
             aria-label="Close"
             @click="closeModal"
@@ -114,5 +114,9 @@ export default {
 
 .btn:disabled {
   cursor: not-allowed;
+}
+
+.close-btn {
+  background-size: 0.7em;
 }
 </style>

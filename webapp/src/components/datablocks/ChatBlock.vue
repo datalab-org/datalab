@@ -25,12 +25,12 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
             <label>Current conversation token count:</label>
             <span class="pl-1">{{ tokenCount }}/ {{ modelObj.context_window }}</span>
           </div>
-          <div class="form-row input-group">
+          <div class="row input-group">
             <label>est. cost for next message:</label>
             <span class="pl-1">${{ estimatedCost.toPrecision(2) }}</span>
           </div>
 
-          <div class="form-row input-group">
+          <div class="row input-group">
             <label for="temperatureInput" class="mr-2"><b>temperature:</b></label>
             <input
               id="temperatureInput"

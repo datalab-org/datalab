@@ -1,6 +1,6 @@
 <template>
-  <div class="form-group form-inline">
-    <label class="mr-4"><b>Select a file:</b></label>
+  <div class="mb-3 form-inline">
+    <label class="form-label mr-4"><b>Select a file:</b></label>
     <select class="form-control file-select-dropdown" :value="modelValue" @input="handleInput">
       <option v-for="file_id in available_file_ids" :key="file_id" :value="file_id">
         {{ all_files_name(file_id) }}

@@ -11,8 +11,8 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
     />
     <div v-show="file_id">
       <div class="form-inline mt-2">
-        <div class="form-group">
-          <label class="mr-2"><b>Process number:</b></label>
+        <div class="mb-3">
+          <label class="form-label mr-2"><b>Process number:</b></label>
           <select v-model="selected_process" class="form-control" @change="updateBlock">
             <option v-for="process_number in block.available_processes" :key="process_number">
               {{ process_number }}

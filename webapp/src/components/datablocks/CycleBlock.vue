@@ -1,6 +1,6 @@
 <template>
   <DataBlockBase :item_id="item_id" :block_id="block_id">
-    <div class="form-row">
+    <div class="row">
       <FileSelectDropdown
         v-model="file_id"
         :item_id="item_id"
@@ -10,7 +10,7 @@
       />
     </div>
     <div v-if="file_id">
-      <div class="form-row">
+      <div class="row">
         <div class="input-group form-inline">
           <label class="mr-2"><b>Cycles to plot:</b></label>
           <input
@@ -37,7 +37,7 @@
         </div>
       </div>
 
-      <div class="form-row mt-2">
+      <div class="row mt-2">
         <div class="input-group form-inline">
           <label class="mr-2"><b>Mode:</b></label>
           <div class="btn-group">

@@ -1,7 +1,7 @@
 <template>
   <div id="topScrollPoint"></div>
   <nav
-    class="navbar navbar-expand sticky-top navbar-dark py-0 editor-navbar"
+    class="navbar navbar-expand sticky-top navbar-dark py-0 px-3 editor-navbar"
     :style="{ backgroundColor: navbarColor }"
   >
     <div v-show="false" class="navbar-nav"><LoginDetails /></div>
@@ -14,7 +14,7 @@
       <div class="nav-item dropdown">
         <a
           id="navbarDropdown"
-          class="nav-link dropdown-toggle ml-2"
+          class="nav-link dropdown-toggle ms-2"
           role="button"
           data-toggle="dropdown"
           aria-haspopup="true"
@@ -42,7 +42,7 @@
         <font-awesome-icon icon="code" fixed-width /> View JSON
       </a>
     </div>
-    <div class="navbar-nav ml-auto">
+    <div class="navbar-nav ms-auto">
       <span v-if="itemDataLoaded && !savedStatus" class="navbar-text unsaved-warning">
         Unsaved changes
       </span>
