@@ -2,7 +2,7 @@
   <div id="cell-preparation-information">
     <label class="form-label pb-2">Cell Construction</label>
 
-    <div class="mb-3 ml-5">
+    <div class="mb-3">
       <label class="form-label subheading cell-component-label mt-4 pb-1" for="pos-electrode-table"
         >Positive electrode</label
       >
@@ -17,7 +17,7 @@
       </div>
     </div>
 
-    <div class="mb-3 ml-5">
+    <div class="mb-3">
       <label class="form-label subheading cell-component-label mt-4 pb-1" for="electrolyte-table"
         >Electrolyte</label
       >
@@ -32,7 +32,7 @@
       </div>
     </div>
 
-    <div class="mb-3 ml-5">
+    <div class="mb-3">
       <label class="form-label subheading cell-component-label mt-4 pb-1" for="neg-electrode-table"
         >Negative electrode</label
       >
@@ -47,7 +47,7 @@
       </div>
     </div>
 
-    <div class="mb-3 ml-5 mt-3">
+    <div class="mb-3 mt-3">
       <label id="synthesis-procedure-label" class="form-label subheading">Procedure</label>
       <TinyMceInline
         v-model="CellPreparationDescription"

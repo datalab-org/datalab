@@ -55,7 +55,7 @@
                     class="collapse-arrow"
                     :class="{ expanded: templateIsOpen }"
                   />
-                  <label class="blue-label ml-2"> Template: </label>
+                  <label class="blue-label"> Template: </label>
                 </div>
               </div>
 
@@ -84,7 +84,7 @@
                           :disabled="generateIDsAutomatically"
                           @input="applyIdTemplate"
                         />
-                        <div class="form-check mt-1 ml-1">
+                        <div class="form-check mt-1">
                           <input
                             id="automatic-batch-id-label"
                             v-model="generateIDsAutomatically"

@@ -1,6 +1,6 @@
 <template>
   <span
-    class="formatted-collection-name badge badge-light"
+    class="formatted-collection-name badge bg-light"
     :class="{ clickable: enableClick || enableModifiedClick }"
     :style="{ 'border-color': badgeColor, color: badgeColor }"
     @click.exact="enableClick ? openEditPageInNewTab() : null"

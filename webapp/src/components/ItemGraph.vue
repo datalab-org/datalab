@@ -1,5 +1,5 @@
 <template>
-  <div v-if="showOptions" class="sidebar ml-4">
+  <div v-if="showOptions" class="sidebar">
     <button
       class="btn btn-default options-button mb-2"
       @click="optionsDisplayed = !optionsDisplayed"
@@ -9,7 +9,7 @@
     <div v-show="optionsDisplayed">
       <label for="graph-style" class="form-label"
         >Graph layout:
-        <font-awesome-icon v-show="layoutIsRunning" class="ml-2 text-muted" icon="spinner" spin
+        <font-awesome-icon v-show="layoutIsRunning" class="text-muted" icon="spinner" spin
       /></label>
       <div id="graph-style" class="btn-group" role="group">
         <button

@@ -18,7 +18,9 @@
       <span v-if="data_loaded && !savedStatus" class="navbar-text unsaved-warning">
         Unsaved changes
       </span>
-      <span v-if="data_loaded && lastModified" class="navbar-text small mx-2"
+      <span
+        v-if="data_loaded && lastModified"
+        class="navbar-text small mx-2 d-flex align-items-center"
         ><i>Last saved: {{ lastModified }}</i>
       </span>
       <font-awesome-icon
