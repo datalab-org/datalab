@@ -10,14 +10,17 @@
       />
     </div>
     <div v-if="file_id">
-      <div class="row">
-        <div class="input-group form-inline">
-          <label class="mr-2"><b>Cycles to plot:</b></label>
+      <div class="row mt-2 mb-2 align-items-center">
+        <div class="col-auto">
+          <label class="label-form"><b>Cycles to plot:</b></label>
+        </div>
+        <div class="col-auto">
           <input
             id="cycles-input"
             v-model="cyclesString"
             type="text"
-            class="form-control"
+            class="form-control w-100"
+            style="min-width: 14rem"
             placeholder="e.g., 1-5, 7, 9-10. Starts at 1."
             :class="{ 'is-invalid': cycle_num_error }"
             @keydown.enter="
@@ -29,17 +32,21 @@
               updateBlock();
             "
           />
-          <span id="list-of-cycles" class="pl-3 pt-2">Showing cycles: {{ parsedCycles }}</span>
         </div>
-
-        <div v-if="cycle_num_error" class="alert alert-danger mt-2 mx-auto">
-          {{ cycle_num_error }}
+        <div class="col-auto">
+          <span id="list-of-cycles" class="pl-3 pt-2">Showing cycles: {{ parsedCycles }}</span>
         </div>
       </div>
 
-      <div class="row mt-2">
-        <div class="input-group form-inline">
-          <label class="mr-2"><b>Mode:</b></label>
+      <div v-if="cycle_num_error" class="alert alert-danger mt-2 mx-auto">
+        {{ cycle_num_error }}
+      </div>
+
+      <div class="row mt-2 mb-2 align-items-center">
+        <div class="col-auto">
+          <label class="form-label"><b>Mode:</b></label>
+        </div>
+        <div class="col-auto">
           <div class="btn-group">
             <div
               class="btn btn-default"

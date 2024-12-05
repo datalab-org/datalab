@@ -1,6 +1,6 @@
 <template>
   <div id="cell-preparation-information">
-    <label class="form-label mr-2 pb-2">Cell Construction</label>
+    <label class="form-label pb-2">Cell Construction</label>
 
     <div class="mb-3 ml-5">
       <label class="form-label subheading cell-component-label mt-4 pb-1" for="pos-electrode-table"

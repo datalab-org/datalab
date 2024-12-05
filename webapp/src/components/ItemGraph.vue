@@ -11,7 +11,7 @@
         >Graph layout:
         <font-awesome-icon v-show="layoutIsRunning" class="ml-2 text-muted" icon="spinner" spin
       /></label>
-      <div id="graph-style" class="btn-group mr-2" role="group">
+      <div id="graph-style" class="btn-group" role="group">
         <button
           :class="graphStyle == 'euler' ? 'btn btn-default active' : 'btn btn-default'"
           @click="

@@ -13,9 +13,11 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
     </div>
 
     <div v-if="file_id">
-      <div class="row col-md-6 col-lg-4 mt-2 mb-2 pl-0">
-        <div class="input-group form-inline">
-          <label class="mr-2"><b>Wavelength (Å):</b></label>
+      <div class="row mt-2 mb-2 align-items-center">
+        <div class="col-auto">
+          <label class="form-label me-2 mb-0"><b>Wavelength (Å):</b></label>
+        </div>
+        <div class="col-auto">
           <input
             v-model="wavelength"
             type="text"
@@ -35,11 +37,11 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
           </div>
         </div>
       </div>
+    </div>
 
-      <div class="row">
-        <div id="bokehPlotContainer" class="col-xl-9 col-lg-10 col-md-11 mx-auto">
-          <BokehPlot :bokeh-plot-data="bokehPlotData" />
-        </div>
+    <div class="row">
+      <div id="bokehPlotContainer" class="col-xl-9 col-lg-10 col-md-11 mx-auto">
+        <BokehPlot :bokeh-plot-data="bokehPlotData" />
       </div>
     </div>
   </DataBlockBase>

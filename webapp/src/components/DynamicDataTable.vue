@@ -101,7 +101,7 @@
                   <span
                     v-for="(option, index) in slotProps.value"
                     :key="index"
-                    class="inline-flex items-center mr-2"
+                    class="inline-flex items-center"
                   >
                     <UserBubble :creator="option" :size="20" />
                   </span>

@@ -8,7 +8,7 @@
     </colgroup>
     <tbody>
       <tr v-for="(constituent, index) in constituents" :key="index">
-        <td>
+        <td class="align-middle">
           <!-- <transition name="fade"> -->
           <!--             <font-awesome-icon
               v-if="!selectShown[index]"
@@ -38,10 +38,10 @@
             @dblclick="turnOnRowSelect(index)"
           />
         </td>
-        <!--         <td>
+        <!--         <td class="align-middle">
           <ChemicalFormula :formula="constituent.item?.chemform" />
         </td> -->
-        <td>
+        <td class="align-middle">
           <input
             v-model="constituent.quantity"
             class="form-control form-control-sm quantity-input"
@@ -49,7 +49,7 @@
             placeholder="quantity"
           />
         </td>
-        <td>
+        <td class="align-middle">
           <input
             v-model="constituent.unit"
             class="form-control form-control-sm"
@@ -57,15 +57,13 @@
           />
         </td>
 
-        <td>
+        <td class="align-middle">
           <button
             type="button"
-            class="close"
-            aria-label="delete"
+            class="btn-close close-btn"
+            aria-label="Delete"
             @click.stop="removeConstituent(index)"
-          >
-            <span aria-hidden="true">&times;</span>
-          </button>
+          ></button>
         </td>
       </tr>
       <tr>
@@ -195,8 +193,7 @@ td {
   float: right;
   transform: translateY(-50%);
   transition: transform 0.4s ease;
-  width: 1.5rem;
-  left: -2rem;
+  padding-top: 0.4rem;
 }
 
 .fade-enter-active,
@@ -216,5 +213,9 @@ td {
 .borderless tr,
 .borderless td {
   border: none !important;
+}
+
+.close-btn {
+  background-size: 0.7em;
 }
 </style>

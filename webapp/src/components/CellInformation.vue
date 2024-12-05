@@ -5,11 +5,11 @@
       <div class="col-md-8">
         <div id="sample-information" class="row">
           <div class="mb-3 col-sm-8">
-            <label for="cell-name" class="form-label mr-2">Name</label>
+            <label for="cell-name" class="form-label">Name</label>
             <input id="cell-name" v-model="Name" class="form-control" />
           </div>
           <div class="mb-3 col-sm-4">
-            <label for="cell-date" class="form-label mr-2">Date Created</label>
+            <label for="cell-date" class="form-label">Date Created</label>
             <input
               id="cell-date"
               v-model="DateCreated"
@@ -19,21 +19,21 @@
           </div>
         </div>
         <div class="row">
-          <div class="mb-3 col-md-3 col-sm-2 col-6 pr-2">
+          <div class="mb-3 col-md-3 col-sm-2 col-6">
             <label for="cell-refcode" class="form-label">Refcode</label>
             <div id="cell-refcode">
               <FormattedRefcode :refcode="Refcode" />
             </div>
           </div>
-          <div class="mb-3 col-md-3 col-sm-3 col-6 pb-3">
+          <div class="mb-3 col-md-3 col-sm-3 col-6">
             <ToggleableCreatorsFormGroup v-model="ItemCreators" :refcode="Refcode" />
           </div>
-          <div class="col-md-6 col-sm-7 pr-2">
+          <div class="col-md-6 col-sm-7">
             <ToggleableCollectionFormGroup v-model="Collections" />
           </div>
         </div>
         <div class="row">
-          <div class="mb-3 col-sm-4 pr-2">
+          <div class="mb-3 col-sm-4">
             <label for="cell-format-dropdown" class="form-label">Cell format</label>
             <select id="cell-format-dropdown" v-model="CellFormat" class="form-control">
               <option

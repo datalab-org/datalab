@@ -21,7 +21,7 @@
         <div
           v-for="selectedEntry in selectedEntries"
           :key="selectedEntry.relative_path"
-          class="selected-entry mr-4"
+          class="selected-entry"
         >
           <p class="mb-1 selected-file">
             {{ selectedEntry.name }}

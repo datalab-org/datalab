@@ -4,7 +4,7 @@
       <div class="col">
         <div id="collection-information" class="row">
           <div class="col-md-2">
-            <label id="creators" class="form-label mr-2">Creators</label>
+            <label id="creators" class="form-label">Creators</label>
             <div>
               <Creators :creators="CollectionCreators" :size="36" />
             </div>
