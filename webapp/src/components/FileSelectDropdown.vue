@@ -4,7 +4,12 @@
       <label class="form-label me-2 mb-0"><b>Select a file:</b></label>
     </div>
     <div class="col-auto">
-      <select class="form-select" :value="modelValue" @input="handleInput">
+      <select
+        class="form-select"
+        data-testid="file-select-dropdown"
+        :value="modelValue"
+        @input="handleInput"
+      >
         <option v-for="file_id in available_file_ids" :key="file_id" :value="file_id">
           {{ all_files_name(file_id) }}
         </option>
