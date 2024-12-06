@@ -6,16 +6,16 @@
       @update:model-value="$emit('update:modelValue', $event)"
     >
       <template #body>
-        <div class="form-row">
-          <div class="form-group">
-            <label for="sample-id" class="col-form-label"
+        <div class="row">
+          <div class="mb-3">
+            <label for="sample-id" class="form-label"
               >Enter your email address to receive a sign-in/registration link:</label
             >
             <input
               id="email-address"
               v-model="emailAddress"
               type="text"
-              class="form-control"
+              class="form-select"
               required
             />
             <div class="form-error">{{ emailValidationMessage }}</div>
