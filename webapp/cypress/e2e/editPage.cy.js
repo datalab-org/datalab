@@ -127,7 +127,7 @@ describe("Edit Page", () => {
   it("deletes synthesis components and re-adds them", () => {
     cy.get('[data-testid="search-input"]').type("editable_sample");
     cy.findByText("editable_sample").click();
-    cy.get("#synthesis-information tbody > tr:nth-of-type(1) .close").click();
+    cy.get("#synthesis-information tbody > tr:nth-of-type(1) .btn-close").click();
     cy.get("#synthesis-information tbody > tr").should("have.length", 2);
     cy.get("#synthesis-information tbody > tr:nth-of-type(1) td:nth-of-type(2) input").should(
       "have.value",
@@ -138,13 +138,14 @@ describe("Edit Page", () => {
       "pints",
     );
 
-    cy.get("#synthesis-information tbody > tr:nth-of-type(1) .close").click();
-    cy.get("#synthesis-information tbody > tr").should("have.length", 1);
-
     cy.get("svg.add-row-button").click();
     cy.get("#synthesis-information .vs__search").first().type("component2");
     cy.get(".vs__dropdown-menu").contains(".badge", "component2").click();
+    cy.get("#synthesis-information tbody > tr").should("have.length", 3);
+
+    cy.get("#synthesis-information tbody > tr:nth-of-type(1) .btn-close").click();
     cy.get("#synthesis-information tbody > tr").should("have.length", 2);
+
     cy.get("#synthesis-information").contains("component2");
     cy.get("#synthesis-information tbody > tr:nth-of-type(1) td:nth-of-type(2) input").should(
       "have.value",
@@ -270,7 +271,7 @@ describe("Edit Page", () => {
     cy.get('[data-testid="add-block-dropdown"]').findByText("Powder XRD").click();
 
     cy.findByText("Select a file:").should("exist");
-    cy.get("select.file-select-dropdown").select("example_data_XRD_example_bmb.xye");
+    cy.get('[data-testid="file-select-dropdown"]').select("example_data_XRD_example_bmb.xye");
     cy.contains("label", "X axis").should("exist");
     cy.contains("label", "Y axis").should("exist");
   });
@@ -286,7 +287,7 @@ describe("Edit Page", () => {
     cy.findByText("Add a block").click();
     cy.get('[data-testid="add-block-dropdown"]').findByText("Media").click();
     cy.findAllByText("Select a file:").eq(1).should("exist");
-    cy.get("select.file-select-dropdown").eq(1).select(test_fname);
+    cy.get('[data-testid="file-select-dropdown"]').eq(1).select(test_fname);
 
     // Check that the img with id "media-block-img" is present
     cy.get('img[data-testid="media-block-img"]').should("exist");

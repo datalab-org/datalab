@@ -1,10 +1,10 @@
 <template>
   <div v-if="showButtons" class="button-group d-flex justify-content-between align-items-center">
-    <div class="button-left">
+    <div class="button-left d-flex gap-2">
       <button
         v-if="dataType === 'samples'"
         data-testid="add-item-button"
-        class="btn btn-default ml-2"
+        class="btn btn-default"
         @click="$emit('open-create-item-modal')"
       >
         Add an item
@@ -12,7 +12,7 @@
       <button
         v-if="dataType === 'samples'"
         data-testid="batch-item-button"
-        class="btn btn-default ml-2"
+        class="btn btn-default"
         @click="$emit('open-batch-create-item-modal')"
       >
         Add batch of items
@@ -20,7 +20,7 @@
       <button
         v-if="dataType === 'samples'"
         data-testid="scan-qr-button"
-        class="btn btn-default ml-2"
+        class="btn btn-default"
         @click="$emit('open-qr-scanner-modal')"
       >
         <font-awesome-icon icon="qrcode" /> Scan QR
@@ -28,7 +28,7 @@
       <button
         v-if="dataType === 'collections'"
         data-testid="add-collection-button"
-        class="btn btn-default ml-2"
+        class="btn btn-default"
         @click="$emit('open-create-collection-modal')"
       >
         Create new collection
@@ -36,7 +36,7 @@
       <button
         v-if="dataType === 'startingMaterials' && editableInventory"
         data-testid="add-starting-material-button"
-        class="btn btn-default ml-2"
+        class="btn btn-default"
         @click="$emit('open-create-item-modal')"
       >
         Add a starting material
@@ -44,13 +44,13 @@
       <button
         v-if="dataType === 'equipment'"
         data-testid="add-equipment-button"
-        class="btn btn-default ml-2"
+        class="btn btn-default"
         @click="$emit('open-create-equipment-modal')"
       >
         Add an item
       </button>
     </div>
-    <div class="button-right d-flex">
+    <div class="button-right d-flex gap-2">
       <div class="dropdown">
         <button
           data-testid="selected-dropdown"
@@ -213,9 +213,5 @@ export default {
   font-size: 1rem;
   line-height: 1.5;
   border-radius: 0.25rem;
-}
-
-.button-right {
-  gap: 0.5em;
 }
 </style>

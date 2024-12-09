@@ -1,10 +1,10 @@
 <template>
   <div
     ref="outerdiv"
-    class="h-100 form-group clickable"
+    class="h-100 mb-3 clickable"
     @click="isEditingCollections = !isEditingCollections"
   >
-    <label id="collections" class="clickable">
+    <label id="collections" class="form-label clickable">
       Collections
       <font-awesome-icon
         id="edit-icon"
