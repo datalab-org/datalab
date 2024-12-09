@@ -138,13 +138,14 @@ describe("Edit Page", () => {
       "pints",
     );
 
-    cy.get("#synthesis-information tbody > tr:nth-of-type(1) .btn-close").click();
-    cy.get("#synthesis-information tbody > tr").should("have.length", 1);
-
     cy.get("svg.add-row-button").click();
     cy.get("#synthesis-information .vs__search").first().type("component2");
     cy.get(".vs__dropdown-menu").contains(".badge", "component2").click();
+    cy.get("#synthesis-information tbody > tr").should("have.length", 3);
+
+    cy.get("#synthesis-information tbody > tr:nth-of-type(1) .btn-close").click();
     cy.get("#synthesis-information tbody > tr").should("have.length", 2);
+
     cy.get("#synthesis-information").contains("component2");
     cy.get("#synthesis-information tbody > tr:nth-of-type(1) td:nth-of-type(2) input").should(
       "have.value",
