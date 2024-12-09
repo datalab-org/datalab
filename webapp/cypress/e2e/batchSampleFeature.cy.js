@@ -25,7 +25,7 @@ function getBatchTemplateCell(column, additionalSelectors = "") {
 
 function getBatchAddError(row, additionalSelectors = "") {
   return cy.get(
-    `[data-testid=batch-add-table] > tbody > tr:nth-of-type(${row * 2}) ${additionalSelectors}`,
+    `[data-testid=batch-add-table] > tbody > td:nth-of-type(${row}) ${additionalSelectors}`,
   );
 }
 
@@ -670,14 +670,14 @@ describe("Batch sample creation", () => {
     getBatchAddError(1).should("have.text", ""); // expect no error for this row
     getSubmitButton().should("be.disabled"); // but submit is still disabled because there are still errors
 
-    getBatchAddCell(3, 1).type("_unique");
-    getBatchAddError(1).should("have.text", ""); // expect no error
-    getBatchAddError(3).should("have.text", ""); // expect no error
-
     getBatchAddCell(2, 1).type("_unique");
-    getBatchAddError(1).should("have.text", ""); // expect no error
-    getBatchAddError(2).should("have.text", ""); // expect no error
-    getBatchAddError(3).should("have.text", ""); // expect no error
+    getBatchAddError(1).should("have.text", ""); // expect no error for this row
+    getBatchAddError(2).should("have.text", ""); // expect no error for this row
+
+    getBatchAddCell(3, 1).type("_unique");
+    getBatchAddError(1).should("have.text", ""); // expect no error for this row
+    getBatchAddError(2).should("have.text", ""); // expect no error for this row
+    getBatchAddError(3).should("have.text", ""); // expect no error for this row
 
     getBatchAddCell(2, 3).type("2000-01-01T10:05");
 
@@ -690,7 +690,7 @@ describe("Batch sample creation", () => {
     getSubmitButton().should("be.disabled");
 
     getBatchAddCell(4, 1).type("2");
-    getBatchAddError(4).should("have.text", ""); // expect no error
+    getBatchAddError(4).should("have.text", ""); // expect no error for this row
 
     getSubmitButton().should("not.be.disabled"); // now all errors are fixed so submit is enabled
     getSubmitButton().click();

@@ -269,12 +269,10 @@
                         ></button>
                       </td>
                     </tr>
-                    <tr v-if="isValidEntryID[index]">
-                      <td colspan="6" class="form-error">
-                        <!-- eslint-disable-next-line vue/no-v-html -->
-                        <span v-html="isValidEntryID[index]"></span>
-                      </td>
-                    </tr>
+                    <td v-show="isValidEntryID[index]" colspan="3">
+                      <!-- eslint-disable-next-line vue/no-v-html -->
+                      <span class="form-error" v-html="isValidEntryID[index]" />
+                    </td>
                   </template>
                 </tbody>
               </table>
