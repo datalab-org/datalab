@@ -11,7 +11,7 @@
     "lint": "eslint . --ext .vue,.js,.ts"
   },
   "dependencies": {
-    "@bokeh/bokehjs": "^3.6.1",
+    "@bokeh/bokehjs": "^2.4.0",
     "@fortawesome/fontawesome-svg-core": "^6.7.1",
     "@fortawesome/free-brands-svg-icons": "^6.7.1",
     "@fortawesome/free-regular-svg-icons": "^6.7.1",
