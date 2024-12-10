@@ -8,9 +8,9 @@
       <template #header> Create new collection </template>
 
       <template #body>
-        <div class="form-row">
-          <div class="form-group col-md-6">
-            <label for="collection-id" class="col-form-label">Collection ID:</label>
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label for="collection-id" class="form-label">Collection ID:</label>
             <input
               id="collection-id"
               v-model="collection_id"
@@ -22,15 +22,15 @@
             <div class="form-error" v-html="isValidEntryID"></div>
           </div>
         </div>
-        <div class="form-row">
-          <div class="form-group col-md-12">
+        <div class="row">
+          <div class="col-md-12 mb-3">
             <label for="title">Full title:</label>
             <input id="title" v-model="title" type="text" class="form-control" />
           </div>
         </div>
-        <div class="form-row">
-          <div class="col-md-12 form-group">
-            <label id="startWithMembers">(Optional) Start with members:</label>
+        <div class="row">
+          <div class="col-md-12 mb-3">
+            <label id="startWithMembers" class="form-label">(Optional) Start with members:</label>
             <ItemSelect
               v-model="startingMembers"
               aria-labelledby="startWithMembersLabel"

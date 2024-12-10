@@ -8,21 +8,19 @@
       <template #header> Add equipment </template>
 
       <template #body>
-        <div class="form-row">
-          <div class="form-group col-md-6">
-            <label for="equipment-id" class="col-form-label">ID:</label>
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label for="equipment-id" class="form-label">ID:</label>
             <input id="equipment-id" v-model="item_id" type="text" class="form-control" required />
             <!-- eslint-disable-next-line vue/no-v-html -->
             <div class="form-error" v-html="isValidEntryID"></div>
           </div>
-          <div class="form-group col-md-6">
-            <label for="create-equipment-modal-item-type-select" class="col-form-label"
-              >Type:</label
-            >
+          <div class="col-md-6 mb-3">
+            <label for="create-equipment-modal-item-type-select" class="form-label">Type:</label>
             <select
               id="create-equipment-modal-item-type-select"
               v-model="item_type"
-              class="form-control"
+              class="form-select"
               required
               disabled
             >
@@ -31,8 +29,8 @@
               </option>
             </select>
           </div>
-          <div class="form-group col-md-6">
-            <label for="create-equipment-modal-date" class="col-form-label">Date Created:</label>
+          <div class="col-md-6 mb-3">
+            <label for="create-equipment-modal-date" class="form-label">Date Created:</label>
             <input
               id="create-equipment-modal-date"
               v-model="date"
@@ -44,8 +42,8 @@
             />
           </div>
         </div>
-        <div class="form-row">
-          <div class="form-group col-md-12">
+        <div class="row">
+          <div class="col-md-12 mb-3">
             <label for="create-equipment-modal-name">Name:</label>
             <input
               id="create-equipment-modal-name"
@@ -56,8 +54,8 @@
           </div>
         </div>
         <!-- All item types can be added to a collection, so this is always available -->
-        <!--         <div class="form-row">
-          <div class="col-md-12 form-group">
+        <!--         <div class="row">
+          <div class="col-md-12 mb-3">
             <label id="startInCollection">(Optional) Insert into collection:</label>
             <CollectionSelect
               aria-labelledby="startInCollection"
@@ -66,9 +64,9 @@
             />
           </div>
         </div> -->
-        <div class="form-row">
-          <div class="col-md-12 form-group">
-            <label id="copyFromSelectLabel"
+        <div class="row">
+          <div class="col-md-12 mb-3">
+            <label id="copyFromSelectLabel" class="form-label"
               >(Optional) Copy from existing {{ itemTypeDisplayName }}:</label
             >
             <ItemSelect
