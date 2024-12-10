@@ -1,10 +1,10 @@
 <template>
-  <table style="width: 600px" class="table table-sm borderless">
+  <table class="table table-sm borderless w-100">
     <colgroup>
-      <col span="1" style="width: 300px" />
-      <col span="1" style="width: 75px" />
-      <col span="1" style="width: 50px" />
-      <col span="1" style="width: 25px" />
+      <col span="1" class="w-50" />
+      <col span="1" class="w-25" />
+      <col span="1" class="w-15" />
+      <col span="1" class="w-10" />
     </colgroup>
     <tbody>
       <tr v-for="(constituent, index) in constituents" :key="index">

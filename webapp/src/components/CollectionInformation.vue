@@ -3,7 +3,7 @@
     <div class="row">
       <div class="col">
         <div id="collection-information" class="row">
-          <div class="col-md-2">
+          <div class="col-md-2 mb-3">
             <label id="creators" class="form-label">Creators</label>
             <div>
               <Creators :creators="CollectionCreators" :size="36" />

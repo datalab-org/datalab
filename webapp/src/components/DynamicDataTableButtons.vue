@@ -1,92 +1,168 @@
 <template>
-  <div v-if="showButtons" class="button-group d-flex justify-content-between align-items-center">
-    <div class="button-left d-flex gap-2">
-      <button
-        v-if="dataType === 'samples'"
-        data-testid="add-item-button"
-        class="btn btn-default"
-        @click="$emit('open-create-item-modal')"
-      >
-        Add an item
-      </button>
-      <button
-        v-if="dataType === 'samples'"
-        data-testid="batch-item-button"
-        class="btn btn-default"
-        @click="$emit('open-batch-create-item-modal')"
-      >
-        Add batch of items
-      </button>
-      <button
-        v-if="dataType === 'samples'"
-        data-testid="scan-qr-button"
-        class="btn btn-default"
-        @click="$emit('open-qr-scanner-modal')"
-      >
-        <font-awesome-icon icon="qrcode" /> Scan QR
-      </button>
-      <button
-        v-if="dataType === 'collections'"
-        data-testid="add-collection-button"
-        class="btn btn-default"
-        @click="$emit('open-create-collection-modal')"
-      >
-        Create new collection
-      </button>
-      <button
-        v-if="dataType === 'startingMaterials' && editableInventory"
-        data-testid="add-starting-material-button"
-        class="btn btn-default"
-        @click="$emit('open-create-item-modal')"
-      >
-        Add a starting material
-      </button>
-      <button
-        v-if="dataType === 'equipment'"
-        data-testid="add-equipment-button"
-        class="btn btn-default"
-        @click="$emit('open-create-equipment-modal')"
-      >
-        Add an item
-      </button>
+  <div v-if="showButtons" class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <!-- Section gauche : Boutons ou dropdown -->
+    <div class="d-flex flex-grow-1 align-items-center gap-2">
+      <!-- Dropdown visible automatiquement en mobile -->
+      <div class="d-lg-none dropdown">
+        <button
+          class="btn btn-default dropdown-toggle"
+          type="button"
+          data-bs-toggle="dropdown"
+          aria-expanded="false"
+        >
+          Add...
+        </button>
+        <ul class="dropdown-menu">
+          <li>
+            <button
+              v-if="dataType === 'samples'"
+              data-testid="add-item-button"
+              class="dropdown-item"
+              @click="$emit('open-create-item-modal')"
+            >
+              Add an item
+            </button>
+          </li>
+          <li>
+            <button
+              v-if="dataType === 'samples'"
+              data-testid="batch-item-button"
+              class="dropdown-item"
+              @click="$emit('open-batch-create-item-modal')"
+            >
+              Add batch of items
+            </button>
+          </li>
+          <li>
+            <button
+              v-if="dataType === 'samples'"
+              data-testid="scan-qr-button"
+              class="dropdown-item"
+              @click="$emit('open-qr-scanner-modal')"
+            >
+              <font-awesome-icon icon="qrcode" /> Scan QR
+            </button>
+          </li>
+          <li>
+            <button
+              v-if="dataType === 'collections'"
+              data-testid="add-collection-button"
+              class="dropdown-item"
+              @click="$emit('open-create-collection-modal')"
+            >
+              Create new collection
+            </button>
+          </li>
+          <li>
+            <button
+              v-if="dataType === 'startingMaterials' && editableInventory"
+              data-testid="add-starting-material-button"
+              class="dropdown-item"
+              @click="$emit('open-create-item-modal')"
+            >
+              Add a starting material
+            </button>
+          </li>
+          <li>
+            <button
+              v-if="dataType === 'equipment'"
+              data-testid="add-equipment-button"
+              class="dropdown-item"
+              @click="$emit('open-create-equipment-modal')"
+            >
+              Add an item
+            </button>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Boutons visibles en grand écran -->
+      <div class="d-none d-lg-flex gap-2">
+        <button
+          v-if="dataType === 'samples'"
+          data-testid="add-item-button"
+          class="btn btn-default"
+          @click="$emit('open-create-item-modal')"
+        >
+          Add an item
+        </button>
+        <button
+          v-if="dataType === 'samples'"
+          data-testid="batch-item-button"
+          class="btn btn-default"
+          @click="$emit('open-batch-create-item-modal')"
+        >
+          Add batch of items
+        </button>
+        <button
+          v-if="dataType === 'samples'"
+          data-testid="scan-qr-button"
+          class="btn btn-default"
+          @click="$emit('open-qr-scanner-modal')"
+        >
+          <font-awesome-icon icon="qrcode" /> Scan QR
+        </button>
+        <button
+          v-if="dataType === 'collections'"
+          data-testid="add-collection-button"
+          class="btn btn-default"
+          @click="$emit('open-create-collection-modal')"
+        >
+          Create new collection
+        </button>
+        <button
+          v-if="dataType === 'startingMaterials' && editableInventory"
+          data-testid="add-starting-material-button"
+          class="btn btn-default"
+          @click="$emit('open-create-item-modal')"
+        >
+          Add a starting material
+        </button>
+        <button
+          v-if="dataType === 'equipment'"
+          data-testid="add-equipment-button"
+          class="btn btn-default"
+          @click="$emit('open-create-equipment-modal')"
+        >
+          Add an item
+        </button>
+      </div>
     </div>
-    <div class="button-right d-flex gap-2">
+
+    <!-- Section droite : Dropdown "Selected" et recherche -->
+    <div class="d-flex align-items-center gap-2">
       <div class="dropdown">
         <button
           data-testid="selected-dropdown"
           class="btn btn-default dropdown-toggle"
           type="button"
-          data-toggle="dropdown"
-          aria-haspopup="true"
-          aria-expanded="false"
+          data-bs-toggle="dropdown"
           :disabled="itemsSelected.length === 0"
-          @click="isSelectedDropdownVisible = !isSelectedDropdownVisible"
         >
           {{ itemsSelected.length > 0 ? `${itemsSelected.length} selected... ` : "Selected... " }}
         </button>
-        <div
-          v-show="isSelectedDropdownVisible"
-          class="dropdown-menu"
-          style="display: block"
-          aria-labelledby="dropdownMenuButton"
-        >
-          <a
-            v-if="itemsSelected.length !== 0 && dataType !== 'collections'"
-            data-testid="add-to-collection-button"
-            class="dropdown-item"
-            @click="handleAddToCollection"
-          >
-            Add to collection
-          </a>
-          <a
-            v-if="itemsSelected.length !== 0"
-            data-testid="delete-selected-button"
-            class="dropdown-item"
-            @click="confirmDeletion"
-          >
-            Delete selected
-          </a>
-        </div>
+        <ul class="dropdown-menu">
+          <li>
+            <a
+              v-if="itemsSelected.length !== 0 && dataType !== 'collections'"
+              data-testid="add-to-collection-button"
+              class="dropdown-item"
+              @click="handleAddToCollection"
+            >
+              Add to collection
+            </a>
+          </li>
+          <li>
+            <a
+              v-if="itemsSelected.length !== 0"
+              data-testid="delete-selected-button"
+              class="dropdown-item"
+              @click="confirmDeletion"
+            >
+              Delete selected
+            </a>
+          </li>
+        </ul>
       </div>
 
       <IconField>
@@ -96,8 +172,9 @@
         <InputText
           v-model="localFilters.global.value"
           data-testid="search-input"
-          class="search-input"
+          class="search-input w-100"
           placeholder="Search"
+          style="max-width: 150px"
         />
       </IconField>
     </div>

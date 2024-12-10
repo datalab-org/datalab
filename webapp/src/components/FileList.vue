@@ -2,7 +2,11 @@
   <div class="container">
     <label class="form-label me-2">Files</label>
     <div class="card">
-      <div id="filearea" class="card-body overflow-auto">
+      <div
+        v-show="Object.keys(stored_files).length > 0"
+        id="filearea"
+        class="card-body overflow-auto pb-0"
+      >
         <div v-for="(file, file_id) in stored_files" :key="file_id" class="file-group">
           <a @click="deleteFile($event, file_id)">
             <font-awesome-icon icon="times" fixed-width class="delete-file-button" />
@@ -51,7 +55,7 @@
           </span>
         </div>
       </div>
-      <div class="d-flex align-items-center mb-3 ms-3 gap-2">
+      <div class="d-flex align-items-center mt-3 mb-3 ms-3 gap-2">
         <button id="uppy-trigger" class="btn btn-default btn-sm" type="button">
           Upload files...</button
         ><!-- Surrounding divs so that buttons  don't become full-width in the card -->
