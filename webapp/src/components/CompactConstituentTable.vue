@@ -1,5 +1,5 @@
 <template>
-  <table class="table table-sm borderless w-75">
+  <table class="table table-sm borderless w-100">
     <colgroup>
       <col span="1" class="w-50" />
       <col span="1" class="w-25" />
