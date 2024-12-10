@@ -44,8 +44,8 @@ export default {
   },
   props: {
     modelValue: {
-      type: String,
-      default: "",
+      type: [Array, String],
+      default: () => [],
     },
   },
   emits: ["update:modelValue"],
