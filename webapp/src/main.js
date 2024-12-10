@@ -1,7 +1,7 @@
 // import BootstrapVue from 'bootstrap-vue';
 
 import "bootstrap/dist/css/bootstrap.css";
-// import 'bootstrap-vue/dist/bootstrap-vue.css'
+// import "bootstrap-vue/dist/bootstrap-vue.css";
 
 import { API_URL } from "@/resources.js";
 import { createApp } from "vue";
