@@ -3,6 +3,9 @@
 </template>
 
 <style>
+@import url("https://fonts.googleapis.com/css?family=Figtree");
+@import url("https://fonts.googleapis.com/css?family=Roboto+Mono");
+
 body {
   margin: 0rem !important; /* for some reason, tinymce sets margin 1rem globally :o */
 }
@@ -11,8 +14,6 @@ body {
   scroll-margin-top: 3.5rem;
 }
 
-@import url("https://fonts.googleapis.com/css?family=Figtree");
-@import url("https://fonts.googleapis.com/css?family=Roboto+Mono");
 #app {
   font-family: Figtree, Avenir, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
