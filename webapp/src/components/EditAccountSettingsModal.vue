@@ -10,18 +10,18 @@
       <template #header> Account settings </template>
 
       <template #body>
-        <div class="mx-auto align-center text-center p-4">
+        <div class="mx-auto d-flex justify-content-center align-items-center p-4">
           <UserBubble :creator="user" :size="128" />&nbsp;
         </div>
-        <div class="form-row">
-          <div class="form-group col-md-8 mx-auto text-justify">
+        <div class="row mb-3">
+          <div class="col-md-8 mx-auto text-justify">
             You can add an avatar by registering your <i>datalab</i> contact email at
             <a href="https://gravatar.com" target="_blank">gravatar.com</a>.
           </div>
         </div>
-        <div class="form-row">
-          <div class="form-group col-md-8">
-            <label for="account-name" class="col-form-label">Name:</label>
+        <div class="row mb-3">
+          <div class="col-md-8">
+            <label for="account-name" class="form-label">Name:</label>
             <input
               id="account-name"
               v-model="user.display_name"
@@ -32,9 +32,9 @@
             <div class="form-error">{{ displayNameValidationMessage }}</div>
           </div>
         </div>
-        <div class="form-row">
-          <div class="form-group col-md-8">
-            <label for="account-email" class="col-form-label">Contact email:</label>
+        <div class="row mb-3">
+          <div class="col-md-8">
+            <label for="account-email" class="form-label">Contact email:</label>
             <input
               id="account-email"
               v-model="user.contact_email"
@@ -45,13 +45,13 @@
             <div class="form-error">{{ contactEmailValidationMessage }}</div>
           </div>
         </div>
-        <div class="form-row">
-          <div class="form-group col-md-6">
-            <label for="connected-accounts" class="col-form-label">Connected accounts:</label>
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <label for="connected-accounts" class="form-label">Connected accounts:</label>
             <a
               v-if="user.identities.some((identity) => identity.identity_type === 'github')"
               type="button"
-              class="dropdown-item btn login btn-link btn-default"
+              class="dropdown-item btn btn-link"
               :href="
                 'https://github.com/' +
                 user.identities.find((identity) => identity.identity_type === 'github').name
@@ -64,19 +64,19 @@
             <a
               v-else-if="showGitHub"
               type="button"
-              class="dropdown-item btn login btn-link btn-default"
+              class="dropdown-item btn btn-link"
               aria-label="Login via GitHub"
               :href="apiUrl + '/login/github'"
               ><font-awesome-icon :icon="['fab', 'github']" /> Connect your GitHub account</a
             >
           </div>
         </div>
-        <div class="form-row">
-          <div class="form-group col-md-6">
+        <div class="row mb-3">
+          <div class="col-md-6">
             <a
               v-if="user.identities.some((identity) => identity.identity_type === 'orcid')"
               type="button"
-              class="dropdown-item btn login btn-link btn-default"
+              class="dropdown-item btn btn-link"
               :href="
                 'https://orcid.org/' +
                 user.identities.find((identity) => identity.identity_type === 'orcid').name
@@ -88,7 +88,7 @@
             <a
               v-else-if="showORCID"
               type="button"
-              class="dropdown-item btn login btn-link btn-default"
+              class="dropdown-item btn btn-link"
               aria-label="Connect ORCID account"
               :href="apiUrl + '/login/orcid'"
               ><font-awesome-icon class="orcid-icon" :icon="['fab', 'orcid']" /> Connect your
@@ -96,24 +96,24 @@
             >
           </div>
         </div>
-        <div class="form-row">
-          <div class="form-group col-md-12">
-            <label for="api-key" class="col-form-label">API Key:</label>
-            <div v-if="apiKeyDisplayed" class="input-group">
+        <div class="row mb-3">
+          <div class="col-md-12">
+            <label for="api-key" class="form-label">API Key:</label>
+
+            <div v-if="apiKeyDisplayed" class="input-group mb-3">
               <StyledInput
                 v-model="apiKey"
                 :readonly="true"
                 :help-message="apiKeyHelpMessage"
                 class="form-control"
               />
-              <div class="input-group-append">
-                <button class="btn btn-outline-secondary" type="button" @click="copyToClipboard">
-                  <font-awesome-icon icon="copy" />
-                </button>
-              </div>
+              <button class="btn btn-outline-secondary" type="button" @click="copyToClipboard">
+                <font-awesome-icon icon="copy" />
+              </button>
             </div>
-            <div class="input-group">
-              <button class="btn btn-default mt-2" @click="requestAPIKey">
+
+            <div class="mt-3">
+              <button class="btn btn-default" type="button" @click="requestAPIKey">
                 Regenerate API Key
               </button>
             </div>
