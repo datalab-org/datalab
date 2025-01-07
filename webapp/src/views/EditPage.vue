@@ -4,12 +4,13 @@
     class="navbar navbar-expand sticky-top navbar-dark py-0 editor-navbar"
     :style="{ backgroundColor: navbarColor }"
   >
+    <div v-show="false" class="navbar-nav"><LoginDetails /></div>
     <span class="navbar-brand clickable" @click="scrollToID($event, 'topScrollPoint')"
       >{{ itemTypeEntry?.navbarName || "loading..." }}&nbsp;&nbsp;|&nbsp;&nbsp;
       <FormattedItemName :item_id="item_id" :item-type="itemType" />
     </span>
     <div class="navbar-nav">
-      <a class="nav-item nav-link" href="/">Home</a>
+      <router-link class="nav-item nav-link" to="/">Home</router-link>
       <div class="nav-item dropdown">
         <a
           id="navbarDropdown"
@@ -26,6 +27,7 @@
           v-if="blockInfoLoaded"
           v-show="isMenuDropdownVisible"
           class="dropdown-menu"
+          data-testid="add-block-dropdown"
           style="display: block"
           aria-labelledby="navbarDropdown"
         >
@@ -60,7 +62,7 @@
   <div class="editor-body">
     <component :is="itemTypeEntry?.itemInformationComponent" :item_id="item_id" />
 
-    <FileList :item_id="item_id" :file_ids="file_ids" :stored_files="stored_files" />
+    <FileList :item_id="item_id" :stored_files="stored_files" />
 
     <div class="container">
       <hr />
@@ -103,6 +105,7 @@ import {
   updateBlockFromServer,
   getBlocksInfos,
 } from "@/server_fetch_utils";
+import LoginDetails from "@/components/LoginDetails";
 import FormattedItemName from "@/components/FormattedItemName";
 
 import setupUppy from "@/file_upload.js";
@@ -121,6 +124,7 @@ export default {
     TinyMceInline,
     SelectableFileTree,
     FileList,
+    LoginDetails,
     FileSelectModal,
     FormattedItemName,
     StyledBlockHelp,
@@ -179,13 +183,10 @@ export default {
       return allBlocksAreSaved && this.$store.state.saved_status_items[this.item_id];
     },
     files() {
-      return this.item_data.files;
-    },
-    file_ids() {
-      return this.item_data.file_ObjectIds;
+      return this.item_data.files || [];
     },
     stored_files() {
-      return this.$store.state.files;
+      return Object.fromEntries(this.files.map((file) => [file.immutable_id, file]));
     },
     blocksInfos() {
       return this.$store.state.blocksInfos;
@@ -227,7 +228,7 @@ export default {
     // this.updateRemoteTree()
 
     // setup the uppy instsance
-    setupUppy(this.item_id, "#uppy-trigger", this.stored_files);
+    setupUppy(this.item_id, "#uppy-trigger", {});
   },
   beforeUnmount() {
     document.removeEventListener("keydown", this._keyListener);
@@ -313,9 +314,7 @@ export default {
       if (item_date == null) {
         this.lastModified = "Unknown";
       } else {
-        // API dates are in UTC but missing Z suffix
-        const save_date = new Date(item_date + "Z");
-        this.lastModified = formatDistanceToNow(save_date, { addSuffix: true });
+        this.lastModified = formatDistanceToNow(new Date(item_date), { addSuffix: true });
       }
     },
   },

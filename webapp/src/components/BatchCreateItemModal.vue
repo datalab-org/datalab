@@ -77,95 +77,97 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <td>
-                      <input
-                        v-model="itemTemplate.item_id"
-                        class="form-control"
-                        :placeholder="generateIDsAutomatically ? null : 'ex_{#}'"
-                        :disabled="generateIDsAutomatically"
-                        @input="applyIdTemplate"
-                      />
-                      <div class="form-check mt-1 ml-1">
+                    <tr>
+                      <td>
                         <input
-                          id="automatic-batch-id-label"
-                          v-model="generateIDsAutomatically"
-                          type="checkbox"
-                          class="form-check-input clickable"
-                          @input="setIDsNull"
+                          v-model="itemTemplate.item_id"
+                          class="form-control"
+                          :placeholder="generateIDsAutomatically ? null : 'ex_{#}'"
+                          :disabled="generateIDsAutomatically"
+                          @input="applyIdTemplate"
                         />
-                        <label
-                          id="automatic-id-label"
-                          class="form-check-label clickable"
-                          for="automatic-batch-id-label"
-                        >
-                          auto IDs
-                        </label>
-                      </div>
-                    </td>
-                    <td>
-                      <input
-                        v-model="itemTemplate.name"
-                        class="form-control"
-                        placeholder="Example name {#}"
-                        @input="applyNameTemplate"
-                      />
-                    </td>
-                    <td>
-                      <input
-                        v-model="itemTemplate.date"
-                        class="form-control"
-                        type="datetime-local"
-                        :min="epochStart"
-                        :max="oneYearOn"
-                        @input="applyDateTemplate"
-                      />
-                    </td>
-                    <td>
-                      <ItemSelect
-                        v-model="itemTemplate.copyFrom"
-                        :formatted-item-name-max-length="8"
-                        @update:model-value="applyCopyFromTemplate"
-                      />
-                    </td>
-                    <td>
-                      <div v-if="item_type == 'samples'">
+                        <div class="form-check mt-1 ml-1">
+                          <input
+                            id="automatic-batch-id-label"
+                            v-model="generateIDsAutomatically"
+                            type="checkbox"
+                            class="form-check-input clickable"
+                            @input="setIDsNull"
+                          />
+                          <label
+                            id="automatic-id-label"
+                            class="form-check-label clickable"
+                            for="automatic-batch-id-label"
+                          >
+                            auto IDs
+                          </label>
+                        </div>
+                      </td>
+                      <td>
+                        <input
+                          v-model="itemTemplate.name"
+                          class="form-control"
+                          placeholder="Example name {#}"
+                          @input="applyNameTemplate"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          v-model="itemTemplate.date"
+                          class="form-control"
+                          type="datetime-local"
+                          :min="epochStart"
+                          :max="oneYearOn"
+                          @input="applyDateTemplate"
+                        />
+                      </td>
+                      <td>
                         <ItemSelect
-                          v-model="itemTemplate.components"
-                          multiple
+                          v-model="itemTemplate.copyFrom"
                           :formatted-item-name-max-length="8"
-                          taggable
-                          @update:model-value="applyComponentsTemplate"
+                          @update:model-value="applyCopyFromTemplate"
                         />
-                      </div>
-                      <div v-if="item_type == 'cells'">
-                        <ItemSelect
-                          v-model="itemTemplate.positiveElectrode"
-                          multiple
-                          :formatted-item-name-max-length="8"
-                          taggable
-                          placeholder="positive electrode"
-                          @update:model-value="applyPositiveElectrodeTemplate"
-                        />
-                        <ItemSelect
-                          v-model="itemTemplate.electrolyte"
-                          multiple
-                          :formatted-item-name-max-length="8"
-                          class="pt-1"
-                          taggable
-                          placeholder="electrolyte"
-                          @update:model-value="applyElectrolyteTemplate"
-                        />
-                        <ItemSelect
-                          v-model="itemTemplate.negativeElectrode"
-                          multiple
-                          :formatted-item-name-max-length="8"
-                          class="pt-1"
-                          taggable
-                          placeholder="negative electrode"
-                          @update:model-value="applyNegativeElectrodeTemplate"
-                        />
-                      </div>
-                    </td>
+                      </td>
+                      <td>
+                        <div v-if="item_type == 'samples'">
+                          <ItemSelect
+                            v-model="itemTemplate.components"
+                            multiple
+                            :formatted-item-name-max-length="8"
+                            taggable
+                            @update:model-value="applyComponentsTemplate"
+                          />
+                        </div>
+                        <div v-if="item_type == 'cells'">
+                          <ItemSelect
+                            v-model="itemTemplate.positiveElectrode"
+                            multiple
+                            :formatted-item-name-max-length="8"
+                            taggable
+                            placeholder="positive electrode"
+                            @update:model-value="applyPositiveElectrodeTemplate"
+                          />
+                          <ItemSelect
+                            v-model="itemTemplate.electrolyte"
+                            multiple
+                            :formatted-item-name-max-length="8"
+                            class="pt-1"
+                            taggable
+                            placeholder="electrolyte"
+                            @update:model-value="applyElectrolyteTemplate"
+                          />
+                          <ItemSelect
+                            v-model="itemTemplate.negativeElectrode"
+                            multiple
+                            :formatted-item-name-max-length="8"
+                            class="pt-1"
+                            taggable
+                            placeholder="negative electrode"
+                            @update:model-value="applyNegativeElectrodeTemplate"
+                          />
+                        </div>
+                      </td>
+                    </tr>
                   </tbody>
                 </table>
 
@@ -333,7 +335,7 @@ import Modal from "@/components/Modal.vue";
 import ItemSelect from "@/components/ItemSelect.vue";
 import { createNewSamples } from "@/server_fetch_utils.js";
 import { validateEntryID } from "@/field_utils.js";
-import { itemTypes, SAMPLE_TABLE_TYPES } from "@/resources.js";
+import { itemTypes, SAMPLE_TABLE_TYPES, AUTOMATICALLY_GENERATE_ID_DEFAULT } from "@/resources.js";
 export default {
   name: "BatchCreateItemModal",
   components: {
@@ -354,7 +356,7 @@ export default {
       epochStart: new Date("1970-01-01").toISOString().slice(0, -8),
       oneYearOn: this.determineOneYearOn(),
       nSamples: 3,
-      generateIDsAutomatically: false,
+      generateIDsAutomatically: AUTOMATICALLY_GENERATE_ID_DEFAULT,
       item_type: "samples",
       items: [
         {

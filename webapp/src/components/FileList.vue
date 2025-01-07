@@ -3,43 +3,39 @@
     <label class="mr-2">Files</label>
     <div class="card">
       <div id="filearea" class="card-body overflow-auto">
-        <div v-for="file_id in file_ids" :key="file_id" class="file-group">
+        <div v-for="(file, file_id) in stored_files" :key="file_id" class="file-group">
           <a @click="deleteFile($event, file_id)">
             <font-awesome-icon icon="times" fixed-width class="delete-file-button" />
           </a>
-          <a
-            class="filelink"
-            target="_blank"
-            :href="`${$API_URL}/files/${file_id}/${stored_files[file_id].name}`"
-          >
-            {{ stored_files[file_id].name }}
+          <a class="filelink" target="_blank" :href="`${$API_URL}/files/${file_id}/${file.name}`">
+            {{ file.name }}
           </a>
           <font-awesome-icon
-            v-if="stored_files[file_id].is_live == true"
+            v-if="file.is_live == true"
             v-show="true"
             class="link-icon"
             :icon="['fa', 'link']"
           />
           <font-awesome-icon
-            v-else-if="stored_files[file_id].source_server_name != null"
+            v-else-if="file.source_server_name != null"
             v-show="true"
             class="unlink-icon"
             :icon="['fa', 'unlink']"
           />
-          <span v-if="stored_files[file_id].source_server_name != null">
+          <span v-if="file.source_server_name != null">
             <span class="server-name">
               <font-awesome-icon :icon="['fas', 'hdd']" class="toplevel-icon" />
-              {{ stored_files[file_id].source_server_name }}
+              {{ file.source_server_name }}
             </span>
             <span class="last-updated-text">
               (updated
               {{
-                formatDistance(new Date(stored_files[file_id].last_modified_remote), new Date(), {
+                formatDistance(new Date(file.last_modified_remote), new Date(), {
                   addSuffix: true,
                 })
               }}, last synced
               {{
-                formatDistance(new Date(stored_files[file_id].last_modified), new Date(), {
+                formatDistance(new Date(file.last_modified), new Date(), {
                   addSuffix: true,
                 })
               }})
@@ -48,7 +44,7 @@
           <span v-else class="last-updated-text">
             (uploaded
             {{
-              formatDistance(new Date(stored_files[file_id].last_modified), new Date(), {
+              formatDistance(new Date(file.last_modified), new Date(), {
                 addSuffix: true,
               })
             }})
@@ -81,10 +77,6 @@ export default {
       type: String,
       required: true,
     },
-    file_ids: {
-      type: Array,
-      default: () => [],
-    },
     stored_files: {
       type: Object,
       default: () => ({}),
@@ -98,8 +90,6 @@ export default {
   methods: {
     formatDistance,
     deleteFile(event, file_id) {
-      console.log(`delete file button clicked!`);
-      console.log(event);
       deleteFileFromSample(this.item_id, file_id);
       return false;
     },

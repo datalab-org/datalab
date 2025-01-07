@@ -134,7 +134,9 @@ def create_collection():
             409,  # 409: Conflict
         )
 
-    data["last_modified"] = data.get("last_modified", datetime.datetime.now().isoformat())
+    data["last_modified"] = data.get(
+        "last_modified", datetime.datetime.now(datetime.timezone.utc).isoformat()
+    )
 
     try:
         data_model = Collection(**data)
@@ -235,7 +237,7 @@ def save_collection(collection_id):
         if k in updated_data:
             del updated_data[k]
 
-    updated_data["last_modified"] = datetime.datetime.now().isoformat()
+    updated_data["last_modified"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
 
     collection = flask_mongo.db.collections.find_one(
         {"collection_id": collection_id, **get_default_permissions(user_only=True)}
@@ -291,7 +293,10 @@ def delete_collection(collection_id: str):
                 projection={"_id": 1},
             )["_id"]
             result = flask_mongo.db.collections.delete_one(
-                {"collection_id": collection_id, **get_default_permissions(user_only=True)}
+                {
+                    "collection_id": collection_id,
+                    **get_default_permissions(user_only=True, deleting=True),
+                }
             )
             if result.deleted_count != 1:
                 return (

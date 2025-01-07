@@ -54,7 +54,7 @@ server = [
     "Flask-Compress ~= 1.15",
     "Werkzeug ~= 3.0",
     "python-dotenv ~= 1.0",
-    "pillow ~= 10.4",
+    "pillow ~= 11.0",
     "pyjwt ~= 2.9",
     "invoke ~= 2.2",
     "paramiko ~= 3.4",
@@ -75,7 +75,8 @@ apps = [
     "python-dateutil ~= 2.9",
 ]
 chat = [
-    "langchain == 0.2.6",
+    # Hard upper pin on langchain is 0.3 as pydantic is not supported
+    "langchain >= 0.2.6, < 0.3",
     "langchain-openai ~= 0.1",
     "langchain-anthropic ~= 0.1",
     "tiktoken ~= 0.7",
@@ -101,7 +102,7 @@ line-length = 100
 target-version = "py310"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "W", "Q"]
+select = ["E", "F", "I", "W", "Q", "DTZ"]
 ignore = ["E501", "E402"]
 fixable = ["A", "B", "C", "D", "E", "F", "I"]
 unfixable = []

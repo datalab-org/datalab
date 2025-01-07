@@ -231,9 +231,9 @@ class ServerConfig(BaseSettings):
     )
 
     MAX_CONTENT_LENGTH: int = Field(
-        100 * 1000 * 1000,
+        10 * 1000**3,
         description=r"""Direct mapping to the equivalent Flask setting. In practice, limits the file size that can be uploaded.
-Defaults to 100 GB to avoid filling the tmp directory of a server.
+Defaults to 10 GB to avoid filling the tmp directory of a server.
 
 Warning: this value will overwrite any other values passed to `FLASK_MAX_CONTENT_LENGTH` but is included here to clarify
 its importance when deploying a datalab instance.""",

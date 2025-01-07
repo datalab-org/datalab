@@ -203,15 +203,14 @@ describe("Edit Page", () => {
   it("Add some blocks to the sample and checks unsaved warning behavior", () => {
     cy.get('[data-testid="search-input"]').type("editable_sample");
     cy.findByText("editable_sample").click();
-    cy.findByLabelText("Name").should("have.value", "This is a sample name");
 
     cy.findByText("Add a block").click();
-    cy.get(".dropdown-menu").findByText("Comment").click();
+    cy.get('[data-testid="add-block-dropdown"]').findByText("Comment").click();
 
     cy.contains("Unsaved changes").should("not.exist");
 
     cy.findByText("Add a block").click();
-    cy.get(".dropdown-menu").findByText("Comment").click();
+    cy.get('[data-testid="add-block-dropdown"]').findByText("Comment").click();
 
     cy.contains("Unsaved changes").should("not.exist");
 
@@ -245,5 +244,51 @@ describe("Edit Page", () => {
     cy.findByText("Home").click();
     cy.get('[data-testid="search-input"]').type("editable_sample");
     cy.get("[data-testid=sample-table] tr:nth-of-type(1) > td:nth-of-type(9)").contains(2); // 2 blocks are present
+  });
+
+  it("Clicks the upload buttons and checks that the modals are shown", () => {
+    cy.get('[data-testid="search-input"]').type("editable_sample");
+    cy.findByText("editable_sample").click();
+
+    cy.findByText("Upload files...").click();
+    cy.get(".uppy-Dashboard-AddFiles-title").should("contain.text", "Drop files here,");
+    cy.get(".uppy-Dashboard-AddFiles-title").should("contain.text", "browse files");
+    cy.get(".uppy-Dashboard-AddFiles-title").should("contain.text", "or import from:");
+    cy.findByLabelText("Close Modal").click();
+
+    cy.findByText("Add files from server...").click();
+    cy.findByText("Select files to add").should("exist");
+  });
+
+  it("Uploads an XRD file, makes an XRD block and checks that the plot works", () => {
+    cy.uploadFileViaAPI("editable_sample", "example_data/XRD/example_bmb.xye");
+
+    cy.get('[data-testid="search-input"]').type("editable_sample");
+    cy.findByText("editable_sample").click();
+
+    cy.findByText("Add a block").click();
+    cy.get('[data-testid="add-block-dropdown"]').findByText("Powder XRD").click();
+
+    cy.findByText("Select a file:").should("exist");
+    cy.get("select.file-select-dropdown").select("example_data_XRD_example_bmb.xye");
+    cy.contains("label", "X axis").should("exist");
+    cy.contains("label", "Y axis").should("exist");
+  });
+
+  it("Uploads a fake PNG image, make a Media block and checks that the image is shown", () => {
+    let test_fname = "test_image.png";
+    cy.createTestPNG(test_fname);
+    cy.uploadFileViaAPI("editable_sample", test_fname);
+
+    cy.get('[data-testid="search-input"]').type("editable_sample");
+    cy.findByText("editable_sample").click();
+
+    cy.findByText("Add a block").click();
+    cy.get('[data-testid="add-block-dropdown"]').findByText("Media").click();
+    cy.findAllByText("Select a file:").eq(1).should("exist");
+    cy.get("select.file-select-dropdown").eq(1).select(test_fname);
+
+    // Check that the img with id "media-block-img" is present
+    cy.get('img[data-testid="media-block-img"]').should("exist");
   });
 });

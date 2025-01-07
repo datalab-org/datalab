@@ -25,7 +25,7 @@ def test_new_sample(client, default_sample_dict):
         if key == "creator_ids":
             continue
         if isinstance(v := default_sample_dict[key], datetime.datetime):
-            v = v.isoformat()
+            v = v.replace(tzinfo=datetime.timezone.utc).isoformat()
         assert response.json["sample_list_entry"][key] == v
 
 
@@ -38,7 +38,7 @@ def test_get_item_data(client, default_sample_dict):
         if key == "creator_ids":
             continue
         if isinstance(v := default_sample_dict[key], datetime.datetime):
-            v = v.isoformat()
+            v = v.replace(tzinfo=datetime.timezone.utc).isoformat()
         assert response.json["item_data"][key] == v
 
 
@@ -83,7 +83,7 @@ def test_new_sample_with_automatically_generated_id(client, user_id):
 
     for key in new_sample_data.keys():
         if isinstance(v := new_sample_data[key], datetime.datetime):
-            v = v.isoformat()
+            v = v.replace(tzinfo=datetime.timezone.utc).isoformat()
         if key == "creator_ids":
             continue
         assert response.json["item_data"][key] == v

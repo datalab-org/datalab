@@ -10,7 +10,7 @@ from pydatalab.logger import LOGGER
 from pydatalab.models import ITEM_MODELS
 from pydatalab.utils import CustomJSONEncoder
 
-__all__ = "ChatBlock"
+__all__ = ("ChatBlock",)
 
 
 class ChatBlock(DataBlock):
@@ -49,15 +49,21 @@ Be as concise as possible. When saying your name, type a bird emoji right after 
         "error_message": None,
         "model": "gpt-4o",
         "available_models": {
-            "claude-3-5-sonnet-20240620": {
-                "name": "claude-3-5-sonnet-20240620",
-                "context_window": 200000,
+            "claude-3-5-sonnet-20241022": {
+                "name": "claude-3-5-sonnet-20241022",
+                "context_window": 200_000,
                 "input_cost_usd_per_MTok": 3.00,
                 "output_cost_usd_per_MTok": 15.00,
             },
+            "claude-3-5-haiku-20241022": {
+                "name": "claude-3-haiku-20241022",
+                "context_window": 200_000,
+                "input_cost_usd_per_MTok": 1.00,
+                "output_cost_usd_per_MTok": 5.00,
+            },
             "claude-3-haiku-20240307": {
                 "name": "claude-3-haiku-20240307",
-                "context_window": 200000,
+                "context_window": 200_000,
                 "input_cost_usd_per_MTok": 0.25,
                 "output_cost_usd_per_MTok": 1.25,
             },
@@ -66,12 +72,6 @@ Be as concise as possible. When saying your name, type a bird emoji right after 
                 "context_window": 200000,
                 "input_cost_usd_per_MTok": 15.00,
                 "output_cost_usd_per_MTok": 75.00,
-            },
-            "claude-3-sonnet-20240229": {
-                "name": "claude-3-sonnet-20240229",
-                "context_window": 200000,
-                "input_cost_usd_per_MTok": 3.00,
-                "output_cost_usd_per_MTok": 15.00,
             },
             "gpt-4o": {
                 "name": "gpt-4o",
@@ -169,7 +169,7 @@ Start with a friendly introduction and give me a one sentence summary of what th
 
             if model_name.startswith("claude"):
                 self.chat_client = ChatAnthropic(
-                    anthropic_api_key=os.environ["ANTHROPIC_API_KEY"],
+                    anthropic_api_key=os.environ.get("ANTHROPIC_API_KEY"),
                     model=model_name,
                 )
             elif model_name.startswith("gpt"):

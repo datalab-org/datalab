@@ -9,6 +9,7 @@
     :create-option="createOption"
     :filter-by="() => true"
     :placeholder="placeholder"
+    v-bind="$attrs"
     @search="debouncedAsyncSearch"
   >
     <template #no-options="{ searching }">
@@ -52,7 +53,7 @@ export default {
   },
   props: {
     modelValue: {
-      type: [String, Array],
+      type: [String, Array], // Array only if "multiple" is specified
       default: "",
     },
     formattedItemNameMaxLength: {

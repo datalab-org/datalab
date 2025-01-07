@@ -328,6 +328,7 @@ export async function getUserInfo() {
   return fetch_get(`${API_URL}/get-current-user/`)
     .then((response_json) => {
       store.commit("setDisplayName", response_json.display_name);
+      store.commit("setCurrentUserID", response_json.immutable_id);
       store.commit("setIsUnverified", response_json.account_status == "unverified" ? true : false);
       return response_json;
     })
@@ -370,7 +371,13 @@ export function deleteSample(item_id) {
       console.log("delete successful" + response_json);
       store.commit("deleteFromSampleList", item_id);
     })
-    .catch((error) => alert("Sample delete failed for " + item_id + ": " + error));
+    .catch(() =>
+      alert(
+        "Unable to delete item with ID '" +
+          item_id +
+          "': check that you have the appropriate permissions.",
+      ),
+    );
 }
 
 export function deleteStartingMaterial(item_id) {
@@ -381,7 +388,13 @@ export function deleteStartingMaterial(item_id) {
       console.log("delete successful" + response_json);
       store.commit("deleteFromStartingMaterialList", item_id);
     })
-    .catch((error) => alert("Item delete failed for " + item_id + ": " + error));
+    .catch(() =>
+      alert(
+        "Unable to delete item with ID '" +
+          item_id +
+          "': check that you have the appropriate permissions.",
+      ),
+    );
 }
 
 export function deleteCollection(collection_id, collection_summary) {
@@ -390,7 +403,13 @@ export function deleteCollection(collection_id, collection_summary) {
       console.log("delete successful" + response_json);
       store.commit("deleteFromCollectionList", collection_summary);
     })
-    .catch((error) => alert("Collection delete failed for " + collection_id + ": " + error));
+    .catch(() =>
+      alert(
+        "Unable to delete collection with ID '" +
+          collection_id +
+          "': check that you have the appropriate permissions.",
+      ),
+    );
 }
 
 export function deleteEquipment(item_id) {
@@ -401,7 +420,13 @@ export function deleteEquipment(item_id) {
       console.log("delete successful" + response_json);
       store.commit("deleteFromEquipmentList", item_id);
     })
-    .catch((error) => alert("Item delete failed for " + item_id + ": " + error));
+    .catch(() =>
+      alert(
+        "Unable to delete item with ID '" +
+          item_id +
+          "': check that you have the appropriate permissions.",
+      ),
+    );
 }
 
 export function deletSampleFromCollection(collection_id, collection_summary) {
@@ -423,7 +448,6 @@ export async function getItemData(item_id) {
         child_items: response_json.child_items,
         parent_items: response_json.parent_items,
       });
-      store.commit("updateFiles", response_json.files_data);
 
       return "success";
     })
@@ -440,8 +464,6 @@ export async function getItemByRefcode(refcode) {
         child_items: response_json.child_items,
         parent_items: response_json.parent_items,
       });
-      store.commit("updateFiles", response_json.files_data);
-
       return "success";
     })
     .catch((error) => alert("Error getting item data: " + error));
@@ -508,6 +530,18 @@ export function addABlock(item_id, block_type, index = null) {
     })
     .catch((error) => console.error("Error in addABlock:", error));
   return block_id_promise;
+}
+
+export function updateItemPermissions(refcode, creators) {
+  console.log("updateItemPermissions called with", refcode, creators);
+  return fetch_patch(`${API_URL}/items/${refcode}/permissions`, {
+    creators: creators,
+  }).then(function (response_json) {
+    if (response_json.status === "error") {
+      throw new Error(response_json.message);
+    }
+    return response_json;
+  });
 }
 
 export function saveItem(item_id) {
@@ -602,19 +636,15 @@ export function deleteBlock(item_id, block_id) {
 }
 
 export function deleteFileFromSample(item_id, file_id) {
-  console.log("deleteFileFromSample called with item_id and file_id:");
-  console.log(item_id);
-  console.log(file_id);
   fetch_post(`${API_URL}/delete-file-from-sample/`, {
     item_id: item_id,
     file_id: file_id,
   })
-    .then(function (response_json) {
+    .then(function () {
       store.commit("removeFileFromSample", {
         item_id: item_id,
         file_id: file_id,
       });
-      store.commit("updateFiles", response_json.new_file_obj);
     })
     .catch((error) => alert(`Delete unsuccessful :(\n error: ${error}`));
 }
@@ -641,22 +671,20 @@ export async function fetchRemoteTree(invalidate_cache) {
 }
 
 export async function addRemoteFileToSample(file_entry, item_id) {
-  console.log("loadSelectedRemoteFiles");
   return fetch_post(`${API_URL}/add-remote-file-to-sample/`, {
     file_entry: file_entry,
     item_id: item_id,
   })
     .then(function (response_json) {
-      //handle response
-      console.log("received remote sample!");
-      console.log(response_json);
-      store.commit("updateFiles", {
-        [response_json.file_id]: response_json.file_information,
-      });
+      //store.commit("updateFiles", {
+      //  [response_json.file_id]: response_json.file_information,
+      //});
       if (!response_json.is_update) {
+        console.log("Adding file to sample", response_json.file_information);
         store.commit("addFileToSample", {
           item_id: item_id,
           file_id: response_json.file_id,
+          file_info: response_json.file_information,
         });
       }
     })
@@ -722,6 +750,36 @@ export function addItemsToCollection(collection_id, refcodes) {
     })
     .catch(function (error) {
       alert("Error adding items to collection: ", error);
+      throw error;
+    });
+}
+
+export async function getSupportedSchemasList() {
+  return fetch_get(`${API_URL}/info/types`)
+    .then(function (response_json) {
+      if (response_json) {
+        return response_json.data;
+      } else {
+        throw new Error("Failed to get schemas from API.");
+      }
+    })
+    .catch(function (error) {
+      alert(`Error to get schemas from API: ${error}`);
+      throw error;
+    });
+}
+
+export async function getSchema(type) {
+  return fetch_get(`${API_URL}/info/types/${type}`)
+    .then(function (response_json) {
+      if (response_json) {
+        return response_json.data;
+      } else {
+        throw new Error(`Failed to get ${type} schemas from API.`);
+      }
+    })
+    .catch(function (error) {
+      alert(`Error to get ${type} schema from API: ${error}`);
       throw error;
     });
 }
