@@ -3,9 +3,9 @@
   "version": "0.0.0-git",
   "private": true,
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "dev": "VITE_APP_GIT_VERSION=$(node scripts/get-version.js) vite",
+    "build": "VITE_APP_GIT_VERSION=$(node scripts/get-version.js) vite build",
+    "preview": "VITE_APP_GIT_VERSION=$(node scripts/get-version.js) vite preview"
   },
   "dependencies": {
     "@bokeh/bokehjs": "^2.4.0",
