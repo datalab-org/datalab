@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "VITE_APP_GIT_VERSION=$(node scripts/get-version.js) vite",
     "build": "VITE_APP_GIT_VERSION=$(node scripts/get-version.js) vite build",
-    "preview": "VITE_APP_GIT_VERSION=$(node scripts/get-version.js) vite preview"
+    "preview": "VITE_APP_GIT_VERSION=$(node scripts/get-version.js) vite preview",
+    "test:e2e": "start-server-and-test dev http://localhost:5173 cypress:run"
   },
   "dependencies": {
     "@bokeh/bokehjs": "^2.4.0",
@@ -57,5 +58,8 @@
     "typescript": "^5.7.2",
     "vite": "^6.0.3",
     "vite-plugin-node-polyfills": "^0.22.0"
+  },
+  "overrides": {
+      "vite-plugin-node-polyfills": {"vite": "$vite"}
   }
 }
