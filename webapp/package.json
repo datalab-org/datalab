@@ -5,8 +5,8 @@
   "scripts": {
     "dev": "VITE_APP_GIT_VERSION=$(node scripts/get-version.js) vite",
     "build": "VITE_APP_GIT_VERSION=$(node scripts/get-version.js) vite build",
-    "preview": "VITE_APP_GIT_VERSION=$(node scripts/get-version.js) vite preview",
-    "test:e2e": "start-server-and-test dev http://localhost:5173 cypress:run"
+    "serve": "VITE_APP_GIT_VERSION=$(node scripts/get-version.js) vite serve",
+    "preview": "VITE_APP_GIT_VERSION=$(node scripts/get-version.js) vite preview"
   },
   "dependencies": {
     "@bokeh/bokehjs": "^2.4.0",
