@@ -11,6 +11,13 @@ module.exports = {
     "@vue/prettier",
     "plugin:cypress/recommended",
   ],
+  parserOptions: {
+    ecmaVersion: 'latest',
+    sourceType: 'module',
+    ecmaFeatures: {
+      jsx: true  // This is all we need for parsing JSX
+    }
+  },
   rules: {
     //"no-console": process.env.NODE_ENV === "production" ? "warn" : "off",
     "no-debugger": process.env.NODE_ENV === "production" ? "warn" : "off",
