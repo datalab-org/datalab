@@ -39,7 +39,7 @@ echo "  AUTOMATICALLY_GENERATE_ID_DEFAULT: ${VITE_APP_AUTOMATICALLY_GENERATE_ID_
 echo ""
 echo "Patching..."
 
-for file in $ROOT_DIR/js/app.*.js* $ROOT_DIR/*html; do
+for file in $ROOT_DIR/assets/index*.js* $ROOT_DIR/*html; do
     echo "$file"
     sed -i "s|0.0.0-git|${VITE_APP_GIT_VERSION}|g" $file
     sed -i "s|magic-api-url|${VITE_APP_API_URL}|g" $file
