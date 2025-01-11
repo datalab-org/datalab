@@ -11,16 +11,6 @@ module.exports = {
     "@vue/prettier",
     "plugin:cypress/recommended",
   ],
-  parserOptions: {
-    parser: "@babel/eslint-parser",
-    requireConfigFile: false,
-    babelOptions: {
-      babelrc: false,
-      configFile: false,
-      presets: ["@vue/cli-plugin-babel/preset"],
-      plugins: ["@babel/plugin-transform-export-namespace-from"],
-    },
-  },
   rules: {
     //"no-console": process.env.NODE_ENV === "production" ? "warn" : "off",
     "no-debugger": process.env.NODE_ENV === "production" ? "warn" : "off",
