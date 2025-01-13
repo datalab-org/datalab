@@ -1,8 +1,8 @@
 import UserBubble from "@/components/UserBubble.vue";
-import MD5 from "crypto-js/md5";
+import crypto from "crypto";
 
 describe("UserBubble", () => {
-  const md5 = (value) => MD5(value).toString();
+  const md5 = (value) => crypto.createHash("md5").update(value).digest("hex");
 
   const creator = {
     contact_email: "test@contact.email",

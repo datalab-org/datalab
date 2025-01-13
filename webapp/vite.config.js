@@ -8,14 +8,26 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [vue()],
+    define: {
+      global: {},
+      "process.env.VITE_APP_GIT_VERSION": JSON.stringify(env.VITE_APP_GIT_VERSION),
+      "process.browser": true,
+    },
     resolve: {
       alias: {
         "@": resolve(__dirname, "src"),
+        crypto: "crypto-browserify",
+        stream: "stream-browserify",
+        process: "process/browser/browser",
+        buffer: "buffer/",
+        util: "util/",
       },
       extensions: [".vue", ".js", ".json"],
     },
+
     optimizeDeps: {
       exclude: ["bokeh"],
+      include: ["crypto-browserify", "stream-browserify", "buffer", "process/browser", "util"],
     },
     server: {
       port: 8080,
