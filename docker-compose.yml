@@ -1,4 +1,4 @@
-name: datalab-avnos
+name: datalab
 services:
   app:
     profiles: ["prod"]
