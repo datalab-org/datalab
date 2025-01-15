@@ -574,7 +574,7 @@ wheels = [
 
 [[package]]
 name = "datalab-server"
-version = "0.5.0.post30+gb13ab02"
+version = "0.5.0.post31+g39e0d8a"
 source = { editable = "." }
 dependencies = [
     { name = "bokeh" },
