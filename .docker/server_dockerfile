@@ -26,7 +26,7 @@ ENV SETUPTOOLS_SCM_PRETEND_VERSION=${SETUPTOOLS_SCM_PRETEND_VERSION}
 
 WORKDIR /app
 COPY ./pydatalab .
-RUN uv sync --locked --no-dev --all-extras
+RUN uv sync --frozen --no-dev --all-extras
 
 WORKDIR /app
 
