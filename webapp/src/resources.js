@@ -95,11 +95,16 @@ export const blockTypes = {
   eis: {
     description: "Electrochemical Impedance Spectroscopy",
     component: DataBlockUI,
+    properties: { bokehPlot: true },
     name: "EIS",
   },
   nmr: {
     description: "Nuclear Magnetic Resonance Spectroscopy",
     component: DataBlockUI,
+    properties: {
+      bokehPlot: true,
+      processNumber: { label: "Process number:" },
+    },
     name: "NMR",
   },
   ms: { description: "Mass Spectrometry", component: DataBlockUI, name: "Mass Spectrometry" },

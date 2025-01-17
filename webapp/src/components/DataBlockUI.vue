@@ -166,10 +166,100 @@
           <p>Window size for the Savitzky-Golay filter to apply to the derivatives.</p>
         </div>
       </div>
+      <div v-if="haveProcessNumberProperties">
+        <div class="form-inline mt-2">
+          <div class="form-group">
+            <label class="mr-2"
+              ><b>{{ properties.processNumber.label }}</b></label
+            >
+            <select v-model="selected_process" class="form-control" @change="updateBlock">
+              <option
+                v-for="process_number in block_data.available_processes"
+                :key="process_number"
+              >
+                {{ process_number }}
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <div class="mt-4">
+          <span class="mr-2">
+            <Isotope :isotope-string="block_data.nucleus" /> {{ block_data.pulse_program_name }}
+          </span>
+          <a type="button" class="btn btn-default btn-sm mb-2" @click="titleShown = !titleShown">{{
+            titleShown ? "hide title" : "show title"
+          }}</a>
+          <a
+            type="button"
+            class="btn btn-default btn-sm mb-2 ml-2"
+            @click="detailsShown = !detailsShown"
+            >{{ detailsShown ? "hide measurement details" : "show measurement details" }}</a
+          >
+        </div>
+        <div v-if="titleShown" class="card mb-2">
+          <div class="card-body" style="white-space: pre">
+            {{ block_data.topspin_title }}
+          </div>
+        </div>
+      </div>
       <div v-if="haveBokehPlot">
         <div class="row">
           <div id="bokehPlotContainer" class="col-xl-9 col-lg-10 col-md-11 mx-auto">
             <BokehPlot :bokeh-plot-data="bokehPlotData" />
+          </div>
+          <div v-if="detailsShown" class="col-xl-4 col-lg-4 ml-0">
+            <table class="table table-sm">
+              <tbody>
+                <tr>
+                  <th scope="row">nucleus</th>
+                  <td><Isotope :isotope-string="block_data.nucleus" /></td>
+                </tr>
+                <tr>
+                  <th scope="row">pulse program</th>
+                  <td>{{ block_data.pulse_program_name }}</td>
+                </tr>
+                <tr>
+                  <th scope="row">Data shape</th>
+                  <td>
+                    {{ block_data.processed_data_shape }} (<i>d</i> =
+                    {{ block_data.processed_data_shape.length }})
+                  </td>
+                </tr>
+                <tr>
+                  <th scope="row">probe</th>
+                  <td>{{ block_data.probe_name }} s</td>
+                </tr>
+
+                <tr>
+                  <th scope="row"># of scans</th>
+                  <td>{{ block_data.nscans }}</td>
+                </tr>
+
+                <tr>
+                  <th scope="row">recycle delay</th>
+                  <td>{{ block_data.recycle_delay }} s</td>
+                </tr>
+                <tr>
+                  <th scope="row">carrier frequency</th>
+                  <td>{{ block_data.carrier_frequency_MHz }} MHz</td>
+                </tr>
+
+                <tr>
+                  <th scope="row">carrier offset</th>
+                  <td>
+                    {{
+                      (block_data.carrier_offset_Hz / block_data.carrier_frequency_MHz).toFixed(1)
+                    }}
+                    ppm
+                  </td>
+                </tr>
+                <tr>
+                  <th scope="row">cnst31</th>
+                  <td>{{ block_data.CNST31 }}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
@@ -188,6 +278,7 @@
 import DataBlockBase from "@/components/datablocks/DataBlockBase";
 import FileSelectDropdown from "@/components/FileSelectDropdown";
 import BokehPlot from "@/components/BokehPlot";
+import Isotope from "@/components/Isotope";
 
 import { blockTypes, API_URL } from "@/resources.js";
 import { createComputedSetterForBlockField } from "@/field_utils.js";
@@ -198,6 +289,7 @@ export default {
     DataBlockBase,
     FileSelectDropdown,
     BokehPlot,
+    Isotope,
   },
   props: {
     item_id: {
@@ -211,15 +303,18 @@ export default {
   },
   data() {
     return {
-      // Wavelength: XRD
+      // Wavelength
       wavelengthParseError: "",
-      // Cycle: Cycle
+      // Cycle
       cycle_num_error: "",
       cyclesString: "",
       showDescription1: false,
       showDescription2: false,
       bokehPlotLimitedWidth: true,
       isReplotButtonDisplayed: false,
+      // NMR
+      detailsShown: false,
+      titleShown: false,
     };
   },
   computed: {
@@ -278,6 +373,9 @@ export default {
     parsedCycles() {
       return this.all_cycles ? this.all_cycles : "all";
     },
+    haveProcessNumberProperties() {
+      return this.properties && "processNumber" in this.properties;
+    },
     file_id: createComputedSetterForBlockField("file_id"),
     wavelength: createComputedSetterForBlockField("wavelength"),
     all_cycles: createComputedSetterForBlockField("cyclenumber"),
@@ -285,6 +383,7 @@ export default {
     win_size_1: createComputedSetterForBlockField("win_size_1"),
     derivative_mode: createComputedSetterForBlockField("derivative_mode"),
     characteristic_mass: createComputedSetterForBlockField("characteristic_mass"),
+    selected_process: createComputedSetterForBlockField("selected_process"),
   },
   methods: {
     parseWavelength() {
@@ -314,12 +413,14 @@ export default {
 </script>
 
 <style scoped>
+/* MEDIA */
 image,
 video {
   display: block;
   max-height: 600px;
 }
 
+/* CYCLE */
 #list-of-cycles {
   color: grey;
 }
@@ -347,5 +448,15 @@ video {
 .slider span {
   border-bottom: 2px dotted #0c5460;
   text-decoration: none;
+}
+
+/* NMR */
+.attribute-label {
+  color: grey;
+}
+
+th {
+  color: #454545;
+  font-weight: 500;
 }
 </style>
