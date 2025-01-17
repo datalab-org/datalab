@@ -83,7 +83,15 @@ export const blockTypes = {
     properties: { bokehPlot: true },
     name: "Raman",
   },
-  cycle: { description: "Electrochemistry", component: DataBlockUI, name: "Electrochemistry" },
+  cycle: {
+    description: "Electrochemistry",
+    component: DataBlockUI,
+    properties: {
+      bokehPlot: true,
+      cycle: { label: "Cycles to plot:" },
+    },
+    name: "Electrochemistry",
+  },
   eis: {
     description: "Electrochemical Impedance Spectroscopy",
     component: DataBlockUI,

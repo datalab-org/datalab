@@ -35,6 +35,137 @@
           </div>
         </div>
       </div>
+      <div v-if="haveCycleProperties">
+        <div class="form-row">
+          <div class="input-group form-inline">
+            <label class="mr-2"
+              ><b>{{ properties.cycle.label }}</b></label
+            >
+            <input
+              id="cycles-input"
+              v-model="cyclesString"
+              type="text"
+              class="form-control"
+              placeholder="e.g., 1-5, 7, 9-10. Starts at 1."
+              :class="{ 'is-invalid': cycle_num_error }"
+              @keydown.enter="
+                parseCycleString();
+                updateBlock();
+              "
+              @blur="
+                parseCycleString();
+                updateBlock();
+              "
+            />
+            <span id="list-of-cycles" class="pl-3 pt-2">Showing cycles: {{ parsedCycles }}</span>
+          </div>
+
+          <div v-if="cycle_num_error" class="alert alert-danger mt-2 mx-auto">
+            {{ cycle_num_error }}
+          </div>
+        </div>
+
+        <div class="form-row mt-2">
+          <div class="input-group form-inline">
+            <label class="mr-2"><b>Mode:</b></label>
+            <div class="btn-group">
+              <div
+                class="btn btn-default"
+                :class="{ active: derivative_mode == 'final capacity' }"
+                @click="
+                  derivative_mode = derivative_mode == 'final capacity' ? null : 'final capacity';
+                  updateBlock();
+                "
+              >
+                Cycle Summary
+              </div>
+              <div
+                class="btn btn-default"
+                :class="{ active: derivative_mode == 'dQ/dV' }"
+                @click="
+                  derivative_mode = derivative_mode == 'dQ/dV' ? null : 'dQ/dV';
+                  updateBlock();
+                "
+              >
+                d<i>Q</i>/d<i>V</i>
+              </div>
+              <div
+                class="btn btn-default"
+                :class="{ active: derivative_mode == 'dV/dQ' }"
+                @click="
+                  derivative_mode = derivative_mode == 'dV/dQ' ? null : 'dV/dQ';
+                  updateBlock();
+                "
+              >
+                d<i>V</i>/d<i>Q</i>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div
+          v-if="derivative_mode == 'dQ/dV' || derivative_mode == 'dV/dQ'"
+          v-show="derivative_mode"
+          class="row"
+        >
+          <div class="col-md slider" style="max-width: 250px">
+            <input
+              id="s_spline"
+              v-model="s_spline"
+              type="range"
+              class="form-control-range"
+              name="s_spline"
+              min="1"
+              max="10"
+              step="0.2"
+              @change="isReplotButtonDisplayed = true"
+            />
+            <label
+              for="s_spline"
+              @mouseover="showDescription1 = true"
+              @mouseleave="showDescription1 = false"
+            >
+              <span>Spline fit:</span> {{ -s_spline }}
+            </label>
+          </div>
+          <div class="col-md slider" style="max-width: 250px">
+            <input
+              id="win_size_1"
+              v-model="win_size_1"
+              type="range"
+              class="form-control-range"
+              name="win_size_1"
+              min="501"
+              max="1501"
+              @change="isReplotButtonDisplayed = true"
+            />
+            <label
+              for="win_size_1"
+              @mouseover="showDescription2 = true"
+              @mouseleave="showDescription2 = false"
+            >
+              <span>Window Size 1:</span> {{ win_size_1 }}
+            </label>
+          </div>
+          <button
+            v-show="isReplotButtonDisplayed"
+            class="btn btn-default my-4"
+            @click="updateBlock"
+          >
+            Recalculate
+          </button>
+        </div>
+
+        <div v-show="showDescription1" class="alert alert-info">
+          <p>
+            Smoothing parameter that determines how close the spline fits to the real data. Larger
+            values result in a smoother fit with decreased detail.
+          </p>
+        </div>
+        <div v-show="showDescription2" class="alert alert-info">
+          <p>Window size for the Savitzky-Golay filter to apply to the derivatives.</p>
+        </div>
+      </div>
       <div v-if="haveBokehPlot">
         <div class="row">
           <div id="bokehPlotContainer" class="col-xl-9 col-lg-10 col-md-11 mx-auto">
@@ -80,7 +211,15 @@ export default {
   },
   data() {
     return {
+      // Wavelength: XRD
       wavelengthParseError: "",
+      // Cycle: Cycle
+      cycle_num_error: "",
+      cyclesString: "",
+      showDescription1: false,
+      showDescription2: false,
+      bokehPlotLimitedWidth: true,
+      isReplotButtonDisplayed: false,
     };
   },
   computed: {
@@ -127,8 +266,25 @@ export default {
     isVideo() {
       return [".mp4", ".mov", ".webm"].includes(this.lookup_file_field("extension", this.file_id));
     },
+    haveCycleProperties() {
+      return this.properties && "cycle" in this.properties;
+    },
+    numberOfCycles() {
+      return (
+        this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id]
+          .number_of_cycles || null
+      );
+    },
+    parsedCycles() {
+      return this.all_cycles ? this.all_cycles : "all";
+    },
     file_id: createComputedSetterForBlockField("file_id"),
     wavelength: createComputedSetterForBlockField("wavelength"),
+    all_cycles: createComputedSetterForBlockField("cyclenumber"),
+    s_spline: createComputedSetterForBlockField("s_spline"),
+    win_size_1: createComputedSetterForBlockField("win_size_1"),
+    derivative_mode: createComputedSetterForBlockField("derivative_mode"),
+    characteristic_mass: createComputedSetterForBlockField("characteristic_mass"),
   },
   methods: {
     parseWavelength() {
@@ -143,7 +299,12 @@ export default {
         this.item_id,
         this.block_id,
         this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id],
-      );
+      ).then(() => {
+        if (this.haveCycleProperties) {
+          this.bokehPlotLimitedWidth = this.derivative_mode != "dQ/dV";
+          this.isReplotButtonDisplayed = false;
+        }
+      });
     },
     lookup_file_field(field, file_id) {
       return this.all_files.find((file) => file.immutable_id === file_id)?.[field];
@@ -157,5 +318,34 @@ image,
 video {
   display: block;
   max-height: 600px;
+}
+
+#list-of-cycles {
+  color: grey;
+}
+
+#cycles-input {
+  max-width: 14em;
+}
+
+.blurry {
+  filter: blur(5px);
+}
+
+.limited-width {
+  max-width: 650px;
+}
+
+.slider {
+  margin-top: 2rem;
+}
+
+.btn-default:hover {
+  background-color: #eee;
+}
+
+.slider span {
+  border-bottom: 2px dotted #0c5460;
+  text-decoration: none;
 }
 </style>
