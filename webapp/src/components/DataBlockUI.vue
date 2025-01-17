@@ -1,7 +1,7 @@
 <template>
   <DataBlockBase :item_id="item_id" :block_id="block_id">
     <FileSelectDropdown
-      v-show="blockInfo.attributes.accepted_file_extensions.length > 0"
+      v-if="blockInfo.attributes.accepted_file_extensions?.length > 0"
       v-model="file_id"
       :item_id="item_id"
       :block_id="block_id"
@@ -206,7 +206,10 @@
       <div v-if="haveBokehPlot">
         <div class="row">
           <div id="bokehPlotContainer" class="col-xl-9 col-lg-10 col-md-11 mx-auto">
-            <BokehPlot :bokeh-plot-data="bokehPlotData" />
+            <BokehPlot v-if="bokehPlotData" :bokeh-plot-data="bokehPlotData" />
+            <div v-else class="alert alert-secondary">
+              Plotting currently not available for data with dimension > 1
+            </div>
           </div>
           <div v-if="detailsShown" class="col-xl-4 col-lg-4 ml-0">
             <table class="table table-sm">
@@ -271,6 +274,101 @@
       />
       <video v-if="isVideo" :src="media_url" controls class="mx-auto" />
     </div>
+    <div v-if="haveChatProperties">
+      <div v-if="advancedHidden" class="context-button" @click="advancedHidden = !advancedHidden">
+        [show advanced]
+      </div>
+      <div v-if="!advancedHidden" class="context-button" @click="advancedHidden = !advancedHidden">
+        [hide advanced]
+      </div>
+
+      <div class="row">
+        <div id="chatWindowContainer" class="col-xl-9 col-lg-10 col-md-12 mx-auto">
+          <div v-if="!advancedHidden" class="advanced-information">
+            <div class="input-group">
+              <label class="mr-2">Model:</label>
+              <select v-model="modelName" class="form-control">
+                <option v-for="model in Object.keys(availableModels)" :key="model">
+                  {{ model }}
+                </option>
+              </select>
+            </div>
+            <br />
+            <div class="input-group">
+              <label>Current conversation token count:</label>
+              <span class="pl-1">{{ tokenCount }}/ {{ modelObj.context_window }}</span>
+            </div>
+            <div class="form-row input-group">
+              <label>est. cost for next message:</label>
+              <span class="pl-1">${{ estimatedCost.toPrecision(2) }}</span>
+            </div>
+
+            <div class="form-row input-group">
+              <label for="temperatureInput" class="mr-2"><b>temperature:</b></label>
+              <input
+                id="temperatureInput"
+                v-model="temperature"
+                type="number"
+                min="0"
+                max="1"
+                step="0.1"
+                class="form-control-sm"
+                :class="{ 'red-border': tempInvalid }"
+              />
+              <small v-show="tempInvalid" class="text-danger">
+                Temperature must must be a number between 0 and 1
+              </small>
+            </div>
+          </div>
+          <ChatWindow
+            :chat-messages="messages.slice(advancedHidden ? 2 : 0)"
+            :is-loading="isLoading"
+          />
+          <div class="d-flex justify-content-center">
+            <button
+              class="btn btn-default btn-sm regenerate-button"
+              :disabled="messages[messages.length - 1]['role'] != 'assistant'"
+              @click="regenerateLastResponse"
+            >
+              <font-awesome-icon
+                :icon="['fa', 'sync']"
+                class="pr-1 text-muted"
+                :spin="isRegenerating"
+              />
+              regenerate response
+            </button>
+          </div>
+        </div>
+      </div>
+      <div v-if="errorMessage" style="white-space: pre-line" class="alert alert-warning">
+        {{ errorMessage }}
+      </div>
+      <div v-show="estimatedCost > 0.1" class="alert alert-info col-lg-6 col-md-8 mt-3 mx-auto">
+        <font-awesome-icon icon="exclamation-circle" /> sending a message is estimated to cost: ${{
+          estimatedCost.toPrecision(2)
+        }}
+      </div>
+
+      <div class="input-group form-inline col-md-10 mx-auto align-items-end">
+        <textarea
+          v-model="prompt"
+          rows="3"
+          type="text"
+          class="form-control"
+          :disabled="isLoading"
+          placeholder="Type your message to send to the LLM, then press enter or hit send (shift-enter for newline)."
+          @keydown.enter.exact.prevent="updateBlock"
+        />
+        <button
+          type="button"
+          class="btn btn-default send-button"
+          :disabled="!prompt || /^\s*$/.test(prompt) || isLoading"
+          @click="updateBlock()"
+        >
+          Send
+        </button>
+      </div>
+    </div>
   </DataBlockBase>
 </template>
 
@@ -279,6 +377,7 @@ import DataBlockBase from "@/components/datablocks/DataBlockBase";
 import FileSelectDropdown from "@/components/FileSelectDropdown";
 import BokehPlot from "@/components/BokehPlot";
 import Isotope from "@/components/Isotope";
+import ChatWindow from "@/components/ChatWindow";
 
 import { blockTypes, API_URL } from "@/resources.js";
 import { createComputedSetterForBlockField } from "@/field_utils.js";
@@ -290,6 +389,7 @@ export default {
     FileSelectDropdown,
     BokehPlot,
     Isotope,
+    ChatWindow,
   },
   props: {
     item_id: {
@@ -315,6 +415,11 @@ export default {
       // NMR
       detailsShown: false,
       titleShown: false,
+      // Chat
+      isLoading: false,
+      isRegenerating: false,
+      advancedHidden: true,
+      prompt: "",
     };
   },
   computed: {
@@ -376,6 +481,35 @@ export default {
     haveProcessNumberProperties() {
       return this.properties && "processNumber" in this.properties;
     },
+    haveChatProperties() {
+      return this.properties && "chat" in this.properties;
+    },
+    modelObj() {
+      return this.availableModels[this.modelName] || {};
+    },
+    tempInvalid() {
+      return (
+        this.temperature == null ||
+        isNaN(this.temperature) ||
+        this.temperature < 0 ||
+        this.temperature > 1
+      );
+    },
+    estimatedCost() {
+      // a rough estimation of cost, assuming the next input will be about 50 tokens
+      // and the output will be about 250.
+      return (
+        (this.modelObj["input_cost_usd_per_MTok"] * (this.tokenCount + 50)) / 1e6 +
+        (this.modelObj["output_cost_usd_per_MTok"] * 250) / 1e6
+      );
+    },
+    errorMessage() {
+      return this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id]
+        .error_message;
+    },
+    tokenCount() {
+      return this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id].token_count;
+    },
     file_id: createComputedSetterForBlockField("file_id"),
     wavelength: createComputedSetterForBlockField("wavelength"),
     all_cycles: createComputedSetterForBlockField("cyclenumber"),
@@ -384,6 +518,19 @@ export default {
     derivative_mode: createComputedSetterForBlockField("derivative_mode"),
     characteristic_mass: createComputedSetterForBlockField("characteristic_mass"),
     selected_process: createComputedSetterForBlockField("selected_process"),
+    messages: createComputedSetterForBlockField("messages"),
+    temperature: createComputedSetterForBlockField("temperature"),
+    modelName: createComputedSetterForBlockField("model"),
+    availableModels: createComputedSetterForBlockField("available_models"),
+  },
+  created() {
+    console.log("#%#%#%#%#%#%#%%#%#%#%#%#%#%#");
+    console.log("#%#%#%#%#%#%#%%#%#%#%#%#%#%#");
+    console.log("#%#%#%#%#%#%#%%#%#%#%#%#%#%#");
+    console.log(this.haveChatProperties);
+    console.log("#%#%#%#%#%#%#%%#%#%#%#%#%#%#");
+    console.log("#%#%#%#%#%#%#%%#%#%#%#%#%#%#");
+    console.log("#%#%#%#%#%#%#%%#%#%#%#%#%#%#");
   },
   methods: {
     parseWavelength() {
@@ -393,20 +540,48 @@ export default {
         this.wavelengthParseError = "";
       }
     },
-    updateBlock() {
+    async updateBlock() {
+      if (this.haveChatProperties) {
+        this.isLoading = true;
+        this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id].prompt =
+          this.prompt;
+      }
       updateBlockFromServer(
         this.item_id,
         this.block_id,
         this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id],
-      ).then(() => {
-        if (this.haveCycleProperties) {
-          this.bokehPlotLimitedWidth = this.derivative_mode != "dQ/dV";
-          this.isReplotButtonDisplayed = false;
-        }
-      });
+      )
+        .then(() => {
+          if (this.haveCycleProperties) {
+            this.bokehPlotLimitedWidth = this.derivative_mode != "dQ/dV";
+            this.isReplotButtonDisplayed = false;
+          }
+          if (this.haveChatProperties) {
+            this.prompt = "";
+          }
+        })
+        .finally(() => {
+          if (this.haveChatProperties) {
+            this.isLoading = false;
+          }
+        });
     },
     lookup_file_field(field, file_id) {
       return this.all_files.find((file) => file.immutable_id === file_id)?.[field];
+    },
+    async regenerateLastResponse() {
+      this.isLoading = true;
+      this.isRegenerating = true;
+      const last_message = this.messages.pop();
+      await updateBlockFromServer(
+        this.item_id,
+        this.block_id,
+        this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id],
+      ).catch(() => {
+        this.messages.push(last_message);
+      });
+      this.isLoading = false;
+      this.isRegenerating = false;
     },
   },
 };
@@ -458,5 +633,38 @@ video {
 th {
   color: #454545;
   font-weight: 500;
+}
+
+/* CHAT */
+.context-button {
+  cursor: pointer;
+  float: right;
+}
+
+.send-button {
+  height: 2.5rem;
+  border-radius: 2rem;
+  position: relative;
+  left: -70px;
+  top: -10px;
+  z-index: 10;
+}
+
+.regenerate-button {
+  margin-top: -1rem;
+  margin-bottom: 1rem;
+}
+
+.advanced-information {
+  margin-left: 20%;
+}
+
+.advanced-information label {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+#model-information-messages {
+  font-style: italic;
 }
 </style>

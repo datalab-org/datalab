@@ -116,6 +116,7 @@ export const blockTypes = {
   chat: {
     description: "Virtual assistant",
     component: DataBlockUI,
+    properties: { chat: true },
     name: "Virtual Assistant",
   },
 };
