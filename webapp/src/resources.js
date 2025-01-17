@@ -107,7 +107,12 @@ export const blockTypes = {
     },
     name: "NMR",
   },
-  ms: { description: "Mass Spectrometry", component: DataBlockUI, name: "Mass Spectrometry" },
+  ms: {
+    description: "Mass Spectrometry",
+    component: DataBlockUI,
+    properties: { bokehPlot: true },
+    name: "Mass Spectrometry",
+  },
   chat: {
     description: "Virtual assistant",
     component: DataBlockUI,
