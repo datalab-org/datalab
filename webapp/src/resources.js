@@ -62,11 +62,17 @@ export const debounceTime = 250; // time after user stops typing before request 
 export const blockTypes = {
   comment: { description: "Comment", component: DataBlockUI, name: "Comment" },
   media: { description: "Media", component: DataBlockUI, name: "Media" },
-  tabular: { description: "Tabular Data", component: DataBlockUI, name: "Tabular data" },
+  tabular: {
+    description: "Tabular Data",
+    component: DataBlockUI,
+    properties: { bokehPlot: true },
+    name: "Tabular data",
+  },
   xrd: {
     description: "Powder XRD",
     component: DataBlockUI,
     properties: {
+      bokehPlot: true,
       wavelength: { label: "Wavelength (Å):" },
     },
     name: "Powder XRD",

@@ -34,7 +34,8 @@
             </div>
           </div>
         </div>
-
+      </div>
+      <div v-if="haveBokehPlot">
         <div class="row">
           <div id="bokehPlotContainer" class="col-xl-9 col-lg-10 col-md-11 mx-auto">
             <BokehPlot :bokeh-plot-data="bokehPlotData" />
@@ -98,6 +99,9 @@ export default {
     bokehPlotData() {
       return this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id]
         .bokeh_plot_data;
+    },
+    haveBokehPlot() {
+      return this.properties && "bokehPlot" in this.properties;
     },
     haveWavelengthProperties() {
       return this.properties && "wavelength" in this.properties;
