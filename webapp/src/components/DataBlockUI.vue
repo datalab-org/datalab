@@ -523,15 +523,6 @@ export default {
     modelName: createComputedSetterForBlockField("model"),
     availableModels: createComputedSetterForBlockField("available_models"),
   },
-  created() {
-    console.log("#%#%#%#%#%#%#%%#%#%#%#%#%#%#");
-    console.log("#%#%#%#%#%#%#%%#%#%#%#%#%#%#");
-    console.log("#%#%#%#%#%#%#%%#%#%#%#%#%#%#");
-    console.log(this.haveChatProperties);
-    console.log("#%#%#%#%#%#%#%%#%#%#%#%#%#%#");
-    console.log("#%#%#%#%#%#%#%%#%#%#%#%#%#%#");
-    console.log("#%#%#%#%#%#%#%%#%#%#%#%#%#%#");
-  },
   methods: {
     parseWavelength() {
       if (isNaN(this.wavelength) || isNaN(parseFloat(this.wavelength))) {
