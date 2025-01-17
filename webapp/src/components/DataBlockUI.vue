@@ -8,7 +8,7 @@
       :extensions="blockInfo.attributes.accepted_file_extensions"
       update-block-on-change
     />
-    <div v-if="file_id">
+    <div v-if="file_id && blockInfo">
       <div v-if="haveWavelengthProperties">
         <div class="form-row col-md-6 col-lg-4 mt-2 mb-2 pl-0">
           <div class="input-group form-inline">
@@ -91,14 +91,19 @@ export default {
       return this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id];
     },
     blockInfo() {
-      return this.$store.state.blocksInfos[this.block_data.blocktype];
+      return this.block_data?.blocktype
+        ? this.$store.state.blocksInfos[this.block_data.blocktype]
+        : null;
     },
     properties() {
-      return blockTypes[this.block_data.blocktype].properties;
+      return this.block_data?.blocktype ? blockTypes[this.block_data.blocktype]?.properties : null;
     },
     bokehPlotData() {
-      return this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id]
-        .bokeh_plot_data;
+      if (!this.file_id) return null;
+      return (
+        this.$store.state.all_item_data[this.item_id]?.["blocks_obj"]?.[this.block_id]
+          ?.bokeh_plot_data || null
+      );
     },
     haveBokehPlot() {
       return this.properties && "bokehPlot" in this.properties;

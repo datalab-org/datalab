@@ -77,7 +77,12 @@ export const blockTypes = {
     },
     name: "Powder XRD",
   },
-  raman: { description: "Raman", component: DataBlockUI, name: "Raman" },
+  raman: {
+    description: "Raman",
+    component: DataBlockUI,
+    properties: { bokehPlot: true },
+    name: "Raman",
+  },
   cycle: { description: "Electrochemistry", component: DataBlockUI, name: "Electrochemistry" },
   eis: {
     description: "Electrochemical Impedance Spectroscopy",
