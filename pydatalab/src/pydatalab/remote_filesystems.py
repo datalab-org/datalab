@@ -36,6 +36,7 @@ def get_directory_structures(
     if not directories:
         return []
 
+    LOGGER.debug("Retrieving directory structures for %s mounts", len(directories))
     if parallel:
         return multiprocessing.Pool(max(min(len(directories), 8), 1)).map(
             functools.partial(
@@ -45,7 +46,9 @@ def get_directory_structures(
             directories,
         )
     else:
-        return [get_directory_structure(d, invalidate_cache=invalidate_cache) for d in directories]
+        result = [get_directory_structure(d, invalidate_cache=invalidate_cache) for d in directories]
+        LOGGER.debug("Returning directory structures")
+        return result
 
 
 def get_directory_structure(
@@ -155,6 +158,7 @@ def get_directory_structure(
         dir_structure = [{"type": "error", "name": directory.name, "details": str(exc)}]
         last_updated = datetime.datetime.now(tz=datetime.timezone.utc)
         status = "error"
+        LOGGER.debug("Remote filesystems cache error for '%s': %s", directory.name, exc)
 
     finally:
         _release_lock_dir_structure(directory)
