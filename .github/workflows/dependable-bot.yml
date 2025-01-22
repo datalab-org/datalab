@@ -28,7 +28,7 @@ jobs:
       - name: Set up uv
         uses: astral-sh/setup-uv@v5
         with:
-          version: "0.5.19"
+          version: "0.5.22"
           enable-cache: true
 
       - name: Sync latest compatible dependencies and commit
