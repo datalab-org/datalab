@@ -81,6 +81,8 @@ def get_directory_structure(
 
     LOGGER.debug(f"Accessing directory structure of {directory}")
 
+    cache_age = datetime.timedelta()
+
     try:
         cached_dir_structure = _get_cached_directory_structure(directory)
         cache_last_updated = None
@@ -96,6 +98,18 @@ def get_directory_structure(
                     f"Not invalidating cache as its age ({cache_age=}) is less than the configured {CONFIG.REMOTE_CACHE_MIN_AGE=}."
                 )
 
+        rescan = False
+        if not cached_dir_structure:
+            rescan = True
+            LOGGER.debug("No cache found for %s", directory.name)
+
+        elif cache_age > datetime.timedelta(minutes=CONFIG.REMOTE_CACHE_MAX_AGE):
+            rescan = True
+            LOGGER.debug("Dir should be invalidated as cache age is %s", cache_age)
+
+        elif cache_age > datetime.timedelta(minutes=CONFIG.REMOTE_CACHE_MIN_AGE) and invalidate_cache:
+            rescan = True
+            LOGGER.debug("Dir should be invalidated as cache age is %s", cache_age)
         # If either:
         #     1) no cache for this directory,
         #     2) the cache is older than the max cache age and
@@ -104,17 +118,12 @@ def get_directory_structure(
         #        is older than the min age,
         # AND, if no other processes is updating the cache,
         # then rebuild the cache.
-        if (
-            (not cached_dir_structure)
-            or (
-                invalidate_cache is not False
-                and cache_age > datetime.timedelta(minutes=CONFIG.REMOTE_CACHE_MAX_AGE)
+        if rescan:
+            LOGGER.debug(
+                "Remote filesystems cache miss for '%s': last updated %s",
+                directory.name,
+                cache_last_updated,
             )
-            or (
-                invalidate_cache
-                and cache_age > datetime.timedelta(minutes=CONFIG.REMOTE_CACHE_MIN_AGE)
-            )
-        ):
             owns_lock = _acquire_lock_dir_structure(directory)
             if owns_lock:
                 dir_structure = _get_latest_directory_structure(directory.path, directory.hostname)
@@ -122,11 +131,6 @@ def get_directory_structure(
                 last_updated = _save_directory_structure(
                     directory,
                     dir_structure,
-                )
-                LOGGER.debug(
-                    "Remote filesystems cache miss for '%s': last updated %s",
-                    directory.name,
-                    cache_last_updated,
                 )
                 status = "updated"
             else:
@@ -148,9 +152,10 @@ def get_directory_structure(
                 last_updated = last_updated.replace(tzinfo=datetime.timezone.utc)
             dir_structure = cached_dir_structure["contents"]
             LOGGER.debug(
-                "Remote filesystems cache hit for '%s': last updated %s",
+                "Remote filesystems cache hit for '%s': last updated %s, cache age %s",
                 directory.name,
                 last_updated,
+                cache_age,
             )
             status = "cached"
 
