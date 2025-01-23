@@ -74,6 +74,8 @@ apps = [
     "rosettasciio ~= 0.3, < 0.4",
     # TGA
     "python-dateutil ~= 2.9",
+    # Insitu
+    "datalab_app_plugin_nmr_insitu @ git+https://github.com/datalab-org/datalab_app_plugin_nmr_insitu.git",
 ]
 chat = [
     # Hard upper pin on langchain is 0.3 as pydantic is not supported
