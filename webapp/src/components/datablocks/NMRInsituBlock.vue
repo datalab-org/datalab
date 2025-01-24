@@ -45,8 +45,11 @@
       </div>
     </div>
     <div class="row">
-      <div id="bokehPlotContainer" class="col-xl-9 col-lg-10 col-md-11 mx-auto">
-        <BokehPlot :bokeh-plot-data="bokehPlotData" />
+      <div class="col-6 pr-2">
+        <BokehPlot :key="'bokeh_plot1'" :bokeh-plot-data="bokehPlotData1" />
+      </div>
+      <div class="col-6 pl-2">
+        <BokehPlot :key="'bokeh_plot2'" :bokeh-plot-data="bokehPlotData2" />
       </div>
     </div>
   </DataBlockBase>
@@ -82,9 +85,13 @@ export default {
     };
   },
   computed: {
-    bokehPlotData() {
+    bokehPlotData1() {
       return this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id]
-        .bokeh_plot_data;
+        .bokeh_plot_data_1;
+    },
+    bokehPlotData2() {
+      return this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id]
+        .bokeh_plot_data_2;
     },
     blockInfo() {
       return this.$store.state.blocksInfos["insitu"];

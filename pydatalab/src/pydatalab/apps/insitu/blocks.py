@@ -3,7 +3,8 @@ from typing import List, Tuple
 
 import bokeh.embed
 import pandas as pd
-from datalab_app_plugin_nmr_insitu import process_data
+from bokeh.plotting import figure
+from datalab_app_plugin_nmr_insitu import fitting_data, process_data
 
 from pydatalab.blocks.base import DataBlock
 from pydatalab.bokeh_plots import DATALAB_BOKEH_THEME, selectable_axes_plot
@@ -71,10 +72,60 @@ class InsituBlock(DataBlock):
                     y_options=["intensity", "norm_intensity"],
                     plot_points=True,
                     plot_line=True,
+                    plot_height=700,
+                    plot_width=400,
                 )
-                self.data["bokeh_plot_data"] = bokeh.embed.json_item(
+                self.data["bokeh_plot_data_1"] = bokeh.embed.json_item(
                     plot, theme=DATALAB_BOKEH_THEME
                 )
+
+                fitting_results = fitting_data(nmr_data, df)
+
+                data_df = pd.DataFrame(fitting_results["data_df"])
+                df_peakfit1 = pd.DataFrame(fitting_results["df_peakfit1"])
+                df_peakfit2 = pd.DataFrame(fitting_results["df_peakfit2"])
+
+                plot_combined = figure(
+                    title="Combined NMR Plots",
+                    x_axis_label="Time",
+                    y_axis_label="Intensity",
+                    plot_height=700,
+                    plot_width=400,
+                )
+
+                plot_combined.line(
+                    data_df["time"],
+                    data_df["intensity"],
+                    line_color="blue",
+                    legend_label="Original",
+                )
+                plot_combined.circle(data_df["time"], data_df["intensity"], color="blue", size=5)
+
+                plot_combined.line(
+                    df_peakfit1["time"],
+                    df_peakfit1["intensity"],
+                    line_color="red",
+                    legend_label="Peak 1",
+                )
+                plot_combined.circle(
+                    df_peakfit1["time"], df_peakfit1["intensity"], color="red", size=5
+                )
+
+                plot_combined.line(
+                    df_peakfit2["time"],
+                    df_peakfit2["intensity"],
+                    line_color="green",
+                    legend_label="Peak 2",
+                )
+                plot_combined.circle(
+                    df_peakfit2["time"], df_peakfit2["intensity"], color="green", size=5
+                )
+                plot_combined.legend.click_policy = "hide"
+
+                self.data["bokeh_plot_data_2"] = bokeh.embed.json_item(
+                    plot_combined, theme=DATALAB_BOKEH_THEME
+                )
+
                 return df, ["Plot successfully generated"]
             except Exception as e:
                 LOGGER.error(f"Error generating plot: {str(e)}")
