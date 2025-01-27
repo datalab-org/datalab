@@ -34,7 +34,7 @@ const API_URL = Cypress.config("apiUrl");
 Cypress.Commands.add(
   "createSample",
   (item_id, name = null, date = null, generate_id_automatically = false) => {
-    cy.findByText("Add an item").click();
+    cy.findByTestId("add-item-button").click();
     cy.get('[data-testid="create-item-form"]').within(() => {
       cy.findByText("Add new item").should("exist");
       cy.findByLabelText("ID:").type(item_id);
@@ -151,7 +151,7 @@ Cypress.Commands.add("searchAndSelectItem", (search_text, selector, clickPlus = 
 });
 
 Cypress.Commands.add("createEquipment", (item_id, name = null, date = null) => {
-  cy.findByText("Add an item").click();
+  cy.findByTestId("add-equipment-button").click();
 
   cy.get('[data-testid="create-equipment-form"]').within(() => {
     cy.findByText("Add equipment").should("exist");

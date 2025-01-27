@@ -1,10 +1,6 @@
 <template>
-  <div
-    ref="outerdiv"
-    class="h-100 form-group clickable"
-    @click="isEditingCreators = !isEditingCreators"
-  >
-    <label id="creators" class="clickable">
+  <div ref="outerdiv" class="h-100 mb-3 clickable" @click="isEditingCreators = !isEditingCreators">
+    <label id="creators" class="form-label clickable">
       Creators
       <font-awesome-icon
         id="edit-icon"

@@ -1,5 +1,5 @@
 <template>
-  <label class="mr-2">Relationships</label>
+  <label class="form-label">Relationships</label>
   <div>
     <ItemGraph
       :graph-data="graphData"

@@ -21,7 +21,7 @@
         <div
           v-for="selectedEntry in selectedEntries"
           :key="selectedEntry.relative_path"
-          class="selected-entry mr-4"
+          class="selected-entry"
         >
           <p class="mb-1 selected-file">
             {{ selectedEntry.name }}
@@ -35,14 +35,14 @@
           >
             <span aria-hidden="true">&times;</span>
           </button>
-          <p class="mb-1 ml-4">
+          <p class="mb-1">
             &#8627; <span class="selected-info-name">modified:</span>
             <span class="selected-modified-time">{{
               // convert unix timestamp in seconds to JavaScript localised date string
               timestampToLocaleDate(selectedEntry.time)
             }}</span>
           </p>
-          <p class="mb-0 ml-4">
+          <p class="mb-0">
             &#8627; <span class="selected-info-name">location:</span>
             <span class="selected-toplevel">{{ selectedEntry.toplevel_name }}</span>
             <span class="selected-relpath">{{ selectedEntry.relative_path }}</span>
