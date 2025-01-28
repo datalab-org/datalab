@@ -38,6 +38,7 @@
               updateBlock();
             "
           />
+          <button @click="print">Print</button>
           <div v-if="ppmParseError" class="alert alert-danger mt-2 mx-auto">
             {{ ppmParseError }}
           </div>
@@ -45,11 +46,20 @@
       </div>
     </div>
     <div class="row">
-      <div class="col-6 pr-2">
+      <!-- <div class="col-6 pr-2">
         <BokehPlot :key="'bokeh_plot1'" :bokeh-plot-data="bokehPlotData1" />
       </div>
       <div class="col-6 pl-2">
-        <BokehPlot :key="'bokeh_plot2'" :bokeh-plot-data="bokehPlotData2" />
+        <div class="mb-2">
+          <button v-show="file_id" class="btn btn-secondary" @click="togglePlot">
+            Switch to {{ showPlot2 ? "echem" : "fitting" }}
+          </button>
+        </div>
+        <BokehPlot v-if="showPlot2" :key="'bokeh_plot2'" :bokeh-plot-data="bokehPlotData2" />
+        <BokehPlot v-else :key="'bokeh_plot3'" :bokeh-plot-data="bokehPlotData3" />
+      </div> -->
+      <div id="bokehPlotContainer" class="col-xl-8 col-lg-8 col-md-11 mx-auto">
+        <BokehPlot :bokeh-plot-data="bokehPlotData4" />
       </div>
     </div>
   </DataBlockBase>
@@ -82,6 +92,7 @@ export default {
   data() {
     return {
       ppmParseError: "",
+      showPlot2: true,
     };
   },
   computed: {
@@ -92,6 +103,14 @@ export default {
     bokehPlotData2() {
       return this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id]
         .bokeh_plot_data_2;
+    },
+    bokehPlotData3() {
+      return this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id]
+        .bokeh_plot_data_3;
+    },
+    bokehPlotData4() {
+      return this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id]
+        .bokeh_plot_data_4;
     },
     blockInfo() {
       return this.$store.state.blocksInfos["insitu"];
@@ -114,6 +133,14 @@ export default {
         this.block_id,
         this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id],
       );
+    },
+    togglePlot() {
+      this.showPlot2 = !this.showPlot2;
+    },
+    print() {
+      console.log("#%$#$%#$%#%$%#$$%#%$#%$#");
+      console.log(this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id]);
+      console.log("#%$#$%#$%#%$%#$$%#%$#%$#");
     },
   },
 };

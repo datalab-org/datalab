@@ -2,7 +2,9 @@ from pathlib import Path
 from typing import List, Tuple, Union
 
 import bokeh.embed
+import numpy as np
 import pandas as pd
+from bokeh.layouts import row
 from bokeh.plotting import figure
 from datalab_app_plugin_nmr_insitu import fitting_data, process_data
 
@@ -37,7 +39,7 @@ class InsituBlock(DataBlock):
             ppm2 = float(self.data.get("ppm2", self.defaults["ppm2"]))
 
             # Process data
-            nmr_data, df = process_data(
+            nmr_data, df, echem_df = process_data(
                 item_id="bc_insitu_block",
                 folder_name="Example-TEGDME.zip",
                 nmr_folder_name="2023-08-11_jana_insituLiLiTEGDME-02_galv",
@@ -45,10 +47,25 @@ class InsituBlock(DataBlock):
                 ppm1=ppm1,
                 ppm2=ppm2,
             )
+
             self.data["nmr_data"] = {
                 "processed_data": df.to_dict(),
-                "parameters": nmr_data.get("parameters", {}),
+                "nmr_data": nmr_data.to_dict(),
             }
+
+            echem_df_clean = echem_df.copy()
+            echem_df_clean = echem_df_clean.replace([np.inf, -np.inf], np.nan)
+            echem_df_clean = echem_df_clean.fillna("null")
+
+            for column in echem_df_clean.columns:
+                if echem_df_clean[column].dtype == "float64":
+                    echem_df_clean[column] = echem_df_clean[column].replace("null", None)
+                    echem_df_clean[column] = echem_df_clean[column].astype("float")
+                elif echem_df_clean[column].dtype == "int64":
+                    echem_df_clean[column] = echem_df_clean[column].replace("null", None)
+                    echem_df_clean[column] = echem_df_clean[column].astype("int")
+
+            self.data["echem_df"] = {"processed_data": echem_df_clean.to_dict()}
 
             fitting_results = fitting_data(nmr_data, df)
 
@@ -167,6 +184,78 @@ class InsituBlock(DataBlock):
 
             self.data["bokeh_plot_data_2"] = bokeh.embed.json_item(
                 plot_combined, theme=DATALAB_BOKEH_THEME
+            )
+
+            #! Temp echem
+            echem_df = pd.DataFrame(self.data["echem_df"]["processed_data"])
+
+            plot = selectable_axes_plot(
+                echem_df,
+                x_options=["time/s"],
+                y_options=["Voltage"],
+                plot_points=True,
+                plot_line=True,
+                plot_height=700,
+                plot_width=400,
+            )
+            self.data["bokeh_plot_data_3"] = bokeh.embed.json_item(plot, theme=DATALAB_BOKEH_THEME)
+
+            #!
+
+            echem_plot = figure(
+                x_axis_label="Voltage",
+                y_axis_label="Time (s)",
+                plot_height=700,
+                plot_width=400,
+            )
+
+            nmr_plot = figure(
+                x_axis_label="ppm",
+                y_axis_label="Intensity",
+                plot_height=700,
+                plot_width=400,
+                # x_range=(max(ppm_values), min(ppm_values))
+                y_axis_location="right",
+            )
+
+            echem_plot.line(
+                echem_df["Voltage"],
+                echem_df["time/s"],
+                line_color="blue",
+            )
+
+            nmr_data = self.data["nmr_data"]["nmr_data"]
+            if "index" in nmr_data:
+                nmr_df = pd.DataFrame(
+                    data=nmr_data["data"], columns=nmr_data["columns"], index=nmr_data["index"]
+                )
+            else:
+                nmr_df = pd.DataFrame(nmr_data)
+
+            ppm_values = nmr_df["ppm"].values
+
+            num_experiments = len(nmr_df.columns) - 1
+            colors = [
+                f"#{int(255 * i/num_experiments):02x}00{int(255 * (1-i/num_experiments)):02x}"
+                for i in range(num_experiments)
+            ]
+            for i in range(1, num_experiments + 1):
+                col_name = str(i)
+                if col_name in nmr_df.columns:
+                    nmr_plot.line(
+                        ppm_values,
+                        nmr_df[col_name],
+                        line_color=colors[i - 1],
+                        line_alpha=0.5,
+                    )
+
+            nmr_plot.legend.click_policy = "hide"
+            echem_plot.legend.click_policy = "hide"
+
+            combined_plot = row(echem_plot, nmr_plot)
+
+            self.data["bokeh_plot_data_4"] = bokeh.embed.json_item(
+                combined_plot, theme=DATALAB_BOKEH_THEME
             )
 
             return df, ["Plot successfully generated"]
