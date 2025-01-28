@@ -15,7 +15,7 @@ from pydatalab.logger import LOGGER
 def get_directory_structures(
     directories: List[RemoteFilesystem],
     invalidate_cache: Optional[bool] = None,
-    parallel: bool = False,
+    parallel: bool = True,
 ) -> List[Dict[str, Any]]:
     """For all registered top-level directories, call tree either
     locally or remotely to get their directory structures, or access
