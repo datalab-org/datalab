@@ -5,6 +5,7 @@ import bokeh.embed
 import numpy as np
 import pandas as pd
 from bokeh.layouts import row
+from bokeh.models import ColorBar, LinearColorMapper, Range1d
 from bokeh.plotting import figure
 from datalab_app_plugin_nmr_insitu import fitting_data, process_data
 
@@ -249,13 +250,116 @@ class InsituBlock(DataBlock):
                         line_alpha=0.5,
                     )
 
-            nmr_plot.legend.click_policy = "hide"
-            echem_plot.legend.click_policy = "hide"
+            nmr_plot.x_range.flipped = True
+
+            # nmr_plot.legend.click_policy = "hide"
+            # echem_plot.legend.click_policy = "hide"
 
             combined_plot = row(echem_plot, nmr_plot)
 
             self.data["bokeh_plot_data_4"] = bokeh.embed.json_item(
                 combined_plot, theme=DATALAB_BOKEH_THEME
+            )
+
+            #! Heatmap
+
+            ppm_values = nmr_df["ppm"].values
+            time_values = self.data["nmr_data"]["processed_data"]["time"]
+
+            intensity_matrix = np.array(
+                [nmr_df[str(i)].values for i in range(1, len(nmr_df.columns))]
+            )
+
+            x_min, x_max = ppm_values.min(), ppm_values.max()
+            y_min, y_max = time_values[0], time_values[599]
+
+            color_mapper = LinearColorMapper(
+                palette="Turbo256", low=intensity_matrix.min(), high=intensity_matrix.max()
+            )
+
+            heatmap_plot = figure(
+                x_axis_label="ppm",
+                y_axis_label="time (h)",
+                plot_height=700,
+                plot_width=400,
+                y_axis_location="right",
+            )
+
+            heatmap_plot.image(
+                image=[intensity_matrix],
+                x=x_max,
+                y=y_min,
+                dw=x_max - x_min,
+                dh=y_max - y_min,
+                color_mapper=color_mapper,
+            )
+
+            color_bar = ColorBar(color_mapper=color_mapper, location=(0, 0))
+
+            heatmap_plot.add_layout(color_bar, "right")
+
+            self.data["bokeh_plot_data_5"] = bokeh.embed.json_item(
+                heatmap_plot, theme=DATALAB_BOKEH_THEME
+            )
+
+            #!
+
+            ppm_values = nmr_df["ppm"].values
+            time_values = self.data["nmr_data"]["processed_data"]["time"]
+
+            intensity_matrix = np.array(
+                [nmr_df[str(i)].values for i in range(1, len(nmr_df.columns))]
+            )
+
+            echem_plot_2 = figure(
+                x_axis_label="Voltage",
+                y_axis_label="Time (s)",
+                plot_height=700,
+                plot_width=400,
+                y_range=Range1d(start=y_min, end=y_max),
+                min_border_right=0,
+            )
+
+            echem_plot_2.line(
+                echem_df["Voltage"],
+                echem_df["time/s"] / 3600,
+                line_color="blue",
+            )
+
+            x_min, x_max = ppm_values.min(), ppm_values.max()
+            y_min, y_max = time_values[0], time_values[599]
+
+            color_mapper = LinearColorMapper(
+                palette="Turbo256", low=intensity_matrix.min(), high=intensity_matrix.max()
+            )
+
+            heatmap_plot_2 = figure(
+                x_axis_label="ppm",
+                plot_height=700,
+                plot_width=400,
+                y_axis_location="right",
+                x_range=Range1d(start=x_max, end=x_min),
+                y_range=Range1d(start=y_min, end=y_max),
+                min_border_left=0,
+            )
+
+            heatmap_plot_2.image(
+                image=[intensity_matrix],
+                x=x_max,
+                y=y_min,
+                dw=x_max - x_min,
+                dh=y_max - y_min,
+                color_mapper=color_mapper,
+            )
+
+            color_bar = ColorBar(color_mapper=color_mapper, location=(0, 0))
+
+            heatmap_plot_2.add_layout(color_bar, "right")
+
+            combined_plot_2 = row(echem_plot_2, heatmap_plot_2)
+
+            self.data["bokeh_plot_data_6"] = bokeh.embed.json_item(
+                combined_plot_2, theme=DATALAB_BOKEH_THEME
             )
 
             return df, ["Plot successfully generated"]

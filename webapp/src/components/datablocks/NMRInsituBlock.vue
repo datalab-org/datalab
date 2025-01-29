@@ -45,7 +45,7 @@
         </div>
       </div>
     </div>
-    <div class="row">
+    <div class="row mt-2">
       <!-- <div class="col-6 pr-2">
         <BokehPlot :key="'bokeh_plot1'" :bokeh-plot-data="bokehPlotData1" />
       </div>
@@ -59,7 +59,32 @@
         <BokehPlot v-else :key="'bokeh_plot3'" :bokeh-plot-data="bokehPlotData3" />
       </div> -->
       <div id="bokehPlotContainer" class="col-xl-8 col-lg-8 col-md-11 mx-auto">
+        <BokehPlot :bokeh-plot-data="bokehPlotData5" />
+      </div>
+    </div>
+    <div class="row mt-2">
+      <div id="bokehPlotContainer" class="col-xl-8 col-lg-8 col-md-11 mx-auto">
         <BokehPlot :bokeh-plot-data="bokehPlotData4" />
+      </div>
+    </div>
+    <div class="row mt-2">
+      <div id="bokehPlotContainer" class="col-xl-8 col-lg-8 col-md-11 mx-auto">
+        <BokehPlot :bokeh-plot-data="bokehPlotData6" />
+      </div>
+    </div>
+    <div class="row mt-2">
+      <div id="bokehPlotContainer" class="col-xl-8 col-lg-8 col-md-11 mx-auto">
+        <BokehPlot :bokeh-plot-data="bokehPlotData1" />
+      </div>
+    </div>
+    <div class="row mt-2">
+      <div id="bokehPlotContainer" class="col-xl-8 col-lg-8 col-md-11 mx-auto">
+        <BokehPlot :bokeh-plot-data="bokehPlotData2" />
+      </div>
+    </div>
+    <div class="row mt-2">
+      <div id="bokehPlotContainer" class="col-xl-8 col-lg-8 col-md-11 mx-auto">
+        <BokehPlot :bokeh-plot-data="bokehPlotData3" />
       </div>
     </div>
   </DataBlockBase>
@@ -111,6 +136,14 @@ export default {
     bokehPlotData4() {
       return this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id]
         .bokeh_plot_data_4;
+    },
+    bokehPlotData5() {
+      return this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id]
+        .bokeh_plot_data_5;
+    },
+    bokehPlotData6() {
+      return this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id]
+        .bokeh_plot_data_6;
     },
     blockInfo() {
       return this.$store.state.blocksInfos["insitu"];
