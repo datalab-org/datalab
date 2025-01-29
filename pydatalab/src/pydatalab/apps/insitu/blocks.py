@@ -313,7 +313,7 @@ class InsituBlock(DataBlock):
 
             echem_plot_2 = figure(
                 x_axis_label="Voltage",
-                y_axis_label="Time (s)",
+                y_axis_label="Time (h)",
                 plot_height=700,
                 plot_width=400,
                 y_range=Range1d(start=y_min, end=y_max),
