@@ -8,8 +8,14 @@
       update-block-on-change
     />
     <div v-show="file_id">
-      <div class="form-inline mt-2">
-        <div class="form-group">
+      <div class="form-inline">
+        <div class="form-group mb-2">
+          <label class="mr-2"><b>NMR folder name</b></label>
+          <input v-model="nmrFolderName" type="text" class="form-control mr-2" />
+          <label class="mr-2"><b>Echem folder name</b></label>
+          <input v-model="echemFolderName" type="text" class="form-control" />
+        </div>
+        <div class="form-group mt-2 mb-2">
           <label class="mr-2"><b>ppm 1</b></label>
           <input
             v-model.number="ppm1"
@@ -44,7 +50,7 @@
         </div>
       </div>
     </div>
-    <div class="row">
+    <div class="row mt-2">
       <div id="bokehPlotContainer" class="col-xl-8 col-lg-8 col-md-11 mx-auto">
         <BokehPlot :bokeh-plot-data="bokehPlotData" />
       </div>

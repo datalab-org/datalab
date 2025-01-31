@@ -145,12 +145,14 @@ class InsituBlock(DataBlock):
             echem_data = self.data["echem_data"]
             metadata = self.data["metadata"]
 
-            echem_plot = self._create_echem_plot(
-                echem_data, y_range=(metadata["time_range"]["start"], metadata["time_range"]["end"])
-            )
+            y_start = metadata["time_range"]["start"]
+            y_end = metadata["time_range"]["end"]
+            shared_y_range = Range1d(start=y_start, end=y_end)
+
+            echem_plot = self._create_echem_plot(echem_data, y_range=shared_y_range)
 
             nmr_plot = self._create_nmr_heatmap(
-                nmr_data, metadata["ppm_range"], metadata["time_range"]
+                nmr_data, metadata["ppm_range"], metadata["time_range"], y_range=shared_y_range
             )
 
             combined_plot = row(echem_plot, nmr_plot)
@@ -165,14 +167,14 @@ class InsituBlock(DataBlock):
             LOGGER.error(f"Error in generate_insitu_nmr_plot: {str(e)}")
             return None, []
 
-    def _create_echem_plot(self, echem_data: pd.DataFrame, y_range: Tuple[float, float]) -> figure:
+    def _create_echem_plot(self, echem_data: pd.DataFrame, y_range: Range1d) -> figure:
         """Create electrochemical plot."""
         plot = figure(
             x_axis_label="Voltage",
             y_axis_label="Time (h)",
             plot_height=700,
             plot_width=400,
-            y_range=Range1d(start=y_range[0], end=y_range[1]),
+            y_range=y_range,
             min_border_right=0,
         )
 
@@ -181,7 +183,11 @@ class InsituBlock(DataBlock):
         return plot
 
     def _create_nmr_heatmap(
-        self, nmr_data: Dict, ppm_range: Dict[str, float], time_range: Dict[str, float]
+        self,
+        nmr_data: Dict,
+        ppm_range: Dict[str, float],
+        time_range: Dict[str, float],
+        y_range: Range1d,
     ) -> figure:
         """Create NMR heatmap plot."""
         plot = figure(
@@ -190,7 +196,7 @@ class InsituBlock(DataBlock):
             plot_width=400,
             y_axis_location="right",
             x_range=Range1d(start=ppm_range["end"], end=ppm_range["start"]),
-            y_range=Range1d(start=time_range["start"], end=time_range["end"]),
+            y_range=y_range,
             min_border_left=0,
         )
 
