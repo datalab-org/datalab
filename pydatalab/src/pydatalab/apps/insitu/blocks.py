@@ -21,6 +21,8 @@ class InsituBlock(DataBlock):
     name = "NMR insitu"
     description = "A simple NMR insitu block from .zip files."
     accepted_file_extensions = (".zip",)
+    nmr_folder_name = ""
+    echem_folder_name = ""
 
     defaults = {
         "ppm1": 220,
@@ -58,6 +60,9 @@ class InsituBlock(DataBlock):
         try:
             ppm1 = float(self.data.get("ppm1", self.defaults["ppm1"]))
             ppm2 = float(self.data.get("ppm2", self.defaults["ppm2"]))
+
+            nmr_folder_name = self.data.get("nmr_folder_name")
+            echem_folder_name = self.data.get("echem_folder_name")
             start_exp = int(self.data.get("start_exp", self.defaults["start_exp"]))
             exclude_exp = self.data.get("exclude_exp", self.defaults["exclude_exp"])
             api_url = os.environ.get("DATALAB_API_URL")
@@ -70,8 +75,8 @@ class InsituBlock(DataBlock):
                 api_url=api_url,
                 item_id="bc_insitu_block",
                 folder_name="Example-TEGDME.zip",
-                nmr_folder_name="2023-08-11_jana_insituLiLiTEGDME-02_galv",
-                echem_folder_name="LiLiTEGDMEinsitu_02",
+                nmr_folder_name=nmr_folder_name,
+                echem_folder_name=echem_folder_name,
                 ppm1=ppm1,
                 ppm2=ppm2,
                 start_at=start_exp,

@@ -11,9 +11,30 @@
       <div class="form-inline">
         <div class="form-group mb-2">
           <label class="mr-2"><b>NMR folder name</b></label>
-          <input v-model="nmrFolderName" type="text" class="form-control mr-2" />
+          <input
+            v-model="nmr_folder_name"
+            type="text"
+            class="form-control mr-2"
+            @keydown.enter="validateFolderNames()"
+            @blur="validateFolderNames()"
+          />
           <label class="mr-2"><b>Echem folder name</b></label>
-          <input v-model="echemFolderName" type="text" class="form-control" />
+          <input
+            v-model="echem_folder_name"
+            type="text"
+            class="form-control"
+            @keydown.enter="
+              validateFolderNames();
+              updateBlock();
+            "
+            @blur="
+              validateFolderNames();
+              updateBlock();
+            "
+          />
+          <div v-if="folderNameError" class="alert alert-danger mt-2 mx-auto">
+            {{ folderNameError }}
+          </div>
         </div>
         <div class="form-group mt-2 mb-2">
           <label class="mr-2"><b>ppm 1</b></label>
@@ -50,7 +71,7 @@
         </div>
       </div>
     </div>
-    <div class="row mt-2">
+    <div v-show="nmr_folder_name && echem_folder_name" class="row mt-2">
       <div id="bokehPlotContainer" class="col-xl-8 col-lg-8 col-md-11 mx-auto">
         <BokehPlot :bokeh-plot-data="bokehPlotData" />
       </div>
@@ -85,6 +106,7 @@ export default {
   data() {
     return {
       ppmParseError: "",
+      folderNameError: "",
     };
   },
   computed: {
@@ -97,6 +119,8 @@ export default {
     },
     ppm1: createComputedSetterForBlockField("ppm1"),
     ppm2: createComputedSetterForBlockField("ppm2"),
+    nmr_folder_name: createComputedSetterForBlockField("nmr_folder_name"),
+    echem_folder_name: createComputedSetterForBlockField("echem_folder_name"),
     file_id: createComputedSetterForBlockField("file_id"),
   },
   methods: {
@@ -106,6 +130,15 @@ export default {
       } else {
         this.ppmParseError = "";
       }
+    },
+    validateFolderNames() {
+      if (!this.nmr_folder_name || !this.echem_folder_name) {
+        this.folderNameError = "Both NMR and Echem folder names are required";
+        return false;
+      }
+      this.folderNameError = "";
+      this.updateBlock();
+      return true;
     },
     updateBlock() {
       updateBlockFromServer(
