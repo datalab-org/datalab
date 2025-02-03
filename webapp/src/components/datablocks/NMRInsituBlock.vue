@@ -23,14 +23,8 @@
             v-model="echem_folder_name"
             type="text"
             class="form-control"
-            @keydown.enter="
-              validateFolderNames();
-              updateBlock();
-            "
-            @blur="
-              validateFolderNames();
-              updateBlock();
-            "
+            @keydown.enter="validateFolderNames()"
+            @blur="validateFolderNames()"
           />
           <div v-if="folderNameError" class="alert alert-danger mt-2 mx-auto">
             {{ folderNameError }}
@@ -117,11 +111,15 @@ export default {
     blockInfo() {
       return this.$store.state.blocksInfos["insitu"];
     },
+    all_files() {
+      return this.$store.state.all_item_data[this.item_id].files;
+    },
     ppm1: createComputedSetterForBlockField("ppm1"),
     ppm2: createComputedSetterForBlockField("ppm2"),
     nmr_folder_name: createComputedSetterForBlockField("nmr_folder_name"),
     echem_folder_name: createComputedSetterForBlockField("echem_folder_name"),
     file_id: createComputedSetterForBlockField("file_id"),
+    folder_name: createComputedSetterForBlockField("folder_name"),
   },
   methods: {
     parsePPM() {
@@ -141,6 +139,8 @@ export default {
       return true;
     },
     updateBlock() {
+      const foundFile = this.all_files.find((file) => file.immutable_id === this.file_id);
+      this.folder_name = foundFile?.name || "Folder not found";
       updateBlockFromServer(
         this.item_id,
         this.block_id,

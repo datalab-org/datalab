@@ -23,6 +23,7 @@ class InsituBlock(DataBlock):
     accepted_file_extensions = (".zip",)
     nmr_folder_name = ""
     echem_folder_name = ""
+    folder_name = ""
 
     defaults = {
         "ppm1": 220,
@@ -61,27 +62,47 @@ class InsituBlock(DataBlock):
             ppm1 = float(self.data.get("ppm1", self.defaults["ppm1"]))
             ppm2 = float(self.data.get("ppm2", self.defaults["ppm2"]))
 
+            folder_name = self.data.get("folder_name")
             nmr_folder_name = self.data.get("nmr_folder_name")
             echem_folder_name = self.data.get("echem_folder_name")
+
+            if not all([nmr_folder_name, echem_folder_name]):
+                self.data["warnings"] = ["Both NMR and Echem folder names are required"]
+                return False
+
             start_exp = int(self.data.get("start_exp", self.defaults["start_exp"]))
             exclude_exp = self.data.get("exclude_exp", self.defaults["exclude_exp"])
+
             api_url = os.environ.get("DATALAB_API_URL")
             if not api_url:
-                raise ValueError(
+                self.data["errors"] = [
                     "API URL is missing. Please set the 'DATALAB_API_URL' environment variable."
+                ]
+                return False
+
+            try:
+                result = process_data(
+                    api_url=api_url,
+                    item_id="bc_insitu_block",
+                    folder_name=folder_name,
+                    nmr_folder_name=nmr_folder_name,
+                    echem_folder_name=echem_folder_name,
+                    ppm1=ppm1,
+                    ppm2=ppm2,
+                    start_at=start_exp,
+                    exclude_exp=exclude_exp,
                 )
 
-            result = process_data(
-                api_url=api_url,
-                item_id="bc_insitu_block",
-                folder_name="Example-TEGDME.zip",
-                nmr_folder_name=nmr_folder_name,
-                echem_folder_name=echem_folder_name,
-                ppm1=ppm1,
-                ppm2=ppm2,
-                start_at=start_exp,
-                exclude_exp=exclude_exp,
-            )
+            except FileNotFoundError as e:
+                self.data["errors"] = [f"Folder not found: {str(e)}"]
+                return False
+
+            except Exception as e:
+                self.data["errors"] = [f"Error processing data: {str(e)}"]
+                return False
+
+            self.data.pop("warnings", None)
+            self.data.pop("errors", None)
 
             self.data.update(
                 {
