@@ -62,6 +62,7 @@ class InsituBlock(DataBlock):
             ppm1 = float(self.data.get("ppm1", self.defaults["ppm1"]))
             ppm2 = float(self.data.get("ppm2", self.defaults["ppm2"]))
 
+            item_id = self.data.get("item_id")
             folder_name = self.data.get("folder_name")
             nmr_folder_name = self.data.get("nmr_folder_name")
             echem_folder_name = self.data.get("echem_folder_name")
@@ -75,6 +76,9 @@ class InsituBlock(DataBlock):
 
             api_url = os.environ.get("DATALAB_API_URL")
             if not api_url:
+                LOGGER.warning(
+                    "API URL is missing. Please set the 'DATALAB_API_URL' environment variable."
+                )
                 self.data["errors"] = [
                     "API URL is missing. Please set the 'DATALAB_API_URL' environment variable."
                 ]
@@ -83,7 +87,7 @@ class InsituBlock(DataBlock):
             try:
                 result = process_data(
                     api_url=api_url,
-                    item_id="bc_insitu_block",
+                    item_id=item_id,
                     folder_name=folder_name,
                     nmr_folder_name=nmr_folder_name,
                     echem_folder_name=echem_folder_name,
@@ -94,10 +98,12 @@ class InsituBlock(DataBlock):
                 )
 
             except FileNotFoundError as e:
+                LOGGER.warning(f"Folder not found: {str(e)}")
                 self.data["errors"] = [f"Folder not found: {str(e)}"]
                 return False
 
             except Exception as e:
+                LOGGER.warning(f"Error processing data: {str(e)}")
                 self.data["errors"] = [f"Error processing data: {str(e)}"]
                 return False
 
@@ -107,7 +113,7 @@ class InsituBlock(DataBlock):
             self.data.update(
                 {
                     "nmr_data": result["nmr_spectra"],
-                    "echem_data": result["echem"],
+                    "echem_data": result.get("echem", {}),
                     "metadata": result["metadata"],
                     "processing_params": {
                         "ppm1": ppm1,
@@ -175,13 +181,15 @@ class InsituBlock(DataBlock):
             y_end = metadata["time_range"]["end"]
             shared_y_range = Range1d(start=y_start, end=y_end)
 
-            echem_plot = self._create_echem_plot(echem_data, y_range=shared_y_range)
-
             nmr_plot = self._create_nmr_heatmap(
                 nmr_data, metadata["ppm_range"], metadata["time_range"], y_range=shared_y_range
             )
 
-            combined_plot = row(echem_plot, nmr_plot)
+            if echem_data:
+                echem_plot = self._create_echem_plot(echem_data, y_range=shared_y_range)
+                combined_plot = row(echem_plot, nmr_plot)
+            else:
+                combined_plot = row(nmr_plot)
 
             self.data["bokeh_plot_data"] = bokeh.embed.json_item(
                 combined_plot, theme=DATALAB_BOKEH_THEME
