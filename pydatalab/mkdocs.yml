@@ -1,6 +1,6 @@
 site_name: datalab
 site_description: Documentation for datalab
-site_url: https://the-datalab.readthedocs.io
+site_url: https://docs.datalab-org.io
 
 theme:
   name: material
