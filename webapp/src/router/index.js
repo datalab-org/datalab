@@ -19,7 +19,18 @@ import Login3 from "../views/Login3.vue";
 //  return user !== null;
 //};
 
+//! TO REMOVE
+import NgramSearch from "../views/NgramSearch.vue";
+//! TO REMOVE
+
 const routes = [
+  //! TO REMOVE
+  {
+    path: "/ngram",
+    name: "ngram",
+    component: NgramSearch,
+  },
+  //! TO REMOVE
   {
     path: "/about",
     name: "About",

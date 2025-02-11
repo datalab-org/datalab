@@ -31,6 +31,9 @@
     <router-link to="/item-graph"
       ><font-awesome-icon icon="project-diagram" />&nbsp;Graph View</router-link
     >
+    <!--! TO REMOVE -->
+    | <router-link to="/ngram">Ngram Search</router-link>
+    <!--! TO REMOVE -->
   </div>
   <div v-if="!isLoggedIn" class="container">
     <div class="alert alert-info col-md-6 col-lg-4 text-center mx-auto">

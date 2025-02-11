@@ -43,7 +43,9 @@
 <script>
 import vSelect from "vue-select";
 import FormattedItemName from "@/components/FormattedItemName.vue";
-import { searchItems } from "@/server_fetch_utils.js";
+//! TO REMOVE
+import { searchItems, searchItemsNgram } from "@/server_fetch_utils.js";
+//! TO REMOVE
 import { debounceTime } from "@/resources.js";
 
 export default {
@@ -68,6 +70,12 @@ export default {
       type: String,
       default: "type to search...",
     },
+    //! TO REMOVE
+    ngram: {
+      type: Boolean,
+      default: false,
+    },
+    //! TO REMOVE
   },
   emits: ["update:modelValue"],
   data() {
@@ -97,7 +105,12 @@ export default {
       clearTimeout(this.debounceTimeout); // reset the timer
       // start the timer
       this.debounceTimeout = setTimeout(async () => {
-        await searchItems(query, 100, this.typesToQuery)
+        //! TO REMOVE
+        const searchFunction = this.ngram ? searchItemsNgram : searchItems;
+
+        await searchFunction(query, 100, this.typesToQuery)
+          //! TO REMOVE
+
           .then((items) => {
             this.items = items;
           })

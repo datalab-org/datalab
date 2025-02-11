@@ -314,6 +314,21 @@ export function searchItems(query, nresults = 100, types = null) {
   });
 }
 
+//! TO REMOVE
+export function searchItemsNgram(query, nresults = 100, types = null) {
+  // construct a url with parameters:
+  var url = new URL(`${API_URL}/search-items-ngram/`);
+  var params = { query: query, nresults: nresults, types: types };
+  Object.keys(params).forEach((key) => url.searchParams.append(key, params[key]));
+  console.log(`using to construct url for searchItemsNgram: ${url}`);
+  console.log(url);
+  console.log(params);
+  return fetch_get(url).then(function (response_json) {
+    return response_json.items;
+  });
+}
+//! TO REMOVE
+
 export function searchCollections(query, nresults = 100) {
   // construct a url with parameters:
   var url = new URL(`${API_URL}/search-collections`);
