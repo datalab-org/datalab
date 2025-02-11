@@ -10,7 +10,18 @@ import ExampleGraph from "@/views/ExampleGraph.vue";
 import ItemGraphPage from "@/views/ItemGraphPage.vue";
 import Admin from "@/views/Admin.vue";
 
+//! TO REMOVE
+import NgramSearch from "../views/NgramSearch.vue";
+//! TO REMOVE
+
 const routes = [
+  //! TO REMOVE
+  {
+    path: "/ngram",
+    name: "ngram",
+    component: NgramSearch,
+  },
+  //! TO REMOVE
   {
     path: "/about",
     name: "About",
