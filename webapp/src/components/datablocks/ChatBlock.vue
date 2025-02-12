@@ -12,39 +12,56 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
     <div class="row">
       <div id="chatWindowContainer" class="col-xl-9 col-lg-10 col-md-12 mx-auto">
         <div v-if="!advancedHidden" class="advanced-information">
-          <div class="input-group">
-            <label class="mr-2">Model:</label>
-            <select v-model="modelName" class="form-control">
-              <option v-for="model in Object.keys(availableModels)" :key="model">
-                {{ model }}
-              </option>
-            </select>
+          <div class="row mt-2 mb-2 align-items-center">
+            <div class="col-auto">
+              <label class="form-label">Model:</label>
+            </div>
+            <div class="col-auto">
+              <select v-model="modelName" class="form-control">
+                <option v-for="model in Object.keys(availableModels)" :key="model">
+                  {{ model }}
+                </option>
+              </select>
+            </div>
           </div>
-          <br />
-          <div class="input-group">
-            <label>Current conversation token count:</label>
-            <span class="pl-1">{{ tokenCount }}/ {{ modelObj.context_window }}</span>
+          <div class="row mt-2 mb-2 align-items-center">
+            <div class="col-auto">
+              <label class="form-label">Current conversation token count:</label>
+            </div>
+            <div class="col-auto">
+              <span class="ps-1">{{ tokenCount }}/ {{ modelObj.context_window }}</span>
+            </div>
           </div>
-          <div class="form-row input-group">
-            <label>est. cost for next message:</label>
-            <span class="pl-1">${{ estimatedCost.toPrecision(2) }}</span>
+          <div class="row mt-2 mb-2 align-items-center">
+            <div class="col-auto">
+              <label class="form-label">est. cost for next message:</label>
+            </div>
+            <div class="col-auto">
+              <span class="ps-1">${{ estimatedCost.toPrecision(2) }}</span>
+            </div>
           </div>
 
-          <div class="form-row input-group">
-            <label for="temperatureInput" class="mr-2"><b>temperature:</b></label>
-            <input
-              id="temperatureInput"
-              v-model="temperature"
-              type="number"
-              min="0"
-              max="1"
-              step="0.1"
-              class="form-control-sm"
-              :class="{ 'red-border': tempInvalid }"
-            />
-            <small v-show="tempInvalid" class="text-danger">
-              Temperature must must be a number between 0 and 1
-            </small>
+          <div class="row mt-2 mb-2 align-items-center">
+            <div class="col-auto">
+              <label for="temperatureInput" class="form-label"><b>temperature:</b></label>
+            </div>
+            <div class="col-auto">
+              <input
+                id="temperatureInput"
+                v-model="temperature"
+                type="number"
+                min="0"
+                max="1"
+                step="0.1"
+                class="form-control-sm"
+                :class="{ 'red-border': tempInvalid }"
+              />
+            </div>
+            <div class="col-auto">
+              <small v-show="tempInvalid" class="text-danger">
+                Temperature must must be a number between 0 and 1
+              </small>
+            </div>
           </div>
         </div>
         <ChatWindow
@@ -59,7 +76,7 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
           >
             <font-awesome-icon
               :icon="['fa', 'sync']"
-              class="pr-1 text-muted"
+              class="pe-1 text-muted"
               :spin="isRegenerating"
             />
             regenerate response
@@ -76,24 +93,28 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
       }}
     </div>
 
-    <div class="input-group form-inline col-md-10 mx-auto align-items-end">
-      <textarea
-        v-model="prompt"
-        rows="3"
-        type="text"
-        class="form-control"
-        :disabled="isLoading"
-        placeholder="Type your message to send to the LLM, then press enter or hit send (shift-enter for newline)."
-        @keydown.enter.exact.prevent="updateBlock"
-      />
-      <button
-        type="button"
-        class="btn btn-default send-button"
-        :disabled="!prompt || /^\s*$/.test(prompt) || isLoading"
-        @click="updateBlock()"
-      >
-        Send
-      </button>
+    <div class="row col-md-10 mx-auto align-items-end">
+      <div class="col-10 pe-0">
+        <textarea
+          v-model="prompt"
+          rows="3"
+          type="text"
+          class="form-control"
+          :disabled="isLoading"
+          placeholder="Type your message to send to the LLM, then press enter or hit send (shift-enter for newline)."
+          @keydown.enter.exact.prevent="updateBlock"
+        />
+      </div>
+      <div class="col-2 ps-0">
+        <button
+          type="button"
+          class="btn btn-default send-button"
+          :disabled="!prompt || /^\s*$/.test(prompt) || isLoading"
+          @click="updateBlock()"
+        >
+          Send
+        </button>
+      </div>
     </div>
   </DataBlockBase>
 </template>
