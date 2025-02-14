@@ -484,7 +484,13 @@ export async function getCollectionData(collection_id) {
     .catch((error) => alert("Error getting collection data: " + error));
 }
 
-export async function updateBlockFromServer(item_id, block_id, block_data, saveToDatabase = true) {
+export async function updateBlockFromServer(
+  item_id,
+  block_id,
+  block_data = null,
+  event_data = null,
+  saveToDatabase = true,
+) {
   console.log("updateBlockFromServer called with data:");
   console.log(block_data);
   store.commit("setBlockUpdating", block_id);
@@ -492,6 +498,7 @@ export async function updateBlockFromServer(item_id, block_id, block_data, saveT
     item_id: item_id,
     block_id: block_id,
     block_data: block_data,
+    event_data: event_data,
     save_to_db: saveToDatabase,
   })
     .then(function (response_json) {

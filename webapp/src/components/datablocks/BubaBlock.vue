@@ -74,6 +74,12 @@ export default {
       massParseError: "",
     };
   },
+  mounted() {
+    document.addEventListener("bokehStateUpdate", this.handleBokehStateUpdate);
+  },
+  beforeUnmount() {
+    document.removeEventListener("bokehStateUpdate", this.handleBokehStateUpdate);
+  },
   computed: {
     bokehPlotData() {
       return this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id]
@@ -98,6 +104,16 @@ export default {
         this.item_id,
         this.block_id,
         this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id],
+      );
+    },
+    handleBokehStateUpdate(event) {
+      console.log("handlingBokehStateUpdate", event.detail);
+      // Now you can access this.item_id, this.block_id, etc.
+      updateBlockFromServer(
+        this.item_id,
+        this.block_id,
+        this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id],
+        event.detail,
       );
     },
   },

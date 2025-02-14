@@ -50,13 +50,9 @@ export default {
     async startBokehPlot() {
       if (this.bokehPlotData) {
         this.loading = true;
-        console.log("running startBokehPlot with:");
-        console.log(this.bokehPlotData);
         var views = await Bokeh.embed.embed_item(this.bokehPlotData, this.unique_id);
         this.BokehDoc = views[0].model.document; // NOTE: BokehDoc is intentionally not kept in data so that this is NONREACTIVE. (we need this to be the case or BokehDoc.clear() doesn't work for some reason)
         this.bokeh_views = views;
-        console.log("Bokeh Doc:");
-        console.log(this.BokehDoc);
         this.loading = false;
         this.loaded = true;
 
