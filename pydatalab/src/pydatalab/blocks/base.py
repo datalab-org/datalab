@@ -191,6 +191,9 @@ class DataBlock:
 
         return self.data
 
+    def process_events(self, events):
+        raise NotImplementedError
+
     @classmethod
     def from_web(cls, data):
         LOGGER.debug("Loading block %s from web request.", cls.__class__.__name__)
