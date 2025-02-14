@@ -8,7 +8,7 @@ import pandas as pd
 from bokeh.layouts import row
 from bokeh.models import ColorBar, LinearColorMapper, Range1d
 from bokeh.plotting import figure
-from datalab_app_plugin_nmr_insitu import process_data
+from datalab_app_plugin_nmr_insitu import process_datalab_data
 
 from pydatalab.blocks.base import DataBlock
 from pydatalab.bokeh_plots import DATALAB_BOKEH_THEME
@@ -85,7 +85,7 @@ class InsituBlock(DataBlock):
                 return False
 
             try:
-                result = process_data(
+                result = process_datalab_data(
                     api_url=api_url,
                     item_id=item_id,
                     folder_name=folder_name,
