@@ -74,12 +74,6 @@ export default {
       massParseError: "",
     };
   },
-  mounted() {
-    document.addEventListener("bokehStateUpdate", this.handleBokehStateUpdate);
-  },
-  beforeUnmount() {
-    document.removeEventListener("bokehStateUpdate", this.handleBokehStateUpdate);
-  },
   computed: {
     bokehPlotData() {
       return this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id]
@@ -90,6 +84,12 @@ export default {
     },
     sorbent_mass_g: createComputedSetterForBlockField("sorbent_mass_g"),
     file_id: createComputedSetterForBlockField("file_id"),
+  },
+  mounted() {
+    document.addEventListener("bokehStateUpdate", this.handleBokehStateUpdate);
+  },
+  beforeUnmount() {
+    document.removeEventListener("bokehStateUpdate", this.handleBokehStateUpdate);
   },
   methods: {
     parseMass() {
