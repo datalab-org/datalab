@@ -41,7 +41,7 @@
     <div
       ref="datablockContent"
       :style="{ 'max-height': contentMaxHeight }"
-      class="datablock-content"
+      class="datablock-content position-relative"
     >
       <!-- Show any warnings or errors reported by the block -->
       <div
@@ -104,6 +104,23 @@
             {{ block.warnings.length }} warning(s) (click to expand)
           </li>
         </ul>
+      </div>
+      <div
+        v-if="showOverlay"
+        class="position-absolute w-100 h-100 top-0 start-0 d-flex justify-content-center align-items-center"
+        style="background-color: rgba(255, 255, 255, 0.7); z-index: 100"
+      >
+        <div class="card p-3 shadow-sm">
+          <div class="text-center">
+            <font-awesome-icon
+              :icon="['fa', 'sync']"
+              class="fa-2x text-primary mb-2"
+              :spin="true"
+              aria-label="loading"
+            />
+            <p class="mb-0 fw-medium">Loading data...</p>
+          </div>
+        </div>
       </div>
       <slot></slot>
       <TinyMceInline v-model="BlockDescription"></TinyMceInline>
@@ -173,6 +190,9 @@ export default {
     },
     blockInfo() {
       return this.$store.state.blocksInfos?.[this.blockType];
+    },
+    showOverlay() {
+      return this.isUpdating && this.isExpanded;
     },
     BlockTitle: createComputedSetterForBlockField("title"),
     BlockDescription: createComputedSetterForBlockField("freeform_comment"),
