@@ -109,6 +109,7 @@
         v-if="showOverlay"
         class="position-absolute w-100 h-100 top-0 start-0 d-flex justify-content-center align-items-center"
         style="background-color: rgba(255, 255, 255, 0.7); z-index: 100"
+        data-testid="loading-overlay"
       >
         <div class="card p-3 shadow-sm">
           <div class="text-center">
@@ -123,7 +124,7 @@
         </div>
       </div>
       <slot></slot>
-      <TinyMceInline v-model="BlockDescription"></TinyMceInline>
+      <TinyMceInline v-model="BlockDescription" data-testid="block-description"></TinyMceInline>
     </div>
   </div>
 </template>
