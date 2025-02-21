@@ -102,8 +102,8 @@ class TabularDataBlock(DataBlock):
                     f"`pandas.read_excel()` was not able to read the file. Error: {e}"
                 )
 
-            if len(df_dict) == 1:
-                df = next(iter(df_dict.values()))
+            df = next(iter(df_dict.values()))
+            if len(df_dict) > 1:
                 warnings.warn(
                     f"Found multiple sheets in spreadsheet file {df_dict.keys()}, only using the first one."
                 )
