@@ -80,7 +80,7 @@ class TabularDataBlock(DataBlock):
         return self.load(file_info["location"])
 
     @classmethod
-    def load(cls, location: Path) -> pd.DataFrame:
+    def load(cls, location: Path | str) -> pd.DataFrame:
         """Throw several pandas readers at the target file.
 
         If an excel-like format, try to read it with `pandas.read_excel()`.
@@ -91,6 +91,9 @@ class TabularDataBlock(DataBlock):
             pd.DataFrame: The loaded dataframe.
 
         """
+        if not isinstance(location, Path):
+            location = Path(location)
+
         if location.suffix in EXCEL_LIKE_EXTENSIONS:
             try:
                 df_dict = pd.read_excel(location, sheet_name=None)
@@ -104,6 +107,9 @@ class TabularDataBlock(DataBlock):
                 warnings.warn(
                     f"Found multiple sheets in spreadsheet file {df_dict.keys()}, only using the first one."
                 )
+
+            return df
+
         try:
             df = pd.read_csv(
                 location,
@@ -142,15 +148,11 @@ class TabularDataBlock(DataBlock):
         df = self._load()
         if df is None:
             return
-        columns = list(df.columns)
         plot = selectable_axes_plot(
             df,
-            x_options=columns,
-            y_options=columns,
-            x_default=columns[0],
-            y_default=columns[1],
             plot_points=True,
             plot_line=False,
+            show_table=True,
         )
 
         self.data["bokeh_plot_data"] = bokeh.embed.json_item(plot, theme=DATALAB_BOKEH_THEME)
