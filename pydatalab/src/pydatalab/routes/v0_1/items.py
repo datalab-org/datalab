@@ -1,6 +1,8 @@
 import datetime
 import json
 import re
+import uuid
+from hashlib import sha512
 
 from bson import ObjectId
 from flask import Blueprint, jsonify, redirect, request
@@ -19,7 +21,12 @@ from pydatalab.models.people import Person
 from pydatalab.models.relationships import RelationshipType
 from pydatalab.models.utils import generate_unique_refcode
 from pydatalab.mongo import ITEMS_FTS_FIELDS, flask_mongo
-from pydatalab.permissions import PUBLIC_USER_ID, active_users_or_get_only, get_default_permissions
+from pydatalab.permissions import (
+    PUBLIC_USER_ID,
+    active_users_or_get_only,
+    check_access_token,
+    get_default_permissions,
+)
 
 ITEMS = Blueprint("items", __name__)
 
@@ -786,6 +793,60 @@ def update_item_permissions(refcode: str):
     return jsonify({"status": "success"}), 200
 
 
+@ITEMS.route("/items/<refcode>/issue-access-token", methods=["GET"])
+def issue_physical_token(refcode: str):
+    """Issue a token that will give semi-permanent access to an
+    item with this refcode. This should be used when generating
+    physicsl labels to attach to a container.
+
+    """
+
+    if len(refcode.split(":")) != 2:
+        refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
+
+    current_item = flask_mongo.db.items.find_one(
+        {"refcode": refcode, **get_default_permissions(user_only=True)},
+        {"refcode": 1},
+    )  # type: ignore
+
+    if not current_item:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": f"No valid item found with the given {refcode=}.",
+                }
+            ),
+            401,
+        )
+
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "No valid creator IDs found in the request.",
+                }
+            ),
+            400,
+        )
+
+    # generate token and store it in `api_keys` collection
+    token = str(uuid.uuid1())
+    access_document = {
+        "token": sha512(token.encode("utf-8")).hexdigest(),
+        "refcode": refcode,
+        "user": ObjectId(current_user.id),
+        "active": True,
+    }
+    save_key = flask_mongo.db.api_keys.insert_one(**access_document)
+    if not save_key:
+        return jsonify(
+            {"status": "error", "message": "Unknown error generating token for item."}
+        ), 500
+
+    return jsonify({"status": "success", "token": token}), 200
+
+
 @ITEMS.route("/delete-sample/", methods=["POST"])
 def delete_sample():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
@@ -822,8 +883,21 @@ def get_item_data(item_id: str | None = None, refcode: str | None = None):
     or `refcode` additionally resolving relationships to files and other items.
     """
     redirect_to_ui = bool(request.args.get("redirect-to-ui", default=False, type=json.loads))
+    access_token = request.args.get("at")
     if refcode and redirect_to_ui and CONFIG.APP_URL:
-        return redirect(f"{CONFIG.APP_URL}/items/{refcode}", code=307)
+        redirect_url = f"{CONFIG.APP_URL}/items/{refcode}"
+        if access_token:
+            redirect_url += f"?at={access_token}"
+        return redirect(redirect_url, code=307)
+
+    valid_access_token: bool = False
+    if refcode and access_token:
+        valid_access_token = check_access_token(refcode, access_token)
+        if not valid_access_token:
+            return (
+                jsonify({"status": "error", "message": "Invalid access token"}),
+                401,
+            )
 
     if item_id:
         match = {"item_id": item_id}
@@ -841,7 +915,9 @@ def get_item_data(item_id: str | None = None, refcode: str | None = None):
             {
                 "$match": {
                     **match,
-                    **get_default_permissions(user_only=False),
+                    **get_default_permissions(
+                        user_only=False, elevate_permissions=valid_access_token
+                    ),
                 }
             },
             {"$lookup": creators_lookup()},
@@ -1052,7 +1128,7 @@ def save_item():
     item.pop("creators")
 
     result = flask_mongo.db.items.update_one(
-        {"item_id": item_id},
+        {"item_id": item_id, **get_default_permissions(user_only=True)},
         {"$set": item},
     )
 
