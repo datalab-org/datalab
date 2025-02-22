@@ -4,7 +4,7 @@
       :value="QRCodeUrl"
       :width="width"
       :height="width"
-      :qr-options="{ typeNumber: 0, mode: 'Byte', errorCorrectionLevel: 'H' }"
+      :qr-options="{ typeNumber: 0, mode: 'Byte', errorCorrectionLevel: 'Q' }"
       :image-options="{ hideBackgroundDots: false, imageSize: 0, margin: 0 }"
       :dots-options="{
         type: 'square',
@@ -58,6 +58,9 @@ export default {
     };
   },
   computed: {
+    accessToken() {
+      return "v1-aaaaaaabbbbbbbbcccccccc";
+    },
     federatedQR() {
       return FEDERATION_QR_CODE_RESOLVER_URL == QR_CODE_RESOLVER_URL;
     },
@@ -65,9 +68,11 @@ export default {
       // If the QR_CODE_RESOLVER_URL is not set, use the API_URL
       // with the redirect-to-ui option
       if (QR_CODE_RESOLVER_URL == null) {
-        return API_URL + "/items/" + this.refcode + "?redirect-to-ui=true";
+        return (
+          API_URL + "/items/" + this.refcode + "?redirect-to-ui=true" + "&token=" + this.accessToken
+        );
       }
-      return QR_CODE_RESOLVER_URL + "/" + this.refcode;
+      return QR_CODE_RESOLVER_URL + "/" + this.refcode + "&token=" + this.accessToken;
     },
   },
 };

@@ -1,4 +1,5 @@
 from functools import wraps
+from hashlib import sha512
 from typing import Any
 
 from bson import ObjectId
@@ -60,7 +61,35 @@ def admin_only(func):
     return wrapped_route
 
 
-def get_default_permissions(user_only: bool = True, deleting: bool = False) -> dict[str, Any]:
+def check_access_token(refcode: str, token: str | None = None) -> bool:
+    """Check whether the provided access token exists in the get_database
+    and corresponds to the relevant refcode.
+
+    Returns:
+        Whether or not the token can read the item.
+
+    """
+
+    if not token:
+        return False
+
+    db = get_database()
+
+    hashed_token = sha512(token.encode("utf-8")).hexdigest()
+
+    access_document = db.api_keys.find_one(
+        {"token": hashed_token}, projection={"refcode": 1, "valid": 1}
+    )
+    if refcode == access_document["refcode"] and access_document["active"]:
+        LOGGER.info("Access to refcode %s granted with token", refcode, token)
+        return True
+
+    return False
+
+
+def get_default_permissions(
+    user_only: bool = True, deleting: bool = False, elevate_permissions: bool = False
+) -> dict[str, Any]:
     """Return the MongoDB query terms corresponding to the current user.
 
     Will return open permissions if a) the `CONFIG.TESTING` parameter is `True`,
@@ -70,6 +99,8 @@ def get_default_permissions(user_only: bool = True, deleting: bool = False) -> d
         user_only: Whether to exclude items that also have no attached user (`False`),
             i.e., public items. This should be set to `False` when reading (and wanting
             to return public items), but left as `True` when modifying or removing items.
+        elevate_permissions: Whether to elevate this query's permissions, i.e., in the case
+            that an item-specific access token has been provided elsewhere.
 
     """
 
@@ -82,6 +113,12 @@ def get_default_permissions(user_only: bool = True, deleting: bool = False) -> d
         and current_user.account_status == AccountStatus.ACTIVE
         and current_user.role == UserRole.ADMIN
     ):
+        return {}
+
+    if elevate_permissions:
+        LOGGER.warning(
+            "Permissions check with elevated permissions, likely due to access token usage"
+        )
         return {}
 
     null_perm = {

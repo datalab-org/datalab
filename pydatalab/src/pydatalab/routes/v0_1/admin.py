@@ -1,3 +1,5 @@
+from hashlib import sha512
+
 from bson import ObjectId
 from flask import Blueprint, jsonify, request
 from flask_login import current_user
@@ -93,3 +95,19 @@ def save_role(user_id):
         )
 
     return (jsonify({"status": "success"}), 200)
+
+
+@ADMIN.route("/items/<refcode>/invalidate-access-token")
+def invalidate_access_token(refcode: str, METHODS=["POST"]):
+    request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
+    token = request_json.get("token")
+    if not token:
+        return jsonify({"status": "error", "detail": "No token provided."}), 400
+
+    response = flask_mongo.db.api_keys.update_one(
+        {"token": sha512(token.encode("utf-8")).hexdigest()}, {"$set": {"active": False}}
+    )
+    if response.modified_count == 1:
+        return jsonify({"status": "success"}), 200
+
+    return jsonify({"status": "error", "detail": "Unable to invalidate token"}), 400
