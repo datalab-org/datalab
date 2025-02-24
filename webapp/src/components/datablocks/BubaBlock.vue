@@ -13,29 +13,6 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
     </div>
 
     <div v-if="file_id">
-      <div class="form-row col-md-6 col-lg-4 mt-2 mb-2 pl-0">
-        <div class="input-group form-inline">
-          <label class="mr-2"><b>Sorbent mass (g):</b></label>
-          <input
-            v-model="sorbent_mass_g"
-            type="text"
-            class="form-control"
-            :class="{ 'is-invalid': massParseError }"
-            @keydown.enter="
-              parseMass();
-              updateBlock();
-            "
-            @blur="
-              parseMass();
-              updateBlock();
-            "
-          />
-          <div v-if="massParseError" class="alert alert-danger mt-2 mx-auto">
-            {{ massParseError }}
-          </div>
-        </div>
-      </div>
-
       <div class="row">
         <div id="bokehPlotContainer" class="col-xl-9 col-lg-10 col-md-11 mx-auto">
           <BokehPlot :bokeh-plot-data="bokehPlotData" />
