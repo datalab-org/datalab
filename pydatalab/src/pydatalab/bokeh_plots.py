@@ -13,8 +13,10 @@ from bokeh.models import (
     ColorMapper,
     CrosshairTool,
     CustomJS,
+    DataTable,
     HoverTool,
     LinearColorMapper,
+    TableColumn,
 )
 from bokeh.models.widgets import Select
 from bokeh.palettes import Accent, Dark2
@@ -136,8 +138,8 @@ DATALAB_BOKEH_GRID_THEME = Theme(json=grid_style)
 
 def selectable_axes_plot(
     df: Union[Dict[str, pd.DataFrame], List[pd.DataFrame], pd.DataFrame],
-    x_options: List[str],
-    y_options: List[str],
+    x_options: List[str] | None = None,
+    y_options: List[str] | None = None,
     color_options: Optional[List[str]] = None,
     color_mapper: Optional[ColorMapper] = None,
     x_default: Optional[str] = None,
@@ -150,6 +152,7 @@ def selectable_axes_plot(
     plot_title: Optional[str] = None,
     plot_index: Optional[int] = None,
     tools: Optional[List] = None,
+    show_table: bool = False,
     **kwargs,
 ):
     """
@@ -172,14 +175,47 @@ def selectable_axes_plot(
         plot_index: If part of a larger number of plots, use this index for e.g., choosing the correct
             value in the colour cycle.
         tools: A list of Bokeh tools to enable.
+        show_table: Whether to render the data as a table above the plot.
 
     Returns:
         Bokeh layout
     """
+
+    # Establish the 'first' dataframe to generate plot settings
+    if not isinstance(df, pd.DataFrame):
+        if isinstance(df, dict):
+            _df = df[next(iter(df))]
+        elif isinstance(df, list):
+            _df = df[0]
+    else:
+        _df = df
+
+    numeric_columns = _df.select_dtypes(include="number").columns.to_list()
+    all_columns = _df.columns.to_list()
+
+    # Only make the plot if there's more than 1 numeric column to plot
+    skip_plot = False
+    if x_options is None or y_options is None:
+        if len(numeric_columns) < 2:
+            warnings.warn(f"Only {numeric_columns} numeric columns found in data, unable to plot.")
+            skip_plot = True
+            if not show_table:
+                return None
+
+    if x_options is None:
+        x_options = numeric_columns
+
+    if y_options is None:
+        y_options = numeric_columns
+
     if not x_default:
         x_default = x_options[0]
+
     if not y_default:
-        y_default = y_options[0]
+        if len(y_options) > 1:
+            y_default = y_options[1]
+        else:
+            y_default = y_options[0]
 
     if isinstance(y_default, list):
         y_label = y_options[0]
@@ -208,7 +244,7 @@ def selectable_axes_plot(
 
     callbacks_x = []
     callbacks_y = []
-    source = None
+    source = ColumnDataSource(_df)
 
     if color_options:
         if color_mapper is None:
@@ -221,7 +257,12 @@ def selectable_axes_plot(
     if isinstance(df, dict):
         labels = list(df.keys())
 
+    plot_columns = []
+
     for ind, df_ in enumerate(df):
+        if skip_plot:
+            continue
+
         if isinstance(df, dict):
             df_ = df[df_]
 
@@ -309,17 +350,21 @@ def selectable_axes_plot(
         p.add_layout(color_bar, "right")
 
     # Add list boxes for selecting which columns to plot on the x and y axis
-    xaxis_select = Select(title="X axis:", value=x_default, options=x_options)
-    xaxis_select.js_on_change("value", *callbacks_x)
+    if callbacks_x:
+        xaxis_select = Select(title="X axis:", value=x_default, options=x_options)
+        xaxis_select.js_on_change("value", *callbacks_x)
 
-    yaxis_select = Select(title="Y axis:", value=y_default, options=y_options)
-    yaxis_select.js_on_change("value", *callbacks_y)
+    if callbacks_y:
+        yaxis_select = Select(title="Y axis:", value=y_default, options=y_options)
+        yaxis_select.js_on_change("value", *callbacks_y)
 
-    p.legend.click_policy = "hide"
-    if len(df) <= 1:
-        p.legend.visible = False
+    if p.legend:
+        p.legend.click_policy = "hide"
+        if len(df) <= 1:
+            p.legend.visible = False
 
-    plot_columns = [p]
+    if not skip_plot:
+        plot_columns.append(p)
     if len(x_options) > 1:
         plot_columns.append(xaxis_select)
     if len(y_options) > 1:
@@ -339,6 +384,12 @@ def selectable_axes_plot(
         )
         save_data.js_on_click(save_data_callback)
         plot_columns = [save_data] + plot_columns
+
+    if show_table:
+        table = DataTable(
+            source=source, columns=[TableColumn(field=c) for c in all_columns], editable=False
+        )
+        plot_columns = [table] + plot_columns
 
     layout = column(*plot_columns)
 
