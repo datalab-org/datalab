@@ -1,14 +1,15 @@
 // Resources for the application
-import DataBlockBase from "@/components/datablocks/DataBlockBase";
-import BokehBlock from "@/components/datablocks/BokehBlock";
-import MediaBlock from "@/components/datablocks/MediaBlock";
-import XRDBlock from "@/components/datablocks/XRDBlock";
-import ChatBlock from "@/components/datablocks/ChatBlock";
-import RamanBlock from "@/components/datablocks/RamanBlock";
-import CycleBlock from "@/components/datablocks/CycleBlock";
-import NMRBlock from "@/components/datablocks/NMRBlock";
-import EISBlock from "@/components/datablocks/EISBlock";
-import MassSpecBlock from "@/components/datablocks/MassSpecBlock";
+// import DataBlockBase from "@/components/datablocks/DataBlockBase";
+// import BokehBlock from "@/components/datablocks/BokehBlock";
+// import MediaBlock from "@/components/datablocks/MediaBlock";
+// import XRDBlock from "@/components/datablocks/XRDBlock";
+// import ChatBlock from "@/components/datablocks/ChatBlock";
+// import RamanBlock from "@/components/datablocks/RamanBlock";
+// import CycleBlock from "@/components/datablocks/CycleBlock";
+// import NMRBlock from "@/components/datablocks/NMRBlock";
+// import EISBlock from "@/components/datablocks/EISBlock";
+// import MassSpecBlock from "@/components/datablocks/MassSpecBlock";
+import DataBlockUI from "@/components/DataBlockUI";
 
 import SampleInformation from "@/components/SampleInformation";
 import StartingMaterialInformation from "@/components/StartingMaterialInformation";
@@ -59,16 +60,65 @@ export const UPPY_MAX_NUMBER_OF_FILES =
 export const debounceTime = 250; // time after user stops typing before request is sent
 
 export const blockTypes = {
-  comment: { description: "Comment", component: DataBlockBase, name: "Comment" },
-  media: { description: "Media", component: MediaBlock, name: "Media" },
-  tabular: { description: "Tabular Data", component: BokehBlock, name: "Tabular data" },
-  xrd: { description: "Powder XRD", component: XRDBlock, name: "Powder XRD" },
-  raman: { description: "Raman", component: RamanBlock, name: "Raman" },
-  cycle: { description: "Electrochemistry", component: CycleBlock, name: "Electrochemistry" },
-  eis: { description: "Electrochemical Impedance Spectroscopy", component: EISBlock, name: "EIS" },
-  nmr: { description: "Nuclear Magnetic Resonance Spectroscopy", component: NMRBlock, name: "NMR" },
-  ms: { description: "Mass Spectrometry", component: MassSpecBlock, name: "Mass Spectrometry" },
-  chat: { description: "Virtual assistant", component: ChatBlock, name: "Virtual Assistant" },
+  comment: { description: "Comment", component: DataBlockUI, name: "Comment" },
+  media: { description: "Media", component: DataBlockUI, name: "Media" },
+  tabular: {
+    description: "Tabular Data",
+    component: DataBlockUI,
+    properties: { bokehPlot: true },
+    name: "Tabular data",
+  },
+  xrd: {
+    description: "Powder XRD",
+    component: DataBlockUI,
+    properties: {
+      bokehPlot: true,
+      wavelength: { label: "Wavelength (Å):" },
+    },
+    name: "Powder XRD",
+  },
+  raman: {
+    description: "Raman",
+    component: DataBlockUI,
+    properties: { bokehPlot: true },
+    name: "Raman",
+  },
+  cycle: {
+    description: "Electrochemistry",
+    component: DataBlockUI,
+    properties: {
+      bokehPlot: true,
+      cycle: { label: "Cycles to plot:" },
+    },
+    name: "Electrochemistry",
+  },
+  eis: {
+    description: "Electrochemical Impedance Spectroscopy",
+    component: DataBlockUI,
+    properties: { bokehPlot: true },
+    name: "EIS",
+  },
+  nmr: {
+    description: "Nuclear Magnetic Resonance Spectroscopy",
+    component: DataBlockUI,
+    properties: {
+      bokehPlot: true,
+      processNumber: { label: "Process number:" },
+    },
+    name: "NMR",
+  },
+  ms: {
+    description: "Mass Spectrometry",
+    component: DataBlockUI,
+    properties: { bokehPlot: true },
+    name: "Mass Spectrometry",
+  },
+  chat: {
+    description: "Virtual assistant",
+    component: DataBlockUI,
+    properties: { chat: true },
+    name: "Virtual Assistant",
+  },
 };
 
 export const itemTypes = {
