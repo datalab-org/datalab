@@ -16,12 +16,8 @@
 // Import commands.js using ES2015 syntax:
 import "./commands.js";
 
-// Alternatively you can use CommonJS syntax:
-// require('./commands')
-
 import { mount } from "cypress/vue";
 
-Cypress.Commands.add("mount", mount);
-
-// Example use:
-// cy.mount(MyComponent)
+Cypress.Commands.add("mount", (component, options = {}) => {
+  return mount(component, { ...options });
+});
