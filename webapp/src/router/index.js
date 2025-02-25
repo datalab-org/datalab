@@ -81,4 +81,27 @@ const router = createRouter({
   routes,
 });
 
+router.beforeEach((to, from, next) => {
+  const websiteTitle = process.env.VUE_APP_WEBSITE_TITLE || "datalab";
+
+  const capitalizeFirstLetter = (string) => {
+    return string ? string.charAt(0).toUpperCase() + string.slice(1) : "";
+  };
+
+  const nameMapping = {
+    "starting-materials": "Inventory",
+    "item-graph": "Grap View",
+  };
+
+  let formattedName = nameMapping[to.name] || capitalizeFirstLetter(to.name);
+
+  document.title = to.name
+    ? to.params.id
+      ? `${websiteTitle} - ${formattedName}: ${to.params.id}`
+      : `${websiteTitle} - ${formattedName}`
+    : websiteTitle;
+
+  next();
+});
+
 export default router;
