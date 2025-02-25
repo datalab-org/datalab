@@ -1,4 +1,6 @@
 import { defineConfig } from "cypress";
+import vue from "@vitejs/plugin-vue";
+import { nodePolyfills } from "vite-plugin-node-polyfills";
 
 export default defineConfig({
   projectId: "4kqx5i",
@@ -14,5 +16,6 @@ export default defineConfig({
       bundler: "vite",
     },
     specPattern: "cypress/component/**/*.cy.{js,jsx,ts,tsx}",
+    plugins: [vue(), nodePolyfills({ protocolImports: true, include: ["crypto"] })],
   },
 });

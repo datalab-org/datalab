@@ -1,5 +1,6 @@
 import { defineConfig, loadEnv } from "vite";
-import vue from "@vitejs/plugin-vue";
+const vue = require("@vitejs/plugin-vue");
+const { nodePolyfills } = require("vite-plugin-node-polyfills");
 import { resolve } from "path";
 
 // https://vite.dev/config/
@@ -7,7 +8,13 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
 
   return {
-    plugins: [vue()],
+    plugins: [
+      vue(),
+      nodePolyfills({
+        protocolImports: true,
+        include: ["crypto"],
+      }),
+    ],
     define: {
       global: {},
       "process.env.VITE_APP_GIT_VERSION": JSON.stringify(env.VITE_APP_GIT_VERSION),
