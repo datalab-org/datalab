@@ -17,7 +17,6 @@
 
 <script>
 import crypto from "crypto";
-import { GRAVATAR_STYLE } from "@/resources.js";
 export default {
   props: {
     creator: {
@@ -32,7 +31,7 @@ export default {
   },
   data() {
     return {
-      gravatar_style: GRAVATAR_STYLE,
+      gravatar_style: "identicon",
     };
   },
   methods: {
