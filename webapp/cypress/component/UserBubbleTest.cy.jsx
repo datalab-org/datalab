@@ -10,7 +10,11 @@ describe("UserBubble", () => {
   };
 
   beforeEach(() => {
-    cy.mount(<UserBubble creator={creator} />);
+    cy.mount(UserBubble, {
+      props: {
+        creator: creator,
+      },
+    });
   });
 
   it("renders the avatar image with correct gravatar URL based on contact_email", () => {
@@ -25,7 +29,11 @@ describe("UserBubble", () => {
       display_name: "Test User",
     };
 
-    cy.mount(<UserBubble creator={creatorWithoutEmail} />);
+    cy.mount(UserBubble, {
+      props: {
+        creator: creatorWithoutEmail,
+      },
+    });
 
     const expectedHash = md5(creatorWithoutEmail.display_name);
     cy.get("img.avatar")
@@ -39,7 +47,12 @@ describe("UserBubble", () => {
 
   it("allows overriding the size via props", () => {
     const size = 64;
-    cy.mount(<UserBubble creator={creator} size={size} />);
+    cy.mount(UserBubble, {
+      props: {
+        creator: creator,
+        size: size,
+      },
+    });
 
     cy.get("img.avatar")
       .should("have.attr", "width", size.toString())
