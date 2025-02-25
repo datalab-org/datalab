@@ -1,5 +1,22 @@
 <template>
   <div v-if="showButtons" class="button-group d-flex justify-content-between align-items-center">
+    <div
+      v-if="isDeletingItems"
+      class="position-fixed d-flex justify-content-center align-items-center"
+      style="background-color: rgba(255, 255, 255, 0.7); z-index: 1050; inset: 0"
+    >
+      <div class="card p-3 shadow-sm">
+        <div class="text-center">
+          <font-awesome-icon
+            :icon="['fa', 'sync']"
+            class="fa-2x text-primary mb-2"
+            :spin="true"
+            aria-label="loading"
+          />
+          <p class="mb-0 mt-1">Deleting {{ itemCount }} items...</p>
+        </div>
+      </div>
+    </div>
     <div class="button-left">
       <button
         v-if="dataType === 'samples'"
@@ -157,11 +174,16 @@ export default {
     "open-add-to-collection-modal",
     "delete-selected-items",
     "update:filters",
+    "deletion-started",
+    "deletion-completed",
+    "deletion-error",
   ],
   data() {
     return {
       localFilters: { ...this.filters },
       isSelectedDropdownVisible: false,
+      isDeletingItems: false,
+      itemCount: 0,
     };
   },
   watch: {
@@ -187,15 +209,32 @@ export default {
       }
       this.isSelectedDropdownVisible = false;
     },
-    deleteItems(ids) {
-      if (this.dataType === "samples") {
-        ids.forEach((id) => deleteSample(id));
-      } else if (this.dataType === "collections") {
-        ids.forEach((id) => deleteCollection(id, { collection_id: id }));
-      } else if (this.dataType === "startingMaterials") {
-        ids.forEach((id) => deleteStartingMaterial(id));
-      } else if (this.dataType === "equipment") {
-        ids.forEach((id) => deleteEquipment(id));
+    async deleteItems(ids) {
+      try {
+        this.itemCount = ids.length;
+        this.isDeletingItems = true;
+        this.$emit("deletion-started");
+
+        let deletePromises = [];
+
+        if (this.dataType === "samples") {
+          deletePromises = ids.map((id) => deleteSample(id));
+        } else if (this.dataType === "collections") {
+          deletePromises = ids.map((id) => deleteCollection(id, { collection_id: id }));
+        } else if (this.dataType === "startingMaterials") {
+          deletePromises = ids.map((id) => deleteStartingMaterial(id));
+        } else if (this.dataType === "equipment") {
+          deletePromises = ids.map((id) => deleteEquipment(id));
+        }
+
+        await Promise.all(deletePromises);
+
+        this.$emit("deletion-completed");
+      } catch (error) {
+        console.error("Error during batch deletion:", error);
+        this.$emit("deletion-error", error);
+      } finally {
+        this.isDeletingItems = false;
       }
     },
     handleAddToCollection() {
