@@ -10,12 +10,14 @@ import ExampleGraph from "@/views/ExampleGraph.vue";
 import ItemGraphPage from "@/views/ItemGraphPage.vue";
 import Admin from "@/views/Admin.vue";
 import Login from "../views/Login.vue";
-import { getUserInfo } from "@/server_fetch_utils.js";
+import Login2 from "../views/Login2.vue";
+import Login3 from "../views/Login3.vue";
+// import { getUserInfo } from "@/server_fetch_utils.js";
 
-const isAuthenticated = async () => {
-  const user = await getUserInfo();
-  return user !== null;
-};
+//const isAuthenticated = async () => {
+//  const user = await getUserInfo();
+//  return user !== null;
+//};
 
 const routes = [
   {
@@ -33,10 +35,22 @@ const routes = [
     component: Samples,
   },
   {
-    path: "/login",
+    path: "/next/login",
     name: "login",
     alias: "/",
     component: Login,
+  },
+  {
+    path: "/next/login2",
+    name: "login2",
+    alias: "/",
+    component: Login2,
+  },
+  {
+    path: "/next/login3",
+    name: "login3",
+    alias: "/",
+    component: Login3,
   },
   {
     path: "/equipment",
@@ -94,17 +108,17 @@ const router = createRouter({
   routes,
 });
 
-router.beforeEach(async (to, from, next) => {
-  const isPublicRoute = to.name === "login" || to.name === "About";
-  const authenticated = await isAuthenticated();
-
-  if (isPublicRoute && authenticated) {
-    next({ name: "samples" });
-  } else if (!isPublicRoute && !authenticated) {
-    next({ name: "login" });
-  } else {
-    next();
-  }
-});
+//router.beforeEach(async (to, from, next) => {
+//  const isPublicRoute = to.name === "login" || to.name === "About";
+//  const authenticated = await isAuthenticated();
+//
+//  if (isPublicRoute && authenticated) {
+//    next({ name: "samples" });
+//  } else if (!isPublicRoute && !authenticated) {
+//    next({ name: "login" });
+//  } else {
+//    next();
+//  }
+//});
 
 export default router;
