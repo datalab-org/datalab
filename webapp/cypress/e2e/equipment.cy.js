@@ -32,7 +32,7 @@ describe("Equipment table page", () => {
   it("Loads the equipment page without any errors", () => {
     cy.findByText("About").should("exist");
     cy.findByText("Equipment").should("exist");
-    cy.findByText("Add an item").should("exist");
+    cy.findByTestId("add-equipment-button").should("exist");
     cy.findByText("Maintainers").should("exist");
 
     // Ensure no error messages or console errors. The wait is necessary so that
@@ -72,7 +72,7 @@ describe("Equipment table page", () => {
   });
 
   it("Attempts to Add an item with the same name", () => {
-    cy.findByText("Add an item").click();
+    cy.findByTestId("add-equipment-button").click();
     cy.get('[data-testid="create-equipment-form"]').within(() => {
       cy.findByText("Add equipment").should("exist");
       cy.findByLabelText("ID:").type("test_e3");
@@ -97,7 +97,7 @@ describe("Equipment table page", () => {
   });
 
   it("copies an equipment entry", () => {
-    cy.findByText("Add an item").click();
+    cy.findByTestId("add-equipment-button").click();
 
     cy.get('[data-testid="create-equipment-form"]').within(() => {
       cy.findByLabelText("ID:").type("test_e3_copy");

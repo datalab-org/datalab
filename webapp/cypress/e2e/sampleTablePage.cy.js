@@ -53,7 +53,7 @@ describe("Sample table page", () => {
   it("Loads the main page without any errors", () => {
     cy.findByText("About").should("exist");
     cy.findByText("Samples").should("exist");
-    cy.findByText("Add an item").should("exist");
+    cy.findByTestId("add-item-button").should("exist");
     cy.findByText("# of blocks").should("exist");
 
     cy.contains("Server Error. Sample list could not be retreived.").should("not.exist");
@@ -77,7 +77,7 @@ describe("Sample table page", () => {
   });
 
   it("Attempts to add an item with the same name", () => {
-    cy.findByText("Add an item").click();
+    cy.findByTestId("add-item-button").click();
     cy.get('[data-testid="create-item-form"]').within(() => {
       cy.findByLabelText("ID:").type("12345678910");
       cy.contains("already in use").should("exist");
@@ -195,7 +195,7 @@ describe.only("Advanced sample creation features", () => {
   });
 
   it("Adds a third sample copied from the first", () => {
-    cy.findByText("Add an item").click();
+    cy.findByTestId("add-item-button").click();
     cy.get('[data-testid="create-item-form"]').within(() => {
       cy.findByLabelText("ID:").type("testAcopy");
       cy.findByLabelText("(Optional) Copy from existing sample:").type("testA");
@@ -243,7 +243,7 @@ describe.only("Advanced sample creation features", () => {
   });
 
   it("copies the second sample", () => {
-    cy.findByText("Add an item").click();
+    cy.findByTestId("add-item-button").click();
     cy.get('[data-testid="create-item-form"]').within(() => {
       cy.findByLabelText("ID:").type("testBcopy");
       cy.findByLabelText("(Optional) Copy from existing sample:").type("testB");
@@ -268,7 +268,7 @@ describe.only("Advanced sample creation features", () => {
   });
 
   it("copies the copied sample, this time with additional components", () => {
-    cy.findByText("Add an item").click();
+    cy.findByTestId("add-item-button").click();
     cy.get('[data-testid="create-item-form"]').within(() => {
       cy.findByLabelText("ID:").type("testBcopy_copy");
       cy.findByLabelText("(Optional) Copy from existing sample:").type("testBcopy");

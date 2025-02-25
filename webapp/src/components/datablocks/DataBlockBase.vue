@@ -8,10 +8,10 @@
         @click="toggleExpandBlock"
       />
       <input v-model="BlockTitle" class="form-control-plaintext block-title" type="text" />
-      <span class="blocktype-label ml-auto mr-3">{{ blockType }}</span>
-      <span v-if="blockInfo" class="block-header-icon"
-        ><StyledBlockInfo :block-info="blockInfo"
-      /></span>
+      <span class="blocktype-label ms-auto me-3">{{ blockType }}</span>
+      <span v-if="blockInfo" class="block-header-icon">
+        <StyledBlockInfo :block-info="blockInfo" />
+      </span>
       <font-awesome-icon
         :icon="['fa', 'sync']"
         class="block-header-icon"
@@ -47,7 +47,7 @@
       <div
         v-if="block.errors"
         ref="errorsContent"
-        class="alert alert-danger d-flex align-items-center ml-3"
+        class="alert alert-danger d-flex align-items-center ms-3"
         :class="{ expanded: isErrorsExpanded }"
         role="alert"
       >
@@ -76,7 +76,7 @@
       <div
         v-if="block.warnings"
         ref="warningsContent"
-        class="alert alert-warning d-flex align-items-center ml-3"
+        class="alert alert-warning d-flex align-items-center ms-3"
         :class="{ expanded: isWarningsExpanded }"
         role="alert"
       >
@@ -374,6 +374,9 @@ ul {
 }
 
 .block-header-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: large;
   color: #004175;
   /*margin-left: auto;*/
