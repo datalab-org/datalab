@@ -14,9 +14,9 @@ from pydatalab.models.traits import (
 from pydatalab.models.utils import (
     HumanReadableIdentifier,
     IsoformatDateTime,
+    ItemStatus,
     PyObjectId,
     Refcode,
-    ItemStatus,
 )
 
 
@@ -58,7 +58,6 @@ class Item(Entry, HasOwner, HasRevisionControl, IsCollectable, HasBlocks, abc.AB
             id = None
             prefix, id = v.split(":")
             if prefix is None or id is None:
-                raise ValueError(
-                    f"refcode missing prefix or ID {id=}, {prefix=} from {v=}")
+                raise ValueError(f"refcode missing prefix or ID {id=}, {prefix=} from {v=}")
 
         return v
