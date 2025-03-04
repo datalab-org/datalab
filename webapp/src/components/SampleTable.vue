@@ -31,7 +31,7 @@ export default {
           filter: true,
         },
         { field: "type", header: "Type", filter: true },
-        { field: "status", header: "Status" },
+        { field: "status", header: "Status", body: "FormattedItemStatus"},
         { field: "name", header: "Name" },
         { field: "date", header: "Date" },
         { field: "collectionsList", header: "Collections", body: "CollectionList", filter: true },
