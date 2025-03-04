@@ -69,6 +69,12 @@
       <div class="col-lg-3 col-sm-4">
         <ToggleableCollectionFormGroup v-model="Collections" />
       </div>
+      <div class="form-group col-md-3 col-sm-3 col-6 pb-3">
+        <ToggleableItemStatusFormGroup
+          v-model="Status"
+          :possible-item-statuses="possibleItemStatuses"
+        />
+      </div>
     </div>
 
     <label class="mr-2">Description</label>
@@ -89,6 +95,7 @@ import ChemicalFormula from "@/components/ChemicalFormula";
 import ChemFormulaInput from "@/components/ChemFormulaInput";
 import TableOfContents from "@/components/TableOfContents";
 import ToggleableCollectionFormGroup from "@/components/ToggleableCollectionFormGroup";
+import ToggleableItemStatusFormGroup from "@/components/ToggleableItemStatusFormGroup";
 import FormattedRefcode from "@/components/FormattedRefcode";
 import StyledInput from "@/components/StyledInput";
 
@@ -101,6 +108,7 @@ export default {
     ChemFormulaInput,
     TinyMceInline,
     ToggleableCollectionFormGroup,
+    ToggleableItemStatusFormGroup,
     TableOfContents,
     FormattedRefcode,
   },
@@ -132,6 +140,10 @@ export default {
     ItemDescription: createComputedSetterForItemField("description"),
     Collections: createComputedSetterForItemField("collections"),
     Refcode: createComputedSetterForItemField("refcode"),
+    Status: createComputedSetterForItemField("status"),
+    possibleItemStatuses() {
+      return ["ordered", "disposed", "available", "unavailable"];
+    },
   },
   created() {
     this.isEditable = EDITABLE_INVENTORY;
