@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from scipy.signal import medfilt
 
-from pydatalab.blocks.base import DataBlock
+from pydatalab.blocks.base import DataBlock, event
 from pydatalab.bokeh_plots import DATALAB_BOKEH_THEME, selectable_axes_plot
 from pydatalab.file_utils import get_file_info_by_id
 from pydatalab.logger import LOGGER
@@ -29,7 +29,11 @@ class XRDBlock(DataBlock):
     def plot_functions(self):
         return (self.generate_xrd_plot,)
 
-    @classmethod
+    @event
+    def set_wavelength(self, wavelength: float):
+        self.data["wavelength"] = wavelength
+
+    @staticmethod
     def load_pattern(
         cls, location: str | Path, wavelength: float | None = None
     ) -> tuple[pd.DataFrame, list[str], dict]:
