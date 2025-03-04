@@ -19,7 +19,7 @@ function getBatchAddCell(row, column, additionalSelectors = "") {
 
 function getBatchTemplateCell(column, additionalSelectors = "") {
   return cy.get(
-    `[data-testid=batch-add-table-template] > tbody > td:nth-of-type(${column}) ${additionalSelectors}`,
+    `[data-testid=batch-add-table-template] > tbody > tr > td:nth-of-type(${column}) ${additionalSelectors}`,
   );
 }
 

@@ -57,11 +57,12 @@
     },
     "immutable_id": {
       "title": "Immutable ID",
+      "format": "uuid",
       "type": "string"
     },
     "last_modified": {
       "title": "Last Modified",
-      "type": "date",
+      "type": "string",
       "format": "date-time"
     },
     "relationships": {
@@ -91,7 +92,7 @@
     },
     "date": {
       "title": "Date",
-      "type": "date",
+      "type": "string",
       "format": "date-time"
     },
     "name": {
@@ -275,11 +276,12 @@
         },
         "immutable_id": {
           "title": "Immutable ID",
+          "format": "uuid",
           "type": "string"
         },
         "last_modified": {
           "title": "Last Modified",
-          "type": "date",
+          "type": "string",
           "format": "date-time"
         },
         "relationships": {
@@ -366,11 +368,12 @@
         },
         "immutable_id": {
           "title": "Immutable ID",
+          "format": "uuid",
           "type": "string"
         },
         "last_modified": {
           "title": "Last Modified",
-          "type": "date",
+          "type": "string",
           "format": "date-time"
         },
         "relationships": {
@@ -439,11 +442,12 @@
         },
         "immutable_id": {
           "title": "Immutable ID",
+          "format": "uuid",
           "type": "string"
         },
         "last_modified": {
           "title": "Last Modified",
-          "type": "date",
+          "type": "string",
           "format": "date-time"
         },
         "relationships": {
@@ -461,7 +465,7 @@
         "last_modified_remote": {
           "title": "Last Modified Remote",
           "description": "The last date/time at which the remote file was modified.",
-          "type": "date",
+          "type": "string",
           "format": "date-time"
         },
         "item_ids": {

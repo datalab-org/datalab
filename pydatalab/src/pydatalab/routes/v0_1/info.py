@@ -11,7 +11,8 @@ from pydantic import AnyUrl, BaseModel, Field, validator
 from pydatalab import __version__
 from pydatalab.blocks import BLOCK_TYPES
 from pydatalab.config import CONFIG, FEATURE_FLAGS, FeatureFlags
-from pydatalab.models import Person
+from pydatalab.models import Collection, Person
+from pydatalab.models.items import Item
 from pydatalab.mongo import flask_mongo
 
 from ._version import __api_version__
@@ -139,6 +140,76 @@ def list_block_types():
                     )
                     for block_type, block in BLOCK_TYPES.items()
                 ],
+                meta=Meta(query=request.query_string),
+            ).json()
+        )
+    )
+
+
+def get_all_items_models():
+    return Item.__subclasses__()
+
+
+def generate_schemas():
+    schemas: dict[str, dict] = {}
+
+    for model_class in get_all_items_models() + [Collection]:
+        model_type = model_class.schema()["properties"]["type"]["default"]
+
+        schemas[model_type] = model_class.schema(by_alias=False)
+
+    return schemas
+
+
+# Generate once on import
+SCHEMAS = generate_schemas()
+
+
+@INFO.route("/info/types", methods=["GET"])
+def list_supported_types():
+    """Returns a list of supported schemas."""
+
+    return jsonify(
+        json.loads(
+            JSONAPIResponse(
+                data=[
+                    Data(
+                        id=item_type,
+                        type="item_type",
+                        attributes={
+                            "version": __version__,
+                            "api_version": __api_version__,
+                            "schema": schema,
+                        },
+                    )
+                    for item_type, schema in SCHEMAS.items()
+                ],
+                meta=Meta(query=request.query_string),
+            ).json()
+        )
+    )
+
+
+@INFO.route("/info/types/<string:item_type>", methods=["GET"])
+def get_schema_type(item_type):
+    """Returns the schema of the given type."""
+    if item_type not in SCHEMAS:
+        return jsonify(
+            {"status": "error", "detail": f"Item type {item_type} not found for this deployment"}
+        ), 404
+
+    return jsonify(
+        json.loads(
+            JSONAPIResponse(
+                data=Data(
+                    id=item_type,
+                    type="item_type",
+                    attributes={
+                        "version": __version__,
+                        "api_version": __api_version__,
+                        "schema": SCHEMAS[item_type],
+                    },
+                ),
                 meta=Meta(query=request.query_string),
             ).json()
         )

@@ -26,16 +26,20 @@
         <h5>Deployment info:</h5>
         <div class="p-3">
           <table>
-            <tr>
-              <td>API version</td>
-              <td>
-                <code>{{ apiInfo?.server_version ?? "unknown" }}</code>
-              </td>
-            </tr>
-            <tr>
-              <td>App version</td>
-              <td><code>0.4.0</code></td>
-            </tr>
+            <tbody>
+              <tr>
+                <td>API version</td>
+                <td>
+                  <code>{{ apiInfo?.server_version ?? "unknown" }}</code>
+                </td>
+              </tr>
+              <tr>
+                <td>App version</td>
+                <td>
+                  <code>{{ appVersion }}</code>
+                </td>
+              </tr>
+            </tbody>
           </table>
         </div>
 
@@ -75,12 +79,14 @@
 import Navbar from "@/components/Navbar";
 import { getInfo } from "@/server_fetch_utils.js";
 import StatisticsTable from "@/components/StatisticsTable";
+import { APP_VERSION } from "@/resources.js";
 
 export default {
   components: { Navbar, StatisticsTable },
   data() {
     return {
       apiInfo: { server_version: "unknown" },
+      appVersion: APP_VERSION,
     };
   },
   async mounted() {

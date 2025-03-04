@@ -71,7 +71,7 @@ describe("Navbar", () => {
       },
     });
 
-    cy.get(".row")
+    cy.get("[data-testid=navbar-logindetails]")
       .should("exist")
       .within(() => {
         cy.contains("Login").should("exist");

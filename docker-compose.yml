@@ -5,29 +5,18 @@ services:
     build:
       context: .
       dockerfile: .docker/app_dockerfile
-      target: production
     volumes:
       - ./logs:/logs
     restart: unless-stopped
     environment:
+      - VUE_APP_GIT_VERSION
       - VUE_APP_API_URL
       - VUE_APP_LOGO_URL
       - VUE_APP_HOMEPAGE_URL
       - VUE_APP_EDITABLE_INVENTORY
       - VUE_APP_WEBSITE_TITLE
       - VUE_APP_QR_CODE_RESOLVER_URL
-    ports:
-      - "8081:8081"
-
-  app_dev:
-    profiles: ["dev"]
-    build:
-      context: .
-      dockerfile: .docker/app_dockerfile
-      target: development
-    volumes:
-      - ./logs:/logs
-      - ./webapp:/app
+      - VUE_APP_AUTOMATICALLY_GENERATE_ID_DEFAULT
     ports:
       - "8081:8081"
 
@@ -36,9 +25,9 @@ services:
     build:
       context: .
       dockerfile: .docker/server_dockerfile
-      target: production
       args:
         - WEB_CONCURRENCY=4
+        - SETUPTOOLS_SCM_PRETEND_VERSION
     depends_on:
       - database
     restart: unless-stopped
@@ -52,38 +41,6 @@ services:
       - backend
     environment:
       - PYDATALAB_MONGO_URI=mongodb://database:27017/datalabvue
-
-  api_dev:
-    profiles: ["dev"]
-    build:
-      context: .
-      dockerfile: .docker/server_dockerfile
-      target: development
-    depends_on:
-      - database_dev
-    volumes:
-      - ./logs:/logs
-      - ./.git:/.git
-      - ./pydatalab/src:/app
-    ports:
-      - "5001:5001"
-    networks:
-      - backend
-    environment:
-      - PYDATALAB_MONGO_URI=mongodb://database_dev:27017/datalabvue
-
-  database_dev:
-    profiles: ["dev"]
-    build:
-      context: .
-      dockerfile: .docker/mongo_dockerfile
-    volumes:
-      - ./logs:/var/logs/mongod
-    restart: unless-stopped
-    networks:
-      - backend
-    ports:
-      - "27017:27017"
 
   database:
     profiles: ["prod"]

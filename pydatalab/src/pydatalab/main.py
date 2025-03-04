@@ -1,5 +1,6 @@
 import datetime
 import logging
+import os
 import pathlib
 from typing import Any, Dict
 
@@ -66,14 +67,23 @@ def _check_feature_flags(app):
             CONFIG.IDENTIFIER_PREFIX,
         )
 
-    def _check_secret_and_warn(secret, error) -> bool:
+    def _check_secret_and_warn(secret: str, error: str, environ: bool = False) -> bool:
         """Checks if a secret has been set, and if so, return True.
 
         Otherwise, warn and return False.
+
+        Parameters:
+            secret: The secret to check.
+            error: The error message to log if the secret is missing.
+            environ: Whether the secret should also be checked as an environment variable.
         """
         if not app.config.get(secret):
             LOGGER.warning("%s: please set `%s`", error, secret)
             return False
+        if environ and not os.environ.get(secret):
+            LOGGER.warning("%s: please set as an environment variable too `%s`", error, secret)
+            return False
+
         return True
 
     if _check_secret_and_warn(
@@ -92,11 +102,15 @@ def _check_feature_flags(app):
     ):
         FEATURE_FLAGS.auth_mechanisms.orcid = True
     if _check_secret_and_warn(
-        "OPENAI_API_KEY", "No OpenAI API key provided, OpenAI-based ChatBlock will not work"
+        "OPENAI_API_KEY",
+        "No OpenAI API key provided, OpenAI-based ChatBlock will not work",
+        environ=True,
     ):
         FEATURE_FLAGS.ai_integrations.openai = True
     if _check_secret_and_warn(
-        "ANTHROPIC_API_KEY", "No Anthropic API key provided, Claude-based ChatBlock will not work"
+        "ANTHROPIC_API_KEY",
+        "No Anthropic API key provided, Claude-based ChatBlock will not work",
+        environ=True,
     ):
         FEATURE_FLAGS.ai_integrations.anthropic = True
 
@@ -147,7 +161,20 @@ def create_app(
         for key in mail_settings:
             app.config[key] = mail_settings[key]
 
+    # Load config values from a provided .env file into the flask app config
+    # This useful for non-datalab settings like OAuth secrets
     app.config.update(dotenv_values(dotenv_path=env_file))
+
+    # Testing config: to enable OAuth2 on dev servers without https, we need to control the
+    # OAUTHLIB_INSECURE_TRANSPORT setting. If this is provided in the .env file, we also need
+    # to set it as an environment variable for the underlying oauthlib library to pick it up
+    if app.config.get("OAUTHLIB_INSECURE_TRANSPORT"):
+        os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = app.config["OAUTHLIB_INSECURE_TRANSPORT"]
+
+    # Set LLM API keys as env vars if present in the flask config
+    for key in ("OPENAI_API_KEY", "ANTHROPIC_API_KEY"):
+        if app.config.get(key):
+            os.environ[key] = app.config[key]
 
     LOGGER.info("Launching datalab version %s", __version__)
     LOGGER.info("Starting app with Flask app.config: %s", app.config)

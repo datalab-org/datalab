@@ -4,12 +4,13 @@
     class="navbar navbar-expand sticky-top navbar-dark py-0 editor-navbar"
     :style="{ backgroundColor: navbarColor }"
   >
+    <div v-show="false" class="navbar-nav"><LoginDetails /></div>
     <span class="navbar-brand clickable" @click="scrollToID($event, 'topScrollPoint')"
       >{{ itemTypeEntry?.navbarName || "loading..." }}&nbsp;&nbsp;|&nbsp;&nbsp;
       <FormattedItemName :item_id="item_id" :item-type="itemType" />
     </span>
     <div class="navbar-nav">
-      <a class="nav-item nav-link" href="/">Home</a>
+      <router-link class="nav-item nav-link" to="/">Home</router-link>
       <div class="nav-item dropdown">
         <a
           id="navbarDropdown"
@@ -23,8 +24,10 @@
           Add a block
         </a>
         <div
+          v-if="blockInfoLoaded"
           v-show="isMenuDropdownVisible"
           class="dropdown-menu"
+          data-testid="add-block-dropdown"
           style="display: block"
           aria-labelledby="navbarDropdown"
         >
@@ -59,14 +62,14 @@
   <div class="editor-body">
     <component :is="itemTypeEntry?.itemInformationComponent" :item_id="item_id" />
 
-    <FileList :item_id="item_id" :file_ids="file_ids" :stored_files="stored_files" />
+    <FileList :item_id="item_id" :stored_files="stored_files" />
 
     <div class="container">
       <hr />
     </div>
 
     <!-- Display the blocks -->
-    <div class="container block-container">
+    <div v-if="blocksLoaded" class="container block-container">
       <transition-group name="block-list" tag="div">
         <div v-for="block_id in item_data.display_order" :key="block_id" class="block-list-item">
           <component :is="getBlockDisplayType(block_id)" :item_id="item_id" :block_id="block_id" />
@@ -102,6 +105,7 @@ import {
   updateBlockFromServer,
   getBlocksInfos,
 } from "@/server_fetch_utils";
+import LoginDetails from "@/components/LoginDetails";
 import FormattedItemName from "@/components/FormattedItemName";
 
 import setupUppy from "@/file_upload.js";
@@ -120,6 +124,7 @@ export default {
     TinyMceInline,
     SelectableFileTree,
     FileList,
+    LoginDetails,
     FileSelectModal,
     FormattedItemName,
     StyledBlockHelp,
@@ -141,6 +146,8 @@ export default {
       item_id: this.$route.params?.id || null,
       refcode: this.$route.params?.refcode || null,
       itemDataLoaded: false,
+      blockInfoLoaded: false,
+      blocksLoaded: false,
       isMenuDropdownVisible: false,
       selectedRemoteFiles: [],
       isLoadingRemoteTree: false,
@@ -151,16 +158,16 @@ export default {
   },
   computed: {
     itemType() {
-      return this.$store.state.all_item_data[this.item_id]?.type || null;
+      return this.$store.state.all_item_data[this.item_id]?.type || undefined;
     },
     itemTypeEntry() {
-      return itemTypes[this.itemType] || null;
+      return itemTypes[this.itemType] || undefined;
     },
     navbarColor() {
       return this.itemTypeEntry?.navbarColor || "DarkGrey";
     },
     item_data() {
-      return this.$store.state.all_item_data[this.item_id] || { display_order: [] };
+      return this.$store.state.all_item_data[this.item_id] || {};
     },
     blocks() {
       return this.item_data.blocks_obj;
@@ -176,13 +183,10 @@ export default {
       return allBlocksAreSaved && this.$store.state.saved_status_items[this.item_id];
     },
     files() {
-      return this.item_data.files;
-    },
-    file_ids() {
-      return this.item_data.file_ObjectIds;
+      return this.item_data.files || [];
     },
     stored_files() {
-      return this.$store.state.files;
+      return Object.fromEntries(this.files.map((file) => [file.immutable_id, file]));
     },
     blocksInfos() {
       return this.$store.state.blocksInfos;
@@ -202,7 +206,7 @@ export default {
     },
   },
   created() {
-    getBlocksInfos();
+    this.getBlocksInfo();
     this.getSampleData();
     this.interval = setInterval(() => this.setLastModified(), 30000);
   },
@@ -224,7 +228,7 @@ export default {
     // this.updateRemoteTree()
 
     // setup the uppy instsance
-    setupUppy(this.item_id, "#uppy-trigger", this.stored_files);
+    setupUppy(this.item_id, "#uppy-trigger", {});
   },
   beforeUnmount() {
     document.removeEventListener("keydown", this._keyListener);
@@ -250,19 +254,6 @@ export default {
         behavior: "smooth",
       });
     },
-    change_a_block(event, block_id) {
-      let item_id = this.item_id;
-      let new_data = {
-        block_id: 7,
-        a_new_field: "foo bar",
-      };
-      console.log(new_data);
-      this.$store.commit("updateBlockData", {
-        item_id,
-        block_id,
-        block_data: new_data,
-      });
-    },
     getBlockDisplayType(block_id) {
       var type = this.blocks[block_id].blocktype;
       if (type in blockTypes) {
@@ -280,24 +271,38 @@ export default {
       saveItem(this.item_id);
       this.lastModified = "just now";
     },
-    getSampleData() {
+    async getSampleData() {
       if (this.item_id == null) {
         getItemByRefcode(this.refcode).then(() => {
+          this.itemDataLoaded = true;
           this.item_id = this.$store.state.refcode_to_id[this.refcode];
+          this.updateBlocks();
         });
       } else {
         getItemData(this.item_id).then(() => {
+          this.itemDataLoaded = true;
           this.refcode = this.item_data.refcode;
+          this.updateBlocks();
         });
       }
-      this.itemDataLoaded = true;
+    },
 
-      // update each block asynchronously
-      this.item_data.display_order.forEach((block_id) => {
-        console.log(`calling update on block ${block_id}`);
-        updateBlockFromServer(this.item_id, block_id, this.item_data.blocks_obj[block_id]);
-      });
-      this.setLastModified();
+    async updateBlocks() {
+      if (this.itemDataLoaded) {
+        // update each block asynchronously
+        this.item_data.display_order.forEach((block_id) => {
+          console.log(`calling update on block ${block_id}`);
+          updateBlockFromServer(this.item_id, block_id, this.item_data.blocks_obj[block_id]);
+        });
+        this.blocksLoaded = true;
+        this.setLastModified();
+      }
+    },
+    async getBlocksInfo() {
+      if (Object.keys(this.$store.state.blocksInfos).length == 0) {
+        await getBlocksInfos();
+      }
+      this.blockInfoLoaded = true;
     },
     leavePageWarningListener(event) {
       event.preventDefault;
@@ -309,9 +314,7 @@ export default {
       if (item_date == null) {
         this.lastModified = "Unknown";
       } else {
-        // API dates are in UTC but missing Z suffix
-        const save_date = new Date(item_date + "Z");
-        this.lastModified = formatDistanceToNow(save_date, { addSuffix: true });
+        this.lastModified = formatDistanceToNow(new Date(item_date), { addSuffix: true });
       }
     },
   },

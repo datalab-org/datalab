@@ -67,7 +67,7 @@ describe("Equipment table page", () => {
         expect(body).to.have.property("item_id", "test_e3");
         expect(body.item_data).to.have.property("item_id", "test_e3");
         expect(body.item_data).to.have.property("name", "my inst");
-        expect(body.item_data).to.have.property("date", "1990-01-07T00:00:00");
+        expect(body.item_data).to.have.property("date", "1990-01-07T00:00:00+00:00");
       });
   });
 

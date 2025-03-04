@@ -53,7 +53,7 @@ for sample in all_samples:
             "size": None,
             "sample_ids": [sample_id],
             "blocks": [],
-            "last_modified": datetime.datetime.now().isoformat(),
+            "last_modified": datetime.datetime.now().isoformat(),  # noqa
             "metadata": {},
             "representation": None,
             "source_server_name": None,  # not used for source=uploaded

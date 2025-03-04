@@ -3,6 +3,7 @@
     <div class="button-left">
       <button
         v-if="dataType === 'samples'"
+        data-testid="add-item-button"
         class="btn btn-default ml-2"
         @click="$emit('open-create-item-modal')"
       >
@@ -10,6 +11,7 @@
       </button>
       <button
         v-if="dataType === 'samples'"
+        data-testid="batch-item-button"
         class="btn btn-default ml-2"
         @click="$emit('open-batch-create-item-modal')"
       >
@@ -17,6 +19,7 @@
       </button>
       <button
         v-if="dataType === 'samples'"
+        data-testid="scan-qr-button"
         class="btn btn-default ml-2"
         @click="$emit('open-qr-scanner-modal')"
       >
@@ -24,6 +27,7 @@
       </button>
       <button
         v-if="dataType === 'collections'"
+        data-testid="add-collection-button"
         class="btn btn-default ml-2"
         @click="$emit('open-create-collection-modal')"
       >
@@ -31,6 +35,7 @@
       </button>
       <button
         v-if="dataType === 'startingMaterials' && editableInventory"
+        data-testid="add-starting-material-button"
         class="btn btn-default ml-2"
         @click="$emit('open-create-item-modal')"
       >
@@ -38,6 +43,7 @@
       </button>
       <button
         v-if="dataType === 'equipment'"
+        data-testid="add-equipment-button"
         class="btn btn-default ml-2"
         @click="$emit('open-create-equipment-modal')"
       >
@@ -92,7 +98,6 @@
           data-testid="search-input"
           class="search-input"
           placeholder="Search"
-          @input="updateFilters"
         />
       </IconField>
     </div>
@@ -164,6 +169,9 @@ export default {
       if (newVal.length === 0) {
         this.isSelectedDropdownVisible = false;
       }
+    },
+    "localFilters.global.value"(newValue) {
+      this.$emit("update:filters", { ...this.filters, global: { value: newValue } });
     },
   },
   methods: {

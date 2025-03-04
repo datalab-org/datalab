@@ -134,7 +134,9 @@ def create_collection():
             409,  # 409: Conflict
         )
 
-    data["last_modified"] = data.get("last_modified", datetime.datetime.now().isoformat())
+    data["last_modified"] = data.get(
+        "last_modified", datetime.datetime.now(datetime.timezone.utc).isoformat()
+    )
 
     try:
         data_model = Collection(**data)
@@ -164,7 +166,7 @@ def create_collection():
             400,
         )
 
-    immutable_id = result.inserted_id
+    data_model.immutable_id = result.inserted_id
 
     errors = []
     if starting_members:
@@ -177,7 +179,14 @@ def create_collection():
                 "item_id": {"$in": list(item_ids)},
                 **get_default_permissions(user_only=True),
             },
-            {"$push": {"relationships": {"type": "collections", "immutable_id": immutable_id}}},
+            {
+                "$push": {
+                    "relationships": {
+                        "type": "collections",
+                        "immutable_id": data_model.immutable_id,
+                    }
+                }
+            },
         )
 
         data_model.num_items = results.modified_count
@@ -228,7 +237,7 @@ def save_collection(collection_id):
         if k in updated_data:
             del updated_data[k]
 
-    updated_data["last_modified"] = datetime.datetime.now().isoformat()
+    updated_data["last_modified"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
 
     collection = flask_mongo.db.collections.find_one(
         {"collection_id": collection_id, **get_default_permissions(user_only=True)}
@@ -277,20 +286,49 @@ def save_collection(collection_id):
 
 @COLLECTIONS.route("/collections/<collection_id>", methods=["DELETE"])
 def delete_collection(collection_id: str):
-    result = flask_mongo.db.collections.delete_one(
-        {"collection_id": collection_id, **get_default_permissions(user_only=True)}
-    )
-
-    if result.deleted_count != 1:
-        return (
-            jsonify(
+    with flask_mongo.cx.start_session() as session:
+        with session.start_transaction():
+            collection_immutable_id = flask_mongo.db.collections.find_one(
+                {"collection_id": collection_id, **get_default_permissions(user_only=True)},
+                projection={"_id": 1},
+            )["_id"]
+            result = flask_mongo.db.collections.delete_one(
                 {
-                    "status": "error",
-                    "message": f"Authorization required to attempt to delete collection with {collection_id=} from the database.",
+                    "collection_id": collection_id,
+                    **get_default_permissions(user_only=True, deleting=True),
                 }
-            ),
-            401,
-        )
+            )
+            if result.deleted_count != 1:
+                return (
+                    jsonify(
+                        {
+                            "status": "error",
+                            "message": f"Authorization required to attempt to delete collection with {collection_id=} from the database.",
+                        }
+                    ),
+                    401,
+                )
+
+            # If successful, remove collection from all matching items relationships
+            flask_mongo.db.items.update_many(
+                {
+                    "relationships": {
+                        "$elemMatch": {
+                            "immutable_id": collection_immutable_id,
+                            "type": "collections",
+                        }
+                    }
+                },
+                {
+                    "$pull": {
+                        "relationships": {
+                            "immutable_id": collection_immutable_id,
+                            "type": "collections",
+                        }
+                    }
+                },
+            )
+
     return (
         jsonify(
             {

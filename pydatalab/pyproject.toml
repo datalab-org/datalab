@@ -41,20 +41,9 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools_scm]
 root = ".."
 fallback_version = "0.1.0"
+version_scheme = "post-release"
 
 [project.optional-dependencies]
-dev = [
-    "pytest ~= 8.2",
-    "pytest-cov ~= 5.0",
-    "pytest-dependency ~= 0.6",
-    "pre-commit ~= 4.0",
-    "mongomock ~= 4.1",
-    "mkdocs ~= 1.6",
-    "mkdocs-material ~= 9.5",
-    "mkdocstrings[python-legacy] ~= 0.25",
-    "mkdocs-awesome-pages-plugin ~= 2.9",
-]
-
 server = [
     "pymongo ~= 4.7",
     "Flask ~= 3.0",
@@ -66,12 +55,11 @@ server = [
     "Flask-Compress ~= 1.15",
     "Werkzeug ~= 3.0",
     "python-dotenv ~= 1.0",
-    "pillow ~= 10.4",
+    "pillow ~= 11.0",
     "pyjwt ~= 2.9",
     "invoke ~= 2.2",
     "paramiko ~= 3.4",
 ]
-
 apps = [
     # General
     "scipy ~= 1.13",
@@ -87,16 +75,15 @@ apps = [
     # TGA
     "python-dateutil ~= 2.9",
 ]
-
 chat = [
-    "langchain == 0.2.6",
+    # Hard upper pin on langchain is 0.3 as pydantic is not supported
+    "langchain >= 0.2.6, < 0.3",
     "langchain-openai ~= 0.1",
     "langchain-anthropic ~= 0.1",
     "tiktoken ~= 0.7",
     "transformers ~= 4.42",
 ]
-
-
+deploy = ["gunicorn ~= 23.0"]
 all = ["datalab-server[apps,server,chat]"]
 
 [tool.mypy]
@@ -109,7 +96,7 @@ line-length = 100
 target-version = "py310"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "W", "Q"]
+select = ["E", "F", "I", "W", "Q", "DTZ"]
 ignore = ["E501", "E402"]
 fixable = ["A", "B", "C", "D", "E", "F", "I"]
 unfixable = []
@@ -119,3 +106,19 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
 [tool.ruff.lint.isort]
 known-first-party = ["pydatalab"]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest ~= 8.2",
+    "pytest-cov ~= 5.0",
+    "pytest-dependency ~= 0.6",
+    "pre-commit ~= 4.0",
+    "mongomock ~= 4.1",
+    "mkdocs ~= 1.6",
+    "mkdocs-material ~= 9.5",
+    "mkdocstrings[python-legacy] ~= 0.25",
+    "mkdocs-awesome-pages-plugin ~= 2.9",
+]
+
+[tool.pytest.ini_options]
+addopts = "--cov-report=term --cov-report=xml --cov ./src/pydatalab"

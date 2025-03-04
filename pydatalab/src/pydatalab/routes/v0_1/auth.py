@@ -285,7 +285,7 @@ def generate_and_share_magic_link():
     # The key `exp` is a standard part of JWT; pyjwt treats this as an expiration time
     # and will correctly encode the datetime
     token = jwt.encode(
-        {"exp": datetime.datetime.utcnow() + LINK_EXPIRATION, "email": email},
+        {"exp": datetime.datetime.now(datetime.timezone.utc) + LINK_EXPIRATION, "email": email},
         CONFIG.SECRET_KEY,
         algorithm="HS256",
     )
@@ -356,7 +356,9 @@ def email_logged_in():
         algorithms=["HS256"],
     )
 
-    if datetime.datetime.fromtimestamp(data["exp"]) < datetime.datetime.utcnow():
+    if datetime.datetime.fromtimestamp(
+        data["exp"], tz=datetime.timezone.utc
+    ) < datetime.datetime.now(tz=datetime.timezone.utc):
         raise ValueError("Token expired, please request a new one.")
 
     email = data["email"]

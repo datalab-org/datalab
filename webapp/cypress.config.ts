@@ -5,8 +5,6 @@ export default defineConfig({
   e2e: {
     baseUrl: "http://localhost:8080",
     apiUrl: "http://localhost:5001",
-    experimentalMemoryManagement: true,
-    numTestsKeptInMemory: 0,
     defaultCommandTimeout: 10000,
   },
   component: {

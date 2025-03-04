@@ -72,7 +72,9 @@ def get_graph_cy_format(item_id: Optional[str] = None, collection_id: Optional[s
     drawn_elements = set()
     node_collections = set()
     for document in all_documents:
-        for relationship in document.get("relationships", []):
+        # for some reason, document["relationships"] is sometimes equal to None, so we
+        # need this `or` statement.
+        for relationship in document.get("relationships") or []:
             # only considering child-parent relationships
             if relationship.get("type") == "collections" and not collection_id:
                 collection_data = flask_mongo.db.collections.find_one(
@@ -113,7 +115,7 @@ def get_graph_cy_format(item_id: Optional[str] = None, collection_id: Optional[s
                     )
                 continue
 
-        for relationship in document.get("relationships", []):
+        for relationship in document.get("relationships") or []:
             # only considering child-parent relationships:
             if relationship.get("relation") not in ("parent", "is_part_of"):
                 continue

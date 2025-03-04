@@ -2,8 +2,6 @@
 
 This document will describe the process of deploying a *datalab* instance with
 Docker and Docker Compose.
-As well as deploying a production *instance*, this approach can be useful for creating a consistent development environment that will
-closely match the deployed system.
 
 [Docker](https://docs.docker.com/) uses virtualization to allow you to build "images" of your software that are transferrable and deployable as "containers" across multiple systems.
 
@@ -40,44 +38,7 @@ reproducible.
 ## Deployment with Docker and Docker Compose
 
 Dockerfiles for the web app, server and database can be found in the `.docker` directory.
-There are separate build targets for `production` and `development` (and corresponding docker-compose profiles `prod` and `dev`).
-
-- The production target will copy the state of the repository on build and use `gunicorn` and `serve` to serve the server and app respectively.
-- The development target mounts the repository in the running container and provides hot-reloading servers for both the backend and frontend.
-
-### Development environment
-
-The following shell snippets will download *datalab* and launch containers on the machine in which they are executed.
-
-Clone and enter the repository, if not done already
-
-```shell
-git clone git@github.com:datalab-org/datalab; cd datalab
-```
-
-Build the development containers:
-
-```shell
-docker compose --profile dev build
-```
-
-Launch the containers: any local changes made to code in the repository will be loaded by the running containers.
-
-```shell
-docker compose --profile dev up
-```
-
-Once the launch has completed (can take a couple of minutes), the web app and API will be accessible at http://localhost:8081 and http://localhost:5001, respectively.
-Your shell will be left "attached" to the container logs, ending the process in
-your terminal (e.g., CTRL-C or otherwise) will kill the containers, but simply
-closing the terminal will leave the containers running.
-To stop the containers, you can run:
-
-```shell
-docker compose --profile dev down
-```
-
-## Permanent deployment instructions
+The production target will copy the state of the repository on build and use `gunicorn` and `serve` to serve the server and app respectively.
 
 There are several steps involved from taking the Docker containers above and provisioning a persistent *datalab* server and instance available through the internet.
 Many of these involve tuning the server configuration for your group following the [additional documentation](config.md) on configuration, but many additional choices also depend on how you plan to host the containers in the long-term.
@@ -208,7 +169,7 @@ docker compose --file docker-compose.prod.yml --profile prod up
 
 Currently most administration tasks must be handled directly inside the Python API container.
 Several helper routines are available as `invoke` tasks in `tasks.py` in the `pydatalab` root folder.
-You can list all available tasks by running `invoke --list` in the root `pydatalab` folder after installing the package with the `[dev]` extras.
+You can list all available tasks by running `invoke --list` in the root `pydatalab` folder after installing the package with the `dev` extras (e.g., `uv sync --dev`).
 In the future, many admin tasks (e.g., updating user info, allowing/blocking user accounts, defining subgroups) will be accessible in the web UI.
 
 ### Importing chemical inventories
@@ -242,7 +203,7 @@ Instead, you could schedule a job that calls, for example:
 ```shell
 #              <container name>          <invoke task name>            <configured strategy name>
 #                    ^                           ^                                  ^
-docker compose exec api invoke pipenv run admin.create-backup --strategy-name daily-snapshots
+docker compose exec api uv run invoke admin.create-backup --strategy-name daily-snapshots
 ```
 
 Care must be taken to schedule this command to run from the correct directory.

@@ -133,9 +133,7 @@ def create_backup(strategy: BackupStrategy) -> bool:
 
     """
 
-    snapshot_name = (
-        f"datalab-snapshot-{datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.tar.gz"
-    )
+    snapshot_name = f"datalab-snapshot-{datetime.datetime.now(tz=datetime.timezone.utc).strftime('%Y-%m-%d-%H-%M-%S')}.tar.gz"
 
     if strategy.hostname is None:
         snapshot_path = strategy.location / snapshot_name

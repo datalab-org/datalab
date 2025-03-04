@@ -112,7 +112,7 @@ def _call_remote_stat(path: str):
     if stderr:
         raise RuntimeError(f"Remote statprocess {command!r} returned: {stderr!r}")
 
-    return datetime.datetime.fromtimestamp(timestamp)
+    return datetime.datetime.fromtimestamp(timestamp, tz=datetime.timezone.utc)
 
 
 @logged_route
@@ -161,13 +161,15 @@ def _check_and_sync_file(file_info: File, file_id: ObjectId) -> File:
             "File %s was last edited at timestamp %s, %s ago",
             full_remote_path,
             remote_timestamp,
-            datetime.datetime.today() - remote_timestamp,
+            datetime.datetime.now(tz=datetime.timezone.utc) - remote_timestamp,
         )
 
     else:
         try:
             stat_results = os.stat(full_remote_path)
-            remote_timestamp = datetime.datetime.fromtimestamp(stat_results.st_mtime)
+            remote_timestamp = datetime.datetime.fromtimestamp(
+                stat_results.st_mtime, tz=datetime.timezone.utc
+            )
         except FileNotFoundError:
             LOGGER.debug(
                 "Could not access remote file when checking for latest version: %s",
@@ -196,7 +198,7 @@ def _check_and_sync_file(file_info: File, file_id: ObjectId) -> File:
 
         # If the file has not been updated in the last cutoff period, do not redownload on every access
         is_live = True
-        if datetime.datetime.now() - remote_timestamp > LIVE_FILE_CUTOFF:
+        if datetime.datetime.now(tz=datetime.timezone.utc) - remote_timestamp > LIVE_FILE_CUTOFF:
             is_live = False
 
         updated_file_info = file_collection.find_one_and_update(
@@ -204,7 +206,9 @@ def _check_and_sync_file(file_info: File, file_id: ObjectId) -> File:
             {
                 "$set": {
                     "size": local_stat_results.st_size,
-                    "last_modified": datetime.datetime.fromtimestamp(local_stat_results.st_mtime),
+                    "last_modified": datetime.datetime.fromtimestamp(
+                        local_stat_results.st_mtime, tz=datetime.timezone.utc
+                    ),
                     "last_modified_remote": remote_timestamp,
                     "is_live": is_live,
                 },
@@ -267,21 +271,24 @@ def get_file_info_by_id(
 
 
 @logged_route
-def update_uploaded_file(file, file_id, last_modified=None, size_bytes=None):
-    """file is a file object from a flask request.
-    last_modified should be an isodate format. if None, the current time will be inserted
-    By default, only changes the last_modified, and size_bytes, increments version, and verifies source=remote and is_live=false. (converts )
-    additional_updates can be used to pass other fields to change in (NOT IMPLEMENTED YET)"""
+def update_uploaded_file(file: FileStorage, file_id: ObjectId, size_bytes: int | None = None):
+    """Replace the file with the given `file_id` with the new file object from the request.
 
-    last_modified = datetime.datetime.now().isoformat()
+    Parameters:
+        file: The Flask file object in the request.
+        file_id: The database ID of the file to update.
+        size_bytes: A hint for the file size in bytes, will be used to verify ahead of time whether
+
+    """
+
+    last_modified = datetime.datetime.now(tz=datetime.timezone.utc).isoformat()
     file_collection = flask_mongo.db.files
 
     updated_file_entry = file_collection.find_one_and_update(
-        {"_id": file_id},  # Note, needs to be ObjectID()
+        {"_id": file_id, **get_default_permissions(user_only=False)},
         {
             "$set": {
                 "last_modified": last_modified,
-                "size": size_bytes,
                 "source": "remote",
                 "is_live": False,
             },
@@ -297,6 +304,11 @@ def update_uploaded_file(file, file_id, last_modified=None, size_bytes=None):
 
     # overwrite the old file with the new location
     file.save(updated_file_entry.location)
+    size_bytes = os.path.getsize(updated_file_entry.location)
+
+    file_collection.update_one(
+        {"_id": file_id, **get_default_permissions(user_only=False)}, {"$set": {"size": size_bytes}}
+    )
 
     ret = updated_file_entry.dict()
     ret.update({"_id": file_id})
@@ -355,7 +367,7 @@ def save_uploaded_file(
         last_modified = last_modified.isoformat()
 
     if not last_modified:
-        last_modified = datetime.datetime.now().isoformat()
+        last_modified = datetime.datetime.now(tz=datetime.timezone.utc).isoformat()
 
     new_file_document = File(
         name=filename,
@@ -432,8 +444,12 @@ def save_uploaded_file(
 
 
 def add_file_from_remote_directory(
-    file_entry, item_id, block_ids=None, creator_ids: list[PyObjectId | str] | None = None
+    file_entry: dict,
+    item_id: str,
+    block_ids: list[str] | None = None,
+    creator_ids: list[ObjectId | str] | None = None,
 ):
+    """Attaches the file `file_entry` to the item with ID `item_id`."""
     from pydatalab.permissions import get_default_permissions
 
     file_collection = flask_mongo.db.files
@@ -456,14 +472,18 @@ def add_file_from_remote_directory(
         remote_toplevel_path = f"{host.hostname}:{host.path}"
         full_remote_path = f"{remote_toplevel_path}/{remote_path}"
         if file_entry.get("time") is not None:
-            remote_timestamp = datetime.datetime.fromtimestamp(int(file_entry["time"]))
+            remote_timestamp = datetime.datetime.fromtimestamp(
+                int(file_entry["time"]), tz=datetime.timezone.utc
+            )
 
     # Otherwise we assume the file is mounted locally
     else:
         remote_toplevel_path = str(host.path)
         full_remote_path = os.path.join(remote_toplevel_path, remote_path)
         # check that the path is valid and get the last modified time from the server
-        remote_timestamp = datetime.datetime.fromtimestamp(int(os.path.getmtime(full_remote_path)))
+        remote_timestamp = datetime.datetime.fromtimestamp(
+            int(os.path.getmtime(full_remote_path)), tz=datetime.timezone.utc
+        )
 
     new_file_document = File(
         name=filename,
@@ -478,8 +498,8 @@ def add_file_from_remote_directory(
         item_ids=[item_id],
         blocks=block_ids,
         # last_modified is the last modified time of the db entry in isoformat. For last modified file timestamp, see last_modified_remote_timestamp
-        last_modified=datetime.datetime.now().isoformat(),
-        time_added=datetime.datetime.now().isoformat(),
+        last_modified=datetime.datetime.now(tz=datetime.timezone.utc).isoformat(),
+        time_added=datetime.datetime.now(tz=datetime.timezone.utc).isoformat(),
         metadata={},
         representation=None,
         source_server_name=file_entry["toplevel_name"],
@@ -528,14 +548,15 @@ def add_file_from_remote_directory(
     return updated_file_entry
 
 
-def retrieve_file_path(file_ObjectId):
+def retrieve_file_path(immutable_id):
+    """Retrieve the `location` of the file with ID `immutable_id`."""
     file_collection = flask_mongo.db.files
     result = file_collection.find_one(
-        {"_id": ObjectId(file_ObjectId), **get_default_permissions(user_only=False)}
+        {"_id": ObjectId(immutable_id), **get_default_permissions(user_only=False)}
     )
     if not result:
         raise FileNotFoundError(
-            f"The file with file_ObjectId: {file_ObjectId} could not be found in the database"
+            f"The file with file_ObjectId: {immutable_id} could not be found in the database"
         )
 
     result = File(**result)
@@ -543,7 +564,7 @@ def retrieve_file_path(file_ObjectId):
     return result.location
 
 
-def remove_file_from_sample(item_id: Union[str, ObjectId], file_id: Union[str, ObjectId]) -> None:
+def remove_file_from_sample(item_id: str | ObjectId, file_id: str | ObjectId) -> None:
     """Detach the file at `file_id` from the item at `item_id`.
 
     Args:

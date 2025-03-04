@@ -83,7 +83,7 @@ def test_relationship_with_custom_type():
 
 
 def test_file():
-    current_datetime = datetime.datetime.now()
+    current_datetime = datetime.datetime.now(datetime.timezone.utc)
     file_dict1 = {
         "_id": "6437c96341ffc8169a957e2d",
         "size": 10003,
@@ -121,14 +121,16 @@ def test_file():
     # minimal file
     File2 = File(**file_dict2)
     assert File2.type == "files"
-    assert File2.time_added == datetime.datetime.fromisoformat("2019-05-18T15:18:10")
+    assert File2.time_added == datetime.datetime.fromisoformat("2019-05-18T15:18:10").replace(
+        tzinfo=datetime.timezone.utc
+    )
 
     # make sure you can make a sample with the files internal
     sample = Sample(
         creator_ids=[ObjectId("0123456789ab0123456789ab"), ObjectId("1023456789ab0123456789ab")],
         creators=None,
         date="2020-01-01 00:00",
-        last_modified=datetime.datetime(2020, 1, 1, 0, 0),
+        last_modified=datetime.datetime(2020, 1, 1, 0, 0, tzinfo=datetime.timezone.utc),
         item_id="1234",
         files=[file_dict1, file_dict2],
     )
@@ -154,19 +156,26 @@ def test_custom_and_inherited_items():
     assert item_dict["type"] == "items_custom"
     assert item_dict["creator_ids"][0] == ObjectId("0123456789ab0123456789ab")
     assert item_dict["creator_ids"][1] == ObjectId("1023456789ab0123456789ab")
-    assert item_dict["date"] == datetime.datetime.fromisoformat("2020-01-01 00:00")
+    assert item_dict["date"] == datetime.datetime.fromisoformat("2020-01-01 00:00").replace(
+        tzinfo=datetime.timezone.utc
+    )
 
     item_json = json.loads(item.json())
     assert item_json["type"] == "items_custom"
     assert item_json["creator_ids"][0] == str(ObjectId("0123456789ab0123456789ab"))
     assert item_json["creator_ids"][1] == str(ObjectId("1023456789ab0123456789ab"))
-    assert item_json["date"] == datetime.datetime.fromisoformat("2020-01-01 00:00").isoformat()
+    assert (
+        item_json["date"]
+        == datetime.datetime.fromisoformat("2020-01-01 00:00")
+        .replace(tzinfo=datetime.timezone.utc)
+        .isoformat()
+    )
 
     sample = Sample(
         creator_ids=[ObjectId("0123456789ab0123456789ab"), ObjectId("1023456789ab0123456789ab")],
         creators=None,
         date="2020-01-01 00:00",
-        last_modified=datetime.datetime(2020, 1, 1, 0, 0),
+        last_modified=datetime.datetime(2020, 1, 1, 0, 0, tzinfo=datetime.timezone.utc),
         item_id="1234",
     )
 
@@ -174,17 +183,28 @@ def test_custom_and_inherited_items():
     assert sample_dict["type"] == "samples"
     assert sample_dict["creator_ids"][0] == ObjectId("0123456789ab0123456789ab")
     assert sample_dict["creator_ids"][1] == ObjectId("1023456789ab0123456789ab")
-    assert sample_dict["date"] == datetime.datetime.fromisoformat("2020-01-01 00:00")
-    assert sample_dict["last_modified"] == datetime.datetime.fromisoformat("2020-01-01 00:00")
+    assert sample_dict["date"] == datetime.datetime.fromisoformat("2020-01-01 00:00").replace(
+        tzinfo=datetime.timezone.utc
+    )
+    assert sample_dict["last_modified"] == datetime.datetime.fromisoformat(
+        "2020-01-01 00:00"
+    ).replace(tzinfo=datetime.timezone.utc)
 
     sample_json = json.loads(sample.json())
     assert sample_json["type"] == "samples"
     assert sample_json["creator_ids"][0] == str(ObjectId("0123456789ab0123456789ab"))
     assert sample_json["creator_ids"][1] == str(ObjectId("1023456789ab0123456789ab"))
-    assert sample_json["date"] == datetime.datetime.fromisoformat("2020-01-01 00:00").isoformat()
+    assert (
+        sample_json["date"]
+        == datetime.datetime.fromisoformat("2020-01-01 00:00")
+        .replace(tzinfo=datetime.timezone.utc)
+        .isoformat()
+    )
     assert (
         sample_json["last_modified"]
-        == datetime.datetime.fromisoformat("2020-01-01 00:00").isoformat()
+        == datetime.datetime.fromisoformat("2020-01-01 00:00")
+        .replace(tzinfo=datetime.timezone.utc)
+        .isoformat()
     )
 
 

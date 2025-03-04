@@ -153,17 +153,17 @@ class IsoformatDateTime(datetime.datetime):
         yield cls.validate
 
     @classmethod
-    def validate(cls, v):
+    def validate(cls, v) -> datetime.datetime | None:
+        """Cast isoformat strings to datetimes and enforce UTC if tzinfo is missing."""
         if isinstance(v, str):
             if v in ["0", " "]:
                 return None
-            return datetime.datetime.fromisoformat(v)
+            v = datetime.datetime.fromisoformat(v)
+
+        if v.tzinfo is None:
+            v = v.replace(tzinfo=datetime.timezone.utc)
 
         return v
-
-    @classmethod
-    def __modify_schema__(cls, field_schema):
-        field_schema.update(type="date")
 
 
 JSON_ENCODERS = {

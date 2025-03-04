@@ -30,6 +30,7 @@ export const FEDERATION_QR_CODE_RESOLVER_URL = "https://purl.datalab-org.io";
 
 export const LOGO_URL = process.env.VUE_APP_LOGO_URL;
 export const HOMEPAGE_URL = process.env.VUE_APP_HOMEPAGE_URL;
+export const APP_VERSION = process.env.VUE_APP_GIT_VERSION;
 
 export const GRAVATAR_STYLE = "identicon";
 
@@ -37,6 +38,14 @@ export const GRAVATAR_STYLE = "identicon";
 // variables can only be strings, not bools.
 const editable_inventory = process.env.VUE_APP_EDITABLE_INVENTORY || "false";
 export const EDITABLE_INVENTORY = editable_inventory.toLowerCase() == "true";
+
+const automatically_generate_id_default =
+  process.env.VUE_APP_AUTOMATICALLY_GENERATE_ID_DEFAULT || "false";
+export const AUTOMATICALLY_GENERATE_ID_DEFAULT =
+  automatically_generate_id_default.toLowerCase() == "true";
+
+// Eventually this should be pulled from the schema
+export const DATETIME_FIELDS = new Set(["date"]);
 
 export const UPPY_MAX_TOTAL_FILE_SIZE =
   Number(process.env.VUE_APP_UPPY_MAX_TOTAL_FILE_SIZE) != null
