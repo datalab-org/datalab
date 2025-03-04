@@ -12,7 +12,7 @@ RUN apt update && apt install -y gnupg curl tree mdbtools && apt clean
 WORKDIR /opt
 RUN wget https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2204-x86_64-100.9.0.deb && apt install ./mongodb-database-tools-*-100.9.0.deb
 
-COPY --from=ghcr.io/astral-sh/uv:0.5.19 /uv /usr/local/bin/uv
+COPY --from=ghcr.io/astral-sh/uv:0.6.4 /uv /usr/local/bin/uv
 ENV UV_LINK_MODE=copy \
     UV_COMPILE_BYTECODE=1 \
     UV_PYTHON_DOWNLOADS=never \
