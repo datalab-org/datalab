@@ -54,10 +54,11 @@
         <label for="equip-contact" class="mr-2">Contact information</label>
         <input id="equip-contact" v-model="Contact" class="form-control" />
       </div>
-      <div class="col-md-4 pb-3 d-flex justify-content-center align-items-center">
-        <span :class="getStatusBadgeClass(Status)" class="badge text-uppercase">
-          {{ formatStatus(Status) }}
-        </span>
+      <div class="form-group col-md-3 col-sm-3 col-6 pb-3">
+        <ToggleableItemStatusFormGroup
+          v-model="Status"
+          :possible-item-statuses="possibleItemStatuses"
+        />
       </div>
     </div>
     <label id="equip-description-label" class="mr-2">Description</label>
@@ -78,6 +79,7 @@ import TableOfContents from "@/components/TableOfContents";
 import CollectionList from "@/components/CollectionList";
 import FormattedRefcode from "@/components/FormattedRefcode";
 import Creators from "@/components/Creators";
+import ToggleableItemStatusFormGroup from "@/components/ToggleableItemStatusFormGroup";
 
 export default {
   components: {
@@ -86,6 +88,7 @@ export default {
     TableOfContents,
     FormattedRefcode,
     Creators,
+    ToggleableItemStatusFormGroup,
   },
   props: {
     item_id: { type: String, required: true },
@@ -113,25 +116,8 @@ export default {
     Maintainers: createComputedSetterForItemField("creators"),
     Contact: createComputedSetterForItemField("contact"),
     Status: createComputedSetterForItemField("status"),
-  },
-
-  methods: {
-    getStatusBadgeClass(status) {
-      switch (status) {
-        case "working":
-          return "badge-success";
-        case "broken":
-          return "badge-warning";
-        case "being_fixed":
-          return "badge-info";
-        case "defunct":
-          return "badge-dark";
-        case "not_being_fixed":
-          return "badge-danger";
-      }
-    },
-    formatStatus(status) {
-      return status.split("_").join(" ");
+    possibleItemStatuses() {
+      return ["working", "broken", "being_fixed", "defunct", "not_being_fixed"];
     },
   },
 };

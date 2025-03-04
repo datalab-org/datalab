@@ -35,12 +35,11 @@
           <div class="form-group col-md-3 col-sm-3 col-6 pb-3">
             <ToggleableCollectionFormGroup v-model="Collections" />
           </div>
-          <div
-            class="form-group col-md-3 col-sm-3 col-6 pb-3 d-flex justify-content-center align-items-center"
-          >
-            <span :class="getStatusBadgeClass(Status)" class="badge text-uppercase">
-              {{ Status }}
-            </span>
+          <div class="form-group col-md-3 col-sm-3 col-6 pb-3">
+            <ToggleableItemStatusFormGroup
+              v-model="Status"
+              :possible-item-statuses="possibleItemStatuses"
+            />
           </div>
         </div>
         <div class="form-row">
@@ -67,6 +66,7 @@ import ChemFormulaInput from "@/components/ChemFormulaInput";
 import FormattedRefcode from "@/components/FormattedRefcode";
 import ToggleableCollectionFormGroup from "@/components/ToggleableCollectionFormGroup";
 import ToggleableCreatorsFormGroup from "@/components/ToggleableCreatorsFormGroup";
+import ToggleableItemStatusFormGroup from "@/components/ToggleableItemStatusFormGroup";
 import TinyMceInline from "@/components/TinyMceInline";
 import SynthesisInformation from "@/components/SynthesisInformation";
 import TableOfContents from "@/components/TableOfContents";
@@ -82,6 +82,7 @@ export default {
     FormattedRefcode,
     ToggleableCollectionFormGroup,
     ToggleableCreatorsFormGroup,
+    ToggleableItemStatusFormGroup,
   },
   props: {
     item_id: { type: String, required: true },
@@ -109,19 +110,9 @@ export default {
     ItemCreators: createComputedSetterForItemField("creators"),
     Collections: createComputedSetterForItemField("collections"),
     Status: createComputedSetterForItemField("status"),
-  },
-  methods: {
-    getStatusBadgeClass(status) {
-      switch (status) {
-        case "planned":
-          return "badge-secondary";
-        case "active":
-          return "badge-primary";
-        case "completed":
-          return "badge-success";
-        case "failed":
-          return "badge-danger";
-      }
+    // ItemSchema: this.$store.state.schemas["samples"],
+    possibleItemStatuses() {
+      return ["planned", "active", "completed", "failed"];
     },
   },
 };
