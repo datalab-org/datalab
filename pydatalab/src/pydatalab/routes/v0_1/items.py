@@ -92,6 +92,7 @@ def get_equipment_summary():
         "date": 1,
         "refcode": 1,
         "location": 1,
+        "status": 1,
     }
 
     items = [
@@ -134,6 +135,7 @@ def get_starting_materials():
                         "chemical_purity": 1,
                         "supplier": 1,
                         "location": 1,
+                        "status": 1,
                     }
                 },
             ]
@@ -180,6 +182,7 @@ def get_samples_summary(
         "type": 1,
         "date": 1,
         "refcode": 1,
+        "status": 1,
     }
 
     # Cannot mix 0 and 1 keys in MongoDB project so must loop and check
