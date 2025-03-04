@@ -735,7 +735,6 @@ export async function getBlocksInfos() {
     });
 }
 
-<<<<<<< HEAD
 export function addItemsToCollection(collection_id, refcodes) {
   return fetch_post(`${API_URL}/collections/${collection_id}`, {
     data: { refcodes },
@@ -783,6 +782,7 @@ export async function getSchema(type) {
       alert(`Error to get ${type} schema from API: ${error}`);
       throw error;
     });
+}
 
 export function getItemStatusOptions() {
   return fetch_get(`${API_URL}/item_status_options`)
