@@ -65,9 +65,15 @@
         </div>
       </div>
     </div>
-    <div v-show="nmr_folder_name && echem_folder_name" class="row mt-2">
-      <div id="bokehPlotContainer" class="col-xl-8 col-lg-8 col-md-11 mx-auto">
-        <BokehPlot :bokeh-plot-data="bokehPlotData" />
+    <div
+      v-show="nmr_folder_name && echem_folder_name"
+      class="row mt-2 text-center justify-content-center"
+    >
+      <div
+        id="bokehPlotContainer"
+        class="col-xl-10 col-lg-11 col-md-12 d-flex justify-content-center overflow-auto"
+      >
+        <BokehPlot :bokeh-plot-data="bokehPlotData" class="mw-100" />
       </div>
     </div>
   </DataBlockBase>
