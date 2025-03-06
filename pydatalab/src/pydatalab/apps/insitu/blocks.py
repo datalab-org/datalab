@@ -374,10 +374,42 @@ class InsituBlock(DataBlock):
             hover.mode = "hline"
             echemplot_figure.add_tools(hover)
 
+            heatmap_figure.x_range.js_on_change(
+                "start",
+                CustomJS(
+                    args=dict(
+                        color_mapper=color_mapper,
+                        intensity_matrix=intensity_matrix.tolist(),
+                        ppm_array=ppm_values.tolist(),
+                    ),
+                    code="""
+                    const start_index = ppm_array.findIndex(ppm => ppm <= cb_obj.end);
+                    const end_index = ppm_array.findIndex(ppm => ppm <= cb_obj.start);
+
+                    let min_intensity = Infinity;
+                    let max_intensity = -Infinity;
+
+                    for (let i = 0; i < intensity_matrix.length; i++) {
+                        for (let j = start_index; j <= end_index; j++) {
+                            if (j >= 0 && j < intensity_matrix[i].length) {
+                                const value = intensity_matrix[i][j];
+                                min_intensity = Math.min(min_intensity, value);
+                                max_intensity = Math.max(max_intensity, value);
+                            }
+                        }
+                    }
+
+                    color_mapper.low = min_intensity;
+                    color_mapper.high = max_intensity;
+                    """,
+                ),
+            )
+
+            heatmap_figure.x_range.tags = [ppm_values.tolist(), intensity_matrix.tolist()]
+
             grid = [[None, nmrplot_figure], [echemplot_figure, heatmap_figure]]
             gp = gridplot(grid, merge_tools=True)
 
-            # Store the bokeh plot for embedding
             self.data["bokeh_plot_data"] = bokeh.embed.json_item(gp, theme=DATALAB_BOKEH_THEME)
 
             return self.data.get("time_data"), ["Plot successfully generated"]
