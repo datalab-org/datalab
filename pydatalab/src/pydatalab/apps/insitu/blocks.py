@@ -1,4 +1,5 @@
 import os
+import zipfile
 from pathlib import Path
 from typing import List, Tuple
 
@@ -30,6 +31,7 @@ class InsituBlock(DataBlock):
     name = "NMR insitu"
     description = "A simple NMR insitu block from .zip files."
     accepted_file_extensions = (".zip",)
+    available_folders: List[str] = []
     nmr_folder_name = ""
     echem_folder_name = ""
     folder_name = ""
@@ -62,8 +64,61 @@ class InsituBlock(DataBlock):
             LOGGER.error("Invalid PPM values provided")
             return False
 
+    def get_available_folders(self) -> List[str]:
+        if "file_id" not in self.data:
+            LOGGER.warning("No file_id in data")
+            return []
+
+        main_folder = self.data.get("folder_name")
+        LOGGER.info(f"Main folder name: {main_folder}")
+
+        if not main_folder:
+            LOGGER.warning("Main folder name not specified")
+            return []
+
+        try:
+            file_info = get_file_info_by_id(self.data["file_id"])
+            file_path = file_info.get("location")
+            LOGGER.info(f"File path: {file_path}")
+
+            if not file_path or not os.path.exists(file_path):
+                LOGGER.warning(f"File not found: {file_path}")
+                return []
+
+            folders = set()
+            with zipfile.ZipFile(file_path, "r") as zip_folder:
+                main_folder = zip_folder.namelist()[0].split("/")[0]
+
+                for file in zip_folder.namelist():
+                    if file.startswith(main_folder + "/"):
+                        sub_path = file[len(main_folder) + 1 :]
+                        sub_folder = sub_path.split("/")[0] if "/" in sub_path else None
+                        if sub_folder:
+                            folders.add(sub_folder)
+
+            folder_list = sorted(list(folders))
+            LOGGER.info(f"Found folders in '{main_folder}': {folder_list}")
+
+            return folder_list
+        except Exception as e:
+            LOGGER.error(f"Error getting folders from zip file: {str(e)}")
+            import traceback
+
+            LOGGER.error(traceback.format_exc())
+            return []
+
     def process_and_store_data(self) -> bool:
         """Process insitu NMR and electrochemical data and store results."""
+        folders = self.get_available_folders()
+        self.data["available_folders"] = folders
+
+        nmr_folder_name = self.data.get("nmr_folder_name")
+        echem_folder_name = self.data.get("echem_folder_name")
+
+        if not nmr_folder_name or not echem_folder_name:
+            self.data["warnings"] = ["Both NMR and Echem folder names must be specified"]
+            return False
+
         if not self._validate_parameters():
             return False
 
@@ -267,7 +322,7 @@ class InsituBlock(DataBlock):
                 y_axis_label="t (h)",
                 y_range=shared_y_range,
                 height=400,
-                width=200,
+                width=250,
             )
             if echem_data and "Voltage" in echem_data and "time" in echem_data:
                 echem_source = ColumnDataSource(

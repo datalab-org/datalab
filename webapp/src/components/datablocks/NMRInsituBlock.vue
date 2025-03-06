@@ -6,25 +6,28 @@
       :block_id="block_id"
       :extensions="blockInfo.attributes.accepted_file_extensions"
       update-block-on-change
+      @change="onFileChange"
     />
     <div v-show="file_id">
       <div class="form-inline">
         <div class="form-group mb-2">
           <label class="mr-2"><b>NMR folder name</b></label>
-          <input
+          <v-select
             v-model="nmr_folder_name"
-            type="text"
-            class="form-control mr-2"
-            @keydown.enter="validateFolderNames()"
-            @blur="validateFolderNames()"
+            :options="availableFolders"
+            :reduce="(folder) => folder"
+            class="folder-select mr-2"
+            placeholder="Select a folder"
+            @update:model-value="onFolderSelected"
           />
           <label class="mr-2"><b>Echem folder name</b></label>
-          <input
+          <v-select
             v-model="echem_folder_name"
-            type="text"
-            class="form-control"
-            @keydown.enter="validateFolderNames()"
-            @blur="validateFolderNames()"
+            :options="availableFolders"
+            :reduce="(folder) => folder"
+            class="folder-select"
+            placeholder="Select a folder"
+            @update:model-value="onFolderSelected"
           />
           <div v-if="folderNameError" class="alert alert-danger mt-2 mx-auto">
             {{ folderNameError }}
@@ -83,6 +86,7 @@
 import DataBlockBase from "@/components/datablocks/DataBlockBase";
 import FileSelectDropdown from "@/components/FileSelectDropdown";
 import BokehPlot from "@/components/BokehPlot";
+import vSelect from "vue-select";
 
 import { createComputedSetterForBlockField } from "@/field_utils.js";
 import { updateBlockFromServer } from "@/server_fetch_utils.js";
@@ -92,6 +96,7 @@ export default {
     DataBlockBase,
     FileSelectDropdown,
     BokehPlot,
+    vSelect,
   },
   props: {
     item_id: {
@@ -120,6 +125,12 @@ export default {
     all_files() {
       return this.$store.state.all_item_data[this.item_id].files;
     },
+    currentBlock() {
+      return this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id];
+    },
+    availableFolders() {
+      return this.currentBlock.available_folders || [];
+    },
     ppm1: createComputedSetterForBlockField("ppm1"),
     ppm2: createComputedSetterForBlockField("ppm2"),
     nmr_folder_name: createComputedSetterForBlockField("nmr_folder_name"),
@@ -128,6 +139,12 @@ export default {
     folder_name: createComputedSetterForBlockField("folder_name"),
   },
   methods: {
+    onFileChange() {
+      this.nmr_folder_name = "";
+      this.echem_folder_name = "";
+
+      this.updateBlock();
+    },
     parsePPM() {
       if (isNaN(parseFloat(this.ppm1)) || isNaN(parseFloat(this.ppm2))) {
         this.ppmParseError = "Please provide a valid number";
@@ -135,14 +152,13 @@ export default {
         this.ppmParseError = "";
       }
     },
-    validateFolderNames() {
-      if (!this.nmr_folder_name || !this.echem_folder_name) {
+    onFolderSelected() {
+      if (this.nmr_folder_name && this.echem_folder_name) {
+        this.folderNameError = "";
+        this.updateBlock();
+      } else if (this.nmr_folder_name || this.echem_folder_name) {
         this.folderNameError = "Both NMR and Echem folder names are required";
-        return false;
       }
-      this.folderNameError = "";
-      this.updateBlock();
-      return true;
     },
     updateBlock() {
       const foundFile = this.all_files.find((file) => file.immutable_id === this.file_id);
