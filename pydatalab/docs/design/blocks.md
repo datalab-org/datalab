@@ -37,19 +37,6 @@ The block system exposes several API endpoints:
 - `/delete-block/`: Remove a block from an item
 - `/delete-collection-block/`: Remove a block from a collection
 
-## Events System
-
-The event system allows external functions to be called by name, enabling clean interaction between the frontend and server-side block functionality.
-This is a new feature and this documentation will evolve alongside it.
-
-Currently, the event system allows:
-
-- Registration of event handlers via the `@event` decorator
-- Access to available events at both class and instance levels
-- Runtime dispatch of events based on name
-- Support for event parameters passed as keyword arguments
-
-
 ## Creating a new block
 
 To create a new block type:
@@ -69,6 +56,30 @@ will be called in turn, which will either load from scratch, or load cached data
 for that block.
 If a JSON-serialized Bokeh plot is found in the block's data, this will be
 rendered in the UI.
+
+## Event system
+
+The event system allows external functions to be called by name, enabling clean interaction between the frontend and server-side block functionality.
+This is a new feature and this documentation will evolve alongside it.
+
+Currently, the event system allows:
+
+- Registration of event handlers in Python via the `@event` decorator
+- Access to available events at both class and instance levels
+- Runtime dispatch of events based on name
+- Support for event parameters passed as keyword arguments
+- Events can then be triggered by the front-end; for example, a Bokeh-based block can trigger an event in a Bokeh callback using the [`CustomEvent`](https://developer.mozilla.org/en-US/docs/Web/API/CustomEvent/CustomEvent) API, for example:
+  ```javascript
+    const event = new CustomEvent("bokehStateUpdate", {
+        detail: {
+            event_name: '<event_name>',
+            state_data: '<some data>',
+        },
+        bubbles: true
+    });
+  ```
+  The base data block (`DataBlockBase.vue`) will listen for such events registered as `'bokehStateUpdate'` and pass them to the appropriate server-side block.
+
 
 ## Future Directions
 
