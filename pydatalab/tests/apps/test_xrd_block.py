@@ -25,8 +25,8 @@ def test_event():
     assert block.data["wavelength"] == 1.0
     block.process_events({"event_name": "set_wavelength", "wavelength": None})
     assert block.data["wavelength"] == 1.54060
-    with pytest.raises(ValueError):
-        block.process_events({"event_name": "set_wavelength", "wavelength": -1.0})
+    block.process_events({"event_name": "set_wavelength", "wavelength": -1.0})
+    assert len(block.data["errors"]) == 1
     assert block.data["wavelength"] == 1.54060
 
 
