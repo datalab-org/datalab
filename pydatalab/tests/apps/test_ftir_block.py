@@ -14,7 +14,7 @@ def data_files():
 
 def test_load(data_files):
     for f in data_files:
-        df = FTIRBlock.parse_ftir_asp(f)
+        df = parse_ftir_asp(f)
         assert len(df) == 1932
         assert all(x in df.columns for x in ["Wavenumber", "Absorbance"])
         assert df["Wavenumber"].min() == 400.688817501068
