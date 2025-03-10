@@ -1,9 +1,9 @@
 from pathlib import Path
 
 import pytest
-
-from pydatalab.apps.ftir import FTIRBlock, parse_ftir_asp
 from bokeh.models import HoverTool, LogColorMapper
+
+from pydatalab.apps.ftir import parse_ftir_asp
 from pydatalab.bokeh_plots import selectable_axes_plot
 
 
@@ -25,23 +25,25 @@ def test_load(data_files):
         mask = (df["Wavenumber"] > 800) & (df["Wavenumber"] < 1500)
         assert max(df["Absorbance"][mask]) == 0.0536771319493808
 
+
 def test_plot(data_files):
     f = next(data_files)
     ftir_data = parse_ftir_asp(f)
     layout = selectable_axes_plot(
-                ftir_data,
-                x_options=["Wavenumber"],
-                y_options=["Absorbance"],
-                x_range=(ftir_data["Wavenumber"].max() + 50,
-                          ftir_data["Wavenumber"].min() - 50),
-                # color_options=["Frequency [Hz]"],
-                color_mapper=LogColorMapper("Cividis256"),
-                plot_points=False,
-                plot_line=True,
-                tools=HoverTool(
-                    tooltips=[("Wavenumber / cm\u207B\u00B9", "@Wavenumber{0.00}"), 
-                              ("Absorbance", "@Absorbance{0.0000}")],  # Display x and y values to specified decimal places
-                    mode="vline"  # Ensures hover follows the x-axis
-                    ),
-            )
+        ftir_data,
+        x_options=["Wavenumber"],
+        y_options=["Absorbance"],
+        x_range=(ftir_data["Wavenumber"].max() + 50, ftir_data["Wavenumber"].min() - 50),
+        # color_options=["Frequency [Hz]"],
+        color_mapper=LogColorMapper("Cividis256"),
+        plot_points=False,
+        plot_line=True,
+        tools=HoverTool(
+            tooltips=[
+                ("Wavenumber / cm\u207b\u00b9", "@Wavenumber{0.00}"),
+                ("Absorbance", "@Absorbance{0.0000}"),
+            ],  # Display x and y values to specified decimal places
+            mode="vline",  # Ensures hover follows the x-axis
+        ),
+    )
     assert layout

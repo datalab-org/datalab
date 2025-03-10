@@ -2,8 +2,8 @@ import os
 from pathlib import Path
 
 import bokeh.embed
-import pandas as pd
 import numpy as np
+import pandas as pd
 from bokeh.models import HoverTool, LogColorMapper
 
 from pydatalab.blocks.base import DataBlock
@@ -59,19 +59,20 @@ class FTIRBlock(DataBlock):
                 ftir_data,
                 x_options=["Wavenumber"],
                 y_options=["Absorbance"],
-                x_range=(ftir_data["Wavenumber"].max() + 50,
-                          ftir_data["Wavenumber"].min() - 50),
+                x_range=(ftir_data["Wavenumber"].max() + 50, ftir_data["Wavenumber"].min() - 50),
                 # color_options=["Frequency [Hz]"],
                 color_mapper=LogColorMapper("Cividis256"),
                 plot_points=False,
                 plot_line=True,
                 tools=HoverTool(
-                    tooltips=[("Wavenumber / cm\u207B\u00B9", "@Wavenumber{0.00}"), 
-                              ("Absorbance", "@Absorbance{0.0000}")],  # Display x and y values to specified decimal places
-                    mode="vline"  # Ensures hover follows the x-axis
-                    ),
+                    tooltips=[
+                        ("Wavenumber / cm\u207b\u00b9", "@Wavenumber{0.00}"),
+                        ("Absorbance", "@Absorbance{0.0000}"),
+                    ],  # Display x and y values to specified decimal places
+                    mode="vline",  # Ensures hover follows the x-axis
+                ),
             )
             # Adding cm^-1 to the x-axis label using unicode characters - might be a more logical way
-            layout.children[1].xaxis.axis_label = "Wavenumber / cm\u207B\u00B9"
+            layout.children[1].xaxis.axis_label = "Wavenumber / cm\u207b\u00b9"
 
             self.data["bokeh_plot_data"] = bokeh.embed.json_item(layout, theme=DATALAB_BOKEH_THEME)
