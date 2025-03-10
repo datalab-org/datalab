@@ -28,7 +28,13 @@ class XRDBlock(DataBlock):
         return (self.generate_xrd_plot,)
 
     @event
-    def set_wavelength(self, wavelength: float):
+    def set_wavelength(self, wavelength: float | None):
+        if wavelength is None:
+            wavelength = self.defaults["wavelength"]
+        elif wavelength <= 0:
+            raise ValueError("Wavelength must be a positive number")
+
+        LOGGER.debug(f"Setting wavelength to {wavelength} for block {self.block_id}")
         self.data["wavelength"] = wavelength
 
     @staticmethod
