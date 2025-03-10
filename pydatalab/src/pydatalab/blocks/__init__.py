@@ -8,6 +8,7 @@ from pydatalab.apps.nmr import NMRBlock
 from pydatalab.apps.raman import RamanBlock
 from pydatalab.apps.tga import MassSpecBlock
 from pydatalab.apps.xrd import XRDBlock
+from pydatalab.apps.ftir import FTIRBlock
 from pydatalab.blocks.base import DataBlock
 from pydatalab.blocks.common import CommentBlock, MediaBlock, NotSupportedBlock, TabularDataBlock
 
@@ -23,6 +24,7 @@ BLOCKS: Sequence[Type["DataBlock"]] = (
     ChatBlock,
     EISBlock,
     TabularDataBlock,
+    FTIRBlock,
 )
 
 BLOCK_TYPES: Dict[str, Type["DataBlock"]] = {block.blocktype: block for block in BLOCKS}
@@ -39,6 +41,7 @@ __all__ = (
     "RamanBlock",
     "MassSpecBlock",
     "TabularDataBlock",
+    "FTIRBlock",
     "BLOCK_TYPES",
     "BLOCKS",
 )
