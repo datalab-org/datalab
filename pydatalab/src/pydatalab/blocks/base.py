@@ -61,7 +61,7 @@ def generate_random_id():
 class DataBlock:
     """Base class for a data block."""
 
-    name: str
+    name: str = "base"
     """The human-readable block name specifying which technique
     or file format it pertains to.
     """
@@ -233,10 +233,11 @@ class DataBlock:
 
     @event()
     def null_event(self, **kwargs):
-        """A null debug event that does nothing but logs its kwargs."""
+        """A null debug event that does nothing but logs its kwargs and overwrites the data dict with the args."""
         LOGGER.debug(
             "Null event received by block %s with kwargs: %s", self.__class__.__name__, kwargs
         )
+        self.data["kwargs"] = kwargs["kwargs"]
 
     @classmethod
     def _get_events(cls) -> dict[str, Callable]:
