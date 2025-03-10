@@ -68,7 +68,7 @@ class FTIRBlock(DataBlock):
                 tools=HoverTool(
                     tooltips=[("Wavenumber / cm\u207B\u00B9", "@Wavenumber{0.00}"), 
                               ("Absorbance", "@Absorbance{0.0000}")],  # Display x and y values to specified decimal places
-                    mode='vline'  # Ensures hover follows the x-axis
+                    mode="vline"  # Ensures hover follows the x-axis
                     ),
             )
             # Adding cm^-1 to the x-axis label using unicode characters - might be a more logical way
