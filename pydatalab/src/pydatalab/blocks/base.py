@@ -229,7 +229,15 @@ class DataBlock:
                 bound_method = self.__class__.events_by_name[event_name].__get__(
                     self, self.__class__
                 )
-                bound_method(**event)
+                try:
+                    bound_method(**event)
+                except Exception as e:
+                    LOGGER.error(
+                        f"Error processing event {event_name} for block {self.__class__.__name__}: {e}"
+                    )
+                    self.data["errors"] = [
+                        f"{self.__class__.__name__}: Error processing event {event}: {e}"
+                    ]
 
     @event()
     def null_event(self, **kwargs):
