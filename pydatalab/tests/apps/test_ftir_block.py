@@ -22,12 +22,12 @@ def test_load(data_files):
         assert df["Absorbance"].argmin() == 987
         assert df["Absorbance"].argmax() == 1928
         # Checking height of peak at 1079 cm-1 has correct height
-        mask = (df["Wavenumber / cm-1"] > 800) & (df["Wavenumber / cm-1"] < 1500)
+        mask = (df["Wavenumber"] > 800) & (df["Wavenumber"] < 1500)
         assert max(df["Absorbance"][mask]) == 0.0536771319493808
 
 def test_plot(data_files):
     f = next(data_files)
-    ftir_data = FTIRBlock.parse_ftir_asp(f)
+    ftir_data = parse_ftir_asp(f)
     layout = selectable_axes_plot(
                 ftir_data,
                 x_options=["Wavenumber"],
@@ -41,7 +41,7 @@ def test_plot(data_files):
                 tools=HoverTool(
                     tooltips=[("Wavenumber / cm\u207B\u00B9", "@Wavenumber{0.00}"), 
                               ("Absorbance", "@Absorbance{0.0000}")],  # Display x and y values to specified decimal places
-                    mode='vline'  # Ensures hover follows the x-axis
+                    mode="vline"  # Ensures hover follows the x-axis
                     ),
             )
     assert layout
