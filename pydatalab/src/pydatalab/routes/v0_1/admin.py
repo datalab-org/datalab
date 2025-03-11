@@ -5,8 +5,9 @@ from flask import Blueprint, jsonify, request
 from flask_login import current_user
 
 from pydatalab.config import CONFIG
+from pydatalab.models.people import Group, User
 from pydatalab.mongo import flask_mongo
-from pydatalab.permissions import admin_only, get_default_permissions
+from pydatalab.permissions import admin_only
 
 ADMIN = Blueprint("admins", __name__)
 
@@ -20,7 +21,6 @@ def _(): ...
 def get_users():
     users = flask_mongo.db.users.aggregate(
         [
-            {"$match": get_default_permissions(user_only=True)},
             {
                 "$lookup": {
                     "from": "roles",
@@ -28,6 +28,19 @@ def get_users():
                     "foreignField": "_id",
                     "as": "role",
                 }
+            },
+            {
+                "$lookup": {
+                    "from": "groups",
+                    "let": {"group_ids": "$group_ids"},
+                    "pipeline": [
+                        {"$match": {"$expr": {"$in": ["$_id", {"$ifNull": ["$$group_ids", []]}]}}},
+                        {"$addFields": {"__order": {"$indexOfArray": ["$$group_ids", "$_id"]}}},
+                        {"$sort": {"__order": 1}},
+                        {"$project": {"_id": 1, "display_name": 1}},
+                    ],
+                    "as": "groups",
+                },
             },
             {
                 "$addFields": {
@@ -43,7 +56,14 @@ def get_users():
         ]
     )
 
-    return jsonify({"status": "success", "data": list(users)})
+    return jsonify({"status": "success", "data": list(User(**u).json() for u in users)})
+
+
+@ADMIN.route("/groups", methods=["GET"])
+def get_groups():
+    return jsonify(
+        {"status": "success", "data": [Group(**d).json() for d in flask_mongo.db.groups.find()]}
+    ), 200
 
 
 @ADMIN.route("/roles/<user_id>", methods=["PATCH"])

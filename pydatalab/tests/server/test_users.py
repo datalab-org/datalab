@@ -42,6 +42,20 @@ def test_role_update_by_user(client, real_mongo_client, user_id):
     assert user["role"] == "manager"
 
 
+def test_list_users(admin_client, client):
+    resp = admin_client.get("/users")
+    assert resp.status_code == 200
+    resp = client.get("/users")
+    assert resp.status_code == 403
+
+
+def test_list_groups(admin_client, client):
+    resp = admin_client.get("/groups")
+    assert resp.status_code == 200
+    resp = client.get("/groups")
+    assert resp.status_code == 403
+
+
 def test_user_update(client, unauthenticated_client, real_mongo_client, user_id, admin_user_id):
     endpoint = f"/users/{str(user_id)}"
     # Test display name update

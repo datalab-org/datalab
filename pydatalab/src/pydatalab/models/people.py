@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConstrainedStr, Field, parse_obj_as, validator
 from pydantic import EmailStr as PydanticEmailStr
 
 from pydatalab.models.entries import Entry
-from pydatalab.models.utils import HumanReadableIdentifier, PyObjectId
+from pydatalab.models.utils import HumanReadableIdentifier, PyObjectId, UserRole
 
 
 class IdentityType(str, Enum):
@@ -195,3 +195,7 @@ class Person(Entry):
             contact_email=contact_email,
             account_status=account_status,
         )
+
+
+class User(Person):
+    role: UserRole
