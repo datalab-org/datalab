@@ -11,13 +11,14 @@ from .healthcheck import HEALTHCHECK
 from .info import INFO
 from .items import ITEMS
 from .remotes import REMOTES
-from .users import USERS
+from .users import GROUPS, USERS
 
 BLUEPRINTS: tuple[Blueprint, ...] = (
     AUTH,
     COLLECTIONS,
     REMOTES,
     USERS,
+    GROUPS,
     ADMIN,
     ITEMS,
     BLOCKS,
