@@ -13,6 +13,7 @@ def test_get_current_user(client):
     assert (resp_json := resp.json)
     assert resp_json["immutable_id"] == 24 * "1"
     assert resp_json["role"] == "user"
+    assert resp_json["groups"] == []
 
 
 def test_get_current_user_admin(admin_client):
@@ -41,7 +42,7 @@ def test_role_update_by_user(client, real_mongo_client, user_id):
     assert user["role"] == "manager"
 
 
-def test_user_update(client, real_mongo_client, user_id, admin_user_id):
+def test_user_update(client, unauthenticated_client, real_mongo_client, user_id, admin_user_id):
     endpoint = f"/users/{str(user_id)}"
     # Test display name update
     user_request = {"display_name": "Test Person II"}
@@ -105,6 +106,16 @@ def test_user_update(client, real_mongo_client, user_id, admin_user_id):
     user = real_mongo_client.get_database().users.find_one({"_id": admin_user_id})
     assert user["display_name"] == "Test Admin"
 
+    # Test that differing user auth can/cannot search for users
+    endpoint = "/search-users/"
+    resp = client.get(endpoint + "?query='Test Person'")
+    assert resp.status_code == 200
+    assert len(resp.json["users"]) == 4
+
+    # Test that differing user auth can/cannot search for users
+    resp = unauthenticated_client.get(endpoint + "?query='Test Person'")
+    assert resp.status_code == 401
+
 
 def test_user_update_admin(admin_client, real_mongo_client, user_id):
     endpoint = f"/users/{str(user_id)}"
@@ -114,3 +125,48 @@ def test_user_update_admin(admin_client, real_mongo_client, user_id):
     assert resp.status_code == 200
     user = real_mongo_client.get_database().users.find_one({"_id": user_id})
     assert user["display_name"] == "Test Person"
+
+
+def test_create_group(admin_client, client, unauthenticated_client, real_mongo_client):
+    from bson import ObjectId
+
+    good_group = {
+        "display_name": "My New Group",
+        "group_id": "my-new-group",
+        "description": "A group for testing",
+        "group_admins": [],
+    }
+
+    # Group ID cannot be None
+    bad_group = good_group.copy()
+    bad_group["group_id"] = None
+    resp = admin_client.put("/groups", json=bad_group)
+    assert resp.status_code == 400
+
+    # Successfully create group
+    resp = admin_client.put("/groups", json=good_group)
+    assert resp.status_code == 200
+    group_immutable_id = ObjectId(resp.json["group_immutable_id"])
+    assert real_mongo_client.get_database().groups.find_one({"_id": group_immutable_id})
+
+    # Group ID must be unique
+    resp = admin_client.put("/groups", json=good_group)
+    assert resp.status_code == 400
+
+    # Request must come from admin
+    # Make ID unique so that this would otherwise pass
+    good_group["group_id"] = "my-new-group-2"
+    resp = unauthenticated_client.put("/groups", json=good_group)
+    assert resp.status_code == 401
+    assert (
+        real_mongo_client.get_database().groups.find_one({"group_id": good_group["group_id"]})
+        is None
+    )
+
+    # Request must come from admin
+    resp = client.put("/groups", json=good_group)
+    assert resp.status_code == 403
+    assert (
+        real_mongo_client.get_database().groups.find_one({"group_id": good_group["group_id"]})
+        is None
+    )

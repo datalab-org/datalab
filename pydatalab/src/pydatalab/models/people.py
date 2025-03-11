@@ -139,7 +139,7 @@ class Person(Entry):
     managers: list[PyObjectId] | None
     """A list of user IDs that can manage this person's items."""
 
-    groups: list[Group] | None
+    groups: list[Group] = Field(default_factory=list)
     """A list of groups that this person belongs to."""
 
     account_status: AccountStatus = Field(AccountStatus.UNVERIFIED)
