@@ -184,3 +184,8 @@ def test_create_group(admin_client, client, unauthenticated_client, real_mongo_c
         real_mongo_client.get_database().groups.find_one({"group_id": good_group["group_id"]})
         is None
     )
+
+    # Check a user can search groups
+    resp = client.get("/search/groups?query=New")
+    assert resp.status_code == 200
+    assert len(resp.json["data"]) == 1

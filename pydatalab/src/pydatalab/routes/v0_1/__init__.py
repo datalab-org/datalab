@@ -7,11 +7,12 @@ from .blocks import BLOCKS
 from .collections import COLLECTIONS
 from .files import FILES
 from .graphs import GRAPHS
+from .groups import GROUPS
 from .healthcheck import HEALTHCHECK
 from .info import INFO
 from .items import ITEMS
 from .remotes import REMOTES
-from .users import GROUPS, USERS
+from .users import USERS
 
 BLUEPRINTS: tuple[Blueprint, ...] = (
     AUTH,

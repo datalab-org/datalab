@@ -117,7 +117,7 @@ class Group(Entry):
     description: Optional[str]
     """A description of the group"""
 
-    group_admins: List[PyObjectId]
+    group_admins: Optional[List[PyObjectId]]
     """A list of user IDs that can manage this group."""
 
 

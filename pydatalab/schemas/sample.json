@@ -471,8 +471,7 @@
       },
       "required": [
         "group_id",
-        "display_name",
-        "group_admins"
+        "display_name"
       ]
     },
     "AccountStatus": {

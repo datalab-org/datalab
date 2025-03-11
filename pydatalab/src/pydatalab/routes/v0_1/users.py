@@ -1,17 +1,15 @@
 import json
 
-import pymongo.errors
 from bson import ObjectId
 from flask import Blueprint, jsonify, request
 from flask_login import current_user
 
 from pydatalab.config import CONFIG
-from pydatalab.models.people import DisplayName, EmailStr, Group, Person
-from pydatalab.mongo import _get_active_mongo_client, flask_mongo
+from pydatalab.models.people import DisplayName, EmailStr, Person
+from pydatalab.mongo import flask_mongo
 from pydatalab.permissions import active_users_or_get_only, admin_only
 
 USERS = Blueprint("users", __name__)
-GROUPS = Blueprint("groups", __name__)
 
 
 @USERS.before_request
@@ -93,11 +91,6 @@ def add_user_to_group(group_immutable_id):
             return jsonify({"status": "error", "message": "Unable to add user to group."}), 400
 
     return jsonify({"status": "error", "message": "Unable to add user to group."}), 400
-
-
-@USERS.before_request
-@active_users_or_get_only
-def _(): ...
 
 
 @USERS.route("/users/<user_id>", methods=["PATCH"])
