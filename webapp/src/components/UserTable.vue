@@ -9,7 +9,7 @@
       </tr>
     </thead>
     <tbody>
-      <tr v-for="user in users" :key="user._id">
+      <tr v-for="user in users" :key="user.immutable_id">
         <td align="left">
           {{ user.display_name }}
           <span v-if="user.account_status === 'active'" class="badge badge-success text-uppercase">

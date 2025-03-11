@@ -6,18 +6,23 @@
     <template v-if="selectedItem === 'Access Tokens'">
       <TokenTable />
     </template>
+    <template v-if="selectedItem === 'Groups'"> 
+      <GroupTable /> 
+    </template>
   </div>
 </template>
 
 <script>
 import UserTable from "./UserTable.vue";
 import TokenTable from "./TokenTable.vue";
+import GroupTable from "./GroupTable.vue";
 
 export default {
   name: "AdminDisplay",
   components: {
     UserTable,
     TokenTable,
+    GroupTable,
   },
   props: {
     selectedItem: {
