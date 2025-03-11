@@ -33,8 +33,8 @@
             {{ folderNameError }}
           </div>
         </div>
-        <div class="form-group mt-2 mb-2">
-          <label class="mr-2"><b>ppm 1</b></label>
+        <!-- <div class="form-group mt-2 mb-2">
+          <label class="mr-2"><b>Lower PPM range</b></label>
           <input
             v-model.number="ppm1"
             type="number"
@@ -48,7 +48,7 @@
               updateBlock();
             "
           />
-          <label class="mr-2"><b>ppm 2</b></label>
+          <label class="mr-2"><b>Upper PPM range</b></label>
           <input
             v-model.number="ppm2"
             type="number"
@@ -65,7 +65,7 @@
           <div v-if="ppmParseError" class="alert alert-danger mt-2 mx-auto">
             {{ ppmParseError }}
           </div>
-        </div>
+        </div> -->
       </div>
     </div>
     <div
@@ -146,11 +146,20 @@ export default {
       this.updateBlock();
     },
     parsePPM() {
-      if (isNaN(parseFloat(this.ppm1)) || isNaN(parseFloat(this.ppm2))) {
-        this.ppmParseError = "Please provide a valid number";
-      } else {
-        this.ppmParseError = "";
+      const ppm1Value = parseFloat(this.ppm1);
+      const ppm2Value = parseFloat(this.ppm2);
+
+      if (isNaN(ppm1Value) || isNaN(ppm2Value)) {
+        this.ppmParseError = "Please provide valid numbers for both PPM values";
+        return false;
+      } else if (ppm1Value === ppm2Value) {
+        this.ppmParseError = "PPM values must be different";
+        return false;
       }
+
+      this.ppmParseError = "";
+      this.updateBlock();
+      return true;
     },
     onFolderSelected() {
       if (this.nmr_folder_name && this.echem_folder_name) {
@@ -161,13 +170,22 @@ export default {
       }
     },
     updateBlock() {
+      this.isLoading = true;
       const foundFile = this.all_files.find((file) => file.immutable_id === this.file_id);
       this.folder_name = foundFile?.name || "Folder not found";
+
       updateBlockFromServer(
         this.item_id,
         this.block_id,
         this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id],
-      );
+      )
+        .then(() => {
+          this.isLoading = false;
+        })
+        .catch((error) => {
+          this.isLoading = false;
+          console.error("Error updating block:", error);
+        });
     },
   },
 };
