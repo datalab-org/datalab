@@ -33,39 +33,27 @@
             {{ folderNameError }}
           </div>
         </div>
-        <!-- <div class="form-group mt-2 mb-2">
+        <div class="form-group mt-2 mb-2">
           <label class="mr-2"><b>Lower PPM range</b></label>
           <input
             v-model.number="ppm1"
             type="number"
             class="form-control mr-2"
-            @keydown.enter="
-              parsePPM();
-              updateBlock();
-            "
-            @blur="
-              parsePPM();
-              updateBlock();
-            "
+            @keydown.enter="handlePPMUpdate"
+            @blur="handlePPMUpdate"
           />
           <label class="mr-2"><b>Upper PPM range</b></label>
           <input
             v-model.number="ppm2"
             type="number"
             class="form-control"
-            @keydown.enter="
-              parsePPM();
-              updateBlock();
-            "
-            @blur="
-              parsePPM();
-              updateBlock();
-            "
+            @keydown.enter="handlePPMUpdate"
+            @blur="handlePPMUpdate"
           />
           <div v-if="ppmParseError" class="alert alert-danger mt-2 mx-auto">
             {{ ppmParseError }}
           </div>
-        </div> -->
+        </div>
       </div>
     </div>
     <div
@@ -112,6 +100,7 @@ export default {
     return {
       ppmParseError: "",
       folderNameError: "",
+      isUpdating: false,
     };
   },
   computed: {
@@ -158,7 +147,6 @@ export default {
       }
 
       this.ppmParseError = "";
-      this.updateBlock();
       return true;
     },
     onFolderSelected() {
@@ -174,11 +162,14 @@ export default {
       const foundFile = this.all_files.find((file) => file.immutable_id === this.file_id);
       this.folder_name = foundFile?.name || "Folder not found";
 
-      updateBlockFromServer(
-        this.item_id,
-        this.block_id,
-        this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id],
-      )
+      const blockToUpdate = {
+        ...this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id],
+      };
+
+      blockToUpdate.ppm1 = this.ppm1;
+      blockToUpdate.ppm2 = this.ppm2;
+
+      updateBlockFromServer(this.item_id, this.block_id, blockToUpdate)
         .then(() => {
           this.isLoading = false;
         })
@@ -186,6 +177,11 @@ export default {
           this.isLoading = false;
           console.error("Error updating block:", error);
         });
+    },
+    handlePPMUpdate() {
+      if (this.parsePPM()) {
+        this.updateBlock();
+      }
     },
   },
 };

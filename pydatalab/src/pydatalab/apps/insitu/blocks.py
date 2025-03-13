@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import bokeh.embed
 import numpy as np
 import pandas as pd
+from bokeh.events import DoubleTap
 from bokeh.layouts import gridplot
 from bokeh.models import (
     ColorBar,
@@ -36,8 +37,8 @@ class InsituBlock(DataBlock):
     folder_name = ""
 
     defaults = {
-        "ppm1": 220.0,
-        "ppm2": 310.0,
+        "ppm1": 0.0,
+        "ppm2": 0.0,
         "start_exp": 1,
         "exclude_exp": None,
     }
@@ -52,21 +53,6 @@ class InsituBlock(DataBlock):
     @property
     def plot_functions(self):
         return (self.generate_insitu_nmr_plot,)
-
-    def _validate_parameters(self) -> bool:
-        """
-        Validate input parameters before processing.
-
-        Returns:
-            bool: True if all parameters are valid, False otherwise.
-        """
-        try:
-            float(self.data.get("ppm1", self.defaults["ppm1"]))
-            float(self.data.get("ppm2", self.defaults["ppm2"]))
-            return True
-        except ValueError:
-            LOGGER.error("Invalid PPM values provided")
-            return False
 
     def get_available_folders(self) -> List[str]:
         """
@@ -140,13 +126,7 @@ class InsituBlock(DataBlock):
             self.data["warnings"] = ["Both NMR and Echem folder names must be specified"]
             return False
 
-        if not self._validate_parameters():
-            return False
-
         try:
-            ppm1 = float(self.data.get("ppm1", self.defaults["ppm1"]))
-            ppm2 = float(self.data.get("ppm2", self.defaults["ppm2"]))
-
             item_id = self.data.get("item_id")
             folder_name = self.data.get("folder_name")
             nmr_folder_name = self.data.get("nmr_folder_name")
@@ -193,6 +173,12 @@ class InsituBlock(DataBlock):
             self.data.pop("warnings", None)
             self.data.pop("errors", None)
 
+            nmr_data = result["nmr_spectra"]
+            ppm_values = np.array(nmr_data.get("ppm", []))
+
+            ppm1 = self.data["ppm1"] = min(ppm_values)
+            ppm2 = self.data["ppm2"] = max(ppm_values)
+
             self.data.update(
                 {
                     "nmr_data": result["nmr_spectra"],
@@ -217,23 +203,24 @@ class InsituBlock(DataBlock):
     def should_reprocess_data(self) -> bool:
         """
         Determine if data needs to be reprocessed based on parameter changes.
-
-        Returns:
-            bool: True if parameters have changed or data is missing, False otherwise.
+        PPM changes should not trigger reprocessing.
         """
         if "processing_params" not in self.data or "nmr_data" not in self.data:
             return True
 
         params = self.data["processing_params"]
         current_params = {
-            "ppm1": float(self.data.get("ppm1", self.defaults["ppm1"])),
-            "ppm2": float(self.data.get("ppm2", self.defaults["ppm2"])),
             "file_id": self.data.get("file_id"),
             "start_exp": int(self.data.get("start_exp", self.defaults["start_exp"])),
             "exclude_exp": self.data.get("exclude_exp", self.defaults["exclude_exp"]),
         }
 
-        return any(params.get(key) != current_params[key] for key in current_params)
+        for key in current_params:
+            if params.get(key) != current_params[key]:
+                LOGGER.info(f"Parameter {key} changed, reprocessing data...")
+                return True
+
+        return False
 
     def generate_insitu_nmr_plot(self) -> Tuple[pd.DataFrame, List[str]]:
         """
@@ -257,12 +244,19 @@ class InsituBlock(DataBlock):
                 )
                 return None, []
 
-            if self.should_reprocess_data():
+            needs_reprocessing = self.should_reprocess_data()
+            if needs_reprocessing:
                 LOGGER.info("Processing new data...")
                 if not self.process_and_store_data():
                     return None, []
             else:
                 LOGGER.info("Using stored data...")
+                self.data["processing_params"]["ppm1"] = float(
+                    self.data.get("ppm1", self.defaults["ppm1"])
+                )
+                self.data["processing_params"]["ppm2"] = float(
+                    self.data.get("ppm2", self.defaults["ppm2"])
+                )
 
             plot_data = self._prepare_plot_data()
             if not plot_data:
@@ -273,6 +267,16 @@ class InsituBlock(DataBlock):
             heatmap_figure = self._create_heatmap_figure(plot_data, shared_ranges)
             nmrplot_figure = self._create_nmr_line_figure(plot_data, shared_ranges)
             echemplot_figure = self._create_echem_figure(plot_data, shared_ranges)
+
+            heatmap_figure.js_on_event(
+                DoubleTap, CustomJS(args=dict(p=heatmap_figure), code="p.reset.emit()")
+            )
+            nmrplot_figure.js_on_event(
+                DoubleTap, CustomJS(args=dict(p=nmrplot_figure), code="p.reset.emit()")
+            )
+            echemplot_figure.js_on_event(
+                DoubleTap, CustomJS(args=dict(p=echemplot_figure), code="p.reset.emit()")
+            )
 
             self._link_plots(heatmap_figure, nmrplot_figure, echemplot_figure, plot_data)
 
@@ -366,10 +370,16 @@ class InsituBlock(DataBlock):
 
         shared_y_range = Range1d(start=time_range["start"], end=time_range["end"])
 
+        ppm1 = float(self.data.get("ppm1", self.defaults["ppm1"]))
+        ppm2 = float(self.data.get("ppm2", self.defaults["ppm2"]))
+
         ppm_min = min(ppm_values)
         ppm_max = max(ppm_values)
 
-        shared_x_range = Range1d(start=ppm_max, end=ppm_min)
+        ppm1 = max(min(ppm1, ppm_max), ppm_min)
+        ppm2 = max(min(ppm2, ppm_max), ppm_min)
+
+        shared_x_range = Range1d(start=max(ppm1, ppm2), end=min(ppm1, ppm2))
 
         intensity_range = Range1d(start=intensity_min, end=intensity_max)
 
