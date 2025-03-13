@@ -1,6 +1,8 @@
 import os
 import re
 import warnings
+import zipfile
+from pathlib import Path
 from typing import List, Tuple
 
 import numpy as np
@@ -146,3 +148,53 @@ def toXY(intensities: List[float], start: float, end: float) -> str:
     angles = np.linspace(start, end, num=len(intensities))
     xylines = ["{:.5f} {:.3f}\r\n".format(a, i) for a, i in zip(angles, intensities)]
     return "".join(xylines)
+
+
+def parse_rasx_zip(filename: str) -> pd.DataFrame:
+    """Parses an RASX zip file and returns a pandas DataFrame with columns
+    twotheta and intensity.
+
+    Parameters:
+        filename: The file to parse.
+
+    """
+    # Unzip the file
+    zip_path = Path(filename)
+    destination = zip_path.parent / "extracted"
+    with zipfile.ZipFile(zip_path, "r") as zip_ref:
+        zip_ref.extractall(destination)
+
+    # Find the .rasx file
+    rasx_file = None
+    for file in destination.iterdir():
+        if file.suffix == ".rasx":
+            rasx_file = file
+            break
+
+    if rasx_file is None:
+        raise FileNotFoundError("No .rasx file found in the zip archive.")
+
+    # Unzip the .rasx file contents
+    with zipfile.ZipFile(rasx_file, "r") as zip_ref:
+        zip_ref.extractall(destination)
+
+    # Find the .txt data file inside the unzipped .rasx archive
+    # Seems to normally unzip to a folder called "Data0" with one .txt file inside
+    data_file = None
+    for file in destination.glob("Data*/*.txt"):
+        data_file = file
+        break
+
+    if data_file is None:
+        raise FileNotFoundError("No .txt file found in the .rasx archive.")
+
+    xrd_data = pd.read_csv(data_file, sep="\t", header=None)
+    xrd_data.columns = ["twotheta", "intensity", "imnotsure"]
+    # Extract the data
+    # twotheta, intensities = getTwoThetaIntensities(s)
+    return pd.DataFrame(
+        {
+            "twotheta": xrd_data["twotheta"],
+            "intensity": xrd_data["intensity"],
+        }
+    )

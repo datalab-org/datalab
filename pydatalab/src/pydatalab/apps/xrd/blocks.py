@@ -12,14 +12,14 @@ from pydatalab.file_utils import get_file_info_by_id
 from pydatalab.logger import LOGGER
 from pydatalab.mongo import flask_mongo
 
-from .utils import parse_xrdml
+from .utils import parse_rasx_zip, parse_xrdml
 
 
 class XRDBlock(DataBlock):
     blocktype = "xrd"
     name = "Powder XRD"
     description = "Visualize XRD patterns and perform simple baseline corrections."
-    accepted_file_extensions = (".xrdml", ".xy", ".dat", ".xye")
+    accepted_file_extensions = (".xrdml", ".xy", ".dat", ".xye", ".zip")
 
     defaults = {"wavelength": 1.54060}
 
@@ -38,6 +38,8 @@ class XRDBlock(DataBlock):
 
         if ext == ".xrdml":
             df = parse_xrdml(location)
+        elif ext == ".zip":
+            df = parse_rasx_zip(location)
 
         else:
             columns = ["twotheta", "intensity", "error"]
