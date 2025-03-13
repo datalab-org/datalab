@@ -33,7 +33,7 @@
           <select
             v-model="user.role"
             class="dropdown"
-            @change="confirmUpdateUserRole(user._id, $event.target.value)"
+            @change="confirmUpdateUserRole(user.immutable_id, $event.target.value)"
           >
             <option value="user">User</option>
             <option value="admin">Admin</option>
@@ -44,21 +44,21 @@
           <button
             v-if="user.account_status === 'active'"
             class="btn btn-outline-danger btn-sm text-uppercase text-monospace"
-            @click="confirmUpdateUserStatus(user._id, 'deactivated')"
+            @click="confirmUpdateUserStatus(user.immutable_id, 'deactivated')"
           >
             Deactivate
           </button>
           <button
             v-else-if="user.account_status === 'unverified'"
             class="btn btn-outline-success btn-sm text-uppercase text-monospace"
-            @click="confirmUpdateUserStatus(user._id, 'active')"
+            @click="confirmUpdateUserStatus(user.immutable_id, 'active')"
           >
             Activate
           </button>
           <button
             v-else-if="user.account_status === 'deactivated'"
             class="btn btn-outline-success btn-sm text-uppercase text-monospace"
-            @click="confirmUpdateUserStatus(user._id, 'active')"
+            @click="confirmUpdateUserStatus(user.immutable_id, 'active')"
           >
             Activate
           </button>
@@ -93,14 +93,14 @@ export default {
       }
     },
     async confirmUpdateUserRole(user_id, new_role) {
-      const originalCurrentUser = this.original_users.find((user) => user._id === user_id);
+      const originalCurrentUser = this.original_users.find((user) => user.immutable_id === user_id);
 
       if (originalCurrentUser.role === "admin") {
         DialogService.error({
           title: "Role Change Error",
           message: "You can't change an admin's role.",
         });
-        this.users.find((user) => user._id === user_id).role = originalCurrentUser.role;
+        this.users.find((user) => user.immutable_id === user_id).role = originalCurrentUser.role;
         return;
       }
 
@@ -112,11 +112,11 @@ export default {
       if (confirmed) {
         await this.updateUserRole(user_id, new_role);
       } else {
-        this.users.find((user) => user._id === user_id).role = originalCurrentUser.role;
+        this.users.find((user) => user.immutable_id === user_id).role = originalCurrentUser.role;
       }
     },
     async confirmUpdateUserStatus(user_id, new_status) {
-      const originalCurrentUser = this.original_users.find((user) => user._id === user_id);
+      const originalCurrentUser = this.original_users.find((user) => user.immutable_id === user_id);
 
       const confirmed = await DialogService.confirm({
         title: "Change User Status",
@@ -124,10 +124,10 @@ export default {
         type: "warning",
       });
       if (confirmed) {
-        this.users.find((user) => user._id == user_id).account_status = new_status;
+        this.users.find((user) => user.immutable_id == user_id).account_status = new_status;
         await this.updateUserStatus(user_id, new_status);
       } else {
-        this.users.find((user) => user._id === user_id).account_status =
+        this.users.find((user) => user.immutable_id === user_id).account_status =
           originalCurrentUser.account_status;
       }
     },
