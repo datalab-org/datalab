@@ -9,7 +9,6 @@ import CycleBlock from "@/components/datablocks/CycleBlock";
 import NMRBlock from "@/components/datablocks/NMRBlock";
 import EISBlock from "@/components/datablocks/EISBlock";
 import MassSpecBlock from "@/components/datablocks/MassSpecBlock";
-// import FTIRBlock from "@/components/datablocks/FTIRBlock";
 
 import SampleInformation from "@/components/SampleInformation";
 import StartingMaterialInformation from "@/components/StartingMaterialInformation";
