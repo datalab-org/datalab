@@ -33,7 +33,7 @@
           <select
             v-model="user.role"
             class="dropdown"
-            @change="confirmUpdateUserRole(user._id.$oid, $event.target.value)"
+            @change="confirmUpdateUserRole(user.immutable_id, $event.target.value)"
           >
             <option value="user">User</option>
             <option value="admin">Admin</option>
@@ -44,21 +44,21 @@
           <button
             v-if="user.account_status === 'active'"
             class="btn btn-outline-danger btn-sm text-uppercase text-monospace"
-            @click="confirmUpdateUserStatus(user._id.$oid, 'deactivated')"
+            @click="confirmUpdateUserStatus(user.immutable_id, 'deactivated')"
           >
             Deactivate
           </button>
           <button
             v-else-if="user.account_status === 'unverified'"
             class="btn btn-outline-success btn-sm text-uppercase text-monospace"
-            @click="confirmUpdateUserStatus(user._id.$oid, 'active')"
+            @click="confirmUpdateUserStatus(user.immutable_id, 'active')"
           >
             Activate
           </button>
           <button
             v-else-if="user.account_status === 'deactivated'"
             class="btn btn-outline-success btn-sm text-uppercase text-monospace"
-            @click="confirmUpdateUserStatus(user._id.$oid, 'active')"
+            @click="confirmUpdateUserStatus(user.immutable_id, 'active')"
           >
             Activate
           </button>
@@ -91,11 +91,11 @@ export default {
       }
     },
     async confirmUpdateUserRole(user_id, new_role) {
-      const originalCurrentUser = this.original_users.find((user) => user._id.$oid === user_id);
+      const originalCurrentUser = this.original_users.find((user) => user.immutable_id === user_id);
 
       if (originalCurrentUser.role === "admin") {
         window.alert("You can't change an admin's role.");
-        this.users.find((user) => user._id.$oid === user_id).role = originalCurrentUser.role;
+        this.users.find((user) => user.immutable_id === user_id).role = originalCurrentUser.role;
         return;
       }
 
@@ -106,21 +106,21 @@ export default {
       ) {
         await this.updateUserRole(user_id, new_role);
       } else {
-        this.users.find((user) => user._id.$oid === user_id).role = originalCurrentUser.role;
+        this.users.find((user) => user.immutable_id === user_id).role = originalCurrentUser.role;
       }
     },
     async confirmUpdateUserStatus(user_id, new_status) {
-      const originalCurrentUser = this.original_users.find((user) => user._id.$oid === user_id);
+      const originalCurrentUser = this.original_users.find((user) => user.immutable_id === user_id);
 
       if (
         window.confirm(
           `Are you sure you want to change ${originalCurrentUser.display_name}'s status from "${originalCurrentUser.account_status}" to "${new_status}" ?`,
         )
       ) {
-        this.users.find((user) => user._id.$oid == user_id).account_status = new_status;
+        this.users.find((user) => user.immutable_id == user_id).account_status = new_status;
         await this.updateUserStatus(user_id, new_status);
       } else {
-        this.users.find((user) => user._id.$oid === user_id).account_status =
+        this.users.find((user) => user.immutable_id === user_id).account_status =
           originalCurrentUser.account_status;
       }
     },
