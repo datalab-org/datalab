@@ -16,6 +16,7 @@ from bokeh.models import (
     HoverTool,
     LinearColorMapper,
     Range1d,
+    TapTool,
 )
 from bokeh.plotting import figure
 from datalab_app_plugin_nmr_insitu import process_datalab_data
@@ -365,8 +366,8 @@ class InsituBlock(DataBlock):
         """
         ppm_values = plot_data["ppm_values"]
         time_range = plot_data["time_range"]
-        intensity_min = plot_data["intensity_min"]
-        intensity_max = plot_data["intensity_max"]
+        intensity_min = np.min(plot_data["intensity_matrix"])
+        intensity_max = np.max(plot_data["intensity_matrix"])
 
         shared_y_range = Range1d(start=time_range["start"], end=time_range["end"])
 
@@ -416,7 +417,6 @@ class InsituBlock(DataBlock):
             x_range=ranges["shared_x_range"],
             y_range=ranges["shared_y_range"],
             height=400,
-            tooltips=[("Exp.", "$y{0}")],
             tools=tools,
         )
 
@@ -433,6 +433,44 @@ class InsituBlock(DataBlock):
             color_mapper=color_mapper,
             level="image",
         )
+
+        time_points = len(intensity_matrix)
+        if time_points > 0:
+            times = np.linspace(time_range["start"], time_range["end"], time_points)
+            experiment_numbers = np.arange(1, time_points + 1)
+
+            source = ColumnDataSource(
+                data={
+                    "x": [max(ppm_values)] * time_points,
+                    "y": times,
+                    "width": [abs(max(ppm_values) - min(ppm_values))] * time_points,
+                    "height": [(time_range["end"] - time_range["start"]) / time_points]
+                    * time_points,
+                    "exp_num": experiment_numbers,
+                }
+            )
+
+            rects = heatmap_figure.rect(
+                x="x",
+                y="y",
+                width="width",
+                height="height",
+                source=source,
+                alpha=0.0,
+                hover_alpha=0.1,
+                line_alpha=0.0,
+            )
+
+            hover_tool = HoverTool(
+                renderers=[rects],
+                tooltips=[("Exp.", "@exp_num")],
+                mode="mouse",
+                point_policy="follow_mouse",
+            )
+
+            heatmap_figure.add_tools(hover_tool)
+
+            plot_data["heatmap_source"] = source
 
         heatmap_figure.grid.grid_line_width = 0
         color_bar = ColorBar(color_mapper=color_mapper, label_standoff=12)
@@ -458,11 +496,22 @@ class InsituBlock(DataBlock):
 
         tools = "pan,wheel_zoom,box_zoom,reset,save"
 
+        ppm_list = ppm_values.tolist() if isinstance(ppm_values, np.ndarray) else ppm_values
+        intensity_list = (
+            first_spectrum_intensities.tolist()
+            if isinstance(first_spectrum_intensities, np.ndarray)
+            else first_spectrum_intensities
+        )
+
         line_source = ColumnDataSource(
             data={
-                "δ (ppm)": ppm_values.tolist(),
-                "intensity": first_spectrum_intensities.tolist(),
+                "δ (ppm)": ppm_list,
+                "intensity": intensity_list,
             }
+        )
+
+        clicked_spectra_source = ColumnDataSource(
+            data={"δ (ppm)": [], "intensity": [], "exp_index": [], "color": []}
         )
 
         nmrplot_figure = figure(
@@ -472,9 +521,30 @@ class InsituBlock(DataBlock):
             y_range=ranges["intensity_range"],
             tools=tools,
         )
-        nmrplot_figure.line(x="δ (ppm)", y="intensity", source=line_source)
+
+        nmrplot_figure.line(
+            x="δ (ppm)",
+            y="intensity",
+            source=line_source,
+            line_width=2,
+            color="blue",
+            legend_label="Reference",
+        )
+
+        nmrplot_figure.multi_line(
+            xs="δ (ppm)",
+            ys="intensity",
+            source=clicked_spectra_source,
+            line_color="color",
+            line_width=2,
+            legend_field="exp_index",
+        )
+
+        nmrplot_figure.legend.click_policy = "hide"
+        nmrplot_figure.legend.location = "top_right"
 
         plot_data["line_source"] = line_source
+        plot_data["clicked_spectra_source"] = clicked_spectra_source
         return nmrplot_figure
 
     def _create_echem_figure(self, plot_data: Dict[str, Any], ranges: Dict[str, Range1d]) -> figure:
@@ -502,8 +572,18 @@ class InsituBlock(DataBlock):
         )
 
         if echem_data and "Voltage" in echem_data and "time" in echem_data:
+            times = np.array(echem_data["time"])
+            voltages = np.array(echem_data["Voltage"])
+
+            time_range = plot_data["time_range"]
+            time_span = time_range["end"] - time_range["start"]
+            exp_count = len(plot_data["spectra"])
+
+            exp_numbers = np.floor(((times - time_range["start"]) / time_span) * exp_count) + 1
+            exp_numbers = np.clip(exp_numbers, 1, exp_count)
+
             echem_source = ColumnDataSource(
-                data={"time": echem_data["time"], "voltage": echem_data["Voltage"]}
+                data={"time": times, "voltage": voltages, "exp_num": exp_numbers}
             )
 
             echemplot_figure.line(
@@ -511,6 +591,18 @@ class InsituBlock(DataBlock):
                 y="time",
                 source=echem_source,
             )
+
+            hover_tool = HoverTool(
+                tooltips=[
+                    ("Exp.", "@exp_num{0}"),
+                    ("Time (h)", "@time{0.00}"),
+                    ("Voltage (V)", "@voltage{0.000}"),
+                ],
+                mode="mouse",
+                point_policy="follow_mouse",
+            )
+
+            echemplot_figure.add_tools(hover_tool)
 
         return echemplot_figure
 
@@ -531,33 +623,92 @@ class InsituBlock(DataBlock):
             plot_data: Dictionary containing prepared plot data
         """
         line_source = plot_data["line_source"]
+        clicked_spectra_source = plot_data["clicked_spectra_source"]
         spectra_intensities = plot_data["spectra_intensities"]
         ppm_values = plot_data["ppm_values"]
         intensity_matrix = plot_data["intensity_matrix"]
+        heatmap_source = plot_data.get("heatmap_source")
+
+        colors = [
+            "red",
+            "green",
+            "orange",
+            "purple",
+            "brown",
+            "darkblue",
+            "teal",
+            "magenta",
+            "olive",
+            "navy",
+        ]
 
         crosshair = CrosshairTool(dimensions="width", line_color="grey")
         heatmap_figure.add_tools(crosshair)
         echemplot_figure.add_tools(crosshair)
 
-        hover = heatmap_figure.select_one(HoverTool)
-        hover.callback = CustomJS(
-            args=dict(
-                line_source=line_source,
-                spectra_intensities=spectra_intensities,
-                ppm_values=ppm_values.tolist(),
-            ),
-            code="""
-            const geometry = cb_data['geometry'];
-            const index = Math.max(0, Math.min(Math.floor(geometry.y), spectra_intensities.length - 1));
+        hover = next((tool for tool in heatmap_figure.tools if isinstance(tool, HoverTool)), None)
+        if hover:
+            hover.callback = CustomJS(
+                args=dict(
+                    line_source=line_source,
+                    spectra_intensities=spectra_intensities,
+                    ppm_values=ppm_values.tolist(),
+                ),
+                code="""
+                        const geometry = cb_data['geometry'];
+                        const index = Math.max(0, Math.min(Math.floor(geometry.y), spectra_intensities.length - 1));
 
-            var data = line_source.data;
-            data['intensity'] = spectra_intensities[index];
-            line_source.change.emit();
-            """,
-        )
+                        var data = line_source.data;
+                        data['intensity'] = spectra_intensities[index];
+                        line_source.change.emit();
+                    """,
+            )
 
-        hover.mode = "hline"
-        echemplot_figure.add_tools(hover)
+        if heatmap_source:
+            tap_tool = TapTool()
+            heatmap_figure.add_tools(tap_tool)
+            tap_callback = CustomJS(
+                args=dict(
+                    heatmap_source=heatmap_source,
+                    clicked_spectra_source=clicked_spectra_source,
+                    spectra_intensities=spectra_intensities,
+                    ppm_values=ppm_values.tolist(),
+                    colors=colors,
+                ),
+                code="""
+                        const indices = cb_obj.indices;
+                        if (indices.length === 0) return;
+
+                        const index = indices[0];
+                        const exp_num = heatmap_source.data.exp_num[index];
+
+                        const existing_indices = clicked_spectra_source.data.exp_index;
+                        if (existing_indices.includes(exp_num)) return;
+
+                        const color_index = existing_indices.length % colors.length;
+
+                        const new_xs = [...clicked_spectra_source.data['δ (ppm)']];
+                        const new_ys = [...clicked_spectra_source.data.intensity];
+                        const new_indices = [...clicked_spectra_source.data.exp_index];
+                        const new_colors = [...clicked_spectra_source.data.color];
+
+                        new_xs.push(ppm_values);
+                        new_ys.push(spectra_intensities[index]);
+                        new_indices.push(exp_num);
+                        new_colors.push(colors[color_index]);
+
+                        clicked_spectra_source.data = {
+                            'δ (ppm)': new_xs,
+                            'intensity': new_ys,
+                            'exp_index': new_indices,
+                            'color': new_colors
+                        };
+
+                        clicked_spectra_source.change.emit();
+                    """,
+            )
+
+            heatmap_source.selected.js_on_change("indices", tap_callback)
 
         heatmap_figure.x_range.js_on_change(
             "start",
@@ -570,41 +721,41 @@ class InsituBlock(DataBlock):
                     global_max=np.max(intensity_matrix),
                 ),
                 code="""
-        const start_index = ppm_array.findIndex(ppm => ppm <= cb_obj.end);
-        const end_index = ppm_array.findIndex(ppm => ppm <= cb_obj.start);
+                        const start_index = ppm_array.findIndex(ppm => ppm <= cb_obj.end);
+                        const end_index = ppm_array.findIndex(ppm => ppm <= cb_obj.start);
 
-        if (start_index < 0 || end_index < 0 || start_index >= ppm_array.length || end_index >= ppm_array.length) {
-            color_mapper.low = global_min;
-            color_mapper.high = global_max;
-            return;
-        }
+                        if (start_index < 0 || end_index < 0 || start_index >= ppm_array.length || end_index >= ppm_array.length) {
+                            color_mapper.low = global_min;
+                            color_mapper.high = global_max;
+                            return;
+                        }
 
-        if (Math.abs(end_index - start_index) < 5) {
-            return;
-        }
+                        if (Math.abs(end_index - start_index) < 5) {
+                            return;
+                        }
 
-        let min_intensity = Infinity;
-        let max_intensity = -Infinity;
+                        let min_intensity = Infinity;
+                        let max_intensity = -Infinity;
 
-        for (let i = 0; i < intensity_matrix.length; i++) {
-            for (let j = Math.min(start_index, end_index); j <= Math.max(start_index, end_index); j++) {
-                if (j >= 0 && j < intensity_matrix[i].length) {
-                    const value = intensity_matrix[i][j];
-                    min_intensity = Math.min(min_intensity, value);
-                    max_intensity = Math.max(max_intensity, value);
-                }
-            }
-        }
+                        for (let i = 0; i < intensity_matrix.length; i++) {
+                            for (let j = Math.min(start_index, end_index); j <= Math.max(start_index, end_index); j++) {
+                                if (j >= 0 && j < intensity_matrix[i].length) {
+                                    const value = intensity_matrix[i][j];
+                                    min_intensity = Math.min(min_intensity, value);
+                                    max_intensity = Math.max(max_intensity, value);
+                                }
+                            }
+                        }
 
-        if (Math.abs(max_intensity - min_intensity) < 0.1 * Math.abs(global_max - global_min)) {
-            const padding = 0.1 * Math.abs(global_max - global_min);
-            min_intensity = Math.max(min_intensity - padding, global_min);
-            max_intensity = Math.min(max_intensity + padding, global_max);
-        }
+                        if (Math.abs(max_intensity - min_intensity) < 0.1 * Math.abs(global_max - global_min)) {
+                            const padding = 0.1 * Math.abs(global_max - global_min);
+                            min_intensity = Math.max(min_intensity - padding, global_min);
+                            max_intensity = Math.min(max_intensity + padding, global_max);
+                        }
 
-        color_mapper.low = min_intensity;
-        color_mapper.high = max_intensity;
-        """,
+                        color_mapper.low = min_intensity;
+                        color_mapper.high = max_intensity;
+                    """,
             ),
         )
 
