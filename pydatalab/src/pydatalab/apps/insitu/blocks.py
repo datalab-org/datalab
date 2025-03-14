@@ -456,9 +456,6 @@ class InsituBlock(DataBlock):
                 width="width",
                 height="height",
                 source=source,
-                alpha=0.0,
-                hover_alpha=0.1,
-                line_alpha=0.0,
             )
 
             hover_tool = HoverTool(
@@ -764,3 +761,29 @@ class InsituBlock(DataBlock):
         line_y_range = nmrplot_figure.y_range
         line_y_range.js_link("start", heatmap_figure.select_one(LinearColorMapper), "low")
         line_y_range.js_link("end", heatmap_figure.select_one(LinearColorMapper), "high")
+
+        tap_tool = TapTool()
+
+        nmrplot_figure.add_tools(tap_tool)
+
+        remove_line_callback = CustomJS(
+            args=dict(clicked_spectra_source=clicked_spectra_source),
+            code="""
+            const indices = clicked_spectra_source.selected.indices;
+            if (indices.length === 0) return;
+
+            let data = clicked_spectra_source.data;
+
+            for (let i = indices.length - 1; i >= 0; i--) {
+                let index = indices[i];
+                data['δ (ppm)'].splice(index, 1);
+                data['intensity'].splice(index, 1);
+                data['exp_index'].splice(index, 1);
+                data['color'].splice(index, 1);
+            }
+
+            clicked_spectra_source.change.emit();
+        """,
+        )
+
+        clicked_spectra_source.selected.js_on_change("indices", remove_line_callback)
