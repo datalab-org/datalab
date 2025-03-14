@@ -4,6 +4,7 @@ from typing import Dict, Sequence, Type
 from pydatalab.apps.chat.blocks import ChatBlock
 from pydatalab.apps.echem import CycleBlock
 from pydatalab.apps.eis import EISBlock
+from pydatalab.apps.insitu import InsituBlock
 from pydatalab.apps.nmr import NMRBlock
 from pydatalab.apps.raman import RamanBlock
 from pydatalab.apps.tga import MassSpecBlock
@@ -23,6 +24,7 @@ BLOCKS: Sequence[Type["DataBlock"]] = (
     ChatBlock,
     EISBlock,
     TabularDataBlock,
+    InsituBlock,
 )
 
 BLOCK_TYPES: Dict[str, Type["DataBlock"]] = {block.blocktype: block for block in BLOCKS}
