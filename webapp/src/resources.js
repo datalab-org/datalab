@@ -69,6 +69,7 @@ export const blockTypes = {
   nmr: { description: "Nuclear Magnetic Resonance Spectroscopy", component: NMRBlock, name: "NMR" },
   ms: { description: "Mass Spectrometry", component: MassSpecBlock, name: "Mass Spectrometry" },
   chat: { description: "Virtual assistant", component: ChatBlock, name: "Virtual Assistant" },
+  ftir: { description: "FTIR", component: BokehBlock, name: "FTIR" },
 };
 
 export const itemTypes = {
