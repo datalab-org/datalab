@@ -164,20 +164,6 @@ def parse_rasx_zip(filename: str) -> pd.DataFrame:
     with zipfile.ZipFile(zip_path, "r") as zip_ref:
         zip_ref.extractall(destination)
 
-    # Find the .rasx file
-    rasx_file = None
-    for file in destination.iterdir():
-        if file.suffix == ".rasx":
-            rasx_file = file
-            break
-
-    if rasx_file is None:
-        raise FileNotFoundError("No .rasx file found in the zip archive.")
-
-    # Unzip the .rasx file contents
-    with zipfile.ZipFile(rasx_file, "r") as zip_ref:
-        zip_ref.extractall(destination)
-
     # Find the .txt data file inside the unzipped .rasx archive
     # Seems to normally unzip to a folder called "Data0" with one .txt file inside
     data_file = None

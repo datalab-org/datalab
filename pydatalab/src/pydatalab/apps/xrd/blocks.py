@@ -19,7 +19,7 @@ class XRDBlock(DataBlock):
     blocktype = "xrd"
     name = "Powder XRD"
     description = "Visualize XRD patterns and perform simple baseline corrections."
-    accepted_file_extensions = (".xrdml", ".xy", ".dat", ".xye", ".zip")
+    accepted_file_extensions = (".xrdml", ".xy", ".dat", ".xye", ".rasx")
 
     defaults = {"wavelength": 1.54060}
 
@@ -38,7 +38,7 @@ class XRDBlock(DataBlock):
 
         if ext == ".xrdml":
             df = parse_xrdml(location)
-        elif ext == ".zip":
+        elif ext == ".rasx":
             df = parse_rasx_zip(location)
 
         else:
