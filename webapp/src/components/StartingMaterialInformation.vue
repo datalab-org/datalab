@@ -79,6 +79,8 @@
       :item_id="item_id"
       :information-sections="tableOfContentsSections"
     />
+
+    <SynthesisInformation class="mt-3" :item_id="item_id" />
   </div>
 </template>
 
@@ -91,6 +93,7 @@ import TableOfContents from "@/components/TableOfContents";
 import ToggleableCollectionFormGroup from "@/components/ToggleableCollectionFormGroup";
 import FormattedRefcode from "@/components/FormattedRefcode";
 import StyledInput from "@/components/StyledInput";
+import SynthesisInformation from "@/components/SynthesisInformation";
 
 import { EDITABLE_INVENTORY } from "@/resources.js";
 
@@ -103,6 +106,7 @@ export default {
     ToggleableCollectionFormGroup,
     TableOfContents,
     FormattedRefcode,
+    SynthesisInformation,
   },
   props: {
     item_id: { type: String, required: true },
@@ -112,6 +116,7 @@ export default {
       tableOfContentsSections: [
         { title: "Starting Material Information", targetID: "starting-material-information" },
         { title: "Table of Contents", targetID: "table-of-contents" },
+        { title: "Synthesis Information", targetID: "synthesis-information" },
       ],
     };
   },

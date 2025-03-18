@@ -187,6 +187,18 @@
     "comment": {
       "title": "Comments",
       "type": "string"
+    },
+    "synthesis_constituents": {
+      "title": "Synthesis Constituents",
+      "default": [],
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Constituent"
+      }
+    },
+    "synthesis_description": {
+      "title": "Synthesis Description",
+      "type": "string"
     }
   },
   "required": [
@@ -609,6 +621,91 @@
         "extension",
         "time_added",
         "is_live"
+      ]
+    },
+    "EntryReference": {
+      "title": "EntryReference",
+      "description": "A reference to a database entry by ID and type.\n\nCan include additional arbitarary metadata useful for\ninlining the item data.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "immutable_id": {
+          "title": "Immutable Id",
+          "type": "string"
+        },
+        "item_id": {
+          "title": "Item Id",
+          "minLength": 1,
+          "maxLength": 40,
+          "pattern": "^(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
+          "type": "string"
+        },
+        "refcode": {
+          "title": "Refcode",
+          "minLength": 1,
+          "maxLength": 40,
+          "pattern": "^[a-z]{2,10}:(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    "InlineSubstance": {
+      "title": "InlineSubstance",
+      "type": "object",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "chemform": {
+          "title": "Chemform",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "Constituent": {
+      "title": "Constituent",
+      "description": "A constituent of a sample.",
+      "type": "object",
+      "properties": {
+        "item": {
+          "title": "Item",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/EntryReference"
+            },
+            {
+              "$ref": "#/definitions/InlineSubstance"
+            }
+          ]
+        },
+        "quantity": {
+          "title": "Quantity",
+          "minimum": 0,
+          "type": "number"
+        },
+        "unit": {
+          "title": "Unit",
+          "default": "g",
+          "type": "string"
+        }
+      },
+      "required": [
+        "item",
+        "quantity"
       ]
     }
   }
