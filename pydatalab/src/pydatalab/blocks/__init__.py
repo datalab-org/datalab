@@ -7,6 +7,7 @@ from pydatalab.apps.eis import EISBlock
 from pydatalab.apps.ftir import FTIRBlock
 from pydatalab.apps.nmr import NMRBlock
 from pydatalab.apps.raman import RamanBlock
+from pydatalab.apps.raman_map import RamanMapBlock
 from pydatalab.apps.tga import MassSpecBlock
 from pydatalab.apps.xrd import XRDBlock
 from pydatalab.blocks.base import DataBlock
@@ -18,6 +19,7 @@ BLOCKS: Sequence[Type["DataBlock"]] = (
     XRDBlock,
     CycleBlock,
     RamanBlock,
+    RamanMapBlock,
     NMRBlock,
     NotSupportedBlock,
     MassSpecBlock,
@@ -39,6 +41,7 @@ __all__ = (
     "NotSupportedBlock",
     "NMRBlock",
     "RamanBlock",
+    "RamanMapBlock",
     "MassSpecBlock",
     "TabularDataBlock",
     "FTIRBlock",
