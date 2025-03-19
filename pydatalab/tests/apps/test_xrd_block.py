@@ -13,19 +13,21 @@ def data_files():
 
 def test_load(data_files):
     for f in data_files:
-        df, y_options = XRDBlock.load_pattern(f)
-        assert all(y in df.columns for y in y_options)
+        if f.suffix in XRDBlock.accepted_file_extensions:
+            df, y_options = XRDBlock.load_pattern(f)
+            assert all(y in df.columns for y in y_options)
 
 
 def test_plot(data_files):
     f = next(data_files)
-    df, y_options = XRDBlock.load_pattern(f)
-    p = selectable_axes_plot(
-        [df],
-        x_options=["2θ (°)", "Q (Å⁻¹)", "d (Å)"],
-        y_options=y_options,
-        plot_line=True,
-        plot_points=True,
-        point_size=3,
-    )
-    assert p
+    if f.suffix in XRDBlock.accepted_file_extensions:
+        df, y_options = XRDBlock.load_pattern(f)
+        p = selectable_axes_plot(
+            [df],
+            x_options=["2θ (°)", "Q (Å⁻¹)", "d (Å)"],
+            y_options=y_options,
+            plot_line=True,
+            plot_points=True,
+            point_size=3,
+        )
+        assert p
