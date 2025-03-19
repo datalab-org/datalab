@@ -269,6 +269,19 @@ export function getUsersList() {
     });
 }
 
+export function getGroupsList() {
+  return fetch_get(`${API_URL}/groups`)
+    .then(function (response_json) {
+      const groups = response_json.data;
+      return groups;
+    })
+    .catch((error) => {
+      console.error("Error when fetching groups list");
+      console.error(error);
+      throw error;
+    });
+}
+
 export function getStartingMaterialList() {
   return fetch_get(`${API_URL}/starting-materials/`)
     .then(function (response_json) {

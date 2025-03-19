@@ -13,7 +13,6 @@ from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER
 from pydatalab.models import ITEM_MODELS
 from pydatalab.models.items import Item
-from pydatalab.models.people import Person
 from pydatalab.models.relationships import RelationshipType
 from pydatalab.models.utils import generate_unique_refcode
 from pydatalab.mongo import flask_mongo
@@ -981,43 +980,3 @@ def save_item():
         )
 
     return jsonify(status="success", last_modified=updated_data["last_modified"]), 200
-
-
-@ITEMS.route("/search-users/", methods=["GET"])
-def search_users():
-    """Perform free text search on users and return the top results.
-    GET parameters:
-        query: String with the search terms.
-        nresults: Maximum number of  (default 100)
-
-    Returns:
-        response list of dictionaries containing the matching items in order of
-        descending match score.
-    """
-
-    query = request.args.get("query", type=str)
-    nresults = request.args.get("nresults", default=100, type=int)
-    types = request.args.get("types", default=None)
-
-    match_obj = {"$text": {"$search": query}}
-    if types is not None:
-        match_obj["type"] = {"$in": types}
-
-    cursor = flask_mongo.db.users.aggregate(
-        [
-            {"$match": match_obj},
-            {"$sort": {"score": {"$meta": "textScore"}}},
-            {"$limit": nresults},
-            {
-                "$project": {
-                    "_id": 1,
-                    "identities": 1,
-                    "display_name": 1,
-                    "contact_email": 1,
-                }
-            },
-        ]
-    )
-    return jsonify(
-        {"status": "success", "users": list(json.loads(Person(**d).json()) for d in cursor)}
-    ), 200
