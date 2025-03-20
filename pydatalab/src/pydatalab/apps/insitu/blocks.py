@@ -420,9 +420,7 @@ class InsituBlock(DataBlock):
             tools=tools,
         )
 
-        color_mapper = LinearColorMapper(
-            palette="Viridis256", low=intensity_min, high=intensity_max
-        )
+        color_mapper = LinearColorMapper(palette="Turbo256", low=intensity_min, high=intensity_max)
 
         heatmap_figure.image(
             image=[intensity_matrix],
