@@ -484,20 +484,28 @@ export async function getCollectionData(collection_id) {
     .catch((error) => alert("Error getting collection data: " + error));
 }
 
-export async function updateBlockFromServer(item_id, block_id, block_data, saveToDatabase = true) {
+export async function updateBlockFromServer(
   // Send the current block state to the API and receive an updated version
-  // of the block in return
+  // of the block in return.
   //
   // - Will strip known "large data" keys, even if not formalised, e.g., bokeh_plot_data.
   //
+  item_id,
+  block_id,
+  block_data,
+  event_data = null,
+  saveToDatabase = true,
+) {
   delete block_data.bokeh_plot_data;
   delete block_data.processed_data;
   delete block_data.metadata;
+
   store.commit("setBlockUpdating", block_id);
   return fetch_post(`${API_URL}/update-block/`, {
     item_id: item_id,
     block_id: block_id,
     block_data: block_data,
+    event_data: event_data,
     save_to_db: saveToDatabase,
   })
     .then(function (response_json) {
