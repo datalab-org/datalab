@@ -21,14 +21,8 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
             type="text"
             class="form-control"
             :class="{ 'is-invalid': wavelengthParseError }"
-            @keydown.enter="
-              parseWavelength();
-              updateBlock();
-            "
-            @blur="
-              parseWavelength();
-              updateBlock();
-            "
+            @keydown.enter="parseUpdateWavelength()"
+            @blur="parseUpdateWavelength()"
           />
           <div v-if="wavelengthParseError" class="alert alert-danger mt-2 mx-auto">
             {{ wavelengthParseError }}
@@ -51,7 +45,6 @@ import FileSelectDropdown from "@/components/FileSelectDropdown";
 import BokehPlot from "@/components/BokehPlot";
 
 import { createComputedSetterForBlockField } from "@/field_utils.js";
-import { updateBlockFromServer } from "@/server_fetch_utils.js";
 
 export default {
   components: {
@@ -86,23 +79,27 @@ export default {
     file_id: createComputedSetterForBlockField("file_id"),
   },
   methods: {
-    parseWavelength() {
+    parseUpdateWavelength() {
       if (isNaN(this.wavelength) || isNaN(parseFloat(this.wavelength))) {
         this.wavelengthParseError = "Please provide a valid number";
       } else {
         this.wavelengthParseError = "";
       }
-    },
-    updateBlock() {
-      updateBlockFromServer(
-        this.item_id,
-        this.block_id,
-        this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id],
-      );
+
+      if (!this.wavelengthParseError) {
+        const event = new CustomEvent(
+          "bokehStateUpdate",
+          {
+            detail: {
+              event_name: "set_wavelength",
+              wavelength: parseFloat(this.wavelength),
+            },
+          },
+          { bubbles: true },
+        );
+        document.dispatchEvent(event);
+      }
     },
   },
-  // mounted() {
-  // 	this.makeBokehPlot()
-  // }
 };
 </script>
