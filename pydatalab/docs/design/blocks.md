@@ -77,6 +77,7 @@ Currently, the event system allows:
         },
         bubbles: true
     });
+    document.dispatchEvent(event);
   ```
   The base data block (`DataBlockBase.vue`) will listen for such events registered as `'bokehStateUpdate'` and pass them to the appropriate server-side block.
 
