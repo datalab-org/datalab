@@ -1,5 +1,5 @@
 <template>
-  <div :id="block_id" class="data-block">
+  <div :id="block_id" ref="data-block" class="data-block">
     <div class="datablock-header collapsible" :class="{ expanded: isExpanded }">
       <font-awesome-icon
         :icon="['fas', 'chevron-right']"
