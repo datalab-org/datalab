@@ -13,25 +13,21 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
       />
     </div>
 
-    <div class="form-row col-md-6 col-lg-4 mt-2 mb-2 pl-0">
-      <div class="input-group form-inline">
-        <label class="mr-2"><b>Wavelength (Å):</b></label>
-        <input
-          v-model="wavelength"
-          type="text"
-          class="form-control"
-          :class="{ 'is-invalid': wavelengthParseError }"
-          @keydown.enter="
-            parseWavelength();
-            updateBlock();
-          "
-          @blur="
-            parseWavelength();
-            updateBlock();
-          "
-        />
-        <div v-if="wavelengthParseError" class="alert alert-danger mt-2 mx-auto">
-          {{ wavelengthParseError }}
+    <div v-if="file_id">
+      <div class="form-row col-md-6 col-lg-4 mt-2 mb-2 pl-0">
+        <div class="input-group form-inline">
+          <label class="mr-2"><b>Wavelength (Å):</b></label>
+          <input
+            v-model="wavelength"
+            type="text"
+            class="form-control"
+            :class="{ 'is-invalid': wavelengthParseError }"
+            @keydown.enter="parseUpdateWavelength()"
+            @blur="parseUpdateWavelength()"
+          />
+          <div v-if="wavelengthParseError" class="alert alert-danger mt-2 mx-auto">
+            {{ wavelengthParseError }}
+          </div>
         </div>
       </div>
 
@@ -50,7 +46,6 @@ import FileSelectDropdown from "@/components/FileSelectDropdown";
 import BokehPlot from "@/components/BokehPlot";
 
 import { createComputedSetterForBlockField } from "@/field_utils.js";
-import { updateBlockFromServer } from "@/server_fetch_utils.js";
 
 export default {
   components: {
@@ -87,15 +82,26 @@ export default {
     file_id: createComputedSetterForBlockField("file_id"),
   },
   methods: {
-    parseWavelength() {
+    parseUpdateWavelength() {
       if (isNaN(this.wavelength) || isNaN(parseFloat(this.wavelength))) {
         this.wavelengthParseError = "Please provide a valid number";
       } else {
         this.wavelengthParseError = "";
       }
-    },
-    updateBlock() {
-      updateBlockFromServer(this.item_id, this.block_id, this.block);
+
+      if (!this.wavelengthParseError) {
+        const event = new CustomEvent(
+          "bokehStateUpdate",
+          {
+            detail: {
+              event_name: "set_wavelength",
+              wavelength: parseFloat(this.wavelength),
+            },
+          },
+          { bubbles: true },
+        );
+        document.dispatchEvent(event);
+      }
     },
   },
 };
