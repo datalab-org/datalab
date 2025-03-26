@@ -1,20 +1,32 @@
 <template>
   <div id="synthesis-information">
-    <label class="mr-2 pb-2">Synthesis Information</label>
-    <div class="card component-card">
-      <div class="card-body pt-2 pb-0 mb-0 pl-5">
-        <CompactConstituentTable
-          id="synthesis-table"
-          v-model="constituents"
-          :types-to-query="['samples', 'starting_materials']"
+    <div class="header-container">
+      <div class="label-container">
+        <label class="mr-2 pb-2">Synthesis Information</label>
+        <font-awesome-icon
+          :icon="['fas', 'chevron-right']"
+          class="collapse-icon"
+          :class="{ rotated: !isCollapsed }"
+          @click="toggleCollapse"
         />
       </div>
     </div>
-    <span id="synthesis-procedure-label" class="subheading ml-2">Procedure</span>
-    <TinyMceInline
-      v-model="SynthesisDescription"
-      aria-labelledby="synthesis-procedure-label"
-    ></TinyMceInline>
+    <div :class="['content-container', { collapsed: isCollapsed }]">
+      <div class="card component-card">
+        <div class="card-body pt-2 pb-0 mb-0 pl-5">
+          <CompactConstituentTable
+            id="synthesis-table"
+            v-model="constituents"
+            :types-to-query="['samples', 'starting_materials']"
+          />
+        </div>
+      </div>
+      <span id="synthesis-procedure-label" class="subheading ml-2">Procedure</span>
+      <TinyMceInline
+        v-model="SynthesisDescription"
+        aria-labelledby="synthesis-procedure-label"
+      ></TinyMceInline>
+    </div>
   </div>
 </template>
 
@@ -36,6 +48,8 @@ export default {
       selectedNewConstituent: null,
       selectedChangedConstituent: null,
       selectShown: [],
+      // isCollapsed is used to toggle the visibility of the content-container starts as true then will expand when clicked or if it is filled
+      isCollapsed: true,
     };
   },
   computed: {
@@ -51,11 +65,26 @@ export default {
       },
       deep: true,
     },
+    SynthesisDescription: {
+      handler() {
+        this.$store.commit("setItemSaved", { item_id: this.item_id, isSaved: false });
+      },
+    },
   },
   mounted() {
     this.selectShown = new Array(this.constituents.length).fill(false);
+    // Auto-collapsed when initialised empty
+    this.isCollapsed =
+      (!this.constituents || this.constituents.length === 0) &&
+      (!this.SynthesisDescription || this.SynthesisDescription.trim() === "");
   },
   methods: {
+    toggleCollapse() {
+      // Switches isCollapsed to the opposite of what it currently is when clicked
+      this.isCollapsed = !this.isCollapsed;
+      // Explicitly prevent this toggle from marking the item as unsaved
+      // by not calling this.$store.commit("setItemSaved", ...)
+    },
     addConstituent(selectedItem) {
       this.constituents.push({
         item: selectedItem,
@@ -64,6 +93,7 @@ export default {
       });
       this.selectedNewConstituent = null;
       this.selectShown.push(false);
+      this.isCollapsed = false;
     },
     turnOnRowSelect(index) {
       this.selectShown[index] = true;
@@ -92,5 +122,40 @@ export default {
   font-weight: 600;
   text-transform: uppercase;
   margin-bottom: 0px;
+}
+
+.header-container {
+  display: flex;
+  align-items: center;
+}
+
+.label-container {
+  display: flex;
+  align-items: center;
+  /* gap: 8px; */
+}
+
+.collapse-icon {
+  margin-left: 8px;
+  font-size: large;
+  display: flex;
+  align-items: center;
+  vertical-align: middle;
+  transition: transform 0.4s ease-in-out;
+  cursor: pointer;
+}
+
+.rotated {
+  transform: rotate(90deg);
+}
+
+.content-container {
+  max-height: 500px; /* Set a large enough height */
+  overflow: hidden;
+  transition: max-height 0.4s ease-in-out;
+}
+
+.content-container.collapsed {
+  max-height: 0;
 }
 </style>
