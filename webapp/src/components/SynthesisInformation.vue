@@ -1,15 +1,14 @@
 <template>
-  <div id="synthesis-information">
-    <div class="header-container">
-      <div class="label-container">
-        <label class="mr-2 pb-2">Synthesis Information</label>
-        <font-awesome-icon
-          :icon="['fas', 'chevron-right']"
-          class="collapse-icon"
-          :class="{ rotated: !isCollapsed }"
-          @click="toggleCollapse"
-        />
-      </div>
+  <div :id="synthesis - information" class="data-block">
+    <div class="datablock-header collapsible">
+      <font-awesome-icon
+        :icon="['fas', 'chevron-right']"
+        fixed-width
+        class="collapse-arrow"
+        :class="{ rotated: !isCollapsed }"
+        @click="toggleCollapse"
+      />
+      <label class="block-title">Synthesis Information</label>
     </div>
     <div :class="['content-container', { collapsed: isCollapsed }]">
       <div class="card component-card">
@@ -50,6 +49,8 @@ export default {
       selectShown: [],
       // isCollapsed is used to toggle the visibility of the content-container starts as true then will expand when clicked or if it is filled
       isCollapsed: true,
+      contentMaxHeight: "none",
+      padding_height: 18,
     };
   },
   computed: {
@@ -116,33 +117,58 @@ export default {
 </script>
 
 <style scoped>
+.data-block {
+  padding-bottom: 18px;
+}
+
+.datablock-header {
+  display: flex;
+  align-items: center;
+  font-size: large;
+  height: 35px;
+  margin: auto;
+}
+
+.collapsible {
+  /* background-color: #eee; */
+  color: white;
+  /* color: #444; */
+  /*cursor: pointer;*/
+  /*padding: 6px;*/
+  width: 100%;
+  /* border: 1px solid #ccc; */
+  text-align: left;
+  outline: none;
+  /* border-radius: 3px; */
+}
+
+.block-title {
+  display: flex;
+  align-items: center;
+  margin-left: 1em;
+  font-size: large;
+  font-weight: 500;
+  margin: auto 0;
+}
+
+.collapse-arrow {
+  font-size: large;
+  margin-left: 10px;
+  margin-right: 10px;
+  color: #004175;
+  transition: all 0.4s;
+}
+
+.collapse-arrow:hover {
+  color: #7ca7ca;
+}
+
 .subheading {
   color: darkslategrey;
   font-size: small;
   font-weight: 600;
   text-transform: uppercase;
   margin-bottom: 0px;
-}
-
-.header-container {
-  display: flex;
-  align-items: center;
-}
-
-.label-container {
-  display: flex;
-  align-items: center;
-  /* gap: 8px; */
-}
-
-.collapse-icon {
-  margin-left: 8px;
-  font-size: large;
-  display: flex;
-  align-items: center;
-  vertical-align: middle;
-  transition: transform 0.4s ease-in-out;
-  cursor: pointer;
 }
 
 .rotated {
