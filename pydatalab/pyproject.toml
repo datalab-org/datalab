@@ -75,7 +75,7 @@ apps = [
     # TGA
     "python-dateutil ~= 2.9",
     # Insitu
-    "datalab-app-plugin-insitu @ git+https://github.com/datalab-org/datalab-app-plugin-insitu.git",
+    "datalab-app-plugin-insitu @ git+https://github.com/datalab-org/datalab-app-plugin-insitu.git@v0.1.1",
 ]
 chat = [
     # Hard upper pin on langchain is 0.3 as pydantic is not supported
