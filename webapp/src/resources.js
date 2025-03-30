@@ -9,6 +9,7 @@ import CycleBlock from "@/components/datablocks/CycleBlock";
 import NMRBlock from "@/components/datablocks/NMRBlock";
 import EISBlock from "@/components/datablocks/EISBlock";
 import MassSpecBlock from "@/components/datablocks/MassSpecBlock";
+import NMRInsituBlock from "@/components/datablocks/NMRInsituBlock";
 
 import SampleInformation from "@/components/SampleInformation";
 import StartingMaterialInformation from "@/components/StartingMaterialInformation";
@@ -70,6 +71,7 @@ export const blockTypes = {
   ms: { description: "Mass Spectrometry", component: MassSpecBlock, name: "Mass Spectrometry" },
   chat: { description: "Virtual assistant", component: ChatBlock, name: "Virtual Assistant" },
   ftir: { description: "FTIR", component: BokehBlock, name: "FTIR" },
+  insitu: { description: "NMR insitu", component: NMRInsituBlock, name: "NMR insitu" },
 };
 
 export const itemTypes = {
