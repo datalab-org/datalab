@@ -1,5 +1,7 @@
 from typing import Dict, Sequence, Type
 
+from datalab_app_plugin_insitu.blocks import InsituBlock
+
 # These app imports will be replaced by dynamic plugins in a future version
 from pydatalab.apps.chat.blocks import ChatBlock
 from pydatalab.apps.echem import CycleBlock
