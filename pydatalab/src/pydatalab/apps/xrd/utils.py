@@ -168,8 +168,10 @@ def parse_rasx_zip(filename: str) -> pd.DataFrame:
     # Seems to normally unzip to a folder called "Data0" with one .txt file inside
     data_file = None
     for file in destination.glob("Data*/*.txt"):
+        if data_file is not None:
+            warnings.warn(f"Found other data files in .rasx archive, only using {data_file}")
+            break
         data_file = file
-        break
 
     if data_file is None:
         raise FileNotFoundError("No .txt file found in the .rasx archive.")
