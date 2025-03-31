@@ -12,9 +12,11 @@ import { library } from "@fortawesome/fontawesome-svg-core";
 import {
   faSave,
   faPen,
+  faFile,
   faCode,
   faEnvelope,
   faCog,
+  faCubes,
   faQrcode,
   faUsersCog,
   faChevronRight,
@@ -47,15 +49,16 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { faPlusSquare } from "@fortawesome/free-regular-svg-icons";
 import { faGithub, faOrcid } from "@fortawesome/free-brands-svg-icons";
-// import { faHdd } from '@fortawesome/free-regular-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 library.add(
   faSave,
   faPen,
+  faFile,
   faCode,
   faQrcode,
   faEnvelope,
   faCog,
+  faCubes,
   faUsersCog,
   faChevronRight,
   faProjectDiagram,
