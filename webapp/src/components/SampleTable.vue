@@ -36,7 +36,8 @@ export default {
         { field: "date", header: "Date" },
         { field: "collections", header: "Collections", body: "CollectionList", filter: true },
         { field: "creators", header: "Creators", body: "Creators", filter: true },
-        { field: "nblocks", header: "# of blocks" },
+        { field: "nblocks", header: "", body: "BlocksIconCounter" },
+        { field: "nfiles", header: "", body: "FilesIconCounter" },
       ],
     };
   },

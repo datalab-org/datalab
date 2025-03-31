@@ -201,6 +201,8 @@ import AddToCollectionModal from "@/components/AddToCollectionModal";
 import { INVENTORY_TABLE_TYPES, EDITABLE_INVENTORY } from "@/resources.js";
 
 import FormattedItemName from "@/components/FormattedItemName";
+import BlocksIconCounter from "@/components/BlocksIconCounter";
+import FilesIconCounter from "@/components/FilesIconCounter";
 import FormattedCollectionName from "@/components/FormattedCollectionName";
 import ChemicalFormula from "@/components/ChemicalFormula";
 import CollectionList from "@/components/CollectionList";
@@ -217,6 +219,8 @@ export default {
   components: {
     DynamicDataTableButtons,
     CreateItemModal,
+    BlocksIconCounter,
+    FilesIconCounter,
     BatchCreateItemModal,
     QRScannerModal,
     CreateCollectionModal,
@@ -454,6 +458,13 @@ export default {
         Creators: {
           creators: "creators",
           showNames: data.creators?.length === 1,
+        },
+        BlocksIconCounter: {
+          count: "nblocks",
+          blockInfo: "blocks",
+        },
+        FilesIconCounter: {
+          count: "nfiles",
         },
       };
 
