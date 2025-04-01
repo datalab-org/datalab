@@ -53,6 +53,7 @@
       </div>
       <div class="row">
         <button id="uppy-trigger" class="btn btn-default btn-sm mb-3 ml-4" type="button">
+          <font-awesome-icon class="upload-icon" icon="file" fixed-width />
           Upload files...</button
         ><!-- Surrounding divs so that buttons  don't become full-width in the card -->
         <button
@@ -60,6 +61,7 @@
           type="button"
           @click="setFileSelectModalOpen"
         >
+          <font-awesome-icon class="remote-upload-icon" icon="cloud-upload-alt" fixed-width />
           Add files from server...
         </button>
       </div>
@@ -115,7 +117,9 @@ export default {
 }
 
 .link-icon,
-.unlink-icon {
+.unlink-icon,
+.upload-icon,
+.remote-upload-icon {
   margin-left: 0.4rem;
   color: #888;
   font-size: small;

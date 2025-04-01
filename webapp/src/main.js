@@ -11,6 +11,7 @@ import router from "./router";
 import { library } from "@fortawesome/fontawesome-svg-core";
 import {
   faSave,
+  faCloudUploadAlt,
   faPen,
   faFile,
   faCode,
@@ -53,6 +54,7 @@ import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 library.add(
   faSave,
   faPen,
+  faCloudUploadAlt,
   faFile,
   faCode,
   faQrcode,
