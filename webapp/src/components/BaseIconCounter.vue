@@ -1,7 +1,9 @@
 <template>
   <div v-if="count > 0" class="counter-wrapper" :title="hoverText">
-    <font-awesome-icon class="icon" :icon="icon" />
-    <!--<span class="counter-badge">{{ displayCount }}</span>-->
+    <font-awesome-icon v-if="showIcon" class="icon" :icon="icon" />
+    <span :class="showIcon ? 'counter-badge' : 'counter'">
+      {{ displayCount }}
+    </span>
   </div>
 </template>
 
@@ -12,6 +14,10 @@ export default {
     count: {
       type: Number,
       default: 0,
+    },
+    showIcon: {
+      type: Boolean,
+      default: false,
     },
     icon: {
       type: Array,
@@ -37,19 +43,36 @@ export default {
 <style scoped>
 .counter-wrapper {
   position: relative;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
 }
 
 .icon {
   color: #333;
 }
+.counter {
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background-color: #ff4757;
+  color: white;
+  min-width: 20px;
+  height: 20px;
+  font-size: 14px;
+  font-weight: bold;
+  font-weight: bold;
+  display: flex;
+}
+
+.counter:hover {
+  border: 2px solid #000000;
+}
 
 .counter-badge {
-  position: absolute;
-  top: -4px;
-  right: -4px;
+  position: relative;
   min-width: 16px;
   height: 16px;
+  margin-left: 4px;
   padding: 0 5px;
   border-radius: 9px;
   background-color: #ff4757;
