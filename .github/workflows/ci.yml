@@ -147,6 +147,7 @@ jobs:
         with:
           files: docker-compose.yml
           load: true
+          source: .
           targets: 'app,api,database'
           set: |
             app.cache-from=type=gha,scope=build-app
