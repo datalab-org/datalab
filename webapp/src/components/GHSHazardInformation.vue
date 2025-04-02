@@ -1,36 +1,22 @@
 <template>
-  <div class="ghs-display form-control">
-    <div v-for="pictogram in selectedPictograms" :key="pictogram.label" class="ghs-chip">
-      <img :alt="pictogram.label" :src="pictogram.pictogram" class="ghs-icon" />
-      <span>{{ pictogram.label }}</span>
-    </div>
-    <font-awesome-icon
-      class="plus-icon"
-      :icon="['fa', 'plus']"
-      @click="AddHazardInformationModalIsOpen = true"
-    />
+  <div class="ghs-display ml-2 mt-2">
+    <span v-for="pictogram in selectedPictograms" :key="pictogram.label">
+      <img
+        :title="pictogram.label"
+        :alt="pictogram.label"
+        :src="pictogram.pictogram"
+        class="ghs-icon"
+      />
+    </span>
   </div>
-  <AddHazardInformationModal
-    v-model="AddHazardInformationModalIsOpen"
-    :ghs="modelValue"
-    :item_id="item_id"
-    :type="type"
-    @submit-hazard-information="updateGHS"
-  />
 </template>
 
 <script>
 import { getPictogramsFromHazardInformation } from "@/resources.js";
-import AddHazardInformationModal from "@/components/AddHazardInformationModal.vue";
 
 export default {
-  components: {
-    AddHazardInformationModal,
-  },
   props: {
     modelValue: { type: String, required: true },
-    item_id: { type: String, required: true },
-    type: { type: String, required: true },
   },
   emits: ["update:modelValue"],
 
@@ -66,15 +52,6 @@ export default {
 </script>
 
 <style scoped>
-.ghs-display {
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  min-height: calc(1.5em + 0.75rem + 2px);
-  height: auto;
-  gap: 0.3rem;
-}
-
 .ghs-content {
   display: flex;
   flex-direction: column;
@@ -87,15 +64,8 @@ export default {
 }
 
 .ghs-icon {
-  width: 1.6rem;
-  height: 1.6rem;
+  width: 8rem;
+  height: 8rem;
   margin-right: 8px;
-}
-
-.plus-icon {
-  position: absolute;
-  color: black;
-  top: 0.6rem;
-  right: 0.6rem;
 }
 </style>
