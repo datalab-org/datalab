@@ -71,7 +71,7 @@ export const blockTypes = {
   ms: { description: "Mass Spectrometry", component: MassSpecBlock, name: "Mass Spectrometry" },
   chat: { description: "Virtual assistant", component: ChatBlock, name: "Virtual Assistant" },
   ftir: { description: "FTIR", component: BokehBlock, name: "FTIR" },
-  insitu: { description: "NMR insitu", component: NMRInsituBlock, name: "NMR insitu" },
+  "insitu-nmr": { description: "NMR insitu", component: NMRInsituBlock, name: "NMR insitu" },
 };
 
 export const itemTypes = {
@@ -189,28 +189,26 @@ export function getPictogramsFromHazardInformation(hazardInformation) {
   const hazardCodeRegex = /H\d{3}/g;
   const hCodes = hazardInformation.match(hazardCodeRegex) || [];
 
-  const pictograms = [];
+  let pictograms = new Set([]);
   hCodes.forEach((code) => {
-    const numericCode = code.replace("H", "");
-    const codePictograms = getPictogramsFromHazardCode(numericCode);
-    codePictograms.forEach((pictogram) => {
-      if (!pictograms.some((p) => p.label === pictogram.label)) {
-        pictograms.push(pictogram);
-      }
-    });
+    const numericCode = Number(code.replace("H", ""));
+    pictograms = pictograms.union(getPictogramsFromHazardCode(numericCode));
   });
 
   return pictograms;
 }
 
 export function getPictogramsFromHazardCode(code) {
+  let pictograms = new Set([]);
   if (
     (code >= 200 && code <= 204) ||
     (code >= 209 && code <= 211) ||
     (code >= 240 && code <= 241)
   ) {
-    return [HazardPictograms.GHS01];
-  } else if (
+    pictograms.add(HazardPictograms.GHS01);
+  }
+
+  if (
     (code >= 205 && code <= 208) ||
     (code >= 220 && code <= 226) ||
     (code >= 228 && code <= 232) ||
@@ -219,20 +217,26 @@ export function getPictogramsFromHazardCode(code) {
     (code >= 260 && code <= 261) ||
     (code >= 282 && code <= 283)
   ) {
-    return [HazardPictograms.GHS02];
-  } else if (code >= 270 && code <= 272) {
-    return [HazardPictograms.GHS03];
-  } else if (code >= 280 && code <= 284) {
-    return [HazardPictograms.GHS04];
-  } else if (code === 290 || code === 314 || code === 318) {
-    return [HazardPictograms.GHS05];
-  } else if (
+    pictograms.add(HazardPictograms.GHS02);
+  }
+
+  if (code >= 270 && code <= 272) {
+    pictograms.add(HazardPictograms.GHS03);
+  }
+  if (code >= 280 && code <= 284) {
+    pictograms.add(HazardPictograms.GHS04);
+  }
+  if (code === 290 || code === 314 || code === 318) {
+    pictograms.add(HazardPictograms.GHS05);
+  }
+  if (
     (code >= 300 && code <= 301) ||
     (code >= 310 && code <= 311) ||
     (code >= 330 && code <= 331)
   ) {
-    return [HazardPictograms.GHS06];
-  } else if (
+    pictograms.add(HazardPictograms.GHS06);
+  }
+  if (
     code === 204 ||
     code === 302 ||
     code === 312 ||
@@ -243,8 +247,9 @@ export function getPictogramsFromHazardCode(code) {
     (code >= 335 && code <= 336) ||
     code === 420
   ) {
-    return [HazardPictograms.GHS07];
-  } else if (
+    pictograms.add(HazardPictograms.GHS07);
+  }
+  if (
     (code >= 304 && code <= 305) ||
     (code >= 2 && code <= 2) ||
     code === 334 ||
@@ -253,10 +258,10 @@ export function getPictogramsFromHazardCode(code) {
     (code >= 360 && code <= 361) ||
     (code >= 370 && code <= 373)
   ) {
-    return [HazardPictograms.GHS08];
-  } else if (code === 400 || (code >= 410 && code <= 411)) {
-    return [HazardPictograms.GHS09];
-  } else {
-    return [];
+    pictograms.add(HazardPictograms.GHS08);
   }
+  if (code === 400 || (code >= 410 && code <= 411)) {
+    pictograms.add(HazardPictograms.GHS09);
+  }
+  return pictograms;
 }
