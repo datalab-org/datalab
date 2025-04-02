@@ -144,7 +144,7 @@ def get_graph_cy_format(item_id: Optional[str] = None, collection_id: Optional[s
                 {
                     "data": {
                         "id": document["item_id"],
-                        "name": document["name"],
+                        "name": document["name"] if document["name"] else document["item_id"],
                         "type": document["type"],
                         "special": document["item_id"] == item_id,
                     }
@@ -152,7 +152,7 @@ def get_graph_cy_format(item_id: Optional[str] = None, collection_id: Optional[s
             )
 
     # We want to filter out all the starting materials that don't have relationships since there are so many of them:
-    whitelist = {edge["data"]["source"] for edge in edges}
+    whitelist = {edge["data"]["source"] for edge in edges} | {item_id}
 
     nodes = [
         node

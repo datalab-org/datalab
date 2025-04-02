@@ -11,6 +11,8 @@ from pydatalab.logger import LOGGER
 
 from .base import DataBlock
 
+EXCEL_LIKE_EXTENSIONS = (".xls", ".xlsx", ".xlsm", ".xlsb", ".odf", ".ods", ".odt")
+
 
 class NotSupportedBlock(DataBlock):
     name = "Not Supported"
@@ -62,8 +64,8 @@ class TabularDataBlock(DataBlock):
 
     blocktype = "tabular"
     name = "Tabular Data Block"
-    description = "This block will load tabular data from common plain text files and allow you to create simple scatter plots of the columns within."
-    accepted_file_extensions = (".csv", ".txt", ".tsv", ".dat")
+    description = "This block will load tabular data from common plain text files and Excel-like spreadsheets and allow you to create simple scatter plots of the columns within."
+    accepted_file_extensions = (".csv", ".txt", ".tsv", ".dat", *EXCEL_LIKE_EXTENSIONS)
 
     @property
     def plot_functions(self):
@@ -78,7 +80,36 @@ class TabularDataBlock(DataBlock):
         return self.load(file_info["location"])
 
     @classmethod
-    def load(cls, location: Path) -> pd.DataFrame:
+    def load(cls, location: Path | str) -> pd.DataFrame:
+        """Throw several pandas readers at the target file.
+
+        If an excel-like format, try to read it with `pandas.read_excel()`.
+        Then, try well-described formats such as JSON, Parquet and Feather.
+        Otherwise, use decreasingly strict csv parsers until successful.
+
+        Returns:
+            pd.DataFrame: The loaded dataframe.
+
+        """
+        if not isinstance(location, Path):
+            location = Path(location)
+
+        if location.suffix in EXCEL_LIKE_EXTENSIONS:
+            try:
+                df_dict = pd.read_excel(location, sheet_name=None)
+            except Exception as e:
+                raise RuntimeError(
+                    f"`pandas.read_excel()` was not able to read the file. Error: {e}"
+                )
+
+            df = next(iter(df_dict.values()))
+            if len(df_dict) > 1:
+                warnings.warn(
+                    f"Found multiple sheets in spreadsheet file {df_dict.keys()}, only using the first one."
+                )
+
+            return df
+
         try:
             df = pd.read_csv(
                 location,
@@ -117,15 +148,11 @@ class TabularDataBlock(DataBlock):
         df = self._load()
         if df is None:
             return
-        columns = list(df.columns)
         plot = selectable_axes_plot(
             df,
-            x_options=columns,
-            y_options=columns,
-            x_default=columns[0],
-            y_default=columns[1],
             plot_points=True,
             plot_line=False,
+            show_table=True,
         )
 
         self.data["bokeh_plot_data"] = bokeh.embed.json_item(plot, theme=DATALAB_BOKEH_THEME)
