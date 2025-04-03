@@ -109,7 +109,7 @@ export default {
         .bokeh_plot_data;
     },
     blockInfo() {
-      return this.$store.state.blocksInfos["insitu"];
+      return this.$store.state.blocksInfos["insitu-nmr"];
     },
     all_files() {
       return this.$store.state.all_item_data[this.item_id].files;
