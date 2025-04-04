@@ -192,6 +192,16 @@ def test_full_text_search(client, real_mongo_client, example_items):
     assert len(response.json["items"]) == 5
     assert response.json["items"][0]["item_id"] == "material"
 
+    # Test regex search
+    response = client.get("/search-items/?query='%mat'")
+
+    assert response.status_code == 200
+    assert response.json["status"] == "success"
+    assert len(response.json["items"]) == 2
+    item_ids = {item["item_id"] for item in response.json["items"]}
+    assert "material" in item_ids
+    assert "12345" in item_ids
+
 
 @pytest.mark.dependency(depends=["test_delete_sample"])
 def test_new_sample_with_relationships(client, complicated_sample):
