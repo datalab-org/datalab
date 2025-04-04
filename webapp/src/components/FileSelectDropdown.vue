@@ -48,7 +48,7 @@ export default {
     available_file_ids() {
       let sample_files = this.$store.state.all_item_data[this.item_id].file_ObjectIds;
       return sample_files.filter((file_id) => {
-        let filename = this.all_files_name(file_id);
+        let filename = this.all_files_name(file_id).toLowerCase();
         return this.extensions
           .map((extension) => filename?.endsWith(extension))
           .some((element) => element); // check if the extension is any of the extensions
