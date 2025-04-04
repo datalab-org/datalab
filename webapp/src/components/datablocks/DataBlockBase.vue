@@ -207,10 +207,10 @@ export default {
         this.contentMaxHeight = "none";
       }
     });
-    document.addEventListener("bokehStateUpdate", this.handleBokehEvent);
+    this.$refs["data-block"].addEventListener("bokehStateUpdate", this.handleBokehEvent);
   },
   beforeUnmount() {
-    document.removeEventListener("bokehStateUpdate", this.handleBokehEvent);
+    this.$refs["data-block"].removeEventListener("bokehStateUpdate", this.handleBokehEvent);
   },
   methods: {
     async updateBlock() {
@@ -226,7 +226,6 @@ export default {
     },
     handleBokehEvent(event) {
       console.log("handlingBokehEvent", event.detail);
-      // Now you can access this.item_id, this.block_id, etc.
       updateBlockFromServer(
         this.item_id,
         this.block_id,
