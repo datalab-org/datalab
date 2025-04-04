@@ -5,7 +5,12 @@
       <div id="filearea" class="card-body overflow-auto">
         <div v-for="(file, file_id) in stored_files" :key="file_id" class="file-group">
           <a @click="deleteFile($event, file_id)">
-            <font-awesome-icon icon="times" fixed-width class="delete-file-button" />
+            <font-awesome-icon
+              icon="times"
+              fixed-width
+              data-testid="delete-file-button"
+              class="delete-file-button"
+            />
           </a>
           <a class="filelink" target="_blank" :href="`${$API_URL}/files/${file_id}/${file.name}`">
             {{ file.name }}

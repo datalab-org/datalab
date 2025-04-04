@@ -5,6 +5,7 @@
         :icon="['fas', 'chevron-right']"
         fixed-width
         class="collapse-arrow"
+        data-testid="block-expand-button"
         @click="toggleExpandBlock"
       />
       <input v-model="BlockTitle" class="form-control-plaintext block-title" type="text" />
@@ -17,23 +18,27 @@
         class="block-header-icon"
         :class="{ spin: isUpdating }"
         aria-label="updateBlock"
+        data-testid="block-sync-button"
         @click="updateBlock"
       />
       <font-awesome-icon
         v-if="displayIndex != 0"
         :icon="['fas', 'arrow-up']"
         class="block-header-icon"
+        data-testid="block-swap-up-button"
         @click="swapUp"
       />
       <font-awesome-icon
         v-if="displayIndex != displayOrder.length - 1"
         :icon="['fas', 'arrow-down']"
         class="block-header-icon"
+        data-testid="block-swap-down-button"
         @click="swapDown"
       />
       <font-awesome-icon
         :icon="['fas', 'times']"
         class="block-header-icon delete-block-button"
+        data-testid="delete-block-button"
         @click="deleteThisBlock"
       />
     </div>

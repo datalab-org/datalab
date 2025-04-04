@@ -275,6 +275,19 @@ describe("Edit Page", () => {
     cy.get("select.file-select-dropdown").select("example_data_XRD_example_bmb.xye");
     cy.contains("label", "X axis").should("exist");
     cy.contains("label", "Y axis").should("exist");
+
+    // Delete all other blocks and files
+    cy.get('[data-testid="delete-file-button"]').click({ multiple: true });
+    cy.get('[data-testid="delete-block-button"]').click({ multiple: true });
+
+    // Then upload the new file and test a new block with capitalised file extension
+    cy.uploadFileViaAPI("editable_sample", "example_data/XRD/example_bmb.XYE");
+    cy.findByText("Add a block").click();
+    cy.get('[data-testid="add-block-dropdown"]').findByText("Powder XRD").click();
+    cy.get("select.file-select-dropdown").select("example_data_XRD_example_bmb.XYE");
+    cy.get('[data-testid="loading-overlay"]').should("not.exist");
+    cy.contains("label", "X axis").should("exist");
+    cy.contains("label", "Y axis").should("exist");
   });
 
   it("Uploads a fake PNG image, make a Media block and checks that the image is shown", () => {
