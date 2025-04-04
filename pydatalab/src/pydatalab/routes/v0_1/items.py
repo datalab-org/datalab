@@ -304,6 +304,9 @@ def search_items():
 
     pipeline = []
 
+    if isinstance(query, str):
+        query = query.strip("'")
+
     if isinstance(query, str) and query.startswith("%"):
         query = query.lstrip("%")
         match_obj = {
