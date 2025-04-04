@@ -77,7 +77,7 @@ export default {
 </script>
 
 <style scoped>
-image,
+img,
 video {
   display: block;
   max-height: 600px;
