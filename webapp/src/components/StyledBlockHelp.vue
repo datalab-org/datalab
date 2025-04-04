@@ -94,6 +94,7 @@ input {
   padding: 1em;
   border-radius: 4px;
   white-space: pre-wrap;
+  max-width: 40rem;
 }
 
 #tooltip p {
