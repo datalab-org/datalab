@@ -200,7 +200,7 @@ describe.only("Advanced sample creation features", () => {
       cy.findByLabelText("ID:").type("testAcopy");
       cy.findByLabelText("(Optional) Copy from existing sample:").type("testA");
       cy.get(".vs__dropdown-menu").contains(".badge", "testA").click();
-      cy.findByDisplayValue("COPY OF the first test sample").clear().type("a copied sample");
+      cy.findByDisplayValue("the first test sample").clear().type("a copied sample");
       cy.findByText("Submit").click();
     });
     cy.verifySample("testAcopy", "a copied sample");
@@ -250,12 +250,12 @@ describe.only("Advanced sample creation features", () => {
       cy.get(".vs__dropdown-menu").contains(".badge", "testB").click();
       cy.findByText("Submit").click();
     });
-    cy.verifySample("testBcopy", "COPY OF the second test sample");
+    cy.verifySample("testBcopy", "the second test sample");
   });
 
   it("checks the edit page of the copied sample", () => {
     cy.findByText("testBcopy").click();
-    cy.findByLabelText("Name").should("have.value", "COPY OF the second test sample");
+    cy.findByLabelText("Name").should("have.value", "the second test sample");
     cy.findByText("this is a description of testB.");
     cy.findByText("a comment is added here.");
     cy.findByText("a description of the synthesis here");
@@ -288,11 +288,11 @@ describe.only("Advanced sample creation features", () => {
 
       cy.findByText("Submit").click();
     });
-    cy.verifySample("testBcopy_copy", "COPY OF COPY OF the second test sample");
+    cy.verifySample("testBcopy_copy", "the second test sample");
   });
   it("checks the edit page of the copied sample with components", () => {
     cy.findByText("testBcopy_copy").click();
-    cy.findByLabelText("Name").should("have.value", "COPY OF COPY OF the second test sample");
+    cy.findByLabelText("Name").should("have.value", "the second test sample");
     cy.findByText("this is a description of testB.");
     cy.findByText("a comment is added here.");
     cy.findByText("a description of the synthesis here");

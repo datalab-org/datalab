@@ -106,12 +106,12 @@ describe("Equipment table page", () => {
         .contains(".vs__dropdown-menu .badge", "test_e3")
         .click();
 
-      cy.findByLabelText("Name:"); //("COPY OF my inst")
+      cy.findByLabelText("Name:"); //("my inst")
 
       cy.findByText("Submit").click();
     });
 
-    cy.verifyEquipment("test_e3_copy", "COPY OF my inst", null);
+    cy.verifyEquipment("test_e3_copy", "my inst", null);
   });
 });
 

@@ -109,7 +109,7 @@ export default {
       if (!this.selectedCollectionToCopy) {
         this.name = "";
       }
-      this.name = `COPY OF ${this.selectedCollectionToCopy.name}`;
+      this.name = `${this.selectedCollectionToCopy.name}`;
     },
   },
 };

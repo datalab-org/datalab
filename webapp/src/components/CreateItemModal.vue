@@ -228,7 +228,7 @@ export default {
       if (!this.selectedItemToCopy) {
         this.name = "";
       }
-      this.name = `COPY OF ${this.selectedItemToCopy.name}`;
+      this.name = `${this.selectedItemToCopy.name}`;
     },
   },
 };
