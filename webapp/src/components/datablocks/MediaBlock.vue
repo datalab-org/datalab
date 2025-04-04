@@ -8,8 +8,15 @@
       class="mb-3"
       update-block-on-change
     />
-    <img v-if="isPhoto" data-testid="media-block-img" :src="media_url" class="img-fluid mx-auto" />
-    <video v-if="isVideo" :src="media_url" controls class="mx-auto" />
+    <div class="wrapper">
+      <img
+        v-if="isPhoto"
+        data-testid="media-block-img"
+        :src="media_url"
+        class="img-fluid mx-auto"
+      />
+      <video v-if="isVideo" :src="media_url" controls class="mx-auto" />
+    </div>
   </DataBlockBase>
 </template>
 
@@ -79,7 +86,15 @@ export default {
 <style scoped>
 img,
 video {
-  display: block;
-  max-height: 600px;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.wrapper {
+  resize: both;
+  height: 600px;
+  overflow: auto;
+  display: inline-block;
 }
 </style>
