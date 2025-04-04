@@ -88,10 +88,12 @@ input {
   border: 1px solid grey;
   width: auto;
   background: #333;
+  box-shadow: 0 0 10px cornflowerblue;
   color: white;
   font-weight: bold;
   padding: 1em;
   border-radius: 4px;
+  white-space: pre-wrap;
 }
 
 #tooltip p {
