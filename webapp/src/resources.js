@@ -194,9 +194,13 @@ export const HazardPictograms = {
   },
 };
 
-export function getPictogramsFromHazardInformation(hazardInformation) {
+export function getHCodesFromHazardStatement(hazardStatement) {
   const hazardCodeRegex = /H\d{3}/g;
-  const hCodes = hazardInformation.match(hazardCodeRegex) || [];
+  return hazardStatement.match(hazardCodeRegex) || [];
+}
+
+export function getPictogramsFromHazardInformation(hazardInformation) {
+  const hCodes = getHCodesFromHazardStatement(hazardInformation);
 
   let pictograms = new Set([]);
   hCodes.forEach((code) => {
