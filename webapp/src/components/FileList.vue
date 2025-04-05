@@ -8,6 +8,7 @@
             <font-awesome-icon icon="times" fixed-width class="delete-file-button" />
           </a>
           <a class="filelink" target="_blank" :href="`${$API_URL}/files/${file_id}/${file.name}`">
+            <font-awesome-icon icon="file" fixed-width />
             {{ file.name }}
           </a>
           <font-awesome-icon

@@ -7,6 +7,7 @@
         class="collapse-arrow"
         @click="toggleExpandBlock"
       />
+      <font-awesome-icon :icon="['fas', 'cubes']" fixed-width />
       <input v-model="BlockTitle" class="form-control-plaintext block-title" type="text" />
       <span class="blocktype-label ml-auto mr-3 d-inline" style="white-space: nowrap">
         {{ blockType }}

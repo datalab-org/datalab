@@ -55,20 +55,19 @@
         v-for="column in columns"
         :key="column.field"
         :field="column.field"
-        :header="column.header"
         sortable
         :class="{ 'filter-active': isFilterActive(column.field) }"
         :filter-menu-class="column.field === 'type' ? 'no-operator' : ''"
       >
-        <!-- <template v-if="column.field === 'item_id'" #body="slotProps">
-          <component
-            :is="column.body"
-            v-bind="{
-              item_id: slotProps.data.item_id,
-              item_type: slotProps.data.type,
-              enable_click: true,
-            }"
-        /></template> -->
+        <template #header>
+          <div v-if="column.icon" class="header-with-icon">
+            <font-awesome-icon :icon="column.icon" />
+            <span v-if="column.header" class="p-datatable-column-title">{{ column.header }}</span>
+          </div>
+          <template v-else-if="column.header">
+            <span class="p-datatable-column-title">{{ column.header }}</span>
+          </template>
+        </template>
 
         <template v-if="column.body" #body="slotProps">
           <component :is="column.body" v-bind="getComponentProps(column.body, slotProps.data)" />
@@ -201,6 +200,8 @@ import AddToCollectionModal from "@/components/AddToCollectionModal";
 import { INVENTORY_TABLE_TYPES, EDITABLE_INVENTORY } from "@/resources.js";
 
 import FormattedItemName from "@/components/FormattedItemName";
+import BlocksIconCounter from "@/components/BlocksIconCounter";
+import FilesIconCounter from "@/components/FilesIconCounter";
 import FormattedCollectionName from "@/components/FormattedCollectionName";
 import ChemicalFormula from "@/components/ChemicalFormula";
 import CollectionList from "@/components/CollectionList";
@@ -217,6 +218,8 @@ export default {
   components: {
     DynamicDataTableButtons,
     CreateItemModal,
+    BlocksIconCounter,
+    FilesIconCounter,
     BatchCreateItemModal,
     QRScannerModal,
     CreateCollectionModal,
@@ -454,6 +457,13 @@ export default {
         Creators: {
           creators: "creators",
           showNames: data.creators?.length === 1,
+        },
+        BlocksIconCounter: {
+          count: "nblocks",
+          blockInfo: "blocks",
+        },
+        FilesIconCounter: {
+          count: "nfiles",
         },
       };
 

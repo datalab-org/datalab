@@ -21,6 +21,7 @@
           aria-expanded="false"
           @click="isMenuDropdownVisible = !isMenuDropdownVisible"
         >
+          <font-awesome-icon icon="cubes" fixed-width />
           Add a block
         </a>
         <div
