@@ -1,15 +1,17 @@
 <template>
   <div class="admin-display">
     <template v-if="selectedItem === 'Users'"> <UserTable /> </template>
+    <template v-else-if="selectedItem === 'Groups'"> <GroupTable /> </template>
   </div>
 </template>
 
 <script>
 import UserTable from "./UserTable.vue";
+import GroupTable from "./GroupTable.vue";
 
 export default {
   name: "AdminDisplay",
-  components: { UserTable },
+  components: { UserTable, GroupTable },
   props: {
     selectedItem: {
       type: String,
