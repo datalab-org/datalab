@@ -1,3 +1,4 @@
+import functools
 import random
 import warnings
 from typing import Any, Callable, Dict, Optional, Sequence
@@ -7,6 +8,33 @@ from bson import ObjectId
 from pydatalab.logger import LOGGER
 
 __all__ = ("generate_random_id", "DataBlock")
+
+
+def event(func: Callable | None = None) -> Callable:
+    """Decorator to register an event with a block."""
+
+    def decorator(f):
+        @functools.wraps(f)
+        def wrapper(*args, **kwargs):
+            return f(*args, **kwargs)
+
+        wrapper._is_event = True
+        return wrapper
+
+    if func:
+        return decorator(func)
+
+    return decorator
+
+
+class classproperty:
+    """Decorator that creates a class-level property."""
+
+    def __init__(self, method=None):
+        self.method = method
+
+    def __get__(self, instance, cls=None):
+        return self.method(cls)
 
 
 def generate_random_id():
@@ -33,7 +61,7 @@ def generate_random_id():
 class DataBlock:
     """Base class for a data block."""
 
-    name: str
+    name: str = "base"
     """The human-readable block name specifying which technique
     or file format it pertains to.
     """
@@ -63,8 +91,8 @@ class DataBlock:
         self,
         item_id: Optional[str] = None,
         collection_id: Optional[str] = None,
-        init_data=None,
-        unique_id=None,
+        init_data: dict | None = None,
+        unique_id: str | None = None,
     ):
         """Create a data block object for the given `item_id` or `collection_id`.
 
@@ -73,6 +101,7 @@ class DataBlock:
             collection_id: The collection to which the block is attached.
             init_data: A dictionary of data to initialise the block with.
             unique_id: A unique id for the block, used in the DOM and database.
+
         """
         if init_data is None:
             init_data = {}
@@ -137,13 +166,13 @@ class DataBlock:
         return self.data
 
     @classmethod
-    def from_db(cls, db_entry):
-        """create a block from json (dictionary) stored in a db"""
+    def from_db(cls, block: dict):
+        """Create a block from data stored in the database."""
         LOGGER.debug("Loading block %s from database object.", cls.__class__.__name__)
         new_block = cls(
-            item_id=db_entry.get("item_id"),
-            collection_id=db_entry.get("collection_id"),
-            dictionary=db_entry,
+            item_id=block.get("item_id"),
+            collection_id=block.get("collection_id"),
+            init_data=block,
         )
         if "file_id" in new_block.data:
             new_block.data["file_id"] = str(new_block.data["file_id"])
@@ -153,7 +182,7 @@ class DataBlock:
 
         return new_block
 
-    def to_web(self) -> Dict[str, Any]:
+    def to_web(self) -> dict[str, Any]:
         """Returns a JSON serializable dictionary to render the data block on the web."""
         block_errors = []
         block_warnings = []
@@ -188,8 +217,70 @@ class DataBlock:
 
         return self.data
 
+    def process_events(self, events: list[dict] | dict):
+        """Handle any supported events passed to the block."""
+        if isinstance(events, dict):
+            events = [events]
+
+        for event in events:
+            # Match the event to any registered by the block
+            if (event_name := event.pop("event_name")) in self.event_names:
+                # Bind the method to the instance before calling
+                bound_method = self.__class__.events_by_name[event_name].__get__(
+                    self, self.__class__
+                )
+                try:
+                    bound_method(**event)
+                except Exception as e:
+                    LOGGER.error(
+                        f"Error processing event {event_name} for block {self.__class__.__name__}: {e}"
+                    )
+                    self.data["errors"] = [
+                        f"{self.__class__.__name__}: Error processing event {event}: {e}"
+                    ]
+
+    @event()
+    def null_event(self, **kwargs):
+        """A null debug event that does nothing but logs its kwargs and overwrites the data dict with the args."""
+        LOGGER.debug(
+            "Null event received by block %s with kwargs: %s", self.__class__.__name__, kwargs
+        )
+        self.data["kwargs"] = kwargs["kwargs"]
+
     @classmethod
-    def from_web(cls, data):
+    def _get_events(cls) -> dict[str, Callable]:
+        events = {}
+        # Loop over parent classes to find events
+        for c in cls.__mro__:
+            for name, method in c.__dict__.items():
+                if hasattr(method, "_is_event"):
+                    events[name] = method
+
+        return events
+
+    @classproperty
+    def event_names(cls) -> set[str]:
+        """Return a list of event names supported by this block."""
+        return set(cls.events_by_name.keys())
+
+    @classproperty
+    def events_by_name(cls) -> dict[str, Callable]:
+        """Returns a dict of registered events for this block."""
+        return {
+            name: method
+            for name, method in cls._get_events().items()
+            if getattr(method, "_is_event", False)
+        }
+
+    @classmethod
+    def from_web(cls, data: dict):
+        """Initialise the block state from data passed via web request
+        with a given item, collection and block ID.
+
+        Parameters:
+            data: The block data to initialiaze the block with.
+
+        """
         LOGGER.debug("Loading block %s from web request.", cls.__class__.__name__)
         block = cls(
             item_id=data.get("item_id"),
@@ -199,9 +290,15 @@ class DataBlock:
         block.update_from_web(data)
         return block
 
-    def update_from_web(self, data):
-        """update the object with data received from the website. Only updates fields
-        that are specified in the dictionary- other fields are left alone"""
+    def update_from_web(self, data: dict):
+        """Update the block with data received from a web request.
+
+        Only updates fields that are specified in the dictionary - other fields are left alone
+
+        Parameters:
+            data: A dictionary of data to update the block with.
+
+        """
         LOGGER.debug(
             "Updating block %s from web request",
             self.__class__.__name__,
