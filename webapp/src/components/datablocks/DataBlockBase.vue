@@ -8,7 +8,9 @@
         @click="toggleExpandBlock"
       />
       <input v-model="BlockTitle" class="form-control-plaintext block-title" type="text" />
-      <span class="blocktype-label ml-auto mr-3">{{ blockType }}</span>
+      <span class="blocktype-label ml-auto mr-3 d-inline" style="white-space: nowrap">
+        {{ blockType }}
+      </span>
       <span v-if="blockInfo" class="block-header-icon"
         ><StyledBlockInfo :block-info="blockInfo"
       /></span>
