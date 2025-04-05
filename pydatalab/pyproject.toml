@@ -26,6 +26,7 @@ dependencies = [
     "pydantic[email, dotenv] < 2.0",
     "pint ~= 0.24",
     "pandas[excel] ~= 2.2",
+    "setuptools>=75.3.0",
 ]
 
 [project.urls]
