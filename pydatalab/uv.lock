@@ -662,7 +662,7 @@ requires-dist = [
     { name = "flask-dance", marker = "extra == 'server'", specifier = "~=7.1" },
     { name = "flask-login", marker = "extra == 'server'", specifier = "~=0.6" },
     { name = "flask-mail", marker = "extra == 'server'", specifier = "~=0.10" },
-    { name = "flask-pymongo", marker = "extra == 'server'", specifier = "~=2.3" },
+    { name = "flask-pymongo", marker = "extra == 'server'", specifier = "~=3.0" },
     { name = "galvani", marker = "extra == 'apps'", specifier = "~=0.4,<0.5" },
     { name = "gunicorn", marker = "extra == 'deploy'", specifier = "~=23.0" },
     { name = "invoke", marker = "extra == 'server'", specifier = "~=2.2" },
@@ -880,15 +880,15 @@ wheels = [
 
 [[package]]
 name = "flask-pymongo"
-version = "2.3.0"
+version = "3.0.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "flask" },
     { name = "pymongo" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d9/14/6e714ad96666d1c626aacaad3a368318ba421b1e0cedaf62507444ede0f9/Flask-PyMongo-2.3.0.tar.gz", hash = "sha256:620eb02dc8808a5fcb90f26cab6cba9d6bf497b15032ae3ca99df80366e33314", size = 23740 }
+sdist = { url = "https://files.pythonhosted.org/packages/89/22/0b3dd3989ab1636e2fb97f4760ffd858ef77eaa0e84779e2c997f6da9c04/flask_pymongo-3.0.1.tar.gz", hash = "sha256:d225b51c21ceca2e670e6cca79b5c584ad17b96252b48e84e3b423ddb73304cc", size = 7280 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/67/b8/0322016b9ce09a64fba9018211e7c35fd51380527ffd9ea248744f389239/Flask_PyMongo-2.3.0-py2.py3-none-any.whl", hash = "sha256:8a9577a2c6d00b49f21cb5a5a8d72561730364a2d745551a85349ab02f86fc73", size = 12104 },
+    { url = "https://files.pythonhosted.org/packages/6a/0b/5142f1b76332c0121c85a9fb5a10dce40bb10d586eea4fda3711abb6c2a4/flask_pymongo-3.0.1-py3-none-any.whl", hash = "sha256:c75a4a9d7f4dc41ddefcfe75d2a0a259049071d285242c1338c42c64dd1223d9", size = 11061 },
 ]
 
 [[package]]
