@@ -8,6 +8,7 @@
       @click.meta.stop="enableModifiedClick ? openEditPageInNewTab() : null"
       @click.ctrl.stop="enableModifiedClick ? openEditPageInNewTab() : null"
     >
+      <span v-if="showType" class="item-type-label">&lt;{{ navbarName }}&gt;</span>
       {{ item_id }}
     </span>
     {{ shortenedName }}
@@ -30,6 +31,7 @@ export default {
   props: {
     item_id: { type: String, required: true },
     itemType: { type: String, required: true },
+    showType: { type: Boolean, default: false },
     selecting: {
       type: Boolean,
       default: false,
@@ -60,6 +62,9 @@ export default {
     badgeColor() {
       return itemTypes[this.itemType]?.lightColor || "LightGrey";
     },
+    navbarName() {
+      return itemTypes[this.itemType]?.navbarName || this.itemType;
+    },
     shortenedName() {
       if (this.maxLength && this.maxLength < this.name.length) {
         return this.name.substring(0, this.maxLength) + "...";
@@ -80,6 +85,12 @@ export default {
 <style scoped>
 .formatted-item-name {
   border: 2px solid transparent;
+}
+
+.item-type-label {
+  font-weight: bold;
+  text-transform: uppercase;
+  font-family: monospace;
 }
 
 .formatted-item-name.clickable:hover {
