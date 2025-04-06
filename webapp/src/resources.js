@@ -148,46 +148,59 @@ export const cellFormats = {
 
 export const HazardPictograms = {
   GHS01: {
+    code: "GHS01",
     label: "Explosives",
     pictogram: "https://pubchem.ncbi.nlm.nih.gov/images/ghs/GHS01.svg",
   },
   GHS02: {
+    code: "GHS02",
     label: "Flammables",
     pictogram: "https://pubchem.ncbi.nlm.nih.gov/images/ghs/GHS02.svg",
   },
   GHS03: {
+    code: "GHS03",
     label: "Oxidizers",
     pictogram: "https://pubchem.ncbi.nlm.nih.gov/images/ghs/GHS03.svg",
   },
   GHS04: {
+    code: "GHS04",
     label: "Compressed Gases",
     pictogram: "https://pubchem.ncbi.nlm.nih.gov/images/ghs/GHS04.svg",
   },
   GHS05: {
+    code: "GHS05",
     label: "Corrosives",
     pictogram: "https://pubchem.ncbi.nlm.nih.gov/images/ghs/GHS05.svg",
   },
   GHS06: {
+    code: "GHS06",
     label: "Acute Toxicity",
     pictogram: "https://pubchem.ncbi.nlm.nih.gov/images/ghs/GHS06.svg",
   },
   GHS07: {
+    code: "GHS07",
     label: "Irritant",
     pictogram: "https://pubchem.ncbi.nlm.nih.gov/images/ghs/GHS07.svg",
   },
   GHS08: {
+    code: "GHS08",
     label: "Health Hazard",
     pictogram: "https://pubchem.ncbi.nlm.nih.gov/images/ghs/GHS08.svg",
   },
   GHS09: {
+    code: "GHS09",
     label: "Environment",
     pictogram: "https://pubchem.ncbi.nlm.nih.gov/images/ghs/GHS09.svg",
   },
 };
 
-export function getPictogramsFromHazardInformation(hazardInformation) {
+export function getHCodesFromHazardStatement(hazardStatement) {
   const hazardCodeRegex = /H\d{3}/g;
-  const hCodes = hazardInformation.match(hazardCodeRegex) || [];
+  return hazardStatement.match(hazardCodeRegex) || [];
+}
+
+export function getPictogramsFromHazardInformation(hazardInformation) {
+  const hCodes = getHCodesFromHazardStatement(hazardInformation);
 
   let pictograms = new Set([]);
   hCodes.forEach((code) => {
