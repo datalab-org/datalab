@@ -4,6 +4,7 @@ def test_load_plugins():
     from pydatalab.blocks import BLOCK_TYPES, BLOCKS, load_block_plugins
 
     plugins = load_block_plugins()
+
     assert plugins["insitu-nmr"] == InsituBlock
     assert isinstance(BLOCK_TYPES["insitu-nmr"], type)
     assert BLOCK_TYPES["insitu-nmr"] == InsituBlock
