@@ -1,16 +1,20 @@
 <template>
-  <div :id="synthesis - information" class="data-block">
-    <div class="datablock-header collapsible">
+  <div :id="block_id" class="data-block">
+    <div class="datablock-header collapsible" :class="{ expanded: isExpanded }">
       <font-awesome-icon
         :icon="['fas', 'chevron-right']"
         fixed-width
         class="collapse-arrow"
-        :class="{ rotated: !isCollapsed }"
-        @click="toggleCollapse"
+        @click="toggleExpandBlock"
       />
       <label class="block-title">Synthesis Information</label>
     </div>
-    <div :class="['content-container', { collapsed: isCollapsed }]">
+    <div
+      ref="contentContainer"
+      class="content-container"
+      :class="{ collapsed: !isExpanded }"
+      :style="{ 'max-height': contentMaxHeight }"
+    >
       <div class="card component-card">
         <div class="card-body pt-2 pb-0 mb-0 pl-5">
           <CompactConstituentTable
@@ -47,10 +51,11 @@ export default {
       selectedNewConstituent: null,
       selectedChangedConstituent: null,
       selectShown: [],
-      // isCollapsed is used to toggle the visibility of the content-container starts as true then will expand when clicked or if it is filled
-      isCollapsed: true,
+      // isExpanded is used to toggle the visibility of the content-container starts as false then will expand when clicked or if it is filled
+      isExpanded: false,
       contentMaxHeight: "none",
       padding_height: 18,
+      isInitializing: true, // Flag for both watchers to prevent firing on mount
     };
   },
   computed: {
@@ -58,33 +63,76 @@ export default {
     SynthesisDescription: createComputedSetterForItemField("synthesis_description"),
   },
   watch: {
-    // since constituents is an object, the computed setter never fires and
-    // saved status is never updated. So, use a watcher:
+    // Added initialization check to prevent firing on mount - this seemed to trigger an unsaved check when loading the sample for the second time
     constituents: {
       handler() {
-        this.$store.commit("setItemSaved", { item_id: this.item_id, isSaved: false });
+        if (!this.isInitializing) {
+          console.log("Constituents watcher (post-init)");
+          this.$store.commit("setItemSaved", { item_id: this.item_id, isSaved: false });
+        }
       },
       deep: true,
     },
     SynthesisDescription: {
       handler() {
-        this.$store.commit("setItemSaved", { item_id: this.item_id, isSaved: false });
+        // Also check if initializing here
+        if (!this.isInitializing) {
+          // Explicit check might be useful
+          console.log("SynthesisDescription watcher (post-init)");
+          this.$store.commit("setItemSaved", { item_id: this.item_id, isSaved: false });
+        }
       },
     },
   },
   mounted() {
-    this.selectShown = new Array(this.constituents.length).fill(false);
-    // Auto-collapsed when initialised empty
-    this.isCollapsed =
-      (!this.constituents || this.constituents.length === 0) &&
-      (!this.SynthesisDescription || this.SynthesisDescription.trim() === "");
+    // Set the isInitializing flag to false after the component is mounted
+    this.$nextTick(() => {
+      console.log("Is this initializing?");
+      console.log(this.isInitializing);
+      this.selectShown = new Array(this.constituents.length).fill(false);
+      // Auto-collapsed when initialised empty
+      this.isExpanded =
+        (this.constituents && this.constituents.length > 0) ||
+        (this.SynthesisDescription && this.SynthesisDescription.trim() !== "");
+      var content = this.$refs.contentContainer;
+      content.addEventListener("transitionend", () => {
+        if (this.isExpanded) {
+          this.contentMaxHeight = "none";
+        }
+        this.isInitializing = false; // Set to false after the transition ends
+        console.log("Component initialized");
+        console.log(!this.isInitializing);
+      });
+    });
   },
   methods: {
-    toggleCollapse() {
-      // Switches isCollapsed to the opposite of what it currently is when clicked
-      this.isCollapsed = !this.isCollapsed;
-      // Explicitly prevent this toggle from marking the item as unsaved
-      // by not calling this.$store.commit("setItemSaved", ...)
+    updateContentHeight() {
+      // Update the content height when the TinyMCE editor is initialized
+      this.$nextTick(() => {
+        const content = this.$refs.contentContainer;
+        if (content) {
+          this.contentMaxHeight = this.isExpanded
+            ? content.scrollHeight + 2 * this.padding_height + "px"
+            : "0px";
+        }
+      });
+    },
+    toggleExpandBlock() {
+      var content = this.$refs.contentContainer;
+      console.log(this.contentMaxHeight);
+      if (!this.isExpanded) {
+        this.contentMaxHeight = content.scrollHeight + 2 * this.padding_height + "px";
+        this.isExpanded = true;
+      } else {
+        requestAnimationFrame(() => {
+          //must be an arrow function so that 'this' is still accessible!
+          this.contentMaxHeight = content.scrollHeight + "px";
+          requestAnimationFrame(() => {
+            this.contentMaxHeight = "0px";
+            this.isExpanded = false;
+          });
+        });
+      }
     },
     addConstituent(selectedItem) {
       this.constituents.push({
@@ -94,7 +142,7 @@ export default {
       });
       this.selectedNewConstituent = null;
       this.selectShown.push(false);
-      this.isCollapsed = false;
+      this.isExpanded = true;
     },
     turnOnRowSelect(index) {
       this.selectShown[index] = true;
@@ -163,6 +211,13 @@ export default {
   color: #7ca7ca;
 }
 
+/* expanded is on the parent (the header) */
+.expanded .collapse-arrow {
+  -webkit-transform: rotate(90deg);
+  -moz-transform: rotate(90deg);
+  transform: rotate(90deg);
+}
+
 .subheading {
   color: darkslategrey;
   font-size: small;
@@ -176,8 +231,8 @@ export default {
 }
 
 .content-container {
-  max-height: 500px; /* Set a large enough height */
   overflow: hidden;
+  max-height: none;
   transition: max-height 0.4s ease-in-out;
 }
 
