@@ -83,7 +83,8 @@ describe("SampleTable Component Tests", () => {
       "Date",
       "Collections",
       "Creators",
-      "# of blocks",
+      "", // nblocks
+      "", // nfiles
     ];
 
     cy.get(".p-datatable-column-header-content").should("have.length", headers.length);
