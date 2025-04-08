@@ -27,7 +27,6 @@ describe("Edit Page", () => {
     cy.findByText("About").should("exist");
     cy.findByText("Samples").should("exist");
     cy.findByText("Add an item").should("exist");
-    cy.findByText("# of blocks").should("exist");
 
     cy.contains("Server Error. Sample list could not be retreived.").should("not.exist");
     expect(consoleSpy).not.to.be.called;
@@ -35,7 +34,8 @@ describe("Edit Page", () => {
 
   it("Adds a valid sample", () => {
     cy.createSample("editable_sample", "This is a sample name", "1990-01-07T00:00");
-    cy.get("tr>td").eq(8).contains(0); // 0 blocks are present
+    cy.get("tr>td").eq(8).should("be.empty"); // 0 blocks are present
+    cy.get("tr>td").eq(9).should("be.empty"); // 0 files are present
   });
 
   it("Add some more samples, to use as components", () => {
