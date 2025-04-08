@@ -21,8 +21,13 @@ export default {
         { field: "chemform", header: "Formula", body: "ChemicalFormula" },
         { field: "date", header: "Date" },
         { field: "chemical_purity", header: "Purity" },
-        { field: "nblocks", header: "", body: "BaseIconCounter" },
-        { field: "nfiles", header: "", body: "FilesIconCounter" },
+        {
+          field: "blocks",
+          header: "",
+          body: "BlocksIconCounter",
+          icon: ["fa", "cubes"],
+        },
+        { field: "nfiles", header: "", body: "FilesIconCounter", icon: ["fa", "file"] },
       ],
     };
   },
