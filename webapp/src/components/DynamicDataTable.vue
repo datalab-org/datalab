@@ -157,6 +157,37 @@
           >
           </MultiSelect>
         </template>
+        <template v-else-if="column.filter && column.body === 'BlocksIconCounter'" #filter>
+          <MultiSelect
+            v-model="filters[column.field].constraints[0].value"
+            :options="uniqueBlockTypes"
+            option-label="type"
+            placeholder="Select block types"
+            class="d-flex w-full"
+            :filter="true"
+            @click.stop
+          >
+            <template #option="slotProps">
+              <div class="flex items-center">
+                <span>{{ slotProps.option.title }}</span>
+              </div>
+            </template>
+            <template #value="slotProps">
+              <div class="flex flex-wrap gap-2 items-center">
+                <template v-if="slotProps.value && slotProps.value.length">
+                  <span
+                    v-for="(option, index) in slotProps.value"
+                    :key="index"
+                    class="inline-flex items-center mr-2"
+                  >
+                    {{ option.title }}
+                  </span>
+                </template>
+                <span v-else class="text-gray-400">Any</span>
+              </div>
+            </template>
+          </MultiSelect>
+        </template>
         <template v-else-if="column.filter" #filter="{ filterModel }">
           <InputText
             v-model="filterModel.value"
@@ -297,6 +328,10 @@ export default {
           operator: FilterOperator.AND,
           constraints: [{ value: null, matchMode: "exactCreatorMatch" }],
         },
+        blocks: {
+          operator: FilterOperator.AND,
+          constraints: [{ value: null, matchMode: "exactBlockMatch" }],
+        },
       },
       filteredData: [],
       allowedTypes: INVENTORY_TABLE_TYPES,
@@ -324,6 +359,17 @@ export default {
           this.data
             .flatMap((item) => item.collections || [])
             .map((collection) => [JSON.stringify(collection.collection_id), collection]),
+        ).values(),
+      );
+    },
+    uniqueBlockTypes() {
+      const itemsWithBlocks = this.data.filter((item) => item.blocks && item.blocks.length > 0);
+
+      return Array.from(
+        new Map(
+          itemsWithBlocks
+            .flatMap((item) => item.blocks)
+            .map((block) => [block.title, { title: block.title }]),
         ).values(),
       );
     },
@@ -397,6 +443,36 @@ export default {
       }
 
       return filterValue.type === value;
+    });
+    FilterService.register("exactBlockMatch", (value, filterValue) => {
+      if (
+        filterValue === null ||
+        filterValue === undefined ||
+        (Array.isArray(filterValue) && filterValue.length === 0)
+      ) {
+        return true;
+      }
+
+      if (!value || !Array.isArray(value)) {
+        return false;
+      }
+
+      const filter = this.filters.blocks;
+      const isAnd = filter && filter.operator === FilterOperator.AND;
+
+      if (Array.isArray(filterValue)) {
+        if (isAnd) {
+          return filterValue.every((filterBlock) =>
+            value.some((itemBlock) => itemBlock.title === filterBlock.title),
+          );
+        } else {
+          return filterValue.some((filterBlock) =>
+            value.some((itemBlock) => itemBlock.title === filterBlock.title),
+          );
+        }
+      }
+
+      return value.some((itemBlock) => itemBlock.title === filterValue.title);
     });
   },
   methods: {
