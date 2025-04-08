@@ -100,7 +100,6 @@ import SynthesisInformation from "@/components/SynthesisInformation";
 import ItemRelationshipVisualization from "@/components/ItemRelationshipVisualization";
 import GHSHazardInformation from "@/components/GHSHazardInformation";
 
-
 import { EDITABLE_INVENTORY } from "@/resources.js";
 
 export default {
