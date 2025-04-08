@@ -30,7 +30,7 @@ jobs:
       - name: Set up uv
         uses: astral-sh/setup-uv@v5
         with:
-          version: "0.5.22"
+          version: "0.6.4"
           enable-cache: true
 
       - name: Install dependencies
@@ -78,7 +78,7 @@ jobs:
       - name: Set up uv
         uses: astral-sh/setup-uv@v5
         with:
-          version: "0.5.22"
+          version: "0.6.4"
           enable-cache: true
 
       - name: Install locked versions of dependencies
@@ -143,10 +143,11 @@ jobs:
           echo "SETUPTOOLS_SCM_PRETEND_VERSION=0.11.11rc8" >> pydatalab/.env
 
       - name: Load previously built Docker images
-        uses: docker/bake-action@v5
+        uses: docker/bake-action@v6
         with:
           files: docker-compose.yml
           load: true
+          source: .
           targets: 'app,api,database'
           set: |
             app.cache-from=type=gha,scope=build-app

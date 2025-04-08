@@ -16,7 +16,7 @@ from pydatalab.models.items import Item
 from pydatalab.models.people import Person
 from pydatalab.models.relationships import RelationshipType
 from pydatalab.models.utils import generate_unique_refcode
-from pydatalab.mongo import flask_mongo
+from pydatalab.mongo import ITEMS_FTS_FIELDS, flask_mongo
 from pydatalab.permissions import PUBLIC_USER_ID, active_users_or_get_only, get_default_permissions
 
 ITEMS = Blueprint("items", __name__)
@@ -302,30 +302,44 @@ def search_items():
         # should figure out how to parse as list automatically
         types = types.split(",")
 
-    match_obj = {
-        "$text": {"$search": query},
-        **get_default_permissions(user_only=False),
-    }
-    if types is not None:
-        match_obj["type"] = {"$in": types}
+    pipeline = []
 
-    cursor = flask_mongo.db.items.aggregate(
-        [
-            {"$match": match_obj},
-            {"$sort": {"score": {"$meta": "textScore"}}},
-            {"$limit": nresults},
-            {
-                "$project": {
-                    "_id": 0,
-                    "type": 1,
-                    "item_id": 1,
-                    "name": 1,
-                    "chemform": 1,
-                    "refcode": 1,
-                }
-            },
-        ]
+    if isinstance(query, str):
+        query = query.strip("'")
+
+    if isinstance(query, str) and query.startswith("%"):
+        query = query.lstrip("%")
+        match_obj = {
+            "$or": [{field: {"$regex": query, "$options": "i"}} for field in ITEMS_FTS_FIELDS]
+        }
+        match_obj.update(get_default_permissions(user_only=False))
+        pipeline.append({"$match": match_obj})
+
+    else:
+        match_obj = {
+            "$match": {
+                "$text": {"$search": query},
+                **get_default_permissions(user_only=False),
+            }
+        }
+        pipeline.append(match_obj)
+        pipeline.append({"$sort": {"score": {"$meta": "textScore"}}})
+
+    pipeline.append({"$limit": nresults})
+    pipeline.append(
+        {
+            "$project": {
+                "_id": 0,
+                "type": 1,
+                "item_id": 1,
+                "name": 1,
+                "chemform": 1,
+                "refcode": 1,
+            }
+        }
     )
+
+    cursor = flask_mongo.db.items.aggregate(pipeline)
 
     return jsonify({"status": "success", "items": list(cursor)}), 200
 
@@ -341,7 +355,7 @@ def _create_sample(
             dict(
                 status="error",
                 messages=f"""Request to create item with generate_id_automatically = true is incompatible with the provided item data,
-                which has an item_id included (provided id: {sample_dict['item_id']}")""",
+                which has an item_id included (provided id: {sample_dict["item_id"]}")""",
             ),
             400,
         )

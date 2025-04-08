@@ -26,6 +26,7 @@ dependencies = [
     "pydantic[email, dotenv] < 2.0",
     "pint ~= 0.24",
     "pandas[excel] ~= 2.2",
+    "setuptools>=75.3.0",
 ]
 
 [project.urls]
@@ -45,7 +46,7 @@ version_scheme = "post-release"
 
 [project.optional-dependencies]
 server = [
-    "pymongo ~= 4.7",
+    "pymongo ~= 4.7, < 4.11",
     "Flask ~= 3.0",
     "Flask-Login ~= 0.6",
     "Flask-Cors ~= 5.0",
@@ -74,6 +75,8 @@ apps = [
     "rosettasciio ~= 0.3, < 0.4",
     # TGA
     "python-dateutil ~= 2.9",
+    # Insitu
+    "datalab-app-plugin-insitu @ git+https://github.com/datalab-org/datalab-app-plugin-insitu.git@v0.1.1",
 ]
 chat = [
     # Hard upper pin on langchain is 0.3 as pydantic is not supported
