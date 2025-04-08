@@ -87,8 +87,8 @@ export default {
   mounted() {
     // Set the isInitializing flag to false after the component is mounted
     this.$nextTick(() => {
-      console.log("Is this initializing?");
-      console.log(this.isInitializing);
+      // console.log("Is this initializing?");
+      // console.log(this.isInitializing);
       this.selectShown = new Array(this.constituents.length).fill(false);
       // Auto-collapsed when initialised empty
       this.isExpanded =
@@ -100,23 +100,12 @@ export default {
           this.contentMaxHeight = "none";
         }
         this.isInitializing = false; // Set to false after the transition ends
-        console.log("Component initialized");
-        console.log(!this.isInitializing);
+        // console.log("Component initialized");
+        // console.log(!this.isInitializing);
       });
     });
   },
   methods: {
-    updateContentHeight() {
-      // Update the content height when the TinyMCE editor is initialized
-      this.$nextTick(() => {
-        const content = this.$refs.contentContainer;
-        if (content) {
-          this.contentMaxHeight = this.isExpanded
-            ? content.scrollHeight + 2 * this.padding_height + "px"
-            : "0px";
-        }
-      });
-    },
     toggleExpandBlock() {
       var content = this.$refs.contentContainer;
       console.log(this.contentMaxHeight);
