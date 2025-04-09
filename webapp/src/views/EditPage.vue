@@ -277,15 +277,19 @@ export default {
       if (this.item_id == null) {
         getItemByRefcode(this.refcode).then(() => {
           this.itemDataLoaded = true;
-          this.$store.commit("setItemSaved", { item_id: this.item_id, isSaved: true });
+          this.$nextTick(() => {
+            this.$store.commit("setItemSaved", { item_id: this.item_id, isSaved: true });
+          });
           this.item_id = this.$store.state.refcode_to_id[this.refcode];
           this.updateBlocks();
         });
       } else {
         getItemData(this.item_id).then(() => {
-          this.itemDataLoaded = true;          
+          this.itemDataLoaded = true;
           this.refcode = this.item_data.refcode;
-          this.$store.commit("setItemSaved", { item_id: this.item_id, isSaved: true });
+          this.$nextTick(() => {
+            this.$store.commit("setItemSaved", { item_id: this.item_id, isSaved: true });
+          });
           this.updateBlocks();
         });
       }
@@ -293,7 +297,6 @@ export default {
 
     async updateBlocks() {
       if (this.itemDataLoaded) {
-
         // update each block asynchronously
         this.item_data.display_order.forEach((block_id) => {
           console.log(`calling update on block ${block_id}`);
