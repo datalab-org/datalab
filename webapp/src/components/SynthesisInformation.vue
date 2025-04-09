@@ -12,7 +12,6 @@
     <div
       ref="contentContainer"
       class="content-container"
-      :class="{ collapsed: !isExpanded }"
       :style="{ 'max-height': contentMaxHeight }"
     >
       <div class="card component-card">
@@ -65,20 +64,24 @@ export default {
   watch: {
     // Added initialization check to prevent firing on mount - this seemed to trigger an unsaved check when loading the sample for the second time
     constituents: {
-      handler() {
+      handler(newValue, oldValue) {
         if (!this.isInitializing) {
           console.log("Constituents watcher (post-init)");
+          console.log("New value: ", newValue);
+          console.log("Old value: ", oldValue);
           this.$store.commit("setItemSaved", { item_id: this.item_id, isSaved: false });
         }
       },
       deep: true,
     },
     SynthesisDescription: {
-      handler() {
+      handler(newValue, oldValue) {
         // Also check if initializing here
         if (!this.isInitializing) {
           // Explicit check might be useful
           console.log("SynthesisDescription watcher (post-init)");
+          console.log("New value: ", newValue);
+          console.log("Old value: ", oldValue);
           this.$store.commit("setItemSaved", { item_id: this.item_id, isSaved: false });
         }
       },
@@ -87,8 +90,8 @@ export default {
   mounted() {
     // Set the isInitializing flag to false after the component is mounted
     this.$nextTick(() => {
-      // console.log("Is this initializing?");
-      // console.log(this.isInitializing);
+      console.log("Is this initializing?");
+      console.log(this.isInitializing);
       this.selectShown = new Array(this.constituents.length).fill(false);
       // Auto-collapsed when initialised empty
       this.isExpanded =
@@ -105,10 +108,10 @@ export default {
         if (this.isExpanded) {
           this.contentMaxHeight = "none";
         }
-        this.isInitializing = false; // Set to false after the transition ends
-        // console.log("Component initialized");
-        // console.log(!this.isInitializing);
       });
+      this.isInitializing = false; // Set to false after the transition ends
+      console.log("Component initialized");
+      console.log(!this.isInitializing);
     });
   },
   methods: {
@@ -221,17 +224,9 @@ export default {
   margin-bottom: 0px;
 }
 
-.rotated {
-  transform: rotate(90deg);
-}
-
 .content-container {
   overflow: hidden;
   max-height: none;
   transition: max-height 0.4s ease-in-out;
-}
-
-.content-container.collapsed {
-  max-height: 0;
 }
 </style>
