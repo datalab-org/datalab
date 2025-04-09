@@ -1,12 +1,13 @@
-from typing import List, Optional
+from typing import Optional
 
 from pydantic import Field, root_validator, validator
 
 from pydatalab.models.items import Item
-from pydatalab.models.utils import Constituent, InlineSubstance, IsoformatDateTime
+from pydatalab.models.traits import HasSynthesisInfo
+from pydatalab.models.utils import InlineSubstance, IsoformatDateTime
 
 
-class StartingMaterial(Item):
+class StartingMaterial(Item, HasSynthesisInfo):
     """A model for representing an experimental sample."""
 
     type: str = Field(
@@ -66,11 +67,11 @@ class StartingMaterial(Item):
 
     comment: Optional[str] = Field(alias="Comments")
 
-    synthesis_constituents: List[Constituent] = Field([])
-    """A list of references to constituent materials giving the amount and relevant inlined details of consituent items."""
+    # synthesis_constituents: List[Constituent] = Field([])
+    # """A list of references to constituent materials giving the amount and relevant inlined details of consituent items."""
 
-    synthesis_description: Optional[str]
-    """Free-text details of the procedure applied to synthesise the sample"""
+    # synthesis_description: Optional[str]
+    # """Free-text details of the procedure applied to synthesise the sample"""
 
     @validator("molar_mass")
     def add_molar_mass(cls, v, values):

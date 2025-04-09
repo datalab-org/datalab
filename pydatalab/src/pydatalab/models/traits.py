@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field, root_validator
 
 from pydatalab.models.people import Person
-from pydatalab.models.utils import PyObjectId
+from pydatalab.models.utils import Constituent, PyObjectId
 
 
 class HasOwner(BaseModel):
@@ -78,3 +78,24 @@ class IsCollectable(BaseModel):
             raise RuntimeError("Relationships and collections mismatch")
 
         return values
+
+
+class HasSynthesisInfo(BaseModel):
+    """Trait mixin for models that have synthesis information."""
+
+    synthesis_constituents: List[Constituent] = Field([])
+    """A list of references to constituent materials giving the amount and relevant inlined details of consituent items."""
+
+    synthesis_description: Optional[str] = None
+    """Free-text details of the procedure applied to synthesise the sample"""
+
+
+class HasChemInfo:
+    smile: Optional[str] = Field(None)
+    """A SMILES string representation of the chemical structure associated with this sample."""
+    inchi: Optional[str] = Field(None)
+    """An InChI string representation of the chemical structure associated with this sample."""
+    inchi_key: Optional[str] = Field(None)
+    """An InChI key representation of the chemical structure associated with this sample."""
+    """A unique key derived from the InChI string."""
+    chemform: Optional[str] = Field(None)

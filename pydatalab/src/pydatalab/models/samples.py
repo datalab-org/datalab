@@ -1,12 +1,13 @@
-from typing import List, Optional
+from typing import Optional
 
 from pydantic import Field, root_validator
 
 from pydatalab.models.items import Item
-from pydatalab.models.utils import Constituent, InlineSubstance
+from pydatalab.models.traits import HasSynthesisInfo
+from pydatalab.models.utils import InlineSubstance
 
 
-class Sample(Item):
+class Sample(Item, HasSynthesisInfo):
     """A model for representing an experimental sample."""
 
     type: str = Field("samples", const="samples", pattern="^samples$")
@@ -14,11 +15,11 @@ class Sample(Item):
     chemform: Optional[str] = Field(example=["Na3P", "LiNiO2@C"])
     """A string representation of the chemical formula or composition associated with this sample."""
 
-    synthesis_constituents: List[Constituent] = Field([])
-    """A list of references to constituent materials giving the amount and relevant inlined details of consituent items."""
+    # synthesis_constituents: List[Constituent] = Field([])
+    # """A list of references to constituent materials giving the amount and relevant inlined details of consituent items."""
 
-    synthesis_description: Optional[str]
-    """Free-text details of the procedure applied to synthesise the sample"""
+    # synthesis_description: Optional[str]
+    # """Free-text details of the procedure applied to synthesise the sample"""
 
     @root_validator
     def add_missing_synthesis_relationships(cls, values):
