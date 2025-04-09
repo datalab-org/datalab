@@ -53,7 +53,7 @@ export default {
       selectShown: [],
       // isExpanded is used to toggle the visibility of the content-container starts as false then will expand when clicked or if it is filled
       isExpanded: false,
-      contentMaxHeight: "none",
+      contentMaxHeight: "0px", // "none", Start collapsed so 0px, if expanded set to none in mounted
       padding_height: 18,
       isInitializing: true, // Flag for both watchers to prevent firing on mount
     };
@@ -94,6 +94,12 @@ export default {
       this.isExpanded =
         (this.constituents && this.constituents.length > 0) ||
         (this.SynthesisDescription && this.SynthesisDescription.trim() !== "");
+      // If expanded set height to none, otherwise set to 0px
+      if (this.isExpanded) {
+        this.contentMaxHeight = "none";
+      } else {
+        this.contentMaxHeight = "0px";
+      }
       var content = this.$refs.contentContainer;
       content.addEventListener("transitionend", () => {
         if (this.isExpanded) {
