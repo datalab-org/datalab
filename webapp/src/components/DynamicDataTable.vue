@@ -365,13 +365,15 @@ export default {
     uniqueBlockTypes() {
       const itemsWithBlocks = this.data.filter((item) => item.blocks && item.blocks.length > 0);
 
-      return Array.from(
-        new Map(
-          itemsWithBlocks
-            .flatMap((item) => item.blocks)
-            .map((block) => [block.title, { title: block.title }]),
-        ).values(),
+      const blockTypesMap = new Map(
+        itemsWithBlocks
+          .flatMap((item) => item.blocks)
+          .map((block) => [block.title, { title: block.title }]),
       );
+
+      blockTypesMap.set("No blocks", { title: "No blocks" });
+
+      return Array.from(blockTypesMap.values());
     },
     knownTypes() {
       // Grab the set of types stored under the item type key
@@ -453,6 +455,15 @@ export default {
         return true;
       }
 
+      if (
+        Array.isArray(filterValue) &&
+        filterValue.some((filter) => filter.title === "No blocks")
+      ) {
+        if (!value || !Array.isArray(value) || value.length === 0) {
+          return true;
+        }
+      }
+
       if (!value || !Array.isArray(value)) {
         return false;
       }
@@ -463,11 +474,15 @@ export default {
       if (Array.isArray(filterValue)) {
         if (isAnd) {
           return filterValue.every((filterBlock) =>
-            value.some((itemBlock) => itemBlock.title === filterBlock.title),
+            filterBlock.title === "No blocks"
+              ? !value || value.length === 0
+              : value.some((itemBlock) => itemBlock.title === filterBlock.title),
           );
         } else {
           return filterValue.some((filterBlock) =>
-            value.some((itemBlock) => itemBlock.title === filterBlock.title),
+            filterBlock.title === "No blocks"
+              ? !value || value.length === 0
+              : value.some((itemBlock) => itemBlock.title === filterBlock.title),
           );
         }
       }
