@@ -1,71 +1,69 @@
 <template>
-  <div class="ghs-display ml-2 mt-2">
-    <span v-for="pictogram in selectedPictograms" :key="pictogram.label">
-      <img
-        :title="pictogram.label"
-        :alt="pictogram.label"
-        :src="pictogram.pictogram"
-        class="ghs-icon"
-      />
-    </span>
+  <div ref="outerdiv" class="h-100 form-group clickable">
+    <label id="startmat-hazards" class="clickable"> GHS Hazard Codes </label>
+    <input
+      v-model="value"
+      type="text"
+      class="form-control mb-2"
+      aria-labelledby="startmat-hazards"
+      :readonly="!editable"
+      placeholder="Enter GHS hazard codes in free-text (e.g., H200, H203)"
+      @click.stop
+    />
+    <GHSHazardPictograms v-model="value" aria-labelledby="startmat-hazards" />
   </div>
 </template>
 
 <script>
-import { getPictogramsFromHazardInformation } from "@/resources.js";
+import GHSHazardPictograms from "@/components/GHSHazardPictograms";
 
 export default {
+  components: {
+    GHSHazardPictograms,
+  },
   props: {
-    modelValue: { type: String, required: true },
+    modelValue: {
+      type: String,
+      default: "",
+    },
+    editable: {
+      type: Boolean,
+      default: false,
+    },
   },
   emits: ["update:modelValue"],
-
   data() {
     return {
-      AddHazardInformationModalIsOpen: false,
-      selectedPictograms: [],
+      outerDivRef: null,
     };
   },
-  watch: {
-    modelValue(newVal) {
-      this.updateSelectedPictograms(newVal);
+  computed: {
+    // computed setter to pass v-model through  component:
+    value: {
+      get() {
+        return this.modelValue;
+      },
+      set(newValue) {
+        this.$emit("update:modelValue", newValue);
+      },
     },
   },
   mounted() {
-    this.updateSelectedPictograms(this.modelValue);
-  },
-  methods: {
-    updateSelectedPictograms() {
-      if (!this.modelValue) {
-        this.selectedPictograms = [];
-        return;
-      }
-
-      this.selectedPictograms = getPictogramsFromHazardInformation(this.modelValue);
-    },
-    updateGHS(newGHS) {
-      this.$emit("update:modelValue", newGHS);
-      this.updateSelectedPictograms(newGHS);
-    },
+    this.outerDivRef = this.$refs.outerdiv; // we need to get the editIcon's ref to be accessible in the template so we can exclude it from the ClickOutside
   },
 };
 </script>
 
 <style scoped>
-.ghs-content {
-  display: flex;
-  flex-direction: column;
-  flex-grow: 1;
+.text-italic {
+  opacity: 0.7;
 }
 
-.ghs-chip {
-  display: flex;
-  align-items: center;
+#edit-icon {
+  color: grey;
 }
 
-.ghs-icon {
-  width: 8rem;
-  height: 8rem;
-  margin-right: 8px;
+.text-heavy {
+  font-weight: 600;
 }
 </style>

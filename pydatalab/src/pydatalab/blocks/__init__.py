@@ -43,15 +43,16 @@ def load_block_plugins():
         if not issubclass(block, DataBlock):
             raise ValueError(f"Plugin {block} must be a subclass of DataBlock")
 
-        if block.blocktype in BLOCK_TYPES:
-            raise ValueError(f"Block type {block.blocktype} is already defined")
-
-        BLOCK_TYPES[block.blocktype] = block
-        BLOCKS.append(block)
         block_plugins[block.blocktype] = block
+
+        if block.blocktype not in BLOCK_TYPES:
+            BLOCK_TYPES[block.blocktype] = block
+            BLOCKS.append(block)
 
     return block_plugins
 
+
+load_block_plugins()
 
 __all__ = (
     "CommentBlock",

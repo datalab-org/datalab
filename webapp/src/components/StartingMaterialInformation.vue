@@ -65,11 +65,7 @@
         </div>
         <div class="form-row">
           <div class="form-group col-12">
-            <ToggleableGHSHazardInformation
-              v-model="GHS"
-              :item_id="item.item_id"
-              :type="item.type"
-            />
+            <GHSHazardInformation v-model="GHS" :editable="isEditable" />
           </div>
         </div>
       </div>
@@ -99,7 +95,7 @@ import ToggleableCollectionFormGroup from "@/components/ToggleableCollectionForm
 import FormattedRefcode from "@/components/FormattedRefcode";
 import StyledInput from "@/components/StyledInput";
 import ItemRelationshipVisualization from "@/components/ItemRelationshipVisualization";
-import ToggleableGHSHazardInformation from "@/components/ToggleableGHSHazardInformation";
+import GHSHazardInformation from "@/components/GHSHazardInformation";
 
 import { EDITABLE_INVENTORY } from "@/resources.js";
 
@@ -113,7 +109,7 @@ export default {
     ToggleableCollectionFormGroup,
     TableOfContents,
     FormattedRefcode,
-    ToggleableGHSHazardInformation,
+    GHSHazardInformation,
   },
   props: {
     item_id: { type: String, required: true },
