@@ -54,7 +54,6 @@ export default {
       isExpanded: false,
       contentMaxHeight: "0px", // "none", Start collapsed so 0px, if expanded set to none in mounted
       padding_height: 18,
-      isInitializing: true, // Flag for both watchers to prevent firing on mount
     };
   },
   computed: {
@@ -64,54 +63,34 @@ export default {
   watch: {
     // Added initialization check to prevent firing on mount - this seemed to trigger an unsaved check when loading the sample for the second time
     constituents: {
-      handler(newValue, oldValue) {
-        if (!this.isInitializing) {
-          console.log("Constituents watcher (post-init)");
-          console.log("New value: ", newValue);
-          console.log("Old value: ", oldValue);
-          this.$store.commit("setItemSaved", { item_id: this.item_id, isSaved: false });
-        }
+      handler() {
+        this.$store.commit("setItemSaved", { item_id: this.item_id, isSaved: false });
       },
       deep: true,
     },
     SynthesisDescription: {
-      handler(newValue, oldValue) {
-        // Also check if initializing here
-        if (!this.isInitializing) {
-          // Explicit check might be useful
-          console.log("SynthesisDescription watcher (post-init)");
-          console.log("New value: ", newValue);
-          console.log("Old value: ", oldValue);
-          this.$store.commit("setItemSaved", { item_id: this.item_id, isSaved: false });
-        }
+      handler() {
+        this.$store.commit("setItemSaved", { item_id: this.item_id, isSaved: false });
       },
     },
   },
   mounted() {
-    // Set the isInitializing flag to false after the component is mounted
-    this.$nextTick(() => {
-      console.log("Is this initializing?");
-      console.log(this.isInitializing);
-      this.selectShown = new Array(this.constituents.length).fill(false);
-      // Auto-collapsed when initialised empty
-      this.isExpanded =
-        (this.constituents && this.constituents.length > 0) ||
-        (this.SynthesisDescription && this.SynthesisDescription.trim() !== "");
-      // If expanded set height to none, otherwise set to 0px
+    this.selectShown = new Array(this.constituents.length).fill(false);
+    // Auto-collapsed when initialised empty
+    this.isExpanded =
+      (this.constituents && this.constituents.length > 0) ||
+      (this.SynthesisDescription && this.SynthesisDescription.trim() !== "");
+    // If expanded set height to none, otherwise set to 0px
+    if (this.isExpanded) {
+      this.contentMaxHeight = "none";
+    } else {
+      this.contentMaxHeight = "0px";
+    }
+    var content = this.$refs.contentContainer;
+    content.addEventListener("transitionend", () => {
       if (this.isExpanded) {
         this.contentMaxHeight = "none";
-      } else {
-        this.contentMaxHeight = "0px";
       }
-      var content = this.$refs.contentContainer;
-      content.addEventListener("transitionend", () => {
-        if (this.isExpanded) {
-          this.contentMaxHeight = "none";
-        }
-      });
-      this.isInitializing = false; // Set to false after the transition ends
-      console.log("Component initialized");
-      console.log(!this.isInitializing);
     });
   },
   methods: {
