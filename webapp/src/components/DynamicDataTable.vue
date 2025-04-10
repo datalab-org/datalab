@@ -479,11 +479,9 @@ export default {
   methods: {
     onSort(event) {
       const sortedColumns = event.multiSortMeta || [];
-      console.log(sortedColumns);
 
       this.$nextTick(() => {
         const tableHeaders = document.querySelectorAll(".p-datatable-sortable-column");
-        console.log(tableHeaders);
 
         tableHeaders.forEach((header) => {
           if (sortedColumns.length === 1) {
