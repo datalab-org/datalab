@@ -53,9 +53,7 @@ export default {
 .counter {
   align-items: center;
   justify-content: center;
-  border-radius: 10px;
-  background-color: #ff4757;
-  color: white;
+  text-decoration: underline;
   min-width: 20px;
   height: 20px;
   font-size: 14px;
