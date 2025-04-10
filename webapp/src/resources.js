@@ -10,6 +10,7 @@ import NMRBlock from "@/components/datablocks/NMRBlock";
 import EISBlock from "@/components/datablocks/EISBlock";
 import MassSpecBlock from "@/components/datablocks/MassSpecBlock";
 import NMRInsituBlock from "@/components/datablocks/NMRInsituBlock";
+import UVVisBlock from "./components/datablocks/UVVisBlock.vue";
 
 import SampleInformation from "@/components/SampleInformation";
 import StartingMaterialInformation from "@/components/StartingMaterialInformation";
@@ -71,6 +72,7 @@ export const blockTypes = {
   ms: { description: "Mass Spectrometry", component: MassSpecBlock, name: "Mass Spectrometry" },
   chat: { description: "Virtual assistant", component: ChatBlock, name: "Virtual Assistant" },
   ftir: { description: "FTIR", component: BokehBlock, name: "FTIR" },
+  uvvis: { description: "UV-Vis", component: UVVisBlock, name: "UV-Vis" },
   "insitu-nmr": { description: "NMR insitu", component: NMRInsituBlock, name: "NMR insitu" },
 };
 

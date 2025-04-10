@@ -5,6 +5,7 @@ from pydatalab.apps.ftir import FTIRBlock
 from pydatalab.apps.nmr import NMRBlock
 from pydatalab.apps.raman import RamanBlock
 from pydatalab.apps.tga import MassSpecBlock
+from pydatalab.apps.uvvis import UVVisBlock
 from pydatalab.apps.xrd import XRDBlock
 from pydatalab.blocks.base import DataBlock
 from pydatalab.blocks.common import CommentBlock, MediaBlock, NotSupportedBlock, TabularDataBlock
@@ -22,6 +23,7 @@ BLOCKS: list[type["DataBlock"]] = [
     EISBlock,
     TabularDataBlock,
     FTIRBlock,
+    UVVisBlock,
 ]
 
 BLOCK_TYPES: dict[str, type["DataBlock"]] = {block.blocktype: block for block in BLOCKS}
@@ -67,4 +69,5 @@ __all__ = (
     "BLOCK_TYPES",
     "BLOCKS",
     "load_block_plugins",
+    "UVVisBlock",
 )
