@@ -243,19 +243,19 @@ its importance when deploying a datalab instance.""",
         {
             "daily-snapshots": BackupStrategy(
                 hostname=None,
-                location="/tmp/datalab-backups/daily-snapshots/",
+                location="/tmp/datalab-backups/daily-snapshots/",  # noqa: S108
                 frequency="5 4 * * *",  # 4:05 every day
                 retention=7,
             ),
             "weekly-snapshots": BackupStrategy(
                 hostname=None,
-                location="/tmp/datalab-backups/weekly-snapshots/",
+                location="/tmp/datalab-backups/weekly-snapshots/",  # noqa: S108
                 frequency="5 3 * * 1",  # 03:05 every Monday
                 retention=5,
             ),
             "quarterly-snapshots": BackupStrategy(
                 hostname=None,
-                location="/tmp/datalab-backups/quarterly-snapshots/",
+                location="/tmp/datalab-backups/quarterly-snapshots/",  # noqa: S108
                 frequency="5 2 1 1,4,7,10 *",  # first of January, April, July, October at 02:05
                 retention=4,
             ),

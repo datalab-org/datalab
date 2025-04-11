@@ -39,7 +39,7 @@ def test_get_item_data(client, default_equipment_dict):
     assert len(response.json["item_data"]["creators"]) == 0
     assert len(response.json["item_data"]["creator_ids"]) == 0
 
-    for key in default_equipment_dict.keys():
+    for key in default_equipment_dict:
         if isinstance(v := default_equipment_dict[key], datetime.datetime):
             v = v.replace(tzinfo=datetime.timezone.utc).isoformat()
         assert response.json["item_data"][key] == v
@@ -70,7 +70,7 @@ def test_new_equipment_with_automatically_generated_id(client):
     assert response.json["status"] == "success"
     assert response.json["item_data"]["refcode"].split(":")[1] == created_item_id
 
-    for key in new_equipment_data.keys():
+    for key in new_equipment_data:
         if isinstance(v := new_equipment_data[key], datetime.datetime):
             v = v.replace(tzinfo=datetime.timezone.utc).isoformat()
         assert response.json["item_data"][key] == v
@@ -105,7 +105,7 @@ def test_save_good_equipment(client, default_equipment_dict):
     response = client.get("/get-item-data/test_e1")
     assert response.status_code == 200
     assert response.json["status"] == "success"
-    for key in default_equipment_dict.keys():
+    for key in default_equipment_dict:
         if key in updated_equipment and key in response.json:
             assert response.json[key] == updated_equipment[key]
 

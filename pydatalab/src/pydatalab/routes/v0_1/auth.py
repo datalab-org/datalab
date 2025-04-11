@@ -501,7 +501,7 @@ def get_authenticated_user_info():
 def generate_user_api_key():
     """Returns metadata associated with the currently authenticated user."""
     if current_user.is_authenticated:
-        new_key = "".join(random.choices(ascii_letters, k=KEY_LENGTH))
+        new_key = "".join(random.choices(ascii_letters, k=KEY_LENGTH))  # noqa: S311
         flask_mongo.db.api_keys.update_one(
             {"_id": ObjectId(current_user.id)},
             {"$set": {"hash": sha512(new_key.encode("utf-8")).hexdigest()}},

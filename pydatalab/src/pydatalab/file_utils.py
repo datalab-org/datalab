@@ -73,7 +73,7 @@ def _sync_file_with_remote(remote_path: str, src: str) -> None:
         pathlib.Path(src).parent.mkdir(parents=False, exist_ok=True)
 
         LOGGER.debug("Syncing file with '%s'", scp_command)
-        proc = subprocess.Popen(
+        proc = subprocess.Popen(  # noqa: S602
             scp_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
         _, stderr = proc.communicate()
@@ -102,7 +102,7 @@ def _call_remote_stat(path: str):
     path = path.replace(r"\ ", " ").replace(" ", r"\ ")
     hostname, file_path = path.split(":", 1)
     command = f"ssh {hostname} 'stat -c %Y {file_path}'"
-    process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)  # noqa: S602
     LOGGER.debug(f"Calling {command}")
     try:
         stdout, stderr = process.communicate(timeout=20)

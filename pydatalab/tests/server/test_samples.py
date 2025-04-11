@@ -21,7 +21,7 @@ def test_new_sample(client, default_sample_dict):
     # Test that 201: Created is emitted
     assert response.status_code == 201, response.json
     assert response.json["status"] == "success"
-    for key in default_sample_dict.keys():
+    for key in default_sample_dict:
         if key == "creator_ids":
             continue
         if isinstance(v := default_sample_dict[key], datetime.datetime):
@@ -34,7 +34,7 @@ def test_get_item_data(client, default_sample_dict):
     response = client.get("/get-item-data/12345")
     assert response.status_code == 200
     assert response.json["status"] == "success"
-    for key in default_sample_dict.keys():
+    for key in default_sample_dict:
         if key == "creator_ids":
             continue
         if isinstance(v := default_sample_dict[key], datetime.datetime):
@@ -81,7 +81,7 @@ def test_new_sample_with_automatically_generated_id(client, user_id):
     assert response.json["status"] == "success"
     assert response.json["item_data"]["refcode"].split(":")[1] == created_item_id
 
-    for key in new_sample_data.keys():
+    for key in new_sample_data:
         if isinstance(v := new_sample_data[key], datetime.datetime):
             v = v.replace(tzinfo=datetime.timezone.utc).isoformat()
         if key == "creator_ids":
@@ -103,7 +103,7 @@ def test_save_good_sample(client, default_sample_dict):
     response = client.get("/get-item-data/12345")
     assert response.status_code == 200
     assert response.json["status"] == "success"
-    for key in default_sample_dict.keys():
+    for key in default_sample_dict:
         if key in updated_sample and key in response.json:
             assert response.json[key] == updated_sample[key]
 
