@@ -199,7 +199,7 @@ def _get_latest_directory_structure(
 
         """
         command = tree_command + [str(directory_path), "--timefmt", tree_timefmt]
-        process = subprocess.Popen(
+        process = subprocess.Popen(  # noqa: S603
             command,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -224,7 +224,7 @@ def _get_latest_directory_structure(
 
         """
         command = f"ssh {hostname} 'PATH=$PATH:~/ {' '.join(tree_command)} \"{directory_path}\" --timefmt {tree_timefmt}'"
-        process = subprocess.Popen(
+        process = subprocess.Popen(  # noqa: S602,S607
             command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
         LOGGER.debug(f"Calling {command}")

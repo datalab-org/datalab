@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Union
 from unittest.mock import patch
 
 import mongomock
@@ -34,7 +33,7 @@ def monkeypatch_session():
 
 
 @pytest.fixture(scope="module")
-def real_mongo_client() -> Union[pymongo.MongoClient, None]:
+def real_mongo_client() -> pymongo.MongoClient | None:
     """Returns a connected MongoClient if available, otherwise `None`."""
     client = pymongo.MongoClient(
         MONGO_URI, connect=True, connectTimeoutMS=100, serverSelectionTimeoutMS=100
@@ -44,7 +43,8 @@ def real_mongo_client() -> Union[pymongo.MongoClient, None]:
     except pymongo.errors.ServerSelectionTimeoutError:
         return None
 
-    return client
+    yield client
+    client.close()
 
 
 @pytest.fixture(scope="module")
@@ -183,7 +183,7 @@ def deactivated_client(app, deactivated_user_api_key):
 def generate_api_key():
     import random
 
-    return "".join(random.choices("abcdef0123456789", k=24))
+    return "".join(random.choices("abcdef0123456789", k=24))  # noqa: S311
 
 
 @pytest.fixture(scope="function")
