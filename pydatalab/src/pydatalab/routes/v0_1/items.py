@@ -312,13 +312,6 @@ def search_items():
     if isinstance(query, str) and query.startswith("%"):
         query = query.lstrip("%")
         match_obj = {
-            "$or": [{field: {"$regex": query, "$options": "i"}} for field in ITEMS_FTS_FIELDS]
-        }
-        match_obj.update(get_default_permissions(user_only=False))
-        pipeline.append({"$match": match_obj})
-
-    else:
-        match_obj = {
             "$match": {
                 "$text": {"$search": query},
                 **get_default_permissions(user_only=False),
@@ -326,6 +319,12 @@ def search_items():
         }
         pipeline.append(match_obj)
         pipeline.append({"$sort": {"score": {"$meta": "textScore"}}})
+    else:
+        match_obj = {
+            "$or": [{field: {"$regex": query, "$options": "i"}} for field in ITEMS_FTS_FIELDS]
+        }
+        match_obj.update(get_default_permissions(user_only=False))
+        pipeline.append({"$match": match_obj})
 
     pipeline.append({"$limit": nresults})
     pipeline.append(
