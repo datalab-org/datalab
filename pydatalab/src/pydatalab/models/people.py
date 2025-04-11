@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConstrainedStr, Field, parse_obj_as, validator
 from pydantic import EmailStr as PydanticEmailStr
 
 from pydatalab.models.entries import Entry
-from pydatalab.models.utils import PyObjectId
+from pydatalab.models.utils import HumanReadableIdentifier, PyObjectId, UserRole
 
 
 class IdentityType(str, Enum):
@@ -98,6 +98,30 @@ class AccountStatus(str, Enum):
     DEACTIVATED = "deactivated"
 
 
+class Group(Entry):
+    """A model that describes a group of users, for the sake
+    of applying group permissions.
+
+    Each `Person` model can point to a given group.
+
+    """
+
+    type: str = Field("groups", const=True)
+    """The entry type as a string."""
+
+    group_id: HumanReadableIdentifier
+    """A short, locally-unique ID for the group."""
+
+    display_name: DisplayName
+    """The chosen display name for the group"""
+
+    description: Optional[str]
+    """A description of the group"""
+
+    group_admins: Optional[List[PyObjectId]]
+    """A list of user IDs that can manage this group."""
+
+
 class Person(Entry):
     """A model that describes an individual and their digital identities."""
 
@@ -112,6 +136,9 @@ class Person(Entry):
 
     contact_email: Optional[EmailStr]
     """In the case of multiple *verified* email identities, this email will be used as the primary contact."""
+
+    groups: List[Group] = Field(default_factory=list)
+    """A list of groups that this person belongs to."""
 
     managers: Optional[List[PyObjectId]]
     """A list of user IDs that can manage this person's items."""
@@ -169,3 +196,7 @@ class Person(Entry):
             contact_email=contact_email,
             account_status=account_status,
         )
+
+
+class User(Person):
+    role: UserRole

@@ -192,4 +192,35 @@ def create_default_indices(
         db.users.drop_index(user_fts_name)
         ret += create_user_fts()
 
+    group_fts_fields = {"display_name", "description"}
+    group_fts_name = "group full-text search"
+    group_index_name = "unique group identifiers"
+
+    def create_group_index(group_index_name):
+        return db.groups.create_index(
+            "group_id",
+            unique=True,
+            name=group_index_name,
+            background=background,
+        )
+
+    try:
+        ret += create_group_index(group_index_name)
+    except pymongo.errors.OperationFailure:
+        db.users.drop_index(group_index_name)
+        ret += create_group_index(group_index_name)
+
+    def create_group_fts():
+        return db.groups.create_index(
+            [(k, pymongo.TEXT) for k in group_fts_fields],
+            name=group_fts_name,
+            background=background,
+        )
+
+    try:
+        ret += create_group_fts()
+    except pymongo.errors.OperationFailure:
+        db.users.drop_index(group_fts_name)
+        ret += create_group_fts()
+
     return ret
