@@ -117,7 +117,8 @@ def read_topspin_txt(filename, sample_mass_mg=None, nscans=None):
     size = int(size_match.group(1))
 
     intensity = np.genfromtxt(filename, comments="#")
-    assert len(intensity) == size, "length of intensities does not match I"
+    if len(intensity) != size:
+        raise RuntimeError(f"length of intensities does not match I ({size}) vs ({len(intensity)})")
 
     data = {
         "ppm": np.linspace(left, right, size),

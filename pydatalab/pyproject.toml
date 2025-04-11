@@ -98,11 +98,12 @@ line-length = 100
 target-version = "py310"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "W", "Q", "DTZ"]
+select = ["E", "F", "I", "W", "Q", "DTZ", "S"]
 ignore = ["E501", "E402"]
-fixable = ["A", "B", "C", "D", "E", "F", "I"]
+per-file-ignores = {"tests/*" = ["S101"]}
+
+fixable = ["A", "B", "C", "D", "E", "F", "I", "S"]
 unfixable = []
-per-file-ignores = {}
 # Allow unused variables when underscore-prefixed.
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
@@ -127,5 +128,10 @@ addopts = "--cov-report=term --cov-report=xml --cov ./src/pydatalab"
 filterwarnings = [
     "error",
     "ignore:.*np.bool8*:DeprecationWarning",
-
+    "ignore::pytest.PytestUnraisableExceptionWarning",
+    "ignore:.*Polyfit may be poorly conditioned*:numpy.RankWarning",
+    "ignore:.*invalid value encountered in sqrt*:RuntimeWarning",
+    "ignore:.*kernel_size exceeds volume extent*:UserWarning",
+    "ignore:.*divide by zero encountered in log10*:RuntimeWarning",
+    "ignore:.*invalid value encountered in log10*:RuntimeWarning",
 ]
