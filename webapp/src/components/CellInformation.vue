@@ -28,8 +28,14 @@
           <div class="form-group col-md-3 col-sm-3 col-6 pb-3">
             <ToggleableCreatorsFormGroup v-model="ItemCreators" :refcode="Refcode" />
           </div>
-          <div class="col-md-6 col-sm-7 pr-2">
+          <div class="form-group col-md-3 col-sm-7 pr-2">
             <ToggleableCollectionFormGroup v-model="Collections" />
+          </div>
+          <div class="form-group col-md-3 col-sm-7 pr-2">
+            <ToggleableItemStatusFormGroup
+              v-model="Status"
+              :possible-item-statuses="possibleItemStatuses"
+            />
           </div>
         </div>
         <div class="form-row">
@@ -113,6 +119,7 @@ import ItemRelationshipVisualization from "@/components/ItemRelationshipVisualiz
 import FormattedRefcode from "@/components/FormattedRefcode";
 import ToggleableCollectionFormGroup from "@/components/ToggleableCollectionFormGroup";
 import ToggleableCreatorsFormGroup from "@/components/ToggleableCreatorsFormGroup";
+import ToggleableItemStatusFormGroup from "@/components/ToggleableItemStatusFormGroup";
 import { cellFormats } from "@/resources.js";
 
 export default {
@@ -125,6 +132,7 @@ export default {
     FormattedRefcode,
     ToggleableCollectionFormGroup,
     ToggleableCreatorsFormGroup,
+    ToggleableItemStatusFormGroup,
   },
   props: {
     item_id: {
@@ -155,6 +163,10 @@ export default {
     CellFormatDescription: createComputedSetterForItemField("cell_format_description"),
     CharacteristicMass: createComputedSetterForItemField("characteristic_mass"),
     Collections: createComputedSetterForItemField("collections"),
+    Status: createComputedSetterForItemField("status"),
+    possibleItemStatuses() {
+      return ["active", "planned", "disposed", "cycled", "shorted", "dismantled"];
+    },
   },
 };
 </script>

@@ -15,7 +15,7 @@ from pydatalab.models import ITEM_MODELS
 from pydatalab.models.items import Item
 from pydatalab.models.people import Person
 from pydatalab.models.relationships import RelationshipType
-from pydatalab.models.utils import generate_unique_refcode
+from pydatalab.models.utils import EquipmentStatus, ItemStatus, generate_unique_refcode
 from pydatalab.mongo import ITEMS_FTS_FIELDS, flask_mongo
 from pydatalab.permissions import PUBLIC_USER_ID, active_users_or_get_only, get_default_permissions
 
@@ -92,6 +92,7 @@ def get_equipment_summary():
         "date": 1,
         "refcode": 1,
         "location": 1,
+        "status": 1,
     }
 
     items = [
@@ -135,6 +136,7 @@ def get_starting_materials():
                         "chemical_purity": 1,
                         "supplier": 1,
                         "location": 1,
+                        "status": 1,
                     }
                 },
             ]
@@ -182,6 +184,7 @@ def get_samples_summary(
         "type": 1,
         "date": 1,
         "refcode": 1,
+        "status": 1,
     }
 
     # Cannot mix 0 and 1 keys in MongoDB project so must loop and check
@@ -1038,3 +1041,15 @@ def search_users():
     return jsonify(
         {"status": "success", "users": list(json.loads(Person(**d).json()) for d in cursor)}
     ), 200
+
+
+@ITEMS.route("/item_status_options", methods=["GET"])
+def get_item_status_options():
+    status_options = [status.value for status in ItemStatus]
+    return jsonify(status_options)
+
+
+@ITEMS.route("/equipment_status_options", methods=["GET"])
+def get_equipment_status_options():
+    status_options = [status.value for status in EquipmentStatus]
+    return jsonify(status_options)

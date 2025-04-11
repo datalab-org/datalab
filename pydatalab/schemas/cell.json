@@ -114,6 +114,14 @@
         "type": "string"
       }
     },
+    "status": {
+      "default": "planned",
+      "allOf": [
+        {
+          "$ref": "#/definitions/ItemStatus"
+        }
+      ]
+    },
     "cell_format": {
       "description": "The form factor of the cell, e.g., coin, pouch, in situ or otherwise.",
       "allOf": [
@@ -597,6 +605,17 @@
         "time_added",
         "is_live"
       ]
+    },
+    "ItemStatus": {
+      "title": "ItemStatus",
+      "description": "An enumeration of the status of items",
+      "enum": [
+        "planned",
+        "active",
+        "completed",
+        "failed"
+      ],
+      "type": "string"
     },
     "CellFormat": {
       "title": "CellFormat",
