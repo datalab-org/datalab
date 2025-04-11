@@ -260,7 +260,7 @@ Start with a friendly introduction and give me a one sentence summary of what th
             # replace file_id with the actual filename
             file_id = block.pop("file_id", None)
             if file_id:
-                block["file"] = item_filenames.get(file_id, None)
+                block["file"] = item_filenames.get(file_id)
 
         top_level_keys_to_remove = [
             "display_order",
