@@ -18,6 +18,18 @@ def test_load(data_files):
             assert all(y in df.columns for y in y_options)
 
 
+def test_event():
+    block = XRDBlock(item_id="test-id")
+    assert block.data["wavelength"] == 1.54060
+    block.process_events({"event_name": "set_wavelength", "wavelength": 1.0})
+    assert block.data["wavelength"] == 1.0
+    block.process_events({"event_name": "set_wavelength", "wavelength": None})
+    assert block.data["wavelength"] == 1.54060
+    block.process_events({"event_name": "set_wavelength", "wavelength": -1.0})
+    assert len(block.data["errors"]) == 1
+    assert block.data["wavelength"] == 1.54060
+
+
 def test_plot(data_files):
     f = next(data_files)
     if f.suffix in XRDBlock.accepted_file_extensions:
