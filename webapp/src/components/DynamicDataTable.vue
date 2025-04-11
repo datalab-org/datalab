@@ -25,6 +25,7 @@
       @row-click="goToEditPage"
       @select-all-change="onSelectAllChange"
       @page="onPageChange"
+      @sort="onSort"
     >
       <!-- v-model:expandedRows="expandedRows" -->
 
@@ -476,6 +477,21 @@ export default {
     });
   },
   methods: {
+    onSort(event) {
+      const sortedColumns = event.multiSortMeta || [];
+
+      this.$nextTick(() => {
+        const tableHeaders = document.querySelectorAll(".p-datatable-sortable-column");
+
+        tableHeaders.forEach((header) => {
+          if (sortedColumns.length === 1) {
+            header.classList.add("hide-single-sort-badge");
+          } else {
+            header.classList.remove("hide-single-sort-badge");
+          }
+        });
+      });
+    },
     updateFilters(newFilters) {
       this.filters = newFilters;
     },
