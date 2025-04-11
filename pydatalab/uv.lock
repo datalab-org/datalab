@@ -566,7 +566,6 @@ dependencies = [
     { name = "periodictable" },
     { name = "pint" },
     { name = "pydantic", extra = ["dotenv", "email"] },
-    { name = "setuptools" },
 ]
 
 [package.optional-dependencies]
@@ -686,7 +685,6 @@ requires-dist = [
     { name = "python-dotenv", marker = "extra == 'server'", specifier = "~=1.0" },
     { name = "rosettasciio", marker = "extra == 'apps'", specifier = "~=0.3,<0.4" },
     { name = "scipy", marker = "extra == 'apps'", specifier = "~=1.13" },
-    { name = "setuptools", specifier = ">=75.3.0" },
     { name = "tiktoken", marker = "extra == 'chat'", specifier = "~=0.7" },
     { name = "transformers", marker = "extra == 'chat'", specifier = "~=4.42" },
     { name = "werkzeug", marker = "extra == 'server'", specifier = "~=3.0" },

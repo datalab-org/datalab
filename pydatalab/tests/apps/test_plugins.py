@@ -1,7 +1,9 @@
+# Load block types first to avoid circular dependency issues
+from pydatalab.blocks import BLOCK_TYPES, BLOCKS, load_block_plugins
+
+
 def test_load_plugins():
     from datalab_app_plugin_insitu import InsituBlock
-
-    from pydatalab.blocks import BLOCK_TYPES, BLOCKS, load_block_plugins
 
     plugins = load_block_plugins()
 

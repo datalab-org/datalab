@@ -31,10 +31,10 @@ def load_block_plugins():
     """Search through any registered entrypoints at 'pydatalab.apps.plugins'
     and load them as DataBlock subclasses.
     """
-    import pkg_resources
+    from importlib.metadata import entry_points
 
     block_plugins: dict[str, type[DataBlock]] = {}
-    for entry_point in pkg_resources.iter_entry_points("pydatalab.apps.plugins"):
+    for entry_point in entry_points(group="pydatalab.apps.plugins"):
         block = entry_point.load()
 
         if not issubclass(block, DataBlock):
