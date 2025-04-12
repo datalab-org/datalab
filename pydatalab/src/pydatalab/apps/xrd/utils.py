@@ -1,9 +1,9 @@
 import os
 import re
+import tempfile
 import warnings
 import zipfile
 from pathlib import Path
-from typing import List, Tuple
 
 import numpy as np
 import pandas as pd
@@ -101,7 +101,7 @@ def convertSinglePattern(
     return outfn
 
 
-def getStartEnd(s: str) -> Tuple[float, float]:
+def getStartEnd(s: str) -> tuple[float, float]:
     """Parse a given string representation of an xrdml file to find the start and end 2Theta points of the scan.
     Note: this could match either Omega or 2Theta depending on their order in the XRDML file.
 
@@ -122,7 +122,7 @@ def getStartEnd(s: str) -> Tuple[float, float]:
     return start, end
 
 
-def getIntensities(s: str) -> List[float]:
+def getIntensities(s: str) -> list[float]:
     """Parse a given string representation of an xrdml file to find the peak intensities.
 
     Raises:
@@ -140,7 +140,7 @@ def getIntensities(s: str) -> List[float]:
     return out
 
 
-def toXY(intensities: List[float], start: float, end: float) -> str:
+def toXY(intensities: list[float], start: float, end: float) -> str:
     """Converts a given list of intensities, along with a start and end angle,
     to a string in XY format.
 
@@ -158,28 +158,34 @@ def parse_rasx_zip(filename: str) -> pd.DataFrame:
         filename: The file to parse.
 
     """
-    # Unzip the file
+    # Unzip the file to a tmp dir
     zip_path = Path(filename)
-    destination = zip_path.parent / "extracted"
-    with zipfile.ZipFile(zip_path, "r") as zip_ref:
-        zip_ref.extractall(destination)
 
-    # Find the .txt data file inside the unzipped .rasx archive
-    # Seems to normally unzip to a folder called "Data0" with one .txt file inside
-    data_file = None
-    for file in destination.glob("Data*/*.txt"):
-        if data_file is not None:
-            warnings.warn(f"Found other data files in .rasx archive, only using {data_file}")
-            break
-        data_file = file
+    # Create a temporary directory
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        # Create a Path object for the temporary directory
+        tmpdir_path = Path(tmpdirname)
 
-    if data_file is None:
-        raise FileNotFoundError("No .txt file found in the .rasx archive.")
+        # Unzip the file to the temporary directory
+        with zipfile.ZipFile(zip_path, "r") as zip_ref:
+            zip_ref.extractall(tmpdir_path)
 
-    xrd_data = pd.read_csv(data_file, sep="\t", header=None)
-    xrd_data.columns = ["twotheta", "intensity", "imnotsure"]
-    # Extract the data
-    # twotheta, intensities = getTwoThetaIntensities(s)
+        # Find the .txt data file inside the unzipped .rasx archive
+        # Seems to normally unzip to a folder called "Data0" with one .txt file inside
+        data_file = None
+        for file in tmpdir_path.glob("Data*/*.txt"):
+            if data_file is not None:
+                warnings.warn(f"Found other data files in .rasx archive, only using {data_file}")
+                break
+            data_file = file
+
+        if data_file is None:
+            raise FileNotFoundError("No .txt file found in the .rasx archive.")
+
+        # Extract the data
+        xrd_data = pd.read_csv(data_file, sep="\t", header=None)
+        xrd_data.columns = ["twotheta", "intensity", "imnotsure"]
+
     return pd.DataFrame(
         {
             "twotheta": xrd_data["twotheta"],
