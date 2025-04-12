@@ -95,13 +95,31 @@ class NMRBlock(DataBlock):
         df = pd.DataFrame(self.data["processed_data"])
         df["normalized intensity"] = df.intensity / df.intensity.max()
 
+        nucleus_label = self.data["metadata"].get("nucleus") or ""
+        # replace numbers with superscripts
+        nucleus_label = nucleus_label.translate(str.maketrans("0123456789", "⁰¹²³⁴⁵⁶⁷⁸⁹"))
+        df.rename(
+            {
+                "ppm": f"{nucleus_label} chemical shift (ppm)",
+                "hz": f"{nucleus_label} chemical shift (Hz)",
+                "intensity": "Intensity",
+                "intensity_per_scan": "Intensity per scan",
+                "normalized intensity": "Normalized intensity",
+            },
+            axis=1,
+            inplace=True,
+        )
+
         bokeh_layout = selectable_axes_plot(
             df,
-            x_options=["ppm", "hz"],
+            x_options=[
+                f"{nucleus_label} chemical shift (ppm)",
+                f"{nucleus_label} chemical shift (Hz)",
+            ],
             y_options=[
-                "intensity",
-                "intensity_per_scan",
-                "normalized intensity",
+                "Intensity",
+                "Intensity per scan",
+                "Normalized intensity",
             ],
             plot_line=True,
             point_size=3,
