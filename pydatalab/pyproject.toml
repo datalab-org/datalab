@@ -67,7 +67,7 @@ apps = [
     "nmrglue ~= 0.10",
     # Electrochemistry
     "navani @ git+https://github.com/the-grey-group/navani.git@v0.1.8",
-    "galvani ~= 0.4, < 0.5",
+    "galvani ~= 0.5",
     "NewareNDA >= 2024",
     # Raman
     "pybaselines ~= 1.1",
