@@ -10,7 +10,6 @@ from pydatalab.apps.nmr.utils import read_bruker_1d
 from pydatalab.blocks.base import DataBlock
 from pydatalab.bokeh_plots import DATALAB_BOKEH_THEME, selectable_axes_plot
 from pydatalab.file_utils import get_file_info_by_id
-from pydatalab.logger import LOGGER
 
 
 class NMRBlock(DataBlock):
@@ -26,20 +25,18 @@ class NMRBlock(DataBlock):
     def plot_functions(self):
         return (self.generate_nmr_plot,)
 
-    def read_bruker_nmr_data(self):
+    def read_bruker_nmr_data(self) -> tuple[dict | None, dict]:
         if "file_id" not in self.data:
-            LOGGER.warning("NMRPlot.read_bruker_nmr_data(): No file set in the DataBlock")
-            return
+            raise RuntimeError("No file set in the DataBlock")
 
         zip_file_info = get_file_info_by_id(self.data["file_id"], update_if_live=True)
         filename = zip_file_info["name"]
 
         name, ext = os.path.splitext(filename)
         if ext.lower() not in self.accepted_file_extensions:
-            LOGGER.warning(
-                "NMRBlock.read_bruker_nmr_data(): Unsupported file extension (must be .zip)"
+            raise RuntimeError(
+                f"Unsupported file extension {ext.lower()} (must be one of {self.accepted_file_extensions})"
             )
-            return
 
         # unzip to tmp directory
         with tempfile.TemporaryDirectory() as tmpdirname:
@@ -67,25 +64,26 @@ class NMRBlock(DataBlock):
 
         serialized_df = df.to_dict() if (df is not None) else None
 
-        # all data sorted in a fairly raw way
+        metadata = {}
+        metadata["acquisition_parameters"] = a_dic["acqus"]
+        metadata["processing_parameters"] = a_dic["procs"]
+        metadata["pulse_program"] = a_dic["pprog"]
+        metadata["available_processes"] = available_processes
+        metadata["nucleus"] = a_dic["acqus"]["NUC1"]
+        metadata["carrier_frequency_MHz"] = a_dic["acqus"]["SFO1"]
+        metadata["carrier_offset_Hz"] = a_dic["acqus"]["O1"]
+        metadata["recycle_delay"] = a_dic["acqus"]["D"][1]
+        metadata["nscans"] = a_dic["acqus"]["NS"]
+        metadata["CNST31"] = a_dic["acqus"]["CNST"][31]
+        metadata["processed_data_shape"] = processed_data_shape
+        metadata["probe_name"] = a_dic["acqus"]["PROBHD"]
+        metadata["pulse_program_name"] = a_dic["acqus"]["PULPROG"]
+        metadata["topspin_title"] = topspin_title
+
+        self.data["metadata"] = metadata
         self.data["processed_data"] = serialized_df
-        self.data["acquisition_parameters"] = a_dic["acqus"]
-        self.data["processing_parameters"] = a_dic["procs"]
-        self.data["pulse_program"] = a_dic["pprog"]
 
-        # specific things that we might want to pull out for the UI:
-        self.data["available_processes"] = available_processes
-        self.data["nucleus"] = a_dic["acqus"]["NUC1"]
-        self.data["carrier_frequency_MHz"] = a_dic["acqus"]["SFO1"]
-        self.data["carrier_offset_Hz"] = a_dic["acqus"]["O1"]
-        self.data["recycle_delay"] = a_dic["acqus"]["D"][1]
-        self.data["nscans"] = a_dic["acqus"]["NS"]
-        self.data["CNST31"] = a_dic["acqus"]["CNST"][31]
-        self.data["processed_data_shape"] = processed_data_shape
-
-        self.data["probe_name"] = a_dic["acqus"]["PROBHD"]
-        self.data["pulse_program_name"] = a_dic["acqus"]["PULPROG"]
-        self.data["topspin_title"] = topspin_title
+        return serialized_df, metadata
 
     def generate_nmr_plot(self):
         # currently calls every time plotting happens, but it should only happen if the file was updated
