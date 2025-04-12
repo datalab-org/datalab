@@ -1,15 +1,16 @@
 import os
+import tempfile
 import zipfile
+from pathlib import Path
 
 import bokeh.embed
 import pandas as pd
 
+from pydatalab.apps.nmr.utils import read_bruker_1d
 from pydatalab.blocks.base import DataBlock
 from pydatalab.bokeh_plots import DATALAB_BOKEH_THEME, selectable_axes_plot
 from pydatalab.file_utils import get_file_info_by_id
 from pydatalab.logger import LOGGER
-
-from .utils import read_bruker_1d
 
 
 class NMRBlock(DataBlock):
@@ -40,27 +41,29 @@ class NMRBlock(DataBlock):
             )
             return
 
-        # unzip:
-        directory_location = zip_file_info["location"] + ".extracted"
-        LOGGER.debug(f"Directory location is: {directory_location}")
-        with zipfile.ZipFile(zip_file_info["location"], "r") as zip_ref:
-            zip_ref.extractall(directory_location)
+        # unzip to tmp directory
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            # Create a Path object for the temporary directory
+            tmpdir_path = Path(tmpdirname)
 
-        extracted_directory_name = os.path.join(directory_location, name)
-        available_processes = os.listdir(os.path.join(extracted_directory_name, "pdata"))
+            # Unzip the file to the temporary directory
+            with zipfile.ZipFile(zip_file_info["location"], "r") as zip_ref:
+                zip_ref.extractall(tmpdir_path)
 
-        if self.data.get("selected_process") not in available_processes:
-            self.data["selected_process"] = available_processes[0]
+            extracted_directory_name = tmpdir_path / name
+            available_processes = os.listdir(os.path.join(extracted_directory_name, "pdata"))
 
-        try:
-            df, a_dic, topspin_title, processed_data_shape = read_bruker_1d(
-                os.path.join(directory_location, name),
-                process_number=self.data["selected_process"],
-                verbose=False,
-            )
-        except Exception as error:
-            LOGGER.critical(f"Unable to parse {name} as Bruker project. {error}")
-            return
+            if self.data.get("selected_process") not in available_processes:
+                self.data["selected_process"] = available_processes[0]
+
+            try:
+                df, a_dic, topspin_title, processed_data_shape = read_bruker_1d(
+                    tmpdir_path / name,
+                    process_number=self.data["selected_process"],
+                    verbose=False,
+                )
+            except Exception as error:
+                raise RuntimeError(f"Unable to parse {name!r} as Bruker project. Error: {error!r}")
 
         serialized_df = df.to_dict() if (df is not None) else None
 
