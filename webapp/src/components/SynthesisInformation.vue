@@ -15,16 +15,32 @@
       class="content-container"
       :style="{ 'max-height': contentMaxHeight }"
     >
+      <span id="synthesis-reactants-label" class="subheading mt-2 pb-2 ml-2">
+        <label for="synthesis-reactants-table">Reactants, reagents, inputs</label>
+      </span>
       <div class="card component-card">
         <div class="card-body pt-2 pb-0 mb-0 pl-5">
           <CompactConstituentTable
-            id="synthesis-table"
+            id="synthesis-reactants-table"
             v-model="constituents"
             :types-to-query="['samples', 'starting_materials']"
           />
         </div>
       </div>
-      <span id="synthesis-procedure-label" class="subheading ml-2">Procedure</span>
+      <span id="synthesis-products-label" class="subheading mt-2 pb-2 ml-2"
+        ><label for="synthesis-products-table">Products</label></span
+      >
+      <div class="component-card">
+        <div class="card-body pt-2 pb-0 mb-0 pl-5">
+          <CompactConstituentTable
+            id="synthesis-products-table"
+            v-model="products"
+            :types-to-query="['samples', 'starting_materials']"
+          />
+        </div>
+      </div>
+      <span id="synthesis-procedure-label" class="subheading ml-2"><label>Procedure</label></span
+      >
       <TinyMceInline
         v-model="SynthesisDescription"
         aria-labelledby="synthesis-procedure-label"
@@ -59,11 +75,18 @@ export default {
   },
   computed: {
     constituents: createComputedSetterForItemField("synthesis_constituents"),
+    products: createComputedSetterForItemField("synthesis_products"),
     SynthesisDescription: createComputedSetterForItemField("synthesis_description"),
   },
   watch: {
     // Added initialization check to prevent firing on mount - this seemed to trigger an unsaved check when loading the sample for the second time
     constituents: {
+      handler() {
+        this.$store.commit("setItemSaved", { item_id: this.item_id, isSaved: false });
+      },
+      deep: true,
+    },
+    products: {
       handler() {
         this.$store.commit("setItemSaved", { item_id: this.item_id, isSaved: false });
       },
@@ -80,6 +103,7 @@ export default {
     // Auto-collapsed when initialised empty
     this.isExpanded =
       (this.constituents && this.constituents.length > 0) ||
+      (this.products && this.products.length > 0) ||
       (this.SynthesisDescription && this.SynthesisDescription.trim() !== "");
     // If expanded set height to none, otherwise set to 0px
     if (this.isExpanded) {
@@ -201,7 +225,6 @@ export default {
   font-size: small;
   font-weight: 600;
   text-transform: uppercase;
-  margin-bottom: 0px;
 }
 
 .content-container {
