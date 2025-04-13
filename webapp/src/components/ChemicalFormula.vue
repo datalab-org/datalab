@@ -1,7 +1,5 @@
 <template>
-  <span>
-    {{ chemFormulaFormat }}
-  </span>
+  <span v-html="chemFormulaFormat"></span>
 </template>
 
 <script>
@@ -29,11 +27,20 @@ export default {
       if (!this.formula) {
         return this.formula;
       }
-      // Optimistically subscript all numbers in formula if it matches
-      // regexp for element symbols, brackets and numbers only
-      const chemicalFormulaRegex = /[A-Z][a-z]{0,2}(?:\d*(?:\.\d+)?)?|[([{]|[)]}]/g;
+      // For now, just regexp for simple formulas and subscript the numbers in them
+      const chemicalFormulaRegex = /([A-Z][a-z]{0,2})|([0-9.]+)/g;
+
       if (this.formula.match(chemicalFormulaRegex)) {
-        // Do stuff
+        return this.formula.replace(chemicalFormulaRegex, (match, element, number) => {
+          if (element) {
+            // If it's an element, return it unchanged
+            return element;
+          } else if (number) {
+            // If it's a number or period, wrap in subscript tags
+            return `<sub>${number}</sub>`;
+          }
+          return match;
+        });
       }
 
       return this.formula;
