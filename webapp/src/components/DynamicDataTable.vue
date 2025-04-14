@@ -10,7 +10,7 @@
       v-model:select-all="allSelected"
       :value="data"
       :data-testid="computedDataTestId"
-      selection-mode="multiple"
+      selection-mode="checkbox"
       paginator
       :first="page * rows"
       :rows="rows"
@@ -23,6 +23,7 @@
       sort-mode="multiple"
       @filter="onFilter"
       @row-click="goToEditPage"
+      @row-select="null"
       @select-all-change="onSelectAllChange"
       @page="onPageChange"
     >
@@ -482,6 +483,9 @@ export default {
     goToEditPage(event) {
       const row = event.data;
       let row_id = null;
+
+      event.originalEvent.stopPropagation();
+      event.originalEvent.preventDefault();
 
       // Check if the row has an item ID, otherwise default to collection ID
       if (!row.item_id && row.collection_id) {
