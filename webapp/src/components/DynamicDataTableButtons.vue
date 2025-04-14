@@ -193,8 +193,16 @@ export default {
       }
     },
     "localFilters.global.value"(newValue) {
+      localStorage.setItem(`${this.dataType}_search_value`, newValue || "");
       this.$emit("update:filters", { ...this.filters, global: { value: newValue } });
     },
+  },
+  created() {
+    const savedSearchValue = localStorage.getItem(`${this.dataType}_search_value`);
+    if (savedSearchValue) {
+      this.localFilters.global.value = savedSearchValue;
+      this.$emit("update:filters", { ...this.filters, global: { value: savedSearchValue } });
+    }
   },
   methods: {
     confirmDeletion() {
