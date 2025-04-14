@@ -121,7 +121,7 @@ class TabularDataBlock(DataBlock):
 
             if df.isnull().values.any():
                 warnings.warn(
-                    "Loading file with less strict parser: columns were previously detected as {df.columns}"
+                    f"Loading file with less strict parser: columns were previously detected as {df.columns}"
                 )
                 df = pd.read_csv(
                     location,
