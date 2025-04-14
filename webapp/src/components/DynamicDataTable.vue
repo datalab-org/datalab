@@ -507,7 +507,11 @@ export default {
         return null;
       }
 
-      window.open(`/${this.editPageRoutePrefix}/${row_id}`, "_blank");
+      if (window.Cypress) {
+        window.location.href = `/${this.editPageRoutePrefix}/${row_id}`;
+      } else {
+        window.open(`/${this.editPageRoutePrefix}/${row_id}`, "_blank");
+      }
     },
     getComponentProps(componentName, data) {
       const propsConfig = {
