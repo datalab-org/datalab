@@ -503,15 +503,7 @@ export default {
         return null;
       }
 
-      if (
-        event.originalEvent.ctrlKey ||
-        event.originalEvent.metaKey ||
-        event.originalEvent.altKey
-      ) {
-        window.open(`/${this.editPageRoutePrefix}/${row_id}`, "_blank");
-      } else {
-        this.$router.push(`/${this.editPageRoutePrefix}/${row_id}`);
-      }
+      window.open(`/${this.editPageRoutePrefix}/${row_id}`, "_blank");
     },
     getComponentProps(componentName, data) {
       const propsConfig = {
