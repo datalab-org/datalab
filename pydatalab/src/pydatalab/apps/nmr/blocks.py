@@ -1,5 +1,6 @@
 import os
 import tempfile
+import warnings
 import zipfile
 from pathlib import Path
 
@@ -25,14 +26,22 @@ class NMRBlock(DataBlock):
     def plot_functions(self):
         return (self.generate_nmr_plot,)
 
-    def read_bruker_nmr_data(self) -> tuple[dict | None, dict]:
-        if "file_id" not in self.data:
-            raise RuntimeError("No file set in the DataBlock")
+    def read_bruker_nmr_data(
+        self, filename: str | Path | None = None
+    ) -> tuple[dict | None, dict] | None:
+        if not filename:
+            if "file_id" not in self.data:
+                return None
 
-        zip_file_info = get_file_info_by_id(self.data["file_id"], update_if_live=True)
-        filename = zip_file_info["name"]
+            zip_file_info = get_file_info_by_id(self.data["file_id"], update_if_live=True)
+            _filename = zip_file_info["name"]
+            location = zip_file_info["location"]
+            name, ext = os.path.splitext(_filename)
+        else:
+            location = Path(filename)
+            name = Path(filename).stem
+            ext = Path(filename).suffix
 
-        name, ext = os.path.splitext(filename)
         if ext.lower() not in self.accepted_file_extensions:
             raise RuntimeError(
                 f"Unsupported file extension {ext.lower()} (must be one of {self.accepted_file_extensions})"
@@ -44,7 +53,7 @@ class NMRBlock(DataBlock):
             tmpdir_path = Path(tmpdirname)
 
             # Unzip the file to the temporary directory
-            with zipfile.ZipFile(zip_file_info["location"], "r") as zip_ref:
+            with zipfile.ZipFile(location, "r") as zip_ref:
                 zip_ref.extractall(tmpdir_path)
 
             extracted_directory_name = tmpdir_path / name
@@ -85,11 +94,14 @@ class NMRBlock(DataBlock):
 
         return serialized_df, metadata
 
-    def generate_nmr_plot(self):
+    def generate_nmr_plot(self, parse: bool = True):
         # currently calls every time plotting happens, but it should only happen if the file was updated
-        self.read_bruker_nmr_data()
+        if parse:
+            self.read_bruker_nmr_data()
+
         if "processed_data" not in self.data or not self.data["processed_data"]:
             self.data["bokeh_plot_data"] = None
+            warnings.warn("No compatible processed data available for plotting.")
             return
 
         df = pd.DataFrame(self.data["processed_data"])
