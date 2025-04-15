@@ -80,6 +80,7 @@ def test_get_file_and_delete(client, default_filepath, default_sample):
     assert file_response.json is None
     assert file_response.status_code == 200
     assert len(file_response.data) == 2465718
+    file_response.close()
 
     delete_response = client.post(
         "/delete-file-from-sample/",

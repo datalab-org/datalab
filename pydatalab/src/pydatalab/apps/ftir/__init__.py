@@ -101,5 +101,5 @@ class FTIRBlock(DataBlock):
             ftir_data = self.parse_ftir_asp(Path(file_info["location"]))
 
         if ftir_data is not None:
-            layout = self.format_ftir_plot(ftir_data)
+            layout = self._format_ftir_plot(ftir_data)
             self.data["bokeh_plot_data"] = bokeh.embed.json_item(layout, theme=DATALAB_BOKEH_THEME)

@@ -19,7 +19,7 @@ def generate_random_id():
     The ids here are HTML id friendly, using lowercase letters and numbers. The first character
     is always a letter.
     """
-    randlist = [random.choice("abcdefghijklmnopqrstuvwxyz")] + random.choices(
+    randlist = [random.choice("abcdefghijklmnopqrstuvwxyz")] + random.choices(  # noqa: S311
         "abcdefghijklmnopqrstuvwxyz0123456789", k=14
     )
     return "".join(randlist)

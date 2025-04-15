@@ -26,7 +26,6 @@ dependencies = [
     "pydantic[email, dotenv] < 2.0",
     "pint ~= 0.24",
     "pandas[excel] ~= 2.2",
-    "setuptools>=75.3.0",
 ]
 
 [project.urls]
@@ -67,7 +66,7 @@ apps = [
     # NMR
     "nmrglue ~= 0.10",
     # Electrochemistry
-    "navani @ git+https://github.com/the-grey-group/navani.git@v0.1.7",
+    "navani @ git+https://github.com/the-grey-group/navani.git@v0.1.8",
     "galvani ~= 0.4, < 0.5",
     "NewareNDA >= 2024",
     # Raman
@@ -76,7 +75,7 @@ apps = [
     # TGA
     "python-dateutil ~= 2.9",
     # Insitu
-    "datalab-app-plugin-insitu @ git+https://github.com/datalab-org/datalab-app-plugin-insitu.git@v0.1.1",
+    "datalab-app-plugin-insitu @ git+https://github.com/datalab-org/datalab-app-plugin-insitu.git@v0.1.2",
 ]
 chat = [
     # Hard upper pin on langchain is 0.3 as pydantic is not supported
@@ -99,11 +98,12 @@ line-length = 100
 target-version = "py310"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "W", "Q", "DTZ"]
+select = ["E", "F", "I", "W", "Q", "DTZ", "S"]
 ignore = ["E501", "E402"]
-fixable = ["A", "B", "C", "D", "E", "F", "I"]
+per-file-ignores = {"tests/*" = ["S101"]}
+
+fixable = ["A", "B", "C", "D", "E", "F", "I", "S"]
 unfixable = []
-per-file-ignores = {}
 # Allow unused variables when underscore-prefixed.
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
@@ -125,3 +125,13 @@ dev-dependencies = [
 
 [tool.pytest.ini_options]
 addopts = "--cov-report=term --cov-report=xml --cov ./src/pydatalab"
+filterwarnings = [
+    "error",
+    "ignore:.*np.bool8*:DeprecationWarning",
+    "ignore::pytest.PytestUnraisableExceptionWarning",
+    "ignore:.*Polyfit may be poorly conditioned*:numpy.RankWarning",
+    "ignore:.*invalid value encountered in sqrt*:RuntimeWarning",
+    "ignore:.*kernel_size exceeds volume extent*:UserWarning",
+    "ignore:.*divide by zero encountered in log10*:RuntimeWarning",
+    "ignore:.*invalid value encountered in log10*:RuntimeWarning",
+]

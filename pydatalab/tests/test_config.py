@@ -21,8 +21,8 @@ def test_update_settings():
     }
     config.update(new_settings)
 
-    assert config.MONGO_URI == new_settings["mongo_uri"]
-    assert config.NEW_KEY == new_settings["new_key"]
+    assert new_settings["mongo_uri"] == config.MONGO_URI
+    assert new_settings["new_key"] == config.NEW_KEY
     assert config.SECRET_KEY
     assert Path(config.FILE_DIRECTORY).name == "files"
 
@@ -80,5 +80,5 @@ def test_mail_settings_combinations(tmpdir):
     env_file.write_text("MAIL_PASSWORD=password\nMAIL_DEFAULT_SENDER=test2@example.com")
 
     app = create_app(env_file=env_file)
-    assert app.config["MAIL_PASSWORD"] == "password"
+    assert app.config["MAIL_PASSWORD"] == "password"  # noqa: S105
     assert app.config["MAIL_DEFAULT_SENDER"] == "test2@example.com"

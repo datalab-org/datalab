@@ -99,7 +99,11 @@ def logged_route(fn: Callable):
                 request.get_json().keys() if request.get_json() else "null",
             )
         except Exception:
-            pass
+            LOGGER.debug(
+                "Calling %s with request: %s, Unable to decode JSON payload",
+                fn.__name__,
+                request,
+            )
         try:
             result = fn(*args, **kwargs)
 

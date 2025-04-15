@@ -351,7 +351,7 @@ def _create_sample(
     copy_from_item_id: Optional[str] = None,
     generate_id_automatically: bool = False,
 ) -> tuple[dict, int]:
-    sample_dict["item_id"] = sample_dict.get("item_id", None)
+    sample_dict["item_id"] = sample_dict.get("item_id")
     if generate_id_automatically and sample_dict["item_id"]:
         return (
             dict(
@@ -625,7 +625,7 @@ def update_item_permissions(refcode: str):
     request_json = request.get_json()
     creator_ids: list[ObjectId] = []
 
-    if not len(refcode.split(":")) == 2:
+    if len(refcode.split(":")) != 2:
         refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
 
     current_item = flask_mongo.db.items.find_one(
@@ -666,7 +666,7 @@ def update_item_permissions(refcode: str):
 
     # Validate all creator IDs are present in the database
     found_ids = [d for d in flask_mongo.db.users.find({"_id": {"$in": creator_ids}}, {"_id": 1})]  # type: ignore
-    if not len(found_ids) == len(creator_ids):
+    if len(found_ids) != len(creator_ids):
         return (
             jsonify(
                 {
@@ -704,7 +704,7 @@ def update_item_permissions(refcode: str):
         {"$set": {"creator_ids": creator_ids}},
     )
 
-    if not result.modified_count == 1:
+    if result.modified_count != 1:
         return jsonify(
             {
                 "status": "error",
@@ -765,7 +765,7 @@ def get_item_data(
     if item_id:
         match = {"item_id": item_id}
     elif refcode:
-        if not len(refcode.split(":")) == 2:
+        if len(refcode.split(":")) != 2:
             refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
 
         match = {"refcode": refcode}
@@ -803,7 +803,7 @@ def get_item_data(
     if not doc or (
         not current_user.is_authenticated
         and not CONFIG.TESTING
-        and not doc["type"] == "starting_materials"
+        and doc["type"] != "starting_materials"
     ):
         return (
             jsonify(
