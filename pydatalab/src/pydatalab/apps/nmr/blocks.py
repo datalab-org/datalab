@@ -29,6 +29,17 @@ class NMRBlock(DataBlock):
     def read_bruker_nmr_data(
         self, filename: str | Path | None = None
     ) -> tuple[dict | None, dict] | None:
+        """Loads a Bruker project from the passed or attached zip file
+        and parses it into a serialized dataframe and metadata dictionary.
+
+        Parameters:
+            filename: Optional local file to use instead of the database lookup.
+
+        Returns:
+            A tuple of the dataframe (serialized as dictionary) and the metadata
+                dictionary, or None if no compatible data is available.
+
+        """
         if not filename:
             if "file_id" not in self.data:
                 return None
@@ -57,7 +68,9 @@ class NMRBlock(DataBlock):
                 zip_ref.extractall(tmpdir_path)
 
             extracted_directory_name = tmpdir_path / name
-            available_processes = os.listdir(os.path.join(extracted_directory_name, "pdata"))
+            available_processes = sorted(
+                os.listdir(os.path.join(extracted_directory_name, "pdata"))
+            )
 
             if self.data.get("selected_process") not in available_processes:
                 self.data["selected_process"] = available_processes[0]
