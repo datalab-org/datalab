@@ -1,9 +1,8 @@
 <template>
   <DataBlockBase :item_id="item_id" :block_id="block_id">
-    <div class="mb-3">
-      <label for="sampleDropdown" class="form-label">Select a sample file:</label>
+    <div class="d-flex align-items-center mb-3">
+      <span class="me-3 text-end" style="width: 150px; align-self: center">Sample File:</span>
       <FileSelectDropdown
-        id="sampleDropdown"
         v-model="sample_file_id"
         :item_id="item_id"
         :block_id="block_id"
@@ -12,10 +11,9 @@
       />
     </div>
 
-    <div class="mb-3">
-      <label for="referenceDropdown" class="form-label">Select a reference file:</label>
+    <div class="d-flex align-items-center mb-3">
+      <span class="me-3 text-end" style="width: 150px; align-self: center">Reference File:</span>
       <FileSelectDropdown
-        id="referenceDropdown"
         v-model="reference_file_id"
         :item_id="item_id"
         :block_id="block_id"
@@ -23,7 +21,16 @@
         update-block-on-change
       />
     </div>
-
+    <div>
+      <MultiFileSelector
+        v-model="selectedFileOrder"
+        :item_id="currentItemId"
+        :block_id="currentBlockId"
+        :extensions="['.txt', '.TXT']"
+        :update-block-on-change="true"
+      />
+      <p>Selected File Order: {{ selectedFileOrder }}</p>
+    </div>
     <div class="row">
       <div id="bokehPlotContainer" class="col-xl-9 col-lg-10 col-md-11 mx-auto">
         <BokehPlot :bokeh-plot-data="bokehPlotData" />
@@ -35,6 +42,7 @@
 <script>
 import DataBlockBase from "@/components/datablocks/DataBlockBase";
 import FileSelectDropdown from "@/components/FileSelectDropdown";
+import MultiFileSelector from "@/components/FileMultiSelectDropdown";
 import BokehPlot from "@/components/BokehPlot";
 
 import { createComputedSetterForBlockField } from "@/field_utils.js";
@@ -45,6 +53,7 @@ export default {
     DataBlockBase,
     FileSelectDropdown,
     BokehPlot,
+    MultiFileSelector,
   },
   props: {
     item_id: {
@@ -55,6 +64,13 @@ export default {
       type: String,
       required: true,
     },
+  },
+  data() {
+    return {
+      currentItemId: this.item_id, // Pass the actual item ID
+      currentBlockId: this.block_id, // Pass the actual block ID
+      selectedFileOrder: [], // Initialize as an empty array
+    };
   },
   computed: {
     bokehPlotData() {
