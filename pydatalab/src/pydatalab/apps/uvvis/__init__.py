@@ -4,7 +4,7 @@ from pathlib import Path
 import bokeh.embed
 import numpy as np
 import pandas as pd
-from bokeh.models import HoverTool, LogColorMapper
+from bokeh.models import HoverTool
 
 from pydatalab.blocks.base import DataBlock
 from pydatalab.bokeh_plots import DATALAB_BOKEH_THEME, selectable_axes_plot
@@ -60,74 +60,111 @@ class UVVisBlock(DataBlock):
         return absorbance_data
 
     @classmethod
-    def _format_UV_Vis_plot(self, absorbance_data: pd.DataFrame) -> bokeh.layouts.layout:
+    def _format_UV_Vis_plot(
+        self, absorbance_data_list: list[pd.DataFrame], names: list[str] | None = None
+    ) -> bokeh.layouts.layout:
         """
-        Formats the UV-Vis plot using Bokeh
+        Formats a UV-Vis plot for one or more spectra using the selectable_axes_plot function.
+
         Args:
-            absorbance_data (pd.DataFrame): DataFrame containing the wavelength and absorbance data
+            absorbance_data_list (list[pd.DataFrame]): List of DataFrames, each required
+                                                     to have 'Wavelength' and 'Absorbance' columns.
+            names (list[str], optional): A list of names corresponding to each DataFrame,
+                                         used for the legend. If provided, its length must match
+                                         the length of absorbance_data_list.
+
         Returns:
-            bokeh.layouts.layout: Bokeh layout object containing the plot
+            bokeh.layouts.layout or None: Bokeh layout object containing the plot and controls,
+                                          as returned by selectable_axes_plot. Returns None if
+                                          input list is empty or plotting is skipped internally.
         """
-        # Create a Bokeh plot with selectable axes
+        if not absorbance_data_list:
+            LOGGER.warning("Received an empty list of absorbance data. No plot generated.")
+            return None
+
+        # Basic validation of input data structure
+        if names and len(names) != len(absorbance_data_list):
+            raise ValueError("Length of 'names' list must match the number of DataFrames.")
+
+        for i, df in enumerate(absorbance_data_list):
+            if not {"Wavelength", "Absorbance"}.issubset(df.columns):
+                raise ValueError(
+                    f"DataFrame at index {i} must contain 'Wavelength' and 'Absorbance' columns."
+                )
+
+        if names:
+            # Use provided names as keys
+            plot_data_input = {
+                str(name): df for name, df in zip(names, absorbance_data_list)
+            }  # Ensure names are strings
+        else:
+            # Generate default names if none provided, ensuring keys are strings
+            plot_data_input = {f"Spectrum {i+1}": df for i, df in enumerate(absorbance_data_list)}
+
+        # Define the specific HoverTool configuration needed for UV-Vis
+        uv_hover_tool = HoverTool(
+            # Ensure these column names (@Wavelength, @Absorbance) exist in the DataFrames
+            tooltips=[
+                ("Wavelength / nm", "@Wavelength{0.00}"),
+                ("Absorbance", "@Absorbance{0.0000}"),
+                # Note: selectable_axes_plot doesn't automatically add the dict key/name
+                # as a column to the CDS, so we can't easily use ('Name', '@name')
+                # unless we modify selectable_axes_plot or preprocess the data.
+                # The legend will be the primary identifier.
+            ],
+            mode="vline",  # Tooltip follows the x-coordinate across all lines
+        )
+        LOGGER.info("Hover tool type: %s", type(uv_hover_tool))
+        # Call the existing selectable_axes_plot function
+        # We configure it specifically for a non-selectable UV-Vis plot use case
         layout = selectable_axes_plot(
-            absorbance_data,
-            x_options=["Wavelength"],
-            y_options=["Absorbance"],
-            color_mapper=LogColorMapper("Cividis256"),
-            plot_points=False,
-            plot_line=True,
-            tools=HoverTool(
-                tooltips=[
-                    ("Wavelength / nm", "@Wavelength{0.00}"),
-                    ("Absorbance", "@Absorbance{0.0000}"),
-                ],  # Display x and y values to specified decimal places
-                mode="vline",  # Ensures hover follows the x-axis
-            ),
+            df=plot_data_input,  # Pass the list or dict of DataFrames
+            x_options=["Wavelength"],  # Fix X axis option
+            y_options=["Absorbance"],  # Fix Y axis option
+            x_default="Wavelength",  # Set default X
+            y_default="Absorbance",  # Set default Y
+            plot_points=False,  # We only want lines for spectra
+            plot_line=True,  # Ensure lines are plotted
+            tools=[uv_hover_tool],  # Add our specific hover tool
+            # color_options / color_mapper: Let selectable_axes_plot handle default color cycling
+            #                                based on index unless specific coloring logic is needed.
+            # plot_title="UV-Vis Spectra", # Optional: Add a title if desired
+            show_table=False,  # Usually don't need the table for this plot type
         )
         # Adding cm^-1 to the x-axis label using unicode characters - might be a more logical way
-        layout.children[1].xaxis.axis_label = "Wavelength / nm"
+        layout.children[0].xaxis.axis_label = "Wavelength / nm"
         return layout
 
     def generate_absorbance_plot(self):
-        sample_file_info = None
-        reference_file_info = None
-        # all_files = None
         absorbance_data = None
-
-        if "sample_file_id" not in self.data or "reference_file_id" not in self.data:
-            LOGGER.warning("No file set in the DataBlock")
+        if "selected_file_order" not in self.data:
+            LOGGER.warning("No file set in the DataBlock - selected_file_order")
             return
+
         else:
-            sample_file_info = get_file_info_by_id(self.data["sample_file_id"], update_if_live=True)
-            ext = os.path.splitext(sample_file_info["location"].split("/")[-1])[-1].lower()
-            if ext not in self.accepted_file_extensions:
-                LOGGER.warning(
-                    "Unsupported file extension (must be one of %s, not %s)",
-                    self.accepted_file_extensions,
-                    ext,
-                )
+            file_info = []
+            for file_id in self.data["selected_file_order"]:
+                file_info.append(get_file_info_by_id((file_id), update_if_live=True))
+            # Check if the file is in the accepted file extensions
+            for file in file_info:
+                ext = os.path.splitext(file["location"].split("/")[-1])[-1].lower()
+                if ext not in self.accepted_file_extensions:
+                    LOGGER.warning(
+                        "Unsupported file extension (must be one of %s, not %s)",
+                        self.accepted_file_extensions,
+                        ext,
+                    )
 
-            reference_file_info = get_file_info_by_id(
-                self.data["reference_file_id"], update_if_live=True
-            )
-            ext = os.path.splitext(reference_file_info["location"].split("/")[-1])[-1].lower()
-            if ext not in self.accepted_file_extensions:
-                LOGGER.warning(
-                    "Unsupported file extension (must be one of %s, not %s)",
-                    self.accepted_file_extensions,
-                    ext,
-                )
-                return
-
-            sample_data = self.parse_uvvis_txt(Path(sample_file_info["location"]))
-            reference_data = self.parse_uvvis_txt(Path(reference_file_info["location"]))
-            if sample_data is None or reference_data is None:
-                LOGGER.warning("Could not parse the UV-Vis data files")
-                return
-            # Calculate absorbance
-            absorbance_data = self.find_absorbance(sample_data, reference_data)
-
-        if absorbance_data is not None:
-            LOGGER.info("Generating UV-Vis plot")
-            layout = self._format_UV_Vis_plot(absorbance_data)
+            reference_data = self.parse_uvvis_txt(Path(file_info[0]["location"]))
+            absorbance_data = []
+            for file in file_info[1:]:
+                sample_data = self.parse_uvvis_txt(Path(file["location"]))
+                if sample_data is None or reference_data is None:
+                    LOGGER.warning("Could not parse the UV-Vis data files")
+                    return
+                # Calculate absorbance
+                absorbance_data.append(self.find_absorbance(sample_data, reference_data))
+        _names = [Path(file["location"]).name for file in file_info[1:]]
+        if len(absorbance_data) > 0:
+            layout = self._format_UV_Vis_plot(absorbance_data, names=_names)
             self.data["bokeh_plot_data"] = bokeh.embed.json_item(layout, theme=DATALAB_BOKEH_THEME)
