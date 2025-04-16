@@ -166,7 +166,10 @@ class XRDBlock(DataBlock):
                 0 * df["intensity - median baseline"]
             )
 
+        df["normalized intensity (staggered)"] = df["normalized intensity"]
+
         return df
+
 
     def generate_xrd_plot(self):
         file_info = None
