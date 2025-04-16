@@ -192,3 +192,29 @@ def parse_rasx_zip(filename: str) -> pd.DataFrame:
             "intensity": xrd_data["intensity"],
         }
     )
+
+
+def compute_cif_pxrd(filename: str, wavelength: float) -> tuple[pd.DataFrame, dict]:
+    """Parses a CIF file and returns a pandas DataFrame with columns
+    twotheta and intensity.
+
+    Parameters:
+        filename: The file to parse.
+
+    """
+    from matador.fingerprints.pxrd import PXRD
+    from matador.scrapers.cif_scraper import cif2dict
+
+    structure, success = cif2dict(filename)
+    if not success:
+        raise RuntimeError(f"Failed to parse required information from CIF file {filename}.")
+
+    pxrd = PXRD(structure, wavelength=wavelength, two_theta_bounds=(5, 60))
+
+    df = pd.DataFrame({"intensity": pxrd.pattern, "twotheta": pxrd.two_thetas})
+    peak_data = {
+        "peak_positions": pxrd.peak_positions,
+        "peak_intensities": pxrd.peak_intensities,
+        "peak_hkls": pxrd.hkls,
+    }
+    return df, peak_data

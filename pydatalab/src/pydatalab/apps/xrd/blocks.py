@@ -12,14 +12,14 @@ from pydatalab.file_utils import get_file_info_by_id
 from pydatalab.logger import LOGGER
 from pydatalab.mongo import flask_mongo
 
-from .utils import parse_rasx_zip, parse_xrdml
+from .utils import compute_cif_pxrd, parse_rasx_zip, parse_xrdml
 
 
 class XRDBlock(DataBlock):
     blocktype = "xrd"
     name = "Powder XRD"
     description = "Visualize XRD patterns and perform simple baseline corrections."
-    accepted_file_extensions = (".xrdml", ".xy", ".dat", ".xye", ".rasx")
+    accepted_file_extensions = (".xrdml", ".xy", ".dat", ".xye", ".rasx", ".cif")
 
     defaults = {"wavelength": 1.54060}
 
@@ -29,17 +29,25 @@ class XRDBlock(DataBlock):
 
     @classmethod
     def load_pattern(
-        self, location: str, wavelength: float | None = None
+        cls, location: str, wavelength: float | None = None
     ) -> tuple[pd.DataFrame, list[str]]:
         if not isinstance(location, str):
             location = str(location)
 
         ext = os.path.splitext(location.split("/")[-1])[-1].lower()
 
+        theoretical = False
+
         if ext == ".xrdml":
             df = parse_xrdml(location)
         elif ext == ".rasx":
             df = parse_rasx_zip(location)
+        elif ext == ".cif":
+            df, peak_data = compute_cif_pxrd(
+                location, wavelength=wavelength or cls.defaults["wavelength"]
+            )
+            theoretical = True  # Track whether this is a computed PXRD that does not need background subtraction
+            LOGGER.debug("Computed PXRD for CIF file %s", location)
 
         else:
             columns = ["twotheta", "intensity", "error"]
@@ -107,42 +115,56 @@ class XRDBlock(DataBlock):
             for warning_type, message in warnings_to_ignore:
                 warnings.filterwarnings("ignore", category=warning_type, message=message)
 
-            y_option_df = self._calc_baselines_and_normalize(df["2θ (°)"], df["intensity"])
+            y_option_df = cls._calc_baselines_and_normalize(
+                df["2θ (°)"], df["intensity"], theoretical=theoretical
+            )
 
         y_options = ["intensity"] + list(y_option_df.columns)
 
         df = pd.concat([df, y_option_df], axis=1)
-
-        df.index.name = location.split("/")[-1]
+        df.index.name = location.split("/")[-1] + (" (theoretical)" if theoretical else "")
 
         return df, y_options
 
     @classmethod
     def _calc_baselines_and_normalize(
-        cls, two_thetas, intensity, polyfit_deg: int = 15, kernel_size: int = 101
+        cls,
+        two_thetas,
+        intensity,
+        polyfit_deg: int = 15,
+        kernel_size: int = 101,
+        theoretical: bool = False,
     ):
         df = pd.DataFrame()
 
         df["sqrt(intensity)"] = np.sqrt(intensity)
         df["log(intensity)"] = np.log10(intensity)
         df["normalized intensity"] = intensity / np.max(intensity)
-        polyfit_deg = 15
-        polyfit_baseline = np.poly1d(
-            np.polyfit(two_thetas, df["normalized intensity"], deg=polyfit_deg)
-        )(two_thetas)
-        df["intensity - polyfit baseline"] = df["normalized intensity"] - polyfit_baseline
-        df["intensity - polyfit baseline"] /= np.max(df["intensity - polyfit baseline"])
-        df[f"baseline (`numpy.polyfit`, deg={polyfit_deg})"] = polyfit_baseline / np.max(
-            df["intensity - polyfit baseline"]
-        )
 
-        kernel_size = 101
-        median_baseline = medfilt(df["normalized intensity"], kernel_size=kernel_size)
-        df["intensity - median baseline"] = df["normalized intensity"] - median_baseline
-        df["intensity - median baseline"] /= np.max(df["intensity - median baseline"])
-        df[f"baseline (`scipy.signal.medfilt`, kernel_size={kernel_size})"] = (
-            median_baseline / np.max(df["intensity - median baseline"])
-        )
+        if not theoretical:
+            polyfit_baseline = np.poly1d(
+                np.polyfit(two_thetas, df["normalized intensity"], deg=polyfit_deg)
+            )(two_thetas)
+            df["intensity - polyfit baseline"] = df["normalized intensity"] - polyfit_baseline
+            df["intensity - polyfit baseline"] /= np.max(df["intensity - polyfit baseline"])
+            df[f"baseline (`numpy.polyfit`, deg={polyfit_deg})"] = polyfit_baseline / np.max(
+                df["intensity - polyfit baseline"]
+            )
+            median_baseline = medfilt(df["normalized intensity"], kernel_size=kernel_size)
+            df["intensity - median baseline"] = df["normalized intensity"] - median_baseline
+            df["intensity - median baseline"] /= np.max(df["intensity - median baseline"])
+            df[f"baseline (`scipy.signal.medfilt`, kernel_size={kernel_size})"] = (
+                median_baseline / np.max(df["intensity - median baseline"])
+            )
+        else:
+            df["intensity - polyfit baseline"] = df["normalized intensity"]
+            df[f"baseline (`numpy.polyfit`, deg={polyfit_deg})"] = (
+                0.0 * df["intensity - polyfit baseline"]
+            )
+            df["intensity - median baseline"] = df["normalized intensity"]
+            df[f"baseline (`scipy.signal.medfilt`, kernel_size={kernel_size})"] = (
+                0 * df["intensity - median baseline"]
+            )
 
         return df
 
