@@ -429,14 +429,14 @@ export default {
       Object.keys(this.properties).forEach((key) => {
         if (this.properties[key].type === "toggleDetails") {
           this.properties[key].toggles.forEach((toggle) => {
-            this.$set(this.propertyValues, toggle.key, this.block_data[toggle.key] || false);
+            this.propertyValues[toggle.key] = this.block_data[toggle.key] || false;
           });
         } else {
           const value = this.block_data[key] || this.properties[key].default || null;
-          this.$set(this.propertyValues, key, value);
+          this.propertyValues[key] = value;
         }
 
-        this.$set(this.descriptionVisible, key, false);
+        this.descriptionVisible[key] = false;
       });
     },
     validateProperty(propKey) {
@@ -452,7 +452,7 @@ export default {
         }
       }
 
-      this.$set(this.validationErrors, propKey, error);
+      this.validationErrors[propKey] = error;
       return !error;
     },
     getSelectOptions(prop) {
