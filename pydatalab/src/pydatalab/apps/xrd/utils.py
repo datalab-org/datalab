@@ -213,8 +213,10 @@ def compute_cif_pxrd(filename: str, wavelength: float) -> tuple[pd.DataFrame, di
 
     df = pd.DataFrame({"intensity": pxrd.pattern, "twotheta": pxrd.two_thetas})
     peak_data = {
-        "peak_positions": pxrd.peak_positions,
-        "peak_intensities": pxrd.peak_intensities,
-        "peak_hkls": pxrd.hkls,
+        "positions": pxrd.peak_positions.tolist(),
+        "intensities": pxrd.peak_intensities.tolist(),
+        "widths": None,
+        "hkls": pxrd.hkls.tolist(),
+        "theoretical": True,
     }
     return df, peak_data
