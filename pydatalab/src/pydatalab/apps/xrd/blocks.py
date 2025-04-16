@@ -173,24 +173,28 @@ class XRDBlock(DataBlock):
         all_files = None
         pattern_dfs = None
 
-        if "file_id" not in self.data:
+        if self.data.get("file_id") is None:
             # If no file set, try to plot them all
             item_info = flask_mongo.db.items.find_one(
                 {"item_id": self.data["item_id"]},
+                projection={"file_ObjectIds": 1},
             )
 
-            all_files = [
-                d
-                for d in [
-                    get_file_info_by_id(f, update_if_live=False)
-                    for f in item_info["file_ObjectIds"]
-                ]
-                if any(d["name"].lower().endswith(ext) for ext in self.accepted_file_extensions)
-            ]
+            all_files = []
+            for f in item_info["file_ObjectIds"]:
+                try:
+                    file_info = get_file_info_by_id(f, update_if_live=False)
+                except OSError:
+                    LOGGER.warning("Missing file found in database but no on disk: %s", f)
+                    continue
+                ext = os.path.splitext(file_info["location"].split("/")[-1])[-1].lower()
+                if any(
+                    file_info["name"].lower().endswith(ext) for ext in self.accepted_file_extensions
+                ):
+                    all_files.append(file_info)
 
-            if not all_files:
-                LOGGER.warning("XRDBlock.generate_xrd_plot(): No files found on sample")
-                return
+                if not all_files:
+                    warnings.warn("No compatible files found in item")
 
             pattern_dfs = []
             for f in all_files:
@@ -200,9 +204,7 @@ class XRDBlock(DataBlock):
                         wavelength=float(self.data.get("wavelength", self.defaults["wavelength"])),
                     )
                 except Exception as exc:
-                    raise RuntimeError(
-                        f"Could not parse file {file_info['location']}. Error: {exc}"
-                    )
+                    warnings.warn(f"Could not parse file {file_info['location']}. Error: {exc}")
                 pattern_dfs.append(pattern_df)
 
         else:
@@ -233,3 +235,4 @@ class XRDBlock(DataBlock):
             )
 
             self.data["bokeh_plot_data"] = bokeh.embed.json_item(p, theme=DATALAB_BOKEH_THEME)
+            LOGGER.debug("Created bokeh plot for XRDBlock %s", self.data["block_id"])
