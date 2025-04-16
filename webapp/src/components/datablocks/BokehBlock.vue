@@ -6,7 +6,7 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
       v-model="file_id"
       :item_id="item_id"
       :block_id="block_id"
-      :extensions="['']"
+      :extensions="blockInfo.attributes.accepted_file_extensions"
       update-block-on-change
     />
 
@@ -44,19 +44,27 @@ export default {
   },
   computed: {
     bokehPlotData() {
-      return this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id]
-        .bokeh_plot_data;
+      return this.block.bokeh_plot_data;
+    },
+    block() {
+      return this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id];
+    },
+    blockInfo() {
+      return this.$store.state.blocksInfos[this.blockType];
+    },
+    blockType() {
+      try {
+        return this.block["blocktype"];
+      } catch {
+        return null;
+      }
     },
     file_id: createComputedSetterForBlockField("file_id"),
   },
 
   methods: {
     updateBlock() {
-      updateBlockFromServer(
-        this.item_id,
-        this.block_id,
-        this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id],
-      );
+      updateBlockFromServer(this.item_id, this.block_id, this.block);
     },
   },
 };

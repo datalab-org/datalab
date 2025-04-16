@@ -21,6 +21,7 @@
           aria-expanded="false"
           @click="isMenuDropdownVisible = !isMenuDropdownVisible"
         >
+          <font-awesome-icon icon="cubes" fixed-width />
           Add a block
         </a>
         <div
@@ -135,6 +136,7 @@ export default {
       next();
     } else {
       if (window.confirm("Unsaved changes present. Would you like to leave without saving?")) {
+        this.$store.commit("setItemSaved", { item_id: this.item_id, isSaved: true });
         next();
       } else {
         next(false);
@@ -275,6 +277,9 @@ export default {
       if (this.item_id == null) {
         getItemByRefcode(this.refcode).then(() => {
           this.itemDataLoaded = true;
+          this.$nextTick(() => {
+            this.$store.commit("setItemSaved", { item_id: this.item_id, isSaved: true });
+          });
           this.item_id = this.$store.state.refcode_to_id[this.refcode];
           this.updateBlocks();
         });
@@ -282,6 +287,9 @@ export default {
         getItemData(this.item_id).then(() => {
           this.itemDataLoaded = true;
           this.refcode = this.item_data.refcode;
+          this.$nextTick(() => {
+            this.$store.commit("setItemSaved", { item_id: this.item_id, isSaved: true });
+          });
           this.updateBlocks();
         });
       }

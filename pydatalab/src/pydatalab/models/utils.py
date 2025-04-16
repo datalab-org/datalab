@@ -183,7 +183,7 @@ class RefCodeFactory:
 
 
 def random_uppercase(length: int = 6):
-    return "".join(random.choices(string.ascii_uppercase, k=length))
+    return "".join(random.choices(string.ascii_uppercase, k=length))  # noqa: S311
 
 
 class RandomAlphabeticalRefcodeFactory(RefCodeFactory):

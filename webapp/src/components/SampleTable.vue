@@ -34,19 +34,30 @@ export default {
         { field: "name", header: "Sample name" },
         { field: "chemform", header: "Formula", body: "ChemicalFormula" },
         { field: "date", header: "Date" },
-        { field: "collections", header: "Collections", body: "CollectionList", filter: true },
-        { field: "creators", header: "Creators", body: "Creators", filter: true },
-        { field: "nblocks", header: "# of blocks" },
+        { field: "collectionsList", header: "Collections", body: "CollectionList", filter: true },
+        { field: "creatorsList", header: "Creators", body: "Creators", filter: true },
+        {
+          field: "blocks",
+          header: "",
+          body: "BlocksIconCounter",
+          icon: ["fa", "cubes"],
+          filter: true,
+        },
+        { field: "nfiles", header: "", body: "FilesIconCounter", icon: ["fa", "file"] },
       ],
     };
   },
   computed: {
     samples() {
-      return this.$store.state.sample_list.map((sample) => ({
-        ...sample,
-        collectionsList: sample.collections.join(", "),
-        creatorsList: sample.creators.map((creator) => creator.display_name).join(", "),
-      }));
+      return this.$store.state.sample_list.map((sample) => {
+        return {
+          ...sample,
+          collectionsList: sample.collections
+            .map((collection) => collection.collection_id)
+            .join(", "),
+          creatorsList: sample.creators.map((creator) => creator.display_name).join(", "),
+        };
+      });
     },
   },
   mounted() {

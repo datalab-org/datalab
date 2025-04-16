@@ -79,7 +79,8 @@ describe("StartingMaterialTable Component Tests", () => {
       "Formula",
       "Date",
       "Purity",
-      "# of blocks",
+      "", // nblocks
+      "", //nfiles
     ];
 
     cy.get(".p-datatable-column-header-content").should("have.length", headers.length);

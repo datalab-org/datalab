@@ -7,8 +7,11 @@
         class="collapse-arrow"
         @click="toggleExpandBlock"
       />
+      <font-awesome-icon :icon="['fas', 'cubes']" fixed-width />
       <input v-model="BlockTitle" class="form-control-plaintext block-title" type="text" />
-      <span class="blocktype-label ml-auto mr-3">{{ blockType }}</span>
+      <span class="blocktype-label ml-auto mr-3 d-inline" style="white-space: nowrap">
+        {{ blockType }}
+      </span>
       <span v-if="blockInfo" class="block-header-icon"
         ><StyledBlockInfo :block-info="blockInfo"
       /></span>
@@ -41,7 +44,7 @@
     <div
       ref="datablockContent"
       :style="{ 'max-height': contentMaxHeight }"
-      class="datablock-content"
+      class="datablock-content position-relative"
     >
       <!-- Show any warnings or errors reported by the block -->
       <div
@@ -105,8 +108,26 @@
           </li>
         </ul>
       </div>
+      <div
+        v-if="showOverlay"
+        class="position-absolute w-100 h-100 top-0 start-0 d-flex justify-content-center align-items-center"
+        style="background-color: rgba(255, 255, 255, 0.7); z-index: 100"
+        data-testid="loading-overlay"
+      >
+        <div class="card p-3 shadow-sm">
+          <div class="text-center">
+            <font-awesome-icon
+              :icon="['fa', 'sync']"
+              class="fa-2x text-primary mb-2"
+              :spin="true"
+              aria-label="loading"
+            />
+            <p class="mb-0 fw-medium">Loading data...</p>
+          </div>
+        </div>
+      </div>
       <slot></slot>
-      <TinyMceInline v-model="BlockDescription"></TinyMceInline>
+      <TinyMceInline v-model="BlockDescription" data-testid="block-description"></TinyMceInline>
     </div>
   </div>
 </template>
@@ -173,6 +194,9 @@ export default {
     },
     blockInfo() {
       return this.$store.state.blocksInfos?.[this.blockType];
+    },
+    showOverlay() {
+      return this.isUpdating && this.isExpanded;
     },
     BlockTitle: createComputedSetterForBlockField("title"),
     BlockDescription: createComputedSetterForBlockField("freeform_comment"),

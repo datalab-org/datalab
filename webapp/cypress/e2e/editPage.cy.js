@@ -27,7 +27,6 @@ describe("Edit Page", () => {
     cy.findByText("About").should("exist");
     cy.findByText("Samples").should("exist");
     cy.findByText("Add an item").should("exist");
-    cy.findByText("# of blocks").should("exist");
 
     cy.contains("Server Error. Sample list could not be retreived.").should("not.exist");
     expect(consoleSpy).not.to.be.called;
@@ -35,7 +34,8 @@ describe("Edit Page", () => {
 
   it("Adds a valid sample", () => {
     cy.createSample("editable_sample", "This is a sample name", "1990-01-07T00:00");
-    cy.get("tr>td").eq(8).contains(0); // 0 blocks are present
+    cy.get("tr>td").eq(8).should("be.empty"); // 0 blocks are present
+    cy.get("tr>td").eq(9).should("be.empty"); // 0 files are present
   });
 
   it("Add some more samples, to use as components", () => {
@@ -225,7 +225,7 @@ describe("Edit Page", () => {
     cy.get(".datablock-content div").eq(0).type("\nThe first comment box; further changes.");
     cy.contains("Unsaved changes");
 
-    cy.get(".datablock-content div").eq(1).type("The second comment box");
+    cy.get('[data-testid="block-description"]').eq(0).type("The second comment box");
     cy.contains("Unsaved changes");
     cy.get('.datablock-header [aria-label="updateBlock"]').eq(1).click();
     cy.wait(500).then(() => {
@@ -234,7 +234,9 @@ describe("Edit Page", () => {
     cy.get('.datablock-header [aria-label="updateBlock"]').eq(0).click();
     cy.contains("Unsaved changes").should("not.exist");
 
-    cy.get(".datablock-content div").eq(1).type("\nThe second comment box; further changes");
+    cy.get('[data-testid="block-description"]')
+      .eq(0)
+      .type("\nThe second comment box; further changes");
     cy.findByLabelText("Name").type("name change");
     cy.contains("Unsaved changes");
 
