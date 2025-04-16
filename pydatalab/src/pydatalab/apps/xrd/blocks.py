@@ -13,6 +13,7 @@ from pydatalab.file_utils import get_file_info_by_id
 from pydatalab.logger import LOGGER
 from pydatalab.mongo import flask_mongo
 
+from .models import PeakInformation
 from .utils import compute_cif_pxrd, parse_rasx_zip, parse_xrdml
 
 
@@ -31,13 +32,14 @@ class XRDBlock(DataBlock):
     @classmethod
     def load_pattern(
         cls, location: str, wavelength: float | None = None
-    ) -> Tuple[pd.DataFrame, List[str]]:
+    ) -> Tuple[pd.DataFrame, List[str], dict]:
         if not isinstance(location, str):
             location = str(location)
 
         ext = os.path.splitext(location.split("/")[-1])[-1].lower()
 
         theoretical = False
+        peak_data: dict = {}
 
         if ext == ".xrdml":
             df = parse_xrdml(location)
@@ -133,7 +135,7 @@ class XRDBlock(DataBlock):
             f"baseline (`numpy.polyfit`, deg={polyfit_deg})",
         ]
 
-        return df, y_options
+        return df, y_options, peak_data
 
     def generate_xrd_plot(self):
         file_info = None
@@ -164,15 +166,22 @@ class XRDBlock(DataBlock):
                     warnings.warn("No compatible files found in item")
 
             pattern_dfs = []
-            for f in all_files:
+            peak_information = {}
+            for ind, f in enumerate(all_files):
                 try:
-                    pattern_df, y_options = self.load_pattern(
+                    pattern_df, y_options, peak_data = self.load_pattern(
                         f["location"],
                         wavelength=float(self.data.get("wavelength", self.defaults["wavelength"])),
                     )
                 except Exception as exc:
                     warnings.warn(f"Could not parse file {file_info['location']}. Error: {exc}")
+                    peak_data: dict = {}
+                    continue
+                peak_information[str(f["immutable_id"])] = PeakInformation(**peak_data).dict()
+                pattern_df["normalized intensity (staggered)"] += ind
                 pattern_dfs.append(pattern_df)
+
+            self.data["peak_data"] = peak_information
 
         else:
             file_info = get_file_info_by_id(self.data["file_id"], update_if_live=True)
@@ -184,10 +193,14 @@ class XRDBlock(DataBlock):
                     ext,
                 )
 
-            pattern_dfs, y_options = self.load_pattern(
+            pattern_dfs, y_options, peak_data = self.load_pattern(
                 file_info["location"],
                 wavelength=float(self.data.get("wavelength", self.defaults["wavelength"])),
             )
+            peak_model = PeakInformation(**peak_data)
+            if "peak_data" not in self.data:
+                self.data["peak_data"] = {}
+            self.data["peak_data"][str(file_info["immutable_id"])] = peak_model.dict()
             pattern_dfs = [pattern_dfs]
 
         if pattern_dfs:
