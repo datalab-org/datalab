@@ -166,7 +166,6 @@ export default createStore({
     createItemData(state, payload) {
       // payload should have the following fields:
       // refcode, item_id, item_data, child_items, parent_items
-      // Object.assign(state.all_sample_data[payload.item_data], payload.item_data)
       state.all_item_data[payload.item_id] = payload.item_data;
       state.all_item_children[payload.item_id] = payload.child_items;
       state.all_item_parents[payload.item_id] = payload.parent_items;
@@ -176,7 +175,6 @@ export default createStore({
     setCollectionData(state, payload) {
       // payload should have the following fields:
       // collection_id, data, child_items
-      // Object.assign(state.all_sample_data[payload.item_data], payload.item_data)
       state.all_collection_data[payload.collection_id] = payload.data;
       state.saved_status_collections[payload.collection_id] = true;
     },
@@ -359,7 +357,7 @@ export default createStore({
     },
     getBlockByItemIDandBlockID: (state) => (item_id, block_id) => {
       console.log("getBlockBySampleIDandBlockID called with:", item_id, block_id);
-      return state.all_sample_data[item_id]["blocks_obj"][block_id];
+      return state.all_item_data[item_id]["blocks_obj"][block_id];
     },
     getCurrentUserDisplayName(state) {
       return state.currentUserDisplayName;
