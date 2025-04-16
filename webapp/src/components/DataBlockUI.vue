@@ -8,202 +8,150 @@
       :extensions="blockInfo.attributes.accepted_file_extensions"
       update-block-on-change
     />
+
     <div v-if="file_id && blockInfo">
-      <div v-if="haveWavelengthProperties">
-        <div class="form-row col-md-6 col-lg-4 mt-2 mb-2 pl-0">
+      <div v-for="(prop, propKey) in properties" :key="propKey">
+        <div v-if="prop.type === 'float'" class="form-row col-md-6 col-lg-4 mt-2 mb-2 pl-0">
           <div class="input-group form-inline">
             <label class="mr-2"
-              ><b>{{ properties.wavelength.label }}</b></label
+              ><b>{{ prop.label }}</b></label
             >
             <input
-              v-model="wavelength"
+              v-model="propertyValues[propKey]"
               type="text"
               class="form-control"
-              :class="{ 'is-invalid': wavelengthParseError }"
+              :class="{ 'is-invalid': validationErrors[propKey] }"
               @keydown.enter="
-                parseWavelength();
+                validateProperty(propKey);
                 updateBlock();
               "
               @blur="
-                parseWavelength();
+                validateProperty(propKey);
                 updateBlock();
               "
             />
-            <div v-if="wavelengthParseError" class="alert alert-danger mt-2 mx-auto">
-              {{ wavelengthParseError }}
+            <div v-if="validationErrors[propKey]" class="alert alert-danger mt-2 mx-auto">
+              {{ validationErrors[propKey] }}
             </div>
           </div>
         </div>
-      </div>
-      <div v-if="haveCycleProperties">
-        <div class="form-row">
+
+        <div v-if="prop.type === 'string'" class="form-row">
           <div class="input-group form-inline">
             <label class="mr-2"
-              ><b>{{ properties.cycle.label }}</b></label
+              ><b>{{ prop.label }}</b></label
             >
             <input
-              id="cycles-input"
-              v-model="cyclesString"
+              v-model="propertyValues[propKey]"
               type="text"
               class="form-control"
-              placeholder="e.g., 1-5, 7, 9-10. Starts at 1."
-              :class="{ 'is-invalid': cycle_num_error }"
+              :placeholder="prop.placeholder || ''"
+              :class="{ 'is-invalid': validationErrors[propKey] }"
               @keydown.enter="
-                parseCycleString();
+                validateProperty(propKey);
                 updateBlock();
               "
               @blur="
-                parseCycleString();
+                validateProperty(propKey);
                 updateBlock();
               "
             />
-            <span id="list-of-cycles" class="pl-3 pt-2">Showing cycles: {{ parsedCycles }}</span>
+            <span v-if="propKey === 'cycle'" id="list-of-cycles" class="pl-3 pt-2">
+              Showing cycles: {{ parsedCycles }}
+            </span>
           </div>
-
-          <div v-if="cycle_num_error" class="alert alert-danger mt-2 mx-auto">
-            {{ cycle_num_error }}
+          <div v-if="validationErrors[propKey]" class="alert alert-danger mt-2 mx-auto">
+            {{ validationErrors[propKey] }}
           </div>
         </div>
 
-        <div class="form-row mt-2">
+        <div v-if="prop.type === 'selector'" class="form-row mt-2">
           <div class="input-group form-inline">
-            <label class="mr-2"><b>Mode:</b></label>
+            <label class="mr-2"
+              ><b>{{ prop.label || "Mode:" }}</b></label
+            >
             <div class="btn-group">
               <div
+                v-for="option in prop.options"
+                :key="option.value"
                 class="btn btn-default"
-                :class="{ active: derivative_mode == 'final capacity' }"
+                :class="{ active: propertyValues[propKey] === option.value }"
                 @click="
-                  derivative_mode = derivative_mode == 'final capacity' ? null : 'final capacity';
+                  propertyValues[propKey] =
+                    propertyValues[propKey] === option.value ? null : option.value;
                   updateBlock();
                 "
-              >
-                Cycle Summary
-              </div>
-              <div
-                class="btn btn-default"
-                :class="{ active: derivative_mode == 'dQ/dV' }"
-                @click="
-                  derivative_mode = derivative_mode == 'dQ/dV' ? null : 'dQ/dV';
-                  updateBlock();
-                "
-              >
-                d<i>Q</i>/d<i>V</i>
-              </div>
-              <div
-                class="btn btn-default"
-                :class="{ active: derivative_mode == 'dV/dQ' }"
-                @click="
-                  derivative_mode = derivative_mode == 'dV/dQ' ? null : 'dV/dQ';
-                  updateBlock();
-                "
-              >
-                d<i>V</i>/d<i>Q</i>
-              </div>
+                v-html="option.label"
+              ></div>
             </div>
           </div>
         </div>
 
-        <div
-          v-if="derivative_mode == 'dQ/dV' || derivative_mode == 'dV/dQ'"
-          v-show="derivative_mode"
-          class="row"
-        >
+        <div v-if="prop.type === 'slider' && shouldShowSliders" class="row">
           <div class="col-md slider" style="max-width: 250px">
             <input
-              id="s_spline"
-              v-model="s_spline"
+              :id="propKey"
+              v-model="propertyValues[propKey]"
               type="range"
               class="form-control-range"
-              name="s_spline"
-              min="1"
-              max="10"
-              step="0.2"
+              :name="propKey"
+              :min="prop.min"
+              :max="prop.max"
+              :step="prop.step"
               @change="isReplotButtonDisplayed = true"
             />
             <label
-              for="s_spline"
-              @mouseover="showDescription1 = true"
-              @mouseleave="showDescription1 = false"
+              :for="propKey"
+              @mouseover="descriptionVisible[propKey] = true"
+              @mouseleave="descriptionVisible[propKey] = false"
             >
-              <span>Spline fit:</span> {{ -s_spline }}
+              <span>{{ prop.label }}</span>
+              {{ propKey === "s_spline" ? `-${propertyValues[propKey]}` : propertyValues[propKey] }}
             </label>
           </div>
-          <div class="col-md slider" style="max-width: 250px">
-            <input
-              id="win_size_1"
-              v-model="win_size_1"
-              type="range"
-              class="form-control-range"
-              name="win_size_1"
-              min="501"
-              max="1501"
-              @change="isReplotButtonDisplayed = true"
-            />
-            <label
-              for="win_size_1"
-              @mouseover="showDescription2 = true"
-              @mouseleave="showDescription2 = false"
-            >
-              <span>Window Size 1:</span> {{ win_size_1 }}
-            </label>
+          <div v-if="descriptionVisible[propKey]" class="alert alert-info">
+            <p>{{ prop.description }}</p>
           </div>
-          <button
-            v-show="isReplotButtonDisplayed"
-            class="btn btn-default my-4"
-            @click="updateBlock"
-          >
-            Recalculate
-          </button>
         </div>
 
-        <div v-show="showDescription1" class="alert alert-info">
-          <p>
-            Smoothing parameter that determines how close the spline fits to the real data. Larger
-            values result in a smoother fit with decreased detail.
-          </p>
-        </div>
-        <div v-show="showDescription2" class="alert alert-info">
-          <p>Window size for the Savitzky-Golay filter to apply to the derivatives.</p>
-        </div>
-      </div>
-      <div v-if="haveProcessNumberProperties">
-        <div class="form-inline mt-2">
+        <div v-if="prop.type === 'select'" class="form-inline mt-2">
           <div class="form-group">
             <label class="mr-2"
-              ><b>{{ properties.processNumber.label }}</b></label
+              ><b>{{ prop.label }}</b></label
             >
-            <select v-model="selected_process" class="form-control" @change="updateBlock">
-              <option
-                v-for="process_number in block_data.available_processes"
-                :key="process_number"
-              >
-                {{ process_number }}
+            <select v-model="propertyValues[propKey]" class="form-control" @change="updateBlock">
+              <option v-for="option in getSelectOptions(prop)" :key="option">
+                {{ option }}
               </option>
             </select>
           </div>
         </div>
 
-        <div class="mt-4">
-          <span class="mr-2">
+        <div v-if="prop.type === 'toggleDetails'" class="mt-4">
+          <span v-if="blockType === 'nmr'" class="mr-2">
             <Isotope :isotope-string="block_data.nucleus" /> {{ block_data.pulse_program_name }}
           </span>
-          <a type="button" class="btn btn-default btn-sm mb-2" @click="titleShown = !titleShown">{{
-            titleShown ? "hide title" : "show title"
-          }}</a>
-          <a
-            type="button"
-            class="btn btn-default btn-sm mb-2 ml-2"
-            @click="detailsShown = !detailsShown"
-            >{{ detailsShown ? "hide measurement details" : "show measurement details" }}</a
-          >
-        </div>
-        <div v-if="titleShown" class="card mb-2">
-          <div class="card-body" style="white-space: pre">
-            {{ block_data.topspin_title }}
+          <div>
+            <a
+              v-for="toggle in prop.toggles"
+              :key="toggle.key"
+              type="button"
+              class="btn btn-default btn-sm mb-2 ml-2"
+              @click="propertyValues[toggle.key] = !propertyValues[toggle.key]"
+            >
+              {{ propertyValues[toggle.key] ? toggle.hideLabel : toggle.label }}
+            </a>
           </div>
         </div>
       </div>
-      <div v-if="haveBokehPlot">
+
+      <div v-if="blockType === 'nmr' && propertyValues.titleShown" class="card mb-2">
+        <div class="card-body" style="white-space: pre">
+          {{ block_data.topspin_title }}
+        </div>
+      </div>
+
+      <div v-if="hasBokehPlot">
         <div class="row">
           <div id="bokehPlotContainer" class="col-xl-9 col-lg-10 col-md-11 mx-auto">
             <BokehPlot v-if="bokehPlotData" :bokeh-plot-data="bokehPlotData" />
@@ -211,61 +159,23 @@
               Plotting currently not available for data with dimension > 1
             </div>
           </div>
-          <div v-if="detailsShown" class="col-xl-4 col-lg-4 ml-0">
+
+          <div
+            v-if="blockType === 'nmr' && propertyValues.detailsShown"
+            class="col-xl-4 col-lg-4 ml-0"
+          >
             <table class="table table-sm">
               <tbody>
-                <tr>
-                  <th scope="row">nucleus</th>
-                  <td><Isotope :isotope-string="block_data.nucleus" /></td>
-                </tr>
-                <tr>
-                  <th scope="row">pulse program</th>
-                  <td>{{ block_data.pulse_program_name }}</td>
-                </tr>
-                <tr>
-                  <th scope="row">Data shape</th>
-                  <td>
-                    {{ block_data.processed_data_shape }} (<i>d</i> =
-                    {{ block_data.processed_data_shape.length }})
-                  </td>
-                </tr>
-                <tr>
-                  <th scope="row">probe</th>
-                  <td>{{ block_data.probe_name }} s</td>
-                </tr>
-
-                <tr>
-                  <th scope="row"># of scans</th>
-                  <td>{{ block_data.nscans }}</td>
-                </tr>
-
-                <tr>
-                  <th scope="row">recycle delay</th>
-                  <td>{{ block_data.recycle_delay }} s</td>
-                </tr>
-                <tr>
-                  <th scope="row">carrier frequency</th>
-                  <td>{{ block_data.carrier_frequency_MHz }} MHz</td>
-                </tr>
-
-                <tr>
-                  <th scope="row">carrier offset</th>
-                  <td>
-                    {{
-                      (block_data.carrier_offset_Hz / block_data.carrier_frequency_MHz).toFixed(1)
-                    }}
-                    ppm
-                  </td>
-                </tr>
-                <tr>
-                  <th scope="row">cnst31</th>
-                  <td>{{ block_data.CNST31 }}</td>
+                <tr v-for="(value, key) in getNMRDetails()" :key="key">
+                  <th scope="row">{{ key }}</th>
+                  <td v-html="value"></td>
                 </tr>
               </tbody>
             </table>
           </div>
         </div>
       </div>
+
       <img
         v-if="isPhoto"
         data-testid="media-block-img"
@@ -274,7 +184,8 @@
       />
       <video v-if="isVideo" :src="media_url" controls class="mx-auto" />
     </div>
-    <div v-if="haveChatProperties">
+
+    <div v-if="hasChatProperty">
       <div v-if="advancedHidden" class="context-button" @click="advancedHidden = !advancedHidden">
         [show advanced]
       </div>
@@ -285,7 +196,7 @@
       <div class="row">
         <div id="chatWindowContainer" class="col-xl-9 col-lg-10 col-md-12 mx-auto">
           <div v-if="!advancedHidden" class="advanced-information">
-            <div class="input-group">
+            <div v-if="chatProperties.advanced.modelSelector" class="input-group">
               <label class="mr-2">Model:</label>
               <select v-model="modelName" class="form-control">
                 <option v-for="model in Object.keys(availableModels)" :key="model">
@@ -294,24 +205,24 @@
               </select>
             </div>
             <br />
-            <div class="input-group">
+            <div v-if="chatProperties.advanced.tokenCount" class="input-group">
               <label>Current conversation token count:</label>
               <span class="pl-1">{{ tokenCount }}/ {{ modelObj.context_window }}</span>
             </div>
-            <div class="form-row input-group">
+            <div v-if="chatProperties.advanced.costEstimation" class="form-row input-group">
               <label>est. cost for next message:</label>
               <span class="pl-1">${{ estimatedCost.toPrecision(2) }}</span>
             </div>
 
-            <div class="form-row input-group">
+            <div v-if="chatProperties.advanced.temperature" class="form-row input-group">
               <label for="temperatureInput" class="mr-2"><b>temperature:</b></label>
               <input
                 id="temperatureInput"
                 v-model="temperature"
                 type="number"
-                min="0"
-                max="1"
-                step="0.1"
+                :min="chatProperties.advanced.temperature.min"
+                :max="chatProperties.advanced.temperature.max"
+                :step="chatProperties.advanced.temperature.step"
                 class="form-control-sm"
                 :class="{ 'red-border': tempInvalid }"
               />
@@ -320,6 +231,7 @@
               </small>
             </div>
           </div>
+
           <ChatWindow
             :chat-messages="messages.slice(advancedHidden ? 2 : 0)"
             :is-loading="isLoading"
@@ -340,6 +252,7 @@
           </div>
         </div>
       </div>
+
       <div v-if="errorMessage" style="white-space: pre-line" class="alert alert-warning">
         {{ errorMessage }}
       </div>
@@ -369,6 +282,10 @@
         </button>
       </div>
     </div>
+
+    <button v-if="isReplotButtonDisplayed" class="btn btn-default my-4" @click="updateBlock">
+      Recalculate
+    </button>
   </DataBlockBase>
 </template>
 
@@ -403,19 +320,10 @@ export default {
   },
   data() {
     return {
-      // Wavelength
-      wavelengthParseError: "",
-      // Cycle
-      cycle_num_error: "",
-      cyclesString: "",
-      showDescription1: false,
-      showDescription2: false,
-      bokehPlotLimitedWidth: true,
+      validationErrors: {},
+      propertyValues: {},
+      descriptionVisible: {},
       isReplotButtonDisplayed: false,
-      // NMR
-      detailsShown: false,
-      titleShown: false,
-      // Chat
       isLoading: false,
       isRegenerating: false,
       advancedHidden: true,
@@ -434,8 +342,21 @@ export default {
         ? this.$store.state.blocksInfos[this.block_data.blocktype]
         : null;
     },
+    blockType() {
+      return this.block_data?.blocktype || "";
+    },
     properties() {
-      return this.block_data?.blocktype ? blockTypes[this.block_data.blocktype]?.properties : null;
+      return this.block_data?.blocktype ? blockTypes[this.block_data.blocktype]?.properties : {};
+    },
+    hasBokehPlot() {
+      return this.properties && Object.values(this.properties).some((prop) => prop.type === "plot");
+    },
+    hasChatProperty() {
+      return this.properties && Object.values(this.properties).some((prop) => prop.type === "chat");
+    },
+    chatProperties() {
+      if (!this.hasChatProperty) return {};
+      return Object.values(this.properties).find((prop) => prop.type === "chat") || {};
     },
     bokehPlotData() {
       if (!this.file_id) return null;
@@ -443,12 +364,6 @@ export default {
         this.$store.state.all_item_data[this.item_id]?.["blocks_obj"]?.[this.block_id]
           ?.bokeh_plot_data || null
       );
-    },
-    haveBokehPlot() {
-      return this.properties && "bokehPlot" in this.properties;
-    },
-    haveWavelengthProperties() {
-      return this.properties && "wavelength" in this.properties;
     },
     media_url() {
       // If the API has already base64 encoded the image, then use it,
@@ -466,34 +381,22 @@ export default {
     isVideo() {
       return [".mp4", ".mov", ".webm"].includes(this.lookup_file_field("extension", this.file_id));
     },
-    haveCycleProperties() {
-      return this.properties && "cycle" in this.properties;
-    },
-    numberOfCycles() {
+    shouldShowSliders() {
       return (
-        this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id]
-          .number_of_cycles || null
+        this.blockType === "cycle" &&
+        (this.propertyValues.derivativeMode === "dQ/dV" ||
+          this.propertyValues.derivativeMode === "dV/dQ")
       );
     },
     parsedCycles() {
-      return this.all_cycles ? this.all_cycles : "all";
-    },
-    haveProcessNumberProperties() {
-      return this.properties && "processNumber" in this.properties;
-    },
-    haveChatProperties() {
-      return this.properties && "chat" in this.properties;
+      return this.propertyValues.cyclenumber ? this.propertyValues.cyclenumber : "all";
     },
     modelObj() {
       return this.availableModels[this.modelName] || {};
     },
     tempInvalid() {
-      return (
-        this.temperature == null ||
-        isNaN(this.temperature) ||
-        this.temperature < 0 ||
-        this.temperature > 1
-      );
+      const temp = parseFloat(this.temperature);
+      return this.temperature == null || isNaN(temp) || temp < 0 || temp > 1;
     },
     estimatedCost() {
       // a rough estimation of cost, assuming the next input will be about 50 tokens
@@ -511,48 +414,96 @@ export default {
       return this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id].token_count;
     },
     file_id: createComputedSetterForBlockField("file_id"),
-    wavelength: createComputedSetterForBlockField("wavelength"),
-    all_cycles: createComputedSetterForBlockField("cyclenumber"),
-    s_spline: createComputedSetterForBlockField("s_spline"),
-    win_size_1: createComputedSetterForBlockField("win_size_1"),
-    derivative_mode: createComputedSetterForBlockField("derivative_mode"),
-    characteristic_mass: createComputedSetterForBlockField("characteristic_mass"),
-    selected_process: createComputedSetterForBlockField("selected_process"),
     messages: createComputedSetterForBlockField("messages"),
     temperature: createComputedSetterForBlockField("temperature"),
     modelName: createComputedSetterForBlockField("model"),
     availableModels: createComputedSetterForBlockField("available_models"),
   },
+  created() {
+    this.initPropertyValues();
+  },
   methods: {
-    parseWavelength() {
-      if (isNaN(this.wavelength) || isNaN(parseFloat(this.wavelength))) {
-        this.wavelengthParseError = "Please provide a valid number";
-      } else {
-        this.wavelengthParseError = "";
+    initPropertyValues() {
+      if (!this.properties) return;
+
+      Object.keys(this.properties).forEach((key) => {
+        if (this.properties[key].type === "toggleDetails") {
+          this.properties[key].toggles.forEach((toggle) => {
+            this.$set(this.propertyValues, toggle.key, this.block_data[toggle.key] || false);
+          });
+        } else {
+          const value = this.block_data[key] || this.properties[key].default || null;
+          this.$set(this.propertyValues, key, value);
+        }
+
+        this.$set(this.descriptionVisible, key, false);
+      });
+    },
+    validateProperty(propKey) {
+      const prop = this.properties[propKey];
+      let error = null;
+
+      if (prop.type === "float") {
+        if (
+          isNaN(this.propertyValues[propKey]) ||
+          isNaN(parseFloat(this.propertyValues[propKey]))
+        ) {
+          error = "Please provide a valid number";
+        }
       }
+
+      this.$set(this.validationErrors, propKey, error);
+      return !error;
+    },
+    getSelectOptions(prop) {
+      if (prop.optionsFrom && this.block_data[prop.optionsFrom]) {
+        return this.block_data[prop.optionsFrom];
+      }
+      return [];
+    },
+    getNMRDetails() {
+      if (this.blockType !== "nmr") return {};
+
+      return {
+        nucleus: `<Isotope isotope-string="${this.block_data.nucleus}" />`,
+        "pulse program": this.block_data.pulse_program_name,
+        "Data shape": `${this.block_data.processed_data_shape} (<i>d</i> = ${this.block_data.processed_data_shape.length})`,
+        probe: `${this.block_data.probe_name} s`,
+        "# of scans": this.block_data.nscans,
+        "recycle delay": `${this.block_data.recycle_delay} s`,
+        "carrier frequency": `${this.block_data.carrier_frequency_MHz} MHz`,
+        "carrier offset": `${(this.block_data.carrier_offset_Hz / this.block_data.carrier_frequency_MHz).toFixed(1)} ppm`,
+        cnst31: this.block_data.CNST31,
+      };
     },
     async updateBlock() {
-      if (this.haveChatProperties) {
+      Object.keys(this.propertyValues).forEach((key) => {
+        this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id][key] =
+          this.propertyValues[key];
+      });
+
+      if (this.hasChatProperty) {
         this.isLoading = true;
         this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id].prompt =
           this.prompt;
       }
+
       updateBlockFromServer(
         this.item_id,
         this.block_id,
         this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id],
       )
         .then(() => {
-          if (this.haveCycleProperties) {
-            this.bokehPlotLimitedWidth = this.derivative_mode != "dQ/dV";
+          if (this.blockType === "cycle") {
             this.isReplotButtonDisplayed = false;
           }
-          if (this.haveChatProperties) {
+          if (this.hasChatProperty) {
             this.prompt = "";
           }
+          this.initPropertyValues();
         })
         .finally(() => {
-          if (this.haveChatProperties) {
+          if (this.hasChatProperty) {
             this.isLoading = false;
           }
         });
