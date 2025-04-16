@@ -117,10 +117,13 @@ class XRDBlock(DataBlock):
                 0 * df["intensity - median baseline"]
             )
 
+        df["normalized intensity (staggered)"] = df["normalized intensity"]
+
         df.index.name = location.split("/")[-1] + (" (theoretical)" if theoretical else "")
 
         y_options = [
             "normalized intensity",
+            "normalized intensity (staggered)",
             "intensity",
             "sqrt(intensity)",
             "log(intensity)",
