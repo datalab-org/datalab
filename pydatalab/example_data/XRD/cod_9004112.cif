@@ -1,0 +1,75 @@
+#------------------------------------------------------------------------------
+#$Date: 2024-04-25 17:59:02 +0300 (Thu, 25 Apr 2024) $
+#$Revision: 291351 $
+#$URL: file:///home/coder/svn-repositories/cod/cif/9/00/41/9004112.cif $
+#------------------------------------------------------------------------------
+#
+# This file is available in the Crystallography Open Database (COD),
+# http://www.crystallography.net/. The original data for this entry
+# were provided the American Mineralogist Crystal Structure Database,
+# http://rruff.geo.arizona.edu/AMS/amcsd.php
+#
+# The file may be used within the scientific community so long as
+# proper attribution is given to the journal article from which the
+# data were obtained.
+#
+data_9004112
+loop_
+_publ_author_name
+'Scott, J. D.'
+'Nowacki, W.'
+_publ_section_title
+;
+ The crystal structure of alloclasite, CoAsS, and the
+ alloclasite-cobaltite transformation
+;
+_journal_name_full               'The Canadian Mineralogist'
+_journal_page_first              561
+_journal_page_last               566
+_journal_volume                  14
+_journal_year                    1976
+_chemical_formula_sum            'As Co S'
+_chemical_name_mineral           Alloclasite
+_space_group_IT_number           4
+_symmetry_space_group_name_Hall  'P 2yb'
+_symmetry_space_group_name_H-M   'P 1 21 1'
+_cell_angle_alpha                90
+_cell_angle_beta                 90.2
+_cell_angle_gamma                90
+_cell_length_a                   4.661
+_cell_length_b                   5.602
+_cell_length_c                   3.411
+_cell_formula_units_Z            2
+_cell_volume                     89.064
+_database_code_amcsd             0005134
+_exptl_crystal_density_diffrn    6.187
+_cod_original_formula_sum        'Co As S'
+_cod_database_code               9004112
+loop_
+_space_group_symop_operation_xyz
+x,y,z
+-x,1/2+y,-z
+loop_
+_atom_site_aniso_label
+_atom_site_aniso_U_11
+_atom_site_aniso_U_22
+_atom_site_aniso_U_33
+_atom_site_aniso_U_12
+_atom_site_aniso_U_13
+_atom_site_aniso_U_23
+Co 0.01244 0.01335 0.01309 0.00000 0.00000 -0.00019
+As 0.01695 0.01781 0.01527 -0.00053 -0.00040 -0.00019
+S 0.01750 0.01860 0.01886 0.00079 -0.00072 0.00039
+loop_
+_atom_site_label
+_atom_site_fract_x
+_atom_site_fract_y
+_atom_site_fract_z
+Co 0.24824 0.00000 0.24480
+As 0.04766 0.37149 0.25547
+S 0.44104 0.62236 0.24239
+loop_
+_cod_related_entry_id
+_cod_related_entry_database
+_cod_related_entry_code
+1 AMCSD 0005134
