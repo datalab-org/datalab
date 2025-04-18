@@ -6,6 +6,7 @@
         :item_id="currentItemId"
         :block_id="currentBlockId"
         :extensions="['.txt', '.TXT']"
+        :main-label="'Select and order files: First file should be the reference scan, the subsequent files will be the sample scans.'"
         :update-block-on-change="true"
       />
     </div>
@@ -19,7 +20,6 @@
 
 <script>
 import DataBlockBase from "@/components/datablocks/DataBlockBase";
-import FileSelectDropdown from "@/components/FileSelectDropdown";
 import MultiFileSelector from "@/components/FileMultiSelectDropdown";
 import BokehPlot from "@/components/BokehPlot";
 
@@ -29,7 +29,6 @@ import { updateBlockFromServer } from "@/server_fetch_utils.js";
 export default {
   components: {
     DataBlockBase,
-    FileSelectDropdown,
     BokehPlot,
     MultiFileSelector,
   },

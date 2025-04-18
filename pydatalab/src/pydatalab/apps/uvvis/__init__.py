@@ -18,7 +18,8 @@ class UVVisBlock(DataBlock):
     name = "UV-Vis"
     description = (
         "This block can plot UV-Vis data from a .txt file. "
-        "Two files are required, the scan to plot and the background scan."
+        "Two files are required, the scan to plot and the background scan.\n"
+        "The first file in the order will be treated as the background scan, and subsequent files as the sample scans."
     )
 
     @property
@@ -114,7 +115,6 @@ class UVVisBlock(DataBlock):
             ],
             mode="vline",  # Tooltip follows the x-coordinate across all lines
         )
-        LOGGER.info("Hover tool type: %s", type(uv_hover_tool))
         # Call the existing selectable_axes_plot function
         # We configure it specifically for a non-selectable UV-Vis plot use case
         layout = selectable_axes_plot(

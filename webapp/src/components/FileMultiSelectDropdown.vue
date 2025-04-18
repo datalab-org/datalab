@@ -1,6 +1,8 @@
 <template>
   <div class="multi-file-selector form-group">
-    <label><b>Select and Order Files:</b></label>
+    <label
+      ><b>{{ mainLabel }}</b></label
+    >
     <div class="dual-listbox-container">
       <div class="listbox">
         <label :for="`available-${block_id}`">Available Files:</label>
@@ -130,6 +132,10 @@ export default {
       type: Boolean,
       default: false,
     },
+    mainLabel: {
+      type: String,
+      default: "Select and order files:",
+    },
   },
   emits: ["update:modelValue"],
   data() {
@@ -223,11 +229,6 @@ export default {
 
       // Reset selection in available list
       this.selectedAvailable = null;
-      // Optionally select the newly added item in the selected list
-      // this.$nextTick(() => { // Ensure DOM is updated before selecting
-      //   const newIndex = newSelectedFiles.length -1;
-      //   this.selectSelected(id, newIndex);
-      // });
     },
     removeSelected(fileIdToRemove = null) {
       const id = fileIdToRemove || this.selectedSelected;
@@ -271,35 +272,11 @@ export default {
     emitUpdate(newSelectedArray) {
       this.$emit("update:modelValue", newSelectedArray);
       if (this.updateBlockOnChange) {
-        // Ensure the data being sent is what your server expects.
-        // It might need the whole block object, or just the new array.
-        // Adjust this call based on updateBlockFromServer's requirements.
-        // Assuming it needs the block data which might now contain the new array:
-        const currentBlockData =
-          this.$store.state.all_item_data[this.item_id]?.["blocks_obj"]?.[this.block_id] || {};
-        // You might need to specifically update the field within currentBlockData
-        // that holds the selected files before sending, e.g.:
-        // currentBlockData.selectedFiles = newSelectedArray; // Example field name
-
-        // !! IMPORTANT !!: Check if updateBlockFromServer needs the *entire* block data
-        // or just the new value. The original code passed the entire block object.
-        // If your block data structure has a specific key for these files, update it first.
-        // Let's assume the block object has a key (e.g., 'selectedFileIds') that should
-        // hold this array.
-        const updatedBlockData = {
-          ...currentBlockData,
-          // Replace 'selectedFileIds' with the actual key in your block data model
-          selectedFileIds: newSelectedArray,
-        };
-
         updateBlockFromServer(
           this.item_id,
           this.block_id,
-          updatedBlockData, // Send the potentially modified block data
-        ).catch((error) => {
-          console.error("Error updating block on server:", error);
-          // Handle error appropriately (e.g., show message to user)
-        });
+          this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id],
+        );
       }
     },
   },
@@ -323,7 +300,7 @@ export default {
 }
 
 .file-list {
-  height: 200px; /* Or adjust as needed */
+  height: 150px; /* Or adjust as needed */
   overflow-y: auto;
   border: 1px solid #ced4da; /* Bootstrap-like border */
   border-radius: 0.25rem; /* Bootstrap-like border radius */
