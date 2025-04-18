@@ -1,4 +1,5 @@
 import os
+import warnings
 from typing import List, Tuple
 
 import bokeh
@@ -12,14 +13,15 @@ from pydatalab.file_utils import get_file_info_by_id
 from pydatalab.logger import LOGGER
 from pydatalab.mongo import flask_mongo
 
-from .utils import parse_rasx_zip, parse_xrdml
+from .models import PeakInformation
+from .utils import compute_cif_pxrd, parse_rasx_zip, parse_xrdml
 
 
 class XRDBlock(DataBlock):
     blocktype = "xrd"
     name = "Powder XRD"
     description = "Visualize XRD patterns and perform simple baseline corrections."
-    accepted_file_extensions = (".xrdml", ".xy", ".dat", ".xye", ".rasx")
+    accepted_file_extensions = (".xrdml", ".xy", ".dat", ".xye", ".rasx", ".cif")
 
     defaults = {"wavelength": 1.54060}
 
@@ -29,17 +31,26 @@ class XRDBlock(DataBlock):
 
     @classmethod
     def load_pattern(
-        self, location: str, wavelength: float | None = None
-    ) -> Tuple[pd.DataFrame, List[str]]:
+        cls, location: str, wavelength: float | None = None
+    ) -> Tuple[pd.DataFrame, List[str], dict]:
         if not isinstance(location, str):
             location = str(location)
 
         ext = os.path.splitext(location.split("/")[-1])[-1].lower()
 
+        theoretical = False
+        peak_data: dict = {}
+
         if ext == ".xrdml":
             df = parse_xrdml(location)
         elif ext == ".rasx":
             df = parse_rasx_zip(location)
+        elif ext == ".cif":
+            df, peak_data = compute_cif_pxrd(
+                location, wavelength=wavelength or cls.defaults["wavelength"]
+            )
+            theoretical = True  # Track whether this is a computed PXRD that does not need background subtraction
+            LOGGER.debug("Computed PXRD for CIF file %s", location)
 
         else:
             columns = ["twotheta", "intensity", "error"]
@@ -81,27 +92,40 @@ class XRDBlock(DataBlock):
         df["log(intensity)"] = np.log10(df["intensity"])
         df["normalized intensity"] = df["intensity"] / np.max(df["intensity"])
         polyfit_deg = 15
-        polyfit_baseline = np.poly1d(
-            np.polyfit(df["2θ (°)"], df["normalized intensity"], deg=polyfit_deg)
-        )(df["2θ (°)"])
-        df["intensity - polyfit baseline"] = df["normalized intensity"] - polyfit_baseline
-        df["intensity - polyfit baseline"] /= np.max(df["intensity - polyfit baseline"])
-        df[f"baseline (`numpy.polyfit`, deg={polyfit_deg})"] = polyfit_baseline / np.max(
-            df["intensity - polyfit baseline"]
-        )
-
         kernel_size = 101
-        median_baseline = medfilt(df["normalized intensity"], kernel_size=kernel_size)
-        df["intensity - median baseline"] = df["normalized intensity"] - median_baseline
-        df["intensity - median baseline"] /= np.max(df["intensity - median baseline"])
-        df[f"baseline (`scipy.signal.medfilt`, kernel_size={kernel_size})"] = (
-            median_baseline / np.max(df["intensity - median baseline"])
-        )
+        if not theoretical:
+            polyfit_baseline = np.poly1d(
+                np.polyfit(df["2θ (°)"], df["normalized intensity"], deg=polyfit_deg)
+            )(df["2θ (°)"])
+            df["intensity - polyfit baseline"] = df["normalized intensity"] - polyfit_baseline
+            df["intensity - polyfit baseline"] /= np.max(df["intensity - polyfit baseline"])
+            df[f"baseline (`numpy.polyfit`, deg={polyfit_deg})"] = polyfit_baseline / np.max(
+                df["intensity - polyfit baseline"]
+            )
 
-        df.index.name = location.split("/")[-1]
+            median_baseline = medfilt(df["normalized intensity"], kernel_size=kernel_size)
+            df["intensity - median baseline"] = df["normalized intensity"] - median_baseline
+            df["intensity - median baseline"] /= np.max(df["intensity - median baseline"])
+            df[f"baseline (`scipy.signal.medfilt`, kernel_size={kernel_size})"] = (
+                median_baseline / np.max(df["intensity - median baseline"])
+            )
+        else:
+            df["intensity - polyfit baseline"] = df["normalized intensity"]
+            df[f"baseline (`numpy.polyfit`, deg={polyfit_deg})"] = (
+                0.0 * df["intensity - polyfit baseline"]
+            )
+            df["intensity - median baseline"] = df["normalized intensity"]
+            df[f"baseline (`scipy.signal.medfilt`, kernel_size={kernel_size})"] = (
+                0 * df["intensity - median baseline"]
+            )
+
+        df["normalized intensity (staggered)"] = df["normalized intensity"]
+
+        df.index.name = location.split("/")[-1] + (" (theoretical)" if theoretical else "")
 
         y_options = [
             "normalized intensity",
+            "normalized intensity (staggered)",
             "intensity",
             "sqrt(intensity)",
             "log(intensity)",
@@ -111,44 +135,53 @@ class XRDBlock(DataBlock):
             f"baseline (`numpy.polyfit`, deg={polyfit_deg})",
         ]
 
-        return df, y_options
+        return df, y_options, peak_data
 
     def generate_xrd_plot(self):
         file_info = None
         all_files = None
         pattern_dfs = None
 
-        if "file_id" not in self.data:
+        if self.data.get("file_id") is None:
             # If no file set, try to plot them all
             item_info = flask_mongo.db.items.find_one(
                 {"item_id": self.data["item_id"]},
+                projection={"file_ObjectIds": 1},
             )
 
-            all_files = [
-                d
-                for d in [
-                    get_file_info_by_id(f, update_if_live=False)
-                    for f in item_info["file_ObjectIds"]
-                ]
-                if any(d["name"].lower().endswith(ext) for ext in self.accepted_file_extensions)
-            ]
+            all_files = []
+            for f in item_info["file_ObjectIds"]:
+                try:
+                    file_info = get_file_info_by_id(f, update_if_live=False)
+                except OSError:
+                    LOGGER.warning("Missing file found in database but no on disk: %s", f)
+                    continue
+                ext = os.path.splitext(file_info["location"].split("/")[-1])[-1].lower()
+                if any(
+                    file_info["name"].lower().endswith(ext) for ext in self.accepted_file_extensions
+                ):
+                    all_files.append(file_info)
 
-            if not all_files:
-                LOGGER.warning("XRDBlock.generate_xrd_plot(): No files found on sample")
-                return
+                if not all_files:
+                    warnings.warn("No compatible files found in item")
 
             pattern_dfs = []
-            for f in all_files:
+            peak_information = {}
+            for ind, f in enumerate(all_files):
                 try:
-                    pattern_df, y_options = self.load_pattern(
+                    pattern_df, y_options, peak_data = self.load_pattern(
                         f["location"],
                         wavelength=float(self.data.get("wavelength", self.defaults["wavelength"])),
                     )
                 except Exception as exc:
-                    raise RuntimeError(
-                        f"Could not parse file {file_info['location']}. Error: {exc}"
-                    )
+                    warnings.warn(f"Could not parse file {file_info['location']}. Error: {exc}")
+                    peak_data: dict = {}
+                    continue
+                peak_information[str(f["immutable_id"])] = PeakInformation(**peak_data).dict()
+                pattern_df["normalized intensity (staggered)"] += ind
                 pattern_dfs.append(pattern_df)
+
+            self.data["peak_data"] = peak_information
 
         else:
             file_info = get_file_info_by_id(self.data["file_id"], update_if_live=True)
@@ -160,10 +193,14 @@ class XRDBlock(DataBlock):
                     ext,
                 )
 
-            pattern_dfs, y_options = self.load_pattern(
+            pattern_dfs, y_options, peak_data = self.load_pattern(
                 file_info["location"],
                 wavelength=float(self.data.get("wavelength", self.defaults["wavelength"])),
             )
+            peak_model = PeakInformation(**peak_data)
+            if "peak_data" not in self.data:
+                self.data["peak_data"] = {}
+            self.data["peak_data"][str(file_info["immutable_id"])] = peak_model.dict()
             pattern_dfs = [pattern_dfs]
 
         if pattern_dfs:
@@ -171,9 +208,11 @@ class XRDBlock(DataBlock):
                 pattern_dfs,
                 x_options=["2θ (°)", "Q (Å⁻¹)", "d (Å)"],
                 y_options=y_options,
+                y_default="normalized intensity",
                 plot_line=True,
                 plot_points=True,
                 point_size=3,
             )
 
             self.data["bokeh_plot_data"] = bokeh.embed.json_item(p, theme=DATALAB_BOKEH_THEME)
+            LOGGER.debug("Created bokeh plot for XRDBlock %s", self.data["block_id"])
