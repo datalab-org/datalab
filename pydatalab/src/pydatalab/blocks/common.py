@@ -31,7 +31,17 @@ class MediaBlock(DataBlock):
     name = "Media"
     blocktype = "media"
     description = "Display an image or a video of a supported format."
-    accepted_file_extensions = (".png", ".jpeg", ".jpg", ".tif", ".tiff", ".mp4", ".mov", ".webm")
+    accepted_file_extensions = (
+        ".png",
+        ".jpeg",
+        ".jpg",
+        ".tif",
+        ".tiff",
+        ".mp4",
+        ".mov",
+        ".webm",
+        ".pdf",
+    )
     _supports_collections = False
 
     @property
