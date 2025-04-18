@@ -1,14 +1,15 @@
 // Resources for the application
-import DataBlockBase from "@/components/datablocks/DataBlockBase";
-import BokehBlock from "@/components/datablocks/BokehBlock";
-import MediaBlock from "@/components/datablocks/MediaBlock";
-import XRDBlock from "@/components/datablocks/XRDBlock";
-import ChatBlock from "@/components/datablocks/ChatBlock";
-import RamanBlock from "@/components/datablocks/RamanBlock";
-import CycleBlock from "@/components/datablocks/CycleBlock";
-import NMRBlock from "@/components/datablocks/NMRBlock";
-import EISBlock from "@/components/datablocks/EISBlock";
-import MassSpecBlock from "@/components/datablocks/MassSpecBlock";
+// import DataBlockBase from "@/components/datablocks/DataBlockBase";
+// import BokehBlock from "@/components/datablocks/BokehBlock";
+// import MediaBlock from "@/components/datablocks/MediaBlock";
+// import XRDBlock from "@/components/datablocks/XRDBlock";
+// import ChatBlock from "@/components/datablocks/ChatBlock";
+// import RamanBlock from "@/components/datablocks/RamanBlock";
+// import CycleBlock from "@/components/datablocks/CycleBlock";
+// import NMRBlock from "@/components/datablocks/NMRBlock";
+// import EISBlock from "@/components/datablocks/EISBlock";
+// import MassSpecBlock from "@/components/datablocks/MassSpecBlock";
+import DataBlockUI from "@/components/DataBlockUI";
 import NMRInsituBlock from "@/components/datablocks/NMRInsituBlock";
 
 import SampleInformation from "@/components/SampleInformation";
@@ -60,17 +61,155 @@ export const UPPY_MAX_NUMBER_OF_FILES =
 export const debounceTime = 250; // time after user stops typing before request is sent
 
 export const blockTypes = {
-  comment: { description: "Comment", component: DataBlockBase, name: "Comment" },
-  media: { description: "Media", component: MediaBlock, name: "Media" },
-  tabular: { description: "Tabular Data", component: BokehBlock, name: "Tabular data" },
-  xrd: { description: "Powder XRD", component: XRDBlock, name: "Powder XRD" },
-  raman: { description: "Raman", component: RamanBlock, name: "Raman" },
-  cycle: { description: "Electrochemistry", component: CycleBlock, name: "Electrochemistry" },
-  eis: { description: "Electrochemical Impedance Spectroscopy", component: EISBlock, name: "EIS" },
-  nmr: { description: "Nuclear Magnetic Resonance Spectroscopy", component: NMRBlock, name: "NMR" },
-  ms: { description: "Mass Spectrometry", component: MassSpecBlock, name: "Mass Spectrometry" },
-  chat: { description: "Virtual assistant", component: ChatBlock, name: "Virtual Assistant" },
-  ftir: { description: "FTIR", component: BokehBlock, name: "FTIR" },
+  comment: {
+    description: "Comment",
+    component: DataBlockUI,
+    name: "Comment",
+    properties: {},
+  },
+  media: {
+    description: "Media",
+    component: DataBlockUI,
+    name: "Media",
+    properties: {
+      mediaDisplay: { type: "media" },
+    },
+  },
+  tabular: {
+    description: "Tabular Data",
+    component: DataBlockUI,
+    name: "Tabular data",
+    properties: {
+      bokehPlot: { type: "plot" },
+    },
+  },
+  xrd: {
+    description: "Powder XRD",
+    component: DataBlockUI,
+    name: "Powder XRD",
+    properties: {
+      bokehPlot: { type: "plot" },
+      wavelength: {
+        type: "float",
+        label: "Wavelength (Å):",
+        default: 1.54,
+      },
+    },
+  },
+  raman: {
+    description: "Raman",
+    component: DataBlockUI,
+    name: "Raman",
+    properties: {
+      bokehPlot: { type: "plot" },
+    },
+  },
+  cycle: {
+    description: "Electrochemistry",
+    component: DataBlockUI,
+    name: "Electrochemistry",
+    properties: {
+      bokehPlot: { type: "plot" },
+      cycle: {
+        type: "string",
+        label: "Cycles to plot:",
+        placeholder: "e.g., 1-5, 7, 9-10. Starts at 1.",
+      },
+      derivativeMode: {
+        type: "selector",
+        options: [
+          { value: "final capacity", label: "Cycle Summary" },
+          { value: "dQ/dV", label: "dQ/dV" },
+          { value: "dV/dQ", label: "dV/dQ" },
+        ],
+      },
+      s_spline: {
+        type: "slider",
+        min: 1,
+        max: 10,
+        step: 0.2,
+        label: "Spline fit:",
+        description:
+          "Smoothing parameter that determines how close the spline fits to the real data. Larger values result in a smoother fit with decreased detail.",
+      },
+      win_size_1: {
+        type: "slider",
+        min: 501,
+        max: 1501,
+        step: 1,
+        label: "Window Size 1:",
+        description: "Window size for the Savitzky-Golay filter to apply to the derivatives.",
+      },
+    },
+  },
+  eis: {
+    description: "Electrochemical Impedance Spectroscopy",
+    component: DataBlockUI,
+    name: "EIS",
+    properties: {
+      bokehPlot: { type: "plot" },
+    },
+  },
+  nmr: {
+    description: "Nuclear Magnetic Resonance Spectroscopy",
+    component: DataBlockUI,
+    name: "NMR",
+    properties: {
+      bokehPlot: { type: "plot" },
+      processNumber: {
+        type: "select",
+        label: "Process number:",
+        optionsFrom: "available_processes",
+      },
+      details: {
+        type: "toggleDetails",
+        toggles: [
+          { key: "titleShown", label: "show title", hideLabel: "hide title" },
+          {
+            key: "detailsShown",
+            label: "show measurement details",
+            hideLabel: "hide measurement details",
+          },
+        ],
+      },
+    },
+  },
+  ms: {
+    description: "Mass Spectrometry",
+    component: DataBlockUI,
+    name: "Mass Spectrometry",
+    properties: {
+      bokehPlot: { type: "plot" },
+    },
+  },
+  chat: {
+    description: "Virtual assistant",
+    component: DataBlockUI,
+    name: "Virtual Assistant",
+    properties: {
+      chat: {
+        type: "chat",
+        advanced: {
+          modelSelector: true,
+          tokenCount: true,
+          costEstimation: true,
+          temperature: {
+            min: 0,
+            max: 1,
+            step: 0.1,
+          },
+        },
+      },
+    },
+  },
+  ftir: {
+    description: "FTIR",
+    component: DataBlockUI,
+    name: "FTIR",
+    properties: {
+      bokehPlot: { type: "plot" },
+    },
+  },
   "insitu-nmr": { description: "NMR insitu", component: NMRInsituBlock, name: "NMR insitu" },
 };
 
