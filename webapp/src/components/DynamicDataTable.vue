@@ -36,7 +36,10 @@
           :filters="filters"
           :editable-inventory="editable_inventory"
           :show-buttons="showButtons"
+          :available-columns="availableColumns"
+          :selected-columns="selectedColumns"
           @update:filters="updateFilters"
+          @update:selected-columns="onToggleColumns"
           @open-create-item-modal="createItemModalIsOpen = true"
           @open-batch-create-item-modal="batchCreateItemModalIsOpen = true"
           @open-qr-scanner-modal="qrScannerModalIsOpen = true"
@@ -45,6 +48,7 @@
           @open-add-to-collection-modal="addToCollectionModalIsOpen = true"
           @delete-selected-items="deleteSelectedItems"
         />
+        <div></div>
       </template>
       <template #empty> No data found. </template>
       <template #loading> Loading data. Please wait. </template>
@@ -53,7 +57,7 @@
 
       <!-- <Column expander style="width: 5rem" /> -->
       <Column
-        v-for="column in columns"
+        v-for="column in selectedColumns"
         :key="column.field"
         :field="column.field"
         sortable
@@ -336,6 +340,7 @@ export default {
       },
       filteredData: [],
       allowedTypes: INVENTORY_TABLE_TYPES,
+      selectedColumns: [],
     };
   },
   computed: {
@@ -390,9 +395,13 @@ export default {
     isAllSelected() {
       return this.itemsSelected.length === this.data.length;
     },
+    availableColumns() {
+      return this.columns.map((col) => ({ ...col }));
+    },
   },
   created() {
     this.editable_inventory = EDITABLE_INVENTORY;
+    this.selectedColumns = [...this.availableColumns];
 
     FilterService.register("exactCollectionMatch", (value, filterValue) => {
       if (!filterValue || !value) return true;
@@ -640,6 +649,11 @@ export default {
       this.updatePage(event.page);
       this.updateRows(event.rows);
       this.allSelected = this.checkAllSelected();
+    },
+    onToggleColumns(value) {
+      this.$nextTick(() => {
+        this.selectedColumns = [...value];
+      });
     },
   },
 };
