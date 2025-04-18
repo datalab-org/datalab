@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM python:3.12-alpine AS api
+FROM python:3.12 AS api
 SHELL ["/bin/bash", "--login", "-c"]
 
 # Useful for installing deps from git, preventing big downloads and bandwith quotas
@@ -48,4 +48,4 @@ ENV PORT=${PORT}
 
 CMD ["/bin/bash", "-c", "/opt/.venv/bin/python -m gunicorn --preload -w ${WEB_CONCURRENCY} --error-logfile /logs/pydatalab_error.log --access-logfile - -b 0.0.0.0:${PORT} 'pydatalab.main:create_app()'"]
 
-HEALTHCHECK --interval=30s --timeout=30s --start-interval=15s --start-period=30s --retries=3 CMD wget -qO- http://localhost:${PORT}/healthcheck/is_ready > /dev/null || exit 1
+HEALTHCHECK --interval=30s --timeout=30s --start-interval=15s --start-period=30s --retries=3 CMD curl --fail http://localhost:${PORT}/healthcheck/is_ready || exit 1
