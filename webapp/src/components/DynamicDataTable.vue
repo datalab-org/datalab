@@ -239,6 +239,7 @@ import ChemicalFormula from "@/components/ChemicalFormula";
 import CollectionList from "@/components/CollectionList";
 import Creators from "@/components/Creators";
 import UserBubble from "@/components/UserBubble.vue";
+import FormattedItemStatus from "@/components/FormattedItemStatus.vue";
 
 import { FilterMatchMode, FilterOperator, FilterService } from "@primevue/core/api";
 import DataTable from "primevue/datatable";
@@ -263,6 +264,7 @@ export default {
     InputText,
     FormattedItemName,
     FormattedCollectionName,
+		FormattedItemStatus,
     ChemicalFormula,
     CollectionList,
     Creators,
@@ -534,6 +536,9 @@ export default {
           creators: "creators",
           showNames: data.creators?.length === 1,
         },
+				FormattedItemStatus: {
+					status: "status",
+				},
         BlocksIconCounter: {
           count: "nblocks",
           blockInfo: "blocks",

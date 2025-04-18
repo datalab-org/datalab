@@ -54,6 +54,12 @@
         <label for="equip-contact" class="mr-2">Contact information</label>
         <input id="equip-contact" v-model="Contact" class="form-control" />
       </div>
+      <div class="form-group col-md-3 col-sm-3 col-6 pb-3">
+        <ToggleableItemStatusFormGroup
+          v-model="Status"
+          :possible-item-statuses="possibleItemStatuses"
+        />
+      </div>
     </div>
     <label id="equip-description-label" class="mr-2">Description</label>
     <TinyMceInline v-model="ItemDescription" aria-labelledby="equip-description-label" />
@@ -73,6 +79,7 @@ import TableOfContents from "@/components/TableOfContents";
 import CollectionList from "@/components/CollectionList";
 import FormattedRefcode from "@/components/FormattedRefcode";
 import Creators from "@/components/Creators";
+import ToggleableItemStatusFormGroup from "@/components/ToggleableItemStatusFormGroup";
 
 export default {
   components: {
@@ -81,6 +88,7 @@ export default {
     TableOfContents,
     FormattedRefcode,
     Creators,
+    ToggleableItemStatusFormGroup,
   },
   props: {
     item_id: { type: String, required: true },
@@ -107,6 +115,10 @@ export default {
     SerialNos: createComputedSetterForItemField("serial_numbers"),
     Maintainers: createComputedSetterForItemField("creators"),
     Contact: createComputedSetterForItemField("contact"),
+    Status: createComputedSetterForItemField("status"),
+    possibleItemStatuses() {
+      return ["working", "broken", "being_fixed", "defunct", "not_being_fixed"];
+    },
   },
 };
 </script>
@@ -115,5 +127,8 @@ export default {
 label {
   font-weight: 500;
   color: #298651;
+}
+.badge {
+  font-size: 1em;
 }
 </style>

@@ -25,6 +25,25 @@ class ItemType(str, Enum):
     STARTING_MATERIALS = "starting_materials"
 
 
+class ItemStatus(str, Enum):
+    """An enumeration of the status of items"""
+
+    PLANNED = "planned"
+    ACTIVE = "active"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class EquipmentStatus(str, Enum):
+    """An enumeration of the status of equipments"""
+
+    WORKING = "working"
+    BROKEN = "broken"
+    BEING_FIXED = "being_fixed"
+    DEFUNCT = "defunct"
+    NOT_BEING_FIXED = "not_being_fixed"
+
+
 class KnownType(str, Enum):
     """An enumeration of the types of entry known by this implementation, should be made dynamic in the future."""
 
