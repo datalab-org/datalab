@@ -156,7 +156,20 @@ jobs:
             database.cache-to=type=gha,scope=global,mode=max
             database.tags=datalab-database:latest
 
-      - run: docker image ls -a
+      - name: Save Docker images to tarball
+        id: save-images
+        run: |
+          docker image ls -a # Verify images are loaded
+          mkdir -p /tmp/docker-images
+          docker save datalab-app:latest datalab-api:latest datalab-database:latest -o /tmp/docker-images/datalab-images.tar
+          echo "path=/tmp/docker-images/datalab-images.tar" >> $GITHUB_OUTPUT
+
+      - name: Upload Docker images artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-images
+          path: ${{ steps.save-images.outputs.path }}
+          retention-days: 1 # Keep artifacts for a short time
 
   e2e:
     name: e2e tests
@@ -178,20 +191,9 @@ jobs:
 
       - run: docker image ls -a
 
-      - name: Load previously built Docker images
-        uses: docker/bake-action@v6
-        with:
-          files: docker-compose.yml
-          load: true
-          source: .
-          targets: 'app,api,database'
-          set: |
-            app.cache-from=type=gha,scope=global
-            app.tags=datalab-app:latest
-            api.cache-from=type=gha,scope=global
-            api.tags=datalab-api:latest
-            database.cache-from=type=gha,scope=global
-            database.tags=datalab-database:latest
+      - name: Load Docker images
+        run: |
+          docker load -i /tmp/datalab-images.tar
 
       - name: Start services
         run: |
