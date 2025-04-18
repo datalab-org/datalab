@@ -17,8 +17,22 @@ class Sample(Item):
     synthesis_constituents: List[Constituent] = Field([])
     """A list of references to constituent materials giving the amount and relevant inlined details of consituent items."""
 
+    synthesis_products: List[Constituent] = Field([])
+    """A list of references to constituent materials giving the amount and relevant inlined details of relevant sythesis products."""
+
     synthesis_description: Optional[str]
     """Free-text details of the procedure applied to synthesise the sample"""
+
+    @root_validator
+    def add_self_product(cls, values):
+        if not values.get("synthesis_products"):
+            values["synthesis_products"].append(
+                Constituent(
+                    quantity=None, item={"type": values["type"], "item_id": values["item_id"]}
+                )
+            )
+
+        return values
 
     @root_validator
     def add_missing_synthesis_relationships(cls, values):
