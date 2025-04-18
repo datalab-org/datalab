@@ -1,6 +1,8 @@
 # syntax=docker/dockerfile:1
 FROM node:20-alpine AS build
-SHELL ["/bin/bash", "--login", "-c"]
+
+RUN apk add --no-cache bash git
+SHELL ["/bin/sh", "--login", "-c"]
 
 WORKDIR /app
 
