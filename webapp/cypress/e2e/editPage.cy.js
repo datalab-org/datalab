@@ -44,6 +44,7 @@ describe("Edit Page", () => {
   });
 
   it("Checks editing the sample edit page", () => {
+    cy.get('[data-testid="search-input"]').clear();
     cy.get('[data-testid="search-input"]').type("editable_sample");
     cy.findByText("editable_sample").click();
     cy.findByLabelText("Name").should("have.value", "This is a sample name");
@@ -54,6 +55,7 @@ describe("Edit Page", () => {
     cy.contains("Unsaved changes").should("not.exist");
     cy.findByText("Home").click();
 
+    cy.get('[data-testid="search-input"]').clear();
     cy.get('[data-testid="search-input"]').type("editable_sample");
     cy.findByText("editable_sample");
     cy.findByText("This is a sample name");
@@ -71,6 +73,7 @@ describe("Edit Page", () => {
   });
 
   it("adds some synthesis information", () => {
+    cy.get('[data-testid="search-input"]').clear();
     cy.get('[data-testid="search-input"]').type("editable_sample");
     cy.findByText("editable_sample").click();
     cy.get("#synthesis-information .vs__search").first().type("component1");
@@ -125,6 +128,7 @@ describe("Edit Page", () => {
   });
 
   it("deletes synthesis components and re-adds them", () => {
+    cy.get('[data-testid="search-input"]').clear();
     cy.get('[data-testid="search-input"]').type("editable_sample");
     cy.findByText("editable_sample").click();
     cy.get("#synthesis-information tbody > tr:nth-of-type(1) .close").click();
@@ -164,6 +168,7 @@ describe("Edit Page", () => {
   });
 
   it("tries to add a non-numeric value into quantity", () => {
+    cy.get('[data-testid="search-input"]').clear();
     cy.get('[data-testid="search-input"]').type("editable_sample");
     cy.findByText("editable_sample").click();
     cy.get("#synthesis-information tbody > tr:nth-of-type(1) td:nth-of-type(2) input").type(
@@ -201,6 +206,7 @@ describe("Edit Page", () => {
   });
 
   it("Add some blocks to the sample and checks unsaved warning behavior", () => {
+    cy.get('[data-testid="search-input"]').clear();
     cy.get('[data-testid="search-input"]').type("editable_sample");
     cy.findByText("editable_sample").click();
 
@@ -244,11 +250,13 @@ describe("Edit Page", () => {
     cy.contains("Unsaved changes").should("not.exist");
 
     cy.findByText("Home").click();
+    cy.get('[data-testid="search-input"]').clear();
     cy.get('[data-testid="search-input"]').type("editable_sample");
     cy.get("[data-testid=sample-table] tr:nth-of-type(1) > td:nth-of-type(9)").contains(2); // 2 blocks are present
   });
 
   it("Clicks the upload buttons and checks that the modals are shown", () => {
+    cy.get('[data-testid="search-input"]').clear();
     cy.get('[data-testid="search-input"]').type("editable_sample");
     cy.findByText("editable_sample").click();
 
@@ -265,6 +273,7 @@ describe("Edit Page", () => {
   it("Uploads an XRD file, makes an XRD block and checks that the plot works", () => {
     cy.uploadFileViaAPI("editable_sample", "example_data/XRD/example_bmb.xye");
 
+    cy.get('[data-testid="search-input"]').clear();
     cy.get('[data-testid="search-input"]').type("editable_sample");
     cy.findByText("editable_sample").click();
 
@@ -282,6 +291,7 @@ describe("Edit Page", () => {
     cy.createTestPNG(test_fname);
     cy.uploadFileViaAPI("editable_sample", test_fname);
 
+    cy.get('[data-testid="search-input"]').clear();
     cy.get('[data-testid="search-input"]').type("editable_sample");
     cy.findByText("editable_sample").click();
 

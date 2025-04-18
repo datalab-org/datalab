@@ -393,6 +393,7 @@ export default {
   },
   created() {
     this.editable_inventory = EDITABLE_INVENTORY;
+    this.loadSavedSearchValue();
 
     FilterService.register("exactCollectionMatch", (value, filterValue) => {
       if (!filterValue || !value) return true;
@@ -479,6 +480,16 @@ export default {
   methods: {
     updateFilters(newFilters) {
       this.filters = newFilters;
+
+      if (newFilters.global && newFilters.global.value !== undefined) {
+        localStorage.setItem(`${this.dataType}_search_value`, newFilters.global.value || "");
+      }
+    },
+    loadSavedSearchValue() {
+      const savedSearchValue = localStorage.getItem(`${this.dataType}_search_value`);
+      if (savedSearchValue) {
+        this.filters.global.value = savedSearchValue;
+      }
     },
     goToEditPage(event) {
       const row = event.data;
