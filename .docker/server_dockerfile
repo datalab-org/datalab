@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM python:3.12 AS api
+FROM python:3.11 AS api
 SHELL ["/bin/bash", "--login", "-c"]
 
 # Useful for installing deps from git, preventing big downloads and bandwith quotas
@@ -17,7 +17,7 @@ ENV UV_LINK_MODE=copy \
     UV_COMPILE_BYTECODE=1 \
     UV_PYTHON_DOWNLOADS=never \
     UV_PROJECT_ENVIRONMENT=/opt/.venv \
-    UV_PYTHON=python3.12
+    UV_PYTHON=python3.11
 
 # Used to fake the version of the package in cases where datalab is only
 # available as a git submodule or worktree
