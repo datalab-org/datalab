@@ -142,7 +142,6 @@ jobs:
         uses: docker/bake-action@v6
         with:
           files: docker-compose.yml
-          load: true
           source: .
           targets: 'app,api,database'
           set: |
