@@ -39,6 +39,6 @@ jobs:
           delete-branch: true
           commit-message: "ci: update yarn lock file"
           title: "Update `yarn.lock` with latest dependencies"
-          body: "This PR updates the `yarn.lock` file with the latest compatible dependencies. The chagnes to the lockfile must be reviewed; to run the tests, mark the PR as ready-for-review."
+          body: "This PR updates the `yarn.lock` file with the latest compatible dependencies. The changes to the lockfile must be reviewed; to run the tests, mark the PR as ready-for-review."
           labels: dependency_updates,javascript
           draft: always-true
