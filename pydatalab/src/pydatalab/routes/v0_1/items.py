@@ -314,7 +314,7 @@ def search_items():
         match_obj = {
             "$or": [{field: {"$regex": query, "$options": "i"}} for field in ITEMS_FTS_FIELDS]
         }
-        match_obj.update(get_default_permissions(user_only=False))
+        match_obj = {"$and": [get_default_permissions(user_only=False), match_obj]}
         pipeline.append({"$match": match_obj})
 
     else:

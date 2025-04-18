@@ -1,5 +1,4 @@
 import itertools
-import os
 import re
 from pathlib import Path
 
@@ -52,11 +51,10 @@ def read_bruker_1d(
     a_dic, a_data = ng.fileio.bruker.read(str(data_dir))  # aquisition_data
     p_dic, p_data = ng.fileio.bruker.read_pdata(str(processed_data_dir))  # processing data
 
-    try:
-        with open(os.path.join(processed_data_dir, "title")) as f:
-            topspin_title = f.read()
-    except FileNotFoundError:
-        topspin_title = None
+    topspin_title = None
+    title_file = processed_data_dir / "title"
+    if title_file.exists():
+        topspin_title = title_file.read_text()
 
     if len(p_data.shape) > 1:
         return None, a_dic, topspin_title, p_data.shape

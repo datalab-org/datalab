@@ -8,14 +8,19 @@
       class="mb-3"
       update-block-on-change
     />
-    <div class="wrapper">
+    <div v-if="isPhoto" class="img-wrapper">
       <img
         v-if="isPhoto"
         data-testid="media-block-img"
         :src="media_url"
         class="img-fluid mx-auto"
       />
+    </div>
+    <div v-else-if="isVideo" class="video-wrapper">
       <video v-if="isVideo" :src="media_url" controls class="mx-auto" />
+    </div>
+    <div v-else-if="isPDF" class="pdf-wrapper">
+      <iframe v-if="isPDF" :src="media_url" width="100%" height="100%" frameborder="0"></iframe>
     </div>
   </DataBlockBase>
 </template>
@@ -74,6 +79,13 @@ export default {
       }
       return [".mp4", ".mov", ".webm"].includes(extension);
     },
+    isPDF() {
+      let extension = this.lookup_file_field("extension", this.file_id);
+      if (extension) {
+        extension = extension.toLowerCase();
+      }
+      return extension === ".pdf";
+    },
   },
   methods: {
     lookup_file_field(field, file_id) {
@@ -91,7 +103,20 @@ video {
   object-fit: contain;
 }
 
-.wrapper {
+.video-wrapper {
+  resize: both;
+  height: 600px;
+  overflow: auto;
+  display: inline-block;
+}
+
+.pdf-wrapper {
+  display: inline-block;
+  width: 100%;
+  height: 600px;
+}
+
+.img-wrapper {
   resize: both;
   height: 600px;
   overflow: auto;

@@ -10,7 +10,7 @@
       v-model:select-all="allSelected"
       :value="data"
       :data-testid="computedDataTestId"
-      selection-mode="multiple"
+      selection-mode="checkbox"
       paginator
       :first="page * rows"
       :rows="rows"
@@ -23,6 +23,7 @@
       sort-mode="multiple"
       @filter="onFilter"
       @row-click="goToEditPage"
+      @row-select="null"
       @select-all-change="onSelectAllChange"
       @page="onPageChange"
     >
@@ -483,6 +484,9 @@ export default {
       const row = event.data;
       let row_id = null;
 
+      event.originalEvent.stopPropagation();
+      event.originalEvent.preventDefault();
+
       // Check if the row has an item ID, otherwise default to collection ID
       if (!row.item_id && row.collection_id) {
         row_id = row.collection_id;
@@ -503,14 +507,10 @@ export default {
         return null;
       }
 
-      if (
-        event.originalEvent.ctrlKey ||
-        event.originalEvent.metaKey ||
-        event.originalEvent.altKey
-      ) {
-        window.open(`/${this.editPageRoutePrefix}/${row_id}`, "_blank");
+      if (window.Cypress) {
+        window.location.href = `/${this.editPageRoutePrefix}/${row_id}`;
       } else {
-        this.$router.push(`/${this.editPageRoutePrefix}/${row_id}`);
+        window.open(`/${this.editPageRoutePrefix}/${row_id}`, "_blank");
       }
     },
     getComponentProps(componentName, data) {
