@@ -153,13 +153,13 @@ def test_create_indices(real_mongo_client):
 
 
 @pytest.mark.dependency(depends=["test_create_indices"])
-def test_full_text_search(client, real_mongo_client, example_items):
+def test_item_search(client, admin_client, real_mongo_client, example_items):
     if real_mongo_client is None:
         pytest.skip("Skipping FTS tests, not connected to real MongoDB")
 
     real_mongo_client.get_database().items.insert_many(example_items)
 
-    response = client.get("/search-items/?query=12345&types=samples")
+    response = client.get("/search-items/?query=%2512345&types=samples")
 
     assert response.status_code == 200
     assert response.json["status"] == "success"
@@ -167,7 +167,7 @@ def test_full_text_search(client, real_mongo_client, example_items):
     assert response.json["items"][0]["item_id"] == "12345"
     assert response.json["items"][1]["item_id"] == "sample_1"
 
-    response = client.get("/search-items/?query=new material")
+    response = client.get("/search-items/?query=%new material")
 
     assert response.status_code == 200
     assert response.json["status"] == "success"
@@ -175,7 +175,7 @@ def test_full_text_search(client, real_mongo_client, example_items):
     assert response.json["items"][0]["item_id"] == "material"
     assert response.json["items"][1]["item_id"] == "12345"
 
-    response = client.get("/search-items/?query=NaNiO2")
+    response = client.get("/search-items/?query=%NaNiO2")
 
     assert response.status_code == 200
     assert response.json["status"] == "success"
@@ -184,7 +184,7 @@ def test_full_text_search(client, real_mongo_client, example_items):
     assert response.json["items"][1]["item_id"] == "material"
     assert response.json["items"][2]["item_id"] == "12345"
 
-    response = client.get("/search-items/?query='grey:TEST4'")
+    response = client.get("/search-items/?query=%'grey:TEST4'")
 
     assert response.status_code == 200
     assert response.json["status"] == "success"
@@ -193,13 +193,46 @@ def test_full_text_search(client, real_mongo_client, example_items):
     assert response.json["items"][0]["item_id"] == "material"
 
     # Test regex search
-    response = client.get("/search-items/?query=%mater")
+    response = client.get("/search-items/?query=mater")
 
     assert response.status_code == 200
     assert response.json["status"] == "success"
     item_ids = {item["item_id"] for item in response.json["items"]}
     assert "material" in item_ids
     assert "12345" in item_ids
+    assert len(item_ids) == 2
+
+    # Test regex search still obeys permissions
+    response = admin_client.get("/search-items/?query=mater")
+
+    assert response.status_code == 200
+    assert response.json["status"] == "success"
+    item_ids = {item["item_id"] for item in response.json["items"]}
+    assert len(item_ids) == 3
+    assert "material" in item_ids
+    assert "12345" in item_ids
+    assert "123456" in item_ids
+
+    # Search for single word in description
+    response = client.get("/search-items/?query='magic'")
+
+    assert response.status_code == 200
+    assert response.json["status"] == "success"
+    item_ids = {item["item_id"] for item in response.json["items"]}
+    assert "material" in item_ids
+    assert "test" in item_ids
+    assert len(item_ids) == 2
+
+    # Search for single word in description, again checking extra results for admins
+    response = admin_client.get("/search-items/?query='magic'")
+
+    assert response.status_code == 200
+    assert response.json["status"] == "success"
+    item_ids = {item["item_id"] for item in response.json["items"]}
+    assert len(item_ids) == 3
+    assert "material" in item_ids
+    assert "test" in item_ids
+    assert "sample_admin" in item_ids
 
 
 @pytest.mark.dependency(depends=["test_delete_sample"])

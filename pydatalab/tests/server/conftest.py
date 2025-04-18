@@ -426,7 +426,8 @@ def fixture_complicated_sample(user_id):
 
 
 @pytest.fixture(scope="module")
-def example_items(user_id):
+def example_items(user_id, admin_user_id):
+    """Create a collection of samples with mixed ownership between the user and admin."""
     return [
         d.dict(exclude_unset=False)
         for d in [
@@ -438,6 +439,16 @@ def example_items(user_id):
                     "date": "1970-02-01",
                     "refcode": "grey:TEST1",
                     "creator_ids": [user_id],
+                }
+            ),
+            Sample(
+                **{
+                    "item_id": "123456",
+                    "name": "new material",
+                    "description": "NaNiO2",
+                    "date": "1970-02-01",
+                    "refcode": "grey:TEST10",
+                    "creator_ids": [admin_user_id],
                 }
             ),
             Sample(
@@ -460,6 +471,16 @@ def example_items(user_id):
             ),
             Sample(
                 **{
+                    "item_id": "sample_admin",
+                    "name": "bob",
+                    "description": "magic",
+                    "date": "1970-02-01",
+                    "refcode": "grey:TEST9",
+                    "creator_ids": [admin_user_id],
+                }
+            ),
+            Sample(
+                **{
                     "item_id": "sample_2",
                     "name": "other_sample",
                     "date": "1970-02-01",
@@ -475,6 +496,7 @@ def example_items(user_id):
                     "date": "1970-02-01",
                     "refcode": "grey:TEST4",
                     "creator_ids": [user_id],
+                    "description": "magic",
                 }
             ),
             StartingMaterial(
@@ -483,6 +505,7 @@ def example_items(user_id):
                     "chemform": "NaNiO2",
                     "name": "NaNiO2",
                     "date": "1970-02-01",
+                    "description": "magic",
                     "refcode": "grey:TEST5",
                     "creator_ids": [user_id],
                 }
