@@ -237,7 +237,10 @@ def selectable_axes_plot(
     p.toolbar.logo = "grey"
 
     if tools:
-        p.add_tools(tools)
+        if isinstance(tools, list):
+            p.add_tools(*tools)
+        else:
+            p.add_tools(tools)
 
     if isinstance(df, pd.DataFrame):
         df = [df]
