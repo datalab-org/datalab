@@ -121,15 +121,9 @@ jobs:
         working-directory: ./webapp
         run: yarn build
 
-  e2e:
-    name: e2e tests
+  docker-build:
+    name: Build Docker images
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      max-parallel: 3
-      matrix:
-        browser-backend: ["electron", "chrome", "firefox"]
-
     steps:
       - uses: actions/checkout@v4
 
@@ -142,11 +136,11 @@ jobs:
           echo "PYDATALAB_TESTING=true" >> pydatalab/.env
           echo "SETUPTOOLS_SCM_PRETEND_VERSION=0.11.11rc8" >> pydatalab/.env
 
-      - name: Load previously built Docker images
+      - name: Build Docker images
         uses: docker/bake-action@v6
         with:
           files: docker-compose.yml
-          load: true
+          build: true
           source: .
           targets: 'app,api,database'
           set: |
@@ -159,6 +153,36 @@ jobs:
             database.cache-from=type=gha,scope=build-database
             database.cache-to=type=gha,scope=build-database,mode=max
             database.tags=datalab-database:latest
+            *.output=type=docker
+
+  e2e:
+    name: e2e tests
+    runs-on: ubuntu-latest
+    needs: [docker-build]
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        browser-backend: ["electron", "chrome", "firefox"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Load previously built Docker images
+        uses: docker/bake-action@v6
+        with:
+          files: docker-compose.yml
+          load: true
+          source: .
+          targets: 'app,api,database'
+          set: |
+            app.cache-from=type=gha,scope=build-app
+            app.tags=datalab-app:latest
+            api.cache-from=type=gha,scope=build-api
+            api.tags=datalab-api:latest
+            database.cache-from=type=gha,scope=build-database
+            database.tags=datalab-database:latest
+            *.output=type=docker
 
       - name: Start services
         run: |
