@@ -146,14 +146,17 @@ jobs:
           load: true
           targets: 'app,api,database'
           set: |
-            app.cache-from=type=gha,scope=global
-            app.cache-to=type=gha,scope=global,mode=max
+            app.cache-from=type=gha,scope=refs/heads/${{ github.head_ref || github.ref_name }}
+            app.cache-from=type=gha,scope=refs/heads/main # Adjust 'main' if your default branch is different
+            app.cache-to=type=gha,scope=refs/heads/${{ github.head_ref || github.ref_name }},mode=max
             app.tags=datalab-app:latest
-            api.cache-from=type=gha,scope=global
-            api.cache-to=type=gha,scope=global,mode=max
+            api.cache-from=type=gha,scope=refs/heads/${{ github.head_ref || github.ref_name }}
+            api.cache-from=type=gha,scope=refs/heads/main # Optional fallback
+            api.cache-to=type=gha,scope=refs/heads/${{ github.head_ref || github.ref_name }},mode=max
             api.tags=datalab-api:latest
-            database.cache-from=type=gha,scope=global
-            database.cache-to=type=gha,scope=global,mode=max
+            database.cache-from=type=gha,scope=refs/heads/${{ github.head_ref || github.ref_name }}
+            database.cache-from=type=gha,scope=refs/heads/main # Optional fallback
+            database.cache-to=type=gha,scope=refs/heads/${{ github.head_ref || github.ref_name }},mode=max
             database.tags=datalab-database:latest
 
       - name: Save Docker images to tarball
