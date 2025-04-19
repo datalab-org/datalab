@@ -161,12 +161,6 @@ jobs:
             api.tags=datalab-api:latest
             database.tags=datalab-database:latest
 
-      - name: Set some environment variables for CI containers pre-build
-        run: |
-          cp webapp/.env.test_e2e .env
-          echo "PYDATALAB_TESTING=true" >> .env
-          echo "PYDATALAB_TESTING=true" >> pydatalab/.env
-
       - name: Start services
         run: |
           # Launch production container profiles and wait for them to come up
