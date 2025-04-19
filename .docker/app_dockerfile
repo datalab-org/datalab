@@ -14,7 +14,7 @@ RUN --mount=type=cache,target=/root/.cache/yarn yarn install --frozen-lockfile -
 # These get replaced by the entrypoint script for production builds.
 # Set the real values in `.env` files or an external docker-compose.
 ENV NODE_ENV=production \
-ENV VUE_APP_API_URL=magic-api-url \
+    VUE_APP_API_URL=magic-api-url \
     VUE_APP_LOGO_URL=magic-logo-url \ 
     VUE_APP_HOMEPAGE_URL=magic-homepage-url \
     VUE_APP_EDITABLE_INVENTORY=magic-setting \ 

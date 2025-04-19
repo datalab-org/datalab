@@ -148,9 +148,9 @@ jobs:
             api.cache-from=type=gha,scope=${{ github.ref_name }}-${{ matrix.browser-backend }}-build-api
             database.cache-from=type=gha,scope=${{ github.ref_name }}-${{ matrix.browser-backend }}-build-database
             api.cache-to=type=gha,scope=${{ github.ref_name }}-${{ matrix.browser-backend }}-build-api,mode=max
-            api.args.SETUPTOOLS_SCM_PRETEND_VERSION=0.11.11-rc.8
             app.cache-to=type=gha,scope=${{ github.ref_name }}-${{ matrix.browser-backend }}-build-app,mode=max
             database.cache-to=type=gha,scope=${{ github.ref_name }}-${{ matrix.browser-backend }}-build-database,mode=max
+            api.args.SETUPTOOLS_SCM_PRETEND_VERSION=0.11.11-rc.8
             app.tags=datalab-app:latest
             api.tags=datalab-api:latest
             database.tags=datalab-database:latest
@@ -158,10 +158,9 @@ jobs:
       - name: Set some environment variables for CI containers pre-build
         run: |
           cp webapp/.env.test_e2e .env
+          echo "PYDATALAB_TESTING=true" >> .env
 
       - name: Start services
-        env:
-          PYDATALAB_TESTING: true
         run: |
           # Launch production container profiles and wait for them to come up
           docker compose up database api app --no-build --force-recreate -d --wait
