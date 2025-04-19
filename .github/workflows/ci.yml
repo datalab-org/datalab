@@ -148,7 +148,7 @@ jobs:
             api.cache-from=type=gha,scope=${{ github.ref_name }}-${{ matrix.browser-backend }}-build-api
             database.cache-from=type=gha,scope=${{ github.ref_name }}-${{ matrix.browser-backend }}-build-database
             api.cache-to=type=gha,scope=${{ github.ref_name }}-${{ matrix.browser-backend }}-build-api,mode=max
-            api.args.SETUPTOOLS_SCM_PRETEND_VERSION=0.11.11  # Set fake version to never invalidate CI build
+            api.args.SETUPTOOLS_SCM_PRETEND_VERSION=0.11.11-rc.8
             app.cache-to=type=gha,scope=${{ github.ref_name }}-${{ matrix.browser-backend }}-build-app,mode=max
             database.cache-to=type=gha,scope=${{ github.ref_name }}-${{ matrix.browser-backend }}-build-database,mode=max
             app.tags=datalab-app:latest
