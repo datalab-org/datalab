@@ -15,9 +15,9 @@ RUN --mount=type=cache,target=/root/.cache/yarn yarn install --frozen-lockfile -
 # Set the real values in `.env` files or an external docker-compose.
 ENV NODE_ENV=production \
     VUE_APP_API_URL=magic-api-url \
-    VUE_APP_LOGO_URL=magic-logo-url \ 
+    VUE_APP_LOGO_URL=magic-logo-url \
     VUE_APP_HOMEPAGE_URL=magic-homepage-url \
-    VUE_APP_EDITABLE_INVENTORY=magic-setting \ 
+    VUE_APP_EDITABLE_INVENTORY=magic-setting \
     VUE_APP_WEBSITE_TITLE=magic-title \
     VUE_APP_QR_CODE_RESOLVER_URL=magic-qr-code-resolver-url \
     VUE_APP_AUTOMATICALLY_GENERATE_ID_DEFAULT=magic-generate-id-setting
