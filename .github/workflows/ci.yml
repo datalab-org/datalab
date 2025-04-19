@@ -159,6 +159,7 @@ jobs:
         run: |
           cp webapp/.env.test_e2e .env
           echo "PYDATALAB_TESTING=true" >> .env
+          echo "PYDATALAB_TESTING=true" >> pydatalab/.env
 
       - name: Start services
         run: |
