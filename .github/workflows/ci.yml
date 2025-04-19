@@ -142,7 +142,7 @@ jobs:
           echo "PYDATALAB_TESTING=true" >> pydatalab/.env
           echo "SETUPTOOLS_SCM_PRETEND_VERSION=0.11.11rc8" >> pydatalab/.env
 
-      - name: Load previously built Docker images
+      - name: Build Docker images
         uses: docker/bake-action@v6
         with:
           files: docker-compose.yml
