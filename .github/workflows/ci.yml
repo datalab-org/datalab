@@ -150,14 +150,11 @@ jobs:
           source: .
           targets: 'app,api,database'
           set: |
-            app.cache-from=type=gha,scope=build-app
-            app.cache-to=type=gha,scope=build-app,mode=max
+            *.cache-from=type=gha,scope=${{ github.ref_name }}-${{ matrix.browser_backend }}-build
+            *.cache-from=type=gha,scope=main-${{ matrix.browser_backend }}-build
+            *.cache-to=type=gha,scope=${{ github.ref_name }}-${{ matrix.browser_backend }}-build,mode=max
             app.tags=datalab-app:latest
-            api.cache-from=type=gha,scope=build-api
-            api.cache-to=type=gha,scope=build-api,mode=max
             api.tags=datalab-api:latest
-            database.cache-from=type=gha,scope=build-database
-            database.cache-to=type=gha,scope=build-database,mode=max
             database.tags=datalab-database:latest
 
       - name: Start services
