@@ -275,6 +275,13 @@ describe("Edit Page", () => {
     cy.get("select.file-select-dropdown").select("example_data_XRD_example_bmb.xye");
     cy.contains("label", "X axis").should("exist");
     cy.contains("label", "Y axis").should("exist");
+
+    // Create a second data block and try to trigger the wavelength callback, making sure it only changes in one
+    cy.findByText("Add a block").click();
+    cy.get('[data-testid="add-block-dropdown"]').findByText("Powder XRD").click();
+
+    cy.findByText("Select a file:").should("exist");
+    cy.get("select.file-select-dropdown").select("example_data_XRD_example_bmb.xye");
   });
 
   it("Uploads a fake PNG image, make a Media block and checks that the image is shown", () => {
