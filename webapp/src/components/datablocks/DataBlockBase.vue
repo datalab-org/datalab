@@ -1,5 +1,5 @@
 <template>
-  <div :id="block_id" ref="data-block" class="data-block">
+  <div :id="block_id" ref="thisDataBlock" class="data-block">
     <div class="datablock-header collapsible" :class="{ expanded: isExpanded }">
       <font-awesome-icon
         :icon="['fas', 'chevron-right']"
@@ -210,10 +210,10 @@ export default {
         this.contentMaxHeight = "none";
       }
     });
-    this.$refs["data-block"].addEventListener("bokehStateUpdate", this.handleBokehEvent);
+    this.$refs.thisDataBlock.addEventListener("block-event", this.handleBokehEvent);
   },
   beforeUnmount() {
-    this.$refs["data-block"].removeEventListener("bokehStateUpdate", this.handleBokehEvent);
+    this.$refs.thisDataBlock.removeEventListener("block-event", this.handleBokehEvent);
   },
   methods: {
     async updateBlock() {
