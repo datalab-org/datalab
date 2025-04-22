@@ -1,7 +1,7 @@
 <template>
   <!-- think about elegant two-way binding to DataBlockBase... or, just pass all the block data into
 DataBlockBase as a prop, and save from within DataBlockBase  -->
-  <DataBlockBase :item_id="item_id" :block_id="block_id">
+  <DataBlockBase ref="xrdBlockBase" :item_id="item_id" :block_id="block_id">
     <div class="form-row">
       <FileSelectDropdown
         v-model="file_id"
@@ -22,7 +22,6 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
             class="form-control"
             :class="{ 'is-invalid': wavelengthParseError }"
             @keydown.enter="parseUpdateWavelength()"
-            @blur="parseUpdateWavelength()"
           />
           <div v-if="wavelengthParseError" class="alert alert-danger mt-2 mx-auto">
             {{ wavelengthParseError }}
@@ -87,17 +86,14 @@ export default {
       }
 
       if (!this.wavelengthParseError) {
-        const event = new CustomEvent(
-          "bokehStateUpdate",
-          {
-            detail: {
-              event_name: "set_wavelength",
-              wavelength: parseFloat(this.wavelength),
-            },
+        const event = new CustomEvent("block-event", {
+          detail: {
+            event_name: "set_wavelength",
+            wavelength: parseFloat(this.wavelength),
           },
-          { bubbles: true },
-        );
-        document.dispatchEvent(event);
+          bubbles: true,
+        });
+        this.$refs.xrdBlockBase.handleBokehEvent(event);
       }
     },
   },
