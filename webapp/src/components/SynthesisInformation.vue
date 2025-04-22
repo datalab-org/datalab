@@ -1,10 +1,11 @@
 <template>
-  <div :id="block_id" class="data-block">
+  <div id="synthesis-information" class="data-block" data-testid="synthesis-block">
     <div class="datablock-header collapsible" :class="{ expanded: isExpanded }">
       <font-awesome-icon
         :icon="['fas', 'chevron-right']"
         fixed-width
         class="collapse-arrow"
+        data-testid="collapse-arrow"
         @click="toggleExpandBlock"
       />
       <label class="block-title">Synthesis Information</label>
