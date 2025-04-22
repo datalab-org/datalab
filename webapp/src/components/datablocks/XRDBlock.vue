@@ -1,7 +1,7 @@
 <template>
   <!-- think about elegant two-way binding to DataBlockBase... or, just pass all the block data into
 DataBlockBase as a prop, and save from within DataBlockBase  -->
-  <DataBlockBase :item_id="item_id" :block_id="block_id">
+  <DataBlockBase ref="xrdBlockBase" :item_id="item_id" :block_id="block_id">
     <div class="form-row">
       <FileSelectDropdown
         v-model="file_id"
@@ -21,14 +21,7 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
             type="text"
             class="form-control"
             :class="{ 'is-invalid': wavelengthParseError }"
-            @keydown.enter="
-              parseWavelength();
-              updateBlock();
-            "
-            @blur="
-              parseWavelength();
-              updateBlock();
-            "
+            @keydown.enter="parseUpdateWavelength()"
           />
           <div v-if="wavelengthParseError" class="alert alert-danger mt-2 mx-auto">
             {{ wavelengthParseError }}
@@ -51,7 +44,6 @@ import FileSelectDropdown from "@/components/FileSelectDropdown";
 import BokehPlot from "@/components/BokehPlot";
 
 import { createComputedSetterForBlockField } from "@/field_utils.js";
-import { updateBlockFromServer } from "@/server_fetch_utils.js";
 
 export default {
   components: {
@@ -86,23 +78,24 @@ export default {
     file_id: createComputedSetterForBlockField("file_id"),
   },
   methods: {
-    parseWavelength() {
+    parseUpdateWavelength() {
       if (isNaN(this.wavelength) || isNaN(parseFloat(this.wavelength))) {
         this.wavelengthParseError = "Please provide a valid number";
       } else {
         this.wavelengthParseError = "";
       }
-    },
-    updateBlock() {
-      updateBlockFromServer(
-        this.item_id,
-        this.block_id,
-        this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id],
-      );
+
+      if (!this.wavelengthParseError) {
+        const event = new CustomEvent("block-event", {
+          detail: {
+            event_name: "set_wavelength",
+            wavelength: parseFloat(this.wavelength),
+          },
+          bubbles: true,
+        });
+        this.$refs.xrdBlockBase.handleBokehEvent(event);
+      }
     },
   },
-  // mounted() {
-  // 	this.makeBokehPlot()
-  // }
 };
 </script>
