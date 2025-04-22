@@ -43,17 +43,33 @@ class XRDBlock(DataBlock):
 
         else:
             columns = ["twotheta", "intensity", "error"]
-            # Try to parse the file by incrementing skiprows until all lines can be cast to np.float64
-            skiprows: int = 0
-            # Set arbitrary limit to avoid infinite loop; a header of 10,000 lines is unlikely to be useful
-            while skiprows < 10_000:
-                try:
-                    df = pd.read_csv(
-                        location, sep=r"\s+", names=columns, dtype=np.float64, skiprows=skiprows
+            possible_separators = (r"\s+", ",")
+            df = pd.DataFrame()
+            for sep in possible_separators:
+                # Try to parse the file by incrementing skiprows until all lines can be cast to np.float64
+                skiprows: int = 0
+                # Set arbitrary limit to avoid infinite loop; a header of 10,000 lines is unlikely to be useful
+                while skiprows < 1_000:
+                    LOGGER.debug(
+                        "Trying to read %s with skiprows=%d, sep=%s",
+                        location.split("/")[-1],
+                        skiprows,
+                        sep,
                     )
-                    break
-                except ValueError:
-                    skiprows += 1
+                    try:
+                        df = pd.read_csv(
+                            location, sep=sep, names=columns, dtype=np.float64, skiprows=skiprows
+                        )
+                        break
+                    except (ValueError, RuntimeError):
+                        skiprows += 1
+
+                if df.empty:
+                    continue
+
+                break
+
+            # If no valid separator was found, raise an error
             else:
                 raise RuntimeError(
                     f"Unable to extract XRD data from file {location}; check file header for irregularities"
