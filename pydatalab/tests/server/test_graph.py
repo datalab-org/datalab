@@ -1,7 +1,7 @@
 import json
 
 from pydatalab.models import Cell, Sample
-from pydatalab.models.samples import Constituent
+from pydatalab.models.utils import Constituent
 
 
 def test_simple_graph(admin_client):

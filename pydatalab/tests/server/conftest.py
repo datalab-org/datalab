@@ -373,7 +373,7 @@ def fixture_default_equipment():
 
 @pytest.fixture(scope="module", name="complicated_sample")
 def fixture_complicated_sample(user_id):
-    from pydatalab.models.samples import Constituent
+    from pydatalab.models.utils import Constituent
 
     return Sample(
         **{
