@@ -12,12 +12,6 @@ import Admin from "@/views/Admin.vue";
 import Login from "../views/Login.vue";
 import Login2 from "../views/Login2.vue";
 import Login3 from "../views/Login3.vue";
-// import { getUserInfo } from "@/server_fetch_utils.js";
-
-//const isAuthenticated = async () => {
-//  const user = await getUserInfo();
-//  return user !== null;
-//};
 
 const routes = [
   {
@@ -108,17 +102,27 @@ const router = createRouter({
   routes,
 });
 
-//router.beforeEach(async (to, from, next) => {
-//  const isPublicRoute = to.name === "login" || to.name === "About";
-//  const authenticated = await isAuthenticated();
-//
-//  if (isPublicRoute && authenticated) {
-//    next({ name: "samples" });
-//  } else if (!isPublicRoute && !authenticated) {
-//    next({ name: "login" });
-//  } else {
-//    next();
-//  }
-//});
+router.beforeEach((to, from, next) => {
+  const websiteTitle = process.env.VUE_APP_WEBSITE_TITLE || "datalab";
+
+  const capitalizeFirstLetter = (string) => {
+    return string ? string.charAt(0).toUpperCase() + string.slice(1) : "";
+  };
+
+  const nameMapping = {
+    "starting-materials": "Inventory",
+    "item-graph": "Graph View",
+  };
+
+  let formattedName = nameMapping[to.name] || capitalizeFirstLetter(to.name);
+
+  document.title = to.name
+    ? to.params.id
+      ? `${websiteTitle} - ${formattedName}: ${to.params.id}`
+      : `${websiteTitle} - ${formattedName}`
+    : websiteTitle;
+
+  next();
+});
 
 export default router;

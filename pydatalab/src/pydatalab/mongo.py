@@ -1,3 +1,4 @@
+from functools import lru_cache
 from typing import List, Optional
 
 # Must be imported in this way to allow for easy patching with mongomock
@@ -28,7 +29,11 @@ ITEMS_FTS_FIELDS: set[str] = set().union(
         {
             f
             for f, p in model.schema(by_alias=False)["properties"].items()
-            if (p.get("type") == "string" and p.get("format") not in ("date-time", "uuid"))
+            if (
+                p.get("type") == "string"
+                and p.get("format") not in ("date-time", "uuid")
+                and f != "type"
+            )
         }
         for model in ITEM_MODELS.values()
     )
@@ -44,6 +49,7 @@ def insert_pydantic_model_fork_safe(model: BaseModel, collection: str) -> str:
     )
 
 
+@lru_cache(maxsize=1)
 def _get_active_mongo_client(timeoutMS: int = 1000) -> pymongo.MongoClient:
     """Returns a `MongoClient` for the configured `MONGO_URI`,
     raising a `RuntimeError` if not available.
@@ -71,6 +77,7 @@ def _get_active_mongo_client(timeoutMS: int = 1000) -> pymongo.MongoClient:
         raise RuntimeError from exc
 
 
+@lru_cache(maxsize=1)
 def get_database() -> pymongo.database.Database:
     """Returns the configured database."""
     return _get_active_mongo_client().get_database()

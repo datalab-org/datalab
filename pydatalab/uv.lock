@@ -543,8 +543,8 @@ array = [
 
 [[package]]
 name = "datalab-app-plugin-insitu"
-version = "0.1.1"
-source = { git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git?rev=v0.1.1#52d116201fc663c5eb7a34878dcf5f1a5ba53af9" }
+version = "0.1.2"
+source = { git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git?rev=v0.1.2#ce47ea2dfefa2be177b76bbf5b339abb47e98a67" }
 dependencies = [
     { name = "lmfit" },
     { name = "matplotlib" },
@@ -566,7 +566,6 @@ dependencies = [
     { name = "periodictable" },
     { name = "pint" },
     { name = "pydantic", extra = ["dotenv", "email"] },
-    { name = "setuptools" },
 ]
 
 [package.optional-dependencies]
@@ -654,7 +653,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "bokeh", specifier = "~=2.4,<3.0" },
-    { name = "datalab-app-plugin-insitu", marker = "extra == 'apps'", git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git?rev=v0.1.1" },
+    { name = "datalab-app-plugin-insitu", marker = "extra == 'apps'", git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git?rev=v0.1.2" },
     { name = "datalab-server", extras = ["apps", "chat", "server"], marker = "extra == 'all'" },
     { name = "flask", marker = "extra == 'server'", specifier = "~=3.0" },
     { name = "flask-compress", marker = "extra == 'server'", specifier = "~=1.15" },
@@ -670,7 +669,7 @@ requires-dist = [
     { name = "langchain-anthropic", marker = "extra == 'chat'", specifier = "~=0.1" },
     { name = "langchain-openai", marker = "extra == 'chat'", specifier = "~=0.1" },
     { name = "matplotlib", specifier = "~=3.8" },
-    { name = "navani", marker = "extra == 'apps'", git = "https://github.com/the-grey-group/navani.git?rev=v0.1.7" },
+    { name = "navani", marker = "extra == 'apps'", git = "https://github.com/the-grey-group/navani.git?rev=v0.1.8" },
     { name = "newarenda", marker = "extra == 'apps'", specifier = ">=2024" },
     { name = "nmrglue", marker = "extra == 'apps'", specifier = "~=0.10" },
     { name = "pandas", extras = ["excel"], specifier = "~=2.2" },
@@ -686,7 +685,6 @@ requires-dist = [
     { name = "python-dotenv", marker = "extra == 'server'", specifier = "~=1.0" },
     { name = "rosettasciio", marker = "extra == 'apps'", specifier = "~=0.3,<0.4" },
     { name = "scipy", marker = "extra == 'apps'", specifier = "~=1.13" },
-    { name = "setuptools", specifier = ">=75.3.0" },
     { name = "tiktoken", marker = "extra == 'chat'", specifier = "~=0.7" },
     { name = "transformers", marker = "extra == 'chat'", specifier = "~=4.42" },
     { name = "werkzeug", marker = "extra == 'server'", specifier = "~=3.0" },
@@ -1674,8 +1672,8 @@ wheels = [
 
 [[package]]
 name = "navani"
-version = "0.1.5"
-source = { git = "https://github.com/the-grey-group/navani.git?rev=v0.1.7#d171781b483f0a17a0ada7a043c8f1e243499245" }
+version = "0.1.8"
+source = { git = "https://github.com/the-grey-group/navani.git#922ffe190ae76a1e00ec0396f00f62fd571b8a53" }
 dependencies = [
     { name = "galvani" },
     { name = "matplotlib" },

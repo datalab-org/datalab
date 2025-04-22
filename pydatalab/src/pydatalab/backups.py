@@ -53,11 +53,11 @@ def take_snapshot(snapshot_path: Path, encrypt: bool = False) -> None:
         LOGGER.debug("Taking dump of database %s", CONFIG.MONGO_URI)
 
         # Check that mongodump is available
-        subprocess.check_output(["mongodump", "--version"])
+        subprocess.check_output(["mongodump", "--version"])  # noqa: S603, S607
 
         with tempfile.TemporaryDirectory() as temp_dir:
             command = ["mongodump", CONFIG.MONGO_URI, "--out", str(Path(temp_dir).resolve())]
-            subprocess.check_output(command)
+            subprocess.check_output(command)  # noqa: S603
 
             for file in Path(temp_dir).iterdir():
                 tar.add(file, arcname=Path("mongodb"))
@@ -67,7 +67,7 @@ def take_snapshot(snapshot_path: Path, encrypt: bool = False) -> None:
         LOGGER.debug("Dumping server config.")
         with tempfile.TemporaryDirectory() as temp_dir:
             with open(tmp_config := Path(temp_dir) / "config.json", "w") as f:
-                data = CONFIG.json(indent=2, skip_defaults=True)
+                data = CONFIG.json(indent=2, exclude_unset=True)
                 f.write(data)
 
                 tar.add(
@@ -107,15 +107,15 @@ def restore_snapshot(snapshot_path: Path, decrypt: bool = False):
     with tarfile.open(snapshot_path, mode=mode) as tar:
         LOGGER.debug("Restoring files from %s", snapshot_path)
         files = [m for m in tar.getmembers() if m.name.startswith("files/")]
-        tar.extractall(path=CONFIG.FILE_DIRECTORY, members=files)
+        tar.extractall(path=CONFIG.FILE_DIRECTORY, members=files)  # noqa: S202
         LOGGER.debug("Files restored from %s", snapshot_path)
 
         LOGGER.debug("Restoring database from %s", snapshot_path)
         with tempfile.TemporaryDirectory() as temp_dir:
             database = [m for m in tar.getmembers() if m.name.startswith("mongodb/")]
-            tar.extractall(path=temp_dir, members=database)
+            tar.extractall(path=temp_dir, members=database)  # noqa: S202
             command = ["mongorestore", CONFIG.MONGO_URI, "--drop", str(Path(temp_dir) / "mongodb")]
-            subprocess.check_output(command)
+            subprocess.check_output(command)  # noqa: S603
         LOGGER.debug("Database restored from %s", snapshot_path)
 
     LOGGER.info("Snapshot restored from %s", snapshot_path)
