@@ -5,21 +5,18 @@ import pytest
 from pydatalab.apps.xrd.blocks import XRDBlock
 from pydatalab.bokeh_plots import selectable_axes_plot
 
-
-@pytest.fixture
-def data_files():
-    return (Path(__file__).parent.parent.parent / "example_data" / "XRD").glob("*")
+XRD_DATA_FILES = list((Path(__file__).parent.parent.parent / "example_data" / "XRD").glob("*"))
 
 
-def test_load(data_files):
-    for f in data_files:
-        if f.suffix in XRDBlock.accepted_file_extensions:
-            df, y_options = XRDBlock.load_pattern(f)
-            assert all(y in df.columns for y in y_options)
+@pytest.mark.parametrize("f", XRD_DATA_FILES)
+def test_load(f):
+    if f.suffix in XRDBlock.accepted_file_extensions:
+        df, y_options = XRDBlock.load_pattern(f)
+        assert all(y in df.columns for y in y_options)
 
 
-def test_plot(data_files):
-    f = next(data_files)
+@pytest.mark.parametrize("f", XRD_DATA_FILES)
+def test_plot(f):
     if f.suffix in XRDBlock.accepted_file_extensions:
         df, y_options = XRDBlock.load_pattern(f)
         p = selectable_axes_plot(
