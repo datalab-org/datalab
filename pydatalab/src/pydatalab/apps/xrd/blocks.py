@@ -279,6 +279,25 @@ class XRDBlock(DataBlock):
                 plot_line=True,
                 plot_points=True,
                 point_size=3,
+                parameters={
+                    "wavelength": {
+                        "label": "Wavelength (Å)",
+                        "value": self.data["wavelength"],
+                        "event": (
+                            """
+console.log("dispatching event");
+const event = new CustomEvent('bokehStateUpdate', {
+    detail: {
+        event_name: 'set_wavelength',
+        wavelength: event.target.value_throttled,
+    },
+    bubbles: true
+});
+document.dispatchEvent(event);
+"""
+                        ),
+                    }
+                },
             )
 
             self.data["bokeh_plot_data"] = bokeh.embed.json_item(p, theme=DATALAB_BOKEH_THEME)
