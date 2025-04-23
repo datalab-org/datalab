@@ -71,6 +71,9 @@ const DatalabPreset = definePreset(Aura, {
         .no-operator .p-datatable-filter-operator {
           display: none !important;
         }
+        .p-datatable-sortable-column.hide-single-sort-badge .p-datatable-sort-badge {
+          display: none;
+        }
       `,
 });
 
