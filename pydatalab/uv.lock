@@ -543,8 +543,8 @@ array = [
 
 [[package]]
 name = "datalab-app-plugin-insitu"
-version = "0.1.2"
-source = { git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git?rev=v0.1.2#ce47ea2dfefa2be177b76bbf5b339abb47e98a67" }
+version = "0.1.4"
+source = { git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git?rev=v0.1.4#329e9fd4638eef7c6f66b21100c1987036f48ac3" }
 dependencies = [
     { name = "lmfit" },
     { name = "matplotlib" },
@@ -653,7 +653,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "bokeh", specifier = "~=2.4,<3.0" },
-    { name = "datalab-app-plugin-insitu", marker = "extra == 'apps'", git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git?rev=v0.1.2" },
+    { name = "datalab-app-plugin-insitu", marker = "extra == 'apps'", git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git?rev=v0.1.4" },
     { name = "datalab-server", extras = ["apps", "chat", "server"], marker = "extra == 'all'" },
     { name = "flask", marker = "extra == 'server'", specifier = "~=3.0" },
     { name = "flask-compress", marker = "extra == 'server'", specifier = "~=1.15" },
