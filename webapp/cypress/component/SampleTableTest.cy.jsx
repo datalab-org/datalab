@@ -169,17 +169,17 @@ describe("SampleTable Component Tests", () => {
       });
 
     cy.get(".p-datatable-tbody tr")
-      .eq(4)
+      .eq(3)
       .within(() => {
         cy.get("td").eq(0).should("contain.text", "");
-        cy.get("td").eq(1).should("contain.text", "cell2");
+        cy.get("td").eq(1).should("contain.text", "cell1");
         cy.get("td").eq(2).should("contain.text", "cells");
-        cy.get("td").eq(3).should("contain.text", "Cell 2");
+        cy.get("td").eq(3).should("contain.text", "Cell 1");
         cy.get("td").eq(4).should("contain.text", "CH4");
         cy.get("td").eq(5).should("contain.text", "8/15/2023");
-        cy.get("td").eq(6).find(".badge").should("have.length", 2);
+        cy.get("td").eq(6).find(".badge").should("have.length", 1);
         cy.get("td").eq(7).find(".avatar").should("have.length", 2);
-        cy.get("td").eq(8).should("contain.text", "2");
+        cy.get("td").eq(8).should("contain.text", "1");
       });
   });
 
@@ -283,8 +283,8 @@ describe("SampleTable Component Tests", () => {
     cy.get(".p-datatable-tbody tr").eq(1).find("td").eq(5).should("contain.text", "9/2/2023");
 
     cy.get(".p-datatable-thead th").eq(6).find(".p-datatable-sort-icon").click();
-    cy.get(".p-datatable-tbody tr").eq(0).find("td").eq(6).find(".badge").should("have.length", 2);
-    cy.get(".p-datatable-tbody tr").eq(1).find("td").eq(6).find(".badge").should("have.length", 3);
+    cy.get(".p-datatable-tbody tr").eq(0).find("td").eq(6).find(".badge").should("have.length", 1);
+    cy.get(".p-datatable-tbody tr").eq(1).find("td").eq(6).find(".badge").should("have.length", 1);
 
     cy.get(".p-datatable-thead th").eq(6).find(".p-datatable-sort-icon").click();
     cy.get(".p-datatable-tbody tr").eq(0).find("td").eq(6).find(".badge").should("have.length", 3);
@@ -292,23 +292,29 @@ describe("SampleTable Component Tests", () => {
 
     cy.get(".p-datatable-thead th").eq(7).find(".p-datatable-sort-icon").click();
     cy.get(".p-datatable-tbody tr").eq(0).find("td").eq(7).find(".avatar").should("have.length", 1);
+    cy.get(".p-datatable-tbody tr").eq(1).find("td").eq(7).find(".avatar").should("have.length", 1);
+    cy.get(".p-datatable-tbody tr").eq(2).find("td").eq(7).find(".avatar").should("have.length", 1);
+
+    cy.get(".p-datatable-thead th").eq(7).find(".p-datatable-sort-icon").click();
+    cy.get(".p-datatable-tbody tr").eq(0).find("td").eq(7).find(".avatar").should("have.length", 3);
     cy.get(".p-datatable-tbody tr").eq(1).find("td").eq(7).find(".avatar").should("have.length", 2);
     cy.get(".p-datatable-tbody tr").eq(2).find("td").eq(7).find(".avatar").should("have.length", 2);
 
-    cy.get(".p-datatable-thead th").eq(7).find(".p-datatable-sort-icon").click();
-    cy.get(".p-datatable-tbody tr").eq(0).find("td").eq(7).find(".avatar").should("have.length", 1);
-    cy.get(".p-datatable-tbody tr").eq(1).find("td").eq(7).find(".avatar").should("have.length", 1);
-    cy.get(".p-datatable-tbody tr").eq(2).find("td").eq(7).find(".avatar").should("have.length", 3);
-
     cy.get(".p-datatable-thead th").eq(8).find(".p-datatable-sort-icon").click();
     cy.get(".p-datatable-tbody tr").eq(0).find("td").eq(8).should("contain.text", "1");
-    cy.get(".p-datatable-tbody tr").eq(1).find("td").eq(8).should("contain.text", "2");
-    cy.get(".p-datatable-tbody tr").eq(2).find("td").eq(8).should("contain.text", "3");
+    cy.get(".p-datatable-tbody tr").eq(1).find("td").eq(8).should("contain.text", "1");
+    cy.get(".p-datatable-tbody tr").eq(2).find("td").eq(8).should("contain.text", "1");
+    cy.get(".p-datatable-tbody tr").eq(3).find("td").eq(8).should("contain.text", "2");
+    cy.get(".p-datatable-tbody tr").eq(4).find("td").eq(8).should("contain.text", "2");
+    cy.get(".p-datatable-tbody tr").eq(5).find("td").eq(8).should("contain.text", "3");
 
     cy.get(".p-datatable-thead th").eq(8).find(".p-datatable-sort-icon").click();
-    cy.get(".p-datatable-tbody tr").eq(0).find("td").eq(8).should("contain.text", "1");
+    cy.get(".p-datatable-tbody tr").eq(0).find("td").eq(8).should("contain.text", "3");
     cy.get(".p-datatable-tbody tr").eq(1).find("td").eq(8).should("contain.text", "2");
-    cy.get(".p-datatable-tbody tr").eq(2).find("td").eq(8).should("contain.text", "3");
+    cy.get(".p-datatable-tbody tr").eq(2).find("td").eq(8).should("contain.text", "2");
+    cy.get(".p-datatable-tbody tr").eq(3).find("td").eq(8).should("contain.text", "1");
+    cy.get(".p-datatable-tbody tr").eq(4).find("td").eq(8).should("contain.text", "1");
+    cy.get(".p-datatable-tbody tr").eq(5).find("td").eq(8).should("contain.text", "1");
 
     cy.get(".p-datatable-thead th").eq(9).find(".p-datatable-sort-icon").click();
     cy.get(".p-datatable-tbody tr").eq(0).find("td").eq(9).should("contain.text", "");
