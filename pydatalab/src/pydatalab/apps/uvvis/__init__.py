@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 
 import bokeh.embed
@@ -13,7 +12,7 @@ from pydatalab.logger import LOGGER
 
 
 class UVVisBlock(DataBlock):
-    accepted_file_extensions = (".txt", ".TXT")
+    accepted_file_extensions = (".Raw8.txt", ".txt")
     blocktype = "uvvis"
     name = "UV-Vis"
     description = (
@@ -147,12 +146,17 @@ class UVVisBlock(DataBlock):
                 file_info.append(get_file_info_by_id((file_id), update_if_live=True))
             # Check if the file is in the accepted file extensions
             for file in file_info:
-                ext = os.path.splitext(file["location"].split("/")[-1])[-1].lower()
-                if ext not in self.accepted_file_extensions:
+                ext = "".join(Path(file["location"]).suffixes).lower()
+                # ext = os.path.splitext(file["location"].split("/")[-1])[-1].lower()
+                if ext not in {ext.lower() for ext in self.accepted_file_extensions}:
                     LOGGER.warning(
                         "Unsupported file extension (must be one of %s, not %s)",
                         self.accepted_file_extensions,
                         ext,
+                    )
+
+                    raise ValueError(
+                        f"Unsupported file extension (must be one of {self.accepted_file_extensions}, not {ext})"
                     )
 
             reference_data = self.parse_uvvis_txt(Path(file_info[0]["location"]))

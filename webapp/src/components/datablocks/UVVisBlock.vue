@@ -5,7 +5,7 @@
         v-model="selectedFileOrder"
         :item_id="currentItemId"
         :block_id="currentBlockId"
-        :extensions="['.txt', '.TXT']"
+        :extensions="blockInfo.attributes.accepted_file_extensions"
         :main-label="'Select and order files: First file should be the reference scan, the subsequent files will be the sample scans.'"
         :update-block-on-change="true"
       />

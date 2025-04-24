@@ -25,21 +25,30 @@ def test_load(data_files):
             assert df.shape[1] == len(expected_columns)
 
 
-def test_find_absorbance(data_files):
+def test_find_absorbance(
+    reference_file="1908047U1_0000.Raw8.TXT",
+    sample_files=["1908047U1_0001.Raw8.txt", "1908047U1_0060.Raw8.txt"],
+):
+    # Tests two specific sample files with one reference file, will fail if files aren't present in the example data
+    reference_path = (
+        Path(__file__).parent.parent.parent / "example_data" / "UV-Vis" / reference_file
+    )
     expected_columns = ["Wavelength", "Absorbance"]
     reference_df = None
     sample_dfs = []
-    for f in data_files:
-        if f.suffix in UVVisBlock.accepted_file_extensions:
-            logging.info(f"Loading file: {f.name}")
-            if f.name == "1908047U1_0000.Raw8(1).TXT":
-                logging.info(f"Loading reference file: {f.name}")
-                reference_df = UVVisBlock.parse_uvvis_txt(f)
-            elif f.name == "1908047U1_0001.Raw8(1).txt" or f.name == "1908047U1_0060.Raw8.txt":
-                sample_dfs.append(UVVisBlock.parse_uvvis_txt(f))
-    if reference_df is None:
-        raise ValueError("Reference file '1908047U1_0000.Raw8(1).TXT' not found.")
+    full_suffix = "".join(reference_path.suffixes).lower()
+    if full_suffix in {ext.lower() for ext in UVVisBlock.accepted_file_extensions}:
+        reference_df = UVVisBlock.parse_uvvis_txt(reference_path)
 
+    for f in sample_files:
+        f = Path(__file__).parent.parent.parent / "example_data" / "UV-Vis" / f
+        full_suffix = "".join(f.suffixes).lower()
+        if full_suffix in {ext.lower() for ext in UVVisBlock.accepted_file_extensions}:
+            sample_dfs.append(UVVisBlock.parse_uvvis_txt(f))
+
+    if reference_df is None:
+        raise ValueError("Reference file '1908047U1_0000.Raw8.TXT' not found.")
+    assert len(sample_dfs) > 0
     for df in sample_dfs:
         absorbance_df = UVVisBlock.find_absorbance(df, reference_df)
         assert absorbance_df is not None
@@ -48,15 +57,26 @@ def test_find_absorbance(data_files):
         assert absorbance_df.shape[1] == 2  # Wavelength and Absorbance
 
 
-def test_plot(data_files):
+def test_plot(
+    reference_file="1908047U1_0000.Raw8.TXT",
+    sample_files=["1908047U1_0001.Raw8.txt", "1908047U1_0060.Raw8.txt"],
+):
+    reference_path = (
+        Path(__file__).parent.parent.parent / "example_data" / "UV-Vis" / reference_file
+    )
+    reference_df = None
     sample_dfs = []
-    for f in data_files:
-        if f.suffix in UVVisBlock.accepted_file_extensions:
-            if f.name == "1908047U1_0000.Raw8(1).TXT":
-                reference_df = UVVisBlock.parse_uvvis_txt(f)
-            elif f.name == "1908047U1_0001.Raw8(1).txt" or f.name == "1908047U1_0060.Raw8.txt":
-                sample_dfs.append(UVVisBlock.parse_uvvis_txt(f))
+    full_suffix = "".join(reference_path.suffixes).lower()
+    if full_suffix in {ext.lower() for ext in UVVisBlock.accepted_file_extensions}:
+        reference_df = UVVisBlock.parse_uvvis_txt(reference_path)
 
+    for f in sample_files:
+        f = Path(__file__).parent.parent.parent / "example_data" / "UV-Vis" / f
+        full_suffix = "".join(f.suffixes).lower()
+        if full_suffix in {ext.lower() for ext in UVVisBlock.accepted_file_extensions}:
+            sample_dfs.append(UVVisBlock.parse_uvvis_txt(f))
+
+    assert len(sample_dfs) > 0
     absorbance_dfs = []
     for df in sample_dfs:
         absorbance_dfs.append(UVVisBlock.find_absorbance(df, reference_df))
