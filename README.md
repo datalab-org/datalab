@@ -36,7 +36,9 @@ Importantly, *datalab* stores a network of interconnected research objects in th
 
 The system was originally developed in and is currently deployed for the
 [Grey Group](https://www.ch.cam.ac.uk/group/grey/)
-in the Department of Chemistry at the University of Cambridge.
+in the Department of Chemistry at the University of Cambridge,
+with several instances deployed for members in the
+[*datalab* federation](https://github.com/datalab-org/datalab-federation).
 
 
 <div align="center">
