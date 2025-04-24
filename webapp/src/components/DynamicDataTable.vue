@@ -49,7 +49,6 @@
           @open-add-to-collection-modal="addToCollectionModalIsOpen = true"
           @delete-selected-items="deleteSelectedItems"
         />
-        <div></div>
       </template>
       <template #empty> No data found. </template>
       <template #loading> Loading data. Please wait. </template>
