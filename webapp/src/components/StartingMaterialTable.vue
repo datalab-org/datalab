@@ -16,18 +16,25 @@ export default {
   data() {
     return {
       startingMaterialColumn: [
-        { field: "item_id", header: "ID", body: "FormattedItemName", filter: true },
-        { field: "name", header: "Name" },
-        { field: "chemform", header: "Formula", body: "ChemicalFormula" },
-        { field: "date", header: "Date" },
-        { field: "chemical_purity", header: "Purity" },
+        { field: "item_id", header: "ID", body: "FormattedItemName", filter: true, label: "ID" },
+        { field: "name", header: "Name", label: "Name" },
+        { field: "chemform", header: "Formula", body: "ChemicalFormula", label: "Formula" },
+        { field: "date", header: "Date", label: "Date" },
+        { field: "chemical_purity", header: "Purity", label: "Purity" },
         {
           field: "blocks",
           header: "",
           body: "BlocksIconCounter",
           icon: ["fa", "cubes"],
+          label: "Block",
         },
-        { field: "nfiles", header: "", body: "FilesIconCounter", icon: ["fa", "file"] },
+        {
+          field: "nfiles",
+          header: "",
+          body: "FilesIconCounter",
+          icon: ["fa", "file"],
+          label: "Files",
+        },
       ],
     };
   },
