@@ -210,6 +210,7 @@ export default {
       isSelectedDropdownVisible: false,
       isDeletingItems: false,
       itemCount: 0,
+      localSelectedColumns: [],
     };
   },
   watch: {
@@ -236,7 +237,7 @@ export default {
     },
   },
   created() {
-    this.localSelectedColumns = [...this.selectedColumns];
+    this.loadColumnsFromLocalStorage();
   },
   methods: {
     confirmDeletion() {
@@ -288,6 +289,50 @@ export default {
     },
     updateSelectedColumns(value) {
       this.$emit("update:selected-columns", value);
+      this.saveColumnsToLocalStorage(value);
+    },
+    getLocalStorageKey() {
+      return `selectedColumns_${this.dataType}`;
+    },
+    saveColumnsToLocalStorage(columns) {
+      try {
+        const columnLabels = columns.map((col) => ({
+          label: col.label,
+        }));
+        localStorage.setItem(this.getLocalStorageKey(), JSON.stringify(columnLabels));
+      } catch (error) {
+        console.error("Error saving columns to localStorage:", error);
+      }
+    },
+    loadColumnsFromLocalStorage() {
+      try {
+        const savedColumns = localStorage.getItem(this.getLocalStorageKey());
+
+        if (savedColumns) {
+          const parsedColumns = JSON.parse(savedColumns);
+
+          const restoredColumns = parsedColumns.map((savedCol) => {
+            const matchingCol = this.availableColumns.find((col) => col.label === savedCol.label);
+            return matchingCol || savedCol;
+          });
+
+          const validColumns = restoredColumns.filter((col) =>
+            this.availableColumns.some((availCol) => availCol.label === col.label),
+          );
+
+          if (validColumns.length > 0) {
+            this.localSelectedColumns = validColumns;
+            this.$emit("update:selected-columns", validColumns);
+          } else {
+            this.localSelectedColumns = [...this.selectedColumns];
+          }
+        } else {
+          this.localSelectedColumns = [...this.selectedColumns];
+        }
+      } catch (error) {
+        console.error("Error loading columns from localStorage:", error);
+        this.localSelectedColumns = [...this.selectedColumns];
+      }
     },
   },
 };
