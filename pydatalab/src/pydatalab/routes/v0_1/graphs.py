@@ -70,50 +70,9 @@ def get_graph_cy_format(item_id: Optional[str] = None, collection_id: Optional[s
 
     # Collect the elements that have already been added to the graph, to avoid duplication
     drawn_elements = set()
-    node_collections = set()
     for document in all_documents:
-        # for some reason, document["relationships"] is sometimes equal to None, so we
-        # need this `or` statement.
-        for relationship in document.get("relationships") or []:
-            # only considering child-parent relationships
-            if relationship.get("type") == "collections" and not collection_id:
-                collection_data = flask_mongo.db.collections.find_one(
-                    {
-                        "_id": relationship["immutable_id"],
-                        **get_default_permissions(user_only=False),
-                    },
-                    projection={"collection_id": 1, "title": 1, "type": 1},
-                )
-                if collection_data:
-                    if relationship["immutable_id"] not in node_collections:
-                        _id = f'Collection: {collection_data["collection_id"]}'
-                        if _id not in drawn_elements:
-                            nodes.append(
-                                {
-                                    "data": {
-                                        "id": _id,
-                                        "name": collection_data["title"],
-                                        "type": collection_data["type"],
-                                        "shape": "triangle",
-                                    }
-                                }
-                            )
-                            node_collections.add(relationship["immutable_id"])
-                            drawn_elements.add(_id)
 
-                    source = f'Collection: {collection_data["collection_id"]}'
-                    target = document.get("item_id")
-                    edges.append(
-                        {
-                            "data": {
-                                "id": f"{source}->{target}",
-                                "source": source,
-                                "target": target,
-                                "value": 1,
-                            }
-                        }
-                    )
-                continue
+        # Previously scraped collection relationships here, but this was removed
 
         for relationship in document.get("relationships") or []:
             # only considering child-parent relationships:
