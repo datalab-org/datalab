@@ -284,7 +284,7 @@ export default {
       this.isSelectedDropdownVisible = false;
     },
     columnLabel(option) {
-      return option.header || option.field;
+      return option.label;
     },
     updateSelectedColumns(value) {
       this.$emit("update:selected-columns", value);
