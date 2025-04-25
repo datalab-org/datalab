@@ -3,66 +3,30 @@
     <label class="mr-2">Files</label>
     <div class="card">
       <div id="filearea" class="card-body overflow-auto">
-        <div v-for="(file, file_id) in stored_files" :key="file_id" class="file-group">
-          <a @click="deleteFile($event, file_id)">
-            <font-awesome-icon icon="times" fixed-width class="delete-file-button" />
-          </a>
-          <a class="filelink" target="_blank" :href="`${$API_URL}/files/${file_id}/${file.name}`">
-            {{ file.name }}
-          </a>
-          <font-awesome-icon
-            v-if="file.is_live == true"
-            v-show="true"
-            class="link-icon"
-            :icon="['fa', 'link']"
-          />
-          <font-awesome-icon
-            v-else-if="file.source_server_name != null"
-            v-show="true"
-            class="unlink-icon"
-            :icon="['fa', 'unlink']"
-          />
-          <span v-if="file.source_server_name != null">
-            <span class="server-name">
-              <font-awesome-icon :icon="['fas', 'hdd']" class="toplevel-icon" />
-              {{ file.source_server_name }}
-            </span>
-            <span class="last-updated-text">
-              (updated
-              {{
-                formatDistance(new Date(file.last_modified_remote), new Date(), {
-                  addSuffix: true,
-                })
-              }}, last synced
-              {{
-                formatDistance(new Date(file.last_modified), new Date(), {
-                  addSuffix: true,
-                })
-              }})
-            </span>
-          </span>
-          <span v-else class="last-updated-text">
-            (uploaded
-            {{
-              formatDistance(new Date(file.last_modified), new Date(), {
-                addSuffix: true,
-              })
-            }})
-          </span>
-        </div>
+        <FileListItem
+          v-for="(file, file_id) in stored_files"
+          :key="file_id"
+          :file="file"
+          :file-id="file_id"
+          @delete-file-from-sample="deleteFile"
+        />
       </div>
       <div class="row">
-        <button id="uppy-trigger" class="btn btn-default btn-sm mb-3 ml-4" type="button">
-          <font-awesome-icon class="upload-icon" icon="file" fixed-width />
-          Upload files...</button
-        ><!-- Surrounding divs so that buttons  don't become full-width in the card -->
         <button
-          class="btn btn-default btn-sm mb-3 ml-2"
+          id="uppy-trigger"
+          class="btn btn-default btn-sm mb-3 ml-4 text-start d-flex align-items-center"
+          type="button"
+        >
+          <font-awesome-icon class="upload-icon" icon="file" fixed-width />
+          <span class="ms-1">Upload files</span>
+        </button>
+        <button
+          class="btn btn-default btn-sm mb-3 ml-2 text-start d-flex align-items-center"
           type="button"
           @click="setFileSelectModalOpen"
         >
           <font-awesome-icon class="remote-upload-icon" icon="cloud-upload-alt" fixed-width />
-          Add files from server...
+          <span class="ms-1">Add files from server</span>
         </button>
       </div>
     </div>
@@ -70,10 +34,13 @@
 </template>
 
 <script>
+import FileListItem from "./FileListItem.vue";
 import { deleteFileFromSample } from "@/server_fetch_utils";
-import { formatDistance } from "date-fns";
 
 export default {
+  components: {
+    FileListItem,
+  },
   props: {
     item_id: {
       type: String,
@@ -90,8 +57,7 @@ export default {
     };
   },
   methods: {
-    formatDistance,
-    deleteFile(event, file_id) {
+    deleteFile(file_id) {
       deleteFileFromSample(this.item_id, file_id);
       return false;
     },
@@ -120,7 +86,8 @@ export default {
 .unlink-icon,
 .upload-icon,
 .remote-upload-icon {
-  margin-left: 0.4rem;
+  margin-left: 0.2rem;
+  margin-right: 0.2rem;
   color: #888;
   font-size: small;
 }
@@ -132,25 +99,5 @@ export default {
 
 #uppy-trigger {
   scroll-anchor: auto;
-  width: 8rem;
-}
-
-.last-updated-text {
-  font-size: 0.8em;
-  color: #888;
-  font-style: italic;
-  vertical-align: middle;
-}
-
-.server-name {
-  font-family: "Andalé Mono", monospace;
-  font-weight: 400;
-  /*font-style: italic;*/
-  color: teal;
-  border: solid 1px teal;
-  padding: 0.1rem 0.25rem;
-  margin-left: 0.5rem;
-  border-radius: 0.2rem;
-  font-size: 0.8em;
 }
 </style>
