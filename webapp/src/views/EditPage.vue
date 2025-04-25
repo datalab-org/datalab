@@ -70,7 +70,7 @@
     </div>
 
     <!-- Display the blocks -->
-    <div v-if="blocksLoaded" class="container block-container">
+    <div v-if="blocksLoaded && blockInfoLoaded" class="container block-container">
       <transition-group name="block-list" tag="div">
         <div v-for="block_id in item_data.display_order" :key="block_id" class="block-list-item">
           <component :is="getBlockDisplayType(block_id)" :item_id="item_id" :block_id="block_id" />
