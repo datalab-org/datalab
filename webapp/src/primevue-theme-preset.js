@@ -74,6 +74,12 @@ const DatalabPreset = definePreset(Aura, {
         .p-datatable-sortable-column.hide-single-sort-badge .p-datatable-sort-badge {
           display: none;
         }
+        .p-multiselect-header .p-checkbox::after {
+          content: 'Select all';
+          position: absolute;
+          left: 28px;
+          width: 110px;
+        }
       `,
 });
 
