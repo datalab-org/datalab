@@ -13,7 +13,7 @@ from pydatalab.logger import LOGGER
 
 class UVVisBlock(DataBlock):
     accepted_file_extensions = (".Raw8.txt", ".txt")
-    blocktype = "uvvis"
+    blocktype = "uv-vis"
     name = "UV-Vis"
     description = (
         "This block can plot UV-Vis data from a .txt file. "
