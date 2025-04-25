@@ -3,9 +3,9 @@
     <div>
       <MultiFileSelector
         v-model="selectedFileOrder"
-        :item_id="currentItemId"
-        :block_id="currentBlockId"
-        :extensions="blockInfo.attributes.accepted_file_extensions"
+        :item_id="item_id"
+        :block_id="block_id"
+        :extensions="accepted_file_extensions"
         :main-label="'Select and order files: First file should be the reference scan, the subsequent files will be the sample scans.'"
         :update-block-on-change="true"
       />
@@ -24,7 +24,6 @@ import MultiFileSelector from "@/components/FileMultiSelectDropdown";
 import BokehPlot from "@/components/BokehPlot";
 
 import { createComputedSetterForBlockField } from "@/field_utils.js";
-import { updateBlockFromServer } from "@/server_fetch_utils.js";
 
 export default {
   components: {
@@ -44,9 +43,7 @@ export default {
   },
   data() {
     return {
-      currentItemId: this.item_id, // Pass the actual item ID
-      currentBlockId: this.block_id, // Pass the actual block ID
-      // selectedFileOrder: [], // Initialize as an empty array
+      blockType: "uv-vis",
     };
   },
   computed: {
@@ -54,20 +51,13 @@ export default {
       return this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id]
         .bokeh_plot_data;
     },
-    selectedFileOrder: createComputedSetterForBlockField("selected_file_order"),
     blockInfo() {
-      return this.$store.state.blocksInfos["uvvis"];
+      return this.$store.state.blocksInfos[this.blockType];
     },
-  },
-
-  methods: {
-    updateBlock() {
-      updateBlockFromServer(
-        this.item_id,
-        this.block_id,
-        this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id],
-      );
+    accepted_file_extensions() {
+      return this.blockInfo?.attributes?.accepted_file_extensions || [];
     },
+    selectedFileOrder: createComputedSetterForBlockField("selected_file_order"),
   },
 };
 </script>
