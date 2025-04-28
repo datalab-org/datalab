@@ -190,7 +190,13 @@ export default {
       return Object.fromEntries(this.files.map((file) => [file.immutable_id, file]));
     },
     blocksInfos() {
-      return this.$store.state.blocksInfos;
+      if (this.blockInfoLoaded) {
+        const blocksInfos = Array.from(this.$store.getters.getBlocksInfos.values());
+        return [...blocksInfos].sort((a, b) =>
+          a?.attributes?.name.localeCompare(b?.attributes?.name),
+        );
+      }
+      return [];
     },
     itemApiUrl() {
       return API_URL + "/items/" + this.refcode;
