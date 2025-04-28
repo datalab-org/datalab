@@ -1,5 +1,5 @@
 // Resources for the application
-import GenericBlock from "@/components/datablocks/GenericBlock";
+import DataBlockBase from "@/components/datablocks/DataBlockBase";
 import MediaBlock from "@/components/datablocks/MediaBlock";
 import XRDBlock from "@/components/datablocks/XRDBlock";
 import ChatBlock from "@/components/datablocks/ChatBlock";
@@ -57,7 +57,7 @@ export const debounceTime = 250; // time after user stops typing before request 
 
 // A mapping for blocks that need custom Vue components
 export const customBlockTypes = {
-  comment: { description: "Comment", component: GenericBlock, name: "Comment" },
+  comment: { description: "Comment", component: DataBlockBase, name: "Comment" },
   media: { description: "Media", component: MediaBlock, name: "Media" },
   xrd: { description: "Powder XRD", component: XRDBlock, name: "Powder XRD" },
   cycle: { description: "Electrochemistry", component: CycleBlock, name: "Electrochemistry" },
