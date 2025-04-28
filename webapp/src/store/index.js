@@ -342,6 +342,9 @@ export default createStore({
     getHasUnverifiedUser(state) {
       return state.hasUnverifiedUser;
     },
+    getBlocksInfos(state) {
+      return Object.values(state.blocksInfos);
+    },
   },
   actions: {},
   modules: {},
