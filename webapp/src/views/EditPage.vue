@@ -113,9 +113,8 @@ import setupUppy from "@/file_upload.js";
 
 import tinymce from "tinymce/tinymce";
 
-import { blockTypes, itemTypes } from "@/resources.js";
-import NotImplementedBlock from "@/components/datablocks/NotImplementedBlock.vue";
-import { API_URL } from "@/resources.js";
+import { itemTypes, API_URL, customBlockTypes } from "@/resources.js";
+import BokehBlock from "@/components/datablocks/BokehBlock.vue";
 import { formatDistanceToNow } from "date-fns";
 
 import StyledBlockHelp from "@/components/StyledBlockHelp";
@@ -213,7 +212,7 @@ export default {
     this.interval = setInterval(() => this.setLastModified(), 30000);
   },
   beforeMount() {
-    this.blockTypes = blockTypes; // bind blockTypes as a NON-REACTIVE object to the this context so that it is accessible by the template.
+    this.customBlockTypes = customBlockTypes; // bind customBlockTypes as a NON-REACTIVE object to the this context so that it is accessible by the template.
   },
   mounted() {
     // overwrite ctrl-s and cmd-s to save the page
@@ -258,15 +257,14 @@ export default {
     },
     getBlockDisplayType(block_id) {
       var type = this.blocks[block_id].blocktype;
-      if (type in blockTypes) {
-        return blockTypes[type].component;
+      if (type in customBlockTypes) {
+        return customBlockTypes[type].component;
       } else {
-        return NotImplementedBlock;
+        return BokehBlock;
       }
     },
     saveSample() {
       // trigger the mce save so that they update the store with their content
-      console.log("save sample clicked!");
       tinymce.editors.forEach((editor) => {
         editor.isDirty() && editor.save();
       });
