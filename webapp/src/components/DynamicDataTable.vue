@@ -685,6 +685,10 @@ export default {
     onToggleColumns(value) {
       this.$nextTick(() => {
         this.selectedColumns = [...value];
+
+        this.$nextTick(() => {
+          this.onColumnResize();
+        });
       });
     },
     onColumnResize() {
