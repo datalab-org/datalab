@@ -295,7 +295,7 @@ describe("Edit Page", () => {
   });
 
   it("Uploads an Raman data file, makes a Raman block and checks that the plot is shown", () => {
-    cy.uploadFileViaAPI("editable_sample", "example_data/raman/labspec_raman_example.txt");
+    cy.uploadFileViaAPI("editable_sample", "example_data_raman_labspec_raman_example.txt");
 
     cy.get('[data-testid="search-input"]').type("editable_sample");
     cy.findByText("editable_sample").click();
@@ -303,7 +303,9 @@ describe("Edit Page", () => {
     cy.findByText("Add a block").click();
     cy.get('[data-testid="add-block-dropdown"]').findByText("Raman spectroscopy").click();
     cy.findAllByText("Select a file:").eq(2).should("exist");
-    cy.get("select.file-select-dropdown").eq(2).select("labspec_raman_example.txt");
+    cy.get("select.file-select-dropdown")
+      .eq(2)
+      .select("example_data_raman_labspec_raman_example.txt");
     cy.contains("label", "X axis").should("exist");
     cy.contains("label", "Y axis").should("exist");
   });
