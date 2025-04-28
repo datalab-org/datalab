@@ -305,6 +305,7 @@ describe("Edit Page", () => {
     cy.findAllByText("Select a file:").eq(2).should("exist");
     cy.get("select.file-select-dropdown")
       .eq(2)
+      .wait(1000)
       .select("example_data_raman_labspec_raman_example.txt");
     cy.contains("label", "X axis").should("exist");
     cy.contains("label", "Y axis").should("exist");
