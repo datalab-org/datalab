@@ -301,7 +301,7 @@ describe("Edit Page", () => {
     cy.findByText("editable_sample").click();
 
     cy.findByText("Add a block").click();
-    cy.get('[data-testid="add-block-dropdown"]').findByText("Raman").click();
+    cy.get('[data-testid="add-block-dropdown"]').findByText("Raman spectroscopy").click();
     cy.findAllByText("Select a file:").eq(2).should("exist");
     cy.get("select.file-select-dropdown").eq(2).select("labspec_raman_example.txt");
     cy.contains("label", "X axis").should("exist");
