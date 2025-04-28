@@ -22,6 +22,10 @@
       column-resize-mode="fit"
       resizable-columns
       sort-mode="multiple"
+      state-storage="local"
+      :state-key="`datatable-state-${dataType}`"
+      @state-restore="onStateRestore"
+      @state-save="onStateSave"
       @filter="onFilter"
       @row-click="goToEditPage"
       @row-select="null"
@@ -703,6 +707,13 @@ export default {
 
       const storageKey = `datatable-column-widths-${this.dataType}`;
       localStorage.setItem(storageKey, JSON.stringify(widths));
+    },
+    onStateRestore(event) {
+      console.log("Table state restored", event);
+    },
+
+    onStateSave(event) {
+      console.log("Table state saved", event);
     },
   },
 };
