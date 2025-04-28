@@ -5,6 +5,7 @@
     </div>
 
     <DataTable
+      ref="datatable"
       v-model:filters="filters"
       v-model:selection="itemsSelected"
       v-model:select-all="allSelected"
@@ -27,6 +28,7 @@
       @select-all-change="onSelectAllChange"
       @page="onPageChange"
       @sort="onSort"
+      @column-resize-end="onColumnResize"
     >
       <!-- v-model:expandedRows="expandedRows" -->
 
@@ -684,6 +686,19 @@ export default {
       this.$nextTick(() => {
         this.selectedColumns = [...value];
       });
+    },
+    onColumnResize() {
+      const columnElements = this.$refs.datatable.$el.querySelectorAll(".p-datatable-header-cell");
+      const widths = {};
+
+      const columnsWithCheckbox = [{ field: "checkbox" }, ...this.selectedColumns];
+
+      columnsWithCheckbox.forEach((column, index) => {
+        widths[column.field] = columnElements[index].offsetWidth;
+      });
+
+      const storageKey = `datatable-column-widths-${this.dataType}`;
+      localStorage.setItem(storageKey, JSON.stringify(widths));
     },
   },
 };
