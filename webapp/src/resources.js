@@ -1,14 +1,10 @@
 // Resources for the application
 import DataBlockBase from "@/components/datablocks/DataBlockBase";
-import BokehBlock from "@/components/datablocks/BokehBlock";
 import MediaBlock from "@/components/datablocks/MediaBlock";
 import XRDBlock from "@/components/datablocks/XRDBlock";
 import ChatBlock from "@/components/datablocks/ChatBlock";
-import RamanBlock from "@/components/datablocks/RamanBlock";
 import CycleBlock from "@/components/datablocks/CycleBlock";
 import NMRBlock from "@/components/datablocks/NMRBlock";
-import EISBlock from "@/components/datablocks/EISBlock";
-import MassSpecBlock from "@/components/datablocks/MassSpecBlock";
 import NMRInsituBlock from "@/components/datablocks/NMRInsituBlock";
 
 import SampleInformation from "@/components/SampleInformation";
@@ -59,18 +55,14 @@ export const UPPY_MAX_NUMBER_OF_FILES =
 
 export const debounceTime = 250; // time after user stops typing before request is sent
 
-export const blockTypes = {
+// A mapping for blocks that need custom Vue components
+export const customBlockTypes = {
   comment: { description: "Comment", component: DataBlockBase, name: "Comment" },
   media: { description: "Media", component: MediaBlock, name: "Media" },
-  tabular: { description: "Tabular Data", component: BokehBlock, name: "Tabular data" },
   xrd: { description: "Powder XRD", component: XRDBlock, name: "Powder XRD" },
-  raman: { description: "Raman", component: RamanBlock, name: "Raman" },
   cycle: { description: "Electrochemistry", component: CycleBlock, name: "Electrochemistry" },
-  eis: { description: "Electrochemical Impedance Spectroscopy", component: EISBlock, name: "EIS" },
   nmr: { description: "Nuclear Magnetic Resonance Spectroscopy", component: NMRBlock, name: "NMR" },
-  ms: { description: "Mass Spectrometry", component: MassSpecBlock, name: "Mass Spectrometry" },
   chat: { description: "Virtual assistant", component: ChatBlock, name: "Virtual Assistant" },
-  ftir: { description: "FTIR", component: BokehBlock, name: "FTIR" },
   "insitu-nmr": { description: "NMR insitu", component: NMRInsituBlock, name: "NMR insitu" },
 };
 
