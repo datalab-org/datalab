@@ -32,7 +32,6 @@
       @select-all-change="onSelectAllChange"
       @page="onPageChange"
       @sort="onSort"
-      @column-resize-end="onColumnResize"
     >
       <!-- v-model:expandedRows="expandedRows" -->
 
@@ -689,29 +688,11 @@ export default {
     onToggleColumns(value) {
       this.$nextTick(() => {
         this.selectedColumns = [...value];
-
-        this.$nextTick(() => {
-          this.onColumnResize();
-        });
       });
-    },
-    onColumnResize() {
-      const columnElements = this.$refs.datatable.$el.querySelectorAll(".p-datatable-header-cell");
-      const widths = {};
-
-      const columnsWithCheckbox = [{ field: "checkbox" }, ...this.selectedColumns];
-
-      columnsWithCheckbox.forEach((column, index) => {
-        widths[column.field] = columnElements[index].offsetWidth;
-      });
-
-      const storageKey = `datatable-column-widths-${this.dataType}`;
-      localStorage.setItem(storageKey, JSON.stringify(widths));
     },
     onStateRestore(event) {
       console.log("Table state restored", event);
     },
-
     onStateSave(event) {
       console.log("Table state saved", event);
     },
