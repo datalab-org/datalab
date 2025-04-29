@@ -12,7 +12,7 @@ export default {
   computed: {
     badgeClass() {
       const statusStyleMap = {
-        // ItemStatus
+        // SampleStatus
         planned: "info",
         active: "success",
         completed: "primary",
@@ -30,6 +30,11 @@ export default {
         disposed: "dark",
         available: "success",
         unavailable: "danger",
+
+        //CellStatus
+        cycled: "primary",
+        shorted: "danger",
+        dismantled: "warning",
       };
 
       return `badge-${statusStyleMap[this.status?.toLowerCase()] || "warning"}`;
