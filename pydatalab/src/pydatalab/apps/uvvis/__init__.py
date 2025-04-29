@@ -1,3 +1,4 @@
+import warnings
 from pathlib import Path
 
 import bokeh.embed
@@ -144,6 +145,10 @@ class UVVisBlock(DataBlock):
             file_info = []
             for file_id in self.data["selected_file_order"]:
                 file_info.append(get_file_info_by_id((file_id), update_if_live=True))
+
+            if len(file_info) < 2:
+                warnings.warn("Not enough files selected - at least 2 required")
+                return
             # Check if the file is in the accepted file extensions
             for file in file_info:
                 ext = "".join(Path(file["location"]).suffixes).lower()
