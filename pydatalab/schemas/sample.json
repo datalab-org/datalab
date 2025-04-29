@@ -114,14 +114,6 @@
         "type": "string"
       }
     },
-    "status": {
-      "default": "planned",
-      "allOf": [
-        {
-          "$ref": "#/definitions/ItemStatus"
-        }
-      ]
-    },
     "chemform": {
       "title": "Chemform",
       "example": [
@@ -141,6 +133,14 @@
     "synthesis_description": {
       "title": "Synthesis Description",
       "type": "string"
+    },
+    "status": {
+      "default": "planned",
+      "allOf": [
+        {
+          "$ref": "#/definitions/SampleStatus"
+        }
+      ]
     }
   },
   "required": [
@@ -565,17 +565,6 @@
         "is_live"
       ]
     },
-    "ItemStatus": {
-      "title": "ItemStatus",
-      "description": "An enumeration of the status of items",
-      "enum": [
-        "planned",
-        "active",
-        "completed",
-        "failed"
-      ],
-      "type": "string"
-    },
     "EntryReference": {
       "title": "EntryReference",
       "description": "A reference to a database entry by ID and type.\n\nCan include additional arbitarary metadata useful for\ninlining the item data.",
@@ -660,6 +649,17 @@
         "item",
         "quantity"
       ]
+    },
+    "SampleStatus": {
+      "title": "SampleStatus",
+      "description": "An enumeration of the status of samples",
+      "enum": [
+        "planned",
+        "active",
+        "completed",
+        "failed"
+      ],
+      "type": "string"
     }
   }
 }

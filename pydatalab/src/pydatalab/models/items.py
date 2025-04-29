@@ -14,7 +14,6 @@ from pydatalab.models.traits import (
 from pydatalab.models.utils import (
     HumanReadableIdentifier,
     IsoformatDateTime,
-    ItemStatus,
     PyObjectId,
     Refcode,
 )
@@ -45,9 +44,6 @@ class Item(Entry, HasOwner, HasRevisionControl, IsCollectable, HasBlocks, abc.AB
 
     file_ObjectIds: List[PyObjectId] = Field([])
     """Links to object IDs of files stored within the database."""
-
-    status: ItemStatus = Field(default=ItemStatus.PLANNED)
-    """The status of the item, indicating its current state."""
 
     @validator("refcode", pre=True, always=True)
     def refcode_validator(cls, v):

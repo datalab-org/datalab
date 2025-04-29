@@ -3,7 +3,7 @@ from typing import List, Optional
 from pydantic import Field, root_validator
 
 from pydatalab.models.items import Item
-from pydatalab.models.utils import Constituent, InlineSubstance
+from pydatalab.models.utils import Constituent, InlineSubstance, SampleStatus
 
 
 class Sample(Item):
@@ -19,6 +19,9 @@ class Sample(Item):
 
     synthesis_description: Optional[str]
     """Free-text details of the procedure applied to synthesise the sample"""
+
+    status: SampleStatus = Field(default=SampleStatus.PLANNED)
+    """The status of the sample, indicating its current state."""
 
     @root_validator
     def add_missing_synthesis_relationships(cls, values):

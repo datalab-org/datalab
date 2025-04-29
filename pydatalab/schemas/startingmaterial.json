@@ -116,14 +116,6 @@
         "type": "string"
       }
     },
-    "status": {
-      "default": "ordered",
-      "allOf": [
-        {
-          "$ref": "#/definitions/StartingMaterialsStatus"
-        }
-      ]
-    },
     "barcode": {
       "title": "Barcode",
       "description": "A unique barcode from ChemInventory",
@@ -195,6 +187,14 @@
     "comment": {
       "title": "Comments",
       "type": "string"
+    },
+    "status": {
+      "default": "ordered",
+      "allOf": [
+        {
+          "$ref": "#/definitions/StartingMaterialsStatus"
+        }
+      ]
     }
   },
   "required": [

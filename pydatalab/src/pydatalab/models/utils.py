@@ -25,8 +25,8 @@ class ItemType(str, Enum):
     STARTING_MATERIALS = "starting_materials"
 
 
-class ItemStatus(str, Enum):
-    """An enumeration of the status of items"""
+class SampleStatus(str, Enum):
+    """An enumeration of the status of samples"""
 
     PLANNED = "planned"
     ACTIVE = "active"
