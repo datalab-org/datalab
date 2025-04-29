@@ -3,7 +3,7 @@ from typing import Optional
 from pydantic import Field, validator
 
 from pydatalab.models.items import Item
-from pydatalab.models.utils import IsoformatDateTime
+from pydatalab.models.utils import IsoformatDateTime, StartingMaterialsStatus
 
 
 class StartingMaterial(Item):
@@ -65,6 +65,9 @@ class StartingMaterial(Item):
     )
 
     comment: Optional[str] = Field(alias="Comments")
+
+    status: StartingMaterialsStatus = Field(default=StartingMaterialsStatus.ORDERED)
+    """The status of the starting materials, indicating its current state."""
 
     @validator("molar_mass")
     def add_molar_mass(cls, v, values):

@@ -152,7 +152,7 @@ export default {
     Refcode: createComputedSetterForItemField("refcode"),
     Status: createComputedSetterForItemField("status"),
     possibleItemStatuses() {
-      return ["planned", "active", "completed", "failed"];
+      return ["ordered", "disposed", "available", "unavailable"];
     },
   },
   created() {

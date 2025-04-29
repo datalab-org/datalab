@@ -117,10 +117,10 @@
       }
     },
     "status": {
-      "default": "planned",
+      "default": "ordered",
       "allOf": [
         {
-          "$ref": "#/definitions/ItemStatus"
+          "$ref": "#/definitions/StartingMaterialsStatus"
         }
       ]
     },
@@ -619,14 +619,14 @@
         "is_live"
       ]
     },
-    "ItemStatus": {
-      "title": "ItemStatus",
-      "description": "An enumeration of the status of items",
+    "StartingMaterialsStatus": {
+      "title": "StartingMaterialsStatus",
+      "description": "An enumeration of the status of starting materials",
       "enum": [
-        "planned",
-        "active",
-        "completed",
-        "failed"
+        "ordered",
+        "disposed",
+        "available",
+        "unavailable"
       ],
       "type": "string"
     }

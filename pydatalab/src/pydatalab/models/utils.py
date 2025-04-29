@@ -44,6 +44,15 @@ class EquipmentStatus(str, Enum):
     NOT_BEING_FIXED = "not_being_fixed"
 
 
+class StartingMaterialsStatus(str, Enum):
+    """An enumeration of the status of starting materials"""
+
+    ORDERED = "ordered"
+    DISPOSED = "disposed"
+    AVAILABLE = "available"
+    UNAVAILABLE = "unavailable"
+
+
 class KnownType(str, Enum):
     """An enumeration of the types of entry known by this implementation, should be made dynamic in the future."""
 
