@@ -488,7 +488,7 @@ def _create_sample(
         new_sample["item_id"] = new_sample["refcode"].split(":")[1]
 
     # check to make sure that item_id isn't taken already
-    if flask_mongo.db.items.find_one({"item_id": sample_dict["item_id"]}):
+    if flask_mongo.db.items.find_one({"item_id": str(sample_dict["item_id"])}):
         LOGGER.debug("item_id %s already exists in database", sample_dict["item_id"])
         return (
             dict(
