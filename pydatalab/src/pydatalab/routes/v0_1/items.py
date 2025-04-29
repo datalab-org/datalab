@@ -927,7 +927,7 @@ def get_item_data(
 def save_item():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
 
-    item_id = request_json["item_id"]
+    item_id = str(request_json["item_id"])
     updated_data = request_json["data"]
 
     # These keys should not be updated here and cannot be modified by the user through this endpoint
