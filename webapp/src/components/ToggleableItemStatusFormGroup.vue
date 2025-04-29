@@ -9,13 +9,7 @@
       <font-awesome-icon id="edit-icon" class="pl-1" icon="pen" size="xs" :fade="isEditingStatus" />
     </label>
     <div>
-      <span
-        v-if="!isEditingStatus"
-        aria-labelledby="status"
-        class="badge badge-pill badge-warning text-uppercase text-monospace"
-      >
-        {{ value }}
-      </span>
+      <FormattedItemStatus :status="value" />
       <OnClickOutside
         v-if="isEditingStatus"
         :options="{ ignore: [outerDivRef] }"
@@ -35,11 +29,13 @@
 <script>
 import { OnClickOutside } from "@vueuse/components";
 import StatusSelect from "@/components/StatusSelect.vue";
+import FormattedItemStatus from "@/components/FormattedItemStatus.vue";
 
 export default {
   components: {
     OnClickOutside,
     StatusSelect,
+    FormattedItemStatus,
   },
   props: {
     modelValue: {
