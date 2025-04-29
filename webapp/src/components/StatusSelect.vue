@@ -1,24 +1,22 @@
 <template>
   <vSelect ref="selectComponent" v-model="value" :options="options">
     <template #option="option">
-      <span :class="'badge-info'" class="badge badge-pill text-uppercase text-monospace">{{
-        option.label
-      }}</span>
+      <FormattedItemStatus :status="option.label" />
     </template>
     <template #selected-option="option">
-      <span :class="'badge-info'" class="badge badge-pill text-uppercase text-monospace">{{
-        option.label
-      }}</span>
+      <FormattedItemStatus :status="option.label" />
     </template>
   </vSelect>
 </template>
 
 <script>
 import vSelect from "vue-select";
+import FormattedItemStatus from "@/components/FormattedItemStatus.vue";
 
 export default {
   components: {
     vSelect,
+    FormattedItemStatus,
   },
   props: {
     modelValue: {
