@@ -74,6 +74,8 @@
 
 <script>
 import { createComputedSetterForItemField } from "@/field_utils.js";
+import { getSchema } from "@/server_fetch_utils";
+
 import TinyMceInline from "@/components/TinyMceInline";
 import TableOfContents from "@/components/TableOfContents";
 import CollectionList from "@/components/CollectionList";
@@ -99,6 +101,7 @@ export default {
         { title: "Equipment Information", targetID: "equipment-information" },
         { title: "Table of Contents", targetID: "table-of-contents" },
       ],
+      schema: null,
     };
   },
   computed: {
@@ -117,7 +120,29 @@ export default {
     Contact: createComputedSetterForItemField("contact"),
     Status: createComputedSetterForItemField("status"),
     possibleItemStatuses() {
-      return ["working", "broken", "being_fixed", "defunct", "not_being_fixed"];
+      return (
+        this.schema?.attributes.schema.definitions.EquipmentStatus.enum || [
+          "working",
+          "broken",
+          "being_fixed",
+          "defunct",
+          "not_being_fixed",
+        ]
+      );
+    },
+  },
+  created() {
+    this.fetchSchema();
+  },
+  methods: {
+    async fetchSchema() {
+      try {
+        const API_schema = await getSchema(this.item.type);
+
+        this.schema = API_schema;
+      } catch (error) {
+        console.error("Error retrieving schema::", error);
+      }
     },
   },
 };

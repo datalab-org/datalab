@@ -96,6 +96,8 @@
 
 <script>
 import { createComputedSetterForItemField } from "@/field_utils.js";
+import { getSchema } from "@/server_fetch_utils";
+
 import TinyMceInline from "@/components/TinyMceInline";
 import ChemicalFormula from "@/components/ChemicalFormula";
 import ChemFormulaInput from "@/components/ChemFormulaInput";
@@ -131,6 +133,7 @@ export default {
         { title: "Starting Material Information", targetID: "starting-material-information" },
         { title: "Table of Contents", targetID: "table-of-contents" },
       ],
+      schema: null,
     };
   },
   computed: {
@@ -152,11 +155,30 @@ export default {
     Refcode: createComputedSetterForItemField("refcode"),
     Status: createComputedSetterForItemField("status"),
     possibleItemStatuses() {
-      return ["ordered", "disposed", "available", "unavailable"];
+      return (
+        this.schema?.attributes.schema.definitions.StartingMaterialsStatus.enum || [
+          "ordered",
+          "disposed",
+          "available",
+          "unavailable",
+        ]
+      );
     },
   },
   created() {
     this.isEditable = EDITABLE_INVENTORY;
+    this.fetchSchema();
+  },
+  methods: {
+    async fetchSchema() {
+      try {
+        const API_schema = await getSchema(this.item.type);
+
+        this.schema = API_schema;
+      } catch (error) {
+        console.error("Error retrieving schema::", error);
+      }
+    },
   },
 };
 </script>

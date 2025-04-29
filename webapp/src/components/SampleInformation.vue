@@ -62,6 +62,8 @@
 
 <script>
 import { createComputedSetterForItemField } from "@/field_utils.js";
+import { getSchema } from "@/server_fetch_utils";
+
 import ChemFormulaInput from "@/components/ChemFormulaInput";
 import FormattedRefcode from "@/components/FormattedRefcode";
 import ToggleableCollectionFormGroup from "@/components/ToggleableCollectionFormGroup";
@@ -98,6 +100,7 @@ export default {
         { title: "Table of Contents", targetID: "table-of-contents" },
         { title: "Synthesis Information", targetID: "synthesis-information" },
       ],
+      schema: null,
     };
   },
   computed: {
@@ -112,7 +115,28 @@ export default {
     Status: createComputedSetterForItemField("status"),
     // ItemSchema: this.$store.state.schemas["samples"],
     possibleItemStatuses() {
-      return ["planned", "active", "completed", "failed"];
+      return (
+        this.schema?.attributes.schema.definitions.ItemStatus.enum || [
+          "planned",
+          "active",
+          "completed",
+          "failed",
+        ]
+      );
+    },
+  },
+  created() {
+    this.fetchSchema();
+  },
+  methods: {
+    async fetchSchema() {
+      try {
+        const API_schema = await getSchema(this.item.type);
+
+        this.schema = API_schema;
+      } catch (error) {
+        console.error("Error retrieving schema::", error);
+      }
     },
   },
 };
