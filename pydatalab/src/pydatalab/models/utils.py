@@ -34,6 +34,17 @@ class ItemStatus(str, Enum):
     FAILED = "failed"
 
 
+class CellStatus(str, Enum):
+    """An enumeration of the status of cells"""
+
+    ACTIVE = "active"
+    PLANNED = "planned"
+    DISPOSED = "disposed"
+    CYCLED = "cycled"
+    SHORTED = "shorted"
+    DISMANTLED = "dismantled"
+
+
 class EquipmentStatus(str, Enum):
     """An enumeration of the status of equipments"""
 

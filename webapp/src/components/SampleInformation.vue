@@ -104,6 +104,9 @@ export default {
     };
   },
   computed: {
+    item() {
+      return this.$store.state.all_item_data[this.item_id];
+    },
     Refcode: createComputedSetterForItemField("refcode"),
     ItemID: createComputedSetterForItemField("item_id"),
     SampleDescription: createComputedSetterForItemField("description"),

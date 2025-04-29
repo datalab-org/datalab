@@ -118,7 +118,7 @@
       "default": "planned",
       "allOf": [
         {
-          "$ref": "#/definitions/ItemStatus"
+          "$ref": "#/definitions/CellStatus"
         }
       ]
     },
@@ -606,14 +606,16 @@
         "is_live"
       ]
     },
-    "ItemStatus": {
-      "title": "ItemStatus",
-      "description": "An enumeration of the status of items",
+    "CellStatus": {
+      "title": "CellStatus",
+      "description": "An enumeration of the status of cells",
       "enum": [
-        "planned",
         "active",
-        "completed",
-        "failed"
+        "planned",
+        "disposed",
+        "cycled",
+        "shorted",
+        "dismantled"
       ],
       "type": "string"
     },
