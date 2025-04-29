@@ -30,8 +30,14 @@
             <label for="startmat-refcode">Refcode</label>
             <div id="startmat-refcode"><FormattedRefcode :refcode="Refcode" /></div>
           </div>
-          <div class="form-group col-md-6 col-sm-7 pr-2">
+          <div class="form-group col-md-4 col-sm-4 col-6">
             <ToggleableCollectionFormGroup v-model="Collections" />
+          </div>
+          <div class="form-group col-md-5 col-sm-4 col-12">
+            <ToggleableItemStatusFormGroup
+              v-model="Status"
+              :possible-item-statuses="possibleItemStatuses"
+            />
           </div>
         </div>
         <div class="form-row">
@@ -74,12 +80,6 @@
       </div>
       <div class="col-md-4">
         <ItemRelationshipVisualization :item_id="item_id" />
-      </div>
-      <div class="form-group col-md-3 col-sm-3 col-6 pb-3">
-        <ToggleableItemStatusFormGroup
-          v-model="Status"
-          :possible-item-statuses="possibleItemStatuses"
-        />
       </div>
     </div>
 
