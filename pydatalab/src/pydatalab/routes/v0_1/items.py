@@ -546,6 +546,7 @@ def _create_sample(
         if data_model.collections
         else [],
         "type": data_model.type,
+        "status": data_model.status,
     }
 
     # hack to let us use _create_sample() for equipment too. We probably want to make

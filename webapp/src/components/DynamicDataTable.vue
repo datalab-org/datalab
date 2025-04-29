@@ -268,7 +268,7 @@ export default {
     InputText,
     FormattedItemName,
     FormattedCollectionName,
-		FormattedItemStatus,
+    FormattedItemStatus,
     ChemicalFormula,
     CollectionList,
     Creators,
@@ -560,9 +560,9 @@ export default {
           creators: "creators",
           showNames: data.creators?.length === 1,
         },
-				FormattedItemStatus: {
-					status: "status",
-				},
+        FormattedItemStatus: {
+          status: "status",
+        },
         BlocksIconCounter: {
           count: "nblocks",
           blockInfo: "blocks",
