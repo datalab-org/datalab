@@ -8,14 +8,9 @@
 export default {
   props: {
     status: { type: String, required: true },
-    styleOverride: { type: String, default: null },
   },
   computed: {
     badgeClass() {
-      if (this.styleOverride) {
-        return `badge-${this.styleOverride}`;
-      }
-
       const statusStyleMap = {
         // ItemStatus
         planned: "info",
