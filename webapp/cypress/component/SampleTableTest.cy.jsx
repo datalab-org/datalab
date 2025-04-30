@@ -138,8 +138,8 @@ describe("SampleTable Component Tests", () => {
       "", //checkbox
       "ID",
       "Type",
-      "Sample name",
-      "Formula",
+      "Status",
+      "Name",
       "Date",
       "Collections",
       "Creators",
@@ -160,8 +160,8 @@ describe("SampleTable Component Tests", () => {
         cy.get("td").eq(0).should("contain.text", "");
         cy.get("td").eq(1).should("contain.text", "sample1");
         cy.get("td").eq(2).should("contain.text", "samples");
-        cy.get("td").eq(3).should("contain.text", "Sample 1");
-        cy.get("td").eq(4).should("contain.text", "H2O");
+        cy.get("td").eq(3).should("contain.text", "PLANNED");
+        cy.get("td").eq(4).should("contain.text", "Sample 1");
         cy.get("td").eq(5).should("contain.text", "9/1/2023");
         cy.get("td").eq(6).find(".badge").should("have.length", 1);
         cy.get("td").eq(7).find(".avatar").should("have.length", 1);
@@ -174,8 +174,8 @@ describe("SampleTable Component Tests", () => {
         cy.get("td").eq(0).should("contain.text", "");
         cy.get("td").eq(1).should("contain.text", "cell1");
         cy.get("td").eq(2).should("contain.text", "cells");
-        cy.get("td").eq(3).should("contain.text", "Cell 1");
-        cy.get("td").eq(4).should("contain.text", "CH4");
+        cy.get("td").eq(4).should("contain.text", "PLANNED");
+        cy.get("td").eq(5).should("contain.text", "Cell 1");
         cy.get("td").eq(5).should("contain.text", "8/15/2023");
         cy.get("td").eq(6).find(".badge").should("have.length", 1);
         cy.get("td").eq(7).find(".avatar").should("have.length", 2);
@@ -259,20 +259,20 @@ describe("SampleTable Component Tests", () => {
     cy.get(".p-datatable-tbody tr").eq(1).find("td").eq(2).should("contain.text", "samples");
 
     cy.get(".p-datatable-thead th").eq(3).find(".p-datatable-sort-icon").click();
+    cy.get(".p-datatable-tbody tr").eq(0).find("td").eq(4).should("contain.text", "PLANNED");
+    cy.get(".p-datatable-tbody tr").eq(1).find("td").eq(4).should("contain.text", "PLANNED");
+
+    cy.get(".p-datatable-thead th").eq(3).find(".p-datatable-sort-icon").click();
+    cy.get(".p-datatable-tbody tr").eq(0).find("td").eq(4).should("contain.text", "PLANNED");
+    cy.get(".p-datatable-tbody tr").eq(1).find("td").eq(4).should("contain.text", "PLANNED");
+
+    cy.get(".p-datatable-thead th").eq(4).find(".p-datatable-sort-icon").click();
     cy.get(".p-datatable-tbody tr").eq(0).find("td").eq(3).should("contain.text", "Cell 1");
     cy.get(".p-datatable-tbody tr").eq(1).find("td").eq(3).should("contain.text", "Cell 2");
 
-    cy.get(".p-datatable-thead th").eq(3).find(".p-datatable-sort-icon").click();
+    cy.get(".p-datatable-thead th").eq(4).find(".p-datatable-sort-icon").click();
     cy.get(".p-datatable-tbody tr").eq(0).find("td").eq(3).should("contain.text", "Sample 3");
     cy.get(".p-datatable-tbody tr").eq(1).find("td").eq(3).should("contain.text", "Sample 2");
-
-    cy.get(".p-datatable-thead th").eq(4).find(".p-datatable-sort-icon").click();
-    cy.get(".p-datatable-tbody tr").eq(0).find("td").eq(4).should("contain.text", "CH4");
-    cy.get(".p-datatable-tbody tr").eq(1).find("td").eq(4).should("contain.text", "CH4");
-
-    cy.get(".p-datatable-thead th").eq(4).find(".p-datatable-sort-icon").click();
-    cy.get(".p-datatable-tbody tr").eq(0).find("td").eq(4).should("contain.text", "H2O");
-    cy.get(".p-datatable-tbody tr").eq(1).find("td").eq(4).should("contain.text", "H2O");
 
     cy.get(".p-datatable-thead th").eq(5).find(".p-datatable-sort-icon").click();
     cy.get(".p-datatable-tbody tr").eq(0).find("td").eq(5).should("contain.text", "8/15/2023");
