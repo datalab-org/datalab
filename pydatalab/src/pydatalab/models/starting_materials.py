@@ -3,10 +3,11 @@ from typing import Optional
 from pydantic import Field, validator
 
 from pydatalab.models.items import Item
+from pydatalab.models.traits import HasSynthesisInfo
 from pydatalab.models.utils import IsoformatDateTime
 
 
-class StartingMaterial(Item):
+class StartingMaterial(Item, HasSynthesisInfo):
     """A model for representing an experimental sample."""
 
     type: str = Field(

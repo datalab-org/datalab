@@ -15,6 +15,7 @@ import EquipmentInformation from "@/components/EquipmentInformation";
 
 import SampleCreateModalAddon from "@/components/itemCreateModalAddons/SampleCreateModalAddon";
 import CellCreateModalAddon from "@/components/itemCreateModalAddons/CellCreateModalAddon";
+import StartingMaterialCreateModalAddon from "./components/itemCreateModalAddons/StartingMaterialCreateModalAddon.vue";
 
 // Look for values set in .env file. Use defaults if `null` is not explicitly handled elsewhere in the code.
 export const API_URL =
@@ -79,6 +80,7 @@ export const itemTypes = {
   },
   starting_materials: {
     itemInformationComponent: StartingMaterialInformation,
+    itemCreateModalAddon: StartingMaterialCreateModalAddon,
     navbarColor: "#349579",
     navbarName: "Starting Material",
     lightColor: "#d9f2eb",
