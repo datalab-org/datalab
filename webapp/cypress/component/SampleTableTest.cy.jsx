@@ -257,12 +257,12 @@ describe("SampleTable Component Tests", () => {
     cy.get(".p-datatable-tbody tr").eq(1).find("td").eq(2).should("contain.text", "samples");
 
     cy.get(".p-datatable-thead th").eq(4).find(".p-datatable-sort-icon").click();
-    cy.get(".p-datatable-tbody tr").eq(0).find("td").eq(3).should("contain.text", "Cell 1");
-    cy.get(".p-datatable-tbody tr").eq(1).find("td").eq(3).should("contain.text", "Cell 2");
+    cy.get(".p-datatable-tbody tr").eq(0).find("td").eq(4).should("contain.text", "Cell 1");
+    cy.get(".p-datatable-tbody tr").eq(1).find("td").eq(4).should("contain.text", "Cell 2");
 
     cy.get(".p-datatable-thead th").eq(4).find(".p-datatable-sort-icon").click();
-    cy.get(".p-datatable-tbody tr").eq(0).find("td").eq(3).should("contain.text", "Sample 3");
-    cy.get(".p-datatable-tbody tr").eq(1).find("td").eq(3).should("contain.text", "Sample 2");
+    cy.get(".p-datatable-tbody tr").eq(0).find("td").eq(4).should("contain.text", "Sample 3");
+    cy.get(".p-datatable-tbody tr").eq(1).find("td").eq(4).should("contain.text", "Sample 2");
 
     cy.get(".p-datatable-thead th").eq(5).find(".p-datatable-sort-icon").click();
     cy.get(".p-datatable-tbody tr").eq(0).find("td").eq(5).should("contain.text", "8/15/2023");
