@@ -391,18 +391,20 @@ describe("SampleTable Component Tests", () => {
     cy.get(".p-datatable-tbody tr").should("have.length", 1);
     cy.findByText("Clear").click();
 
-    cy.get(".p-datatable-thead th").eq(8).find(".p-datatable-column-filter-button").click();
+    cy.get(".p-datatable-thead th").eq(3).find(".p-datatable-column-filter-button").click();
     cy.get(".p-datatable-filter-overlay").find(".p-multiselect-label-container").click();
     cy.get(".p-multiselect-list-container").findByText("ACTIVE").click();
     cy.get(".p-datatable-tbody tr").should("have.length", 1);
     cy.get(".p-datatable-filter-overlay").find(".p-multiselect-label-container").click();
     cy.get(".p-multiselect-list-container").findByText("CYCLED").click();
     cy.get(".p-datatable-tbody tr").should("have.length", 2);
+    cy.get(".p-datatable-filter-overlay").find(".p-multiselect-label-container").click();
     cy.get(".p-multiselect-list-container").findByText("PLANNED").click();
     cy.get(".p-datatable-tbody tr").should("have.length", 3);
     cy.get(".p-datatable-filter-overlay").find(".p-multiselect-label-container").click();
     cy.get(".p-multiselect-list-container").findByText("FAILED").click();
     cy.get(".p-datatable-tbody tr").should("have.length", 4);
+    cy.get(".p-datatable-filter-overlay").find(".p-multiselect-label-container").click();
     cy.get(".p-multiselect-list-container").findByText("SHORTED").click();
     cy.get(".p-datatable-tbody tr").should("have.length", 5);
     cy.get(".p-datatable-filter-overlay").find(".p-multiselect-label-container").click();
