@@ -9,7 +9,6 @@ from bokeh.models import HoverTool
 from pydatalab.blocks.base import DataBlock
 from pydatalab.bokeh_plots import DATALAB_BOKEH_THEME, selectable_axes_plot
 from pydatalab.file_utils import get_file_info_by_id
-from pydatalab.logger import LOGGER
 
 
 class UVVisBlock(DataBlock):
@@ -80,7 +79,7 @@ class UVVisBlock(DataBlock):
                                           input list is empty or plotting is skipped internally.
         """
         if not absorbance_data_list:
-            LOGGER.warning("Received an empty list of absorbance data. No plot generated.")
+            warnings.warn("Received an empty list of absorbance data. No plot generated.")
             return None
 
         # Basic validation of input data structure
@@ -138,7 +137,7 @@ class UVVisBlock(DataBlock):
     def generate_absorbance_plot(self):
         absorbance_data = None
         if "selected_file_order" not in self.data:
-            LOGGER.warning("No file set in the DataBlock - selected_file_order")
+            warnings.warn("No file set in the DataBlock - selected_file_order")
             return
 
         else:
@@ -154,12 +153,6 @@ class UVVisBlock(DataBlock):
                 ext = "".join(Path(file["location"]).suffixes).lower()
                 # ext = os.path.splitext(file["location"].split("/")[-1])[-1].lower()
                 if ext not in {ext.lower() for ext in self.accepted_file_extensions}:
-                    LOGGER.warning(
-                        "Unsupported file extension (must be one of %s, not %s)",
-                        self.accepted_file_extensions,
-                        ext,
-                    )
-
                     raise ValueError(
                         f"Unsupported file extension (must be one of {self.accepted_file_extensions}, not {ext})"
                     )
@@ -169,7 +162,7 @@ class UVVisBlock(DataBlock):
             for file in file_info[1:]:
                 sample_data = self.parse_uvvis_txt(Path(file["location"]))
                 if sample_data is None or reference_data is None:
-                    LOGGER.warning("Could not parse the UV-Vis data files")
+                    warnings.warn("Could not parse the UV-Vis data files")
                     return
                 # Calculate absorbance
                 absorbance_data.append(self.find_absorbance(sample_data, reference_data))
