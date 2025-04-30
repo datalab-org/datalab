@@ -62,7 +62,7 @@
         :field="column.field"
         sortable
         :class="{ 'filter-active': isFilterActive(column.field) }"
-        :filter-menu-class="column.field === 'type' ? 'no-operator' : ''"
+        :filter-menu-class="column.field === 'type' || 'status' ? 'no-operator' : ''"
       >
         <template #header>
           <div v-if="column.icon" class="header-with-icon">
@@ -372,7 +372,7 @@ export default {
           constraints: [{ value: null, matchMode: "exactBlockMatch" }],
         },
         status: {
-          operator: FilterOperator.AND,
+          operator: FilterOperator.OR,
           constraints: [{ value: null, matchMode: "exactStatusMatch" }],
         },
       },
