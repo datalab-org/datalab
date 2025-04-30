@@ -17,7 +17,7 @@ export default {
     return {
       equipmentColumn: [
         { field: "item_id", header: "ID", body: "FormattedItemName", filter: true },
-        { field: "status", header: "Status", body: "FormattedItemStatus" },
+        { field: "status", header: "Status", body: "FormattedItemStatus", filter: true },
         { field: "name", header: "Name" },
         { field: "date", header: "Date" },
         { field: "location", header: "Location" },

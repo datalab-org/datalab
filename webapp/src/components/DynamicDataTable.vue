@@ -193,6 +193,37 @@
             </template>
           </MultiSelect>
         </template>
+        <template v-else-if="column.filter && column.field === 'status'" #filter="">
+          <MultiSelect
+            v-model="filters[column.field].constraints[0].value"
+            :options="uniqueStatus"
+            option-label="status"
+            placeholder="Select status"
+            class="d-flex w-full"
+            :filter="true"
+            @click.stop
+          >
+            <template #option="slotProps">
+              <div class="flex items-center">
+                <FormattedItemStatus :status="slotProps.option.status" />
+              </div>
+            </template>
+            <template #value="slotProps">
+              <div class="flex flex-wrap gap-2 items-center">
+                <template v-if="slotProps.value && slotProps.value.length">
+                  <span
+                    v-for="(option, index) in slotProps.value"
+                    :key="index"
+                    class="inline-flex items-center mr-2"
+                  >
+                    <FormattedItemStatus :status="option.status" />
+                  </span>
+                </template>
+                <span v-else class="text-gray-400">Any</span>
+              </div>
+            </template>
+          </MultiSelect>
+        </template>
         <template v-else-if="column.filter" #filter="{ filterModel }">
           <InputText
             v-model="filterModel.value"
@@ -319,6 +350,7 @@ export default {
           operator: FilterOperator.AND,
           constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
         },
+
         collection_id: {
           operator: FilterOperator.AND,
           constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
@@ -338,6 +370,10 @@ export default {
         blocks: {
           operator: FilterOperator.AND,
           constraints: [{ value: null, matchMode: "exactBlockMatch" }],
+        },
+        status: {
+          operator: FilterOperator.AND,
+          constraints: [{ value: null, matchMode: "exactStatusMatch" }],
         },
       },
       filteredData: [],
@@ -380,6 +416,11 @@ export default {
             .map((block) => [block.title, { title: block.title }]),
         ).values(),
       );
+    },
+    uniqueStatus() {
+      return Array.from(
+        new Set(this.data.filter((item) => item.status).map((item) => item.status)),
+      ).map((status) => ({ status }));
     },
     knownTypes() {
       // Grab the set of types stored under the item type key
@@ -485,6 +526,17 @@ export default {
       }
 
       return value.some((itemBlock) => itemBlock.title === filterValue.title);
+    });
+    FilterService.register("exactStatusMatch", (value, filterValue) => {
+      if (!filterValue || (Array.isArray(filterValue) && filterValue.length === 0)) {
+        return true;
+      }
+
+      if (Array.isArray(filterValue)) {
+        return filterValue.some((f) => f.status === value);
+      }
+
+      return filterValue.status === value;
     });
   },
   methods: {

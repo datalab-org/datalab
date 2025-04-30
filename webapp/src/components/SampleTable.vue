@@ -32,7 +32,7 @@ export default {
           label: "ID",
         },
         { field: "type", header: "Type", filter: true },
-        { field: "status", header: "Status", body: "FormattedItemStatus" },
+        { field: "status", header: "Status", body: "FormattedItemStatus", filter: true },
         { field: "name", header: "Name" },
         { field: "date", header: "Date" },
         { field: "collections", header: "Collections", body: "CollectionList", filter: true },
