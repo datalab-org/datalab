@@ -68,6 +68,21 @@
       </button>
     </div>
     <div class="button-right d-flex">
+      <MultiSelect
+        v-model="localSelectedColumns"
+        :options="availableColumns"
+        :option-label="columnLabel"
+        placeholder="Select column(s) to display"
+        display="chip"
+        @update:model-value="updateSelectedColumns"
+      >
+        <template #value="{ value }">
+          <span v-if="value && value.length == availableColumns.length" class="text-gray-400"
+            >All columns displayed</span
+          >
+          <span v-else>{{ value.length }} columns displayed</span>
+        </template>
+      </MultiSelect>
       <div class="dropdown">
         <button
           data-testid="selected-dropdown"
@@ -125,6 +140,7 @@
 import IconField from "primevue/iconfield";
 import InputIcon from "primevue/inputicon";
 import InputText from "primevue/inputtext";
+import MultiSelect from "primevue/multiselect";
 import "primeicons/primeicons.css";
 
 import {
@@ -139,6 +155,7 @@ export default {
     IconField,
     InputIcon,
     InputText,
+    MultiSelect,
   },
   props: {
     dataType: {
@@ -164,6 +181,14 @@ export default {
       required: false,
       default: true,
     },
+    availableColumns: {
+      type: Array,
+      required: true,
+    },
+    selectedColumns: {
+      type: Array,
+      required: true,
+    },
   },
   emits: [
     "open-create-item-modal",
@@ -174,6 +199,7 @@ export default {
     "open-add-to-collection-modal",
     "delete-selected-items",
     "update:filters",
+    "update:selected-columns",
     "deletion-started",
     "deletion-completed",
     "deletion-error",
@@ -195,6 +221,22 @@ export default {
     "localFilters.global.value"(newValue) {
       this.$emit("update:filters", { ...this.filters, global: { value: newValue } });
     },
+    selectedColumns(newValue) {
+      const sorted = [...newValue].sort((a, b) => {
+        const indexA = this.availableColumns.findIndex((col) => col.field === a.field);
+        const indexB = this.availableColumns.findIndex((col) => col.field === b.field);
+        return indexA - indexB;
+      });
+
+      if (JSON.stringify(sorted) !== JSON.stringify(newValue)) {
+        this.updateSelectedColumns(sorted);
+      }
+
+      this.localSelectedColumns = [...sorted];
+    },
+  },
+  created() {
+    this.localSelectedColumns = [...this.selectedColumns];
   },
   methods: {
     confirmDeletion() {
@@ -240,6 +282,12 @@ export default {
     handleAddToCollection() {
       this.$emit("open-add-to-collection-modal");
       this.isSelectedDropdownVisible = false;
+    },
+    columnLabel(option) {
+      return option.label || option.header || option.field;
+    },
+    updateSelectedColumns(value) {
+      this.$emit("update:selected-columns", value);
     },
   },
 };

@@ -26,6 +26,7 @@
       @row-select="null"
       @select-all-change="onSelectAllChange"
       @page="onPageChange"
+      @sort="onSort"
     >
       <!-- v-model:expandedRows="expandedRows" -->
 
@@ -36,7 +37,10 @@
           :filters="filters"
           :editable-inventory="editable_inventory"
           :show-buttons="showButtons"
+          :available-columns="availableColumns"
+          :selected-columns="selectedColumns"
           @update:filters="updateFilters"
+          @update:selected-columns="onToggleColumns"
           @open-create-item-modal="createItemModalIsOpen = true"
           @open-batch-create-item-modal="batchCreateItemModalIsOpen = true"
           @open-qr-scanner-modal="qrScannerModalIsOpen = true"
@@ -53,7 +57,7 @@
 
       <!-- <Column expander style="width: 5rem" /> -->
       <Column
-        v-for="column in columns"
+        v-for="column in selectedColumns"
         :key="column.field"
         :field="column.field"
         sortable
@@ -336,6 +340,7 @@ export default {
       },
       filteredData: [],
       allowedTypes: INVENTORY_TABLE_TYPES,
+      selectedColumns: [],
     };
   },
   computed: {
@@ -390,9 +395,13 @@ export default {
     isAllSelected() {
       return this.itemsSelected.length === this.data.length;
     },
+    availableColumns() {
+      return this.columns.map((col) => ({ ...col }));
+    },
   },
   created() {
     this.editable_inventory = EDITABLE_INVENTORY;
+    this.selectedColumns = [...this.availableColumns];
 
     FilterService.register("exactCollectionMatch", (value, filterValue) => {
       if (!filterValue || !value) return true;
@@ -477,6 +486,21 @@ export default {
     });
   },
   methods: {
+    onSort(event) {
+      const sortedColumns = event.multiSortMeta || [];
+
+      this.$nextTick(() => {
+        const tableHeaders = document.querySelectorAll(".p-datatable-sortable-column");
+
+        tableHeaders.forEach((header) => {
+          if (sortedColumns.length === 1) {
+            header.classList.add("hide-single-sort-badge");
+          } else {
+            header.classList.remove("hide-single-sort-badge");
+          }
+        });
+      });
+    },
     updateFilters(newFilters) {
       this.filters = newFilters;
     },
@@ -640,6 +664,11 @@ export default {
       this.updatePage(event.page);
       this.updateRows(event.rows);
       this.allSelected = this.checkAllSelected();
+    },
+    onToggleColumns(value) {
+      this.$nextTick(() => {
+        this.selectedColumns = [...value];
+      });
     },
   },
 };

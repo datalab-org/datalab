@@ -17,9 +17,21 @@ export default {
   data() {
     return {
       collectionColumn: [
-        { field: "collection_id", header: "ID", body: "FormattedCollectionName", filter: true },
-        { field: "title", header: "Title" },
-        { field: "creators", header: "Creators", body: "Creators", filter: true },
+        {
+          field: "collection_id",
+          header: "ID",
+          body: "FormattedCollectionName",
+          filter: true,
+          label: "Collections",
+        },
+        { field: "title", header: "Title", label: "Title" },
+        {
+          field: "creators",
+          header: "Creators",
+          body: "Creators",
+          filter: true,
+          label: "Creators",
+        },
       ],
     };
   },

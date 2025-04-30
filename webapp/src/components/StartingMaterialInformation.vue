@@ -35,6 +35,12 @@
           </div>
         </div>
         <div class="form-row">
+          <div class="form-group col-lg-12 col-sm-12">
+            <label for="startmat-location">Location</label>
+            <StyledInput id="startmat-location" v-model="Location" :readonly="!isEditable" />
+          </div>
+        </div>
+        <div class="form-row">
           <div class="form-group col-lg-3 col-sm-4">
             <label for="startmat-supplier">Supplier</label>
             <StyledInput id="startmat-supplier" v-model="Supplier" :readonly="!isEditable" />
@@ -42,10 +48,6 @@
           <div class="form-group col-lg-3 col-sm-4">
             <label for="startmat-purity">Chemical purity</label>
             <StyledInput id="startmat-purity" v-model="ChemicalPurity" :readonly="!isEditable" />
-          </div>
-          <div class="form-group col-lg-3 col-sm-4">
-            <label for="startmat-location">Location</label>
-            <StyledInput id="startmat-location" v-model="Location" :readonly="!isEditable" />
           </div>
         </div>
         <div class="form-row">

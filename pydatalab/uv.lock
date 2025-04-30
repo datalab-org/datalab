@@ -543,8 +543,8 @@ array = [
 
 [[package]]
 name = "datalab-app-plugin-insitu"
-version = "0.1.2"
-source = { git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git?rev=v0.1.2#ce47ea2dfefa2be177b76bbf5b339abb47e98a67" }
+version = "0.1.4"
+source = { git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git?rev=v0.1.4#329e9fd4638eef7c6f66b21100c1987036f48ac3" }
 dependencies = [
     { name = "lmfit" },
     { name = "matplotlib" },
@@ -653,7 +653,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "bokeh", specifier = "~=2.4,<3.0" },
-    { name = "datalab-app-plugin-insitu", marker = "extra == 'apps'", git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git?rev=v0.1.2" },
+    { name = "datalab-app-plugin-insitu", marker = "extra == 'apps'", git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git?rev=v0.1.4" },
     { name = "datalab-server", extras = ["apps", "chat", "server"], marker = "extra == 'all'" },
     { name = "flask", marker = "extra == 'server'", specifier = "~=3.0" },
     { name = "flask-compress", marker = "extra == 'server'", specifier = "~=1.15" },
@@ -662,7 +662,7 @@ requires-dist = [
     { name = "flask-login", marker = "extra == 'server'", specifier = "~=0.6" },
     { name = "flask-mail", marker = "extra == 'server'", specifier = "~=0.10" },
     { name = "flask-pymongo", marker = "extra == 'server'", specifier = "~=2.3" },
-    { name = "galvani", marker = "extra == 'apps'", specifier = "~=0.4,<0.5" },
+    { name = "galvani", marker = "extra == 'apps'", specifier = "~=0.5" },
     { name = "gunicorn", marker = "extra == 'deploy'", specifier = "~=23.0" },
     { name = "invoke", marker = "extra == 'server'", specifier = "~=2.2" },
     { name = "langchain", marker = "extra == 'chat'", specifier = ">=0.2.6,<0.3" },
@@ -988,15 +988,12 @@ wheels = [
 
 [[package]]
 name = "galvani"
-version = "0.4.1"
+version = "0.5.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ca/aa/f02c8ff891778c579d304486ca269858500254d519618da04d639f2e0915/galvani-0.4.1.tar.gz", hash = "sha256:4f57b32c1dc615af362141fa6097dc98688b7378b74af8d70fa28a75e73a176f", size = 5388162 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/7d/78/28fc617c325d289e7871209bd98ad647c2962a857b9e2b7ed8ecb9c39a64/galvani-0.4.1-py3-none-any.whl", hash = "sha256:ba568237194c394d5262367626e8555854fe69c1fa46e663a4481a73c6a3395f", size = 25544 },
-]
+sdist = { url = "https://files.pythonhosted.org/packages/af/3a/8ab1095fb888534540bca21e0c15065819331f3d42a156eac799aa6816ab/galvani-0.5.0.tar.gz", hash = "sha256:da0e3b34b114bf615caf3061fc72ef0ab59d2e175bbfd580a22977c290928270", size = 37371 }
 
 [[package]]
 name = "ghp-import"
