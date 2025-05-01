@@ -76,7 +76,7 @@ export default {
     },
   },
   mounted() {
-    this.selectShown = new Array(this.constituents.length).fill(false);
+    this.selectShown = new Array((this.constituents || []).length).fill(false);
     // Auto-collapsed when initialised empty
     this.isExpanded =
       (this.constituents && this.constituents.length > 0) ||
