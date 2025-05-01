@@ -133,6 +133,8 @@ def get_starting_materials():
                         "name": 1,
                         "type": 1,
                         "chemical_purity": 1,
+                        "barcode": 1,
+                        "refcode": 1,
                         "supplier": 1,
                         "location": 1,
                     }

@@ -17,6 +17,13 @@ export default {
     return {
       startingMaterialColumn: [
         { field: "item_id", header: "ID", body: "FormattedItemName", filter: true, label: "ID" },
+        {
+          field: "barcode",
+          body: "FormattedBarcode",
+          header: "",
+          label: "Barcode",
+          icon: ["fa", "barcode"],
+        },
         { field: "name", header: "Name", label: "Name" },
         { field: "chemform", header: "Formula", body: "ChemicalFormula", label: "Formula" },
         { field: "date", header: "Date", label: "Date" },
