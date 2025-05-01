@@ -12,6 +12,7 @@ body {
 }
 
 @import url("https://fonts.googleapis.com/css?family=Figtree");
+@import url("https://fonts.googleapis.com/css?family=Libre+Barcode+39+Text");
 @import url("https://fonts.googleapis.com/css?family=Roboto+Mono");
 #app {
   font-family: Figtree, Avenir, Arial, sans-serif;

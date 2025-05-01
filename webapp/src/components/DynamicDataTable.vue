@@ -247,6 +247,8 @@ import ChemicalFormula from "@/components/ChemicalFormula";
 import CollectionList from "@/components/CollectionList";
 import Creators from "@/components/Creators";
 import UserBubble from "@/components/UserBubble.vue";
+import FormattedBarcode from "@/components/FormattedBarcode.vue";
+import FormattedRefcode from "@/components/FormattedRefcode.vue";
 
 import { FilterMatchMode, FilterOperator, FilterService } from "@primevue/core/api";
 import DataTable from "primevue/datatable";
@@ -262,6 +264,8 @@ export default {
     FilesIconCounter,
     BatchCreateItemModal,
     QRScannerModal,
+    FormattedBarcode,
+    FormattedRefcode,
     CreateCollectionModal,
     CreateEquipmentModal,
     AddToCollectionModal,
@@ -562,6 +566,15 @@ export default {
           item_id: "item_id",
           itemType: "type",
           enableModifiedClick: true,
+        },
+        FormattedRefcode: {
+          enableQRCode: false,
+          refcode: "refcode",
+        },
+        FormattedBarcode: {
+          enableBarcode: false,
+          enableModifiedClick: false,
+          barcode: "barcode",
         },
         FormattedCollectionName: {
           collection_id: "collection_id",
