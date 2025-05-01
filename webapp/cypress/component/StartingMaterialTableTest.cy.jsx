@@ -29,6 +29,7 @@ describe("StartingMaterialTable Component Tests", () => {
               chemform: "H2O",
               date: "2023-09-01",
               chemical_purity: "99%",
+              barcode: "123",
               nblocks: 1,
             },
             {
@@ -37,6 +38,7 @@ describe("StartingMaterialTable Component Tests", () => {
               name: "Material Two",
               chemform: "CH4",
               date: "2023-08-15",
+              barcode: "456",
               chemical_purity: "95%",
               nblocks: 2,
             },
@@ -75,6 +77,7 @@ describe("StartingMaterialTable Component Tests", () => {
     const headers = [
       "", // checkbox
       "ID",
+      "", // barcode
       "Name",
       "Formula",
       "Date",
@@ -96,11 +99,12 @@ describe("StartingMaterialTable Component Tests", () => {
       .within(() => {
         cy.get("td").eq(0).should("contain.text", "");
         cy.get("td").eq(1).should("contain.text", "material1");
-        cy.get("td").eq(2).should("contain.text", "Material One");
-        cy.get("td").eq(3).should("contain.text", "H2O");
-        cy.get("td").eq(4).should("contain.text", "9/1/2023");
-        cy.get("td").eq(5).should("contain.text", "99%");
-        cy.get("td").eq(6).should("contain.text", "1");
+        cy.get("td").eq(2).should("contain.text", "123");
+        cy.get("td").eq(3).should("contain.text", "Material One");
+        cy.get("td").eq(4).should("contain.text", "H2O");
+        cy.get("td").eq(5).should("contain.text", "9/1/2023");
+        cy.get("td").eq(6).should("contain.text", "99%");
+        cy.get("td").eq(7).should("contain.text", "1");
       });
 
     cy.get(".p-datatable-tbody")
@@ -109,11 +113,12 @@ describe("StartingMaterialTable Component Tests", () => {
       .within(() => {
         cy.get("td").eq(0).should("contain.text", "");
         cy.get("td").eq(1).should("contain.text", "material2");
-        cy.get("td").eq(2).should("contain.text", "Material Two");
-        cy.get("td").eq(3).should("contain.text", "CH4");
-        cy.get("td").eq(4).should("contain.text", "8/15/2023");
-        cy.get("td").eq(5).should("contain.text", "95%");
-        cy.get("td").eq(6).should("contain.text", "2");
+        cy.get("td").eq(2).should("contain.text", "456");
+        cy.get("td").eq(3).should("contain.text", "Material Two");
+        cy.get("td").eq(4).should("contain.text", "CH4");
+        cy.get("td").eq(5).should("contain.text", "8/15/2023");
+        cy.get("td").eq(6).should("contain.text", "95%");
+        cy.get("td").eq(7).should("contain.text", "2");
       });
   });
 
@@ -127,6 +132,19 @@ describe("StartingMaterialTable Component Tests", () => {
       .eq(1)
       .within(() => {
         cy.get("td").eq(1).find(".formatted-item-name").should("exist");
+      });
+  });
+
+  it("renders the component FormattedBarcode", () => {
+    cy.get(".p-datatable-tbody tr")
+      .eq(0)
+      .within(() => {
+        cy.get("td").eq(2).find("[data-testid='formatted-barcode']").should("exist");
+      });
+    cy.get(".p-datatable-tbody tr")
+      .eq(1)
+      .within(() => {
+        cy.get("td").eq(2).find("[data-testid='formatted-barcode']").should("exist");
       });
   });
 });

@@ -30,6 +30,10 @@
             <label for="startmat-refcode">Refcode</label>
             <div id="startmat-refcode"><FormattedRefcode :refcode="Refcode" /></div>
           </div>
+          <div v-if="Barcode" class="form-group col-md-3 col-sm-4 col-6">
+            <label for="startmat-barcode">Barcode</label>
+            <div id="startmat-barcode"><FormattedBarCode :barcode="Barcode" /></div>
+          </div>
           <div class="form-group col-md-6 col-sm-7 pr-2">
             <ToggleableCollectionFormGroup v-model="Collections" />
           </div>
@@ -100,6 +104,7 @@ import ChemFormulaInput from "@/components/ChemFormulaInput";
 import TableOfContents from "@/components/TableOfContents";
 import ToggleableCollectionFormGroup from "@/components/ToggleableCollectionFormGroup";
 import FormattedRefcode from "@/components/FormattedRefcode";
+import FormattedBarCode from "@/components/FormattedBarcode";
 import StyledInput from "@/components/StyledInput";
 import SynthesisInformation from "@/components/SynthesisInformation";
 import ItemRelationshipVisualization from "@/components/ItemRelationshipVisualization";
@@ -117,6 +122,7 @@ export default {
     ToggleableCollectionFormGroup,
     TableOfContents,
     FormattedRefcode,
+    FormattedBarCode,
     SynthesisInformation,
     GHSHazardInformation,
   },
@@ -149,6 +155,7 @@ export default {
     ItemDescription: createComputedSetterForItemField("description"),
     Collections: createComputedSetterForItemField("collections"),
     Refcode: createComputedSetterForItemField("refcode"),
+    Barcode: createComputedSetterForItemField("barcode"),
   },
   created() {
     this.isEditable = EDITABLE_INVENTORY;
