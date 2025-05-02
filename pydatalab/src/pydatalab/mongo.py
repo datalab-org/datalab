@@ -162,6 +162,8 @@ def create_default_indices(
     )
     ret += db.items.create_index("last_modified", name="last modified", background=background)
 
+    ret += db.items.create_index("date", name="date", background=background)
+
     user_fts_fields = {"identities.name", "display_name"}
 
     user_index_name = "unique user identifiers"

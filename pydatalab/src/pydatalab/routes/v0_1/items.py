@@ -137,6 +137,11 @@ def get_starting_materials():
                         "location": 1,
                     }
                 },
+                {
+                    "$sort": {
+                        "date": -1,
+                    },
+                },
             ]
         )
     ]
