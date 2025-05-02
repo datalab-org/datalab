@@ -6,6 +6,7 @@ import ChatBlock from "@/components/datablocks/ChatBlock";
 import CycleBlock from "@/components/datablocks/CycleBlock";
 import NMRBlock from "@/components/datablocks/NMRBlock";
 import NMRInsituBlock from "@/components/datablocks/NMRInsituBlock";
+import UVVisBlock from "./components/datablocks/UVVisBlock.vue";
 
 import SampleInformation from "@/components/SampleInformation";
 import StartingMaterialInformation from "@/components/StartingMaterialInformation";
@@ -64,6 +65,7 @@ export const customBlockTypes = {
   cycle: { description: "Electrochemistry", component: CycleBlock, name: "Electrochemistry" },
   nmr: { description: "Nuclear Magnetic Resonance Spectroscopy", component: NMRBlock, name: "NMR" },
   chat: { description: "Virtual assistant", component: ChatBlock, name: "Virtual Assistant" },
+  "uv-vis": { description: "UV-Vis", component: UVVisBlock, name: "UV-Vis" },
   "insitu-nmr": { description: "NMR insitu", component: NMRInsituBlock, name: "NMR insitu" },
 };
 
