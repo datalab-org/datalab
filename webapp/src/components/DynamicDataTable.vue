@@ -692,7 +692,6 @@ export default {
     onStateSave(state) {
       const customState = {
         columnWidths: state.columnWidths,
-        columnOrder: state.columnOrder,
         visibleColumns: this.selectedColumns.map((col) => col.field),
         first: state.first,
         rows: state.rows,
@@ -710,10 +709,6 @@ export default {
 
           if (customState.columnWidths) {
             state.columnWidths = customState.columnWidths;
-          }
-
-          if (customState.columnOrder) {
-            state.columnOrder = customState.columnOrder;
           }
 
           if (customState.first) {
