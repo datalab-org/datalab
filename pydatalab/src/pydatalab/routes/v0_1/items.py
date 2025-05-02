@@ -149,10 +149,66 @@ def get_starting_materials():
 get_starting_materials.methods = ("GET",)  # type: ignore
 
 
-def get_samples_summary(
+def get_items_summary(
     match: Optional[Dict] = None, project: Optional[Dict] = None
 ) -> CommandCursor:
     """Return a summary of item entries that match some criteria.
+
+    Parameters:
+        match: A MongoDB aggregation match query to filter the results.
+        project: A MongoDB aggregation project query to filter the results, relative
+            to the default included below.
+
+    """
+    if not match:
+        match = {}
+    match.update(get_default_permissions(user_only=False))
+
+    _project = {
+        "_id": 0,
+        "blocks": {"blocktype": 1, "title": 1},
+        "creators": {
+            "display_name": 1,
+            "contact_email": 1,
+        },
+        "collections": {
+            "collection_id": 1,
+            "title": 1,
+        },
+        "item_id": 1,
+        "name": 1,
+        "chemform": 1,
+        "nblocks": {"$size": "$display_order"},
+        "nfiles": {"$size": "$file_ObjectIds"},
+        "characteristic_chemical_formula": 1,
+        "type": 1,
+        "date": 1,
+        "refcode": 1,
+    }
+
+    # Cannot mix 0 and 1 keys in MongoDB project so must loop and check
+    if project:
+        for key in project:
+            if project[key] == 0:
+                _project.pop(key, None)
+            else:
+                _project[key] = 1
+
+    return flask_mongo.db.items.aggregate(
+        [
+            {"$match": match},
+            {"$lookup": creators_lookup()},
+            {"$lookup": collections_lookup()},
+            {"$project": _project},
+            {"$sort": {"date": -1}},
+        ]
+    )
+
+
+def get_samples_summary(
+    match: Optional[Dict] = None, project: Optional[Dict] = None
+) -> CommandCursor:
+    """Return a summary of samples/cells entries that match some criteria.
 
     Parameters:
         match: A MongoDB aggregation match query to filter the results.
