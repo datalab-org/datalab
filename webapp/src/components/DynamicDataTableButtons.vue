@@ -69,12 +69,12 @@
     </div>
     <div class="button-right d-flex">
       <MultiSelect
-        v-model="localSelectedColumns"
+        :model-value="selectedColumns"
         :options="availableColumns"
         :option-label="columnLabel"
         placeholder="Select column(s) to display"
         display="chip"
-        @update:model-value="updateSelectedColumns"
+        @update:model-value="$emit('update:selected-columns', $event)"
       >
         <template #value="{ value }">
           <span v-if="value && value.length == availableColumns.length" class="text-gray-400"
@@ -210,7 +210,6 @@ export default {
       isSelectedDropdownVisible: false,
       isDeletingItems: false,
       itemCount: 0,
-      localSelectedColumns: [],
     };
   },
   watch: {
@@ -222,22 +221,6 @@ export default {
     "localFilters.global.value"(newValue) {
       this.$emit("update:filters", { ...this.filters, global: { value: newValue } });
     },
-    selectedColumns(newValue) {
-      const sorted = [...newValue].sort((a, b) => {
-        const indexA = this.availableColumns.findIndex((col) => col.field === a.field);
-        const indexB = this.availableColumns.findIndex((col) => col.field === b.field);
-        return indexA - indexB;
-      });
-
-      if (JSON.stringify(sorted) !== JSON.stringify(newValue)) {
-        this.updateSelectedColumns(sorted);
-      }
-
-      this.localSelectedColumns = [...sorted];
-    },
-  },
-  created() {
-    this.loadColumnsFromLocalStorage();
   },
   methods: {
     confirmDeletion() {
@@ -286,53 +269,6 @@ export default {
     },
     columnLabel(option) {
       return option.label || option.header || option.field;
-    },
-    updateSelectedColumns(value) {
-      this.$emit("update:selected-columns", value);
-      this.saveColumnsToLocalStorage(value);
-    },
-    getLocalStorageKey() {
-      return `selectedColumns_${this.dataType}`;
-    },
-    saveColumnsToLocalStorage(columns) {
-      try {
-        const columnLabels = columns.map((col) => ({
-          label: col.label,
-        }));
-        localStorage.setItem(this.getLocalStorageKey(), JSON.stringify(columnLabels));
-      } catch (error) {
-        console.error("Error saving columns to localStorage:", error);
-      }
-    },
-    loadColumnsFromLocalStorage() {
-      try {
-        const savedColumns = localStorage.getItem(this.getLocalStorageKey());
-
-        if (savedColumns) {
-          const parsedColumns = JSON.parse(savedColumns);
-
-          const restoredColumns = parsedColumns.map((savedCol) => {
-            const matchingCol = this.availableColumns.find((col) => col.label === savedCol.label);
-            return matchingCol || savedCol;
-          });
-
-          const validColumns = restoredColumns.filter((col) =>
-            this.availableColumns.some((availCol) => availCol.label === col.label),
-          );
-
-          if (validColumns.length > 0) {
-            this.localSelectedColumns = validColumns;
-            this.$emit("update:selected-columns", validColumns);
-          } else {
-            this.localSelectedColumns = [...this.selectedColumns];
-          }
-        } else {
-          this.localSelectedColumns = [...this.selectedColumns];
-        }
-      } catch (error) {
-        console.error("Error loading columns from localStorage:", error);
-        this.localSelectedColumns = [...this.selectedColumns];
-      }
     },
   },
 };

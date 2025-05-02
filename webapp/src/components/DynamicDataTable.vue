@@ -21,6 +21,10 @@
       column-resize-mode="fit"
       resizable-columns
       sort-mode="multiple"
+      state-storage="local"
+      :state-key="`datatable-state-${dataType}`"
+      @state-restore="onStateRestore"
+      @state-save="onStateSave"
       @filter="onFilter"
       @row-click="goToEditPage"
       @row-select="null"
@@ -684,6 +688,59 @@ export default {
       this.$nextTick(() => {
         this.selectedColumns = [...value];
       });
+    },
+    onStateSave(state) {
+      const customState = {
+        columnWidths: state.columnWidths,
+        columnOrder: state.columnOrder,
+        visibleColumns: this.selectedColumns.map((col) => col.field),
+        first: state.first,
+        rows: state.rows,
+      };
+
+      localStorage.setItem(`datatable-state-${this.dataType}`, JSON.stringify(customState));
+
+      return false;
+    },
+    onStateRestore(state) {
+      try {
+        const savedState = localStorage.getItem(`datatable-state-${this.dataType}`);
+        if (savedState) {
+          const customState = JSON.parse(savedState);
+
+          if (customState.columnWidths) {
+            state.columnWidths = customState.columnWidths;
+          }
+
+          if (customState.columnOrder) {
+            state.columnOrder = customState.columnOrder;
+          }
+
+          if (customState.first) {
+            state.first = customState.first;
+          }
+
+          if (customState.rows) {
+            state.rows = customState.rows;
+          }
+
+          if (customState.visibleColumns && Array.isArray(customState.visibleColumns)) {
+            this.selectedColumns = this.availableColumns.filter((col) =>
+              customState.visibleColumns.includes(col.field),
+            );
+
+            if (this.selectedColumns.length === 0) {
+              this.selectedColumns = [...this.availableColumns];
+            }
+          }
+        }
+
+        return false;
+      } catch (error) {
+        console.error("Error restoring DataTable state:", error);
+        this.selectedColumns = [...this.availableColumns];
+        return false;
+      }
     },
   },
 };
