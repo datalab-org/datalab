@@ -686,7 +686,11 @@ export default {
     },
     onToggleColumns(value) {
       this.$nextTick(() => {
-        this.selectedColumns = [...value];
+        this.selectedColumns = [...value].sort((a, b) => {
+          const indexA = this.availableColumns.findIndex((col) => col.field === a.field);
+          const indexB = this.availableColumns.findIndex((col) => col.field === b.field);
+          return indexA - indexB;
+        });
       });
     },
     onStateSave(state) {
