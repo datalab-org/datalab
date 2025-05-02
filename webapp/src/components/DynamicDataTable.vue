@@ -5,7 +5,6 @@
     </div>
 
     <DataTable
-      ref="datatable"
       v-model:filters="filters"
       v-model:selection="itemsSelected"
       v-model:select-all="allSelected"
@@ -22,10 +21,6 @@
       column-resize-mode="fit"
       resizable-columns
       sort-mode="multiple"
-      state-storage="local"
-      :state-key="`datatable-state-${dataType}`"
-      @state-restore="onStateRestore"
-      @state-save="onStateSave"
       @filter="onFilter"
       @row-click="goToEditPage"
       @row-select="null"
@@ -689,12 +684,6 @@ export default {
       this.$nextTick(() => {
         this.selectedColumns = [...value];
       });
-    },
-    onStateRestore(event) {
-      console.log("Table state restored", event);
-    },
-    onStateSave(event) {
-      console.log("Table state saved", event);
     },
   },
 };
