@@ -93,6 +93,8 @@
       :item_id="item_id"
       :information-sections="tableOfContentsSections"
     />
+
+    <SynthesisInformation class="mt-3" :item_id="item_id" />
   </div>
 </template>
 
@@ -108,6 +110,7 @@ import ToggleableCollectionFormGroup from "@/components/ToggleableCollectionForm
 import ToggleableItemStatusFormGroup from "@/components/ToggleableItemStatusFormGroup";
 import FormattedRefcode from "@/components/FormattedRefcode";
 import StyledInput from "@/components/StyledInput";
+import SynthesisInformation from "@/components/SynthesisInformation";
 import ItemRelationshipVisualization from "@/components/ItemRelationshipVisualization";
 import GHSHazardInformation from "@/components/GHSHazardInformation";
 
@@ -124,6 +127,7 @@ export default {
     ToggleableItemStatusFormGroup,
     TableOfContents,
     FormattedRefcode,
+    SynthesisInformation,
     GHSHazardInformation,
   },
   props: {
@@ -134,6 +138,7 @@ export default {
       tableOfContentsSections: [
         { title: "Starting Material Information", targetID: "starting-material-information" },
         { title: "Table of Contents", targetID: "table-of-contents" },
+        { title: "Synthesis Information", targetID: "synthesis-information" },
       ],
       schema: null,
     };

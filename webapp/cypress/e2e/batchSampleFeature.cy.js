@@ -154,6 +154,7 @@ describe("Batch sample creation", () => {
   it("modifies some data in the first sample", () => {
     cy.get('[data-testid="search-input"]').type("baseA");
     cy.findByText("baseA").click();
+    cy.expandIfCollapsed("[data-testid=synthesis-block]");
     cy.findByLabelText("Description").type("this is a description of baseA.");
     cy.findByText("Add a block").click();
     cy.findByText("Comment").click();
@@ -167,6 +168,7 @@ describe("Batch sample creation", () => {
   it("modifies some data in the second sample", () => {
     cy.get('[data-testid="search-input"]').type("baseB");
     cy.findByText("baseB").click();
+    cy.expandIfCollapsed("[data-testid=synthesis-block]");
     cy.findByLabelText("Description").type("this is a description of baseB.");
     cy.findByText("Add a block").click();
     cy.findByLabelText("Add a block").contains("Comment").click();

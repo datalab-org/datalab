@@ -314,3 +314,14 @@ Cypress.Commands.add("verifyStartingMaterial", (item_id, name = null, date = nul
       }
     });
 });
+
+Cypress.Commands.add("expandIfCollapsed", (selector) => {
+  cy.get(selector)
+    .find("[data-testid=collapse-arrow]")
+    .parents(".datablock-header")
+    .then(($header) => {
+      if (!$header.hasClass("expanded")) {
+        cy.wrap($header).find("[data-testid=collapse-arrow]").click();
+      }
+    });
+});

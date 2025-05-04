@@ -21,6 +21,10 @@
       column-resize-mode="fit"
       resizable-columns
       sort-mode="multiple"
+      state-storage="local"
+      :state-key="`datatable-state-${dataType}`"
+      @state-restore="onStateRestore"
+      @state-save="onStateSave"
       @filter="onFilter"
       @row-click="goToEditPage"
       @row-select="null"
@@ -409,13 +413,15 @@ export default {
     uniqueBlockTypes() {
       const itemsWithBlocks = this.data.filter((item) => item.blocks && item.blocks.length > 0);
 
-      return Array.from(
-        new Map(
-          itemsWithBlocks
-            .flatMap((item) => item.blocks)
-            .map((block) => [block.title, { title: block.title }]),
-        ).values(),
+      const blockTypesMap = new Map(
+        itemsWithBlocks
+          .flatMap((item) => item.blocks)
+          .map((block) => [block.title, { title: block.title }]),
       );
+
+      blockTypesMap.set("No blocks", { title: "No blocks" });
+
+      return Array.from(blockTypesMap.values());
     },
     uniqueStatus() {
       return Array.from(
@@ -506,6 +512,15 @@ export default {
         return true;
       }
 
+      if (
+        Array.isArray(filterValue) &&
+        filterValue.some((filter) => filter.title === "No blocks")
+      ) {
+        if (!value || !Array.isArray(value) || value.length === 0) {
+          return true;
+        }
+      }
+
       if (!value || !Array.isArray(value)) {
         return false;
       }
@@ -516,11 +531,15 @@ export default {
       if (Array.isArray(filterValue)) {
         if (isAnd) {
           return filterValue.every((filterBlock) =>
-            value.some((itemBlock) => itemBlock.title === filterBlock.title),
+            filterBlock.title === "No blocks"
+              ? !value || value.length === 0
+              : value.some((itemBlock) => itemBlock.title === filterBlock.title),
           );
         } else {
           return filterValue.some((filterBlock) =>
-            value.some((itemBlock) => itemBlock.title === filterBlock.title),
+            filterBlock.title === "No blocks"
+              ? !value || value.length === 0
+              : value.some((itemBlock) => itemBlock.title === filterBlock.title),
           );
         }
       }
@@ -724,8 +743,60 @@ export default {
     },
     onToggleColumns(value) {
       this.$nextTick(() => {
-        this.selectedColumns = [...value];
+        this.selectedColumns = [...value].sort((a, b) => {
+          const indexA = this.availableColumns.findIndex((col) => col.field === a.field);
+          const indexB = this.availableColumns.findIndex((col) => col.field === b.field);
+          return indexA - indexB;
+        });
       });
+    },
+    onStateSave(state) {
+      const customState = {
+        columnWidths: state.columnWidths,
+        visibleColumns: this.selectedColumns.map((col) => col.field),
+        first: state.first,
+        rows: state.rows,
+      };
+
+      localStorage.setItem(`datatable-state-${this.dataType}`, JSON.stringify(customState));
+
+      return false;
+    },
+    onStateRestore(state) {
+      try {
+        const savedState = localStorage.getItem(`datatable-state-${this.dataType}`);
+        if (savedState) {
+          const customState = JSON.parse(savedState);
+
+          if (customState.columnWidths) {
+            state.columnWidths = customState.columnWidths;
+          }
+
+          if (customState.first) {
+            state.first = customState.first;
+          }
+
+          if (customState.rows) {
+            state.rows = customState.rows;
+          }
+
+          if (customState.visibleColumns && Array.isArray(customState.visibleColumns)) {
+            this.selectedColumns = this.availableColumns.filter((col) =>
+              customState.visibleColumns.includes(col.field),
+            );
+
+            if (this.selectedColumns.length === 0) {
+              this.selectedColumns = [...this.availableColumns];
+            }
+          }
+        }
+
+        return false;
+      } catch (error) {
+        console.error("Error restoring DataTable state:", error);
+        this.selectedColumns = [...this.availableColumns];
+        return false;
+      }
     },
   },
 };

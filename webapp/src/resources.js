@@ -6,6 +6,7 @@ import ChatBlock from "@/components/datablocks/ChatBlock";
 import CycleBlock from "@/components/datablocks/CycleBlock";
 import NMRBlock from "@/components/datablocks/NMRBlock";
 import NMRInsituBlock from "@/components/datablocks/NMRInsituBlock";
+import UVVisBlock from "./components/datablocks/UVVisBlock.vue";
 
 import SampleInformation from "@/components/SampleInformation";
 import StartingMaterialInformation from "@/components/StartingMaterialInformation";
@@ -15,6 +16,7 @@ import EquipmentInformation from "@/components/EquipmentInformation";
 
 import SampleCreateModalAddon from "@/components/itemCreateModalAddons/SampleCreateModalAddon";
 import CellCreateModalAddon from "@/components/itemCreateModalAddons/CellCreateModalAddon";
+import StartingMaterialCreateModalAddon from "./components/itemCreateModalAddons/StartingMaterialCreateModalAddon.vue";
 
 // Look for values set in .env file. Use defaults if `null` is not explicitly handled elsewhere in the code.
 export const API_URL =
@@ -63,6 +65,7 @@ export const customBlockTypes = {
   cycle: { description: "Electrochemistry", component: CycleBlock, name: "Electrochemistry" },
   nmr: { description: "Nuclear Magnetic Resonance Spectroscopy", component: NMRBlock, name: "NMR" },
   chat: { description: "Virtual assistant", component: ChatBlock, name: "Virtual Assistant" },
+  "uv-vis": { description: "UV-Vis", component: UVVisBlock, name: "UV-Vis" },
   "insitu-nmr": { description: "NMR insitu", component: NMRInsituBlock, name: "NMR insitu" },
 };
 
@@ -79,6 +82,7 @@ export const itemTypes = {
   },
   starting_materials: {
     itemInformationComponent: StartingMaterialInformation,
+    itemCreateModalAddon: StartingMaterialCreateModalAddon,
     navbarColor: "#349579",
     navbarName: "Starting Material",
     lightColor: "#d9f2eb",
