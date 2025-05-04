@@ -3,8 +3,8 @@ from typing import Optional
 from pydantic import Field, validator
 
 from pydatalab.models.items import Item
-from pydatalab.models.utils import IsoformatDateTime, StartingMaterialsStatus
 from pydatalab.models.traits import HasSynthesisInfo
+from pydatalab.models.utils import IsoformatDateTime, StartingMaterialsStatus
 
 
 class StartingMaterial(Item, HasSynthesisInfo):

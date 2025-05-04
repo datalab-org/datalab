@@ -25,13 +25,17 @@ class ItemType(str, Enum):
     STARTING_MATERIALS = "starting_materials"
 
 
-class SampleStatus(str, Enum):
-    """An enumeration of the status of samples"""
+class ItemStatus(str, Enum):
+    """An enumeration of the status of items"""
 
     PLANNED = "planned"
     ACTIVE = "active"
     COMPLETED = "completed"
     FAILED = "failed"
+
+
+SampleStatus = ItemStatus
+"""An enumeration of the status of samples"""
 
 
 class CellStatus(str, Enum):

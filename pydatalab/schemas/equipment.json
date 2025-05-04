@@ -114,6 +114,14 @@
         "type": "string"
       }
     },
+    "status": {
+      "default": "working",
+      "allOf": [
+        {
+          "$ref": "#/definitions/EquipmentStatus"
+        }
+      ]
+    },
     "serial_numbers": {
       "title": "Serial Numbers",
       "type": "string"
@@ -129,14 +137,6 @@
     "contact": {
       "title": "Contact",
       "type": "string"
-    },
-    "status": {
-      "default": "working",
-      "allOf": [
-        {
-          "$ref": "#/definitions/EquipmentStatus"
-        }
-      ]
     }
   },
   "required": [

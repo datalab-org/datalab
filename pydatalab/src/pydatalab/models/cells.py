@@ -60,7 +60,7 @@ class Cell(Item):
 
     active_ion_charge: float = Field(1)
 
-    status: CellStatus = Field(default=CellStatus.PLANNED)
+    status: CellStatus = Field(default=CellStatus.ACTIVE)
     """The status of the cells, indicating its current state."""
 
     @validator("characteristic_molar_mass", always=True, pre=True)
