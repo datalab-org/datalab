@@ -69,12 +69,12 @@
     </div>
     <div class="button-right d-flex">
       <MultiSelect
-        v-model="localSelectedColumns"
+        :model-value="selectedColumns"
         :options="availableColumns"
         :option-label="columnLabel"
         placeholder="Select column(s) to display"
         display="chip"
-        @update:model-value="updateSelectedColumns"
+        @update:model-value="$emit('update:selected-columns', $event)"
       >
         <template #value="{ value }">
           <span v-if="value && value.length == availableColumns.length" class="text-gray-400"
@@ -221,22 +221,6 @@ export default {
     "localFilters.global.value"(newValue) {
       this.$emit("update:filters", { ...this.filters, global: { value: newValue } });
     },
-    selectedColumns(newValue) {
-      const sorted = [...newValue].sort((a, b) => {
-        const indexA = this.availableColumns.findIndex((col) => col.field === a.field);
-        const indexB = this.availableColumns.findIndex((col) => col.field === b.field);
-        return indexA - indexB;
-      });
-
-      if (JSON.stringify(sorted) !== JSON.stringify(newValue)) {
-        this.updateSelectedColumns(sorted);
-      }
-
-      this.localSelectedColumns = [...sorted];
-    },
-  },
-  created() {
-    this.localSelectedColumns = [...this.selectedColumns];
   },
   methods: {
     confirmDeletion() {
@@ -285,9 +269,6 @@ export default {
     },
     columnLabel(option) {
       return option.label || option.header || option.field;
-    },
-    updateSelectedColumns(value) {
-      this.$emit("update:selected-columns", value);
     },
   },
 };
