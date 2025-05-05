@@ -5,6 +5,7 @@
     </div>
 
     <DataTable
+      ref="datatable"
       v-model:filters="filters"
       v-model:selection="itemsSelected"
       v-model:select-all="allSelected"
@@ -52,6 +53,7 @@
           @open-create-equipment-modal="createEquipmentModalIsOpen = true"
           @open-add-to-collection-modal="addToCollectionModalIsOpen = true"
           @delete-selected-items="deleteSelectedItems"
+          @reset-table="handleResetTable"
         />
       </template>
       <template #empty> No data found. </template>
@@ -717,7 +719,6 @@ export default {
         first: state.first,
         rows: state.rows,
       };
-
       localStorage.setItem(`datatable-state-${this.dataType}`, JSON.stringify(customState));
 
       return false;
@@ -757,6 +758,13 @@ export default {
         this.selectedColumns = [...this.availableColumns];
         return false;
       }
+    },
+    handleResetTable() {
+      localStorage.removeItem(`datatable-state-${this.dataType}`);
+
+      this.$nextTick(() => {
+        location.reload();
+      });
     },
   },
 };
