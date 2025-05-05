@@ -415,7 +415,7 @@ export default {
   },
   created() {
     this.editable_inventory = EDITABLE_INVENTORY;
-    this.selectedColumns = [...this.availableColumns];
+    this.selectedColumns = this.availableColumns.filter((col) => !col.hidden);
 
     FilterService.register("exactCollectionMatch", (value, filterValue) => {
       if (!filterValue || !value) return true;
@@ -746,7 +746,7 @@ export default {
             );
 
             if (this.selectedColumns.length === 0) {
-              this.selectedColumns = [...this.availableColumns];
+              this.selectedColumns = this.availableColumns.filter((col) => !col.hidden);
             }
           }
         }
