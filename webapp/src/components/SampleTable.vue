@@ -37,7 +37,6 @@ export default {
           header: "Formula",
           body: "ChemicalFormula",
           label: "Formula",
-          hidden: true,
         },
         { field: "date", header: "Date", label: "Date" },
         {
