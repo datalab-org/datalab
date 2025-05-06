@@ -114,6 +114,14 @@
         "type": "string"
       }
     },
+    "status": {
+      "default": "active",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CellStatus"
+        }
+      ]
+    },
     "cell_format": {
       "description": "The form factor of the cell, e.g., coin, pouch, in situ or otherwise.",
       "allOf": [
@@ -597,6 +605,19 @@
         "time_added",
         "is_live"
       ]
+    },
+    "CellStatus": {
+      "title": "CellStatus",
+      "description": "An enumeration of the status of cells",
+      "enum": [
+        "active",
+        "planned",
+        "disposed",
+        "cycled",
+        "shorted",
+        "dismantled"
+      ],
+      "type": "string"
     },
     "CellFormat": {
       "title": "CellFormat",

@@ -30,8 +30,14 @@
             <label for="startmat-refcode">Refcode</label>
             <div id="startmat-refcode"><FormattedRefcode :refcode="Refcode" /></div>
           </div>
-          <div class="form-group col-md-6 col-sm-7 pr-2">
+          <div class="form-group col-md-4 col-sm-4 col-6">
             <ToggleableCollectionFormGroup v-model="Collections" />
+          </div>
+          <div class="form-group col-md-5 col-sm-4 col-12">
+            <ToggleableItemStatusFormGroup
+              v-model="Status"
+              :possible-item-statuses="possibleItemStatuses"
+            />
           </div>
         </div>
         <div class="form-row">
@@ -94,11 +100,14 @@
 
 <script>
 import { createComputedSetterForItemField } from "@/field_utils.js";
+import { getSchema } from "@/server_fetch_utils";
+
 import TinyMceInline from "@/components/TinyMceInline";
 import ChemicalFormula from "@/components/ChemicalFormula";
 import ChemFormulaInput from "@/components/ChemFormulaInput";
 import TableOfContents from "@/components/TableOfContents";
 import ToggleableCollectionFormGroup from "@/components/ToggleableCollectionFormGroup";
+import ToggleableItemStatusFormGroup from "@/components/ToggleableItemStatusFormGroup";
 import FormattedRefcode from "@/components/FormattedRefcode";
 import StyledInput from "@/components/StyledInput";
 import SynthesisInformation from "@/components/SynthesisInformation";
@@ -115,6 +124,7 @@ export default {
     ItemRelationshipVisualization,
     TinyMceInline,
     ToggleableCollectionFormGroup,
+    ToggleableItemStatusFormGroup,
     TableOfContents,
     FormattedRefcode,
     SynthesisInformation,
@@ -130,6 +140,7 @@ export default {
         { title: "Table of Contents", targetID: "table-of-contents" },
         { title: "Synthesis Information", targetID: "synthesis-information" },
       ],
+      schema: null,
     };
   },
   computed: {
@@ -149,9 +160,32 @@ export default {
     ItemDescription: createComputedSetterForItemField("description"),
     Collections: createComputedSetterForItemField("collections"),
     Refcode: createComputedSetterForItemField("refcode"),
+    Status: createComputedSetterForItemField("status"),
+    possibleItemStatuses() {
+      return (
+        this.schema?.attributes.schema.definitions.StartingMaterialsStatus.enum || [
+          "ordered",
+          "disposed",
+          "available",
+          "unavailable",
+        ]
+      );
+    },
   },
   created() {
     this.isEditable = EDITABLE_INVENTORY;
+    this.fetchSchema();
+  },
+  methods: {
+    async fetchSchema() {
+      try {
+        const API_schema = await getSchema(this.item.type);
+
+        this.schema = API_schema;
+      } catch (error) {
+        console.error("Error retrieving schema::", error);
+      }
+    },
   },
 };
 </script>

@@ -75,6 +75,7 @@ describe("StartingMaterialTable Component Tests", () => {
     const headers = [
       "", // checkbox
       "ID",
+      "Status",
       "Name",
       "Formula",
       "Date",
@@ -96,11 +97,11 @@ describe("StartingMaterialTable Component Tests", () => {
       .within(() => {
         cy.get("td").eq(0).should("contain.text", "");
         cy.get("td").eq(1).should("contain.text", "material1");
-        cy.get("td").eq(2).should("contain.text", "Material One");
-        cy.get("td").eq(3).should("contain.text", "H2O");
-        cy.get("td").eq(4).should("contain.text", "9/1/2023");
-        cy.get("td").eq(5).should("contain.text", "99%");
-        cy.get("td").eq(6).should("contain.text", "1");
+        cy.get("td").eq(3).should("contain.text", "Material One");
+        cy.get("td").eq(4).should("contain.text", "H2O");
+        cy.get("td").eq(5).should("contain.text", "9/1/2023");
+        cy.get("td").eq(6).should("contain.text", "99%");
+        cy.get("td").eq(7).should("contain.text", "1");
       });
 
     cy.get(".p-datatable-tbody")
@@ -109,11 +110,11 @@ describe("StartingMaterialTable Component Tests", () => {
       .within(() => {
         cy.get("td").eq(0).should("contain.text", "");
         cy.get("td").eq(1).should("contain.text", "material2");
-        cy.get("td").eq(2).should("contain.text", "Material Two");
-        cy.get("td").eq(3).should("contain.text", "CH4");
-        cy.get("td").eq(4).should("contain.text", "8/15/2023");
-        cy.get("td").eq(5).should("contain.text", "95%");
-        cy.get("td").eq(6).should("contain.text", "2");
+        cy.get("td").eq(3).should("contain.text", "Material Two");
+        cy.get("td").eq(4).should("contain.text", "CH4");
+        cy.get("td").eq(5).should("contain.text", "8/15/2023");
+        cy.get("td").eq(6).should("contain.text", "95%");
+        cy.get("td").eq(7).should("contain.text", "2");
       });
   });
 
