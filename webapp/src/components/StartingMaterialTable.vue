@@ -11,6 +11,7 @@
       'chemform',
       'blocks',
       'supplier',
+      'location',
     ]"
   />
 </template>
@@ -35,7 +36,7 @@ export default {
         { field: "name", header: "Name", label: "Name" },
         { field: "chemform", header: "Formula", body: "ChemicalFormula", label: "Formula" },
         { field: "date", header: "Date", label: "Date" },
-        { field: "chemical_purity", header: "Purity", label: "Purity" },
+        { field: "location", header: "Location", label: "Location", filter: true },
         {
           field: "blocks",
           header: "",
