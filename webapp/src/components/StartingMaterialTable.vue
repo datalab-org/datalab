@@ -42,6 +42,7 @@ export default {
           body: "BlocksIconCounter",
           icon: ["fa", "cubes"],
           label: "Block",
+          filter: true,
         },
         {
           field: "nfiles",

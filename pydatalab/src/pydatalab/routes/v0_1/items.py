@@ -126,6 +126,7 @@ def get_starting_materials():
                     "$project": {
                         "_id": 0,
                         "item_id": 1,
+                        "blocks": {"blocktype": 1, "title": 1},
                         "nblocks": {"$size": "$display_order"},
                         "nfiles": {"$size": "$file_ObjectIds"},
                         "date": 1,
