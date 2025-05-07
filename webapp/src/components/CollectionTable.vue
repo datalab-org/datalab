@@ -3,7 +3,7 @@
     :columns="collectionColumn"
     :data="collections"
     :data-type="'collections'"
-    :global-filter-fields="['collection_id', 'title', 'creatorsList']"
+    :global-filter-fields="['collection_id', 'title']"
     :edit-page-route-prefix="'collections'"
   />
 </template>

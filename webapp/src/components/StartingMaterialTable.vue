@@ -3,7 +3,15 @@
     :columns="startingMaterialColumn"
     :data="startingMaterials"
     :data-type="'startingMaterials'"
-    :global-filter-fields="['item_id', 'name', 'chemform', 'chemical_purity', 'nblocks']"
+    :global-filter-fields="[
+      'item_id',
+      'barcode',
+      'refcode',
+      'name',
+      'chemform',
+      'blocks',
+      'supplier',
+    ]"
   />
 </template>
 

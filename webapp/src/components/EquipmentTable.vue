@@ -3,7 +3,7 @@
     :columns="equipmentColumn"
     :data="equipment"
     :data-type="'equipment'"
-    :global-filter-fields="['item_id', 'name', 'location', 'creatorsList']"
+    :global-filter-fields="['item_id', 'name', 'location', 'refcode']"
   />
 </template>
 

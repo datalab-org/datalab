@@ -5,12 +5,11 @@
     :data-type="'samples'"
     :global-filter-fields="[
       'item_id',
-      'type',
       'name',
+      'refcode',
       'chemform',
-      'collectionsList',
-      'creatorsList',
-      'nblocks',
+      'blocks',
+      'characteristic_chemical_formula',
     ]"
   />
 </template>
