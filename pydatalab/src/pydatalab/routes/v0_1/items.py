@@ -315,18 +315,22 @@ def search_items():
     if isinstance(query, str) and query.startswith("%"):
         query = query.lstrip("%")
         match_obj = {
-            "$match": {
-                "$text": {"$search": query},
-                **get_default_permissions(user_only=False),
-            }
+            "$text": {"$search": query},
+            **get_default_permissions(user_only=False),
         }
-        pipeline.append(match_obj)
+        if types is not None:
+            match_obj["type"] = {"$in": types}
+
+        pipeline.append({"$match": match_obj})
         pipeline.append({"$sort": {"score": {"$meta": "textScore"}}})
     else:
         match_obj = {
             "$or": [{field: {"$regex": query, "$options": "i"}} for field in ITEMS_FTS_FIELDS]
         }
         match_obj = {"$and": [get_default_permissions(user_only=False), match_obj]}
+        if types is not None:
+            match_obj["$and"].append({"type": {"$in": types}})
+
         pipeline.append({"$match": match_obj})
 
     pipeline.append({"$limit": nresults})
