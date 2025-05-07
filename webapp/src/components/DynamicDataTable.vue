@@ -333,6 +333,10 @@ export default {
           operator: FilterOperator.AND,
           constraints: [{ value: null, matchMode: "exactTypeMatch" }],
         },
+        location: {
+          operator: FilterOperator.AND,
+          constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
+        },
         collections: {
           operator: FilterOperator.AND,
           constraints: [{ value: null, matchMode: "exactCollectionMatch" }],
