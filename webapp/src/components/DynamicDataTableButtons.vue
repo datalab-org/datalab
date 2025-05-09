@@ -132,6 +132,14 @@
           placeholder="Search"
         />
       </IconField>
+      <button
+        data-testid="reset-table-button"
+        class="btn btn-default"
+        label="Reset table"
+        @click="resetTable"
+      >
+        <i class="pi pi-refresh"></i>
+      </button>
     </div>
   </div>
 </template>
@@ -203,6 +211,7 @@ export default {
     "deletion-started",
     "deletion-completed",
     "deletion-error",
+    "reset-table",
   ],
   data() {
     return {
@@ -269,6 +278,11 @@ export default {
     },
     columnLabel(option) {
       return option.label || option.header || option.field;
+    },
+    resetTable() {
+      if (window.confirm("Are you sure you want to completely reset the Datatable?")) {
+        this.$emit("reset-table");
+      }
     },
   },
 };
