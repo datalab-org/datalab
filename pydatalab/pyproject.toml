@@ -1,7 +1,7 @@
 [project]
 name = "datalab-server"
 keywords = []
-license = { text = "MIT" }
+license = "MIT"
 authors = [
     { name = "Matthew Evans", email = "matthew@ml-evs.science" },
     { name = "Joshua Bocarsly" },

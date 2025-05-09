@@ -83,7 +83,7 @@ def test_simple_graph(admin_client):
         "missing_child",
         "abcd-1-2-3",
     }
-    assert len(graph["edges"]) == 6
+    assert len(graph["edges"]) == 7
 
     response = admin_client.post("/delete-sample/", json={"item_id": "missing_child"})
     assert response
@@ -105,7 +105,7 @@ def test_simple_graph(admin_client):
     assert len(graph["edges"]) == 1
 
     graph = admin_client.get("/item-graph/parent").json
-    assert len(graph["nodes"]) == 6
+    assert len(graph["nodes"]) == 7
     assert len(graph["edges"]) == 5
 
     collection_id = "testcoll"
