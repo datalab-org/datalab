@@ -34,6 +34,7 @@ def list_remote_directories():
     then it will be reconstructed.
 
     """
+    from pydatalab.logger import LOGGER
     if not current_user.is_authenticated and not CONFIG.TESTING:
         return (
             jsonify(
@@ -59,6 +60,8 @@ def list_remote_directories():
             ),
             400,
         )
+
+    LOGGER.debug("Delving into remote directories with invalidate_cache=%s", invalidate_cache)
 
     all_directory_structures = get_directory_structures(
         CONFIG.REMOTE_FILESYSTEMS, invalidate_cache=invalidate_cache
