@@ -1,61 +1,61 @@
 <template>
   <div class="container">
     <!-- Item information -->
-    <div id="equipment-information" class="form-row">
-      <div class="form-group col-md-2 col-sm-4">
-        <label class="mr-2">Refcode</label>
+    <div id="equipment-information" class="row">
+      <div class="mb-3 col-md-2 col-sm-4">
+        <label class="form-label">Refcode</label>
         <div><FormattedRefcode :refcode="Refcode" /></div>
       </div>
-      <div class="form-group col-md-2 col-sm-4">
-        <label for="equip-item_id" class="mr-2">Item id</label>
+      <div class="mb-3 col-md-2 col-sm-4">
+        <label for="equip-item_id" class="form-label">Item id</label>
         <input id="equip-item_id" class="form-control-plaintext" readonly="true" :value="item_id" />
       </div>
-      <div class="form-group col-md-6 col-sm-8">
-        <label for="equip-name" class="mr-2">Name</label>
+      <div class="mb-3 col-md-6 col-sm-8">
+        <label for="equip-name" class="form-label">Name</label>
         <input id="equip-name" v-model="Name" class="form-control" />
       </div>
-      <div class="form-group col-md-2 col-sm-4">
-        <label for="equip-date" class="mr-2">Date</label>
+      <div class="mb-3 col-md-2 col-sm-4">
+        <label for="equip-date" class="form-label">Date</label>
         <input id="equip-date" v-model="EquipmentDate" type="datetime-local" class="form-control" />
       </div>
     </div>
-    <div class="form-row">
-      <div class="form-group col-md-2">
-        <label id="collections" class="mr-2">Collections</label>
+    <div class="row">
+      <div class="mb-3 col-md-2">
+        <label id="collections" class="form-label">Collections</label>
         <div>
           <CollectionList aria-labelledby="collections" :collections="Collections" />
         </div>
       </div>
-      <div class="form-group col-md-5">
-        <label for="equip-manufacturer" class="mr-2">Manufacturer</label>
+      <div class="mb-3 col-md-5">
+        <label for="equip-manufacturer" class="form-label">Manufacturer</label>
         <span>
           <input id="equip-manufacturer" v-model="Manufacturer" class="form-control" />
         </span>
       </div>
-      <div class="form-group col-md-5">
-        <label for="equip-location" class="mr-2">Location</label>
+      <div class="mb-3 col-md-5">
+        <label for="equip-location" class="form-label">Location</label>
         <input id="equip-location" v-model="Location" class="form-control" />
       </div>
     </div>
-    <div class="form-row">
-      <div class="form-group col-md-8">
-        <label for="equip-serial" class="mr-2">Serial no(s).</label>
+    <div class="row">
+      <div class="mb-3 col-md-8">
+        <label for="equip-serial" class="form-label">Serial no(s).</label>
         <input id="equip-serial" v-model="SerialNos" class="form-control" />
       </div>
       <div class="col-md-4 pb-3">
-        <label id="equip-maintainers" class="mr-2">Maintainers</label>
+        <label id="equip-maintainers" class="form-label">Maintainers</label>
         <div class="mx-auto">
           <Creators aria-labelledby="equip-maintainers" :creators="Maintainers" :size="36" />
         </div>
       </div>
     </div>
-    <div class="form-row">
-      <div class="form-group col-md-8">
-        <label for="equip-contact" class="mr-2">Contact information</label>
+    <div class="row">
+      <div class="mb-3 col-md-8">
+        <label for="equip-contact" class="form-label">Contact information</label>
         <input id="equip-contact" v-model="Contact" class="form-control" />
       </div>
     </div>
-    <label id="equip-description-label" class="mr-2">Description</label>
+    <label id="equip-description-label" class="form-label">Description</label>
     <TinyMceInline v-model="ItemDescription" aria-labelledby="equip-description-label" />
 
     <TableOfContents

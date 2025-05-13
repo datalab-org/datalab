@@ -1,8 +1,8 @@
 <template>
   <ChemicalFormula
     v-show="!editable"
-    class="form-control"
     :formula="internal_chemform"
+    class="form-control"
     @click="handleSpanClick"
   />
 
@@ -32,7 +32,7 @@ export default {
   emits: ["update:modelValue"],
   data() {
     return {
-      editable: false,
+      editable: true,
     };
   },
   computed: {

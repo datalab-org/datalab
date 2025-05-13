@@ -3,7 +3,7 @@
     <Modal :model-value="modelValue" @update:model-value="$emit('update:modelValue', $event)">
       <template #header>Scan QR Code</template>
       <template #body>
-        <div v-if="modelValue" class="form-row">
+        <div v-if="modelValue" class="row">
           <div v-if="decodedQRs != null">
             <div>
               Decoded QRs:
@@ -16,23 +16,25 @@
           </div>
           <div v-else>
             <div v-show="!cameraReady">
-              <font-awesome-icon
-                v-if="!cameraReady"
-                icon="spinner"
-                class="fa-spin mx-auto"
-                fixed-width
-                style="color: gray"
-                size="2x"
-              />
-              <div class="alert alert-info text-center">
-                No camera available. You may need to allow this page to have camera access in your
-                browser.
+              <div class="mx-auto w-100 text-center">
+                <div class="alert alert-info text-center">
+                  Trying to load camera. You may need to allow this page to have camera access in
+                  your browser.
+                </div>
+                <font-awesome-icon
+                  v-if="!cameraReady"
+                  icon="spinner"
+                  class="fa-spin pb-10"
+                  fixed-width
+                  style="color: gray"
+                  size="2x"
+                />
               </div>
             </div>
             <div
               v-show="cameraReady"
               ref="qrcode-scanner"
-              class="form-group mx-auto"
+              class="mx-auto mb-3"
               data-testid="qrcode-scanner"
             >
               <QrcodeStream @camera-on="cameraReady = true" @detect="onDetect" />
@@ -48,7 +50,7 @@
         <button
           type="button"
           class="btn btn-secondary"
-          data-dismiss="modal"
+          data-bs-dismiss="modal"
           @click="$emit('update:modelValue', false)"
         >
           Close

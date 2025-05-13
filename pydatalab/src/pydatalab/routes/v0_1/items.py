@@ -995,6 +995,7 @@ def save_item():
     for k in (
         "_id",
         "file_ObjectIds",
+        "files",
         "creators",
         "creator_ids",
         "item_id",

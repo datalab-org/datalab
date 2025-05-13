@@ -1,6 +1,8 @@
 // import BootstrapVue from 'bootstrap-vue';
 
 import "bootstrap/dist/css/bootstrap.css";
+import "bootstrap/dist/js/bootstrap.bundle.min.js";
+
 // import 'bootstrap-vue/dist/bootstrap-vue.css'
 
 import { API_URL } from "@/resources.js";
@@ -13,6 +15,7 @@ import {
   faBarcode,
   faSave,
   faCloudUploadAlt,
+  faRedo,
   faPen,
   faFile,
   faCode,
@@ -56,6 +59,7 @@ library.add(
   faBarcode,
   faSave,
   faPen,
+  faRedo,
   faCloudUploadAlt,
   faFile,
   faCode,

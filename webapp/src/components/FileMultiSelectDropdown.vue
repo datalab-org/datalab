@@ -1,9 +1,9 @@
 <template>
-  <div class="multi-file-selector form-group">
+  <div class="multi-file-selector mb-3">
     <label
       ><b>{{ mainLabel }}</b></label
     >
-    <div class="dual-listbox-container">
+    <div class="dual-listbox-container gap-3">
       <div class="listbox">
         <label :for="`available-${block_id}`">Available Files:</label>
         <ul
@@ -42,7 +42,7 @@
 
       <div class="action-buttons">
         <button
-          class="btn btn-secondary mb-2"
+          class="btn btn-secondary btn-sm mb-2"
           :disabled="!selectedAvailable"
           aria-label="Add selected file"
           @click="addSelected()"
@@ -50,7 +50,7 @@
           &gt;
         </button>
         <button
-          class="btn btn-secondary"
+          class="btn btn-secondary btn-sm"
           :disabled="!selectedSelected"
           aria-label="Remove selected file"
           @click="removeSelected()"
@@ -81,7 +81,7 @@
             @keydown.space.prevent="selectSelected(fileId, index)"
           >
             {{ index + 1 }}. {{ getFileName(fileId) }}
-            <span v-if="isLive(fileId)" class="live-indicator ml-2">
+            <span v-if="isLive(fileId)" class="live-indicator ms-2">
               <b>Live</b> ({{ lastModified(fileId) }})
             </span>
           </li>
@@ -91,7 +91,7 @@
 
       <div class="order-buttons">
         <button
-          class="btn btn-light mb-2"
+          class="btn btn-light btn-sm mb-2"
           :disabled="!canMoveUp"
           aria-label="Move selected file up"
           @click="moveUp()"
@@ -99,7 +99,7 @@
           &#9650;
         </button>
         <button
-          class="btn btn-light"
+          class="btn btn-light btn-sm"
           :disabled="!canMoveDown"
           aria-label="Move selected file down"
           @click="moveDown()"
@@ -290,7 +290,6 @@ export default {
 
 .dual-listbox-container {
   display: flex;
-  gap: 1rem; /* Space between elements */
   align-items: flex-start; /* Align tops */
 }
 

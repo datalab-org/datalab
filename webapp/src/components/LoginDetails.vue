@@ -5,23 +5,16 @@
         id="userDropdown"
         class="btn dropdown-toggle border"
         type="button"
-        aria-haspopup="true"
         aria-expanded="false"
-        data-toggle="dropdown"
-        @click="isUserDropdownVisible = !isUserDropdownVisible"
+        data-bs-toggle="dropdown"
       >
         <UserBubbleLogin :creator="user" :size="24" />&nbsp;
         <span class="user-display-name">{{ userDisplayName }}</span
         >&nbsp;
       </button>
-      <div
-        v-show="isUserDropdownVisible"
-        class="dropdown-menu"
-        style="display: block"
-        aria-labelledby="UserDropdown"
-      >
-        <UserDropdown v-model="isUserDropdownVisible" :user="user" />
-      </div>
+      <ul class="dropdown-menu" aria-labelledby="userDropdown">
+        <UserDropdown :user="user" />
+      </ul>
     </div>
   </template>
   <template v-else-if="!isUserLoaded">
@@ -30,9 +23,7 @@
         id="userDropdown"
         class="btn dropdown-toggle border"
         type="button"
-        aria-haspopup="true"
         aria-expanded="false"
-        data-toggle="dropdown"
       >
         <font-awesome-icon icon="spinner" spin />&nbsp;Loading...
       </button>
@@ -44,21 +35,14 @@
         id="loginDropdown"
         class="btn border dropdown-toggle"
         type="button"
-        data-toggle="dropdown"
-        aria-haspopup="true"
+        data-bs-toggle="dropdown"
         aria-expanded="false"
-        @click="isLoginDropdownVisible = !isLoginDropdownVisible"
       >
         <font-awesome-icon icon="sign-in-alt" />&nbsp;Login/Register
       </button>
-      <div
-        v-show="isLoginDropdownVisible"
-        class="dropdown-menu"
-        style="display: block"
-        aria-labelledby="loginButton"
-      >
+      <ul class="dropdown-menu" aria-labelledby="loginDropdown">
         <LoginDropdown />
-      </div>
+      </ul>
     </div>
   </template>
   <div v-if="isUnverified" class="container mt-4 mb-0 alert alert-warning text-center">
@@ -85,8 +69,6 @@ export default {
   },
   data() {
     return {
-      isLoginDropdownVisible: false,
-      isUserDropdownVisible: false,
       apiUrl: API_URL,
       user: null,
       isUserLoaded: false,

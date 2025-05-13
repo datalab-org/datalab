@@ -1,5 +1,5 @@
 <template>
-  <div v-if="showButtons" class="button-group d-flex justify-content-between align-items-center">
+  <div v-if="showButtons" class="d-flex flex-column w-100">
     <div
       v-if="isDeletingItems"
       class="position-fixed d-flex justify-content-center align-items-center"
@@ -17,121 +17,162 @@
         </div>
       </div>
     </div>
-    <div class="button-left">
-      <button
-        v-if="dataType === 'samples'"
-        data-testid="add-item-button"
-        class="btn btn-default ml-2"
-        @click="$emit('open-create-item-modal')"
-      >
-        Add an item
-      </button>
-      <button
-        v-if="dataType === 'samples'"
-        data-testid="batch-item-button"
-        class="btn btn-default ml-2"
-        @click="$emit('open-batch-create-item-modal')"
-      >
-        Add batch of items
-      </button>
-      <button
-        v-if="dataType === 'samples'"
-        data-testid="scan-qr-button"
-        class="btn btn-default ml-2"
-        @click="$emit('open-qr-scanner-modal')"
-      >
-        <font-awesome-icon icon="qrcode" /> Scan QR
-      </button>
-      <button
-        v-if="dataType === 'collections'"
-        data-testid="add-collection-button"
-        class="btn btn-default ml-2"
-        @click="$emit('open-create-collection-modal')"
-      >
-        Create new collection
-      </button>
-      <button
-        v-if="dataType === 'startingMaterials' && editableInventory"
-        data-testid="add-starting-material-button"
-        class="btn btn-default ml-2"
-        @click="$emit('open-create-item-modal')"
-      >
-        Add a starting material
-      </button>
-      <button
-        v-if="dataType === 'equipment'"
-        data-testid="add-equipment-button"
-        class="btn btn-default ml-2"
-        @click="$emit('open-create-equipment-modal')"
-      >
-        Add an item
-      </button>
+
+    <div class="d-flex justify-content-between align-items-center">
+      <div class="button-left">
+        <button
+          v-if="dataType === 'samples'"
+          data-testid="add-item-button"
+          class="btn btn-default me-2"
+          @click="$emit('open-create-item-modal')"
+        >
+          Add an item
+        </button>
+        <button
+          v-if="dataType === 'samples'"
+          data-testid="batch-item-button"
+          class="btn btn-default me-2"
+          @click="$emit('open-batch-create-item-modal')"
+        >
+          Add batch of items
+        </button>
+        <button
+          v-if="dataType === 'samples'"
+          data-testid="scan-qr-button"
+          class="btn btn-default me-2"
+          aria-label="Scan QR code"
+          title="Scan QR code"
+          @click="$emit('open-qr-scanner-modal')"
+        >
+          <font-awesome-icon icon="qrcode" />
+        </button>
+        <button
+          v-if="dataType === 'collections'"
+          data-testid="add-collection-button"
+          class="btn btn-default me-2"
+          @click="$emit('open-create-collection-modal')"
+        >
+          Create new collection
+        </button>
+        <button
+          v-if="dataType === 'startingMaterials' && editableInventory"
+          data-testid="add-starting-material-button"
+          class="btn btn-default me-2"
+          @click="$emit('open-create-item-modal')"
+        >
+          Add a starting material
+        </button>
+        <button
+          v-if="dataType === 'equipment'"
+          data-testid="add-equipment-button"
+          class="btn btn-default me-2"
+          @click="$emit('open-create-equipment-modal')"
+        >
+          Add an item
+        </button>
+      </div>
+
+      <div class="button-right d-flex">
+        <MultiSelect
+          :model-value="selectedColumns"
+          :options="availableColumns"
+          :option-label="columnLabel"
+          placeholder="Select column(s) to display"
+          display="chip"
+          @update:model-value="$emit('update:selected-columns', $event)"
+        >
+          <template #value="{ value }">
+            <span v-if="value && value.length == availableColumns.length" class="text-gray-400"
+              >All columns displayed</span
+            >
+            <span v-else>{{ value.length }} columns displayed</span>
+          </template>
+        </MultiSelect>
+
+        <IconField class="ms-2 d-flex align-items-center">
+          <InputIcon>
+            <font-awesome-icon icon="search" />
+          </InputIcon>
+          <InputText
+            v-model="localFilters.global.value"
+            data-testid="search-input"
+            class="search-input form-control"
+            placeholder="Search"
+          />
+        </IconField>
+
+        <button
+          data-testid="reset-table-button"
+          class="btn btn-default ms-2"
+          aria-label="Reset table"
+          title="Reset table"
+          @click="resetTable"
+        >
+          <font-awesome-icon icon="redo" />
+        </button>
+      </div>
     </div>
-    <div class="button-right d-flex">
-      <MultiSelect
-        :model-value="selectedColumns"
-        :options="availableColumns"
-        :option-label="columnLabel"
-        placeholder="Select column(s) to display"
-        display="chip"
-        @update:model-value="$emit('update:selected-columns', $event)"
-      >
-        <template #value="{ value }">
-          <span v-if="value && value.length == availableColumns.length" class="text-gray-400"
-            >All columns displayed</span
-          >
-          <span v-else>{{ value.length }} columns displayed</span>
-        </template>
-      </MultiSelect>
+
+    <div v-if="itemsSelected.length > 0" class="d-flex justify-content-end align-items-center mt-2">
       <div class="dropdown">
         <button
           data-testid="selected-dropdown"
           class="btn btn-default dropdown-toggle"
           type="button"
-          data-toggle="dropdown"
-          aria-haspopup="true"
+          data-bs-toggle="dropdown"
           aria-expanded="false"
-          :disabled="itemsSelected.length === 0"
-          @click="isSelectedDropdownVisible = !isSelectedDropdownVisible"
         >
-          {{ itemsSelected.length > 0 ? `${itemsSelected.length} selected... ` : "Selected... " }}
+          {{ itemsSelected.length }} selected...
         </button>
-        <div
-          v-show="isSelectedDropdownVisible"
-          class="dropdown-menu"
-          style="display: block"
-          aria-labelledby="dropdownMenuButton"
-        >
-          <a
-            v-if="itemsSelected.length !== 0 && dataType !== 'collections'"
-            data-testid="add-to-collection-button"
-            class="dropdown-item"
-            @click="handleAddToCollection"
-          >
-            Add to collection
-          </a>
-          <a
-            v-if="itemsSelected.length !== 0"
-            data-testid="delete-selected-button"
-            class="dropdown-item"
-            @click="confirmDeletion"
-          >
-            Delete selected
-          </a>
+        <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+          <li v-if="dataType !== 'collections'">
+            <a
+              data-testid="add-to-collection-button"
+              class="dropdown-item"
+              href="#"
+              @click.prevent="handleAddToCollection"
+            >
+              Add to collection
+            </a>
+          </li>
+          <li>
+            <a
+              data-testid="delete-selected-button"
+              class="dropdown-item"
+              href="#"
+              @click.prevent="confirmDeletion"
+            >
+              Delete selected
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div v-if="isColumnSelectModalOpen" class="modal d-block" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Select Columns</h5>
+            <button
+              type="button"
+              class="btn-close"
+              aria-label="Close"
+              @click="isColumnSelectModalOpen = false"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <MultiSelect
+              :model-value="selectedColumns"
+              :options="availableColumns"
+              :option-label="columnLabel"
+              class="form-select"
+              display="chip"
+              @update:model-value="updateColumnsAndCloseModal"
+            />
+          </div>
         </div>
       </div>
-
-      <IconField>
-        <InputIcon>
-          <i class="pi pi-search"></i>
-        </InputIcon>
-        <InputText
-          v-model="localFilters.global.value"
-          data-testid="search-input"
-          class="search-input"
-          placeholder="Search"
-        />
-      </IconField>
     </div>
   </div>
 </template>
@@ -203,6 +244,7 @@ export default {
     "deletion-started",
     "deletion-completed",
     "deletion-error",
+    "reset-table",
   ],
   data() {
     return {
@@ -210,6 +252,7 @@ export default {
       isSelectedDropdownVisible: false,
       isDeletingItems: false,
       itemCount: 0,
+      isColumnSelectModalOpen: false,
     };
   },
   watch: {
@@ -270,20 +313,15 @@ export default {
     columnLabel(option) {
       return option.label || option.header || option.field;
     },
+    resetTable() {
+      if (
+        window.confirm(
+          "Are you sure you want to reset your preferences (visible columns, widths) for this table?",
+        )
+      ) {
+        this.$emit("reset-table");
+      }
+    },
   },
 };
 </script>
-
-<style scoped>
-.search-input {
-  height: calc(1.5em + 0.75rem + 2px);
-  padding: 0.375rem 0.75rem;
-  font-size: 1rem;
-  line-height: 1.5;
-  border-radius: 0.25rem;
-}
-
-.button-right {
-  gap: 0.5em;
-}
-</style>

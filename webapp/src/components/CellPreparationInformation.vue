@@ -1,13 +1,13 @@
 <template>
   <div id="cell-preparation-information">
-    <label class="mr-2 pb-2">Cell Construction</label>
+    <label class="form-label">Cell Construction</label>
 
-    <div class="form-group ml-5">
-      <label class="subheading cell-component-label mt-4 pb-1" for="pos-electrode-table"
+    <div class="mb-3">
+      <label class="form-label subheading cell-component-label mt-2 pb-1" for="pos-electrode-table"
         >Positive electrode</label
       >
       <div class="card component-card">
-        <div class="card-body pt-2 pb-0 mb-0 pl-5">
+        <div class="card-body pb-0 mb-0">
           <CompactConstituentTable
             id="pos-electrode-table"
             v-model="PosElectrodeConstituents"
@@ -17,12 +17,12 @@
       </div>
     </div>
 
-    <div class="form-group ml-5">
-      <label class="subheading cell-component-label mt-4 pb-1" for="electrolyte-table"
+    <div class="mb-3">
+      <label class="form-label subheading cell-component-label mt-2 pb-1" for="electrolyte-table"
         >Electrolyte</label
       >
       <div class="card component-card">
-        <div class="card-body pt-2 pb-0 mb-0 pl-5">
+        <div class="card-body pb-0 mb-0">
           <CompactConstituentTable
             id="electrolyte-table"
             v-model="ElectrolyteConstituents"
@@ -32,12 +32,12 @@
       </div>
     </div>
 
-    <div class="form-group ml-5">
-      <label class="subheading cell-component-label mt-4 pb-1" for="neg-electrode-table"
+    <div class="mb-3">
+      <label class="form-label subheading cell-component-label mt-2 pb-1" for="neg-electrode-table"
         >Negative electrode</label
       >
       <div class="card component-card">
-        <div class="card-body pt-2 pb-0 mb-0 pl-5">
+        <div class="card-body pb-0 mb-0">
           <CompactConstituentTable
             id="neg-electrode-table"
             v-model="NegElectrodeConstituents"
@@ -47,8 +47,8 @@
       </div>
     </div>
 
-    <div class="form-group ml-5 mt-3">
-      <label id="synthesis-procedure-label" class="subheading">Procedure</label>
+    <div class="mb-3 mt-3">
+      <label id="synthesis-procedure-label" class="form-label subheading">Procedure</label>
       <TinyMceInline
         v-model="CellPreparationDescription"
         aria-labelledby="synthesis-procedure-label"

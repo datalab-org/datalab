@@ -1,10 +1,13 @@
 <template>
   <div class="row">
-    <div class="col-md-12 form-group">
-      <label id="startWithConstituentsLabel">(Optional) Start with constituents:</label>
+    <div class="col-md-12 mb-3">
+      <label id="startWithConstituentsLabel" class="form-label"
+        >(Optional) Start with constituents:</label
+      >
       <ItemSelect
         v-model="constituents"
         aria-labelledby="startWithConstituentsLabel"
+        data-testid="start-with-constituents"
         multiple
         :types-to-query="['samples', 'starting_materials']"
         taggable

@@ -32,7 +32,12 @@ export default {
         },
         { field: "type", header: "Type", filter: true, label: "Type" },
         { field: "name", header: "Sample name", label: "Sample name" },
-        { field: "chemform", header: "Formula", body: "ChemicalFormula", label: "Formula" },
+        {
+          field: "chemform",
+          header: "Formula",
+          body: "ChemicalFormula",
+          label: "Formula",
+        },
         { field: "date", header: "Date", label: "Date" },
         {
           field: "collections",

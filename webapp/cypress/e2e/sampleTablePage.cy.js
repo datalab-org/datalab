@@ -1,12 +1,7 @@
 const API_URL = Cypress.config("apiUrl");
 console.log(API_URL);
 
-let consoleSpy; // keeps track of every time an error is written to the console
-Cypress.on("window:before:load", (win) => {
-  consoleSpy = cy.spy(win.console, "error");
-});
-
-let sample_ids = [
+let item_ids = [
   "12345678910",
   "test1",
   "test2",
@@ -34,15 +29,17 @@ let sample_ids = [
 let collection_ids = ["test_collection"];
 
 before(() => {
-  cy.visit("/");
-  cy.removeAllTestSamples(sample_ids, true);
-  cy.removeAllTestCollections(collection_ids, true);
+  cy.cleanTestEnvironment({
+    itemIds: item_ids,
+    collectionIds: collection_ids,
+  });
 });
 
 after(() => {
-  cy.visit("/");
-  cy.removeAllTestSamples(sample_ids, true);
-  cy.removeAllTestCollections(collection_ids, true);
+  cy.cleanTestEnvironment({
+    itemIds: item_ids,
+    collectionIds: collection_ids,
+  });
 });
 
 describe("Sample table page", () => {
@@ -53,11 +50,11 @@ describe("Sample table page", () => {
   it("Loads the main page without any errors", () => {
     cy.findByText("About").should("exist");
     cy.findByText("Samples").should("exist");
-    cy.findByText("Add an item").should("exist");
+    cy.findByTestId("add-item-button").should("exist");
     cy.findByText("# of blocks").should("exist");
 
     cy.contains("Server Error. Sample list could not be retreived.").should("not.exist");
-    expect(consoleSpy).not.to.be.called;
+    cy.get("@consoleSpy").should("not.be.called");
   });
 
   it("Adds a valid sample", () => {
@@ -77,7 +74,7 @@ describe("Sample table page", () => {
   });
 
   it("Attempts to add an item with the same name", () => {
-    cy.findByText("Add an item").click();
+    cy.openAndWaitForModal("[data-testid=add-item-button]");
     cy.get('[data-testid="create-item-form"]').within(() => {
       cy.findByLabelText("ID:").type("12345678910");
       cy.contains("already in use").should("exist");
@@ -195,11 +192,10 @@ describe.only("Advanced sample creation features", () => {
   });
 
   it("Adds a third sample copied from the first", () => {
-    cy.findByText("Add an item").click();
+    cy.openAndWaitForModal("[data-testid=add-item-button]");
     cy.get('[data-testid="create-item-form"]').within(() => {
       cy.findByLabelText("ID:").type("testAcopy");
-      cy.findByLabelText("(Optional) Copy from existing sample:").type("testA");
-      cy.get(".vs__dropdown-menu").contains(".badge", "testA").click();
+      cy.selectVsOption("copy-from-select", "testA", { dataTestId: true });
       cy.findByDisplayValue("COPY OF the first test sample").clear().type("a copied sample");
       cy.findByText("Submit").click();
     });
@@ -226,14 +222,12 @@ describe.only("Advanced sample creation features", () => {
 
     cy.get(".datablock-content div").first().type("a comment is added here.");
     cy.expandIfCollapsed("[data-testid=synthesis-block]");
-    cy.get("#synthesis-information .vs__search").first().type("component3");
-    cy.get(".vs__dropdown-menu").contains(".badge", "component3").click();
+    cy.selectVsOption("synthesis-table", "component3", { dataTestId: true });
 
     cy.get("#synthesis-information tbody tr:nth-of-type(1) input").eq(0).type("30");
 
     cy.get("svg.add-row-button").click();
-    cy.get("#synthesis-information .vs__search").first().type("component4");
-    cy.get(".vs__dropdown-menu").contains(".badge", "component4").click();
+    cy.selectVsOption("synthesis-table", "component4", { dataTestId: true });
 
     cy.get("#synthesis-information tbody tr:nth-of-type(2) input").eq(0).type("100"); // eq(1) gets the second element that matches
 
@@ -244,11 +238,10 @@ describe.only("Advanced sample creation features", () => {
   });
 
   it("copies the second sample", () => {
-    cy.findByText("Add an item").click();
+    cy.openAndWaitForModal("[data-testid=add-item-button]");
     cy.get('[data-testid="create-item-form"]').within(() => {
       cy.findByLabelText("ID:").type("testBcopy");
-      cy.findByLabelText("(Optional) Copy from existing sample:").type("testB");
-      cy.get(".vs__dropdown-menu").contains(".badge", "testB").click();
+      cy.selectVsOption("copy-from-select", "testB", { dataTestId: true });
       cy.findByText("Submit").click();
     });
     cy.verifySample("testBcopy", "COPY OF the second test sample");
@@ -269,23 +262,13 @@ describe.only("Advanced sample creation features", () => {
   });
 
   it("copies the copied sample, this time with additional components", () => {
-    cy.findByText("Add an item").click();
+    cy.openAndWaitForModal("[data-testid=add-item-button]");
     cy.get('[data-testid="create-item-form"]').within(() => {
       cy.findByLabelText("ID:").type("testBcopy_copy");
-      cy.findByLabelText("(Optional) Copy from existing sample:").type("testBcopy");
-      cy.findByLabelText("(Optional) Copy from existing sample:")
-        .contains(".vs__dropdown-menu .badge", "testBcopy")
-        .click();
 
-      cy.findByLabelText("(Optional) Start with constituents:").type("component2");
-      cy.findByLabelText("(Optional) Start with constituents:")
-        .contains(".vs__dropdown-menu .badge", "component2")
-        .click();
-
-      cy.findByLabelText("(Optional) Start with constituents:").type("component3");
-      cy.findByLabelText("(Optional) Start with constituents:")
-        .contains(".vs__dropdown-menu .badge", "component3")
-        .click();
+      cy.selectVsOption("copy-from-select", "testBcopy", { dataTestId: true });
+      cy.selectVsOption("start-with-constituents", "component2", { dataTestId: true });
+      cy.selectVsOption("start-with-constituents", "component3", { dataTestId: true });
 
       cy.findByText("Submit").click();
     });
@@ -312,6 +295,9 @@ describe.only("Advanced sample creation features", () => {
     cy.selectItemCheckbox("sample", test_id);
     cy.get('[data-testid="selected-dropdown"]').click();
     cy.get('[data-testid="add-to-collection-button"]').click();
+
+    cy.waitForModal();
+
     cy.findByLabelText("Insert into collection:").type("test_collection");
     cy.findByText('Create new collection: "test_collection"').click();
     cy.get('form[data-testid="add-to-collection-form"]').within(() => {

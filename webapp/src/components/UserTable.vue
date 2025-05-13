@@ -12,18 +12,18 @@
       <tr v-for="user in users" :key="user._id">
         <td align="left">
           {{ user.display_name }}
-          <span v-if="user.account_status === 'active'" class="badge badge-success text-uppercase">
+          <span v-if="user.account_status === 'active'" class="badge bg-success text-uppercase">
             Active
           </span>
           <span
             v-else-if="user.account_status === 'unverified'"
-            class="badge badge-warning text-uppercase"
+            class="badge bg-warning text-uppercase"
           >
             Unverified
           </span>
           <span
             v-else-if="user.account_status === 'deactivated'"
-            class="badge badge-danger text-uppercase"
+            class="badge bg-danger text-uppercase"
           >
             Deactivated
           </span>

@@ -5,6 +5,7 @@
     </div>
 
     <DataTable
+      ref="datatable"
       v-model:filters="filters"
       v-model:selection="itemsSelected"
       v-model:select-all="allSelected"
@@ -52,6 +53,7 @@
           @open-create-equipment-modal="createEquipmentModalIsOpen = true"
           @open-add-to-collection-modal="addToCollectionModalIsOpen = true"
           @delete-selected-items="deleteSelectedItems"
+          @reset-table="handleResetTable"
         />
       </template>
       <template #empty> No data found. </template>
@@ -100,7 +102,7 @@
             <template #option="slotProps">
               <div class="flex items-center">
                 <UserBubble :creator="slotProps.option" :size="24" />
-                <span class="ml-1">{{ slotProps.option.display_name }}</span>
+                <span>{{ slotProps.option.display_name }}</span>
               </div>
             </template>
             <template #value="slotProps">
@@ -109,7 +111,7 @@
                   <span
                     v-for="(option, index) in slotProps.value"
                     :key="index"
-                    class="inline-flex items-center mr-2"
+                    class="inline-flex items-center"
                   >
                     <UserBubble :creator="option" :size="20" />
                   </span>
@@ -415,7 +417,7 @@ export default {
   },
   created() {
     this.editable_inventory = EDITABLE_INVENTORY;
-    this.selectedColumns = [...this.availableColumns];
+    this.selectedColumns = this.availableColumns.filter((col) => !col.hidden);
 
     FilterService.register("exactCollectionMatch", (value, filterValue) => {
       if (!filterValue || !value) return true;
@@ -717,7 +719,6 @@ export default {
         first: state.first,
         rows: state.rows,
       };
-
       localStorage.setItem(`datatable-state-${this.dataType}`, JSON.stringify(customState));
 
       return false;
@@ -746,7 +747,7 @@ export default {
             );
 
             if (this.selectedColumns.length === 0) {
-              this.selectedColumns = [...this.availableColumns];
+              this.selectedColumns = this.availableColumns.filter((col) => !col.hidden);
             }
           }
         }
@@ -757,6 +758,13 @@ export default {
         this.selectedColumns = [...this.availableColumns];
         return false;
       }
+    },
+    handleResetTable() {
+      localStorage.removeItem(`datatable-state-${this.dataType}`);
+
+      this.$nextTick(() => {
+        location.reload();
+      });
     },
   },
 };

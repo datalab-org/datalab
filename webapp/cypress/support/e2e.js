@@ -16,6 +16,12 @@
 // Import commands.js using ES2015 syntax:
 import "./commands";
 
+beforeEach(() => {
+  cy.window().then((win) => {
+    cy.spy(win.console, "error").as("consoleSpy");
+  });
+});
+
 // eslint-disable-next-line no-unused-vars
 Cypress.on("uncaught:exception", (err, runnable) => {
   // returning false here prevents Cypress from

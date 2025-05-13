@@ -2,15 +2,15 @@
   <div class="container">
     <div class="row">
       <div class="col">
-        <div id="collection-information" class="form-row">
-          <div class="col-md-2">
-            <label id="creators" class="mr-2">Creators</label>
+        <div id="collection-information" class="row">
+          <div class="col-md-2 mb-3">
+            <label id="creators" class="form-label">Creators</label>
             <div>
               <Creators :creators="CollectionCreators" :size="36" />
             </div>
           </div>
-          <div class="form-group col">
-            <label for="name" class="mr">Title</label>
+          <div class="mb-3 col">
+            <label for="name" class="form-label mr">Title</label>
             <input
               id="name"
               v-model="Title"
@@ -21,7 +21,7 @@
           </div>
         </div>
 
-        <label id="description-label" class="mr-2">Description</label>
+        <label id="description-label" class="form-label">Description</label>
         <TinyMceInline
           v-model="CollectionDescription"
           aria-labelledby="description-label"

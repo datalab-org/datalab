@@ -11,7 +11,7 @@
       <!--       <font-awesome-icon
         :icon="['fas', 'chevron-right']"
         fixed-width
-        class="collapse-icon float-right"
+        class="collapse-icon float-end"
         :class="{'collapse-icon-rotated': sidebarShown}"
         @click="sidebarShown = !sidebarShown"
         /> -->
@@ -21,7 +21,7 @@
         <!--         <font-awesome-icon
           :icon="['fas', 'chevron-right']"
           fixed-width
-          class="collapse-icon float-right"
+          class="collapse-icon float-end"
           :class="{'collapse-icon-rotated': sidebarShown}"
           @click="sidebarShown = !sidebarShown"
         /> -->
@@ -45,7 +45,7 @@
         </ol>
       </div>
     </transition>
-    <label class="mr-2">Contents</label>
+    <label class="form-label">Contents</label>
     <div class="card">
       <div class="card-body overflow-auto">
         <ol id="contents-ol">
