@@ -145,14 +145,14 @@ export default {
 }
 
 .system-prompt-label {
-  font-family: "Roboto Mono", monospace;
+  font-family: var(--font-monospace);
   font-size: 0.875rem;
   font-weight: 600;
   color: rgb(100, 100, 100);
 }
 
 .raw-content {
-  font-family: "Roboto Mono", monospace;
+  font-family: var(--font-monospace);
   font-size: 0.875rem;
   white-space: pre-wrap;
   overflow-x: auto;

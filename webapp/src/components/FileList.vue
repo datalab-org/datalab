@@ -109,7 +109,7 @@ export default {
 
 .filelink {
   color: #004175;
-  font-family: "Andalé Mono", monospace;
+  font-family: var(--font-monospace);
 }
 
 .filelink:hover {
@@ -143,7 +143,7 @@ export default {
 }
 
 .server-name {
-  font-family: "Andalé Mono", monospace;
+  font-family: var(--font-monospace);
   font-weight: 400;
   /*font-style: italic;*/
   color: teal;
