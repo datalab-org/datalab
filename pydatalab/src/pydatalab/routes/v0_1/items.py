@@ -7,6 +7,7 @@ from flask import Blueprint, jsonify, redirect, request
 from flask_login import current_user
 from pydantic import ValidationError
 from pymongo.command_cursor import CommandCursor
+from pymongo.errors import DuplicateKeyError
 
 from pydatalab.blocks import BLOCK_TYPES
 from pydatalab.config import CONFIG
@@ -546,12 +547,10 @@ def _create_sample(
     new_sample["refcode"] = generate_unique_refcode()
     if generate_id_automatically:
         new_sample["item_id"] = new_sample["refcode"].split(":")[1]
-        LOGGER.debug(
-            "an automatic item_id was generated for the new sample: {new_sample['item_id']}"
-        )
 
     # check to make sure that item_id isn't taken already
-    if flask_mongo.db.items.find_one({"item_id": sample_dict["item_id"]}):
+    if flask_mongo.db.items.find_one({"item_id": str(sample_dict["item_id"])}):
+        LOGGER.debug("item_id %s already exists in database", sample_dict["item_id"])
         return (
             dict(
                 status="error",
@@ -580,7 +579,21 @@ def _create_sample(
     # via joins for a specific query.
     # TODO: encode this at the model level, via custom schema properties or hard-coded `.store()` methods
     # the `Entry` model.
-    result = flask_mongo.db.items.insert_one(data_model.dict(exclude={"creators", "collections"}))
+    try:
+        result = flask_mongo.db.items.insert_one(
+            data_model.dict(exclude={"creators", "collections"})
+        )
+    except DuplicateKeyError as error:
+        LOGGER.debug("item_id %s already exists in database", sample_dict["item_id"], sample_dict)
+        return (
+            dict(
+                status="error",
+                message=f"Duplicate key error: {str(error)}.",
+                item_id=new_sample["item_id"],
+            ),
+            409,
+        )
+
     if not result.acknowledged:
         return (
             dict(
@@ -975,7 +988,7 @@ def get_item_data(
 def save_item():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
 
-    item_id = request_json["item_id"]
+    item_id = str(request_json["item_id"])
     updated_data = request_json["data"]
 
     # These keys should not be updated here and cannot be modified by the user through this endpoint
