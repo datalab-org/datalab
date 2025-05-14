@@ -109,7 +109,7 @@ input {
 }
 
 .filetype-li {
-  font-family: "Roboto Mono", monospace;
+  font-family: var(--font-monospace);
 }
 
 #tooltip {
