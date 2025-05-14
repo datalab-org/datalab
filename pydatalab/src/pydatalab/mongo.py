@@ -1,3 +1,4 @@
+import atexit
 from functools import lru_cache
 from typing import List, Optional
 
@@ -66,14 +67,21 @@ def _get_active_mongo_client(timeoutMS: int = 1000) -> pymongo.MongoClient:
     from pydatalab.logger import LOGGER
 
     try:
-        return pymongo.MongoClient(
+        client = pymongo.MongoClient(
             CONFIG.MONGO_URI,
             connectTimeoutMS=timeoutMS,
             serverSelectionTimeoutMS=timeoutMS,
             connect=True,
         )
+
+        atexit.register(
+            lambda client: client.close(),
+            client,
+        )
+        return client
+
     except ConnectionFailure as exc:
-        LOGGER.critical(f"Unable to connect to MongoDB at {CONFIG.MONGO_URI}")
+        LOGGER.critical(f"Unable to connect to MongoDB at {CONFIG.MONGO_URI!r}: {exc}")
         raise RuntimeError from exc
 
 
