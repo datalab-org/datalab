@@ -5,6 +5,9 @@ from functools import wraps
 from typing import Callable, Optional
 
 LOG_FORMAT_STRING = "%(asctime)s | %(levelname)-8s: %(message)s (PID: %(process)d - %(name)s: %(pathname)s:%(funcName)s:%(lineno)d)"
+ACCESS_LOG_FORMAT_STRING = (
+    "%(asctime)s | %(levelname)-8s: %(message)s (PID: %(process)d - %(name)s)"
+)
 
 
 class AnsiColorHandler(logging.StreamHandler):
@@ -38,6 +41,12 @@ def setup_log(log_name: str = "pydatalab", log_level: Optional[int] = None) -> l
     Verbosity can be set to debug in the config file via
     the DEBUG option, or passed the the function.
 
+    Starts by suppressing the root logger (retaining only
+    errors and warnings), then creates a new logger for datalab
+    specifically.
+    Also adjusts the werkzeug logger to use a more concise format
+    for pure access logs.
+
     Parameters:
         log_name: The name of the logger.
         log_level: The logging level to use.
@@ -48,6 +57,10 @@ def setup_log(log_name: str = "pydatalab", log_level: Optional[int] = None) -> l
     """
     from pydatalab.config import CONFIG
 
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.CRITICAL)
+    root_logger.handlers = []
+
     logger = logging.getLogger(log_name)
     logger.handlers = []
     logger.propagate = False
@@ -55,12 +68,25 @@ def setup_log(log_name: str = "pydatalab", log_level: Optional[int] = None) -> l
     stream_handler.setFormatter(logging.Formatter(LOG_FORMAT_STRING))
     logger.addHandler(stream_handler)
 
+    werkzeug_logger = logging.getLogger("werkzeug")
+    werkzeug_logger.setLevel(logging.INFO)
+    werkzeug_logger.handlers = []
+    access_stream_handler = AnsiColorHandler()
+    access_stream_handler.setFormatter(logging.Formatter(ACCESS_LOG_FORMAT_STRING))
+    werkzeug_logger.addHandler(access_stream_handler)
+
     if CONFIG.LOG_FILE is not None:
         rotating_file_handler = logging.handlers.RotatingFileHandler(
             CONFIG.LOG_FILE, maxBytes=1000000, backupCount=100
         )
         rotating_file_handler.setFormatter(logging.Formatter(LOG_FORMAT_STRING))
         logger.addHandler(rotating_file_handler)
+
+        access_file_handler = logging.handlers.RotatingFileHandler(
+            CONFIG.LOG_FILE, maxBytes=1000000, backupCount=100
+        )
+        access_file_handler.setFormatter(logging.Formatter(ACCESS_LOG_FORMAT_STRING))
+        werkzeug_logger.addHandler(access_file_handler)
 
     if log_level is None:
         log_level = logging.INFO
