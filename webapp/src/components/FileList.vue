@@ -92,8 +92,9 @@ export default {
   methods: {
     formatDistance,
     deleteFile(event, file_id) {
-      deleteFileFromSample(this.item_id, file_id);
-      return false;
+      if (window.confirm("Are you sure you want to unlink this file from this entry?")) {
+        deleteFileFromSample(this.item_id, file_id);
+      }
     },
     setFileSelectModalOpen() {
       this.$store.commit("setFileSelectModalOpenStatus", true);
@@ -128,6 +129,11 @@ export default {
 #filearea {
   max-height: 14rem;
   padding: 0.9rem 1.25rem;
+}
+
+.delete-file-button:hover {
+  color: #dc3545;
+  cursor: pointer;
 }
 
 #uppy-trigger {
