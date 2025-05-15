@@ -40,6 +40,8 @@
           v-if="dataType === 'samples'"
           data-testid="scan-qr-button"
           class="btn btn-default ml-2"
+          aria-label="Scan QR code"
+          title="Scan QR code"
           @click="$emit('open-qr-scanner-modal')"
         >
           <font-awesome-icon icon="qrcode" />
@@ -102,7 +104,8 @@
         <button
           data-testid="reset-table-button"
           class="btn btn-default ml-2"
-          label="Reset table"
+          aria-label="Reset table"
+          title="Reset table"
           @click="resetTable"
         >
           <i class="pi pi-refresh"></i>
