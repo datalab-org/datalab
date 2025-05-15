@@ -91,7 +91,7 @@
 
         <IconField class="ml-2">
           <InputIcon>
-            <i class="pi pi-search"></i>
+            <font-awesome-icon icon="search" />
           </InputIcon>
           <InputText
             v-model="localFilters.global.value"
@@ -108,7 +108,7 @@
           title="Reset table"
           @click="resetTable"
         >
-          <i class="pi pi-refresh"></i>
+          <font-awesome-icon icon="redo" />
         </button>
       </div>
     </div>
