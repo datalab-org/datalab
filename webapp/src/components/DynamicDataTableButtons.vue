@@ -42,7 +42,7 @@
           class="btn btn-default ml-2"
           @click="$emit('open-qr-scanner-modal')"
         >
-          <font-awesome-icon icon="qrcode" /> Scan QR
+          <font-awesome-icon icon="qrcode" />
         </button>
         <button
           v-if="dataType === 'collections'"
@@ -282,7 +282,11 @@ export default {
       return option.label || option.header || option.field;
     },
     resetTable() {
-      if (window.confirm("Are you sure you want to reset your preferences (visible columns, widths) for this table?")) {
+      if (
+        window.confirm(
+          "Are you sure you want to reset your preferences (visible columns, widths) for this table?",
+        )
+      ) {
         this.$emit("reset-table");
       }
     },
