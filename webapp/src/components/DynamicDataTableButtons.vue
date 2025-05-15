@@ -280,7 +280,7 @@ export default {
       return option.label || option.header || option.field;
     },
     resetTable() {
-      if (window.confirm("Are you sure you want to completely reset the Datatable?")) {
+      if (window.confirm("Are you sure you want to reset your preferences (visible columns, widths) for this table?")) {
         this.$emit("reset-table");
       }
     },
