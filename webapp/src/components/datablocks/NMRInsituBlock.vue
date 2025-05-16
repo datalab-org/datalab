@@ -9,18 +9,25 @@
       @change="onFileChange"
     />
     <div v-show="file_id">
-      <div class="form-inline">
-        <div class="form-group mb-2">
-          <label class="mr-2"><b>NMR folder name</b></label>
+      <!-- Folder selection row -->
+      <div class="row mb-3 align-items-center">
+        <div class="col-auto d-flex align-items-center">
+          <label class="form-label mb-0 me-2"><b>NMR folder name</b></label>
+        </div>
+        <div class="col-auto">
           <v-select
             v-model="nmr_folder_name"
             :options="availableFolders"
             :reduce="(folder) => folder"
-            class="folder-select mr-2"
+            class="folder-select"
             placeholder="Select a folder"
             @update:model-value="onFolderSelected"
           />
-          <label class="mr-2"><b>Echem folder name</b></label>
+        </div>
+        <div class="col-auto d-flex align-items-center">
+          <label class="form-label mb-0 ms-3 me-2"><b>Echem folder name</b></label>
+        </div>
+        <div class="col-auto">
           <v-select
             v-model="echem_folder_name"
             :options="availableFolders"
@@ -29,20 +36,31 @@
             placeholder="Select a folder"
             @update:model-value="onFolderSelected"
           />
-          <div v-if="folderNameError" class="alert alert-danger mt-2 mx-auto">
-            {{ folderNameError }}
-          </div>
         </div>
-        <div class="form-group mt-2 mb-2">
-          <label class="mr-2"><b>Lower PPM range</b></label>
+      </div>
+
+      <div v-if="folderNameError" class="alert alert-danger mb-3">
+        {{ folderNameError }}
+      </div>
+
+      <!-- PPM range row -->
+      <div class="row mb-3 align-items-center">
+        <div class="col-auto d-flex align-items-center">
+          <label class="form-label mb-0 me-2"><b>Lower PPM range</b></label>
+        </div>
+        <div class="col-auto">
           <input
             v-model.number="ppm1"
             type="number"
-            class="form-control mr-2"
+            class="form-control"
             @keydown.enter="handlePPMUpdate"
             @blur="handlePPMUpdate"
           />
-          <label class="mr-2"><b>Upper PPM range</b></label>
+        </div>
+        <div class="col-auto d-flex align-items-center">
+          <label class="form-label mb-0 ms-3 me-2"><b>Upper PPM range</b></label>
+        </div>
+        <div class="col-auto">
           <input
             v-model.number="ppm2"
             type="number"
@@ -50,12 +68,14 @@
             @keydown.enter="handlePPMUpdate"
             @blur="handlePPMUpdate"
           />
-          <div v-if="ppmParseError" class="alert alert-danger mt-2 mx-auto">
-            {{ ppmParseError }}
-          </div>
         </div>
       </div>
+
+      <div v-if="ppmParseError" class="alert alert-danger mb-3">
+        {{ ppmParseError }}
+      </div>
     </div>
+
     <div
       v-show="nmr_folder_name && echem_folder_name"
       class="row mt-2 text-center justify-content-center"

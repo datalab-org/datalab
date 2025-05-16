@@ -1,25 +1,43 @@
 <template>
   <div id="topScrollPoint"></div>
   <nav
-    class="navbar navbar-expand sticky-top navbar-dark py-0 editor-navbar"
+    class="d-flex navbar navbar-expand-md navbar-dark py-lg-0 px-3 editor-navbar"
     :style="{ backgroundColor: navbarColor }"
   >
-    <span class="navbar-brand" @click="scrollToID($event, 'topScrollPoint')">
-      {{ itemTypeEntry?.navbarName || "loading..." }}&nbsp;&nbsp;|&nbsp;&nbsp;
-      <FormattedItemName :item_id="collection_id" item-type="collections" />
-    </span>
-    <div class="navbar-nav">
-      <a class="nav-item nav-link" href="/">Home</a>
-      <a class="nav-item nav-link" :href="collectionApiUrl" target="_blank">
-        <font-awesome-icon icon="code" fixed-width /> View JSON
-      </a>
+    <div class="d-flex align-items-center">
+      <button
+        class="navbar-toggler me-4"
+        type="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#navbarContent"
+        aria-controls="navbarContent"
+        aria-expanded="false"
+        aria-label="Toggle navigation"
+      >
+        <span class="navbar-toggler-icon"></span>
+        Menu
+      </button>
+
+      <div id="navbarContent" class="collapse navbar-collapse">
+        <div class="navbar-nav me-auto">
+          <span class="navbar-brand" @click="scrollToID($event, 'topScrollPoint')">
+            {{ itemTypeEntry?.navbarName || "loading..." }}&nbsp;&nbsp;|&nbsp;&nbsp;
+            <FormattedItemName :item_id="collection_id" item-type="collections" />
+          </span>
+          <router-link class="nav-item nav-link" to="/">Home</router-link>
+
+          <a class="nav-item nav-link" :href="collectionApiUrl" target="_blank">
+            <font-awesome-icon icon="code" fixed-width /> View JSON
+          </a>
+        </div>
+      </div>
     </div>
-    <div class="navbar-nav ml-auto">
-      <span v-if="data_loaded && !savedStatus" class="navbar-text unsaved-warning">
+    <div class="navbar-nav d-flex flex-row ms-auto align-items-center">
+      <span v-if="data_loaded && !savedStatus" class="navbar-text unsaved-warning me-2">
         Unsaved changes
       </span>
-      <span v-if="data_loaded && lastModified" class="navbar-text small mx-2"
-        ><i>Last saved: {{ lastModified }}</i>
+      <span v-if="data_loaded && lastModified" class="navbar-text me-2 d-flex align-items-center">
+        <i class="small">Last saved: {{ lastModified }}</i>
       </span>
       <font-awesome-icon
         icon="save"

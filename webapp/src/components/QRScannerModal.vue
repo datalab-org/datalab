@@ -3,7 +3,7 @@
     <Modal :model-value="modelValue" @update:model-value="$emit('update:modelValue', $event)">
       <template #header>Scan QR Code</template>
       <template #body>
-        <div v-if="modelValue" class="form-row">
+        <div v-if="modelValue" class="row">
           <div v-if="decodedQRs != null">
             <div>
               Decoded QRs:
@@ -34,7 +34,7 @@
             <div
               v-show="cameraReady"
               ref="qrcode-scanner"
-              class="form-group mx-auto"
+              class="mx-auto mb-3"
               data-testid="qrcode-scanner"
             >
               <QrcodeStream @camera-on="cameraReady = true" @detect="onDetect" />
@@ -50,7 +50,7 @@
         <button
           type="button"
           class="btn btn-secondary"
-          data-dismiss="modal"
+          data-bs-dismiss="modal"
           @click="$emit('update:modelValue', false)"
         >
           Close

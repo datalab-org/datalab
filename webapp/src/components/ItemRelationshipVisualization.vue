@@ -1,5 +1,7 @@
 <template>
-  <label class="pr-2"><font-awesome-icon icon="project-diagram" /> Relationships</label>
+  <label class="form-label me-2">
+    <font-awesome-icon icon="project-diagram" /> Relationships
+  </label>
   <div>
     <ItemGraph
       :graph-data="graphData"

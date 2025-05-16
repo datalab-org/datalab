@@ -1,7 +1,9 @@
 <template>
   <div class="row">
-    <div class="col-md-12 form-group">
-      <label id="startWithConstituentsLabel">(Optional) Start with constituents:</label>
+    <div class="col-md-12 mb-3">
+      <label id="startWithConstituentsLabel" class="form-label"
+        >(Optional) Start with constituents:</label
+      >
       <ItemSelect
         v-model="constituents"
         aria-labelledby="startWithConstituentsLabel"
@@ -12,7 +14,6 @@
     </div>
   </div>
 </template>
-
 <script>
 import ItemSelect from "@/components/ItemSelect.vue";
 

@@ -2,12 +2,13 @@
   <a
     ref="anchor"
     tabindex="0"
+    class="block-info-icon-wrapper"
     @mouseenter="delayedShowTooltip"
     @mouseleave="hideTooltip"
     @focus="delayedShowTooltip"
     @blur="hideTooltip"
   >
-    <font-awesome-icon :icon="['fas', 'info-circle']" />
+    <font-awesome-icon :icon="['fas', 'info-circle']" class="block-info-icon" />
   </a>
   <div id="tooltip" ref="tooltipContent" role="tooltip">
     <h4 class="block-info-title">{{ blockInfo.attributes.name }}</h4>
@@ -99,6 +100,19 @@ input {
   font-weight: bold;
   padding: 1em;
   border-radius: 4px;
+}
+
+.block-info-icon-wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: large;
+  color: #004175;
+  cursor: pointer;
+}
+
+.block-info-icon {
+  vertical-align: middle;
 }
 
 .block-info-title {

@@ -102,7 +102,7 @@
             <template #option="slotProps">
               <div class="flex items-center">
                 <UserBubble :creator="slotProps.option" :size="24" />
-                <span class="ml-1">{{ slotProps.option.display_name }}</span>
+                <span>{{ slotProps.option.display_name }}</span>
               </div>
             </template>
             <template #value="slotProps">
@@ -111,7 +111,7 @@
                   <span
                     v-for="(option, index) in slotProps.value"
                     :key="index"
-                    class="inline-flex items-center mr-2"
+                    class="inline-flex items-center"
                   >
                     <UserBubble :creator="option" :size="20" />
                   </span>

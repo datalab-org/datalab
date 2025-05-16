@@ -394,7 +394,7 @@ def selectable_axes_plot(
         )
         plot_columns = [table] + plot_columns
 
-    layout = column(*plot_columns)
+    layout = column(*plot_columns, sizing_mode="scale_width", align="center")
 
     p.js_on_event(DoubleTap, CustomJS(args=dict(p=p), code="p.reset.emit()"))
     return layout
@@ -632,4 +632,8 @@ def double_axes_echem_plot(
     else:
         grid = [[p1], [xaxis_select], [yaxis_select]]
 
-    return gridplot(grid, sizing_mode="scale_width", toolbar_location="below")
+    return gridplot(
+        grid,
+        sizing_mode="scale_width",
+        toolbar_location="above",
+    )

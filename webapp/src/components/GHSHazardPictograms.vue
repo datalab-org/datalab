@@ -1,12 +1,12 @@
 <template>
-  <div class="ghs-display ml-2 mt-2">
+  <div class="ghs-display ms-2 mt-2">
     <template v-if="displayPictograms.size > 0">
       <span v-for="pictogram in displayPictograms" :key="pictogram.label">
         <img
           :title="pictogram.label"
           :alt="pictogram.label"
           :src="pictogram.pictogram"
-          class="ghs-icon"
+          class="ghs-icon me-2"
         />
       </span>
     </template>
@@ -49,6 +49,5 @@ export default {
 .ghs-icon {
   width: 8rem;
   height: 8rem;
-  margin-right: 8px;
 }
 </style>

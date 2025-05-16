@@ -1,6 +1,6 @@
 <template>
-  <div ref="outerdiv" class="h-100 form-group clickable">
-    <label id="startmat-hazards" class="clickable"> GHS Hazard Codes </label>
+  <div ref="outerdiv" class="h-100 clickable">
+    <label id="startmat-hazards" class="form-label clickable"> GHS Hazard Codes </label>
     <input
       v-model="value"
       type="text"

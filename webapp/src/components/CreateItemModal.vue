@@ -8,9 +8,9 @@
       <template #header> Add new item </template>
 
       <template #body>
-        <div class="form-row">
-          <div class="form-group col-md-6">
-            <label for="create-item-item_id" class="col-form-label">ID:</label>
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label for="create-item-item_id" class="form-label">ID:</label>
             <input
               id="create-item-item_id"
               v-model="item_id"
@@ -21,32 +21,33 @@
             />
             <!-- eslint-disable-next-line vue/no-v-html -->
             <div class="form-error" v-html="isValidEntryID"></div>
-            <div class="form-check mt-1 ml-1">
+            <div class="form-check mt-1">
               <input
                 id="create-item-auto-id-checkbox"
                 v-model="generateIDAutomatically"
                 type="checkbox"
-                class="form-check-input clickable"
+                class="form-check-input"
                 @input="item_id = null"
               />
               <label
                 id="create-item-automatic-id-label"
-                class="form-check-label clickable"
+                class="form-check-label"
                 for="create-item-auto-id-checkbox"
-                >generate automatically</label
               >
+                Generate automatically
+              </label>
             </div>
           </div>
-          <div class="form-group col-md-6">
-            <label for="item-type-select" class="col-form-label">Type:</label>
-            <select id="item-type-select" v-model="item_type" class="form-control" required>
+          <div class="col-md-6 mb-3">
+            <label for="item-type-select" class="form-label">Type:</label>
+            <select id="item-type-select" v-model="item_type" class="form-select" required>
               <option v-for="type in allowedTypes" :key="type" :value="type">
                 {{ itemTypes[type].display }}
               </option>
             </select>
           </div>
-          <div class="form-group col-md-6 pt-0">
-            <label for="create-item-date" class="col-form-label">Date Created:</label>
+          <div class="col-md-6 mb-3">
+            <label for="create-item-date" class="form-label">Date Created:</label>
             <input
               id="create-item-date"
               v-model="date"
@@ -58,29 +59,32 @@
             />
           </div>
         </div>
-        <div class="form-row">
-          <div class="form-group col-md-12">
-            <label for="create-item-name">Name:</label>
+        <div class="row">
+          <div class="col-md-12 mb-3">
+            <label for="create-item-name" class="form-label">Name:</label>
             <input id="create-item-name" v-model="name" type="text" class="form-control" />
           </div>
         </div>
-        <!-- All item types can be added to a collection, so this is always available -->
-        <div class="form-row">
-          <div class="col-md-12 form-group">
-            <label id="startInCollection">(Optional) Insert into collection:</label>
+        <div class="row">
+          <div class="col-md-12 mb-3">
+            <label id="startInCollection" class="form-label"
+              >(Optional) Insert into collection:</label
+            >
             <CollectionSelect
               v-model="startInCollection"
+              data-testid="start-in-collection"
               aria-labelledby="startInCollection"
               multiple
             />
           </div>
         </div>
-        <div class="form-row">
-          <div class="col-md-12 form-group">
-            <label id="copyFromSelectLabel"
-              >(Optional) Copy from existing {{ itemTypeDisplayName }}:</label
-            >
+        <div class="row">
+          <div class="col-md-12 mb-3">
+            <label id="copyFromSelectLabel" class="form-label">
+              (Optional) Copy from existing {{ itemTypeDisplayName }}:
+            </label>
             <ItemSelect
+              data-testid="copy-from-select"
               aria-labelledby="copyFromSelectLabel"
               :model-value="selectedItemToCopy"
               :types-to-query="[item_type]"
@@ -91,9 +95,6 @@
             />
           </div>
         </div>
-        <!-- dynamically insert addons to this modal for each item type. On mount, the component
-        should emit a callback that can be called to get properly formatted
-        data to provide to the server -->
         <component
           :is="itemCreateModalAddonComponent"
           @starting-data-callback="(callback) => (startingDataCallback = callback)"
@@ -133,11 +134,11 @@ export default {
       name: "",
       startingDataCallback: null,
       startInCollection: null,
-      takenItemIds: [], // this holds ids that have been tried, whereas the computed takenSampleIds holds ids in the sample table
+      takenItemIds: [],
       selectedItemToCopy: null,
       startingConstituents: [],
       generateIDAutomatically: AUTOMATICALLY_GENERATE_ID_DEFAULT,
-      agesAgo: new Date("1970-01-01").toISOString().slice(0, -8), // a datetime for the unix epoch start
+      agesAgo: new Date("1970-01-01").toISOString().slice(0, -8),
     };
   },
   computed: {
@@ -166,7 +167,6 @@ export default {
     async submitForm() {
       console.log("new item form submit triggered");
 
-      // get any extra data by calling the optional callback from the type-specific addon component
       const extraData = this.startingDataCallback && this.startingDataCallback();
       let startingCollection = [];
       if (this.startInCollection != null) {
@@ -188,14 +188,10 @@ export default {
         this.generateIDAutomatically,
       )
         .then(() => {
-          this.$emit("update:modelValue", false); // close this modal
-          // can enable the following line to get smooth scrolling into view, but will fail
-          // if generateIDAutomatically. It's currently not necessary because
-          // new items always show up at the top of the sample table
-          // // document.getElementById(this.item_id).scrollIntoView({ behavior: "smooth" });
+          this.$emit("update:modelValue", false);
           this.item_id = null;
           this.name = null;
-          this.date = this.now(); // reset date to the new current time
+          this.date = this.now();
         })
         .catch((error) => {
           let is_item_id_error = false;
@@ -214,13 +210,11 @@ export default {
         });
     },
     oneYearOn() {
-      // returns a timestamp 1 year from now
       let d = new Date();
       d.setFullYear(d.getFullYear() + 1);
       return d.toISOString().slice(0, -8);
     },
     now() {
-      // returns a timestamp for right now
       return new Date().toISOString().slice(0, -8);
     },
 

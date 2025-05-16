@@ -19,9 +19,9 @@
       <!-- eslint-disable-next-line vue/no-v-html -->
       <div v-show="!showRaw" ref="markdownDiv" class="markdown-content" v-html="markdownContent" />
       <div v-show="showRaw" class="raw-content">{{ message.content }}</div>
-      <div class="float-right raw-toggle clickable" @click="showRaw = !showRaw">
-        <span :class="{ 'font-weight-bold': showRaw }"> raw </span> |
-        <span :class="{ 'font-weight-bold': !showRaw }">formatted</span>
+      <div class="float-end raw-toggle clickable" @click="showRaw = !showRaw">
+        <span :class="{ 'fw-bold': showRaw }"> raw </span> |
+        <span :class="{ 'fw-bold': !showRaw }">formatted</span>
       </div>
     </div>
   </div>
@@ -147,7 +147,7 @@ export default {
 .system-prompt-label {
   font-family: var(--font-monospace);
   font-size: 0.875rem;
-  font-weight: 600;
+  fw: 600;
   color: rgb(100, 100, 100);
 }
 

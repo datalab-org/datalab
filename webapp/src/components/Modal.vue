@@ -1,12 +1,12 @@
 <template>
-  <div id="dummyDivForModalBackground" :class="{ overlay: modalOpaque }"></div>
-
   <div
+    ref="modalRef"
     class="modal fade"
     tabindex="-1"
     role="dialog"
-    :style="{ display: modalDisplayed ? 'block' : 'none' }"
     :class="{ show: modalOpaque }"
+    :style="{ display: modalDisplayed ? 'block' : 'none' }"
+    aria-modal="true"
   >
     <div class="modal-dialog" :class="{ 'modal-lg': isLarge }" role="document">
       <div class="modal-content">
@@ -14,9 +14,7 @@
           <h5 class="modal-title">
             <slot name="header"></slot>
           </h5>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true" @click="closeModal">&times;</span>
-          </button>
+          <button type="button" class="btn-close" aria-label="Close" @click="closeModal"></button>
         </div>
         <div class="modal-body">
           <slot name="body"></slot>
@@ -24,19 +22,14 @@
         <div class="modal-footer">
           <slot name="footer">
             <input type="submit" class="btn btn-info" :disabled="disableSubmit" value="Submit" />
-            <button
-              type="button"
-              class="btn btn-secondary"
-              data-dismiss="modal"
-              @click="closeModal"
-            >
-              Close
-            </button>
+            <button type="button" class="btn btn-secondary" @click="closeModal">Close</button>
           </slot>
         </div>
       </div>
     </div>
   </div>
+
+  <div v-if="modalDisplayed" class="modal-backdrop fade" :class="{ show: modalOpaque }"></div>
 </template>
 
 <script>
@@ -51,8 +44,12 @@ export default {
       type: Boolean,
       default: false,
     },
+    transitionDuration: {
+      type: Number,
+      default: 300,
+    },
   },
-  emits: ["update:modelValue"],
+  emits: ["update:modelValue", "opened", "closed"],
   data() {
     return {
       modalDisplayed: false,
@@ -61,51 +58,101 @@ export default {
   },
   watch: {
     modelValue(newValue) {
-      if (newValue) {
+      if (newValue && !this.modalDisplayed) {
         this.openModal();
-      }
-      if (!newValue) {
+      } else if (!newValue && this.modalDisplayed) {
         this.closeModal();
       }
     },
   },
+  mounted() {
+    if (this.modelValue) {
+      this.openModal();
+    }
+
+    document.addEventListener("keydown", this.handleEscKey);
+  },
+  beforeUnmount() {
+    document.removeEventListener("keydown", this.handleEscKey);
+
+    if (this.modalDisplayed) {
+      document.body.classList.remove("modal-open");
+    }
+  },
   methods: {
     async openModal() {
+      document.body.classList.add("modal-open");
+
       this.modalDisplayed = true;
-      await new Promise((resolve) => setTimeout(resolve, 20)); //hacky...
-      this.$nextTick(() => {
+
+      requestAnimationFrame(() => {
         this.modalOpaque = true;
+
+        this.$nextTick(() => {
+          this.trapFocus();
+          this.$emit("opened");
+        });
       });
     },
     async closeModal() {
       this.modalOpaque = false;
-      await new Promise((resolve) => setTimeout(resolve, 200)); // super hacky
+
+      await new Promise((resolve) => {
+        const duration = this.transitionDuration;
+        setTimeout(resolve, duration);
+      });
+
       this.modalDisplayed = false;
+
+      document.body.classList.remove("modal-open");
+
       this.$emit("update:modelValue", false);
+      this.$emit("closed");
+    },
+    handleEscKey(event) {
+      if (event.key === "Escape" && this.modalDisplayed) {
+        this.closeModal();
+      }
+    },
+    trapFocus() {
+      const modalElement = this.$refs.modalRef;
+
+      if (!modalElement) return;
+
+      const focusableElements = modalElement.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      );
+
+      if (focusableElements.length > 0) {
+        focusableElements[0].focus();
+      }
     },
   },
 };
 </script>
 
 <style scoped>
-.fade {
-  opacity: 0;
-  transition: opacity 0.15s linear;
-}
-.fade.show {
-  opacity: 1;
+.modal {
+  z-index: 1050;
 }
 
-#dummyDivForModalBackground.overlay:after {
-  content: "";
-  display: block;
+.modal-backdrop {
   position: fixed;
   top: 0;
   left: 0;
-  height: 100%;
-  width: 100%;
-  z-index: 10;
-  background-color: rgba(0, 0, 0, 0.2);
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1040;
+}
+
+.fade {
+  opacity: 0;
+  transition: opacity 0.3s linear;
+}
+
+.fade.show {
+  opacity: 1;
 }
 
 .btn:disabled {

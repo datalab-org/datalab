@@ -1,26 +1,21 @@
 const API_URL = Cypress.config("apiUrl");
 console.log(API_URL);
 
-let consoleSpy; // keeps track of every time an error is written to the console
-Cypress.on("window:before:load", (win) => {
-  consoleSpy = cy.spy(win.console, "error");
-});
-
 let item_ids = ["test_e1", "test_e2", "test_e3", "123equipment", "test_e3_copy"];
 
 before(() => {
-  cy.visit("/equipment");
-  cy.removeAllTestSamples(item_ids);
-  cy.visit("/equipment").then(() => {
-    cy.get("[data-testid='equipment-table'] > tbody > tr").should("have.length", 0);
+  cy.cleanTestEnvironment({
+    itemIds: item_ids,
+    visitPath: "/equipment",
+    checkEmptyTables: true,
   });
 });
 
 after(() => {
-  cy.visit("/equipment");
-  cy.removeAllTestSamples(item_ids);
-  cy.visit("/equipment").then(() => {
-    cy.get("[data-testid='equipment-table'] > tbody > tr").should("have.length", 0);
+  cy.cleanTestEnvironment({
+    itemIds: item_ids,
+    visitPath: "/equipment",
+    checkEmptyTables: true,
   });
 });
 
@@ -32,7 +27,7 @@ describe("Equipment table page", () => {
   it("Loads the equipment page without any errors", () => {
     cy.findByText("About").should("exist");
     cy.findByText("Equipment").should("exist");
-    cy.findByText("Add an item").should("exist");
+    cy.findByTestId("add-equipment-button").should("exist");
     cy.findByText("Maintainers").should("exist");
 
     // Ensure no error messages or console errors. The wait is necessary so that
@@ -42,7 +37,7 @@ describe("Equipment table page", () => {
     // a wait time in ms?
     cy.wait(100).then(() => {
       cy.contains("Server Error. Equipment list could not be retreived.").should("not.exist");
-      expect(consoleSpy).not.to.be.called;
+      cy.get("@consoleSpy").should("not.be.called");
     });
   });
 
@@ -72,7 +67,7 @@ describe("Equipment table page", () => {
   });
 
   it("Attempts to Add an item with the same name", () => {
-    cy.findByText("Add an item").click();
+    cy.openAndWaitForModal("[data-testid=add-equipment-button]");
     cy.get('[data-testid="create-equipment-form"]').within(() => {
       cy.findByText("Add equipment").should("exist");
       cy.findByLabelText("ID:").type("test_e3");
@@ -97,11 +92,12 @@ describe("Equipment table page", () => {
   });
 
   it("copies an equipment entry", () => {
-    cy.findByText("Add an item").click();
+    cy.openAndWaitForModal("[data-testid=add-equipment-button]");
 
     cy.get('[data-testid="create-equipment-form"]').within(() => {
       cy.findByLabelText("ID:").type("test_e3_copy");
       cy.findByLabelText("(Optional) Copy from existing equipment:").type("test_e3");
+      cy.waitForVsDropdown();
       cy.findByLabelText("(Optional) Copy from existing equipment:")
         .contains(".vs__dropdown-menu .badge", "test_e3")
         .click();

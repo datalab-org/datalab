@@ -1,55 +1,71 @@
 <template>
   <div id="topScrollPoint"></div>
   <nav
-    class="navbar navbar-expand sticky-top navbar-dark py-0 editor-navbar"
+    class="d-flex navbar navbar-expand-md navbar-dark py-lg-0 px-3 editor-navbar"
     :style="{ backgroundColor: navbarColor }"
   >
-    <div v-show="false" class="navbar-nav"><LoginDetails /></div>
-    <span class="navbar-brand clickable" @click="scrollToID($event, 'topScrollPoint')"
-      >{{ itemTypeEntry?.navbarName || "loading..." }}&nbsp;&nbsp;|&nbsp;&nbsp;
-      <FormattedItemName :item_id="item_id" :item-type="itemType" />
-    </span>
-    <div class="navbar-nav">
-      <router-link class="nav-item nav-link" to="/">Home</router-link>
-      <div class="nav-item dropdown">
-        <a
-          id="navbarDropdown"
-          class="nav-link dropdown-toggle ml-2"
-          role="button"
-          data-toggle="dropdown"
-          aria-haspopup="true"
-          aria-expanded="false"
-          @click="isMenuDropdownVisible = !isMenuDropdownVisible"
-        >
-          <font-awesome-icon icon="cubes" fixed-width />
-          Add a block
-        </a>
-        <div
-          v-if="blockInfoLoaded"
-          v-show="isMenuDropdownVisible"
-          class="dropdown-menu"
-          data-testid="add-block-dropdown"
-          style="display: block"
-          aria-labelledby="navbarDropdown"
-        >
-          <template v-for="blockInfo in blocksInfos" :key="blockInfo.id">
-            <span v-if="blockInfo.id !== 'notsupported'" @click="newBlock($event, blockInfo.id)">
-              <StyledBlockHelp :block-info="blockInfo.attributes" />
-            </span>
-          </template>
+    <div class="d-flex align-items-center">
+      <button
+        class="navbar-toggler me-4"
+        type="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#navbarContent"
+        aria-controls="navbarContent"
+        aria-expanded="false"
+        aria-label="Toggle navigation"
+      >
+        <span class="navbar-toggler-icon"></span>
+        Menu
+      </button>
+
+      <div id="navbarContent" class="collapse navbar-collapse">
+        <div v-show="false" class="navbar-nav"><LoginDetails /></div>
+        <div class="navbar-nav me-auto">
+          <span class="navbar-brand clickable" @click="scrollToID($event, 'topScrollPoint')">
+            {{ itemTypeEntry?.navbarName || "loading..." }}&nbsp;&nbsp;|&nbsp;&nbsp;
+            <FormattedItemName :item_id="item_id" :item-type="itemType" />
+          </span>
+          <router-link class="nav-item nav-link" to="/">Home</router-link>
+
+          <div data-testid="add-block-dropdown" class="nav-item dropdown">
+            <a
+              id="navbarDropdown"
+              class="nav-link dropdown-toggle"
+              href="#"
+              role="button"
+              data-bs-toggle="dropdown"
+              aria-expanded="false"
+            >
+              <font-awesome-icon icon="cubes" fixed-width />
+              Add a block
+            </a>
+            <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+              <template v-for="blockInfo in blocksInfos" :key="blockInfo.id">
+                <li v-if="blockInfo.id !== 'notsupported'">
+                  <span class="dropdown-item" @click="newBlock($event, blockInfo.id)">
+                    <StyledBlockHelp :block-info="blockInfo.attributes" />
+                  </span>
+                </li>
+              </template>
+            </ul>
+          </div>
+
+          <a class="nav-item nav-link" :href="itemApiUrl" target="_blank">
+            <font-awesome-icon icon="code" fixed-width /> View JSON
+          </a>
         </div>
       </div>
-      <a class="nav-item nav-link" :href="itemApiUrl" target="_blank">
-        <font-awesome-icon icon="code" fixed-width /> View JSON
-      </a>
     </div>
-    <div class="navbar-nav ml-auto">
-      <span v-if="itemDataLoaded && !savedStatus" class="navbar-text unsaved-warning">
+    <div class="navbar-nav d-flex flex-row ms-auto align-items-center">
+      <span v-if="itemDataLoaded && !savedStatus" class="navbar-text unsaved-warning me-2">
         Unsaved changes
       </span>
-      <span v-if="itemDataLoaded && lastModified" class="navbar-text small mx-2"
-        ><i>Last saved: {{ lastModified }}</i></span
+      <span
+        v-if="itemDataLoaded && lastModified"
+        class="navbar-text me-2 d-flex align-items-center"
       >
+        <i class="small">Last saved: {{ lastModified }}</i>
+      </span>
       <font-awesome-icon
         icon="save"
         fixed-width
@@ -149,7 +165,6 @@ export default {
       itemDataLoaded: false,
       blockInfoLoaded: false,
       blocksLoaded: false,
-      isMenuDropdownVisible: false,
       selectedRemoteFiles: [],
       isLoadingRemoteTree: false,
       isLoadingRemoteFiles: false,
@@ -242,7 +257,6 @@ export default {
   },
   methods: {
     async newBlock(event, blockType, index = null) {
-      this.isMenuDropdownVisible = false;
       this.isLoadingNewBlock = true;
       this.$refs.blockLoadingIndicator.scrollIntoView({
         behavior: "smooth",

@@ -35,7 +35,7 @@
     </div>
 
     <div v-else-if="entry.type == 'error'" class="error-entry alert alert-danger">
-      <font-awesome-icon :icon="['fas', 'exclamation-circle']" class="mr-2" />
+      <font-awesome-icon :icon="['fas', 'exclamation-circle']" />
       <span>
         {{ entry.details }}
       </span>

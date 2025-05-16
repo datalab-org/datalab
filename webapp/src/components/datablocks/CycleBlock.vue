@@ -1,23 +1,29 @@
 <template>
   <DataBlockBase :item_id="item_id" :block_id="block_id">
-    <div class="form-row">
-      <FileSelectDropdown
-        v-model="file_id"
-        :item_id="item_id"
-        :block_id="block_id"
-        :extensions="blockInfo.attributes.accepted_file_extensions"
-        update-block-on-change
-      />
+    <div class="row mb-3 align-items-center">
+      <div class="col">
+        <FileSelectDropdown
+          v-model="file_id"
+          :item_id="item_id"
+          :block_id="block_id"
+          :extensions="blockInfo.attributes.accepted_file_extensions"
+          update-block-on-change
+        />
+      </div>
     </div>
+
     <div v-if="file_id">
-      <div class="form-row">
-        <div class="input-group form-inline">
-          <label class="mr-2"><b>Cycles to plot:</b></label>
+      <div class="row mb-3 align-items-center">
+        <div class="col-auto">
+          <label class="form-label me-2 mb-0"><b>Cycles to plot:</b></label>
+        </div>
+        <div class="col-auto">
           <input
             id="cycles-input"
             v-model="cyclesString"
             type="text"
-            class="form-control"
+            class="form-control w-100"
+            style="min-width: 14rem"
             placeholder="e.g., 1-5, 7, 9-10. Starts at 1."
             :class="{ 'is-invalid': cycle_num_error }"
             @keydown.enter="
@@ -29,20 +35,25 @@
               updateBlock();
             "
           />
-          <span id="list-of-cycles" class="pl-3 pt-2">Showing cycles: {{ parsedCycles }}</span>
         </div>
-
-        <div v-if="cycle_num_error" class="alert alert-danger mt-2 mx-auto">
-          {{ cycle_num_error }}
+        <div class="col-auto">
+          <span id="list-of-cycles" class="ms-2">Showing cycles: {{ parsedCycles }}</span>
         </div>
       </div>
 
-      <div class="form-row mt-2">
-        <div class="input-group form-inline">
-          <label class="mr-2"><b>Mode:</b></label>
-          <div class="btn-group">
-            <div
-              class="btn btn-default"
+      <div v-if="cycle_num_error" class="alert alert-danger mb-3 mx-auto">
+        {{ cycle_num_error }}
+      </div>
+
+      <div class="row mb-3 align-items-center">
+        <div class="col-auto">
+          <label class="form-label me-2 mb-0"><b>Mode:</b></label>
+        </div>
+        <div class="col">
+          <div class="btn-group" role="group" aria-label="Mode selection">
+            <button
+              type="button"
+              class="btn btn-outline-secondary"
               :class="{ active: derivative_mode == 'final capacity' }"
               @click="
                 derivative_mode = derivative_mode == 'final capacity' ? null : 'final capacity';
@@ -50,9 +61,10 @@
               "
             >
               Cycle Summary
-            </div>
-            <div
-              class="btn btn-default"
+            </button>
+            <button
+              type="button"
+              class="btn btn-outline-secondary"
               :class="{ active: derivative_mode == 'dQ/dV' }"
               @click="
                 derivative_mode = derivative_mode == 'dQ/dV' ? null : 'dQ/dV';
@@ -60,9 +72,10 @@
               "
             >
               d<i>Q</i>/d<i>V</i>
-            </div>
-            <div
-              class="btn btn-default"
+            </button>
+            <button
+              type="button"
+              class="btn btn-outline-secondary"
               :class="{ active: derivative_mode == 'dV/dQ' }"
               @click="
                 derivative_mode = derivative_mode == 'dV/dQ' ? null : 'dV/dQ';
@@ -70,7 +83,7 @@
               "
             >
               d<i>V</i>/d<i>Q</i>
-            </div>
+            </button>
           </div>
         </div>
       </div>
@@ -78,14 +91,14 @@
       <div
         v-if="derivative_mode == 'dQ/dV' || derivative_mode == 'dV/dQ'"
         v-show="derivative_mode"
-        class="row"
+        class="row mb-3 align-items-center"
       >
-        <div class="col-md slider" style="max-width: 250px">
+        <div class="col-md-4 slider">
           <input
             id="s_spline"
             v-model="s_spline"
             type="range"
-            class="form-control-range"
+            class="form-range"
             name="s_spline"
             min="1"
             max="10"
@@ -94,18 +107,19 @@
           />
           <label
             for="s_spline"
+            class="form-label mb-0"
             @mouseover="showDescription1 = true"
             @mouseleave="showDescription1 = false"
           >
             <span>Spline fit:</span> {{ -s_spline }}
           </label>
         </div>
-        <div class="col-md slider" style="max-width: 250px">
+        <div class="col-md-4 slider">
           <input
             id="win_size_1"
             v-model="win_size_1"
             type="range"
-            class="form-control-range"
+            class="form-range"
             name="win_size_1"
             min="501"
             max="1501"
@@ -113,28 +127,35 @@
           />
           <label
             for="win_size_1"
+            class="form-label mb-0"
             @mouseover="showDescription2 = true"
             @mouseleave="showDescription2 = false"
           >
             <span>Window Size 1:</span> {{ win_size_1 }}
           </label>
         </div>
-        <button v-show="isReplotButtonDisplayed" class="btn btn-default my-4" @click="updateBlock">
-          Recalculate
-        </button>
+        <div class="col-md-4 d-flex align-items-center">
+          <button
+            v-show="isReplotButtonDisplayed"
+            class="btn btn-sm btn-secondary"
+            @click="updateBlock"
+          >
+            Recalculate
+          </button>
+        </div>
       </div>
 
-      <div v-show="showDescription1" class="alert alert-info">
-        <p>
+      <div v-show="showDescription1" class="alert alert-info mb-3">
+        <p class="mb-0">
           Smoothing parameter that determines how close the spline fits to the real data. Larger
           values result in a smoother fit with decreased detail.
         </p>
       </div>
-      <div v-show="showDescription2" class="alert alert-info">
-        <p>Window size for the Savitzky-Golay filter to apply to the derivatives.</p>
+      <div v-show="showDescription2" class="alert alert-info mb-3">
+        <p class="mb-0">Window size for the Savitzky-Golay filter to apply to the derivatives.</p>
       </div>
 
-      <div class="row mt-2">
+      <div class="row mt-4">
         <div
           class="col mx-auto"
           :class="{ 'limited-width': bokehPlotLimitedWidth, blurry: isUpdating }"
@@ -279,10 +300,6 @@ export default {
 
 .limited-width {
   max-width: 650px;
-}
-
-.slider {
-  margin-top: 2rem;
 }
 
 .btn-default:hover {

@@ -1,34 +1,39 @@
 <template>
-  <div id="synthesis-information" class="data-block" data-testid="synthesis-block">
-    <div class="datablock-header collapsible" :class="{ expanded: isExpanded }">
+  <div id="synthesis-information" data-testid="synthesis-block" class="mb-2">
+    <div class="d-flex align-items-center mb-2">
       <font-awesome-icon
         :icon="['fas', 'chevron-right']"
         fixed-width
-        class="collapse-arrow"
+        class="collapse-arrow me-2"
         data-testid="collapse-arrow"
+        :class="{ 'rotate-90': isExpanded }"
         @click="toggleExpandBlock"
       />
-      <label class="block-title">Synthesis Information</label>
+      <label class="form-label mb-0">Synthesis Information</label>
     </div>
+
     <div
       ref="contentContainer"
-      class="content-container"
+      class="content-container overflow-hidden"
       :style="{ 'max-height': contentMaxHeight }"
     >
       <div class="card component-card">
-        <div class="card-body pt-2 pb-0 mb-0 pl-5">
+        <div class="card-body pb-0 mb-0 ps-4">
           <CompactConstituentTable
             id="synthesis-table"
             v-model="constituents"
+            data-testid="synthesis-table"
             :types-to-query="['samples', 'starting_materials']"
           />
         </div>
       </div>
-      <span id="synthesis-procedure-label" class="subheading ml-2">Procedure</span>
-      <TinyMceInline
-        v-model="SynthesisDescription"
-        aria-labelledby="synthesis-procedure-label"
-      ></TinyMceInline>
+      <div class="mt-1">
+        <span id="synthesis-procedure-label" class="subheading ms-2">Procedure</span>
+        <TinyMceInline
+          v-model="SynthesisDescription"
+          aria-labelledby="synthesis-procedure-label"
+        ></TinyMceInline>
+      </div>
     </div>
   </div>
 </template>
@@ -143,56 +148,18 @@ export default {
 </script>
 
 <style scoped>
-.data-block {
-  padding-bottom: 18px;
-}
-
-.datablock-header {
-  display: flex;
-  align-items: center;
-  font-size: large;
-  height: 35px;
-  margin: auto;
-}
-
-.collapsible {
-  /* background-color: #eee; */
-  color: white;
-  /* color: #444; */
-  /*cursor: pointer;*/
-  /*padding: 6px;*/
-  width: 100%;
-  /* border: 1px solid #ccc; */
-  text-align: left;
-  outline: none;
-  /* border-radius: 3px; */
-}
-
-.block-title {
-  display: flex;
-  align-items: center;
-  margin-left: 1em;
-  font-size: large;
-  font-weight: 500;
-  margin: auto 0;
-}
-
 .collapse-arrow {
   font-size: large;
-  margin-left: 10px;
-  margin-right: 10px;
   color: #004175;
-  transition: all 0.4s;
+  transition: transform 0.4s;
+  cursor: pointer;
 }
 
 .collapse-arrow:hover {
   color: #7ca7ca;
 }
 
-/* expanded is on the parent (the header) */
-.expanded .collapse-arrow {
-  -webkit-transform: rotate(90deg);
-  -moz-transform: rotate(90deg);
+.rotate-90 {
   transform: rotate(90deg);
 }
 
@@ -205,8 +172,6 @@ export default {
 }
 
 .content-container {
-  overflow: hidden;
-  max-height: none;
   transition: max-height 0.4s ease-in-out;
 }
 </style>

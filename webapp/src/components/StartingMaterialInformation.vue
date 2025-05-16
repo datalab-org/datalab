@@ -1,69 +1,57 @@
 <template>
-  <div class="container-lg">
+  <div class="container-lg px-5 px-lg-0">
     <div class="row">
-      <div class="col">
-        <div id="starting-material-information" class="form-row">
-          <div class="form-group col-sm-4 pr-2 col-6">
-            <label for="samp-name">Name</label>
-            <input id="samp-name" v-model="Name" class="form-control" />
+      <div class="col-lg-8">
+        <!-- Sample information -->
+        <div id="starting-material-information" class="row">
+          <div class="mb-3 col-md-2 col-sm-4 col-6">
+            <label for="startmat-refcode" class="form-label">Refcode</label>
+            <div id="startmat-refcode"><FormattedRefcode :refcode="Refcode" /></div>
           </div>
-          <div class="form-group col-sm-4 pr-2 col-6">
-            <label for="startmat-chemform">Chemical formula</label>
+          <div v-if="Barcode" class="mb-3 col-md-2 col-sm-4 col-6">
+            <label for="startmat-barcode" class="form-label">Barcode</label>
+            <div id="startmat-barcode"><FormattedBarCode :barcode="Barcode" /></div>
+          </div>
+          <div class="mb-3 col-md-2 col-sm-4 col-6">
+            <label for="startmat-item_id" class="form-label">Item ID</label>
+            <StyledInput id="startmat-item_id" readonly :model-value="ItemID" />
+          </div>
+          <div class="mb-3 col-md-6">
+            <label for="startmat-name" class="form-label">Name</label>
+            <StyledInput id="startmat-name" v-model="Name" :readonly="!isEditable" />
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="mb-3 col-md-4">
+            <label for="startmat-chemform" class="form-label">Chemical formula</label>
             <ChemFormulaInput v-if="isEditable" id="startmat-chemform" v-model="ChemForm" />
             <span v-if="!isEditable" class="form-control-plaintext" readonly>
               <ChemicalFormula id="startmat-chemform" :formula="ChemForm" />
             </span>
           </div>
-          <div class="form-group col-sm-4 col-6">
-            <label for="startmat-date-acquired">Date acquired</label>
+          <div class="mb-3 col-md-4">
+            <label for="startmat-supplier" class="form-label">Supplier</label>
+            <StyledInput id="startmat-supplier" v-model="Supplier" :readonly="!isEditable" />
+          </div>
+          <div class="mb-3 col-md-4">
+            <label for="startmat-purity" class="form-label">Chemical purity</label>
+            <StyledInput id="startmat-purity" v-model="ChemicalPurity" :readonly="!isEditable" />
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="mb-3 col-md-4">
+            <label for="startmat-date-acquired" class="form-label">Date acquired</label>
             <StyledInput
               id="startmat-date-acquired"
               v-model="DateAcquired"
               type="datetime-local"
-              class="form-control"
               :readonly="!isEditable"
             />
           </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group col-md-3 col-sm-4 col-6">
-            <label for="startmat-refcode">Refcode</label>
-            <div id="startmat-refcode"><FormattedRefcode :refcode="Refcode" /></div>
-          </div>
-          <div v-if="Barcode" class="form-group col-md-3 col-sm-4 col-6">
-            <label for="startmat-barcode">Barcode</label>
-            <div id="startmat-barcode"><FormattedBarCode :barcode="Barcode" /></div>
-          </div>
-          <div class="form-group col-md-6 col-sm-7 pr-2">
-            <ToggleableCollectionFormGroup v-model="Collections" />
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group col-lg-12 col-sm-12">
-            <label for="startmat-location">Location</label>
-            <StyledInput id="startmat-location" v-model="Location" :readonly="!isEditable" />
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group col-lg-3 col-sm-4">
-            <label for="startmat-supplier">Supplier</label>
-            <StyledInput id="startmat-supplier" v-model="Supplier" :readonly="!isEditable" />
-          </div>
-          <div class="form-group col-lg-3 col-sm-4">
-            <label for="startmat-purity">Chemical purity</label>
-            <StyledInput id="startmat-purity" v-model="ChemicalPurity" :readonly="!isEditable" />
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group col-lg-3 col-sm-3 col-6">
-            <label for="startmat-cas">CAS</label>
-            <a v-if="CAS" :href="'https://commonchemistry.cas.org/detail?cas_rn=' + CAS"
-              ><font-awesome-icon icon="search" class="fixed-width ml-2"
-            /></a>
-            <StyledInput id="startmat-cas" v-model="CAS" :readonly="!isEditable" />
-          </div>
-          <div class="form-group col-lg-3 col-sm-3 col-6">
-            <label for="startmat-date-opened">Date opened</label>
+          <div class="mb-3 col-md-4">
+            <label for="startmat-date-opened" class="form-label">Date opened</label>
             <StyledInput
               id="startmat-date-opened"
               v-model="DateOpened"
@@ -71,28 +59,51 @@
               :readonly="!isEditable"
             />
           </div>
+          <div class="mb-3 col-md-4">
+            <label for="startmat-location" class="form-label">Location</label>
+            <StyledInput id="startmat-location" v-model="Location" :readonly="!isEditable" />
+          </div>
         </div>
-        <div class="form-row">
-          <div class="form-group col-12">
+
+        <div class="row">
+          <div class="mb-3 col-md-4">
+            <label for="startmat-cas" class="form-label">CAS</label>
+            <a v-if="CAS" :href="'https://commonchemistry.cas.org/detail?cas_rn=' + CAS">
+              <font-awesome-icon icon="search" class="fixed-width ms-2" />
+            </a>
+            <StyledInput id="startmat-cas" v-model="CAS" :readonly="!isEditable" />
+          </div>
+          <div class="mb-3 col-md-8">
+            <ToggleableCollectionFormGroup v-model="Collections" />
+          </div>
+        </div>
+
+        <div class="row mb-3">
+          <div class="col-12">
             <GHSHazardInformation v-model="GHS" :editable="isEditable" />
           </div>
         </div>
+
+        <div class="row mb-3">
+          <div class="col-12">
+            <label class="form-label">Description</label>
+            <TinyMceInline v-model="ItemDescription" data-testid="item-description"></TinyMceInline>
+          </div>
+        </div>
+
+        <TableOfContents
+          class="mb-3"
+          :item_id="item_id"
+          :information-sections="tableOfContentsSections"
+        />
+
+        <SynthesisInformation class="mt-3" :item_id="item_id" />
       </div>
-      <div class="col-md-4">
+
+      <div class="col-lg-4 mb-3">
         <ItemRelationshipVisualization :item_id="item_id" />
       </div>
     </div>
-
-    <label class="mr-2">Description</label>
-    <TinyMceInline v-model="ItemDescription" data-testid="item-description"></TinyMceInline>
-
-    <TableOfContents
-      class="mb-3"
-      :item_id="item_id"
-      :information-sections="tableOfContentsSections"
-    />
-
-    <SynthesisInformation class="mt-3" :item_id="item_id" />
   </div>
 </template>
 
