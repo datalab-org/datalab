@@ -66,7 +66,7 @@ apps = [
     # NMR
     "nmrglue ~= 0.10",
     # Electrochemistry
-    "navani @ git+https://github.com/the-grey-group/navani.git@v0.1.8",
+    "navani>=0.1.11",
     "galvani ~= 0.5",
     "NewareNDA >= 2024",
     # Raman
@@ -75,7 +75,7 @@ apps = [
     # TGA
     "python-dateutil ~= 2.9",
     # Insitu
-    "datalab-app-plugin-insitu @ git+https://github.com/datalab-org/datalab-app-plugin-insitu.git@v0.1.4",
+    "datalab-app-plugin-insitu @ git+https://github.com/datalab-org/datalab-app-plugin-insitu.git@v0.1.5",
 ]
 chat = [
     # Hard upper pin on langchain is 0.3 as pydantic is not supported
