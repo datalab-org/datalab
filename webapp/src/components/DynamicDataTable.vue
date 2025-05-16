@@ -529,6 +529,10 @@ export default {
           }
         });
       });
+
+      this.$nextTick(() => {
+        this.allSelected = this.checkAllSelected();
+      });
     },
     updateFilters(newFilters) {
       this.filters = newFilters;
@@ -638,31 +642,33 @@ export default {
       return false;
     },
     getVisibleItems() {
-      const start = this.page * this.rows;
-      const end = start + this.rows;
-      if (this.filteredData.length <= this.rows) {
-        return this.filteredData.slice(start, end);
+      if (this.$refs.datatable) {
+        try {
+          return this.$refs.datatable.dataToRender();
+        } catch (error) {
+          console.error("Error accessing datatable rendered data:", error);
+        }
       }
-
-      return this.data.slice(start, end);
     },
     checkAllSelected() {
       const visibleItems = this.getVisibleItems();
 
-      if (visibleItems.length === 0) {
+      if (!visibleItems || visibleItems.length === 0) {
         return false;
       }
-      return visibleItems.every((currentItem) =>
-        this.itemsSelected.some(
-          (selectedItem) =>
-            (selectedItem.item_id || selectedItem.collection_id) ===
-            (currentItem.item_id || currentItem.collection_id),
-        ),
-      );
+
+      return visibleItems.every((currentItem) => {
+        const currentId = currentItem.item_id || currentItem.collection_id;
+        return this.itemsSelected.some(
+          (selectedItem) => (selectedItem.item_id || selectedItem.collection_id) === currentId,
+        );
+      });
     },
     onFilter(event) {
       this.filteredData = event.filteredValue;
-      this.allSelected = this.checkAllSelected();
+      this.$nextTick(() => {
+        this.allSelected = this.checkAllSelected();
+      });
     },
     onSelectAllChange(event) {
       this.allSelected = event.checked;
@@ -672,8 +678,10 @@ export default {
         const selectedIds = new Set(
           this.itemsSelected.map((item) => item.item_id || item.collection_id),
         );
+
         itemsToSelect.forEach((item) => {
-          if (!selectedIds.has(item.item_id || item.collection_id)) {
+          const itemId = item.item_id || item.collection_id;
+          if (!selectedIds.has(itemId)) {
             this.itemsSelected.push(item);
           }
         });
@@ -681,6 +689,7 @@ export default {
         const idsToRemove = new Set(
           itemsToSelect.map((item) => item.item_id || item.collection_id),
         );
+
         this.itemsSelected = this.itemsSelected.filter(
           (item) => !idsToRemove.has(item.item_id || item.collection_id),
         );
@@ -701,7 +710,9 @@ export default {
     onPageChange(event) {
       this.updatePage(event.page);
       this.updateRows(event.rows);
-      this.allSelected = this.checkAllSelected();
+      this.$nextTick(() => {
+        this.allSelected = this.checkAllSelected();
+      });
     },
     onToggleColumns(value) {
       this.$nextTick(() => {
