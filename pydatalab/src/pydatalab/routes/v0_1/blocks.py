@@ -1,7 +1,7 @@
 import pymongo.errors
 from flask import Blueprint, jsonify, request
 
-from pydatalab.blocks import BLOCK_TYPES
+from pydatalab.apps import BLOCK_TYPES
 from pydatalab.blocks.base import DataBlock
 from pydatalab.logger import LOGGER
 from pydatalab.mongo import flask_mongo
@@ -27,7 +27,13 @@ def add_data_block():
     insert_index = request_json["index"]
 
     if block_type not in BLOCK_TYPES:
-        return jsonify(status="error", message="Invalid block type"), 400
+        return (
+            jsonify(
+                status="error",
+                message=f"Invalid block type {block_type!r}, must be one of {BLOCK_TYPES.keys()}",
+            ),
+            400,
+        )
 
     block = BLOCK_TYPES[block_type](item_id=item_id)
 
