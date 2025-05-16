@@ -8,7 +8,7 @@ from pydantic import ValidationError
 from pymongo.command_cursor import CommandCursor
 from pymongo.errors import DuplicateKeyError
 
-from pydatalab.blocks import BLOCK_TYPES
+from pydatalab.apps import BLOCK_TYPES
 from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER
 from pydatalab.models import ITEM_MODELS
