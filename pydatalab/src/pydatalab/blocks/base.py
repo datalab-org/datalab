@@ -2,8 +2,6 @@ import random
 import warnings
 from typing import Any, Callable, Dict, Optional, Sequence
 
-from bson import ObjectId
-
 from pydatalab.logger import LOGGER
 
 __all__ = ("generate_random_id", "DataBlock")
@@ -123,6 +121,7 @@ class DataBlock:
     def to_db(self):
         """returns a dictionary with the data for this
         block, ready to be input into mongodb"""
+        from bson import ObjectId
 
         LOGGER.debug("Casting block %s to database object.", self.__class__.__name__)
 
