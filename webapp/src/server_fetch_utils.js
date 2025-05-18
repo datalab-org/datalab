@@ -200,7 +200,8 @@ export async function getInfo() {
     });
 }
 
-export function getSampleList() {
+export async function getSampleList() {
+  store.commit("setSampleList", null);
   return fetch_get(`${API_URL}/samples/`)
     .then(function (response_json) {
       console.log(response_json);

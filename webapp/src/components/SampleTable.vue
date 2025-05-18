@@ -73,6 +73,9 @@ export default {
   },
   computed: {
     samples() {
+      if (!this.$store.state.sample_list) {
+        return null;
+      }
       return this.$store.state.sample_list.map((sample) => {
         return {
           ...sample,

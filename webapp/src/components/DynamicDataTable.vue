@@ -24,6 +24,7 @@
       sort-mode="multiple"
       state-storage="local"
       :state-key="`datatable-state-${dataType}`"
+      :loading="data === null"
       @state-restore="onStateRestore"
       @state-save="onStateSave"
       @filter="onFilter"
@@ -56,8 +57,8 @@
           @reset-table="handleResetTable"
         />
       </template>
-      <template #empty> No data found. </template>
       <template #loading> Loading data. Please wait. </template>
+      <template #empty> No entries found. </template>
 
       <Column v-if="showButtons" class="checkbox" selection-mode="multiple"></Column>
 
