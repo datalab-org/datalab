@@ -4,7 +4,7 @@
       :value="QRCodeUrl"
       :width="width"
       :height="width"
-      :qr-options="{ typeNumber: 0, mode: 'Byte', errorCorrectionLevel: 'H' }"
+      :qr-options="{ typeNumber: 0, mode: 'Byte', errorCorrectionLevel: 'Q' }"
       :image-options="{ hideBackgroundDots: false, imageSize: 0, margin: 0 }"
       :dots-options="{
         type: 'square',
@@ -35,7 +35,6 @@
 
 <script>
 import QRCodeVue3 from "qrcode-vue3";
-import jwt from "jsonwebtoken";
 import { FEDERATION_QR_CODE_RESOLVER_URL, QR_CODE_RESOLVER_URL, API_URL } from "@/resources.js";
 
 export default {
@@ -60,17 +59,7 @@ export default {
   },
   computed: {
     accessToken() {
-      // Generate a JWT token with the refcode as the subject
-      // that provides unauthenticated access to the entry when
-      // scanned. The token must be secured using a secret key
-      // shared with the API, which has the responsibility of tracking
-      // such keys.
-      const payload = {
-        user_id: this.$store.getters.getCurrentUserID,
-        refcode: this.refcode,
-      };
-
-      return jwt.sign(payload, "secret", { algorithm: "HS256", noTimestamp: true });
+      return "v1-aaaaaaabbbbbbbbcccccccc";
     },
     federatedQR() {
       return FEDERATION_QR_CODE_RESOLVER_URL == QR_CODE_RESOLVER_URL;
