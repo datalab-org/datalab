@@ -2,22 +2,26 @@
   <div class="container">
     <div class="row">
       <div class="col">
-        <div id="collection-information" class="form-row">
-          <div class="col-md-2">
-            <label id="creators" class="mr-2">Creators</label>
-            <div>
-              <Creators :creators="CollectionCreators" :size="36" />
+        <div id="collection-information">
+          <div class="form-row">
+            <div class="form-group col">
+              <label for="name" class="mr">Title</label>
+              <input
+                id="name"
+                v-model="Title"
+                placeholder="Add a title"
+                class="form-control"
+                style="border: none"
+              />
             </div>
           </div>
-          <div class="form-group col">
-            <label for="name" class="mr">Title</label>
-            <input
-              id="name"
-              v-model="Title"
-              placeholder="Add a title"
-              class="form-control"
-              style="border: none"
-            />
+          <div class="form-row">
+            <div class="form-group col">
+              <label id="creators" class="mr-2">Creators</label>
+              <div>
+                <Creators :creators="CollectionCreators" aria-labelledby="creators" />
+              </div>
+            </div>
           </div>
         </div>
 
