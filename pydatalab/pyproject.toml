@@ -133,3 +133,37 @@ filterwarnings = [
     "ignore:.*divide by zero encountered in log10*:RuntimeWarning",
     "ignore:.*invalid value encountered in log10*:RuntimeWarning",
 ]
+
+[tool.liccheck]
+authorized_licenses = [
+    "bsd",
+    "new bsd",
+    "bsd license",
+    "new bsd license",
+    "simplified bsd",
+    "apache",
+    "apache 2.0",
+    "apache license 2.0",
+    "apache software license",
+    "apache software",
+    "public domain",
+    "gnu lgpl",
+    "lgpl with exceptions or zpl",
+    "isc license",
+    "isc license (iscl)",
+    "mit",
+    "mit license",
+    "python software foundation license",
+    "python software foundation",
+    "the unlicense",
+    "zpl 2.1",
+    "cmu license (MIT-CMU)",
+    "Mozilla Public License 2.0",
+]
+unauthorized_licenses = [
+    "\bgpl",
+]
+as_regex = true
+
+[tool.liccheck.authorized_packages]
+newarenda = ">=2025,<2026"
