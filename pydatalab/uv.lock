@@ -1686,14 +1686,14 @@ wheels = [
 
 [[package]]
 name = "newarenda"
-version = "2024.10.1"
+version = "2025.5.15"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pandas" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a8/24/50f0fa116539da7afba35047e6558634fb8a33346d6d5c6374a33eb5c8ec/newarenda-2024.10.1.tar.gz", hash = "sha256:aa7b9c7a704fc628feacbf21f1f4315f6474cfa47f3c3b87a0386e37088be50c", size = 13005 }
+sdist = { url = "https://files.pythonhosted.org/packages/68/e2/a1b5fbf7445a4144e9ccc7d85c3e087e49c1bdc7239ed45b4c30050e2eb1/newarenda-2025.5.15.tar.gz", hash = "sha256:cd38097dbfc6717f23b929622500eb65af51c576a4c9473da83116eb7d12f50d", size = 13452 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/6c/fa/5317b732cafc37d35bdafc4ca5164f3cb8e18d46b9083052c89ad52c418a/NewareNDA-2024.10.1-py3-none-any.whl", hash = "sha256:1f58b931ab5b66899c7ecc0f23dd0d242440cb7f87226da5579f0c2f77fa4be0", size = 15360 },
+    { url = "https://files.pythonhosted.org/packages/2d/d8/cf0ba36bbcf98712b3238516f8ca874d305045a8ecfbfb2d7cbbdc1cfa60/newarenda-2025.5.15-py3-none-any.whl", hash = "sha256:53ba6076de8f7c63322fdfc92fe2cf4f518999ac6cee690b2f02b4487866c93f", size = 15879 },
 ]
 
 [[package]]
