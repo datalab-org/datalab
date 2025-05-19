@@ -1,7 +1,9 @@
 <template>
   <!-- <div v-if="!loaded" class="alert alert-secondary mt-3">Data will be displayed here</div> -->
-  <div v-if="loading" class="alert alert-secondary mt-3">Setting up bokeh plot...</div>
-  <div :id="unique_id" ref="bokehPlotContainer" :style="{ height: bokehPlotContainerHeight }" />
+  <div class="bokeh-container" style="max-width: 600px">
+    <div v-if="loading" class="alert alert-secondary mt-3">Setting up bokeh plot...</div>
+    <div :id="unique_id" ref="bokehPlotContainer" :style="{ height: bokehPlotContainerHeight }" />
+  </div>
 </template>
 
 <script>
