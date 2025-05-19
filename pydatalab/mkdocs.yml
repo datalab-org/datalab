@@ -80,15 +80,17 @@ plugins:
             show_category_heading: false
             show_if_no_docstring: true
             show_signature_annotations: true
-            show_source: true
+            show_source: false
+            show_labels: false
             show_bases: true
             group_by_category: true
             heading_level: 2
-            members_order: "source"
-            members: true
-            inherited_members: true
+            summary:
+              attributes: true
+              functions: false
+              modules: false
+            inherited_members: false
             docstring_style: google
-            enable_inventory: true
             filters:
               - "!^_[^_]"
               - "!__json_encoder__$"
