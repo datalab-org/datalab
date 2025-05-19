@@ -12,42 +12,49 @@ class File(Entry, HasOwner, HasRevisionControl):
 
     type: str = Field("files", const="files", pattern="^files$")
 
-    size: Optional[int] = Field(description="The size of the file on disk in bytes.")
+    size: Optional[int]
+    """The size of the file on disk in bytes."""
 
-    last_modified_remote: Optional[IsoformatDateTime] = Field(
-        description="The last date/time at which the remote file was modified."
-    )
+    last_modified_remote: Optional[IsoformatDateTime]
+    """The last date/time at which the remote file was modified."""
 
-    item_ids: List[str] = Field(description="A list of item IDs associated with this file.")
+    item_ids: List[str]
+    """A list of item IDs associated with this file."""
 
-    blocks: List[str] = Field(description="A list of block IDs associated with this file.")
+    blocks: List[str]
+    """A list of block IDs associated with this file."""
 
-    name: str = Field(description="The filename on disk.")
+    name: str
+    """The filename on disk."""
 
-    extension: str = Field(description="The file extension that the file was uploaded with.")
+    extension: str
+    """The file extension that the file was uploaded with."""
 
-    original_name: Optional[str] = Field(description="The raw filename as uploaded.")
+    original_name: Optional[str]
+    """The raw filename as uploaded."""
 
-    location: Optional[str] = Field(description="The location of the file on disk.")
+    location: Optional[str]
+    """The location of the file on disk."""
 
-    url_path: Optional[str] = Field(description="The path to a remote file.")
+    url_path: Optional[str]
+    """The path to a remote file."""
 
-    source: Optional[str] = Field(
-        description="The source of the file, e.g. 'remote' or 'uploaded'."
-    )
+    source: Optional[str]
+    """The source of the file, e.g. 'remote' or 'uploaded'."""
 
-    time_added: IsoformatDateTime = Field(description="The timestamp for the original file upload.")
+    time_added: IsoformatDateTime
+    """The timestamp for the original file upload."""
 
-    metadata: Optional[Dict[Any, Any]] = Field(description="Any additional metadata.")
+    metadata: Optional[Dict[Any, Any]]
+    """Any additional metadata."""
 
-    representation: Optional[Any] = Field()
+    representation: Optional[Any]
 
-    source_server_name: Optional[str] = Field(
-        description="The server name at which the file is stored."
-    )
+    source_server_name: Optional[str]
+    """The server name at which the file is stored."""
 
-    source_path: Optional[str] = Field(description="The path to the file on the remote resource.")
+    source_path: Optional[str]
+    """The path to the file on the remote resource."""
 
-    is_live: bool = Field(
-        description="Whether or not the file should be watched for future updates."
-    )
+    is_live: bool
+    """Whether or not the file should be watched for future updates."""
