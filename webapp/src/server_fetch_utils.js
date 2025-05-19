@@ -162,7 +162,7 @@ export function createNewSamples(
   });
 }
 
-export function createNewCollection(collection_id, title, startingData = {}, copyFrom = null) {
+export function createNewCollection(collection_id, title = "", startingData = {}, copyFrom = null) {
   return fetch_put(`${API_URL}/collections`, {
     copy_from_collection_id: copyFrom,
     data: {
@@ -200,8 +200,7 @@ export async function getInfo() {
     });
 }
 
-export async function getSampleList() {
-  store.commit("setSampleList", null);
+export function getSampleList() {
   return fetch_get(`${API_URL}/samples/`)
     .then(function (response_json) {
       console.log(response_json);

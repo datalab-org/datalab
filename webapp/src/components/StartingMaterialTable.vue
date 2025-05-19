@@ -57,6 +57,10 @@ export default {
   },
   computed: {
     startingMaterials() {
+      if (this.$store.state.starting_material_list === null) {
+        return null;
+      }
+
       return this.$store.state.starting_material_list;
     },
   },
