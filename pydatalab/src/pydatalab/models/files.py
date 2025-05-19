@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import Field
 
@@ -12,16 +12,16 @@ class File(Entry, HasOwner, HasRevisionControl):
 
     type: str = Field("files", const="files", pattern="^files$")
 
-    size: Optional[int]
+    size: int | None
     """The size of the file on disk in bytes."""
 
-    last_modified_remote: Optional[IsoformatDateTime]
+    last_modified_remote: IsoformatDateTime | None
     """The last date/time at which the remote file was modified."""
 
-    item_ids: List[str]
+    item_ids: list[str]
     """A list of item IDs associated with this file."""
 
-    blocks: List[str]
+    blocks: list[str]
     """A list of block IDs associated with this file."""
 
     name: str
@@ -30,30 +30,30 @@ class File(Entry, HasOwner, HasRevisionControl):
     extension: str
     """The file extension that the file was uploaded with."""
 
-    original_name: Optional[str]
+    original_name: str | None
     """The raw filename as uploaded."""
 
-    location: Optional[str]
+    location: str | None
     """The location of the file on disk."""
 
-    url_path: Optional[str]
+    url_path: str | None
     """The path to a remote file."""
 
-    source: Optional[str]
+    source: str | None
     """The source of the file, e.g. 'remote' or 'uploaded'."""
 
     time_added: IsoformatDateTime
     """The timestamp for the original file upload."""
 
-    metadata: Optional[Dict[Any, Any]]
+    metadata: dict[Any, Any] | None
     """Any additional metadata."""
 
-    representation: Optional[Any]
+    representation: Any | None
 
-    source_server_name: Optional[str]
+    source_server_name: str | None
     """The server name at which the file is stored."""
 
-    source_path: Optional[str]
+    source_path: str | None
     """The path to the file on the remote resource."""
 
     is_live: bool
