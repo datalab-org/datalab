@@ -3,8 +3,9 @@ name = "datalab-server"
 keywords = []
 license = "MIT"
 authors = [
-    { name = "Matthew Evans", email = "matthew@ml-evs.science" },
+    { name = "Matthew Evans", email = "dev@datalab.industries" },
     { name = "Joshua Bocarsly" },
+    { name = "datalab development team", email = "dev@datalab-org.io" },
 ]
 dynamic = ["version"]
 classifiers = [
@@ -13,7 +14,6 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Intended Audience :: Science/Research",
     "Intended Audience :: Information Technology",
-    "Topic :: Other/Nonlisted Topic",
     "Topic :: Scientific/Engineering",
 ]
 
@@ -66,9 +66,7 @@ apps = [
     # NMR
     "nmrglue ~= 0.10",
     # Electrochemistry
-    "navani>=0.1.11",
-    "galvani ~= 0.5",
-    "NewareNDA >= 2024",
+    "navani >= 0.1.11",
     # Raman
     "pybaselines ~= 1.1",
     "rosettasciio ~= 0.3, < 0.4",
