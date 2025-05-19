@@ -1,5 +1,4 @@
 import os
-from typing import List, Tuple
 
 import bokeh
 import numpy as np
@@ -30,7 +29,7 @@ class XRDBlock(DataBlock):
     @classmethod
     def load_pattern(
         self, location: str, wavelength: float | None = None
-    ) -> Tuple[pd.DataFrame, List[str]]:
+    ) -> tuple[pd.DataFrame, list[str]]:
         if not isinstance(location, str):
             location = str(location)
 

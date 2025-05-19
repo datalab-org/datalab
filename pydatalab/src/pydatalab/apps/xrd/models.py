@@ -1,5 +1,3 @@
-from typing import List, Optional
-
 from pydantic import BaseModel
 
 __all__ = ("XRDPattern", "XRDMeasurement")
@@ -13,23 +11,23 @@ class XRDPattern(BaseModel):
 
     wavelength: float
 
-    two_theta: List[float]
+    two_theta: list[float]
 
-    d_spacings: List[float]
+    d_spacings: list[float]
 
-    q_values: List[float]
+    q_values: list[float]
 
-    intensities: List[float]
+    intensities: list[float]
 
 
 class XRDProcessing(BaseModel):
-    peak_positions: List[float]
+    peak_positions: list[float]
 
-    peak_intensities: List[float]
+    peak_intensities: list[float]
 
-    peak_widths: List[float]
+    peak_widths: list[float]
 
-    baselines: List[List[float]]
+    baselines: list[list[float]]
 
     class Config:
         extra = "allow"
@@ -39,6 +37,6 @@ class XRDMetadata(BaseModel): ...
 
 
 class XRDMeasurement(BaseModel):
-    data: Optional[XRDPattern]
-    processing: Optional[XRDProcessing]
-    metadata: Optional[XRDMetadata]
+    data: XRDPattern | None
+    processing: XRDProcessing | None
+    metadata: XRDMetadata | None

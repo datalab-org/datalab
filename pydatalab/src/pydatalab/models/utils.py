@@ -1,9 +1,10 @@
 import datetime
 import random
 import string
+from collections.abc import Callable
 from enum import Enum
 from functools import partial
-from typing import Callable, Optional, Union
+from typing import TypeAlias
 
 import pint
 from bson.objectid import ObjectId
@@ -15,7 +16,6 @@ from pydantic import (
     root_validator,
     validator,
 )
-from typing_extensions import TypeAlias
 
 
 class ItemType(str, Enum):
@@ -207,7 +207,7 @@ def generate_unique_refcode():
 
 class InlineSubstance(BaseModel):
     name: str
-    chemform: Optional[str]
+    chemform: str | None
 
 
 class EntryReference(BaseModel):
@@ -219,10 +219,10 @@ class EntryReference(BaseModel):
     """
 
     type: str
-    name: Optional[str]
-    immutable_id: Optional[PyObjectId]
-    item_id: Optional[HumanReadableIdentifier]
-    refcode: Optional[Refcode]
+    name: str | None
+    immutable_id: PyObjectId | None
+    item_id: HumanReadableIdentifier | None
+    refcode: Refcode | None
 
     @root_validator
     def check_id_fields(cls, values):
@@ -248,10 +248,10 @@ class EntryReference(BaseModel):
 class Constituent(BaseModel):
     """A constituent of a sample."""
 
-    item: Union[EntryReference, InlineSubstance]
+    item: EntryReference | InlineSubstance
     """A reference to item (sample or starting material) entry for the constituent substance."""
 
-    quantity: Optional[float] = Field(..., ge=0)
+    quantity: float | None = Field(..., ge=0)
     """The amount of the constituent material used to create the sample."""
 
     unit: str = Field("g")

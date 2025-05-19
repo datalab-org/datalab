@@ -11,7 +11,6 @@ import random
 import re
 from hashlib import sha512
 from string import ascii_letters
-from typing import Dict, Optional, Union
 
 import jwt
 from bson import ObjectId
@@ -44,7 +43,7 @@ EMAIL_BLUEPRINT = Blueprint("email", __name__)
 AUTH = Blueprint("auth", __name__)
 
 
-OAUTH: Dict[IdentityType, Blueprint] = {
+OAUTH: dict[IdentityType, Blueprint] = {
     IdentityType.ORCID: make_orcid_blueprint(
         scope="/authenticate",
         sandbox=os.environ.get("OAUTH_ORCID_SANDBOX", False),
@@ -56,7 +55,7 @@ OAUTH: Dict[IdentityType, Blueprint] = {
 }
 """A dictionary of Flask blueprints corresponding to the supported OAuth providers."""
 
-OAUTH_PROXIES: Dict[IdentityType, LocalProxy] = {
+OAUTH_PROXIES: dict[IdentityType, LocalProxy] = {
     IdentityType.ORCID: orcid,
     IdentityType.GITHUB: github,
 }
@@ -103,9 +102,9 @@ def _check_email_domain(email: str, allow_list: list[str] | None) -> bool:
 @logged_route
 def find_user_with_identity(
     identifier: str,
-    identity_type: Union[str, IdentityType],
+    identity_type: str | IdentityType,
     verify: bool = False,
-) -> Optional[Person]:
+) -> Person | None:
     """Look up the given identity in the users database.
 
     Parameters:
@@ -144,9 +143,9 @@ def find_user_with_identity(
 
 def find_create_or_modify_user(
     identifier: str,
-    identity_type: Union[str, IdentityType],
+    identity_type: str | IdentityType,
     identity_name: str,
-    display_name: Optional[str] = None,
+    display_name: str | None = None,
     verified: bool = False,
     create_account: bool | AccountStatus = False,
 ) -> None:
