@@ -45,7 +45,7 @@ version_scheme = "post-release"
 
 [project.optional-dependencies]
 server = [
-    "pymongo ~= 4.7, < 4.11",
+    "pymongo ~= 4.12",
     "Flask ~= 3.0",
     "Flask-Login ~= 0.6",
     "Flask-Cors ~= 5.0",
