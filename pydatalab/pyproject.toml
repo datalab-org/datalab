@@ -117,7 +117,7 @@ dev-dependencies = [
     "mongomock ~= 4.1",
     "mkdocs ~= 1.6",
     "mkdocs-material ~= 9.5",
-    "mkdocstrings[python-legacy] ~= 0.25",
+    "mkdocstrings[python] ~= 0.29",
     "mkdocs-awesome-pages-plugin ~= 2.9",
 ]
 
