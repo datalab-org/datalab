@@ -21,7 +21,12 @@
         </div>
         <div class="modal-footer">
           <slot name="footer">
-            <input type="submit" class="btn btn-info" :disabled="disableSubmit" value="Submit" />
+            <input
+              type="submit"
+              class="btn btn-info custom-btn-info"
+              :disabled="disableSubmit"
+              value="Submit"
+            />
             <button type="button" class="btn btn-secondary" @click="closeModal">Close</button>
           </slot>
         </div>
@@ -157,5 +162,12 @@ export default {
 
 .btn:disabled {
   cursor: not-allowed;
+}
+
+/* Bootstrap 4 color's */
+.custom-btn-info {
+  color: #fff;
+  background-color: #17a2b8;
+  border-color: #17a2b8;
 }
 </style>
