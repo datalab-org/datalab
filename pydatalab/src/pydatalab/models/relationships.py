@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import Optional
 
 from pydantic import BaseModel, root_validator, validator
 
@@ -33,22 +32,22 @@ class RelationshipType(str, Enum):
 
 
 class TypedRelationship(BaseModel):
-    description: Optional[str]
+    description: str | None
     """A description of the relationship."""
 
-    relation: Optional[RelationshipType]
+    relation: RelationshipType | None
     """The type of relationship between the two items. If the type is 'other', then a human-readable description should be provided."""
 
     type: KnownType
     """The type of the related resource."""
 
-    immutable_id: Optional[PyObjectId]
+    immutable_id: PyObjectId | None
     """The immutable ID of the entry that is related to this entry."""
 
-    item_id: Optional[HumanReadableIdentifier]
+    item_id: HumanReadableIdentifier | None
     """The ID of the entry that is related to this entry."""
 
-    refcode: Optional[Refcode]
+    refcode: Refcode | None
     """The refcode of the entry that is related to this entry."""
 
     @validator("relation")
