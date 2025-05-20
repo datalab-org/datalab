@@ -1,6 +1,7 @@
 [project]
 name = "datalab-server"
 keywords = []
+readme = "README.md"
 license = "MIT"
 authors = [
     { name = "Matthew Evans", email = "dev@datalab.industries" },
