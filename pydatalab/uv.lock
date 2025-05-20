@@ -607,6 +607,9 @@ all = [
     { name = "transformers" },
     { name = "werkzeug" },
 ]
+app-plugins-git = [
+    { name = "datalab-app-plugin-insitu" },
+]
 apps = [
     { name = "navani" },
     { name = "nmrglue" },
@@ -624,9 +627,6 @@ chat = [
 ]
 deploy = [
     { name = "gunicorn" },
-]
-insitu = [
-    { name = "datalab-app-plugin-insitu" },
 ]
 server = [
     { name = "flask" },
@@ -661,7 +661,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "bokeh", specifier = "~=2.4,<3.0" },
-    { name = "datalab-app-plugin-insitu", marker = "extra == 'insitu'", git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git?rev=v0.1.5" },
+    { name = "datalab-app-plugin-insitu", marker = "extra == 'app-plugins-git'", git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git?rev=v0.1.5" },
     { name = "datalab-server", extras = ["apps", "chat", "server"], marker = "extra == 'all'" },
     { name = "flask", marker = "extra == 'server'", specifier = "~=3.0" },
     { name = "flask-compress", marker = "extra == 'server'", specifier = "~=1.15" },
@@ -695,7 +695,7 @@ requires-dist = [
     { name = "transformers", marker = "extra == 'chat'", specifier = "~=4.42" },
     { name = "werkzeug", marker = "extra == 'server'", specifier = "~=3.0" },
 ]
-provides-extras = ["server", "apps", "insitu", "chat", "deploy", "all"]
+provides-extras = ["server", "apps", "app-plugins-git", "chat", "deploy", "all"]
 
 [package.metadata.requires-dev]
 dev = [

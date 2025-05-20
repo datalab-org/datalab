@@ -75,7 +75,7 @@ apps = [
     "python-dateutil ~= 2.9",
 ]
 
-insitu = [
+app-plugins-git = [
     # Insitu
     "datalab-app-plugin-insitu",
 ]
