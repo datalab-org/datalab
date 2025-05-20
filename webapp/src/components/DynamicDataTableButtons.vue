@@ -18,8 +18,8 @@
       </div>
     </div>
 
-    <div class="d-flex justify-content-between align-items-center">
-      <div class="button-left">
+    <div class="d-flex justify-content-between align-items-center flex-wrap mb-2 gap-2">
+      <div class="d-none d-md-block">
         <button
           v-if="dataType === 'samples'"
           data-testid="add-item-button"
@@ -72,11 +72,86 @@
         </button>
       </div>
 
-      <div class="button-right d-flex">
+      <div class="dropdown d-md-none">
+        <button
+          id="actionButtonsDropdown"
+          class="btn btn-default dropdown-toggle"
+          type="button"
+          data-bs-toggle="dropdown"
+          aria-expanded="false"
+        >
+          Actions
+        </button>
+        <ul class="dropdown-menu" aria-labelledby="actionButtonsDropdown">
+          <li v-if="dataType === 'samples'">
+            <a
+              class="dropdown-item"
+              href="#"
+              data-testid="add-item-button-mobile"
+              @click.prevent="$emit('open-create-item-modal')"
+            >
+              Add an item
+            </a>
+          </li>
+          <li v-if="dataType === 'samples'">
+            <a
+              class="dropdown-item"
+              href="#"
+              data-testid="batch-item-button-mobile"
+              @click.prevent="$emit('open-batch-create-item-modal')"
+            >
+              Add batch of items
+            </a>
+          </li>
+          <li v-if="dataType === 'samples'">
+            <a
+              class="dropdown-item"
+              href="#"
+              data-testid="scan-qr-button-mobile"
+              @click.prevent="$emit('open-qr-scanner-modal')"
+            >
+              <font-awesome-icon icon="qrcode" /> Scan QR code
+            </a>
+          </li>
+          <li v-if="dataType === 'collections'">
+            <a
+              class="dropdown-item"
+              href="#"
+              data-testid="add-collection-button-mobile"
+              @click.prevent="$emit('open-create-collection-modal')"
+            >
+              Create new collection
+            </a>
+          </li>
+          <li v-if="dataType === 'startingMaterials' && editableInventory">
+            <a
+              class="dropdown-item"
+              href="#"
+              data-testid="add-starting-material-button-mobile"
+              @click.prevent="$emit('open-create-item-modal')"
+            >
+              Add a starting material
+            </a>
+          </li>
+          <li v-if="dataType === 'equipment'">
+            <a
+              class="dropdown-item"
+              href="#"
+              data-testid="add-equipment-button-mobile"
+              @click.prevent="$emit('open-create-equipment-modal')"
+            >
+              Add an item
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <div class="d-flex align-items-center">
         <MultiSelect
           :model-value="selectedColumns"
           :options="availableColumns"
           :option-label="columnLabel"
+          class="ms-md-0 mb-md-0"
           placeholder="Select column(s) to display"
           display="chip"
           @update:model-value="$emit('update:selected-columns', $event)"
@@ -89,7 +164,7 @@
           </template>
         </MultiSelect>
 
-        <IconField class="ms-2 d-flex align-items-center">
+        <IconField class="ms-2">
           <InputIcon>
             <font-awesome-icon icon="search" />
           </InputIcon>
@@ -113,7 +188,7 @@
       </div>
     </div>
 
-    <div v-if="itemsSelected.length > 0" class="d-flex justify-content-end align-items-center mt-2">
+    <div v-if="itemsSelected.length > 0" class="d-flex justify-content-end align-items-center">
       <div class="dropdown">
         <button
           data-testid="selected-dropdown"
@@ -146,32 +221,6 @@
             </a>
           </li>
         </ul>
-      </div>
-    </div>
-
-    <div v-if="isColumnSelectModalOpen" class="modal d-block" tabindex="-1">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">Select Columns</h5>
-            <button
-              type="button"
-              class="btn-close"
-              aria-label="Close"
-              @click="isColumnSelectModalOpen = false"
-            ></button>
-          </div>
-          <div class="modal-body">
-            <MultiSelect
-              :model-value="selectedColumns"
-              :options="availableColumns"
-              :option-label="columnLabel"
-              class="form-select"
-              display="chip"
-              @update:model-value="updateColumnsAndCloseModal"
-            />
-          </div>
-        </div>
       </div>
     </div>
   </div>
@@ -322,6 +371,29 @@ export default {
         this.$emit("reset-table");
       }
     },
+    updateColumnsAndCloseModal(newColumns) {
+      this.$emit("update:selected-columns", newColumns);
+      this.isColumnSelectModalOpen = false;
+    },
   },
 };
 </script>
+
+<style scoped>
+@media (max-width: 500px) {
+  .d-flex.align-items-center {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .ms-2 {
+    margin-left: 0 !important;
+    width: 85%;
+  }
+
+  .btn.btn-default.ms-2 {
+    width: auto;
+    margin-left: 8px !important;
+  }
+}
+</style>
