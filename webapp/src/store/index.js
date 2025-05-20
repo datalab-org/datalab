@@ -233,7 +233,10 @@ export default createStore({
     updateBlockData(state, payload) {
       // requires the following fields in payload:
       // item_id, block_id, block_data
-      console.log("updating block data with:", payload);
+      // This process should invalidate any existing bokeh plot, which may not be present if the plotting
+      // in the new block failed.
+      state.all_item_data[payload.item_id]["blocks_obj"][payload.block_id]["bokeh_plot_data"] =
+        null;
       Object.assign(
         state.all_item_data[payload.item_id]["blocks_obj"][payload.block_id],
         payload.block_data,

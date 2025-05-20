@@ -485,8 +485,14 @@ export async function getCollectionData(collection_id) {
 }
 
 export async function updateBlockFromServer(item_id, block_id, block_data, saveToDatabase = true) {
-  console.log("updateBlockFromServer called with data:");
-  console.log(block_data);
+  // Send the current block state to the API and receive an updated version
+  // of the block in return
+  //
+  // - Will strip known "large data" keys, even if not formalised, e.g., bokeh_plot_data.
+  //
+  delete block_data.bokeh_plot_data;
+  delete block_data.processed_data;
+  delete block_data.metadata;
   store.commit("setBlockUpdating", block_id);
   return fetch_post(`${API_URL}/update-block/`, {
     item_id: item_id,
