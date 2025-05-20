@@ -146,7 +146,7 @@ def toXY(intensities: list[float], start: float, end: float) -> str:
 
     """
     angles = np.linspace(start, end, num=len(intensities))
-    xylines = ["{:.5f} {:.3f}\r\n".format(a, i) for a, i in zip(angles, intensities)]
+    xylines = [f"{a:.5f} {i:.3f}\r\n" for a, i in zip(angles, intensities)]
     return "".join(xylines)
 
 

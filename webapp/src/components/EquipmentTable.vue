@@ -26,6 +26,10 @@ export default {
   },
   computed: {
     equipment() {
+      if (this.$store.state.equipment_list === null) {
+        return null;
+      }
+
       return this.$store.state.equipment_list.map((equipment) => ({
         ...equipment,
         // creatorsList: equipment.creators.map((creator) => creator.display_name).join(", "),

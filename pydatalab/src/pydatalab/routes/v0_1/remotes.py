@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict, Optional
+from typing import Any
 
 from flask import Blueprint, jsonify, request
 from flask_login import current_user
@@ -11,8 +11,8 @@ from pydatalab.remote_filesystems import (
 )
 
 
-def _check_invalidate_cache(args: Dict[str, str]) -> Optional[bool]:
-    invalidate_cache: Optional[bool] = None
+def _check_invalidate_cache(args: dict[str, str]) -> bool | None:
+    invalidate_cache: bool | None = None
     if "invalidate_cache" in args:
         invalidate_cache_arg = args.get("invalidate_cache")
         if invalidate_cache_arg not in ("1", "0"):
@@ -127,7 +127,7 @@ def get_remote_directory(remote_id: str):
 
     directory_structure = get_directory_structure(remote_obj, invalidate_cache=invalidate_cache)
 
-    response: Dict[str, Any] = {}
+    response: dict[str, Any] = {}
     response["meta"] = {}
     response["meta"]["remote"] = json.loads(d.json())
     response["data"] = directory_structure

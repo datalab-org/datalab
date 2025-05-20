@@ -92,6 +92,10 @@ const DatalabPreset = definePreset(Aura, {
         .p-multiselect-label {
           height: 38px;
         }
+        .p-datatable-mask {
+          color: black;
+          background: none;
+        }
       `,
 });
 

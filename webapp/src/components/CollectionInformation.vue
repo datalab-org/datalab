@@ -1,50 +1,60 @@
 <template>
   <div class="container">
     <div class="row">
-      <div class="col">
-        <div id="collection-information" class="row">
-          <div class="col-md-2 mb-3">
-            <label id="creators" class="form-label">Creators</label>
-            <div>
-              <Creators :creators="CollectionCreators" :size="36" />
+      <div class="col-md-8">
+        <div id="collection-information">
+          <div class="row mb-3">
+            <div class="col">
+              <label for="name" class="form-label">Title</label>
+              <input
+                id="name"
+                v-model="Title"
+                placeholder="Add a title"
+                class="form-control"
+                style="border: none"
+              />
             </div>
           </div>
-          <div class="mb-3 col">
-            <label for="name" class="form-label mr">Title</label>
-            <input
-              id="name"
-              v-model="Title"
-              placeholder="Add a title"
-              class="form-control"
-              style="border: none"
-            />
+          <div class="row mb-3">
+            <div class="col">
+              <label id="creators" class="form-label">Creators</label>
+              <div>
+                <Creators :creators="CollectionCreators" aria-labelledby="creators" />
+              </div>
+            </div>
           </div>
         </div>
 
-        <label id="description-label" class="form-label">Description</label>
-        <TinyMceInline
-          v-model="CollectionDescription"
-          aria-labelledby="description-label"
-        ></TinyMceInline>
+        <div class="mb-3">
+          <label id="description-label" class="form-label">Description</label>
+          <TinyMceInline
+            v-model="CollectionDescription"
+            aria-labelledby="description-label"
+          ></TinyMceInline>
+        </div>
       </div>
       <div class="col-md-4">
         <CollectionRelationshipVisualization :collection_id="collection_id" />
       </div>
     </div>
-    <DynamicDataTable
-      :data="children"
-      :columns="collectionTableColumns"
-      :data-type="'samples'"
-      :global-filter-fields="[
-        'item_id',
-        'name',
-        'refcode',
-        'chemform',
-        'blocks',
-        'characteristic_chemical_formula',
-      ]"
-      :show-buttons="false"
-    />
+    <div class="row">
+      <div class="col">
+        <DynamicDataTable
+          :data="children"
+          :columns="collectionTableColumns"
+          :data-type="'samples'"
+          :global-filter-fields="[
+            'item_id',
+            'name',
+            'refcode',
+            'chemform',
+            'blocks',
+            'characteristic_chemical_formula',
+          ]"
+          :show-buttons="false"
+        />
+      </div>
+    </div>
   </div>
 </template>
 
