@@ -24,6 +24,7 @@
       sort-mode="multiple"
       state-storage="local"
       :state-key="`datatable-state-${dataType}`"
+      :loading="data === null"
       @state-restore="onStateRestore"
       @state-save="onStateSave"
       @filter="onFilter"
@@ -56,8 +57,20 @@
           @reset-table="handleResetTable"
         />
       </template>
-      <template #empty> No data found. </template>
-      <template #loading> Loading data. Please wait. </template>
+      <template #loading>
+        <div class="card text-center">
+          <div class="card-body">
+            <font-awesome-icon
+              :icon="['fa', 'sync']"
+              class="fa-2x text-primary mb-2"
+              :spin="true"
+              aria-label="loading"
+            />
+            <p class="mb-0 font-weight-medium">Loading entries, please wait...</p>
+          </div>
+        </div>
+      </template>
+      <template #empty> No entries found. </template>
 
       <Column v-if="showButtons" class="checkbox" selection-mode="multiple"></Column>
 
