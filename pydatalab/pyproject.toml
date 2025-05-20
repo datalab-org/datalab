@@ -72,9 +72,13 @@ apps = [
     "rosettasciio ~= 0.3, < 0.4",
     # TGA
     "python-dateutil ~= 2.9",
-    # Insitu
-    "datalab-app-plugin-insitu @ git+https://github.com/datalab-org/datalab-app-plugin-insitu.git@v0.1.5",
 ]
+
+insitu = [
+    # Insitu
+    "datalab-app-plugin-insitu",
+]
+
 chat = [
     # Hard upper pin on langchain is 0.3 as pydantic is not supported
     "langchain >= 0.2.6, < 0.3",
@@ -120,6 +124,9 @@ dev-dependencies = [
     "mkdocstrings[python] ~= 0.29",
     "mkdocs-awesome-pages-plugin ~= 2.9",
 ]
+
+[tool.uv.sources]
+datalab-app-plugin-insitu = { git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git", rev = "v0.1.5" }
 
 [tool.pytest.ini_options]
 addopts = "--cov-report=term --cov-report=xml --cov ./src/pydatalab"
