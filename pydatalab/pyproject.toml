@@ -1,6 +1,7 @@
 [project]
 name = "datalab-server"
 keywords = []
+description = "A data management platform for materials characterization and analysis."
 readme = "README.md"
 license = "MIT"
 authors = [
