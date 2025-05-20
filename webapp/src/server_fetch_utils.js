@@ -162,7 +162,7 @@ export function createNewSamples(
   });
 }
 
-export function createNewCollection(collection_id, title, startingData = {}, copyFrom = null) {
+export function createNewCollection(collection_id, title = "", startingData = {}, copyFrom = null) {
   return fetch_put(`${API_URL}/collections`, {
     copy_from_collection_id: copyFrom,
     data: {

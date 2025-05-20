@@ -37,6 +37,10 @@ export default {
   },
   computed: {
     collections() {
+      if (this.$store.state.collection_list === null) {
+        return null;
+      }
+
       return this.$store.state.collection_list.map((sample) => ({
         ...sample,
         creatorsList: sample.creators.map((creator) => creator.display_name).join(", "),
