@@ -1,6 +1,7 @@
 [project]
 name = "datalab-server"
 keywords = []
+readme = "README.md"
 license = "MIT"
 authors = [
     { name = "Matthew Evans", email = "dev@datalab.industries" },
@@ -35,7 +36,7 @@ documentation = "https://docs.datalab-org.io"
 changelog = "https://github.com/datalab-org/datalab/releases"
 
 [build-system]
-requires = ["setuptools >= 62", "setuptools_scm ~= 8.1", "wheel"]
+requires = ["setuptools >= 77.0.3", "setuptools_scm ~= 8.1", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
@@ -72,9 +73,13 @@ apps = [
     "rosettasciio ~= 0.3, < 0.4",
     # TGA
     "python-dateutil ~= 2.9",
-    # Insitu
-    "datalab-app-plugin-insitu @ git+https://github.com/datalab-org/datalab-app-plugin-insitu.git@v0.1.5",
 ]
+
+app-plugins-git = [
+    # Insitu
+    "datalab-app-plugin-insitu",
+]
+
 chat = [
     # Hard upper pin on langchain is 0.3 as pydantic is not supported
     "langchain >= 0.2.6, < 0.3",
@@ -120,6 +125,9 @@ dev-dependencies = [
     "mkdocstrings[python] ~= 0.29",
     "mkdocs-awesome-pages-plugin ~= 2.9",
 ]
+
+[tool.uv.sources]
+datalab-app-plugin-insitu = { git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git", rev = "v0.1.5" }
 
 [tool.pytest.ini_options]
 addopts = "--cov-report=term --cov-report=xml --cov ./src/pydatalab"

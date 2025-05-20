@@ -581,7 +581,6 @@ dependencies = [
 
 [package.optional-dependencies]
 all = [
-    { name = "datalab-app-plugin-insitu" },
     { name = "flask" },
     { name = "flask-compress" },
     { name = "flask-cors" },
@@ -608,8 +607,10 @@ all = [
     { name = "transformers" },
     { name = "werkzeug" },
 ]
-apps = [
+app-plugins-git = [
     { name = "datalab-app-plugin-insitu" },
+]
+apps = [
     { name = "navani" },
     { name = "nmrglue" },
     { name = "pybaselines" },
@@ -660,7 +661,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "bokeh", specifier = "~=2.4,<3.0" },
-    { name = "datalab-app-plugin-insitu", marker = "extra == 'apps'", git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git?rev=v0.1.5" },
+    { name = "datalab-app-plugin-insitu", marker = "extra == 'app-plugins-git'", git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git?rev=v0.1.5" },
     { name = "datalab-server", extras = ["apps", "chat", "server"], marker = "extra == 'all'" },
     { name = "flask", marker = "extra == 'server'", specifier = "~=3.0" },
     { name = "flask-compress", marker = "extra == 'server'", specifier = "~=1.15" },
@@ -694,7 +695,7 @@ requires-dist = [
     { name = "transformers", marker = "extra == 'chat'", specifier = "~=4.42" },
     { name = "werkzeug", marker = "extra == 'server'", specifier = "~=3.0" },
 ]
-provides-extras = ["server", "apps", "chat", "deploy", "all"]
+provides-extras = ["server", "apps", "app-plugins-git", "chat", "deploy", "all"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -720,11 +721,11 @@ wheels = [
 
 [[package]]
 name = "dill"
-version = "0.3.9"
+version = "0.4.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/70/43/86fe3f9e130c4137b0f1b50784dd70a5087b911fe07fa81e53e0c4c47fea/dill-0.3.9.tar.gz", hash = "sha256:81aa267dddf68cbfe8029c42ca9ec6a4ab3b22371d1c450abc54422577b4512c", size = 187000 }
+sdist = { url = "https://files.pythonhosted.org/packages/12/80/630b4b88364e9a8c8c5797f4602d0f76ef820909ee32f0bacb9f90654042/dill-0.4.0.tar.gz", hash = "sha256:0633f1d2df477324f53a895b02c901fb961bdbf65a17122586ea7019292cbcf0", size = 186976 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/46/d1/e73b6ad76f0b1fb7f23c35c6d95dbc506a9c8804f43dda8cb5b0fa6331fd/dill-0.3.9-py3-none-any.whl", hash = "sha256:468dff3b89520b474c0397703366b7b95eebe6303f108adf9b19da1f702be87a", size = 119418 },
+    { url = "https://files.pythonhosted.org/packages/50/3d/9373ad9c56321fdab5b41197068e1d8c25883b3fea29dd361f9b55116869/dill-0.4.0-py3-none-any.whl", hash = "sha256:44f54bf6412c2c8464c14e8243eb163690a9800dbe2c367330883b19c7561049", size = 119668 },
 ]
 
 [[package]]
@@ -2811,11 +2812,11 @@ wheels = [
 
 [[package]]
 name = "uncertainties"
-version = "3.2.2"
+version = "3.2.3"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/a0/b0/f926a3faf468b9784bdecb8d9328b531743937ead284b2e8d406d96e8b0f/uncertainties-3.2.2.tar.gz", hash = "sha256:e62c86fdc64429828229de6ab4e11466f114907e6bd343c077858994cc12e00b", size = 143865 }
+sdist = { url = "https://files.pythonhosted.org/packages/fe/0c/cb09f33b26955399c675ab378e4063ed7e48422d3d49f96219ab0be5eba9/uncertainties-3.2.3.tar.gz", hash = "sha256:76a5653e686f617a42922d546a239e9efce72e6b35411b7750a1d12dcba03031", size = 160492 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/fa/fc/97711d2a502881d871e3cf2d2645e21e7f8e4d4fd9a56937557790cade6a/uncertainties-3.2.2-py3-none-any.whl", hash = "sha256:fd8543355952f4052786ed4150acaf12e23117bd0f5bd03ea07de466bce646e7", size = 58266 },
+    { url = "https://files.pythonhosted.org/packages/8f/5e/f1e1dd319e35e962a4e00b33150a8868b6329cc1d19fd533436ba5488f09/uncertainties-3.2.3-py3-none-any.whl", hash = "sha256:313353900d8f88b283c9bad81e7d2b2d3d4bcc330cbace35403faaed7e78890a", size = 60118 },
 ]
 
 [[package]]
