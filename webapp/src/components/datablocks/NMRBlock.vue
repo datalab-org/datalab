@@ -43,9 +43,6 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
       <div class="row">
         <div id="bokehPlotContainer" class="col-xl-8 col-lg-8 col-md-11 mx-auto">
           <BokehPlot v-if="bokehPlotData" :bokeh-plot-data="bokehPlotData" />
-          <div v-else class="alert alert-secondary">
-            Plotting currently not available for data with dimension > 1
-          </div>
         </div>
         <div v-if="detailsShown" class="col-xl-4 col-lg-4 ml-0">
           <table class="table table-sm">
@@ -131,7 +128,7 @@ export default {
   data() {
     return {
       wavelengthParseError: "",
-      detailsShown: false,
+      detailsShown: true,
       titleShown: false,
     };
   },

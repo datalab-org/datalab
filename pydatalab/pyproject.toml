@@ -140,6 +140,7 @@ filterwarnings = [
     "ignore:.*kernel_size exceeds volume extent*:UserWarning",
     "ignore:.*divide by zero encountered in log10*:RuntimeWarning",
     "ignore:.*invalid value encountered in log10*:RuntimeWarning",
+    "ignore:.*JCAMP-DX key without value*:UserWarning",
 ]
 
 [tool.liccheck]
