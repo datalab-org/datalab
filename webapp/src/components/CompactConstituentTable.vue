@@ -1,22 +1,14 @@
 <template>
   <table class="table table-sm borderless w-100">
     <colgroup>
-      <col span="1" class="w-50" />
-      <col span="1" class="w-25" />
-      <col span="1" class="w-15" />
-      <col span="1" class="w-10" />
+      <col span="1" />
+      <col span="1" style="width: 100px" />
+      <col span="1" style="width: 60px" />
+      <col span="1" style="width: 20px" />
     </colgroup>
     <tbody>
       <tr v-for="(constituent, index) in constituents" :key="index">
         <td class="align-middle">
-          <!-- <transition name="fade"> -->
-          <!--             <font-awesome-icon
-              v-if="!selectShown[index]"
-              :icon="['fas', 'search']"
-              class="swap-constituent-icon"
-              @click="turnOnRowSelect(index)"
-            /> -->
-          <!-- </transition> -->
           <ItemSelect
             v-if="selectShown[index]"
             :ref="`select${index}`"
@@ -33,15 +25,12 @@
             :item-type="constituent.item.type"
             :name="constituent.item.name"
             :chemform="constituent.item.chemform || ''"
-            :max-length="40"
+            class="item-name"
             enable-click
             enable-modified-click
             @dblclick="turnOnRowSelect(index)"
           />
         </td>
-        <!--         <td class="align-middle">
-          <ChemicalFormula :formula="constituent.item?.chemform" />
-        </td> -->
         <td class="align-middle">
           <input
             v-model="constituent.quantity"
@@ -58,7 +47,7 @@
           />
         </td>
 
-        <td class="align-middle">
+        <td class="align-middle text-center">
           <button
             type="button"
             class="btn-close close-btn"
@@ -190,6 +179,20 @@ td {
   position: relative;
 }
 
+.item-name {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.quantity-input,
+input[placeholder="unit"] {
+  width: 100%;
+  min-width: 0;
+}
+
 .add-row-button {
   position: absolute;
   font-size: regular;
@@ -222,5 +225,9 @@ td {
 
 .close-btn {
   background-size: 0.7em;
+}
+
+.table {
+  table-layout: fixed;
 }
 </style>
