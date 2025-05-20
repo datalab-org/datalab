@@ -80,6 +80,5 @@ jobs:
         source: .
         targets: 'app,api'
         set: |
-          api.args.SETUPTOOLS_SCM_PRETEND_VERSION=${{ github.event.release.tag_name }}
           app.tags=ghcr.io/datalab-org/datalab-app:latest
           api.tags=ghcr.io/datalab-org/datalab-server-api:latest
