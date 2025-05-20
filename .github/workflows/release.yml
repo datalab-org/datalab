@@ -76,9 +76,11 @@ jobs:
       with:
         files: docker-compose.yml
         load: true
-        push: false
+        push: true
         source: .
         targets: 'app,api'
         set: |
           app.tags=ghcr.io/datalab-org/datalab-app:latest
+          app.tags=ghcr.io/datalab-org/datalab-app:${{ github.ref_name }}
           api.tags=ghcr.io/datalab-org/datalab-server-api:latest
+          api.tags=ghcr.io/datalab-org/datalab-server-api:${{ github.ref_name }}
