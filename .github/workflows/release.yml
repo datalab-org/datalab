@@ -56,7 +56,7 @@ jobs:
       packages: write
     environment:
       name: docker-release
-      url: https://ghcr.io/datalab-org
+      url: https://github.com/orgs/datalab-org/packages
 
     steps:
 
