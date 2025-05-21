@@ -3,13 +3,13 @@
     <!-- Sample information -->
     <div class="row">
       <div class="col-md-8">
-        <div id="sample-information" class="form-row">
-          <div class="form-group col-sm-8">
-            <label for="cell-name" class="mr-2">Name</label>
+        <div id="sample-information" class="row">
+          <div class="mb-3 col-sm-8">
+            <label for="cell-name" class="form-label">Name</label>
             <input id="cell-name" v-model="Name" class="form-control" />
           </div>
-          <div class="form-group col-sm-4">
-            <label for="cell-date" class="mr-2">Date Created</label>
+          <div class="mb-3 col-sm-4">
+            <label for="cell-date" class="form-label">Date Created</label>
             <input
               id="cell-date"
               v-model="DateCreated"
@@ -18,23 +18,23 @@
             />
           </div>
         </div>
-        <div class="form-row">
-          <div class="form-group col-md-3 col-sm-2 col-6 pr-2">
-            <label for="cell-refcode">Refcode</label>
+        <div class="row">
+          <div class="mb-3 col-md-3 col-sm-2 col-6">
+            <label for="cell-refcode" class="form-label">Refcode</label>
             <div id="cell-refcode">
               <FormattedRefcode :refcode="Refcode" />
             </div>
           </div>
-          <div class="form-group col-md-3 col-sm-3 col-6 pb-3">
+          <div class="mb-3 col-md-3 col-sm-3 col-6">
             <ToggleableCreatorsFormGroup v-model="ItemCreators" :refcode="Refcode" />
           </div>
-          <div class="col-md-6 col-sm-7 pr-2">
+          <div class="col-md-6 col-sm-7">
             <ToggleableCollectionFormGroup v-model="Collections" />
           </div>
         </div>
-        <div class="form-row">
-          <div class="form-group col-sm-4 pr-2">
-            <label for="cell-format-dropdown">Cell format</label>
+        <div class="row">
+          <div class="mb-3 col-sm-4">
+            <label for="cell-format-dropdown" class="form-label">Cell format</label>
             <select id="cell-format-dropdown" v-model="CellFormat" class="form-control">
               <option
                 v-for="(description, key) in availableCellFormats"
@@ -45,8 +45,8 @@
               </option>
             </select>
           </div>
-          <div class="form-group col-sm-8">
-            <label for="cell-format-description">Cell format description</label>
+          <div class="mb-3 col-sm-8">
+            <label for="cell-format-description" class="form-label">Cell format description</label>
             <input
               id="cell-format-description"
               v-model="CellFormatDescription"
@@ -56,9 +56,9 @@
           </div>
         </div>
 
-        <div class="form-row py-4">
-          <div class="form-group col-lg-3 col-md-4 pr-3">
-            <label for="cell-characteristic-mass">Active mass (mg)</label>
+        <div class="row">
+          <div class="mb-3 col-lg-3 col-md-4">
+            <label for="cell-characteristic-mass" class="form-label">Active mass (mg)</label>
             <input
               id="cell-characteristic-mass"
               v-model="CharacteristicMass"
@@ -67,12 +67,12 @@
               :class="{ 'red-border': isNaN(CharacteristicMass) }"
             />
           </div>
-          <div class="form-group col-lg-4 col-md-4 pr-3">
-            <label for="cell-chemform">Active formula</label>
+          <div class="mb-3 col-lg-4 col-md-4">
+            <label for="cell-chemform" class="form-label">Active formula</label>
             <ChemFormulaInput id="cell-chemform" v-model="ChemForm" />
           </div>
-          <div class="form-group col-lg-3 col-md-4">
-            <label for="cell-characteristic-molar-mass">Molar mass</label>
+          <div class="mb-3 col-lg-3 col-md-4">
+            <label for="cell-characteristic-molar-mass" class="form-label">Molar mass</label>
             <input
               id="cell-characteristic-molar-mass"
               v-model="MolarMass"
@@ -84,7 +84,7 @@
         </div>
         <div class="row">
           <div class="col">
-            <label id="cell-description-label">Description</label>
+            <label id="cell-description-label" class="form-label">Description</label>
             <TinyMceInline
               v-model="SampleDescription"
               aria-labelledby="cell-description-label"

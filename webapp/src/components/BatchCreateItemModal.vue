@@ -20,14 +20,12 @@
           <transition name="slide-content-left">
             <div v-show="beforeSubmit" id="left-screen">
               <div class="row">
-                <div class="input-group col-lg-3 col-6">
-                  <label for="batch-item-type-select" class="blue-label col-form-label mr-3">
-                    Type:
-                  </label>
+                <div class="col-lg-4 col-md-4 col-12 mb-3 d-flex align-items-center gap-2">
+                  <label for="batch-item-type-select" class="blue-label"> Type: </label>
                   <select
                     id="batch-item-type-select"
                     v-model="item_type"
-                    class="form-control"
+                    class="form-select"
                     required
                   >
                     <option v-for="type in allowedTypes" :key="type" :value="type">
@@ -35,14 +33,14 @@
                     </option>
                   </select>
                 </div>
-                <div class="input-group col-lg-3 col-6">
-                  <label for="batchItemNRows" class="blue-label col-form-label text-left mb-2 mr-3">
+                <div class="col-lg-4 col-md-4 col-12 mb-3 d-flex align-items-center gap-2">
+                  <label for="batchItemNRows" class="blue-label flex-shrink-0">
                     Number of rows:
                   </label>
                   <input
                     id="batchItemNRows"
                     v-model="nSamples"
-                    class="form-control"
+                    class="form-control flex-grow-1"
                     type="number"
                     min="0"
                     max="100"
@@ -50,14 +48,14 @@
                 </div>
               </div>
               <div class="row">
-                <div class="col-md-6 mt-2" @click="templateIsOpen = !templateIsOpen">
+                <div class="col-md-6 d-flex gap-2" @click="templateIsOpen = !templateIsOpen">
                   <font-awesome-icon
                     :icon="['fas', 'chevron-right']"
                     fixed-width
-                    class="collapse-arrow clickable"
+                    class="collapse-arrow"
                     :class="{ expanded: templateIsOpen }"
                   />
-                  <label class="blue-label clickable pl-2"> Template: </label>
+                  <label class="blue-label"> Template: </label>
                 </div>
               </div>
 
@@ -68,7 +66,7 @@
               >
                 <table data-testid="batch-add-table-template" class="table table-sm mb-2">
                   <thead>
-                    <tr class="subheading template-subheading">
+                    <tr class="table-light subheading template-subheading">
                       <th style="width: calc(12%)">ID</th>
                       <th>Name</th>
                       <th style="width: calc(15%)">Date</th>
@@ -86,17 +84,17 @@
                           :disabled="generateIDsAutomatically"
                           @input="applyIdTemplate"
                         />
-                        <div class="form-check mt-1 ml-1">
+                        <div class="form-check mt-1">
                           <input
                             id="automatic-batch-id-label"
                             v-model="generateIDsAutomatically"
                             type="checkbox"
-                            class="form-check-input clickable"
+                            class="form-check-input"
                             @input="setIDsNull"
                           />
                           <label
                             id="automatic-id-label"
-                            class="form-check-label clickable"
+                            class="form-check-label"
                             for="automatic-batch-id-label"
                           >
                             auto IDs
@@ -171,12 +169,8 @@
                   </tbody>
                 </table>
 
-                <div class="form-group mt-2 mb-1" style="display: flex">
-                  <label
-                    id="start-counting-label"
-                    for="start-counting"
-                    class="px-3 col-form-label-sm"
-                  >
+                <div class="mt-2 mb-1 d-flex align-items-center">
+                  <label id="start-counting-label" for="start-counting" class="px-3 form-label-sm">
                     start counting {#} at:
                   </label>
                   <input
@@ -269,15 +263,13 @@
                       <td>
                         <button
                           type="button"
-                          class="close"
+                          class="btn-close close-btn"
                           aria-label="delete"
                           @click.stop="removeRow(index)"
-                        >
-                          <span aria-hidden="true">&times;</span>
-                        </button>
+                        ></button>
                       </td>
                     </tr>
-                    <td colspan="3">
+                    <td v-show="isValidEntryID[index]" colspan="3">
                       <!-- eslint-disable-next-line vue/no-v-html -->
                       <span class="form-error" v-html="isValidEntryID[index]" />
                     </td>
@@ -320,7 +312,7 @@
         <button
           type="button"
           class="btn btn-secondary"
-          data-dismiss="modal"
+          data-bs-dismiss="modal"
           @click="$emit('update:modelValue', false)"
         >
           Close
@@ -637,9 +629,8 @@ export default {
   transform: translateX(-100%);
 }
 
-.close {
-  margin-top: 0.2em;
-  color: grey;
+.close-btn {
+  background-size: 0.7em;
 }
 
 .blue-label {

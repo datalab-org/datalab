@@ -1,14 +1,14 @@
 <template>
   <div
     ref="outerdiv"
-    class="h-100 form-group clickable"
+    class="h-100 mb-3 clickable"
     @click="isEditingCollections = !isEditingCollections"
   >
-    <label id="collections" class="clickable">
+    <label id="collections" class="form-label clickable">
       Collections
       <font-awesome-icon
         id="edit-icon"
-        class="pl-1"
+        class="ps-1"
         icon="pen"
         size="xs"
         :fade="isEditingCollections"
@@ -44,8 +44,8 @@ export default {
   },
   props: {
     modelValue: {
-      type: String,
-      default: "",
+      type: [Array, String],
+      default: () => [],
     },
   },
   emits: ["update:modelValue"],

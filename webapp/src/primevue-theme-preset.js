@@ -80,6 +80,18 @@ const DatalabPreset = definePreset(Aura, {
           left: 28px;
           width: 110px;
         }
+        .p-iconfield {
+          height: 38px;
+        }
+        .p-inputtext {
+          height: 38px;
+        }
+        .p-multiselect {
+          height: 38px;
+        }
+        .p-multiselect-label {
+          height: 38px;
+        }
         .p-datatable-mask {
           color: black;
           background: none;

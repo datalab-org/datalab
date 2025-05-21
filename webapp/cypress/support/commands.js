@@ -31,10 +31,25 @@ import "@testing-library/cypress/add-commands";
 const TODAY = new Date().toISOString().slice(0, -8);
 const API_URL = Cypress.config("apiUrl");
 
+Cypress.Commands.add("cleanTestEnvironment", (options = {}) => {
+  const { itemIds = [], collectionIds = [], visitPath = "/", checkEmptyTables = true } = options;
+
+  cy.visit(visitPath);
+
+  if (itemIds.length > 0) {
+    cy.removeAllTestSamples(itemIds, checkEmptyTables);
+  }
+
+  if (collectionIds.length > 0) {
+    cy.removeAllTestCollections(collectionIds, checkEmptyTables);
+  }
+});
+
 Cypress.Commands.add(
   "createSample",
   (item_id, name = null, date = null, generate_id_automatically = false) => {
-    cy.findByText("Add an item").click();
+    cy.openAndWaitForModal("[data-testid=add-item-button]");
+
     cy.get('[data-testid="create-item-form"]').within(() => {
       cy.findByText("Add new item").should("exist");
       cy.findByLabelText("ID:").type(item_id);
@@ -66,6 +81,32 @@ Cypress.Commands.add("verifySample", (item_id, name = null, date = null) => {
         cy.contains(name);
       }
     });
+});
+
+Cypress.Commands.add("getBatchAddCell", (row, column, additionalSelectors = "") => {
+  return cy.get(
+    `[data-testid=batch-add-table] > tbody > tr:nth-of-type(${row}) > td:nth-of-type(${column}) ${additionalSelectors}`,
+  );
+});
+
+Cypress.Commands.add("getBatchTemplateCell", (column, additionalSelectors = "") => {
+  return cy.get(
+    `[data-testid=batch-add-table-template] > tbody > tr > td:nth-of-type(${column}) ${additionalSelectors}`,
+  );
+});
+
+Cypress.Commands.add("getBatchAddError", (row, additionalSelectors = "") => {
+  return cy.get(
+    `[data-testid=batch-add-table] > tbody > td:nth-of-type(${row}) ${additionalSelectors}`,
+  );
+});
+
+Cypress.Commands.add("getSubmitButton", () => {
+  return cy
+    .get("[data-testid=batch-modal-container]")
+    .find('input[type="submit"]')
+    .scrollIntoView()
+    .should("be.visible");
 });
 
 Cypress.Commands.add("selectItemCheckbox", (type, item_id) => {
@@ -151,7 +192,7 @@ Cypress.Commands.add("searchAndSelectItem", (search_text, selector, clickPlus = 
 });
 
 Cypress.Commands.add("createEquipment", (item_id, name = null, date = null) => {
-  cy.findByText("Add an item").click();
+  cy.openAndWaitForModal("[data-testid=add-equipment-button]");
 
   cy.get('[data-testid="create-equipment-form"]').within(() => {
     cy.findByText("Add equipment").should("exist");
@@ -318,10 +359,78 @@ Cypress.Commands.add("verifyStartingMaterial", (item_id, name = null, date = nul
 Cypress.Commands.add("expandIfCollapsed", (selector) => {
   cy.get(selector)
     .find("[data-testid=collapse-arrow]")
-    .parents(".datablock-header")
-    .then(($header) => {
-      if (!$header.hasClass("expanded")) {
-        cy.wrap($header).find("[data-testid=collapse-arrow]").click();
+    .then(($arrow) => {
+      if (!$arrow.hasClass("rotate-90")) {
+        cy.wrap($arrow).click();
       }
     });
+});
+
+Cypress.Commands.add("waitForModal", (options = {}) => {
+  const timeout = options.timeout || 5000;
+
+  return cy
+    .get(".modal.fade.show", { timeout })
+    .should("be.visible")
+    .should("have.css", "opacity", "1")
+    .get(".modal-content")
+    .should("be.visible");
+});
+
+Cypress.Commands.add("openAndWaitForModal", (selector) => {
+  cy.get(selector).click();
+  return cy.waitForModal();
+});
+
+Cypress.Commands.add("waitForVsDropdown", () => {
+  return cy.get(".vs__dropdown-menu").should("exist");
+});
+
+Cypress.Commands.add("closeAndWaitForModalToDisappear", () => {
+  cy.get(".modal.fade.show").should("be.visible");
+
+  cy.get(".modal.fade.show .modal-footer .btn-secondary")
+    .contains("Close")
+    .should("be.visible")
+    .click();
+
+  cy.get(".modal.fade.show").should("not.exist");
+});
+
+Cypress.Commands.add("selectVsOption", (selector, optionText, options = {}) => {
+  const {
+    withBadge = true,
+    dataTestId = false,
+    index = 0,
+    cellRow = null,
+    cellColumn = null,
+  } = options;
+
+  let targetSelector;
+
+  if (cellRow && cellColumn) {
+    targetSelector = `[data-testid=batch-add-table] > tbody > tr:nth-of-type(${cellRow}) > td:nth-of-type(${cellColumn}) `;
+  } else if (cellColumn) {
+    targetSelector = `[data-testid=batch-add-table-template] > tbody > tr > td:nth-of-type(${cellColumn}) `;
+  } else if (dataTestId) {
+    targetSelector = `[data-testid="${selector}"] `;
+  } else {
+    targetSelector = selector;
+  }
+
+  targetSelector += ".vs__search";
+
+  if (index > 0) {
+    cy.get(targetSelector).eq(index).type(optionText);
+  } else {
+    cy.get(targetSelector).first().type(optionText);
+  }
+
+  cy.waitForVsDropdown();
+
+  if (withBadge) {
+    cy.get(".vs__dropdown-menu").contains(".badge", optionText).click();
+  } else {
+    cy.get(".vs__dropdown-menu").contains(optionText).click();
+  }
 });

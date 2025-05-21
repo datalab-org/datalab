@@ -1,5 +1,5 @@
 <template>
-  <div v-if="showOptions" class="sidebar ml-4">
+  <div v-if="showOptions" class="sidebar">
     <button
       class="btn btn-default options-button mb-2"
       @click="optionsDisplayed = !optionsDisplayed"
@@ -7,11 +7,11 @@
       configure
     </button>
     <div v-show="optionsDisplayed">
-      <label for="graph-style"
+      <label for="graph-style" class="form-label"
         >Graph layout:
-        <font-awesome-icon v-show="layoutIsRunning" class="ml-2 text-muted" icon="spinner" spin
+        <font-awesome-icon v-show="layoutIsRunning" class="text-muted" icon="spinner" spin
       /></label>
-      <div id="graph-style" class="btn-group mr-2" role="group">
+      <div id="graph-style" class="btn-group" role="group">
         <button
           :class="graphStyle == 'euler' ? 'btn btn-default active' : 'btn btn-default'"
           @click="
@@ -68,7 +68,7 @@
         </button>
       </div>
 
-      <label for="ignore-items">Ignore connections to items:</label>
+      <label for="ignore-items" class="form-label">Ignore connections to items:</label>
       <ItemSelect
         id="ignore-items"
         v-model="ignoreItems"
@@ -77,7 +77,7 @@
         @option:deselected="readdItemToGraph"
       />
 
-      <label for="ignore-collections">Ignore connections to collections:</label>
+      <label for="ignore-collections" class="form-label">Ignore connections to collections:</label>
       <CollectionSelect
         id="ignore-collections"
         v-model="ignoreCollections"
@@ -86,7 +86,7 @@
         @option:deselected="readdItemToGraph"
       />
 
-      <div class="form-group form-check mt-3">
+      <div class="mb-3 form-check mt-3">
         <input
           id="label-starting-materials-by-name"
           v-model="labelStartingMaterialsByName"
@@ -97,7 +97,7 @@
           label starting materials by name</label
         >
       </div>
-      <div class="form-group form-check mt-3">
+      <div class="mb-3 form-check mt-3">
         <input
           id="label-items-by-name"
           v-model="labelItemsByName"

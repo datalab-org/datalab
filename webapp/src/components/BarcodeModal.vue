@@ -7,8 +7,8 @@
     >
       <template #header>Barcode</template>
       <template #body>
-        <div class="form-row">
-          <div ref="barcode" class="form-group mx-auto barcode-display" data-testid="barcode">
+        <div class="row justify-content-center">
+          <div ref="barcode" class="text-center barcode-display" data-testid="barcode">
             {{ barcode }}
           </div>
         </div>

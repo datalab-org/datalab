@@ -1,7 +1,9 @@
 <template>
   <!-- <div v-if="!loaded" class="alert alert-secondary mt-3">Data will be displayed here</div> -->
-  <div v-if="loading" class="alert alert-secondary mt-3">Setting up bokeh plot...</div>
-  <div :id="unique_id" ref="bokehPlotContainer" :style="{ height: bokehPlotContainerHeight }" />
+  <div class="bokeh-container" style="max-width: 600px">
+    <div v-if="loading" class="alert alert-secondary mt-3">Setting up bokeh plot...</div>
+    <div :id="unique_id" ref="bokehPlotContainer" :style="{ height: bokehPlotContainerHeight }" />
+  </div>
 </template>
 
 <script>
@@ -61,19 +63,34 @@ export default {
         this.loaded = true;
 
         // add some bootrap styles to bokeh widgets. This is not very elegants
-        var bokehSelectElements = document.querySelectorAll("div.bk-input-group>select");
-        bokehSelectElements.forEach((element) => {
-          element.classList.add("form-control", "ml-4");
-          element.classList.remove("bk-input", "bk");
-        });
-        var bokehSelectLabelElements = document.querySelectorAll("div.bk-input-group>label");
-        bokehSelectLabelElements.forEach((element) => {
-          element.classList.remove("bk");
-        });
         var bokehInputGroups = document.querySelectorAll("div.bk-input-group");
         bokehInputGroups.forEach((element) => {
-          element.classList.add("input-group", "form-inline", "col-sm-6");
-          element.classList.remove("bk-input-group", "bk");
+          var label = element.querySelector("label");
+          var select = element.querySelector("select");
+
+          if (label && select) {
+            // Create wrapper divs
+            var labelWrapper = document.createElement("div");
+            var selectWrapper = document.createElement("div");
+
+            labelWrapper.classList.add("col-auto");
+            selectWrapper.classList.add("col-auto");
+
+            label.parentNode.insertBefore(labelWrapper, label);
+            labelWrapper.appendChild(label);
+
+            select.parentNode.insertBefore(selectWrapper, select);
+            selectWrapper.appendChild(select);
+
+            label.classList.add("form-label");
+            select.classList.add("form-select");
+
+            label.classList.remove("bk");
+            select.classList.remove("bk-input", "bk");
+
+            element.classList.add("row", "align-items-center", "mb-3");
+            element.classList.remove("bk-input-group", "bk");
+          }
         });
       }
     },

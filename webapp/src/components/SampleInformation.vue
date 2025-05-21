@@ -3,17 +3,17 @@
     <!-- Sample information -->
     <div class="row">
       <div class="col">
-        <div id="sample-information" class="form-row">
-          <div class="form-group col-sm-4 pr-2">
-            <label for="samp-name">Name</label>
+        <div id="sample-information" class="row">
+          <div class="col-sm-4 pe-2 ;b-3">
+            <label for="samp-name" class="form-label">Name</label>
             <input id="samp-name" v-model="Name" class="form-control" />
           </div>
-          <div class="form-group col-sm-4 col-6 pr-2">
-            <label for="samp-chemform">Chemical formula</label>
+          <div class="col-sm-4 col-6 pe-2 mb-3">
+            <label for="samp-chemform" class="form-label">Chemical formula</label>
             <ChemFormulaInput id="samp-chemform" v-model="ChemForm" />
           </div>
-          <div class="form-group col-sm-4 col-6">
-            <label for="samp-date">Date Created</label>
+          <div class="col-sm-4 col-6 mb-3">
+            <label for="samp-date" class="form-label">Date Created</label>
             <input
               id="samp-date"
               v-model="DateCreated"
@@ -22,23 +22,23 @@
             />
           </div>
         </div>
-        <div class="form-row">
-          <div class="form-group col-md-3 col-sm-2 col-6">
-            <label for="samp-refcode">Refcode</label>
+        <div class="row">
+          <div class="col-md-3 col-sm-2 col-6 mb-3">
+            <label for="samp-refcode" class="form-label">Refcode</label>
             <div id="samp-refcode">
               <FormattedRefcode :refcode="Refcode" />
             </div>
           </div>
-          <div class="form-group col-md-3 col-sm-3 col-6 pb-3">
+          <div class="col-md-3 col-sm-3 col-6 pb-3 mb-3">
             <ToggleableCreatorsFormGroup v-model="ItemCreators" :refcode="Refcode" />
           </div>
-          <div class="col-md-6 col-sm-7 pr-2">
+          <div class="col-md-6 col-sm-7 pe-2 mb-3">
             <ToggleableCollectionFormGroup v-model="Collections" />
           </div>
         </div>
-        <div class="form-row">
-          <div class="col">
-            <label id="samp-description-label">Description</label>
+        <div class="row">
+          <div class="col mb-3">
+            <label id="samp-description-label" class="form-label">Description</label>
             <TinyMceInline v-model="SampleDescription" aria-labelledby="samp-description-label" />
           </div>
         </div>

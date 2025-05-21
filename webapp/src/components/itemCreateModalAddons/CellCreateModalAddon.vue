@@ -1,8 +1,10 @@
 <template>
-  <div class="row form-inline">
-    <label class="pl-3">(Optional) Cell components:</label>
-    <div class="col-md-12 form-group form-row ml-2 mt-3">
-      <label id="posConstituentsLabel" class="col-sm-3 text-right cell-component-label"
+  <div class="row">
+    <label>(Optional) Cell components:</label>
+    <div class="col-md-12 row mt-3">
+      <label
+        id="posConstituentsLabel"
+        class="d-flex justify-content-end col-sm-4 text-end cell-component-label"
         >Pos. electrode:
       </label>
       <ItemSelect
@@ -11,12 +13,14 @@
         multiple
         :types-to-query="['samples', 'starting_materials']"
         taggable
-        class="col-sm-9"
+        class="col-sm-8"
       />
     </div>
 
-    <div class="col-md-12 form-group form-row ml-2 mt-3">
-      <label id="elyteConstituentsLabel" class="col-sm-3 text-right cell-component-label"
+    <div class="col-md-12 row mt-3">
+      <label
+        id="elyteConstituentsLabel"
+        class="d-flex justify-content-end col-sm-4 text-end cell-component-label"
         >Electrolyte:
       </label>
       <ItemSelect
@@ -25,12 +29,14 @@
         multiple
         :types-to-query="['samples', 'starting_materials']"
         taggable
-        class="col-sm-9"
+        class="col-sm-8"
       />
     </div>
 
-    <div class="col-md-12 form-group form-row ml-2 mt-3">
-      <label id="negConstituentsLabel" class="col-sm-3 text-right cell-component-label"
+    <div class="col-md-12 row mt-3">
+      <label
+        id="negConstituentsLabel"
+        class="d-flex justify-content-end col-sm-4 text-end cell-component-label"
         >Neg. electrode:</label
       >
       <ItemSelect
@@ -39,7 +45,7 @@
         multiple
         :types-to-query="['samples', 'starting_materials']"
         taggable
-        class="col-sm-9"
+        class="col-sm-8"
       />
     </div>
   </div>
@@ -99,7 +105,7 @@ export default {
 
 <style scoped>
 .cell-component-label {
+  align-items: center;
   font-size: 0.95rem;
-  justify-content: end;
 }
 </style>

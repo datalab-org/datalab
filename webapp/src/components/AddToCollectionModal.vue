@@ -3,8 +3,8 @@
     <Modal :model-value="modelValue" @update:model-value="$emit('update:modelValue', $event)">
       <template #header> Add to collections </template>
       <template #body>
-        <div class="form-row">
-          <div class="form-group col-md-8">
+        <div class="row">
+          <div class="col-md-8 mb-3">
             <label for="items-selected" class="col-form-label">Items Selected:</label>
             <div id="items-selected" class="dynamic-input">
               <FormattedItemName
@@ -17,8 +17,8 @@
             </div>
           </div>
         </div>
-        <div class="form-row">
-          <div class="col-md-12 form-group">
+        <div class="row">
+          <div class="col-md-12 mb-3">
             <label id="addToCollectionLabel">Insert into collection:</label>
             <CollectionSelect
               id="collection-select"

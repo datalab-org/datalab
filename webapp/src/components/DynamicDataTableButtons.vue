@@ -18,12 +18,12 @@
       </div>
     </div>
 
-    <div class="d-flex justify-content-between align-items-center">
-      <div class="button-left">
+    <div class="d-flex justify-content-between align-items-center flex-wrap mb-2 gap-2">
+      <div class="d-none d-md-block">
         <button
           v-if="dataType === 'samples'"
           data-testid="add-item-button"
-          class="btn btn-default ml-2"
+          class="btn btn-default me-2"
           @click="$emit('open-create-item-modal')"
         >
           Add an item
@@ -31,7 +31,7 @@
         <button
           v-if="dataType === 'samples'"
           data-testid="batch-item-button"
-          class="btn btn-default ml-2"
+          class="btn btn-default me-2"
           @click="$emit('open-batch-create-item-modal')"
         >
           Add batch of items
@@ -39,7 +39,7 @@
         <button
           v-if="dataType === 'samples'"
           data-testid="scan-qr-button"
-          class="btn btn-default ml-2"
+          class="btn btn-default me-2"
           aria-label="Scan QR code"
           title="Scan QR code"
           @click="$emit('open-qr-scanner-modal')"
@@ -49,7 +49,7 @@
         <button
           v-if="dataType === 'collections'"
           data-testid="add-collection-button"
-          class="btn btn-default ml-2"
+          class="btn btn-default me-2"
           @click="$emit('open-create-collection-modal')"
         >
           Create new collection
@@ -57,7 +57,7 @@
         <button
           v-if="dataType === 'startingMaterials' && editableInventory"
           data-testid="add-starting-material-button"
-          class="btn btn-default ml-2"
+          class="btn btn-default me-2"
           @click="$emit('open-create-item-modal')"
         >
           Add a starting material
@@ -65,18 +65,93 @@
         <button
           v-if="dataType === 'equipment'"
           data-testid="add-equipment-button"
-          class="btn btn-default ml-2"
+          class="btn btn-default me-2"
           @click="$emit('open-create-equipment-modal')"
         >
           Add an item
         </button>
       </div>
 
-      <div class="button-right d-flex">
+      <div class="dropdown d-md-none">
+        <button
+          id="actionButtonsDropdown"
+          class="btn btn-default dropdown-toggle"
+          type="button"
+          data-bs-toggle="dropdown"
+          aria-expanded="false"
+        >
+          Actions
+        </button>
+        <ul class="dropdown-menu" aria-labelledby="actionButtonsDropdown">
+          <li v-if="dataType === 'samples'">
+            <a
+              class="dropdown-item"
+              href="#"
+              data-testid="add-item-button-mobile"
+              @click.prevent="$emit('open-create-item-modal')"
+            >
+              Add an item
+            </a>
+          </li>
+          <li v-if="dataType === 'samples'">
+            <a
+              class="dropdown-item"
+              href="#"
+              data-testid="batch-item-button-mobile"
+              @click.prevent="$emit('open-batch-create-item-modal')"
+            >
+              Add batch of items
+            </a>
+          </li>
+          <li v-if="dataType === 'samples'">
+            <a
+              class="dropdown-item"
+              href="#"
+              data-testid="scan-qr-button-mobile"
+              @click.prevent="$emit('open-qr-scanner-modal')"
+            >
+              <font-awesome-icon icon="qrcode" /> Scan QR code
+            </a>
+          </li>
+          <li v-if="dataType === 'collections'">
+            <a
+              class="dropdown-item"
+              href="#"
+              data-testid="add-collection-button-mobile"
+              @click.prevent="$emit('open-create-collection-modal')"
+            >
+              Create new collection
+            </a>
+          </li>
+          <li v-if="dataType === 'startingMaterials' && editableInventory">
+            <a
+              class="dropdown-item"
+              href="#"
+              data-testid="add-starting-material-button-mobile"
+              @click.prevent="$emit('open-create-item-modal')"
+            >
+              Add a starting material
+            </a>
+          </li>
+          <li v-if="dataType === 'equipment'">
+            <a
+              class="dropdown-item"
+              href="#"
+              data-testid="add-equipment-button-mobile"
+              @click.prevent="$emit('open-create-equipment-modal')"
+            >
+              Add an item
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <div class="d-flex align-items-center">
         <MultiSelect
           :model-value="selectedColumns"
           :options="availableColumns"
           :option-label="columnLabel"
+          class="ms-md-0 mb-md-0"
           placeholder="Select column(s) to display"
           display="chip"
           @update:model-value="$emit('update:selected-columns', $event)"
@@ -89,21 +164,21 @@
           </template>
         </MultiSelect>
 
-        <IconField class="ml-2">
+        <IconField class="ms-2">
           <InputIcon>
             <font-awesome-icon icon="search" />
           </InputIcon>
           <InputText
             v-model="localFilters.global.value"
             data-testid="search-input"
-            class="search-input"
+            class="search-input form-control"
             placeholder="Search"
           />
         </IconField>
 
         <button
           data-testid="reset-table-button"
-          class="btn btn-default ml-2"
+          class="btn btn-default ms-2"
           aria-label="Reset table"
           title="Reset table"
           @click="resetTable"
@@ -113,37 +188,39 @@
       </div>
     </div>
 
-    <div v-if="itemsSelected.length > 0" class="d-flex justify-content-end align-items-center mt-2">
+    <div v-if="itemsSelected.length > 0" class="d-flex justify-content-end align-items-center">
       <div class="dropdown">
         <button
           data-testid="selected-dropdown"
           class="btn btn-default dropdown-toggle"
           type="button"
-          data-toggle="dropdown"
-          aria-haspopup="true"
+          data-bs-toggle="dropdown"
           aria-expanded="false"
-          @click="isSelectedDropdownVisible = !isSelectedDropdownVisible"
         >
           {{ itemsSelected.length }} selected...
         </button>
-        <div
-          v-show="isSelectedDropdownVisible"
-          class="dropdown-menu"
-          style="display: block"
-          aria-labelledby="dropdownMenuButton"
-        >
-          <a
-            v-if="dataType !== 'collections'"
-            data-testid="add-to-collection-button"
-            class="dropdown-item"
-            @click="handleAddToCollection"
-          >
-            Add to collection
-          </a>
-          <a data-testid="delete-selected-button" class="dropdown-item" @click="confirmDeletion">
-            Delete selected
-          </a>
-        </div>
+        <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+          <li v-if="dataType !== 'collections'">
+            <a
+              data-testid="add-to-collection-button"
+              class="dropdown-item"
+              href="#"
+              @click.prevent="handleAddToCollection"
+            >
+              Add to collection
+            </a>
+          </li>
+          <li>
+            <a
+              data-testid="delete-selected-button"
+              class="dropdown-item"
+              href="#"
+              @click.prevent="confirmDeletion"
+            >
+              Delete selected
+            </a>
+          </li>
+        </ul>
       </div>
     </div>
   </div>
@@ -224,6 +301,7 @@ export default {
       isSelectedDropdownVisible: false,
       isDeletingItems: false,
       itemCount: 0,
+      isColumnSelectModalOpen: false,
     };
   },
   watch: {
@@ -293,16 +371,29 @@ export default {
         this.$emit("reset-table");
       }
     },
+    updateColumnsAndCloseModal(newColumns) {
+      this.$emit("update:selected-columns", newColumns);
+      this.isColumnSelectModalOpen = false;
+    },
   },
 };
 </script>
 
 <style scoped>
-.search-input {
-  height: calc(1.5em + 0.75rem + 2px);
-  padding: 0.375rem 0.75rem;
-  font-size: 1rem;
-  line-height: 1.5;
-  border-radius: 0.25rem;
+@media (max-width: 500px) {
+  .d-flex.align-items-center {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .ms-2 {
+    margin-left: 0 !important;
+    width: 85%;
+  }
+
+  .btn.btn-default.ms-2 {
+    width: auto;
+    margin-left: 8px !important;
+  }
 }
 </style>

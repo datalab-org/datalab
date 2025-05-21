@@ -37,6 +37,7 @@ body {
   color: #444;
   border-radius: 5px;
   padding: 5px;
+  text-decoration: none;
 }
 
 #nav a.router-link-exact-active {

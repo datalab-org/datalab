@@ -1,22 +1,14 @@
 <template>
-  <table style="width: 600px" class="table table-sm borderless">
+  <table class="table table-sm borderless w-100">
     <colgroup>
-      <col span="1" style="width: 300px" />
-      <col span="1" style="width: 75px" />
-      <col span="1" style="width: 50px" />
-      <col span="1" style="width: 25px" />
+      <col span="1" />
+      <col span="1" style="width: 100px" />
+      <col span="1" style="width: 60px" />
+      <col span="1" style="width: 20px" />
     </colgroup>
     <tbody>
       <tr v-for="(constituent, index) in constituents" :key="index">
-        <td>
-          <!-- <transition name="fade"> -->
-          <!--             <font-awesome-icon
-              v-if="!selectShown[index]"
-              :icon="['fas', 'search']"
-              class="swap-constituent-icon"
-              @click="turnOnRowSelect(index)"
-            /> -->
-          <!-- </transition> -->
+        <td class="align-middle">
           <ItemSelect
             v-if="selectShown[index]"
             :ref="`select${index}`"
@@ -33,15 +25,13 @@
             :item-type="constituent.item.type"
             :name="constituent.item.name"
             :chemform="constituent.item.chemform || ''"
+            class="item-name"
             enable-click
             enable-modified-click
             @dblclick="turnOnRowSelect(index)"
           />
         </td>
-        <!--         <td>
-          <ChemicalFormula :formula="constituent.item?.chemform" />
-        </td> -->
-        <td>
+        <td class="align-middle">
           <input
             v-model="constituent.quantity"
             class="form-control form-control-sm quantity-input"
@@ -49,7 +39,7 @@
             placeholder="quantity"
           />
         </td>
-        <td>
+        <td class="align-middle">
           <input
             v-model="constituent.unit"
             class="form-control form-control-sm"
@@ -57,15 +47,13 @@
           />
         </td>
 
-        <td>
+        <td class="align-middle text-center">
           <button
             type="button"
-            class="close"
-            aria-label="delete"
+            class="btn-close close-btn"
+            aria-label="Delete"
             @click.stop="removeConstituent(index)"
-          >
-            <span aria-hidden="true">&times;</span>
-          </button>
+          ></button>
         </td>
       </tr>
       <tr>
@@ -113,8 +101,8 @@ export default {
   },
   props: {
     modelValue: {
-      type: String,
-      default: "",
+      type: [String, Object],
+      default: () => {},
     },
     typesToQuery: {
       type: Array,
@@ -191,15 +179,29 @@ td {
   position: relative;
 }
 
+.item-name {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.quantity-input,
+input[placeholder="unit"] {
+  width: 100%;
+  min-width: 0;
+}
+
 .add-row-button {
   position: absolute;
   font-size: regular;
   color: #bbb;
+  top: 30%;
   float: right;
   transform: translateY(-50%);
   transition: transform 0.4s ease;
-  width: 1.5rem;
-  left: -2rem;
+  padding-top: 0.4rem;
 }
 
 .fade-enter-active,
@@ -219,5 +221,13 @@ td {
 .borderless tr,
 .borderless td {
   border: none !important;
+}
+
+.close-btn {
+  background-size: 0.7em;
+}
+
+.table {
+  table-layout: fixed;
 }
 </style>
