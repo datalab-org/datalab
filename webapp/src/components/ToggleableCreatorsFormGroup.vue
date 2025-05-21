@@ -33,6 +33,8 @@
 </template>
 
 <script>
+import { DialogService } from "@/services/DialogService";
+
 import Creators from "@/components/Creators";
 import UserSelect from "@/components/UserSelect";
 import { OnClickOutside } from "@vueuse/components";
@@ -84,8 +86,12 @@ export default {
           if (this.shadowValue.length == 0) {
             throw new Error("You must have at least one creator.");
           }
-          let answer = confirm("Are you sure you want to update the permissions of this item?");
-          if (answer) {
+          const confirmed = await DialogService.confirm({
+            title: "Update Permissions",
+            message: "Are you sure you want to update the permissions of this item?",
+            type: "warning",
+          });
+          if (confirmed) {
             await updateItemPermissions(this.refcode, this.shadowValue);
             this.$emit("update:modelValue", [...this.shadowValue]);
           } else {
