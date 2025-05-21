@@ -104,6 +104,8 @@
 </template>
 
 <script>
+import { DialogService } from "@/services/DialogService";
+
 import Modal from "@/components/Modal.vue";
 import ItemSelect from "@/components/ItemSelect.vue";
 import { createNewItem } from "@/server_fetch_utils.js";
@@ -208,7 +210,10 @@ export default {
             console.log("error parsing error message", e);
           } finally {
             if (!is_item_id_error) {
-              alert("Error with creating new item: " + error);
+              DialogService.error({
+                title: "Creation Error",
+                message: "Error with creating new item: " + error,
+              });
             }
           }
         });

@@ -99,7 +99,10 @@ export default {
           }
         } catch (error) {
           // Reset value to original
-          alert("Error updating permissions: " + error);
+          DialogService.error({
+            title: "Permission Update Failed",
+            message: "Error updating permissions: " + error,
+          });
           this.shadowValue = [...this.value];
         }
       }
