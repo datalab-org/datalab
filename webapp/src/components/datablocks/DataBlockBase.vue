@@ -140,6 +140,8 @@
  * moved, deleted and annotated with a title and description.
  *
  */
+import { DialogService } from "@/services/DialogService";
+
 import { createComputedSetterForBlockField } from "@/field_utils.js";
 import TinyMceInline from "@/components/TinyMceInline";
 import StyledBlockInfo from "@/components/StyledBlockInfo";
@@ -242,8 +244,15 @@ export default {
         event.detail,
       );
     },
-    deleteThisBlock() {
-      deleteBlock(this.item_id, this.block_id);
+    async deleteThisBlock() {
+      const confirmed = await DialogService.confirm({
+        title: "Delete Block",
+        message: "Are you sure you want to delete this block?",
+        type: "warning",
+      });
+      if (confirmed) {
+        deleteBlock(this.item_id, this.block_id);
+      }
     },
     swapUp() {
       this.$store.commit("swapBlockDisplayOrder", {
