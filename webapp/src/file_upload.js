@@ -6,6 +6,8 @@ import Dashboard from "@uppy/dashboard";
 import XHRUpload from "@uppy/xhr-upload";
 import Webcam from "@uppy/webcam";
 
+import { DialogService } from "@/services/DialogService";
+
 import store from "@/store/index.js";
 import { construct_headers } from "@/server_fetch_utils.js";
 
@@ -42,9 +44,11 @@ export default function setupUppy(item_id, trigger_selector, reactive_file_list)
     var matching_file_id = null;
     for (const file_id in reactive_file_list) {
       if (reactive_file_list[file_id].name == file.name) {
-        alert(
-          "A file with this name already exists in the sample. If you upload this, it will be duplicated on the current item.",
-        );
+        DialogService.warning({
+          title: "Duplicate File",
+          message:
+            "A file with this name already exists in the sample. If you upload this, it will be duplicated on the current item.",
+        });
       }
     }
 

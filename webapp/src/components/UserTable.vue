@@ -96,7 +96,10 @@ export default {
       const originalCurrentUser = this.original_users.find((user) => user._id.$oid === user_id);
 
       if (originalCurrentUser.role === "admin") {
-        window.alert("You can't change an admin's role.");
+        DialogService.error({
+          title: "Role Change Error",
+          message: "You can't change an admin's role.",
+        });
         this.users.find((user) => user._id.$oid === user_id).role = originalCurrentUser.role;
         return;
       }
