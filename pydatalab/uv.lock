@@ -577,6 +577,7 @@ dependencies = [
     { name = "periodictable" },
     { name = "pint" },
     { name = "pydantic", extra = ["dotenv", "email"] },
+    { name = "pymongo" },
 ]
 
 [package.optional-dependencies]
@@ -598,7 +599,6 @@ all = [
     { name = "pillow" },
     { name = "pybaselines" },
     { name = "pyjwt" },
-    { name = "pymongo" },
     { name = "python-dateutil" },
     { name = "python-dotenv" },
     { name = "rosettasciio" },
@@ -640,7 +640,6 @@ server = [
     { name = "paramiko" },
     { name = "pillow" },
     { name = "pyjwt" },
-    { name = "pymongo" },
     { name = "python-dotenv" },
     { name = "werkzeug" },
 ]
@@ -686,7 +685,7 @@ requires-dist = [
     { name = "pybaselines", marker = "extra == 'apps'", specifier = "~=1.1" },
     { name = "pydantic", extras = ["dotenv", "email"], specifier = "<2.0" },
     { name = "pyjwt", marker = "extra == 'server'", specifier = "~=2.9" },
-    { name = "pymongo", marker = "extra == 'server'", specifier = "~=4.7,<4.11" },
+    { name = "pymongo", specifier = "~=4.7,<4.11" },
     { name = "python-dateutil", marker = "extra == 'apps'", specifier = "~=2.9" },
     { name = "python-dotenv", marker = "extra == 'server'", specifier = "~=1.0" },
     { name = "rosettasciio", marker = "extra == 'apps'", specifier = "~=0.3,<0.4" },
