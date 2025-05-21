@@ -32,10 +32,22 @@
             </div>
           </div>
           <div class="modal-footer">
-            <button v-if="showCancelButton" type="button" class="btn btn-secondary" @click="cancel">
+            <button
+              v-if="showCancelButton"
+              data-testid="dialog-modal-cancel-button"
+              type="button"
+              class="btn btn-secondary"
+              @click="cancel"
+            >
               {{ cancelButtonText }}
             </button>
-            <button type="button" class="btn" :class="confirmButtonClass" @click="confirm">
+            <button
+              type="button"
+              data-testid="dialog-modal-confirm-button"
+              class="btn"
+              :class="confirmButtonClass"
+              @click="confirm"
+            >
               {{ confirmButtonText }}
             </button>
           </div>
