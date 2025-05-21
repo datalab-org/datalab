@@ -27,6 +27,7 @@ dependencies = [
     "pydantic[email, dotenv] < 2.0",
     "pint ~= 0.24",
     "pandas[excel] ~= 2.2",
+    "pymongo ~= 4.7, < 4.11",
 ]
 
 [project.urls]
@@ -46,7 +47,6 @@ version_scheme = "post-release"
 
 [project.optional-dependencies]
 server = [
-    "pymongo ~= 4.7, < 4.11",
     "Flask ~= 3.0",
     "Flask-Login ~= 0.6",
     "Flask-Cors ~= 5.0",
