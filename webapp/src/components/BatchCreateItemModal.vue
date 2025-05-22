@@ -46,7 +46,7 @@
                     class="form-control"
                     type="number"
                     min="0"
-                    max="101"
+                    max="100"
                   />
                 </div>
                 <div
@@ -450,7 +450,7 @@ export default {
 
   watch: {
     nSamples(newValue, oldValue) {
-      if (newValue > 101) {
+      if (newValue > 100) {
         this.batchSizeError = "Maximum 100 items can be created at once";
         return;
       } else {
