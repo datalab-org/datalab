@@ -2,10 +2,7 @@
   <form data-testid="batch-modal-container" class="modal-enclosure" @submit.prevent="submitForm">
     <Modal
       :model-value="modelValue"
-      :disable-submit="
-        isValidEntryID.some((e) => e) ||
-        (!generateIDsAutomatically && items.some((s) => !Boolean(s.item_id)))
-      "
+      :disable-submit="isFormValid"
       @update:model-value="$emit('update:modelValue', $event)"
     >
       <template #header>
@@ -47,6 +44,12 @@
                     min="0"
                     max="100"
                   />
+                </div>
+                <div
+                  v-if="isValidBatchSize"
+                  class="form-error ml-2 text-nowrap small align-self-center"
+                >
+                  {{ isValidBatchSize }}
                 </div>
               </div>
               <div class="row">
@@ -406,6 +409,7 @@ export default {
       },
 
       serverResponses: {}, // after the server responds, store error messages if any
+      batchSizeError: "",
     };
   },
   computed: {
@@ -435,10 +439,27 @@ export default {
         return validateEntryID(item.item_id, this.takenItemIds, this.takenSampleIds);
       });
     },
+    isValidBatchSize() {
+      return this.batchSizeError;
+    },
+    isFormValid() {
+      return (
+        this.isValidEntryID.some((e) => e) ||
+        (!this.generateIDsAutomatically && this.items.some((s) => !s.item_id)) ||
+        this.isValidBatchSize
+      );
+    },
   },
 
   watch: {
     nSamples(newValue, oldValue) {
+      if (newValue > 100) {
+        this.batchSizeError = "Maximum 100 items can be created at once";
+        return;
+      } else {
+        this.batchSizeError = "";
+      }
+
       if (newValue < oldValue) {
         this.items = this.items.slice(0, newValue);
       }
