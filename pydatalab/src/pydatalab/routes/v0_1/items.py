@@ -662,6 +662,15 @@ def create_samples():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
 
     sample_jsons = request_json["new_sample_datas"]
+
+    if len(sample_jsons) > CONFIG.MAX_BATCH_CREATE_SIZE:
+        return jsonify(
+            {
+                "status": "error",
+                "message": f"Batch size limit exceeded. Maximum allowed: {CONFIG.MAX_BATCH_CREATE_SIZE}, requested: {len(sample_jsons)}",
+            }
+        ), 400
+
     copy_from_item_ids = request_json.get("copy_from_item_ids")
     generate_ids_automatically = request_json.get("generate_ids_automatically")
 
