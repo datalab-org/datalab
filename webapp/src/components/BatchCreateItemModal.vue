@@ -2,7 +2,11 @@
   <form data-testid="batch-modal-container" class="modal-enclosure" @submit.prevent="submitForm">
     <Modal
       :model-value="modelValue"
-      :disable-submit="isFormValid"
+      :disable-submit="
+        isValidEntryID.some((e) => e) ||
+        (!generateIDsAutomatically && items.some((s) => !Boolean(s.item_id))) ||
+        isValidBatchSize
+      "
       @update:model-value="$emit('update:modelValue', $event)"
     >
       <template #header>
@@ -42,7 +46,7 @@
                     class="form-control"
                     type="number"
                     min="0"
-                    max="100"
+                    max="101"
                   />
                 </div>
                 <div
@@ -409,7 +413,7 @@ export default {
       },
 
       serverResponses: {}, // after the server responds, store error messages if any
-      batchSizeError: "",
+      batchSizeError: false,
     };
   },
   computed: {
@@ -442,22 +446,15 @@ export default {
     isValidBatchSize() {
       return this.batchSizeError;
     },
-    isFormValid() {
-      return (
-        this.isValidEntryID.some((e) => e) ||
-        (!this.generateIDsAutomatically && this.items.some((s) => !s.item_id)) ||
-        this.isValidBatchSize
-      );
-    },
   },
 
   watch: {
     nSamples(newValue, oldValue) {
-      if (newValue > 100) {
+      if (newValue > 101) {
         this.batchSizeError = "Maximum 100 items can be created at once";
         return;
       } else {
-        this.batchSizeError = "";
+        this.batchSizeError = false;
       }
 
       if (newValue < oldValue) {
@@ -595,6 +592,7 @@ export default {
           this.beforeSubmit = false;
         })
         .catch((error) => {
+          window.alert("Error with creating new items: " + error);
           console.log("Error with creating new items: " + error);
         });
     },

@@ -239,6 +239,10 @@ Warning: this value will overwrite any other values passed to `FLASK_MAX_CONTENT
 its importance when deploying a datalab instance.""",
     )
 
+    MAX_BATCH_CREATE_SIZE: int = Field(
+        100, description="Maximum number of items that can be created in a single batch operation."
+    )
+
     BACKUP_STRATEGIES: dict[str, BackupStrategy] | None = Field(
         {
             "daily-snapshots": BackupStrategy(
