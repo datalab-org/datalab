@@ -244,7 +244,7 @@ def get_file_info_by_id(file_id: str | ObjectId, update_if_live: bool = True) ->
             newer version, if it exists.
 
     Raises:
-        IOError: If the given file ID does not exist in the database.
+        OSError: If the given file ID does not exist in the database.
 
     Returns:
         The stored file information as a dictonary. Will be empty if the
