@@ -1,12 +1,13 @@
 import os
 import warnings
 from pathlib import Path
+from typing import Any
 
 import bokeh
 import numpy as np
 import pandas as pd
 from pybaselines import Baseline
-from rsciio.renishaw import file_reader
+from renishawWiRE import WDFReader
 from scipy.signal import medfilt
 
 from pydatalab.blocks.base import DataBlock
@@ -152,7 +153,7 @@ class RamanBlock(DataBlock):
 
     @classmethod
     def make_wdf_df(cls, location: Path | str) -> pd.DataFrame:
-        """Read the .wdf file with RosettaSciIO and try to extract
+        """Read the .wdf file with py-wdf-reader and try to extract
         1D Raman spectra.
 
         Parameters:
@@ -164,29 +165,46 @@ class RamanBlock(DataBlock):
         """
 
         try:
-            raman_data = file_reader(location)
+            reader = WDFReader(location)
         except Exception as e:
-            raise RuntimeError(f"Could not read file with RosettaSciIO. Error: {e}")
+            raise RuntimeError(f"Could not read file with py-wdf-reader. Error: {e}")
 
-        if len(raman_data[0]["axes"]) == 1:
-            pass
-        elif len(raman_data[0]["axes"]) == 3:
-            raise RuntimeError("This block does not support 2D Raman yet.")
-        else:
-            raise RuntimeError("Data is not compatible 1D or 2D Raman data.")
+        if len(reader.xdata.shape) != 1:
+            raise RuntimeError("This block does not support 2D Raman, or multiple patterns, yet.")
 
-        if len(raman_data) != 1:
-            warnings.warn("More than one spectrum found in file, using first spectrum only.")
+        metadata_keys = {
+            "title",
+            "application_name",
+            "application_version",
+            "count",
+            "capacity",
+            "point_per_spectrum",
+            "scan_type",
+            "measurement_type",
+            "spectral_unit",
+            "xlist.unit",
+            "xlist.length",
+            "ylist.unit",
+            "ylist.length",
+            "xpos_unit",
+            "ypos_unit",
+        }
 
-        intensity = raman_data[0]["data"]
-        wavenumber_size = raman_data[0]["axes"][0]["size"]
-        wavenumber_offset = raman_data[0]["axes"][0]["offset"]
-        wavenumber_scale = raman_data[0]["axes"][0]["scale"]
-        wavenumbers = np.array(
-            [wavenumber_offset + i * wavenumber_scale for i in range(wavenumber_size)]
-        )
-        metadata = raman_data[0]["metadata"]
-        metadata["wavenumber_unit"] = raman_data[0]["axes"][0]["units"]
+        metadata: dict[str, Any] = {}
+
+        for key in metadata_keys:
+            if "." in key and len(key.split(".")) == 2:
+                value = getattr(getattr(reader, key.split(".")[0], None), key.split(".")[1], None)
+            else:
+                value = getattr(reader, key, None)
+            metadata[key] = value
+
+        wavenumbers = reader.xdata  # noqa
+        intensity = reader.spectra
+
+        # Extract units
+        metadata["wavenumber_unit"] = str(getattr(reader, "xlist_unit", "1/cm"))
+
         df = pd.DataFrame({"wavenumber": wavenumbers, "intensity": intensity})
         return df, metadata
 
