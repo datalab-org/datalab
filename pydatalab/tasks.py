@@ -3,7 +3,6 @@ import os
 import pathlib
 import re
 import time
-from typing import Tuple
 
 from invoke import Collection, task
 
@@ -16,7 +15,7 @@ admin = Collection("admin")
 migration = Collection("migration")
 
 
-def update_file(filename: str, sub_line: Tuple[str, str], strip: str | None = None):
+def update_file(filename: str, sub_line: tuple[str, str], strip: str | None = None):
     """Utility function for tasks to read, update, and write files.
 
     Modified from optimade-python-tools.

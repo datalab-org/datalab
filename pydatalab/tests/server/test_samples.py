@@ -193,7 +193,7 @@ def test_item_search(client, admin_client, real_mongo_client, example_items):
     assert response.json["items"][0]["item_id"] == "material"
 
     # Test regex search
-    response = client.get("/search-items/?query=mater")
+    response = client.get("/search-items/?query=mater&types=samples,starting_materials")
 
     assert response.status_code == 200
     assert response.json["status"] == "success"
@@ -201,6 +201,14 @@ def test_item_search(client, admin_client, real_mongo_client, example_items):
     assert "material" in item_ids
     assert "12345" in item_ids
     assert len(item_ids) == 2
+
+    # Test regex search with different types
+    response = client.get("/search-items/?query=mater&types=equipment")
+
+    assert response.status_code == 200
+    assert response.json["status"] == "success"
+    item_ids = {item["item_id"] for item in response.json["items"]}
+    assert len(item_ids) == 0
 
     # Test regex search still obeys permissions
     response = admin_client.get("/search-items/?query=mater")

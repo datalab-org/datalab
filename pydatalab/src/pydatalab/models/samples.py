@@ -1,5 +1,3 @@
-from typing import Optional
-
 from pydantic import Field
 
 from pydatalab.models.items import Item
@@ -12,7 +10,7 @@ class Sample(Item, HasSynthesisInfo):
 
     type: str = Field("samples", const="samples", pattern="^samples$")
 
-    chemform: Optional[str] = Field(example=["Na3P", "LiNiO2@C"])
+    chemform: str | None = Field(example=["Na3P", "LiNiO2@C"])
     """A string representation of the chemical formula or composition associated with this sample."""
 
     status: SampleStatus = Field(default=SampleStatus.ACTIVE)

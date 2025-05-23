@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 from pydatalab.apps.nmr.blocks import NMRBlock
-from pydatalab.apps.nmr.utils import read_bruker_1d
+from pydatalab.apps.nmr.utils import read_bruker_1d, read_jcamp_dx_1d
 
 
 def _extract_example(filename, dir):
@@ -21,6 +21,16 @@ def nmr_1d_solution_path():
 @pytest.fixture(scope="function")
 def nmr_1d_solution_example(tmpdir, nmr_1d_solution_path):
     return _extract_example(nmr_1d_solution_path, tmpdir)
+
+
+@pytest.fixture(scope="function")
+def nmr_jcamp_1h_path():
+    yield Path(__file__).parent.parent.parent / "example_data" / "NMR" / "1h.dx"
+
+
+@pytest.fixture(scope="function")
+def nmr_jcamp_13c_path():
+    yield Path(__file__).parent.parent.parent / "example_data" / "NMR" / "13c.jdx"
 
 
 @pytest.fixture(scope="function")
@@ -86,7 +96,31 @@ def test_nmr_block(nmr_1d_solution_path, nmr_1d_solid_path, nmr_2d_matpass_path)
     block.read_bruker_nmr_data(nmr_2d_matpass_path)
     assert block.data["metadata"]["topspin_title"].split("\n")[0] == "7Li 40kHz 40 C MATPASS"
     # catch warning about processed data
-    with pytest.warns(UserWarning, match="processed data"):
+    with pytest.warns(UserWarning, match="Only metadata"):
         block.generate_nmr_plot(parse=False)
-        plot = block.data["bokeh_plot_data"]
+        plot = block.data.get("bokeh_plot_data")
         assert plot is None  # cannot plot MATPASS yet
+
+
+def test_read_jcamp_1h_1d(nmr_jcamp_1h_path):
+    df, dic, title, shape = read_jcamp_dx_1d(nmr_jcamp_1h_path)
+    assert df is not None
+    assert dic[".OBSERVENUCLEUS"]
+
+    block = NMRBlock(item_id="nmr-block")
+    block.read_jcamp_nmr_data(nmr_jcamp_1h_path)
+    assert block.data["metadata"]["title"] == title
+    assert block.data["metadata"]["nucleus"] == "1H"
+    assert block.data["metadata"]["carrier_frequency_Hz"] == 400.4224e6
+
+
+def test_read_jcamp_13c_1d(nmr_jcamp_13c_path):
+    df, dic, title, shape = read_jcamp_dx_1d(nmr_jcamp_13c_path)
+    assert df is not None
+    assert dic[".OBSERVENUCLEUS"]
+
+    block = NMRBlock(item_id="nmr-block")
+    block.read_jcamp_nmr_data(nmr_jcamp_13c_path)
+    assert block.data["metadata"]["title"] == title
+    assert block.data["metadata"]["nucleus"] == "13C"
+    assert block.data["metadata"]["carrier_frequency_Hz"] == 100.695689e6

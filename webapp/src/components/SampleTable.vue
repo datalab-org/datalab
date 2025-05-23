@@ -5,12 +5,11 @@
     :data-type="'samples'"
     :global-filter-fields="[
       'item_id',
-      'type',
       'name',
+      'refcode',
       'chemform',
-      'collectionsList',
-      'creatorsList',
-      'nblocks',
+      'blocks',
+      'characteristic_chemical_formula',
     ]"
   />
 </template>
@@ -31,12 +30,30 @@ export default {
           filter: true,
           label: "ID",
         },
-        { field: "type", header: "Type", filter: true },
+        { field: "type", header: "Type", filter: true, label: "Type" },
         { field: "status", header: "Status", body: "FormattedItemStatus", filter: true },
-        { field: "name", header: "Name" },
-        { field: "date", header: "Date" },
-        { field: "collections", header: "Collections", body: "CollectionList", filter: true },
-        { field: "creators", header: "Creators", body: "Creators", filter: true },
+        { field: "name", header: "Sample name", label: "Sample name" },
+        {
+          field: "chemform",
+          header: "Formula",
+          body: "ChemicalFormula",
+          label: "Formula",
+        },
+        { field: "date", header: "Date", label: "Date" },
+        {
+          field: "collections",
+          header: "Collections",
+          body: "CollectionList",
+          filter: true,
+          label: "Collections",
+        },
+        {
+          field: "creators",
+          header: "Creators",
+          body: "Creators",
+          filter: true,
+          label: "Creators",
+        },
         {
           field: "blocks",
           header: "",
@@ -57,6 +74,9 @@ export default {
   },
   computed: {
     samples() {
+      if (!this.$store.state.sample_list) {
+        return null;
+      }
       return this.$store.state.sample_list.map((sample) => {
         return {
           ...sample,

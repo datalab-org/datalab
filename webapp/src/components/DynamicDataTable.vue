@@ -5,6 +5,7 @@
     </div>
 
     <DataTable
+      ref="datatable"
       v-model:filters="filters"
       v-model:selection="itemsSelected"
       v-model:select-all="allSelected"
@@ -23,6 +24,7 @@
       sort-mode="multiple"
       state-storage="local"
       :state-key="`datatable-state-${dataType}`"
+      :loading="data === null"
       @state-restore="onStateRestore"
       @state-save="onStateSave"
       @filter="onFilter"
@@ -52,10 +54,23 @@
           @open-create-equipment-modal="createEquipmentModalIsOpen = true"
           @open-add-to-collection-modal="addToCollectionModalIsOpen = true"
           @delete-selected-items="deleteSelectedItems"
+          @reset-table="handleResetTable"
         />
       </template>
-      <template #empty> No data found. </template>
-      <template #loading> Loading data. Please wait. </template>
+      <template #loading>
+        <div class="card text-center">
+          <div class="card-body">
+            <font-awesome-icon
+              :icon="['fa', 'sync']"
+              class="fa-2x text-primary mb-2"
+              :spin="true"
+              aria-label="loading"
+            />
+            <p class="mb-0 font-weight-medium">Loading entries, please wait...</p>
+          </div>
+        </div>
+      </template>
+      <template #empty> No entries found. </template>
 
       <Column v-if="showButtons" class="checkbox" selection-mode="multiple"></Column>
 
@@ -279,6 +294,8 @@ import CollectionList from "@/components/CollectionList";
 import Creators from "@/components/Creators";
 import UserBubble from "@/components/UserBubble.vue";
 import FormattedItemStatus from "@/components/FormattedItemStatus.vue";
+import FormattedBarcode from "@/components/FormattedBarcode.vue";
+import FormattedRefcode from "@/components/FormattedRefcode.vue";
 
 import { FilterMatchMode, FilterOperator, FilterService } from "@primevue/core/api";
 import DataTable from "primevue/datatable";
@@ -294,6 +311,8 @@ export default {
     FilesIconCounter,
     BatchCreateItemModal,
     QRScannerModal,
+    FormattedBarcode,
+    FormattedRefcode,
     CreateCollectionModal,
     CreateEquipmentModal,
     AddToCollectionModal,
@@ -362,6 +381,10 @@ export default {
         type: {
           operator: FilterOperator.AND,
           constraints: [{ value: null, matchMode: "exactTypeMatch" }],
+        },
+        location: {
+          operator: FilterOperator.AND,
+          constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
         },
         collections: {
           operator: FilterOperator.AND,
@@ -450,7 +473,7 @@ export default {
   },
   created() {
     this.editable_inventory = EDITABLE_INVENTORY;
-    this.selectedColumns = [...this.availableColumns];
+    this.selectedColumns = this.availableColumns.filter((col) => !col.hidden);
 
     FilterService.register("exactCollectionMatch", (value, filterValue) => {
       if (!filterValue || !value) return true;
@@ -573,6 +596,10 @@ export default {
           }
         });
       });
+
+      this.$nextTick(() => {
+        this.allSelected = this.checkAllSelected();
+      });
     },
     updateFilters(newFilters) {
       this.filters = newFilters;
@@ -616,6 +643,15 @@ export default {
           item_id: "item_id",
           itemType: "type",
           enableModifiedClick: true,
+        },
+        FormattedRefcode: {
+          enableQRCode: false,
+          refcode: "refcode",
+        },
+        FormattedBarcode: {
+          enableBarcode: false,
+          enableModifiedClick: false,
+          barcode: "barcode",
         },
         FormattedCollectionName: {
           collection_id: "collection_id",
@@ -676,31 +712,33 @@ export default {
       return false;
     },
     getVisibleItems() {
-      const start = this.page * this.rows;
-      const end = start + this.rows;
-      if (this.filteredData.length <= this.rows) {
-        return this.filteredData.slice(start, end);
+      if (this.$refs.datatable) {
+        try {
+          return this.$refs.datatable.dataToRender();
+        } catch (error) {
+          console.error("Error accessing datatable rendered data:", error);
+        }
       }
-
-      return this.data.slice(start, end);
     },
     checkAllSelected() {
       const visibleItems = this.getVisibleItems();
 
-      if (visibleItems.length === 0) {
+      if (!visibleItems || visibleItems.length === 0) {
         return false;
       }
-      return visibleItems.every((currentItem) =>
-        this.itemsSelected.some(
-          (selectedItem) =>
-            (selectedItem.item_id || selectedItem.collection_id) ===
-            (currentItem.item_id || currentItem.collection_id),
-        ),
-      );
+
+      return visibleItems.every((currentItem) => {
+        const currentId = currentItem.item_id || currentItem.collection_id;
+        return this.itemsSelected.some(
+          (selectedItem) => (selectedItem.item_id || selectedItem.collection_id) === currentId,
+        );
+      });
     },
     onFilter(event) {
       this.filteredData = event.filteredValue;
-      this.allSelected = this.checkAllSelected();
+      this.$nextTick(() => {
+        this.allSelected = this.checkAllSelected();
+      });
     },
     onSelectAllChange(event) {
       this.allSelected = event.checked;
@@ -710,8 +748,10 @@ export default {
         const selectedIds = new Set(
           this.itemsSelected.map((item) => item.item_id || item.collection_id),
         );
+
         itemsToSelect.forEach((item) => {
-          if (!selectedIds.has(item.item_id || item.collection_id)) {
+          const itemId = item.item_id || item.collection_id;
+          if (!selectedIds.has(itemId)) {
             this.itemsSelected.push(item);
           }
         });
@@ -719,6 +759,7 @@ export default {
         const idsToRemove = new Set(
           itemsToSelect.map((item) => item.item_id || item.collection_id),
         );
+
         this.itemsSelected = this.itemsSelected.filter(
           (item) => !idsToRemove.has(item.item_id || item.collection_id),
         );
@@ -739,7 +780,9 @@ export default {
     onPageChange(event) {
       this.updatePage(event.page);
       this.updateRows(event.rows);
-      this.allSelected = this.checkAllSelected();
+      this.$nextTick(() => {
+        this.allSelected = this.checkAllSelected();
+      });
     },
     onToggleColumns(value) {
       this.$nextTick(() => {
@@ -757,7 +800,6 @@ export default {
         first: state.first,
         rows: state.rows,
       };
-
       localStorage.setItem(`datatable-state-${this.dataType}`, JSON.stringify(customState));
 
       return false;
@@ -786,7 +828,7 @@ export default {
             );
 
             if (this.selectedColumns.length === 0) {
-              this.selectedColumns = [...this.availableColumns];
+              this.selectedColumns = this.availableColumns.filter((col) => !col.hidden);
             }
           }
         }
@@ -797,6 +839,13 @@ export default {
         this.selectedColumns = [...this.availableColumns];
         return false;
       }
+    },
+    handleResetTable() {
+      localStorage.removeItem(`datatable-state-${this.dataType}`);
+
+      this.$nextTick(() => {
+        location.reload();
+      });
     },
   },
 };

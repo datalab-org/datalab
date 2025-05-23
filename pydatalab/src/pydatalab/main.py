@@ -2,7 +2,7 @@ import datetime
 import logging
 import os
 import pathlib
-from typing import Any, Dict
+from typing import Any
 
 from dotenv import dotenv_values
 from flask import Flask, redirect, request, url_for
@@ -129,7 +129,7 @@ def _check_feature_flags(app):
 
 
 def create_app(
-    config_override: Dict[str, Any] | None = None, env_file: pathlib.Path | None = None
+    config_override: dict[str, Any] | None = None, env_file: pathlib.Path | None = None
 ) -> Flask:
     """Create the main `Flask` app with the given config.
 

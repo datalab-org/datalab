@@ -33,27 +33,6 @@
             {{ folderNameError }}
           </div>
         </div>
-        <div class="form-group mt-2 mb-2">
-          <label class="mr-2"><b>Lower PPM range</b></label>
-          <input
-            v-model.number="ppm1"
-            type="number"
-            class="form-control mr-2"
-            @keydown.enter="handlePPMUpdate"
-            @blur="handlePPMUpdate"
-          />
-          <label class="mr-2"><b>Upper PPM range</b></label>
-          <input
-            v-model.number="ppm2"
-            type="number"
-            class="form-control"
-            @keydown.enter="handlePPMUpdate"
-            @blur="handlePPMUpdate"
-          />
-          <div v-if="ppmParseError" class="alert alert-danger mt-2 mx-auto">
-            {{ ppmParseError }}
-          </div>
-        </div>
       </div>
     </div>
     <div
@@ -98,7 +77,6 @@ export default {
   },
   data() {
     return {
-      ppmParseError: "",
       folderNameError: "",
       isUpdating: false,
     };
@@ -120,8 +98,6 @@ export default {
     availableFolders() {
       return this.currentBlock.available_folders || [];
     },
-    ppm1: createComputedSetterForBlockField("ppm1"),
-    ppm2: createComputedSetterForBlockField("ppm2"),
     nmr_folder_name: createComputedSetterForBlockField("nmr_folder_name"),
     echem_folder_name: createComputedSetterForBlockField("echem_folder_name"),
     file_id: createComputedSetterForBlockField("file_id"),
@@ -133,21 +109,6 @@ export default {
       this.echem_folder_name = "";
 
       this.updateBlock();
-    },
-    parsePPM() {
-      const ppm1Value = parseFloat(this.ppm1);
-      const ppm2Value = parseFloat(this.ppm2);
-
-      if (isNaN(ppm1Value) || isNaN(ppm2Value)) {
-        this.ppmParseError = "Please provide valid numbers for both PPM values";
-        return false;
-      } else if (ppm1Value === ppm2Value) {
-        this.ppmParseError = "PPM values must be different";
-        return false;
-      }
-
-      this.ppmParseError = "";
-      return true;
     },
     onFolderSelected() {
       if (this.nmr_folder_name && this.echem_folder_name) {
@@ -165,10 +126,6 @@ export default {
       const blockToUpdate = {
         ...this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id],
       };
-
-      blockToUpdate.ppm1 = this.ppm1;
-      blockToUpdate.ppm2 = this.ppm2;
-
       updateBlockFromServer(this.item_id, this.block_id, blockToUpdate)
         .then(() => {
           this.isLoading = false;
@@ -177,11 +134,6 @@ export default {
           this.isLoading = false;
           console.error("Error updating block:", error);
         });
-    },
-    handlePPMUpdate() {
-      if (this.parsePPM()) {
-        this.updateBlock();
-      }
     },
   },
 };

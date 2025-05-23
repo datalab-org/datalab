@@ -30,7 +30,11 @@
             <label for="startmat-refcode">Refcode</label>
             <div id="startmat-refcode"><FormattedRefcode :refcode="Refcode" /></div>
           </div>
-          <div class="form-group col-md-4 col-sm-4 col-6">
+          <div v-if="Barcode" class="form-group col-md-3 col-sm-4 col-6">
+            <label for="startmat-barcode">Barcode</label>
+            <div id="startmat-barcode"><FormattedBarCode :barcode="Barcode" /></div>
+          </div>
+          <div class="form-group col-md-4 col-sm-4 col-6"">
             <ToggleableCollectionFormGroup v-model="Collections" />
           </div>
           <div class="form-group col-md-5 col-sm-4 col-12">
@@ -109,6 +113,7 @@ import TableOfContents from "@/components/TableOfContents";
 import ToggleableCollectionFormGroup from "@/components/ToggleableCollectionFormGroup";
 import ToggleableItemStatusFormGroup from "@/components/ToggleableItemStatusFormGroup";
 import FormattedRefcode from "@/components/FormattedRefcode";
+import FormattedBarCode from "@/components/FormattedBarcode";
 import StyledInput from "@/components/StyledInput";
 import SynthesisInformation from "@/components/SynthesisInformation";
 import ItemRelationshipVisualization from "@/components/ItemRelationshipVisualization";
@@ -127,6 +132,7 @@ export default {
     ToggleableItemStatusFormGroup,
     TableOfContents,
     FormattedRefcode,
+    FormattedBarCode,
     SynthesisInformation,
     GHSHazardInformation,
   },
@@ -171,6 +177,7 @@ export default {
         ]
       );
     },
+    Barcode: createComputedSetterForItemField("barcode"),
   },
   created() {
     this.isEditable = EDITABLE_INVENTORY;

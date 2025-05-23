@@ -1,7 +1,6 @@
 from enum import Enum
-from typing import Optional
 
-from pydantic import BaseModel, Field, root_validator, validator
+from pydantic import BaseModel, root_validator, validator
 
 from pydatalab.models.utils import (
     HumanReadableIdentifier,
@@ -33,29 +32,23 @@ class RelationshipType(str, Enum):
 
 
 class TypedRelationship(BaseModel):
-    description: Optional[str] = Field(
-        None,
-        description="A description of the relationship.",
-    )
+    description: str | None
+    """A description of the relationship."""
 
-    relation: Optional[RelationshipType] = Field(
-        None,
-        description="The type of relationship between the two items. If the type is 'other', then a human-readable description should be provided.",
-    )
+    relation: RelationshipType | None
+    """The type of relationship between the two items. If the type is 'other', then a human-readable description should be provided."""
 
-    type: KnownType = Field(description="The type of the related resource.")
+    type: KnownType
+    """The type of the related resource."""
 
-    immutable_id: Optional[PyObjectId] = Field(
-        description="The immutable ID of the entry that is related to this entry."
-    )
+    immutable_id: PyObjectId | None
+    """The immutable ID of the entry that is related to this entry."""
 
-    item_id: Optional[HumanReadableIdentifier] = Field(
-        description="The ID of the entry that is related to this entry."
-    )
+    item_id: HumanReadableIdentifier | None
+    """The ID of the entry that is related to this entry."""
 
-    refcode: Optional[Refcode] = Field(
-        description="The refcode of the entry that is related to this entry."
-    )
+    refcode: Refcode | None
+    """The refcode of the entry that is related to this entry."""
 
     @validator("relation")
     def check_for_description(cls, v, values):

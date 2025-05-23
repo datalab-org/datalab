@@ -3,7 +3,16 @@
     :columns="startingMaterialColumn"
     :data="startingMaterials"
     :data-type="'startingMaterials'"
-    :global-filter-fields="['item_id', 'name', 'chemform', 'chemical_purity', 'nblocks']"
+    :global-filter-fields="[
+      'item_id',
+      'barcode',
+      'refcode',
+      'name',
+      'chemform',
+      'blocks',
+      'supplier',
+      'location',
+    ]"
   />
 </template>
 
@@ -16,18 +25,26 @@ export default {
   data() {
     return {
       startingMaterialColumn: [
-        { field: "item_id", header: "ID", body: "FormattedItemName", filter: true },
-        { field: "status", header: "Status", body: "FormattedItemStatus", filter: true },
-        { field: "name", header: "Name" },
-        { field: "chemform", header: "Formula", body: "ChemicalFormula" },
-        { field: "date", header: "Date" },
-        { field: "chemical_purity", header: "Purity" },
+        { field: "item_id", header: "ID", body: "FormattedItemName", filter: true, label: "ID" },
+        { field: "status", header: "Status", body: "FormattedItemStatus", filter: true, label: "Status" },
+        {
+          field: "barcode",
+          body: "FormattedBarcode",
+          header: "",
+          label: "Barcode",
+          icon: ["fa", "barcode"],
+        },
+        { field: "name", header: "Name", label: "Name" },
+        { field: "chemform", header: "Formula", body: "ChemicalFormula", label: "Formula" },
+        { field: "date", header: "Date", label: "Date" },
+        { field: "location", header: "Location", label: "Location", filter: true },
         {
           field: "blocks",
           header: "",
           body: "BlocksIconCounter",
           icon: ["fa", "cubes"],
           label: "Block",
+          filter: true,
         },
         {
           field: "nfiles",
@@ -41,6 +58,10 @@ export default {
   },
   computed: {
     startingMaterials() {
+      if (this.$store.state.starting_material_list === null) {
+        return null;
+      }
+
       return this.$store.state.starting_material_list;
     },
   },

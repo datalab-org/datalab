@@ -1,5 +1,3 @@
-from typing import Optional
-
 from pydantic import Field, root_validator
 
 from pydatalab.models.entries import Entry
@@ -13,13 +11,13 @@ class Collection(Entry, HasOwner, HasBlocks):
     collection_id: HumanReadableIdentifier = Field(None)
     """A short human-readable/usable name for the collection."""
 
-    title: Optional[str]
+    title: str | None
     """A descriptive title for the collection."""
 
-    description: Optional[str]
+    description: str | None
     """A description of the collection, either in plain-text or a markup language."""
 
-    num_items: Optional[int] = Field(None)
+    num_items: int | None = Field(None)
     """Inlined number of items associated with this collection."""
 
     @root_validator

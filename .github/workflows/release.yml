@@ -1,0 +1,84 @@
+name: Publish and release on PyPI
+on:
+  release:
+    types:
+    - published
+
+env:
+  PUBLISH_UPDATE_BRANCH: main
+  GIT_USER_NAME: datalab developers
+  GIT_USER_EMAIL: "dev@datalab-org.io"
+
+jobs:
+
+  publish-to-pypi:
+    name: "Publish on PyPI"
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    if: github.repository == 'datalab-org/datalab' && startsWith(github.ref, 'refs/tags/v')
+    environment:
+      name: pypi-release
+      url: https://pypi.org/project/datalab-server
+
+    steps:
+
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: true
+        fetch-depth: 0
+        ref: ${{ env.PUBLISH_UPDATE_BRANCH }}
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Build source distribution
+      working-directory: "./pydatalab"
+      run: |
+        pip install -U build
+        python -m build
+
+    - name: Publish package to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        packages-dir: "./pydatalab/dist"
+
+
+  publish-container-build:
+    name: "Build and publish container"
+    runs-on: ubuntu-latest
+    if: github.repository == 'datalab-org/datalab' && startsWith(github.ref, 'refs/tags/v')
+    needs: [publish-to-pypi]
+    permissions:
+      packages: write
+    environment:
+      name: docker-release
+      url: https://github.com/orgs/datalab-org/packages
+
+    steps:
+
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: true
+        fetch-depth: 0
+        fetch-tags: true
+        ref: ${{ env.PUBLISH_UPDATE_BRANCH }}
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build Docker images
+      uses: docker/bake-action@v6
+      with:
+        files: docker-compose.yml
+        load: true
+        push: false
+        source: .
+        targets: 'app,api'
+        set: |
+          app.tags=ghcr.io/datalab-org/datalab-app:latest
+          api.tags=ghcr.io/datalab-org/datalab-server-api:latest

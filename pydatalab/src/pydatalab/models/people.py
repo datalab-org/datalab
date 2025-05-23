@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import List, Optional
 
 import bson
 import bson.errors
@@ -36,7 +35,7 @@ class Identity(BaseModel):
     verified: bool = Field(False)
     """Whether the identity has been verified (by some means, e.g., OAuth2 or email)"""
 
-    display_name: Optional[str]
+    display_name: str | None
     """The user's display name associated with the identity, also to be exposed in free text searches."""
 
     @validator("name", pre=True, always=True)
@@ -104,16 +103,16 @@ class Person(Entry):
     type: str = Field("people", const=True)
     """The entry type as a string."""
 
-    identities: List[Identity] = Field(default_factory=list)
+    identities: list[Identity] = Field(default_factory=list)
     """A list of identities attached to this person, e.g., email addresses, OAuth accounts."""
 
-    display_name: Optional[DisplayName]
+    display_name: DisplayName | None
     """The user-chosen display name."""
 
-    contact_email: Optional[EmailStr]
+    contact_email: EmailStr | None
     """In the case of multiple *verified* email identities, this email will be used as the primary contact."""
 
-    managers: Optional[List[PyObjectId]]
+    managers: list[PyObjectId] | None
     """A list of user IDs that can manage this person's items."""
 
     account_status: AccountStatus = Field(AccountStatus.UNVERIFIED)
