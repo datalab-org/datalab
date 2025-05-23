@@ -240,7 +240,7 @@ its importance when deploying a datalab instance.""",
     )
 
     MAX_BATCH_CREATE_SIZE: int = Field(
-        100, description="Maximum number of items that can be created in a single batch operation."
+        10_000, description="Maximum number of items that can be created in a single batch operation."
     )
 
     BACKUP_STRATEGIES: dict[str, BackupStrategy] | None = Field(
