@@ -135,11 +135,6 @@ filterwarnings = [
     "error",
     "ignore:.*np.bool8*:DeprecationWarning",
     "ignore::pytest.PytestUnraisableExceptionWarning",
-    "ignore:.*Polyfit may be poorly conditioned*:numpy.RankWarning",
-    "ignore:.*invalid value encountered in sqrt*:RuntimeWarning",
-    "ignore:.*kernel_size exceeds volume extent*:UserWarning",
-    "ignore:.*divide by zero encountered in log10*:RuntimeWarning",
-    "ignore:.*invalid value encountered in log10*:RuntimeWarning",
     "ignore:.*JCAMP-DX key without value*:UserWarning",
 ]
 
