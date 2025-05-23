@@ -79,13 +79,45 @@ class RamanBlock(DataBlock):
                 "Could not detect Raman data vendor -- this file type is not supported by this block."
             )
 
-        df["sqrt(intensity)"] = np.sqrt(df["intensity"])
-        df["log(intensity)"] = np.log10(df["intensity"])
-        df["normalized intensity"] = df["intensity"] / np.max(df["intensity"])
+        # Run baseline corrections but suppress numerical warnings around division by zero, sqrts and logs
+        with warnings.catch_warnings():
+            warnings_to_ignore = [
+                (np.RankWarning, ".*Polyfit may be poorly conditioned*"),
+                (RuntimeWarning, ".*invalid value encountered in sqrt*"),
+                (UserWarning, ".*kernel_size exceeds volume extent*"),
+                (RuntimeWarning, ".*divide by zero encountered in sqrt*"),
+                (RuntimeWarning, ".*divide by zero encountered in log10*"),
+                (RuntimeWarning, ".*invalid value encountered in log10*"),
+                (RuntimeWarning, ".*divide by zero encountered in true_divide*"),
+            ]
+            for warning_type, message in warnings_to_ignore:
+                warnings.filterwarnings("ignore", category=warning_type, message=message)
+
+            y_option_df = self._calc_baselines_and_normalize(df["wavenumber"], df["intensity"])
+
+        df = pd.concat([df, y_option_df], axis=1)
+        df.index.name = location.split("/")[-1]
+
+        y_options = ["intensity"] + list(y_option_df.columns)
+
+        return df, metadata, y_options
+
+    @classmethod
+    def _calc_baselines_and_normalize(
+        cls,
+        wavenumbers: np.ndarray,
+        intensity: np.ndarray,
+        kernel_size: int = 101,
+        polyfit_deg: int = 15,
+    ):
+        df = pd.DataFrame()
+        df["normalized intensity"] = intensity / np.max(intensity)
+        df["sqrt(intensity)"] = np.sqrt(intensity)
+        df["log(intensity)"] = np.log10(intensity)
         polyfit_deg = 15
         polyfit_baseline = np.poly1d(
-            np.polyfit(df["wavenumber"], df["normalized intensity"], deg=polyfit_deg)
-        )(df["wavenumber"])
+            np.polyfit(wavenumbers, df["normalized intensity"], deg=polyfit_deg)
+        )(wavenumbers)
         df["intensity - polyfit baseline"] = df["normalized intensity"] - polyfit_baseline
         df[f"baseline (`numpy.polyfit`, {polyfit_deg=})"] = polyfit_baseline / np.max(
             df["intensity - polyfit baseline"]
@@ -104,7 +136,7 @@ class RamanBlock(DataBlock):
         half_window = round(
             0.03 * df.shape[0]
         )  # a value which worked for my data, not sure how universally good it will be
-        baseline_fitter = Baseline(x_data=df["wavenumber"])
+        baseline_fitter = Baseline(x_data=wavenumbers)
         morphological_baseline = baseline_fitter.mor(
             df["normalized intensity"], half_window=half_window
         )[0]
@@ -115,24 +147,11 @@ class RamanBlock(DataBlock):
             morphological_baseline / np.max(df["intensity - morphological baseline"])
         )
         df["intensity - morphological baseline"] /= np.max(df["intensity - morphological baseline"])
-        df.index.name = location.split("/")[-1]
 
-        y_options = [
-            "normalized intensity",
-            "intensity",
-            "sqrt(intensity)",
-            "log(intensity)",
-            "intensity - median baseline",
-            f"baseline (`scipy.signal.medfilt`, {kernel_size=})",
-            "intensity - polyfit baseline",
-            f"baseline (`numpy.polyfit`, {polyfit_deg=})",
-            "intensity - morphological baseline",
-            f"baseline (`pybaselines.Baseline.mor`, {half_window=})",
-        ]
-        return df, metadata, y_options
+        return df
 
     @classmethod
-    def make_wdf_df(self, location: Path | str) -> pd.DataFrame:
+    def make_wdf_df(cls, location: Path | str) -> pd.DataFrame:
         """Read the .wdf file with RosettaSciIO and try to extract
         1D Raman spectra.
 

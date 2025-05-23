@@ -1,4 +1,5 @@
 import os
+import warnings
 
 import bokeh
 import numpy as np
@@ -92,13 +93,43 @@ class XRDBlock(DataBlock):
             except (ValueError, ZeroDivisionError):
                 pass
 
-        df["sqrt(intensity)"] = np.sqrt(df["intensity"])
-        df["log(intensity)"] = np.log10(df["intensity"])
-        df["normalized intensity"] = df["intensity"] / np.max(df["intensity"])
+        # Run baseline corrections but suppress numerical warnings around division by zero, sqrts and logs
+        with warnings.catch_warnings():
+            warnings_to_ignore = [
+                (np.RankWarning, ".*Polyfit may be poorly conditioned*"),
+                (RuntimeWarning, ".*invalid value encountered in sqrt*"),
+                (UserWarning, ".*kernel_size exceeds volume extent*"),
+                (RuntimeWarning, ".*divide by zero encountered in sqrt*"),
+                (RuntimeWarning, ".*divide by zero encountered in log10*"),
+                (RuntimeWarning, ".*invalid value encountered in log10*"),
+                (RuntimeWarning, ".*divide by zero encountered in true_divide*"),
+            ]
+            for warning_type, message in warnings_to_ignore:
+                warnings.filterwarnings("ignore", category=warning_type, message=message)
+
+            y_option_df = self._calc_baselines_and_normalize(df["2θ (°)"], df["intensity"])
+
+        y_options = ["intensity"] + list(y_option_df.columns)
+
+        df = pd.concat([df, y_option_df], axis=1)
+
+        df.index.name = location.split("/")[-1]
+
+        return df, y_options
+
+    @classmethod
+    def _calc_baselines_and_normalize(
+        cls, two_thetas, intensity, polyfit_deg: int = 15, kernel_size: int = 101
+    ):
+        df = pd.DataFrame()
+
+        df["sqrt(intensity)"] = np.sqrt(intensity)
+        df["log(intensity)"] = np.log10(intensity)
+        df["normalized intensity"] = intensity / np.max(intensity)
         polyfit_deg = 15
         polyfit_baseline = np.poly1d(
-            np.polyfit(df["2θ (°)"], df["normalized intensity"], deg=polyfit_deg)
-        )(df["2θ (°)"])
+            np.polyfit(two_thetas, df["normalized intensity"], deg=polyfit_deg)
+        )(two_thetas)
         df["intensity - polyfit baseline"] = df["normalized intensity"] - polyfit_baseline
         df["intensity - polyfit baseline"] /= np.max(df["intensity - polyfit baseline"])
         df[f"baseline (`numpy.polyfit`, deg={polyfit_deg})"] = polyfit_baseline / np.max(
@@ -113,20 +144,7 @@ class XRDBlock(DataBlock):
             median_baseline / np.max(df["intensity - median baseline"])
         )
 
-        df.index.name = location.split("/")[-1]
-
-        y_options = [
-            "normalized intensity",
-            "intensity",
-            "sqrt(intensity)",
-            "log(intensity)",
-            "intensity - median baseline",
-            f"baseline (`scipy.signal.medfilt`, kernel_size={kernel_size})",
-            "intensity - polyfit baseline",
-            f"baseline (`numpy.polyfit`, deg={polyfit_deg})",
-        ]
-
-        return df, y_options
+        return df
 
     def generate_xrd_plot(self):
         file_info = None
@@ -185,6 +203,7 @@ class XRDBlock(DataBlock):
             p = selectable_axes_plot(
                 pattern_dfs,
                 x_options=["2θ (°)", "Q (Å⁻¹)", "d (Å)"],
+                y_default="normalized intensity",
                 y_options=y_options,
                 plot_line=True,
                 plot_points=True,
