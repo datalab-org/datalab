@@ -1,4 +1,5 @@
 import os
+import warnings
 from pathlib import Path
 
 import bokeh
@@ -40,22 +41,34 @@ class RamanBlock(DataBlock):
                             header.append(line)
                     if "#Wave" in header[0] and "#Intensity" in header[0]:
                         vendor = "renishaw"
+                        warnings.warn("Unable to find wavenumber unit in header, assuming cm⁻¹")
+                        warnings.warn("Unable to find wavenumber offset in header, assuming 0")
+                        metadata["wavenumber_unit"] = "cm⁻¹"
+                        metadata["wavenumber_offset"] = 0
                     else:
-                        metadata = {
+                        parsed_metadata = {
                             key: value for key, value in [line.split("=") for line in header]
                         }
                         if (
-                            metadata.get("#AxisType[0]") == "Intens\n"
-                            and metadata.get("#AxisType[1]") == "Spectr\n"
+                            parsed_metadata.get("#AxisType[0]") == "Intens\n"
+                            and parsed_metadata.get("#AxisType[1]") == "Spectr\n"
                         ):
                             vendor = "labspec"
+                            metadata["wavenumber_unit"] = (
+                                "cm⁻¹"
+                                if parsed_metadata.get("#AxisUnit[1]", "").strip() == "1/cm"
+                                else parsed_metadata.get("#AxisUnit[1]", "").strip()
+                            )
+                            metadata["title"] = parsed_metadata.get("#Title", "").strip()
+                            metadata["date"] = parsed_metadata.get("#Date", "").strip()
+
                 if vendor == "renishaw":
                     df = pd.DataFrame(np.loadtxt(location), columns=["wavenumber", "intensity"])
                 elif vendor == "labspec":
                     df = pd.DataFrame(
                         np.loadtxt(location, encoding="cp1252"), columns=["wavenumber", "intensity"]
                     )
-                    metadata = {}
+
             except IndexError:
                 pass
         elif ext == ".wdf":
@@ -143,6 +156,9 @@ class RamanBlock(DataBlock):
         else:
             raise RuntimeError("Data is not compatible 1D or 2D Raman data.")
 
+        if len(raman_data) != 1:
+            warnings.warn("More than one spectrum found in file, using first spectrum only.")
+
         intensity = raman_data[0]["data"]
         wavenumber_size = raman_data[0]["axes"][0]["size"]
         wavenumber_offset = raman_data[0]["axes"][0]["offset"]
@@ -150,8 +166,10 @@ class RamanBlock(DataBlock):
         wavenumbers = np.array(
             [wavenumber_offset + i * wavenumber_scale for i in range(wavenumber_size)]
         )
+        metadata = raman_data[0]["metadata"]
+        metadata["wavenumber_unit"] = raman_data[0]["axes"][0]["units"]
         df = pd.DataFrame({"wavenumber": wavenumbers, "intensity": intensity})
-        return df, raman_data[0]["metadata"]
+        return df, metadata
 
     def generate_raman_plot(self):
         file_info = None
@@ -169,14 +187,22 @@ class RamanBlock(DataBlock):
                     self.accepted_file_extensions,
                     ext,
                 )
-            pattern_dfs, _, y_options = self.load(file_info["location"])
+            pattern_dfs, metadata, y_options = self.load(file_info["location"])
             pattern_dfs = [pattern_dfs]
+
+        wavenumber_unit = metadata.get("wavenumber_unit", "Unknown unit")
+        if wavenumber_unit.startswith("1/"):
+            wavenumber_unit = wavenumber_unit[2:] + "⁻¹"
+
+        for ind, df in enumerate(pattern_dfs):
+            pattern_dfs[ind][f"wavenumber ({wavenumber_unit})"] = df["wavenumber"]
 
         if pattern_dfs:
             p = selectable_axes_plot(
                 pattern_dfs,
-                x_options=["wavenumber"],
+                x_options=[f"wavenumber ({wavenumber_unit})"],
                 y_options=y_options,
+                y_default="normalized intensity",
                 plot_line=True,
                 plot_points=True,
                 point_size=3,
