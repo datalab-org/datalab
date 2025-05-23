@@ -59,7 +59,6 @@ server = [
     "pillow ~= 11.0",
     "pyjwt ~= 2.9",
     "invoke ~= 2.2",
-    "paramiko ~= 3.4",
 ]
 apps = [
     # General
@@ -155,6 +154,7 @@ authorized_licenses = [
     "lgpl with exceptions or zpl",
     "isc license",
     "isc license (iscl)",
+    "LGPLv3+",
     "mit",
     "mit license",
     "python software foundation license",
