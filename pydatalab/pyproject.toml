@@ -153,6 +153,7 @@ authorized_licenses = [
     "gnu lgpl",
     "lgpl with exceptions or zpl",
     "isc license",
+    "isc",
     "isc license (iscl)",
     "LGPLv3+",
     "mit",
@@ -171,3 +172,4 @@ as_regex = true
 
 [tool.liccheck.authorized_packages]
 newarenda = ">=2025,<2026"
+flask-cors = ">=5,<7"
