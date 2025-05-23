@@ -69,7 +69,7 @@ apps = [
     "navani >= 0.1.11",
     # Raman
     "pybaselines ~= 1.1",
-    "rosettasciio ~= 0.3, < 0.4",
+    "renishawwire >= 0.1.16",
     # TGA
     "python-dateutil ~= 2.9",
     # XRD
