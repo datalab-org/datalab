@@ -8,31 +8,30 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
         :item_id="item_id"
         :block_id="block_id"
         :extensions="blockInfo.attributes.accepted_file_extensions"
+        :default-to-all-files="true"
         update-block-on-change
       />
     </div>
 
-    <div v-if="file_id">
-      <div class="form-row col-md-6 col-lg-4 mt-2 mb-2 pl-0">
-        <div class="input-group form-inline">
-          <label class="mr-2"><b>Wavelength (Å):</b></label>
-          <input
-            v-model="wavelength"
-            type="text"
-            class="form-control"
-            :class="{ 'is-invalid': wavelengthParseError }"
-            @keydown.enter="
-              parseWavelength();
-              updateBlock();
-            "
-            @blur="
-              parseWavelength();
-              updateBlock();
-            "
-          />
-          <div v-if="wavelengthParseError" class="alert alert-danger mt-2 mx-auto">
-            {{ wavelengthParseError }}
-          </div>
+    <div class="form-row col-md-6 col-lg-4 mt-2 mb-2 pl-0">
+      <div class="input-group form-inline">
+        <label class="mr-2"><b>Wavelength (Å):</b></label>
+        <input
+          v-model="wavelength"
+          type="text"
+          class="form-control"
+          :class="{ 'is-invalid': wavelengthParseError }"
+          @keydown.enter="
+            parseWavelength();
+            updateBlock();
+          "
+          @blur="
+            parseWavelength();
+            updateBlock();
+          "
+        />
+        <div v-if="wavelengthParseError" class="alert alert-danger mt-2 mx-auto">
+          {{ wavelengthParseError }}
         </div>
       </div>
 
@@ -76,8 +75,10 @@ export default {
   },
   computed: {
     bokehPlotData() {
-      return this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id]
-        .bokeh_plot_data;
+      return this.block.bokeh_plot_data;
+    },
+    block() {
+      return this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id];
     },
     blockInfo() {
       return this.$store.state.blocksInfos["xrd"];
@@ -94,15 +95,8 @@ export default {
       }
     },
     updateBlock() {
-      updateBlockFromServer(
-        this.item_id,
-        this.block_id,
-        this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id],
-      );
+      updateBlockFromServer(this.item_id, this.block_id, this.block);
     },
   },
-  // mounted() {
-  // 	this.makeBokehPlot()
-  // }
 };
 </script>

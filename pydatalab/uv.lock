@@ -528,9 +528,11 @@ all = [
     { name = "langchain" },
     { name = "langchain-anthropic" },
     { name = "langchain-openai" },
+    { name = "matador-db" },
     { name = "navani" },
     { name = "nmrglue" },
     { name = "pillow" },
+    { name = "psutil" },
     { name = "pybaselines" },
     { name = "pyjwt" },
     { name = "python-dateutil" },
@@ -545,8 +547,10 @@ app-plugins-git = [
     { name = "datalab-app-plugin-insitu" },
 ]
 apps = [
+    { name = "matador-db" },
     { name = "navani" },
     { name = "nmrglue" },
+    { name = "psutil" },
     { name = "pybaselines" },
     { name = "python-dateutil" },
     { name = "rosettasciio" },
@@ -607,6 +611,7 @@ requires-dist = [
     { name = "langchain", marker = "extra == 'chat'", specifier = ">=0.2.6,<0.3" },
     { name = "langchain-anthropic", marker = "extra == 'chat'", specifier = "~=0.1" },
     { name = "langchain-openai", marker = "extra == 'chat'", specifier = "~=0.1" },
+    { name = "matador-db", marker = "extra == 'apps'", specifier = ">=0.11.2" },
     { name = "matplotlib", specifier = "~=3.8" },
     { name = "navani", marker = "extra == 'apps'", specifier = ">=0.1.11" },
     { name = "nmrglue", marker = "extra == 'apps'", specifier = "~=0.10" },
@@ -614,6 +619,7 @@ requires-dist = [
     { name = "periodictable", specifier = "~=1.7" },
     { name = "pillow", marker = "extra == 'server'", specifier = "~=11.0" },
     { name = "pint", specifier = "~=0.24" },
+    { name = "psutil", marker = "extra == 'apps'", specifier = ">=7.0.0" },
     { name = "pybaselines", marker = "extra == 'apps'", specifier = "~=1.1" },
     { name = "pydantic", extras = ["dotenv", "email"], specifier = "<2.0" },
     { name = "pyjwt", marker = "extra == 'server'", specifier = "~=2.9" },
@@ -1378,6 +1384,20 @@ wheels = [
 ]
 
 [[package]]
+name = "matador-db"
+version = "0.11.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+    { name = "scipy" },
+    { name = "spglib" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/96/0a/44cfad6e47c0d502459fa5daded3ede4c36b343a26ac8ee1ab6f538d9c6f/matador_db-0.11.2.tar.gz", hash = "sha256:0e3d5ba06665460fc4e21df61d556932f708e83c945194df8d69dfbd616113d0", size = 5465978 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/39/4a/340f60e196f35e606ddc91ae5e8efc06fadcd82d4366462b4d5629351d48/matador_db-0.11.2-py3-none-any.whl", hash = "sha256:597d5f49579605f6e25fb5be42a36ea0c3b767dc6454936e224a6af2cbd1916a", size = 460809 },
+]
+
+[[package]]
 name = "matplotlib"
 version = "3.10.3"
 source = { registry = "https://pypi.org/simple" }
@@ -1989,6 +2009,21 @@ wheels = [
 ]
 
 [[package]]
+name = "psutil"
+version = "7.0.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/2a/80/336820c1ad9286a4ded7e845b2eccfcb27851ab8ac6abece774a6ff4d3de/psutil-7.0.0.tar.gz", hash = "sha256:7be9c3eba38beccb6495ea33afd982a44074b78f28c434a1f51cc07fd315c456", size = 497003 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ed/e6/2d26234410f8b8abdbf891c9da62bee396583f713fb9f3325a4760875d22/psutil-7.0.0-cp36-abi3-macosx_10_9_x86_64.whl", hash = "sha256:101d71dc322e3cffd7cea0650b09b3d08b8e7c4109dd6809fe452dfd00e58b25", size = 238051 },
+    { url = "https://files.pythonhosted.org/packages/04/8b/30f930733afe425e3cbfc0e1468a30a18942350c1a8816acfade80c005c4/psutil-7.0.0-cp36-abi3-macosx_11_0_arm64.whl", hash = "sha256:39db632f6bb862eeccf56660871433e111b6ea58f2caea825571951d4b6aa3da", size = 239535 },
+    { url = "https://files.pythonhosted.org/packages/2a/ed/d362e84620dd22876b55389248e522338ed1bf134a5edd3b8231d7207f6d/psutil-7.0.0-cp36-abi3-manylinux_2_12_i686.manylinux2010_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:1fcee592b4c6f146991ca55919ea3d1f8926497a713ed7faaf8225e174581e91", size = 275004 },
+    { url = "https://files.pythonhosted.org/packages/bf/b9/b0eb3f3cbcb734d930fdf839431606844a825b23eaf9a6ab371edac8162c/psutil-7.0.0-cp36-abi3-manylinux_2_12_x86_64.manylinux2010_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:4b1388a4f6875d7e2aff5c4ca1cc16c545ed41dd8bb596cefea80111db353a34", size = 277986 },
+    { url = "https://files.pythonhosted.org/packages/eb/a2/709e0fe2f093556c17fbafda93ac032257242cabcc7ff3369e2cb76a97aa/psutil-7.0.0-cp36-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:a5f098451abc2828f7dc6b58d44b532b22f2088f4999a937557b603ce72b1993", size = 279544 },
+    { url = "https://files.pythonhosted.org/packages/50/e6/eecf58810b9d12e6427369784efe814a1eec0f492084ce8eb8f4d89d6d61/psutil-7.0.0-cp37-abi3-win32.whl", hash = "sha256:ba3fcef7523064a6c9da440fc4d6bd07da93ac726b5733c29027d7dc95b39d99", size = 241053 },
+    { url = "https://files.pythonhosted.org/packages/50/1b/6921afe68c74868b4c9fa424dad3be35b095e16687989ebbb50ce4fceb7c/psutil-7.0.0-cp37-abi3-win_amd64.whl", hash = "sha256:4cf3d4eb1aa9b348dec30105c55cd9b7d4629285735a102beb4441e38db90553", size = 244885 },
+]
+
+[[package]]
 name = "pybaselines"
 version = "1.1.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2514,6 +2549,28 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/a2/87/a6771e1546d97e7e041b6ae58d80074f81b7d5121207425c964ddf5cfdbd/sniffio-1.3.1.tar.gz", hash = "sha256:f4324edc670a0f49750a81b895f35c3adb843cca46f0530f79fc1babb23789dc", size = 20372 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e9/44/75a9c9421471a6c4805dbf2356f7c181a29c1879239abab1ea2cc8f38b40/sniffio-1.3.1-py3-none-any.whl", hash = "sha256:2f6da418d1f1e0fddd844478f41680e794e6051915791a034ff65e5f100525a2", size = 10235 },
+]
+
+[[package]]
+name = "spglib"
+version = "2.6.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/bf/34/1fe99124be59579ebd24316522e1da780979c856977b142c0dcd878b0a2d/spglib-2.6.0.tar.gz", hash = "sha256:d66eda2ba00a1e14fd96ec9c3b4dbf8ab0fb3f124643e35785c71ee455b408eb", size = 2360880 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/80/c9/e13567a05086275fc386b176073515ace929cff3e2a371f7cce4f10e9eb3/spglib-2.6.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:32412b0e1287e3ae59758d5ce8f91a35f377e53eb2931341e4e9a1e1be187a54", size = 796254 },
+    { url = "https://files.pythonhosted.org/packages/1c/13/c1636179c0cc83bf70e26b9936a165429606a0520a81fe0350f74259b822/spglib-2.6.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:0c5410f73e7455372309309444541fd7a8c6e72b0536185d5b8e95dc5e0b949d", size = 798728 },
+    { url = "https://files.pythonhosted.org/packages/c1/41/62c7412c8674647ff26b7cb2d06f70a203eaf22f7197cc00d55d179b9bc3/spglib-2.6.0-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:231af497fa2c7cec7943291d07e61e67c4202acecc3f79876bf7c48a86432202", size = 805041 },
+    { url = "https://files.pythonhosted.org/packages/e1/65/453e04e8311ccb65794aae8550934b405d19e883956904358f92ba061206/spglib-2.6.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:a7b8a6415b02a3bd5c69fb6bc8a8f7a01e28a3376e579819c10f12c9ac875bcb", size = 809048 },
+    { url = "https://files.pythonhosted.org/packages/d1/d4/55a5dcda747b595fc5a2398f93a7a44764b22ca5ee8c5be8bfb9304b7431/spglib-2.6.0-cp310-cp310-win_amd64.whl", hash = "sha256:94675831b99433a09cd1aa29b5212d1c87e611bd92cb31f37ea73a5509219aef", size = 561119 },
+    { url = "https://files.pythonhosted.org/packages/6c/44/30888e2a5b2fa2e6df18606b442cb8b126b0bea5a2f1ec4a2a82538ffecf/spglib-2.6.0-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:c22d87849e1086cbe88399c08c93b4e7babec92c1db49f15ef8b081339b67e25", size = 796254 },
+    { url = "https://files.pythonhosted.org/packages/f6/ca/270d463f6c34f539bb55acdab14099c092d3be28c8af64d61399aa07610c/spglib-2.6.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:02d2e730a3b2cb43e318944493d0c288592b0e2ddbab0d222a548312659ee22a", size = 798729 },
+    { url = "https://files.pythonhosted.org/packages/9f/20/5e230660425b03b9a43d10e8d8c29d2242c0ba839919ae37a0a5120df137/spglib-2.6.0-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:046b72f67f0a6e47ea2ec43c160c8f223f5bb557311617aa2043c5d0bb3b39fa", size = 805043 },
+    { url = "https://files.pythonhosted.org/packages/55/41/591cd1e94254c20f00bb1f32c0b1a6de68c03d54e6daf78dd7b146d0b3fc/spglib-2.6.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:ff6b2f21226f7ece7758eb1d320907168018aa0a30a57c2b0a24cbf8f6860211", size = 809047 },
+    { url = "https://files.pythonhosted.org/packages/25/a8/d89e1bde525baba10eb8d0be79a5bbaf56c59a47b32bb954866d96a228e3/spglib-2.6.0-cp311-cp311-win_amd64.whl", hash = "sha256:9a72daeefcabf62ca88eff77adacf5b2b9d91a17c4f93d61d86f635476de8400", size = 561103 },
 ]
 
 [[package]]
