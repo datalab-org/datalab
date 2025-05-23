@@ -1,5 +1,6 @@
 import os
 import warnings
+from pathlib import Path
 
 import bokeh
 import numpy as np
@@ -30,8 +31,17 @@ class XRDBlock(DataBlock):
 
     @classmethod
     def load_pattern(
-        cls, location: str, wavelength: float | None = None
-    ) -> tuple[pd.DataFrame, list[str]]:
+        cls, location: str | Path, wavelength: float | None = None
+    ) -> tuple[pd.DataFrame, list[str], dict]:
+        """Load the XRD pattern at the given file location, returning
+        a DataFrame with the pattern data, a list of y-axis options for plotting
+        and a dictionary of peak metadata, if present.
+
+        Parameters:
+            location: The file location of the XRD pattern.
+            wavelength: The wavelength of the X-ray source. Defaults to CuKa.
+
+        """
 
         if not isinstance(location, str):
             location = str(location)
@@ -50,7 +60,6 @@ class XRDBlock(DataBlock):
                 location, wavelength=wavelength or cls.defaults["wavelength"]
             )
             theoretical = True  # Track whether this is a computed PXRD that does not need background subtraction
-            LOGGER.debug("Computed PXRD for CIF file %s", location)
 
         else:
             columns = ["twotheta", "intensity", "error"]
@@ -173,7 +182,17 @@ class XRDBlock(DataBlock):
 
         return df
 
-    def generate_xrd_plot(self):
+    def generate_xrd_plot(self) -> None:
+        """Generate a Bokeh plot potentially containing multiple XRD patterns.
+
+        This function will first check whether a `file_id` is set in the block data.
+        If not, it will interpret this as the "all compatible files" option, and will
+        look into the item data to find all attached files, and attempt to read them as
+        XRD patterns.
+
+        Otherwise, the `file_id` will be used to load a single file.
+
+        """
         file_info = None
         all_files = None
         pattern_dfs = None
@@ -198,20 +217,22 @@ class XRDBlock(DataBlock):
                 ):
                     all_files.append(file_info)
 
-                if not all_files:
-                    warnings.warn("No compatible files found in item")
+            if item_info["file_ObjectIds"] and not all_files:
+                warnings.warn("No compatible files found in item")
+                return None
 
             pattern_dfs = []
             peak_information = {}
+            y_options: list[str] = []
             for ind, f in enumerate(all_files):
                 try:
+                    peak_data: dict = {}
                     pattern_df, y_options, peak_data = self.load_pattern(
                         f["location"],
                         wavelength=float(self.data.get("wavelength", self.defaults["wavelength"])),
                     )
                 except Exception as exc:
-                    warnings.warn(f"Could not parse file {file_info['location']}. Error: {exc}")
-                    peak_data: dict = {}
+                    warnings.warn(f"Could not parse file {f['location']} as XRD data. Error: {exc}")
                     continue
                 peak_information[str(f["immutable_id"])] = PeakInformation(**peak_data).dict()
                 pattern_df["normalized intensity (staggered)"] += ind
@@ -251,4 +272,3 @@ class XRDBlock(DataBlock):
             )
 
             self.data["bokeh_plot_data"] = bokeh.embed.json_item(p, theme=DATALAB_BOKEH_THEME)
-            LOGGER.debug("Created bokeh plot for XRDBlock %s", self.data["block_id"])
