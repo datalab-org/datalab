@@ -1,9 +1,14 @@
 from flask import Blueprint, jsonify, request
 
 from pydatalab.mongo import flask_mongo
-from pydatalab.permissions import get_default_permissions
+from pydatalab.permissions import active_users_or_get_only, get_default_permissions
 
 GRAPHS = Blueprint("graphs", __name__)
+
+
+@GRAPHS.before_request
+@active_users_or_get_only
+def _(): ...
 
 
 @GRAPHS.route("/item-graph", methods=["GET"])
