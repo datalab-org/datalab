@@ -792,8 +792,11 @@ def issue_physical_token(refcode: str):
 
     # generate token and store it in `api_keys` collection
     token = str(uuid.uuid1())
-    access_document = {"token": sha512(token.encode("utf-8")).hexdigest(), "refcode": refcode}
-
+    access_document = {
+        "token": sha512(token.encode("utf-8")).hexdigest(),
+        "refcode": refcode,
+        "user": ObjectId(current_user.id),
+    }
     save_key = flask_mongo.db.api_keys.insert_one(**access_document)
     if not save_key:
         return jsonify(
