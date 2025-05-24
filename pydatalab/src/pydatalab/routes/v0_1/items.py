@@ -836,6 +836,7 @@ def issue_physical_token(refcode: str):
         "token": sha512(token.encode("utf-8")).hexdigest(),
         "refcode": refcode,
         "user": ObjectId(current_user.id),
+        "active": True,
     }
     save_key = flask_mongo.db.api_keys.insert_one(**access_document)
     if not save_key:

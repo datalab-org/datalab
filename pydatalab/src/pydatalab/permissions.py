@@ -73,10 +73,15 @@ def check_access_token(refcode: str, token: str | None = None) -> bool:
     if not token:
         return False
 
-    access_document = get_database().api_keys.find_one(
-        sha512(token.encode("utf-8")).hexdigest(), projection={"refcode": 1}
+    db = get_database()
+
+    hashed_token = sha512(token.encode("utf-8")).hexdigest()
+
+    access_document = db.api_keys.find_one(
+        {"token": hashed_token}, projection={"refcode": 1, "valid": 1}
     )
-    if refcode == access_document["refcode"]:
+    if refcode == access_document["refcode"] and access_document["active"]:
+        LOGGER.info("Access to refcode %s granted with token", refcode, token)
         return True
 
     return False
@@ -111,7 +116,9 @@ def get_default_permissions(
         return {}
 
     if elevate_permissions:
-        LOGGER.warning("Permissions check with elevated permissions, likely due to access token usage")
+        LOGGER.warning(
+            "Permissions check with elevated permissions, likely due to access token usage"
+        )
         return {}
 
     null_perm = {
