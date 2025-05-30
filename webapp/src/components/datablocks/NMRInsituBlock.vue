@@ -35,6 +35,40 @@
         </div>
       </div>
     </div>
+    <div v-show="nmr_folder_name && echem_folder_name" class="form-inline mt-2">
+      <div class="form-group mb-2">
+        <label class="mr-2"><b>Spectrum range:</b></label>
+        <input
+          v-model.number="start_exp"
+          type="number"
+          class="form-control mr-2"
+          placeholder="Start"
+          min="1"
+          style="width: 80px"
+          @change="onParameterChange"
+        />
+        <span class="mr-2">to</span>
+        <input
+          v-model.number="end_exp"
+          type="number"
+          class="form-control mr-2"
+          placeholder="End"
+          style="width: 80px"
+          @change="onParameterChange"
+        />
+        <label class="mr-2 ml-3"><b>Step:</b></label>
+        <input
+          v-model.number="step_exp"
+          type="number"
+          class="form-control mr-2"
+          placeholder="1"
+          min="1"
+          style="width: 60px"
+          @change="onParameterChange"
+        />
+        <small class="text-muted">(e.g., step=2 for every other spectrum)</small>
+      </div>
+    </div>
     <div
       v-show="nmr_folder_name && echem_folder_name"
       class="row mt-2 text-center justify-content-center"
@@ -102,6 +136,9 @@ export default {
     echem_folder_name: createComputedSetterForBlockField("echem_folder_name"),
     file_id: createComputedSetterForBlockField("file_id"),
     folder_name: createComputedSetterForBlockField("folder_name"),
+    start_exp: createComputedSetterForBlockField("start_exp"),
+    end_exp: createComputedSetterForBlockField("end_exp"),
+    step_exp: createComputedSetterForBlockField("step_exp"),
   },
   methods: {
     onFileChange() {
@@ -112,10 +149,42 @@ export default {
     },
     onFolderSelected() {
       if (this.nmr_folder_name && this.echem_folder_name) {
+        if (this.start_exp && this.start_exp < 1) {
+          this.folderNameError = "Start experiment must be >= 1";
+          return;
+        }
+        if (this.end_exp && this.start_exp && this.end_exp < this.start_exp) {
+          this.folderNameError = "End experiment must be >= start experiment";
+          return;
+        }
+        if (this.step_exp && this.step_exp < 1) {
+          this.folderNameError = "Step must be >= 1";
+          return;
+        }
+
         this.folderNameError = "";
         this.updateBlock();
       } else if (this.nmr_folder_name || this.echem_folder_name) {
         this.folderNameError = "Both NMR and Echem folder names are required";
+      }
+    },
+    onParameterChange() {
+      if (this.nmr_folder_name && this.echem_folder_name) {
+        if (this.start_exp && this.start_exp < 1) {
+          this.folderNameError = "Start experiment must be >= 1";
+          return;
+        }
+        if (this.end_exp && this.start_exp && this.end_exp < this.start_exp) {
+          this.folderNameError = "End experiment must be >= start experiment";
+          return;
+        }
+        if (this.step_exp && this.step_exp < 1) {
+          this.folderNameError = "Step must be >= 1";
+          return;
+        }
+
+        this.folderNameError = "";
+        this.updateBlock();
       }
     },
     updateBlock() {
