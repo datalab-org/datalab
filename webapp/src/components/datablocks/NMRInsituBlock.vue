@@ -9,6 +9,9 @@
       @change="onFileChange"
     />
     <div v-show="file_id">
+      <div v-if="folderNameError" class="alert alert-danger mt-2 mx-auto">
+        {{ folderNameError }}
+      </div>
       <div class="form-inline">
         <div class="form-group mb-2">
           <label class="mr-2"><b>NMR folder name</b></label>
@@ -29,9 +32,6 @@
             placeholder="Select a folder"
             @update:model-value="onFolderSelected"
           />
-          <div v-if="folderNameError" class="alert alert-danger mt-2 mx-auto">
-            {{ folderNameError }}
-          </div>
         </div>
       </div>
     </div>
@@ -44,6 +44,7 @@
           class="form-control mr-2"
           placeholder="Start"
           min="1"
+          :max="maxExperiments"
           style="width: 80px"
           @change="onParameterChange"
         />
@@ -53,6 +54,8 @@
           type="number"
           class="form-control mr-2"
           placeholder="End"
+          min="1"
+          :max="maxExperiments"
           style="width: 80px"
           @change="onParameterChange"
         />
@@ -66,7 +69,9 @@
           style="width: 60px"
           @change="onParameterChange"
         />
-        <small class="text-muted">(e.g., step=2 for every other spectrum)</small>
+        <small class="text-muted">
+          ({{ selectedExperimentsCount }} of {{ maxExperiments }} experiments selected)
+        </small>
       </div>
     </div>
     <div
@@ -131,6 +136,9 @@ export default {
     },
     availableFolders() {
       return this.currentBlock.available_folders || [];
+    },
+    maxExperiments() {
+      return this.currentBlock.metadata?.num_experiments;
     },
     nmr_folder_name: createComputedSetterForBlockField("nmr_folder_name"),
     echem_folder_name: createComputedSetterForBlockField("echem_folder_name"),
