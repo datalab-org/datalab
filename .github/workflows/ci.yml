@@ -28,7 +28,7 @@ jobs:
           python-version: "3.10"
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v6
         with:
           version: "0.6.4"
           enable-cache: true
@@ -76,7 +76,7 @@ jobs:
           wget https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2204-x86_64-100.9.0.deb && sudo apt install ./mongodb-database-tools-*-100.9.0.deb
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v6
         with:
           version: "0.6.4"
           enable-cache: true
