@@ -36,7 +36,6 @@
       </div>
     </div>
     <DynamicDataTable
-      :key="tableKey"
       :data="children"
       :columns="collectionTableColumns"
       :data-type="'collectionItems'"
@@ -71,7 +70,6 @@ export default {
   },
   data() {
     return {
-      tableKey: 0,
       collectionTableColumns: [
         {
           field: "item_id",
@@ -114,10 +112,6 @@ export default {
     },
     handleItemsRemovedFromCollection() {
       this.getCollectionChildren();
-
-      this.$nextTick(() => {
-        this.tableKey += 1;
-      });
     },
   },
 };

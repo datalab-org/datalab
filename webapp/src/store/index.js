@@ -354,6 +354,13 @@ export default createStore({
     setPage(state, { type, page }) {
       state.datatablePaginationSettings[type].page = page;
     },
+    removeItemsFromCollection(state, { collection_id, item_ids }) {
+      if (state.all_collection_children[collection_id]) {
+        state.all_collection_children[collection_id] = state.all_collection_children[
+          collection_id
+        ].filter((item) => !item_ids.includes(item.item_id));
+      }
+    },
   },
   getters: {
     getItem: (state) => (item_id) => {
