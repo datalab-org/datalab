@@ -41,6 +41,10 @@ export default createStore({
         page: 0,
         rows: 20,
       },
+      collectionItems: {
+        page: 0,
+        rows: 20,
+      },
       startingMaterials: {
         page: 0,
         rows: 20,
