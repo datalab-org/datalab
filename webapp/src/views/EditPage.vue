@@ -115,6 +115,7 @@ import tinymce from "tinymce/tinymce";
 
 import { itemTypes, API_URL, customBlockTypes } from "@/resources.js";
 import BokehBlock from "@/components/datablocks/BokehBlock.vue";
+import NotImplementedBlock from "@/components/datablocks/NotImplementedBlock.vue";
 import { formatDistanceToNow } from "date-fns";
 
 import StyledBlockHelp from "@/components/StyledBlockHelp";
@@ -262,6 +263,9 @@ export default {
       });
     },
     getBlockDisplayType(block_id) {
+      if (this.$store.state.block_implementation_errors[block_id]) {
+        return NotImplementedBlock;
+      }
       var type = this.blocks[block_id].blocktype;
       if (type in customBlockTypes) {
         return customBlockTypes[type].component;
