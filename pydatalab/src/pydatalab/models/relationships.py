@@ -61,11 +61,14 @@ class TypedRelationship(BaseModel):
 
     @root_validator
     def check_id_fields(cls, values):
-        """Check that only one of the possible identifier fields is provided."""
+        """Check that at least one of the possible identifier fields is provided."""
         id_fields = ("immutable_id", "item_id", "refcode")
         if all(values[f] is None for f in id_fields):
             raise ValueError(f"Must provide at least one of {id_fields!r}")
-        if sum(1 for f in id_fields if values[f] is not None) > 1:
+
+        if values.get("refcode") and values.get("item_id"):
+            pass
+        elif values.get("immutable_id") and (values.get("refcode") or values.get("item_id")):
             raise ValueError("Must provide only one of {id_fields!r}")
 
         return values

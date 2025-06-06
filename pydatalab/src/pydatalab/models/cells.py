@@ -77,7 +77,7 @@ class Cell(Item):
         existing_parthood_relationship_ids = set()
         if values.get("relationships") is not None:
             existing_parthood_relationship_ids = {
-                relationship.item_id
+                relationship.refcode or relationship.item_id
                 for relationship in values["relationships"]
                 if relationship.relation == RelationshipType.PARTHOOD
             }
@@ -88,10 +88,12 @@ class Cell(Item):
             for constituent in values.get(component, []):
                 if (
                     isinstance(constituent.item, EntryReference)
-                    and constituent.item.item_id not in existing_parthood_relationship_ids
+                    and (constituent.item.refcode or constituent.item.item_id)
+                    not in existing_parthood_relationship_ids
                 ):
                     relationship = TypedRelationship(
                         relation=RelationshipType.PARTHOOD,
+                        refcode=constituent.item.refcode,
                         item_id=constituent.item.item_id,
                         type=constituent.item.type,
                         description="Is a constituent of",
