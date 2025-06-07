@@ -7,9 +7,9 @@ several bug and quality-of-life fixes, performance improvements and
 backwards-compatible API enhancements.
 
 > [!WARNING]
-> This release also bumps the supported MongoDB version all the way from v3 to v8. 
+> This release also bumps the supported MongoDB version all the way from v3 to v8.
 > Whilst older MongoDB versions should still continue to work, version 8 will now be tested and used in the docker builds, so we recommend you upgrade.
-> For existing databases this requires you to first dump the database using `mongodump` with the old MongoDB version, then upgrade to the new version and restore the database with `mongorestore`. 
+> For existing databases this requires you to first dump the database using `mongodump` with the old MongoDB version, then upgrade to the new version and restore the database with `mongorestore`.
 > If you unsure about this process then please ask us for help!
 
 ### Highlights
