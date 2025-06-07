@@ -10,6 +10,8 @@ import {
   EQUIPMENT_TABLE_TYPES,
 } from "@/resources.js";
 
+import { DialogService } from "@/services/DialogService";
+
 // ****************************************************************************
 // A simple wrapper to simplify response handling for fetch calls
 // ****************************************************************************
@@ -371,13 +373,15 @@ export function deleteSample(item_id) {
       console.log("delete successful" + response_json);
       store.commit("deleteFromSampleList", item_id);
     })
-    .catch(() =>
-      alert(
-        "Unable to delete item with ID '" +
+    .catch(() => {
+      DialogService.error({
+        title: "Permission Error",
+        message:
+          "Unable to delete item with ID '" +
           item_id +
           "': check that you have the appropriate permissions.",
-      ),
-    );
+      });
+    });
 }
 
 export function deleteStartingMaterial(item_id) {
@@ -388,13 +392,15 @@ export function deleteStartingMaterial(item_id) {
       console.log("delete successful" + response_json);
       store.commit("deleteFromStartingMaterialList", item_id);
     })
-    .catch(() =>
-      alert(
-        "Unable to delete item with ID '" +
+    .catch(() => {
+      DialogService.error({
+        title: "Permission Error",
+        message:
+          "Unable to delete item with ID '" +
           item_id +
           "': check that you have the appropriate permissions.",
-      ),
-    );
+      });
+    });
 }
 
 export function deleteCollection(collection_id, collection_summary) {
@@ -403,13 +409,15 @@ export function deleteCollection(collection_id, collection_summary) {
       console.log("delete successful" + response_json);
       store.commit("deleteFromCollectionList", collection_summary);
     })
-    .catch(() =>
-      alert(
-        "Unable to delete collection with ID '" +
+    .catch(() => {
+      DialogService.error({
+        title: "Permission Error",
+        message:
+          "Unable to delete collection with ID '" +
           collection_id +
           "': check that you have the appropriate permissions.",
-      ),
-    );
+      });
+    });
 }
 
 export function deleteEquipment(item_id) {
@@ -420,22 +428,29 @@ export function deleteEquipment(item_id) {
       console.log("delete successful" + response_json);
       store.commit("deleteFromEquipmentList", item_id);
     })
-    .catch(() =>
-      alert(
-        "Unable to delete item with ID '" +
+    .catch(() => {
+      DialogService.error({
+        title: "Permission Error",
+        message:
+          "Unable to delete item with ID '" +
           item_id +
           "': check that you have the appropriate permissions.",
-      ),
-    );
+      });
+    });
 }
 
-export function deletSampleFromCollection(collection_id, collection_summary) {
+export function deleteSampleFromCollection(collection_id, collection_summary) {
   return fetch_delete(`${API_URL}/collections/${collection_id}`)
     .then(function (response_json) {
       console.log("delete successful" + response_json);
       store.commit("deleteFromCollectionList", collection_summary);
     })
-    .catch((error) => alert("Collection delete failed for " + collection_id + ": " + error));
+    .catch((error) => {
+      DialogService.error({
+        title: "Delete Failed",
+        message: "Collection delete failed for " + collection_id + ": " + error,
+      });
+    });
 }
 
 export async function getItemData(item_id) {
@@ -451,7 +466,12 @@ export async function getItemData(item_id) {
 
       return "success";
     })
-    .catch((error) => alert("Error getting sample data: " + error));
+    .catch((error) => {
+      DialogService.error({
+        title: "Data Retrieval Error",
+        message: "Error getting sample data: " + error,
+      });
+    });
 }
 
 export async function getItemByRefcode(refcode) {
@@ -466,7 +486,12 @@ export async function getItemByRefcode(refcode) {
       });
       return "success";
     })
-    .catch((error) => alert("Error getting item data: " + error));
+    .catch((error) => {
+      DialogService.error({
+        title: "Data Retrieval Error",
+        message: "Error getting item data: " + error,
+      });
+    });
 }
 
 export async function getCollectionData(collection_id) {
@@ -481,7 +506,12 @@ export async function getCollectionData(collection_id) {
 
       return "success";
     })
-    .catch((error) => alert("Error getting collection data: " + error));
+    .catch((error) => {
+      DialogService.error({
+        title: "Data Retrieval Error",
+        message: "Error getting collection data: " + error,
+      });
+    });
 }
 
 export async function updateBlockFromServer(item_id, block_id, block_data, saveToDatabase = true) {
@@ -513,7 +543,10 @@ export async function updateBlockFromServer(item_id, block_id, block_data, saveT
       });
     })
     .catch((error) => {
-      alert("Error in updateBlockFromServer: " + error);
+      DialogService.error({
+        title: "Block Update Error",
+        message: "Error in updateBlockFromServer: " + error,
+      });
       store.commit("setBlockNotUpdating", block_id);
       throw error;
     });
@@ -575,7 +608,10 @@ export function saveItem(item_id) {
       }
     })
     .catch(function (error) {
-      alert("Save unsuccessful :(", error);
+      DialogService.error({
+        title: "Save Failed",
+        message: "Save unsuccessful: " + error,
+      });
     });
 }
 
@@ -590,7 +626,10 @@ export function saveCollection(collection_id) {
       }
     })
     .catch(function (error) {
-      alert("Save unsuccessful :(", error);
+      DialogService.error({
+        title: "Save Failed",
+        message: "Save unsuccessful: " + error,
+      });
     });
 }
 
@@ -601,11 +640,17 @@ export function saveUser(user_id, user) {
         getUserInfo();
         console.log("Save successful!");
       } else {
-        alert("User save unsuccessful", response_json.detail);
+        DialogService.error({
+          title: "User Save Failed",
+          message: "User save unsuccessful: " + response_json.detail,
+        });
       }
     })
     .catch(function (error) {
-      alert(`User save unsuccessful: ${error}`);
+      DialogService.error({
+        title: "User Save Failed",
+        message: `User save unsuccessful: ${error}`,
+      });
     });
 }
 
@@ -615,11 +660,17 @@ export function saveRole(user_id, role) {
       if (response_json.status === "success") {
         console.log("Save successful!");
       } else {
-        alert("Role save unsuccessful", response_json.detail);
+        DialogService.error({
+          title: "Role Save Failed",
+          message: "Role save unsuccessful: " + response_json.detail,
+        });
       }
     })
     .catch(function (error) {
-      alert(`Role save unsuccessful: ${error}`);
+      DialogService.error({
+        title: "Role Save Failed",
+        message: `Role save unsuccessful: ${error}`,
+      });
     });
 }
 
@@ -638,7 +689,12 @@ export function deleteBlock(item_id, block_id) {
       });
       // currently, we don't actually delete the block from the store, so it may get re-added to the db on the next save. Fix once new schemas are established
     })
-    .catch((error) => alert(`Delete unsuccessful :(\n error: ${error}`));
+    .catch((error) => {
+      DialogService.error({
+        title: "Delete Failed",
+        message: `Delete unsuccessful: ${error}`,
+      });
+    });
 }
 
 export function deleteFileFromSample(item_id, file_id) {
@@ -652,7 +708,12 @@ export function deleteFileFromSample(item_id, file_id) {
         file_id: file_id,
       });
     })
-    .catch((error) => alert(`Delete unsuccessful :(\n error: ${error}`));
+    .catch((error) => {
+      DialogService.error({
+        title: "Delete Failed",
+        message: `Delete unsuccessful: ${error}`,
+      });
+    });
 }
 
 export async function fetchRemoteTree(invalidate_cache) {
@@ -755,7 +816,10 @@ export function addItemsToCollection(collection_id, refcodes) {
       }
     })
     .catch(function (error) {
-      alert("Error adding items to collection: ", error);
+      DialogService.error({
+        title: "Collection Update Failed",
+        message: "Error adding items to collection: " + error,
+      });
       throw error;
     });
 }
@@ -770,7 +834,10 @@ export async function getSupportedSchemasList() {
       }
     })
     .catch(function (error) {
-      alert(`Error to get schemas from API: ${error}`);
+      DialogService.error({
+        title: "Schema Retrieval Failed",
+        message: `Error retrieving schemas from API: ${error}`,
+      });
       throw error;
     });
 }
@@ -785,7 +852,10 @@ export async function getSchema(type) {
       }
     })
     .catch(function (error) {
-      alert(`Error to get ${type} schema from API: ${error}`);
+      DialogService.error({
+        title: "Schema Retrieval Failed",
+        message: `Error retrieving ${type} schema from API: ${error}`,
+      });
       throw error;
     });
 }
