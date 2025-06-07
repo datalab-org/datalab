@@ -192,3 +192,7 @@ jobs:
           group: "Component tests (${{ matrix.browser-backend }})"
         env:
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
+
+  liccheck:
+    name: Check OSS license compatibility for dependencies
+    uses: ./.github/workflows/liccheck.yml
