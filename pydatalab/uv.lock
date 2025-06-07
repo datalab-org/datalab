@@ -456,8 +456,8 @@ wheels = [
 
 [[package]]
 name = "datalab-app-plugin-insitu"
-version = "0.1.5"
-source = { git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git?rev=v0.1.5#82859cf0787ec1419055de9773a9ed4d79bd0524" }
+version = "0.1.6"
+source = { git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git?rev=v0.1.6#1f71f5b3ef6cc68bbd0d63aa3eaef474e3281792" }
 dependencies = [
     { name = "lmfit" },
     { name = "matplotlib" },
@@ -465,7 +465,6 @@ dependencies = [
     { name = "nmrglue" },
     { name = "numpy" },
     { name = "pandas" },
-    { name = "pyreadr" },
     { name = "scipy" },
 ]
 
@@ -564,7 +563,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "bokeh", specifier = "~=2.4,<3.0" },
-    { name = "datalab-app-plugin-insitu", marker = "extra == 'app-plugins-git'", git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git?rev=v0.1.5" },
+    { name = "datalab-app-plugin-insitu", marker = "extra == 'app-plugins-git'", git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git?rev=v0.1.6" },
     { name = "datalab-server", extras = ["apps", "chat", "server"], marker = "extra == 'all'" },
     { name = "flask", marker = "extra == 'server'", specifier = "~=3.0" },
     { name = "flask-compress", marker = "extra == 'server'", specifier = "~=1.15" },
@@ -2079,27 +2078,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/8c/d5/e5aeee5387091148a19e1145f63606619cb5f20b83fccb63efae6474e7b2/pyparsing-3.2.0.tar.gz", hash = "sha256:cbf74e27246d595d9a74b186b810f6fbb86726dbf3b9532efb343f6d7294fe9c", size = 920984 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/be/ec/2eb3cd785efd67806c46c13a17339708ddc346cbb684eade7a6e6f79536a/pyparsing-3.2.0-py3-none-any.whl", hash = "sha256:93d9577b88da0bbea8cc8334ee8b918ed014968fd2ec383e868fb8afb1ccef84", size = 106921 },
-]
-
-[[package]]
-name = "pyreadr"
-version = "0.5.3"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "pandas" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/1a/78/36451474523a712c75d72119e4b2475b6c254d92a7eed2ab30b9abc040bd/pyreadr-0.5.3.tar.gz", hash = "sha256:71517866240ed195e7933ed9c47129e738d6f23c3269556f1db4037554ecf455", size = 1287391 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/94/ae/8e5d7d1d487df98d8abc0e70e268dbddbd1a3bd4313ad557d669758d12d3/pyreadr-0.5.3-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:a569b88bd4772617fe047a060b5843e63aac6f0d4dea4161d36cd1d6c6f92ca7", size = 311493 },
-    { url = "https://files.pythonhosted.org/packages/69/2b/73ef15c7359eb3ad9d578703fd32421af317c7008a570072470141a86530/pyreadr-0.5.3-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:885d997872396bf8f1359f06f0c4737ab864810a767b76a303b83e8b90fda704", size = 310032 },
-    { url = "https://files.pythonhosted.org/packages/cd/45/f966998dd47c02ece5a17d273704f0387367b2476e12a4ca6b7f8dadfbb9/pyreadr-0.5.3-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:51f8dd37300a93a61333691be14f2ad3ce9a77d021bfc824d24de50cbec4b4ee", size = 409010 },
-    { url = "https://files.pythonhosted.org/packages/f7/91/b2cd0464e9a1bb48dddc0240154a032c52c5addfb3a0954d5e2bd2831a6b/pyreadr-0.5.3-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:e94475d284f80bde99d4633f1aa2055cbf0d304292fd3c6f666b8cea0530318a", size = 412506 },
-    { url = "https://files.pythonhosted.org/packages/e3/d0/75b5656830a543dc74ed65d85cfe0f88358c54fa5e6a710e85d9a8d29341/pyreadr-0.5.3-cp310-cp310-win_amd64.whl", hash = "sha256:568ead1b58918babbd060543be430e57e30237dbdff7abc5afca24804e400466", size = 1371930 },
-    { url = "https://files.pythonhosted.org/packages/7b/9d/76441d389545f2a6f8c624843bc56b6ad550a63a5a5ad354a2237b31abaf/pyreadr-0.5.3-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:ff2717438695a13e775837afe6f2c0474059f52f0dc9897c36a59ced37de4f5c", size = 311820 },
-    { url = "https://files.pythonhosted.org/packages/fb/f2/8eb2b9a19d7ff05fc8da6d63d0bca2af89b26e75f32505c8c505b0f83328/pyreadr-0.5.3-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:e3ac43e6edaaf60bf5fa2419cc912483a81a1e027d7da4dc83e83b3a8b87c8d1", size = 309340 },
-    { url = "https://files.pythonhosted.org/packages/06/ba/6d3fc8b540d3cb8c966b5819cf45962e4cfc149808e0fbdf921f7d84f99d/pyreadr-0.5.3-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:2f69b63a6f1360fdeb357bb5aa6350143dd2e8cde60017213e3092324b18d6eb", size = 408219 },
-    { url = "https://files.pythonhosted.org/packages/3a/89/93abb893379096f3f8c132e562119f431fa16772de370d86c9d8adf91bfd/pyreadr-0.5.3-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b6e63eb64b16da58aee579699c808fc85137bd1efd998a2bb658df532033a266", size = 411669 },
-    { url = "https://files.pythonhosted.org/packages/46/cf/2219a58023d52c7014408bec061b7e732a2890d1df49bdb4ed7c17259a5e/pyreadr-0.5.3-cp311-cp311-win_amd64.whl", hash = "sha256:4e1dc79e2659575957209bbef119c29d35b8082eb51d2cbc3e84fa9b64efe0f9", size = 1370179 },
 ]
 
 [[package]]
