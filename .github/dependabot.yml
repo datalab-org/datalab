@@ -32,3 +32,15 @@ updates:
     github-actions:
       applies-to: version-updates
       dependency-type: production
+# Check the local docker files for version updates
+- package-ecosystem: docker
+  schedule:
+    interval: monthly
+    time: "05:50"
+    day: wednesday
+  target-branch: main
+  labels:
+  - dependency_updates
+  - build
+  labels:
+  - dependency_updates
