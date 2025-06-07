@@ -27,7 +27,7 @@ dependencies = [
     "pydantic[email, dotenv] < 2.0",
     "pint ~= 0.24",
     "pandas[excel] ~= 2.2",
-    "pymongo ~= 4.7, < 4.11",
+    "pymongo ~= 4.7",
 ]
 
 [project.urls]
