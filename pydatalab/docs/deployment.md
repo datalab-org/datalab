@@ -151,6 +151,14 @@ You must somehow download the latest *datalab* changes to your server (ideally w
     introduced in the release process.
     Instructions for this can be found in the [Backups](#backups) section below.
 
+!!! danger Handling database version updates
+    The note about backups is especially important for releases that involve a database version update.
+    If you are using the automated deployment with Ansible, this should be handled for you automatically, but otherwise,
+    you will need to prepare for the upgrade by running `mongodump` with the original database version
+    and then `mongorestore` after upgrading.
+
+    If you are unsure, please ask for help on GitHub or Slack before attmepting this.
+
 ```shell
 cd datalab-deployment/datalab;
 
