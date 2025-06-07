@@ -52,7 +52,9 @@ Some things to consider:
 - Typically you will need to run the app and API on two different subdomains.
 
 These can be provided perhaps by an IT department, or by configuring DNS settings on your own domain to point to the server.
-You will need to configure the app such so that it points at the relevant hosted API (see [app `.env` description](config.md#app).
+
+You will need to configure the app such so that it points at the relevant hosted API (see [app `.env` description](config.md#app)), via the `VUE_APP_API_URL` variable.
+You can also control other options via several `VUE_APP_*` environment variables listed at the link above.
 
 There will inevitably be specific infrastructure configuration required for your
 instance, for example, the mounting of disks into the API container to allow for
@@ -77,7 +79,7 @@ The process may look something like the following:
 - Add *datalab* as a [Git submodule](https://git-scm.com/book/en/v2/Git-Tools-Submodules):
   ```shell
   git submodule add git@github.com:datalab-org/datalab
-  cd datalab; git checkout v0.4.0  # at this point you can set any default version, or just track the main branch
+  cd datalab; git checkout <commit_or_tag>; cd ..  # at this point you can set any tagged version, or just track the main branch
   git commit -a -m "Add datalab as submodule"
   ```
 
@@ -148,6 +150,14 @@ You must somehow download the latest *datalab* changes to your server (ideally w
     deployment to restore to if anything goes wrong, or if any bugs have been
     introduced in the release process.
     Instructions for this can be found in the [Backups](#backups) section below.
+
+!!! danger Handling database version updates
+    The note about backups is especially important for releases that involve a database version update.
+    If you are using the automated deployment with Ansible, this should be handled for you automatically, but otherwise,
+    you will need to prepare for the upgrade by running `mongodump` with the original database version
+    and then `mongorestore` after upgrading.
+
+    If you are unsure, please ask for help on GitHub or Slack before attmepting this.
 
 ```shell
 cd datalab-deployment/datalab;

@@ -27,7 +27,7 @@ dependencies = [
     "pydantic[email, dotenv] < 2.0",
     "pint ~= 0.24",
     "pandas[excel] ~= 2.2",
-    "pymongo ~= 4.7, < 4.11",
+    "pymongo ~= 4.7",
 ]
 
 [project.urls]
@@ -49,7 +49,7 @@ version_scheme = "post-release"
 server = [
     "Flask ~= 3.0",
     "Flask-Login ~= 0.6",
-    "Flask-Cors ~= 5.0",
+    "Flask-Cors ~= 6.0",
     "Flask-Dance ~= 7.1",
     "Flask-PyMongo ~= 2.3",
     "Flask-Mail ~= 0.10",
@@ -69,7 +69,7 @@ apps = [
     "navani >= 0.1.11",
     # Raman
     "pybaselines ~= 1.1",
-    "rosettasciio ~= 0.3, < 0.4",
+    "renishawwire >= 0.1.16",
     # TGA
     "python-dateutil ~= 2.9",
     # XRD

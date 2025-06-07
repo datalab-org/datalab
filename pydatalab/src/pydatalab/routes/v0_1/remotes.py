@@ -5,6 +5,7 @@ from flask import Blueprint, jsonify, request
 from flask_login import current_user
 
 from pydatalab.config import CONFIG
+from pydatalab.permissions import active_users_or_get_only
 from pydatalab.remote_filesystems import (
     get_directory_structure,
     get_directory_structures,
@@ -25,6 +26,11 @@ def _check_invalidate_cache(args: dict[str, str]) -> bool | None:
 REMOTES = Blueprint("remotes", __name__)
 
 
+@REMOTES.before_request
+@active_users_or_get_only
+def _(): ...
+
+
 @REMOTES.route("/list-remote-directories", methods=["GET"])
 @REMOTES.route("/remotes", methods=["GET"])
 def list_remote_directories():
@@ -34,7 +40,10 @@ def list_remote_directories():
     then it will be reconstructed.
 
     """
-    if not current_user.is_authenticated and not CONFIG.TESTING:
+    if (
+        not (current_user.is_authenticated and current_user.account_status == "active")
+        and not CONFIG.TESTING
+    ):
         return (
             jsonify(
                 {

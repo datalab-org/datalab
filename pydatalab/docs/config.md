@@ -16,6 +16,14 @@ administration"](deployment.md).
     - These can be provided as environment variables or in a `.env` file in the directory from which `pydatalab` is launched.
 3. Web app configuration, such as the URL of the relevant *datalab* API and branding (logo URLs, external homepage links).
     - These are typically provided as a `.env` file in the directory from which the webapp is built/served.
+    - The main options include (a full list can be found in the `docker-compose.yml` file):
+        - `VUE_APP_API_URL`: the URL of the *datalab* API, which is used by the web app to communicate with the server.
+        - `VUE_APP_LOGO_URL`: the URL of an image to use as the logo header in the web app.
+        - `VUE_APP_HOMEPAGE_URL`: a URL to provide as a link from the web app header.
+        - `VUE_APP_EDITABLE_INVENTORY`: whether the inventory can be edited by non-admin users in the web app.
+        - `VUE_APP_WEBSITE_TITLE`: the title of the web app, which is displayed in the browser tab and header.
+        - `VUE_APP_QR_CODE_RESOLVER_URL`: the URL of a service that can resolve QR codes to *datalab* entries, which is used by the web app to display QR codes for entries (see [datalab-org/datalab-purl](https://github.com/datalab-org/datalab-purl) for more information).
+        - `VUE_APP_AUTOMATICALLY_GENERATE_ID_DEFAULT`: whether to automatically generate IDs for new entries in the web app by default, or require a checkbox to be ticked at item creation.
 
 ## Mandatory settings
 

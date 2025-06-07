@@ -2,18 +2,32 @@ import pytest
 
 
 @pytest.mark.dependency()
-def test_directories_list(client):
+def test_directories_list(client, unauthenticated_client, unverified_client, deactivated_client):
     response = client.get("/list-remote-directories")
     assert response.json
     toplevel = response.json["data"][0]
     assert toplevel["type"] == "toplevel"
     assert toplevel["status"] == "updated"
 
+    response = unauthenticated_client.get("/list-remote-directories")
+    assert response.status_code == 401
+    response = unverified_client.get("/list-remote-directories")
+    assert response.status_code == 401
+    response = deactivated_client.get("/list-remote-directories")
+    assert response.status_code == 401
+
     response = client.get("/remotes")
     assert response.json
     toplevel = response.json["data"][0]
     assert toplevel["type"] == "toplevel"
     assert toplevel["status"] == "cached"
+
+    response = unauthenticated_client.get("/remotes")
+    assert response.status_code == 401
+    response = unverified_client.get("/remotes")
+    assert response.status_code == 401
+    response = deactivated_client.get("/remotes")
+    assert response.status_code == 401
 
 
 @pytest.mark.dependency(depends=["test_directories_list"])
