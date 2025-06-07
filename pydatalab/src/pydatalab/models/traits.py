@@ -99,7 +99,7 @@ class HasSynthesisInfo(BaseModel):
             existing_parent_relationship_ids = set()
             if values.get("relationships") is not None:
                 existing_parent_relationship_ids = {
-                    relationship.item_id or relationship.refcode
+                    relationship.refcode or relationship.item_id
                     for relationship in values["relationships"]
                     if relationship.relation == RelationshipType.PARENT
                 }
@@ -110,12 +110,13 @@ class HasSynthesisInfo(BaseModel):
                 # If this is an inline relationship, just skip it
                 if isinstance(constituent.item, InlineSubstance):
                     continue
-                if (
-                    constituent.item.item_id not in existing_parent_relationship_ids
-                    and constituent.item.refcode not in existing_parent_relationship_ids
-                ):
+
+                constituent_id = constituent.item.refcode or constituent.item.item_id
+
+                if constituent_id not in existing_parent_relationship_ids:
                     relationship = TypedRelationship(
                         relation=RelationshipType.PARENT,
+                        refcode=constituent.item.refcode,
                         item_id=constituent.item.item_id,
                         type=constituent.item.type,
                         description="Is a constituent of",
@@ -123,7 +124,7 @@ class HasSynthesisInfo(BaseModel):
                     values["relationships"].append(relationship)
 
                 # Accumulate all constituent IDs in a set to filter those that have been deleted
-                constituents_set.add(constituent.item.item_id)
+                constituents_set.add(constituent_id)
 
         # Finally, filter out any parent relationships with item that were removed
         # from the synthesis constituents
@@ -131,7 +132,7 @@ class HasSynthesisInfo(BaseModel):
             rel
             for rel in values["relationships"]
             if not (
-                rel.item_id not in constituents_set
+                (rel.refcode or rel.item_id) not in constituents_set
                 and rel.relation == RelationshipType.PARENT
                 and rel.type in ("samples", "starting_materials")
             )
