@@ -195,4 +195,4 @@ jobs:
 
   liccheck:
     name: Check OSS license compatibility for dependencies
-    uses: ./.github/workflows/liccheck.yml
+    uses: ./.github/workflows/license-check.yml
