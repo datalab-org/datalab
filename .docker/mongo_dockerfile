@@ -1,4 +1,4 @@
-FROM mongo:4.4-focal
+FROM mongo:8-noble
 
 COPY .docker/mongod.conf /etc/mongod.conf
 EXPOSE 27017
