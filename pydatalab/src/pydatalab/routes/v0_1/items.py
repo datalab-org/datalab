@@ -2,7 +2,7 @@ import datetime
 import json
 
 from bson import ObjectId
-from flask import Blueprint, jsonify, redirect, request
+from flask import Blueprint, jsonify, redirect, request, send_from_directory
 from flask_login import current_user
 from pydantic import ValidationError
 from pymongo.command_cursor import CommandCursor
@@ -1123,3 +1123,14 @@ def search_users():
     return jsonify(
         {"status": "success", "users": list(json.loads(Person(**d).json()) for d in cursor)}
     ), 200
+
+
+@ITEMS.route("/items/<refcode>/export-eln-ff", methods=["PATCH"])
+def export_item_as_eln_file(refcode: str):
+    """Create an ELN file format export of the given item, with attached files."""
+    from pydatalab.utils.eln_file_format import ELNFileFactory
+
+    item_data = get_item_data(refcode=refcode, load_blocks=True)
+
+    eln_file_path = ELNFileFactory.from_item(item_data)
+    return send_from_directory(eln_file_path.parent, eln_file_path.name)
