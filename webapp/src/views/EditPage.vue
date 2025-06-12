@@ -266,7 +266,13 @@ export default {
       if (this.$store.state.block_implementation_errors[block_id]) {
         return NotImplementedBlock;
       }
-      var type = this.blocks[block_id].blocktype;
+
+      const block = this.blocks[block_id];
+      if (!block || !block.blocktype) {
+        return NotImplementedBlock;
+      }
+
+      const type = block.blocktype;
       if (type in customBlockTypes) {
         return customBlockTypes[type].component;
       } else {
