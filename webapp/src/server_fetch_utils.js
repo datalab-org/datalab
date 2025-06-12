@@ -513,7 +513,8 @@ export async function updateBlockFromServer(item_id, block_id, block_data, saveT
       });
       store.commit("setBlockImplementationError", { block_id, hasError: false });
     })
-    .catch(() => {
+    .catch((error) => {
+      console.warn(`Failed to update block ${block_id}:`, error);
       store.commit("setBlockImplementationError", { block_id, hasError: true });
       store.commit("setBlockNotUpdating", block_id);
     });
