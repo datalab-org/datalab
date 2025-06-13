@@ -28,7 +28,8 @@ jobs:
       - name: Set up uv
         uses: astral-sh/setup-uv@v6
         with:
-          version: "0.5.22"
+          version: "0.6.4"
+          working-directory: "./pydatalab"
           enable-cache: true
 
       - name: Sync latest compatible dependencies and commit

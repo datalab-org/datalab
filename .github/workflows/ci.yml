@@ -79,6 +79,7 @@ jobs:
         uses: astral-sh/setup-uv@v6
         with:
           version: "0.6.4"
+          working-directory: "./pydatalab"
           enable-cache: true
 
       - name: Install locked versions of dependencies
