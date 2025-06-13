@@ -534,7 +534,11 @@ def double_axes_echem_plot(
     # x_label = "Capacity (mAh/g)" if x_default == "Capacity normalized" else x_default
     x_label = x_default
 
-    p1 = create_grid_figure(x_axis_label=x_label, y_axis_label="voltage (V)", **kwargs)
+    if mode == "dQ/dV":
+        p1 = create_grid_figure(x_axis_label=x_label, y_axis_label="voltage (V)", **kwargs)
+    else:
+        p1 = create_standard_figure(x_axis_label=x_label, y_axis_label="voltage (V)", **kwargs)
+
     p1.xaxis.ticker.desired_num_ticks = 5
     plots.append(p1)
 
@@ -546,7 +550,7 @@ def double_axes_echem_plot(
             )
             p2.xaxis.ticker.desired_num_ticks = 3
         else:
-            p2 = create_grid_figure(
+            p2 = create_standard_figure(
                 x_axis_label=x_default, y_axis_label=mode, x_range=p1.x_range, **kwargs
             )
             p2.xaxis.ticker.desired_num_ticks = 5
@@ -588,10 +592,11 @@ def double_axes_echem_plot(
             line_width=2,
             color=palette[2],
         )
-        p3.triangle(
+        p3.scatter(
             x="full cycle",
             y="discharge capacity (mAh/g)" if normalized else "discharge capacity (mAh)",
             source=cycle_summary,
+            marker="triangle",
             fill_color="white",
             hatch_color=palette[2],
             line_width=2,
