@@ -284,7 +284,7 @@ def create_app(
 
             connect_buttons = {
                 "github": f"""
-                    <a href={url_for('github.login')}>
+                    <a href={url_for("github.login")}>
                         <i class="fa fa-github"></i>
                         Connect GitHub
                     </a></br>
@@ -304,11 +304,11 @@ def create_app(
                 for k in OAUTH_PROXIES:
                     if k not in current_user.identity_types:
                         auth_string += f"<li>{connect_buttons[k]}</li>"
-                logout_string += f'<a href={url_for("logout")}>Log out</a>'
+                logout_string += f"<a href={url_for('logout')}>Log out</a>"
 
             else:
                 for k in OAUTH_PROXIES:
-                    auth_string += f'<li>{connect_buttons[k].replace("Connect", "Login via")}</li>'
+                    auth_string += f"<li>{connect_buttons[k].replace('Connect', 'Login via')}</li>"
 
             auth_string += "</ul>"
 
