@@ -11,9 +11,9 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
         update-block-on-change
       />
     </div>
-    <div class="form-row">
-      <div class="row mt-2">
-        <div class="col mx-auto">
+    <div class="row mt-2">
+      <div class="col">
+        <div class="bokeh-responsive-container">
           <BokehPlot :bokeh-plot-data="bokehPlotData" />
         </div>
       </div>
@@ -73,4 +73,9 @@ export default {
 };
 </script>
 
-<style scoped></style>
+<style scoped>
+.bokeh-responsive-container {
+  width: 100%;
+  max-width: 100%;
+}
+</style>

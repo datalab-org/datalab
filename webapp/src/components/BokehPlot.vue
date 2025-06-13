@@ -1,11 +1,6 @@
 <template>
   <div v-if="loading" class="alert alert-secondary mt-3">Setting up bokeh plot...</div>
-  <div
-    :id="uniqueId"
-    ref="bokehPlotContainer"
-    :style="{ height: containerHeight }"
-    class="bokeh-plot-container"
-  />
+  <div :id="uniqueId" ref="bokehPlotContainer" class="bokeh-plot-container" />
 </template>
 
 <script>
@@ -18,7 +13,11 @@ export default {
       type: Object,
       required: true,
       validator(value) {
-        return value && typeof value.script === "string" && typeof value.html === "string";
+        return (
+          value &&
+          typeof value.script === "string" &&
+          (typeof value.html === "string" || typeof value.div === "string")
+        );
       },
     },
   },
@@ -26,7 +25,6 @@ export default {
     return {
       uniqueId: "",
       loading: false,
-      containerHeight: "auto",
     };
   },
   watch: {
@@ -69,17 +67,8 @@ export default {
     },
 
     async updatePlot() {
-      const scrollHeight = this.$refs.bokehPlotContainer?.scrollHeight;
-      if (scrollHeight) {
-        this.containerHeight = `${scrollHeight}px`;
-      }
-
       this.cleanup();
       await this.renderPlot();
-
-      this.$nextTick(() => {
-        this.containerHeight = "auto";
-      });
     },
 
     async injectPlot() {
@@ -87,7 +76,6 @@ export default {
       if (!container) return;
 
       const htmlContent = this.bokehPlotData.html || this.bokehPlotData.div;
-
       container.innerHTML = htmlContent;
 
       await this.executeScript(this.bokehPlotData.script);
@@ -113,22 +101,21 @@ export default {
     },
 
     applyCustomStyles() {
-      const selectElements = this.$refs.bokehPlotContainer?.querySelectorAll(
-        "div.bk-input-group > select",
-      );
+      const container = this.$refs.bokehPlotContainer;
+      if (!container) return;
+
+      const selectElements = container.querySelectorAll("div.bk-input-group > select");
       selectElements?.forEach((element) => {
         element.classList.add("form-control", "ml-4");
         element.classList.remove("bk-input", "bk");
       });
 
-      const labelElements = this.$refs.bokehPlotContainer?.querySelectorAll(
-        "div.bk-input-group > label",
-      );
+      const labelElements = container.querySelectorAll("div.bk-input-group > label");
       labelElements?.forEach((element) => {
         element.classList.remove("bk");
       });
 
-      const inputGroups = this.$refs.bokehPlotContainer?.querySelectorAll("div.bk-input-group");
+      const inputGroups = container.querySelectorAll("div.bk-input-group");
       inputGroups?.forEach((element) => {
         element.classList.add("input-group", "form-inline", "col-sm-6");
         element.classList.remove("bk-input-group", "bk");
@@ -164,3 +151,13 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.bokeh-plot-container {
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  justify-content: center;
+  max-width: 75%;
+}
+</style>

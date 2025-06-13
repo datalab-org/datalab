@@ -30,13 +30,15 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
             updateBlock();
           "
         />
-        <div v-if="wavelengthParseError" class="alert alert-danger mt-2 mx-auto">
-          {{ wavelengthParseError }}
-        </div>
       </div>
+      <div v-if="wavelengthParseError" class="alert alert-danger mt-2 mx-auto">
+        {{ wavelengthParseError }}
+      </div>
+    </div>
 
-      <div class="row">
-        <div id="bokehPlotContainer" class="col-xl-9 col-lg-10 col-md-11 mx-auto">
+    <div class="row mt-2">
+      <div class="col">
+        <div class="bokeh-responsive-container">
           <BokehPlot :bokeh-plot-data="bokehPlotData" />
         </div>
       </div>
@@ -100,3 +102,10 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.bokeh-responsive-container {
+  width: 100%;
+  max-width: 100%;
+}
+</style>

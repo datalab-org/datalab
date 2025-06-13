@@ -1,6 +1,4 @@
 <template>
-  <!-- think about elegant two-way binding to DataBlockBase... or, just pass all the block data into
-DataBlockBase as a prop, and save from within DataBlockBase  -->
   <DataBlockBase :item_id="item_id" :block_id="block_id">
     <FileSelectDropdown
       v-model="file_id"
@@ -35,16 +33,21 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
           >{{ detailsShown ? "hide measurement details" : "show measurement details" }}</a
         >
       </div>
+
       <div v-if="titleShown" class="card mb-2">
         <div class="card-body" style="white-space: pre">
           {{ metadata?.topspin_title }}
         </div>
       </div>
-      <div class="row">
-        <div id="bokehPlotContainer" class="col-xl-8 col-lg-8 col-md-11 mx-auto">
-          <BokehPlot v-if="bokehPlotData" :bokeh-plot-data="bokehPlotData" />
+
+      <div class="row mt-2">
+        <div :class="detailsShown ? 'col-xl-8 col-lg-8' : 'col'">
+          <div class="bokeh-responsive-container">
+            <BokehPlot v-if="bokehPlotData" :bokeh-plot-data="bokehPlotData" />
+          </div>
         </div>
-        <div v-if="detailsShown" class="col-xl-4 col-lg-4 ml-0">
+
+        <div v-if="detailsShown" class="col-xl-4 col-lg-4">
           <table class="table table-sm">
             <tbody>
               <tr>
@@ -66,12 +69,10 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
                 <th scope="row">probe</th>
                 <td>{{ metadata?.probe_name }} s</td>
               </tr>
-
               <tr>
                 <th scope="row"># of scans</th>
                 <td>{{ metadata?.nscans }}</td>
               </tr>
-
               <tr>
                 <th scope="row">recycle delay</th>
                 <td>{{ metadata?.recycle_delay }} s</td>
@@ -80,7 +81,6 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
                 <th scope="row">carrier frequency</th>
                 <td>{{ metadata?.carrier_frequency_MHz }} MHz</td>
               </tr>
-
               <tr>
                 <th scope="row">carrier offset</th>
                 <td>
@@ -128,7 +128,6 @@ export default {
   },
   data() {
     return {
-      wavelengthParseError: "",
       detailsShown: true,
       titleShown: false,
     };
@@ -170,5 +169,10 @@ export default {
 th {
   color: #454545;
   font-weight: 500;
+}
+
+.bokeh-responsive-container {
+  width: 100%;
+  max-width: 100%;
 }
 </style>

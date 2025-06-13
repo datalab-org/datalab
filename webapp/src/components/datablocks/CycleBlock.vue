@@ -135,11 +135,10 @@
       </div>
 
       <div class="row mt-2">
-        <div
-          class="col mx-auto"
-          :class="{ 'limited-width': bokehPlotLimitedWidth, blurry: isUpdating }"
-        >
-          <BokehPlot :bokeh-plot-data="bokehPlotData" />
+        <div class="col">
+          <div :class="{ blurry: isUpdating }" class="bokeh-responsive-container">
+            <BokehPlot :bokeh-plot-data="bokehPlotData" />
+          </div>
         </div>
       </div>
     </div>
@@ -196,9 +195,6 @@ export default {
     },
     blockInfo() {
       return this.$store.state.blocksInfos["cycle"];
-    },
-    bokehPlotLimitedWidth() {
-      return this.derivative_mode !== "dQ/dV";
     },
     file_id: createComputedSetterForBlockField("file_id"),
     all_cycles: createComputedSetterForBlockField("cyclenumber"),
@@ -275,8 +271,9 @@ export default {
   filter: blur(5px);
 }
 
-.limited-width {
-  max-width: 650px;
+.bokeh-responsive-container {
+  width: 100%;
+  max-width: 100%;
 }
 
 .slider {

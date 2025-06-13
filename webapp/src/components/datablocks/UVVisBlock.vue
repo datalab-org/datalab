@@ -10,9 +10,11 @@
         :update-block-on-change="true"
       />
     </div>
-    <div class="row">
-      <div id="bokehPlotContainer" class="col-xl-9 col-lg-10 col-md-11 mx-auto">
-        <BokehPlot :bokeh-plot-data="bokehPlotData" />
+    <div class="row mt-2">
+      <div class="col">
+        <div class="bokeh-responsive-container">
+          <BokehPlot :bokeh-plot-data="bokehPlotData" />
+        </div>
       </div>
     </div>
   </DataBlockBase>
@@ -62,4 +64,9 @@ export default {
 };
 </script>
 
-<style scoped></style>
+<style scoped>
+.bokeh-responsive-container {
+  width: 100%;
+  max-width: 100%;
+}
+</style>
