@@ -38,16 +38,11 @@
     <DynamicDataTable
       :data="children"
       :columns="collectionTableColumns"
-      :data-type="'samples'"
-      :global-filter-fields="[
-        'item_id',
-        'name',
-        'refcode',
-        'chemform',
-        'blocks',
-        'characteristic_chemical_formula',
-      ]"
-      :show-buttons="false"
+      :data-type="'collectionItems'"
+      :global-filter-fields="['item_id', 'name']"
+      :show-buttons="true"
+      :collection-id="collection_id"
+      @remove-selected-items-from-collection="handleItemsRemovedFromCollection"
     />
   </div>
 </template>
@@ -114,6 +109,9 @@ export default {
         .catch(() => {
           this.fetchError = true;
         });
+    },
+    handleItemsRemovedFromCollection() {
+      this.getCollectionChildren();
     },
   },
 };
