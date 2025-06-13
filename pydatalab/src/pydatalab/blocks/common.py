@@ -172,4 +172,6 @@ class TabularDataBlock(DataBlock):
             show_table=True,
         )
 
-        self.data["bokeh_plot_data"] = bokeh.embed.json_item(plot, theme=DATALAB_BOKEH_THEME)
+        script, div = bokeh.embed.components(plot, theme=DATALAB_BOKEH_THEME)
+
+        self.data["bokeh_plot_data"] = {"script": script, "div": div}

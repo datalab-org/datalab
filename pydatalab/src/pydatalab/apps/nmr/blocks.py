@@ -235,7 +235,7 @@ class NMRBlock(DataBlock):
         self.data["bokeh_plot_data"] = self.make_nmr_plot(df, self.data["metadata"])
 
     @classmethod
-    def make_nmr_plot(cls, df: pd.DataFrame, metadata: dict[str, Any]) -> str:
+    def make_nmr_plot(cls, df: pd.DataFrame, metadata: dict[str, Any]) -> dict[str, str]:
         """Create a Bokeh plot for the NMR data stored in the dataframe and metadata."""
         nucleus_label = metadata.get("nucleus") or ""
         # replace numbers with superscripts
@@ -270,4 +270,5 @@ class NMRBlock(DataBlock):
         # of the layout in the current implementation, but this could be fragile.
         bokeh_layout.children[1].x_range.flipped = True
 
-        return bokeh.embed.json_item(bokeh_layout, theme=DATALAB_BOKEH_THEME)
+        script, div = bokeh.embed.components(bokeh_layout, theme=DATALAB_BOKEH_THEME)
+        return {"script": script, "div": div}

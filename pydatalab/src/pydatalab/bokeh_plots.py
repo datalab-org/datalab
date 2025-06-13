@@ -66,7 +66,7 @@ GENERATE_CSV_CALLBACK = """
 style = {
     "attrs": {
         # apply defaults to Figure properties
-        "Figure": {
+        "figure": {
             "toolbar_location": "above",
             "outline_line_color": None,
             "min_border_right": 10,
@@ -101,7 +101,7 @@ style = {
 grid_style = {
     "attrs": {
         # apply defaults to Figure properties
-        "Figure": {
+        "figure": {
             "toolbar_location": "above",
             "outline_line_color": None,
             "min_border_right": 10,
@@ -299,7 +299,7 @@ def selectable_axes_plot(
             y_default = y_default[0]
 
         circles = (
-            p.circle(
+            p.scatter(
                 x=x_default,
                 y=y_default,
                 source=source,
@@ -490,7 +490,7 @@ def double_axes_echem_plot(
             line_width=2,
             color=palette[0],
         )
-        p3.circle(
+        p3.scatter(
             x="full cycle",
             y="charge capacity (mAh/g)" if normalized else "charge capacity (mAh)",
             source=cycle_summary,
@@ -564,7 +564,7 @@ def double_axes_echem_plot(
 
                 peaks, _ = find_peaks(dvdq_array, prominence=5)
                 peak_locs = group.iloc[peaks]
-                p2.circle(x=x, y=y, source=peak_locs)
+                p2.scatter(x=x, y=y, source=peak_locs)
 
             if ind == 0:
                 lines.append(line)

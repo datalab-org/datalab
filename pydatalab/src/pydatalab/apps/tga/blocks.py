@@ -53,7 +53,8 @@ class MassSpecBlock(DataBlock):
         max_vals: list[tuple[str, float]] = []
 
         data_key: str = (
-            "Partial pressure [mbar] or Ion Current [A]"  # default value for data key if missing
+            # default value for data key if missing
+            "Partial pressure [mbar] or Ion Current [A]"
         )
 
         for species in ms_data["data"]:
@@ -100,4 +101,6 @@ class MassSpecBlock(DataBlock):
                 grid.append(plots[i : i + M])
             p = gridplot(grid, sizing_mode="scale_width", toolbar_location="below")
 
-            return bokeh.embed.json_item(p, theme=DATALAB_BOKEH_GRID_THEME)
+            script, div = bokeh.embed.components(p, theme=DATALAB_BOKEH_GRID_THEME)
+
+            return {"script": script, "div": div}
