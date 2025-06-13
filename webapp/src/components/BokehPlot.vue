@@ -1,6 +1,6 @@
 <template>
   <div v-if="loading" class="alert alert-secondary mt-3">Setting up bokeh plot...</div>
-  <div :id="uniqueId" ref="bokehPlotContainer" class="bokeh-plot-container" />
+  <div :id="unique_id" ref="bokehPlotContainer" class="bokeh-plot-container" />
 </template>
 
 <script>
@@ -23,7 +23,7 @@ export default {
   },
   data() {
     return {
-      uniqueId: "",
+      unique_id: "",
       loading: false,
     };
   },
@@ -36,7 +36,7 @@ export default {
     },
   },
   mounted() {
-    this.uniqueId = this.generateUniqueId();
+    this.unique_id = this.guidGenerator();
     this.$nextTick(() => {
       this.renderPlot();
     });
@@ -142,11 +142,11 @@ export default {
         container.innerHTML = "";
       }
     },
-
-    generateUniqueId() {
-      const timestamp = Date.now().toString(36);
-      const randomStr = Math.random().toString(36).substring(2, 8);
-      return `bokeh-plot-${timestamp}-${randomStr}`;
+    guidGenerator() {
+      var S4 = function () {
+        return (((1 + Math.random()) * 0x10000) | 0).toString(16).substring(1);
+      };
+      return S4() + S4() + "-" + S4();
     },
   },
 };
