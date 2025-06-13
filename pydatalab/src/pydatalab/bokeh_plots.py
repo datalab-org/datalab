@@ -29,10 +29,10 @@ TYPEFACE = "Helvetica, sans-serif"
 COLORS = Dark2[8]
 TOOLS = "box_zoom, reset, tap, crosshair, save"
 
-PLOT_WIDTH = 750
-PLOT_HEIGHT = 320
-PLOT_MIN_WIDTH = 600
-PLOT_MIN_HEIGHT = 280
+PLOT_WIDTH = 620
+PLOT_HEIGHT = 410
+PLOT_MIN_WIDTH = 620
+PLOT_MIN_HEIGHT = 410
 
 DEFAULT_FIGURE_CONFIG = {
     "width": PLOT_WIDTH,
