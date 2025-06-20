@@ -8,7 +8,7 @@ instance, in which case please check out the separate Python API package at
 [datalab-org/datalab-api](https://github.com/datalab-org/datalab-python-api).
 
 The instructions below outline how to make a development installation on your local machine.
-We strongly recommend following the [deployment instructions](deployment.md) on [docs.datalab-org.io](https://docs.datalab-org.io/en/stable/deployment/) if you are deploying for use in production.
+We strongly recommend following the deployment instructions on [docs.datalab-org.io](https://docs.datalab-org.io/en/stable/deployment/) if you are deploying for use in production.
 
 This repository consists of two components:
 
@@ -168,7 +168,7 @@ There are two approaches to authentication when developing *datalab* features lo
      up authentication locally (see below).
 1. Local OAuth setup. This requires registering an OAuth app with one of the
    implemented providers (e.g., GitHub, ORCID), configuring the credentials
-   locally (see the [deployment instructions](deployment.md) for more details) and then logging into *datalab* normally.
+   locally (see the [deployment instructions](https://docs.datalab-org.io/en/stable/deployment/) for more details) and then logging into *datalab* normally.
    - In this case, the user will also need to be activated when it is created.
      This can be done by manually editing the user in the database (setting
      `account_status` to `'active'`), or by running the `admin.activate-user`
