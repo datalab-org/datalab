@@ -23,13 +23,19 @@
           </div>
         </div>
         <div class="form-row">
-          <div class="form-group col-md-3 col-sm-2 col-6">
+          <div class="form-group col-md-3 col-sm-4 col-6">
             <label for="samp-refcode">Refcode</label>
             <div id="samp-refcode">
               <FormattedRefcode :refcode="Refcode" />
             </div>
           </div>
-          <div class="form-group col-md-3 col-sm-3 col-6 pb-3">
+          <div class="form-group col-md-9 col-sm-8 col-6 pr-2">
+            <ToggleableCollectionFormGroup v-model="Collections" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group col-md-6 pb-3">
             <ToggleableCreatorsFormGroup v-model="ItemCreators" :refcode="Refcode" />
           </div>
           <div class="col-md-6 col-sm-7 pr-2">
@@ -38,6 +44,8 @@
               v-model="Collections"
               :item_id="item_id"
             />
+          <div class="form-group col-md-6 pb-3">
+            <ToggleableGroupsFormGroup v-model="ItemGroups" :refcode="Refcode" />
           </div>
         </div>
         <div class="form-row">
@@ -65,6 +73,7 @@ import FormattedRefcode from "@/components/FormattedRefcode";
 import ToggleableCollectionFormGroup from "@/components/ToggleableCollectionFormGroup";
 import ToggleableCreatorsFormGroup from "@/components/ToggleableCreatorsFormGroup";
 import TiptapInline from "@/components/TiptapInline";
+import ToggleableGroupsFormGroup from "@/components/ToggleableGroupsFormGroup";
 import SynthesisInformation from "@/components/SynthesisInformation";
 import TableOfContents from "@/components/TableOfContents";
 import ItemRelationshipVisualization from "@/components/ItemRelationshipVisualization";
@@ -79,6 +88,7 @@ export default {
     FormattedRefcode,
     ToggleableCollectionFormGroup,
     ToggleableCreatorsFormGroup,
+    ToggleableGroupsFormGroup,
   },
   props: {
     item_id: { type: String, required: true },
@@ -104,6 +114,7 @@ export default {
     ChemForm: createComputedSetterForItemField("chemform"),
     DateCreated: createComputedSetterForItemField("date"),
     ItemCreators: createComputedSetterForItemField("creators"),
+    ItemGroups: createComputedSetterForItemField("groups"),
     Collections: createComputedSetterForItemField("collections"),
   },
 };

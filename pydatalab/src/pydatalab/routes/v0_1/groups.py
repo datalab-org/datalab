@@ -1,8 +1,10 @@
 import json
 
 from flask import Blueprint, jsonify, request
+from flask_login import current_user
 
 from pydatalab.models.people import Group
+from pydatalab.models.utils import UserRole
 from pydatalab.mongo import flask_mongo
 from pydatalab.permissions import active_users_or_get_only
 
@@ -43,4 +45,40 @@ def search_groups():
     )
     return jsonify(
         {"status": "success", "data": list(json.loads(Group(**d).json()) for d in cursor)}
+    ), 200
+
+
+@GROUPS.route("/groups", methods=["GET"])
+@active_users_or_get_only
+def get_user_accessible_groups():
+    """Get groups that the current user can see/access."""
+
+    if current_user.role == UserRole.ADMIN:
+        groups_cursor = flask_mongo.db.groups.find()
+    else:
+        user_group_ids = (
+            [group.immutable_id for group in current_user.person.groups]
+            if current_user.person.groups
+            else []
+        )
+
+        groups_cursor = flask_mongo.db.groups.find(
+            {
+                "$or": [
+                    {"_id": {"$in": user_group_ids}},
+                    {"group_admins": {"$in": [str(current_user.person.immutable_id)]}},
+                ]
+            }
+        )
+
+    groups_data = []
+    for group_doc in groups_cursor:
+        group_doc["immutable_id"] = str(group_doc["_id"])
+        groups_data.append(json.loads(Group(**group_doc).json()))
+
+    return jsonify(
+        {
+            "status": "success",
+            "data": groups_data,
+        }
     ), 200

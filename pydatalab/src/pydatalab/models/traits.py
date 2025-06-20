@@ -3,7 +3,7 @@ from typing import Any
 from pydantic import BaseModel, Field, root_validator
 
 from pydatalab.models.blocks import DataBlockResponse
-from pydatalab.models.people import Person
+from pydatalab.models.people import Person, Group
 from pydatalab.models.utils import Constituent, InlineSubstance, PyObjectId
 
 
@@ -11,8 +11,14 @@ class HasOwner(BaseModel):
     creator_ids: list[PyObjectId] = Field([])
     """The database IDs of the user(s) who created the item."""
 
+    group_ids: list[PyObjectId] = Field([])
+    """The database IDs of the group(s) that have access to the item."""
+
     creators: list[Person] | None = Field(None)
     """Inlined info for the people associated with this item."""
+
+    groups: list[Group] | None = Field(None)
+    """Inlined info for the groups associated with this item."""
 
 
 class HasRevisionControl(BaseModel):

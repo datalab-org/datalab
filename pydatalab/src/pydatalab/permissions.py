@@ -184,6 +184,7 @@ def get_default_permissions(
             {"creator_ids": {"$exists": False}},
         ]
     }
+
     if current_user.is_authenticated and current_user.person is not None:
         managed_users = list(
             get_database().users.find(
@@ -193,46 +194,27 @@ def get_default_permissions(
         if managed_users:
             managed_users = [u["_id"] for u in managed_users]
 
-        group_users = []
+        user_group_ids = []
         if current_user.person.groups:
             user_group_ids = [group.immutable_id for group in current_user.person.groups]
 
-            users_in_same_groups = list(
-                get_database().users.find({"group_ids": {"$in": user_group_ids}}, {"_id": 1})
+        groups_where_admin = list(
+            get_database().groups.find(
+                {"group_admins": {"$in": [str(current_user.person.immutable_id)]}}, {"_id": 1}
             )
-            group_users_from_members = [u["_id"] for u in users_in_same_groups]
+        )
+        if groups_where_admin:
+            admin_group_ids = [g["_id"] for g in groups_where_admin]
+            user_group_ids.extend(admin_group_ids)
 
-            groups_where_admin = list(
-                get_database().groups.find(
-                    {"group_admins": {"$in": [str(current_user.person.immutable_id)]}},
-                    {"_id": 1, "group_admins": 1},
-                )
-            )
+        user_perm_conditions = [
+            {"creator_ids": {"$in": [current_user.person.immutable_id] + managed_users}}
+        ]
 
-            group_users_from_admin = []
-            if groups_where_admin:
-                admin_group_ids = [g["_id"] for g in groups_where_admin]
+        if user_group_ids:
+            user_perm_conditions.append({"group_ids": {"$in": user_group_ids}})
 
-                members_of_admin_groups = list(
-                    get_database().users.find({"group_ids": {"$in": admin_group_ids}}, {"_id": 1})
-                )
-                group_users_from_admin = [u["_id"] for u in members_of_admin_groups]
-
-                all_admins_from_groups = []
-                for group in groups_where_admin:
-                    all_admins_from_groups.extend(group.get("group_admins", []))
-
-                admin_object_ids = [
-                    ObjectId(admin_id) if isinstance(admin_id, str) else admin_id
-                    for admin_id in all_admins_from_groups
-                ]
-                group_users_from_admin.extend(admin_object_ids)
-
-            group_users = list(set(group_users_from_members + group_users_from_admin))
-
-        user_perm: dict[str, Any] = {
-            "creator_ids": {"$in": [current_user.person.immutable_id] + managed_users + group_users}
-        }
+        user_perm: dict[str, Any] = {"$or": user_perm_conditions}
         if user_only:
             # TODO: remove this hack when permissions are refactored. Currently starting_materials and equipment
             # are a special case that should be group editable, so even when the route has asked to only edit this

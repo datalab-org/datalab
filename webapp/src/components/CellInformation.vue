@@ -25,11 +25,17 @@
               <FormattedRefcode :refcode="Refcode" />
             </div>
           </div>
-          <div class="form-group col-md-3 col-sm-3 col-6 pb-3">
+          <div class="col-md-9 col-sm-10 pr-2">
+            <ToggleableCollectionFormGroup v-model="Collections" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group col-md-6 pb-3">
             <ToggleableCreatorsFormGroup v-model="ItemCreators" :refcode="Refcode" />
           </div>
-          <div class="col-md-6 col-sm-7 pr-2">
-            <ToggleableCollectionFormGroup v-model="Collections" />
+          <div class="form-group col-md-6 pb-3">
+            <ToggleableGroupsFormGroup v-model="ItemGroups" :refcode="Refcode" />
           </div>
         </div>
         <div class="form-row">
@@ -113,6 +119,7 @@ import ItemRelationshipVisualization from "@/components/ItemRelationshipVisualiz
 import FormattedRefcode from "@/components/FormattedRefcode";
 import ToggleableCollectionFormGroup from "@/components/ToggleableCollectionFormGroup";
 import ToggleableCreatorsFormGroup from "@/components/ToggleableCreatorsFormGroup";
+import ToggleableGroupsFormGroup from "@/components/ToggleableGroupsFormGroup";
 import { cellFormats } from "@/resources.js";
 
 export default {
@@ -125,6 +132,7 @@ export default {
     FormattedRefcode,
     ToggleableCollectionFormGroup,
     ToggleableCreatorsFormGroup,
+    ToggleableGroupsFormGroup,
   },
   props: {
     item_id: {
@@ -151,6 +159,7 @@ export default {
     MolarMass: createComputedSetterForItemField("characteristic_molar_mass"),
     DateCreated: createComputedSetterForItemField("date"),
     ItemCreators: createComputedSetterForItemField("creators"),
+    ItemGroups: createComputedSetterForItemField("groups"),
     CellFormat: createComputedSetterForItemField("cell_format"),
     CellFormatDescription: createComputedSetterForItemField("cell_format_description"),
     CharacteristicMass: createComputedSetterForItemField("characteristic_mass"),

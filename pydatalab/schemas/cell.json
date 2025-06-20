@@ -44,11 +44,26 @@
         "type": "string"
       }
     },
+    "group_ids": {
+      "title": "Group Ids",
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
     "creators": {
       "title": "Creators",
       "type": "array",
       "items": {
         "$ref": "#/definitions/Person"
+      }
+    },
+    "groups": {
+      "title": "Groups",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Group"
       }
     },
     "type": {
@@ -530,11 +545,26 @@
             "type": "string"
           }
         },
+        "group_ids": {
+          "title": "Group Ids",
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "creators": {
           "title": "Creators",
           "type": "array",
           "items": {
             "$ref": "#/definitions/Person"
+          }
+        },
+        "groups": {
+          "title": "Groups",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Group"
           }
         },
         "type": {
@@ -604,11 +634,26 @@
             "type": "string"
           }
         },
+        "group_ids": {
+          "title": "Group Ids",
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "creators": {
           "title": "Creators",
           "type": "array",
           "items": {
             "$ref": "#/definitions/Person"
+          }
+        },
+        "groups": {
+          "title": "Groups",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Group"
           }
         },
         "type": {
