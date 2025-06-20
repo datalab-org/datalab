@@ -57,6 +57,12 @@
             <UserSelect v-model="group_admins" aria-labelledby="groupAdminsLabel" multiple />
           </div>
         </div>
+        <div class="form-row">
+          <div class="col-md-12 form-group">
+            <label id="groupMembersLabel">Group Members:</label>
+            <UserSelect v-model="group_members" aria-labelledby="groupMembersLabel" multiple />
+          </div>
+        </div>
       </template>
     </Modal>
   </form>
@@ -65,7 +71,7 @@
 <script>
 import Modal from "@/components/Modal.vue";
 import UserSelect from "@/components/UserSelect.vue";
-import { createGroup } from "@/server_fetch_utils.js";
+import { createGroup, addUserToGroup } from "@/server_fetch_utils.js";
 import { validateEntryID } from "@/field_utils.js";
 
 export default {
@@ -84,6 +90,7 @@ export default {
       display_name: "",
       description: "",
       group_admins: [],
+      group_members: [],
       takenGroupIds: [],
       showValidation: false,
     };
@@ -125,9 +132,19 @@ export default {
             .filter((id) => id !== undefined),
         };
 
-        await createGroup(groupData);
-        this.$emit("group-created");
-        this.resetForm();
+        const response = await createGroup(groupData);
+        if (response.status === "success") {
+          const group_immutable_id = response.group_immutable_id;
+
+          if (this.group_members.length > 0) {
+            for (const member of this.group_members) {
+              await addUserToGroup(group_immutable_id, member.immutable_id);
+            }
+          }
+
+          this.$emit("group-created");
+          this.resetForm();
+        }
         this.$emit("update:modelValue", false);
       } catch (error) {
         console.error("Error creating group:", error);

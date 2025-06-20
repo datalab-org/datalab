@@ -103,7 +103,15 @@ def groups_lookup() -> dict:
             {"$match": {"$expr": {"$in": ["$_id", {"$ifNull": ["$$group_ids", []]}]}}},
             {"$addFields": {"__order": {"$indexOfArray": ["$$group_ids", "$_id"]}}},
             {"$sort": {"__order": 1}},
-            {"$project": {"_id": 1, "display_name": 1}},
+            {
+                "$project": {
+                    "_id": 1,
+                    "display_name": 1,
+                    "group_id": 1,
+                    "type": 1,
+                    "description": 1,
+                }
+            },
         ],
         "as": "groups",
     }
@@ -123,9 +131,17 @@ def get_by_id(user_id: str) -> Optional[LoginUser]:
 
     """
 
-    user = flask_mongo.db.users.find_one({"_id": ObjectId(user_id)})
-    if not user:
+    user_pipeline = [
+        {"$match": {"_id": ObjectId(user_id)}},
+        {"$lookup": groups_lookup()},
+    ]
+    user_cursor = flask_mongo.db.users.aggregate(user_pipeline)
+    users_list = list(user_cursor)
+
+    if not users_list:
         return None
+
+    user = users_list[0]
 
     role = flask_mongo.db.roles.find_one({"_id": ObjectId(user_id)})
     if not role:
