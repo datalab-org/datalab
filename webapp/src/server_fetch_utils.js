@@ -353,6 +353,35 @@ export function updateGroup(groupId, groupData) {
     });
 }
 
+export function addUserToGroup(groupId, userId) {
+  console.log("Adding user to group:", { groupId, userId }); // Debug
+  const payload = { user_id: userId };
+  console.log("Payload:", payload); // Debug
+
+  return fetch_patch(`${API_URL}/groups/${groupId}`, payload)
+    .then(function (response_json) {
+      console.log("Response:", response_json); // Debug
+      return response_json;
+    })
+    .catch((error) => {
+      console.error("Error when adding user to group");
+      console.error(error);
+      throw error;
+    });
+}
+
+export function removeUserFromGroup(groupId, userId) {
+  return fetch_delete(`${API_URL}/groups/${groupId}/users/${userId}`)
+    .then(function (response_json) {
+      return response_json;
+    })
+    .catch((error) => {
+      console.error("Error when removing user from group");
+      console.error(error);
+      throw error;
+    });
+}
+
 export function getStartingMaterialList() {
   return fetch_get(`${API_URL}/starting-materials/`)
     .then(function (response_json) {

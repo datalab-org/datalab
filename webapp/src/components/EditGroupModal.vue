@@ -53,6 +53,12 @@
             <UserSelect v-model="group_admins" aria-labelledby="editGroupAdminsLabel" multiple />
           </div>
         </div>
+        <div class="form-row">
+          <div class="col-md-12 form-group">
+            <label id="editGroupMembersLabel">Group Members:</label>
+            <UserSelect v-model="group_members" aria-labelledby="editGroupMembersLabel" multiple />
+          </div>
+        </div>
       </template>
     </Modal>
   </form>
@@ -61,7 +67,12 @@
 <script>
 import Modal from "@/components/Modal.vue";
 import UserSelect from "@/components/UserSelect.vue";
-import { updateGroup, getUsersList } from "@/server_fetch_utils.js";
+import {
+  updateGroup,
+  getUsersList,
+  addUserToGroup,
+  removeUserFromGroup,
+} from "@/server_fetch_utils.js";
 
 export default {
   name: "EditGroupModal",
@@ -85,25 +96,34 @@ export default {
       group_admins: [],
       originalGroup: null,
       originalAdmins: [],
+      group_members: [],
+      originalMembers: [],
       showValidation: false,
       allUsers: [],
     };
   },
   computed: {
     isFormValid() {
-      return this.display_name.trim() !== "";
+      return this.display_name && this.display_name.trim() !== "";
     },
   },
   watch: {
-    async group(newGroup) {
-      if (newGroup) {
-        await this.loadGroupData(newGroup);
-      }
-    },
-    async modelValue(newValue) {
-      if (newValue && this.group) {
-        await this.loadGroupData(this.group);
-      }
+    group: {
+      immediate: true,
+      handler(newGroup) {
+        if (newGroup) {
+          this.group_id = newGroup.group_id;
+          this.display_name = newGroup.display_name;
+          this.description = newGroup.description;
+
+          this.group_admins = this.loadUsersFromIds(newGroup.group_admins || []);
+          this.group_members = this.loadUsersFromIds(newGroup.members || []);
+
+          this.originalGroup = { ...newGroup };
+          this.originalAdmins = [...this.group_admins];
+          this.originalMembers = [...this.group_members];
+        }
+      },
     },
   },
   async created() {
@@ -115,64 +135,69 @@ export default {
     }
   },
   methods: {
-    async loadGroupData(group) {
-      this.originalGroup = { ...group };
-      this.group_id = group.group_id;
-      this.display_name = group.display_name;
-      this.description = group.description || "";
-
-      this.group_admins = this.loadUsersFromIds(group.group_admins || []);
-      this.originalAdmins = [...this.group_admins];
-    },
-
     loadUsersFromIds(userIds) {
       return userIds
         .map((userId) => {
-          return this.allUsers.find(
+          const user = this.allUsers.find(
             (user) =>
               (user._id && user._id === userId) ||
               (user.user_id && user.user_id === userId) ||
               (user.immutable_id && user.immutable_id === userId),
           );
+
+          if (!user) {
+            console.warn(`User with ID ${userId} not found`);
+          }
+
+          return user;
         })
         .filter((user) => user !== undefined);
     },
-
     async submitForm() {
       this.showValidation = true;
+      if (!this.isFormValid) return;
 
-      if (!this.isFormValid) {
-        return;
-      }
+      const groupData = {
+        display_name: this.display_name,
+        description: this.description,
+        group_admins: this.group_admins.map((admin) => admin.immutable_id || admin),
+      };
 
       try {
-        console.log("Selected group_admins for update:", this.group_admins);
-
-        const groupData = {
-          display_name: this.display_name,
-          description: this.description,
-          group_admins: this.group_admins
-            .map((admin) => {
-              const userId = admin.user_id || admin._id || admin.immutable_id;
-              console.log("Admin object for update:", admin, "Using ID:", userId);
-              return userId;
-            })
-            .filter((id) => id !== undefined),
-        };
-
-        console.log("Updating group with data:", groupData);
-
         await updateGroup(this.originalGroup.immutable_id, groupData);
 
+        await this.updateGroupMembers();
+
         this.$emit("group-updated");
-        this.resetForm();
         this.$emit("update:modelValue", false);
       } catch (error) {
-        console.error("Error updating group:", error);
-        alert("Error updating group: " + error);
+        alert("Error updating group: " + error.message);
       }
     },
+    async updateGroupMembers() {
+      const currentMemberIds = this.group_members.map((m) => m.immutable_id || m);
+      const originalMemberIds = this.originalMembers.map((m) => m.immutable_id || m);
 
+      const toAdd = currentMemberIds.filter((id) => !originalMemberIds.includes(id));
+
+      const toRemove = originalMemberIds.filter((id) => !currentMemberIds.includes(id));
+
+      for (const userId of toAdd) {
+        try {
+          await addUserToGroup(this.originalGroup.immutable_id, userId);
+        } catch (error) {
+          console.error("Error adding user to group:", error);
+        }
+      }
+
+      for (const userId of toRemove) {
+        try {
+          await removeUserFromGroup(this.originalGroup.immutable_id, userId);
+        } catch (error) {
+          console.error("Error removing user from group:", error);
+        }
+      }
+    },
     resetForm() {
       this.group_id = "";
       this.display_name = "";

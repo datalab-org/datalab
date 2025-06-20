@@ -39,7 +39,7 @@ def get_users():
                         {"$match": {"$expr": {"$in": ["$_id", {"$ifNull": ["$$group_ids", []]}]}}},
                         {"$addFields": {"__order": {"$indexOfArray": ["$$group_ids", "$_id"]}}},
                         {"$sort": {"__order": 1}},
-                        {"$project": {"_id": 1, "display_name": 1}},
+                        {"$project": {"_id": 1, "display_name": 1, "group_id": 1, "type": 1}},
                     ],
                     "as": "groups",
                 },
@@ -198,6 +198,17 @@ def get_groups():
     groups_data = []
     for group_doc in flask_mongo.db.groups.find():
         group_doc["immutable_id"] = str(group_doc["_id"])
+
+        group_members = list(
+            flask_mongo.db.users.find(
+                {"group_ids": group_doc["_id"]}, {"_id": 1, "display_name": 1}
+            )
+        )
+        group_doc["members"] = [
+            {"immutable_id": str(member["_id"]), "display_name": member.get("display_name", "")}
+            for member in group_members
+        ]
+
         groups_data.append(json.loads(Group(**group_doc).json()))
 
     return jsonify(
@@ -293,3 +304,26 @@ def update_group(group_immutable_id):
 
     except Exception as e:
         return jsonify({"status": "error", "message": f"Failed to update group: {str(e)}"}), 500
+
+
+@ADMIN.route("/groups/<group_immutable_id>", methods=["PATCH"])
+def add_user_to_group(group_immutable_id):
+    request_json = request.get_json()
+    user_id = request_json.get("user_id")
+
+    if not user_id:
+        return jsonify({"status": "error", "message": "No user ID provided."}), 400
+
+    group_exists = flask_mongo.db.groups.find_one({"_id": ObjectId(group_immutable_id)})
+    if not group_exists:
+        return jsonify({"status": "error", "message": "Group does not exist."}), 400
+
+    update_user = flask_mongo.db.users.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$addToSet": {"group_ids": ObjectId(group_immutable_id)}},
+    )
+
+    if update_user.modified_count == 1:
+        return jsonify({"status": "success", "message": "User added to group successfully."}), 200
+    else:
+        return jsonify({"status": "error", "message": "Unable to add user to group."}), 400
