@@ -108,7 +108,7 @@ function fetch_put(url, body) {
 }
 
 // eslint-disable-next-line no-unused-vars
-function fetch_delete(url, body) {
+function fetch_delete(url, body = null) {
   let headers = construct_headers({ "Content-Type": "application/json" });
   const requestOptions = {
     method: "DELETE",
@@ -116,6 +116,11 @@ function fetch_delete(url, body) {
     body: JSON.stringify(body),
     credentials: "include",
   };
+
+  if (body !== null) {
+    requestOptions.body = JSON.stringify(body);
+  }
+
   return fetch(url, requestOptions).then(handleResponse);
 }
 
@@ -304,6 +309,45 @@ export function getGroupsList() {
     })
     .catch((error) => {
       console.error("Error when fetching groups list");
+      console.error(error);
+      throw error;
+    });
+}
+
+export function createGroup(groupData) {
+  console.log("createGroup");
+  return fetch_put(`${API_URL}/groups`, groupData)
+    .then(function (response_json) {
+      return response_json;
+    })
+    .catch((error) => {
+      console.error("Error when creating group");
+      console.error(error);
+      throw error;
+    });
+}
+
+export function deleteGroup(groupData) {
+  console.log("deleteGroup");
+  return fetch_delete(`${API_URL}/groups`, groupData)
+    .then(function (response_json) {
+      return response_json;
+    })
+    .catch((error) => {
+      console.error("Error when deleting group");
+      console.error(error);
+      throw error;
+    });
+}
+
+export function updateGroup(groupId, groupData) {
+  console.log("updateGroup");
+  return fetch_put(`${API_URL}/groups/${groupId}`, groupData)
+    .then(function (response_json) {
+      return response_json;
+    })
+    .catch((error) => {
+      console.error("Error when updating group");
       console.error(error);
       throw error;
     });
