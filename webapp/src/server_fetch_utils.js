@@ -278,8 +278,7 @@ export function getUsersList() {
 export function getGroupsList() {
   return fetch_get(`${API_URL}/groups`)
     .then(function (response_json) {
-      const groups = response_json.data;
-      return groups;
+      return response_json.data;
     })
     .catch((error) => {
       console.error("Error when fetching groups list");
@@ -645,16 +644,22 @@ export function addABlock(item_id, block_type, index = null) {
   return block_id_promise;
 }
 
-export function updateItemPermissions(refcode, creators) {
-  console.log("updateItemPermissions called with", refcode, creators);
-  return fetch_patch(`${API_URL}/items/${refcode}/permissions`, {
-    creators: creators,
-  }).then(function (response_json) {
-    if (response_json.status === "error") {
-      throw new Error(response_json.message);
-    }
-    return response_json;
-  });
+export function updateItemPermissions(refcode, creators, groups = null) {
+  console.log("updateItemPermissions called with", refcode, creators, groups);
+
+  const payload = { creators: creators };
+  if (groups !== null) {
+    payload.groups = groups;
+  }
+
+  return fetch_patch(`${API_URL}/items/${refcode}/permissions`, payload).then(
+    function (response_json) {
+      if (response_json.status === "error") {
+        throw new Error(response_json.message);
+      }
+      return response_json;
+    },
+  );
 }
 
 export function saveItem(item_id) {
