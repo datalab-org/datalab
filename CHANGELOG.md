@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.6.0 (May 2025)
+## v0.6.0 (June 2025)
 
 This release includes significant new functionality and UI redesign, as well as
 several bug and quality-of-life fixes, performance improvements and
