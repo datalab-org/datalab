@@ -16,17 +16,19 @@
           </div>
           <div v-else>
             <div v-show="!cameraReady">
-              <font-awesome-icon
-                v-if="!cameraReady"
-                icon="spinner"
-                class="fa-spin mx-auto"
-                fixed-width
-                style="color: gray"
-                size="2x"
-              />
-              <div class="alert alert-info text-center">
-                No camera available. You may need to allow this page to have camera access in your
-                browser.
+              <div class="mx-auto w-100 text-center">
+                <div class="alert alert-info text-center">
+                  Trying to load camera. You may need to allow this page to have camera access in
+                  your browser.
+                </div>
+                <font-awesome-icon
+                  v-if="!cameraReady"
+                  icon="spinner"
+                  class="fa-spin pb-10"
+                  fixed-width
+                  style="color: gray"
+                  size="2x"
+                />
               </div>
             </div>
             <div

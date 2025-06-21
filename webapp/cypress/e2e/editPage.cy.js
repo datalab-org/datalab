@@ -73,6 +73,7 @@ describe("Edit Page", () => {
   it("adds some synthesis information", () => {
     cy.get('[data-testid="search-input"]').type("editable_sample");
     cy.findByText("editable_sample").click();
+    cy.expandIfCollapsed("[data-testid=synthesis-block]");
     cy.get("#synthesis-information .vs__search").first().type("component1");
     cy.get(".vs__dropdown-menu").contains(".badge", "component1").click();
     cy.get("#synthesis-information tbody > tr").should("have.length", 2);
@@ -292,5 +293,21 @@ describe("Edit Page", () => {
 
     // Check that the img with id "media-block-img" is present
     cy.get('img[data-testid="media-block-img"]').should("exist");
+  });
+
+  it("Uploads an Raman data file, makes a Raman block and checks that the plot is shown", () => {
+    cy.uploadFileViaAPI("editable_sample", "example_data/raman/labspec_raman_example.txt");
+
+    cy.get('[data-testid="search-input"]').type("editable_sample");
+    cy.findByText("editable_sample").click();
+
+    cy.findByText("Add a block").click();
+    cy.get('[data-testid="add-block-dropdown"]').findByText("Raman spectroscopy").click();
+    cy.findAllByText("Select a file:").eq(2).should("exist");
+    cy.get("select.file-select-dropdown")
+      .eq(2)
+      .select("example_data_raman_labspec_raman_example.txt");
+    cy.contains("label", "X axis").should("exist");
+    cy.contains("label", "Y axis").should("exist");
   });
 });

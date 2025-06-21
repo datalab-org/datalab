@@ -2,11 +2,11 @@ import base64
 import io
 import warnings
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-import pandas as pd
-from PIL import Image
+if TYPE_CHECKING:
+    import pandas as pd
 
-from pydatalab.file_utils import get_file_info_by_id
 from pydatalab.logger import LOGGER
 
 from .base import DataBlock
@@ -31,7 +31,17 @@ class MediaBlock(DataBlock):
     name = "Media"
     blocktype = "media"
     description = "Display an image or a video of a supported format."
-    accepted_file_extensions = (".png", ".jpeg", ".jpg", ".tif", ".tiff", ".mp4", ".mov", ".webm")
+    accepted_file_extensions = (
+        ".png",
+        ".jpeg",
+        ".jpg",
+        ".tif",
+        ".tiff",
+        ".mp4",
+        ".mov",
+        ".webm",
+        ".pdf",
+    )
     _supports_collections = False
 
     @property
@@ -39,6 +49,10 @@ class MediaBlock(DataBlock):
         return (self.encode_tiff,)
 
     def encode_tiff(self):
+        from PIL import Image
+
+        from pydatalab.file_utils import get_file_info_by_id
+
         if "file_id" not in self.data:
             LOGGER.warning("ImageBlock.encode_tiff(): No file set in the DataBlock")
             return
@@ -71,16 +85,17 @@ class TabularDataBlock(DataBlock):
     def plot_functions(self):
         return (self.plot_df,)
 
-    def _load(self) -> pd.DataFrame:
+    def _load(self) -> "pd.DataFrame":
         if "file_id" not in self.data:
             return
+        from pydatalab.file_utils import get_file_info_by_id
 
         file_info = get_file_info_by_id(self.data["file_id"], update_if_live=True)
 
         return self.load(file_info["location"])
 
     @classmethod
-    def load(cls, location: Path | str) -> pd.DataFrame:
+    def load(cls, location: Path | str) -> "pd.DataFrame":
         """Throw several pandas readers at the target file.
 
         If an excel-like format, try to read it with `pandas.read_excel()`.
@@ -91,6 +106,8 @@ class TabularDataBlock(DataBlock):
             pd.DataFrame: The loaded dataframe.
 
         """
+        import pandas as pd
+
         if not isinstance(location, Path):
             location = Path(location)
 

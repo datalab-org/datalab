@@ -12,7 +12,7 @@ from pydatalab.logger import logged_route
 from pydatalab.models.collections import Collection
 from pydatalab.mongo import flask_mongo
 from pydatalab.permissions import active_users_or_get_only, get_default_permissions
-from pydatalab.routes.v0_1.items import creators_lookup, get_samples_summary
+from pydatalab.routes.v0_1.items import creators_lookup, get_items_summary
 
 COLLECTIONS = Blueprint("collections", __name__)
 
@@ -70,7 +70,7 @@ def get_collection(collection_id):
     collection = Collection(**doc)
 
     samples = list(
-        get_samples_summary(
+        get_items_summary(
             match={
                 "relationships.type": "collections",
                 "relationships.immutable_id": collection.immutable_id,

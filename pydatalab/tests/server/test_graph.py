@@ -1,7 +1,7 @@
 import json
 
 from pydatalab.models import Cell, Sample
-from pydatalab.models.samples import Constituent
+from pydatalab.models.utils import Constituent
 
 
 def test_simple_graph(admin_client):
@@ -129,8 +129,8 @@ def test_simple_graph(admin_client):
     assert len(graph["edges"]) == 2
 
     graph = admin_client.get("/item-graph/parent").json
-    assert len(graph["nodes"]) == 7
-    assert len(graph["edges"]) == 10
+    assert len(graph["nodes"]) == 6
+    assert len(graph["edges"]) == 5
 
     samples = sample_list.json["responses"]
 
@@ -156,5 +156,5 @@ def test_simple_graph(admin_client):
     assert len(graph["edges"]) == 4
 
     graph = admin_client.get("/item-graph/parent").json
-    assert len(graph["nodes"]) == 7
-    assert len(graph["edges"]) == 14
+    assert len(graph["nodes"]) == 6
+    assert len(graph["edges"]) == 5

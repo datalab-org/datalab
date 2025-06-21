@@ -30,8 +30,18 @@
             <label for="startmat-refcode">Refcode</label>
             <div id="startmat-refcode"><FormattedRefcode :refcode="Refcode" /></div>
           </div>
+          <div v-if="Barcode" class="form-group col-md-3 col-sm-4 col-6">
+            <label for="startmat-barcode">Barcode</label>
+            <div id="startmat-barcode"><FormattedBarCode :barcode="Barcode" /></div>
+          </div>
           <div class="form-group col-md-6 col-sm-7 pr-2">
             <ToggleableCollectionFormGroup v-model="Collections" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group col-lg-12 col-sm-12">
+            <label for="startmat-location">Location</label>
+            <StyledInput id="startmat-location" v-model="Location" :readonly="!isEditable" />
           </div>
         </div>
         <div class="form-row">
@@ -42,10 +52,6 @@
           <div class="form-group col-lg-3 col-sm-4">
             <label for="startmat-purity">Chemical purity</label>
             <StyledInput id="startmat-purity" v-model="ChemicalPurity" :readonly="!isEditable" />
-          </div>
-          <div class="form-group col-lg-3 col-sm-4">
-            <label for="startmat-location">Location</label>
-            <StyledInput id="startmat-location" v-model="Location" :readonly="!isEditable" />
           </div>
         </div>
         <div class="form-row">
@@ -85,6 +91,8 @@
       :item_id="item_id"
       :information-sections="tableOfContentsSections"
     />
+
+    <SynthesisInformation class="mt-3" :item_id="item_id" />
   </div>
 </template>
 
@@ -96,7 +104,9 @@ import ChemFormulaInput from "@/components/ChemFormulaInput";
 import TableOfContents from "@/components/TableOfContents";
 import ToggleableCollectionFormGroup from "@/components/ToggleableCollectionFormGroup";
 import FormattedRefcode from "@/components/FormattedRefcode";
+import FormattedBarCode from "@/components/FormattedBarcode";
 import StyledInput from "@/components/StyledInput";
+import SynthesisInformation from "@/components/SynthesisInformation";
 import ItemRelationshipVisualization from "@/components/ItemRelationshipVisualization";
 import GHSHazardInformation from "@/components/GHSHazardInformation";
 
@@ -112,6 +122,8 @@ export default {
     ToggleableCollectionFormGroup,
     TableOfContents,
     FormattedRefcode,
+    FormattedBarCode,
+    SynthesisInformation,
     GHSHazardInformation,
   },
   props: {
@@ -122,6 +134,7 @@ export default {
       tableOfContentsSections: [
         { title: "Starting Material Information", targetID: "starting-material-information" },
         { title: "Table of Contents", targetID: "table-of-contents" },
+        { title: "Synthesis Information", targetID: "synthesis-information" },
       ],
     };
   },
@@ -142,6 +155,7 @@ export default {
     ItemDescription: createComputedSetterForItemField("description"),
     Collections: createComputedSetterForItemField("collections"),
     Refcode: createComputedSetterForItemField("refcode"),
+    Barcode: createComputedSetterForItemField("barcode"),
   },
   created() {
     this.isEditable = EDITABLE_INVENTORY;

@@ -23,7 +23,7 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
 
       <div class="mt-4">
         <span class="mr-2">
-          <Isotope :isotope-string="block.nucleus" /> {{ block.pulse_program_name }}
+          <Isotope :isotope-string="metadata?.nucleus" /> {{ metadata?.pulse_program_name }}
         </span>
         <a type="button" class="btn btn-default btn-sm mb-2" @click="titleShown = !titleShown">{{
           titleShown ? "hide title" : "show title"
@@ -37,62 +37,60 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
       </div>
       <div v-if="titleShown" class="card mb-2">
         <div class="card-body" style="white-space: pre">
-          {{ block.topspin_title }}
+          {{ metadata?.topspin_title }}
         </div>
       </div>
       <div class="row">
         <div id="bokehPlotContainer" class="col-xl-8 col-lg-8 col-md-11 mx-auto">
           <BokehPlot v-if="bokehPlotData" :bokeh-plot-data="bokehPlotData" />
-          <div v-else class="alert alert-secondary">
-            Plotting currently not available for data with dimension > 1
-          </div>
         </div>
         <div v-if="detailsShown" class="col-xl-4 col-lg-4 ml-0">
           <table class="table table-sm">
             <tbody>
               <tr>
                 <th scope="row">nucleus</th>
-                <td><Isotope :isotope-string="block.nucleus" /></td>
+                <td><Isotope :isotope-string="metadata?.nucleus" /></td>
               </tr>
               <tr>
                 <th scope="row">pulse program</th>
-                <td>{{ block.pulse_program_name }}</td>
+                <td>{{ metadata?.pulse_program_name }}</td>
               </tr>
               <tr>
                 <th scope="row">Data shape</th>
                 <td>
-                  {{ block.processed_data_shape }} (<i>d</i> =
-                  {{ block.processed_data_shape.length }})
+                  {{ metadata?.processed_data_shape }} (<i>d</i> =
+                  {{ metadata?.processed_data_shape.length }})
                 </td>
               </tr>
               <tr>
                 <th scope="row">probe</th>
-                <td>{{ block.probe_name }} s</td>
+                <td>{{ metadata?.probe_name }} s</td>
               </tr>
 
               <tr>
                 <th scope="row"># of scans</th>
-                <td>{{ block.nscans }}</td>
+                <td>{{ metadata?.nscans }}</td>
               </tr>
 
               <tr>
                 <th scope="row">recycle delay</th>
-                <td>{{ block.recycle_delay }} s</td>
+                <td>{{ metadata?.recycle_delay }} s</td>
               </tr>
               <tr>
                 <th scope="row">carrier frequency</th>
-                <td>{{ block.carrier_frequency_MHz }} MHz</td>
+                <td>{{ metadata?.carrier_frequency_MHz }} MHz</td>
               </tr>
 
               <tr>
                 <th scope="row">carrier offset</th>
                 <td>
-                  {{ (block.carrier_offset_Hz / block.carrier_frequency_MHz).toFixed(1) }} ppm
+                  {{ (metadata?.carrier_offset_Hz / metadata?.carrier_frequency_MHz).toFixed(1) }}
+                  ppm
                 </td>
               </tr>
               <tr>
                 <th scope="row">cnst31</th>
-                <td>{{ block.CNST31 }}</td>
+                <td>{{ metadata?.CNST31 }}</td>
               </tr>
             </tbody>
           </table>
@@ -131,13 +129,16 @@ export default {
   data() {
     return {
       wavelengthParseError: "",
-      detailsShown: false,
+      detailsShown: true,
       titleShown: false,
     };
   },
   computed: {
     block() {
       return this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id];
+    },
+    metadata() {
+      return this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id]?.metadata;
     },
     bokehPlotData() {
       return this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id]

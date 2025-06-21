@@ -12,9 +12,16 @@ body {
 }
 
 @import url("https://fonts.googleapis.com/css?family=Figtree");
+@import url("https://fonts.googleapis.com/css?family=Libre+Barcode+39+Text");
 @import url("https://fonts.googleapis.com/css?family=Roboto+Mono");
+
+:root {
+  --font-primary: Figtree, Avenir, Arial, sans-serif;
+  --font-monospace: "Roboto Mono", monospace;
+}
+
 #app {
-  font-family: Figtree, Avenir, Arial, sans-serif;
+  font-family: var(--font-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   /*text-align: center;*/

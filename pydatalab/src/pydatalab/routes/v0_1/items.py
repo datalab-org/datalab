@@ -1,14 +1,14 @@
 import datetime
 import json
-from typing import Dict, List, Optional, Union
 
 from bson import ObjectId
 from flask import Blueprint, jsonify, redirect, request
 from flask_login import current_user
 from pydantic import ValidationError
 from pymongo.command_cursor import CommandCursor
+from pymongo.errors import DuplicateKeyError
 
-from pydatalab.blocks import BLOCK_TYPES
+from pydatalab.apps import BLOCK_TYPES
 from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER
 from pydatalab.models import ITEM_MODELS
@@ -26,7 +26,7 @@ ITEMS = Blueprint("items", __name__)
 def _(): ...
 
 
-def reserialize_blocks(display_order: List[str], blocks_obj: Dict[str, Dict]) -> Dict[str, Dict]:
+def reserialize_blocks(display_order: list[str], blocks_obj: dict[str, dict]) -> dict[str, dict]:
     """Create the corresponding Python objects from JSON block data, then
     serialize it again as JSON to populate any missing properties.
 
@@ -52,7 +52,7 @@ def reserialize_blocks(display_order: List[str], blocks_obj: Dict[str, Dict]) ->
 
 
 # Seems to be obselete now?
-def dereference_files(file_ids: List[Union[str, ObjectId]]) -> Dict[str, Dict]:
+def dereference_files(file_ids: list[str | ObjectId]) -> dict[str, dict]:
     """For a list of Object IDs (as strings or otherwise), query the files collection
     and return a dictionary of the data stored under each ID.
 
@@ -125,6 +125,7 @@ def get_starting_materials():
                     "$project": {
                         "_id": 0,
                         "item_id": 1,
+                        "blocks": {"blocktype": 1, "title": 1},
                         "nblocks": {"$size": "$display_order"},
                         "nfiles": {"$size": "$file_ObjectIds"},
                         "date": 1,
@@ -132,9 +133,16 @@ def get_starting_materials():
                         "name": 1,
                         "type": 1,
                         "chemical_purity": 1,
+                        "barcode": 1,
+                        "refcode": 1,
                         "supplier": 1,
                         "location": 1,
                     }
+                },
+                {
+                    "$sort": {
+                        "date": -1,
+                    },
                 },
             ]
         )
@@ -145,10 +153,62 @@ def get_starting_materials():
 get_starting_materials.methods = ("GET",)  # type: ignore
 
 
-def get_samples_summary(
-    match: Optional[Dict] = None, project: Optional[Dict] = None
-) -> CommandCursor:
+def get_items_summary(match: dict | None = None, project: dict | None = None) -> CommandCursor:
     """Return a summary of item entries that match some criteria.
+
+    Parameters:
+        match: A MongoDB aggregation match query to filter the results.
+        project: A MongoDB aggregation project query to filter the results, relative
+            to the default included below.
+
+    """
+    if not match:
+        match = {}
+    match.update(get_default_permissions(user_only=False))
+
+    _project = {
+        "_id": 0,
+        "blocks": {"blocktype": 1, "title": 1},
+        "creators": {
+            "display_name": 1,
+            "contact_email": 1,
+        },
+        "collections": {
+            "collection_id": 1,
+            "title": 1,
+        },
+        "item_id": 1,
+        "name": 1,
+        "chemform": 1,
+        "nblocks": {"$size": "$display_order"},
+        "nfiles": {"$size": "$file_ObjectIds"},
+        "characteristic_chemical_formula": 1,
+        "type": 1,
+        "date": 1,
+        "refcode": 1,
+    }
+
+    # Cannot mix 0 and 1 keys in MongoDB project so must loop and check
+    if project:
+        for key in project:
+            if project[key] == 0:
+                _project.pop(key, None)
+            else:
+                _project[key] = 1
+
+    return flask_mongo.db.items.aggregate(
+        [
+            {"$match": match},
+            {"$lookup": creators_lookup()},
+            {"$lookup": collections_lookup()},
+            {"$project": _project},
+            {"$sort": {"date": -1}},
+        ]
+    )
+
+
+def get_samples_summary(match: dict | None = None, project: dict | None = None) -> CommandCursor:
+    """Return a summary of samples/cells entries that match some criteria.
 
     Parameters:
         match: A MongoDB aggregation match query to filter the results.
@@ -202,7 +262,7 @@ def get_samples_summary(
     )
 
 
-def creators_lookup() -> Dict:
+def creators_lookup() -> dict:
     return {
         "from": "users",
         "let": {"creator_ids": "$creator_ids"},
@@ -216,7 +276,7 @@ def creators_lookup() -> Dict:
     }
 
 
-def files_lookup() -> Dict:
+def files_lookup() -> dict:
     return {
         "from": "files",
         "localField": "file_ObjectIds",
@@ -225,7 +285,7 @@ def files_lookup() -> Dict:
     }
 
 
-def collections_lookup() -> Dict:
+def collections_lookup() -> dict:
     """Looks inside the relationships of the item, searches for IDs in the collections
     table and then projects only the collection ID and name for the response.
 
@@ -311,20 +371,23 @@ def search_items():
     if isinstance(query, str) and query.startswith("%"):
         query = query.lstrip("%")
         match_obj = {
-            "$or": [{field: {"$regex": query, "$options": "i"}} for field in ITEMS_FTS_FIELDS]
+            "$text": {"$search": query},
+            **get_default_permissions(user_only=False),
         }
-        match_obj.update(get_default_permissions(user_only=False))
-        pipeline.append({"$match": match_obj})
+        if types is not None:
+            match_obj["type"] = {"$in": types}
 
+        pipeline.append({"$match": match_obj})
+        pipeline.append({"$sort": {"score": {"$meta": "textScore"}}})
     else:
         match_obj = {
-            "$match": {
-                "$text": {"$search": query},
-                **get_default_permissions(user_only=False),
-            }
+            "$or": [{field: {"$regex": query, "$options": "i"}} for field in ITEMS_FTS_FIELDS]
         }
-        pipeline.append(match_obj)
-        pipeline.append({"$sort": {"score": {"$meta": "textScore"}}})
+        match_obj = {"$and": [get_default_permissions(user_only=False), match_obj]}
+        if types is not None:
+            match_obj["$and"].append({"type": {"$in": types}})
+
+        pipeline.append({"$match": match_obj})
 
     pipeline.append({"$limit": nresults})
     pipeline.append(
@@ -347,7 +410,7 @@ def search_items():
 
 def _create_sample(
     sample_dict: dict,
-    copy_from_item_id: Optional[str] = None,
+    copy_from_item_id: str | None = None,
     generate_id_automatically: bool = False,
 ) -> tuple[dict, int]:
     sample_dict["item_id"] = sample_dict.get("item_id")
@@ -478,12 +541,10 @@ def _create_sample(
     new_sample["refcode"] = generate_unique_refcode()
     if generate_id_automatically:
         new_sample["item_id"] = new_sample["refcode"].split(":")[1]
-        LOGGER.debug(
-            "an automatic item_id was generated for the new sample: {new_sample['item_id']}"
-        )
 
     # check to make sure that item_id isn't taken already
-    if flask_mongo.db.items.find_one({"item_id": sample_dict["item_id"]}):
+    if flask_mongo.db.items.find_one({"item_id": str(sample_dict["item_id"])}):
+        LOGGER.debug("item_id %s already exists in database", sample_dict["item_id"])
         return (
             dict(
                 status="error",
@@ -512,7 +573,21 @@ def _create_sample(
     # via joins for a specific query.
     # TODO: encode this at the model level, via custom schema properties or hard-coded `.store()` methods
     # the `Entry` model.
-    result = flask_mongo.db.items.insert_one(data_model.dict(exclude={"creators", "collections"}))
+    try:
+        result = flask_mongo.db.items.insert_one(
+            data_model.dict(exclude={"creators", "collections"})
+        )
+    except DuplicateKeyError as error:
+        LOGGER.debug("item_id %s already exists in database", sample_dict["item_id"], sample_dict)
+        return (
+            dict(
+                status="error",
+                message=f"Duplicate key error: {str(error)}.",
+                item_id=new_sample["item_id"],
+            ),
+            409,
+        )
+
     if not result.acknowledged:
         return (
             dict(
@@ -586,6 +661,15 @@ def create_samples():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
 
     sample_jsons = request_json["new_sample_datas"]
+
+    if len(sample_jsons) > CONFIG.MAX_BATCH_CREATE_SIZE:
+        return jsonify(
+            {
+                "status": "error",
+                "message": f"Batch size limit exceeded. Maximum allowed: {CONFIG.MAX_BATCH_CREATE_SIZE}, requested: {len(sample_jsons)}",
+            }
+        ), 400
+
     copy_from_item_ids = request_json.get("copy_from_item_ids")
     generate_ids_automatically = request_json.get("generate_ids_automatically")
 
@@ -850,13 +934,14 @@ def get_item_data(
 def save_item():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
 
-    item_id = request_json["item_id"]
+    item_id = str(request_json["item_id"])
     updated_data = request_json["data"]
 
     # These keys should not be updated here and cannot be modified by the user through this endpoint
     for k in (
         "_id",
         "file_ObjectIds",
+        "files",
         "creators",
         "creator_ids",
         "item_id",

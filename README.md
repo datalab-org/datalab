@@ -36,8 +36,14 @@ Importantly, *datalab* stores a network of interconnected research objects in th
 
 The system was originally developed in and is currently deployed for the
 [Grey Group](https://www.ch.cam.ac.uk/group/grey/)
-in the Department of Chemistry at the University of Cambridge.
+in the Department of Chemistry at the University of Cambridge,
+with several instances deployed for members in the
+[*datalab* federation](https://github.com/datalab-org/datalab-federation).
 
+> [!NOTE]
+> You may be looking for the identically named project
+> [DataLab](https://datalab-platform.com) for signal
+> processing, which also has plugins, clients and other shared concepts!
 
 <div align="center">
 <video width="400" controls src="https://github.com/datalab-org/datalab/assets/7916000/0065cdd6-a5f0-4391-b192-0137fe208acc">

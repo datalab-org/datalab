@@ -1,76 +1,82 @@
-from typing import Optional
-
 from pydantic import Field, validator
 
 from pydatalab.models.items import Item
+from pydatalab.models.traits import HasSynthesisInfo
 from pydatalab.models.utils import IsoformatDateTime
 
 
-class StartingMaterial(Item):
-    """A model for representing an experimental sample."""
+class StartingMaterial(Item, HasSynthesisInfo):
+    """A model for representing an experimental sample, based on the connection
+    with cheminventory.net, which mixes container-level and substance-level
+    information.
+
+    """
 
     type: str = Field(
         "starting_materials", const="starting_materials", pattern="^starting_materials$"
     )
 
-    barcode: Optional[str] = Field(
-        alias="Barcode", description="A unique barcode from ChemInventory"
+    barcode: str | None = Field(
+        alias="Barcode",
     )
+    """A unique barcode provided by an external source, e.g., cheminventory."""
 
-    date: Optional[IsoformatDateTime] = Field(
-        alias="Date Acquired", description="The date the item was acquired"
-    )
+    date: IsoformatDateTime | None = Field(alias="Date Acquired")
+    """The date the item was acquired"""
 
-    date_opened: Optional[IsoformatDateTime] = Field(
-        alias="Date opened", description="The date the container was opened"
-    )
+    date_opened: IsoformatDateTime | None = Field(alias="Date opened")
+    """The date the item was opened"""
 
-    CAS: Optional[str] = Field(alias="Substance CAS", description="CAS Registry Number")
+    CAS: str | None = Field(alias="Substance CAS")
+    """The CAS Registry Number for the substance described by this entry."""
 
-    chemical_purity: Optional[str] = Field(alias="Chemical purity")
+    chemical_purity: str | None = Field(alias="Chemical purity")
+    """The chemical purity of this container with regards to the defined substance."""
 
-    full_percent: Optional[str] = Field(alias="Full %")
+    full_percent: str | None = Field(alias="Full %")
+    """The amount of the defined substance remaining in the container, expressed as a percentage."""
 
-    GHS_codes: Optional[str] = Field(
+    GHS_codes: str | None = Field(
         alias="GHS H-codes",
-        description="A string describing any GHS hazard codes associated with this item. See https://pubchem.ncbi.nlm.nih.gov/ghs/ for code definitions.",
         examples=["H224", "H303, H316, H319"],
     )
+    """A string describing any GHS hazard codes associated with this item. See https://pubchem.ncbi.nlm.nih.gov/ghs/ for code definitions."""
 
-    name: Optional[str] = Field(alias="Container Name", description="name of the chemical")
+    name: str | None = Field(alias="Container Name")
+    """The name of the substance in the container."""
 
-    size: Optional[str] = Field(
-        alias="Container Size", description="size of the container (see 'size_unit' for the units)"
-    )
+    size: str | None = Field(alias="Container Size")
+    """The total size of the container, in units of `size_unit`."""
 
-    size_unit: Optional[str] = Field(alias="Unit", description="units for the 'size' field.")
+    size_unit: str | None = Field(alias="Unit")
+    """Units for the 'size' field."""
 
-    chemform: Optional[str] = Field(
-        alias="Molecular Formula",
-        description="A string representation of the chemical formula associated with this sample.",
-    )
+    chemform: str | None = Field(alias="Molecular Formula")
+    """A string representation of the chemical formula associated with this sample."""
 
-    molar_mass: Optional[float] = Field(
-        alias="Molecular Weight", description="Mass per formula unit, in g/mol"
-    )
+    molar_mass: float | None = Field(alias="Molecular Weight")
+    """Mass per formula unit, in g/mol."""
 
-    smiles_representation: Optional[str] = Field(
-        alias="SMILES", description="Chemical structure in SMILES notation"
-    )
+    smiles_representation: str | None = Field(alias="SMILES")
+    """A SMILES string representation of a chemical structure associated with this substance."""
 
-    supplier: Optional[str] = Field(alias="Supplier", description="Manufacturer of the chemical")
+    supplier: str | None = Field(alias="Supplier")
+    """Supplier or manufacturer of the chemical."""
 
-    location: Optional[str] = Field(
-        alias="Location", description="Location where chemical is stored"
-    )
+    location: str | None = Field(alias="Location")
+    """The place where the container is located."""
 
-    comment: Optional[str] = Field(alias="Comments")
+    comment: str | None = Field(alias="Comments")
+    """Any additional comments or notes about the container."""
 
     @validator("molar_mass")
     def add_molar_mass(cls, v, values):
         from periodictable import formula
 
         if v is None and values.get("chemform"):
-            return formula(values.get("chemform")).mass
+            try:
+                return formula(values.get("chemform")).mass
+            except Exception:
+                return None
 
         return v

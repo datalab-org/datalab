@@ -92,8 +92,9 @@ export default {
   methods: {
     formatDistance,
     deleteFile(event, file_id) {
-      deleteFileFromSample(this.item_id, file_id);
-      return false;
+      if (window.confirm("Are you sure you want to unlink this file from this entry?")) {
+        deleteFileFromSample(this.item_id, file_id);
+      }
     },
     setFileSelectModalOpen() {
       this.$store.commit("setFileSelectModalOpenStatus", true);
@@ -109,7 +110,7 @@ export default {
 
 .filelink {
   color: #004175;
-  font-family: "Andalé Mono", monospace;
+  font-family: var(--font-monospace);
 }
 
 .filelink:hover {
@@ -130,6 +131,11 @@ export default {
   padding: 0.9rem 1.25rem;
 }
 
+.delete-file-button:hover {
+  color: #dc3545;
+  cursor: pointer;
+}
+
 #uppy-trigger {
   scroll-anchor: auto;
   width: 8rem;
@@ -143,7 +149,7 @@ export default {
 }
 
 .server-name {
-  font-family: "Andalé Mono", monospace;
+  font-family: var(--font-monospace);
   font-weight: 400;
   /*font-style: italic;*/
   color: teal;

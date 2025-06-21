@@ -1,15 +1,15 @@
 <template>
-  <!-- think about elegant two-way binding to DataBlockBase... or, just pass all the block data into
-DataBlockBase as a prop, and save from within DataBlockBase  -->
   <DataBlockBase :item_id="item_id" :block_id="block_id">
-    <FileSelectDropdown
-      v-model="file_id"
-      :item_id="item_id"
-      :block_id="block_id"
-      :extensions="blockInfo.attributes.accepted_file_extensions"
-      update-block-on-change
-    />
-
+    <div>
+      <MultiFileSelector
+        v-model="selectedFileOrder"
+        :item_id="item_id"
+        :block_id="block_id"
+        :extensions="accepted_file_extensions"
+        :main-label="'Select and order files: First file should be the reference scan, the subsequent files will be the sample scans.'"
+        :update-block-on-change="true"
+      />
+    </div>
     <div class="row">
       <div id="bokehPlotContainer" class="col-xl-9 col-lg-10 col-md-11 mx-auto">
         <BokehPlot :bokeh-plot-data="bokehPlotData" />
@@ -20,17 +20,16 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
 
 <script>
 import DataBlockBase from "@/components/datablocks/DataBlockBase";
-import FileSelectDropdown from "@/components/FileSelectDropdown";
+import MultiFileSelector from "@/components/FileMultiSelectDropdown";
 import BokehPlot from "@/components/BokehPlot";
 
 import { createComputedSetterForBlockField } from "@/field_utils.js";
-import { updateBlockFromServer } from "@/server_fetch_utils.js";
 
 export default {
   components: {
     DataBlockBase,
-    FileSelectDropdown,
     BokehPlot,
+    MultiFileSelector,
   },
   props: {
     item_id: {
@@ -42,24 +41,23 @@ export default {
       required: true,
     },
   },
+  data() {
+    return {
+      blockType: "uv-vis",
+    };
+  },
   computed: {
     bokehPlotData() {
       return this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id]
         .bokeh_plot_data;
     },
     blockInfo() {
-      return this.$store.state.blocksInfos["raman"];
+      return this.$store.state.blocksInfos[this.blockType];
     },
-    file_id: createComputedSetterForBlockField("file_id"),
-  },
-  methods: {
-    updateBlock() {
-      updateBlockFromServer(
-        this.item_id,
-        this.block_id,
-        this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id],
-      );
+    accepted_file_extensions() {
+      return this.blockInfo?.attributes?.accepted_file_extensions || [];
     },
+    selectedFileOrder: createComputedSetterForBlockField("selected_file_order"),
   },
 };
 </script>

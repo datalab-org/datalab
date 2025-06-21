@@ -5,12 +5,11 @@
     :data-type="'samples'"
     :global-filter-fields="[
       'item_id',
-      'type',
       'name',
+      'refcode',
       'chemform',
-      'collectionsList',
-      'creatorsList',
-      'nblocks',
+      'blocks',
+      'characteristic_chemical_formula',
     ]"
   />
 </template>
@@ -29,26 +28,54 @@ export default {
           header: "ID",
           body: "FormattedItemName",
           filter: true,
+          label: "ID",
         },
-        { field: "type", header: "Type", filter: true },
-        { field: "name", header: "Sample name" },
-        { field: "chemform", header: "Formula", body: "ChemicalFormula" },
-        { field: "date", header: "Date" },
-        { field: "collectionsList", header: "Collections", body: "CollectionList", filter: true },
-        { field: "creatorsList", header: "Creators", body: "Creators", filter: true },
+        { field: "type", header: "Type", filter: true, label: "Type" },
+        { field: "name", header: "Sample name", label: "Sample name" },
+        {
+          field: "chemform",
+          header: "Formula",
+          body: "ChemicalFormula",
+          label: "Formula",
+        },
+        { field: "date", header: "Date", label: "Date" },
+        {
+          field: "collections",
+          header: "Collections",
+          body: "CollectionList",
+          filter: true,
+          label: "Collections",
+        },
+        {
+          field: "creators",
+          header: "Creators",
+          body: "Creators",
+          filter: true,
+          label: "Creators",
+        },
         {
           field: "blocks",
           header: "",
           body: "BlocksIconCounter",
           icon: ["fa", "cubes"],
           filter: true,
+          label: "Blocks",
         },
-        { field: "nfiles", header: "", body: "FilesIconCounter", icon: ["fa", "file"] },
+        {
+          field: "nfiles",
+          header: "",
+          body: "FilesIconCounter",
+          icon: ["fa", "file"],
+          label: "Files",
+        },
       ],
     };
   },
   computed: {
     samples() {
+      if (!this.$store.state.sample_list) {
+        return null;
+      }
       return this.$store.state.sample_list.map((sample) => {
         return {
           ...sample,

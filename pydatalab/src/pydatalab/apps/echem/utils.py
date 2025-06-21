@@ -1,5 +1,3 @@
-from typing import List, Optional
-
 import navani.echem as ec
 import numpy as np
 import pandas as pd
@@ -128,9 +126,7 @@ def compute_gpcl_differential(
     return differential_df
 
 
-def filter_df_by_cycle_index(
-    df: pd.DataFrame, cycle_list: Optional[List[int]] = None
-) -> pd.DataFrame:
+def filter_df_by_cycle_index(df: pd.DataFrame, cycle_list: list[int] | None = None) -> pd.DataFrame:
     """Filters the input dataframe by the chosen rows in the `cycle_list`.
     If `half_cycle` is a column in the df, it will be used for filtering,
     otherwise `cycle index` will be used.

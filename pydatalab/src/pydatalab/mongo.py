@@ -1,5 +1,5 @@
+import atexit
 from functools import lru_cache
-from typing import List, Optional
 
 # Must be imported in this way to allow for easy patching with mongomock
 import pymongo
@@ -29,7 +29,11 @@ ITEMS_FTS_FIELDS: set[str] = set().union(
         {
             f
             for f, p in model.schema(by_alias=False)["properties"].items()
-            if (p.get("type") == "string" and p.get("format") not in ("date-time", "uuid"))
+            if (
+                p.get("type") == "string"
+                and p.get("format") not in ("date-time", "uuid")
+                and f != "type"
+            )
         }
         for model in ITEM_MODELS.values()
     )
@@ -62,14 +66,21 @@ def _get_active_mongo_client(timeoutMS: int = 1000) -> pymongo.MongoClient:
     from pydatalab.logger import LOGGER
 
     try:
-        return pymongo.MongoClient(
+        client = pymongo.MongoClient(
             CONFIG.MONGO_URI,
             connectTimeoutMS=timeoutMS,
             serverSelectionTimeoutMS=timeoutMS,
             connect=True,
         )
+
+        atexit.register(
+            lambda client: client.close(),
+            client,
+        )
+        return client
+
     except ConnectionFailure as exc:
-        LOGGER.critical(f"Unable to connect to MongoDB at {CONFIG.MONGO_URI}")
+        LOGGER.critical(f"Unable to connect to MongoDB at {CONFIG.MONGO_URI!r}: {exc}")
         raise RuntimeError from exc
 
 
@@ -96,9 +107,9 @@ def check_mongo_connection() -> None:
 
 
 def create_default_indices(
-    client: Optional[pymongo.MongoClient] = None,
+    client: pymongo.MongoClient | None = None,
     background: bool = False,
-) -> List[str]:
+) -> list[str]:
     """Creates indices for the configured or passed MongoClient.
 
     Indexes created are:
@@ -157,6 +168,8 @@ def create_default_indices(
         "refcode", unique=True, name="unique refcode", background=background
     )
     ret += db.items.create_index("last_modified", name="last modified", background=background)
+
+    ret += db.items.create_index("date", name="date", background=background)
 
     user_fts_fields = {"identities.name", "display_name"}
 

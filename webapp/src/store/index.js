@@ -9,10 +9,10 @@ export default createStore({
     all_collection_data: {},
     all_collection_children: {},
     refcode_to_id: {},
-    sample_list: [],
-    equipment_list: [],
-    starting_material_list: [],
-    collection_list: [],
+    sample_list: null,
+    equipment_list: null,
+    starting_material_list: null,
+    collection_list: null,
     saved_status_items: {},
     saved_status_blocks: {},
     saved_status_collections: {},
@@ -55,15 +55,15 @@ export default createStore({
     },
     setSampleList(state, sampleSummaries) {
       // sampleSummaries is an array of json objects summarizing the available samples
-      state.sample_list = sampleSummaries;
+      state.sample_list = sampleSummaries || [];
     },
     setStartingMaterialList(state, startingMaterialSummaries) {
       // startingMaterialSummaries is an array of json objects summarizing the available starting materials
-      state.starting_material_list = startingMaterialSummaries;
+      state.starting_material_list = startingMaterialSummaries || [];
     },
     setCollectionList(state, collectionSummaries) {
       // collectionSummaries is an array of json objects summarizing the available collections
-      state.collection_list = collectionSummaries;
+      state.collection_list = collectionSummaries || [];
     },
     setDisplayName(state, displayName) {
       state.currentUserDisplayName = displayName;
@@ -76,29 +76,51 @@ export default createStore({
     },
     setEquipmentList(state, equipmentSummaries) {
       // equipmentSummary is an array of json objects summarizing the available samples
-      state.equipment_list = equipmentSummaries;
+      state.equipment_list = equipmentSummaries || [];
     },
     appendToSampleList(state, sampleSummary) {
       // sampleSummary is a json object summarizing the new sample
-      state.sample_list.push(sampleSummary);
+      if (state.sample_list === null) {
+        state.sample_list = [sampleSummary];
+      } else {
+        state.sample_list.push(sampleSummary);
+      }
     },
     prependToSampleList(state, sampleSummary) {
       // sampleSummary is a json object summarizing the new sample
-      state.sample_list.unshift(sampleSummary);
+      if (state.sample_list === null) {
+        state.sample_list = [sampleSummary];
+      } else {
+        state.sample_list.unshift(sampleSummary);
+      }
     },
     prependToStartingMaterialList(state, itemSummary) {
       // sampleSummary is a json object summarizing the new sample
-      state.starting_material_list.unshift(itemSummary);
+      if (state.starting_material_list === null) {
+        state.starting_material_list = [itemSummary];
+      } else {
+        state.starting_material_list.unshift(itemSummary);
+      }
     },
     prependToEquipmentList(state, equipmentSummary) {
       // sampleSummary is a json object summarizing the new sample
-      state.equipment_list.unshift(equipmentSummary);
+      if (state.equipment_list === null) {
+        state.equipment_list = [equipmentSummary];
+      } else {
+        state.equipment_list.unshift(equipmentSummary);
+      }
     },
     prependToCollectionList(state, collectionSummary) {
       // collectionSummary is a json object summarizing the new collection
-      state.collection_list.unshift(collectionSummary);
+      if (state.collection_list === null) {
+        state.collection_list = [collectionSummary];
+      } else {
+        state.collection_list.unshift(collectionSummary);
+      }
     },
     deleteFromSampleList(state, item_id) {
+      if (state.sample_list === null) return;
+
       const index = state.sample_list.map((e) => e.item_id).indexOf(item_id);
       if (index > -1) {
         state.sample_list.splice(index, 1);
@@ -107,6 +129,8 @@ export default createStore({
       }
     },
     deleteFromStartingMaterialList(state, item_id) {
+      if (state.starting_material_list === null) return;
+
       const index = state.starting_material_list.map((e) => e.item_id).indexOf(item_id);
       if (index > -1) {
         state.starting_material_list.splice(index, 1);
@@ -115,6 +139,8 @@ export default createStore({
       }
     },
     deleteFromCollectionList(state, collection_summary) {
+      if (state.collection_list === null) return;
+
       const index = state.collection_list
         .map((e) => e.collection_id)
         .indexOf(collection_summary.collection_id);
@@ -125,6 +151,8 @@ export default createStore({
       }
     },
     deleteFromEquipmentList(state, item_id) {
+      if (state.equipment_list === null) return;
+
       const index = state.equipment_list.map((e) => e.item_id).indexOf(item_id);
       if (index > -1) {
         state.equipment_list.splice(index, 1);
@@ -135,7 +163,6 @@ export default createStore({
     createItemData(state, payload) {
       // payload should have the following fields:
       // refcode, item_id, item_data
-      // Object.assign(state.all_sample_data[payload.item_data], payload.item_data)
       state.all_item_data[payload.item_id] = payload.item_data;
       state.saved_status_items[payload.item_id] = true;
       state.refcode_to_id[payload.refcode] = payload.item_id;
@@ -143,7 +170,6 @@ export default createStore({
     setCollectionData(state, payload) {
       // payload should have the following fields:
       // collection_id, data, child_items
-      // Object.assign(state.all_sample_data[payload.item_data], payload.item_data)
       state.all_collection_data[payload.collection_id] = payload.data;
       state.saved_status_collections[payload.collection_id] = true;
     },
@@ -200,7 +226,10 @@ export default createStore({
     updateBlockData(state, payload) {
       // requires the following fields in payload:
       // item_id, block_id, block_data
-      console.log("updating block data with:", payload);
+      // This process should invalidate any existing bokeh plot, which may not be present if the plotting
+      // in the new block failed.
+      state.all_item_data[payload.item_id]["blocks_obj"][payload.block_id]["bokeh_plot_data"] =
+        null;
       Object.assign(
         state.all_item_data[payload.item_id]["blocks_obj"][payload.block_id],
         payload.block_data,
@@ -323,7 +352,7 @@ export default createStore({
     },
     getBlockByItemIDandBlockID: (state) => (item_id, block_id) => {
       console.log("getBlockBySampleIDandBlockID called with:", item_id, block_id);
-      return state.all_sample_data[item_id]["blocks_obj"][block_id];
+      return state.all_item_data[item_id]["blocks_obj"][block_id];
     },
     getCurrentUserDisplayName(state) {
       return state.currentUserDisplayName;
@@ -336,6 +365,9 @@ export default createStore({
     },
     getHasUnverifiedUser(state) {
       return state.hasUnverifiedUser;
+    },
+    getBlocksInfos(state) {
+      return Object.values(state.blocksInfos);
     },
   },
   actions: {},

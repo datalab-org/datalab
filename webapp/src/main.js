@@ -10,8 +10,10 @@ import router from "./router";
 
 import { library } from "@fortawesome/fontawesome-svg-core";
 import {
+  faBarcode,
   faSave,
   faCloudUploadAlt,
+  faRedo,
   faPen,
   faFile,
   faCode,
@@ -52,8 +54,10 @@ import { faPlusSquare } from "@fortawesome/free-regular-svg-icons";
 import { faGithub, faOrcid } from "@fortawesome/free-brands-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 library.add(
+  faBarcode,
   faSave,
   faPen,
+  faRedo,
   faCloudUploadAlt,
   faFile,
   faCode,

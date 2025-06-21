@@ -3,13 +3,12 @@
 import json
 from datetime import datetime
 from functools import lru_cache
-from typing import Dict, List, Optional, Union
 
 from flask import Blueprint, jsonify, request
 from pydantic import AnyUrl, BaseModel, Field, validator
 
 from pydatalab import __version__
-from pydatalab.blocks import BLOCK_TYPES
+from pydatalab.apps import BLOCK_TYPES
 from pydatalab.config import CONFIG, FEATURE_FLAGS, FeatureFlags
 from pydatalab.models import Collection, Person
 from pydatalab.models.items import Item
@@ -29,7 +28,7 @@ class Meta(BaseModel):
     timestamp: datetime = Field(default_factory=datetime.now)
     query: str = ""
     api_version: str = __api_version__
-    available_api_versions: List[str] = [__api_version__]
+    available_api_versions: list[str] = [__api_version__]
     server_version: str = __version__
     datamodel_version: str = __version__
 
@@ -48,21 +47,21 @@ class Data(BaseModel):
 
 
 class JSONAPIResponse(BaseModel):
-    data: Union[Data, List[Data]]
+    data: Data | list[Data]
     meta: Meta
-    links: Optional[Links]
+    links: Links | None
 
 
 class MetaPerson(BaseModel):
-    dislay_name: Optional[str]
+    dislay_name: str | None
     contact_email: str
 
 
 class Info(Attributes, Meta):
-    maintainer: Optional[MetaPerson]
-    issue_tracker: Optional[AnyUrl]
-    homepage: Optional[AnyUrl]
-    source_repository: Optional[AnyUrl]
+    maintainer: MetaPerson | None
+    issue_tracker: AnyUrl | None
+    homepage: AnyUrl | None
+    source_repository: AnyUrl | None
     identifier_prefix: str
     features: FeatureFlags = FEATURE_FLAGS
 
@@ -74,7 +73,7 @@ class Info(Attributes, Meta):
 
 
 @lru_cache(maxsize=1)
-def _get_deployment_metadata_once() -> Dict:
+def _get_deployment_metadata_once() -> dict:
     identifier_prefix = CONFIG.IDENTIFIER_PREFIX
     metadata = (
         CONFIG.DEPLOYMENT_METADATA.dict(exclude_none=True) if CONFIG.DEPLOYMENT_METADATA else {}

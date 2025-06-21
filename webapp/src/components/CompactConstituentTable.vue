@@ -136,6 +136,9 @@ export default {
     },
     constituents: {
       get() {
+        if (!this.modelValue) {
+          return [];
+        }
         return this.modelValue;
       },
       set(value) {
