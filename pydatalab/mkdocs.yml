@@ -49,6 +49,7 @@ markdown_extensions:
   - admonition
   - pymdownx.details
   - pymdownx.highlight
+  - callouts
   - pymdownx.superfences:
       # Allows mermaid code blocks to be rendered via mermaid.js
       custom_fences:
