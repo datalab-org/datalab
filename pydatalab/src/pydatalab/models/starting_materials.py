@@ -74,6 +74,9 @@ class StartingMaterial(Item, HasSynthesisInfo):
         from periodictable import formula
 
         if v is None and values.get("chemform"):
-            return formula(values.get("chemform")).mass
+            try:
+                return formula(values.get("chemform")).mass
+            except Exception:
+                return None
 
         return v
