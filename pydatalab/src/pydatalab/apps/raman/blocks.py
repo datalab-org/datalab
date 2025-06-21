@@ -245,4 +245,6 @@ class RamanBlock(DataBlock):
                 point_size=3,
             )
 
-            self.data["bokeh_plot_data"] = bokeh.embed.json_item(p, theme=DATALAB_BOKEH_THEME)
+            script, div = bokeh.embed.components(p, theme=DATALAB_BOKEH_THEME)
+
+            self.data["bokeh_plot_data"] = {"script": script, "div": div}

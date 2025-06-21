@@ -135,11 +135,10 @@
       </div>
 
       <div class="row mt-2">
-        <div
-          class="col mx-auto"
-          :class="{ 'limited-width': bokehPlotLimitedWidth, blurry: isUpdating }"
-        >
-          <BokehPlot :bokeh-plot-data="bokehPlotData" />
+        <div class="col">
+          <div :class="{ blurry: isUpdating }" class="bokeh-responsive-container">
+            <BokehPlot :bokeh-plot-data="bokehPlotData" />
+          </div>
         </div>
       </div>
     </div>
@@ -176,7 +175,6 @@ export default {
       cyclesString: "",
       showDescription1: false,
       showDescription2: false,
-      bokehPlotLimitedWidth: true,
       isReplotButtonDisplayed: false,
     };
   },
@@ -198,9 +196,6 @@ export default {
     blockInfo() {
       return this.$store.state.blocksInfos["cycle"];
     },
-    // normalizingMass() {
-    //   return this.$store.all_item_data[this.item_id]["characteristic_mass"] || null;
-    // },
     file_id: createComputedSetterForBlockField("file_id"),
     all_cycles: createComputedSetterForBlockField("cyclenumber"),
     s_spline: createComputedSetterForBlockField("s_spline"),
@@ -256,7 +251,6 @@ export default {
         this.block_id,
         this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id],
       ).then(() => {
-        this.bokehPlotLimitedWidth = this.derivative_mode != "dQ/dV";
         this.isReplotButtonDisplayed = false;
       });
     },
@@ -277,8 +271,9 @@ export default {
   filter: blur(5px);
 }
 
-.limited-width {
-  max-width: 650px;
+.bokeh-responsive-container {
+  width: 100%;
+  max-width: 100%;
 }
 
 .slider {
