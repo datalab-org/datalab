@@ -226,18 +226,11 @@ class EntryReference(BaseModel):
 
     @root_validator
     def check_id_fields(cls, values):
-        """Check that only one of the possible identifier fields is provided."""
+        """Check that at least one of the possible identifier fields is provided."""
         id_fields = ("immutable_id", "item_id", "refcode")
 
-        # Temporarily remove refcodes from the list of fields to check
-        # until it is fully implemented
-        if values.get("refcode") is not None:
-            values["refcode"] = None
         if all(values.get(f) is None for f in id_fields):
             raise ValueError(f"Must provide at least one of {id_fields!r}")
-
-        if sum(1 for f in id_fields if values.get(f) is not None) > 1:
-            raise ValueError("Must provide only one of {id_fields!r}")
 
         return values
 
@@ -270,9 +263,13 @@ class Constituent(BaseModel):
     @validator("item", pre=True, always=True)
     def coerce_reference(cls, v):
         if isinstance(v, dict):
-            id = v.pop("item_id", None)
-            if id:
-                return EntryReference(item_id=id, **v)
+            refcode = v.pop("refcode", None)
+            item_id = v.pop("item_id", None)
+
+            if refcode:
+                return EntryReference(refcode=refcode, item_id=item_id, **v)
+            elif item_id:
+                return EntryReference(item_id=item_id, **v)
             else:
                 name = v.pop("name", "")
                 chemform = v.pop("chemform", None)
