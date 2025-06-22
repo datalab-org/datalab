@@ -10,9 +10,9 @@ def test_get_all_available_block_types():
     assert len(BLOCK_TYPES) > 0
 
     for block_class in BLOCKS:
-        assert hasattr(block_class, "blocktype")
-        assert hasattr(block_class, "name")
-        assert hasattr(block_class, "description")
+        assert block_class.blocktype is not None
+        assert block_class.name is not None
+        assert block_class.description is not None, f"{block_class.blocktype} is missing a description"
         assert block_class.blocktype in BLOCK_TYPES
         assert BLOCK_TYPES[block_class.blocktype] == block_class
 
