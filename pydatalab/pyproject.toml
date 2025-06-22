@@ -126,6 +126,7 @@ dev-dependencies = [
     "mkdocs-material ~= 9.5",
     "mkdocstrings[python] ~= 0.29",
     "mkdocs-awesome-pages-plugin ~= 2.9",
+    "markdown-callouts ~= 0.4",
 ]
 
 [tool.uv.sources]
