@@ -234,7 +234,7 @@ def delete_file():
         return (
             jsonify(
                 status="error",
-                message="Delete failed. file not found: {}".format(path),
+                message=f"Delete failed. file not found: {path}",
             ),
             400,
         )

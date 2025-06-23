@@ -1,6 +1,6 @@
-# Cells
+# Collections
 
-::: pydatalab.models.cells
+::: pydatalab.models.collections
     options:
         inherited_members: true
         summary:

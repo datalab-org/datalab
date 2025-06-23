@@ -1,11 +1,13 @@
 import os
+import warnings
 from pathlib import Path
+from typing import Any
 
 import bokeh
 import numpy as np
 import pandas as pd
 from pybaselines import Baseline
-from rsciio.renishaw import file_reader
+from renishawWiRE import WDFReader
 from scipy.signal import medfilt
 
 from pydatalab.blocks.base import DataBlock
@@ -40,22 +42,34 @@ class RamanBlock(DataBlock):
                             header.append(line)
                     if "#Wave" in header[0] and "#Intensity" in header[0]:
                         vendor = "renishaw"
+                        warnings.warn("Unable to find wavenumber unit in header, assuming cm⁻¹")
+                        warnings.warn("Unable to find wavenumber offset in header, assuming 0")
+                        metadata["wavenumber_unit"] = "cm⁻¹"
+                        metadata["wavenumber_offset"] = 0
                     else:
-                        metadata = {
+                        parsed_metadata = {
                             key: value for key, value in [line.split("=") for line in header]
                         }
                         if (
-                            metadata.get("#AxisType[0]") == "Intens\n"
-                            and metadata.get("#AxisType[1]") == "Spectr\n"
+                            parsed_metadata.get("#AxisType[0]") == "Intens\n"
+                            and parsed_metadata.get("#AxisType[1]") == "Spectr\n"
                         ):
                             vendor = "labspec"
+                            metadata["wavenumber_unit"] = (
+                                "cm⁻¹"
+                                if parsed_metadata.get("#AxisUnit[1]", "").strip() == "1/cm"
+                                else parsed_metadata.get("#AxisUnit[1]", "").strip()
+                            )
+                            metadata["title"] = parsed_metadata.get("#Title", "").strip()
+                            metadata["date"] = parsed_metadata.get("#Date", "").strip()
+
                 if vendor == "renishaw":
                     df = pd.DataFrame(np.loadtxt(location), columns=["wavenumber", "intensity"])
                 elif vendor == "labspec":
                     df = pd.DataFrame(
                         np.loadtxt(location, encoding="cp1252"), columns=["wavenumber", "intensity"]
                     )
-                    metadata = {}
+
             except IndexError:
                 pass
         elif ext == ".wdf":
@@ -66,13 +80,45 @@ class RamanBlock(DataBlock):
                 "Could not detect Raman data vendor -- this file type is not supported by this block."
             )
 
-        df["sqrt(intensity)"] = np.sqrt(df["intensity"])
-        df["log(intensity)"] = np.log10(df["intensity"])
-        df["normalized intensity"] = df["intensity"] / np.max(df["intensity"])
+        # Run baseline corrections but suppress numerical warnings around division by zero, sqrts and logs
+        with warnings.catch_warnings():
+            warnings_to_ignore = [
+                (np.RankWarning, ".*Polyfit may be poorly conditioned*"),
+                (RuntimeWarning, ".*invalid value encountered in sqrt*"),
+                (UserWarning, ".*kernel_size exceeds volume extent*"),
+                (RuntimeWarning, ".*divide by zero encountered in sqrt*"),
+                (RuntimeWarning, ".*divide by zero encountered in log10*"),
+                (RuntimeWarning, ".*invalid value encountered in log10*"),
+                (RuntimeWarning, ".*divide by zero encountered in true_divide*"),
+            ]
+            for warning_type, message in warnings_to_ignore:
+                warnings.filterwarnings("ignore", category=warning_type, message=message)
+
+            y_option_df = self._calc_baselines_and_normalize(df["wavenumber"], df["intensity"])
+
+        df = pd.concat([df, y_option_df], axis=1)
+        df.index.name = location.split("/")[-1]
+
+        y_options = ["intensity"] + list(y_option_df.columns)
+
+        return df, metadata, y_options
+
+    @classmethod
+    def _calc_baselines_and_normalize(
+        cls,
+        wavenumbers: np.ndarray,
+        intensity: np.ndarray,
+        kernel_size: int = 101,
+        polyfit_deg: int = 15,
+    ):
+        df = pd.DataFrame()
+        df["normalized intensity"] = intensity / np.max(intensity)
+        df["sqrt(intensity)"] = np.sqrt(intensity)
+        df["log(intensity)"] = np.log10(intensity)
         polyfit_deg = 15
         polyfit_baseline = np.poly1d(
-            np.polyfit(df["wavenumber"], df["normalized intensity"], deg=polyfit_deg)
-        )(df["wavenumber"])
+            np.polyfit(wavenumbers, df["normalized intensity"], deg=polyfit_deg)
+        )(wavenumbers)
         df["intensity - polyfit baseline"] = df["normalized intensity"] - polyfit_baseline
         df[f"baseline (`numpy.polyfit`, {polyfit_deg=})"] = polyfit_baseline / np.max(
             df["intensity - polyfit baseline"]
@@ -91,7 +137,7 @@ class RamanBlock(DataBlock):
         half_window = round(
             0.03 * df.shape[0]
         )  # a value which worked for my data, not sure how universally good it will be
-        baseline_fitter = Baseline(x_data=df["wavenumber"])
+        baseline_fitter = Baseline(x_data=wavenumbers)
         morphological_baseline = baseline_fitter.mor(
             df["normalized intensity"], half_window=half_window
         )[0]
@@ -102,25 +148,12 @@ class RamanBlock(DataBlock):
             morphological_baseline / np.max(df["intensity - morphological baseline"])
         )
         df["intensity - morphological baseline"] /= np.max(df["intensity - morphological baseline"])
-        df.index.name = location.split("/")[-1]
 
-        y_options = [
-            "normalized intensity",
-            "intensity",
-            "sqrt(intensity)",
-            "log(intensity)",
-            "intensity - median baseline",
-            f"baseline (`scipy.signal.medfilt`, {kernel_size=})",
-            "intensity - polyfit baseline",
-            f"baseline (`numpy.polyfit`, {polyfit_deg=})",
-            "intensity - morphological baseline",
-            f"baseline (`pybaselines.Baseline.mor`, {half_window=})",
-        ]
-        return df, metadata, y_options
+        return df
 
     @classmethod
-    def make_wdf_df(self, location: Path | str) -> pd.DataFrame:
-        """Read the .wdf file with RosettaSciIO and try to extract
+    def make_wdf_df(cls, location: Path | str) -> pd.DataFrame:
+        """Read the .wdf file with py-wdf-reader and try to extract
         1D Raman spectra.
 
         Parameters:
@@ -132,26 +165,48 @@ class RamanBlock(DataBlock):
         """
 
         try:
-            raman_data = file_reader(location)
+            reader = WDFReader(location)
         except Exception as e:
-            raise RuntimeError(f"Could not read file with RosettaSciIO. Error: {e}")
+            raise RuntimeError(f"Could not read file with py-wdf-reader. Error: {e}")
 
-        if len(raman_data[0]["axes"]) == 1:
-            pass
-        elif len(raman_data[0]["axes"]) == 3:
-            raise RuntimeError("This block does not support 2D Raman yet.")
-        else:
-            raise RuntimeError("Data is not compatible 1D or 2D Raman data.")
+        if len(reader.xdata.shape) != 1:
+            raise RuntimeError("This block does not support 2D Raman, or multiple patterns, yet.")
 
-        intensity = raman_data[0]["data"]
-        wavenumber_size = raman_data[0]["axes"][0]["size"]
-        wavenumber_offset = raman_data[0]["axes"][0]["offset"]
-        wavenumber_scale = raman_data[0]["axes"][0]["scale"]
-        wavenumbers = np.array(
-            [wavenumber_offset + i * wavenumber_scale for i in range(wavenumber_size)]
-        )
+        metadata_keys = {
+            "title",
+            "application_name",
+            "application_version",
+            "count",
+            "capacity",
+            "point_per_spectrum",
+            "scan_type",
+            "measurement_type",
+            "spectral_unit",
+            "xlist.unit",
+            "xlist.length",
+            "ylist.unit",
+            "ylist.length",
+            "xpos_unit",
+            "ypos_unit",
+        }
+
+        metadata: dict[str, Any] = {}
+
+        for key in metadata_keys:
+            if "." in key and len(key.split(".")) == 2:
+                value = getattr(getattr(reader, key.split(".")[0], None), key.split(".")[1], None)
+            else:
+                value = getattr(reader, key, None)
+            metadata[key] = value
+
+        wavenumbers = reader.xdata  # noqa
+        intensity = reader.spectra
+
+        # Extract units
+        metadata["wavenumber_unit"] = str(getattr(reader, "xlist_unit", "1/cm"))
+
         df = pd.DataFrame({"wavenumber": wavenumbers, "intensity": intensity})
-        return df, raman_data[0]["metadata"]
+        return df, metadata
 
     def generate_raman_plot(self):
         file_info = None
@@ -169,14 +224,22 @@ class RamanBlock(DataBlock):
                     self.accepted_file_extensions,
                     ext,
                 )
-            pattern_dfs, _, y_options = self.load(file_info["location"])
+            pattern_dfs, metadata, y_options = self.load(file_info["location"])
             pattern_dfs = [pattern_dfs]
+
+        wavenumber_unit = metadata.get("wavenumber_unit", "Unknown unit")
+        if wavenumber_unit.startswith("1/"):
+            wavenumber_unit = wavenumber_unit[2:] + "⁻¹"
+
+        for ind, df in enumerate(pattern_dfs):
+            pattern_dfs[ind][f"wavenumber ({wavenumber_unit})"] = df["wavenumber"]
 
         if pattern_dfs:
             p = selectable_axes_plot(
                 pattern_dfs,
-                x_options=["wavenumber"],
+                x_options=[f"wavenumber ({wavenumber_unit})"],
                 y_options=y_options,
+                y_default="normalized intensity",
                 plot_line=True,
                 plot_points=True,
                 point_size=3,

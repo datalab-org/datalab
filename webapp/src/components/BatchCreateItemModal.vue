@@ -4,7 +4,8 @@
       :model-value="modelValue"
       :disable-submit="
         isValidEntryID.some((e) => e) ||
-        (!generateIDsAutomatically && items.some((s) => !Boolean(s.item_id)))
+        (!generateIDsAutomatically && items.some((s) => !Boolean(s.item_id))) ||
+        isValidBatchSize
       "
       @update:model-value="$emit('update:modelValue', $event)"
     >
@@ -47,6 +48,12 @@
                     min="0"
                     max="100"
                   />
+                </div>
+                <div
+                  v-if="isValidBatchSize"
+                  class="form-error ml-2 text-nowrap small align-self-center"
+                >
+                  {{ isValidBatchSize }}
                 </div>
               </div>
               <div class="row">
@@ -406,6 +413,7 @@ export default {
       },
 
       serverResponses: {}, // after the server responds, store error messages if any
+      batchSizeError: false,
     };
   },
   computed: {
@@ -435,10 +443,20 @@ export default {
         return validateEntryID(item.item_id, this.takenItemIds, this.takenSampleIds);
       });
     },
+    isValidBatchSize() {
+      return this.batchSizeError;
+    },
   },
 
   watch: {
     nSamples(newValue, oldValue) {
+      if (newValue > 100) {
+        this.batchSizeError = "Maximum 100 items can be created at once";
+        return;
+      } else {
+        this.batchSizeError = false;
+      }
+
       if (newValue < oldValue) {
         this.items = this.items.slice(0, newValue);
       }
@@ -574,6 +592,7 @@ export default {
           this.beforeSubmit = false;
         })
         .catch((error) => {
+          window.alert("Error with creating new items: " + error);
           console.log("Error with creating new items: " + error);
         });
     },

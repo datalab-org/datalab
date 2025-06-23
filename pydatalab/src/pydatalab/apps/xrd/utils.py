@@ -146,7 +146,7 @@ def toXY(intensities: list[float], start: float, end: float) -> str:
 
     """
     angles = np.linspace(start, end, num=len(intensities))
-    xylines = ["{:.5f} {:.3f}\r\n".format(a, i) for a, i in zip(angles, intensities)]
+    xylines = [f"{a:.5f} {i:.3f}\r\n" for a, i in zip(angles, intensities)]
     return "".join(xylines)
 
 
@@ -192,3 +192,31 @@ def parse_rasx_zip(filename: str) -> pd.DataFrame:
             "intensity": xrd_data["intensity"],
         }
     )
+
+
+def compute_cif_pxrd(filename: str, wavelength: float) -> tuple[pd.DataFrame, dict]:
+    """Parses a CIF file and returns a pandas DataFrame with columns
+    twotheta and intensity.
+
+    Parameters:
+        filename: The file to parse.
+
+    """
+    from matador.fingerprints.pxrd import PXRD
+    from matador.scrapers.cif_scraper import cif2dict
+
+    structure, success = cif2dict(filename)
+    if not success:
+        raise RuntimeError(f"Failed to parse required information from CIF file {filename}.")
+
+    pxrd = PXRD(structure, wavelength=wavelength, two_theta_bounds=(5, 60))
+
+    df = pd.DataFrame({"intensity": pxrd.pattern, "twotheta": pxrd.two_thetas})
+    peak_data = {
+        "positions": pxrd.peak_positions.tolist(),
+        "intensities": pxrd.peak_intensities.tolist(),
+        "widths": None,
+        "hkls": pxrd.hkls.tolist(),
+        "theoretical": True,
+    }
+    return df, peak_data

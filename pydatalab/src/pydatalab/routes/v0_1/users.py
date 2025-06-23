@@ -5,8 +5,14 @@ from flask_login import current_user
 from pydatalab.config import CONFIG
 from pydatalab.models.people import DisplayName, EmailStr
 from pydatalab.mongo import flask_mongo
+from pydatalab.permissions import active_users_or_get_only
 
 USERS = Blueprint("users", __name__)
+
+
+@USERS.before_request
+@active_users_or_get_only
+def _(): ...
 
 
 @USERS.route("/users/<user_id>", methods=["PATCH"])

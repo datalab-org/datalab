@@ -3,7 +3,6 @@ import subprocess
 import tarfile
 import tempfile
 from pathlib import Path
-from typing import Any
 
 from pydatalab.config import CONFIG, BackupStrategy
 from pydatalab.logger import LOGGER
@@ -161,44 +160,8 @@ def create_backup(strategy: BackupStrategy) -> bool:
                 LOGGER.debug("Cleaning up snapshot %s", snapshot_to_delete)
                 (strategy.location / snapshot_to_delete).unlink()
     else:
-        from paramiko.client import SSHClient
-        from paramiko.config import SSHConfig
-
-        ssh_config_path = Path.home() / ".ssh" / "config"
-        ssh_cfg: dict[str, Any] = {}
-        if ssh_config_path.exists():
-            _ssh_cfg = SSHConfig.from_path(str(ssh_config_path.resolve()))
-            ssh_cfg = dict(_ssh_cfg.lookup(strategy.hostname))
-
-        client = SSHClient()
-        client.load_system_host_keys()
-        client.connect(strategy.hostname, username=ssh_cfg.get("user", None))
-
-        sftp = client.open_sftp()
-        try:
-            sftp.chdir(path=str(strategy.location))
-        except OSError:
-            sftp.mkdir(path=str(strategy.location))
-            sftp.chdir(path=str(strategy.location))
-
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            snapshot_path = Path(tmp_dir) / snapshot_name
-
-            take_snapshot(snapshot_path)
-
-            # Delete the oldest snapshots
-            if strategy.retention is not None:
-                existing_snapshots = [
-                    s
-                    for s in sftp.listdir(str(strategy.location))
-                    if s.startswith("datalab-snapshot-")
-                ]
-                if len(existing_snapshots) > strategy.retention:
-                    # Sort into reverse order then remove from the end of the list
-                    sorted_snapshots = sorted(existing_snapshots, reverse=True)
-                    for _ in range(len(sorted_snapshots) - strategy.retention):
-                        sftp.remove(str(strategy.location / sorted_snapshots.pop()))
-
-            sftp.put(snapshot_path, str(strategy.location / snapshot_name), confirm=True)
+        raise NotImplementedError(
+            "Direct remote backup functionality has been removed and superseded."
+        )
 
     return True

@@ -1,6 +1,5 @@
 import os
 from pathlib import Path
-from typing import List, Tuple
 
 import bokeh
 from bokeh.layouts import gridplot
@@ -51,7 +50,7 @@ class MassSpecBlock(DataBlock):
         x_options = ["Time Relative [s]"]
 
         # collect the maximum value of the data key for each species for plot ordering
-        max_vals: List[Tuple[str, float]] = []
+        max_vals: list[tuple[str, float]] = []
 
         data_key: str = (
             "Partial pressure [mbar] or Ion Current [A]"  # default value for data key if missing

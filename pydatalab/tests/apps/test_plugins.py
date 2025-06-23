@@ -13,16 +13,6 @@ def test_load_plugins():
     assert InsituBlock in BLOCKS
 
 
-def test_load_UVVisInsituBlock():
-    from datalab_app_plugin_insitu import UVVisInsituBlock
-
-    plugins = load_block_plugins()
-    assert "insitu-uvvis" in plugins
-    assert isinstance(BLOCK_TYPES["insitu-uvvis"], type)
-    assert BLOCK_TYPES["insitu-uvvis"] == UVVisInsituBlock
-    assert UVVisInsituBlock in BLOCKS
-
-
 def test_load_app_blocks():
     from pydatalab.apps import load_app_blocks
     from pydatalab.apps.echem import CycleBlock

@@ -28,7 +28,7 @@ jobs:
           python-version: "3.10"
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v6
         with:
           version: "0.6.4"
           enable-cache: true
@@ -48,7 +48,7 @@ jobs:
 
     services:
       mongo:
-        image: mongo:3
+        image: mongo:8
         ports:
           - 27017:27017
 
@@ -76,9 +76,10 @@ jobs:
           wget https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2204-x86_64-100.9.0.deb && sudo apt install ./mongodb-database-tools-*-100.9.0.deb
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v6
         with:
           version: "0.6.4"
+          working-directory: "./pydatalab"
           enable-cache: true
 
       - name: Install locked versions of dependencies
@@ -151,8 +152,11 @@ jobs:
           targets: 'app,api,database'
           set: |
             app.cache-from=type=gha,scope=${{ github.ref_name }}-${{ matrix.browser-backend }}-build-app
+            app.cache-from=type=gha,scope=main-${{ matrix.browser-backend }}-build-app
             api.cache-from=type=gha,scope=${{ github.ref_name }}-${{ matrix.browser-backend }}-build-api
+            api.cache-from=type=gha,scope=main-${{ matrix.browser-backend }}-build-api
             database.cache-from=type=gha,scope=${{ github.ref_name }}-${{ matrix.browser-backend }}-build-database
+            database.cache-from=type=gha,scope=main-${{ matrix.browser-backend }}-build-database
             api.cache-to=type=gha,scope=${{ github.ref_name }}-${{ matrix.browser-backend }}-build-api,mode=max
             app.cache-to=type=gha,scope=${{ github.ref_name }}-${{ matrix.browser-backend }}-build-app,mode=max
             database.cache-to=type=gha,scope=${{ github.ref_name }}-${{ matrix.browser-backend }}-build-database,mode=max
@@ -189,3 +193,7 @@ jobs:
           group: "Component tests (${{ matrix.browser-backend }})"
         env:
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
+
+  liccheck:
+    name: Check OSS license compatibility for dependencies
+    uses: ./.github/workflows/license-check.yml
