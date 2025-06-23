@@ -437,7 +437,7 @@ def remove_items_from_collection(collection_id):
         return jsonify({"error": "No item IDs provided"}), 400
 
     update_result = flask_mongo.db.items.update_many(
-        {"item_id": {"$in": item_ids}, **get_default_permissions()},
+        {"refcode": {"$in": refcodes}, **get_default_permissions()},
         {
             "$pull": {
                 "relationships": {
