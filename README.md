@@ -30,13 +30,26 @@
 
 _datalab_ is a user-friendly, open-source platform that can capture all the experimental data and metadata produced in a scientific lab. _datalab_ stores data safely and makes it accessible and reusable by both humans and machines _via_ webUI and python API. _datalab_ can be run locally or in the cloud; it can be self-hosted and managed deployments are also available. Try the working demo deployment [here](https://demo.datalab-org.io/).
 
-_datalab_ can record sample-specific metadata, attach and sync raw data from instruments, and has pre-built analysis and visualisation methods for many characterisation techniques (XRD, NMR, echem, TEM, TGA, Mass Spec, Raman). _datalab_ stores a network of interconnected research objects in the lab, such that individual pieces of data are stored with the context needed to make them scientifically useful.
+Features:
+* Capture and store detailed sample data and metadata
+* Connect and sync data directly from laboratory instruments
+* Built-in support for multiple characterisation techniques (XRD, NMR, echem, TEM, TGA, Mass Spec, Raman; more under active development)
+* Capture scientific context: store the graph of relationships between research objects
+* [Python API](https://github.com/datalab-org/datalab-api) - Programmatic access for custom analysis and automation
+* [_datalab_ federation](https://github.com/datalab-org/datalab-federation) - you can add your _datalab_ to the federation for additional shared features
 
 > [!NOTE]
 > You may be looking for the identically named project
 > [DataLab](https://datalab-platform.com) for signal
 > processing, which also has plugins, clients and other shared concepts!
 
+## Getting started
+To set up your own _datalab_ instance, follow the installation and deployment instructions in
+[INSTALL.md](./INSTALL.md) and the [online documentation](https://the-datalab.readthedocs.io).
+
+We also provide paid managed deployments: contact us at [hello@datalab.industries](mailto:hello@datalab.industries)
+
+## Design Philosophy
 The _datalab_ architecture is shown below:
 ```mermaid
 graph TD
@@ -96,15 +109,10 @@ graph TD
     click RESTAPI "https://github.com/datalab-org/datalab/tree/main/pydatalab" "pydatalab REST API on GitHub" _blank
 ```
 
-## Getting started
-To set up your own _datalab_ instance, follow the installation and deployment instructions in
-[INSTALL.md](./INSTALL.md) and the [online documentation](https://the-datalab.readthedocs.io).
-
-We also provide paid managed deployments: contact us at [hello@datalab.industries](mailto:hello@datalab.industries)
-
-## Design Philosophy
 The main aim of *datalab* is to provide a platform for capturing the significant amounts of long-tail experimental data and metadata produced in a typical lab, and enable storage, filtering and future data re-use by humans and machines. *datalab* is targeted (broadly) at materials chemistry labs but with customisability and extensability in mind.
+
 The platform provides researchers with a way to record sample- and cell-specific metadata, attach and sync raw data from instruments, and perform analysis and visualisation of many characterisation techniques in the browser (XRD, NMR, electrochemical cycling, TEM, TGA, Mass Spec, Raman).
+
 Importantly, *datalab* stores a network of interconnected research objects in the lab, such that individual pieces of data are stored with the context needed to make them scientifically useful.
 
 ## License
