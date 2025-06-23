@@ -58,8 +58,7 @@ classDef actor fill:#0066CC,fill-opacity:0.3,stroke:#333,stroke-width:2px,color:
 classDef clientInterface fill:#00AA44,fill-opacity:0.3,stroke:#333,stroke-width:2px,color:#000;
 classDef coreComponent fill:#FF6600,fill-opacity:0.3,stroke:#333,stroke-width:2px,color:#000;
 classDef umbrellaLabel fill:#666666,fill-opacity:0.3,stroke:#666,stroke-width:1px,color:#000,rx:5,ry:5,text-align:center;
-
-  classDef subgraphStyle fill:#f9f9f9,fill-opacity:0.3,stroke:#ccc,stroke-width:1px;
+classDef subgraphStyle fill:#f9f9f9,fill-opacity:0.1,stroke:#ccc,stroke-width:1px;
 
     subgraph ExternalActors [External actors]
         direction TB
