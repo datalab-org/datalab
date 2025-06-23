@@ -12,7 +12,9 @@ def test_get_all_available_block_types():
     for block_class in BLOCKS:
         assert block_class.blocktype is not None
         assert block_class.name is not None
-        assert block_class.description is not None, f"{block_class.blocktype} is missing a description"
+        assert (
+            block_class.description is not None
+        ), f"{block_class.blocktype} is missing a description"
         assert block_class.blocktype in BLOCK_TYPES
         assert BLOCK_TYPES[block_class.blocktype] == block_class
 
@@ -119,16 +121,18 @@ def test_add_multiple_blocks_to_sample(admin_client, default_sample_dict):
         assert block_type in added_block_types
 
 
-def test_block_permissions(client, admin_client, default_sample_dict):
-    """Test that normal users can add blocks to samples they have access to."""
+def test_block_permissions(client, admin_client, unauthenticated_client, default_sample_dict):
+    """Test that normal users can add blocks to samples they have access to, but unauthenticated users cannot."""
     sample_id = "test_sample_user_permissions"
     sample_data = default_sample_dict.copy()
     sample_data["item_id"] = sample_id
 
-    response = admin_client.post("/new-sample/", json=sample_data)
+    # Create sample with normal user
+    response = client.post("/new-sample/", json=sample_data)
     assert response.status_code == 201
 
     block_type = list(BLOCK_TYPES.keys())[0]
+
     response = client.post(
         "/add-data-block/",
         json={
@@ -137,15 +141,30 @@ def test_block_permissions(client, admin_client, default_sample_dict):
             "index": 0,
         },
     )
+    assert response.status_code == 200
+    assert response.json["status"] == "success"
 
-    if response.status_code == 200:
-        assert response.json["status"] == "success"
-    elif response.status_code == 401:
-        pass
-    elif response.status_code == 400:
-        assert "Update failed" in response.json.get("message", "")
-    else:
-        pytest.fail(f"Unexpected status code: {response.status_code}, response: {response.json}")
+    second_block_type = list(BLOCK_TYPES.keys())[1] if len(BLOCK_TYPES) > 1 else block_type
+    response = admin_client.post(
+        "/add-data-block/",
+        json={
+            "block_type": second_block_type,
+            "item_id": sample_id,
+            "index": 1,
+        },
+    )
+    assert response.status_code == 200
+    assert response.json["status"] == "success"
+
+    response = unauthenticated_client.post(
+        "/add-data-block/",
+        json={
+            "block_type": block_type,
+            "item_id": sample_id,
+            "index": 2,
+        },
+    )
+    assert response.status_code == 401
 
 
 @pytest.mark.dependency(depends=["test_get_all_available_block_types"])
