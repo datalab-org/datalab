@@ -39,7 +39,7 @@
       :data="children"
       :columns="collectionTableColumns"
       :data-type="'collectionItems'"
-      :global-filter-fields="['item_id', 'name']"
+      :global-filter-fields="['item_id', 'name', 'refcode', 'blocks', 'chemform', 'characteristic_chemical_formula']"
       :show-buttons="true"
       :collection-id="collection_id"
       @remove-selected-items-from-collection="handleItemsRemovedFromCollection"
