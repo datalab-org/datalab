@@ -100,7 +100,10 @@ def test_new_starting_material_collision(client, default_starting_material_dict)
 @pytest.mark.dependency(depends=["test_new_starting_material"])
 def test_save_good_starting_material(admin_client, default_starting_material_dict):
     updated_starting_material = default_starting_material_dict.copy()
-    updated_starting_material.update({"description": "This is a newer test sample."})
+    # Also test a change to the description and weird chemical formula
+    updated_starting_material.update(
+        {"description": "This is a newer test sample.", "chemform": "Xe/Ar"}
+    )
     response = admin_client.post(
         "/save-item/",
         json={

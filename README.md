@@ -39,9 +39,7 @@ Features:
 * [_datalab_ federation](https://github.com/datalab-org/datalab-federation) - you can add your _datalab_ to the federation for additional shared features
 
 > [!NOTE]
-> You may be looking for the identically named project
-> [DataLab](https://datalab-platform.com) for signal
-> processing, which also has plugins, clients and other shared concepts!
+> You may be looking for the identically named project [DataLab](https://datalab-platform.com) for signal processing, which also has plugins, clients and other shared concepts!
 
 ## Getting started
 To set up your own _datalab_ instance, follow the installation and deployment instructions in
