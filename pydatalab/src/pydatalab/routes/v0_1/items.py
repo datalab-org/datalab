@@ -549,6 +549,60 @@ def _create_sample(
             }
         ]
 
+    if "additional_creators" in sample_dict and sample_dict["additional_creators"]:
+        additional_creator_ids = []
+        for creator in sample_dict["additional_creators"]:
+            if isinstance(creator, dict) and "immutable_id" in creator:
+                additional_creator_ids.append(ObjectId(creator["immutable_id"]))
+            elif isinstance(creator, str):
+                additional_creator_ids.append(ObjectId(creator))
+
+        new_sample["creator_ids"].extend(additional_creator_ids)
+
+        for creator in sample_dict["additional_creators"]:
+            if isinstance(creator, dict):
+                new_sample["creators"].append(
+                    {
+                        "display_name": creator.get("display_name", ""),
+                        "contact_email": creator.get("contact_email", ""),
+                    }
+                )
+
+    if "share_with_groups" in sample_dict and sample_dict["share_with_groups"]:
+        group_ids = []
+        for group in sample_dict["share_with_groups"]:
+            if isinstance(group, dict) and "immutable_id" in group:
+                group_ids.append(ObjectId(group["immutable_id"]))
+            elif isinstance(group, str):
+                group_ids.append(ObjectId(group))
+
+        if not CONFIG.TESTING and current_user.is_authenticated:
+            user_group_ids = (
+                [group.immutable_id for group in current_user.person.groups]
+                if current_user.person.groups
+                else []
+            )
+
+            groups_where_admin = list(
+                flask_mongo.db.groups.find(
+                    {"group_admins": {"$in": [str(current_user.person.immutable_id)]}}, {"_id": 1}
+                )
+            )
+            admin_group_ids = [g["_id"] for g in groups_where_admin]
+            allowed_group_ids = user_group_ids + admin_group_ids
+
+            if not all(gid in allowed_group_ids for gid in group_ids):
+                return (
+                    dict(
+                        status="error",
+                        message="You can only share with groups you belong to or administer.",
+                        item_id=new_sample["item_id"],
+                    ),
+                    403,
+                )
+
+        new_sample["group_ids"] = group_ids
+
     # Generate a unique refcode for the sample
     new_sample["refcode"] = generate_unique_refcode()
     if generate_id_automatically:

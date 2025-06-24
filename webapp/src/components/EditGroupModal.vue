@@ -69,9 +69,9 @@ import Modal from "@/components/Modal.vue";
 import UserSelect from "@/components/UserSelect.vue";
 import {
   updateGroup,
-  getUsersList,
   addUserToGroup,
   removeUserFromGroup,
+  getAdminGroupsList,
 } from "@/server_fetch_utils.js";
 
 export default {
@@ -116,8 +116,8 @@ export default {
           this.display_name = newGroup.display_name;
           this.description = newGroup.description;
 
-          this.group_admins = this.loadUsersFromIds(newGroup.group_admins || []);
-          this.group_members = this.loadUsersFromIds(newGroup.members || []);
+          this.group_admins = newGroup.group_admins || [];
+          this.group_members = newGroup.members || [];
 
           this.originalGroup = { ...newGroup };
           this.originalAdmins = [...this.group_admins];
@@ -128,31 +128,13 @@ export default {
   },
   async created() {
     try {
-      this.allUsers = await getUsersList();
+      this.allUsers = await getAdminGroupsList();
     } catch (error) {
       console.error("Could not load users:", error);
       this.allUsers = [];
     }
   },
   methods: {
-    loadUsersFromIds(userIds) {
-      return userIds
-        .map((userId) => {
-          const user = this.allUsers.find(
-            (user) =>
-              (user._id && user._id === userId) ||
-              (user.user_id && user.user_id === userId) ||
-              (user.immutable_id && user.immutable_id === userId),
-          );
-
-          if (!user) {
-            console.warn(`User with ID ${userId} not found`);
-          }
-
-          return user;
-        })
-        .filter((user) => user !== undefined);
-    },
     async submitForm() {
       this.showValidation = true;
       if (!this.isFormValid) return;
@@ -160,7 +142,7 @@ export default {
       const groupData = {
         display_name: this.display_name,
         description: this.description,
-        group_admins: this.group_admins.map((admin) => admin.immutable_id || admin),
+        group_admins: this.group_admins.map((admin) => admin.immutable_id),
       };
 
       try {

@@ -43,7 +43,7 @@
 </template>
 
 <script>
-import { getGroupsList, deleteGroup } from "@/server_fetch_utils.js";
+import { getAdminGroupsList, deleteGroup } from "@/server_fetch_utils.js";
 import EditGroupModal from "./EditGroupModal.vue";
 
 export default {
@@ -64,7 +64,7 @@ export default {
   },
   methods: {
     async getGroups() {
-      let data = await getGroupsList();
+      let data = await getAdminGroupsList();
       if (data != null) {
         this.groups = JSON.parse(JSON.stringify(data));
         this.original_groups = JSON.parse(JSON.stringify(data));
@@ -72,8 +72,6 @@ export default {
     },
 
     async confirmDeleteGroup(group) {
-      console.log("Group object:", group);
-
       if (
         window.confirm(
           `Are you sure you want to delete the group "${group.display_name}"? This action cannot be undone.`,

@@ -199,17 +199,39 @@ def get_groups():
     for group_doc in flask_mongo.db.groups.find():
         group_doc["immutable_id"] = str(group_doc["_id"])
 
+        group_data = json.loads(Group(**group_doc).json())
+
         group_members = list(
             flask_mongo.db.users.find(
-                {"group_ids": group_doc["_id"]}, {"_id": 1, "display_name": 1}
+                {"group_ids": group_doc["_id"]}, {"_id": 1, "display_name": 1, "contact_email": 1}
             )
         )
-        group_doc["members"] = [
-            {"immutable_id": str(member["_id"]), "display_name": member.get("display_name", "")}
+        group_data["members"] = [
+            {
+                "immutable_id": str(member["_id"]),
+                "display_name": member.get("display_name", ""),
+                "contact_email": member.get("contact_email", ""),
+            }
             for member in group_members
         ]
 
-        groups_data.append(json.loads(Group(**group_doc).json()))
+        if group_doc.get("group_admins"):
+            admin_ids = [ObjectId(admin_id) for admin_id in group_doc["group_admins"]]
+            group_admins = list(
+                flask_mongo.db.users.find(
+                    {"_id": {"$in": admin_ids}}, {"_id": 1, "display_name": 1, "contact_email": 1}
+                )
+            )
+            group_data["group_admins"] = [
+                {
+                    "immutable_id": str(admin["_id"]),
+                    "display_name": admin.get("display_name", ""),
+                    "contact_email": admin.get("contact_email", ""),
+                }
+                for admin in group_admins
+            ]
+
+        groups_data.append(group_data)
 
     return jsonify(
         {
@@ -220,7 +242,6 @@ def get_groups():
 
 
 @ADMIN.route("/groups", methods=["PUT"])
-@admin_only
 def create_group():
     request_json = request.get_json()
 
@@ -263,7 +284,6 @@ def delete_group():
 
 
 @ADMIN.route("/groups/<group_immutable_id>", methods=["PUT"])
-@admin_only
 def update_group(group_immutable_id):
     request_json = request.get_json()
 

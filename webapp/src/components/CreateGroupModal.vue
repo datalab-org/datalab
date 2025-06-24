@@ -10,17 +10,17 @@
       <template #body>
         <div class="form-row">
           <div class="form-group col-md-6">
-            <label for="create-group-group_id" class="col-form-label">Group ID:</label>
+            <label for="group-id" class="col-form-label">Group ID:</label>
             <input
-              id="create-group-group_id"
+              id="group-id"
               v-model="group_id"
               type="text"
               class="form-control"
-              :class="{ 'is-invalid': showValidation && (!group_id || isValidGroupId) }"
+              :class="{ 'is-invalid': showValidation && (isValidGroupId || !group_id) }"
               required
             />
             <!-- eslint-disable-next-line vue/no-v-html -->
-            <div class="form-error" v-html="isValidGroupId"></div>
+            <div v-if="isValidGroupId" class="form-error" v-html="isValidGroupId"></div>
             <div v-if="showValidation && !group_id" class="invalid-feedback">
               Group ID is required.
             </div>
@@ -144,13 +144,13 @@ export default {
 
           this.$emit("group-created");
           this.resetForm();
+          this.$emit("update:modelValue", false);
         }
-        this.$emit("update:modelValue", false);
       } catch (error) {
         console.error("Error creating group:", error);
         let is_group_id_error = false;
         try {
-          if (error.includes("group_id_validation_error")) {
+          if (error.includes("group_id_validation_error") || error.includes("already exists")) {
             this.takenGroupIds.push(this.group_id);
             is_group_id_error = true;
           }
@@ -168,6 +168,7 @@ export default {
       this.display_name = "";
       this.description = "";
       this.group_admins = [];
+      this.group_members = [];
       this.takenGroupIds = [];
       this.showValidation = false;
     },
