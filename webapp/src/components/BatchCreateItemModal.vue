@@ -76,11 +76,13 @@
                 <table data-testid="batch-add-table-template" class="table table-sm mb-2">
                   <thead>
                     <tr class="subheading template-subheading">
-                      <th style="width: calc(12%)">ID</th>
-                      <th>Name</th>
-                      <th style="width: calc(15%)">Date</th>
-                      <th style="width: calc(22%)">Copy from</th>
-                      <th style="width: calc(22%)">Components</th>
+                      <th style="width: 10%">ID</th>
+                      <th style="width: 15%">Name</th>
+                      <th style="width: 15%">Date</th>
+                      <th style="width: 15%">Copy from</th>
+                      <th style="width: 15%">Components</th>
+                      <th style="width: 15%">Groups</th>
+                      <th style="width: 15%">Creators</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -174,6 +176,22 @@
                           />
                         </div>
                       </td>
+                      <td>
+                        <GroupSelect
+                          v-model="itemTemplate.shareWithGroups"
+                          multiple
+                          placeholder="Select groups..."
+                          @update:model-value="applyGroupsTemplate"
+                        />
+                      </td>
+                      <td>
+                        <UserSelect
+                          v-model="itemTemplate.additionalCreators"
+                          multiple
+                          placeholder="Select users..."
+                          @update:model-value="applyCreatorsTemplate"
+                        />
+                      </td>
                     </tr>
                   </tbody>
                 </table>
@@ -200,12 +218,14 @@
               <table data-testid="batch-add-table" class="table mb-2">
                 <thead>
                   <tr class="subheading">
-                    <th style="width: calc(12%)">ID</th>
-                    <th style="width: calc(25%)">Name</th>
-                    <th style="width: calc(15%)">Date</th>
-                    <th style="width: calc(22%)">Copy from</th>
-                    <th style="width: calc(22%) - 2rem">Components</th>
-                    <th style="width: 2rem"></th>
+                    <th style="width: 8%">ID</th>
+                    <th style="width: 15%">Name</th>
+                    <th style="width: 15%">Date</th>
+                    <th style="width: 15%">Copy from</th>
+                    <th style="width: 15%">Components</th>
+                    <th style="width: 15%">Groups</th>
+                    <th style="width: 15%">Creators</th>
+                    <th style="width: 2%"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -274,6 +294,20 @@
                         </div>
                       </td>
                       <td>
+                        <GroupSelect
+                          v-model="item.shareWithGroups"
+                          multiple
+                          placeholder="Groups..."
+                        />
+                      </td>
+                      <td>
+                        <UserSelect
+                          v-model="item.additionalCreators"
+                          multiple
+                          placeholder="Users..."
+                        />
+                      </td>
+                      <td>
                         <button
                           type="button"
                           class="close"
@@ -284,10 +318,6 @@
                         </button>
                       </td>
                     </tr>
-                    <td colspan="3">
-                      <!-- eslint-disable-next-line vue/no-v-html -->
-                      <span class="form-error" v-html="isValidEntryID[index]" />
-                    </td>
                   </template>
                 </tbody>
               </table>
@@ -341,6 +371,8 @@
 import Modal from "@/components/Modal.vue";
 import { DialogService } from "@/services/DialogService.js";
 import ItemSelect from "@/components/ItemSelect.vue";
+import GroupSelect from "@/components/GroupSelect.vue";
+import UserSelect from "@/components/UserSelect.vue";
 import { createNewSamples } from "@/server_fetch_utils.js";
 import { validateEntryID } from "@/field_utils.js";
 import { itemTypes, SAMPLE_TABLE_TYPES, AUTOMATICALLY_GENERATE_ID_DEFAULT } from "@/resources.js";
@@ -349,6 +381,8 @@ export default {
   components: {
     Modal,
     ItemSelect,
+    GroupSelect,
+    UserSelect,
   },
   props: {
     modelValue: Boolean,
@@ -376,6 +410,8 @@ export default {
           electrolyte: [],
           negativeElectrode: [],
           date: this.now(),
+          shareWithGroups: [],
+          additionalCreators: [],
         },
         {
           item_id: null,
@@ -386,6 +422,8 @@ export default {
           electrolyte: [],
           negativeElectrode: [],
           date: this.now(),
+          shareWithGroups: [],
+          additionalCreators: [],
         },
         {
           item_id: null,
@@ -396,6 +434,8 @@ export default {
           electrolyte: [],
           negativeElectrode: [],
           date: this.now(),
+          shareWithGroups: [],
+          additionalCreators: [],
         },
       ],
       takenItemIds: [], // this holds ids that have been tried, whereas the computed takenSampleIds holds ids in the item table
@@ -411,6 +451,8 @@ export default {
         electrolyte: null,
         negativeElectrode: null,
         date: this.now(),
+        shareWithGroups: [],
+        additionalCreators: [],
       },
 
       serverResponses: {}, // after the server responds, store error messages if any
@@ -463,7 +505,15 @@ export default {
       }
       if (newValue > oldValue) {
         for (let i = 0; i < newValue - oldValue; i++) {
-          this.items.push({ ...this.itemTemplate });
+          this.items.push({
+            ...this.itemTemplate,
+            shareWithGroups: [],
+            additionalCreators: [],
+            components: [],
+            positiveElectrode: [],
+            electrolyte: [],
+            negativeElectrode: [],
+          });
         }
         if (this.itemTemplate.item_id) {
           this.applyIdTemplate();
@@ -528,6 +578,16 @@ export default {
         item.negativeElectrode = this.itemTemplate.negativeElectrode;
       });
     },
+    applyGroupsTemplate() {
+      this.items.forEach((item) => {
+        item.shareWithGroups = [...this.itemTemplate.shareWithGroups];
+      });
+    },
+    applyCreatorsTemplate() {
+      this.items.forEach((item) => {
+        item.additionalCreators = [...this.itemTemplate.additionalCreators];
+      });
+    },
     removeRow(index) {
       this.items.splice(index, 1);
       this.nSamples = this.nSamples - 1;
@@ -558,6 +618,8 @@ export default {
             synthesis_constituents: item.components
               ? item.components.map((x) => ({ item: x, quantity: null }))
               : [],
+            share_with_groups: item.shareWithGroups || [],
+            additional_creators: item.additionalCreators || [],
           };
         });
       } else {
@@ -576,6 +638,8 @@ export default {
             negative_electrode: item.negativeElectrode
               ? item.negativeElectrode.map((x) => ({ item: x, quantity: null }))
               : [],
+            share_with_groups: item.shareWithGroups || [],
+            additional_creators: item.additionalCreators || [],
           };
         });
       }
