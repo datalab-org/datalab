@@ -52,7 +52,11 @@ def test_list_users(admin_client, client):
 def test_list_groups(admin_client, client):
     resp = admin_client.get("/groups")
     assert resp.status_code == 200
+
     resp = client.get("/groups")
+    assert resp.status_code == 200
+
+    resp = client.get("/admin/groups")
     assert resp.status_code == 403
 
 
