@@ -440,8 +440,10 @@ describe("Batch sample creation", () => {
   it("uses the template id, name, and date", () => {
     cy.contains("Add batch of items").click();
     getBatchTemplateCell("id", "input.form-control").type("test_{{}#{}}");
-    getBatchTemplateCell("name").type("this is the test sample #{{}#{}}");
-    getBatchTemplateCell("date").type("1980-02-01T05:35");
+
+    getBatchTemplateCell("name", "input.form-control").type("this is the test sample #{{}#{}}");
+
+    getBatchTemplateCell("date", "input.form-control").type("1980-02-01T05:35");
 
     cy.findByLabelText("start counting {#} at:").clear().type(5);
 
@@ -463,8 +465,8 @@ describe("Batch sample creation", () => {
   it("uses the template id, name, date, copyFrom, and components", () => {
     cy.contains("Add batch of items").click();
     getBatchTemplateCell("id", "input.form-control").type("test_{{}#{}}");
-    getBatchTemplateCell("name").type("this is the test sample #{#}");
-    getBatchTemplateCell("date").type("1980-02-01T23:59");
+    getBatchTemplateCell("name", "input.form-control").type("this is the test sample #{#}");
+    getBatchTemplateCell("date", "input.form-control").type("1980-02-01T23:59");
 
     // select copyFrom sample, check that it is applied correctly
     getBatchTemplateCell("copy-from", ".vs__search").type("baseA");
@@ -764,9 +766,9 @@ describe("Batch cell creation", () => {
 
     cy.get("[data-testid=batch-modal-container]").findByLabelText("Type:").select("cell");
 
-    getBatchTemplateCell("id", "input").eq(0).type("cell_{{}#{}}");
-    getBatchTemplateCell("name", "input").type("this is the test cell #{{}#{}}");
-    getBatchTemplateCell("date", "input").type("1980-02-01T23:59");
+    getBatchTemplateCell("id", "input.form-control").eq(0).type("cell_{{}#{}}");
+    getBatchTemplateCell("name", "input.form-control").type("this is the test cell #{{}#{}}");
+    getBatchTemplateCell("date", "input.form-control").type("1980-02-01T23:59");
 
     // select copyFrom sample, check that it is applied correctly
     getBatchTemplateCell("copy-from", ".vs__search").type("cell_B");
