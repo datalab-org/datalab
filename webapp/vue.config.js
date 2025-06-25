@@ -4,7 +4,7 @@ module.exports = {
   transpileDependencies: ["mermaid"],
   configureWebpack: (config) => {
     config.resolve.fallback = {
-      stream: require.resolve("stream-browserify"),
+      stream: false,
       process: require.resolve("process/browser"),
       buffer: require.resolve("buffer/"),
       vm: false,
