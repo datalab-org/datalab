@@ -30,7 +30,7 @@
       <span id="synthesis-products-label" class="subheading mt-2 pb-2 ml-2"
         ><label for="synthesis-products-table">Products</label></span
       >
-      <div class="component-card">
+      <div class="card component-card">
         <div class="card-body pt-2 pb-0 mb-0 pl-5">
           <CompactConstituentTable
             id="synthesis-products-table"
@@ -39,8 +39,7 @@
           />
         </div>
       </div>
-      <span id="synthesis-procedure-label" class="subheading ml-2"><label>Procedure</label></span
-      >
+      <span id="synthesis-procedure-label" class="subheading ml-2"><label>Procedure</label></span>
       <TinyMceInline
         v-model="SynthesisDescription"
         aria-labelledby="synthesis-procedure-label"
@@ -146,6 +145,24 @@ export default {
       this.selectShown.push(false);
       this.isExpanded = true;
     },
+    addProduct(selectedItem) {
+      this.products.push({
+        item: selectedItem,
+        quantity: null,
+        unit: "g",
+      });
+      this.selectedNewProduct = null;
+      this.selectShown.push(false);
+      this.isExpanded = true;
+    },
+    turnOnRowProductSelect(index) {
+      this.selectProductShown[index] = true;
+      this.selectedChangedProduct = this.products[index].item;
+      this.$nextTick(function () {
+        // unfortunately this seems to be the "official" way to focus on the select element:
+        this.$refs[`select${index}`].$refs.selectComponent.$refs.search.focus();
+      });
+    },
     turnOnRowSelect(index) {
       this.selectShown[index] = true;
       this.selectedChangedConstituent = this.constituents[index].item;
@@ -157,6 +174,14 @@ export default {
     swapConstituent(selectedItem, index) {
       this.constituents[index].item = selectedItem;
       this.selectShown[index] = false;
+    },
+    swapProduct(selectedItem, index) {
+      this.products[index].item = selectedItem;
+      this.selectShown[index] = false;
+    },
+    removeProduct(index) {
+      this.products.splice(index, 1);
+      this.selectShown.splice(index, 1);
     },
     removeConstituent(index) {
       this.constituents.splice(index, 1);

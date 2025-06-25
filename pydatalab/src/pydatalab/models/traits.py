@@ -3,7 +3,7 @@ from typing import Any
 from pydantic import BaseModel, Field, root_validator
 
 from pydatalab.models.people import Person
-from pydatalab.models.utils import Constituent, InlineSubstance, PyObjectId
+from pydatalab.models.utils import Constituent, PyObjectId
 
 
 class HasOwner(BaseModel):
@@ -97,7 +97,12 @@ class HasSynthesisInfo(BaseModel):
         if not values.get("synthesis_products"):
             values["synthesis_products"].append(
                 Constituent(
-                    quantity=None, item={"type": values["type"], "refcode": values["refcode"]}
+                    quantity=None,
+                    item={
+                        "type": values["type"],
+                        "refcode": values["refcode"],
+                        "item_id": values["item_id"],
+                    },
                 )
             )
 
