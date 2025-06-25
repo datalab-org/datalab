@@ -557,16 +557,16 @@ def _create_sample(
             elif isinstance(creator, str):
                 additional_creator_ids.append(ObjectId(creator))
 
-        new_sample["creator_ids"].extend(additional_creator_ids)
+                new_sample["creator_ids"] = list(dict.fromkeys(new_sample["creator_ids"]))
 
-        for creator in sample_dict["additional_creators"]:
-            if isinstance(creator, dict):
-                new_sample["creators"].append(
-                    {
-                        "display_name": creator.get("display_name", ""),
-                        "contact_email": creator.get("contact_email", ""),
-                    }
-                )
+        seen_creators = set()
+        unique_creators = []
+        for creator in new_sample["creators"]:
+            creator_key = (creator.get("display_name", ""), creator.get("contact_email", ""))
+            if creator_key not in seen_creators:
+                seen_creators.add(creator_key)
+                unique_creators.append(creator)
+        new_sample["creators"] = unique_creators
 
     if "share_with_groups" in sample_dict and sample_dict["share_with_groups"]:
         group_ids = []
