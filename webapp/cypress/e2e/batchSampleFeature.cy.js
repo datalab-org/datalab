@@ -11,22 +11,16 @@ function getSubmitButton() {
   return cy.get("[data-testid=batch-modal-container]").contains("Submit");
 }
 
-function getBatchAddCell(row, column, additionalSelectors = "") {
-  return cy.get(
-    `[data-testid=batch-add-table] > tbody > tr:nth-of-type(${row}) > td:nth-of-type(${column}) ${additionalSelectors}`,
-  );
+function getBatchAddCell(row, columnName, additionalSelectors = "") {
+  return cy.get(`[data-testid="item-${row - 1}-${columnName}"] ${additionalSelectors}`);
 }
 
-function getBatchTemplateCell(column, additionalSelectors = "") {
-  return cy.get(
-    `[data-testid=batch-add-table-template] > tbody > tr > td:nth-of-type(${column}) ${additionalSelectors}`,
-  );
+function getBatchTemplateCell(columnName, additionalSelectors = "") {
+  return cy.get(`[data-testid="template-cell-${columnName}"] ${additionalSelectors}`);
 }
 
 function getBatchAddError(row, additionalSelectors = "") {
-  return cy.get(
-    `[data-testid=batch-add-table] > tbody > tr:nth-of-type(${row}) + td ${additionalSelectors}`,
-  );
+  return cy.get(`[data-testid="item-${row - 1}-error"]${additionalSelectors}`);
 }
 
 // Any sample ID touched by these tests should be listed here for clean-up
@@ -95,11 +89,11 @@ describe("Batch sample creation", () => {
   it("Adds 3 valid samples", () => {
     cy.contains("Add batch of items").click();
     getSubmitButton().should("be.disabled");
-    getBatchAddCell(1, 1).type("testA");
-    getBatchAddCell(2, 1).type("testB");
-    getBatchAddCell(2, 2).type("this sample has a name");
+    getBatchAddCell(1, "id").type("testA");
+    getBatchAddCell(2, "id").type("testB");
+    getBatchAddCell(2, "name").type("this sample has a name");
     getSubmitButton().should("be.disabled");
-    getBatchAddCell(3, 1).type("testC");
+    getBatchAddCell(3, "id").type("testC");
     getSubmitButton().click();
 
     cy.get("[data-testid=batch-modal-container]").contains("a", "testA");
@@ -120,10 +114,10 @@ describe("Batch sample creation", () => {
     cy.findByLabelText("Number of rows:").clear().type(2);
 
     cy.get('[data-testid="batch-modal-container"]').findByText("Submit").should("be.disabled");
-    getBatchAddCell(1, 1).type("baseA");
-    getBatchAddCell(2, 1).type("baseB");
-    getBatchAddCell(2, 2).type("the name of baseB");
-    getBatchAddCell(2, 3).type("1999-12-31T01:00");
+    getBatchAddCell(1, "id").type("baseA");
+    getBatchAddCell(2, "id").type("baseB");
+    getBatchAddCell(2, "name").type("the name of baseB");
+    getBatchAddCell(2, "date").type("1999-12-31T01:00");
     getSubmitButton().click();
     cy.get("[data-testid=batch-modal-container]").contains("a", "baseA");
     cy.get("[data-testid=batch-modal-container]").contains("a", "baseB");
@@ -139,11 +133,11 @@ describe("Batch sample creation", () => {
     cy.findByLabelText("Number of rows:").clear().type(4);
 
     cy.get('[data-testid="batch-modal-container"]').findByText("Submit").should("be.disabled");
-    getBatchAddCell(1, 1).type("component1");
-    getBatchAddCell(1, 2).type("this component has a name that is quite long");
-    getBatchAddCell(2, 1).type("component2");
-    getBatchAddCell(3, 1).type("component3");
-    getBatchAddCell(4, 1).type("component4");
+    getBatchAddCell(1, "id").type("component1");
+    getBatchAddCell(1, "name").type("this component has a name");
+    getBatchAddCell(2, "id").type("component2");
+    getBatchAddCell(3, "id").type("component3");
+    getBatchAddCell(4, "id").type("component4");
 
     getSubmitButton().click();
     cy.get("[data-testid=batch-modal-container]").contains("a", "component1");
@@ -201,17 +195,17 @@ describe("Batch sample creation", () => {
 
   it("makes samples copied from others", () => {
     cy.contains("Add batch of items").click();
-    getBatchAddCell(1, 1).type("baseA_copy");
-    getBatchAddCell(1, 2).type("a copied sample");
-    getBatchAddCell(1, 4, ".vs__search").type("BaseA");
+    getBatchAddCell(1, "id").type("baseA_copy");
+    getBatchAddCell(1, "name").type("a copied sample");
+    getBatchAddCell(1, "copy-from", ".vs__search").type("BaseA");
     cy.get(".vs__dropdown-menu").contains(".badge", "baseA").click();
 
-    getBatchAddCell(2, 1).type("baseB_copy");
-    getBatchAddCell(2, 4, ".vs__search").type("BaseB");
+    getBatchAddCell(2, "id").type("baseB_copy");
+    getBatchAddCell(2, "copy-from", ".vs__search").type("BaseB");
     cy.get(".vs__dropdown-menu").contains(".badge", "baseB").click();
 
-    getBatchAddCell(3, 1).type("baseB_copy2");
-    getBatchAddCell(3, 4, ".vs__search").type("BaseB");
+    getBatchAddCell(3, "id").type("baseB_copy2");
+    getBatchAddCell(3, "copy-from", ".vs__search").type("BaseB");
     cy.get(".vs__dropdown-menu").contains(".badge", "baseB").click();
 
     getSubmitButton().click();
@@ -268,54 +262,54 @@ describe("Batch sample creation", () => {
     cy.findByLabelText("Number of rows:").clear().type(4);
 
     // sample with two components
-    getBatchAddCell(1, 1).type("test101");
-    getBatchAddCell(1, 2).type("sample with two components");
-    getBatchAddCell(1, 5, ".vs__search").type("component1");
+    getBatchAddCell(1, "id").type("test101");
+    getBatchAddCell(1, "name").type("sample with two components");
+    getBatchAddCell(1, "components", ".vs__search").type("component1");
     cy.get(".vs__dropdown-menu").contains(".badge", "component1").click();
 
-    getBatchAddCell(1, 5, ".vs__search").type("component2");
+    getBatchAddCell(1, "components", ".vs__search").type("component2");
     cy.get(".vs__dropdown-menu").contains(".badge", "component2").click();
 
     // sample with two components, copied from a sample with no components
-    getBatchAddCell(2, 1).type("test102");
-    getBatchAddCell(2, 2).type(
+    getBatchAddCell(2, "id").type("test102");
+    getBatchAddCell(2, "name").type(
       "sample with two components, copied from a sample with no components",
     );
-    getBatchAddCell(2, 4, ".vs__search").type("baseA");
+    getBatchAddCell(2, "copy-from", ".vs__search").type("baseA");
     cy.get(".vs__dropdown-menu").contains(".badge", "baseA").click();
 
-    getBatchAddCell(2, 5, ".vs__search").type("component1");
+    getBatchAddCell(2, "components", ".vs__search").type("component1");
     cy.get(".vs__dropdown-menu").contains(".badge", "component1").click();
 
-    getBatchAddCell(2, 5, ".vs__search").type("component2");
+    getBatchAddCell(2, "components", ".vs__search").type("component2");
     cy.get(".vs__dropdown-menu").contains(".badge", "component2").click();
 
     // sample with one components, copied from a sample with two components
-    getBatchAddCell(3, 1).type("test103");
-    getBatchAddCell(3, 2).type(
+    getBatchAddCell(3, "id").type("test103");
+    getBatchAddCell(3, "name").type(
       "sample with one component, copied from a sample with two components",
     );
-    getBatchAddCell(3, 4, ".vs__search").type("baseB");
+    getBatchAddCell(3, "copy-from", ".vs__search").type("baseB");
     cy.get(".vs__dropdown-menu").contains(".badge", "baseB").click();
 
-    getBatchAddCell(3, 5, ".vs__search").type("component1");
+    getBatchAddCell(3, "components", ".vs__search").type("component1");
     cy.get(".vs__dropdown-menu").contains(".badge", "component1").click();
 
     // sample with three components, copied from a sample with some of the same components
-    getBatchAddCell(4, 1).type("test104");
-    getBatchAddCell(4, 2).type(
+    getBatchAddCell(4, "id").type("test104");
+    getBatchAddCell(4, "name").type(
       "sample with three components, copied from a sample with some of the same components",
     );
-    getBatchAddCell(4, 4, ".vs__search").type("baseB");
+    getBatchAddCell(4, "copy-from", ".vs__search").type("baseB");
     cy.get(".vs__dropdown-menu").contains(".badge", "baseB").click();
 
-    getBatchAddCell(4, 5, ".vs__search").type("component2");
+    getBatchAddCell(4, "components", ".vs__search").type("component2");
     cy.get(".vs__dropdown-menu").contains(".badge", "component2").click();
 
-    getBatchAddCell(4, 5, ".vs__search").type("component3");
+    getBatchAddCell(4, "components", ".vs__search").type("component3");
     cy.get(".vs__dropdown-menu").contains(".badge", "component3").click();
 
-    getBatchAddCell(4, 5, ".vs__search").type("component4");
+    getBatchAddCell(4, "components", ".vs__search").type("component4");
     cy.get(".vs__dropdown-menu").contains(".badge", "component4").click();
 
     getSubmitButton().click();
@@ -428,13 +422,14 @@ describe("Batch sample creation", () => {
 
   it("uses the template id", () => {
     cy.contains("Add batch of items").click();
-    getBatchTemplateCell(1).type("test_{{}#{}}");
+
+    getBatchTemplateCell("id", "input.form-control").type("test_{{}#{}}");
 
     // manually type names and a date
-    getBatchAddCell(1, 2).type("testing 1");
-    getBatchAddCell(2, 2).type("testing 1,2");
-    getBatchAddCell(3, 2).type("testing 1,2,3");
-    getBatchAddCell(1, 3).type("1992-12-10T14:34");
+    getBatchAddCell(1, "name").type("testing 1");
+    getBatchAddCell(2, "name").type("testing 1,2");
+    getBatchAddCell(3, "name").type("testing 1,2,3");
+    getBatchAddCell(1, "date").type("1992-12-10T14:34");
 
     getSubmitButton().click();
 
@@ -453,9 +448,9 @@ describe("Batch sample creation", () => {
 
   it("uses the template id, name, and date", () => {
     cy.contains("Add batch of items").click();
-    getBatchTemplateCell(1).type("test_{{}#{}}");
-    getBatchTemplateCell(2).type("this is the test sample #{{}#{}}");
-    getBatchTemplateCell(3).type("1980-02-01T05:35");
+    getBatchTemplateCell("id", "input.form-control").type("test_{{}#{}}");
+    getBatchTemplateCell("name").type("this is the test sample #{{}#{}}");
+    getBatchTemplateCell("date").type("1980-02-01T05:35");
 
     cy.findByLabelText("start counting {#} at:").clear().type(5);
 
@@ -476,44 +471,44 @@ describe("Batch sample creation", () => {
 
   it("uses the template id, name, date, copyFrom, and components", () => {
     cy.contains("Add batch of items").click();
-    getBatchTemplateCell(1).type("test_{{}#{}}");
-    getBatchTemplateCell(2).type("this is the test sample #{{}#{}}");
-    getBatchTemplateCell(3).type("1980-02-01T23:59");
+    getBatchTemplateCell("id", "input.form-control").type("test_{{}#{}}");
+    getBatchTemplateCell("name").type("this is the test sample #{#}");
+    getBatchTemplateCell("date").type("1980-02-01T23:59");
 
     // select copyFrom sample, check that it is applied correctly
-    getBatchTemplateCell(4, ".vs__search").type("baseA");
+    getBatchTemplateCell("copy-from", ".vs__search").type("baseA");
     cy.get(".vs__dropdown-menu").contains(".badge", "baseA").click();
 
-    getBatchAddCell(1, 4).contains("baseA");
-    getBatchAddCell(2, 4).contains("baseA");
-    getBatchAddCell(3, 4).contains("baseA");
+    getBatchAddCell(1, "copy-from").contains("baseA");
+    getBatchAddCell(2, "copy-from").contains("baseA");
+    getBatchAddCell(3, "copy-from").contains("baseA");
 
     // change the copyFrom sample, check that it is applied correctly
-    getBatchTemplateCell(4, ".vs__search").type("baseB");
+    getBatchTemplateCell("copy-from", ".vs__search").type("baseB");
     cy.get(".vs__dropdown-menu").contains(".badge", "baseB").click();
 
-    getBatchAddCell(1, 4).contains("baseB");
-    getBatchAddCell(2, 4).contains("baseB");
-    getBatchAddCell(3, 4).contains("baseB");
+    getBatchAddCell(1, "copy-from").contains("baseB");
+    getBatchAddCell(2, "copy-from").contains("baseB");
+    getBatchAddCell(3, "copy-from").contains("baseB");
 
     // add a component, check that it is applied correctly
-    getBatchTemplateCell(5, ".vs__search").type("component1");
+    getBatchTemplateCell("components", ".vs__search").type("component1");
     cy.get(".vs__dropdown-menu").contains(".badge", "component1").click();
 
-    getBatchAddCell(1, 5).contains("component1");
-    getBatchAddCell(2, 5).contains("component1");
-    getBatchAddCell(3, 5).contains("component1");
+    getBatchAddCell(1, "components").contains("component1");
+    getBatchAddCell(2, "components").contains("component1");
+    getBatchAddCell(3, "components").contains("component1");
 
     // add another component, check that it is applied correctly
-    getBatchTemplateCell(5, ".vs__search").type("component2");
+    getBatchTemplateCell("components", ".vs__search").type("component2");
     cy.get(".vs__dropdown-menu").contains(".badge", "component2").click();
 
-    getBatchAddCell(1, 5).contains("component1");
-    getBatchAddCell(1, 5).contains("component2");
-    getBatchAddCell(2, 5).contains("component1");
-    getBatchAddCell(2, 5).contains("component2");
-    getBatchAddCell(3, 5).contains("component1");
-    getBatchAddCell(3, 5).contains("component2");
+    getBatchAddCell(1, "components").contains("component1");
+    getBatchAddCell(1, "components").contains("component2");
+    getBatchAddCell(2, "components").contains("component1");
+    getBatchAddCell(2, "components").contains("component2");
+    getBatchAddCell(3, "components").contains("component1");
+    getBatchAddCell(3, "components").contains("component2");
 
     getSubmitButton().click();
 
@@ -563,19 +558,19 @@ describe("Batch sample creation", () => {
     cy.findByLabelText("Number of rows:").clear().type(0);
     cy.get("[data-testid=batch-add-table] > tbody > tr").should("have.length", 0);
 
-    getBatchTemplateCell(1).type("test{{}#{}}");
-    getBatchTemplateCell(2).type("name{{}#{}}");
+    getBatchTemplateCell("id", "input.form-control").type("test{{}#{}}");
+    getBatchTemplateCell("name", "input.form-control").type("name{{}#{}}");
 
-    getBatchTemplateCell(4, ".vs__search").type("baseB");
+    getBatchTemplateCell("copy-from", ".vs__search").type("baseB");
     cy.get(".vs__dropdown-menu").contains(".badge", "baseB").click();
 
-    getBatchTemplateCell(5, ".vs__search").type("component1");
+    getBatchTemplateCell("components", ".vs__search").type("component1");
     cy.get(".vs__dropdown-menu").contains(".badge", "component1").click();
 
-    getBatchTemplateCell(5, ".vs__search").type("component3");
+    getBatchTemplateCell("components", ".vs__search").type("component3");
     cy.get(".vs__dropdown-menu").contains(".badge", "component3").click();
 
-    getBatchTemplateCell(5, ".vs__search").type("component4");
+    getBatchTemplateCell("components", ".vs__search").type("component4");
     cy.get(".vs__dropdown-menu").contains(".badge", "component4").click();
 
     cy.findByLabelText("Number of rows:").clear().type(100);
@@ -587,43 +582,43 @@ describe("Batch sample creation", () => {
     cy.findByLabelText("Number of rows:").clear().type(4);
     cy.get("[data-testid=batch-add-table] > tbody > tr").should("have.length", 4);
 
-    getBatchAddCell(1, 1, "input").should("have.value", "test1");
-    getBatchAddCell(2, 1, "input").should("have.value", "test2");
-    getBatchAddCell(3, 1, "input").should("have.value", "test3");
-    getBatchAddCell(4, 1, "input").should("have.value", "test4");
+    getBatchAddCell(1, "id", "input").should("have.value", "test1");
+    getBatchAddCell(2, "id", "input").should("have.value", "test2");
+    getBatchAddCell(3, "id", "input").should("have.value", "test3");
+    getBatchAddCell(4, "id", "input").should("have.value", "test4");
 
-    getBatchAddCell(1, 2, "input").should("have.value", "name1");
-    getBatchAddCell(2, 2, "input").should("have.value", "name2");
-    getBatchAddCell(3, 2, "input").should("have.value", "name3");
-    getBatchAddCell(4, 2, "input").should("have.value", "name4");
+    getBatchAddCell(1, "name", "input").should("have.value", "name1");
+    getBatchAddCell(2, "name", "input").should("have.value", "name2");
+    getBatchAddCell(3, "name", "input").should("have.value", "name3");
+    getBatchAddCell(4, "name", "input").should("have.value", "name4");
 
-    getBatchAddCell(1, 4).contains("baseB");
-    getBatchAddCell(2, 4).contains("baseB");
-    getBatchAddCell(3, 4).contains("baseB");
-    getBatchAddCell(4, 4).contains("baseB");
+    getBatchAddCell(1, "copy-from").contains("baseB");
+    getBatchAddCell(2, "copy-from").contains("baseB");
+    getBatchAddCell(3, "copy-from").contains("baseB");
+    getBatchAddCell(4, "copy-from").contains("baseB");
 
-    getBatchAddCell(1, 5).contains("component1");
-    getBatchAddCell(2, 5).contains("component1");
-    getBatchAddCell(3, 5).contains("component1");
-    getBatchAddCell(4, 5).contains("component1");
+    getBatchAddCell(1, "components").contains("component1");
+    getBatchAddCell(2, "components").contains("component1");
+    getBatchAddCell(3, "components").contains("component1");
+    getBatchAddCell(4, "components").contains("component1");
 
-    getBatchAddCell(1, 5).contains("component3");
-    getBatchAddCell(2, 5).contains("component3");
-    getBatchAddCell(3, 5).contains("component3");
-    getBatchAddCell(4, 5).contains("component3");
+    getBatchAddCell(1, "components").contains("component3");
+    getBatchAddCell(2, "components").contains("component3");
+    getBatchAddCell(3, "components").contains("component3");
+    getBatchAddCell(4, "components").contains("component3");
 
-    getBatchAddCell(1, 5).contains("component4");
-    getBatchAddCell(2, 5).contains("component4");
-    getBatchAddCell(3, 5).contains("component4");
-    getBatchAddCell(4, 5).contains("component4");
+    getBatchAddCell(1, "components").contains("component4");
+    getBatchAddCell(2, "components").contains("component4");
+    getBatchAddCell(3, "components").contains("component4");
+    getBatchAddCell(4, "components").contains("component4");
 
     cy.findByLabelText("Number of rows:").clear().type(10);
     cy.get("[data-testid=batch-add-table] > tbody > tr").should("have.length", 10);
 
     cy.findByLabelText("Number of rows:").type("{backspace}");
     cy.get("[data-testid=batch-add-table] > tbody > tr").should("have.length", 1);
-    getBatchAddCell(1, 1, "input").should("have.value", "test1");
-    getBatchAddCell(1, 2, "input").should("have.value", "name1");
+    getBatchAddCell(1, "id", "input").should("have.value", "test1");
+    getBatchAddCell(1, "name", "input").should("have.value", "name1");
 
     cy.findByLabelText("Number of rows:").clear().type(2);
 
@@ -664,10 +659,16 @@ describe("Batch sample creation", () => {
   });
 
   it("checks errors on the row", () => {
+    cy.wait(10000);
     cy.contains("Add batch of items").click();
-    getBatchTemplateCell("1").type("test10{{}#{}}");
+    cy.wait(10000);
+    getBatchTemplateCell("id", "input.form-control").type("test10{{}#{}}");
+    cy.wait(10000);
+
     cy.wait(100);
     getSubmitButton().should("be.disabled");
+    cy.wait(10000);
+
     getBatchAddError(1).should("have.text", "test101 already in use.");
     getBatchAddError(2).should("have.text", "test102 already in use.");
     getBatchAddError(3).should("have.text", "test103 already in use.");
@@ -676,32 +677,32 @@ describe("Batch sample creation", () => {
     getSubmitButton().should("be.disabled");
     getBatchAddError(4).should("have.text", "test104 already in use.");
 
-    getBatchAddCell(1, 1).type("_unique");
-    getBatchTemplateCell(1, "input").should("have.value", ""); // test_id template should be cleared by modifying an item_id
-    getBatchAddError(1).invoke("text").invoke("trim").should("equal", ""); // expect no error for this row
+    getBatchAddCell(1, "id").type("_unique");
+    getBatchTemplateCell("id", "input").should("have.value", ""); // test_id template should be cleared by modifying an item_id
+    getBatchAddError(1).should("not.exist"); // expect no error for this row
     getSubmitButton().should("be.disabled"); // but submit is still disabled because there are still errors
 
-    getBatchAddCell(3, 1).type("_unique");
-    getBatchAddError(1).invoke("text").invoke("trim").should("equal", ""); // expect no error
-    getBatchAddError(3).invoke("text").invoke("trim").should("equal", ""); // expect no error
+    getBatchAddCell(3, "id").type("_unique");
+    getBatchAddError(1).should("not.exist"); // expect no error
+    getBatchAddError(3).should("not.exist"); // expect no error
 
-    getBatchAddCell(2, 1).type("_unique");
-    getBatchAddError(1).invoke("text").invoke("trim").should("equal", ""); // expect no error
-    getBatchAddError(2).invoke("text").invoke("trim").should("equal", ""); // expect no error
-    getBatchAddError(3).invoke("text").invoke("trim").should("equal", ""); // expect no error
+    getBatchAddCell(2, "id").type("_unique");
+    getBatchAddError(1).should("not.exist"); // expect no error
+    getBatchAddError(2).should("not.exist"); // expect no error
+    getBatchAddError(3).should("not.exist"); // expect no error
 
-    getBatchAddCell(2, 3).type("2000-01-01T10:05");
+    getBatchAddCell(2, "date").type("2000-01-01T10:05");
 
-    getBatchAddCell(4, 1).clear();
+    getBatchAddCell(4, "id").clear();
     getBatchAddError(4).invoke("text").invoke("trim").should("not.equal", ""); // expect some error
 
-    getBatchAddCell(4, 1).type("test101_unique");
+    getBatchAddCell(4, "id").type("test101_unique");
     getBatchAddError(4).invoke("text").invoke("trim").should("not.equal", ""); // expect some error
 
     getSubmitButton().should("be.disabled");
 
-    getBatchAddCell(4, 1).type("2");
-    getBatchAddError(4).invoke("text").invoke("trim").should("equal", ""); // expect no error
+    getBatchAddCell(4, "id").type("2");
+    getBatchAddError(4).should("not.exist"); // expect no error
 
     getSubmitButton().should("not.be.disabled"); // now all errors are fixed so submit is enabled
     getSubmitButton().click();
@@ -734,18 +735,18 @@ describe("Batch cell creation", () => {
     cy.get("[data-testid=batch-add-table] > tbody > tr").should("have.length", 4);
 
     getSubmitButton().should("be.disabled");
-    getBatchAddCell(1, 1, "input").type("cell_A");
+    getBatchAddCell(1, "id", "input").type("cell_A");
     // set positive electrode for the first cell
-    getBatchAddCell(1, 5, "input.vs__search").eq(0).type("abcdef");
+    getBatchAddCell(1, "components", "input.vs__search").eq(0).type("abcdef");
     cy.get(".vs__dropdown-menu").contains("abcdef").click();
 
-    getBatchAddCell(2, 1, "input").type("cell_B");
-    getBatchAddCell(2, 2, "input").type("this cell has a name");
+    getBatchAddCell(2, "id", "input").type("cell_B");
+    getBatchAddCell(2, "name", "input").type("this cell has a name");
 
     getSubmitButton().should("be.disabled");
-    getBatchAddCell(3, 1, "input").type("cell_C");
-    getBatchAddCell(3, 3, "input").type("2017-06-01T08:30");
-    getBatchAddCell(4, 1, "input").type("cell_D");
+    getBatchAddCell(3, "id", "input").type("cell_C");
+    getBatchAddCell(3, "date", "input").type("2017-06-01T08:30");
+    getBatchAddCell(4, "id", "input").type("cell_D");
 
     getSubmitButton().click();
 
@@ -759,9 +760,9 @@ describe("Batch cell creation", () => {
     cy.contains("Add batch of items").click();
     cy.findByLabelText("Number of rows:").clear().type(2);
 
-    getBatchAddCell(1, 1).type("comp1");
-    getBatchAddCell(1, 2).type("comp1 name");
-    getBatchAddCell(2, 1).type("comp2");
+    getBatchAddCell(1, "id").type("comp1");
+    getBatchAddCell(1, "name").type("comp1 name");
+    getBatchAddCell(2, "id").type("comp2");
 
     getSubmitButton().click();
     cy.get("[data-testid=batch-modal-container]").contains("a", "comp1");
@@ -773,58 +774,58 @@ describe("Batch cell creation", () => {
 
     cy.get("[data-testid=batch-modal-container]").findByLabelText("Type:").select("cell");
 
-    getBatchTemplateCell(1, "input").eq(0).type("cell_{{}#{}}");
-    getBatchTemplateCell(2, "input").type("this is the test cell #{{}#{}}");
-    getBatchTemplateCell(3, "input").type("1980-02-01T23:59");
+    getBatchTemplateCell("id", "input").eq(0).type("cell_{{}#{}}");
+    getBatchTemplateCell("name", "input").type("this is the test cell #{{}#{}}");
+    getBatchTemplateCell("date", "input").type("1980-02-01T23:59");
 
     // select copyFrom sample, check that it is applied correctly
-    getBatchTemplateCell(4, ".vs__search").type("cell_B");
+    getBatchTemplateCell("copy-from", ".vs__search").type("cell_B");
     cy.get(".vs__dropdown-menu").contains(".badge", "cell_B").click();
 
-    getBatchAddCell(1, 4).contains("cell_B");
-    getBatchAddCell(2, 4).contains("cell_B");
-    getBatchAddCell(3, 4).contains("cell_B");
+    getBatchAddCell(1, "copy-from").contains("cell_B");
+    getBatchAddCell(2, "copy-from").contains("cell_B");
+    getBatchAddCell(3, "copy-from").contains("cell_B");
 
     // change the copyFrom sample, check that it is applied correctly
-    getBatchTemplateCell(4, ".vs__search").type("cell_A");
+    getBatchTemplateCell("copy-from", ".vs__search").type("cell_A");
     cy.get(".vs__dropdown-menu").contains(".badge", "cell_A").click();
 
-    getBatchAddCell(1, 4).contains("cell_A");
-    getBatchAddCell(2, 4).contains("cell_A");
-    getBatchAddCell(3, 4).contains("cell_A");
+    getBatchAddCell(1, "copy-from").contains("cell_A");
+    getBatchAddCell(2, "copy-from").contains("cell_A");
+    getBatchAddCell(3, "copy-from").contains("cell_A");
 
     // add a positive electrode, check that it is applied correctly
-    getBatchTemplateCell(5, ".vs__search").eq(0).type("comp1");
+    getBatchTemplateCell("components", ".vs__search").eq(0).type("comp1");
     cy.get(".vs__dropdown-menu").contains(".badge", "comp1").click();
 
-    getBatchAddCell(1, 5).contains("comp1");
-    getBatchAddCell(2, 5).contains("comp1");
-    getBatchAddCell(3, 5).contains("comp1");
+    getBatchAddCell(1, "components").contains("comp1");
+    getBatchAddCell(2, "components").contains("comp1");
+    getBatchAddCell(3, "components").contains("comp1");
 
     // add another component, this one tagged (i.e., not in the db) check that it is applied correctly
-    getBatchTemplateCell(5, ".vs__search").eq(0).type("tagged");
+    getBatchTemplateCell("components", ".vs__search").eq(0).type("tagged");
     cy.get(".vs__dropdown-menu").eq(0).contains("tagged").click();
 
-    getBatchAddCell(1, 5).contains("comp1");
-    getBatchAddCell(1, 5).contains("tagged");
-    getBatchAddCell(2, 5).contains("comp1");
-    getBatchAddCell(2, 5).contains("tagged");
-    getBatchAddCell(3, 5).contains("comp1");
-    getBatchAddCell(3, 5).contains("tagged");
+    getBatchAddCell(1, "components").contains("comp1");
+    getBatchAddCell(1, "components").contains("tagged");
+    getBatchAddCell(2, "components").contains("comp1");
+    getBatchAddCell(2, "components").contains("tagged");
+    getBatchAddCell(3, "components").contains("comp1");
+    getBatchAddCell(3, "components").contains("tagged");
 
     // add electrolyte
-    getBatchTemplateCell(5, ".vs__search").eq(1).type("elyte");
+    getBatchTemplateCell("components", ".vs__search").eq(1).type("elyte");
     cy.get(".vs__dropdown-menu").eq(0).contains("elyte").click();
-    getBatchAddCell(1, 5).contains("elyte");
-    getBatchAddCell(2, 5).contains("elyte");
-    getBatchAddCell(3, 5).contains("elyte");
+    getBatchAddCell(1, "components").contains("elyte");
+    getBatchAddCell(2, "components").contains("elyte");
+    getBatchAddCell(3, "components").contains("elyte");
 
     // add negative electrode
-    getBatchTemplateCell(5, ".vs__search").eq(2).type("comp2");
+    getBatchTemplateCell("components", ".vs__search").eq(2).type("comp2");
     cy.get(".vs__dropdown-menu").eq(0).contains(".badge", "comp2").click();
-    getBatchAddCell(1, 5).contains("comp2");
-    getBatchAddCell(2, 5).contains("comp2");
-    getBatchAddCell(3, 5).contains("comp2");
+    getBatchAddCell(1, "components").contains("comp2");
+    getBatchAddCell(2, "components").contains("comp2");
+    getBatchAddCell(3, "components").contains("comp2");
 
     getSubmitButton().click();
     cy.get("[data-testid=batch-modal-container]").contains("a", "cell_1");

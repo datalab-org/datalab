@@ -76,18 +76,18 @@
                 <table data-testid="batch-add-table-template" class="table table-sm mb-2">
                   <thead>
                     <tr class="subheading template-subheading">
-                      <th style="width: 10%">ID</th>
-                      <th style="width: 15%">Name</th>
-                      <th style="width: 15%">Date</th>
-                      <th style="width: 15%">Copy from</th>
-                      <th style="width: 15%">Components</th>
-                      <th style="width: 15%">Groups</th>
-                      <th style="width: 15%">Creators</th>
+                      <th style="width: 10%" data-testid="template-col-id">ID</th>
+                      <th style="width: 15%" data-testid="template-col-name">Name</th>
+                      <th style="width: 15%" data-testid="template-col-date">Date</th>
+                      <th style="width: 15%" data-testid="template-col-copy-from">Copy from</th>
+                      <th style="width: 15%" data-testid="template-col-components">Components</th>
+                      <th style="width: 15%" data-testid="template-col-groups">Groups</th>
+                      <th style="width: 15%" data-testid="template-col-creators">Creators</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr>
-                      <td>
+                      <td data-testid="template-cell-id">
                         <input
                           v-model="itemTemplate.item_id"
                           class="form-control"
@@ -112,7 +112,7 @@
                           </label>
                         </div>
                       </td>
-                      <td>
+                      <td data-testid="template-cell-name">
                         <input
                           v-model="itemTemplate.name"
                           class="form-control"
@@ -120,7 +120,7 @@
                           @input="applyNameTemplate"
                         />
                       </td>
-                      <td>
+                      <td data-testid="template-cell-date">
                         <input
                           v-model="itemTemplate.date"
                           class="form-control"
@@ -130,14 +130,14 @@
                           @input="applyDateTemplate"
                         />
                       </td>
-                      <td>
+                      <td data-testid="template-cell-copy-from">
                         <ItemSelect
                           v-model="itemTemplate.copyFrom"
                           :formatted-item-name-max-length="8"
                           @update:model-value="applyCopyFromTemplate"
                         />
                       </td>
-                      <td>
+                      <td data-testid="template-cell-components">
                         <div v-if="item_type == 'samples'">
                           <ItemSelect
                             v-model="itemTemplate.components"
@@ -176,7 +176,7 @@
                           />
                         </div>
                       </td>
-                      <td>
+                      <td data-testid="template-cell-groups">
                         <GroupSelect
                           v-model="itemTemplate.shareWithGroups"
                           multiple
@@ -184,7 +184,7 @@
                           @update:model-value="applyGroupsTemplate"
                         />
                       </td>
-                      <td>
+                      <td data-testid="template-cell-creators">
                         <UserSelect
                           v-model="itemTemplate.additionalCreators"
                           multiple
@@ -218,20 +218,20 @@
               <table data-testid="batch-add-table" class="table mb-2">
                 <thead>
                   <tr class="subheading">
-                    <th style="width: 8%">ID</th>
-                    <th style="width: 15%">Name</th>
-                    <th style="width: 15%">Date</th>
-                    <th style="width: 15%">Copy from</th>
-                    <th style="width: 15%">Components</th>
-                    <th style="width: 15%">Groups</th>
-                    <th style="width: 15%">Creators</th>
-                    <th style="width: 2%"></th>
+                    <th style="width: 8%" data-testid="col-id">ID</th>
+                    <th style="width: 15%" data-testid="col-name">Name</th>
+                    <th style="width: 15%" data-testid="col-date">Date</th>
+                    <th style="width: 15%" data-testid="col-copy-from">Copy from</th>
+                    <th style="width: 15%" data-testid="col-components">Components</th>
+                    <th style="width: 15%" data-testid="col-groups">Groups</th>
+                    <th style="width: 15%" data-testid="col-creators">Creators</th>
+                    <th style="width: 2%" data-testid="col-delete"></th>
                   </tr>
                 </thead>
                 <tbody>
                   <template v-for="(item, index) in items" :key="index">
-                    <tr>
-                      <td>
+                    <tr :data-testid="`item-row-${index}`">
+                      <td :data-testid="`item-${index}-id`">
                         <input
                           v-model="item.item_id"
                           class="form-control"
@@ -239,14 +239,14 @@
                           @input="itemTemplate.item_id = ''"
                         />
                       </td>
-                      <td>
+                      <td :data-testid="`item-${index}-name`">
                         <input
                           v-model="item.name"
                           class="form-control"
                           @input="itemTemplate.name = ''"
                         />
                       </td>
-                      <td>
+                      <td :data-testid="`item-${index}-date`">
                         <input
                           v-model="item.date"
                           class="form-control"
@@ -255,10 +255,10 @@
                           :max="oneYearOn"
                         />
                       </td>
-                      <td>
+                      <td :data-testid="`item-${index}-copy-from`">
                         <ItemSelect v-model="item.copyFrom" :formatted-item-name-max-length="8" />
                       </td>
-                      <td>
+                      <td :data-testid="`item-${index}-components`">
                         <div v-if="item_type == 'samples'">
                           <ItemSelect
                             v-model="item.components"
@@ -293,21 +293,21 @@
                           />
                         </div>
                       </td>
-                      <td>
+                      <td :data-testid="`item-${index}-groups`">
                         <GroupSelect
                           v-model="item.shareWithGroups"
                           multiple
                           placeholder="Groups..."
                         />
                       </td>
-                      <td>
+                      <td :data-testid="`item-${index}-creators`">
                         <UserSelect
                           v-model="item.additionalCreators"
                           multiple
                           placeholder="Users..."
                         />
                       </td>
-                      <td>
+                      <td :data-testid="`item-${index}-delete`">
                         <button
                           type="button"
                           class="close"
@@ -316,6 +316,16 @@
                         >
                           <span aria-hidden="true">&times;</span>
                         </button>
+                      </td>
+                    </tr>
+                    <tr v-if="isValidEntryID[index]">
+                      <td colspan="8">
+                        <!-- eslint-disable vue/no-v-html -->
+                        <span
+                          class="form-error"
+                          :data-testid="`item-${index}-error`"
+                          v-html="isValidEntryID[index]"
+                        />
                       </td>
                     </tr>
                   </template>
@@ -490,7 +500,6 @@ export default {
       return this.batchSizeError;
     },
   },
-
   watch: {
     nSamples(newValue, oldValue) {
       if (newValue > 100) {
@@ -506,13 +515,24 @@ export default {
       if (newValue > oldValue) {
         for (let i = 0; i < newValue - oldValue; i++) {
           this.items.push({
-            ...this.itemTemplate,
-            shareWithGroups: [],
-            additionalCreators: [],
-            components: [],
-            positiveElectrode: [],
-            electrolyte: [],
-            negativeElectrode: [],
+            item_id: null,
+            name: "",
+            copyFrom: this.itemTemplate.copyFrom,
+            components: this.itemTemplate.components ? [...this.itemTemplate.components] : [],
+            positiveElectrode: this.itemTemplate.positiveElectrode
+              ? [...this.itemTemplate.positiveElectrode]
+              : [],
+            electrolyte: this.itemTemplate.electrolyte ? [...this.itemTemplate.electrolyte] : [],
+            negativeElectrode: this.itemTemplate.negativeElectrode
+              ? [...this.itemTemplate.negativeElectrode]
+              : [],
+            date: this.itemTemplate.date || this.now(),
+            shareWithGroups: this.itemTemplate.shareWithGroups
+              ? [...this.itemTemplate.shareWithGroups]
+              : [],
+            additionalCreators: this.itemTemplate.additionalCreators
+              ? [...this.itemTemplate.additionalCreators]
+              : [],
           });
         }
         if (this.itemTemplate.item_id) {
