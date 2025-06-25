@@ -474,7 +474,7 @@ describe("Batch sample creation", () => {
   it("uses the template id, name, date, copyFrom, and components", () => {
     cy.contains("Add batch of items").click();
     getBatchTemplateCell("id", "input.form-control").type("test_{{}#{}}");
-    getBatchTemplateCell("name", "input.form-control").type("this is the test sample #{#}");
+    getBatchTemplateCell("name", "input.form-control").type("this is the test sample #{{}#{}}");
     getBatchTemplateCell("date", "input.form-control").type("1980-02-01T23:59");
 
     // select copyFrom sample, check that it is applied correctly
@@ -661,15 +661,11 @@ describe("Batch sample creation", () => {
   });
 
   it("checks errors on the row", () => {
-    cy.wait(10000);
     cy.contains("Add batch of items").click();
-    cy.wait(10000);
     getBatchTemplateCell("id", "input.form-control").type("test10{{}#{}}");
-    cy.wait(10000);
 
     cy.wait(100);
     getSubmitButton().should("be.disabled");
-    cy.wait(10000);
 
     getBatchAddError(1).should("have.text", "test101 already in use.");
     getBatchAddError(2).should("have.text", "test102 already in use.");
