@@ -452,6 +452,11 @@ def remove_items_from_collection(collection_id):
         return jsonify({"status": "error", "message": "No matching items found."}), 404
 
     elif update_result.matched_count != len(refcodes):
-        return (jsonify({"status": "partial-success", "message": "Only n items updated"}),)
+        return jsonify(
+            {
+                "status": "partial-success",
+                "message": f"Only {update_result.matched_count} items updated",
+            }
+        ), 207
 
     return jsonify({"status": "success", "removed_count": update_result.modified_count}), 200

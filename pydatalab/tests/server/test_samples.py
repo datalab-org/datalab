@@ -8,6 +8,7 @@ from pydatalab.models import Sample
 from pydatalab.models.relationships import RelationshipType, TypedRelationship
 
 
+@pytest.mark.dependency()
 def test_empty_samples(client):
     response = client.get("/samples/")
     assert len(response.json["samples"]) == 0
@@ -698,6 +699,7 @@ def test_items_added_to_existing_collection(client, default_collection, default_
     )
 
 
+@pytest.mark.dependency()
 def test_add_items_to_collection_not_found(client):
     collection_id = "invalid_collection_id"
 
@@ -750,6 +752,7 @@ def test_add_items_to_collection_success(client, default_collection, example_ite
     assert all(refcode in child_refcodes for refcode in refcodes)
 
 
+@pytest.mark.dependency()
 def test_remove_items_from_collection_success(
     client, database, default_sample_dict, default_collection
 ):
@@ -797,8 +800,16 @@ def test_remove_items_from_collection_success(
         ]
         assert len(collection_relationships) == 1
 
+    item_1_refcode = client.get(f"/get-item-data/{sample_1_dict['item_id']}").json["item_data"][
+        "refcode"
+    ]
+    item_2_refcode = client.get(f"/get-item-data/{sample_2_dict['item_id']}").json["item_data"][
+        "refcode"
+    ]
+    refcodes = [item_1_refcode, item_2_refcode]
+
     response = client.delete(
-        "/collections/test_collection_remove/items", json={"item_ids": item_ids}
+        "/collections/test_collection_remove/items", json={"refcodes": refcodes}
     )
 
     assert response.status_code == 200
@@ -815,10 +826,11 @@ def test_remove_items_from_collection_success(
         assert len(collection_relationships) == 0
 
 
+@pytest.mark.dependency()
 def test_remove_items_from_collection_not_found(client):
     """Test removing items from non-existent collection."""
     response = client.delete(
-        "/collections/nonexistent_collection/items", json={"item_ids": ["item1", "item2"]}
+        "/collections/nonexistent_collection/items", json={"refcodes": ["refcode1", "refcode2"]}
     )
 
     assert response.status_code == 404
@@ -826,6 +838,7 @@ def test_remove_items_from_collection_not_found(client):
     assert data["error"] == "Collection not found"
 
 
+@pytest.mark.dependency()
 def test_remove_items_from_collection_no_items_provided(client, default_collection):
     """Test removing with no item IDs provided."""
     collection_dict = default_collection.dict()
@@ -834,13 +847,14 @@ def test_remove_items_from_collection_no_items_provided(client, default_collecti
     assert response.status_code == 201
 
     collection_id = collection_dict["collection_id"]
-    response = client.delete(f"/collections/{collection_id}/items", json={"item_ids": []})
+    response = client.delete(f"/collections/{collection_id}/items", json={"refcodes": []})
 
     assert response.status_code == 400
     data = response.get_json()
-    assert data["error"] == "No item IDs provided"
+    assert data["error"] == "No refcodes provided"
 
 
+@pytest.mark.dependency()
 def test_remove_items_from_collection_no_matching_items(client, default_collection):
     """Test removing items that don't exist."""
     collection_dict = default_collection.dict()
@@ -851,7 +865,7 @@ def test_remove_items_from_collection_no_matching_items(client, default_collecti
     collection_id = collection_dict["collection_id"]
     response = client.delete(
         f"/collections/{collection_id}/items",
-        json={"item_ids": ["nonexistent_item_1", "nonexistent_item_2"]},
+        json={"refcodes": ["nonexistent_refcode_1", "nonexistent_refcode_2"]},
     )
 
     assert response.status_code == 404
@@ -860,6 +874,7 @@ def test_remove_items_from_collection_no_matching_items(client, default_collecti
     assert data["message"] == "No matching items found."
 
 
+@pytest.mark.dependency()
 def test_remove_items_from_collection_partial_success(
     client, database, default_sample_dict, default_collection
 ):
@@ -899,15 +914,19 @@ def test_remove_items_from_collection_partial_success(
     ]
     assert len(collection_relationships) == 1
 
+    item_refcode = client.get(f"/get-item-data/{sample_dict['item_id']}").json["item_data"][
+        "refcode"
+    ]
+
     response = client.delete(
         "/collections/test_collection_partial/items",
-        json={"item_ids": [item_id, "nonexistent_item"]},
+        json={"refcodes": [item_refcode, "nonexistent_refcode"]},
     )
 
-    assert response.status_code == 200
+    assert response.status_code == 207
     data = response.get_json()
-    assert data["status"] == "success"
-    assert data["removed_count"] == 1
+    assert data["status"] == "partial-success"
+    assert "Only 1 items updated" in data["message"]
 
     item = database.items.find_one({"item_id": item_id})
     collection_relationships = [
