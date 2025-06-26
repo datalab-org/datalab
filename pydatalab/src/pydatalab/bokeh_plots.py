@@ -154,7 +154,7 @@ def selectable_axes_plot(
     plot_index: int | None = None,
     tools: list | None = None,
     show_table: bool = False,
-    parameters: Optional[Dict] = None,
+    parameters: dict | None = None,
     **kwargs,
 ):
     """

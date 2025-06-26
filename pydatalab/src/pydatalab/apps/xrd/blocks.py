@@ -39,9 +39,9 @@ class XRDBlock(DataBlock):
         LOGGER.debug(f"Setting wavelength to {wavelength} for block {self.block_id}")
         self.data["wavelength"] = wavelength
 
-    @staticmethod
+    @classmethod
     def load_pattern(
-        location: str | Path, wavelength: float | None = None
+        cls, location: str | Path, wavelength: float | None = None
     ) -> tuple[pd.DataFrame, list[str], dict]:
         """Load the XRD pattern at the given file location, returning
         a DataFrame with the pattern data, a list of y-axis options for plotting

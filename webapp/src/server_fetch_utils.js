@@ -485,17 +485,17 @@ export async function getCollectionData(collection_id) {
 }
 
 export async function updateBlockFromServer(
-  // Send the current block state to the API and receive an updated version
-  // of the block in return.
-  //
-  // - Will strip known "large data" keys, even if not formalised, e.g., bokeh_plot_data.
-  //
   item_id,
   block_id,
   block_data,
   event_data = null,
   saveToDatabase = true,
 ) {
+  // Send the current block state to the API and receive an updated version
+  // of the block in return, including any event data.
+  //
+  // - Will strip known "large data" keys, even if not formalised, e.g., bokeh_plot_data.
+  //
   delete block_data.bokeh_plot_data;
   delete block_data.processed_data;
   delete block_data.metadata;
