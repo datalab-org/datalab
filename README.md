@@ -31,6 +31,7 @@
 _datalab_ is a user-friendly, open-source platform that can capture all the experimental data and metadata produced in a scientific lab. _datalab_ stores data safely and makes it accessible and reusable by both humans and machines _via_ webUI and python API. _datalab_ can be run locally or in the cloud; it can be self-hosted and managed deployments are also available. Try the working demo deployment [here](https://demo.datalab-org.io/).
 
 Features:
+
 * Capture and store detailed sample data and metadata
 * Connect and sync data directly from laboratory instruments
 * Built-in support for multiple characterisation techniques (XRD, NMR, echem, TEM, TGA, Mass Spec, Raman; more under active development)
