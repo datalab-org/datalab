@@ -25,7 +25,14 @@
         :options="{ ignore: [outerDivRef] }"
         @trigger="isEditingCollections = false"
       >
-        <CollectionSelect v-model="value" aria-labelledby="collections" multiple @click.stop />
+        <CollectionSelect
+          ref="collectionSelect"
+          v-model="value"
+          aria-labelledby="collections"
+          :item_id="item_id"
+          multiple
+          @click.stop
+        />
       </OnClickOutside>
     </div>
   </div>

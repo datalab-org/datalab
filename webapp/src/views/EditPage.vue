@@ -61,8 +61,11 @@
 
   <!-- Item-type header information goes here -->
   <div class="editor-body">
-    <component :is="itemTypeEntry?.itemInformationComponent" :item_id="item_id" />
-
+    <component
+      :is="itemTypeEntry?.itemInformationComponent"
+      ref="sampleInformation"
+      :item_id="item_id"
+    />
     <FileList :item_id="item_id" :stored_files="stored_files" />
 
     <div class="container">
