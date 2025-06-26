@@ -430,16 +430,16 @@ export function deleteEquipment(item_id) {
     );
 }
 
-export function removeItemsFromCollection(collection_id, item_ids) {
+export function removeItemsFromCollection(collection_id, refcodes) {
   return fetch_delete(`${API_URL}/collections/${collection_id}/items`, {
-    item_ids: item_ids,
+    refcodes: refcodes,
   })
     .then(function (response_json) {
       console.log("Items removed from collection successfully", response_json);
 
       store.commit("removeItemsFromCollection", {
         collection_id: collection_id,
-        item_ids: item_ids,
+        refcodes: refcodes,
       });
 
       return response_json;

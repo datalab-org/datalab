@@ -291,24 +291,24 @@ export default {
       }
     },
     async confirmRemoveFromCollection() {
-      const idsSelected = this.itemsSelected.map((item) => item.item_id);
+      const refcodesSelected = this.itemsSelected.map((item) => item.refcode);
 
       if (
         confirm(
-          `Are you sure you want to remove ${idsSelected.length} item(s) from ${this.collectionId} ? (${idsSelected})`,
+          `Are you sure you want to remove ${refcodesSelected.length} item(s) from ${this.collectionId} ? (${refcodesSelected})`,
         )
       ) {
-        await this.removeItemsFromCollection(idsSelected);
+        await this.removeItemsFromCollection(refcodesSelected);
         this.$emit("remove-selected-items-from-collection");
       }
       this.isSelectedDropdownVisible = false;
     },
-    async removeItemsFromCollection(ids) {
+    async removeItemsFromCollection(refcodes) {
       try {
-        this.itemCount = ids.length;
+        this.itemCount = refcodes.length;
         this.isDeletingItems = true;
 
-        await removeItemsFromCollection(this.collectionId, ids);
+        await removeItemsFromCollection(this.collectionId, refcodes);
       } catch (error) {
         console.error("Error during removal from collection:", error);
       } finally {

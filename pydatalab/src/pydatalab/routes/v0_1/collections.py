@@ -424,17 +424,17 @@ def add_items_to_collection(collection_id):
 @COLLECTIONS.route("/collections/<collection_id>/items", methods=["DELETE"])
 def remove_items_from_collection(collection_id):
     data = request.get_json()
-    item_ids = data.get("item_ids", [])
+    refcodes = data.get("refcodes", [])
 
     collection = flask_mongo.db.collections.find_one(
-        {"collection_id": collection_id, **get_default_permissions()}
+        {"collection_id": collection_id, **get_default_permissions()}, projection={"_id": 1}
     )
 
     if not collection:
         return jsonify({"error": "Collection not found"}), 404
 
-    if not item_ids:
-        return jsonify({"error": "No item IDs provided"}), 400
+    if not refcodes:
+        return jsonify({"error": "No refcodes provided"}), 400
 
     update_result = flask_mongo.db.items.update_many(
         {"refcode": {"$in": refcodes}, **get_default_permissions()},
@@ -450,5 +450,8 @@ def remove_items_from_collection(collection_id):
 
     if update_result.matched_count == 0:
         return jsonify({"status": "error", "message": "No matching items found."}), 404
+
+    elif update_result.matched_count != len(refcodes):
+        return (jsonify({"status": "partial-success", "message": "Only n items updated"}),)
 
     return jsonify({"status": "success", "removed_count": update_result.modified_count}), 200

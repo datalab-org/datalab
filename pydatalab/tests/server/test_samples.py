@@ -8,7 +8,6 @@ from pydatalab.models import Sample
 from pydatalab.models.relationships import RelationshipType, TypedRelationship
 
 
-@pytest.mark.dependency()
 def test_empty_samples(client):
     response = client.get("/samples/")
     assert len(response.json["samples"]) == 0
@@ -699,7 +698,6 @@ def test_items_added_to_existing_collection(client, default_collection, default_
     )
 
 
-@pytest.mark.dependency()
 def test_add_items_to_collection_not_found(client):
     collection_id = "invalid_collection_id"
 
@@ -752,7 +750,6 @@ def test_add_items_to_collection_success(client, default_collection, example_ite
     assert all(refcode in child_refcodes for refcode in refcodes)
 
 
-@pytest.mark.dependency()
 def test_remove_items_from_collection_success(
     client, database, default_sample_dict, default_collection
 ):
@@ -818,7 +815,6 @@ def test_remove_items_from_collection_success(
         assert len(collection_relationships) == 0
 
 
-@pytest.mark.dependency()
 def test_remove_items_from_collection_not_found(client):
     """Test removing items from non-existent collection."""
     response = client.delete(
@@ -830,7 +826,6 @@ def test_remove_items_from_collection_not_found(client):
     assert data["error"] == "Collection not found"
 
 
-@pytest.mark.dependency()
 def test_remove_items_from_collection_no_items_provided(client, default_collection):
     """Test removing with no item IDs provided."""
     collection_dict = default_collection.dict()
@@ -846,7 +841,6 @@ def test_remove_items_from_collection_no_items_provided(client, default_collecti
     assert data["error"] == "No item IDs provided"
 
 
-@pytest.mark.dependency()
 def test_remove_items_from_collection_no_matching_items(client, default_collection):
     """Test removing items that don't exist."""
     collection_dict = default_collection.dict()
@@ -866,7 +860,6 @@ def test_remove_items_from_collection_no_matching_items(client, default_collecti
     assert data["message"] == "No matching items found."
 
 
-@pytest.mark.dependency()
 def test_remove_items_from_collection_partial_success(
     client, database, default_sample_dict, default_collection
 ):
