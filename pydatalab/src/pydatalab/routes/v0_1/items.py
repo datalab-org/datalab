@@ -966,7 +966,7 @@ def get_item_data(
     )
 
     # Must be exported to JSON first to apply the custom pydantic JSON encoders
-    return_dict = json.loads(doc.json(exclude_unset=True))
+    return_dict = json.loads(doc.json())
 
     if item_id is None:
         item_id = return_dict["item_id"]
