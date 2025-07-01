@@ -279,6 +279,23 @@ def selectable_axes_plot(
         else:
             label = df_.index.name if len(df) > 1 else ""
 
+        if label is None:
+            label = ""
+
+        if label and len(label) > 15:
+            if "." in label:
+                name, ext = label.rsplit(".", 1)
+                if len(ext) < 6:
+                    available = 15 - len(ext) - 4
+                    if available > 3:
+                        label = f"{name[:available]}...{ext}"
+                    else:
+                        label = f"{label[:12]}..."
+                else:
+                    label = f"{label[:12]}..."
+            else:
+                label = f"{label[:12]}..."
+
         source = ColumnDataSource(df_)
 
         if color_options:
@@ -370,6 +387,21 @@ def selectable_axes_plot(
         p.legend.click_policy = "hide"
         if len(df) <= 1:
             p.legend.visible = False
+        else:
+            legend_items = p.legend.items
+            p.legend.visible = False
+
+            from bokeh.models import Legend
+
+            external_legend = Legend(
+                items=legend_items,
+                click_policy="hide",
+                background_fill_alpha=0.8,
+                label_text_font_size="9pt",
+                spacing=1,
+                margin=2,
+            )
+            p.add_layout(external_legend, "right")
 
     if not skip_plot:
         plot_columns.append(p)
