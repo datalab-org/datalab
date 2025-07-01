@@ -23,7 +23,7 @@ class XRDBlock(DataBlock):
     description = "Visualize XRD patterns and perform simple baseline corrections."
     accepted_file_extensions = (".xrdml", ".xy", ".dat", ".xye", ".rasx", ".cif")
 
-    defaults = {"wavelength": 1.54060}
+    defaults = {"wavelength": 1.54060, "stagger_enabled": False, "stagger_offset": 1.0}
 
     @property
     def plot_functions(self):
@@ -264,7 +264,25 @@ class XRDBlock(DataBlock):
                     warnings.warn(f"Could not parse file {f['location']} as XRD data. Error: {exc}")
                     continue
                 peak_information[str(f["immutable_id"])] = PeakInformation(**peak_data).dict()
-                pattern_df["normalized intensity (staggered)"] += ind
+                stagger_enabled = self.data.get("stagger_enabled", self.defaults["stagger_enabled"])
+                stagger_offset = float(
+                    self.data.get("stagger_offset", self.defaults["stagger_offset"])
+                )
+
+                if stagger_enabled:
+                    for col in pattern_df.columns:
+                        if "intensity" in col.lower():
+                            if "(staggered)" not in col:
+                                staggered_col = f"{col} (staggered)"
+                                pattern_df[staggered_col] = pattern_df[col] + (ind * stagger_offset)
+                            else:
+                                pattern_df[col] = pattern_df[col] + (ind * stagger_offset)
+                else:
+                    for col in pattern_df.columns:
+                        if "intensity" in col.lower() and "(staggered)" not in col:
+                            staggered_col = f"{col} (staggered)"
+                            pattern_df[staggered_col] = pattern_df[col]
+
                 pattern_dfs.append(pattern_df)
 
             self.data["computed"] = {}
@@ -319,6 +337,21 @@ class XRDBlock(DataBlock):
             self.data["bokeh_plot_data"] = bokeh.embed.json_item(p, theme=DATALAB_BOKEH_THEME)
 
     def _make_plots(self, pattern_dfs: list[pd.DataFrame], y_options: list[str]):
+        stagger_enabled = self.data.get("stagger_enabled", self.defaults["stagger_enabled"])
+        stagger_offset = float(self.data.get("stagger_offset", self.defaults["stagger_offset"]))
+
+        if stagger_enabled and len(pattern_dfs) > 1:
+            for ind, df in enumerate(pattern_dfs):
+                offset = ind * stagger_offset
+                for col in df.columns:
+                    if "intensity" in col.lower() and df[col].dtype in [
+                        "float64",
+                        "float32",
+                        "int64",
+                        "int32",
+                    ]:
+                        df[col] = df[col] + offset
+
         return selectable_axes_plot(
             pattern_dfs,
             x_options=["2θ (°)", "Q (Å⁻¹)", "d (Å)"],

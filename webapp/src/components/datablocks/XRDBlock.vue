@@ -53,6 +53,8 @@ export default {
       return this.$store.state.blocksInfos["xrd"];
     },
     wavelength: createComputedSetterForBlockField("wavelength"),
+    stagger_enabled: createComputedSetterForBlockField("stagger_enabled"),
+    stagger_offset: createComputedSetterForBlockField("stagger_offset"),
     file_id: createComputedSetterForBlockField("file_id"),
   },
 };
