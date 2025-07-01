@@ -18,7 +18,7 @@ from bokeh.models import (
     LinearColorMapper,
     TableColumn,
 )
-from bokeh.models.widgets import Dropdown, Select
+from bokeh.models.widgets import CheckboxGroup, Dropdown, Select
 from bokeh.models.widgets.inputs import TextInput
 from bokeh.palettes import Accent, Dark2
 from bokeh.plotting import ColumnDataSource, figure
@@ -495,6 +495,41 @@ def selectable_axes_plot(
             source=source, columns=[TableColumn(field=c) for c in all_columns], editable=False
         )
         plot_columns = [table] + plot_columns
+
+    if plot_points and plot_line:
+        plot_visibility_controls = CheckboxGroup(
+            labels=["Show lines", "Show points"],
+            active=[0, 1],
+            margin=(5, 5, 5, 5),
+            inline=True,
+        )
+
+        line_renderers = [r for r in p.renderers if hasattr(r.glyph, "line_color")]
+        circle_renderers = [r for r in p.renderers if hasattr(r.glyph, "size")]
+
+        visibility_callback = CustomJS(
+            args=dict(
+                checkboxes=plot_visibility_controls,
+                line_renderers=line_renderers,
+                circle_renderers=circle_renderers,
+            ),
+            code="""
+                var active = checkboxes.active;
+                var show_lines = active.includes(0);
+                var show_points = active.includes(1);
+
+                for (var i = 0; i < line_renderers.length; i++) {
+                    line_renderers[i].visible = show_lines;
+                }
+
+                for (var i = 0; i < circle_renderers.length; i++) {
+                    circle_renderers[i].visible = show_points;
+                }
+            """,
+        )
+
+        plot_visibility_controls.js_on_change("active", visibility_callback)
+        plot_columns.append(plot_visibility_controls)
 
     layout = column(*plot_columns)
 
