@@ -38,7 +38,6 @@ class CycleBlock(DataBlock):
         ".txt",
         ".xls",
         ".xlsx",
-        ".txt",
         ".res",
         ".nda",
         ".ndax",
