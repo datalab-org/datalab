@@ -301,6 +301,11 @@ def selectable_axes_plot(
         title=plot_title,
         **kwargs,
     )
+
+    if tools is None:
+        coordinate_hover = HoverTool(tooltips=[("X", "$x{0.00}"), ("Y", "$y{0.00}")], mode="mouse")
+        p.add_tools(coordinate_hover)
+
     p.toolbar.logo = "grey"
     p.xaxis.ticker.desired_num_ticks = 5
     p.yaxis.ticker.desired_num_ticks = 5
