@@ -35,6 +35,35 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
         </div>
       </div>
     </div>
+    <div class="form-row col-md-10 col-lg-8 mt-2 mb-2 pl-0">
+      <div class="input-group form-inline">
+        <div class="form-check mr-3">
+          <input
+            id="stagger-enabled"
+            v-model="stagger_enabled"
+            class="form-check-input"
+            type="checkbox"
+            @change="updateBlock()"
+          />
+          <label class="form-check-label" for="stagger-enabled">
+            <b>Stagger patterns</b>
+          </label>
+        </div>
+
+        <label class="mr-2"><b>Offset:</b></label>
+        <input
+          v-model.number="stagger_offset"
+          type="number"
+          step="0.1"
+          min="0"
+          class="form-control mr-2"
+          style="max-width: 5rem"
+          :disabled="!stagger_enabled"
+          @keydown.enter="updateBlock()"
+          @blur="updateBlock()"
+        />
+      </div>
+    </div>
     <div id="bokehPlotContainer">
       <BokehPlot :bokeh-plot-data="bokehPlotData" />
     </div>
@@ -81,6 +110,8 @@ export default {
       return this.$store.state.blocksInfos["xrd"];
     },
     wavelength: createComputedSetterForBlockField("wavelength"),
+    stagger_enabled: createComputedSetterForBlockField("stagger_enabled"),
+    stagger_offset: createComputedSetterForBlockField("stagger_offset"),
     file_id: createComputedSetterForBlockField("file_id"),
   },
   methods: {
