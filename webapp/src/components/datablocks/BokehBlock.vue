@@ -10,10 +10,8 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
       update-block-on-change
     />
 
-    <div class="row">
-      <div id="bokehPlotContainer" class="col-xl-9 col-lg-10 col-md-11 mx-auto">
-        <BokehPlot :bokeh-plot-data="bokehPlotData" />
-      </div>
+    <div id="bokehPlotContainer">
+      <BokehPlot :bokeh-plot-data="bokehPlotData" />
     </div>
   </DataBlockBase>
 </template>
