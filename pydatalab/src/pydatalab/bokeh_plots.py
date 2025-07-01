@@ -234,6 +234,11 @@ def selectable_axes_plot(
         title=plot_title,
         **kwargs,
     )
+
+    if tools is None:
+        coordinate_hover = HoverTool(tooltips=[("X", "$x{0.00}"), ("Y", "$y{0.00}")], mode="mouse")
+        p.add_tools(coordinate_hover)
+
     p.toolbar.logo = "grey"
 
     if tools:
@@ -273,6 +278,23 @@ def selectable_axes_plot(
             label = labels[ind]
         else:
             label = df_.index.name if len(df) > 1 else ""
+
+        if label is None:
+            label = ""
+
+        if label and len(label) > 15:
+            if "." in label:
+                name, ext = label.rsplit(".", 1)
+                if len(ext) < 6:
+                    available = 15 - len(ext) - 4
+                    if available > 3:
+                        label = f"{name[:available]}...{ext}"
+                    else:
+                        label = f"{label[:12]}..."
+                else:
+                    label = f"{label[:12]}..."
+            else:
+                label = f"{label[:12]}..."
 
         source = ColumnDataSource(df_)
 
@@ -365,6 +387,21 @@ def selectable_axes_plot(
         p.legend.click_policy = "hide"
         if len(df) <= 1:
             p.legend.visible = False
+        else:
+            legend_items = p.legend.items
+            p.legend.visible = False
+
+            from bokeh.models import Legend
+
+            external_legend = Legend(
+                items=legend_items,
+                click_policy="hide",
+                background_fill_alpha=0.8,
+                label_text_font_size="9pt",
+                spacing=1,
+                margin=2,
+            )
+            p.add_layout(external_legend, "right")
 
     if not skip_plot:
         plot_columns.append(p)
@@ -394,7 +431,70 @@ def selectable_axes_plot(
         )
         plot_columns = [table] + plot_columns
 
-    layout = column(*plot_columns)
+    if plot_points and plot_line:
+        from bokeh.layouts import row
+
+        show_lines_btn = Button(
+            label="✓ Show lines", button_type="primary", width_policy="min", margin=(2, 5, 2, 5)
+        )
+        show_points_btn = Button(
+            label="✓ Show points", button_type="primary", width_policy="min", margin=(2, 5, 2, 5)
+        )
+
+        line_renderers = [
+            r
+            for r in p.renderers
+            if hasattr(r.glyph, "line_color") and not hasattr(r.glyph, "size")
+        ]
+        circle_renderers = [r for r in p.renderers if hasattr(r.glyph, "size")]
+
+        lines_callback = CustomJS(
+            args=dict(btn=show_lines_btn, renderers=line_renderers),
+            code="""
+                if (btn.label.includes('✓')) {
+                    btn.label = '✗ Show lines';
+                    btn.button_type = 'default';
+                    for (var i = 0; i < renderers.length; i++) {
+                        renderers[i].visible = false;
+                    }
+                } else {
+                    btn.label = '✓ Show lines';
+                    btn.button_type = 'primary';
+                    for (var i = 0; i < renderers.length; i++) {
+                        renderers[i].visible = true;
+                    }
+                }
+            """,
+        )
+
+        points_callback = CustomJS(
+            args=dict(btn=show_points_btn, renderers=circle_renderers),
+            code="""
+                if (btn.label.includes('✓')) {
+                    btn.label = '✗ Show points';
+                    btn.button_type = 'default';
+                    for (var i = 0; i < renderers.length; i++) {
+                        renderers[i].visible = false;
+                    }
+                } else {
+                    btn.label = '✓ Show points';
+                    btn.button_type = 'primary';
+                    for (var i = 0; i < renderers.length; i++) {
+                        renderers[i].visible = true;
+                    }
+                }
+            """,
+        )
+
+        show_lines_btn.js_on_click(lines_callback)
+        show_points_btn.js_on_click(points_callback)
+
+        controls_layout = row(
+            show_lines_btn, show_points_btn, sizing_mode="scale_width", margin=(10, 0, 10, 0)
+        )
+        plot_columns.append(controls_layout)
+
+    layout = column(*plot_columns, sizing_mode="scale_width")
 
     p.js_on_event(DoubleTap, CustomJS(args=dict(p=p), code="p.reset.emit()"))
     return layout
