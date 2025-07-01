@@ -1,5 +1,4 @@
 <template>
-  <label class="mr-2"><b>UV-Vis reference folder name</b></label>
   <DataBlockBase :item_id="item_id" :block_id="block_id">
     <FileSelectDropdown
       v-model="file_id"
