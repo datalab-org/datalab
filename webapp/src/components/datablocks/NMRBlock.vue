@@ -41,7 +41,7 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
         </div>
       </div>
       <div class="row">
-        <div id="bokehPlotContainer" class="col-xl-8 col-lg-8 col-md-11 mx-auto">
+        <div id="bokehPlotContainer" class="col-xl-8 col-lg-8 col-md-11">
           <BokehPlot v-if="bokehPlotData" :bokeh-plot-data="bokehPlotData" />
         </div>
         <div v-if="detailsShown" class="col-xl-4 col-lg-4 ml-0">

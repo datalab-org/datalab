@@ -524,7 +524,7 @@ def selectable_axes_plot(
         controls_layout = row(show_points_btn, sizing_mode="scale_width", margin=(10, 0, 10, 0))
         plot_columns.append(controls_layout)
 
-    layout = column(*plot_columns)
+    layout = column(*plot_columns, sizing_mode="scale_width")
 
     p.js_on_event(DoubleTap, CustomJS(args=dict(p=p), code="p.reset.emit()"))
     return layout
