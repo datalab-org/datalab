@@ -13,7 +13,7 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
       />
     </div>
 
-    <div class="form-row">
+    <div class="form-row col-md-6 col-lg-4 mt-2 mb-2 pl-0">
       <div class="row">
         <div id="bokehPlotContainer" class="col-xl-9 col-lg-10 col-md-11 mx-auto">
           <BokehPlot :bokeh-plot-data="bokehPlotData" />
