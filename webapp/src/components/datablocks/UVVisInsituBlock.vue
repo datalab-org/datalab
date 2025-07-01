@@ -8,6 +8,20 @@
       update-block-on-change
       @change="onFileChange"
     />
+    <div class="form-group mb-2">
+      <label class="mr-2"><b>Scan time (s)</b></label>
+      <input
+        v-model="scan_time_buffer"
+        type="text"
+        class="form-control"
+        placeholder="Enter scan time"
+        style="width: 160px; display: inline-block"
+        inputmode="decimal"
+        pattern="[0-9]*[.,]?[0-9]*"
+        @keydown.enter="onScanTimeSelected"
+        @blur="onScanTimeSelected"
+      />
+    </div>
     <div v-show="file_id">
       <div class="row">
         <div class="col-lg-4 col-md-6 col-sm-12 mb-2">
