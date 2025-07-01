@@ -9,6 +9,20 @@
       update-block-on-change
       @change="onFileChange"
     />
+    <div class="form-group mb-2">
+      <label class="mr-2"><b>Scan time (s)</b></label>
+      <input
+        v-model="scan_time_buffer"
+        type="text"
+        class="form-control"
+        placeholder="Enter scan time"
+        style="width: 160px; display: inline-block"
+        inputmode="decimal"
+        pattern="[0-9]*[.,]?[0-9]*"
+        @keydown.enter="onScanTimeSelected"
+        @blur="onScanTimeSelected"
+      />
+    </div>
     <div v-show="file_id">
       <div class="form-inline">
         <div class="form-group mb-2">
@@ -39,11 +53,28 @@
             placeholder="Select a folder"
             @update:model-value="onFolderSelected"
           />
-          <div v-if="folderNameError" class="alert alert-danger mt-2 mx-auto">
-            {{ folderNameError }}
-          </div>
         </div>
       </div>
+      <div v-if="folderNameError" class="alert alert-danger mt-2 mx-auto">
+        {{ folderNameError }}
+      </div>
+    </div>
+    <div class="form-inline mb-2">
+      <label class="mr-2"><b>Data granularity</b></label>
+      <input
+        v-model="data_granularity_buffer"
+        type="text"
+        class="form-control mr-3"
+        style="width: 100px; display: inline-block"
+      />
+      <label class="mr-2"><b>Sample granularity</b></label>
+      <input
+        v-model="sample_granularity_buffer"
+        type="text"
+        class="form-control"
+        style="width: 100px; display: inline-block"
+      />
+      <button class="btn btn-primary ml-3" @click="onGranularitySubmit">Apply</button>
     </div>
     <div
       v-show="uvvis_folder_name && uvvis_reference_folder_name && echem_folder_name"
@@ -89,7 +120,28 @@ export default {
     return {
       folderNameError: "",
       isUpdating: false,
+      scan_time_buffer: "",
     };
+  },
+  watch: {
+    scan_time: {
+      immediate: true,
+      handler(newVal) {
+        this.scan_time_buffer = newVal;
+      },
+    },
+    data_granularity: {
+      immediate: true,
+      handler(newVal) {
+        this.data_granularity_buffer = newVal;
+      },
+    },
+    sample_granularity: {
+      immediate: true,
+      handler(newVal) {
+        this.sample_granularity_buffer = newVal;
+      },
+    },
   },
   computed: {
     bokehPlotData() {
@@ -113,6 +165,9 @@ export default {
     echem_folder_name: createComputedSetterForBlockField("echem_folder_name"),
     file_id: createComputedSetterForBlockField("file_id"),
     folder_name: createComputedSetterForBlockField("folder_name"),
+    scan_time: createComputedSetterForBlockField("scan_time"),
+    data_granularity: createComputedSetterForBlockField("data_granularity"),
+    sample_granularity: createComputedSetterForBlockField("sample_granularity"),
   },
   methods: {
     onFileChange() {
@@ -133,6 +188,24 @@ export default {
       ) {
         this.folderNameError =
           "UV-Vis sample and reference folders, along with an echem folder is required.";
+      }
+    },
+    onScanTimeSelected() {
+      const parsed = parseFloat(this.scan_time_buffer);
+      if (!isNaN(parsed)) {
+        this.scan_time = parsed;
+        this.updateBlock();
+      }
+    },
+    onGranularitySubmit() {
+      const dataVal = parseFloat(this.data_granularity_buffer);
+      const sampleVal = parseFloat(this.sample_granularity_buffer);
+
+      if (!isNaN(dataVal)) this.data_granularity = dataVal;
+      if (!isNaN(sampleVal)) this.sample_granularity = sampleVal;
+
+      if (!isNaN(dataVal) || !isNaN(sampleVal)) {
+        this.updateBlock();
       }
     },
     updateBlock() {
