@@ -18,7 +18,7 @@ from bokeh.models import (
     LinearColorMapper,
     TableColumn,
 )
-from bokeh.models.widgets import CheckboxGroup, Dropdown, Select
+from bokeh.models.widgets import Dropdown, Select
 from bokeh.models.widgets.inputs import TextInput
 from bokeh.palettes import Accent, Dark2
 from bokeh.plotting import ColumnDataSource, figure
@@ -529,39 +529,67 @@ def selectable_axes_plot(
         plot_columns = [table] + plot_columns
 
     if plot_points and plot_line:
-        plot_visibility_controls = CheckboxGroup(
-            labels=["Show lines", "Show points"],
-            active=[0, 1],
-            margin=(5, 5, 5, 5),
-            inline=True,
+        from bokeh.layouts import row
+
+        show_lines_btn = Button(
+            label="✓ Show lines", button_type="primary", width_policy="min", margin=(2, 5, 2, 5)
+        )
+        show_points_btn = Button(
+            label="✓ Show points", button_type="primary", width_policy="min", margin=(2, 5, 2, 5)
         )
 
-        line_renderers = [r for r in p.renderers if hasattr(r.glyph, "line_color")]
+        line_renderers = [
+            r
+            for r in p.renderers
+            if hasattr(r.glyph, "line_color") and not hasattr(r.glyph, "size")
+        ]
         circle_renderers = [r for r in p.renderers if hasattr(r.glyph, "size")]
 
-        visibility_callback = CustomJS(
-            args=dict(
-                checkboxes=plot_visibility_controls,
-                line_renderers=line_renderers,
-                circle_renderers=circle_renderers,
-            ),
+        lines_callback = CustomJS(
+            args=dict(btn=show_lines_btn, renderers=line_renderers),
             code="""
-                var active = checkboxes.active;
-                var show_lines = active.includes(0);
-                var show_points = active.includes(1);
-
-                for (var i = 0; i < line_renderers.length; i++) {
-                    line_renderers[i].visible = show_lines;
-                }
-
-                for (var i = 0; i < circle_renderers.length; i++) {
-                    circle_renderers[i].visible = show_points;
+                if (btn.label.includes('✓')) {
+                    btn.label = '✗ Show lines';
+                    btn.button_type = 'default';
+                    for (var i = 0; i < renderers.length; i++) {
+                        renderers[i].visible = false;
+                    }
+                } else {
+                    btn.label = '✓ Show lines';
+                    btn.button_type = 'primary';
+                    for (var i = 0; i < renderers.length; i++) {
+                        renderers[i].visible = true;
+                    }
                 }
             """,
         )
 
-        plot_visibility_controls.js_on_change("active", visibility_callback)
-        plot_columns.append(plot_visibility_controls)
+        points_callback = CustomJS(
+            args=dict(btn=show_points_btn, renderers=circle_renderers),
+            code="""
+                if (btn.label.includes('✓')) {
+                    btn.label = '✗ Show points';
+                    btn.button_type = 'default';
+                    for (var i = 0; i < renderers.length; i++) {
+                        renderers[i].visible = false;
+                    }
+                } else {
+                    btn.label = '✓ Show points';
+                    btn.button_type = 'primary';
+                    for (var i = 0; i < renderers.length; i++) {
+                        renderers[i].visible = true;
+                    }
+                }
+            """,
+        )
+
+        show_lines_btn.js_on_click(lines_callback)
+        show_points_btn.js_on_click(points_callback)
+
+        controls_layout = row(
+            show_lines_btn, show_points_btn, sizing_mode="scale_width", margin=(10, 0, 10, 0)
+        )
+        plot_columns.append(controls_layout)
 
     layout = column(*plot_columns, sizing_mode="scale_width")
 
