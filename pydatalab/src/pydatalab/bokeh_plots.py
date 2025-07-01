@@ -301,6 +301,7 @@ def selectable_axes_plot(
         title=plot_title,
         **kwargs,
     )
+
     p.toolbar.logo = "grey"
     p.xaxis.ticker.desired_num_ticks = 5
     p.yaxis.ticker.desired_num_ticks = 5
@@ -490,6 +491,38 @@ def selectable_axes_plot(
             source=source, columns=[TableColumn(field=c) for c in all_columns], editable=False
         )
         plot_columns = [table] + plot_columns
+
+    if plot_points and plot_line:
+        from bokeh.layouts import row
+
+        show_points_btn = Button(
+            label="✓ Show points", button_type="primary", width_policy="min", margin=(2, 5, 2, 5)
+        )
+
+        circle_renderers = [r for r in p.renderers if hasattr(r.glyph, "size")]
+
+        points_callback = CustomJS(
+            args=dict(btn=show_points_btn, renderers=circle_renderers),
+            code="""
+                if (btn.label.includes('✓')) {
+                    btn.label = '✗ Show points';
+                    btn.button_type = 'default';
+                    for (var i = 0; i < renderers.length; i++) {
+                        renderers[i].visible = false;
+                    }
+                } else {
+                    btn.label = '✓ Show points';
+                    btn.button_type = 'primary';
+                    for (var i = 0; i < renderers.length; i++) {
+                        renderers[i].visible = true;
+                    }
+                }
+            """,
+        )
+
+        show_points_btn.js_on_click(points_callback)
+        controls_layout = row(show_points_btn, sizing_mode="scale_width", margin=(10, 0, 10, 0))
+        plot_columns.append(controls_layout)
 
     layout = column(*plot_columns)
 
