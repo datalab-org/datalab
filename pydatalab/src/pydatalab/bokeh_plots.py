@@ -531,7 +531,7 @@ def selectable_axes_plot(
         plot_visibility_controls.js_on_change("active", visibility_callback)
         plot_columns.append(plot_visibility_controls)
 
-    layout = column(*plot_columns)
+    layout = column(*plot_columns, sizing_mode="scale_width")
 
     p.js_on_event(DoubleTap, CustomJS(args=dict(p=p), code="p.reset.emit()"))
     return layout
