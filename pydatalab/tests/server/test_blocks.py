@@ -1,3 +1,7 @@
+import tempfile
+import time
+from pathlib import Path
+
 import pytest
 
 from pydatalab.apps import BLOCK_TYPES, BLOCKS
@@ -197,3 +201,91 @@ def test_block_info_endpoint_contains_all_blocks(client):
     assert expected_block_types.issubset(
         returned_block_types
     ), f"Missing block types in /info/blocks: {expected_block_types - returned_block_types}"
+
+
+@pytest.mark.dependency(depends=["test_get_all_available_block_types"])
+@pytest.mark.parametrize("n_points", [1000, 100000, 500000])
+def test_bokeh_plot_stress(admin_client, default_sample_dict, n_points):
+    """Test bokeh plot performance with large CSV datasets (1K, 100K, 500K points)."""
+    sample_id = f"test_bokeh_stress_{n_points}_points"
+    sample_data = default_sample_dict.copy()
+    sample_data["item_id"] = sample_id
+
+    response = admin_client.post("/new-sample/", json=sample_data)
+    assert response.status_code == 201
+    assert response.json["status"] == "success"
+
+    csv_lines = ["X,Y"]
+    for i in range(1, n_points + 1):
+        csv_lines.append(f"{i},{i}")
+    csv_content = "\n".join(csv_lines)
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as temp_file:
+        temp_file.write(csv_content)
+        temp_csv_path = temp_file.name
+
+    temp_file_path = Path(temp_csv_path)
+
+    try:
+        with open(temp_file_path, "rb") as f:
+            response = admin_client.post(
+                "/upload-file/",
+                buffered=True,
+                content_type="multipart/form-data",
+                data={
+                    "item_id": sample_id,
+                    "file": [(f, f"stress_test_{n_points}.csv")],
+                    "type": "text/csv",
+                    "replace_file": "null",
+                    "relativePath": "null",
+                },
+            )
+
+        assert response.status_code == 201, f"Failed to upload CSV with {n_points} points"
+        assert response.json["status"] == "success"
+        file_id = response.json["file_id"]
+
+        start_time = time.time()
+
+        response = admin_client.post(
+            "/add-data-block/",
+            json={
+                "block_type": "tabular",
+                "item_id": sample_id,
+                "index": 0,
+            },
+        )
+
+        assert response.status_code == 200, f"Failed to add tabular block for {n_points} points"
+        assert response.json["status"] == "success"
+        block_id = response.json["new_block_obj"]["block_id"]
+
+        response = admin_client.get(f"/get-item-data/{sample_id}")
+        assert response.status_code == 200
+        item_data = response.json["item_data"]
+        block_data = item_data["blocks_obj"][block_id]
+        block_data["file_id"] = file_id
+
+        response = admin_client.post(
+            "/update-block/", json={"block_data": block_data, "save_to_db": True}
+        )
+        assert response.status_code == 200
+
+        processing_time = time.time() - start_time
+
+        response = admin_client.get(f"/get-item-data/{sample_id}")
+        assert response.status_code == 200
+        assert response.json["status"] == "success"
+
+        item_data = response.json["item_data"]
+        assert "blocks_obj" in item_data
+        assert len(item_data["blocks_obj"]) == 1
+
+        updated_block = item_data["blocks_obj"][block_id]
+        assert updated_block["blocktype"] == "tabular"
+        assert updated_block.get("file_id") == file_id
+
+        print(f"✓ Bokeh plot with {n_points} points processed in {processing_time:.2f}s")
+
+    finally:
+        temp_file_path.unlink(missing_ok=True)
