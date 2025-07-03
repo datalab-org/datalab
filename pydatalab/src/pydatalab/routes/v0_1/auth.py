@@ -214,7 +214,7 @@ AUTH = Blueprint("auth", __name__)
 
 OAUTH: dict[IdentityType, Blueprint] = {
     IdentityType.ORCID: make_orcid_blueprint(
-        scope="/authenticate",
+        scope="openid",
         authorization_url_params={"prompt": "login"},
         sandbox=os.environ.get("OAUTH_ORCID_SANDBOX", False),
     ),
