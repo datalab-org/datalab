@@ -28,7 +28,7 @@
 <a href="https://join.slack.com/t/datalab-world/shared_invite/zt-2h58ev3pc-VV496~5je~QoT2TgFIwn4g"><img src="https://img.shields.io/badge/Slack-chat_with_us-yellow?logo=slack"></a>
 </div>
 
-_datalab_ is a user-friendly, open-source platform that can capture all the experimental data and metadata produced in a scientific lab. _datalab_ stores data safely and makes it accessible and reusable by both humans and machines _via_ webUI and python API. _datalab_ can be run locally or in the cloud; it can be self-hosted and managed deployments are also available. Try the working demo deployment [here](https://demo.datalab-org.io/).
+_datalab_ is a user-friendly, open-source platform that can capture all the experimental data and metadata produced in a scientific lab, targeted (broadly) at materials chemistry but with customisability and extensability in mind. _datalab_ stores data safely and makes it accessible and reusable by both humans and machines _via_ webUI and python API. _datalab_ can be run locally or in the cloud; it can be self-hosted and managed deployments are also available. Try the working demo deployment [here](https://demo.datalab-org.io/).
 
 Features:
 
