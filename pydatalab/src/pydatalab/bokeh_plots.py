@@ -29,6 +29,42 @@ TYPEFACE = "Helvetica, sans-serif"
 COLORS = Dark2[8]
 TOOLS = "box_zoom, reset, tap, crosshair, save"
 
+PLOT_WIDTH = 620
+PLOT_HEIGHT = 410
+PLOT_MIN_WIDTH = 620
+PLOT_MIN_HEIGHT = 410
+
+DEFAULT_FIGURE_CONFIG = {
+    "width": PLOT_WIDTH,
+    "height": PLOT_HEIGHT,
+    "min_width": PLOT_MIN_WIDTH,
+    "min_height": PLOT_MIN_HEIGHT,
+    "sizing_mode": "scale_width",
+    "toolbar_location": "above",
+    "tools": TOOLS,
+}
+
+GRID_PLOT_CONFIG = {
+    "width": PLOT_WIDTH // 2 - 20,
+    "height": PLOT_HEIGHT,
+    "min_width": PLOT_MIN_WIDTH // 2 - 20,
+    "min_height": PLOT_MIN_HEIGHT,
+    "sizing_mode": "scale_width",
+    "toolbar_location": "above",
+    "tools": TOOLS,
+}
+
+FULL_WIDTH_CONFIG = {
+    "width": PLOT_WIDTH,
+    "height": PLOT_HEIGHT - 40,
+    "min_width": PLOT_MIN_WIDTH,
+    "min_height": PLOT_MIN_HEIGHT - 40,
+    "sizing_mode": "scale_width",
+    "toolbar_location": "above",
+    "tools": TOOLS,
+}
+
+
 SELECTABLE_CALLBACK_x = """
   var column = cb_obj.value;
   if (circle1) {circle1.glyph.x.field = column;}
@@ -66,7 +102,7 @@ GENERATE_CSV_CALLBACK = """
 style = {
     "attrs": {
         # apply defaults to Figure properties
-        "Figure": {
+        "figure": {
             "toolbar_location": "above",
             "outline_line_color": None,
             "min_border_right": 10,
@@ -96,12 +132,11 @@ style = {
     }
 }
 
-
 """Additional style suitable for grid plots"""
 grid_style = {
     "attrs": {
         # apply defaults to Figure properties
-        "Figure": {
+        "figure": {
             "toolbar_location": "above",
             "outline_line_color": None,
             "min_border_right": 10,
@@ -131,9 +166,62 @@ grid_style = {
     }
 }
 
-
 DATALAB_BOKEH_THEME = Theme(json=style)
 DATALAB_BOKEH_GRID_THEME = Theme(json=grid_style)
+
+
+def create_standard_figure(**kwargs):
+    """
+    Creates a Bokeh figure with standardized dimensions.
+
+    Args:
+        **kwargs: Additional parameters that override the default values.
+
+    Returns:
+        Bokeh figure with standardized dimensions.
+    """
+    config = DEFAULT_FIGURE_CONFIG.copy()
+    config.update(kwargs)
+
+    p = figure(**config)
+    p.toolbar.logo = "grey"
+    return p
+
+
+def create_grid_figure(**kwargs):
+    """
+    Creates a Bokeh figure for grid use with adapted dimensions.
+
+    Args:
+        **kwargs: Additional parameters that override the default values.
+
+    Returns:
+        Bokeh figure with responsive dimensions for grid layout.
+    """
+    config = GRID_PLOT_CONFIG.copy()
+    config.update(kwargs)
+
+    p = figure(**config)
+    p.toolbar.logo = "grey"
+    return p
+
+
+def create_full_width_figure(**kwargs):
+    """
+    Creates a full-width Bokeh figure (for tables, timelines, etc.).
+
+    Args:
+        **kwargs: Additional parameters that override the default values.
+
+    Returns:
+        Full-width responsive Bokeh figure.
+    """
+    config = FULL_WIDTH_CONFIG.copy()
+    config.update(kwargs)
+
+    p = figure(**config)
+    p.toolbar.logo = "grey"
+    return p
 
 
 def selectable_axes_plot(
@@ -225,16 +313,12 @@ def selectable_axes_plot(
     x_axis_label = x_default if label_x else ""
     y_axis_label = y_label if label_y else ""
 
-    p = figure(
-        sizing_mode="scale_width",
-        aspect_ratio=kwargs.pop("aspect_ratio", 1.5),
+    p = create_standard_figure(
         x_axis_label=x_axis_label,
         y_axis_label=y_axis_label,
-        tools=TOOLS,
         title=plot_title,
         **kwargs,
     )
-    p.toolbar.logo = "grey"
 
     if tools:
         if isinstance(tools, list):
@@ -299,7 +383,7 @@ def selectable_axes_plot(
             y_default = y_default[0]
 
         circles = (
-            p.circle(
+            p.scatter(
                 x=x_default,
                 y=y_default,
                 source=source,
@@ -431,9 +515,6 @@ def double_axes_echem_plot(
 
     x_options = [opt for opt in x_options if opt in df.columns]
 
-    common_options = {"aspect_ratio": 1.5, "tools": TOOLS}
-    common_options.update(**kwargs)
-
     if mode == "normal":
         mode = None
 
@@ -452,23 +533,25 @@ def double_axes_echem_plot(
     # normal plot
     # x_label = "Capacity (mAh/g)" if x_default == "Capacity normalized" else x_default
     x_label = x_default
-    p1 = figure(x_axis_label=x_label, y_axis_label="voltage (V)", **common_options)
+
+    if mode == "dQ/dV":
+        p1 = create_grid_figure(x_axis_label=x_label, y_axis_label="voltage (V)", **kwargs)
+    else:
+        p1 = create_standard_figure(x_axis_label=x_label, y_axis_label="voltage (V)", **kwargs)
+
     p1.xaxis.ticker.desired_num_ticks = 5
     plots.append(p1)
 
     # the differential plot
     if mode in ("dQ/dV", "dV/dQ"):
         if mode == "dQ/dV":
-            p2 = figure(
-                x_axis_label=mode,
-                y_axis_label="voltage (V)",
-                y_range=p1.y_range,
-                **common_options,
+            p2 = create_grid_figure(
+                x_axis_label=mode, y_axis_label="voltage (V)", y_range=p1.y_range, **kwargs
             )
             p2.xaxis.ticker.desired_num_ticks = 3
         else:
-            p2 = figure(
-                x_axis_label=x_default, y_axis_label=mode, x_range=p1.x_range, **common_options
+            p2 = create_standard_figure(
+                x_axis_label=x_default, y_axis_label=mode, x_range=p1.x_range, **kwargs
             )
             p2.xaxis.ticker.desired_num_ticks = 5
         plots.append(p2)
@@ -476,10 +559,10 @@ def double_axes_echem_plot(
     elif mode == "final capacity" and cycle_summary is not None:
         palette = Accent[3]
 
-        p3 = figure(
+        p3 = create_standard_figure(
             x_axis_label="Cycle number",
             y_axis_label="capacity (mAh/g)" if normalized else "capacity (mAh)",
-            **common_options,
+            **kwargs,
         )
 
         p3.line(
@@ -490,7 +573,7 @@ def double_axes_echem_plot(
             line_width=2,
             color=palette[0],
         )
-        p3.circle(
+        p3.scatter(
             x="full cycle",
             y="charge capacity (mAh/g)" if normalized else "charge capacity (mAh)",
             source=cycle_summary,
@@ -509,10 +592,11 @@ def double_axes_echem_plot(
             line_width=2,
             color=palette[2],
         )
-        p3.triangle(
+        p3.scatter(
             x="full cycle",
             y="discharge capacity (mAh/g)" if normalized else "discharge capacity (mAh)",
             source=cycle_summary,
+            marker="triangle",
             fill_color="white",
             hatch_color=palette[2],
             line_width=2,
@@ -564,7 +648,7 @@ def double_axes_echem_plot(
 
                 peaks, _ = find_peaks(dvdq_array, prominence=5)
                 peak_locs = group.iloc[peaks]
-                p2.circle(x=x, y=y, source=peak_locs)
+                p2.scatter(x=x, y=y, source=peak_locs)
 
             if ind == 0:
                 lines.append(line)
@@ -614,9 +698,10 @@ def double_axes_echem_plot(
         p.js_on_event(DoubleTap, CustomJS(args=dict(p=p), code="p.reset.emit()"))
 
     if mode == "dQ/dV":
-        grid = [[p1, p2], [xaxis_select]]
+        grid = gridplot([[p1, p2], [xaxis_select]], sizing_mode="scale_width", merge_tools=False)
+
     elif mode == "dV/dQ":
-        grid = [[p1], [p2]]
+        grid = gridplot([[p1], [p2]], sizing_mode="scale_width", merge_tools=False)
     elif mode == "final capacity":
         if cycle_summary is not None:
             save_data = Button(label="Download .csv", button_type="primary", width_policy="min")
@@ -625,11 +710,13 @@ def double_axes_echem_plot(
                 code=GENERATE_CSV_CALLBACK,
             )
             save_data.js_on_click(save_data_callback)
-            grid = [[save_data], [p3]]
+            grid = gridplot([[save_data], [p3]], sizing_mode="scale_width", merge_tools=False)
         else:
             warnings.warn("Unable to generate cycle summary plot for this dataset.")
             return None
     else:
-        grid = [[p1], [xaxis_select], [yaxis_select]]
+        grid = gridplot(
+            [[p1], [xaxis_select], [yaxis_select]], sizing_mode="scale_width", merge_tools=False
+        )
 
-    return gridplot(grid, sizing_mode="scale_width", toolbar_location="below")
+    return grid

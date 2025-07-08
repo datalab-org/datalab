@@ -102,4 +102,6 @@ class FTIRBlock(DataBlock):
 
         if ftir_data is not None:
             layout = self._format_ftir_plot(ftir_data)
-            self.data["bokeh_plot_data"] = bokeh.embed.json_item(layout, theme=DATALAB_BOKEH_THEME)
+            script, div = bokeh.embed.components(layout, theme=DATALAB_BOKEH_THEME)
+
+            self.data["bokeh_plot_data"] = {"script": script, "div": div}

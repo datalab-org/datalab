@@ -169,4 +169,6 @@ class UVVisBlock(DataBlock):
         _names = [Path(file["location"]).name for file in file_info[1:]]
         if len(absorbance_data) > 0:
             layout = self._format_UV_Vis_plot(absorbance_data, names=_names)
-            self.data["bokeh_plot_data"] = bokeh.embed.json_item(layout, theme=DATALAB_BOKEH_THEME)
+            script, div = bokeh.embed.components(layout, theme=DATALAB_BOKEH_THEME)
+
+            self.data["bokeh_plot_data"] = {"script": script, "div": div}

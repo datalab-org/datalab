@@ -218,9 +218,9 @@ class CycleBlock(DataBlock):
         if layout is not None:
             # Don't overwrite the previous plot data in cases where the plot is not generated
             # for a 'normal' reason
-            self.data["bokeh_plot_data"] = bokeh.embed.json_item(
-                layout, theme=bokeh_plots.DATALAB_BOKEH_THEME
-            )
+            script, div = bokeh.embed.components(layout, theme=bokeh_plots.DATALAB_BOKEH_THEME)
+
+            self.data["bokeh_plot_data"] = {"script": script, "div": div}
         return
 
     @property
