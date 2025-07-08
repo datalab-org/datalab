@@ -7,6 +7,7 @@ from flask_login import current_user
 from pydantic import ValidationError
 from pymongo.command_cursor import CommandCursor
 from pymongo.errors import DuplicateKeyError
+from werkzeug.exceptions import BadRequest
 
 from pydatalab.apps import BLOCK_TYPES
 from pydatalab.config import CONFIG
@@ -504,7 +505,8 @@ def _create_sample(
     sample_dict.pop("refcode", None)
     type_ = sample_dict["type"]
     if type_ not in ITEM_MODELS:
-        raise RuntimeError("Invalid type")
+        raise BadRequest(f"Invalid type {type_!r}, must be one of {ITEM_MODELS.keys()}")
+
     model = ITEM_MODELS[type_]
 
     # the following code was used previously to explicitely check schema properties.
@@ -993,14 +995,12 @@ def save_item():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
 
     if "item_id" not in request_json:
-        raise RuntimeError(
+        raise BadRequest(
             "`/save-item/` endpoint requires 'item_id' to be passed in JSON request body"
         )
 
     if "data" not in request_json:
-        raise RuntimeError(
-            "`/save-item/` endpoint requires 'data' to be passed in JSON request body"
-        )
+        raise BadRequest("`/save-item/` endpoint requires 'data' to be passed in JSON request body")
 
     item_id = str(request_json["item_id"])
     updated_data = request_json["data"]

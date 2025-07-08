@@ -26,7 +26,12 @@ def get_graph_cy_format(
                 {"collection_id": collection_id}, projection={"_id": 1}
             )
             if not collection_immutable_id:
-                raise RuntimeError("No collection {collection_id=} found.")
+                return (
+                    jsonify(
+                        status="error", message=f"No collection found with ID {collection_id!r}"
+                    ),
+                    404,
+                )
             collection_immutable_id = collection_immutable_id["_id"]
             query = {
                 "$and": [

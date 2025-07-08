@@ -20,6 +20,7 @@ from flask_dance.contrib.github import github, make_github_blueprint
 from flask_dance.contrib.orcid import make_orcid_blueprint, orcid
 from flask_login import current_user, login_user
 from flask_login.utils import LocalProxy
+from werkzeug.exceptions import BadRequest
 
 from pydatalab.config import CONFIG
 from pydatalab.errors import UserRegistrationForbidden
@@ -124,9 +125,7 @@ def find_user_with_identity(
             if (_.identity_type == identity_type and _.identifier == identifier)
         ]
         if len(identity_indices) != 1:
-            raise RuntimeError(
-                "Unexpected error: multiple or no identities matched the OAuth token."
-            )
+            raise BadRequest("Unexpected error: multiple or no identities matched the OAuth token.")
 
         identity_index = identity_indices[0]
 
@@ -198,7 +197,7 @@ def find_create_or_modify_user(
         )
 
         if result.matched_count != 1:
-            raise RuntimeError(
+            raise BadRequest(
                 f"Attempted to modify user {user_id} but performed {result.matched_count} updates. Results:\n{result.raw_result}"
             )
 
@@ -362,7 +361,7 @@ def email_logged_in():
 
     email = data["email"]
     if not email:
-        raise RuntimeError("No email found; please request a new token.")
+        raise BadRequest("No email found; please request a new token.")
 
     # If the email domain list is explicitly configured to None, this allows any
     # email address to make an active account, otherwise the email domain must match
