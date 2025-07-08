@@ -38,6 +38,7 @@ def handle_http_exception(exc: HTTPException) -> tuple[Response, int]:
     response = {
         "title": exc.__class__.__name__,
         "description": exc.description,
+        "status": "error",
     }
     status_code = exc.code if exc.code else 400
 
@@ -71,6 +72,7 @@ def handle_pydantic_validation_error(exc: ValidationError) -> tuple[Response, in
     response = {
         "title": exc.__class__.__name__,
         "message": str(exc.args[:]) if exc.args else "",
+        "status": "error",
     }
     return jsonify(response), 500
 
@@ -81,8 +83,9 @@ def handle_generic_exception(exc: Exception) -> tuple[Response, int]:
         raise exc
 
     response = {
-        "title": exc.__class__.__name__,
-        "message": str(exc.args) if exc.args else "",
+        "title": "Internal Server Error",
+        "message": exc.__class__.__name__ + " " + str(exc.args) if exc.args else "",
+        "status": "error",
     }
     return jsonify(response), 500
 
