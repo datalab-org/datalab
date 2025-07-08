@@ -14,10 +14,8 @@ from string import ascii_letters
 
 import jwt
 from bson import ObjectId
-from flask import Blueprint, jsonify, redirect, request
-from flask_dance.consumer import oauth_authorized
-from flask_dance.contrib.github import github, make_github_blueprint
-from flask_dance.contrib.orcid import make_orcid_blueprint, orcid
+from flask import Blueprint, g, jsonify, redirect, request
+from flask_dance.consumer import OAuth2ConsumerBlueprint, oauth_authorized
 from flask_login import current_user, login_user
 from flask_login.utils import LocalProxy
 from werkzeug.exceptions import BadRequest
@@ -34,6 +32,176 @@ KEY_LENGTH: int = 32
 LINK_EXPIRATION: datetime.timedelta = datetime.timedelta(hours=1)
 
 
+def make_github_blueprint(
+    client_id=None,
+    client_secret=None,
+    *,
+    authorization_url_params=None,
+    scope=None,
+    redirect_url=None,
+    redirect_to=None,
+    login_url=None,
+    authorized_url=None,
+    session_class=None,
+    storage=None,
+    rule_kwargs=None,
+):
+    """
+    Make a blueprint for authenticating with GitHub using OAuth 2. This requires
+    a client ID and client secret from GitHub. You should either pass them to
+    this constructor, or make sure that your Flask application config defines
+    them, using the variables :envvar:`GITHUB_OAUTH_CLIENT_ID` and
+    :envvar:`GITHUB_OAUTH_CLIENT_SECRET`.
+
+    Args:
+        client_id (str): The client ID for your application on GitHub.
+        client_secret (str): The client secret for your application on GitHub
+        scope (str, optional): comma-separated list of scopes for the OAuth token
+        redirect_url (str): the URL to redirect to after the authentication
+            dance is complete
+        redirect_to (str): if ``redirect_url`` is not defined, the name of the
+            view to redirect to after the authentication dance is complete.
+            The actual URL will be determined by :func:`flask.url_for`
+        login_url (str, optional): the URL path for the ``login`` view.
+            Defaults to ``/github``
+        authorized_url (str, optional): the URL path for the ``authorized`` view.
+            Defaults to ``/github/authorized``.
+        session_class (class, optional): The class to use for creating a
+            Requests session. Defaults to
+            :class:`~flask_dance.consumer.requests.OAuth2Session`.
+        storage: A token storage class, or an instance of a token storage
+                class, to use for this blueprint. Defaults to
+                :class:`~flask_dance.consumer.storage.session.SessionStorage`.
+        rule_kwargs (dict, optional): Additional arguments that should be passed when adding
+            the login and authorized routes. Defaults to ``None``.
+
+    :rtype: :class:`~flask_dance.consumer.OAuth2ConsumerBlueprint`
+    :returns: A :doc:`blueprint <flask:blueprints>` to attach to your Flask app.
+    """
+    github_bp = OAuth2ConsumerBlueprint(
+        "github",
+        __name__,
+        client_id=client_id,
+        client_secret=client_secret,
+        scope=scope,
+        base_url="https://api.github.com/",
+        authorization_url="https://github.com/login/oauth/authorize",  # noqa: S105
+        authorization_url_params=authorization_url_params,
+        token_url="https://github.com/login/oauth/access_token",  # noqa: S106
+        redirect_url=redirect_url,
+        redirect_to=redirect_to,
+        login_url=login_url,
+        authorized_url=authorized_url,
+        session_class=session_class,
+        storage=storage,
+        rule_kwargs=rule_kwargs,
+    )
+    github_bp.from_config["client_id"] = "GITHUB_OAUTH_CLIENT_ID"
+    github_bp.from_config["client_secret"] = "GITHUB_OAUTH_CLIENT_SECRET"  # noqa: S105
+
+    @github_bp.before_app_request
+    def set_applocal_session():
+        g.flask_dance_github = github_bp.session
+
+    return github_bp
+
+
+github = LocalProxy(lambda: g.flask_dance_github)
+
+
+def make_orcid_blueprint(
+    client_id=None,
+    client_secret=None,
+    *,
+    authorization_url_params=None,
+    scope=None,
+    redirect_url=None,
+    redirect_to=None,
+    login_url=None,
+    authorized_url=None,
+    session_class=None,
+    storage=None,
+    rule_kwargs=None,
+    sandbox=False,
+):
+    """
+    Make a blueprint for authenticating with ORCID (https://orcid.org)
+    using OAuth2.
+
+    This requires a client ID and client secret from ORCID. You should
+    either pass them to this constructor, or make sure that your Flask
+    application config defines them, using the variables
+    :envvar:`ORCID_OAUTH_CLIENT_ID` and :envvar:`ORCID_OAUTH_CLIENT_SECRET`.
+
+    The ORCID Sandbox API (https://sandbox.orcid.org) will be used if
+    the ``sandbox`` argument is set to true.
+
+    Args:
+        client_id (str): The client ID for your application on ORCID.
+        client_secret (str): The client secret for your application on ORCID
+        scope (str, optional): comma-separated list of scopes for the OAuth token
+        redirect_url (str): the URL to redirect to after the authentication
+            dance is complete
+        redirect_to (str): if ``redirect_url`` is not defined, the name of the
+            view to redirect to after the authentication dance is complete.
+            The actual URL will be determined by :func:`flask.url_for`
+        login_url (str, optional): the URL path for the ``login`` view.
+            Defaults to ``/orcid``
+        authorized_url (str, optional): the URL path for the ``authorized`` view.
+            Defaults to ``/orcid/authorized``.
+        session_class (class, optional): The class to use for creating a
+            Requests session. Defaults to
+            :class:`~flask_dance.consumer.requests.OAuth2Session`.
+        storage: A token storage class, or an instance of a token storage
+                class, to use for this blueprint. Defaults to
+                :class:`~flask_dance.consumer.storage.session.SessionStorage`.
+        rule_kwargs (dict, optional): Additional arguments that should be passed when adding
+            the login and authorized routes. Defaults to ``None``.
+        sandbox (bool): Whether to use the ORCID sandbox instead of the production API.
+
+    :rtype: :class:`~flask_dance.consumer.OAuth2ConsumerBlueprint`
+    :returns: A :doc:`blueprint <flask:blueprints>` to attach to your Flask app.
+    """
+
+    base_url = "https://api.orcid.org"
+    authorization_url = "https://orcid.org/oauth/authorize"
+    token_url = "https://orcid.org/oauth/token"  # noqa: S105
+    if sandbox:
+        base_url = "https://api.sandbox.orcid.org"
+        authorization_url = "https://sandbox.orcid.org/oauth/authorize"
+        token_url = "https://sandbox.orcid.org/oauth/token"  # noqa: S105
+
+    orcid_bp = OAuth2ConsumerBlueprint(
+        "orcid",
+        __name__,
+        client_id=client_id,
+        client_secret=client_secret,
+        scope=scope,
+        base_url=base_url,
+        authorization_url=authorization_url,
+        authorization_url_params=authorization_url_params,
+        token_url=token_url,
+        redirect_url=redirect_url,
+        redirect_to=redirect_to,
+        login_url=login_url,
+        authorized_url=authorized_url,
+        session_class=session_class,
+        storage=storage,
+        rule_kwargs=rule_kwargs,
+    )
+    orcid_bp.from_config["client_id"] = "ORCID_OAUTH_CLIENT_ID"
+    orcid_bp.from_config["client_secret"] = "ORCID_OAUTH_CLIENT_SECRET"  # noqa: S105
+
+    @orcid_bp.before_app_request
+    def set_applocal_session():
+        g.flask_dance_orcid = orcid_bp.session
+
+    return orcid_bp
+
+
+orcid = LocalProxy(lambda: g.flask_dance_orcid)
+
+
 @logged_route
 def wrapped_login_user(*args, **kwargs):
     login_user(*args, **kwargs)
@@ -46,10 +214,12 @@ AUTH = Blueprint("auth", __name__)
 
 OAUTH: dict[IdentityType, Blueprint] = {
     IdentityType.ORCID: make_orcid_blueprint(
-        scope="/authenticate",
+        scope="openid",
+        authorization_url_params={"prompt": "login"},
         sandbox=os.environ.get("OAUTH_ORCID_SANDBOX", False),
     ),
     IdentityType.GITHUB: make_github_blueprint(
+        authorization_url_params={"prompt": "select_account"},
         scope="read:org,read:user",
     ),
     IdentityType.EMAIL: EMAIL_BLUEPRINT,
