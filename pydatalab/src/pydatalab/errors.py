@@ -37,7 +37,7 @@ def handle_http_exception(exc: HTTPException) -> tuple[Response, int]:
     """Return a specific error message and status code if the exception stores them."""
     response = {
         "title": exc.__class__.__name__,
-        "description": exc.description,
+        "message": exc.description,
         "status": "error",
     }
     status_code = exc.code if exc.code else 400
@@ -57,7 +57,7 @@ def handle_large_file_exception(exc: RequestEntityTooLarge) -> tuple[Response, i
     response = {
         "title": exc.__class__.__name__,
         "status": "error",
-        "description": f"""Uploaded file is too large.
+        "message": f"""Uploaded file is too large.
 The maximum file size is {CONFIG.MAX_CONTENT_LENGTH / 1024 ** 3:.2f} GB.
 Contact your datalab administrator if you need to upload larger files.""",
     }
