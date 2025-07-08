@@ -175,5 +175,5 @@ as_regex = true
 
 [tool.liccheck.authorized_packages]
 newarenda = ">=2025,<2026"
-galvani = ">=0.5"
+datalab-org-galvani = ">=0.5"
 flask-cors = ">=5,<7"
