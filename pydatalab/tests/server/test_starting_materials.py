@@ -111,6 +111,18 @@ def test_save_good_starting_material(client, default_starting_material_dict):
     assert response.status_code == 200, response.json
     assert response.json["status"] == "success"
 
+    # Test a bad request
+    response = client.post(
+        "/save-item/",
+        json={
+            "item_ids": default_starting_material_dict["item_id"],
+            "data": updated_starting_material,
+        },
+    )
+    assert response.status_code == 400
+    assert response.json["status"] == "error"
+    assert "'item_id' to be passed in JSON request body" in response.json["message"]
+
     response = client.get("/get-item-data/test_sm")
     assert response.status_code == 200
     assert response.json["status"] == "success"

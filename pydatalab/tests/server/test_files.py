@@ -30,7 +30,7 @@ def test_too_large_upload(client, tmpdir, insert_default_sample, default_sample)
     assert response.json["status"] == "error"
     assert response.json["title"] == "RequestEntityTooLarge"
     assert (
-        response.json["description"]
+        response.json["message"]
         == "Uploaded file is too large.\nThe maximum file size is 0.01 GB.\nContact your datalab administrator if you need to upload larger files."
     )
 
