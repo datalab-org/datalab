@@ -18,7 +18,7 @@ from bokeh.models import (
     LinearColorMapper,
     TableColumn,
 )
-from bokeh.models.widgets import Select
+from bokeh.models.widgets import Dropdown, Select
 from bokeh.palettes import Accent, Dark2
 from bokeh.plotting import ColumnDataSource, figure
 from bokeh.themes import Theme
@@ -58,6 +58,36 @@ GENERATE_CSV_CALLBACK = """
   const link = document.createElement("a");
   link.setAttribute("href", encodedUri);
   link.setAttribute("download", "data.csv");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+"""
+GENERATE_XY_CALLBACK = """
+  let columns = Object.keys(source.data);
+  console.log(columns);
+
+  let x_column = '2θ (°)';
+  let y_column = 'intensity';
+
+  if (!columns.includes(x_column)) {
+    x_column = columns[0];
+  }
+  if (!columns.includes(y_column)) {
+    y_column = columns[columns.includes('intensity') ? columns.indexOf('intensity') : 1];
+  }
+
+  const x_values = source.data[x_column];
+  const y_values = source.data[y_column];
+
+  var xyContent = "data:text/plain;charset=utf-8,";
+  for (var i = 0; i < x_values.length; i++) {
+    xyContent += x_values[i].toFixed(5) + "\\t" + y_values[i].toFixed(3) + "\\n";
+  }
+
+  const encodedUri = encodeURI(xyContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", "data.xy");
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -380,13 +410,38 @@ def selectable_axes_plot(
         and isinstance(df, list)
         and isinstance(df[0], pd.DataFrame)
     ):
-        save_data = Button(label="Download .csv", button_type="primary", width_policy="min")
-        save_data_callback = CustomJS(
-            args=dict(source=source),
-            code=GENERATE_CSV_CALLBACK,
-        )
-        save_data.js_on_click(save_data_callback)
-        plot_columns = [save_data] + plot_columns
+        is_xrd_data = any(col in df[0].columns for col in ["2θ (°)", "intensity", "twotheta"])
+
+        if is_xrd_data:
+            dropdown_menu = [("Download .csv", "csv"), ("Download .xy", "xy")]
+            export_dropdown = Dropdown(
+                label="Download...", button_type="primary", menu=dropdown_menu, width_policy="min"
+            )
+
+            dropdown_callback = CustomJS(
+                args=dict(source=source),
+                code="""
+                if (cb_obj.item == "csv") {
+                    """
+                + GENERATE_CSV_CALLBACK
+                + """
+                } else if (cb_obj.item == "xy") {
+                    """
+                + GENERATE_XY_CALLBACK
+                + """
+                }
+                """,
+            )
+            export_dropdown.js_on_click(dropdown_callback)
+            plot_columns = [export_dropdown] + plot_columns
+        else:
+            save_data = Button(label="Download .csv", button_type="primary", width_policy="min")
+            save_data_callback = CustomJS(
+                args=dict(source=source),
+                code=GENERATE_CSV_CALLBACK,
+            )
+            save_data.js_on_click(save_data_callback)
+            plot_columns = [save_data] + plot_columns
 
     if show_table:
         table = DataTable(

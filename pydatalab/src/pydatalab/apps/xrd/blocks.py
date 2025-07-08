@@ -59,7 +59,8 @@ class XRDBlock(DataBlock):
             df, peak_data = compute_cif_pxrd(
                 location, wavelength=wavelength or cls.defaults["wavelength"]
             )
-            theoretical = True  # Track whether this is a computed PXRD that does not need background subtraction
+            # Track whether this is a computed PXRD that does not need background subtraction
+            theoretical = True
 
         else:
             columns = ["twotheta", "intensity", "error"]
