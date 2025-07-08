@@ -992,6 +992,16 @@ def get_item_data(
 def save_item():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
 
+    if "item_id" not in request_json:
+        raise RuntimeError(
+            "`/save-item/` endpoint requires 'item_id' to be passed in JSON request body"
+        )
+
+    if "data" not in request_json:
+        raise RuntimeError(
+            "`/save-item/` endpoint requires 'data' to be passed in JSON request body"
+        )
+
     item_id = str(request_json["item_id"])
     updated_data = request_json["data"]
 
@@ -1017,22 +1027,35 @@ def save_item():
 
         updated_data["blocks_obj"][block_id] = block.to_db()
 
-    user_only = updated_data["type"] not in ("starting_materials", "equipment")
-
-    item = flask_mongo.db.items.find_one(
-        {"item_id": item_id, **get_default_permissions(user_only=user_only)}
-    )
-
     # Bit of a hack for now: starting materials and equipment should be editable by anyone,
     # so we adjust the query above to be more permissive when the user is requesting such an item
     # but before returning we need to check that the actual item did indeed have that type
-    if not item or not user_only and item["type"] not in ("starting_materials", "equipment"):
+    item = flask_mongo.db.items.find_one(
+        {"item_id": item_id, **get_default_permissions(user_only=False)}
+    )
+
+    if not item:
         return (
             jsonify(
                 status="error",
                 message=f"Unable to find item with appropriate permissions and {item_id=}.",
             ),
-            400,
+            404,
+        )
+
+    user_only = item["type"] not in ("starting_materials", "equipment")
+
+    item = flask_mongo.db.items.find_one(
+        {"item_id": item_id, **get_default_permissions(user_only=user_only)}
+    )
+
+    if not item:
+        return (
+            jsonify(
+                status="error",
+                message=f"Unable to find item with appropriate permissions and {item_id=}.",
+            ),
+            404,
         )
 
     if updated_data.get("collections", []):
