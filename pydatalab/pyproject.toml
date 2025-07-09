@@ -1,12 +1,11 @@
 [project]
 name = "datalab-server"
-keywords = []
+keywords = ["research data management", "materials", "chemistry"]
+description = "datalab is a research data management platform for materials science and chemistry."
 readme = "README.md"
 license = "MIT"
 authors = [
-    { name = "Matthew Evans", email = "dev@datalab.industries" },
-    { name = "Joshua Bocarsly" },
-    { name = "datalab development team", email = "dev@datalab-org.io" },
+    {name = "datalab development team", email = "dev@datalab-org.io"},
 ]
 dynamic = ["version"]
 classifiers = [
@@ -126,6 +125,7 @@ dev-dependencies = [
     "mkdocs-material ~= 9.5",
     "mkdocstrings[python] ~= 0.29",
     "mkdocs-awesome-pages-plugin ~= 2.9",
+    "markdown-callouts ~= 0.4",
 ]
 
 [tool.uv.sources]
@@ -175,5 +175,5 @@ as_regex = true
 
 [tool.liccheck.authorized_packages]
 newarenda = ">=2025,<2026"
-galvani = ">=0.5"
+datalab-org-galvani = ">=0.5"
 flask-cors = ">=5,<7"

@@ -469,6 +469,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "datalab-org-galvani"
+version = "0.5.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/8a/01/8f40b2f43679b9564a95ceb10786dacc5165636cf057e9277833bf064bea/datalab_org_galvani-0.5.1.tar.gz", hash = "sha256:a635e4b9375c58365ff4b08ff7843805ffb23ebb68dcebb61f4c10796ef751c8", size = 56339 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4f/73/44a9da78ac0769a88397101f842c9558f5d9dac484b7b191fecbc381c866/datalab_org_galvani-0.5.1-py3-none-any.whl", hash = "sha256:735ad08de8a130c06adcbeacdc58837cdca55b0e2feae2f3c06c93d1e13ebec2", size = 27434 },
+]
+
+[[package]]
 name = "datalab-server"
 source = { editable = "." }
 dependencies = [
@@ -549,6 +561,7 @@ server = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "markdown-callouts" },
     { name = "mkdocs" },
     { name = "mkdocs-awesome-pages-plugin" },
     { name = "mkdocs-material" },
@@ -602,6 +615,7 @@ provides-extras = ["server", "apps", "app-plugins-git", "chat", "deploy", "all"]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "markdown-callouts", specifier = "~=0.4" },
     { name = "mkdocs", specifier = "~=1.6" },
     { name = "mkdocs-awesome-pages-plugin", specifier = "~=2.9" },
     { name = "mkdocs-material", specifier = "~=9.5" },
@@ -896,15 +910,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/a0/52/f16a068ebadae4252
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c6/b2/454d6e7f0158951d8a78c2e1eb4f69ae81beb8dca5fee9809c6c99e9d0d0/fsspec-2024.10.0-py3-none-any.whl", hash = "sha256:03b9a6785766a4de40368b88906366755e2819e758b83705c88cd7cb5fe81871", size = 179641 },
 ]
-
-[[package]]
-name = "galvani"
-version = "0.5.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "numpy" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/af/3a/8ab1095fb888534540bca21e0c15065819331f3d42a156eac799aa6816ab/galvani-0.5.0.tar.gz", hash = "sha256:da0e3b34b114bf615caf3061fc72ef0ab59d2e175bbfd580a22977c290928270", size = 37371 }
 
 [[package]]
 name = "ghp-import"
@@ -1301,6 +1306,18 @@ wheels = [
 ]
 
 [[package]]
+name = "markdown-callouts"
+version = "0.4.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "markdown" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/87/73/ae5aa379f6f7fea9d0bf4cba888f9a31d451d90f80033ae60ae3045770d5/markdown_callouts-0.4.0.tar.gz", hash = "sha256:7ed2c90486967058a73a547781121983839522d67041ae52c4979616f1b2b746", size = 9768 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/1d/b5/7b0a0a52c82bfccd830af2a8cc8add1c5bc932e0204922434954a631dd51/markdown_callouts-0.4.0-py3-none-any.whl", hash = "sha256:ed0da38f29158d93116a0d0c6ecaf9df90b37e0d989b5337d678ee6e6d6550b7", size = 7108 },
+]
+
+[[package]]
 name = "markupsafe"
 version = "3.0.2"
 source = { registry = "https://pypi.org/simple" }
@@ -1586,10 +1603,10 @@ wheels = [
 
 [[package]]
 name = "navani"
-version = "0.1.11"
+version = "0.1.12"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "galvani" },
+    { name = "datalab-org-galvani" },
     { name = "matplotlib" },
     { name = "newarenda" },
     { name = "numpy" },
@@ -1598,9 +1615,9 @@ dependencies = [
     { name = "requests" },
     { name = "scipy" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/5e/c9/3554804fa119b430e5438c8b0b5b81580b6ba311f77e85be5e18468fbbb6/navani-0.1.11.tar.gz", hash = "sha256:4444e2f9f4deb13990a91f5a6520eb953f65c120d7467452796db50eaf843bd0", size = 4702038 }
+sdist = { url = "https://files.pythonhosted.org/packages/4c/cc/8be94a7133a41277ca31aced56e67a4e25f2ea34c91f3da7085ed59cadcf/navani-0.1.12.tar.gz", hash = "sha256:b87237ccac6d1fa25804ff6f322228857b45554a621ce7b1a275a9adb4ddfa63", size = 4697700 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/13/b0/715e90ff9f645d3d5d77b341d9a63a38908716dd7015ee2691c7bca069e9/navani-0.1.11-py3-none-any.whl", hash = "sha256:efd89bac04c19e63318de790bb2da5d076636eb3772234dd235941de511df614", size = 14335 },
+    { url = "https://files.pythonhosted.org/packages/67/2b/5409d5d73cadd4f01ca11b9b5bf82ca690b0e89a0cf61b2ea79ec2e27be2/navani-0.1.12-py3-none-any.whl", hash = "sha256:e9eb27d2365a21816c5df3828fbe984b1658d58701765ca65b66d24317fe4bb4", size = 14953 },
 ]
 
 [[package]]

@@ -54,6 +54,7 @@ export default createStore({
         rows: 20,
       },
     },
+    block_implementation_errors: {},
   },
   mutations: {
     setServerInfo(state, serverInfo) {
@@ -359,6 +360,13 @@ export default createStore({
         state.all_collection_children[collection_id] = state.all_collection_children[
           collection_id
         ].filter((item) => !refcodes.includes(item.refcode));
+      }
+    },
+    setBlockImplementationError(state, { block_id, hasError }) {
+      if (hasError) {
+        state.block_implementation_errors[block_id] = true;
+      } else {
+        delete state.block_implementation_errors[block_id];
       }
     },
   },
