@@ -1,10 +1,14 @@
+import json
+
+import pymongo.errors
 from bson import ObjectId
 from flask import Blueprint, jsonify, request
 from flask_login import current_user
 
 from pydatalab.config import CONFIG
+from pydatalab.models.people import Group, User
 from pydatalab.mongo import flask_mongo
-from pydatalab.permissions import admin_only, get_default_permissions
+from pydatalab.permissions import admin_only
 
 ADMIN = Blueprint("admins", __name__)
 
@@ -18,7 +22,6 @@ def _(): ...
 def get_users():
     users = flask_mongo.db.users.aggregate(
         [
-            {"$match": get_default_permissions(user_only=True)},
             {
                 "$lookup": {
                     "from": "roles",
@@ -26,6 +29,19 @@ def get_users():
                     "foreignField": "_id",
                     "as": "role",
                 }
+            },
+            {
+                "$lookup": {
+                    "from": "groups",
+                    "let": {"group_ids": "$group_ids"},
+                    "pipeline": [
+                        {"$match": {"$expr": {"$in": ["$_id", {"$ifNull": ["$$group_ids", []]}]}}},
+                        {"$addFields": {"__order": {"$indexOfArray": ["$$group_ids", "$_id"]}}},
+                        {"$sort": {"__order": 1}},
+                        {"$project": {"_id": 1, "display_name": 1, "group_id": 1, "type": 1}},
+                    ],
+                    "as": "groups",
+                },
             },
             {
                 "$addFields": {
@@ -41,7 +57,7 @@ def get_users():
         ]
     )
 
-    return jsonify({"status": "success", "data": list(users)})
+    return jsonify({"status": "success", "data": list(json.loads(User(**u).json()) for u in users)})
 
 
 @ADMIN.route("/roles/<user_id>", methods=["PATCH"])
@@ -93,3 +109,161 @@ def save_role(user_id):
         )
 
     return (jsonify({"status": "success"}), 200)
+
+
+@ADMIN.route("/admin/groups", methods=["GET"])
+def get_groups():
+    groups_data = []
+    for group_doc in flask_mongo.db.groups.find():
+        group_doc["immutable_id"] = str(group_doc["_id"])
+
+        group_data = json.loads(Group(**group_doc).json())
+
+        group_members = list(
+            flask_mongo.db.users.find(
+                {"group_ids": group_doc["_id"]}, {"_id": 1, "display_name": 1, "contact_email": 1}
+            )
+        )
+        group_data["members"] = [
+            {
+                "immutable_id": str(member["_id"]),
+                "display_name": member.get("display_name", ""),
+                "contact_email": member.get("contact_email", ""),
+            }
+            for member in group_members
+        ]
+
+        if group_doc.get("group_admins"):
+            admin_ids = [ObjectId(admin_id) for admin_id in group_doc["group_admins"]]
+            group_admins = list(
+                flask_mongo.db.users.find(
+                    {"_id": {"$in": admin_ids}}, {"_id": 1, "display_name": 1, "contact_email": 1}
+                )
+            )
+            group_data["group_admins"] = [
+                {
+                    "immutable_id": str(admin["_id"]),
+                    "display_name": admin.get("display_name", ""),
+                    "contact_email": admin.get("contact_email", ""),
+                }
+                for admin in group_admins
+            ]
+
+        groups_data.append(group_data)
+
+    return jsonify(
+        {
+            "status": "success",
+            "data": groups_data,
+        }
+    ), 200
+
+
+@ADMIN.route("/groups", methods=["PUT"])
+@admin_only
+def create_group():
+    request_json = request.get_json()
+
+    group_json = {
+        "group_id": request_json.get("group_id"),
+        "display_name": request_json.get("display_name"),
+        "description": request_json.get("description"),
+        "group_admins": request_json.get("group_admins"),
+    }
+    try:
+        group = Group(**group_json)
+    except Exception as e:
+        return jsonify({"status": "error", "message": f"Invalid group data: {str(e)}"}), 400
+
+    try:
+        group_immutable_id = flask_mongo.db.groups.insert_one(group.dict()).inserted_id
+    except pymongo.errors.DuplicateKeyError:
+        return jsonify(
+            {"status": "error", "message": f"Group ID {group.group_id} already exists."}
+        ), 400
+
+    if group_immutable_id:
+        return jsonify({"status": "success", "group_immutable_id": str(group_immutable_id)}), 200
+
+    return jsonify({"status": "error", "message": "Unable to create group."}), 400
+
+
+@ADMIN.route("/groups", methods=["DELETE"])
+def delete_group():
+    request_json = request.get_json()
+
+    group_id = request_json.get("immutable_id")
+    if group_id is not None:
+        result = flask_mongo.db.groups.delete_one({"_id": ObjectId(group_id)})
+
+        if result.deleted_count == 1:
+            return jsonify({"status": "success"}), 200
+
+    return jsonify({"status": "error", "message": "Unable to delete group."}), 400
+
+
+@ADMIN.route("/groups/<group_immutable_id>", methods=["PUT"])
+@admin_only
+def update_group(group_immutable_id):
+    request_json = request.get_json()
+
+    existing_group = flask_mongo.db.groups.find_one({"_id": ObjectId(group_immutable_id)})
+    if not existing_group:
+        return jsonify({"status": "error", "message": "Group not found."}), 404
+
+    update_data = {}
+
+    if "display_name" in request_json:
+        update_data["display_name"] = request_json["display_name"]
+
+    if "description" in request_json:
+        update_data["description"] = request_json["description"]
+
+    if "group_admins" in request_json:
+        update_data["group_admins"] = request_json["group_admins"]
+
+    try:
+        temp_group_data = {**existing_group, **update_data}
+        temp_group_data.pop("_id", None)
+        Group(**temp_group_data)
+    except Exception as e:
+        return jsonify({"status": "error", "message": f"Invalid group data: {str(e)}"}), 400
+
+    try:
+        result = flask_mongo.db.groups.update_one(
+            {"_id": ObjectId(group_immutable_id)}, {"$set": update_data}
+        )
+
+        if result.matched_count == 0:
+            return jsonify({"status": "error", "message": "Group not found."}), 404
+
+        if result.modified_count == 0:
+            return jsonify({"status": "success", "message": "No changes were made."}), 200
+
+        return jsonify({"status": "success", "message": "Group updated successfully."}), 200
+
+    except Exception as e:
+        return jsonify({"status": "error", "message": f"Failed to update group: {str(e)}"}), 500
+
+
+@ADMIN.route("/groups/<group_immutable_id>", methods=["PATCH"])
+def add_user_to_group(group_immutable_id):
+    request_json = request.get_json()
+    user_id = request_json.get("user_id")
+
+    if not user_id:
+        return jsonify({"status": "error", "message": "No user ID provided."}), 400
+
+    group_exists = flask_mongo.db.groups.find_one({"_id": ObjectId(group_immutable_id)})
+    if not group_exists:
+        return jsonify({"status": "error", "message": "Group does not exist."}), 400
+
+    update_user = flask_mongo.db.users.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$addToSet": {"group_ids": ObjectId(group_immutable_id)}},
+    )
+
+    if update_user.modified_count == 1:
+        return jsonify({"status": "success", "message": "User added to group successfully."}), 200
+    else:
+        return jsonify({"status": "error", "message": "Unable to add user to group."}), 400

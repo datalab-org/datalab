@@ -98,6 +98,24 @@
           :is="itemCreateModalAddonComponent"
           @starting-data-callback="(callback) => (startingDataCallback = callback)"
         />
+        <div class="form-row">
+          <div class="col-md-6 form-group">
+            <label id="shareWithGroupsLabel">(Optional) Share with groups:</label>
+            <GroupSelect
+              v-model="shareWithGroups"
+              aria-labelledby="shareWithGroupsLabel"
+              multiple
+            />
+          </div>
+          <div class="col-md-6 form-group">
+            <label id="additionalCreatorsLabel">(Optional) Additional creators:</label>
+            <UserSelect
+              v-model="additionalCreators"
+              aria-labelledby="additionalCreatorsLabel"
+              multiple
+            />
+          </div>
+        </div>
       </template>
     </Modal>
   </form>
@@ -106,6 +124,8 @@
 <script>
 import Modal from "@/components/Modal.vue";
 import ItemSelect from "@/components/ItemSelect.vue";
+import GroupSelect from "@/components/GroupSelect.vue";
+import UserSelect from "@/components/UserSelect.vue";
 import { createNewItem } from "@/server_fetch_utils.js";
 import { validateEntryID } from "@/field_utils.js";
 import { itemTypes, SAMPLE_TABLE_TYPES, AUTOMATICALLY_GENERATE_ID_DEFAULT } from "@/resources.js";
@@ -116,6 +136,8 @@ export default {
     Modal,
     ItemSelect,
     CollectionSelect,
+    GroupSelect,
+    UserSelect,
   },
   props: {
     modelValue: Boolean,
@@ -138,6 +160,8 @@ export default {
       startingConstituents: [],
       generateIDAutomatically: AUTOMATICALLY_GENERATE_ID_DEFAULT,
       agesAgo: new Date("1970-01-01").toISOString().slice(0, -8), // a datetime for the unix epoch start
+      shareWithGroups: [],
+      additionalCreators: [],
     };
   },
   computed: {
@@ -176,6 +200,8 @@ export default {
           type: "collections",
         }));
       }
+      const groupsData = this.shareWithGroups.length > 0 ? this.shareWithGroups : null;
+      const creatorsData = this.additionalCreators.length > 0 ? this.additionalCreators : null;
 
       await createNewItem(
         this.item_id,
@@ -186,6 +212,8 @@ export default {
         extraData,
         this.selectedItemToCopy && this.selectedItemToCopy.item_id,
         this.generateIDAutomatically,
+        groupsData,
+        creatorsData,
       )
         .then(() => {
           this.$emit("update:modelValue", false); // close this modal
@@ -196,6 +224,8 @@ export default {
           this.item_id = null;
           this.name = null;
           this.date = this.now(); // reset date to the new current time
+          this.shareWithGroups = [];
+          this.additionalCreators = [];
         })
         .catch((error) => {
           let is_item_id_error = false;
