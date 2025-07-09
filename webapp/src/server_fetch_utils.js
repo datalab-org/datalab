@@ -511,11 +511,12 @@ export async function updateBlockFromServer(item_id, block_id, block_data, saveT
         block_id: block_id,
         isSaved: response_json.saved_successfully,
       });
+      store.commit("setBlockImplementationError", { block_id, hasError: false });
     })
     .catch((error) => {
-      alert("Error in updateBlockFromServer: " + error);
+      console.warn(`Failed to update block ${block_id}:`, error);
+      store.commit("setBlockImplementationError", { block_id, hasError: true });
       store.commit("setBlockNotUpdating", block_id);
-      throw error;
     });
 }
 
