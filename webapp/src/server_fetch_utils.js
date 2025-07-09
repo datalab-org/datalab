@@ -69,11 +69,12 @@ function fetch_put(url, body) {
 }
 
 // eslint-disable-next-line no-unused-vars
-function fetch_delete(url) {
+function fetch_delete(url, body) {
   let headers = construct_headers({ "Content-Type": "application/json" });
   const requestOptions = {
     method: "DELETE",
     headers: headers,
+    body: JSON.stringify(body),
     credentials: "include",
   };
   return fetch(url, requestOptions).then(handleResponse);
@@ -429,13 +430,24 @@ export function deleteEquipment(item_id) {
     );
 }
 
-export function deletSampleFromCollection(collection_id, collection_summary) {
-  return fetch_delete(`${API_URL}/collections/${collection_id}`)
+export function removeItemsFromCollection(collection_id, refcodes) {
+  return fetch_delete(`${API_URL}/collections/${collection_id}/items`, {
+    refcodes: refcodes,
+  })
     .then(function (response_json) {
-      console.log("delete successful" + response_json);
-      store.commit("deleteFromCollectionList", collection_summary);
+      console.log("Items removed from collection successfully", response_json);
+
+      store.commit("removeItemsFromCollection", {
+        collection_id: collection_id,
+        refcodes: refcodes,
+      });
+
+      return response_json;
     })
-    .catch((error) => alert("Collection delete failed for " + collection_id + ": " + error));
+    .catch((error) => {
+      alert(`Failed to remove items from collection ${collection_id}: ${error}`);
+      throw error;
+    });
 }
 
 export async function getItemData(item_id) {
