@@ -37,6 +37,10 @@ SELECTABLE_CALLBACK_x = """
   if (line1) {line1.glyph.x.field = column;}
   source.change.emit();
   xaxis.axis_label = column;
+
+  if (hover_tool) {
+    hover_tool.tooltips = [[column, "$x{0.00}"], [hover_tool.tooltips[1][0], "$y{0.00}"]];
+  }
 """
 SELECTABLE_CALLBACK_y = """
   var column = cb_obj.value;
@@ -44,6 +48,10 @@ SELECTABLE_CALLBACK_y = """
   if (line1) {line1.glyph.y.field = column;}
   source.change.emit();
   yaxis.axis_label = column;
+
+  if (hover_tool) {
+    hover_tool.tooltips = [[hover_tool.tooltips[0][0], "$x{0.00}"], [column, "$y{0.00}"]];
+  }
 """
 GENERATE_CSV_CALLBACK = """
   let columns = Object.keys(source.data);
@@ -238,7 +246,9 @@ def selectable_axes_plot(
     )
 
     if tools is None:
-        coordinate_hover = HoverTool(tooltips=[("X", "$x{0.00}"), ("Y", "$y{0.00}")], mode="mouse")
+        coordinate_hover = HoverTool(
+            tooltips=[(x_axis_label, "$x{0.00}"), (y_axis_label, "$y{0.00}")], mode="mouse"
+        )
         p.add_tools(coordinate_hover)
 
     p.toolbar.logo = "grey"
@@ -265,7 +275,13 @@ def selectable_axes_plot(
     labels = []
 
     if isinstance(df, dict):
-        labels = list(df.keys())
+        original_labels = list(df.keys())
+    else:
+        original_labels = [
+            df_.index.name if df_.index.name else f"Dataset {i}" for i, df_ in enumerate(df)
+        ]
+
+    labels = [shrink_label(label) for label in original_labels]
 
     plot_columns = []
 
@@ -276,12 +292,7 @@ def selectable_axes_plot(
         if isinstance(df, dict):
             df_ = df[df_]
 
-        if labels:
-            label = labels[ind]
-        else:
-            label = df_.index.name if len(df) > 1 else ""
-
-        label = shrink_label(label)
+        label = labels[ind] if ind < len(labels) else ""
 
         source = ColumnDataSource(df_)
 
@@ -353,13 +364,26 @@ def selectable_axes_plot(
 
         callbacks_x.append(
             CustomJS(
-                args=dict(circle1=circles, line1=lines, source=source, xaxis=p.xaxis[0]),
+                args=dict(
+                    circle1=circles,
+                    line1=lines,
+                    source=source,
+                    xaxis=p.xaxis[0],
+                    hover_tool=coordinate_hover,
+                ),
                 code=SELECTABLE_CALLBACK_x,
             )
         )
+
         callbacks_y.append(
             CustomJS(
-                args=dict(circle1=circles, line1=lines, source=source, yaxis=p.yaxis[0]),
+                args=dict(
+                    circle1=circles,
+                    line1=lines,
+                    source=source,
+                    yaxis=p.yaxis[0],
+                    hover_tool=coordinate_hover,
+                ),
                 code=SELECTABLE_CALLBACK_y,
             )
         )
