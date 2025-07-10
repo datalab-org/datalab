@@ -77,11 +77,7 @@
             @input="onParameterChanged"
           />
 
-          <button
-            class="btn btn-primary"
-            :disabled="!hasParameterChanges || isUpdating || validationError"
-            @click="applyChanges"
-          >
+          <button class="btn btn-primary" :disabled="buttonDisabled" @click="applyChanges">
             {{ isUpdating ? "Updating..." : "Apply" }}
           </button>
         </div>
@@ -135,7 +131,6 @@ export default {
     return {
       folderNameError: "",
       isUpdating: false,
-      hasParameterChanges: false,
       originalParameters: {},
       local_start_exp: 1,
       local_end_exp: null,
@@ -159,6 +154,23 @@ export default {
     },
     availableFolders() {
       return this.currentBlock.available_folders || [];
+    },
+    hasParameterChanges() {
+      const currentStartExp = this.start_exp || 1;
+      const currentEndExp = this.end_exp || this.maxExperiments;
+      const currentStepExp = this.step_exp || 1;
+      const currentExcludeExp = this.exclude_exp || "";
+
+      const hasChanges =
+        this.local_start_exp !== currentStartExp ||
+        this.local_end_exp !== currentEndExp ||
+        this.local_step_exp !== currentStepExp ||
+        this.local_exclude_exp !== currentExcludeExp;
+
+      return hasChanges;
+    },
+    buttonDisabled() {
+      return !this.hasParameterChanges || this.isUpdating || !!this.validationError;
     },
     validationError() {
       if (this.local_start_exp < 1) {
@@ -194,6 +206,14 @@ export default {
     exclude_exp: createComputedSetterForBlockField("exclude_exp"),
   },
   watch: {
+    maxExperiments: {
+      handler(newVal) {
+        if (newVal && !this.local_end_exp) {
+          this.local_end_exp = newVal;
+        }
+      },
+      immediate: true,
+    },
     defaultEndExp(newVal) {
       if (newVal && !this.hasParameterChanges) {
         this.local_end_exp = newVal;
@@ -225,10 +245,11 @@ export default {
         this.updateBlock();
       } else if (this.nmr_folder_name || this.echem_folder_name) {
         this.folderNameError = "Both NMR and Echem folder names are required";
+
+        if (this.nmr_folder_name) {
+          this.updateBlock();
+        }
       }
-    },
-    onParameterChanged() {
-      this.hasParameterChanges = true;
     },
     applyChanges() {
       this.folderNameError = "";
@@ -236,7 +257,6 @@ export default {
       this.end_exp = this.local_end_exp;
       this.step_exp = this.local_step_exp;
       this.exclude_exp = this.local_exclude_exp;
-      this.hasParameterChanges = false;
       this.updateBlock();
     },
     updateBlock() {
