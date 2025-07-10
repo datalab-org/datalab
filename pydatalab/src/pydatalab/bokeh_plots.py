@@ -39,7 +39,7 @@ SELECTABLE_CALLBACK_x = """
   xaxis.axis_label = column;
 
   if (hover_tool) {
-    hover_tool.tooltips = [[column, "$x{0.00}"], [hover_tool.tooltips[1][0], "$y{0.00}"]];
+    hover_tool.tooltips = [["File", "@filename"], [column, "$x{0.00}"], [hover_tool.tooltips[2][0], "$y{0.00}"]];
   }
 """
 SELECTABLE_CALLBACK_y = """
@@ -50,9 +50,10 @@ SELECTABLE_CALLBACK_y = """
   yaxis.axis_label = column;
 
   if (hover_tool) {
-    hover_tool.tooltips = [[hover_tool.tooltips[0][0], "$x{0.00}"], [column, "$y{0.00}"]];
+    hover_tool.tooltips = [["File", "@filename"], [hover_tool.tooltips[1][0], "$x{0.00}"], [column, "$y{0.00}"]];
   }
 """
+
 GENERATE_CSV_CALLBACK = """
   let columns = Object.keys(source.data);
   console.log(columns);
@@ -247,9 +248,14 @@ def selectable_axes_plot(
 
     if tools is None:
         coordinate_hover = HoverTool(
-            tooltips=[(x_axis_label, "$x{0.00}"), (y_axis_label, "$y{0.00}")], mode="mouse"
+            tooltips=[
+                ("File", "@filename"),
+                (x_axis_label, "$x{0.00}"),
+                (y_axis_label, "$y{0.00}"),
+            ],
+            mode="mouse",
         )
-        p.add_tools(coordinate_hover)
+    p.add_tools(coordinate_hover)
 
     p.toolbar.logo = "grey"
 
@@ -291,10 +297,16 @@ def selectable_axes_plot(
 
         if isinstance(df, dict):
             df_ = df[df_]
+            filename = list(df.keys())[ind]
+        else:
+            filename = original_labels[ind]
 
         label = labels[ind] if ind < len(labels) else ""
 
-        source = ColumnDataSource(df_)
+        df_with_filename = df_.copy()
+        df_with_filename["filename"] = filename
+
+        source = ColumnDataSource(df_with_filename)
 
         if color_options:
             color = {"field": color_options[0], "transform": color_mapper}
