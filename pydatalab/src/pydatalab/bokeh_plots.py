@@ -436,7 +436,7 @@ def selectable_axes_plot(
         yaxis_select.js_on_change("value", *callbacks_y)
 
     if p.legend:
-        p.legend.click_policy = "hide"
+        p.legend.click_policy = "none"
         if len(df) <= 1:
             p.legend.visible = False
         else:
@@ -447,7 +447,7 @@ def selectable_axes_plot(
 
             external_legend = Legend(
                 items=legend_items,
-                click_policy="hide",
+                click_policy="none",
                 background_fill_alpha=0.8,
                 label_text_font_size="9pt",
                 spacing=1,
