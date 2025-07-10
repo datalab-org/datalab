@@ -50,7 +50,28 @@ SELECTABLE_CALLBACK_y = """
   yaxis.axis_label = column;
 
   if (hover_tool) {
-    hover_tool.tooltips = [["File", "@filename"], [hover_tool.tooltips[1][0], "$x{0.00}"], [column, "$y{0.00}"]];
+    var tooltips = [["File", "@filename"], [hover_tool.tooltips[1][0], "$x{0.00}"]];
+
+    if (column.toLowerCase().includes('intensity')) {
+      var original_column = column + "_original";
+      var column_exists = false;
+      for (var key in source.data) {
+        if (key === original_column) {
+          column_exists = true;
+          break;
+        }
+      }
+
+      if (column_exists) {
+        tooltips.push([column, "@{" + original_column + "}{0.00}"]);
+      } else {
+        tooltips.push([column, "$y{0.00}"]);
+      }
+    } else {
+      tooltips.push([column, "$y{0.00}"]);
+    }
+
+    hover_tool.tooltips = tooltips;
   }
 """
 
@@ -247,14 +268,15 @@ def selectable_axes_plot(
     )
 
     if tools is None:
-        coordinate_hover = HoverTool(
-            tooltips=[
-                ("File", "@filename"),
-                (x_axis_label, "$x{0.00}"),
-                (y_axis_label, "$y{0.00}"),
-            ],
-            mode="mouse",
-        )
+        base_tooltips = [("File:", "@filename"), (x_axis_label, "$x{0.00}")]
+
+        if "intensity" in y_label.lower():
+            original_col = f"{y_label}_original"
+            base_tooltips.append((y_axis_label, f"@{{{original_col}}}{{0.00}}"))
+        else:
+            base_tooltips.append((y_axis_label, "$y{0.00}"))
+
+        coordinate_hover = HoverTool(tooltips=base_tooltips, mode="mouse")
     p.add_tools(coordinate_hover)
 
     p.toolbar.logo = "grey"
