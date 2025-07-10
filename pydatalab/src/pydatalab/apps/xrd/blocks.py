@@ -287,12 +287,8 @@ class XRDBlock(DataBlock):
                 for ind, df in enumerate(pattern_dfs):
                     offset = ind * stagger_offset
                     for col in df.columns:
-                        if "intensity" in col.lower() and df[col].dtype in [
-                            "float64",
-                            "float32",
-                            "int64",
-                            "int32",
-                        ]:
+                        if "intensity" in col.lower():
+                            df[col] = df[col].astype("float64")
                             df[col] = df[col] + offset
 
             p = selectable_axes_plot(

@@ -10,7 +10,7 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
       update-block-on-change
     />
 
-    <div id="bokehPlotContainer">
+    <div id="bokehPlotContainer" class="limited-width">
       <BokehPlot :bokeh-plot-data="bokehPlotData" />
     </div>
   </DataBlockBase>
@@ -70,4 +70,8 @@ export default {
 };
 </script>
 
-<style scoped></style>
+<style scoped>
+.limited-width {
+  max-width: 100%;
+}
+</style>
