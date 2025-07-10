@@ -163,6 +163,12 @@ def client(app, user_api_key):
 
 
 @pytest.fixture(scope="function")
+def another_client(app, another_user_api_key):
+    """Returns a test client for the API with a second normal user access."""
+    yield client_factory(app, another_user_api_key)
+
+
+@pytest.fixture(scope="function")
 def unauthenticated_client(app):
     """Returns an unauthenticated test client for the API."""
     yield client_factory(app, None)
@@ -202,6 +208,11 @@ def user_api_key() -> str:
 
 
 @pytest.fixture(scope="session")
+def another_user_api_key() -> str:
+    return generate_api_key()
+
+
+@pytest.fixture(scope="session")
 def unverified_user_api_key() -> str:
     return generate_api_key()
 
@@ -214,6 +225,11 @@ def deactivated_user_api_key() -> str:
 @pytest.fixture(scope="session")
 def user_id():
     yield ObjectId(24 * "1")
+
+
+@pytest.fixture(scope="session")
+def another_user_id():
+    yield ObjectId(24 * "7")
 
 
 @pytest.fixture(scope="session")
@@ -253,6 +269,8 @@ def insert_demo_users(
     app,
     user_id,
     user_api_key,
+    another_user_id,
+    another_user_api_key,
     admin_user_id,
     admin_api_key,
     deactivated_user_id,
@@ -262,6 +280,7 @@ def insert_demo_users(
     real_mongo_client,
 ):
     insert_user(user_id, user_api_key, "user", real_mongo_client)
+    insert_user(another_user_id, another_user_api_key, "user", real_mongo_client)
     insert_user(admin_user_id, admin_api_key, "admin", real_mongo_client)
     insert_user(
         deactivated_user_id,
