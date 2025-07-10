@@ -23,7 +23,7 @@ class XRDBlock(DataBlock):
     description = "Visualize XRD patterns and perform simple baseline corrections."
     accepted_file_extensions = (".xrdml", ".xy", ".dat", ".xye", ".rasx", ".cif")
 
-    defaults = {"wavelength": 1.54060, "stagger_enabled": False, "stagger_offset": 1.0}
+    defaults = {"wavelength": 1.54060, "stagger_enabled": True, "stagger_offset": 1.0}
 
     @property
     def plot_functions(self):
