@@ -53,3 +53,30 @@ class BSONProvider(DefaultJSONProvider):
     @staticmethod
     def default(o):
         return CustomJSONEncoder.default(o)
+
+
+def shrink_label(label: str | None, max_length: int = 10) -> str:
+    """Shrink label to exactly max_length chars with format: start...end.ext"""
+    if not label:
+        return ""
+
+    if len(label) <= max_length:
+        return label
+
+    if "." in label:
+        name, ext = label.rsplit(".", 1)
+
+        extension_length = len(ext) + 1
+
+        available_for_start = max_length - extension_length - 4
+
+        if available_for_start >= 1:
+            name_start = name[:available_for_start]
+            last_char = name[-1]
+            return f"{name_start}...{last_char}.{ext}"
+        else:
+            name_start = name[0]
+            last_char = name[-1]
+            return f"{name_start}...{last_char}.{ext}"
+    else:
+        return label[: max_length - 3] + "..."
