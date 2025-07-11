@@ -84,6 +84,7 @@ export default {
     // If expanded set height to none, otherwise set to 0px
     if (this.isExpanded) {
       this.contentMaxHeight = "none";
+      content.style.overflow = "visible";
     } else {
       this.contentMaxHeight = "0px";
     }
@@ -101,7 +102,9 @@ export default {
       if (!this.isExpanded) {
         this.contentMaxHeight = content.scrollHeight + 2 * this.padding_height + "px";
         this.isExpanded = true;
+        content.style.overflow = "visible";
       } else {
+        content.style.overflow = "hidden";
         requestAnimationFrame(() => {
           //must be an arrow function so that 'this' is still accessible!
           this.contentMaxHeight = content.scrollHeight + "px";
