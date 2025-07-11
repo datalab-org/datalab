@@ -94,7 +94,7 @@ GENERATE_XY_CALLBACK = """
   const encodedUri = encodeURI(xyContent);
   const link = document.createElement("a");
   link.setAttribute("href", encodedUri);
-  link.setAttribute("download", "data.xy");
+  link.setAttribute("download", filename + ".xy");
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -427,7 +427,10 @@ def selectable_axes_plot(
         is_xrd_data = any(col in df[0].columns for col in ["2θ (°)", "intensity", "twotheta"])
 
         if is_xrd_data:
-            dropdown_menu = [("Download .csv", "csv"), ("Download .xy", "xy")]
+            dropdown_menu = [
+                ("Download .csv", "csv"),
+                ("Download .xy (TOPAS-compatible)", "xy_topas"),
+            ]
             export_dropdown = Dropdown(
                 label="Download...", button_type="primary", menu=dropdown_menu, width_policy="min"
             )
@@ -439,7 +442,7 @@ def selectable_axes_plot(
                     """
                 + GENERATE_CSV_CALLBACK
                 + """
-                } else if (cb_obj.item == "xy") {
+                } else if (cb_obj.item == "xy_topas") {
                     """
                 + GENERATE_XY_CALLBACK
                 + """
