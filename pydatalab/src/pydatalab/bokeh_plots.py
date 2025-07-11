@@ -267,18 +267,6 @@ def selectable_axes_plot(
         **kwargs,
     )
 
-    if tools is None:
-        base_tooltips = [("File:", "@filename"), (x_axis_label, "$x{0.00}")]
-
-        if "intensity" in y_label.lower():
-            original_col = f"{y_label}_original"
-            base_tooltips.append((y_axis_label, f"@{{{original_col}}}{{0.00}}"))
-        else:
-            base_tooltips.append((y_axis_label, "$y{0.00}"))
-
-        coordinate_hover = HoverTool(tooltips=base_tooltips, mode="mouse")
-    p.add_tools(coordinate_hover)
-
     p.toolbar.logo = "grey"
 
     if tools:
@@ -312,6 +300,7 @@ def selectable_axes_plot(
     labels = [shrink_label(label) for label in original_labels]
 
     plot_columns = []
+    hover_tools = []
 
     for ind, df_ in enumerate(df):
         if skip_plot:
@@ -329,6 +318,17 @@ def selectable_axes_plot(
         df_with_filename["filename"] = filename
 
         source = ColumnDataSource(df_with_filename)
+
+        current_tooltips = [("File:", "@filename"), (x_axis_label, "$x{0.00}")]
+
+        if "intensity" in y_label.lower():
+            original_col = f"{y_label}_original"
+            if original_col in source.data:
+                current_tooltips.append((y_axis_label, f"@{{{original_col}}}{{0.00}}"))
+            else:
+                current_tooltips.append((y_axis_label, f"@{{{y_default}}}"))
+        else:
+            current_tooltips.append((y_axis_label, f"@{{{y_default}}}{{0.00}}"))
 
         if color_options:
             color = {"field": color_options[0], "transform": color_mapper}
@@ -381,6 +381,14 @@ def selectable_axes_plot(
             else None
         )
 
+        line_hover = None
+        if lines:
+            line_hover = HoverTool(
+                tooltips=current_tooltips, mode="mouse", renderers=[lines], line_policy="nearest"
+            )
+            p.add_tools(line_hover)
+            hover_tools.append(line_hover)
+
         if y_aux:
             for y in y_aux:
                 aux_lines = (  # noqa
@@ -403,7 +411,7 @@ def selectable_axes_plot(
                     line1=lines,
                     source=source,
                     xaxis=p.xaxis[0],
-                    hover_tool=coordinate_hover,
+                    hover_tool=line_hover,
                 ),
                 code=SELECTABLE_CALLBACK_x,
             )
@@ -416,7 +424,7 @@ def selectable_axes_plot(
                     line1=lines,
                     source=source,
                     yaxis=p.yaxis[0],
-                    hover_tool=coordinate_hover,
+                    hover_tool=line_hover,
                 ),
                 code=SELECTABLE_CALLBACK_y,
             )
