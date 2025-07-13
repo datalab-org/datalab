@@ -8,42 +8,32 @@
       update-block-on-change
       @change="onFileChange"
     />
-    <div class="form-group mb-2">
-      <label class="mr-2"><b>Scan time (s)</b></label>
-      <input
-        v-model="scan_time_buffer"
-        type="text"
-        class="form-control"
-        placeholder="Enter scan time"
-        style="width: 160px; display: inline-block"
-        inputmode="decimal"
-        pattern="[0-9]*[.,]?[0-9]*"
-        @keydown.enter="onScanTimeSelected"
-        @blur="onScanTimeSelected"
-      />
-    </div>
     <div v-show="file_id">
-      <div class="form-inline">
-        <div class="form-group mb-2">
-          <label class="mr-2"><b>UV-Vis folder name</b></label>
+      <div class="row">
+        <div class="col-lg-4 col-md-6 col-sm-12 mb-2">
+          <label><b>UV-Vis folder name</b></label>
           <v-select
             v-model="uvvis_folder_name"
             :options="availableFolders"
             :reduce="(folder) => folder"
-            class="folder-select mr-2"
+            class="folder-select"
             placeholder="Select a folder"
             @update:model-value="onFolderSelected"
           />
-          <label class="mr-2"><b>UV-Vis reference folder name</b></label>
+        </div>
+        <div class="col-lg-4 col-md-6 col-sm-12 mb-2">
+          <label><b>UV-Vis reference folder name</b></label>
           <v-select
             v-model="uvvis_reference_folder_name"
             :options="availableFolders"
             :reduce="(folder) => folder"
-            class="folder-select mr-2"
+            class="folder-select"
             placeholder="Select a folder"
             @update:model-value="onFolderSelected"
           />
-          <label class="mr-2"><b>Echem folder name</b></label>
+        </div>
+        <div class="col-lg-4 col-md-6 col-sm-12 mb-2">
+          <label><b>Echem folder name</b></label>
           <v-select
             v-model="echem_folder_name"
             :options="availableFolders"
@@ -57,6 +47,20 @@
       <div v-if="folderNameError" class="alert alert-danger mt-2 mx-auto">
         {{ folderNameError }}
       </div>
+    </div>
+    <div class="form-group mb-2">
+      <label class="mr-2"><b>Scan time (s)</b></label>
+      <input
+        v-model="scan_time_buffer"
+        type="text"
+        class="form-control"
+        placeholder="Enter scan time"
+        style="width: 160px; display: inline-block"
+        inputmode="decimal"
+        pattern="[0-9]*[.,]?[0-9]*"
+        @keydown.enter="onScanTimeSelected"
+        @blur="onScanTimeSelected"
+      />
     </div>
     <div class="form-inline mb-2">
       <label class="mr-2"><b>Data granularity</b></label>
@@ -229,4 +233,8 @@ export default {
 };
 </script>
 
-<style scoped></style>
+<style scoped>
+.folder-select {
+  width: 100%;
+}
+</style>
