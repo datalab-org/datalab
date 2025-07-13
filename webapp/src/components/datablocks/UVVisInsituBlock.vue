@@ -12,34 +12,25 @@
       <div class="row">
         <div class="col-lg-4 col-md-6 col-sm-12 mb-2">
           <label><b>UV-Vis folder name</b></label>
-          <v-select
+          <FolderSelect
             v-model="uvvis_folder_name"
             :options="availableFolders"
-            :reduce="(folder) => folder"
-            class="folder-select"
-            placeholder="Select a folder"
             @update:model-value="onFolderSelected"
           />
         </div>
         <div class="col-lg-4 col-md-6 col-sm-12 mb-2">
           <label><b>UV-Vis reference folder name</b></label>
-          <v-select
+          <FolderSelect
             v-model="uvvis_reference_folder_name"
             :options="availableFolders"
-            :reduce="(folder) => folder"
-            class="folder-select"
-            placeholder="Select a folder"
             @update:model-value="onFolderSelected"
           />
         </div>
         <div class="col-lg-4 col-md-6 col-sm-12 mb-2">
           <label><b>Echem folder name</b></label>
-          <v-select
+          <FolderSelect
             v-model="echem_folder_name"
             :options="availableFolders"
-            :reduce="(folder) => folder"
-            class="folder-select"
-            placeholder="Select a folder"
             @update:model-value="onFolderSelected"
           />
         </div>
@@ -96,6 +87,7 @@
 <script>
 import DataBlockBase from "@/components/datablocks/DataBlockBase";
 import FileSelectDropdown from "@/components/FileSelectDropdown";
+import FolderSelect from "@/components/FolderSelect";
 import BokehPlot from "@/components/BokehPlot";
 import vSelect from "vue-select";
 
@@ -106,6 +98,7 @@ export default {
   components: {
     DataBlockBase,
     FileSelectDropdown,
+    FolderSelect,
     BokehPlot,
     vSelect,
   },
@@ -232,9 +225,3 @@ export default {
   },
 };
 </script>
-
-<style scoped>
-.folder-select {
-  width: 100%;
-}
-</style>
