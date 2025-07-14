@@ -3,6 +3,7 @@ import warnings
 from collections.abc import Callable, Sequence
 from typing import Any
 
+from pydatalab import __version__
 from pydatalab.logger import LOGGER
 
 __all__ = ("generate_random_id", "DataBlock")
@@ -57,6 +58,9 @@ class DataBlock:
 
     _supports_collections: bool = False
     """Whether this datablock can operate on collection data, or just individual items"""
+
+    version: str = __version__
+    """The implementation version of this particular block."""
 
     def __init__(
         self,
