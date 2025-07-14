@@ -1,5 +1,5 @@
 <template>
-  <div :id="block_id" class="data-block">
+  <div :id="block_id" ref="thisDataBlock" class="data-block">
     <div class="datablock-header collapsible" :class="{ expanded: isExpanded }">
       <font-awesome-icon
         :icon="['fas', 'chevron-right']"
@@ -210,6 +210,10 @@ export default {
         this.contentMaxHeight = "none";
       }
     });
+    this.$refs.thisDataBlock.addEventListener("block-event", this.handleBokehEvent);
+  },
+  beforeUnmount() {
+    this.$refs.thisDataBlock.removeEventListener("block-event", this.handleBokehEvent);
   },
   methods: {
     async updateBlock() {
@@ -222,6 +226,15 @@ export default {
         }
       });
       await updateBlockFromServer(this.item_id, this.block_id, this.block);
+    },
+    handleBokehEvent(event) {
+      console.log("handlingBokehEvent", event.detail);
+      updateBlockFromServer(
+        this.item_id,
+        this.block_id,
+        this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id],
+        event.detail,
+      );
     },
     deleteThisBlock() {
       deleteBlock(this.item_id, this.block_id);

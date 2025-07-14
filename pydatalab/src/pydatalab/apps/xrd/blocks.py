@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from scipy.signal import medfilt
 
-from pydatalab.blocks.base import DataBlock
+from pydatalab.blocks.base import DataBlock, event
 from pydatalab.bokeh_plots import DATALAB_BOKEH_THEME, selectable_axes_plot
 from pydatalab.file_utils import get_file_info_by_id
 from pydatalab.logger import LOGGER
@@ -28,6 +28,16 @@ class XRDBlock(DataBlock):
     @property
     def plot_functions(self):
         return (self.generate_xrd_plot,)
+
+    @event
+    def set_wavelength(self, wavelength: float | None):
+        if wavelength is None:
+            wavelength = self.defaults["wavelength"]
+        elif wavelength <= 0:
+            raise ValueError("Wavelength must be a positive number")
+
+        LOGGER.debug(f"Setting wavelength to {wavelength} for block {self.block_id}")
+        self.data["wavelength"] = wavelength
 
     @classmethod
     def load_pattern(
@@ -269,6 +279,25 @@ class XRDBlock(DataBlock):
                 plot_line=True,
                 plot_points=True,
                 point_size=3,
+                parameters={
+                    "wavelength": {
+                        "label": "Wavelength (Å)",
+                        "value": self.data["wavelength"],
+                        "event": (
+                            """
+console.log("dispatching event");
+const event = new CustomEvent('bokehStateUpdate', {
+    detail: {
+        event_name: 'set_wavelength',
+        wavelength: event.target.value_throttled,
+    },
+    bubbles: true
+});
+document.dispatchEvent(event);
+"""
+                        ),
+                    }
+                },
             )
 
             self.data["bokeh_plot_data"] = bokeh.embed.json_item(p, theme=DATALAB_BOKEH_THEME)
