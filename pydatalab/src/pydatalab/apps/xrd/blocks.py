@@ -59,7 +59,8 @@ class XRDBlock(DataBlock):
             df, peak_data = compute_cif_pxrd(
                 location, wavelength=wavelength or cls.defaults["wavelength"]
             )
-            theoretical = True  # Track whether this is a computed PXRD that does not need background subtraction
+            # Track whether this is a computed PXRD that does not need background subtraction
+            theoretical = True
 
         else:
             columns = ["twotheta", "intensity", "error"]
@@ -231,6 +232,11 @@ class XRDBlock(DataBlock):
                         f["location"],
                         wavelength=float(self.data.get("wavelength", self.defaults["wavelength"])),
                     )
+                    pattern_df.attrs["item_id"] = self.data.get("item_id", "unknown")
+                    pattern_df.attrs["original_filename"] = f.get("name", "unknown")
+                    pattern_df.attrs["wavelength"] = (
+                        f"{self.data.get('wavelength', self.defaults['wavelength'])} Å"
+                    )
                 except Exception as exc:
                     warnings.warn(f"Could not parse file {f['location']} as XRD data. Error: {exc}")
                     continue
@@ -250,15 +256,20 @@ class XRDBlock(DataBlock):
                     ext,
                 )
 
-            pattern_dfs, y_options, peak_data = self.load_pattern(
+            pattern_df, y_options, peak_data = self.load_pattern(
                 file_info["location"],
                 wavelength=float(self.data.get("wavelength", self.defaults["wavelength"])),
+            )
+            pattern_df.attrs["item_id"] = self.data.get("item_id", "unknown")
+            pattern_df.attrs["original_filename"] = file_info.get("name", "unknown")
+            pattern_df.attrs["wavelength"] = (
+                f"{self.data.get('wavelength', self.defaults['wavelength'])} Å"
             )
             peak_model = PeakInformation(**peak_data)
             if "peak_data" not in self.data:
                 self.data["peak_data"] = {}
             self.data["peak_data"][str(file_info["immutable_id"])] = peak_model.dict()
-            pattern_dfs = [pattern_dfs]
+            pattern_dfs = [pattern_df]
 
         if pattern_dfs:
             p = selectable_axes_plot(
