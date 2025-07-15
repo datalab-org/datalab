@@ -77,10 +77,14 @@ export default {
   },
   mounted() {
     this.selectShown = new Array((this.constituents || []).length).fill(false);
+
+    var content = this.$refs.contentContainer;
+
     // Auto-collapsed when initialised empty
     this.isExpanded =
       (this.constituents && this.constituents.length > 0) ||
       (this.SynthesisDescription && this.SynthesisDescription.trim() !== "");
+
     // If expanded set height to none, otherwise set to 0px
     if (this.isExpanded) {
       this.contentMaxHeight = "none";
@@ -88,7 +92,7 @@ export default {
     } else {
       this.contentMaxHeight = "0px";
     }
-    var content = this.$refs.contentContainer;
+
     content.addEventListener("transitionend", () => {
       if (this.isExpanded) {
         this.contentMaxHeight = "none";
