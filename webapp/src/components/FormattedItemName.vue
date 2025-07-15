@@ -61,11 +61,11 @@ export default {
       return itemTypes[this.itemType]?.lightColor || "LightGrey";
     },
     shortenedName() {
-      if (this.maxLength && this.maxLength < this.name.length) {
-        return this.name.substring(0, this.maxLength) + "...";
-      } else {
-        return this.name || "";
+      const safeName = this.name || "";
+      if (this.maxLength && this.maxLength < safeName.length) {
+        return safeName.substring(0, this.maxLength) + "...";
       }
+      return safeName;
     },
   },
   methods: {
