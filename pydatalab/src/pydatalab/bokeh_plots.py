@@ -134,6 +134,34 @@ style = {
 }
 
 
+def _get_xrd_export_dropdown(source) -> Dropdown:
+    """Create a dropdown export menu for XRD data."""
+    dropdown_menu = [
+        (".csv", "csv"),
+        (".xy (TOPAS-compatible)", "xy_topas"),
+    ]
+    export_dropdown = Dropdown(
+        label="Export as", button_type="primary", menu=dropdown_menu, width_policy="min"
+    )
+
+    dropdown_callback = CustomJS(
+        args=dict(source=source),
+        code="""
+        if (cb_obj.item == "csv") {
+            """
+        + GENERATE_CSV_CALLBACK
+        + """
+        } else if (cb_obj.item == "xy_topas") {
+            """
+        + GENERATE_XY_CALLBACK
+        + """
+        }
+        """,
+    )
+    export_dropdown.js_on_click(dropdown_callback)
+    return export_dropdown
+
+
 """Additional style suitable for grid plots"""
 grid_style = {
     "attrs": {
@@ -427,32 +455,10 @@ def selectable_axes_plot(
         is_xrd_data = any(col in df[0].columns for col in ["2θ (°)", "intensity", "twotheta"])
 
         if is_xrd_data:
-            dropdown_menu = [
-                ("Download .csv", "csv"),
-                ("Download .xy (TOPAS-compatible)", "xy_topas"),
-            ]
-            export_dropdown = Dropdown(
-                label="Download...", button_type="primary", menu=dropdown_menu, width_policy="min"
-            )
-
-            dropdown_callback = CustomJS(
-                args=dict(source=source),
-                code="""
-                if (cb_obj.item == "csv") {
-                    """
-                + GENERATE_CSV_CALLBACK
-                + """
-                } else if (cb_obj.item == "xy_topas") {
-                    """
-                + GENERATE_XY_CALLBACK
-                + """
-                }
-                """,
-            )
-            export_dropdown.js_on_click(dropdown_callback)
+            export_dropdown = _get_xrd_export_dropdown(source)
             plot_columns = [export_dropdown] + plot_columns
         else:
-            save_data = Button(label="Download .csv", button_type="primary", width_policy="min")
+            save_data = Button(label="Export .csv", button_type="primary", width_policy="min")
             save_data_callback = CustomJS(
                 args=dict(source=source),
                 code=GENERATE_CSV_CALLBACK,
