@@ -348,7 +348,7 @@ describe("Batch sample creation", () => {
     );
     cy.contains("this is a description of baseB.");
     cy.get("#synthesis-information table").contains("component1");
-    cy.get("#synthesis-information table").contains("this component has a name");
+    cy.get("#synthesis-information table").contains("this component ...");
 
     cy.get("#synthesis-information table").contains("component3");
     cy.get("#synthesis-information table").contains("component4");
@@ -526,7 +526,7 @@ describe("Batch sample creation", () => {
       cy.get("#synthesis-information table").contains("component3");
       cy.get("#synthesis-information table").contains("component4");
       cy.get("#synthesis-information table").contains("component1");
-      cy.get("#synthesis-information table").contains("this component has a name");
+      cy.get("#synthesis-information table").contains("this component ...");
 
       cy.get("#synthesis-information tbody tr:nth-of-type(1) input")
         .eq(0)
@@ -632,7 +632,7 @@ describe("Batch sample creation", () => {
       cy.get("#synthesis-information table").contains("component3");
       cy.get("#synthesis-information table").contains("component4");
       cy.get("#synthesis-information table").contains("component1");
-      cy.get("#synthesis-information table").contains("this component has a name");
+      cy.get("#synthesis-information table").contains("this component ...");
 
       cy.get("#synthesis-information tbody tr:nth-of-type(1) input")
         .eq(0)
