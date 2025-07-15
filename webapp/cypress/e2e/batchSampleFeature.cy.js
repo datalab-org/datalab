@@ -131,7 +131,7 @@ describe("Batch sample creation", () => {
 
     cy.get('[data-testid="batch-modal-container"]').findByText("Submit").should("be.disabled");
     getBatchAddCell(1, 1).type("component1");
-    getBatchAddCell(1, 2).type("this component has a name");
+    getBatchAddCell(1, 2).type("this component has a name that is quite long");
     getBatchAddCell(2, 1).type("component2");
     getBatchAddCell(3, 1).type("component3");
     getBatchAddCell(4, 1).type("component4");
@@ -145,7 +145,7 @@ describe("Batch sample creation", () => {
     cy.findAllByText("Successfully created.").should("have.length", 4);
 
     cy.get("[data-testid=batch-modal-container]").contains("Close").click();
-    cy.verifySample("component1", "this component has a name");
+    cy.verifySample("component1", "this component has a name that is quite long");
     cy.verifySample("component2");
     cy.verifySample("component3");
     cy.verifySample("component4");
@@ -348,7 +348,7 @@ describe("Batch sample creation", () => {
     );
     cy.contains("this is a description of baseB.");
     cy.get("#synthesis-information table").contains("component1");
-    cy.get("#synthesis-information table").contains("this component has a name");
+    cy.get("#synthesis-information table").contains("this component has a name...");
 
     cy.get("#synthesis-information table").contains("component3");
     cy.get("#synthesis-information table").contains("component4");
@@ -526,7 +526,7 @@ describe("Batch sample creation", () => {
       cy.get("#synthesis-information table").contains("component3");
       cy.get("#synthesis-information table").contains("component4");
       cy.get("#synthesis-information table").contains("component1");
-      cy.get("#synthesis-information table").contains("this component has a name");
+      cy.get("#synthesis-information table").contains("this component has a name...");
 
       cy.get("#synthesis-information tbody tr:nth-of-type(1) input")
         .eq(0)
@@ -632,7 +632,7 @@ describe("Batch sample creation", () => {
       cy.get("#synthesis-information table").contains("component3");
       cy.get("#synthesis-information table").contains("component4");
       cy.get("#synthesis-information table").contains("component1");
-      cy.get("#synthesis-information table").contains("this component has a name");
+      cy.get("#synthesis-information table").contains("this component has a name...");
 
       cy.get("#synthesis-information tbody tr:nth-of-type(1) input")
         .eq(0)

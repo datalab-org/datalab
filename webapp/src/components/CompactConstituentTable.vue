@@ -33,6 +33,7 @@
             :item-type="constituent.item.type"
             :name="constituent.item.name"
             :chemform="constituent.item.chemform || ''"
+            :max-length="25"
             enable-click
             enable-modified-click
             @dblclick="turnOnRowSelect(index)"
