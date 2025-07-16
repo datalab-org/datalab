@@ -9,75 +9,76 @@
       @change="onFileChange"
     />
     <div v-show="file_id">
-      <div class="form-inline">
-        <div class="form-group mb-2">
-          <label class="mr-2"><b>NMR folder name</b></label>
-          <v-select
+      <div class="row">
+        <div class="col-lg-6 col-md-6 col-sm-12 mb-2">
+          <label><b>NMR folder name</b></label>
+          <FolderSelect
             v-model="nmr_folder_name"
             :options="availableFolders"
-            :reduce="(folder) => folder"
-            class="folder-select mr-2"
-            placeholder="Select a folder"
             @update:model-value="onFolderChanged"
           />
-          <label class="mr-2"><b>Echem folder name</b></label>
-          <v-select
+        </div>
+        <div class="col-lg-6 col-md-6 col-sm-12 mb-2">
+          <label><b>Echem folder name</b></label>
+          <FolderSelect
             v-model="echem_folder_name"
             :options="availableFolders"
-            :reduce="(folder) => folder"
-            class="folder-select"
-            placeholder="Select a folder"
             @update:model-value="onFolderChanged"
           />
         </div>
       </div>
 
-      <div v-show="nmr_folder_name && echem_folder_name" class="form-inline mt-2">
-        <div class="form-group mb-2">
-          <label class="mr-2"><b>Start Exp:</b></label>
+      <div v-show="nmr_folder_name && echem_folder_name" class="row mt-2">
+        <div class="col-lg-3 col-md-6 col-sm-12 mb-2">
+          <label><b>Start Exp:</b></label>
           <input
             v-model.number="local_start_exp"
             type="number"
-            class="form-control mr-2"
-            style="width: 80px"
+            class="form-control"
             min="1"
             :max="maxExperiments"
             :placeholder="maxExperiments ? `1-${maxExperiments}` : '1'"
             @input="onParameterChanged"
           />
+        </div>
 
-          <label class="mr-2"><b>End Exp:</b></label>
+        <div class="col-lg-3 col-md-6 col-sm-12 mb-2">
+          <label><b>End Exp:</b></label>
           <input
             v-model.number="local_end_exp"
             type="number"
-            class="form-control mr-2"
-            style="width: 80px"
+            class="form-control"
             min="1"
             :max="maxExperiments"
             :placeholder="maxExperiments ? `1-${maxExperiments}` : '1'"
             @input="onParameterChanged"
           />
+        </div>
 
-          <label class="mr-2"><b>Step:</b></label>
+        <div class="col-lg-2 col-md-6 col-sm-12 mb-2">
+          <label><b>Step:</b></label>
           <input
             v-model.number="local_step_exp"
             type="number"
-            class="form-control mr-2"
-            style="width: 80px"
+            class="form-control"
             min="1"
             @input="onParameterChanged"
           />
+        </div>
 
-          <label class="mr-2"><b>Exclude:</b></label>
+        <div class="col-lg-2 col-md-6 col-sm-12 mb-2">
+          <label><b>Exclude:</b></label>
           <input
             v-model="local_exclude_exp"
             type="text"
-            class="form-control mr-2"
+            class="form-control"
             placeholder="e.g., 1,3,5"
             @input="onParameterChanged"
           />
+        </div>
 
-          <button class="btn btn-primary" :disabled="buttonDisabled" @click="applyChanges">
+        <div class="col-lg-2 col-md-12 col-sm-12 mb-2 d-flex align-items-end">
+          <button class="btn btn-primary w-100" :disabled="buttonDisabled" @click="applyChanges">
             {{ isUpdating ? "Updating..." : "Apply" }}
           </button>
         </div>
@@ -104,8 +105,8 @@
 <script>
 import DataBlockBase from "@/components/datablocks/DataBlockBase";
 import FileSelectDropdown from "@/components/FileSelectDropdown";
+import FolderSelect from "@/components/FolderSelect";
 import BokehPlot from "@/components/BokehPlot";
-import vSelect from "vue-select";
 
 import { createComputedSetterForBlockField } from "@/field_utils.js";
 import { updateBlockFromServer } from "@/server_fetch_utils.js";
@@ -114,8 +115,8 @@ export default {
   components: {
     DataBlockBase,
     FileSelectDropdown,
+    FolderSelect,
     BokehPlot,
-    vSelect,
   },
   props: {
     item_id: {
@@ -279,5 +280,3 @@ export default {
   },
 };
 </script>
-
-<style scoped></style>
