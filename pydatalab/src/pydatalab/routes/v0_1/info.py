@@ -5,7 +5,13 @@ from datetime import datetime
 from functools import lru_cache
 
 from flask import Blueprint, jsonify, request
-from pydantic import AnyUrl, BaseModel, Field, validator
+from pydantic import (
+    AnyUrl,
+    BaseModel,
+    ConfigDict,
+    Field,
+    #! TODO[pydantic] field_validator,
+)
 
 from pydatalab import __version__
 from pydatalab.apps import BLOCK_TYPES
@@ -20,8 +26,7 @@ INFO = Blueprint("info", __name__)
 
 
 class Attributes(BaseModel):
-    class Config:
-        extra = "allow"
+    model_config = ConfigDict(extra="allow")
 
 
 class Meta(BaseModel):
@@ -35,9 +40,7 @@ class Meta(BaseModel):
 
 class Links(BaseModel):
     self: AnyUrl
-
-    class Config:
-        extra = "allow"
+    model_config = ConfigDict(extra="allow")
 
 
 class Data(BaseModel):
@@ -49,23 +52,24 @@ class Data(BaseModel):
 class JSONAPIResponse(BaseModel):
     data: Data | list[Data]
     meta: Meta
-    links: Links | None
+    links: Links | None = None
 
 
 class MetaPerson(BaseModel):
-    dislay_name: str | None
+    dislay_name: str | None = None
     contact_email: str
 
 
 class Info(Attributes, Meta):
-    maintainer: MetaPerson | None
-    issue_tracker: AnyUrl | None
-    homepage: AnyUrl | None
-    source_repository: AnyUrl | None
+    maintainer: MetaPerson | None = None
+    issue_tracker: AnyUrl | None = None
+    homepage: AnyUrl | None = None
+    source_repository: AnyUrl | None = None
     identifier_prefix: str
     features: FeatureFlags = FEATURE_FLAGS
 
-    @validator("maintainer")
+    #! TODO[pydantic] field_validator, @field_validator("maintainer")
+    @classmethod
     def strip_maintainer_fields(cls, v):
         if isinstance(v, Person):
             return MetaPerson(contact_email=v.contact_email, display_name=v.display_name)

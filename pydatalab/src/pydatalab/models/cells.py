@@ -54,6 +54,8 @@ class Cell(Item):
 
     active_ion_charge: float = 1
 
+    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
     @validator("characteristic_molar_mass", always=True, pre=True)
     def set_molar_mass(cls, v, values):
         from periodictable import formula

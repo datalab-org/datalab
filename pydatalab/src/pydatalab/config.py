@@ -9,12 +9,14 @@ from typing import Any
 from pydantic import (
     AnyUrl,
     BaseModel,
-    BaseSettings,
+    ConfigDict,
     Field,
     ValidationError,
+    #! TODO[pydantic] field_validator,
     root_validator,
     validator,
 )
+from pydantic_settings import BaseSettings
 
 from pydatalab.models import Person
 from pydatalab.models.utils import RandomAlphabeticalRefcodeFactory, RefCodeFactory
@@ -49,20 +51,20 @@ def config_file_settings(settings: BaseSettings) -> dict[str, Any]:
 class DeploymentMetadata(BaseModel):
     """A model for specifying metadata about a datalab deployment."""
 
-    maintainer: Person | None
+    maintainer: Person | None = None
     issue_tracker: AnyUrl | None = Field("https://github.com/datalab-org/datalab/issues")
-    homepage: AnyUrl | None
+    homepage: AnyUrl | None = None
     source_repository: AnyUrl | None = Field("https://github.com/datalab-org/datalab")
 
-    @validator("maintainer")
+    #! TODO[pydantic] field_validator, @field_validator("maintainer")
+    @classmethod
     def strip_fields_from_person(cls, v):
         if not v.contact_email:
             raise ValueError("Must provide contact email for maintainer.")
 
         return Person(contact_email=v.contact_email, display_name=v.display_name)
 
-    class Config:
-        extra = "allow"
+    model_config = ConfigDict(extra="allow")
 
 
 class BackupStrategy(BaseModel):
@@ -73,7 +75,8 @@ class BackupStrategy(BaseModel):
         description="Whether this backup strategy is active; i.e., whether it is actually used. All strategies will be disabled in testing scenarios.",
     )
     hostname: str | None = Field(
-        description="The hostname of the SSH-accessible server on which to store the backup (`None` indicates local backups)."
+        None,
+        description="The hostname of the SSH-accessible server on which to store the backup (`None` indicates local backups).",
     )
     location: Path = Field(
         description="The location under which to store the backups on the host. Each backup will be date-stamped and stored in a subdirectory of this location."
@@ -276,6 +279,8 @@ its importance when deploying a datalab instance.""",
             )
         return values
 
+    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
     @validator("IDENTIFIER_PREFIX", pre=True, always=True)
     def validate_identifier_prefix(cls, v, values):
         """Make sure that the identifier prefix is set and is valid, raising clear error messages if not.
@@ -312,7 +317,8 @@ its importance when deploying a datalab instance.""",
 
         return values
 
-    @validator("LOG_FILE")
+    #! TODO[pydantic] field_validator, @field_validator("LOG_FILE")
+    @classmethod
     def make_missing_log_directory(cls, v):
         """Make sure that the log directory exists and is writable."""
         if v is None:
@@ -325,6 +331,8 @@ its importance when deploying a datalab instance.""",
             raise RuntimeError(f"Unable to create log file at {v}") from exc
         return v
 
+    # TODO[pydantic]: We couldn't refactor this class, please create the `model_config` manually.
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-config for more information.
     class Config:
         env_prefix = "pydatalab_"
         extra = "allow"

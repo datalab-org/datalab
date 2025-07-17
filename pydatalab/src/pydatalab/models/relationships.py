@@ -32,24 +32,26 @@ class RelationshipType(str, Enum):
 
 
 class TypedRelationship(BaseModel):
-    description: str | None
+    description: str | None = None
     """A description of the relationship."""
 
-    relation: RelationshipType | None
+    relation: RelationshipType | None = None
     """The type of relationship between the two items. If the type is 'other', then a human-readable description should be provided."""
 
     type: KnownType
     """The type of the related resource."""
 
-    immutable_id: PyObjectId | None
+    immutable_id: PyObjectId | None = None
     """The immutable ID of the entry that is related to this entry."""
 
-    item_id: HumanReadableIdentifier | None
+    item_id: HumanReadableIdentifier | None = None
     """The ID of the entry that is related to this entry."""
 
-    refcode: Refcode | None
+    refcode: Refcode | None = None
     """The refcode of the entry that is related to this entry."""
 
+    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
     @validator("relation")
     def check_for_description(cls, v, values):
         if v == RelationshipType.OTHER and values.get("description") is None:

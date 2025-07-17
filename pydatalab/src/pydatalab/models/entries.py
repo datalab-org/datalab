@@ -1,6 +1,6 @@
 import abc
 
-from pydantic import BaseModel, Field, root_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from pydatalab.models.relationships import TypedRelationship
 from pydatalab.models.utils import (
@@ -34,7 +34,8 @@ class Entry(BaseModel, abc.ABC):
     relationships: list[TypedRelationship] | None = None
     """A list of related entries and their types."""
 
-    @root_validator(pre=True)
+    @model_validator(mode="before")
+    @classmethod
     def check_id_names(cls, values):
         """Slightly upsetting hack: this case *should* be covered by the pydantic setting for
         populating fields by alias names.
@@ -63,7 +64,6 @@ class Entry(BaseModel, abc.ABC):
 
         return EntryReference(**data)
 
-    class Config:
-        allow_population_by_field_name = True
-        json_encoders = JSON_ENCODERS
-        extra = "ignore"
+    # TODO[pydantic]: The following keys were removed: `json_encoders`.
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-config for more information.
+    model_config = ConfigDict(populate_by_name=True, json_encoders=JSON_ENCODERS, extra="ignore")

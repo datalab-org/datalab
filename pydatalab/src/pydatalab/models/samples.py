@@ -9,5 +9,5 @@ class Sample(Item, HasSynthesisInfo):
 
     type: str = Field("samples", const="samples", pattern="^samples$")
 
-    chemform: str | None = Field(example=["Na3P", "LiNiO2@C"])
+    chemform: str | None = Field(examples=[["Na3P", "LiNiO2@C"]])
     """A string representation of the chemical formula or composition associated with this sample."""
