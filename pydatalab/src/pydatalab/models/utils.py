@@ -10,8 +10,10 @@ import pint
 from bson.objectid import ObjectId
 from pydantic import (
     BaseModel,
+    ConfigDict,
     ConstrainedStr,
     Field,
+    #! TODO[pydantic] field_validator,
     parse_obj_as,
     root_validator,
     validator,
@@ -99,6 +101,8 @@ class PintType(str):
         self._dimensions = dimensions
 
     @classmethod
+    # TODO[pydantic]: We couldn't refactor `__get_validators__`, please create the `__get_pydantic_core_schema__` manually.
+    # Check https://docs.pydantic.dev/latest/migration/#defining-custom-types for more information.
     def __get_validators__(self):
         yield self.validate
 
@@ -110,6 +114,8 @@ class PintType(str):
         return q
 
     @classmethod
+    # TODO[pydantic]: We couldn't refactor `__modify_schema__`, please create the `__get_pydantic_json_schema__` manually.
+    # Check https://docs.pydantic.dev/latest/migration/#defining-custom-types for more information.
     def __modify_schema__(cls, field_schema):
         field_schema.update(type="string")
 
@@ -127,6 +133,8 @@ class PyObjectId(ObjectId):
     """
 
     @classmethod
+    # TODO[pydantic]: We couldn't refactor `__get_validators__`, please create the `__get_pydantic_core_schema__` manually.
+    # Check https://docs.pydantic.dev/latest/migration/#defining-custom-types for more information.
     def __get_validators__(cls):
         yield cls.validate
 
@@ -141,6 +149,8 @@ class PyObjectId(ObjectId):
         return ObjectId(v)
 
     @classmethod
+    # TODO[pydantic]: We couldn't refactor `__modify_schema__`, please create the `__get_pydantic_json_schema__` manually.
+    # Check https://docs.pydantic.dev/latest/migration/#defining-custom-types for more information.
     def __modify_schema__(cls, field_schema):
         field_schema.update(type="string")
 
@@ -149,6 +159,8 @@ class IsoformatDateTime(datetime.datetime):
     """A datetime container that is more flexible than the pydantic default."""
 
     @classmethod
+    # TODO[pydantic]: We couldn't refactor `__get_validators__`, please create the `__get_pydantic_core_schema__` manually.
+    # Check https://docs.pydantic.dev/latest/migration/#defining-custom-types for more information.
     def __get_validators__(cls):
         yield cls.validate
 
@@ -207,7 +219,7 @@ def generate_unique_refcode():
 
 class InlineSubstance(BaseModel):
     name: str
-    chemform: str | None
+    chemform: str | None = None
 
 
 class EntryReference(BaseModel):
@@ -219,10 +231,10 @@ class EntryReference(BaseModel):
     """
 
     type: str
-    name: str | None
-    immutable_id: PyObjectId | None
-    item_id: HumanReadableIdentifier | None
-    refcode: Refcode | None
+    name: str | None = None
+    immutable_id: PyObjectId | None = None
+    item_id: HumanReadableIdentifier | None = None
+    refcode: Refcode | None = None
 
     @root_validator
     def check_id_fields(cls, values):
@@ -234,8 +246,7 @@ class EntryReference(BaseModel):
 
         return values
 
-    class Config:
-        extra = "allow"
+    model_config = ConfigDict(extra="allow")
 
 
 class Constituent(BaseModel):
@@ -252,7 +263,8 @@ class Constituent(BaseModel):
     in grams (g) but could also refer to volumes (mL, L, etc.) or moles (mol).
     """
 
-    @validator("item")
+    #! TODO[pydantic] field_validator, @field_validator("item")
+    @classmethod
     def check_itemhood(cls, v):
         """Check that the reference within the constituent is to an item type."""
         if "type" in (v.value for v in ItemType):
@@ -260,6 +272,8 @@ class Constituent(BaseModel):
 
         return v
 
+    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
     @validator("item", pre=True, always=True)
     def coerce_reference(cls, v):
         if isinstance(v, dict):

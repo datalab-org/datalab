@@ -69,6 +69,8 @@ class StartingMaterial(Item, HasSynthesisInfo):
     comment: str | None = Field(alias="Comments")
     """Any additional comments or notes about the container."""
 
+    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
     @validator("molar_mass")
     def add_molar_mass(cls, v, values):
         from periodictable import formula

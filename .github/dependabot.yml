@@ -1,34 +1,32 @@
 version: 2
 updates:
-- package-ecosystem: pip
-  directory: "./pydatalab"
-  schedule:
-    interval: monthly
-    day: monday
-    time: "05:43"
-  target-branch: main
-  labels:
-  - dependency_updates
-  versioning-strategy: "increase-if-necessary"
-  ignore:
-    - dependency-name: "pydantic"
-      versions: [ ">=2" ]
-    - dependency-name: "bokeh"
-      versions: [ ">=3" ]
-    - dependency-name: "langchain"
-      versions: [ ">=0.3" ]
-# Updates GH actions versions as often as needed
-- package-ecosystem: github-actions
-  directory: "/"
-  schedule:
-    day: monday
-    interval: monthly
-    time: "05:33"
-  target-branch: main
-  labels:
-  - CI
-  - dependency_updates
-  groups:
-    github-actions:
-      applies-to: version-updates
-      dependency-type: production
+  - package-ecosystem: pip
+    directory: "./pydatalab"
+    schedule:
+      interval: monthly
+      day: monday
+      time: "05:43"
+    target-branch: main
+    labels:
+      - dependency_updates
+    versioning-strategy: "increase-if-necessary"
+    ignore:
+      - dependency-name: "bokeh"
+        versions: [">=3"]
+      - dependency-name: "langchain"
+        versions: [">=0.3"]
+  # Updates GH actions versions as often as needed
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      day: monday
+      interval: monthly
+      time: "05:33"
+    target-branch: main
+    labels:
+      - CI
+      - dependency_updates
+    groups:
+      github-actions:
+        applies-to: version-updates
+        dependency-type: production

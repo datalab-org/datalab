@@ -1,8 +1,16 @@
 from enum import Enum
+from typing import Literal
 
 import bson
 import bson.errors
-from pydantic import BaseModel, ConstrainedStr, Field, parse_obj_as, validator
+from pydantic import (
+    BaseModel,
+    ConstrainedStr,
+    Field,
+    #! TODO[pydantic] field_validator,
+    parse_obj_as,
+    validator,
+)
 from pydantic import EmailStr as PydanticEmailStr
 
 from pydatalab.models.entries import Entry
@@ -35,9 +43,11 @@ class Identity(BaseModel):
     verified: bool = Field(False)
     """Whether the identity has been verified (by some means, e.g., OAuth2 or email)"""
 
-    display_name: str | None
+    display_name: str | None = None
     """The user's display name associated with the identity, also to be exposed in free text searches."""
 
+    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
     @validator("name", pre=True, always=True)
     def add_missing_name(cls, v, values):
         """If the identity is created without a free-text 'name', then
@@ -54,6 +64,8 @@ class Identity(BaseModel):
 
         return v
 
+    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
     @validator("verified", pre=True, always=True)
     def add_missing_verification(cls, v):
         """Fills in missing value for `verified` if not given."""
@@ -100,7 +112,7 @@ class AccountStatus(str, Enum):
 class Person(Entry):
     """A model that describes an individual and their digital identities."""
 
-    type: str = Field("people", const=True)
+    type: Literal["people"] = "people"
     """The entry type as a string."""
 
     identities: list[Identity] = Field(default_factory=list)
@@ -118,6 +130,8 @@ class Person(Entry):
     account_status: AccountStatus = Field(AccountStatus.UNVERIFIED)
     """The status of the user's account."""
 
+    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
     @validator("type", pre=True, always=True)
     def add_missing_type(cls, v):
         """Fill in missing `type` field if not provided."""
@@ -125,7 +139,8 @@ class Person(Entry):
             v = "people"
         return v
 
-    @validator("type", pre=True)
+    #! TODO[pydantic] field_validator, @field_validator("type", mode="before")
+    @classmethod
     def set_default_type(cls, _):
         return "people"
 
