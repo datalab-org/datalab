@@ -1,4 +1,4 @@
-from pydantic import Field
+from typing import Literal
 
 from pydatalab.models.items import Item
 
@@ -6,7 +6,7 @@ from pydatalab.models.items import Item
 class Equipment(Item):
     """A model for representing an experimental sample."""
 
-    type: str = Field("equipment", const="equipment", pattern="^equipment$")
+    type: Literal["equipment"] = "equipment"
 
     serial_numbers: str | None
     """A string describing one or more serial numbers for the instrument."""

@@ -1,9 +1,18 @@
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from pydantic import BaseModel, Field, root_validator
+from pydantic import (
+    BaseModel,
+    Field,
+    model_validator,
+)
 
 from pydatalab.models.people import Person
 from pydatalab.models.utils import Constituent, InlineSubstance, PyObjectId
+
+if TYPE_CHECKING:
+    from pydatalab.models.collections import Collection
+else:
+    Collection = "Collection"
 
 
 class HasOwner(BaseModel):
@@ -35,12 +44,11 @@ class IsCollectable(BaseModel):
     added to collections.
     """
 
-    from pydatalab.models.collections import Collection
-
-    collections: list[Collection] = Field([])
+    collections: list["Collection"] = Field([])
     """Inlined info for the collections associated with this item."""
 
-    @root_validator
+    @model_validator(mode="before")
+    @classmethod
     def add_missing_collection_relationships(cls, values):
         from pydatalab.models.relationships import TypedRelationship
 
@@ -89,7 +97,8 @@ class HasSynthesisInfo(BaseModel):
     synthesis_description: str | None = None
     """Free-text details of the procedure applied to synthesise the sample"""
 
-    @root_validator
+    @model_validator(mode="before")
+    @classmethod
     def add_missing_synthesis_relationships(cls, values):
         """Add any missing sample synthesis constituents to parent relationships"""
         from pydatalab.models.relationships import RelationshipType, TypedRelationship

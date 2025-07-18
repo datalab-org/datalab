@@ -578,7 +578,7 @@ def _create_sample(
     # the `Entry` model.
     try:
         result = flask_mongo.db.items.insert_one(
-            data_model.dict(exclude={"creators", "collections"})
+            data_model.model_dump(exclude={"creators", "collections"})
         )
     except DuplicateKeyError as error:
         LOGGER.debug("item_id %s already exists in database", sample_dict["item_id"], sample_dict)
@@ -611,11 +611,11 @@ def _create_sample(
         "name": data_model.name,
         "creator_ids": data_model.creator_ids,
         # TODO: This workaround for creators & collections is still gross, need to figure this out properly
-        "creators": [json.loads(c.json(exclude_unset=True)) for c in data_model.creators]
+        "creators": [json.loads(c.model_dump_json(exclude_unset=True)) for c in data_model.creators]
         if data_model.creators
         else [],
         "collections": [
-            json.loads(c.json(exclude_unset=True, exclude_none=True))
+            json.loads(c.model_dump_json(exclude_unset=True, exclude_none=True))
             for c in data_model.collections
         ]
         if data_model.collections
@@ -968,7 +968,7 @@ def get_item_data(
     )
 
     # Must be exported to JSON first to apply the custom pydantic JSON encoders
-    return_dict = json.loads(doc.json(exclude_unset=True))
+    return_dict = json.loads(doc.model_dump_json(exclude_unset=True))
 
     if item_id is None:
         item_id = return_dict["item_id"]
@@ -1075,7 +1075,7 @@ def save_item():
     item.update(updated_data)
 
     try:
-        item = ITEM_MODELS[item_type](**item).dict()
+        item = ITEM_MODELS[item_type](**item).model_dump()
     except ValidationError as exc:
         return (
             jsonify(
@@ -1144,5 +1144,8 @@ def search_users():
         ]
     )
     return jsonify(
-        {"status": "success", "users": list(json.loads(Person(**d).json()) for d in cursor)}
+        {
+            "status": "success",
+            "users": list(json.loads(Person(**d).model_dump_json()) for d in cursor),
+        }
     ), 200

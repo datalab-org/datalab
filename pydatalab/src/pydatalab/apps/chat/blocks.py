@@ -233,7 +233,7 @@ Start with a friendly introduction and give me a one sentence summary of what th
             model.blocks_obj = {
                 k: value for k, value in model.blocks_obj.items() if value["blocktype"] != "chat"
             }
-        item_info = model.dict(exclude_none=True, exclude_unset=True)
+        item_info = model.model_dump(exclude_none=True, exclude_unset=True)
         item_info["type"] = model.type
 
         # strip irrelevant or large fields

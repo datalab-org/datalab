@@ -25,7 +25,7 @@ for document in all_documents:
             relation=RelationshipType.PARENT,
             type=item["type"],
             item_id=item["item_id"],
-        ).dict()
+        ).model_dump()
         for item in constituent_items
     ]
 

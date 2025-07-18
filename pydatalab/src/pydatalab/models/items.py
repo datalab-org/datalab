@@ -1,6 +1,6 @@
 import abc
 
-from pydantic import Field, validator
+from pydantic import Field, field_validator
 
 from pydatalab.models.entries import Entry
 from pydatalab.models.files import File
@@ -44,9 +44,8 @@ class Item(Entry, HasOwner, HasRevisionControl, IsCollectable, HasBlocks, abc.AB
     file_ObjectIds: list[PyObjectId] = Field([])
     """Links to object IDs of files stored within the database."""
 
-    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
-    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
-    @validator("refcode", pre=True, always=True)
+    @field_validator("refcode", mode="before")
+    @classmethod
     def refcode_validator(cls, v):
         """Generate a refcode if not provided."""
 

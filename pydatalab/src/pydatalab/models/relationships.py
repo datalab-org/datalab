@@ -1,6 +1,10 @@
 from enum import Enum
 
-from pydantic import BaseModel, root_validator, validator
+from pydantic import (
+    BaseModel,
+    field_validator,
+    model_validator,
+)
 
 from pydatalab.models.utils import (
     HumanReadableIdentifier,
@@ -50,27 +54,28 @@ class TypedRelationship(BaseModel):
     refcode: Refcode | None = None
     """The refcode of the entry that is related to this entry."""
 
-    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
-    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
-    @validator("relation")
-    def check_for_description(cls, v, values):
-        if v == RelationshipType.OTHER and values.get("description") is None:
-            raise ValueError(
-                f"A description must be provided if the relationship type is {RelationshipType.OTHER.value!r}."
-            )
-
+    @field_validator("relation")
+    @classmethod
+    def check_for_description(cls, v, info):
+        if v == RelationshipType.OTHER:
+            data = info.data if hasattr(info, "data") and info.data else {}
+            if data.get("description") is None:
+                raise ValueError(
+                    f"A description must be provided if the relationship type is {RelationshipType.OTHER.value!r}."
+                )
         return v
 
-    @root_validator
+    @model_validator(mode="before")
+    @classmethod
     def check_id_fields(cls, values):
         """Check that at least one of the possible identifier fields is provided."""
         id_fields = ("immutable_id", "item_id", "refcode")
-        if all(values[f] is None for f in id_fields):
+        if all(values.get(f) is None for f in id_fields):
             raise ValueError(f"Must provide at least one of {id_fields!r}")
 
         if values.get("refcode") and values.get("item_id"):
             pass
         elif values.get("immutable_id") and (values.get("refcode") or values.get("item_id")):
-            raise ValueError("Must provide only one of {id_fields!r}")
+            raise ValueError(f"Must provide only one of {id_fields!r}")
 
         return values

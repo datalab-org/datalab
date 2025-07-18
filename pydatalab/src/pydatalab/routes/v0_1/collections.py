@@ -85,7 +85,7 @@ def get_collection(collection_id):
         {
             "status": "success",
             "collection_id": collection_id,
-            "data": json.loads(collection.json(exclude_unset=True)),
+            "data": json.loads(collection.model_dump_json(exclude_unset=True)),
             "child_items": list(samples),
         }
     )
@@ -153,7 +153,7 @@ def create_collection():
         )
 
     result: InsertOneResult = flask_mongo.db.collections.insert_one(
-        data_model.dict(exclude={"creators"})
+        data_model.model_dump(exclude={"creators"})
     )
     if not result.acknowledged:
         return (
@@ -203,7 +203,7 @@ def create_collection():
 
     response = {
         "status": "success",
-        "data": json.loads(data_model.json()),
+        "data": json.loads(data_model.model_dump_json()),
     }
 
     if errors:
@@ -255,7 +255,7 @@ def save_collection(collection_id):
     collection.update(updated_data)
 
     try:
-        collection = Collection(**collection).dict()
+        collection = Collection(**collection).model_dump()
     except ValidationError as exc:
         return (
             jsonify(
@@ -347,7 +347,7 @@ def search_collections():
     match_obj = {"$text": {"$search": query}, **get_default_permissions(user_only=True)}
 
     cursor = [
-        json.loads(Collection(**doc).json(exclude_unset=True))
+        json.loads(Collection(**doc).model_dump_json(exclude_unset=True))
         for doc in flask_mongo.db.collections.aggregate(
             [
                 {"$match": match_obj},

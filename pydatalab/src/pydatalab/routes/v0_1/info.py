@@ -10,7 +10,7 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
-    #! TODO[pydantic] field_validator,
+    field_validator,
 )
 
 from pydatalab import __version__
@@ -68,7 +68,7 @@ class Info(Attributes, Meta):
     identifier_prefix: str
     features: FeatureFlags = FEATURE_FLAGS
 
-    #! TODO[pydantic] field_validator, @field_validator("maintainer")
+    @field_validator("maintainer", mode="before")
     @classmethod
     def strip_maintainer_fields(cls, v):
         if isinstance(v, Person):
@@ -80,7 +80,9 @@ class Info(Attributes, Meta):
 def _get_deployment_metadata_once() -> dict:
     identifier_prefix = CONFIG.IDENTIFIER_PREFIX
     metadata = (
-        CONFIG.DEPLOYMENT_METADATA.dict(exclude_none=True) if CONFIG.DEPLOYMENT_METADATA else {}
+        CONFIG.DEPLOYMENT_METADATA.model_dump(exclude_none=True)
+        if CONFIG.DEPLOYMENT_METADATA
+        else {}
     )
     metadata.update({"identifier_prefix": identifier_prefix})
     return metadata
@@ -101,7 +103,7 @@ def get_info():
                     data=Data(id="/", type="info", attributes=Info(**metadata)),
                     meta=Meta(query=request.query_string),
                     links=Links(self=request.url),
-                ).json()
+                ).model_dump_json()
             )
         ),
         200,
@@ -144,7 +146,7 @@ def list_block_types():
                     for block_type, block in BLOCK_TYPES.items()
                 ],
                 meta=Meta(query=request.query_string),
-            ).json()
+            ).model_dump_json()
         )
     )
 
@@ -157,9 +159,9 @@ def generate_schemas():
     schemas: dict[str, dict] = {}
 
     for model_class in get_all_items_models() + [Collection]:
-        model_type = model_class.schema()["properties"]["type"]["default"]
+        model_type = model_class.model_json_schema()["properties"]["type"]["default"]
 
-        schemas[model_type] = model_class.schema(by_alias=False)
+        schemas[model_type] = model_class.model_json_schema(by_alias=False)
 
     return schemas
 
@@ -188,7 +190,7 @@ def list_supported_types():
                     for item_type, schema in SCHEMAS.items()
                 ],
                 meta=Meta(query=request.query_string),
-            ).json()
+            ).model_dump_json()
         )
     )
 
@@ -214,6 +216,6 @@ def get_schema_type(item_type):
                     },
                 ),
                 meta=Meta(query=request.query_string),
-            ).json()
+            ).model_dump_json()
         )
     )
