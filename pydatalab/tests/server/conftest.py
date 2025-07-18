@@ -448,7 +448,7 @@ def fixture_complicated_sample(user_id):
 def example_items(user_id, admin_user_id):
     """Create a collection of samples with mixed ownership between the user and admin."""
     return [
-        d.dict(exclude_unset=False)
+        d.model_dump(exclude_unset=False)
         for d in [
             Sample(
                 **{
@@ -535,22 +535,22 @@ def example_items(user_id, admin_user_id):
 
 @pytest.fixture(scope="module", name="default_sample_dict")
 def fixture_default_sample_dict(default_sample):
-    return default_sample.dict(exclude_unset=True)
+    return default_sample.model_dump(exclude_unset=True)
 
 
 @pytest.fixture(scope="module", name="default_cell_dict")
 def fixture_default_cell_dict(default_cell):
-    return default_cell.dict(exclude_unset=True)
+    return default_cell.model_dump(exclude_unset=True)
 
 
 @pytest.fixture(scope="module", name="default_starting_material_dict")
 def fixture_default_starting_material_dict(default_starting_material):
-    return default_starting_material.dict(exclude_unset=True)
+    return default_starting_material.model_dump(exclude_unset=True)
 
 
 @pytest.fixture(scope="module", name="default_equipment_dict")
 def fixture_default_equipment_dict(default_equipment):
-    return default_equipment.dict(exclude_unset=True)
+    return default_equipment.model_dump(exclude_unset=True)
 
 
 def _insert_and_cleanup_item_from_model(model):
@@ -559,7 +559,7 @@ def _insert_and_cleanup_item_from_model(model):
 
     refcode = generate_unique_refcode()
     model.refcode = refcode
-    flask_mongo.db.items.insert_one(model.dict(exclude_unset=False))
+    flask_mongo.db.items.insert_one(model.model_dump(exclude_unset=False))
     yield model
     flask_mongo.db.items.delete_one({"refcode": model.refcode})
 

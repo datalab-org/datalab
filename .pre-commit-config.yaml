@@ -66,7 +66,13 @@ repos:
     hooks:
       - id: mypy
         additional_dependencies:
-          ["types-python-dateutil", "types-requests", "types-paramiko", "pydantic>=2.0,<3.0"]
+          [
+            "types-python-dateutil",
+            "types-requests",
+            "types-paramiko",
+            "pydantic>=2.0,<3.0",
+            "pydantic-settings>=2.0",
+          ]
         args: ["--config-file", "pydatalab/pyproject.toml"]
 
   - repo: local
@@ -75,6 +81,6 @@ repos:
         name: Regenerate item model JSONSchemas
         files: "^pydatalab/src/pydatalab/models/.*.$"
         description: Check if the current code changes have enacted changes to the resulting JSONSchemas
-        entry: invoke -r pydatalab dev.generate-schemas
+        entry: bash -c "cd pydatalab && uv run invoke dev.generate-schemas"
         pass_filenames: false
         language: system

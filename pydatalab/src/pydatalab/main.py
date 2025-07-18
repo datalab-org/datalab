@@ -149,7 +149,7 @@ def create_app(
     if config_override:
         CONFIG.update(config_override)
 
-    app.config.update(CONFIG.dict())
+    app.config.update(CONFIG.model_dump())
 
     # This value will still be overwritten by any dotenv values
     app.config["MAIL_DEBUG"] = app.config.get("MAIL_DEBUG") or CONFIG.TESTING
@@ -157,7 +157,7 @@ def create_app(
     # percolate datalab mail settings up to the `MAIL_` env vars/app config
     # for use by Flask Mail
     if CONFIG.EMAIL_AUTH_SMTP_SETTINGS is not None:
-        mail_settings = CONFIG.EMAIL_AUTH_SMTP_SETTINGS.dict()
+        mail_settings = CONFIG.EMAIL_AUTH_SMTP_SETTINGS.model_dump()
         for key in mail_settings:
             app.config[key] = mail_settings[key]
 

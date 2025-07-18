@@ -1,4 +1,6 @@
-from pydantic import Field, validator
+from typing import Literal
+
+from pydantic import Field, field_validator
 
 from pydatalab.models.items import Item
 from pydatalab.models.traits import HasSynthesisInfo
@@ -12,9 +14,7 @@ class StartingMaterial(Item, HasSynthesisInfo):
 
     """
 
-    type: str = Field(
-        "starting_materials", const="starting_materials", pattern="^starting_materials$"
-    )
+    type: Literal["starting_materials"] = "starting_materials"
 
     barcode: str | None = Field(
         alias="Barcode",
@@ -69,16 +69,16 @@ class StartingMaterial(Item, HasSynthesisInfo):
     comment: str | None = Field(alias="Comments")
     """Any additional comments or notes about the container."""
 
-    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
-    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
-    @validator("molar_mass")
-    def add_molar_mass(cls, v, values):
+    @field_validator("molar_mass", mode="before")
+    @classmethod
+    def add_molar_mass(cls, v, info):
         from periodictable import formula
 
-        if v is None and values.get("chemform"):
-            try:
-                return formula(values.get("chemform")).mass
-            except Exception:
-                return None
-
+        if v is None and hasattr(info, "data") and info.data:
+            chemform = info.data.get("chemform")
+            if chemform:
+                try:
+                    return formula(chemform).mass
+                except Exception:
+                    return None
         return v

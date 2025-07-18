@@ -37,4 +37,4 @@ new_cell = Cell(
 )
 
 
-db.items.insert_one(new_cell.dict())
+db.items.insert_one(new_cell.model_dump())

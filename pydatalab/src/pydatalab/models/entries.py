@@ -1,10 +1,9 @@
 import abc
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_serializer, model_validator
 
 from pydatalab.models.relationships import TypedRelationship
 from pydatalab.models.utils import (
-    JSON_ENCODERS,
     EntryReference,
     IsoformatDateTime,
     PyObjectId,
@@ -64,6 +63,12 @@ class Entry(BaseModel, abc.ABC):
 
         return EntryReference(**data)
 
-    # TODO[pydantic]: The following keys were removed: `json_encoders`.
-    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-config for more information.
-    model_config = ConfigDict(populate_by_name=True, json_encoders=JSON_ENCODERS, extra="ignore")
+    model_config = ConfigDict(populate_by_name=True, extra="ignore")
+
+    @field_serializer("immutable_id", when_used="json")
+    def serialize_object_id(self, value):
+        return str(value) if value else None
+
+    @field_serializer("last_modified", when_used="json")
+    def serialize_datetime(self, value):
+        return value.isoformat() if value else None

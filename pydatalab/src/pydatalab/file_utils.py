@@ -265,7 +265,7 @@ def get_file_info_by_id(file_id: str | ObjectId, update_if_live: bool = True) ->
     if update_if_live and file_info.is_live:
         file_info = _check_and_sync_file(file_info, file_id)
 
-    return file_info.dict()
+    return file_info.model_dump()
 
 
 @logged_route
@@ -311,7 +311,7 @@ def update_uploaded_file(file: FileStorage, file_id: ObjectId, size_bytes: int |
         {"_id": file_id, **get_default_permissions(user_only=False)}, {"$set": {"size": size_bytes}}
     )
 
-    ret = updated_file_entry.dict()
+    ret = updated_file_entry.model_dump()
     ret.update({"_id": file_id})
     return ret
 
@@ -402,7 +402,7 @@ def save_uploaded_file(
                 f"Cannot store file: insufficient space available on disk (required: {size_bytes // 1024**3} GB). Please contact your datalab administrator."
             )
         file_collection = client.get_database().files
-        result = file_collection.insert_one(new_file_document.dict(), session=session)
+        result = file_collection.insert_one(new_file_document.model_dump(), session=session)
         if not result.acknowledged:
             raise RuntimeError(
                 f"db operation failed when trying to insert new file. Result: {result}"
@@ -439,7 +439,7 @@ def save_uploaded_file(
                 f"db operation failed when trying to insert new file ObjectId into sample: {item_id}"
             )
 
-    ret = updated_file_entry.dict()
+    ret = updated_file_entry.model_dump()
     ret.update({"_id": inserted_id})
     return ret
 
@@ -515,7 +515,7 @@ def add_file_from_remote_directory(
         creator_ids=creator_ids if creator_ids is not None else [],
     )
 
-    result = file_collection.insert_one(new_file_document.dict())
+    result = file_collection.insert_one(new_file_document.model_dump())
     if not result.acknowledged:
         raise OSError(f"db operation failed when trying to insert new file. Result: {result}")
 

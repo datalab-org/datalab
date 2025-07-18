@@ -57,7 +57,7 @@ def test_sample_with_inlined_reference():
 @pytest.mark.parametrize("model", ITEM_MODELS.values())
 def test_generate_schemas(model):
     """Test that all item model schemas can be generated."""
-    assert model.schema()
+    assert model.model_json_schema()
 
 
 def test_relationship_with_custom_type():
@@ -152,7 +152,7 @@ def test_custom_and_inherited_items():
         item_id="1234",
     )
 
-    item_dict = item.dict()
+    item_dict = item.model_dump()
     assert item_dict["type"] == "items_custom"
     assert item_dict["creator_ids"][0] == ObjectId("0123456789ab0123456789ab")
     assert item_dict["creator_ids"][1] == ObjectId("1023456789ab0123456789ab")
@@ -160,7 +160,7 @@ def test_custom_and_inherited_items():
         tzinfo=datetime.timezone.utc
     )
 
-    item_json = json.loads(item.json())
+    item_json = json.loads(item.model_dump_json())
     assert item_json["type"] == "items_custom"
     assert item_json["creator_ids"][0] == str(ObjectId("0123456789ab0123456789ab"))
     assert item_json["creator_ids"][1] == str(ObjectId("1023456789ab0123456789ab"))
@@ -179,7 +179,7 @@ def test_custom_and_inherited_items():
         item_id="1234",
     )
 
-    sample_dict = sample.dict()
+    sample_dict = sample.model_dump()
     assert sample_dict["type"] == "samples"
     assert sample_dict["creator_ids"][0] == ObjectId("0123456789ab0123456789ab")
     assert sample_dict["creator_ids"][1] == ObjectId("1023456789ab0123456789ab")
@@ -190,7 +190,7 @@ def test_custom_and_inherited_items():
         "2020-01-01 00:00"
     ).replace(tzinfo=datetime.timezone.utc)
 
-    sample_json = json.loads(sample.json())
+    sample_json = json.loads(sample.model_dump_json())
     assert sample_json["type"] == "samples"
     assert sample_json["creator_ids"][0] == str(ObjectId("0123456789ab0123456789ab"))
     assert sample_json["creator_ids"][1] == str(ObjectId("1023456789ab0123456789ab"))
@@ -267,7 +267,7 @@ def test_cell_with_inlined_reference():
     assert cell
     assert len(cell.relationships) == 1
 
-    cell = Cell(**json.loads(cell.json()))
+    cell = Cell(**json.loads(cell.model_dump_json()))
     assert cell
     assert len(cell.relationships) == 1
 

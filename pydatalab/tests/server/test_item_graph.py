@@ -15,7 +15,7 @@ def test_single_starting_material(admin_client):
 
     creation = admin_client.post(
         "/new-sample/",
-        json={"new_sample_data": json.loads(material.json())},
+        json={"new_sample_data": json.loads(material.model_dump_json())},
     )
 
     assert creation.status_code == 201
@@ -39,7 +39,7 @@ def test_single_starting_material(admin_client):
 
     creation = admin_client.post(
         "/new-sample/",
-        json={"new_sample_data": json.loads(parent.json())},
+        json={"new_sample_data": json.loads(parent.model_dump_json())},
     )
 
     assert creation.status_code == 201

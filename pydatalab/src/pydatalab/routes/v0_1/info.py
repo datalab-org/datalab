@@ -10,7 +10,8 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
-    #! TODO[pydantic] field_validator,
+    field_validator,
+    model_validator,
 )
 
 from pydatalab import __version__
@@ -68,19 +69,34 @@ class Info(Attributes, Meta):
     identifier_prefix: str
     features: FeatureFlags = FEATURE_FLAGS
 
-    #! TODO[pydantic] field_validator, @field_validator("maintainer")
+    @field_validator("maintainer", mode="before")
     @classmethod
     def strip_maintainer_fields(cls, v):
         if isinstance(v, Person):
             return MetaPerson(contact_email=v.contact_email, display_name=v.display_name)
         return v
 
+    @model_validator(mode="after")
+    def ensure_features_serialization(self):
+        """Ensure features are properly serialized for frontend consumption."""
+        if hasattr(self.features, "model_dump"):
+            features_dict = self.features.model_dump()
+        else:
+            features_dict = (
+                self.features.dict() if hasattr(self.features, "dict") else self.features
+            )
+
+        self.features = FeatureFlags(**features_dict)
+        return self
+
 
 @lru_cache(maxsize=1)
 def _get_deployment_metadata_once() -> dict:
     identifier_prefix = CONFIG.IDENTIFIER_PREFIX
     metadata = (
-        CONFIG.DEPLOYMENT_METADATA.dict(exclude_none=True) if CONFIG.DEPLOYMENT_METADATA else {}
+        CONFIG.DEPLOYMENT_METADATA.model_dump(exclude_none=True)
+        if CONFIG.DEPLOYMENT_METADATA
+        else {}
     )
     metadata.update({"identifier_prefix": identifier_prefix})
     return metadata
@@ -92,16 +108,23 @@ def get_info():
     versions, features and so on.
 
     """
-    metadata = _get_deployment_metadata_once()
+    attributes_data = {
+        "identifier_prefix": CONFIG.IDENTIFIER_PREFIX,
+        "features": FEATURE_FLAGS.model_dump(),
+    }
+
+    if CONFIG.DEPLOYMENT_METADATA:
+        deployment_meta = CONFIG.DEPLOYMENT_METADATA.model_dump(exclude_none=True)
+        attributes_data.update(deployment_meta)
 
     return (
         jsonify(
             json.loads(
                 JSONAPIResponse(
-                    data=Data(id="/", type="info", attributes=Info(**metadata)),
-                    meta=Meta(query=request.query_string),
+                    data=Data(id="/", type="info", attributes=Attributes(**attributes_data)),
+                    meta=Meta(query=request.query_string.decode() if request.query_string else ""),
                     links=Links(self=request.url),
-                ).json()
+                ).model_dump_json()
             )
         ),
         200,
@@ -144,7 +167,7 @@ def list_block_types():
                     for block_type, block in BLOCK_TYPES.items()
                 ],
                 meta=Meta(query=request.query_string),
-            ).json()
+            ).model_dump_json()
         )
     )
 
@@ -157,9 +180,9 @@ def generate_schemas():
     schemas: dict[str, dict] = {}
 
     for model_class in get_all_items_models() + [Collection]:
-        model_type = model_class.schema()["properties"]["type"]["default"]
+        model_type = model_class.model_json_schema()["properties"]["type"]["default"]
 
-        schemas[model_type] = model_class.schema(by_alias=False)
+        schemas[model_type] = model_class.model_json_schema(by_alias=False)
 
     return schemas
 
@@ -188,7 +211,7 @@ def list_supported_types():
                     for item_type, schema in SCHEMAS.items()
                 ],
                 meta=Meta(query=request.query_string),
-            ).json()
+            ).model_dump_json()
         )
     )
 
@@ -214,6 +237,6 @@ def get_schema_type(item_type):
                     },
                 ),
                 meta=Meta(query=request.query_string),
-            ).json()
+            ).model_dump_json()
         )
     )
