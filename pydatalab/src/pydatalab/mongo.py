@@ -28,7 +28,7 @@ ITEMS_FTS_FIELDS: set[str] = set().union(
     *(
         {
             f
-            for f, p in model.schema(by_alias=False)["properties"].items()
+            for f, p in model.model_json_schema(by_alias=False)["properties"].items()
             if (
                 p.get("type") == "string"
                 and p.get("format") not in ("date-time", "uuid")
@@ -44,7 +44,7 @@ def insert_pydantic_model_fork_safe(model: BaseModel, collection: str) -> str:
     """Inserts a Pydantic model into chosen collection, returning the inserted ID."""
     return (
         get_database()[collection]
-        .insert_one(model.dict(by_alias=True, exclude_none=True))
+        .insert_one(model.model_dump(by_alias=True, exclude_none=True))
         .inserted_id
     )
 

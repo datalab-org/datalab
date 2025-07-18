@@ -1,13 +1,20 @@
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from pydantic import BaseModel, Field, root_validator
+from pydantic import (
+    BaseModel,
+    Field,
+    model_validator,
+)
 
 from pydatalab.models.people import Person
 from pydatalab.models.utils import Constituent, InlineSubstance, PyObjectId
 
+if TYPE_CHECKING:
+    from pydatalab.models.collections import Collection
+
 
 class HasOwner(BaseModel):
-    creator_ids: list[PyObjectId] = Field([])
+    creator_ids: list[PyObjectId] = Field(default_factory=list)
     """The database IDs of the user(s) who created the item."""
 
     creators: list[Person] | None = Field(None)
@@ -23,10 +30,10 @@ class HasRevisionControl(BaseModel):
 
 
 class HasBlocks(BaseModel):
-    blocks_obj: dict[str, Any] = Field({})
+    blocks_obj: dict[str, Any] = Field(default_factory=dict)
     """A mapping from block ID to block data."""
 
-    display_order: list[str] = Field([])
+    display_order: list[str] = Field(default_factory=list)
     """The order in which to display block data in the UI."""
 
 
@@ -35,12 +42,11 @@ class IsCollectable(BaseModel):
     added to collections.
     """
 
-    from pydatalab.models.collections import Collection
-
-    collections: list[Collection] = Field([])
+    collections: list["Collection"] = Field(default_factory=list)
     """Inlined info for the collections associated with this item."""
 
-    @root_validator
+    @model_validator(mode="before")
+    @classmethod
     def add_missing_collection_relationships(cls, values):
         from pydatalab.models.relationships import TypedRelationship
 
@@ -83,13 +89,14 @@ class IsCollectable(BaseModel):
 class HasSynthesisInfo(BaseModel):
     """Trait mixin for models that have synthesis information."""
 
-    synthesis_constituents: list[Constituent] = Field([])
+    synthesis_constituents: list[Constituent] = Field(default_factory=list)
     """A list of references to constituent materials giving the amount and relevant inlined details of consituent items."""
 
     synthesis_description: str | None = None
     """Free-text details of the procedure applied to synthesise the sample"""
 
-    @root_validator
+    @model_validator(mode="before")
+    @classmethod
     def add_missing_synthesis_relationships(cls, values):
         """Add any missing sample synthesis constituents to parent relationships"""
         from pydatalab.models.relationships import RelationshipType, TypedRelationship

@@ -1,6 +1,10 @@
 from enum import Enum
+from typing import Literal
 
-from pydantic import Field, root_validator, validator
+from pydantic import (
+    field_validator,
+    model_validator,
+)
 
 from pydatalab.models.entries import EntryReference
 from pydatalab.models.items import Item
@@ -27,7 +31,7 @@ class CellFormat(str, Enum):
 class Cell(Item):
     """A model for representing electrochemical cells."""
 
-    type: str = Field("cells", const="cells", pattern="^cells$")
+    type: Literal["cells"] = "cells"
 
     cell_format: CellFormat | None
     """The form factor of the cell, e.g., coin, pouch, in situ or otherwise."""
@@ -54,24 +58,22 @@ class Cell(Item):
 
     active_ion_charge: float = 1
 
-    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
-    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
-    @validator("characteristic_molar_mass", always=True, pre=True)
-    def set_molar_mass(cls, v, values):
+    @field_validator("characteristic_molar_mass", mode="before")
+    @classmethod
+    def set_molar_mass(cls, v, info):
         from periodictable import formula
 
-        if not v:
-            chemical_formula = values.get("characteristic_chemical_formula")
-
+        if not v and hasattr(info, "data") and info.data:
+            chemical_formula = info.data.get("characteristic_chemical_formula")
             if chemical_formula:
                 try:
                     return formula(chemical_formula).mass
                 except Exception:
                     return None
-
         return v
 
-    @root_validator
+    @model_validator(mode="before")
+    @classmethod
     def add_missing_electrode_relationships(cls, values):
         """Add any missing sample synthesis constituents to parent relationships"""
         from pydatalab.models.relationships import RelationshipType, TypedRelationship

@@ -1,6 +1,4 @@
-from typing import Any
-
-from pydantic import Field
+from typing import Any, Literal
 
 from pydatalab.models.entries import Entry
 from pydatalab.models.traits import HasOwner, HasRevisionControl
@@ -10,7 +8,7 @@ from pydatalab.models.utils import IsoformatDateTime
 class File(Entry, HasOwner, HasRevisionControl):
     """A model for representing a file that has been tracked or uploaded to datalab."""
 
-    type: str = Field("files", const="files", pattern="^files$")
+    type: Literal["files"] = "files"
 
     size: int | None
     """The size of the file on disk in bytes."""

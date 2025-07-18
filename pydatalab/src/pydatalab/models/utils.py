@@ -4,20 +4,19 @@ import string
 from collections.abc import Callable
 from enum import Enum
 from functools import partial
-from typing import TypeAlias
+from typing import Annotated, Any, TypeAlias
 
 import pint
 from bson.objectid import ObjectId
 from pydantic import (
     BaseModel,
     ConfigDict,
-    ConstrainedStr,
     Field,
-    #! TODO[pydantic] field_validator,
-    parse_obj_as,
-    root_validator,
-    validator,
+    StringConstraints,
+    field_validator,
+    model_validator,
 )
+from pydantic_core import core_schema
 
 
 class ItemType(str, Enum):
@@ -44,43 +43,23 @@ leading or trailing punctuation.
 """
 
 
-class HumanReadableIdentifier(ConstrainedStr):
-    """Used to constrain human-readable and URL-safe identifiers for items."""
-
-    min_length = 1
-    max_length = 40
-    strip_whitespace = True
-    to_lower = False
-    strict = False
-    regex = IDENTIFIER_REGEX
-
-    def __init__(self, value):
-        self.value = parse_obj_as(type(self), value)
-
-    def __str__(self):
-        return self.value
-
-    def __repr__(self):
-        return self.value
-
-    def __bool__(self):
-        return bool(self.value)
+HumanReadableIdentifier = Annotated[
+    str,
+    StringConstraints(min_length=1, max_length=40, strip_whitespace=True, pattern=IDENTIFIER_REGEX),
+]
+"""Used to constrain human-readable and URL-safe identifiers for items."""
 
 
-class Refcode(HumanReadableIdentifier):
-    regex = r"^[a-z]{2,10}:" + IDENTIFIER_REGEX[1:]
-    """A regex to match refcodes that have a lower-case prefix between 2-10 chars, followed by a colon,
-    and then the normal rules for an ID (url-safe etc.).
-
-    """
-
-    @property
-    def prefix(self):
-        return self.value.split(":")[0]
-
-    @property
-    def identifier(self):
-        return self.value.split(":")[1]
+Refcode = Annotated[
+    str,
+    StringConstraints(
+        min_length=1,
+        max_length=40,
+        strip_whitespace=True,
+        pattern=r"^[a-z]{2,10}:" + IDENTIFIER_REGEX[1:],
+    ),
+]
+"""A regex to match refcodes that have a lower-case prefix between 2-10 chars, followed by a colon, and then the normal rules for an ID (url-safe etc.)."""
 
 
 class UserRole(str, Enum):
@@ -101,10 +80,12 @@ class PintType(str):
         self._dimensions = dimensions
 
     @classmethod
-    # TODO[pydantic]: We couldn't refactor `__get_validators__`, please create the `__get_pydantic_core_schema__` manually.
-    # Check https://docs.pydantic.dev/latest/migration/#defining-custom-types for more information.
-    def __get_validators__(self):
-        yield self.validate
+    def __get_pydantic_core_schema__(cls, source_type: Any, handler: Any) -> core_schema.CoreSchema:
+        return core_schema.no_info_after_validator_function(
+            cls.validate,
+            core_schema.str_schema(),
+            serialization=core_schema.plain_serializer_function_ser_schema(str, when_used="json"),
+        )
 
     @classmethod
     def validate(self, v):
@@ -112,12 +93,6 @@ class PintType(str):
         if not q.check(self._dimensions):
             raise ValueError("Value {v} must have dimensions of mass, not {v.dimensions}")
         return q
-
-    @classmethod
-    # TODO[pydantic]: We couldn't refactor `__modify_schema__`, please create the `__get_pydantic_json_schema__` manually.
-    # Check https://docs.pydantic.dev/latest/migration/#defining-custom-types for more information.
-    def __modify_schema__(cls, field_schema):
-        field_schema.update(type="string")
 
 
 Mass: TypeAlias = PintType("[mass]")  # type: ignore # noqa
@@ -133,49 +108,76 @@ class PyObjectId(ObjectId):
     """
 
     @classmethod
-    # TODO[pydantic]: We couldn't refactor `__get_validators__`, please create the `__get_pydantic_core_schema__` manually.
-    # Check https://docs.pydantic.dev/latest/migration/#defining-custom-types for more information.
-    def __get_validators__(cls):
-        yield cls.validate
+    def __get_pydantic_core_schema__(cls, source_type: Any, handler: Any) -> core_schema.CoreSchema:
+        return core_schema.no_info_after_validator_function(
+            cls.validate,
+            core_schema.union_schema(
+                [
+                    core_schema.str_schema(),
+                    core_schema.is_instance_schema(ObjectId),
+                    core_schema.is_instance_schema(cls),
+                ]
+            ),
+            serialization=core_schema.plain_serializer_function_ser_schema(
+                lambda x: str(x) if x else None, when_used="json"
+            ),
+        )
 
     @classmethod
     def validate(cls, v):
+        if v is None:
+            return None
+        if isinstance(v, cls):
+            return v
+        if isinstance(v, ObjectId):
+            return cls(ObjectId(v))
         if isinstance(v, dict) and "$oid" in v:
             v = v["$oid"]
-
-        if not ObjectId.is_valid(v):
-            raise ValueError("Invalid ObjectId")
-
-        return ObjectId(v)
-
-    @classmethod
-    # TODO[pydantic]: We couldn't refactor `__modify_schema__`, please create the `__get_pydantic_json_schema__` manually.
-    # Check https://docs.pydantic.dev/latest/migration/#defining-custom-types for more information.
-    def __modify_schema__(cls, field_schema):
-        field_schema.update(type="string")
+        if isinstance(v, str):
+            if not ObjectId.is_valid(v):
+                raise ValueError("Invalid ObjectId")
+            return cls(ObjectId(v))
+        raise ValueError("Invalid ObjectId")
 
 
 class IsoformatDateTime(datetime.datetime):
     """A datetime container that is more flexible than the pydantic default."""
 
     @classmethod
-    # TODO[pydantic]: We couldn't refactor `__get_validators__`, please create the `__get_pydantic_core_schema__` manually.
-    # Check https://docs.pydantic.dev/latest/migration/#defining-custom-types for more information.
-    def __get_validators__(cls):
-        yield cls.validate
+    def __get_pydantic_core_schema__(cls, source_type: Any, handler: Any) -> core_schema.CoreSchema:
+        return core_schema.no_info_after_validator_function(
+            cls.validate,
+            core_schema.union_schema(
+                [
+                    core_schema.str_schema(),
+                    core_schema.is_instance_schema(datetime.datetime),
+                ]
+            ),
+            serialization=core_schema.plain_serializer_function_ser_schema(
+                lambda x: x.isoformat() if x else None, when_used="json"
+            ),
+        )
 
     @classmethod
     def validate(cls, v) -> datetime.datetime | None:
         """Cast isoformat strings to datetimes and enforce UTC if tzinfo is missing."""
+        if v is None:
+            return None
+
+        if isinstance(v, datetime.datetime):
+            if v.tzinfo is None:
+                v = v.replace(tzinfo=datetime.timezone.utc)
+            return v
+
         if isinstance(v, str):
-            if v in ["0", " "]:
+            if v in ["0", " ", ""]:
                 return None
             v = datetime.datetime.fromisoformat(v)
+            if v.tzinfo is None:
+                v = v.replace(tzinfo=datetime.timezone.utc)
+            return v
 
-        if v.tzinfo is None:
-            v = v.replace(tzinfo=datetime.timezone.utc)
-
-        return v
+        raise ValueError(f"Invalid datetime value: {v}")
 
 
 JSON_ENCODERS = {
@@ -236,7 +238,8 @@ class EntryReference(BaseModel):
     item_id: HumanReadableIdentifier | None = None
     refcode: Refcode | None = None
 
-    @root_validator
+    @model_validator(mode="before")
+    @classmethod
     def check_id_fields(cls, values):
         """Check that at least one of the possible identifier fields is provided."""
         id_fields = ("immutable_id", "item_id", "refcode")
@@ -263,18 +266,16 @@ class Constituent(BaseModel):
     in grams (g) but could also refer to volumes (mL, L, etc.) or moles (mol).
     """
 
-    #! TODO[pydantic] field_validator, @field_validator("item")
+    @field_validator("item")
     @classmethod
     def check_itemhood(cls, v):
         """Check that the reference within the constituent is to an item type."""
-        if "type" in (v.value for v in ItemType):
-            raise ValueError(f"`type` must be one of {ItemType!r}")
-
+        if hasattr(v, "type") and v.type not in [item_type.value for item_type in ItemType]:
+            raise ValueError(f"`type` must be one of {[t.value for t in ItemType]!r}")
         return v
 
-    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
-    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
-    @validator("item", pre=True, always=True)
+    @field_validator("item", mode="before")
+    @classmethod
     def coerce_reference(cls, v):
         if isinstance(v, dict):
             refcode = v.pop("refcode", None)
