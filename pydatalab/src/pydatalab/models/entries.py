@@ -19,18 +19,18 @@ class Entry(BaseModel, abc.ABC):
     type: str
     """The resource type of the entry."""
 
-    immutable_id: PyObjectId = Field(
+    immutable_id: PyObjectId | None = Field(
         None,
         title="Immutable ID",
         alias="_id",
-        format="uuid",
+        json_schema_extra={"format": "uuid"},
     )
     """The immutable database ID of the entry."""
 
     last_modified: IsoformatDateTime | None = None
     """The timestamp at which the entry was last modified."""
 
-    relationships: list[TypedRelationship] | None = None
+    relationships: list[TypedRelationship] = Field(default_factory=list)
     """A list of related entries and their types."""
 
     @model_validator(mode="before")
@@ -43,6 +43,13 @@ class Entry(BaseModel, abc.ABC):
             values["immutable_id"] = values.pop("_id")
 
         return values
+
+    @model_validator(mode="after")
+    def validate_relationships(self):
+        """Ensure relationships is always a list."""
+        if self.relationships is None:
+            self.relationships = []
+        return self
 
     def to_reference(self, additional_fields: list[str] | None = None) -> "EntryReference":
         """Populate an EntryReference model from this entry, selecting additional fields to inline.

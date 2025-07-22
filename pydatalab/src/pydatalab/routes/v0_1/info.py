@@ -57,7 +57,7 @@ class JSONAPIResponse(BaseModel):
 
 
 class MetaPerson(BaseModel):
-    dislay_name: str | None = None
+    display_name: str | None = None
     contact_email: str
 
 
@@ -81,12 +81,13 @@ class Info(Attributes, Meta):
         """Ensure features are properly serialized for frontend consumption."""
         if hasattr(self.features, "model_dump"):
             features_dict = self.features.model_dump()
+        elif hasattr(self.features, "dict"):
+            features_dict = self.features.dict()
         else:
-            features_dict = (
-                self.features.dict() if hasattr(self.features, "dict") else self.features
-            )
+            features_dict = self.features
 
-        self.features = FeatureFlags(**features_dict)
+        if not isinstance(self.features, FeatureFlags):
+            self.features = FeatureFlags(**features_dict)
         return self
 
 
@@ -108,20 +109,14 @@ def get_info():
     versions, features and so on.
 
     """
-    attributes_data = {
-        "identifier_prefix": CONFIG.IDENTIFIER_PREFIX,
-        "features": FEATURE_FLAGS.model_dump(),
-    }
-
-    if CONFIG.DEPLOYMENT_METADATA:
-        deployment_meta = CONFIG.DEPLOYMENT_METADATA.model_dump(exclude_none=True)
-        attributes_data.update(deployment_meta)
+    metadata = _get_deployment_metadata_once().copy()
+    info = Info(**metadata)
 
     return (
         jsonify(
             json.loads(
                 JSONAPIResponse(
-                    data=Data(id="/", type="info", attributes=Attributes(**attributes_data)),
+                    data=Data(id="/", type="info", attributes=info),
                     meta=Meta(query=request.query_string.decode() if request.query_string else ""),
                     links=Links(self=request.url),
                 ).model_dump_json()

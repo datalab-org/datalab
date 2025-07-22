@@ -174,7 +174,7 @@ class ServerConfig(BaseSettings):
 
     REMOTE_FILESYSTEMS: list[RemoteFilesystem] = Field(
         [],
-        descripton="A list of dictionaries describing remote filesystems to be accessible from the server.",
+        description="A list of dictionaries describing remote filesystems to be accessible from the server.",
     )
 
     REMOTE_CACHE_MAX_AGE: int = Field(
@@ -345,6 +345,15 @@ its importance when deploying a datalab instance.""",
         except Exception as exc:
             raise RuntimeError(f"Unable to create log file at {v}") from exc
         return v
+
+    def update(self, values: dict):
+        """Update the configuration with new values, following Pydantic v1 behavior."""
+        for key, value in values.items():
+            key_upper = key.upper()
+            if hasattr(self, key_upper):
+                setattr(self, key_upper, value)
+            else:
+                setattr(self, key_upper, value)
 
 
 CONFIG: ServerConfig = ServerConfig()

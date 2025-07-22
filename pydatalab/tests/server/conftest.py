@@ -350,6 +350,7 @@ def fixture_default_collection():
         **{
             "collection_id": "test_collection",
             "title": "My Test Collection",
+            "description": "A test collection for unit tests",
             "date": "1970-02-02",
             "type": "collections",
         }

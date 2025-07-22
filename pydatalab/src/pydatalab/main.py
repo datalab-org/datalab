@@ -94,6 +94,8 @@ def _check_feature_flags(app):
         "No GitHub OAuth client secret provided, GitHub login will not work",
     ):
         FEATURE_FLAGS.auth_mechanisms.github = True
+    else:
+        FEATURE_FLAGS.auth_mechanisms.github = False
     if _check_secret_and_warn(
         "ORCID_OAUTH_CLIENT_SECRET",
         "No ORCID OAuth client secret provided, ORCID login will not work",
@@ -101,18 +103,24 @@ def _check_feature_flags(app):
         "ORCID_OAUTH_CLIENT_ID", "No ORCID OAuth client ID provided, ORCID login will not work"
     ):
         FEATURE_FLAGS.auth_mechanisms.orcid = True
+    else:
+        FEATURE_FLAGS.auth_mechanisms.orcid = False
     if _check_secret_and_warn(
         "OPENAI_API_KEY",
         "No OpenAI API key provided, OpenAI-based ChatBlock will not work",
         environ=True,
     ):
         FEATURE_FLAGS.ai_integrations.openai = True
+    else:
+        FEATURE_FLAGS.ai_integrations.openai = False
     if _check_secret_and_warn(
         "ANTHROPIC_API_KEY",
         "No Anthropic API key provided, Claude-based ChatBlock will not work",
         environ=True,
     ):
         FEATURE_FLAGS.ai_integrations.anthropic = True
+    else:
+        FEATURE_FLAGS.ai_integrations.anthropic = False
 
     if CONFIG.DEBUG:
         LOGGER.warning("Running with debug logs enabled")

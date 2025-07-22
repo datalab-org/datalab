@@ -33,6 +33,7 @@ class RelationshipType(str, Enum):
     SIBLING = "sibling"
     PARTHOOD = "is_part_of"
     OTHER = "other"
+    COLLECTIONS = "collections"
 
 
 class TypedRelationship(BaseModel):

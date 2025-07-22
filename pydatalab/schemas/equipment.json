@@ -26,7 +26,14 @@
         },
         "creator_ids": {
           "items": {
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "title": "Creator Ids",
           "type": "array"
@@ -53,10 +60,17 @@
           "type": "string"
         },
         "immutable_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
           "default": null,
           "format": "uuid",
-          "title": "Immutable ID",
-          "type": "string"
+          "title": "Immutable ID"
         },
         "last_modified": {
           "anyOf": [
@@ -71,27 +85,23 @@
           "title": "Last Modified"
         },
         "relationships": {
+          "items": {
+            "$ref": "#/$defs/TypedRelationship"
+          },
+          "title": "Relationships",
+          "type": "array"
+        },
+        "collection_id": {
           "anyOf": [
             {
-              "items": {
-                "$ref": "#/$defs/TypedRelationship"
-              },
-              "type": "array"
+              "type": "string"
             },
             {
-              "type": "null"
+              "type": "integer"
             }
           ],
           "default": null,
-          "title": "Relationships"
-        },
-        "collection_id": {
-          "default": null,
-          "maxLength": 40,
-          "minLength": 1,
-          "pattern": "^(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
-          "title": "Collection Id",
-          "type": "string"
+          "title": "Collection Id"
         },
         "title": {
           "anyOf": [
@@ -102,6 +112,7 @@
               "type": "null"
             }
           ],
+          "default": null,
           "title": "Title"
         },
         "description": {
@@ -113,6 +124,7 @@
               "type": "null"
             }
           ],
+          "default": null,
           "title": "Description"
         },
         "num_items": {
@@ -128,10 +140,6 @@
           "title": "Num Items"
         }
       },
-      "required": [
-        "title",
-        "description"
-      ],
       "title": "Collection",
       "type": "object"
     },
@@ -158,7 +166,14 @@
         },
         "creator_ids": {
           "items": {
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "title": "Creator Ids",
           "type": "array"
@@ -185,10 +200,17 @@
           "type": "string"
         },
         "immutable_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
           "default": null,
           "format": "uuid",
-          "title": "Immutable ID",
-          "type": "string"
+          "title": "Immutable ID"
         },
         "last_modified": {
           "anyOf": [
@@ -203,19 +225,11 @@
           "title": "Last Modified"
         },
         "relationships": {
-          "anyOf": [
-            {
-              "items": {
-                "$ref": "#/$defs/TypedRelationship"
-              },
-              "type": "array"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Relationships"
+          "items": {
+            "$ref": "#/$defs/TypedRelationship"
+          },
+          "title": "Relationships",
+          "type": "array"
         },
         "size": {
           "anyOf": [
@@ -226,6 +240,7 @@
               "type": "null"
             }
           ],
+          "default": null,
           "title": "Size"
         },
         "last_modified_remote": {
@@ -237,6 +252,7 @@
               "type": "null"
             }
           ],
+          "default": null,
           "title": "Last Modified Remote"
         },
         "item_ids": {
@@ -270,6 +286,7 @@
               "type": "null"
             }
           ],
+          "default": null,
           "title": "Original Name"
         },
         "location": {
@@ -281,6 +298,7 @@
               "type": "null"
             }
           ],
+          "default": null,
           "title": "Location"
         },
         "url_path": {
@@ -292,6 +310,7 @@
               "type": "null"
             }
           ],
+          "default": null,
           "title": "Url Path"
         },
         "source": {
@@ -303,6 +322,7 @@
               "type": "null"
             }
           ],
+          "default": null,
           "title": "Source"
         },
         "time_added": {
@@ -319,6 +339,7 @@
               "type": "null"
             }
           ],
+          "default": null,
           "title": "Metadata"
         },
         "representation": {
@@ -328,6 +349,7 @@
               "type": "null"
             }
           ],
+          "default": null,
           "title": "Representation"
         },
         "source_server_name": {
@@ -339,6 +361,7 @@
               "type": "null"
             }
           ],
+          "default": null,
           "title": "Source Server Name"
         },
         "source_path": {
@@ -350,6 +373,7 @@
               "type": "null"
             }
           ],
+          "default": null,
           "title": "Source Path"
         },
         "is_live": {
@@ -358,21 +382,9 @@
         }
       },
       "required": [
-        "size",
-        "last_modified_remote",
-        "item_ids",
-        "blocks",
         "name",
         "extension",
-        "original_name",
-        "location",
-        "url_path",
-        "source",
         "time_added",
-        "metadata",
-        "representation",
-        "source_server_name",
-        "source_path",
         "is_live"
       ],
       "title": "File",
@@ -451,10 +463,17 @@
           "type": "string"
         },
         "immutable_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
           "default": null,
           "format": "uuid",
-          "title": "Immutable ID",
-          "type": "string"
+          "title": "Immutable ID"
         },
         "last_modified": {
           "anyOf": [
@@ -469,19 +488,11 @@
           "title": "Last Modified"
         },
         "relationships": {
-          "anyOf": [
-            {
-              "items": {
-                "$ref": "#/$defs/TypedRelationship"
-              },
-              "type": "array"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Relationships"
+          "items": {
+            "$ref": "#/$defs/TypedRelationship"
+          },
+          "title": "Relationships",
+          "type": "array"
         },
         "identities": {
           "items": {
@@ -520,7 +531,14 @@
           "anyOf": [
             {
               "items": {
-                "type": "string"
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               },
               "type": "array"
             },
@@ -549,7 +567,8 @@
         "child",
         "sibling",
         "is_part_of",
-        "other"
+        "other",
+        "collections"
       ],
       "title": "RelationshipType",
       "type": "string"
@@ -597,10 +616,10 @@
         "item_id": {
           "anyOf": [
             {
-              "maxLength": 40,
-              "minLength": 1,
-              "pattern": "^(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
               "type": "string"
+            },
+            {
+              "type": "integer"
             },
             {
               "type": "null"
@@ -612,10 +631,10 @@
         "refcode": {
           "anyOf": [
             {
-              "maxLength": 40,
-              "minLength": 1,
-              "pattern": "^[a-z]{2,10}:(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
               "type": "string"
+            },
+            {
+              "type": "integer"
             },
             {
               "type": "null"
@@ -673,7 +692,14 @@
     },
     "creator_ids": {
       "items": {
-        "type": "string"
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
       },
       "title": "Creator Ids",
       "type": "array"
@@ -700,10 +726,17 @@
       "type": "string"
     },
     "immutable_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
       "default": null,
       "format": "uuid",
-      "title": "Immutable ID",
-      "type": "string"
+      "title": "Immutable ID"
     },
     "last_modified": {
       "anyOf": [
@@ -718,34 +751,37 @@
       "title": "Last Modified"
     },
     "relationships": {
+      "items": {
+        "$ref": "#/$defs/TypedRelationship"
+      },
+      "title": "Relationships",
+      "type": "array"
+    },
+    "refcode": {
       "anyOf": [
         {
-          "items": {
-            "$ref": "#/$defs/TypedRelationship"
-          },
-          "type": "array"
+          "type": "string"
+        },
+        {
+          "type": "integer"
         },
         {
           "type": "null"
         }
       ],
       "default": null,
-      "title": "Relationships"
-    },
-    "refcode": {
-      "default": null,
-      "maxLength": 40,
-      "minLength": 1,
-      "pattern": "^[a-z]{2,10}:(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
-      "title": "Refcode",
-      "type": "string"
+      "title": "Refcode"
     },
     "item_id": {
-      "maxLength": 40,
-      "minLength": 1,
-      "pattern": "^(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
-      "title": "Item Id",
-      "type": "string"
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "integer"
+        }
+      ],
+      "title": "Item Id"
     },
     "description": {
       "anyOf": [
@@ -768,6 +804,7 @@
           "type": "null"
         }
       ],
+      "default": null,
       "title": "Date"
     },
     "name": {
@@ -779,6 +816,7 @@
           "type": "null"
         }
       ],
+      "default": null,
       "title": "Name"
     },
     "files": {
@@ -798,7 +836,14 @@
     },
     "file_ObjectIds": {
       "items": {
-        "type": "string"
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
       },
       "title": "File Objectids",
       "type": "array"
@@ -812,6 +857,7 @@
           "type": "null"
         }
       ],
+      "default": null,
       "title": "Serial Numbers"
     },
     "manufacturer": {
@@ -823,6 +869,7 @@
           "type": "null"
         }
       ],
+      "default": null,
       "title": "Manufacturer"
     },
     "location": {
@@ -834,6 +881,7 @@
           "type": "null"
         }
       ],
+      "default": null,
       "title": "Location"
     },
     "contact": {
@@ -845,17 +893,12 @@
           "type": "null"
         }
       ],
+      "default": null,
       "title": "Contact"
     }
   },
   "required": [
-    "item_id",
-    "date",
-    "name",
-    "serial_numbers",
-    "manufacturer",
-    "location",
-    "contact"
+    "item_id"
   ],
   "title": "Equipment",
   "type": "object"
