@@ -8,14 +8,14 @@ class Equipment(Item):
 
     type: Literal["equipment"] = "equipment"
 
-    serial_numbers: str | None
+    serial_numbers: str | None = None
     """A string describing one or more serial numbers for the instrument."""
 
-    manufacturer: str | None
+    manufacturer: str | None = None
     """The manufacturer of this piece of equipment"""
 
-    location: str | None
+    location: str | None = None
     """Place where the equipment is located"""
 
-    contact: str | None
+    contact: str | None = None
     """Contact information for equipment (e.g., email address or phone number)."""

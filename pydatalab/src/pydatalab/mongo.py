@@ -7,8 +7,6 @@ from flask_pymongo import PyMongo
 from pydantic import BaseModel
 from pymongo.errors import ConnectionFailure
 
-from pydatalab.models import ITEM_MODELS
-
 __all__ = (
     "flask_mongo",
     "check_mongo_connection",
@@ -24,20 +22,57 @@ flask_mongo = PyMongo()
 """One-liner that pulls all non-semantic string fields out of all item
 models implemented for this server.
 """
-ITEMS_FTS_FIELDS: set[str] = set().union(
-    *(
-        {
-            f
-            for f, p in model.model_json_schema(by_alias=False)["properties"].items()
-            if (
-                p.get("type") == "string"
-                and p.get("format") not in ("date-time", "uuid")
-                and f != "type"
-            )
-        }
-        for model in ITEM_MODELS.values()
-    )
-)
+
+
+def _get_items_fts_fields() -> set[str]:
+    """Get all string fields from item models for full-text search."""
+    fields = set()
+    try:
+        from pydatalab.logger import LOGGER
+        from pydatalab.models import ITEM_MODELS
+
+        LOGGER.info(f"Available models: {list(ITEM_MODELS.keys())}")
+
+        for model_name, model in ITEM_MODELS.items():
+            LOGGER.info(f"Processing model: {model_name}")
+            try:
+                schema = model.model_json_schema(by_alias=False)
+                LOGGER.info(f"Schema for {model_name}: {schema.get('properties', {}).keys()}")
+
+                model_fields = set()
+                for f, p in schema.get("properties", {}).items():
+                    if f == "type":
+                        continue
+
+                    if p.get("type") == "string" and p.get("format") not in ("date-time", "uuid"):
+                        model_fields.add(f)
+                    elif "anyOf" in p:
+                        for option in p["anyOf"]:
+                            if option.get("type") == "string" and option.get("format") not in (
+                                "date-time",
+                                "uuid",
+                            ):
+                                model_fields.add(f)
+                                break
+
+                LOGGER.info(f"String fields found for {model_name}: {model_fields}")
+                fields.update(model_fields)
+            except Exception as model_error:
+                LOGGER.error(f"Error processing model {model_name}: {model_error}")
+
+    except Exception as e:
+        from pydatalab.logger import LOGGER
+
+        LOGGER.warning(f"Failed to extract FTS fields from models: {e}")
+        fields = {"item_id", "name", "description", "refcode", "synthesis_description", "supplier"}
+
+    from pydatalab.logger import LOGGER
+
+    LOGGER.info(f"Final FTS fields: {fields}")
+    return fields
+
+
+ITEMS_FTS_FIELDS: set[str] = set()
 
 
 def insert_pydantic_model_fork_safe(model: BaseModel, collection: str) -> str:
@@ -125,6 +160,19 @@ def create_default_indices(
         A list of messages returned by each `create_index` call.
 
     """
+
+    from pydatalab.logger import LOGGER
+
+    global ITEMS_FTS_FIELDS
+
+    if not ITEMS_FTS_FIELDS:
+        LOGGER.info("ITEMS_FTS_FIELDS is empty, calculating...")
+        ITEMS_FTS_FIELDS = _get_items_fts_fields()
+        LOGGER.info(f"Calculated ITEMS_FTS_FIELDS: {ITEMS_FTS_FIELDS}")
+
+    if not ITEMS_FTS_FIELDS:
+        LOGGER.error("ITEMS_FTS_FIELDS is still empty after calculation")
+        raise ValueError("Cannot create text indices: no fields available for full-text search")
 
     if client is None:
         client = _get_active_mongo_client()

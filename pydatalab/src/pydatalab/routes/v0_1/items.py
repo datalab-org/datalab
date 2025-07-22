@@ -17,7 +17,7 @@ from pydatalab.models.items import Item
 from pydatalab.models.people import Person
 from pydatalab.models.relationships import RelationshipType
 from pydatalab.models.utils import generate_unique_refcode
-from pydatalab.mongo import ITEMS_FTS_FIELDS, flask_mongo
+from pydatalab.mongo import flask_mongo
 from pydatalab.permissions import PUBLIC_USER_ID, active_users_or_get_only, get_default_permissions
 
 ITEMS = Blueprint("items", __name__)
@@ -357,57 +357,62 @@ def search_items():
         response list of dictionaries containing the matching items in order of
         descending match score.
     """
+    try:
+        query = request.args.get("query", type=str)
+        nresults = request.args.get("nresults", default=100, type=int)
+        types = request.args.get("types", default=None)
+        if isinstance(types, str):
+            # should figure out how to parse as list automatically
+            types = types.split(",")
 
-    query = request.args.get("query", type=str)
-    nresults = request.args.get("nresults", default=100, type=int)
-    types = request.args.get("types", default=None)
-    if isinstance(types, str):
-        # should figure out how to parse as list automatically
-        types = types.split(",")
+        pipeline = []
 
-    pipeline = []
+        if isinstance(query, str):
+            query = query.strip("'")
 
-    if isinstance(query, str):
-        query = query.strip("'")
-
-    if isinstance(query, str) and query.startswith("%"):
-        query = query.lstrip("%")
-        match_obj = {
-            "$text": {"$search": query},
-            **get_default_permissions(user_only=False),
-        }
-        if types is not None:
-            match_obj["type"] = {"$in": types}
-
-        pipeline.append({"$match": match_obj})
-        pipeline.append({"$sort": {"score": {"$meta": "textScore"}}})
-    else:
-        match_obj = {
-            "$or": [{field: {"$regex": query, "$options": "i"}} for field in ITEMS_FTS_FIELDS]
-        }
-        match_obj = {"$and": [get_default_permissions(user_only=False), match_obj]}
-        if types is not None:
-            match_obj["$and"].append({"type": {"$in": types}})
-
-        pipeline.append({"$match": match_obj})
-
-    pipeline.append({"$limit": nresults})
-    pipeline.append(
-        {
-            "$project": {
-                "_id": 0,
-                "type": 1,
-                "item_id": 1,
-                "name": 1,
-                "chemform": 1,
-                "refcode": 1,
+        if isinstance(query, str) and query.startswith("%"):
+            query = query.lstrip("%")
+            match_obj = {
+                "$text": {"$search": query},
+                **get_default_permissions(user_only=False),
             }
-        }
-    )
+            if types is not None:
+                match_obj["type"] = {"$in": types}
 
-    cursor = flask_mongo.db.items.aggregate(pipeline)
+            pipeline.append({"$match": match_obj})
+            pipeline.append({"$sort": {"score": {"$meta": "textScore"}}})
 
-    return jsonify({"status": "success", "items": list(cursor)}), 200
+        else:
+            regex_fields = ["item_id", "name", "description", "chemform", "refcode"]
+            match_obj = {
+                "$or": [{field: {"$regex": query, "$options": "i"}} for field in regex_fields]
+            }
+            match_obj = {"$and": [get_default_permissions(user_only=False), match_obj]}
+            if types is not None:
+                match_obj["$and"].append({"type": {"$in": types}})
+
+            pipeline.append({"$match": match_obj})
+
+        pipeline.append({"$limit": nresults})
+        pipeline.append(
+            {
+                "$project": {
+                    "_id": 0,
+                    "type": 1,
+                    "item_id": 1,
+                    "name": 1,
+                    "chemform": 1,
+                    "refcode": 1,
+                }
+            }
+        )
+
+        cursor = flask_mongo.db.items.aggregate(pipeline)
+
+        return jsonify({"status": "success", "items": list(cursor)}), 200
+    except Exception as e:
+        LOGGER.exception(f"Error in search_items: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 
 def _create_sample(
@@ -443,13 +448,15 @@ def _create_sample(
         # the provided item_id, name, and date take precedence over the copied parameters, if provided
         try:
             copied_doc["item_id"] = sample_dict["item_id"]
+            copied_doc.pop("_id", None)
         except KeyError:
             return (
                 dict(
                     status="error",
                     message=f"Request to copy item with id {copy_from_item_id} to new item failed because the target new item_id was not provided.",
+                    item_id=sample_dict["item_id"],
                 ),
-                400,
+                404,
             )
 
         copied_doc["name"] = sample_dict.get("name")
@@ -566,6 +573,9 @@ def _create_sample(
 
     new_sample["date"] = new_sample.get("date", datetime.datetime.now(tz=datetime.timezone.utc))
     try:
+        if "immutable_id" in new_sample:
+            del new_sample["immutable_id"]
+
         data_model: Item = model(**new_sample)
 
     except ValidationError as error:
@@ -637,7 +647,7 @@ def _create_sample(
     if data_model.type == "equipment":
         sample_list_entry["location"] = data_model.location
 
-    data = (
+    return (
         {
             "status": "success",
             "item_id": data_model.item_id,
@@ -645,8 +655,6 @@ def _create_sample(
         },
         201,  # 201: Created
     )
-
-    return data
 
 
 @ITEMS.route("/new-sample/", methods=["POST"])
@@ -892,11 +900,11 @@ def get_item_data(
 
         try:
             doc = list(cursor)[0]
+
         except IndexError:
             doc = None
 
         if not doc:
-            LOGGER.error(f"No document found for {match}")
             return (
                 jsonify(
                     {
@@ -1090,6 +1098,42 @@ def save_item():
                 401,
             )
 
+    existing_item = flask_mongo.db.items.find_one({"item_id": item_id})
+    if existing_item:
+        existing_relationships = existing_item.get("relationships", [])
+        non_collection_relationships = [
+            rel for rel in existing_relationships if rel.get("type") != "collections"
+        ]
+
+        collection_relationships = []
+        for coll in updated_data.get("collections", []):
+            immutable_id = coll.get("immutable_id")
+            collection_id = coll.get("collection_id")
+
+            if immutable_id:
+                if isinstance(immutable_id, str):
+                    from bson import ObjectId
+
+                    immutable_id = ObjectId(immutable_id)
+            elif collection_id:
+                collection_doc = flask_mongo.db.collections.find_one(
+                    {"collection_id": collection_id}
+                )
+                if collection_doc:
+                    immutable_id = collection_doc["_id"]
+
+            if immutable_id:
+                collection_relationships.append(
+                    {
+                        "relation": None,
+                        "immutable_id": immutable_id,
+                        "type": "collections",
+                        "description": "Is a member of",
+                    }
+                )
+
+        updated_data["relationships"] = non_collection_relationships + collection_relationships
+
     item_type = item["type"]
     item.update(updated_data)
 
@@ -1101,7 +1145,6 @@ def save_item():
             by_alias=True,
             exclude={"collections", "creators"},
         )
-
     except ValidationError as exc:
         return (
             jsonify(
@@ -1113,8 +1156,8 @@ def save_item():
         )
 
     # remove collections and creators and any other reference fields
-    item.pop("collections")
-    item.pop("creators")
+    item.pop("collections", None)
+    item.pop("creators", None)
 
     result = flask_mongo.db.items.update_one(
         {"item_id": item_id},
