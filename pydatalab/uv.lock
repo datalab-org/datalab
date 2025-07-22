@@ -509,6 +509,7 @@ all = [
     { name = "langchain-openai" },
     { name = "matador-db" },
     { name = "navani" },
+    { name = "nexusformat" },
     { name = "nmrglue" },
     { name = "pillow" },
     { name = "psutil" },
@@ -528,6 +529,7 @@ app-plugins-git = [
 apps = [
     { name = "matador-db" },
     { name = "navani" },
+    { name = "nexusformat" },
     { name = "nmrglue" },
     { name = "psutil" },
     { name = "pybaselines" },
@@ -594,6 +596,7 @@ requires-dist = [
     { name = "matador-db", marker = "extra == 'apps'", specifier = ">=0.11.2" },
     { name = "matplotlib", specifier = "~=3.8" },
     { name = "navani", marker = "extra == 'apps'", specifier = ">=0.1.11" },
+    { name = "nexusformat", marker = "extra == 'apps'", specifier = ">=1.0.8" },
     { name = "nmrglue", marker = "extra == 'apps'", specifier = "~=0.10" },
     { name = "pandas", extras = ["excel"], specifier = "~=2.2" },
     { name = "periodictable", specifier = "~=1.7" },
@@ -981,6 +984,43 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/f5/38/3af3d3633a34a3316095b39c8e8fb4853a28a536e55d347bd8d8e9a14b03/h11-0.14.0.tar.gz", hash = "sha256:8f19fbbe99e72420ff35c00b27a34cb9937e902a8b810e2c88300c6f0a3b699d", size = 100418 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/95/04/ff642e65ad6b90db43e668d70ffb6736436c7ce41fcc549f4e9472234127/h11-0.14.0-py3-none-any.whl", hash = "sha256:e3fe4ac4b851c468cc8363d500db52c2ead036020723024a109d37346efaa761", size = 58259 },
+]
+
+[[package]]
+name = "h5py"
+version = "3.14.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/5d/57/dfb3c5c3f1bf5f5ef2e59a22dec4ff1f3d7408b55bfcefcfb0ea69ef21c6/h5py-3.14.0.tar.gz", hash = "sha256:2372116b2e0d5d3e5e705b7f663f7c8d96fa79a4052d250484ef91d24d6a08f4", size = 424323 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/52/89/06cbb421e01dea2e338b3154326523c05d9698f89a01f9d9b65e1ec3fb18/h5py-3.14.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:24df6b2622f426857bda88683b16630014588a0e4155cba44e872eb011c4eaed", size = 3332522 },
+    { url = "https://files.pythonhosted.org/packages/c3/e7/6c860b002329e408348735bfd0459e7b12f712c83d357abeef3ef404eaa9/h5py-3.14.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:6ff2389961ee5872de697054dd5a033b04284afc3fb52dc51d94561ece2c10c6", size = 2831051 },
+    { url = "https://files.pythonhosted.org/packages/fa/cd/3dd38cdb7cc9266dc4d85f27f0261680cb62f553f1523167ad7454e32b11/h5py-3.14.0-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:016e89d3be4c44f8d5e115fab60548e518ecd9efe9fa5c5324505a90773e6f03", size = 4324677 },
+    { url = "https://files.pythonhosted.org/packages/b1/45/e1a754dc7cd465ba35e438e28557119221ac89b20aaebef48282654e3dc7/h5py-3.14.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:1223b902ef0b5d90bcc8a4778218d6d6cd0f5561861611eda59fa6c52b922f4d", size = 4557272 },
+    { url = "https://files.pythonhosted.org/packages/5c/06/f9506c1531645829d302c420851b78bb717af808dde11212c113585fae42/h5py-3.14.0-cp310-cp310-win_amd64.whl", hash = "sha256:852b81f71df4bb9e27d407b43071d1da330d6a7094a588efa50ef02553fa7ce4", size = 2866734 },
+    { url = "https://files.pythonhosted.org/packages/61/1b/ad24a8ce846cf0519695c10491e99969d9d203b9632c4fcd5004b1641c2e/h5py-3.14.0-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:f30dbc58f2a0efeec6c8836c97f6c94afd769023f44e2bb0ed7b17a16ec46088", size = 3352382 },
+    { url = "https://files.pythonhosted.org/packages/36/5b/a066e459ca48b47cc73a5c668e9924d9619da9e3c500d9fb9c29c03858ec/h5py-3.14.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:543877d7f3d8f8a9828ed5df6a0b78ca3d8846244b9702e99ed0d53610b583a8", size = 2852492 },
+    { url = "https://files.pythonhosted.org/packages/08/0c/5e6aaf221557314bc15ba0e0da92e40b24af97ab162076c8ae009320a42b/h5py-3.14.0-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:8c497600c0496548810047257e36360ff551df8b59156d3a4181072eed47d8ad", size = 4298002 },
+    { url = "https://files.pythonhosted.org/packages/21/d4/d461649cafd5137088fb7f8e78fdc6621bb0c4ff2c090a389f68e8edc136/h5py-3.14.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:723a40ee6505bd354bfd26385f2dae7bbfa87655f4e61bab175a49d72ebfc06b", size = 4516618 },
+    { url = "https://files.pythonhosted.org/packages/db/0c/6c3f879a0f8e891625817637fad902da6e764e36919ed091dc77529004ac/h5py-3.14.0-cp311-cp311-win_amd64.whl", hash = "sha256:d2744b520440a996f2dae97f901caa8a953afc055db4673a993f2d87d7f38713", size = 2874888 },
+]
+
+[[package]]
+name = "hdf5plugin"
+version = "5.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "h5py" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/cf/77/136d49eff653001caf08fbb43cf90b9985f2126f257dd89fc4a768f1ac9f/hdf5plugin-5.1.0.tar.gz", hash = "sha256:cf78f1426b5868128b9ec6c498b70d6734e1dc8007a8ed1e7282954ab421b3fa", size = 65674335 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f2/c2/2ea8edb2b69b3aee3ba7021744f9b6ad93cd89b4bbaae4e4aac41fb75318/hdf5plugin-5.1.0-py3-none-macosx_10_13_universal2.whl", hash = "sha256:6f88bdc3ebf1d7393557d6c70811552f76f8fdd275988a7d2c904633f1a21a1d", size = 13335707 },
+    { url = "https://files.pythonhosted.org/packages/4a/66/9abd90121e29ecee137a7d31c92aea33736278a72a6d1f61009c8cc7dcc9/hdf5plugin-5.1.0-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:0151f844e5f7de0e26cc2de275a339f6936c825fee915cbd54318e22a913c00a", size = 43842855 },
+    { url = "https://files.pythonhosted.org/packages/f6/7b/5f0c587d0c0fa6e42468eb5196927be7f91d91ee781a7a654d4204fe7716/hdf5plugin-5.1.0-py3-none-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:b613e16d376d3b37fd2d76893e356c402100bd68a02abbe960a98e8257ca8758", size = 46010074 },
+    { url = "https://files.pythonhosted.org/packages/ba/db/8d85bd3f5b9ee894518f9d9ed1019fd8b7014340beca512dfb76d5632ec9/hdf5plugin-5.1.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6da81b0b168f271b0cf995a12c28cf01b381587fed21f25fd91b2c90d5108425", size = 45876035 },
+    { url = "https://files.pythonhosted.org/packages/43/fb/7f85e84f35792e9ee20c557bf5fe2ac180cca73beae411a1d91898fcc4b5/hdf5plugin-5.1.0-py3-none-win_amd64.whl", hash = "sha256:6be3409554bde676db0f1ab46a27e87ea73d7974f359f354a738c812618261d1", size = 3359510 },
 ]
 
 [[package]]
@@ -1631,6 +1671,22 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/68/e2/a1b5fbf7445a4144e9ccc7d85c3e087e49c1bdc7239ed45b4c30050e2eb1/newarenda-2025.5.15.tar.gz", hash = "sha256:cd38097dbfc6717f23b929622500eb65af51c576a4c9473da83116eb7d12f50d", size = 13452 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/2d/d8/cf0ba36bbcf98712b3238516f8ca874d305045a8ecfbfb2d7cbbdc1cfa60/newarenda-2025.5.15-py3-none-any.whl", hash = "sha256:53ba6076de8f7c63322fdfc92fe2cf4f518999ac6cee690b2f02b4487866c93f", size = 15879 },
+]
+
+[[package]]
+name = "nexusformat"
+version = "1.0.8"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "h5py" },
+    { name = "hdf5plugin" },
+    { name = "numpy" },
+    { name = "packaging" },
+    { name = "scipy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ce/d9/520843769d18625e83c2f3c72af55b715124722f0332235f00c66e87ee9b/nexusformat-1.0.8.tar.gz", hash = "sha256:cec20e9d680c6d4689977b479e9422177f90cb8f1dc0a0c0bc5960eb3f215bf3", size = 84973 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e6/d5/b0f256234354d8963f769a56ba32755b4daba93d96a96e7f7f9b09edf17f/nexusformat-1.0.8-py3-none-any.whl", hash = "sha256:7ab68077393d4d4bb7b31c0ac2e19d108923a7dc0861cf11d8265520d2e48a12", size = 79917 },
 ]
 
 [[package]]
