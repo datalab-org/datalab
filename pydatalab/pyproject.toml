@@ -102,14 +102,16 @@ line-length = 100
 target-version = "py310"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "W", "Q", "DTZ", "S"]
+select = ["E", "F", "I", "W", "Q", "DTZ", "S", "G"]
 ignore = ["E501", "E402"]
 per-file-ignores = {"tests/*" = ["S101"]}
 
-fixable = ["A", "B", "C", "D", "E", "F", "I", "S"]
+fixable = ["A", "B", "C", "D", "E", "F", "I", "S", "G"]
 unfixable = []
 # Allow unused variables when underscore-prefixed.
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+logger-objects = ["pydatalab.logger.LOGGER"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["pydatalab"]
