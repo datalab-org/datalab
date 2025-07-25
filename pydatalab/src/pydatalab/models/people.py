@@ -1,8 +1,14 @@
 from enum import Enum
+from typing import Annotated, Literal
 
 import bson
 import bson.errors
-from pydantic import BaseModel, ConstrainedStr, Field, parse_obj_as, validator
+from pydantic import (
+    BaseModel,
+    Field,
+    StringConstraints,
+    field_validator,
+)
 from pydantic import EmailStr as PydanticEmailStr
 
 from pydatalab.models.entries import Entry
@@ -35,26 +41,29 @@ class Identity(BaseModel):
     verified: bool = Field(False)
     """Whether the identity has been verified (by some means, e.g., OAuth2 or email)"""
 
-    display_name: str | None
+    display_name: str | None = None
     """The user's display name associated with the identity, also to be exposed in free text searches."""
 
-    @validator("name", pre=True, always=True)
-    def add_missing_name(cls, v, values):
+    @field_validator("name", mode="before")
+    @classmethod
+    def add_missing_name(cls, v, info):
         """If the identity is created without a free-text 'name', then
         for certain providers, populate this field so that it can appear
         in the free text index, e.g., an ORCID, or an institutional username
         from an email address.
 
         """
-        if v is None:
-            if values["identity_type"] == IdentityType.ORCID:
-                return values["identifier"]
-            if values["identity_type"] == IdentityType.EMAIL:
-                return values["identifier"].split("@")[0]
-
+        if v is None and hasattr(info, "data") and info.data:
+            data = info.data
+            if data.get("identity_type") == IdentityType.ORCID:
+                return data.get("identifier")
+            if data.get("identity_type") == IdentityType.EMAIL:
+                identifier = data.get("identifier", "")
+                return identifier.split("@")[0] if "@" in identifier else identifier
         return v
 
-    @validator("verified", pre=True, always=True)
+    @field_validator("verified", mode="before")
+    @classmethod
     def add_missing_verification(cls, v):
         """Fills in missing value for `verified` if not given."""
         if not v:
@@ -62,18 +71,11 @@ class Identity(BaseModel):
         return v
 
 
-class DisplayName(ConstrainedStr):
-    """A constrained string less than 150 characters long but with
-    non-empty content, intended to be entered by the user.
-
-    """
-
-    max_length = 150
-    min_length = 1
-    strip_whitespace = True
-
-    def __new__(cls, value):
-        return parse_obj_as(cls, value)
+DisplayName = Annotated[
+    str,
+    StringConstraints(min_length=1, max_length=150, strip_whitespace=True),
+]
+"""A constrained string less than 150 characters long but with non-empty content, intended to be entered by the user."""
 
 
 class EmailStr(PydanticEmailStr):
@@ -100,7 +102,7 @@ class AccountStatus(str, Enum):
 class Person(Entry):
     """A model that describes an individual and their digital identities."""
 
-    type: str = Field("people", const=True)
+    type: Literal["people"] = "people"
     """The entry type as a string."""
 
     identities: list[Identity] = Field(default_factory=list)
@@ -109,23 +111,24 @@ class Person(Entry):
     display_name: DisplayName | None
     """The user-chosen display name."""
 
-    contact_email: EmailStr | None
+    contact_email: EmailStr | None = None
     """In the case of multiple *verified* email identities, this email will be used as the primary contact."""
 
-    managers: list[PyObjectId] | None
+    managers: list[PyObjectId] | None = None
     """A list of user IDs that can manage this person's items."""
 
     account_status: AccountStatus = Field(AccountStatus.UNVERIFIED)
     """The status of the user's account."""
 
-    @validator("type", pre=True, always=True)
+    @field_validator("type", mode="before")
+    @classmethod
     def add_missing_type(cls, v):
         """Fill in missing `type` field if not provided."""
         if v is None:
             v = "people"
         return v
 
-    @validator("type", pre=True)
+    @classmethod
     def set_default_type(cls, _):
         return "people"
 

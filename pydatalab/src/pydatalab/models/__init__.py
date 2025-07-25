@@ -25,3 +25,9 @@ __all__ = (
     "Equipment",
     "ITEM_MODELS",
 )
+
+Sample.model_rebuild()
+StartingMaterial.model_rebuild()
+Cell.model_rebuild()
+Equipment.model_rebuild()
+Collection.model_rebuild()

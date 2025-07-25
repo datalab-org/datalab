@@ -240,7 +240,7 @@ class XRDBlock(DataBlock):
                 except Exception as exc:
                     warnings.warn(f"Could not parse file {f['location']} as XRD data. Error: {exc}")
                     continue
-                peak_information[str(f["immutable_id"])] = PeakInformation(**peak_data).dict()
+                peak_information[str(f["immutable_id"])] = PeakInformation(**peak_data).model_dump()
                 pattern_df["normalized intensity (staggered)"] += ind
                 pattern_dfs.append(pattern_df)
 
@@ -268,7 +268,7 @@ class XRDBlock(DataBlock):
             peak_model = PeakInformation(**peak_data)
             if "peak_data" not in self.data:
                 self.data["peak_data"] = {}
-            self.data["peak_data"][str(file_info["immutable_id"])] = peak_model.dict()
+            self.data["peak_data"][str(file_info["immutable_id"])] = peak_model.model_dump()
             pattern_dfs = [pattern_df]
 
         if pattern_dfs:

@@ -1,6 +1,6 @@
 import abc
 
-from pydantic import Field, validator
+from pydantic import Field, field_validator
 
 from pydatalab.models.entries import Entry
 from pydatalab.models.files import File
@@ -21,7 +21,7 @@ from pydatalab.models.utils import (
 class Item(Entry, HasOwner, HasRevisionControl, IsCollectable, HasBlocks, abc.ABC):
     """The generic model for data types that will be exposed with their own named endpoints."""
 
-    refcode: Refcode = None  # type: ignore
+    refcode: Refcode | None = None  # type: ignore
     """A globally unique immutable ID comprised of the deployment prefix (e.g., `grey`)
     and a locally unique string, ideally created with some consistent scheme.
     """
@@ -29,22 +29,23 @@ class Item(Entry, HasOwner, HasRevisionControl, IsCollectable, HasBlocks, abc.AB
     item_id: HumanReadableIdentifier
     """A locally unique, human-readable identifier for the entry. This ID is mutable."""
 
-    description: str | None
+    description: str | None = None
     """A description of the item, either in plain-text or a markup language."""
 
-    date: IsoformatDateTime | None
+    date: IsoformatDateTime | None = None
     """A relevant 'creation' timestamp for the entry (e.g., purchase date, synthesis date)."""
 
-    name: str | None
+    name: str | None = None
     """An optional human-readable/usable name for the entry."""
 
-    files: list[File] | None
+    files: list[File] | None = None
     """Any files attached to this sample."""
 
-    file_ObjectIds: list[PyObjectId] = Field([])
+    file_ObjectIds: list[PyObjectId] = Field(default_factory=list)
     """Links to object IDs of files stored within the database."""
 
-    @validator("refcode", pre=True, always=True)
+    @field_validator("refcode", mode="before")
+    @classmethod
     def refcode_validator(cls, v):
         """Generate a refcode if not provided."""
 

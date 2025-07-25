@@ -1,4 +1,9 @@
-from pydantic import Field, root_validator
+from typing import Literal
+
+from pydantic import (
+    Field,
+    model_validator,
+)
 
 from pydatalab.models.entries import Entry
 from pydatalab.models.traits import HasBlocks, HasOwner
@@ -6,21 +11,22 @@ from pydatalab.models.utils import HumanReadableIdentifier
 
 
 class Collection(Entry, HasOwner, HasBlocks):
-    type: str = Field("collections", const="collections", pattern="^collections$")
+    type: Literal["collections"] = "collections"
 
     collection_id: HumanReadableIdentifier = Field(None)
     """A short human-readable/usable name for the collection."""
 
-    title: str | None
+    title: str | None = None
     """A descriptive title for the collection."""
 
-    description: str | None
+    description: str | None = None
     """A description of the collection, either in plain-text or a markup language."""
 
     num_items: int | None = Field(None)
     """Inlined number of items associated with this collection."""
 
-    @root_validator
+    @model_validator(mode="before")
+    @classmethod
     def check_ids(cls, values):
         if not any(values.get(k) is not None for k in ("collection_id", "immutable_id")):
             raise ValueError("Collection must have at least collection_id or immutable_id")
