@@ -306,11 +306,12 @@ its importance when deploying a datalab instance.""",
         return v
 
     model_config = SettingsConfigDict(
-        env_prefix="pydatalab_",
+        env_prefix="PYDATALAB_",
         extra="allow",
         env_file=".env",
         env_file_encoding="utf-8",
         validate_assignment=True,
+        case_sensitive=False,
     )
 
     @classmethod
