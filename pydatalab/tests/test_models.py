@@ -140,6 +140,8 @@ def test_file():
 
 
 def test_custom_and_inherited_items():
+    from pydatalab.models.collections import Collection  # noqa: F401
+
     class TestItem(Item):
         type: str = "items_custom"
 
