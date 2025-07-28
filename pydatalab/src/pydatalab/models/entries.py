@@ -42,6 +42,9 @@ class Entry(BaseModel, abc.ABC):
         if "_id" in values:
             values["immutable_id"] = values.pop("_id")
 
+        if "relationships" in values and values["relationships"] is None:
+            values["relationships"] = []
+
         return values
 
     @model_validator(mode="after")

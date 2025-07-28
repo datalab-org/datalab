@@ -31,6 +31,10 @@
                 "type": "string"
               },
               {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
                 "type": "null"
               }
             ]
@@ -63,6 +67,10 @@
           "anyOf": [
             {
               "type": "string"
+            },
+            {
+              "additionalProperties": true,
+              "type": "object"
             },
             {
               "type": "null"
@@ -171,6 +179,10 @@
                 "type": "string"
               },
               {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
                 "type": "null"
               }
             ]
@@ -203,6 +215,10 @@
           "anyOf": [
             {
               "type": "string"
+            },
+            {
+              "additionalProperties": true,
+              "type": "object"
             },
             {
               "type": "null"
@@ -468,6 +484,10 @@
               "type": "string"
             },
             {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
               "type": "null"
             }
           ],
@@ -534,6 +554,10 @@
                 "anyOf": [
                   {
                     "type": "string"
+                  },
+                  {
+                    "additionalProperties": true,
+                    "type": "object"
                   },
                   {
                     "type": "null"
@@ -605,6 +629,10 @@
           "anyOf": [
             {
               "type": "string"
+            },
+            {
+              "additionalProperties": true,
+              "type": "object"
             },
             {
               "type": "null"
@@ -697,6 +725,10 @@
             "type": "string"
           },
           {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          {
             "type": "null"
           }
         ]
@@ -729,6 +761,10 @@
       "anyOf": [
         {
           "type": "string"
+        },
+        {
+          "additionalProperties": true,
+          "type": "object"
         },
         {
           "type": "null"
@@ -839,6 +875,10 @@
         "anyOf": [
           {
             "type": "string"
+          },
+          {
+            "additionalProperties": true,
+            "type": "object"
           },
           {
             "type": "null"

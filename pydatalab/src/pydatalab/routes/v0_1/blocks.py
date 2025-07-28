@@ -4,6 +4,7 @@ from flask import Blueprint, jsonify, request
 from pydatalab.apps import BLOCK_TYPES
 from pydatalab.blocks.base import DataBlock
 from pydatalab.logger import LOGGER
+from pydatalab.middleware import clean_objectids_middleware
 from pydatalab.mongo import flask_mongo
 from pydatalab.permissions import active_users_or_get_only, get_default_permissions
 
@@ -182,6 +183,7 @@ def _save_block_to_db(block: DataBlock) -> bool:
 
 
 @BLOCKS.route("/update-block/", methods=["POST"])
+@clean_objectids_middleware
 def update_block():
     """Updates the server-side data block based on received JSON, including triggering
     any events associated with the given block type.

@@ -152,6 +152,7 @@ class PyObjectId(ObjectId):
                     core_schema.str_schema(),
                     core_schema.is_instance_schema(ObjectId),
                     core_schema.is_instance_schema(cls),
+                    core_schema.dict_schema(),
                     core_schema.none_schema(),
                 ]
             ),
@@ -167,14 +168,25 @@ class PyObjectId(ObjectId):
         if isinstance(v, cls):
             return v
         if isinstance(v, ObjectId):
-            return cls(ObjectId(v))
-        if isinstance(v, dict) and "$oid" in v:
-            v = v["$oid"]
+            return cls(v)
+
+        if isinstance(v, dict):
+            if "$oid" in v:
+                return cls(ObjectId(v["$oid"]))
+            elif "_id" in v and isinstance(v["_id"], (str, ObjectId)):
+                return cls(ObjectId(v["_id"]))
+            elif len(v) == 1:
+                first_val = next(iter(v.values()))
+                if isinstance(first_val, str) and ObjectId.is_valid(first_val):
+                    return cls(ObjectId(first_val))
+            raise ValueError(f"Cannot convert dict to ObjectId: {v}")
+
         if isinstance(v, str):
             if not ObjectId.is_valid(v):
-                raise ValueError("Invalid ObjectId")
+                raise ValueError("Invalid ObjectId string")
             return cls(ObjectId(v))
-        raise ValueError("Invalid ObjectId")
+
+        raise ValueError(f"Cannot convert {type(v)} to ObjectId: {v}")
 
 
 class IsoformatDateTime(datetime.datetime):

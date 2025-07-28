@@ -12,6 +12,7 @@ from werkzeug.exceptions import BadRequest
 from pydatalab.apps import BLOCK_TYPES
 from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER
+from pydatalab.middleware import clean_objectids_middleware
 from pydatalab.models import ITEM_MODELS
 from pydatalab.models.items import Item
 from pydatalab.models.people import Person
@@ -987,7 +988,30 @@ def get_item_data(
         )
 
         # Must be exported to JSON first to apply the custom pydantic JSON encoders
-        return_dict = json.loads(doc.model_dump_json(exclude_unset=True))
+        try:
+            return_dict = doc.model_dump(mode="json", exclude_unset=True)
+        except Exception:
+            from bson import json_util
+
+            return_dict = doc.model_dump(exclude_unset=True)
+            json_str = json_util.dumps(return_dict)
+            return_dict = json.loads(json_str)
+
+            def clean_mongodb_dates(obj):
+                """Recursively clean MongoDB date format {'$date': '...'} to ISO strings"""
+                if isinstance(obj, dict):
+                    if "$date" in obj and len(obj) == 1:
+                        return obj["$date"]
+                    elif "$oid" in obj and len(obj) == 1:
+                        return obj["$oid"]
+                    else:
+                        return {k: clean_mongodb_dates(v) for k, v in obj.items()}
+                elif isinstance(obj, list):
+                    return [clean_mongodb_dates(item) for item in obj]
+                else:
+                    return obj
+
+            return_dict = clean_mongodb_dates(return_dict)
 
         if item_id is None:
             item_id = return_dict["item_id"]
@@ -1018,6 +1042,7 @@ def get_item_data(
 
 
 @ITEMS.route("/save-item/", methods=["POST"])
+@clean_objectids_middleware
 def save_item():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
 
