@@ -99,7 +99,7 @@ def _get_deployment_metadata_once() -> dict:
         if CONFIG.DEPLOYMENT_METADATA
         else {}
     )
-    metadata.update({"identifier_prefix": identifier_prefix})
+    metadata.update({"identifier_prefix": identifier_prefix, "features": FEATURE_FLAGS})
     return metadata
 
 
@@ -110,18 +110,20 @@ def get_info():
 
     """
     metadata = _get_deployment_metadata_once().copy()
+    metadata["features"] = FEATURE_FLAGS
+
     info = Info(**metadata)
 
+    attributes_dict = info.model_dump()
+
+    response_data = JSONAPIResponse(
+        data=Data(id="/", type="info", attributes=attributes_dict),
+        meta=Meta(query=request.query_string.decode() if request.query_string else ""),
+        links=Links(self=request.url),
+    )
+
     return (
-        jsonify(
-            json.loads(
-                JSONAPIResponse(
-                    data=Data(id="/", type="info", attributes=info),
-                    meta=Meta(query=request.query_string.decode() if request.query_string else ""),
-                    links=Links(self=request.url),
-                ).model_dump_json()
-            )
-        ),
+        jsonify(json.loads(response_data.model_dump_json())),
         200,
     )
 
