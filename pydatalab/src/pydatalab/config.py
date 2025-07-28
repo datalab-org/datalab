@@ -325,6 +325,17 @@ its importance when deploying a datalab instance.""",
     ):
         return (init_settings, env_settings, config_file_settings, file_secret_settings)
 
+    @field_validator("TESTING", mode="before")
+    @classmethod
+    def ensure_testing_from_env(cls, v):
+        """Ensure TESTING is read from environment for Docker compatibility."""
+        import os
+
+        if v is True:
+            return True
+        env_value = os.getenv("PYDATALAB_TESTING", "false").lower()
+        return env_value == "true"
+
     @model_validator(mode="before")
     @classmethod
     def deactivate_backup_strategies_during_testing(cls, values):
