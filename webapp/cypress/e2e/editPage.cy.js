@@ -276,6 +276,16 @@ describe("Edit Page", () => {
     cy.get("select.file-select-dropdown").select("example_data_XRD_example_bmb.xye");
     cy.contains("label", "X axis").should("exist");
     cy.contains("label", "Y axis").should("exist");
+
+    // Get initial wavelength value (should be default 1.5406)
+    cy.contains("label", "Wavelength (Å)").next("input").should("have.value", "1.5406");
+
+    // Change the wavelength - use separate commands to avoid DOM detachment
+    cy.contains("label", "Wavelength (Å)").next("input").clear();
+    cy.contains("label", "Wavelength (Å)").next("input").type("2.0").blur();
+
+    // Re-query the element to verify the change took effect
+    cy.contains("label", "Wavelength (Å)").next("input").should("have.value", "2.0");
   });
 
   it("Uploads a fake PNG image, make a Media block and checks that the image is shown", () => {
