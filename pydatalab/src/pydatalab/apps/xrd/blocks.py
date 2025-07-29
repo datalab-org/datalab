@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from scipy.signal import medfilt
 
-from pydatalab.blocks.base import DataBlock
+from pydatalab.blocks.base import DataBlock, event, generate_js_callback_single_float_parameter
 from pydatalab.bokeh_plots import DATALAB_BOKEH_THEME, selectable_axes_plot
 from pydatalab.file_utils import get_file_info_by_id
 from pydatalab.logger import LOGGER
@@ -28,6 +28,22 @@ class XRDBlock(DataBlock):
     @property
     def plot_functions(self):
         return (self.generate_xrd_plot,)
+
+    @event()
+    def set_wavelength(self, wavelength: float | str | None):
+        if isinstance(wavelength, str):
+            try:
+                wavelength = float(wavelength)
+            except Exception:
+                raise ValueError(f"Invalid value for wavelength: {wavelength}. Must be a float.")
+
+        if wavelength is None:
+            wavelength = self.defaults["wavelength"]
+        elif wavelength <= 0:
+            raise ValueError("Wavelength must be a positive number")
+
+        LOGGER.debug(f"Setting wavelength to {wavelength} for block {self.block_id}")
+        self.data["wavelength"] = wavelength
 
     @classmethod
     def load_pattern(
@@ -137,6 +153,8 @@ class XRDBlock(DataBlock):
         df = pd.concat([df, y_option_df], axis=1)
         df.index.name = location.split("/")[-1] + (" (theoretical)" if theoretical else "")
 
+        LOGGER.debug(f"Loaded file from {location} as XRD pattern with wavelength {wavelength}")
+
         return df, y_options, peak_data
 
     @classmethod
@@ -183,7 +201,7 @@ class XRDBlock(DataBlock):
 
         return df
 
-    def generate_xrd_plot(self) -> None:
+    def generate_xrd_plot(self, filenames: list[str | Path] | None = None) -> None:
         """Generate a Bokeh plot potentially containing multiple XRD patterns.
 
         This function will first check whether a `file_id` is set in the block data.
@@ -198,7 +216,7 @@ class XRDBlock(DataBlock):
         all_files = None
         pattern_dfs = None
 
-        if self.data.get("file_id") is None:
+        if self.data.get("file_id") is None and filenames is None:
             # If no file set, try to plot them all
             item_info = flask_mongo.db.items.find_one(
                 {"item_id": self.data["item_id"]},
@@ -246,7 +264,7 @@ class XRDBlock(DataBlock):
 
             self.data["peak_data"] = peak_information
 
-        else:
+        elif filenames is None:
             file_info = get_file_info_by_id(self.data["file_id"], update_if_live=True)
             ext = os.path.splitext(file_info["location"].split("/")[-1])[-1].lower()
             if ext not in self.accepted_file_extensions:
@@ -271,15 +289,44 @@ class XRDBlock(DataBlock):
             self.data["peak_data"][str(file_info["immutable_id"])] = peak_model.dict()
             pattern_dfs = [pattern_df]
 
-        if pattern_dfs:
-            p = selectable_axes_plot(
-                pattern_dfs,
-                x_options=["2θ (°)", "Q (Å⁻¹)", "d (Å)"],
-                y_default="normalized intensity",
-                y_options=y_options,
-                plot_line=True,
-                plot_points=True,
-                point_size=3,
-            )
+        else:
+            if isinstance(filenames, (str, Path)):
+                filenames = [filenames]
 
+            pattern_dfs = []
+            for ind, f in enumerate(filenames):
+                peak_data = {}
+                pattern_df, y_options, peak_data = self.load_pattern(
+                    f,
+                    wavelength=float(self.data.get("wavelength", self.defaults["wavelength"])),
+                )
+                pattern_dfs.append(pattern_df)
+
+                peak_model = PeakInformation(**peak_data)
+                if "peak_data" not in self.data:
+                    self.data["peak_data"] = {}
+                self.data["peak_data"][f] = peak_model.dict()
+
+        if pattern_dfs:
+            p = self._make_plots(pattern_dfs, y_options)
             self.data["bokeh_plot_data"] = bokeh.embed.json_item(p, theme=DATALAB_BOKEH_THEME)
+
+    def _make_plots(self, pattern_dfs: list[pd.DataFrame], y_options: list[str]):
+        return selectable_axes_plot(
+            pattern_dfs,
+            x_options=["2θ (°)", "Q (Å⁻¹)", "d (Å)"],
+            y_default="normalized intensity",
+            y_options=y_options,
+            plot_line=True,
+            plot_points=True,
+            point_size=3,
+            parameters={
+                "wavelength": {
+                    "label": "Wavelength (Å)",
+                    "value": self.data["wavelength"],
+                    "event": generate_js_callback_single_float_parameter(
+                        "set_wavelength", "wavelength", self.block_id, throttled=False
+                    ),
+                }
+            },
+        )
