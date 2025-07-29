@@ -183,18 +183,24 @@ def _save_block_to_db(block: DataBlock) -> bool:
 
 @BLOCKS.route("/update-block/", methods=["POST"])
 def update_block():
-    """Take in json block data from site, process, and spit
-    out updated data. May be used, for example, when the user
-    changes plot parameters and the server needs to generate a new
-    plot.
+    """Updates the server-side data block based on received JSON, including triggering
+    any events associated with the given block type.
+
     """
 
     request_json = request.get_json()
     block_data = request_json["block_data"]
+    event_data = request_json.get("event_data", None)
     blocktype = block_data["blocktype"]
     save_to_db = request_json.get("save_to_db", False)
 
     block = BLOCK_TYPES[blocktype].from_web(block_data)
+
+    if event_data:
+        try:
+            block.process_events(event_data)
+        except NotImplementedError:
+            pass
 
     saved_successfully = False
     if save_to_db:
