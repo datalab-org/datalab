@@ -324,7 +324,13 @@ its importance when deploying a datalab instance.""",
         dotenv_settings,
         file_secret_settings,
     ):
-        return (init_settings, env_settings, config_file_settings, file_secret_settings)
+        return (
+            init_settings,
+            env_settings,
+            dotenv_settings,
+            config_file_settings,
+            file_secret_settings,
+        )
 
     @field_validator("TESTING", mode="before")
     @classmethod
@@ -334,8 +340,12 @@ its importance when deploying a datalab instance.""",
 
         if v is True:
             return True
+
+        if v is False:
+            return False
+
         env_value = os.getenv("PYDATALAB_TESTING", "false").lower()
-        return env_value == "true"
+        return env_value in ("true", "1", "yes", "on")
 
     @model_validator(mode="before")
     @classmethod
