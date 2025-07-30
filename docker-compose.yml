@@ -41,7 +41,6 @@ services:
       - backend
     environment:
       - PYDATALAB_MONGO_URI=mongodb://database:27017/datalabvue
-      - PYDATALAB_TESTING=${PYDATALAB_TESTING:-false}
 
   database:
     profiles: ["prod"]
