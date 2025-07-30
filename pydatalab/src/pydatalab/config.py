@@ -324,6 +324,9 @@ its importance when deploying a datalab instance.""",
         dotenv_settings,
         file_secret_settings,
     ):
+        import logging
+
+        logging.warning(f"dotenv_settings: {dotenv_settings}")
         return (
             init_settings,
             env_settings,
