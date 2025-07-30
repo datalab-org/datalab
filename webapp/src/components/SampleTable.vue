@@ -8,6 +8,7 @@
       'name',
       'refcode',
       'chemform',
+      'creatorsList',
       'blocks',
       'characteristic_chemical_formula',
     ]"
