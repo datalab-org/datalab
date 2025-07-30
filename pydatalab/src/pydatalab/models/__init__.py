@@ -26,8 +26,13 @@ __all__ = (
     "ITEM_MODELS",
 )
 
-Sample.model_rebuild()
-StartingMaterial.model_rebuild()
-Cell.model_rebuild()
-Equipment.model_rebuild()
-Collection.model_rebuild()
+MODELS_WITH_CIRCULAR_REFS = [
+    *ITEM_MODELS.values(),
+    Collection,
+]
+
+for model in MODELS_WITH_CIRCULAR_REFS:
+    try:
+        model.model_rebuild()
+    except Exception as e:
+        print(f"Warning: Failed to rebuild {model.__name__}: {e}")
