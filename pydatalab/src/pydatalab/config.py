@@ -87,6 +87,7 @@ class BackupStrategy(BaseModel):
     frequency: str | None = Field(
         None,
         description="The frequency of the backup, described in the crontab syntax.",
+        examples=["5 4 * * *", "5 2 1 1,4,7,10 *"],
     )
     notification_email_address: str | None = Field(
         None, description="An email address to send backup notifications to."
