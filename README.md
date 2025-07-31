@@ -28,27 +28,34 @@
 <a href="https://join.slack.com/t/datalab-world/shared_invite/zt-2h58ev3pc-VV496~5je~QoT2TgFIwn4g"><img src="https://img.shields.io/badge/Slack-chat_with_us-yellow?logo=slack"></a>
 </div>
 
-_datalab_ is a user-friendly, open-source platform that can capture all the experimental data and metadata produced in a scientific lab, targeted (broadly) at materials chemistry but with customisability and extensability in mind. _datalab_ stores data safely and makes it accessible and reusable by both humans and machines _via_ webUI and python API. _datalab_ can be run locally or in the cloud; it can be self-hosted and managed deployments are also available. Try the working demo deployment [here](https://demo.datalab-org.io/).
+_datalab_ is a user-friendly, open-source platform that can capture all the experimental data and metadata produced in a scientific lab, targeted (broadly) at materials chemistry but with customisability and extensability in mind.
+_datalab_ records data and metadata securely and makes it accessible and reusable by both humans and machines _via_ the web UI and API, respectively.
+_datalab_ can be self-hosted and managed deployments are also available.
+
+Try the demo deployment at [demo.datalab-org.io](https://demo.datalab-org.io/).
 
 Features:
 
-* Capture and store detailed sample data and metadata
-* Connect and sync data directly from laboratory instruments
-* Built-in support for multiple characterisation techniques (XRD, NMR, echem, TEM, TGA, Mass Spec, Raman; more under active development)
-* Capture scientific context: store the graph of relationships between research objects
-* [Python API](https://github.com/datalab-org/datalab-api) - Programmatic access for custom analysis and automation
-* [_datalab_ federation](https://github.com/datalab-org/datalab-federation) - you can add your _datalab_ to the federation for additional shared features
+* Capture and store sample and device metadata
+* Connect and sync raw data directly and from laboratory instruments
+* Built-in support for multiple characterisation techniques (XRD, NMR, echem, TEM, TGA, Mass Spec, Raman and more).
+* Capture scientific context: store the graph of relationships between research objects.
+* [Python API](https://github.com/datalab-org/datalab-api) for programmatic access to your lab's data enabling custom analysis and automation.
+* Join the [_datalab_ federation](https://github.com/datalab-org/datalab-federation): you can add your _datalab_ to the federation for additional shared features.
+* [Plugin ecosystem](https://api-docs.datalab-org.io/en/stable/plugins) allowing for custom data blocks, [AI integration](https://github.com/datalab-org/yellowhammer) and other instance-specific code.
+* [Deployment and infrastructure automation](https://github.com/datalab-industries/datalab-ansible-terraform) via Ansible playbooks.
 
 > [!NOTE]
 > You may be looking for the identically named project [DataLab](https://datalab-platform.com) for signal processing, which also has plugins, clients and other similar concepts!
 
 ## Getting started
-To set up your own _datalab_ instance, follow the installation and deployment instructions in
-[INSTALL.md](./INSTALL.md) and the [online documentation](https://the-datalab.readthedocs.io).
 
-We also provide paid managed deployments: contact us at [hello@datalab.industries](mailto:hello@datalab.industries)
+To set up your own _datalab_ instance or to get started with development, you can follow the installation and deployment instructions in [INSTALL.md](./INSTALL.md) and the [online documentation](https://docs.datalab-org.io).
 
-## Design Philosophy
+We can also provide paid managed deployments via [_datalab industries ltd._](https://datalab.industries): contact us at [hello@datalab.industries](mailto:hello@datalab.industries).
+
+## Design philosophy and architecture
+
 The _datalab_ architecture is shown below:
 
 <center>
@@ -128,6 +135,10 @@ Importantly, *datalab* stores a network of interconnected research objects in th
 This software is released under the conditions of the MIT license.
 Please see [LICENSE](./LICENSE) for the full text of the license.
 
+## Contact
+
+We are available for consultations on setting up and managing *datalab* deployments, as well as collaborating on or sponsoring additions of new features and techniques. Please contact Josh or Matthew on their academic emails, or join the [public *datalab* Slack workspace](https://join.slack.com/t/datalab-world/shared_invite/zt-2h58ev3pc-VV496~5je~QoT2TgFIwn4g).
+
 ## Contributions
 
 This software was conceived and developed by:
@@ -136,18 +147,21 @@ This software was conceived and developed by:
 - [Dr Matthew Evans](https://ml-evs.science) ([MODL-IMCN,
   UCLouvain](https://uclouvain.be/en/research-institutes/imcn/modl) & [Matgenix](https://matgenix.com))
 
-with contributions and testing performed by other members of the Grey Group.
+with support from the group of [Professor Clare Grey](https://grey.group.ch.cam.ac.uk/group) (University of Cambridge), and major contributions from:
+
+- [Benjamin Charmes](https://github.com/BenjaminCharmes)
+- [Dr Ben Smith](https://github.com/be-smith/)
+- [Dr Yue Wu](https://github.com/yue-here)
+
+plus many contributions, feedback and testing performed by other members of the community, in particular, the groups of [Prof Matt Cliffe](https://cliffegroup.co.uk) (Nottingham) and [Dr Peter Kraus](https://www.tu.berlin/en/concat) (TUBerlin).
 
 A full list of code contributions can be found on [GitHub](https://github.com/datalab-org/datalab/graphs/contributors).
 
-## Contact
-
-We are available for consultations on setting up and managing *datalab* deployments, as well as collaborating on or sponsoring additions of new features and techniques. Please contact Josh or Matthew on their academic emails, or join the [public *datalab* Slack workspace](https://join.slack.com/t/datalab-world/shared_invite/zt-2h58ev3pc-VV496~5je~QoT2TgFIwn4g).
-
 ## Funding
 
-This project has received funding from the European Union's Horizon 2020 research and innovation programme under grant agreement 957189 (DOI: [10.3030/957189](https://doi.org/10.3030/957189)), the [Battery Interface Genome - Materials Acceleration Platform (BIG-MAP)](https://www.big-map.eu), as an external stakeholder project.
+Contributions to _datalab_ have been supported by a mixture of academic funding and consultancy work through [_datalab industries ltd_](https://datalab.industries).
 
-<div align="center">
-<img href="https://big-map.org" src="https://big-map.github.io/big-map-registry/static/img/big-map-white-transparent.png" width=100>
-</div>
+In particular, the developers thank:
+
+- Initial proof-of-concept funding from the European Union's Horizon 2020 research and innovation programme under grant agreement 957189 (DOI: [10.3030/957189](https://doi.org/10.3030/957189)), the [Battery Interface Genome - Materials Acceleration Platform (BIG-MAP)](https://www.big-map.eu), as an external stakeholder project.
+- The BEWARE scheme of the Wallonia-Brussels Federation for funding under the European Commission's Marie Curie-Skłodowska Action (COFUND 847587).
