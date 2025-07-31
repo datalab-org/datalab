@@ -1,21 +1,21 @@
 # Overview
 
-*datalab*'s block system provides a modular approach to data processing and visualization.
-Each block type is a specialized component that handles specific kinds of data and operations, making it easy to extend the system's capabilities without modifying the core architecture.
+*datalab*'s block system provides a modular approach to data processing and visualisation.
+Each block type is a specialised component that handles specific kinds of data and operations, making it easy to extend the system's capabilities without modifying the core architecture.
 Typically, a given technique (e.g., XRD, NMR) will have its own block.
 Blocks can be implemented either in the main package, or as a plugin (see ["Plugins"](/plugins)).
 
 Data blocks are modular components that:
 
 1. Process specific file types and data formats for a technique or set of techniques,
-2. Generate visualizations and plots from this data to be shown in the UI,
+2. Generate visualisations and plots from this data to be shown in the UI,
 3. Store and manage their own state persistently in a database,
 4. Can be attached to individual items or collections in your data management system,
 5. Provide a mechanism for handling "events" through a decorator-based registration system,
 6. Expose a consistent API for creation, updating, and deletion.
 7. Handle logging, errors and warnings in a consistent way to show in the UI.
 
-## Block Lifecycle
+## Block lifecycle
 
 1. **Creation**: Blocks are instantiated with an item or collection ID
 2. **Initialization**: Initial state is set up, potentially including file data and defaults

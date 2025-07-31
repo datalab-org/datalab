@@ -23,7 +23,7 @@ fixes, performance improvements and backwards-compatible API enhancements.
   [`datalab-app-plugin-insitu`](https://github.com/datalab-org/datalab-app-plugin-insitu)),
   as well as new file formats supported in the XRD (Rigaku's .rasx, variants of .xy), NMR (JCAMP-DX) blocks
   and media block (PDF documents).
-- A fledling plugin ecosystem with ways to easily add new blocks to a specific
+- A fledgling plugin ecosystem with ways to easily add new blocks to a specific
   *datalab* instance ([docs](https://docs.datalab-org.io/en/v0.6.0/plugins/)).
 - Improved item search throughout the API, removing the need to search on
   whitespace or puncutation delimited words (e.g., ID matches will now begin after

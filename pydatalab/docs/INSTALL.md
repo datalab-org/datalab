@@ -125,10 +125,10 @@ Similar to the Flask development server, these steps will provide a development 
 
 Various other development scripts are available through `yarn`:
 
-- `yarn lint`: Lint the javascript code using `eslint`, identifying issues and automatically fixing many. This linting process also runs automatically every time the development server reloads.
+- `yarn lint`: Lint the JavaScript code using `eslint`, identifying issues and automatically fixing many. This linting process also runs automatically every time the development server reloads.
 - `yarn test:unit`: run the unit/component tests using `jest`. These test individual functions or components.
-- `yarn test:e2e`: run end-to-end tests using `cypress`. This will build and serve the app, and launch an instance of Chrome where the tests can be interactively viewed. The tests can also be run without the gui using ```yarn test:e2e --headless```. Note: currently, the tests make requests to the server running on `localhost:5001`.
-- `yarn build`: Compile an optimized, minimized, version of the app for production.
+- `yarn test:e2e`: run end-to-end tests using `cypress`. This will build and serve the app, and launch an instance of Chrome where the tests can be interactively viewed. The tests can also be run without the GUI using ```yarn test:e2e --headless```. Note: currently, the tests make requests to the server running on `localhost:5001`.
+- `yarn build`: Compile an optimised, minimised, version of the app for production.
 
 ## Development notes
 

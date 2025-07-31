@@ -7,7 +7,7 @@ Docker and Docker Compose.
     Whilst these general instructions may be useful, for a production *datalab* we strongly recommend
     using the [Ansible-based approach](#automated-deployments-with-ansible-and-terraform-recommended).
 
-[Docker](https://docs.docker.com/) uses virtualization to allow you to build "images" of your software that are transferrable and deployable as "containers" across multiple systems.
+[Docker](https://docs.docker.com/) uses virtualisation to allow you to build "images" of your software that are transferable and deployable as "containers" across multiple systems.
 
 [Docker Compose](https://docs.docker.com/compose/) is a tool for running
 multiple containers as services that can interact with one another.
