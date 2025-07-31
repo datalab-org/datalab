@@ -26,7 +26,7 @@ fixes, performance improvements and backwards-compatible API enhancements.
 - A fledgling plugin ecosystem with ways to easily add new blocks to a specific
   *datalab* instance ([docs](https://docs.datalab-org.io/en/v0.6.0/plugins/)).
 - Improved item search throughout the API, removing the need to search on
-  whitespace or puncutation delimited words (e.g., ID matches will now begin after
+  whitespace or punctuation delimited words (e.g., ID matches will now begin after
   just 3 characters, rather than needing to type a full ID).
 - More powerful UI block interactions via "events" that can be written purely Python ([docs](https://docs.datalab-org.io/en/v0.6.0/blocks/)).
 
