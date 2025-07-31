@@ -19,6 +19,7 @@ from bokeh.models import (
     TableColumn,
 )
 from bokeh.models.widgets import Dropdown, Select
+from bokeh.models.widgets.inputs import TextInput
 from bokeh.palettes import Accent, Dark2
 from bokeh.plotting import ColumnDataSource, figure
 from bokeh.themes import Theme
@@ -218,6 +219,7 @@ def selectable_axes_plot(
     plot_index: int | None = None,
     tools: list | None = None,
     show_table: bool = False,
+    parameters: dict | None = None,
     **kwargs,
 ):
     """
@@ -437,6 +439,21 @@ def selectable_axes_plot(
         p.legend.click_policy = "hide"
         if len(df) <= 1:
             p.legend.visible = False
+
+    input_widgets = []
+    if parameters:
+        for parameter in parameters.values():
+            input_widget = TextInput(title=parameter["label"], value=str(parameter["value"]))
+            if parameter["event"]:
+                code = parameter["event"]
+                code += (
+                    f"console.log('Dispatched event for {parameter['label']}', event.target.value)"
+                )
+                input_widget.js_on_change("value", *[CustomJS(code=code)])
+            input_widgets.append(input_widget)
+
+        if input_widgets:
+            plot_columns.extend(input_widgets)
 
     if not skip_plot:
         plot_columns.append(p)

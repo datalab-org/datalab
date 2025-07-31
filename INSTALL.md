@@ -47,8 +47,6 @@ You will need Python 3.10 or higher to run *datalab*; we recommend using a tool 
 ##### Installation with `uv` or `venv`
 
 We recommend using [`uv`](https://github.com/astral-sh/uv) (see the linked repository or https://docs.astral.sh/uv for installation instructions) for managing your *datalab* installation.
-This is still a fledgling tool that is supporting a wider subset of features each day; for now, we recommend using the version pinned in our `.docker/server_dockerfile`, otherwise you may need to regenerate the `uv.lock` file locally (please do not commit this file).
-
 
 You could also use the standard library `venv` module, but this will not allow you to install pinned dependencies as easily, and is significantly slower than `uv`.
 
