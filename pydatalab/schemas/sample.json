@@ -14,10 +14,12 @@
       "properties": {
         "blocks_obj": {
           "additionalProperties": true,
+          "description": "A mapping from block ID to block data.",
           "title": "Blocks Obj",
           "type": "object"
         },
         "display_order": {
+          "description": "The order in which to display block data in the UI.",
           "items": {
             "type": "string"
           },
@@ -25,6 +27,7 @@
           "type": "array"
         },
         "creator_ids": {
+          "description": "The database IDs of the user(s) who created the item.",
           "items": {
             "anyOf": [
               {
@@ -55,6 +58,7 @@
             }
           ],
           "default": null,
+          "description": "Inlined info for the people associated with this item.",
           "title": "Creators"
         },
         "type": {
@@ -77,6 +81,7 @@
             }
           ],
           "default": null,
+          "description": "The immutable database ID of the entry.",
           "format": "uuid",
           "title": "Immutable ID"
         },
@@ -90,9 +95,11 @@
             }
           ],
           "default": null,
+          "description": "The timestamp at which the entry was last modified.",
           "title": "Last Modified"
         },
         "relationships": {
+          "description": "A list of related entries and their types.",
           "items": {
             "$ref": "#/$defs/TypedRelationship"
           },
@@ -109,6 +116,7 @@
             }
           ],
           "default": null,
+          "description": "A short human-readable/usable name for the collection.",
           "title": "Collection Id"
         },
         "title": {
@@ -121,6 +129,7 @@
             }
           ],
           "default": null,
+          "description": "A descriptive title for the collection.",
           "title": "Title"
         },
         "description": {
@@ -133,6 +142,7 @@
             }
           ],
           "default": null,
+          "description": "A description of the collection, either in plain-text or a markup language.",
           "title": "Description"
         },
         "num_items": {
@@ -145,6 +155,7 @@
             }
           ],
           "default": null,
+          "description": "Inlined number of items associated with this collection.",
           "title": "Num Items"
         }
       },
@@ -163,6 +174,7 @@
               "$ref": "#/$defs/InlineSubstance"
             }
           ],
+          "description": "A reference to item (sample or starting material) entry for the constituent substance.",
           "title": "Item"
         },
         "quantity": {
@@ -176,10 +188,12 @@
             }
           ],
           "default": null,
+          "description": "The amount of the constituent material used to create the sample.",
           "title": "Quantity"
         },
         "unit": {
           "default": "g",
+          "description": "The unit symbol for the value provided in `quantity`, default is mass in grams (g) but could also refer to volumes (mL, L, etc.) or moles (mol).",
           "title": "Unit",
           "type": "string"
         }
@@ -268,6 +282,7 @@
       "properties": {
         "revision": {
           "default": 1,
+          "description": "The revision number of the entry.",
           "title": "Revision",
           "type": "integer"
         },
@@ -282,9 +297,11 @@
             }
           ],
           "default": null,
+          "description": "An optional mapping from old revision numbers to the model state at that revision.",
           "title": "Revisions"
         },
         "creator_ids": {
+          "description": "The database IDs of the user(s) who created the item.",
           "items": {
             "anyOf": [
               {
@@ -315,6 +332,7 @@
             }
           ],
           "default": null,
+          "description": "Inlined info for the people associated with this item.",
           "title": "Creators"
         },
         "type": {
@@ -337,6 +355,7 @@
             }
           ],
           "default": null,
+          "description": "The immutable database ID of the entry.",
           "format": "uuid",
           "title": "Immutable ID"
         },
@@ -350,9 +369,11 @@
             }
           ],
           "default": null,
+          "description": "The timestamp at which the entry was last modified.",
           "title": "Last Modified"
         },
         "relationships": {
+          "description": "A list of related entries and their types.",
           "items": {
             "$ref": "#/$defs/TypedRelationship"
           },
@@ -369,6 +390,7 @@
             }
           ],
           "default": null,
+          "description": "The size of the file on disk in bytes.",
           "title": "Size"
         },
         "last_modified_remote": {
@@ -381,9 +403,11 @@
             }
           ],
           "default": null,
+          "description": "The last date/time at which the remote file was modified.",
           "title": "Last Modified Remote"
         },
         "item_ids": {
+          "description": "A list of item IDs associated with this file.",
           "items": {
             "type": "string"
           },
@@ -391,6 +415,7 @@
           "type": "array"
         },
         "blocks": {
+          "description": "A list of block IDs associated with this file.",
           "items": {
             "type": "string"
           },
@@ -398,10 +423,12 @@
           "type": "array"
         },
         "name": {
+          "description": "The filename on disk.",
           "title": "Name",
           "type": "string"
         },
         "extension": {
+          "description": "The file extension that the file was uploaded with.",
           "title": "Extension",
           "type": "string"
         },
@@ -415,6 +442,7 @@
             }
           ],
           "default": null,
+          "description": "The raw filename as uploaded.",
           "title": "Original Name"
         },
         "location": {
@@ -427,6 +455,7 @@
             }
           ],
           "default": null,
+          "description": "The location of the file on disk.",
           "title": "Location"
         },
         "url_path": {
@@ -439,6 +468,7 @@
             }
           ],
           "default": null,
+          "description": "The path to a remote file.",
           "title": "Url Path"
         },
         "source": {
@@ -451,9 +481,11 @@
             }
           ],
           "default": null,
+          "description": "The source of the file, e.g. 'remote' or 'uploaded'.",
           "title": "Source"
         },
         "time_added": {
+          "description": "The timestamp for the original file upload.",
           "title": "Time Added",
           "type": "string"
         },
@@ -468,6 +500,7 @@
             }
           ],
           "default": null,
+          "description": "Any additional metadata.",
           "title": "Metadata"
         },
         "representation": {
@@ -490,6 +523,7 @@
             }
           ],
           "default": null,
+          "description": "The server name at which the file is stored.",
           "title": "Source Server Name"
         },
         "source_path": {
@@ -502,9 +536,11 @@
             }
           ],
           "default": null,
+          "description": "The path to the file on the remote resource.",
           "title": "Source Path"
         },
         "is_live": {
+          "description": "Whether or not the file should be watched for future updates.",
           "title": "Is Live",
           "type": "boolean"
         }
@@ -522,18 +558,22 @@
       "description": "A model for identities that can be provided by external systems\nand associated with a given user.",
       "properties": {
         "identity_type": {
-          "$ref": "#/$defs/IdentityType"
+          "$ref": "#/$defs/IdentityType",
+          "description": "The type or provider of the identity."
         },
         "identifier": {
+          "description": "The identifier for the identity, e.g., an email address, an ORCID, a GitHub user ID.",
           "title": "Identifier",
           "type": "string"
         },
         "name": {
+          "description": "The name associated with the identity to be exposed in free-text searches over people, e.g., an institutional username, a GitHub username.",
           "title": "Name",
           "type": "string"
         },
         "verified": {
           "default": false,
+          "description": "Whether the identity has been verified (by some means, e.g., OAuth2 or email)",
           "title": "Verified",
           "type": "boolean"
         },
@@ -547,6 +587,7 @@
             }
           ],
           "default": null,
+          "description": "The user's display name associated with the identity, also to be exposed in free text searches.",
           "title": "Display Name"
         }
       },
@@ -612,6 +653,7 @@
         "type": {
           "const": "people",
           "default": "people",
+          "description": "The entry type as a string.",
           "title": "Type",
           "type": "string"
         },
@@ -629,6 +671,7 @@
             }
           ],
           "default": null,
+          "description": "The immutable database ID of the entry.",
           "format": "uuid",
           "title": "Immutable ID"
         },
@@ -642,9 +685,11 @@
             }
           ],
           "default": null,
+          "description": "The timestamp at which the entry was last modified.",
           "title": "Last Modified"
         },
         "relationships": {
+          "description": "A list of related entries and their types.",
           "items": {
             "$ref": "#/$defs/TypedRelationship"
           },
@@ -652,6 +697,7 @@
           "type": "array"
         },
         "identities": {
+          "description": "A list of identities attached to this person, e.g., email addresses, OAuth accounts.",
           "items": {
             "$ref": "#/$defs/Identity"
           },
@@ -669,6 +715,8 @@
               "type": "null"
             }
           ],
+          "default": null,
+          "description": "The user-chosen display name.",
           "title": "Display Name"
         },
         "contact_email": {
@@ -682,6 +730,7 @@
             }
           ],
           "default": null,
+          "description": "In the case of multiple *verified* email identities, this email will be used as the primary contact.",
           "title": "Contact Email"
         },
         "managers": {
@@ -708,16 +757,15 @@
             }
           ],
           "default": null,
+          "description": "A list of user IDs that can manage this person's items.",
           "title": "Managers"
         },
         "account_status": {
           "$ref": "#/$defs/AccountStatus",
-          "default": "unverified"
+          "default": "unverified",
+          "description": "The status of the user's account."
         }
       },
-      "required": [
-        "display_name"
-      ],
       "title": "Person",
       "type": "object"
     },
@@ -746,6 +794,7 @@
             }
           ],
           "default": null,
+          "description": "A description of the relationship.",
           "title": "Description"
         },
         "relation": {
@@ -757,10 +806,12 @@
               "type": "null"
             }
           ],
-          "default": null
+          "default": null,
+          "description": "The type of relationship between the two items. If the type is 'other', then a human-readable description should be provided."
         },
         "type": {
-          "$ref": "#/$defs/KnownType"
+          "$ref": "#/$defs/KnownType",
+          "description": "The type of the related resource."
         },
         "immutable_id": {
           "anyOf": [
@@ -776,6 +827,7 @@
             }
           ],
           "default": null,
+          "description": "The immutable ID of the entry that is related to this entry.",
           "title": "Immutable Id"
         },
         "item_id": {
@@ -791,6 +843,7 @@
             }
           ],
           "default": null,
+          "description": "The ID of the entry that is related to this entry.",
           "title": "Item Id"
         },
         "refcode": {
@@ -806,6 +859,7 @@
             }
           ],
           "default": null,
+          "description": "The refcode of the entry that is related to this entry.",
           "title": "Refcode"
         }
       },
@@ -819,6 +873,7 @@
   "description": "A model for representing an experimental sample.",
   "properties": {
     "synthesis_constituents": {
+      "description": "A list of references to constituent materials giving the amount and relevant inlined details of consituent items.",
       "items": {
         "$ref": "#/$defs/Constituent"
       },
@@ -835,14 +890,17 @@
         }
       ],
       "default": null,
+      "description": "Free-text details of the procedure applied to synthesise the sample",
       "title": "Synthesis Description"
     },
     "blocks_obj": {
       "additionalProperties": true,
+      "description": "A mapping from block ID to block data.",
       "title": "Blocks Obj",
       "type": "object"
     },
     "display_order": {
+      "description": "The order in which to display block data in the UI.",
       "items": {
         "type": "string"
       },
@@ -850,6 +908,7 @@
       "type": "array"
     },
     "collections": {
+      "description": "Inlined info for the collections associated with this item.",
       "items": {
         "$ref": "#/$defs/Collection"
       },
@@ -858,6 +917,7 @@
     },
     "revision": {
       "default": 1,
+      "description": "The revision number of the entry.",
       "title": "Revision",
       "type": "integer"
     },
@@ -872,9 +932,11 @@
         }
       ],
       "default": null,
+      "description": "An optional mapping from old revision numbers to the model state at that revision.",
       "title": "Revisions"
     },
     "creator_ids": {
+      "description": "The database IDs of the user(s) who created the item.",
       "items": {
         "anyOf": [
           {
@@ -905,6 +967,7 @@
         }
       ],
       "default": null,
+      "description": "Inlined info for the people associated with this item.",
       "title": "Creators"
     },
     "type": {
@@ -927,6 +990,7 @@
         }
       ],
       "default": null,
+      "description": "The immutable database ID of the entry.",
       "format": "uuid",
       "title": "Immutable ID"
     },
@@ -940,9 +1004,11 @@
         }
       ],
       "default": null,
+      "description": "The timestamp at which the entry was last modified.",
       "title": "Last Modified"
     },
     "relationships": {
+      "description": "A list of related entries and their types.",
       "items": {
         "$ref": "#/$defs/TypedRelationship"
       },
@@ -962,6 +1028,7 @@
         }
       ],
       "default": null,
+      "description": "A globally unique immutable ID comprised of the deployment prefix (e.g., `grey`) and a locally unique string, ideally created with some consistent scheme.",
       "title": "Refcode"
     },
     "item_id": {
@@ -973,6 +1040,7 @@
           "type": "integer"
         }
       ],
+      "description": "A locally unique, human-readable identifier for the entry. This ID is mutable.",
       "title": "Item Id"
     },
     "description": {
@@ -985,6 +1053,7 @@
         }
       ],
       "default": null,
+      "description": "A description of the item, either in plain-text or a markup language.",
       "title": "Description"
     },
     "date": {
@@ -997,6 +1066,7 @@
         }
       ],
       "default": null,
+      "description": "A relevant 'creation' timestamp for the entry (e.g., purchase date, synthesis date).",
       "title": "Date"
     },
     "name": {
@@ -1009,6 +1079,7 @@
         }
       ],
       "default": null,
+      "description": "An optional human-readable/usable name for the entry.",
       "title": "Name"
     },
     "files": {
@@ -1024,9 +1095,11 @@
         }
       ],
       "default": null,
+      "description": "Any files attached to this sample.",
       "title": "Files"
     },
     "file_ObjectIds": {
+      "description": "Links to object IDs of files stored within the database.",
       "items": {
         "anyOf": [
           {
@@ -1054,6 +1127,7 @@
         }
       ],
       "default": null,
+      "description": "A string representation of the chemical formula or composition associated with this sample.",
       "examples": [
         [
           "Na3P",

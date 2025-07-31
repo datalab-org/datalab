@@ -13,17 +13,20 @@ from pydatalab.models.utils import HumanReadableIdentifier
 class Collection(Entry, HasOwner, HasBlocks):
     type: Literal["collections"] = "collections"
 
-    collection_id: HumanReadableIdentifier = Field(None)
-    """A short human-readable/usable name for the collection."""
+    collection_id: HumanReadableIdentifier = Field(
+        None, description="A short human-readable/usable name for the collection."
+    )
 
-    title: str | None = None
-    """A descriptive title for the collection."""
+    title: str | None = Field(None, description="A descriptive title for the collection.")
 
-    description: str | None = None
-    """A description of the collection, either in plain-text or a markup language."""
+    description: str | None = Field(
+        None,
+        description="A description of the collection, either in plain-text or a markup language.",
+    )
 
-    num_items: int | None = Field(None)
-    """Inlined number of items associated with this collection."""
+    num_items: int | None = Field(
+        None, description="Inlined number of items associated with this collection."
+    )
 
     @model_validator(mode="before")
     @classmethod

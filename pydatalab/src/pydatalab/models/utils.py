@@ -307,16 +307,20 @@ class EntryReference(BaseModel):
 class Constituent(BaseModel):
     """A constituent of a sample."""
 
-    item: EntryReference | InlineSubstance
-    """A reference to item (sample or starting material) entry for the constituent substance."""
+    item: EntryReference | InlineSubstance = Field(
+        description="A reference to item (sample or starting material) entry for the constituent substance."
+    )
 
-    quantity: float | None = Field(default=None, ge=0)
-    """The amount of the constituent material used to create the sample."""
+    quantity: float | None = Field(
+        default=None,
+        ge=0,
+        description="The amount of the constituent material used to create the sample.",
+    )
 
-    unit: str = Field("g")
-    """The unit symbol for the value provided in `quantity`, default is mass
-    in grams (g) but could also refer to volumes (mL, L, etc.) or moles (mol).
-    """
+    unit: str = Field(
+        "g",
+        description="The unit symbol for the value provided in `quantity`, default is mass in grams (g) but could also refer to volumes (mL, L, etc.) or moles (mol).",
+    )
 
     @field_validator("item")
     @classmethod

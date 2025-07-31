@@ -33,23 +33,33 @@ class Cell(Item):
 
     type: Literal["cells"] = "cells"
 
-    cell_format: CellFormat | None = None
-    """The form factor of the cell, e.g., coin, pouch, in situ or otherwise."""
+    cell_format: CellFormat | None = Field(
+        None, description="The form factor of the cell, e.g., coin, pouch, in situ or otherwise."
+    )
 
-    cell_format_description: str | None = None
-    """Additional human-readable description of the cell form factor, e.g., 18650, AMPIX, CAMPIX"""
+    cell_format_description: str | None = Field(
+        None,
+        description="Additional human-readable description of the cell form factor, e.g., 18650, AMPIX, CAMPIX",
+    )
 
-    cell_preparation_description: str | None = None
-    """Description of how the cell was prepared."""
+    cell_preparation_description: str | None = Field(
+        None, description="Description of how the cell was prepared."
+    )
 
-    characteristic_mass: float | None = None
-    """The characteristic mass of the cell in milligrams. Can be used to normalize capacities."""
+    characteristic_mass: float | None = Field(
+        None,
+        description="The characteristic mass of the cell in milligrams. Can be used to normalize capacities.",
+    )
 
-    characteristic_chemical_formula: str | None = None
-    """The chemical formula of the active material. Can be used to calculated molar mass in g/mol for normalizing capacities."""
+    characteristic_chemical_formula: str | None = Field(
+        None,
+        description="The chemical formula of the active material. Can be used to calculated molar mass in g/mol for normalizing capacities.",
+    )
 
-    characteristic_molar_mass: float | None = None
-    """The molar mass of the active material, in g/mol. Will be inferred from the chemical formula, or can be supplied if it cannot be supplied"""
+    characteristic_molar_mass: float | None = Field(
+        None,
+        description="The molar mass of the active material, in g/mol. Will be inferred from the chemical formula, or can be supplied if it cannot be supplied",
+    )
 
     positive_electrode: list[CellComponent] = Field(default_factory=list)
     negative_electrode: list[CellComponent] = Field(default_factory=list)
@@ -57,8 +67,7 @@ class Cell(Item):
 
     active_ion_charge: float = 1
 
-    active_ion: str | None = None
-    """The active ion species."""
+    active_ion: str | None = Field(None, description="The active ion species.")
 
     @field_validator("characteristic_molar_mass", mode="before")
     @classmethod
