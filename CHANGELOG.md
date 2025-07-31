@@ -1,10 +1,10 @@
 # Changelog
 
-## v0.6.0 (June 2025)
+## v0.6.0 (July 2025)
 
-This release includes significant new functionality and UI redesign, as well as
-several bug and quality-of-life fixes, performance improvements and
-backwards-compatible API enhancements.
+This release includes significant new functionality and UI redesign, a  
+fledgling plugin ecosystem, as well as several bug and quality-of-life
+fixes, performance improvements and backwards-compatible API enhancements.
 
 > [!WARNING]
 > This release also bumps the supported MongoDB version all the way from v3 to v8. Whilst older MongoDB versions should still continue to work, version 8 will now be tested and used in the docker builds, so we recommend you upgrade. For existing databases this requires you to first dump the database using `mongodump` with the old MongoDB version, then upgrade to the new version and restore the database with `mongorestore`. If you unsure about this process then please ask us for help!
@@ -23,10 +23,14 @@ backwards-compatible API enhancements.
   [`datalab-app-plugin-insitu`](https://github.com/datalab-org/datalab-app-plugin-insitu)),
   as well as new file formats supported in the XRD (Rigaku's .rasx, variants of .xy), NMR (JCAMP-DX) blocks
   and media block (PDF documents).
+- A fledling plugin ecosystem with ways to easily add new blocks to a specific
+  *datalab* instance ([docs](https://docs.datalab-org.io/en/v0.6.0/plugins/)).
 - Improved item search throughout the API, removing the need to search on
   whitespace or puncutation delimited words (e.g., ID matches will now begin after
   just 3 characters, rather than needing to type a full ID).
+- More powerful UI block interactions via "events" that can be written purely Python ([docs](https://docs.datalab-org.io/en/v0.6.0/blocks/)).
 
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.5.2...v0.6.0
 
 ## v0.5.2 (March 2025)
 
