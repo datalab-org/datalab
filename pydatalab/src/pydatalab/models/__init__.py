@@ -25,3 +25,14 @@ __all__ = (
     "Equipment",
     "ITEM_MODELS",
 )
+
+MODELS_WITH_CIRCULAR_REFS: list[type[BaseModel]] = [
+    *ITEM_MODELS.values(),
+    Collection,
+]
+
+for model in MODELS_WITH_CIRCULAR_REFS:
+    try:
+        model.model_rebuild()
+    except Exception as e:
+        print(f"Warning: Failed to rebuild {model.__name__}: {e}")

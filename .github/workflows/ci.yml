@@ -149,7 +149,7 @@ jobs:
           files: docker-compose.yml
           load: true
           source: .
-          targets: 'app,api,database'
+          targets: "app,api,database"
           set: |
             app.cache-from=type=gha,scope=${{ github.ref_name }}-${{ matrix.browser-backend }}-build-app
             app.cache-from=type=gha,scope=main-${{ matrix.browser-backend }}-build-app
