@@ -97,20 +97,24 @@ Currently, there are two mechanisms for accessing remote files:
 
 ::: pydatalab.config.ServerConfig
     options:
+      heading_level: 2
+      show_root_heading: true
       show_source: false
-      heading_level: 3
 
 ::: pydatalab.config.RemoteFilesystem
     options:
+      heading_level: 2
+      show_root_heading: true
       show_source: false
-      heading_level: 3
 
 ::: pydatalab.config.SMTPSettings
     options:
+      heading_level: 2
+      show_root_heading: true
       show_source: false
-      heading_level: 3
 
 ::: pydatalab.config.DeploymentMetadata
     options:
+      heading_level: 2
+      show_root_heading: true
       show_source: false
-      heading_level: 3

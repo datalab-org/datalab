@@ -3,7 +3,7 @@
 *datalab*'s block system provides a modular approach to data processing and visualisation.
 Each block type is a specialised component that handles specific kinds of data and operations, making it easy to extend the system's capabilities without modifying the core architecture.
 Typically, a given technique (e.g., XRD, NMR) will have its own block.
-Blocks can be implemented either in the main package, or as a plugin (see ["Plugins"](/plugins)).
+Blocks can be implemented either in the main package, or as a plugin (see ["Plugins"](../plugins.md)).
 
 Data blocks are modular components that:
 

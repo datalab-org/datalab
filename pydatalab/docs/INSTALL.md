@@ -35,7 +35,7 @@ This requires a MongoDB server to be running on your desired host machine.
 
 1. Install the free MongoDB community edition (see the full instructions for your OS on the [MongoDB website](https://docs.mongodb.com/manual/installation/)).
     * For MacOS users, MongoDB is available via [HomeBrew](https://github.com/mongodb/homebrew-brew).
-    * You can alternatively run the MongoDB via Docker using the config in this package with `docker compose up database` (see [deployment instructions](deploy.md)).
+    * You can alternatively run the MongoDB via Docker using the config in this package with `docker compose up database` (see [deployment instructions](deployment.md)).
     * If you wish to view the database directly, MongoDB has several GUIs, e.g. [MongoDB Compass](https://www.mongodb.com/products/compass) or [Studio 3T](https://robomongo.org/).
     * For persistence, you will need to set up MongoDB to run as a service on your computer (or run manually each time you run the `pydatalab` server).
 

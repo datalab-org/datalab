@@ -38,7 +38,7 @@ This patch release makes several visual/interactivity improvements around
 loading states in the UI, and adds two new blocks: FTIR and a tabular data
 block for plotting data from within generic CSV/Excel files.
 
-## What's Changed
+### What's Changed
 * Fix docs link in mkdocs by @ml-evs in https://github.com/datalab-org/datalab/pull/1044
 * Improve loading state for data-intensive blocks by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1049
 * Add support for reading excel-like spreadsheets in tabular data block by @ml-evs in https://github.com/datalab-org/datalab/pull/1052
@@ -46,7 +46,7 @@ block for plotting data from within generic CSV/Excel files.
 * Added FTIR block and associated tests by @be-smith in https://github.com/datalab-org/datalab/pull/1061
 * Update CITATION.cff by @ml-evs in https://github.com/datalab-org/datalab/pull/1069
 
-## New Contributors
+### New Contributors
 * @be-smith made their first contribution in https://github.com/datalab-org/datalab/pull/1061
 
 **Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.5.1...v0.5.2
@@ -55,7 +55,7 @@ block for plotting data from within generic CSV/Excel files.
 
 This patch release simply pins the `uv` version used in builds to avoid future breakages.
 
-## What's Changed
+### What's Changed
 
 * Bump the github-actions group across 1 directory with 2 updates by @dependabot in https://github.com/datalab-org/datalab/pull/1031
 * Update uv to 0.5.x now that dynamic versioning is supported by @ml-evs in https://github.com/datalab-org/datalab/pull/1032
@@ -72,11 +72,11 @@ The Ansible playbooks at [datalab-ansible-terraform](https://github.com/datalab-
 
 Many thanks to all contributors: developers, user feedback and deployment managers!
 
-## Breaking changes
+### Breaking changes
 
 * The Python server has been entirely repackaged with `uv` for much more streamlined dependency management (especially for external plugins). If you are using the docker deployments, then nothing should change for you, but developers may need to adjust their development setups following the [installation instructions](./INSTALL.md).
 
-## Highlights
+### Highlights
 
 * The table component used to display all items has been entirely rewritten, and is now more visually responsive and can accommodate custom schemas/components.
 * QR code generation and scanning for all items, optionally using the new [datalab pURL service](https://purl.datalab-org.io/) when configured with `VUE_APP_QR_CODE_RESOLVER_URL`.
@@ -95,6 +95,7 @@ Many thanks to all contributors: developers, user feedback and deployment manage
 This release primarily contains some bugfixes for the echem block, as well as tidying in preparation of the next release.
 
 ### What's Changed
+
 * Removed unused css by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/826
 * Remove final mentions of odbx.science by @ml-evs in https://github.com/datalab-org/datalab/pull/827
 * Add routes for resolving items by refcode by @ml-evs in https://github.com/datalab-org/datalab/pull/807
