@@ -1,24 +1,3 @@
-// Resources for the application
-import DataBlockBase from "@/components/datablocks/DataBlockBase";
-import BokehBlock from "@/components/datablocks/BokehBlock";
-import MediaBlock from "@/components/datablocks/MediaBlock";
-import XRDBlock from "@/components/datablocks/XRDBlock";
-import ChatBlock from "@/components/datablocks/ChatBlock";
-import RamanBlock from "@/components/datablocks/RamanBlock";
-import CycleBlock from "@/components/datablocks/CycleBlock";
-import NMRBlock from "@/components/datablocks/NMRBlock";
-import EISBlock from "@/components/datablocks/EISBlock";
-import MassSpecBlock from "@/components/datablocks/MassSpecBlock";
-
-import SampleInformation from "@/components/SampleInformation";
-import StartingMaterialInformation from "@/components/StartingMaterialInformation";
-import CellInformation from "@/components/CellInformation";
-import CollectionInformation from "@/components/CollectionInformation";
-import EquipmentInformation from "@/components/EquipmentInformation";
-
-import SampleCreateModalAddon from "@/components/itemCreateModalAddons/SampleCreateModalAddon";
-import CellCreateModalAddon from "@/components/itemCreateModalAddons/CellCreateModalAddon";
-
 // Look for values set in .env file. Use defaults if `null` is not explicitly handled elsewhere in the code.
 export const API_URL =
   import.meta.env.VITE_APP_API_URL != null
@@ -60,51 +39,8 @@ export const UPPY_MAX_NUMBER_OF_FILES =
 
 export const debounceTime = 250; // time after user stops typing before request is sent
 
-export const blockTypes = {
-  comment: {
-    description: "Comment",
-    component: DataBlockBase,
-    name: "Comment",
-  },
-  media: { description: "Media", component: MediaBlock, name: "Media" },
-  tabular: {
-    description: "Tabular Data",
-    component: BokehBlock,
-    name: "Tabular data",
-  },
-  xrd: { description: "Powder XRD", component: XRDBlock, name: "Powder XRD" },
-  raman: { description: "Raman", component: RamanBlock, name: "Raman" },
-  cycle: {
-    description: "Electrochemistry",
-    component: CycleBlock,
-    name: "Electrochemistry",
-  },
-  eis: {
-    description: "Electrochemical Impedance Spectroscopy",
-    component: EISBlock,
-    name: "EIS",
-  },
-  nmr: {
-    description: "Nuclear Magnetic Resonance Spectroscopy",
-    component: NMRBlock,
-    name: "NMR",
-  },
-  ms: {
-    description: "Mass Spectrometry",
-    component: MassSpecBlock,
-    name: "Mass Spectrometry",
-  },
-  chat: {
-    description: "Virtual assistant",
-    component: ChatBlock,
-    name: "Virtual Assistant",
-  },
-};
-
 export const itemTypes = {
   samples: {
-    itemInformationComponent: SampleInformation,
-    itemCreateModalAddon: SampleCreateModalAddon,
     navbarColor: "#0b6093",
     navbarName: "Sample",
     lightColor: "#d0ebfb",
@@ -113,7 +49,6 @@ export const itemTypes = {
     display: "sample",
   },
   starting_materials: {
-    itemInformationComponent: StartingMaterialInformation,
     navbarColor: "#349579",
     navbarName: "Starting Material",
     lightColor: "#d9f2eb",
@@ -122,8 +57,6 @@ export const itemTypes = {
     display: "starting material",
   },
   cells: {
-    itemInformationComponent: CellInformation,
-    itemCreateModalAddon: CellCreateModalAddon,
     navbarColor: "#946807",
     navbarName: "Cell",
     lightColor: "#D1C28F",
@@ -132,7 +65,6 @@ export const itemTypes = {
     display: "cell",
   },
   collections: {
-    itemInformationComponent: CollectionInformation,
     navbarColor: "#563D7c",
     navbarName: "Collection",
     lightColor: "#cbd6f7",
@@ -148,7 +80,6 @@ export const itemTypes = {
     display: "user",
   },
   equipment: {
-    itemInformationComponent: EquipmentInformation,
     navbarColor: "#c77c02",
     navbarName: "Equipment",
     lightColor: "#f7d6a1",

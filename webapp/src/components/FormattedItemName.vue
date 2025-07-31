@@ -21,6 +21,7 @@
 
 <script>
 import ChemicalFormula from "@/components/ChemicalFormula.vue";
+import itemTypes from "@/resources.js";
 
 export default {
   components: {
@@ -29,17 +30,6 @@ export default {
   props: {
     item_id: { type: String, required: true },
     itemType: { type: String, required: true },
-    itemTypes: {
-      type: Object,
-      default: () => ({
-        samples: { lightColor: "#d0ebfb" },
-        starting_materials: { lightColor: "#d9f2eb" },
-        cells: { lightColor: "#D1C28F" },
-        collections: { lightColor: "#cbd6f7" },
-        users: { lightColor: "mediumseagreen" },
-        equipment: { lightColor: "#f7d6a1" },
-      }),
-    },
     selecting: {
       type: Boolean,
       default: false,
@@ -68,7 +58,7 @@ export default {
   emits: ["itemIdClicked"],
   computed: {
     badgeColor() {
-      return this.itemTypes[this.itemType]?.lightColor || "LightGrey";
+      return itemTypes[this.itemType]?.lightColor || "LightGrey";
     },
     shortenedName() {
       if (this.maxLength && this.maxLength < this.name.length) {

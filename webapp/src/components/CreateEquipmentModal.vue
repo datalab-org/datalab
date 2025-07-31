@@ -100,6 +100,7 @@ import ItemSelect from "@/components/ItemSelect.vue";
 import { createNewItem } from "@/server_fetch_utils.js";
 import { validateEntryID } from "@/field_utils.js";
 import { itemTypes } from "@/resources.js";
+import { itemTypeComponents } from "@/component_item_map.js";
 // import CollectionSelect from "@/components/CollectionSelect.vue";
 export default {
   name: "CreateEquipmentModal",
@@ -132,7 +133,7 @@ export default {
       return itemTypes[this.item_type].display;
     },
     itemCreateModalAddonComponent() {
-      return itemTypes[this.item_type].itemCreateModalAddon;
+      return itemTypeComponents[this.item_type].itemCreateModalAddon;
     },
     takenEquipmentIds() {
       return this.$store.state.equipment_list
