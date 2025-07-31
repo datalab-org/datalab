@@ -17,8 +17,6 @@
 </template>
 
 <script>
-import { GRAVATAR_STYLE } from "@/resources.js";
-
 import NotificationDot from "./NotificationDot.vue";
 
 import { getUsersList } from "@/server_fetch_utils.js";
@@ -41,7 +39,7 @@ export default {
   },
   data() {
     return {
-      gravatar_style: GRAVATAR_STYLE,
+      gravatar_style: "identicon",
     };
   },
   computed: {
