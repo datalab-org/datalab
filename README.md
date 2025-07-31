@@ -32,7 +32,7 @@ _datalab_ is a user-friendly, open-source platform that can capture all the expe
 _datalab_ records data and metadata securely and makes it accessible and reusable by both humans and machines _via_ the web UI and API, respectively.
 _datalab_ can be self-hosted and managed deployments are also available.
 
-Try the demo deployment at [demo.datalab-org.io](https://demo.datalab-org.io/).
+You can try the demo deployment at [demo.datalab-org.io](https://demo.datalab-org.io/) and read the online documentation at [docs.datalab-org.io](https://docs.datalab-org.io) with release notes and changelog available on [GitHub](https://github.com/datalab-org/datalab/releases/) and [online](https://docs.datalab-org.io/en/latest/CHANGELOG).
 
 Features:
 

@@ -74,7 +74,7 @@ Many thanks to all contributors: developers, user feedback and deployment manage
 
 ## Breaking changes
 
-* The Python server has been entirely repackaged with `uv` for much more streamlined dependency management (especially for external plugins). If you are using the docker deployments, then nothing should change for you, but developers may need to adjust their development setups following the instructions at [INSTALL.md](./INSTALL.md)
+* The Python server has been entirely repackaged with `uv` for much more streamlined dependency management (especially for external plugins). If you are using the docker deployments, then nothing should change for you, but developers may need to adjust their development setups following the [installation instructions](./INSTALL.md).
 
 ## Highlights
 
