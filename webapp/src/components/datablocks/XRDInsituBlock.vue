@@ -9,24 +9,20 @@
       @change="onFileChange"
     />
     <div v-show="file_id">
-      <div class="form-inline">
-        <div class="form-group mb-2">
+      <div class="row">
+        <div class="col-lg-4 col-md-6 col-sm-12 mb-2">
           <label class="mr-2"><b>XRD folder name</b></label>
-          <v-select
+          <FolderSelect
             v-model="xrd_folder_name"
             :options="availableFolders"
-            :reduce="(folder) => folder"
-            class="folder-select mr-2"
-            placeholder="Select a folder"
             @update:model-value="onFolderSelected"
           />
+        </div>
+        <div class="col-lg-4 col-md-6 col-sm-12 mb-2">
           <label class="mr-2"><b>Temperature or Echem folder name</b></label>
-          <v-select
+          <FolderSelect
             v-model="time_series_folder_name"
             :options="availableFolders"
-            :reduce="(folder) => folder"
-            class="folder-select"
-            placeholder="Select a folder"
             @update:model-value="onFolderSelected"
           />
         </div>
@@ -69,6 +65,7 @@
 <script>
 import DataBlockBase from "@/components/datablocks/DataBlockBase";
 import FileSelectDropdown from "@/components/FileSelectDropdown";
+import FolderSelect from "@/components/FolderSelect";
 import BokehPlot from "@/components/BokehPlot";
 import vSelect from "vue-select";
 
@@ -79,6 +76,7 @@ export default {
   components: {
     DataBlockBase,
     FileSelectDropdown,
+    FolderSelect,
     BokehPlot,
     vSelect,
   },
