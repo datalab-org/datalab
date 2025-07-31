@@ -9,7 +9,7 @@ export default defineConfig({
   },
   component: {
     devServer: {
-      framework: "vue-cli",
+      framework: "vue",
       bundler: "webpack",
     },
   },
