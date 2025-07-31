@@ -9,6 +9,7 @@ on:
 
 env:
   FORCE_COLOR: true
+  UV_VERSION: "0.8.4"
 
 concurrency:
   group: ${{ github.head_ref || github.run_id }}
@@ -30,7 +31,7 @@ jobs:
       - name: Set up uv
         uses: astral-sh/setup-uv@v6
         with:
-          version: "0.6.4"
+          version: ${{ env.UV_VERSION }}
           enable-cache: true
 
       - name: Install dependencies
@@ -78,7 +79,7 @@ jobs:
       - name: Set up uv
         uses: astral-sh/setup-uv@v6
         with:
-          version: "0.6.4"
+          version: ${{ env.UV_VERSION }}
           working-directory: "./pydatalab"
           enable-cache: true
 
