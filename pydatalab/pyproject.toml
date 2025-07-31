@@ -163,6 +163,7 @@ authorized_licenses = [
     "mit license",
     "python software foundation license",
     "python software foundation",
+    "PSF-2.0",
     "the unlicense",
     "zpl 2.1",
     "cmu license (MIT-CMU)",
@@ -174,6 +175,6 @@ unauthorized_licenses = [
 as_regex = true
 
 [tool.liccheck.authorized_packages]
-newarenda = ">=2025,<2026"
 datalab-org-galvani = ">=0.5"
 flask-cors = ">=5,<7"
+regex = ">=2025"
