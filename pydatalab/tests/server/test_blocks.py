@@ -292,10 +292,12 @@ def test_create_sample_with_example_files(admin_client, default_sample_dict):
                     item_data = response.json["item_data"]
                     block_data = item_data["blocks_obj"][block_id]
                     block_data["file_id"] = file_ids[0]
+                    block_data["selected_file_order"] = file_ids
 
                     response = admin_client.post(
                         "/update-block/", json={"block_data": block_data, "save_to_db": True}
                     )
+
                     assert response.status_code == 200
 
         else:
@@ -345,7 +347,7 @@ def test_create_sample_with_example_files(admin_client, default_sample_dict):
 
         block_index += 1
 
-    response = admin_client.get(f"/get-item-data/{sample_id}")
+    response = admin_client.get(f"/get-item-data/{sample_id}?load_blocks=1")
     assert response.status_code == 200
     assert response.json["status"] == "success"
 
@@ -362,6 +364,9 @@ def test_create_sample_with_example_files(admin_client, default_sample_dict):
 
     for expected_type in expected_block_types:
         assert expected_type in block_types_in_sample
+
+    if block_type != "media":
+        assert response.json["new_block_data"]["bokeh_plot_data"] is not None
 
     blocks_with_files = sum(1 for block in item_data["blocks_obj"].values() if block.get("file_id"))
     blocks_without_files = [
