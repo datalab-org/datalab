@@ -124,6 +124,8 @@ dev-dependencies = [
     "mkdocs ~= 1.6",
     "mkdocs-material ~= 9.5",
     "mkdocstrings[python] ~= 0.29",
+    "docstring-inheritance ~= 2.2",
+    "griffe-inherited-docstrings ~= 1.1",
     "mkdocs-awesome-pages-plugin ~= 2.9",
     "markdown-callouts ~= 0.4",
 ]

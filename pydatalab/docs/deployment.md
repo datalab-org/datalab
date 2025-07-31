@@ -53,7 +53,7 @@ Some things to consider:
 
 These can be provided perhaps by an IT department, or by configuring DNS settings on your own domain to point to the server.
 
-You will need to configure the app such so that it points at the relevant hosted API (see [app `.env` description](config.md#app)), via the `VUE_APP_API_URL` variable.
+You will need to configure the app such so that it points at the relevant hosted API (see [app `.env` description](config.md)), via the `VUE_APP_API_URL` variable.
 You can also control other options via several `VUE_APP_*` environment variables listed at the link above.
 
 There will inevitably be specific infrastructure configuration required for your

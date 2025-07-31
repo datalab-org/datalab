@@ -11,7 +11,8 @@ from pydatalab.logger import LOGGER
 
 from .base import DataBlock
 
-EXCEL_LIKE_EXTENSIONS = (".xls", ".xlsx", ".xlsm", ".xlsb", ".odf", ".ods", ".odt")
+EXCEL_LIKE_EXTENSIONS: tuple[str, ...] = (".xls", ".xlsx", ".xlsm", ".xlsb", ".odf", ".ods", ".odt")
+"""A tuple of file extensions that are considered Excel-like formats."""
 
 
 class NotSupportedBlock(DataBlock):

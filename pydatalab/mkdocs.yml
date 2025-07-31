@@ -64,7 +64,7 @@ markdown_extensions:
   - pymdownx.snippets
   - toc:
       permalink: true
-      toc_depth: 1
+      toc_depth: 2
 
 extra_css:
   - css/reference.css
@@ -74,16 +74,28 @@ plugins:
       default_handler: python
       handlers:
         python:
+          inventories:
+            - https://docs.python.org/3/objects.inv
+            - https://docs.pydantic.dev/latest/objects.inv
           options:
-            show_root_heading: true
-            show_root_toc_entry: true
+            extensions:
+              - griffe_inherited_docstrings
+              - docstring_inheritance.griffe
+            show_root_heading: false
+            show_root_toc_entry: false
             show_root_full_path: true
             show_object_full_path: false
             show_category_heading: false
             show_if_no_docstring: true
             show_signature_annotations: true
             show_source: false
+            merge_init_into_class: true
+            show_symbol_type_toc: true
+            show_symbol_type_heading: true
             show_labels: false
+            separate_signature: true
+            signature_crossrefs: true
+            show_docstring_attributes: false
             show_bases: true
             group_by_category: true
             heading_level: 2
@@ -91,7 +103,9 @@ plugins:
               attributes: true
               functions: false
               modules: false
-            inherited_members: false
+            docstring_options:
+              ignore_init_summary: true
+            inherited_members: true
             docstring_style: google
             filters:
               - "!^_[^_]"
@@ -99,6 +113,7 @@ plugins:
               - "!__all__$"
               - "!__config__$"
               - "!^Config$"
+              - "!^Collection$"  # stop showing the inlined collection model in data model docs
   - awesome-pages
   - autorefs
   - search:
