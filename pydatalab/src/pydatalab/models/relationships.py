@@ -2,6 +2,7 @@ from enum import Enum
 
 from pydantic import (
     BaseModel,
+    Field,
     field_validator,
     model_validator,
 )
@@ -37,23 +38,26 @@ class RelationshipType(str, Enum):
 
 
 class TypedRelationship(BaseModel):
-    description: str | None = None
-    """A description of the relationship."""
+    description: str | None = Field(None, description="A description of the relationship.")
 
-    relation: RelationshipType | None = None
-    """The type of relationship between the two items. If the type is 'other', then a human-readable description should be provided."""
+    relation: RelationshipType | None = Field(
+        None,
+        description="The type of relationship between the two items. If the type is 'other', then a human-readable description should be provided.",
+    )
 
-    type: KnownType
-    """The type of the related resource."""
+    type: KnownType = Field(description="The type of the related resource.")
 
-    immutable_id: PyObjectId | None = None
-    """The immutable ID of the entry that is related to this entry."""
+    immutable_id: PyObjectId | None = Field(
+        None, description="The immutable ID of the entry that is related to this entry."
+    )
 
-    item_id: HumanReadableIdentifier | None = None
-    """The ID of the entry that is related to this entry."""
+    item_id: HumanReadableIdentifier | None = Field(
+        None, description="The ID of the entry that is related to this entry."
+    )
 
-    refcode: Refcode | None = None
-    """The refcode of the entry that is related to this entry."""
+    refcode: Refcode | None = Field(
+        None, description="The refcode of the entry that is related to this entry."
+    )
 
     @field_validator("relation")
     @classmethod

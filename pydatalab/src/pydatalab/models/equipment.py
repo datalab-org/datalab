@@ -1,5 +1,7 @@
 from typing import Literal
 
+from pydantic import Field
+
 from pydatalab.models.items import Item
 
 
@@ -8,14 +10,16 @@ class Equipment(Item):
 
     type: Literal["equipment"] = "equipment"
 
-    serial_numbers: str | None = None
-    """A string describing one or more serial numbers for the instrument."""
+    serial_numbers: str | None = Field(
+        None, description="A string describing one or more serial numbers for the instrument."
+    )
 
-    manufacturer: str | None = None
-    """The manufacturer of this piece of equipment"""
+    manufacturer: str | None = Field(
+        None, description="The manufacturer of this piece of equipment"
+    )
 
-    location: str | None = None
-    """Place where the equipment is located"""
+    location: str | None = Field(None, description="Place where the equipment is located")
 
-    contact: str | None = None
-    """Contact information for equipment (e.g., email address or phone number)."""
+    contact: str | None = Field(
+        None, description="Contact information for equipment (e.g., email address or phone number)."
+    )

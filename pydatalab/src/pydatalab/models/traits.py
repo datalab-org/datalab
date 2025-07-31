@@ -14,27 +14,32 @@ if TYPE_CHECKING:
 
 
 class HasOwner(BaseModel):
-    creator_ids: list[PyObjectId] = Field(default_factory=list)
-    """The database IDs of the user(s) who created the item."""
+    creator_ids: list[PyObjectId] = Field(
+        default_factory=list, description="The database IDs of the user(s) who created the item."
+    )
 
-    creators: list[Person] | None = Field(None)
-    """Inlined info for the people associated with this item."""
+    creators: list[Person] | None = Field(
+        None, description="Inlined info for the people associated with this item."
+    )
 
 
 class HasRevisionControl(BaseModel):
-    revision: int = 1
-    """The revision number of the entry."""
+    revision: int = Field(1, description="The revision number of the entry.")
 
-    revisions: dict[int, Any] | None = None
-    """An optional mapping from old revision numbers to the model state at that revision."""
+    revisions: dict[int, Any] | None = Field(
+        None,
+        description="An optional mapping from old revision numbers to the model state at that revision.",
+    )
 
 
 class HasBlocks(BaseModel):
-    blocks_obj: dict[str, Any] = Field(default_factory=dict)
-    """A mapping from block ID to block data."""
+    blocks_obj: dict[str, Any] = Field(
+        default_factory=dict, description="A mapping from block ID to block data."
+    )
 
-    display_order: list[str] = Field(default_factory=list)
-    """The order in which to display block data in the UI."""
+    display_order: list[str] = Field(
+        default_factory=list, description="The order in which to display block data in the UI."
+    )
 
 
 class IsCollectable(BaseModel):
@@ -42,8 +47,10 @@ class IsCollectable(BaseModel):
     added to collections.
     """
 
-    collections: list["Collection"] = Field(default_factory=list)
-    """Inlined info for the collections associated with this item."""
+    collections: list["Collection"] = Field(
+        default_factory=list,
+        description="Inlined info for the collections associated with this item.",
+    )
 
     @model_validator(mode="before")
     @classmethod
@@ -110,11 +117,14 @@ class IsCollectable(BaseModel):
 class HasSynthesisInfo(BaseModel):
     """Trait mixin for models that have synthesis information."""
 
-    synthesis_constituents: list[Constituent] = Field(default_factory=list)
-    """A list of references to constituent materials giving the amount and relevant inlined details of consituent items."""
+    synthesis_constituents: list[Constituent] = Field(
+        default_factory=list,
+        description="A list of references to constituent materials giving the amount and relevant inlined details of consituent items.",
+    )
 
-    synthesis_description: str | None = None
-    """Free-text details of the procedure applied to synthesise the sample"""
+    synthesis_description: str | None = Field(
+        None, description="Free-text details of the procedure applied to synthesise the sample"
+    )
 
     @model_validator(mode="before")
     @classmethod
@@ -215,11 +225,19 @@ class HasSynthesisInfo(BaseModel):
 
 
 class HasChemInfo:
-    smile: str | None = Field(None)
-    """A SMILES string representation of the chemical structure associated with this sample."""
-    inchi: str | None = Field(None)
-    """An InChI string representation of the chemical structure associated with this sample."""
-    inchi_key: str | None = Field(None)
-    """An InChI key representation of the chemical structure associated with this sample."""
-    """A unique key derived from the InChI string."""
+    smile: str | None = Field(
+        None,
+        description="A SMILES string representation of the chemical structure associated with this sample.",
+    )
+
+    inchi: str | None = Field(
+        None,
+        description="An InChI string representation of the chemical structure associated with this sample.",
+    )
+
+    inchi_key: str | None = Field(
+        None,
+        description="An InChI key representation of the chemical structure associated with this sample. A unique key derived from the InChI string.",
+    )
+
     chemform: str | None = Field(None)

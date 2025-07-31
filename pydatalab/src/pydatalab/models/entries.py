@@ -16,22 +16,23 @@ class Entry(BaseModel, abc.ABC):
 
     """
 
-    type: str
-    """The resource type of the entry."""
+    type: str = Field(description="The resource type of the entry.")
 
     immutable_id: PyObjectId | None = Field(
         None,
         title="Immutable ID",
         alias="_id",
         json_schema_extra={"format": "uuid"},
+        description="The immutable database ID of the entry.",
     )
-    """The immutable database ID of the entry."""
 
-    last_modified: IsoformatDateTime | None = None
-    """The timestamp at which the entry was last modified."""
+    last_modified: IsoformatDateTime | None = Field(
+        None, description="The timestamp at which the entry was last modified."
+    )
 
-    relationships: list[TypedRelationship] = Field(default_factory=list)
-    """A list of related entries and their types."""
+    relationships: list[TypedRelationship] = Field(
+        default_factory=list, description="A list of related entries and their types."
+    )
 
     @model_validator(mode="before")
     @classmethod

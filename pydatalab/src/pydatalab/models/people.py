@@ -29,20 +29,25 @@ class Identity(BaseModel):
 
     """
 
-    identity_type: IdentityType
-    """The type or provider of the identity."""
+    identity_type: IdentityType = Field(description="The type or provider of the identity.")
 
-    identifier: str
-    """The identifier for the identity, e.g., an email address, an ORCID, a GitHub user ID."""
+    identifier: str = Field(
+        description="The identifier for the identity, e.g., an email address, an ORCID, a GitHub user ID."
+    )
 
-    name: str
-    """The name associated with the identity to be exposed in free-text searches over people, e.g., an institutional username, a GitHub username."""
+    name: str = Field(
+        description="The name associated with the identity to be exposed in free-text searches over people, e.g., an institutional username, a GitHub username."
+    )
 
-    verified: bool = Field(False)
-    """Whether the identity has been verified (by some means, e.g., OAuth2 or email)"""
+    verified: bool = Field(
+        False,
+        description="Whether the identity has been verified (by some means, e.g., OAuth2 or email)",
+    )
 
-    display_name: str | None = None
-    """The user's display name associated with the identity, also to be exposed in free text searches."""
+    display_name: str | None = Field(
+        None,
+        description="The user's display name associated with the identity, also to be exposed in free text searches.",
+    )
 
     @field_validator("name", mode="before")
     @classmethod
@@ -102,23 +107,27 @@ class AccountStatus(str, Enum):
 class Person(Entry):
     """A model that describes an individual and their digital identities."""
 
-    type: Literal["people"] = "people"
-    """The entry type as a string."""
+    type: Literal["people"] = Field("people", description="The entry type as a string.")
 
-    identities: list[Identity] = Field(default_factory=list)
-    """A list of identities attached to this person, e.g., email addresses, OAuth accounts."""
+    identities: list[Identity] = Field(
+        default_factory=list,
+        description="A list of identities attached to this person, e.g., email addresses, OAuth accounts.",
+    )
 
-    display_name: DisplayName | None
-    """The user-chosen display name."""
+    display_name: DisplayName | None = Field(None, description="The user-chosen display name.")
 
-    contact_email: EmailStr | None = None
-    """In the case of multiple *verified* email identities, this email will be used as the primary contact."""
+    contact_email: EmailStr | None = Field(
+        None,
+        description="In the case of multiple *verified* email identities, this email will be used as the primary contact.",
+    )
 
-    managers: list[PyObjectId] | None = None
-    """A list of user IDs that can manage this person's items."""
+    managers: list[PyObjectId] | None = Field(
+        None, description="A list of user IDs that can manage this person's items."
+    )
 
-    account_status: AccountStatus = Field(AccountStatus.UNVERIFIED)
-    """The status of the user's account."""
+    account_status: AccountStatus = Field(
+        AccountStatus.UNVERIFIED, description="The status of the user's account."
+    )
 
     @field_validator("type", mode="before")
     @classmethod

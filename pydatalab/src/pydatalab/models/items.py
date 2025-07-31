@@ -21,28 +21,33 @@ from pydatalab.models.utils import (
 class Item(Entry, HasOwner, HasRevisionControl, IsCollectable, HasBlocks, abc.ABC):
     """The generic model for data types that will be exposed with their own named endpoints."""
 
-    refcode: Refcode | None = None  # type: ignore
-    """A globally unique immutable ID comprised of the deployment prefix (e.g., `grey`)
-    and a locally unique string, ideally created with some consistent scheme.
-    """
+    refcode: Refcode | None = Field(
+        None,
+        description="A globally unique immutable ID comprised of the deployment prefix (e.g., `grey`) and a locally unique string, ideally created with some consistent scheme.",
+    )
 
-    item_id: HumanReadableIdentifier
-    """A locally unique, human-readable identifier for the entry. This ID is mutable."""
+    item_id: HumanReadableIdentifier = Field(
+        description="A locally unique, human-readable identifier for the entry. This ID is mutable."
+    )
 
-    description: str | None = None
-    """A description of the item, either in plain-text or a markup language."""
+    description: str | None = Field(
+        None, description="A description of the item, either in plain-text or a markup language."
+    )
 
-    date: IsoformatDateTime | None = None
-    """A relevant 'creation' timestamp for the entry (e.g., purchase date, synthesis date)."""
+    date: IsoformatDateTime | None = Field(
+        None,
+        description="A relevant 'creation' timestamp for the entry (e.g., purchase date, synthesis date).",
+    )
 
-    name: str | None = None
-    """An optional human-readable/usable name for the entry."""
+    name: str | None = Field(
+        None, description="An optional human-readable/usable name for the entry."
+    )
 
-    files: list[File] | None = None
-    """Any files attached to this sample."""
+    files: list[File] | None = Field(None, description="Any files attached to this sample.")
 
-    file_ObjectIds: list[PyObjectId] = Field(default_factory=list)
-    """Links to object IDs of files stored within the database."""
+    file_ObjectIds: list[PyObjectId] = Field(
+        default_factory=list, description="Links to object IDs of files stored within the database."
+    )
 
     @field_validator("refcode", mode="before")
     @classmethod
