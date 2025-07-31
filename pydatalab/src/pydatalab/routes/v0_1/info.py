@@ -81,8 +81,6 @@ class Info(Attributes, Meta):
         """Ensure features are properly serialized for frontend consumption."""
         if hasattr(self.features, "model_dump"):
             features_dict = self.features.model_dump()
-        elif hasattr(self.features, "dict"):
-            features_dict = self.features.dict()
         else:
             features_dict = self.features
 
