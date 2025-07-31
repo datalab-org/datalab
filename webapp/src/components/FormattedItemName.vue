@@ -20,8 +20,8 @@
 </template>
 
 <script>
-import { itemTypes } from "@/resources.js";
 import ChemicalFormula from "@/components/ChemicalFormula.vue";
+import itemTypes from "@/resources.js";
 
 export default {
   components: {

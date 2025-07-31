@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 // This script tries to get the version of the app from three sources:
 //
-// 1. The VUE_APP_GIT_VERSION environment variable
+// 1. The VITE_APP_GIT_VERSION environment variable
 // 2. The latest git tag
 // 3. The version field in package.JSON
 //
 // It can be used as part of the build system to set the
-// `VUE_APP_GIT_VERSION` environment variable itself.
+// `VITE_APP_GIT_VERSION` environment variable itself.
 
 const { execSync } = require("child_process");
 const fs = require("fs");
@@ -32,9 +32,9 @@ function getGitVersion() {
 }
 
 function getVersion() {
-  // Check if VUE_APP_GIT_VERSION is already set (e.g., by build system)
-  if (process.env.VUE_APP_GIT_VERSION) {
-    return process.env.VUE_APP_GIT_VERSION;
+  // Check if VITE_APP_GIT_VERSION is already set (e.g., by build system)
+  if (process.env.VITE_APP_GIT_VERSION) {
+    return process.env.VITE_APP_GIT_VERSION;
   }
 
   // Try to get git version

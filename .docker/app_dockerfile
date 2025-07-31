@@ -14,16 +14,16 @@ RUN --mount=type=cache,target=/root/.cache/yarn yarn install --frozen-lockfile -
 # These get replaced by the entrypoint script for production builds.
 # Set the real values in `.env` files or an external docker-compose.
 ENV NODE_ENV=production
-ARG VUE_APP_API_URL=magic-api-url
-ARG VUE_APP_LOGO_URL=magic-logo-url
-ARG VUE_APP_HOMEPAGE_URL=magic-homepage-url
-ARG VUE_APP_EDITABLE_INVENTORY=magic-setting
-ARG VUE_APP_WEBSITE_TITLE=magic-title
-ARG VUE_APP_QR_CODE_RESOLVER_URL=magic-qr-code-resolver-url
-ARG VUE_APP_AUTOMATICALLY_GENERATE_ID_DEFAULT=magic-generate-id-setting
+ARG VITE_APP_API_URL=magic-api-url
+ARG VITE_APP_LOGO_URL=magic-logo-url
+ARG VITE_APP_HOMEPAGE_URL=magic-homepage-url
+ARG VITE_APP_EDITABLE_INVENTORY=magic-setting
+ARG VITE_APP_WEBSITE_TITLE=magic-title
+ARG VITE_APP_QR_CODE_RESOLVER_URL=magic-qr-code-resolver-url
+ARG VITE_APP_AUTOMATICALLY_GENERATE_ID_DEFAULT=magic-generate-id-setting
 
 COPY webapp ./
-RUN --mount=type=bind,target=/.git,src=./.git VUE_APP_GIT_VERSION=$(node scripts/get-version.js) /node_modules/.bin/vue-cli-service build
+RUN --mount=type=bind,target=/.git,src=./.git VITE_APP_GIT_VERSION=$(node scripts/get-version.js) /node_modules/.bin/vite build
 
 FROM node:20-bullseye AS production
 

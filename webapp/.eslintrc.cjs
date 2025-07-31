@@ -12,14 +12,11 @@ module.exports = {
     "plugin:cypress/recommended",
   ],
   parserOptions: {
-    parser: "@babel/eslint-parser",
-    requireConfigFile: false,
-    babelOptions: {
-      babelrc: false,
-      configFile: false,
-      presets: ["@vue/cli-plugin-babel/preset"],
-      plugins: ["@babel/plugin-transform-export-namespace-from"],
-    },
+    ecmaVersion: 'latest',
+    sourceType: 'module',
+    ecmaFeatures: {
+      jsx: true  // This is all we need for parsing JSX
+    }
   },
   rules: {
     //"no-console": process.env.NODE_ENV === "production" ? "warn" : "off",

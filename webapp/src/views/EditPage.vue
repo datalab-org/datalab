@@ -61,11 +61,7 @@
 
   <!-- Item-type header information goes here -->
   <div class="editor-body">
-    <component
-      :is="itemTypeEntry?.itemInformationComponent"
-      ref="sampleInformation"
-      :item_id="item_id"
-    />
+    <component :is="itemTypeComponents?.itemInformationComponent" :item_id="item_id" />
     <FileList :item_id="item_id" :stored_files="stored_files" />
 
     <div class="container">
@@ -116,7 +112,9 @@ import setupUppy from "@/file_upload.js";
 
 import tinymce from "tinymce/tinymce";
 
-import { itemTypes, API_URL, customBlockTypes } from "@/resources.js";
+import { itemTypes } from "@/resources.js";
+import { itemTypeComponents, customBlockTypes } from "@/component_item_map.js";
+import { API_URL } from "@/resources.js";
 import BokehBlock from "@/components/datablocks/BokehBlock.vue";
 import NotImplementedBlock from "@/components/datablocks/NotImplementedBlock.vue";
 import { formatDistanceToNow } from "date-fns";
@@ -167,6 +165,9 @@ export default {
     },
     itemTypeEntry() {
       return itemTypes[this.itemType] || undefined;
+    },
+    itemTypeComponent() {
+      return itemTypeComponents[this.itemType] || undefined;
     },
     navbarColor() {
       return this.itemTypeEntry?.navbarColor || "DarkGrey";
