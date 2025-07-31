@@ -164,4 +164,4 @@ Contributions to _datalab_ have been supported by a mixture of academic funding 
 In particular, the developers thank:
 
 - Initial proof-of-concept funding from the European Union's Horizon 2020 research and innovation programme under grant agreement 957189 (DOI: [10.3030/957189](https://doi.org/10.3030/957189)), the [Battery Interface Genome - Materials Acceleration Platform (BIG-MAP)](https://www.big-map.eu), as an external stakeholder project.
-- The BEWARE scheme of the Wallonia-Brussels Federation for funding under the European Commission's Marie Curie-Skłodowska Action (COFUND 847587).
+- The BEWARE fellowship scheme of the [Wallonie recherche SPW](https://recherche.wallonie.be/en/home.html) for funding under the European Commission's Marie Curie-Skłodowska Action (COFUND 847587).
