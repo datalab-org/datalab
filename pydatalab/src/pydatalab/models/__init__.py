@@ -26,7 +26,7 @@ __all__ = (
     "ITEM_MODELS",
 )
 
-MODELS_WITH_CIRCULAR_REFS = [
+MODELS_WITH_CIRCULAR_REFS: list[type[BaseModel]] = [
     *ITEM_MODELS.values(),
     Collection,
 ]
