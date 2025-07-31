@@ -42,7 +42,7 @@ Features:
 * Capture scientific context: store the graph of relationships between research objects.
 * [Python API](https://github.com/datalab-org/datalab-api) for programmatic access to your lab's data enabling custom analysis and automation.
 * Join the [_datalab_ federation](https://github.com/datalab-org/datalab-federation): you can add your _datalab_ to the federation for additional shared features.
-* [Plugin ecosystem](https://api-docs.datalab-org.io/en/stable/plugins) allowing for custom data blocks, [AI integration](https://github.com/datalab-org/yellowhammer) and other instance-specific code.
+* [Plugin ecosystem](https://api-docs.datalab-org.io/en/latest/plugins) allowing for custom data blocks, [AI integration](https://github.com/datalab-org/yellowhammer) and other instance-specific code.
 * [Deployment and infrastructure automation](https://github.com/datalab-industries/datalab-ansible-terraform) via Ansible playbooks.
 
 > [!NOTE]
@@ -50,7 +50,7 @@ Features:
 
 ## Getting started
 
-To set up your own _datalab_ instance or to get started with development, you can follow the installation and deployment instructions in [INSTALL.md](./INSTALL.md) and the [online documentation](https://docs.datalab-org.io).
+To set up your own _datalab_ instance or to get started with development, you can follow the installation and deployment instructions in the [online documentation](https://docs.datalab-org.io/en/latest/INSTALL).
 
 We can also provide paid managed deployments via [_datalab industries ltd._](https://datalab.industries): contact us at [hello@datalab.industries](mailto:hello@datalab.industries).
 
