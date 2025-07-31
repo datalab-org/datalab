@@ -53,7 +53,11 @@ export default {
   },
   computed: {
     inputType() {
-      if (this.readonly && (this.type == "date" || this.type == "datetime-local")) {
+      if (
+        this.modelValue == null &&
+        this.readonly &&
+        (this.type == "date" || this.type == "datetime-local")
+      ) {
         return "text";
       }
       return this.type;
@@ -83,8 +87,6 @@ export default {
   mounted() {
     const input = this.$refs.input;
     const tooltip = this.$refs.tooltipContent;
-
-    console.log(input);
 
     this.popperInstance = createPopper(input, tooltip, {
       placement: "bottom-start",

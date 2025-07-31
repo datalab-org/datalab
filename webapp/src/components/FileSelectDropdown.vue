@@ -1,7 +1,8 @@
 <template>
   <div class="form-group form-inline">
     <label class="mr-4"><b>Select a file:</b></label>
-    <select class="form-control file-select-dropdown" :value="modelValue" @input="handleInput">
+    <select class="form-control file-select-dropdown" :value="localModelValue" @input="handleInput">
+      <option v-if="defaultToAllFiles" value="null">All compatible files</option>
       <option v-for="file_id in available_file_ids" :key="file_id" :value="file_id">
         {{ all_files_name(file_id) }}
       </option>
@@ -26,14 +27,19 @@ import { updateBlockFromServer } from "@/server_fetch_utils.js";
 export default {
   props: {
     modelValue: {
+      default: null,
       type: String,
-      default: "",
     },
     item_id: { type: String, required: true },
     block_id: { type: String, required: true },
     extensions: {
       type: Array, // array of strings, file extensions
       default: () => [""], // show all files
+    },
+    defaultToAllFiles: {
+      // Whether to have the default option be "all files"
+      type: Boolean,
+      default: false,
     },
     updateBlockOnChange: {
       type: Boolean,
@@ -42,13 +48,17 @@ export default {
   },
   emits: ["update:modelValue"],
   computed: {
+    localModelValue() {
+      // Handle stringification of modelValue in cases where it needs to be 'null' or otherwise
+      return this.modelValue === null ? "null" : String(this.modelValue);
+    },
     all_files() {
       return this.$store.state.all_item_data[this.item_id].files;
     },
     available_file_ids() {
       let sample_files = this.$store.state.all_item_data[this.item_id].file_ObjectIds;
       return sample_files.filter((file_id) => {
-        let filename = this.all_files_name(file_id);
+        let filename = this.all_files_name(file_id).toLowerCase();
         return this.extensions
           .map((extension) => filename?.endsWith(extension))
           .some((element) => element); // check if the extension is any of the extensions
@@ -69,7 +79,11 @@ export default {
       return this.all_files.find((file) => file.immutable_id === file_id)?.name || "File not found";
     },
     handleInput(event) {
-      this.$emit("update:modelValue", event.target.value);
+      let event_value = event.target.value;
+      if (event_value === "null") {
+        event_value = null;
+      }
+      this.$emit("update:modelValue", event_value);
       if (this.updateBlockOnChange) {
         updateBlockFromServer(
           this.item_id,

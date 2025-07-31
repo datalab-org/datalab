@@ -1,7 +1,11 @@
 # Deploying *datalab* and server administration
 
-This document will describe the process of deploying a *datalab* instance with
+This document will describe the process of manually deploying a *datalab* instance with
 Docker and Docker Compose.
+
+!!! warning Consider automated deployments
+    Whilst these general instructions may be useful, for a production *datalab* we strongly recommend
+    using the [Ansible-based approach](#automated-deployments-with-ansible-and-terraform-recommended).
 
 [Docker](https://docs.docker.com/) uses virtualization to allow you to build "images" of your software that are transferrable and deployable as "containers" across multiple systems.
 
@@ -15,7 +19,7 @@ These instructions assume that Docker is installed (a recent version that includ
 See the [Docker website](https://docs.docker.com/compose/install/) for instructions for your system.
 Note that pulling and building the images can require significant disk space (~5 GB for a full setup), especially when multiple versions of images have been built (you can use `docker system df` to see how much spaace is being used).
 
-## Automated provisioning and deployments
+## Automated deployments with Ansible and Terraform (RECOMMENDED)
 
 There are many more advanced tools for provisioning containers and services.
 [Terraform](https://www.terraform.io/) or its open source fork
@@ -24,18 +28,18 @@ code.
 [Ansible](https://www.ansible.com/) can be used to automate the deployment of
 containers and configuration to such resources.
 
-Configurations/rules/playbooks for these systems have been written for *datalab*
-and are used in production by many deployments.
+Configurations/rules/playbooks for these systems are provided and
+maintained for *datalab* and are used in production by many deployments.
 They are available with their own instructions at
 [datalab-org/datalab-ansible-terraform](https://github.com/datalab-org/datalab-ansible-terraform)
 on GitHub.
 
 These automated configurations require a bit more work and understanding, but
 can greatly accelerate the deployment process and make it much more
-reproducible.
+reproducible with additional features such as automatic backups and monitoring.
 
 
-## Deployment with Docker and Docker Compose
+## Manual deployment with Docker and Docker Compose
 
 Dockerfiles for the web app, server and database can be found in the `.docker` directory.
 The production target will copy the state of the repository on build and use `gunicorn` and `serve` to serve the server and app respectively.
@@ -48,7 +52,9 @@ Some things to consider:
 - Typically you will need to run the app and API on two different subdomains.
 
 These can be provided perhaps by an IT department, or by configuring DNS settings on your own domain to point to the server.
-You will need to configure the app such so that it points at the relevant hosted API (see [app `.env` description](config.md#app).
+
+You will need to configure the app such so that it points at the relevant hosted API (see [app `.env` description](config.md#app)), via the `VUE_APP_API_URL` variable.
+You can also control other options via several `VUE_APP_*` environment variables listed at the link above.
 
 There will inevitably be specific infrastructure configuration required for your
 instance, for example, the mounting of disks into the API container to allow for
@@ -73,7 +79,7 @@ The process may look something like the following:
 - Add *datalab* as a [Git submodule](https://git-scm.com/book/en/v2/Git-Tools-Submodules):
   ```shell
   git submodule add git@github.com:datalab-org/datalab
-  cd datalab; git checkout v0.4.0  # at this point you can set any default version, or just track the main branch
+  cd datalab; git checkout <commit_or_tag>; cd ..  # at this point you can set any tagged version, or just track the main branch
   git commit -a -m "Add datalab as submodule"
   ```
 
@@ -145,6 +151,14 @@ You must somehow download the latest *datalab* changes to your server (ideally w
     introduced in the release process.
     Instructions for this can be found in the [Backups](#backups) section below.
 
+!!! danger Handling database version updates
+    The note about backups is especially important for releases that involve a database version update.
+    If you are using the automated deployment with Ansible, this should be handled for you automatically, but otherwise,
+    you will need to prepare for the upgrade by running `mongodump` with the original database version
+    and then `mongorestore` after upgrading.
+
+    If you are unsure, please ask for help on GitHub or Slack before attmepting this.
+
 ```shell
 cd datalab-deployment/datalab;
 
@@ -165,7 +179,7 @@ docker compose --file docker-compose.prod.yml --profile prod up
 ```
 
 
-## General Server administration
+## General server administration
 
 Currently most administration tasks must be handled directly inside the Python API container.
 Several helper routines are available as `invoke` tasks in `tasks.py` in the `pydatalab` root folder.
@@ -179,9 +193,19 @@ It relies on the Excel export feature of ChemInventory and is achieved with `inv
 If a future export is made and reimported, the old entries will be kept and updated, rather than overwritten.
 *datalab* currently has no functionality for chemical inventory management itself; if you wish to support importing from another inventory system, please [raise an issue](https://github.com/datalab-org/datalab/issues/new).
 
+If a two-way or realtime sync with ChemInventory is desired, this can be
+achieved with the [`datalab-cheminventory-plugin`](https://github.com/datalab-industries/datalab-cheminventory-plugin).
+
 ### Backups
 
-*datalab* provides a way to configure and create a snapshot backups of the database and filestore.
+!!! warning Robust offsite encrypted backups with Borg
+    We strongly recommend following the instructions in the [`datalab-ansible-terraform` repository](https://github.com/datalab-industries/datalab-ansible-terraform#backups)
+    that encourage the use of [Borg](https://www.borgbackup.org/) for encrypted, incremental and compressed backups of the database and filestore with the ability to roll
+    back to particular snapshot versions easily.
+
+#### Native snapshot backups
+
+*datalab* provides a simple native way to configure and create a snapshot backups of the database and filestore.
 The option [`BACKUP_STRATEGIES`][pydatalab.config.ServerConfig.BACKUP_STRATEGIES] allows you to list strategies for scheduled backups, with their frequency, storage location (can be local or remote) and retention.
 These backups are only performed when scheduled externally (e.g., via `cron` on the hosting server), or when triggered manually using the `invoke admin.create-backup` task.
 
@@ -207,5 +231,3 @@ docker compose exec api uv run invoke admin.create-backup --strategy-name daily-
 ```
 
 Care must be taken to schedule this command to run from the correct directory.
-
-In the future, this may be integrated directly into the *datalab* server using a Python-based scheduler.

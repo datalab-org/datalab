@@ -4,7 +4,7 @@ import logging
 import os
 import platform
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Type, Union
+from typing import Any
 
 from pydantic import (
     AnyUrl,
@@ -22,7 +22,7 @@ from pydatalab.models.utils import RandomAlphabeticalRefcodeFactory, RefCodeFact
 __all__ = ("CONFIG", "ServerConfig", "DeploymentMetadata", "RemoteFilesystem")
 
 
-def config_file_settings(settings: BaseSettings) -> Dict[str, Any]:
+def config_file_settings(settings: BaseSettings) -> dict[str, Any]:
     """Returns a dictionary of server settings loaded from the default or specified
     JSON config file location (via the env var `PYDATALAB_CONFIG_FILE`).
 
@@ -49,10 +49,10 @@ def config_file_settings(settings: BaseSettings) -> Dict[str, Any]:
 class DeploymentMetadata(BaseModel):
     """A model for specifying metadata about a datalab deployment."""
 
-    maintainer: Optional[Person]
-    issue_tracker: Optional[AnyUrl] = Field("https://github.com/datalab-org/datalab/issues")
-    homepage: Optional[AnyUrl]
-    source_repository: Optional[AnyUrl] = Field("https://github.com/datalab-org/datalab")
+    maintainer: Person | None
+    issue_tracker: AnyUrl | None = Field("https://github.com/datalab-org/datalab/issues")
+    homepage: AnyUrl | None
+    source_repository: AnyUrl | None = Field("https://github.com/datalab-org/datalab")
 
     @validator("maintainer")
     def strip_fields_from_person(cls, v):
@@ -102,7 +102,7 @@ class RemoteFilesystem(BaseModel):
     """
 
     name: str = Field(description="The name of the filesystem to use in the UI.")
-    hostname: Optional[str] = Field(
+    hostname: str | None = Field(
         None,
         description="The hostname for the filesystem. `None` indicates the filesystem is already mounted locally.",
     )
@@ -146,7 +146,7 @@ class ServerConfig(BaseSettings):
         description="The lifetime of each authenticated session, in hours.",
     )
 
-    FILE_DIRECTORY: Union[str, Path] = Field(
+    FILE_DIRECTORY: str | Path = Field(
         Path(__file__).parent.joinpath("../files").resolve(),
         description="The path under which to place stored files uploaded to the server.",
     )
@@ -167,11 +167,11 @@ class ServerConfig(BaseSettings):
         description="The prefix to use for identifiers in this deployment, e.g., 'grey' in `grey:AAAAAA`",
     )
 
-    REFCODE_GENERATOR: Type[RefCodeFactory] = Field(
+    REFCODE_GENERATOR: type[RefCodeFactory] = Field(
         RandomAlphabeticalRefcodeFactory, description="The class to use to generate refcodes."
     )
 
-    REMOTE_FILESYSTEMS: List[RemoteFilesystem] = Field(
+    REMOTE_FILESYSTEMS: list[RemoteFilesystem] = Field(
         [],
         descripton="A list of dictionaries describing remote filesystems to be accessible from the server.",
     )
@@ -191,12 +191,12 @@ class ServerConfig(BaseSettings):
         description="Whether the Flask app is being deployed behind a reverse proxy. If `True`, the reverse proxy middleware described in the [Flask docs](https://flask.palletsprojects.com/en/2.2.x/deploying/proxy_fix/) will be attached to the app.",
     )
 
-    GITHUB_ORG_ALLOW_LIST: Optional[List[str]] = Field(
+    GITHUB_ORG_ALLOW_LIST: list[str] | None = Field(
         [],
         description="A list of GitHub organization IDs (available from `https://api.github.com/orgs/<org_name>`, and are immutable) or organisation names (which can change, so be warned), that the membership of which will be required to register a new datalab account. Setting the value to `None` will allow any GitHub user to register an account.",
     )
 
-    DEPLOYMENT_METADATA: Optional[DeploymentMetadata] = Field(
+    DEPLOYMENT_METADATA: DeploymentMetadata | None = Field(
         None, description="A dictionary containing metadata to serve at `/info`."
     )
 
@@ -220,12 +220,12 @@ class ServerConfig(BaseSettings):
         description="Whether to automatically activate accounts created via any registration method.",
     )
 
-    EMAIL_DOMAIN_ALLOW_LIST: Optional[List[str]] = Field(
+    EMAIL_DOMAIN_ALLOW_LIST: list[str] | None = Field(
         [],
         description="A list of domains for which users will be able to register accounts if they have a matching verified email address, which still need to be verified by an admin. Setting the value to `None` will allow any email addresses at any domain to register *and activate* an account, otherwise the default `[]` will not allow any email addresses registration.",
     )
 
-    EMAIL_AUTH_SMTP_SETTINGS: Optional[SMTPSettings] = Field(
+    EMAIL_AUTH_SMTP_SETTINGS: SMTPSettings | None = Field(
         None,
         description="A dictionary containing SMTP settings for sending emails for account registration.",
     )
@@ -239,23 +239,28 @@ Warning: this value will overwrite any other values passed to `FLASK_MAX_CONTENT
 its importance when deploying a datalab instance.""",
     )
 
-    BACKUP_STRATEGIES: Optional[dict[str, BackupStrategy]] = Field(
+    MAX_BATCH_CREATE_SIZE: int = Field(
+        10_000,
+        description="Maximum number of items that can be created in a single batch operation.",
+    )
+
+    BACKUP_STRATEGIES: dict[str, BackupStrategy] | None = Field(
         {
             "daily-snapshots": BackupStrategy(
                 hostname=None,
-                location="/tmp/datalab-backups/daily-snapshots/",
+                location="/tmp/datalab-backups/daily-snapshots/",  # noqa: S108
                 frequency="5 4 * * *",  # 4:05 every day
                 retention=7,
             ),
             "weekly-snapshots": BackupStrategy(
                 hostname=None,
-                location="/tmp/datalab-backups/weekly-snapshots/",
+                location="/tmp/datalab-backups/weekly-snapshots/",  # noqa: S108
                 frequency="5 3 * * 1",  # 03:05 every Monday
                 retention=5,
             ),
             "quarterly-snapshots": BackupStrategy(
                 hostname=None,
-                location="/tmp/datalab-backups/quarterly-snapshots/",
+                location="/tmp/datalab-backups/quarterly-snapshots/",  # noqa: S108
                 frequency="5 2 1 1,4,7,10 *",  # first of January, April, July, October at 02:05
                 retention=4,
             ),

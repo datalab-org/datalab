@@ -3,7 +3,6 @@
 import datetime
 import os
 import shutil
-from typing import List
 
 from pymongo import MongoClient, uri_parser
 from werkzeug.utils import secure_filename
@@ -26,12 +25,12 @@ all_samples = [data_collection.find_one({"sample_id": "jdb11-3_e1_s5"})]
 
 for sample in all_samples:
     sample_id = sample["sample_id"]
-    print("processing: {}".format(sample_id))
+    print(f"processing: {sample_id}")
     print("existing files: {}".format(sample["files"]))
     secure_sample_id = secure_filename(sample_id)
     original_files_path = os.path.join(CONFIG.FILE_DIRECTORY, secure_sample_id)
 
-    filenames: List[str] = []
+    filenames: list[str] = []
     # paths = []
     print(f"{sample_id}:")
 

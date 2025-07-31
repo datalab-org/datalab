@@ -1,5 +1,4 @@
 import abc
-from typing import List, Optional
 
 from pydantic import Field, validator
 
@@ -30,19 +29,19 @@ class Item(Entry, HasOwner, HasRevisionControl, IsCollectable, HasBlocks, abc.AB
     item_id: HumanReadableIdentifier
     """A locally unique, human-readable identifier for the entry. This ID is mutable."""
 
-    description: Optional[str]
+    description: str | None
     """A description of the item, either in plain-text or a markup language."""
 
-    date: Optional[IsoformatDateTime]
+    date: IsoformatDateTime | None
     """A relevant 'creation' timestamp for the entry (e.g., purchase date, synthesis date)."""
 
-    name: Optional[str]
+    name: str | None
     """An optional human-readable/usable name for the entry."""
 
-    files: Optional[List[File]]
+    files: list[File] | None
     """Any files attached to this sample."""
 
-    file_ObjectIds: List[PyObjectId] = Field([])
+    file_ObjectIds: list[PyObjectId] = Field([])
     """Links to object IDs of files stored within the database."""
 
     @validator("refcode", pre=True, always=True)

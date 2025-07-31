@@ -26,8 +26,8 @@ services:
       context: .
       dockerfile: .docker/server_dockerfile
       args:
-        - WEB_CONCURRENCY=4
-        - SETUPTOOLS_SCM_PRETEND_VERSION
+        WEB_CONCURRENCY: ${WEB_CONCURRENCY:-4}
+        SETUPTOOLS_SCM_PRETEND_VERSION: ${SETUPTOOLS_SCM_PRETEND_VERSION}
     depends_on:
       - database
     restart: unless-stopped

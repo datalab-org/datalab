@@ -1,9 +1,10 @@
 import datetime
 import random
 import string
+from collections.abc import Callable
 from enum import Enum
 from functools import partial
-from typing import Callable, Optional, Union
+from typing import TypeAlias
 
 import pint
 from bson.objectid import ObjectId
@@ -15,7 +16,6 @@ from pydantic import (
     root_validator,
     validator,
 )
-from typing_extensions import TypeAlias
 
 
 class ItemType(str, Enum):
@@ -183,7 +183,7 @@ class RefCodeFactory:
 
 
 def random_uppercase(length: int = 6):
-    return "".join(random.choices(string.ascii_uppercase, k=length))
+    return "".join(random.choices(string.ascii_uppercase, k=length))  # noqa: S311
 
 
 class RandomAlphabeticalRefcodeFactory(RefCodeFactory):
@@ -207,7 +207,7 @@ def generate_unique_refcode():
 
 class InlineSubstance(BaseModel):
     name: str
-    chemform: Optional[str]
+    chemform: str | None
 
 
 class EntryReference(BaseModel):
@@ -219,25 +219,18 @@ class EntryReference(BaseModel):
     """
 
     type: str
-    name: Optional[str]
-    immutable_id: Optional[PyObjectId]
-    item_id: Optional[HumanReadableIdentifier]
-    refcode: Optional[Refcode]
+    name: str | None
+    immutable_id: PyObjectId | None
+    item_id: HumanReadableIdentifier | None
+    refcode: Refcode | None
 
     @root_validator
     def check_id_fields(cls, values):
-        """Check that only one of the possible identifier fields is provided."""
+        """Check that at least one of the possible identifier fields is provided."""
         id_fields = ("immutable_id", "item_id", "refcode")
 
-        # Temporarily remove refcodes from the list of fields to check
-        # until it is fully implemented
-        if values.get("refcode") is not None:
-            values["refcode"] = None
         if all(values.get(f) is None for f in id_fields):
             raise ValueError(f"Must provide at least one of {id_fields!r}")
-
-        if sum(1 for f in id_fields if values.get(f) is not None) > 1:
-            raise ValueError("Must provide only one of {id_fields!r}")
 
         return values
 
@@ -248,10 +241,10 @@ class EntryReference(BaseModel):
 class Constituent(BaseModel):
     """A constituent of a sample."""
 
-    item: Union[EntryReference, InlineSubstance]
+    item: EntryReference | InlineSubstance
     """A reference to item (sample or starting material) entry for the constituent substance."""
 
-    quantity: Optional[float] = Field(..., ge=0)
+    quantity: float | None = Field(..., ge=0)
     """The amount of the constituent material used to create the sample."""
 
     unit: str = Field("g")
@@ -270,9 +263,13 @@ class Constituent(BaseModel):
     @validator("item", pre=True, always=True)
     def coerce_reference(cls, v):
         if isinstance(v, dict):
-            id = v.pop("item_id", None)
-            if id:
-                return EntryReference(item_id=id, **v)
+            refcode = v.pop("refcode", None)
+            item_id = v.pop("item_id", None)
+
+            if refcode:
+                return EntryReference(refcode=refcode, item_id=item_id, **v)
+            elif item_id:
+                return EntryReference(item_id=item_id, **v)
             else:
                 name = v.pop("name", "")
                 chemform = v.pop("chemform", None)

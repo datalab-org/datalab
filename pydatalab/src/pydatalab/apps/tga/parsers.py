@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Dict, Union
 
 import dateutil
 import pandas as pd
@@ -7,7 +6,7 @@ import pandas as pd
 __all__ = ("parse_mt_mass_spec_ascii",)
 
 
-def parse_mt_mass_spec_ascii(path: Path) -> Dict[str, Union[pd.DataFrame, Dict]]:
+def parse_mt_mass_spec_ascii(path: Path) -> dict[str, pd.DataFrame | dict]:
     """Parses an .asc file containing MS results from a Mettler-Toledo
     spectrometer and returns a dictionary with keys `data` and `meta`,
     which themselves contain a dictionary of dataframes for each species
@@ -68,7 +67,7 @@ def parse_mt_mass_spec_ascii(path: Path) -> Dict[str, Union[pd.DataFrame, Dict]]
         # Read data with duplicated keys: will have (column number % number of data keys) appended to them
         # MT software also writes "---" if the value is missing, so parse these as NaNs to remove later
         df = pd.read_csv(f, sep="\t", header=0, parse_dates=False, na_values=["---"])
-        ms_results: Dict[str, Union[pd.DataFrame, Dict]] = {}
+        ms_results: dict[str, pd.DataFrame | dict] = {}
         ms_results["meta"] = header
         ms_results["data"] = {}
 

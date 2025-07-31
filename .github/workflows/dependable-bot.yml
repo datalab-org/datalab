@@ -26,9 +26,10 @@ jobs:
           python-version: "3.10"
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v6
         with:
-          version: "0.4.x"
+          version: "0.6.4"
+          working-directory: "./pydatalab"
           enable-cache: true
 
       - name: Sync latest compatible dependencies and commit

@@ -1,16 +1,23 @@
-from typing import Optional, Set
-
 from flask import Blueprint, jsonify, request
 
 from pydatalab.mongo import flask_mongo
-from pydatalab.permissions import get_default_permissions
+from pydatalab.permissions import active_users_or_get_only, get_default_permissions
 
 GRAPHS = Blueprint("graphs", __name__)
 
 
+@GRAPHS.before_request
+@active_users_or_get_only
+def _(): ...
+
+
 @GRAPHS.route("/item-graph", methods=["GET"])
 @GRAPHS.route("/item-graph/<item_id>", methods=["GET"])
-def get_graph_cy_format(item_id: Optional[str] = None, collection_id: Optional[str] = None):
+def get_graph_cy_format(
+    item_id: str | None = None,
+    collection_id: str | None = None,
+    hide_collections: bool = True,
+):
     collection_id = request.args.get("collection_id", type=str)
 
     if item_id is None:
@@ -19,7 +26,12 @@ def get_graph_cy_format(item_id: Optional[str] = None, collection_id: Optional[s
                 {"collection_id": collection_id}, projection={"_id": 1}
             )
             if not collection_immutable_id:
-                raise RuntimeError("No collection {collection_id=} found.")
+                return (
+                    jsonify(
+                        status="error", message=f"No collection found with ID {collection_id!r}"
+                    ),
+                    404,
+                )
             collection_immutable_id = collection_immutable_id["_id"]
             query = {
                 "$and": [
@@ -33,7 +45,7 @@ def get_graph_cy_format(item_id: Optional[str] = None, collection_id: Optional[s
             {**query, **get_default_permissions(user_only=False)},
             projection={"item_id": 1, "name": 1, "type": 1, "relationships": 1},
         )
-        node_ids: Set[str] = {document["item_id"] for document in all_documents}
+        node_ids: set[str] = {document["item_id"] for document in all_documents}
         all_documents.rewind()
 
     else:
@@ -70,13 +82,15 @@ def get_graph_cy_format(item_id: Optional[str] = None, collection_id: Optional[s
 
     # Collect the elements that have already been added to the graph, to avoid duplication
     drawn_elements = set()
-    node_collections = set()
+    node_collections: set[str] = set()
     for document in all_documents:
         # for some reason, document["relationships"] is sometimes equal to None, so we
         # need this `or` statement.
         for relationship in document.get("relationships") or []:
             # only considering child-parent relationships
             if relationship.get("type") == "collections" and not collection_id:
+                if hide_collections:
+                    continue
                 collection_data = flask_mongo.db.collections.find_one(
                     {
                         "_id": relationship["immutable_id"],
@@ -86,7 +100,7 @@ def get_graph_cy_format(item_id: Optional[str] = None, collection_id: Optional[s
                 )
                 if collection_data:
                     if relationship["immutable_id"] not in node_collections:
-                        _id = f'Collection: {collection_data["collection_id"]}'
+                        _id = f"Collection: {collection_data['collection_id']}"
                         if _id not in drawn_elements:
                             nodes.append(
                                 {
@@ -101,18 +115,19 @@ def get_graph_cy_format(item_id: Optional[str] = None, collection_id: Optional[s
                             node_collections.add(relationship["immutable_id"])
                             drawn_elements.add(_id)
 
-                    source = f'Collection: {collection_data["collection_id"]}'
+                    source = f"Collection: {collection_data['collection_id']}"
                     target = document.get("item_id")
-                    edges.append(
-                        {
-                            "data": {
-                                "id": f"{source}->{target}",
-                                "source": source,
-                                "target": target,
-                                "value": 1,
+                    if target in node_ids:
+                        edges.append(
+                            {
+                                "data": {
+                                    "id": f"{source}->{target}",
+                                    "source": source,
+                                    "target": target,
+                                    "value": 1,
+                                }
                             }
-                        }
-                    )
+                        )
                 continue
 
         for relationship in document.get("relationships") or []:
@@ -122,7 +137,7 @@ def get_graph_cy_format(item_id: Optional[str] = None, collection_id: Optional[s
 
             target = document["item_id"]
             source = relationship["item_id"]
-            if source not in node_ids:
+            if source not in node_ids or target not in node_ids:
                 continue
             edge_id = f"{source}->{target}"
             if edge_id not in drawn_elements:
@@ -144,15 +159,14 @@ def get_graph_cy_format(item_id: Optional[str] = None, collection_id: Optional[s
                 {
                     "data": {
                         "id": document["item_id"],
-                        "name": document["name"],
+                        "name": document["name"] if document["name"] else document["item_id"],
                         "type": document["type"],
                         "special": document["item_id"] == item_id,
                     }
                 }
             )
 
-    # We want to filter out all the starting materials that don't have relationships since there are so many of them:
-    whitelist = {edge["data"]["source"] for edge in edges}
+    whitelist = {edge["data"]["source"] for edge in edges} | {item_id}
 
     nodes = [
         node

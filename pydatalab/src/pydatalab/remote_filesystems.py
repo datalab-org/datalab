@@ -5,7 +5,7 @@ import multiprocessing
 import os
 import subprocess
 import time
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Union
 
 import pydatalab.mongo
 from pydatalab.config import CONFIG, RemoteFilesystem
@@ -13,10 +13,10 @@ from pydatalab.logger import LOGGER
 
 
 def get_directory_structures(
-    directories: List[RemoteFilesystem],
-    invalidate_cache: Optional[bool] = None,
+    directories: list[RemoteFilesystem],
+    invalidate_cache: bool | None = None,
     parallel: bool = False,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """For all registered top-level directories, call tree either
     locally or remotely to get their directory structures, or access
     the cached data for that directory, if it is available and fresh.
@@ -50,9 +50,9 @@ def get_directory_structures(
 
 def get_directory_structure(
     directory: RemoteFilesystem,
-    invalidate_cache: Optional[bool] = False,
+    invalidate_cache: bool | None = False,
     max_retries: int = 5,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """For the given remote directory, either reconstruct the directory
     structure in full, or access the cached version if is it recent
     enough.
@@ -170,7 +170,7 @@ def get_directory_structure(
 
 def _get_latest_directory_structure(
     directory_path: Union[str, "os.PathLike[str]"], hostname: str | None = None
-) -> List[Dict[str, str]]:
+) -> list[dict[str, str]]:
     """Call `tree` on the remote or mounted filesystem.
 
     If `directory_path` exists locally, then call tree directly,
@@ -188,7 +188,7 @@ def _get_latest_directory_structure(
     tree_command = ["tree", "-Jsf"]
     tree_timefmt = "%s"
 
-    def _call_local_tree(directory_path: Union[str, "os.PathLike[str]"]) -> List[Dict[str, Any]]:
+    def _call_local_tree(directory_path: Union[str, "os.PathLike[str]"]) -> list[dict[str, Any]]:
         """Call `tree` in a local directory.
 
         Args:
@@ -199,7 +199,7 @@ def _get_latest_directory_structure(
 
         """
         command = tree_command + [str(directory_path), "--timefmt", tree_timefmt]
-        process = subprocess.Popen(
+        process = subprocess.Popen(  # noqa: S603
             command,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -212,7 +212,7 @@ def _get_latest_directory_structure(
 
     def _call_remote_tree(
         directory_path: Union[str, "os.PathLike[str]"], hostname: str
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Call `tree` on a remote system.
 
         Args:
@@ -224,7 +224,7 @@ def _get_latest_directory_structure(
 
         """
         command = f"ssh {hostname} 'PATH=$PATH:~/ {' '.join(tree_command)} \"{directory_path}\" --timefmt {tree_timefmt}'"
-        process = subprocess.Popen(
+        process = subprocess.Popen(  # noqa: S602,S607
             command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
         LOGGER.debug(f"Calling {command}")
@@ -298,7 +298,7 @@ def _get_latest_directory_structure(
 
 
 def _fix_tree_paths(
-    subtree_list: List[Dict[str, Any]], root_path: Union[str, "os.PathLike[str]"]
+    subtree_list: list[dict[str, Any]], root_path: Union[str, "os.PathLike[str]"]
 ) -> None:
     """Adjusts in-place the output from `tree` to provide relative
     paths and names of each directory, rather than just the
@@ -335,7 +335,7 @@ def _fix_tree_paths(
 
 def _save_directory_structure(
     directory: RemoteFilesystem,
-    dir_structure: List[Dict[str, Any]],
+    dir_structure: list[dict[str, Any]],
 ) -> datetime.datetime:
     """Upserts the tree structure of each directory to the `remoteFilesystems`
     collection in the database.
@@ -479,7 +479,7 @@ def _release_lock_dir_structure(directory) -> bool:
 
 def _get_cached_directory_structure(
     directory: RemoteFilesystem,
-) -> Optional[Dict[str, Any]]:
+) -> dict[str, Any] | None:
     """Gets the structure of the given directory from the database.
 
     Args:

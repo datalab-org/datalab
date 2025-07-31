@@ -12,7 +12,7 @@ from pydatalab.logger import logged_route
 from pydatalab.models.collections import Collection
 from pydatalab.mongo import flask_mongo
 from pydatalab.permissions import active_users_or_get_only, get_default_permissions
-from pydatalab.routes.v0_1.items import creators_lookup, get_samples_summary
+from pydatalab.routes.v0_1.items import creators_lookup, get_items_summary
 
 COLLECTIONS = Blueprint("collections", __name__)
 
@@ -70,7 +70,7 @@ def get_collection(collection_id):
     collection = Collection(**doc)
 
     samples = list(
-        get_samples_summary(
+        get_items_summary(
             match={
                 "relationships.type": "collections",
                 "relationships.immutable_id": collection.immutable_id,
@@ -419,3 +419,44 @@ def add_items_to_collection(collection_id):
         )
 
     return (jsonify({"status": "success"}), 200)
+
+
+@COLLECTIONS.route("/collections/<collection_id>/items", methods=["DELETE"])
+def remove_items_from_collection(collection_id):
+    data = request.get_json()
+    refcodes = data.get("refcodes", [])
+
+    collection = flask_mongo.db.collections.find_one(
+        {"collection_id": collection_id, **get_default_permissions()}, projection={"_id": 1}
+    )
+
+    if not collection:
+        return jsonify({"error": "Collection not found"}), 404
+
+    if not refcodes:
+        return jsonify({"error": "No refcodes provided"}), 400
+
+    update_result = flask_mongo.db.items.update_many(
+        {"refcode": {"$in": refcodes}, **get_default_permissions()},
+        {
+            "$pull": {
+                "relationships": {
+                    "immutable_id": ObjectId(collection["_id"]),
+                    "type": "collections",
+                }
+            }
+        },
+    )
+
+    if update_result.matched_count == 0:
+        return jsonify({"status": "error", "message": "No matching items found."}), 404
+
+    elif update_result.matched_count != len(refcodes):
+        return jsonify(
+            {
+                "status": "partial-success",
+                "message": f"Only {update_result.matched_count} items updated",
+            }
+        ), 207
+
+    return jsonify({"status": "success", "removed_count": update_result.modified_count}), 200

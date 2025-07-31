@@ -8,8 +8,20 @@
       class="mb-3"
       update-block-on-change
     />
-    <img v-if="isPhoto" data-testid="media-block-img" :src="media_url" class="img-fluid mx-auto" />
-    <video v-if="isVideo" :src="media_url" controls class="mx-auto" />
+    <div v-if="isPhoto" class="img-wrapper">
+      <img
+        v-if="isPhoto"
+        data-testid="media-block-img"
+        :src="media_url"
+        class="img-fluid mx-auto"
+      />
+    </div>
+    <div v-else-if="isVideo" class="video-wrapper">
+      <video v-if="isVideo" :src="media_url" controls class="mx-auto" />
+    </div>
+    <div v-else-if="isPDF" class="pdf-wrapper">
+      <iframe v-if="isPDF" :src="media_url" width="100%" height="100%" frameborder="0"></iframe>
+    </div>
   </DataBlockBase>
 </template>
 
@@ -54,12 +66,25 @@ export default {
       return `${API_URL}/files/${this.file_id}/${this.lookup_file_field("name", this.file_id)}`;
     },
     isPhoto() {
-      return [".png", ".jpeg", ".jpg", ".tif", ".tiff"].includes(
-        this.lookup_file_field("extension", this.file_id),
-      );
+      let extension = this.lookup_file_field("extension", this.file_id);
+      if (extension) {
+        extension = extension.toLowerCase();
+      }
+      return [".png", ".jpeg", ".jpg", ".tif", ".tiff"].includes(extension);
     },
     isVideo() {
-      return [".mp4", ".mov", ".webm"].includes(this.lookup_file_field("extension", this.file_id));
+      let extension = this.lookup_file_field("extension", this.file_id);
+      if (extension) {
+        extension = extension.toLowerCase();
+      }
+      return [".mp4", ".mov", ".webm"].includes(extension);
+    },
+    isPDF() {
+      let extension = this.lookup_file_field("extension", this.file_id);
+      if (extension) {
+        extension = extension.toLowerCase();
+      }
+      return extension === ".pdf";
     },
   },
   methods: {
@@ -71,9 +96,30 @@ export default {
 </script>
 
 <style scoped>
-image,
+img,
 video {
-  display: block;
-  max-height: 600px;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.video-wrapper {
+  resize: both;
+  height: 600px;
+  overflow: auto;
+  display: inline-block;
+}
+
+.pdf-wrapper {
+  display: inline-block;
+  width: 100%;
+  height: 600px;
+}
+
+.img-wrapper {
+  resize: both;
+  height: 600px;
+  overflow: auto;
+  display: inline-block;
 }
 </style>

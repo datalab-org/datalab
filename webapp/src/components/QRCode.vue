@@ -75,7 +75,7 @@ export default {
 
 <style scoped>
 .qrcode-text-label {
-  font-family: "Helvetica", "Arial", "Roboto Mono";
+  font-family: var(--font-monospace);
   font-size: 1.8rem;
 }
 </style>

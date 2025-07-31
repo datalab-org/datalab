@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import List, Optional
 
 from pydantic import Field, root_validator, validator
 
@@ -30,35 +29,30 @@ class Cell(Item):
 
     type: str = Field("cells", const="cells", pattern="^cells$")
 
-    cell_format: Optional[CellFormat] = Field(
-        description="The form factor of the cell, e.g., coin, pouch, in situ or otherwise.",
-    )
+    cell_format: CellFormat | None
+    """The form factor of the cell, e.g., coin, pouch, in situ or otherwise."""
 
-    cell_format_description: Optional[str] = Field(
-        description="Additional human-readable description of the cell form factor, e.g., 18650, AMPIX, CAMPIX"
-    )
+    cell_format_description: str | None
+    """Additional human-readable description of the cell form factor, e.g., 18650, AMPIX, CAMPIX"""
 
-    cell_preparation_description: Optional[str] = Field()
+    cell_preparation_description: str | None
 
-    characteristic_mass: Optional[float] = Field(
-        description="The characteristic mass of the cell in milligrams. Can be used to normalize capacities."
-    )
+    characteristic_mass: float | None
+    """The characteristic mass of the cell in milligrams. Can be used to normalize capacities."""
 
-    characteristic_chemical_formula: Optional[str] = Field(
-        description="The chemical formula of the active material. Can be used to calculated molar mass in g/mol for normalizing capacities."
-    )
+    characteristic_chemical_formula: str | None
+    """The chemical formula of the active material. Can be used to calculated molar mass in g/mol for normalizing capacities."""
 
-    characteristic_molar_mass: Optional[float] = Field(
-        description="The molar mass of the active material, in g/mol. Will be inferred from the chemical formula, or can be supplied if it cannot be supplied"
-    )
+    characteristic_molar_mass: float | None
+    """The molar mass of the active material, in g/mol. Will be inferred from the chemical formula, or can be supplied if it cannot be supplied"""
 
-    positive_electrode: List[CellComponent] = Field([])
+    positive_electrode: list[CellComponent] = []
 
-    negative_electrode: List[CellComponent] = Field([])
+    negative_electrode: list[CellComponent] = []
 
-    electrolyte: List[CellComponent] = Field([])
+    electrolyte: list[CellComponent] = []
 
-    active_ion_charge: float = Field(1)
+    active_ion_charge: float = 1
 
     @validator("characteristic_molar_mass", always=True, pre=True)
     def set_molar_mass(cls, v, values):
@@ -83,7 +77,7 @@ class Cell(Item):
         existing_parthood_relationship_ids = set()
         if values.get("relationships") is not None:
             existing_parthood_relationship_ids = {
-                relationship.item_id
+                relationship.refcode or relationship.item_id
                 for relationship in values["relationships"]
                 if relationship.relation == RelationshipType.PARTHOOD
             }
@@ -94,10 +88,12 @@ class Cell(Item):
             for constituent in values.get(component, []):
                 if (
                     isinstance(constituent.item, EntryReference)
-                    and constituent.item.item_id not in existing_parthood_relationship_ids
+                    and (constituent.item.refcode or constituent.item.item_id)
+                    not in existing_parthood_relationship_ids
                 ):
                     relationship = TypedRelationship(
                         relation=RelationshipType.PARTHOOD,
+                        refcode=constituent.item.refcode,
                         item_id=constituent.item.item_id,
                         type=constituent.item.type,
                         description="Is a constituent of",

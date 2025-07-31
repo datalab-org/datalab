@@ -1,5 +1,5 @@
 from functools import wraps
-from typing import Any, Dict
+from typing import Any
 
 from bson import ObjectId
 from flask import request
@@ -60,7 +60,7 @@ def admin_only(func):
     return wrapped_route
 
 
-def get_default_permissions(user_only: bool = True, deleting: bool = False) -> Dict[str, Any]:
+def get_default_permissions(user_only: bool = True, deleting: bool = False) -> dict[str, Any]:
     """Return the MongoDB query terms corresponding to the current user.
 
     Will return open permissions if a) the `CONFIG.TESTING` parameter is `True`,

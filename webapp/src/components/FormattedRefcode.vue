@@ -16,7 +16,9 @@
   >
     {{ refcode }}
   </span>
-  <QRCodeModal v-model="QRCodeModalOpen" :refcode="refcode" />
+  <div v-if="enableQRCode">
+    <QRCodeModal v-model="QRCodeModalOpen" :refcode="refcode" />
+  </div>
 </template>
 
 <script>

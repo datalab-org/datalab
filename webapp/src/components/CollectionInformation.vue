@@ -2,22 +2,26 @@
   <div class="container">
     <div class="row">
       <div class="col">
-        <div id="collection-information" class="form-row">
-          <div class="col-md-2">
-            <label id="creators" class="mr-2">Creators</label>
-            <div>
-              <Creators :creators="CollectionCreators" :size="36" />
+        <div id="collection-information">
+          <div class="form-row">
+            <div class="form-group col">
+              <label for="name" class="mr">Title</label>
+              <input
+                id="name"
+                v-model="Title"
+                placeholder="Add a title"
+                class="form-control"
+                style="border: none"
+              />
             </div>
           </div>
-          <div class="form-group col">
-            <label for="name" class="mr">Title</label>
-            <input
-              id="name"
-              v-model="Title"
-              placeholder="Add a title"
-              class="form-control"
-              style="border: none"
-            />
+          <div class="form-row">
+            <div class="form-group col">
+              <label id="creators" class="mr-2">Creators</label>
+              <div>
+                <Creators :creators="CollectionCreators" aria-labelledby="creators" />
+              </div>
+            </div>
           </div>
         </div>
 
@@ -34,9 +38,18 @@
     <DynamicDataTable
       :data="children"
       :columns="collectionTableColumns"
-      :data-type="'samples'"
-      :global-filter-fields="['item_id', 'type', 'name', 'chemform', 'creatorsList', 'nblocks']"
-      :show-buttons="false"
+      :data-type="'collectionItems'"
+      :global-filter-fields="[
+        'item_id',
+        'name',
+        'refcode',
+        'blocks',
+        'chemform',
+        'characteristic_chemical_formula',
+      ]"
+      :show-buttons="true"
+      :collection-id="collection_id"
+      @remove-selected-items-from-collection="handleItemsRemovedFromCollection"
     />
   </div>
 </template>
@@ -70,13 +83,14 @@ export default {
           header: "ID",
           body: "FormattedItemName",
           filter: true,
+          label: "ID",
         },
-        { field: "type", header: "Type", filter: true },
-        { field: "name", header: "Sample name" },
-        { field: "chemform", header: "Formula", body: "ChemicalFormula" },
-        { field: "date", header: "Date" },
-        { field: "creators", header: "Creators", body: "Creators" },
-        { field: "nblocks", header: "# of blocks" },
+        { field: "type", header: "Type", filter: true, label: "Type" },
+        { field: "name", header: "Sample name", label: "Sample Name" },
+        { field: "chemform", header: "Formula", body: "ChemicalFormula", label: "Formula" },
+        { field: "date", header: "Date", label: "Date" },
+        { field: "creators", header: "Creators", body: "Creators", label: "Creators" },
+        { field: "nblocks", header: "# of blocks", label: "Blocks" },
       ],
     };
   },
@@ -102,6 +116,9 @@ export default {
         .catch(() => {
           this.fetchError = true;
         });
+    },
+    handleItemsRemovedFromCollection() {
+      this.getCollectionChildren();
     },
   },
 };

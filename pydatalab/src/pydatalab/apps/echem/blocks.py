@@ -1,7 +1,6 @@
 import os
 import time
 from pathlib import Path
-from typing import Union
 
 import bokeh
 import pandas as pd
@@ -62,7 +61,7 @@ class CycleBlock(DataBlock):
             return characteristic_mass_mg / 1000.0
         return None
 
-    def _load(self, file_id: Union[str, ObjectId], reload: bool = True):
+    def _load(self, file_id: str | ObjectId, reload: bool = True):
         """Loads the echem data using navani, summarises it, then caches the results
         to disk with suffixed names.
 
@@ -114,10 +113,10 @@ class CycleBlock(DataBlock):
         cycle_summary_df = None
         if not reload:
             if parsed_file_loc.exists():
-                raw_df = pd.read_pickle(parsed_file_loc)
+                raw_df = pd.read_pickle(parsed_file_loc)  # noqa: S301
 
             if cycle_summary_file_loc.exists():
-                cycle_summary_df = pd.read_pickle(cycle_summary_file_loc)
+                cycle_summary_df = pd.read_pickle(cycle_summary_file_loc)  # noqa: S301
 
         if raw_df is None:
             try:
@@ -137,8 +136,8 @@ class CycleBlock(DataBlock):
             if cycle_summary_df is None:
                 cycle_summary_df = ec.cycle_summary(raw_df)
                 cycle_summary_df.to_pickle(cycle_summary_file_loc)
-        except Exception:
-            pass
+        except Exception as exc:
+            LOGGER.warning("Cycle summary generation failed with error: %s", exc)
 
         raw_df = raw_df.filter(required_keys)
         raw_df.rename(columns=keys_with_units, inplace=True)

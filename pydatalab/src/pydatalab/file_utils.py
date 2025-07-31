@@ -4,7 +4,7 @@ import pathlib
 import re
 import shutil
 import subprocess
-from typing import Any, Dict, Union
+from typing import Any
 
 from bson.objectid import ObjectId
 from pymongo import ReturnDocument
@@ -73,7 +73,7 @@ def _sync_file_with_remote(remote_path: str, src: str) -> None:
         pathlib.Path(src).parent.mkdir(parents=False, exist_ok=True)
 
         LOGGER.debug("Syncing file with '%s'", scp_command)
-        proc = subprocess.Popen(
+        proc = subprocess.Popen(  # noqa: S602
             scp_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
         _, stderr = proc.communicate()
@@ -102,7 +102,7 @@ def _call_remote_stat(path: str):
     path = path.replace(r"\ ", " ").replace(" ", r"\ ")
     hostname, file_path = path.split(":", 1)
     command = f"ssh {hostname} 'stat -c %Y {file_path}'"
-    process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)  # noqa: S602
     LOGGER.debug(f"Calling {command}")
     try:
         stdout, stderr = process.communicate(timeout=20)
@@ -231,9 +231,7 @@ def _check_and_sync_file(file_info: File, file_id: ObjectId) -> File:
 
 
 @logged_route
-def get_file_info_by_id(
-    file_id: Union[str, ObjectId], update_if_live: bool = True
-) -> Dict[str, Any]:
+def get_file_info_by_id(file_id: str | ObjectId, update_if_live: bool = True) -> dict[str, Any]:
     """Query the files collection for the given ID.
 
     If the `update_if_live` and the file has been updated on the
@@ -246,7 +244,7 @@ def get_file_info_by_id(
             newer version, if it exists.
 
     Raises:
-        IOError: If the given file ID does not exist in the database.
+        OSError: If the given file ID does not exist in the database.
 
     Returns:
         The stored file information as a dictonary. Will be empty if the

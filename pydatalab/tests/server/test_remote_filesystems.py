@@ -14,7 +14,7 @@ from pydatalab.remote_filesystems import (
 """The Unix `tree` utility is required for many of these tests,
 this variable checks whether it is installed locally."""
 TREE_AVAILABLE = False
-_ = sp.call("tree -v", shell=True)
+_ = sp.call("tree -v", shell=True)  # noqa: S602,S607
 if _ == 0:
     TREE_AVAILABLE = True
 

@@ -9,6 +9,9 @@ import CollectionPage from "../views/CollectionPage.vue";
 import ExampleGraph from "@/views/ExampleGraph.vue";
 import ItemGraphPage from "@/views/ItemGraphPage.vue";
 import Admin from "@/views/Admin.vue";
+import Login from "../views/Login.vue";
+import Login2 from "../views/Login2.vue";
+import Login3 from "../views/Login3.vue";
 
 const routes = [
   {
@@ -24,6 +27,24 @@ const routes = [
     name: "samples",
     alias: "/",
     component: Samples,
+  },
+  {
+    path: "/next/login",
+    name: "login",
+    alias: "/",
+    component: Login,
+  },
+  {
+    path: "/next/login2",
+    name: "login2",
+    alias: "/",
+    component: Login2,
+  },
+  {
+    path: "/next/login3",
+    name: "login3",
+    alias: "/",
+    component: Login3,
   },
   {
     path: "/equipment",
@@ -79,6 +100,29 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
+});
+
+router.beforeEach((to, from, next) => {
+  const websiteTitle = process.env.VUE_APP_WEBSITE_TITLE || "datalab";
+
+  const capitalizeFirstLetter = (string) => {
+    return string ? string.charAt(0).toUpperCase() + string.slice(1) : "";
+  };
+
+  const nameMapping = {
+    "starting-materials": "Inventory",
+    "item-graph": "Graph View",
+  };
+
+  let formattedName = nameMapping[to.name] || capitalizeFirstLetter(to.name);
+
+  document.title = to.name
+    ? to.params.id
+      ? `${websiteTitle} - ${formattedName}: ${to.params.id}`
+      : `${websiteTitle} - ${formattedName}`
+    : websiteTitle;
+
+  next();
 });
 
 export default router;

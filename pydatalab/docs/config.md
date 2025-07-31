@@ -16,6 +16,17 @@ administration"](deployment.md).
     - These can be provided as environment variables or in a `.env` file in the directory from which `pydatalab` is launched.
 3. Web app configuration, such as the URL of the relevant *datalab* API and branding (logo URLs, external homepage links).
     - These are typically provided as a `.env` file in the directory from which the webapp is built/served.
+    - The main options include (a full list can be found in the `docker-compose.yml` file):
+        - `VUE_APP_API_URL`: the URL of the *datalab* API, which is used by the web app to communicate with the server.
+        - `VUE_APP_LOGO_URL`: the URL of an image to use as the logo header in the web app.
+        - `VUE_APP_HOMEPAGE_URL`: a URL to provide as a link from the web app header.
+        - `VUE_APP_EDITABLE_INVENTORY`: whether the inventory can be edited by non-admin users in the web app.
+        - `VUE_APP_WEBSITE_TITLE`: the title of the web app, which is displayed in the browser tab and header.
+        - `VUE_APP_QR_CODE_RESOLVER_URL`: the URL of a service that can resolve QR codes to *datalab* entries, which is used by the web app to display QR codes for entries (see [datalab-org/datalab-purl](https://github.com/datalab-org/datalab-purl) for more information).
+        - `VUE_APP_AUTOMATICALLY_GENERATE_ID_DEFAULT`: whether to automatically generate IDs for new entries in the web app by default, or require a checkbox to be ticked at item creation.
+
+> [!NOTE]
+> The possible ways to set configuration options can be inconsistent with each other, e.g., values required to be `None` in Python should be set to `null` in the JSON config file and as .env values. Similarly, boolean values may be set to `true` or `false` in the JSON config file, but can be set to {`1`, `yes`, `true`} or {`0`, `no`, `false`} in a `.env` file.
 
 ## Mandatory settings
 
@@ -51,7 +62,7 @@ A user's first login may direct them to this page rather than the web app, depen
 The user will then simply have to navigate back to the URL of the web app, where they should find themselves to be logged in.
 
 Then, you can configure [`GITHUB_ORG_ALLOW_LIST`][pydatalab.config.ServerConfig.GITHUB_ORG_ALLOW_LIST] with a list of string IDs of GitHub organizations that user's must be a public member of to register an account.
-If this value is set to `None`, then no accounts will be able to register, and if it is set to an empty list, then no restrictions will apply.
+If this value is set to `None`, then any GitHub account will be able to register, and if it is set to an empty list, then no accounts will be able to register.
 You can find the relevant organization IDs using the GitHub API, for example at `https://api.github.com/orgs/<org_name>`.
 
 #### ORCID OAuth2

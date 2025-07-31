@@ -69,11 +69,12 @@ function fetch_put(url, body) {
 }
 
 // eslint-disable-next-line no-unused-vars
-function fetch_delete(url) {
+function fetch_delete(url, body) {
   let headers = construct_headers({ "Content-Type": "application/json" });
   const requestOptions = {
     method: "DELETE",
     headers: headers,
+    body: JSON.stringify(body),
     credentials: "include",
   };
   return fetch(url, requestOptions).then(handleResponse);
@@ -162,7 +163,7 @@ export function createNewSamples(
   });
 }
 
-export function createNewCollection(collection_id, title, startingData = {}, copyFrom = null) {
+export function createNewCollection(collection_id, title = "", startingData = {}, copyFrom = null) {
   return fetch_put(`${API_URL}/collections`, {
     copy_from_collection_id: copyFrom,
     data: {
@@ -429,13 +430,24 @@ export function deleteEquipment(item_id) {
     );
 }
 
-export function deletSampleFromCollection(collection_id, collection_summary) {
-  return fetch_delete(`${API_URL}/collections/${collection_id}`)
+export function removeItemsFromCollection(collection_id, refcodes) {
+  return fetch_delete(`${API_URL}/collections/${collection_id}/items`, {
+    refcodes: refcodes,
+  })
     .then(function (response_json) {
-      console.log("delete successful" + response_json);
-      store.commit("deleteFromCollectionList", collection_summary);
+      console.log("Items removed from collection successfully", response_json);
+
+      store.commit("removeItemsFromCollection", {
+        collection_id: collection_id,
+        refcodes: refcodes,
+      });
+
+      return response_json;
     })
-    .catch((error) => alert("Collection delete failed for " + collection_id + ": " + error));
+    .catch((error) => {
+      alert(`Failed to remove items from collection ${collection_id}: ${error}`);
+      throw error;
+    });
 }
 
 export async function getItemData(item_id) {
@@ -484,14 +496,28 @@ export async function getCollectionData(collection_id) {
     .catch((error) => alert("Error getting collection data: " + error));
 }
 
-export async function updateBlockFromServer(item_id, block_id, block_data, saveToDatabase = true) {
-  console.log("updateBlockFromServer called with data:");
-  console.log(block_data);
+export async function updateBlockFromServer(
+  item_id,
+  block_id,
+  block_data,
+  event_data = null,
+  saveToDatabase = true,
+) {
+  // Send the current block state to the API and receive an updated version
+  // of the block in return, including any event data.
+  //
+  // - Will strip known "large data" keys, even if not formalised, e.g., bokeh_plot_data.
+  //
+  delete block_data.bokeh_plot_data;
+  delete block_data.processed_data;
+  delete block_data.metadata;
+
   store.commit("setBlockUpdating", block_id);
   return fetch_post(`${API_URL}/update-block/`, {
     item_id: item_id,
     block_id: block_id,
     block_data: block_data,
+    event_data: event_data,
     save_to_db: saveToDatabase,
   })
     .then(function (response_json) {
@@ -505,11 +531,12 @@ export async function updateBlockFromServer(item_id, block_id, block_data, saveT
         block_id: block_id,
         isSaved: response_json.saved_successfully,
       });
+      store.commit("setBlockImplementationError", { block_id, hasError: false });
     })
     .catch((error) => {
-      alert("Error in updateBlockFromServer: " + error);
+      console.warn(`Failed to update block ${block_id}:`, error);
+      store.commit("setBlockImplementationError", { block_id, hasError: true });
       store.commit("setBlockNotUpdating", block_id);
-      throw error;
     });
 }
 

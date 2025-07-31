@@ -1,5 +1,65 @@
 # Changelog
 
+## v0.6.0 (June 2025)
+
+This release includes significant new functionality and UI redesign, as well as
+several bug and quality-of-life fixes, performance improvements and
+backwards-compatible API enhancements.
+
+> [!WARNING]
+> This release also bumps the supported MongoDB version all the way from v3 to v8. Whilst older MongoDB versions should still continue to work, version 8 will now be tested and used in the docker builds, so we recommend you upgrade. For existing databases this requires you to first dump the database using `mongodump` with the old MongoDB version, then upgrade to the new version and restore the database with `mongorestore`. If you unsure about this process then please ask us for help!
+
+### Highlights
+
+- Extra functionality for all data tables: column selection, persistent user
+  preferences and improved filtering.
+- Improved inventory management: native UI for hazard labels, CAS numbers and external barcodes,
+  complementing the first release of the
+  [`datalab-cheminventory-plugin`](https://github.com/datalab-industries/datalab-cheminventory-plugin)
+  for two-way sync with [cheminventory.net](https://cheminventory.net).
+- Starting materials can now also have synthesis information recorded for them.
+- New blocks for UV-Vis data and *in situ* NMR data (developed in separate core
+  plugin at
+  [`datalab-app-plugin-insitu`](https://github.com/datalab-org/datalab-app-plugin-insitu)),
+  as well as new file formats supported in the XRD (Rigaku's .rasx, variants of .xy), NMR (JCAMP-DX) blocks
+  and media block (PDF documents).
+- Improved item search throughout the API, removing the need to search on
+  whitespace or puncutation delimited words (e.g., ID matches will now begin after
+  just 3 characters, rather than needing to type a full ID).
+
+
+## v0.5.2 (March 2025)
+
+This patch release makes several visual/interactivity improvements around
+loading states in the UI, and adds two new blocks: FTIR and a tabular data
+block for plotting data from within generic CSV/Excel files.
+
+## What's Changed
+* Fix docs link in mkdocs by @ml-evs in https://github.com/datalab-org/datalab/pull/1044
+* Improve loading state for data-intensive blocks by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1049
+* Add support for reading excel-like spreadsheets in tabular data block by @ml-evs in https://github.com/datalab-org/datalab/pull/1052
+* Add Login Splash Screen by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/907
+* Added FTIR block and associated tests by @be-smith in https://github.com/datalab-org/datalab/pull/1061
+* Update CITATION.cff by @ml-evs in https://github.com/datalab-org/datalab/pull/1069
+
+## New Contributors
+* @be-smith made their first contribution in https://github.com/datalab-org/datalab/pull/1061
+
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.5.1...v0.5.2
+
+## v0.5.1 (January 2025)
+
+This patch release simply pins the `uv` version used in builds to avoid future breakages.
+
+## What's Changed
+
+* Bump the github-actions group across 1 directory with 2 updates by @dependabot in https://github.com/datalab-org/datalab/pull/1031
+* Update uv to 0.5.x now that dynamic versioning is supported by @ml-evs in https://github.com/datalab-org/datalab/pull/1032
+* Pin uv by @ml-evs in https://github.com/datalab-org/datalab/pull/1039
+
+
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.5.0...v0.5.1
+
 ## v0.5.0 (December 2024)
 
 This release is long overdue following the 8 pre-releases. The 0.5.x series now provides a stable base for us to begin some major overhauling of how we handle custom schemas and data blocks, both of which will form the basis of 0.6.x in the new year.

@@ -47,7 +47,8 @@ def test_block_info_endpoint(client, url_prefix):
     for block in response.json["data"]:
         assert all(k in block for k in ("type", "id", "attributes"))
         assert all(
-            k in block["attributes"] for k in ("name", "description", "accepted_file_extensions")
+            k in block["attributes"]
+            for k in ("name", "description", "accepted_file_extensions", "version")
         )
 
 

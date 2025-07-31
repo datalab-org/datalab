@@ -53,6 +53,7 @@
       </div>
       <div class="row">
         <button id="uppy-trigger" class="btn btn-default btn-sm mb-3 ml-4" type="button">
+          <font-awesome-icon class="upload-icon" icon="file" fixed-width />
           Upload files...</button
         ><!-- Surrounding divs so that buttons  don't become full-width in the card -->
         <button
@@ -60,6 +61,7 @@
           type="button"
           @click="setFileSelectModalOpen"
         >
+          <font-awesome-icon class="remote-upload-icon" icon="cloud-upload-alt" fixed-width />
           Add files from server...
         </button>
       </div>
@@ -90,8 +92,9 @@ export default {
   methods: {
     formatDistance,
     deleteFile(event, file_id) {
-      deleteFileFromSample(this.item_id, file_id);
-      return false;
+      if (window.confirm("Are you sure you want to unlink this file from this entry?")) {
+        deleteFileFromSample(this.item_id, file_id);
+      }
     },
     setFileSelectModalOpen() {
       this.$store.commit("setFileSelectModalOpenStatus", true);
@@ -107,7 +110,7 @@ export default {
 
 .filelink {
   color: #004175;
-  font-family: "Andalé Mono", monospace;
+  font-family: var(--font-monospace);
 }
 
 .filelink:hover {
@@ -115,7 +118,9 @@ export default {
 }
 
 .link-icon,
-.unlink-icon {
+.unlink-icon,
+.upload-icon,
+.remote-upload-icon {
   margin-left: 0.4rem;
   color: #888;
   font-size: small;
@@ -124,6 +129,11 @@ export default {
 #filearea {
   max-height: 14rem;
   padding: 0.9rem 1.25rem;
+}
+
+.delete-file-button:hover {
+  color: #dc3545;
+  cursor: pointer;
 }
 
 #uppy-trigger {
@@ -139,7 +149,7 @@ export default {
 }
 
 .server-name {
-  font-family: "Andalé Mono", monospace;
+  font-family: var(--font-monospace);
   font-weight: 400;
   /*font-style: italic;*/
   color: teal;

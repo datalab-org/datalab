@@ -1,73 +1,85 @@
 <template>
-  <div class="container-lg px-5 px-lg-0">
-    <!-- Sample information -->
-    <div id="starting-material-information" class="form-row">
-      <div class="form-group col-md-2 col-sm-3 col-6">
-        <label for="startmat-refcode">Refcode</label>
-        <div id="startmat-refcode"><FormattedRefcode :refcode="Refcode" /></div>
+  <div class="container-lg">
+    <div class="row">
+      <div class="col">
+        <div id="starting-material-information" class="form-row">
+          <div class="form-group col-sm-4 pr-2 col-6">
+            <label for="samp-name">Name</label>
+            <input id="samp-name" v-model="Name" class="form-control" />
+          </div>
+          <div class="form-group col-sm-4 pr-2 col-6">
+            <label for="startmat-chemform">Chemical formula</label>
+            <ChemFormulaInput v-if="isEditable" id="startmat-chemform" v-model="ChemForm" />
+            <span v-if="!isEditable" class="form-control-plaintext" readonly>
+              <ChemicalFormula id="startmat-chemform" :formula="ChemForm" />
+            </span>
+          </div>
+          <div class="form-group col-sm-4 col-6">
+            <label for="startmat-date-acquired">Date acquired</label>
+            <StyledInput
+              id="startmat-date-acquired"
+              v-model="DateAcquired"
+              type="datetime-local"
+              class="form-control"
+              :readonly="!isEditable"
+            />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group col-md-3 col-sm-4 col-6">
+            <label for="startmat-refcode">Refcode</label>
+            <div id="startmat-refcode"><FormattedRefcode :refcode="Refcode" /></div>
+          </div>
+          <div v-if="Barcode" class="form-group col-md-3 col-sm-4 col-6">
+            <label for="startmat-barcode">Barcode</label>
+            <div id="startmat-barcode"><FormattedBarCode :barcode="Barcode" /></div>
+          </div>
+          <div class="form-group col-md-6 col-sm-7 pr-2">
+            <ToggleableCollectionFormGroup v-model="Collections" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group col-lg-12 col-sm-12">
+            <label for="startmat-location">Location</label>
+            <StyledInput id="startmat-location" v-model="Location" :readonly="!isEditable" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group col-lg-3 col-sm-4">
+            <label for="startmat-supplier">Supplier</label>
+            <StyledInput id="startmat-supplier" v-model="Supplier" :readonly="!isEditable" />
+          </div>
+          <div class="form-group col-lg-3 col-sm-4">
+            <label for="startmat-purity">Chemical purity</label>
+            <StyledInput id="startmat-purity" v-model="ChemicalPurity" :readonly="!isEditable" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group col-lg-3 col-sm-3 col-6">
+            <label for="startmat-cas">CAS</label>
+            <a v-if="CAS" :href="'https://commonchemistry.cas.org/detail?cas_rn=' + CAS"
+              ><font-awesome-icon icon="search" class="fixed-width ml-2"
+            /></a>
+            <StyledInput id="startmat-cas" v-model="CAS" :readonly="!isEditable" />
+          </div>
+          <div class="form-group col-lg-3 col-sm-3 col-6">
+            <label for="startmat-date-opened">Date opened</label>
+            <StyledInput
+              id="startmat-date-opened"
+              v-model="DateOpened"
+              type="date"
+              :readonly="!isEditable"
+            />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group col-12">
+            <GHSHazardInformation v-model="GHS" :editable="isEditable" />
+          </div>
+        </div>
       </div>
-      <div class="form-group col-md-2 col-sm-3 col-6">
-        <label for="startmat-item_id">Item ID</label>
-        <StyledInput id="startmat-item_id" readonly :model-value="ItemID" />
-      </div>
-      <div class="form-group col-lg-7 col-md-8 col-sm-6">
-        <label for="startmat-name">Name</label>
-        <StyledInput id="startmat-name" v-model="Name" :readonly="!isEditable" />
-      </div>
-    </div>
-    <div class="form-row">
-      <div class="form-group col-lg-3 col-sm-4">
-        <label for="startmat-chemform">Chemical formula</label>
-        <ChemFormulaInput v-if="isEditable" id="startmat-chemform" v-model="ChemForm" />
-        <span v-if="!isEditable" class="form-control-plaintext" readonly>
-          <ChemicalFormula id="startmat-chemform" :formula="ChemForm" />
-        </span>
-      </div>
-      <div class="form-group col-lg-3 col-sm-4">
-        <label for="startmat-supplier">Supplier</label>
-        <StyledInput id="startmat-supplier" v-model="Supplier" :readonly="!isEditable" />
-      </div>
-      <div class="form-group col-lg-3 col-sm-4">
-        <label for="startmat-purity">Chemical purity</label>
-        <StyledInput id="startmat-purity" v-model="ChemicalPurity" :readonly="!isEditable" />
-      </div>
-    </div>
-    <div class="form-row">
-      <div class="form-group col-lg-3 col-sm-4">
-        <label for="startmat-date-acquired">Date acquired</label>
-        <StyledInput
-          id="startmat-date-acquired"
-          v-model="DateAcquired"
-          type="datetime-local"
-          :readonly="!isEditable"
-        />
-      </div>
-      <div class="form-group col-lg-3 col-sm-4">
-        <label for="startmat-date-opened">Date opened</label>
-        <StyledInput
-          id="startmat-date-opened"
-          v-model="DateOpened"
-          type="date"
-          :readonly="!isEditable"
-        />
-      </div>
-      <div class="form-group col-lg-3 col-sm-4">
-        <label for="startmat-location">Location</label>
-        <StyledInput id="startmat-location" v-model="Location" :readonly="!isEditable" />
-      </div>
-    </div>
-
-    <div class="form-row">
-      <div class="form-group col-lg-3 col-sm-4">
-        <label for="startmat-cas">CAS</label>
-        <StyledInput id="startmat-cas" v-model="CAS" :readonly="!isEditable" />
-      </div>
-      <div class="form-group col-lg-3 col-sm-4">
-        <label for="startmat-hazards">GHS Hazard Codes</label>
-        <StyledInput id="startmat-hazards" v-model="GHS" :readonly="!isEditable" />
-      </div>
-      <div class="col-lg-3 col-sm-4">
-        <ToggleableCollectionFormGroup v-model="Collections" />
+      <div class="col-md-4">
+        <ItemRelationshipVisualization :item_id="item_id" />
       </div>
     </div>
 
@@ -79,6 +91,8 @@
       :item_id="item_id"
       :information-sections="tableOfContentsSections"
     />
+
+    <SynthesisInformation class="mt-3" :item_id="item_id" />
   </div>
 </template>
 
@@ -90,7 +104,11 @@ import ChemFormulaInput from "@/components/ChemFormulaInput";
 import TableOfContents from "@/components/TableOfContents";
 import ToggleableCollectionFormGroup from "@/components/ToggleableCollectionFormGroup";
 import FormattedRefcode from "@/components/FormattedRefcode";
+import FormattedBarCode from "@/components/FormattedBarcode";
 import StyledInput from "@/components/StyledInput";
+import SynthesisInformation from "@/components/SynthesisInformation";
+import ItemRelationshipVisualization from "@/components/ItemRelationshipVisualization";
+import GHSHazardInformation from "@/components/GHSHazardInformation";
 
 import { EDITABLE_INVENTORY } from "@/resources.js";
 
@@ -99,10 +117,14 @@ export default {
     StyledInput,
     ChemicalFormula,
     ChemFormulaInput,
+    ItemRelationshipVisualization,
     TinyMceInline,
     ToggleableCollectionFormGroup,
     TableOfContents,
     FormattedRefcode,
+    FormattedBarCode,
+    SynthesisInformation,
+    GHSHazardInformation,
   },
   props: {
     item_id: { type: String, required: true },
@@ -112,6 +134,7 @@ export default {
       tableOfContentsSections: [
         { title: "Starting Material Information", targetID: "starting-material-information" },
         { title: "Table of Contents", targetID: "table-of-contents" },
+        { title: "Synthesis Information", targetID: "synthesis-information" },
       ],
     };
   },
@@ -132,6 +155,7 @@ export default {
     ItemDescription: createComputedSetterForItemField("description"),
     Collections: createComputedSetterForItemField("collections"),
     Refcode: createComputedSetterForItemField("refcode"),
+    Barcode: createComputedSetterForItemField("barcode"),
   },
   created() {
     this.isEditable = EDITABLE_INVENTORY;

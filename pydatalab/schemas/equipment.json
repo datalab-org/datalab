@@ -166,33 +166,20 @@
       "properties": {
         "description": {
           "title": "Description",
-          "description": "A description of the relationship.",
           "type": "string"
         },
         "relation": {
-          "description": "The type of relationship between the two items. If the type is 'other', then a human-readable description should be provided.",
-          "allOf": [
-            {
-              "$ref": "#/definitions/RelationshipType"
-            }
-          ]
+          "$ref": "#/definitions/RelationshipType"
         },
         "type": {
-          "description": "The type of the related resource.",
-          "allOf": [
-            {
-              "$ref": "#/definitions/KnownType"
-            }
-          ]
+          "$ref": "#/definitions/KnownType"
         },
         "immutable_id": {
           "title": "Immutable Id",
-          "description": "The immutable ID of the entry that is related to this entry.",
           "type": "string"
         },
         "item_id": {
           "title": "Item Id",
-          "description": "The ID of the entry that is related to this entry.",
           "minLength": 1,
           "maxLength": 40,
           "pattern": "^(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
@@ -200,7 +187,6 @@
         },
         "refcode": {
           "title": "Refcode",
-          "description": "The refcode of the entry that is related to this entry.",
           "minLength": 1,
           "maxLength": 40,
           "pattern": "^[a-z]{2,10}:(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
@@ -459,18 +445,15 @@
         },
         "size": {
           "title": "Size",
-          "description": "The size of the file on disk in bytes.",
           "type": "integer"
         },
         "last_modified_remote": {
           "title": "Last Modified Remote",
-          "description": "The last date/time at which the remote file was modified.",
           "type": "string",
           "format": "date-time"
         },
         "item_ids": {
           "title": "Item Ids",
-          "description": "A list of item IDs associated with this file.",
           "type": "array",
           "items": {
             "type": "string"
@@ -478,7 +461,6 @@
         },
         "blocks": {
           "title": "Blocks",
-          "description": "A list of block IDs associated with this file.",
           "type": "array",
           "items": {
             "type": "string"
@@ -486,43 +468,35 @@
         },
         "name": {
           "title": "Name",
-          "description": "The filename on disk.",
           "type": "string"
         },
         "extension": {
           "title": "Extension",
-          "description": "The file extension that the file was uploaded with.",
           "type": "string"
         },
         "original_name": {
           "title": "Original Name",
-          "description": "The raw filename as uploaded.",
           "type": "string"
         },
         "location": {
           "title": "Location",
-          "description": "The location of the file on disk.",
           "type": "string"
         },
         "url_path": {
           "title": "Url Path",
-          "description": "The path to a remote file.",
           "type": "string"
         },
         "source": {
           "title": "Source",
-          "description": "The source of the file, e.g. 'remote' or 'uploaded'.",
           "type": "string"
         },
         "time_added": {
           "title": "Time Added",
-          "description": "The timestamp for the original file upload.",
           "type": "string",
           "format": "date-time"
         },
         "metadata": {
           "title": "Metadata",
-          "description": "Any additional metadata.",
           "type": "object"
         },
         "representation": {
@@ -530,17 +504,14 @@
         },
         "source_server_name": {
           "title": "Source Server Name",
-          "description": "The server name at which the file is stored.",
           "type": "string"
         },
         "source_path": {
           "title": "Source Path",
-          "description": "The path to the file on the remote resource.",
           "type": "string"
         },
         "is_live": {
           "title": "Is Live",
-          "description": "Whether or not the file should be watched for future updates.",
           "type": "boolean"
         }
       },
