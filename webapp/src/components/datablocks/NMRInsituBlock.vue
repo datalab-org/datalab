@@ -135,7 +135,7 @@ export default {
       originalParameters: {},
       local_start_exp: 1,
       local_end_exp: null,
-      local_step_exp: 1,
+      local_step_exp: null,
       local_exclude_exp: "",
     };
   },
@@ -186,7 +186,7 @@ export default {
       if (this.maxExperiments && this.local_end_exp && this.local_end_exp > this.maxExperiments) {
         return `End experiment must be <= ${this.maxExperiments}`;
       }
-      if (this.local_step_exp < 1) {
+      if (this.local_step_exp != null && this.local_step_exp < 1) {
         return "Step must be >= 1";
       }
       return "";
@@ -230,7 +230,7 @@ export default {
     };
     this.local_start_exp = this.start_exp || 1;
     this.local_end_exp = this.defaultEndExp;
-    this.local_step_exp = this.step_exp || 1;
+    this.local_step_exp = this.step_exp || null;
     this.local_exclude_exp = this.exclude_exp || "";
   },
   methods: {
