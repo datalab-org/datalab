@@ -32,7 +32,7 @@ administration"](deployment.md).
 
 There is only one mandatory setting when creating a deployment.
 This is the [`IDENTIFIER_PREFIX`][pydatalab.config.ServerConfig.IDENTIFIER_PREFIX], which shall be prepended to every entry's refcode to enable global uniqueness of *datalab* entries.
-For now, the prefixes themselves are not checked for uniqueness across the fledling *datalab* federation, but will in the future.
+For now, the prefixes themselves are not checked for uniqueness across the fledgling *datalab* federation, but will in the future.
 
 This prefix should be set to something relatively short (max 10 chars.) that describes your group or your deployment, e.g., the PI's surname, project ID or department.
 
