@@ -67,7 +67,6 @@ import DataBlockBase from "@/components/datablocks/DataBlockBase";
 import FileSelectDropdown from "@/components/FileSelectDropdown";
 import FolderSelect from "@/components/FolderSelect";
 import BokehPlot from "@/components/BokehPlot";
-import vSelect from "vue-select";
 
 import { createComputedSetterForBlockField } from "@/field_utils.js";
 import { updateBlockFromServer } from "@/server_fetch_utils.js";
@@ -78,7 +77,6 @@ export default {
     FileSelectDropdown,
     FolderSelect,
     BokehPlot,
-    vSelect,
   },
   props: {
     item_id: {
@@ -94,7 +92,6 @@ export default {
     return {
       folderNameError: "",
       isUpdating: false,
-      scan_time_buffer: "",
     };
   },
   watch: {
