@@ -159,7 +159,7 @@ export default {
     hasParameterChanges() {
       const currentStartExp = this.start_exp || 1;
       const currentEndExp = this.end_exp || this.maxExperiments;
-      const currentStepExp = this.step_exp || 1;
+      const currentStepExp = this.step_exp || null;
       const currentExcludeExp = this.exclude_exp || "";
 
       const hasChanges =
