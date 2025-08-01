@@ -114,8 +114,8 @@ export default {
   },
   props: {
     modelValue: {
-      type: String,
-      default: "",
+      type: Array,
+      default: () => [],
     },
     typesToQuery: {
       type: Array,
@@ -133,7 +133,7 @@ export default {
   },
   computed: {
     newSelectIsShown() {
-      return this.constituents.length == 0 || this.addNewConstituentIsActive;
+      return this.addNewConstituentIsActive;
     },
     constituents: {
       get() {
