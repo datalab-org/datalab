@@ -396,7 +396,7 @@ def save_uploaded_file(
         space = get_space_available_bytes()
         if size_bytes is not None and space < size_bytes:
             raise RuntimeError(
-                f"Cannot store file: insufficient space available on disk (required: {size_bytes // 1024 ** 3} GB). Please contact your datalab administrator."
+                f"Cannot store file: insufficient space available on disk (required: {size_bytes // 1024**3} GB). Please contact your datalab administrator."
             )
         file_collection = client.get_database().files
         result = file_collection.insert_one(new_file_document.dict(), session=session)

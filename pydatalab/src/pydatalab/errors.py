@@ -58,7 +58,7 @@ def handle_large_file_exception(exc: RequestEntityTooLarge) -> tuple[Response, i
         "title": exc.__class__.__name__,
         "status": "error",
         "message": f"""Uploaded file is too large.
-The maximum file size is {CONFIG.MAX_CONTENT_LENGTH / 1024 ** 3:.2f} GB.
+The maximum file size is {CONFIG.MAX_CONTENT_LENGTH / 1024**3:.2f} GB.
 Contact your datalab administrator if you need to upload larger files.""",
     }
     return jsonify(response), 413

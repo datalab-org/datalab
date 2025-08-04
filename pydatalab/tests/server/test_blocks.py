@@ -14,9 +14,9 @@ def test_get_all_available_block_types():
     for block_class in BLOCKS:
         assert block_class.blocktype is not None
         assert block_class.name is not None
-        assert (
-            block_class.description is not None
-        ), f"{block_class.blocktype} is missing a description"
+        assert block_class.description is not None, (
+            f"{block_class.blocktype} is missing a description"
+        )
         assert block_class.blocktype in BLOCK_TYPES
         assert BLOCK_TYPES[block_class.blocktype] == block_class
 
@@ -30,9 +30,9 @@ def test_create_sample_with_each_block_type(admin_client, block_type, default_sa
     sample_data["item_id"] = sample_id
 
     response = admin_client.post("/new-sample/", json=sample_data)
-    assert (
-        response.status_code == 201
-    ), f"Failed to create sample for {block_type}: {response.json()}"
+    assert response.status_code == 201, (
+        f"Failed to create sample for {block_type}: {response.json()}"
+    )
     assert response.json["status"] == "success"
 
     response = admin_client.post(
@@ -196,9 +196,9 @@ def test_block_info_endpoint_contains_all_blocks(client):
     returned_block_types = {block["id"] for block in response.json["data"]}
     expected_block_types = set(BLOCK_TYPES.keys())
 
-    assert expected_block_types.issubset(
-        returned_block_types
-    ), f"Missing block types in /info/blocks: {expected_block_types - returned_block_types}"
+    assert expected_block_types.issubset(returned_block_types), (
+        f"Missing block types in /info/blocks: {expected_block_types - returned_block_types}"
+    )
 
 
 @pytest.mark.dependency(depends=["test_get_all_available_block_types"])
@@ -373,6 +373,6 @@ def test_create_sample_with_example_files(admin_client, default_sample_dict):
         block["blocktype"] for block in item_data["blocks_obj"].values() if not block.get("file_id")
     ]
 
-    assert (
-        blocks_with_files >= len(uploaded_files) // 2
-    ), f"Not enough blocks have files attached. Blocks without files: {blocks_without_files}"
+    assert blocks_with_files >= len(uploaded_files) // 2, (
+        f"Not enough blocks have files attached. Blocks without files: {blocks_without_files}"
+    )
