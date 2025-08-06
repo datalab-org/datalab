@@ -301,8 +301,11 @@ def update_uploaded_file(file: FileStorage, file_id: ObjectId, size_bytes: int |
     updated_file_entry = File(**updated_file_entry)
 
     # overwrite the old file with the new location
+    if updated_file_entry.location is None:
+        raise RuntimeError("Cannot update file with no location set: %s", updated_file_entry)
+
     file.save(updated_file_entry.location)
-    size_bytes = os.path.getsize(updated_file_entry.location)
+    size_bytes = os.path.getsize(updated_file_entry.location)  # type: ignore[arg-type]
 
     file_collection.update_one(
         {"_id": file_id, **get_default_permissions(user_only=False)}, {"$set": {"size": size_bytes}}
@@ -396,7 +399,7 @@ def save_uploaded_file(
         space = get_space_available_bytes()
         if size_bytes is not None and space < size_bytes:
             raise RuntimeError(
-                f"Cannot store file: insufficient space available on disk (required: {size_bytes // 1024 ** 3} GB). Please contact your datalab administrator."
+                f"Cannot store file: insufficient space available on disk (required: {size_bytes // 1024**3} GB). Please contact your datalab administrator."
             )
         file_collection = client.get_database().files
         result = file_collection.insert_one(new_file_document.dict(), session=session)

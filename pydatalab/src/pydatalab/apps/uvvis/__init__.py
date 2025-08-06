@@ -66,7 +66,7 @@ class UVVisBlock(DataBlock):
             }  # Ensure names are strings
         else:
             # Generate default names if none provided, ensuring keys are strings
-            plot_data_input = {f"Spectrum {i+1}": df for i, df in enumerate(absorbance_data_list)}
+            plot_data_input = {f"Spectrum {i + 1}": df for i, df in enumerate(absorbance_data_list)}
 
         # Define the specific HoverTool configuration needed for UV-Vis
         uv_hover_tool = HoverTool(
