@@ -181,7 +181,7 @@ Start with a friendly introduction and give me a one sentence summary of what th
                 )
 
             LOGGER.debug(
-                f"submitting request to API for completion with last message role \"{self.data['messages'][-1]['role']}\" (message = {self.data['messages'][-1:]}). Temperature = {self.data['temperature']} (type {type(self.data['temperature'])})"
+                f'submitting request to API for completion with last message role "{self.data["messages"][-1]["role"]}" (message = {self.data["messages"][-1:]}). Temperature = {self.data["temperature"]} (type {type(self.data["temperature"])})'
             )
             from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
@@ -201,7 +201,7 @@ Start with a friendly introduction and give me a one sentence summary of what th
 
             if token_count >= model_dict["context_window"]:
                 self.data["error_message"] = (
-                    f"""This conversation has reached its maximum context size and the chatbot won't be able to respond further ({token_count} tokens, max: {model_dict['context_window']}). Please make a new chat block to start fresh, or use a model with a larger context window"""
+                    f"""This conversation has reached its maximum context size and the chatbot won't be able to respond further ({token_count} tokens, max: {model_dict["context_window"]}). Please make a new chat block to start fresh, or use a model with a larger context window"""
                 )
                 return
 

@@ -42,7 +42,7 @@ def take_snapshot(snapshot_path: Path, encrypt: bool = False) -> None:
     LOGGER.info("Creating snapshot of entire datalab instance.")
     LOGGER.debug("Creating snapshot of %s", CONFIG.FILE_DIRECTORY)
     # Add contents of `CONFIG.FILE_DIRECTORY` to the tar file
-    with tarfile.open(snapshot_path, mode=mode) as tar:
+    with tarfile.open(snapshot_path, mode=mode) as tar:  # type: ignore[call-overload]
         for file in Path(CONFIG.FILE_DIRECTORY).iterdir():
             tar.add(file, arcname=Path("files") / file.relative_to(CONFIG.FILE_DIRECTORY))
 
@@ -103,7 +103,7 @@ def restore_snapshot(snapshot_path: Path, decrypt: bool = False):
             f"Snapshot path should either be a .tar or .tar.gz file, not {snapshot_path} with {snapshot_path.suffix}"
         )
 
-    with tarfile.open(snapshot_path, mode=mode) as tar:
+    with tarfile.open(snapshot_path, mode=mode) as tar:  # type: ignore[call-overload]
         LOGGER.debug("Restoring files from %s", snapshot_path)
         files = [m for m in tar.getmembers() if m.name.startswith("files/")]
         tar.extractall(path=CONFIG.FILE_DIRECTORY, members=files)  # noqa: S202
