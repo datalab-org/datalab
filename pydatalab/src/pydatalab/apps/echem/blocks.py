@@ -61,7 +61,7 @@ class CycleBlock(DataBlock):
             return characteristic_mass_mg / 1000.0
         return None
 
-    def _load(self, file_id: str | ObjectId, reload: bool = True):
+    def _load(self, file_id: str | ObjectId, multi_select_flag: bool = False, reload: bool = True):
         """Loads the echem data using navani, summarises it, then caches the results
         to disk with suffixed names.
 
@@ -92,52 +92,97 @@ class CycleBlock(DataBlock):
             "dqdv": "dQ/dV (mA/V)",
             "dvdq": "dV/dQ (V/mA)",
         }
+        if not multi_select_flag:
+            file_info = get_file_info_by_id(file_id, update_if_live=True)
+            filename = file_info["name"]
+            if file_info.get("is_live"):
+                reload = True
 
-        file_info = get_file_info_by_id(file_id, update_if_live=True)
-        filename = file_info["name"]
+            ext = os.path.splitext(filename)[-1].lower()
 
-        if file_info.get("is_live"):
-            reload = True
+            if ext not in self.accepted_file_extensions:
+                raise RuntimeError(
+                    f"Unrecognized filetype {ext}, must be one of {self.accepted_file_extensions}"
+                )
 
-        ext = os.path.splitext(filename)[-1].lower()
+            parsed_file_loc = Path(file_info["location"]).with_suffix(".RAW_PARSED.pkl")
+            cycle_summary_file_loc = Path(file_info["location"]).with_suffix(".SUMMARY.pkl")
 
-        if ext not in self.accepted_file_extensions:
-            raise RuntimeError(
-                f"Unrecognized filetype {ext}, must be one of {self.accepted_file_extensions}"
+            raw_df = None
+            cycle_summary_df = None
+            if not reload:
+                if parsed_file_loc.exists():
+                    raw_df = pd.read_pickle(parsed_file_loc)  # noqa: S301
+
+                if cycle_summary_file_loc.exists():
+                    cycle_summary_df = pd.read_pickle(cycle_summary_file_loc)  # noqa: S301
+
+            if raw_df is None:
+                try:
+                    LOGGER.debug("Loading file %s", file_info["location"])
+                    start_time = time.time()
+                    raw_df = ec.echem_file_loader(file_info["location"])
+                    LOGGER.debug(
+                        "Loaded file %s in %s seconds",
+                        file_info["location"],
+                        time.time() - start_time,
+                    )
+                except Exception as exc:
+                    raise RuntimeError(f"Navani raised an error when parsing: {exc}") from exc
+                raw_df.to_pickle(parsed_file_loc)
+
+            try:
+                if cycle_summary_df is None:
+                    cycle_summary_df = ec.cycle_summary(raw_df)
+                    cycle_summary_df.to_pickle(cycle_summary_file_loc)
+            except Exception as exc:
+                LOGGER.warning("Cycle summary generation failed with error: %s", exc)
+
+        else:
+            # Multi-file logic
+            file_infos = [get_file_info_by_id(fid, update_if_live=True) for fid in file_id]
+            locations = [info["location"] for info in file_infos]
+            # Use a hash of all file locations for caching
+            import hashlib
+
+            hash_str = "_".join(locations)
+            hash_digest = hashlib.sha256(hash_str.encode()).hexdigest()
+            parsed_file_loc = (
+                Path(file_infos[0]["location"]).parent / f"multi_{hash_digest}.RAW_PARSED.pkl"
+            )
+            cycle_summary_file_loc = (
+                Path(file_infos[0]["location"]).parent / f"multi_{hash_digest}.SUMMARY.pkl"
             )
 
-        parsed_file_loc = Path(file_info["location"]).with_suffix(".RAW_PARSED.pkl")
-        cycle_summary_file_loc = Path(file_info["location"]).with_suffix(".SUMMARY.pkl")
+            raw_df = None
+            cycle_summary_df = None
+            if not reload:
+                if parsed_file_loc.exists():
+                    raw_df = pd.read_pickle(parsed_file_loc)  # noqa: S301
+                if cycle_summary_file_loc.exists():
+                    cycle_summary_df = pd.read_pickle(cycle_summary_file_loc)  # noqa: S301
 
-        raw_df = None
-        cycle_summary_df = None
-        if not reload:
-            if parsed_file_loc.exists():
-                raw_df = pd.read_pickle(parsed_file_loc)  # noqa: S301
+            if raw_df is None:
+                try:
+                    LOGGER.debug("Loading multiple files: %s", locations)
+                    start_time = time.time()
+                    raw_df = ec.multi_echem_file_loader(locations)
+                    LOGGER.debug(
+                        "Loaded files in %s seconds",
+                        time.time() - start_time,
+                    )
+                except Exception as exc:
+                    raise RuntimeError(
+                        f"Navani raised an error when parsing multiple files: {exc}"
+                    ) from exc
+                raw_df.to_pickle(parsed_file_loc)
 
-            if cycle_summary_file_loc.exists():
-                cycle_summary_df = pd.read_pickle(cycle_summary_file_loc)  # noqa: S301
-
-        if raw_df is None:
             try:
-                LOGGER.debug("Loading file %s", file_info["location"])
-                start_time = time.time()
-                raw_df = ec.echem_file_loader(file_info["location"])
-                LOGGER.debug(
-                    "Loaded file %s in %s seconds",
-                    file_info["location"],
-                    time.time() - start_time,
-                )
+                if cycle_summary_df is None:
+                    cycle_summary_df = ec.cycle_summary(raw_df)
+                    cycle_summary_df.to_pickle(cycle_summary_file_loc)
             except Exception as exc:
-                raise RuntimeError(f"Navani raised an error when parsing: {exc}") from exc
-            raw_df.to_pickle(parsed_file_loc)
-
-        try:
-            if cycle_summary_df is None:
-                cycle_summary_df = ec.cycle_summary(raw_df)
-                cycle_summary_df.to_pickle(cycle_summary_file_loc)
-        except Exception as exc:
-            LOGGER.warning("Cycle summary generation failed with error: %s", exc)
+                LOGGER.warning("Cycle summary generation failed with error: %s", exc)
 
         raw_df = raw_df.filter(required_keys)
         raw_df.rename(columns=keys_with_units, inplace=True)
@@ -152,10 +197,21 @@ class CycleBlock(DataBlock):
 
     def plot_cycle(self):
         """Plots the electrochemical cycling data from the file ID provided in the request."""
-        if "file_id" not in self.data:
-            LOGGER.warning("No file_id given")
+        if "file_id" not in self.data and "file_ids" not in self.data:
+            LOGGER.warning("No file_id or file_ids given")
             return
-        file_id = self.data["file_id"]
+
+        if "isMultiSelect" not in self.data:
+            LOGGER.warning("No isMultiSelect given")
+            return
+
+        multi_select_flag = self.data.get("isMultiSelect")
+        LOGGER.debug("isMultiSelect: %s", multi_select_flag)
+
+        if multi_select_flag:
+            file_id = self.data.get("file_ids")
+        else:
+            file_id = self.data["file_id"]
 
         derivative_modes = (None, "dQ/dV", "dV/dQ", "final capacity")
 
@@ -177,7 +233,7 @@ class CycleBlock(DataBlock):
         if not isinstance(cycle_list, list):
             cycle_list = None
 
-        raw_df, cycle_summary_df = self._load(file_id)
+        raw_df, cycle_summary_df = self._load(file_id=file_id, multi_select_flag=multi_select_flag)
 
         characteristic_mass_g = self._get_characteristic_mass_g()
 
