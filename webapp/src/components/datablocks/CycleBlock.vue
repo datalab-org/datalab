@@ -1,15 +1,19 @@
 <template>
   <DataBlockBase :item_id="item_id" :block_id="block_id">
-    <div class="form-row">
-      <FileSelectDropdown
-        v-model="file_id"
+    <div class="form-row align-items-center mb-2">
+      <button class="btn btn-outline-secondary mr-3" type="button" @click="toggleMultiSelect">
+        {{ isMultiSelect ? "Switch to Single File" : "Switch to Multi-File" }}
+      </button>
+      <component
+        :is="isMultiSelect ? 'FileMultiSelectDropdown' : 'FileSelectDropdown'"
+        v-model="fileModel"
         :item_id="item_id"
         :block_id="block_id"
         :extensions="blockInfo.attributes.accepted_file_extensions"
         update-block-on-change
       />
     </div>
-    <div v-if="file_id">
+    <div v-if="fileModel && (!isMultiSelect || (isMultiSelect && fileModel.length > 0))">
       <div class="form-row">
         <div class="input-group form-inline">
           <label class="mr-2"><b>Cycles to plot:</b></label>
@@ -149,6 +153,7 @@
 <script>
 import DataBlockBase from "@/components/datablocks/DataBlockBase";
 import FileSelectDropdown from "@/components/FileSelectDropdown";
+import FileMultiSelectDropdown from "@/components/FileMultiSelectDropdown";
 import BokehPlot from "@/components/BokehPlot";
 
 import { updateBlockFromServer } from "@/server_fetch_utils.js";
@@ -158,6 +163,7 @@ export default {
   components: {
     DataBlockBase,
     FileSelectDropdown,
+    FileMultiSelectDropdown,
     BokehPlot,
   },
   props: {
@@ -178,6 +184,9 @@ export default {
       showDescription2: false,
       bokehPlotLimitedWidth: true,
       isReplotButtonDisplayed: false,
+      isMultiSelect: false,
+      prev_file_id: null,
+      prev_file_ids: [],
     };
   },
   computed: {
@@ -198,10 +207,25 @@ export default {
     blockInfo() {
       return this.$store.state.blocksInfos["cycle"];
     },
+    fileModel: {
+      get() {
+        return this.isMultiSelect ? this.file_ids : this.file_id;
+      },
+      set(val) {
+        if (this.isMultiSelect) {
+          this.file_ids = val;
+        } else {
+          this.file_id = val;
+        }
+        // Optionally, update the flag in your block data for backend
+        this.setMultiSelectFlag(this.isMultiSelect);
+      },
+    },
     // normalizingMass() {
     //   return this.$store.all_item_data[this.item_id]["characteristic_mass"] || null;
     // },
     file_id: createComputedSetterForBlockField("file_id"),
+    file_ids: createComputedSetterForBlockField("file_ids"),
     all_cycles: createComputedSetterForBlockField("cyclenumber"),
     s_spline: createComputedSetterForBlockField("s_spline"),
     win_size_1: createComputedSetterForBlockField("win_size_1"),
@@ -249,6 +273,33 @@ export default {
       }
 
       this.all_cycles = all_cycles;
+    },
+    toggleMultiSelect() {
+      if (this.isMultiSelect) {
+        // Switching to single select: save multi, restore single
+        this.prev_file_ids = this.file_ids;
+        if (this.prev_file_id !== null) {
+          this.file_id = this.prev_file_id;
+        }
+      } else {
+        // Switching to multi-select: save single, restore multi
+        this.prev_file_id = this.file_id;
+        if (this.prev_file_ids && this.prev_file_ids.length > 0) {
+          this.file_ids = this.prev_file_ids;
+        } else if (this.file_id) {
+          // If no previous multi, initialize with current single
+          this.file_ids = [this.file_id];
+        }
+      }
+      this.isMultiSelect = !this.isMultiSelect;
+      this.setMultiSelectFlag(this.isMultiSelect);
+      this.updateBlock();
+    },
+    setMultiSelectFlag(flag) {
+      // Store the flag in your block data for backend use
+      this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id].isMultiSelect =
+        flag;
+      // Optionally, trigger updateBlockFromServer here if you want to persist immediately
     },
     updateBlock() {
       updateBlockFromServer(
