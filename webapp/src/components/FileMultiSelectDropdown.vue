@@ -183,6 +183,14 @@ export default {
       );
     },
   },
+  watch: {
+    availableFiles: {
+      handler() {
+        this.checkFileList();
+      },
+      immediate: true,
+    },
+  },
   methods: {
     getFileName(file_id) {
       // Use the map for lookup
@@ -277,6 +285,42 @@ export default {
           this.block_id,
           this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id],
         );
+      }
+    },
+    checkFileList() {
+      // This should fire if the available IDs change (e.g by removing a file from a sample)
+      if (!Array.isArray(this.modelValue) || !Array.isArray(this.all_available_file_ids)) {
+        // Avoid running if data is not in the expected format
+        return;
+      }
+
+      const currentSelectedIds = this.modelValue;
+      if (currentSelectedIds.length === 0) {
+        return; // No files selected, nothing to check
+      }
+
+      // Create a Set of all truly available file IDs for efficient lookup
+      const availableSet = new Set(this.all_available_file_ids);
+
+      // Filter the current selection, keeping only those present in the available set
+      const validSelectedIds = currentSelectedIds.filter((id) => availableSet.has(id));
+
+      // Only emit an update if the list of selected files has actually changed
+      if (validSelectedIds.length !== currentSelectedIds.length) {
+        console.log(
+          "Removing unavailable files from selection. Kept:",
+          validSelectedIds,
+          "Removed:",
+          currentSelectedIds.filter((id) => !availableSet.has(id)),
+        );
+        // Use the existing emitUpdate method for consistency
+        this.emitUpdate(validSelectedIds);
+
+        // Reset selection highlight if the highlighted item was removed
+        if (this.selectedSelected && !validSelectedIds.includes(this.selectedSelected)) {
+          this.selectedSelected = null;
+          this.selectedSelectedIndex = -1;
+        }
       }
     },
   },

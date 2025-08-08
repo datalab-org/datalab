@@ -74,6 +74,14 @@ export default {
       return modifiedDate.toLocaleDateString("en-GB");
     },
   },
+  watch: {
+    available_file_ids: {
+      handler() {
+        this.checkFileList();
+      },
+      immediate: true,
+    },
+  },
   methods: {
     all_files_name(file_id) {
       return this.all_files.find((file) => file.immutable_id === file_id)?.name || "File not found";
@@ -90,6 +98,15 @@ export default {
           this.block_id,
           this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id],
         );
+      }
+    },
+    checkFileList() {
+      // This should fire if the available IDs change (e.g by removing a file from a sample)
+      if (this.modelValue && !this.available_file_ids.includes(this.modelValue)) {
+        console.log(
+          `Selected file ID ${this.modelValue} no longer available. Resetting selection.`,
+        );
+        this.$emit("update:modelValue", "");
       }
     },
   },
