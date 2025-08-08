@@ -1,6 +1,7 @@
 import os
 import time
 from pathlib import Path
+from typing import Any
 
 import bokeh
 import pandas as pd
@@ -43,12 +44,15 @@ class CycleBlock(DataBlock):
         ".ndax",
     )
 
-    defaults = {
+    defaults: dict[str, Any] = {
         "p_spline": 5,
         "s_spline": 5,
         "win_size_2": 101,
         "win_size_1": 1001,
         "derivative_mode": None,
+        "isMultiSelect": False,
+        "file_id": None,
+        "file_ids": [],
     }
 
     def _get_characteristic_mass_g(self):
