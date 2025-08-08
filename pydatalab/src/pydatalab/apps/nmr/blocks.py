@@ -63,7 +63,24 @@ class NMRBlock(DataBlock):
             with zipfile.ZipFile(location, "r") as zip_ref:
                 zip_ref.extractall(tmpdir_path)
 
-            extracted_directory_name = tmpdir_path / name
+            extracted_directory_name = tmpdir_path
+            root_directory: Path | None = None
+            # Check if `<name>.zip` has a matching root-level `<name>` directory.
+            for c in tmpdir_path.iterdir():
+                # If we already found a root directory, break and emit warning about which one will be used
+                if c.name == "__MACOSX":
+                    continue
+                if root_directory is not None:
+                    warnings.warn(
+                        f"Multiple Bruker projects found in the zip file {list(tmpdir_path.iterdir())}, using {root_directory}."
+                    )
+                    break
+                if c.is_dir():
+                    root_directory = c
+
+            if root_directory:
+                extracted_directory_name = root_directory
+
             available_processes = sorted(
                 os.listdir(os.path.join(extracted_directory_name, "pdata"))
             )
@@ -73,12 +90,14 @@ class NMRBlock(DataBlock):
 
             try:
                 df, a_dic, topspin_title, processed_data_shape = read_bruker_1d(
-                    tmpdir_path / name,
+                    extracted_directory_name,
                     process_number=self.data["selected_process"],
                     verbose=False,
                 )
             except Exception as error:
-                raise RuntimeError(f"Unable to parse {name!r} as Bruker project. Error: {error!r}")
+                raise RuntimeError(
+                    f"Unable to parse {extracted_directory_name!r} as Bruker project. Error: {error!r}"
+                )
 
         serialized_df = df.to_dict() if (df is not None) else None
 
