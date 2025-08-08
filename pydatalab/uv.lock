@@ -476,7 +476,7 @@ wheels = [
 
 [[package]]
 name = "datalab-server"
-version = "0.6.0rc4.post8+gc29013e4.d20250807"
+version = "0.6.0rc4.post9+ge0672f8e.d20250808"
 source = { editable = "." }
 dependencies = [
     { name = "bokeh" },
@@ -605,7 +605,7 @@ requires-dist = [
     { name = "python-dotenv", marker = "extra == 'server'", specifier = "~=1.0" },
     { name = "renishawwire", marker = "extra == 'apps'", specifier = ">=0.1.16" },
     { name = "scipy", marker = "extra == 'apps'", specifier = "~=1.13" },
-    { name = "seppya", directory = "../../sepPya" },
+    { name = "seppya", directory = "plugins/sepPya" },
     { name = "tiktoken", marker = "extra == 'chat'", specifier = "~=0.7" },
     { name = "transformers", marker = "extra == 'chat'", specifier = "~=4.42" },
     { name = "werkzeug", marker = "extra == 'server'", specifier = "~=3.0" },
@@ -2527,7 +2527,7 @@ sdist = { url = "https://files.pythonhosted.org/packages/ac/b7/1af07a98390aba07d
 [[package]]
 name = "seppya"
 version = "0.0.1"
-source = { directory = "../../sepPya" }
+source = { directory = "plugins/sepPya" }
 dependencies = [
     { name = "numpy" },
     { name = "pandas" },
