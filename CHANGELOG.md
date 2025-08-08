@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.6.0 (July 2025)
+## v0.6.0 (August 2025)
 
 This release includes significant new functionality and UI redesign, a  
 fledgling plugin ecosystem, as well as several bug and quality-of-life
@@ -24,7 +24,7 @@ fixes, performance improvements and backwards-compatible API enhancements.
   as well as new file formats supported in the XRD (Rigaku's .rasx, variants of .xy), NMR (JCAMP-DX) blocks
   and media block (PDF documents).
 - A fledgling plugin ecosystem with ways to easily add new blocks to a specific
-  *datalab* instance ([docs](https://docs.datalab-org.io/en/v0.6.0/plugins/)).
+  *datalab* instance ([docs](https://docs.datalab-org.io/en/v0.6.0/plugins/)), with [`datalab-server`](https://pypi.org/project/datalab-server) PyPI package for easier dependency management.
 - Improved item search throughout the API, removing the need to search on
   whitespace or punctuation delimited words (e.g., ID matches will now begin after
   just 3 characters, rather than needing to type a full ID).
