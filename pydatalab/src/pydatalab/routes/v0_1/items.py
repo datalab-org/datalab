@@ -15,7 +15,6 @@ from pydatalab.logger import LOGGER
 from pydatalab.models import ITEM_MODELS
 from pydatalab.models.items import Item
 from pydatalab.models.people import Person
-from pydatalab.models.relationships import RelationshipType
 from pydatalab.models.utils import generate_unique_refcode
 from pydatalab.mongo import ITEMS_FTS_FIELDS, flask_mongo
 from pydatalab.permissions import PUBLIC_USER_ID, active_users_or_get_only, get_default_permissions
@@ -886,11 +885,7 @@ def get_item_data(
     except IndexError:
         doc = None
 
-    if not doc or (
-        not current_user.is_authenticated
-        and not CONFIG.TESTING
-        and doc["type"] != "starting_materials"
-    ):
+    if not doc:
         return (
             jsonify(
                 {
@@ -905,67 +900,16 @@ def get_item_data(
     try:
         ItemModel = ITEM_MODELS[doc["type"]]
     except KeyError:
-        if "type" in doc:
-            raise KeyError(f"Item {item_id=} has invalid type: {doc['type']}")
-        else:
-            raise KeyError(f"Item {item_id=} has no type field in document.")
+        raise KeyError(f"{item_id=} has invalid type: {doc.get('type')}")
 
+    # Load database document into item model to run all validation and
+    # setting of any missing default values
     doc = ItemModel(**doc)
+
+    # If the request asked to load blocks, loop through `display_order` and
+    # run the block lifecycle routines, eventually returning JSON
     if load_blocks:
         doc.blocks_obj = reserialize_blocks(doc.display_order, doc.blocks_obj)
-
-    # find any documents with relationships that mention this document
-    relationships_query_results = flask_mongo.db.items.find(
-        filter={
-            "$or": [
-                {"relationships.item_id": doc.item_id},
-                {"relationships.refcode": doc.refcode},
-                {"relationships.immutable_id": doc.immutable_id},
-            ]
-        },
-        projection={
-            "item_id": 1,
-            "refcode": 1,
-            "relationships": {
-                "$elemMatch": {
-                    "$or": [
-                        {"item_id": doc.item_id},
-                        {"refcode": doc.refcode},
-                    ],
-                },
-            },
-        },
-    )
-
-    # loop over and collect all 'outer' relationships presented by other items
-    incoming_relationships: dict[RelationshipType, set[str]] = {}
-    for d in relationships_query_results:
-        for k in d["relationships"]:
-            if k["relation"] not in incoming_relationships:
-                incoming_relationships[k["relation"]] = set()
-            incoming_relationships[k["relation"]].add(
-                d["item_id"] or d["refcode"] or d["immutable_id"]
-            )
-
-    # loop over and aggregate all 'inner' relationships presented by this item
-    inlined_relationships: dict[RelationshipType, set[str]] = {}
-    if doc.relationships is not None:
-        inlined_relationships = {
-            relation: {
-                d.item_id or d.refcode or d.immutable_id
-                for d in doc.relationships
-                if d.relation == relation
-            }
-            for relation in RelationshipType
-        }
-
-    # reunite parents and children from both directions of the relationships field
-    parents = incoming_relationships.get(RelationshipType.CHILD, set()).union(
-        inlined_relationships.get(RelationshipType.PARENT, set())
-    )
-    children = incoming_relationships.get(RelationshipType.PARENT, set()).union(
-        inlined_relationships.get(RelationshipType.CHILD, set())
-    )
 
     # Must be exported to JSON first to apply the custom pydantic JSON encoders
     return_dict = json.loads(doc.json(exclude_unset=True))
@@ -984,8 +928,6 @@ def get_item_data(
             "item_id": item_id,
             "item_data": return_dict,
             "files_data": files_data,
-            "child_items": sorted(children),
-            "parent_items": sorted(parents),
         }
     )
 
