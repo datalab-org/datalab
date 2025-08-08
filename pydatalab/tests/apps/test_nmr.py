@@ -1,3 +1,4 @@
+import shutil
 import zipfile
 from pathlib import Path
 
@@ -7,15 +8,24 @@ from pydatalab.apps.nmr.blocks import NMRBlock
 from pydatalab.apps.nmr.utils import read_bruker_1d, read_jcamp_dx_1d
 
 
-def _extract_example(filename, dir):
+def _extract_example(filename, _dir):
     with zipfile.ZipFile(filename, "r") as zip_ref:
-        zip_ref.extractall(dir)
-    return Path(dir) / filename.stem
+        zip_ref.extractall(_dir)
+    return Path(_dir) / filename.stem
 
 
 @pytest.fixture(scope="function")
 def nmr_1d_solution_path():
     yield Path(__file__).parent.parent.parent / "example_data" / "NMR" / "1.zip"
+
+
+@pytest.fixture(scope="function")
+def nmr_1d_solution_path_renamed(tmpdir, nmr_1d_solution_path):
+    """A renamed version of the 1D solution example, to test whether
+    the process finder can handle mismatched file names."""
+    new_path = Path(tmpdir / "2.zip")
+    shutil.copy(nmr_1d_solution_path, new_path)
+    yield new_path
 
 
 @pytest.fixture(scope="function")
@@ -77,7 +87,9 @@ def test_bruker_reader_2D(nmr_2d_matpass_example):
     assert shape == (8, 4096)
 
 
-def test_nmr_block(nmr_1d_solution_path, nmr_1d_solid_path, nmr_2d_matpass_path):
+def test_nmr_block(
+    nmr_1d_solution_path, nmr_1d_solution_path_renamed, nmr_1d_solid_path, nmr_2d_matpass_path
+):
     block = NMRBlock(item_id="nmr-block")
     block.read_bruker_nmr_data(nmr_1d_solid_path)
     assert block.data["metadata"]["topspin_title"].split("\n")[0] == "7Li 40 kHz 40 C hahn-echo"
@@ -87,6 +99,13 @@ def test_nmr_block(nmr_1d_solution_path, nmr_1d_solid_path, nmr_2d_matpass_path)
 
     block = NMRBlock(item_id="nmr-block")
     block.read_bruker_nmr_data(nmr_1d_solution_path)
+    assert block.data["metadata"]["topspin_title"].split("\n")[0] == "31P reference, 85% H3PO4"
+    block.generate_nmr_plot(parse=False)
+    plot = block.data["bokeh_plot_data"]
+    assert plot is not None
+
+    block = NMRBlock(item_id="nmr-block")
+    block.read_bruker_nmr_data(nmr_1d_solution_path_renamed)
     assert block.data["metadata"]["topspin_title"].split("\n")[0] == "31P reference, 85% H3PO4"
     block.generate_nmr_plot(parse=False)
     plot = block.data["bokeh_plot_data"]
