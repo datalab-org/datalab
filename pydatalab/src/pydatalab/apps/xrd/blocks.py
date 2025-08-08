@@ -305,7 +305,7 @@ class XRDBlock(DataBlock):
                 peak_model = PeakInformation(**peak_data)
                 if "peak_data" not in self.data:
                     self.data["peak_data"] = {}
-                self.data["peak_data"][f] = peak_model.dict()
+                self.data["peak_data"][f] = peak_model.model_dump()
 
         if pattern_dfs:
             p = self._make_plots(pattern_dfs, y_options)
