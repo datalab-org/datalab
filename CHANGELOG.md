@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.6.0 (July 2025)
+## v0.6.0 (August 2025)
 
 This release includes significant new functionality and UI redesign, a  
 fledgling plugin ecosystem, as well as several bug and quality-of-life
