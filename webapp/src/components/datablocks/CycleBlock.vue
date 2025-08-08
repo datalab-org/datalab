@@ -184,7 +184,6 @@ export default {
       showDescription2: false,
       bokehPlotLimitedWidth: true,
       isReplotButtonDisplayed: false,
-      isMultiSelect: false,
       prev_file_id: null,
       prev_file_ids: [],
     };
@@ -231,6 +230,7 @@ export default {
     win_size_1: createComputedSetterForBlockField("win_size_1"),
     derivative_mode: createComputedSetterForBlockField("derivative_mode"),
     characteristic_mass: createComputedSetterForBlockField("characteristic_mass"),
+    isMultiSelect: createComputedSetterForBlockField("isMultiSelect"),
   },
   methods: {
     parseCycleString() {
