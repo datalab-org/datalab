@@ -23,7 +23,9 @@ dependencies = [
     "bokeh ~= 2.4, < 3.0",
     "matplotlib ~= 3.8",
     "periodictable ~= 1.7",
-    "pydantic[email, dotenv] < 2.0",
+    "pydantic[email] ~= 2.11",
+    "python-dotenv ~= 1.1",
+    "pydantic-settings ~= 2.10",
     "pint ~= 0.24",
     "pandas[excel] ~= 2.2",
     "pymongo ~= 4.7",
@@ -134,7 +136,7 @@ dev-dependencies = [
 datalab-app-plugin-insitu = { git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git", rev = "v0.2.0" }
 
 [tool.pytest.ini_options]
-addopts = "--cov-report=term --cov-report=xml --cov ./src/pydatalab"
+addopts = "--cov-report=term --cov-report=xml --cov pydatalab"
 filterwarnings = [
     "error",
     "ignore:.*np.bool8*:DeprecationWarning",

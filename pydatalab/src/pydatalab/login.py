@@ -104,6 +104,12 @@ def get_by_id(user_id: str) -> LoginUser | None:
     if not user:
         return None
 
+    if "_id" in user:
+        user["immutable_id"] = str(user.pop("_id"))
+
+    if "managers" not in user:
+        user["managers"] = None
+
     role = flask_mongo.db.roles.find_one({"_id": ObjectId(user_id)})
     if not role:
         role = "user"
