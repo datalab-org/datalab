@@ -171,7 +171,11 @@ def create_app(
 
     # Load config values from a provided .env file into the flask app config
     # This useful for non-datalab settings like OAuth secrets
-    app.config.update(dotenv_values(dotenv_path=env_file))
+    if isinstance(env_file, bool) and not env_file:
+        # If env_file is explicitly set to, do not load any .env file
+        LOGGER.info("Not loading any env file")
+    else:
+        app.config.update(dotenv_values(dotenv_path=env_file))
 
     # Testing config: to enable OAuth2 on dev servers without https, we need to control the
     # OAUTHLIB_INSECURE_TRANSPORT setting. If this is provided in the .env file, we also need
