@@ -8,8 +8,8 @@ from pydatalab.models.traits import (
     HasBlocks,
     HasOwner,
     HasRevisionControl,
-    IsCollectable,
 )
+from pydatalab.models.traits.collectable import IsCollectable
 from pydatalab.models.utils import (
     HumanReadableIdentifier,
     IsoformatDateTime,
