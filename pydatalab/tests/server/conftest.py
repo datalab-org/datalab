@@ -118,7 +118,7 @@ def app(real_mongo_client, monkeypatch_session, app_config):
             )
             monkeypatch_session.setattr(pydatalab.mongo, "get_database", mock_mongo_database)
 
-    app = create_app(app_config)
+    app = create_app(app_config, env_file=False)
 
     yield app
     if mongo_cli:
