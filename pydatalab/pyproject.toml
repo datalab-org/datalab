@@ -135,7 +135,6 @@ dev-dependencies = [
 datalab-app-plugin-insitu = { git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git", rev = "v0.3.0" }
 
 [tool.pytest.ini_options]
-addopts = "--cov-report=xml --cov ./src/pydatalab"
 filterwarnings = [
     "error",
     "ignore:.*Capacity columns are not equal, replacing with new capacity column calculated from current and time columns and renaming the old capacity column to Old Capacity:UserWarning",
