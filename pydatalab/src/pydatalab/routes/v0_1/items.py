@@ -958,7 +958,7 @@ def get_item_data(
         )
 
         # loop over and collect all 'outer' relationships presented by other items
-        incoming_relationships: dict[RelationshipType, set[str]] = {}
+        incoming_relationships: dict[RelationshipType, set] = {}
         for d in relationships_query_results:
             for k in d["relationships"]:
                 if k["relation"] not in incoming_relationships:
@@ -968,7 +968,7 @@ def get_item_data(
                 )
 
         # loop over and aggregate all 'inner' relationships presented by this item
-        inlined_relationships: dict[RelationshipType, set[str]] = {}
+        inlined_relationships: dict[RelationshipType, set] = {}
         if doc.relationships is not None:
             inlined_relationships = {
                 relation: {
