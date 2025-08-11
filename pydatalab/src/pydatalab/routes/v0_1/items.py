@@ -7,18 +7,19 @@ from flask_login import current_user
 from pydantic import ValidationError
 from pymongo.command_cursor import CommandCursor
 from pymongo.errors import DuplicateKeyError
-from werkzeug.exceptions import BadRequest
+from werkzeug.exceptions import BadRequest, NotFound
 
 from pydatalab.apps import BLOCK_TYPES
 from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER
+
 # from pydatalab.middleware import clean_objectids_middleware
 from pydatalab.models import ITEM_MODELS
 from pydatalab.models.items import Item
 from pydatalab.models.people import Person
 from pydatalab.models.relationships import RelationshipType
 from pydatalab.models.utils import generate_unique_refcode
-from pydatalab.mongo import flask_mongo, ITEMS_FTS_FIELDS
+from pydatalab.mongo import ITEMS_FTS_FIELDS, flask_mongo
 from pydatalab.permissions import PUBLIC_USER_ID, active_users_or_get_only, get_default_permissions
 
 ITEMS = Blueprint("items", __name__)
@@ -418,14 +419,10 @@ def _create_sample(
     generate_id_automatically: bool = False,
 ) -> tuple[dict, int]:
     sample_dict["item_id"] = sample_dict.get("item_id")
+
     if generate_id_automatically and sample_dict["item_id"]:
-        return (
-            dict(
-                status="error",
-                messages=f"""Request to create item with generate_id_automatically = true is incompatible with the provided item data,
-                which has an item_id included (provided id: {sample_dict["item_id"]}")""",
-            ),
-            400,
+        raise BadRequest(
+            f"Request to create item with {generate_id_automatically=} is incompatible with the provided item data, which has an item_id included (id: {sample_dict['item_id']})"
         )
 
     if copy_from_item_id:
@@ -433,13 +430,8 @@ def _create_sample(
 
         LOGGER.debug(f"Copying from pre-existing item {copy_from_item_id} with data:\n{copied_doc}")
         if not copied_doc:
-            return (
-                dict(
-                    status="error",
-                    message=f"Request to copy item with id {copy_from_item_id} failed because item could not be found.",
-                    item_id=sample_dict["item_id"],
-                ),
-                404,
+            raise NotFound(
+                f"Request to copy item with id {copy_from_item_id} failed because item could not be found."
             )
 
         # the provided item_id, name, and date take precedence over the copied parameters, if provided
@@ -447,12 +439,8 @@ def _create_sample(
             copied_doc["item_id"] = sample_dict["item_id"]
             copied_doc.pop("_id", None)
         except KeyError:
-            return (
-                dict(
-                    status="error",
-                    message=f"Request to copy item with id {copy_from_item_id} to new item failed because the target new item_id was not provided.",
-                ),
-                404,
+            raise BadRequest(
+                f"Request to copy item with id {copy_from_item_id} to new item failed because the target new item_id was not provided."
             )
 
         copied_doc["name"] = sample_dict.get("name")
@@ -496,14 +484,9 @@ def _create_sample(
         # If passed collection data, dereference it and check if the collection exists
         sample_dict["collections"] = _check_collections(sample_dict)
     except ValueError as exc:
-        return (
-            dict(
-                status="error",
-                message=f"Unable to create new item {sample_dict['item_id']!r} inside non-existent collection(s): {exc}",
-                item_id=sample_dict["item_id"],
-            ),
-            401,
-        )
+        raise NotFound(
+            f"Unable to create new item {sample_dict['item_id']!r} inside non-existent collection(s) {exc}"
+        ) from exc
 
     sample_dict.pop("refcode", None)
     type_ = sample_dict["type"]
@@ -512,12 +495,6 @@ def _create_sample(
 
     model = ITEM_MODELS[type_]
 
-    # the following code was used previously to explicitely check schema properties.
-    # it doesn't seem to be necessary now, with extra = "ignore" turned on in the pydantic models,
-    # and it breaks in instances where the models use aliases (e.g., in the starting_material model)
-    # so we are taking it out now, but leaving this comment in case it needs to be reverted.
-    # schema = model.schema()
-    # new_sample = {k: sample_dict[k] for k in schema["properties"] if k in sample_dict}
     new_sample = sample_dict
 
     if type_ in ("starting_materials", "equipment"):
@@ -548,7 +525,7 @@ def _create_sample(
 
     #     new_sample["file_ObjectIds"] = [
     #         PyObjectId(id_) if isinstance(id_, str) else id_ for id_ in new_sample["file_ObjectIds"]
-        # ]
+    # ]
 
     # Generate a unique refcode for the sample
     new_sample["refcode"] = generate_unique_refcode()
@@ -868,15 +845,7 @@ def get_item_data(
             refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
         match = {"refcode": refcode}
     else:
-        return (
-            jsonify(
-                {
-                    "status": "error",
-                    "message": "No item_id or refcode provided.",
-                }
-            ),
-            400,
-        )
+        raise BadRequest("No item_id or refcode provided.")
 
     # retrieve the entry from the database:
     cursor = flask_mongo.db.items.aggregate(
@@ -914,9 +883,9 @@ def get_item_data(
         ItemModel = ITEM_MODELS[doc["type"]]
     except KeyError:
         if "type" in doc:
-            raise KeyError(f"Item {item_id=} has invalid type: {doc['type']}")
+            raise BadRequest(f"Item {item_id=} has invalid type: {doc['type']}")
         else:
-            raise KeyError(f"Item {item_id=} has no type field in document.")
+            raise BadRequest(f"Item {item_id=} has no type field in document.")
 
     try:
         doc = ItemModel(**doc)
@@ -987,18 +956,11 @@ def get_item_data(
     if item_id is None:
         item_id = return_dict["item_id"]
 
-    # create the files_data dictionary keyed by file ObjectId
-    files_data: dict[ObjectId, dict] = {f["immutable_id"]: f for f in return_dict.get("files", [])}
-
-    if not files_data:
-        files_data = {}
-
     return jsonify(
         {
             "status": "success",
             "item_id": item_id,
             "item_data": return_dict,
-            "files_data": files_data,
             "child_items": sorted(children),
             "parent_items": sorted(parents),
         }
