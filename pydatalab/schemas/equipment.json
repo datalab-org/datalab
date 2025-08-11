@@ -77,6 +77,7 @@
         "last_modified": {
           "anyOf": [
             {
+              "format": "datetime",
               "type": "string"
             },
             {
@@ -346,6 +347,7 @@
         "last_modified": {
           "anyOf": [
             {
+              "format": "datetime",
               "type": "string"
             },
             {
@@ -380,6 +382,7 @@
         "last_modified_remote": {
           "anyOf": [
             {
+              "format": "datetime",
               "type": "string"
             },
             {
@@ -470,6 +473,7 @@
         },
         "time_added": {
           "description": "The timestamp for the original file upload.",
+          "format": "datetime",
           "title": "Time Added",
           "type": "string"
         },
@@ -634,6 +638,7 @@
         "last_modified": {
           "anyOf": [
             {
+              "format": "datetime",
               "type": "string"
             },
             {
@@ -909,6 +914,7 @@
     "last_modified": {
       "anyOf": [
         {
+          "format": "datetime",
           "type": "string"
         },
         {
@@ -967,6 +973,7 @@
     "date": {
       "anyOf": [
         {
+          "format": "datetime",
           "type": "string"
         },
         {

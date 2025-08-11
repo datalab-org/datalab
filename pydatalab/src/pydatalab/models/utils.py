@@ -7,13 +7,12 @@ from functools import partial
 from typing import Annotated, Any, TypeAlias
 
 import pint
+from bson import ObjectId
 from pydantic import (
     BaseModel,
-    BeforeValidator,
     ConfigDict,
     Field,
     StringConstraints,
-    WithJsonSchema,
     field_validator,
     model_validator,
 )
@@ -107,15 +106,58 @@ Mass: TypeAlias = PintType("[mass]")  # type: ignore # noqa
 Volume: TypeAlias = PintType("[volume]")  # type: ignore # noqa
 
 
-PyObjectId = Annotated[
-    str, BeforeValidator(str), WithJsonSchema({"type": "string", "format": "objectid"})
-]
-"""A wrapper type for a BSON ObjectId that can be used as a Pydantic field type.
+class PyObjectId(ObjectId):
+    @classmethod
+    def __get_pydantic_core_schema__(cls, source_type: Any, handler: Any) -> core_schema.CoreSchema:
+        return core_schema.no_info_after_validator_function(
+            cls.validate,
+            core_schema.union_schema(
+                [
+                    core_schema.str_schema(),
+                    core_schema.is_instance_schema(ObjectId),
+                    core_schema.is_instance_schema(cls),
+                    core_schema.dict_schema(),
+                    core_schema.none_schema(),
+                ]
+            ),
+            serialization=core_schema.plain_serializer_function_ser_schema(
+                lambda x: str(x) if x else None, when_used="json"
+            ),
+        )
 
-Modified from "Getting started iwth MongoDB and FastAPI":
-https://www.mongodb.com/developer/languages/python/python-quickstart-fastapi/.
+    @classmethod
+    def __get_pydantic_json_schema__(cls, core_schema, handler):
+        return {
+            "type": "string",
+            "format": "objectid",
+        }
 
-"""
+    @classmethod
+    def validate(cls, v):
+        if v is None:
+            return None
+        if isinstance(v, cls):
+            return v
+        if isinstance(v, ObjectId):
+            return cls(v)
+
+        if isinstance(v, dict):
+            if "$oid" in v:
+                return cls(ObjectId(v["$oid"]))
+            elif "_id" in v and isinstance(v["_id"], (str, ObjectId)):
+                return cls(ObjectId(v["_id"]))
+            elif len(v) == 1:
+                first_val = next(iter(v.values()))
+                if isinstance(first_val, str) and ObjectId.is_valid(first_val):
+                    return cls(ObjectId(first_val))
+            raise ValueError(f"Cannot convert dict to ObjectId: {v}")
+
+        if isinstance(v, str):
+            if not ObjectId.is_valid(v):
+                raise ValueError("Invalid ObjectId string")
+            return cls(ObjectId(v))
+
+        raise ValueError(f"Cannot convert {type(v)} to ObjectId: {v}")
 
 
 class IsoformatDateTime(datetime.datetime):
@@ -135,6 +177,13 @@ class IsoformatDateTime(datetime.datetime):
                 lambda x: x.isoformat() if x else None, when_used="json"
             ),
         )
+
+    @classmethod
+    def __get_pydantic_json_schema__(cls, core_schema, handler):
+        return {
+            "type": "string",
+            "format": "datetime",
+        }
 
     @classmethod
     def validate(cls, v) -> datetime.datetime | None:
