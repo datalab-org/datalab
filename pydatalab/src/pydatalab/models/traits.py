@@ -2,6 +2,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field, root_validator
 
+from pydatalab.models.blocks import DataBlockResponse
 from pydatalab.models.people import Person
 from pydatalab.models.utils import Constituent, InlineSubstance, PyObjectId
 
@@ -23,7 +24,7 @@ class HasRevisionControl(BaseModel):
 
 
 class HasBlocks(BaseModel):
-    blocks_obj: dict[str, Any] = Field({})
+    blocks_obj: dict[str, DataBlockResponse] = Field({})
     """A mapping from block ID to block data."""
 
     display_order: list[str] = Field([])
