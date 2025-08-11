@@ -64,7 +64,7 @@ def test_get_file_and_delete(client, default_filepath, default_sample):
 
     assert "files" in response.json["item_data"]
     assert len(response.json["item_data"]["files"]) == 1
-    file_id = [_id for _id in response.json["item_data"]["files"]][0]
+    file_id = [f["immutable_id"] for f in response.json["item_data"]["files"]][0]
 
     assert "item_data" in response.json
     assert file_id in response.json["item_data"]["file_ObjectIds"]

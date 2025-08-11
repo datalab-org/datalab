@@ -160,8 +160,8 @@ def test_custom_and_inherited_items():
 
     item_dict = item.model_dump()
     assert item_dict["type"] == "items_custom"
-    assert item_dict["creator_ids"][0] == "0123456789ab0123456789ab"
-    assert item_dict["creator_ids"][1] == "1023456789ab0123456789ab"
+    assert item_dict["creator_ids"][0] == ObjectId("0123456789ab0123456789ab")
+    assert item_dict["creator_ids"][1] == ObjectId("1023456789ab0123456789ab")
     assert item_dict["date"] == datetime.datetime.fromisoformat("2020-01-01 00:00").replace(
         tzinfo=datetime.timezone.utc
     )
@@ -188,8 +188,8 @@ def test_custom_and_inherited_items():
 
     sample_dict = sample.model_dump()
     assert sample_dict["type"] == "samples"
-    assert sample_dict["creator_ids"][0] == "0123456789ab0123456789ab"
-    assert sample_dict["creator_ids"][1] == "1023456789ab0123456789ab"
+    assert sample_dict["creator_ids"][0] == ObjectId("0123456789ab0123456789ab")
+    assert sample_dict["creator_ids"][1] == ObjectId("1023456789ab0123456789ab")
     assert sample_dict["date"] == datetime.datetime.fromisoformat("2020-01-01 00:00").replace(
         tzinfo=datetime.timezone.utc
     )

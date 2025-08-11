@@ -631,7 +631,7 @@ def test_items_added_to_existing_collection(client, default_collection, default_
     default_sample_dict["item_id"] = new_id
     default_sample_dict["collections"] = [{"collection_id": "random_id"}]
     response = client.post("/new-sample/", json=default_sample_dict)
-    assert response.status_code == 401, response.json
+    assert response.status_code == 404, response.json
     response = client.get(f"/get-item-data/{new_id}")
     assert response.status_code == 404, response.json
 
