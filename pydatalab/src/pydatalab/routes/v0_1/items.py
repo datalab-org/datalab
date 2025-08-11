@@ -12,13 +12,13 @@ from werkzeug.exceptions import BadRequest
 from pydatalab.apps import BLOCK_TYPES
 from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER
-from pydatalab.middleware import clean_objectids_middleware
+# from pydatalab.middleware import clean_objectids_middleware
 from pydatalab.models import ITEM_MODELS
 from pydatalab.models.items import Item
 from pydatalab.models.people import Person
 from pydatalab.models.relationships import RelationshipType
 from pydatalab.models.utils import generate_unique_refcode
-from pydatalab.mongo import flask_mongo
+from pydatalab.mongo import flask_mongo, ITEMS_FTS_FIELDS
 from pydatalab.permissions import PUBLIC_USER_ID, active_users_or_get_only, get_default_permissions
 
 ITEMS = Blueprint("items", __name__)
@@ -357,63 +357,59 @@ def search_items():
     Returns:
         response list of dictionaries containing the matching items in order of
         descending match score.
+
     """
-    try:
-        query = request.args.get("query", type=str)
-        nresults = request.args.get("nresults", default=100, type=int)
-        types = request.args.get("types", default=None)
-        if isinstance(types, str):
-            # should figure out how to parse as list automatically
-            types = types.split(",")
+    query = request.args.get("query", type=str)
+    nresults = request.args.get("nresults", default=100, type=int)
+    types = request.args.get("types", default=None)
+    if isinstance(types, str):
+        # should figure out how to parse as list automatically
+        types = types.split(",")
 
-        pipeline = []
+    pipeline = []
 
-        if isinstance(query, str):
-            query = query.strip("'")
+    if isinstance(query, str):
+        query = query.strip("'")
 
-        if isinstance(query, str) and query.startswith("%"):
-            query = query.lstrip("%")
-            match_obj = {
-                "$text": {"$search": query},
-                **get_default_permissions(user_only=False),
+    if isinstance(query, str) and query.startswith("%"):
+        query = query.lstrip("%")
+        match_obj = {
+            "$text": {"$search": query},
+            **get_default_permissions(user_only=False),
+        }
+        if types is not None:
+            match_obj["type"] = {"$in": types}
+
+        pipeline.append({"$match": match_obj})
+        pipeline.append({"$sort": {"score": {"$meta": "textScore"}}})
+
+    else:
+        match_obj = {
+            "$or": [{field: {"$regex": query, "$options": "i"}} for field in ITEMS_FTS_FIELDS]
+        }
+        match_obj = {"$and": [get_default_permissions(user_only=False), match_obj]}
+        if types is not None:
+            match_obj["$and"].append({"type": {"$in": types}})
+
+        pipeline.append({"$match": match_obj})
+
+    pipeline.append({"$limit": nresults})
+    pipeline.append(
+        {
+            "$project": {
+                "_id": 0,
+                "type": 1,
+                "item_id": 1,
+                "name": 1,
+                "chemform": 1,
+                "refcode": 1,
             }
-            if types is not None:
-                match_obj["type"] = {"$in": types}
+        }
+    )
 
-            pipeline.append({"$match": match_obj})
-            pipeline.append({"$sort": {"score": {"$meta": "textScore"}}})
+    cursor = flask_mongo.db.items.aggregate(pipeline)
 
-        else:
-            regex_fields = ["item_id", "name", "description", "chemform", "refcode"]
-            match_obj = {
-                "$or": [{field: {"$regex": query, "$options": "i"}} for field in regex_fields]
-            }
-            match_obj = {"$and": [get_default_permissions(user_only=False), match_obj]}
-            if types is not None:
-                match_obj["$and"].append({"type": {"$in": types}})
-
-            pipeline.append({"$match": match_obj})
-
-        pipeline.append({"$limit": nresults})
-        pipeline.append(
-            {
-                "$project": {
-                    "_id": 0,
-                    "type": 1,
-                    "item_id": 1,
-                    "name": 1,
-                    "chemform": 1,
-                    "refcode": 1,
-                }
-            }
-        )
-
-        cursor = flask_mongo.db.items.aggregate(pipeline)
-
-        return jsonify({"status": "success", "items": list(cursor)}), 200
-    except Exception as e:
-        LOGGER.exception(f"Error in search_items: {e}")
-        return jsonify({"status": "error", "message": str(e)}), 500
+    return jsonify({"status": "success", "items": list(cursor)}), 200
 
 
 def _create_sample(
@@ -455,7 +451,6 @@ def _create_sample(
                 dict(
                     status="error",
                     message=f"Request to copy item with id {copy_from_item_id} to new item failed because the target new item_id was not provided.",
-                    item_id=sample_dict["item_id"],
                 ),
                 404,
             )
@@ -548,12 +543,12 @@ def _create_sample(
             }
         ]
 
-    if "file_ObjectIds" in new_sample and isinstance(new_sample["file_ObjectIds"], list):
-        from pydatalab.models.utils import PyObjectId
+    # if "file_ObjectIds" in new_sample and isinstance(new_sample["file_ObjectIds"], list):
+    #     from pydatalab.models.utils import PyObjectId
 
-        new_sample["file_ObjectIds"] = [
-            PyObjectId(id_) if isinstance(id_, str) else id_ for id_ in new_sample["file_ObjectIds"]
-        ]
+    #     new_sample["file_ObjectIds"] = [
+    #         PyObjectId(id_) if isinstance(id_, str) else id_ for id_ in new_sample["file_ObjectIds"]
+        # ]
 
     # Generate a unique refcode for the sample
     new_sample["refcode"] = generate_unique_refcode()
@@ -574,8 +569,8 @@ def _create_sample(
 
     new_sample["date"] = new_sample.get("date", datetime.datetime.now(tz=datetime.timezone.utc))
     try:
-        if "immutable_id" in new_sample:
-            del new_sample["immutable_id"]
+        # if "immutable_id" in new_sample:
+        #     del new_sample["immutable_id"]
 
         data_model: Item = model(**new_sample)
 
@@ -862,187 +857,156 @@ def get_item_data(
            call its render function).
 
     """
-    try:
-        redirect_to_ui = bool(request.args.get("redirect-to-ui", default=False, type=json.loads))
-        if refcode and redirect_to_ui and CONFIG.APP_URL:
-            return redirect(f"{CONFIG.APP_URL}/items/{refcode}", code=307)
+    redirect_to_ui = bool(request.args.get("redirect-to-ui", default=False, type=json.loads))
+    if refcode and redirect_to_ui and CONFIG.APP_URL:
+        return redirect(f"{CONFIG.APP_URL}/items/{refcode}", code=307)
 
-        if item_id:
-            match = {"item_id": item_id}
-        elif refcode:
-            if len(refcode.split(":")) != 2:
-                refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
-            match = {"refcode": refcode}
-        else:
-            return (
-                jsonify(
-                    {
-                        "status": "error",
-                        "message": "No item_id or refcode provided.",
-                    }
-                ),
-                400,
-            )
-
-        # retrieve the entry from the database:
-        cursor = flask_mongo.db.items.aggregate(
-            [
+    if item_id:
+        match = {"item_id": item_id}
+    elif refcode:
+        if len(refcode.split(":")) != 2:
+            refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
+        match = {"refcode": refcode}
+    else:
+        return (
+            jsonify(
                 {
-                    "$match": {
-                        **match,
-                        **get_default_permissions(user_only=False),
-                    }
-                },
-                {"$lookup": creators_lookup()},
-                {"$lookup": collections_lookup()},
-                {"$lookup": files_lookup()},
-            ],
+                    "status": "error",
+                    "message": "No item_id or refcode provided.",
+                }
+            ),
+            400,
         )
 
-        try:
-            doc = list(cursor)[0]
+    # retrieve the entry from the database:
+    cursor = flask_mongo.db.items.aggregate(
+        [
+            {
+                "$match": {
+                    **match,
+                    **get_default_permissions(user_only=False),
+                }
+            },
+            {"$lookup": creators_lookup()},
+            {"$lookup": collections_lookup()},
+            {"$lookup": files_lookup()},
+        ],
+    )
 
-        except IndexError:
-            doc = None
+    try:
+        doc = list(cursor)[0]
 
-        if not doc:
-            return (
-                jsonify(
-                    {
-                        "status": "error",
-                        "message": f"No matching items for {match=} with current authorization.",
-                    }
-                ),
-                404,
+    except IndexError:
+        doc = None
+
+    if not doc:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": f"No matching items for {match=} with current authorization.",
+                }
+            ),
+            404,
+        )
+
+    try:
+        ItemModel = ITEM_MODELS[doc["type"]]
+    except KeyError:
+        if "type" in doc:
+            raise KeyError(f"Item {item_id=} has invalid type: {doc['type']}")
+        else:
+            raise KeyError(f"Item {item_id=} has no type field in document.")
+
+    try:
+        doc = ItemModel(**doc)
+    except ValidationError as e:
+        LOGGER.error(f"Pydantic validation error: {e}")
+        LOGGER.error(f"Document keys: {list(doc.keys())}")
+        raise e
+
+    if load_blocks:
+        doc.blocks_obj = reserialize_blocks(doc.display_order, doc.blocks_obj)
+
+    # find any documents with relationships that mention this document
+    relationships_query_results = flask_mongo.db.items.find(
+        filter={
+            "$or": [
+                {"relationships.item_id": doc.item_id},
+                {"relationships.refcode": doc.refcode},
+                {"relationships.immutable_id": doc.immutable_id},
+            ]
+        },
+        projection={
+            "item_id": 1,
+            "refcode": 1,
+            "relationships": {
+                "$elemMatch": {
+                    "$or": [
+                        {"item_id": doc.item_id},
+                        {"refcode": doc.refcode},
+                    ],
+                },
+            },
+        },
+    )
+
+    # loop over and collect all 'outer' relationships presented by other items
+    incoming_relationships: dict[RelationshipType, set] = {}
+    for d in relationships_query_results:
+        for k in d["relationships"]:
+            if k["relation"] not in incoming_relationships:
+                incoming_relationships[k["relation"]] = set()
+            incoming_relationships[k["relation"]].add(
+                d["item_id"] or d["refcode"] or d["immutable_id"]
             )
 
-        try:
-            ItemModel = ITEM_MODELS[doc["type"]]
-        except KeyError:
-            if "type" in doc:
-                raise KeyError(f"Item {item_id=} has invalid type: {doc['type']}")
-            else:
-                raise KeyError(f"Item {item_id=} has no type field in document.")
-
-        try:
-            doc = ItemModel(**doc)
-        except ValidationError as e:
-            LOGGER.error(f"Pydantic validation error: {e}")
-            LOGGER.error(f"Document keys: {list(doc.keys())}")
-            raise
-
-        if load_blocks:
-            doc.blocks_obj = reserialize_blocks(doc.display_order, doc.blocks_obj)
-
-        # find any documents with relationships that mention this document
-        relationships_query_results = flask_mongo.db.items.find(
-            filter={
-                "$or": [
-                    {"relationships.item_id": doc.item_id},
-                    {"relationships.refcode": doc.refcode},
-                    {"relationships.immutable_id": doc.immutable_id},
-                ]
-            },
-            projection={
-                "item_id": 1,
-                "refcode": 1,
-                "relationships": {
-                    "$elemMatch": {
-                        "$or": [
-                            {"item_id": doc.item_id},
-                            {"refcode": doc.refcode},
-                        ],
-                    },
-                },
-            },
-        )
-
-        # loop over and collect all 'outer' relationships presented by other items
-        incoming_relationships: dict[RelationshipType, set] = {}
-        for d in relationships_query_results:
-            for k in d["relationships"]:
-                if k["relation"] not in incoming_relationships:
-                    incoming_relationships[k["relation"]] = set()
-                incoming_relationships[k["relation"]].add(
-                    d["item_id"] or d["refcode"] or d["immutable_id"]
-                )
-
-        # loop over and aggregate all 'inner' relationships presented by this item
-        inlined_relationships: dict[RelationshipType, set] = {}
-        if doc.relationships is not None:
-            inlined_relationships = {
-                relation: {
-                    d.item_id or d.refcode or d.immutable_id
-                    for d in doc.relationships
-                    if d.relation == relation
-                }
-                for relation in RelationshipType
+    # loop over and aggregate all 'inner' relationships presented by this item
+    inlined_relationships: dict[RelationshipType, set] = {}
+    if doc.relationships is not None:
+        inlined_relationships = {
+            relation: {
+                d.item_id or d.refcode or d.immutable_id
+                for d in doc.relationships
+                if d.relation == relation
             }
+            for relation in RelationshipType
+        }
 
-        # reunite parents and children from both directions of the relationships field
-        parents = incoming_relationships.get(RelationshipType.CHILD, set()).union(
-            inlined_relationships.get(RelationshipType.PARENT, set())
-        )
-        children = incoming_relationships.get(RelationshipType.PARENT, set()).union(
-            inlined_relationships.get(RelationshipType.CHILD, set())
-        )
+    # reunite parents and children from both directions of the relationships field
+    parents = incoming_relationships.get(RelationshipType.CHILD, set()).union(
+        inlined_relationships.get(RelationshipType.PARENT, set())
+    )
+    children = incoming_relationships.get(RelationshipType.PARENT, set()).union(
+        inlined_relationships.get(RelationshipType.CHILD, set())
+    )
 
-        # Must be exported to JSON first to apply the custom pydantic JSON encoders
-        try:
-            return_dict = doc.model_dump(mode="json", exclude_unset=True)
-        except Exception:
-            from bson import json_util
+    # Must be exported to JSON first to apply the custom pydantic JSON encoders
+    return_dict = doc.model_dump(mode="json", exclude_unset=True)
 
-            return_dict = doc.model_dump(exclude_unset=True)
-            json_str = json_util.dumps(return_dict)
-            return_dict = json.loads(json_str)
+    if item_id is None:
+        item_id = return_dict["item_id"]
 
-            def clean_mongodb_dates(obj):
-                """Recursively clean MongoDB date format {'$date': '...'} to ISO strings"""
-                if isinstance(obj, dict):
-                    if "$date" in obj and len(obj) == 1:
-                        return obj["$date"]
-                    elif "$oid" in obj and len(obj) == 1:
-                        return obj["$oid"]
-                    else:
-                        return {k: clean_mongodb_dates(v) for k, v in obj.items()}
-                elif isinstance(obj, list):
-                    return [clean_mongodb_dates(item) for item in obj]
-                else:
-                    return obj
+    # create the files_data dictionary keyed by file ObjectId
+    files_data: dict[ObjectId, dict] = {f["immutable_id"]: f for f in return_dict.get("files", [])}
 
-            return_dict = clean_mongodb_dates(return_dict)
+    if not files_data:
+        files_data = {}
 
-        if item_id is None:
-            item_id = return_dict["item_id"]
-
-        # create the files_data dictionary keyed by file ObjectId
-        files_data: dict[str, dict] = {}
-        for f in return_dict.get("files") or []:
-            file_id_str = str(f.get("immutable_id", ""))
-            if file_id_str and file_id_str != "None":
-                files_data[file_id_str] = {**f, "immutable_id": file_id_str, "_id": file_id_str}
-
-        if not files_data:
-            files_data = {}
-
-        return jsonify(
-            {
-                "status": "success",
-                "item_id": item_id,
-                "item_data": return_dict,
-                "files_data": files_data,
-                "child_items": sorted(children),
-                "parent_items": sorted(parents),
-            }
-        )
-    except Exception as e:
-        LOGGER.exception(f"Error in get_item_data: {e}")
-        return jsonify({"status": "error", "message": str(e), "error_type": type(e).__name__}), 500
+    return jsonify(
+        {
+            "status": "success",
+            "item_id": item_id,
+            "item_data": return_dict,
+            "files_data": files_data,
+            "child_items": sorted(children),
+            "parent_items": sorted(parents),
+        }
+    )
 
 
 @ITEMS.route("/save-item/", methods=["POST"])
-@clean_objectids_middleware
+# @clean_objectids_middleware
 def save_item():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
 
