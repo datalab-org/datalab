@@ -40,18 +40,12 @@ def save_user(user_id):
 
     try:
         if display_name:
-            if not display_name.strip():
-                return jsonify(
-                    {"status": "error", "message": "Invalid display name provided."}
-                ), 400
             update["display_name"] = display_name
 
         if contact_email or contact_email in (None, ""):
             if contact_email in ("", None):
                 update["contact_email"] = None
             else:
-                if "@" not in contact_email or len(contact_email) > 1000:
-                    return jsonify({"status": "error", "message": "Invalid email provided."}), 400
                 update["contact_email"] = contact_email
 
         if account_status:

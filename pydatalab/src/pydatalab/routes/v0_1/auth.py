@@ -288,12 +288,6 @@ def find_user_with_identity(
         {"identities.identifier": identifier, "identities.identity_type": identity_type},
     )
     if user:
-        if "_id" in user:
-            user["immutable_id"] = str(user.pop("_id"))
-
-        if "managers" not in user:
-            user["managers"] = None
-
         person = Person(**user)
         identity_indices: list[int] = [
             ind
