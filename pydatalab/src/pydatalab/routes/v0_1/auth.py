@@ -409,15 +409,14 @@ def find_create_or_modify_user(
                 identity, use_display_name=True, account_status=account_status
             )
             LOGGER.debug("Inserting new user model %s into database", user)
-            insert_pydantic_model_fork_safe(user, "users")
-            user_model = get_by_id(str(user.immutable_id))
+            inserted_id = insert_pydantic_model_fork_safe(user, "users")
+            user = get_by_id(inserted_id)
             if user is None:
                 raise RuntimeError("Failed to insert user into database")
-            wrapped_login_user(user_model)
 
     # Log the user into the session with this identity
     if user is not None:
-        wrapped_login_user(get_by_id(str(user.immutable_id)))
+        wrapped_login_user(user)
 
 
 @EMAIL_BLUEPRINT.route("/magic-link", methods=["POST"])

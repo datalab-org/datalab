@@ -1,8 +1,11 @@
 from bson import ObjectId
 from flask import Blueprint, jsonify, request
 from flask_login import current_user
+from pydantic import ValidationError
+from werkzeug.exceptions import BadRequest
 
 from pydatalab.config import CONFIG
+from pydatalab.models.people import Person
 from pydatalab.mongo import flask_mongo
 from pydatalab.permissions import active_users_or_get_only
 
@@ -38,23 +41,22 @@ def save_user(user_id):
 
     update = {}
 
+    if display_name:
+        update["display_name"] = display_name
+
+    if contact_email or contact_email in (None, ""):
+        if contact_email in ("", None):
+            update["contact_email"] = None
+        else:
+            update["contact_email"] = contact_email
+
+    if account_status:
+        update["account_status"] = account_status
+
     try:
-        if display_name:
-            update["display_name"] = display_name
-
-        if contact_email or contact_email in (None, ""):
-            if contact_email in ("", None):
-                update["contact_email"] = None
-            else:
-                update["contact_email"] = contact_email
-
-        if account_status:
-            update["account_status"] = account_status
-
-    except ValueError as e:
-        return jsonify(
-            {"status": "error", "message": f"Invalid display name or email was passed: {str(e)}"}
-        ), 400
+        _ = Person(**update)
+    except ValidationError as e:
+        raise BadRequest(f"Invalid user data: {e.errors()}") from e
 
     if not update:
         return jsonify({"status": "success", "message": "No update was performed."}), 200

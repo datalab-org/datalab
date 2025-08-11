@@ -1,8 +1,6 @@
 from enum import Enum
 from typing import Annotated, Literal
 
-import bson
-import bson.errors
 from pydantic import (
     BaseModel,
     Field,
@@ -163,8 +161,6 @@ class Person(Entry):
             A `Person` object with only the provided identity.
 
         """
-        user_id = bson.ObjectId()
-
         display_name = None
         if use_display_name:
             display_name = identity.display_name
@@ -174,7 +170,6 @@ class Person(Entry):
             contact_email = identity.identifier
 
         return Person(
-            immutable_id=user_id,
             identities=[identity],
             display_name=display_name,
             contact_email=contact_email,
