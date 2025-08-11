@@ -510,20 +510,13 @@ def _create_sample(
             }
         ]
     else:
-        new_sample["creator_ids"] = [str(current_user.person.immutable_id)]
+        new_sample["creator_ids"] = [current_user.person.immutable_id]
         new_sample["creators"] = [
             {
                 "display_name": current_user.person.display_name,
                 "contact_email": current_user.person.contact_email,
             }
         ]
-
-    # if "file_ObjectIds" in new_sample and isinstance(new_sample["file_ObjectIds"], list):
-    #     from pydatalab.models.utils import PyObjectId
-
-    #     new_sample["file_ObjectIds"] = [
-    #         PyObjectId(id_) if isinstance(id_, str) else id_ for id_ in new_sample["file_ObjectIds"]
-    # ]
 
     # Generate a unique refcode for the sample
     new_sample["refcode"] = generate_unique_refcode()
@@ -544,8 +537,8 @@ def _create_sample(
 
     new_sample["date"] = new_sample.get("date", datetime.datetime.now(tz=datetime.timezone.utc))
     try:
-        # if "immutable_id" in new_sample:
-        #     del new_sample["immutable_id"]
+        if "immutable_id" in new_sample:
+            del new_sample["immutable_id"]
 
         data_model: Item = model(**new_sample)
 
@@ -983,6 +976,7 @@ def save_item():
     # These keys should not be updated here and cannot be modified by the user through this endpoint
     for k in (
         "_id",
+        "immutable_id",
         "file_ObjectIds",
         "files",
         "creators",
@@ -1091,7 +1085,7 @@ def save_item():
             exclude_none=True,
             exclude_unset=True,
             by_alias=True,
-            exclude={"collections", "creators"},
+            exclude={"collections", "creators", "immutable_id"},
         )
     except ValidationError as exc:
         return (
@@ -1106,6 +1100,8 @@ def save_item():
     # remove collections and creators and any other reference fields
     item.pop("collections", None)
     item.pop("creators", None)
+    item.pop("immutable_id", None)
+    item.pop("files", None)
 
     result = flask_mongo.db.items.update_one(
         {"item_id": item_id},
