@@ -370,15 +370,9 @@ def test_saved_sample_has_new_relationships(client, default_sample_dict, complic
         "/save-item/", json={"item_id": sample_dict["item_id"], "data": sample_dict}
     )
 
-    print(response.status_code)
-    print(response.data)
-
     response = client.get(
         f"/get-item-data/{default_sample_dict['item_id']}",
     )
-
-    print(response.status_code)
-    print(response.data)
 
     assert complicated_sample.item_id in response.json["parent_items"]
 

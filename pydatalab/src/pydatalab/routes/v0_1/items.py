@@ -12,8 +12,6 @@ from werkzeug.exceptions import BadRequest, NotFound
 from pydatalab.apps import BLOCK_TYPES
 from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER
-
-# from pydatalab.middleware import clean_objectids_middleware
 from pydatalab.models import ITEM_MODELS
 from pydatalab.models.items import Item
 from pydatalab.models.people import Person
@@ -968,7 +966,6 @@ def get_item_data(
 
 
 @ITEMS.route("/save-item/", methods=["POST"])
-# @clean_objectids_middleware
 def save_item():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
 
