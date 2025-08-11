@@ -6,6 +6,7 @@ from pydantic import (
     model_validator,
 )
 
+from pydatalab.models.blocks import DataBlockResponse
 from pydatalab.models.people import Person
 from pydatalab.models.utils import Constituent, PyObjectId
 
@@ -30,13 +31,11 @@ class HasRevisionControl(BaseModel):
 
 
 class HasBlocks(BaseModel):
-    blocks_obj: dict[str, Any] = Field(
-        default_factory=dict, description="A mapping from block ID to block data."
-    )
+    blocks_obj: dict[str, DataBlockResponse] = Field({})
+    """A mapping from block ID to block data."""
 
-    display_order: list[str] = Field(
-        default_factory=list, description="The order in which to display block data in the UI."
-    )
+    display_order: list[str] = Field([])
+    """The order in which to display block data in the UI."""
 
 
 class HasSynthesisInfo(BaseModel):
@@ -149,7 +148,7 @@ class HasSynthesisInfo(BaseModel):
         return values
 
 
-class HasChemInfo:
+class HasChemInfo(BaseModel):
     smile: str | None = Field(
         None,
         description="A SMILES string representation of the chemical structure associated with this sample.",

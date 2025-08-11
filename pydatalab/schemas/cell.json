@@ -69,13 +69,15 @@
     "Collection": {
       "properties": {
         "blocks_obj": {
-          "additionalProperties": true,
-          "description": "A mapping from block ID to block data.",
+          "additionalProperties": {
+            "$ref": "#/$defs/DataBlockResponse"
+          },
+          "default": {},
           "title": "Blocks Obj",
           "type": "object"
         },
         "display_order": {
-          "description": "The order in which to display block data in the UI.",
+          "default": [],
           "items": {
             "type": "string"
           },
@@ -85,18 +87,8 @@
         "creator_ids": {
           "description": "The database IDs of the user(s) who created the item.",
           "items": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "format": "objectid",
+            "type": "string"
           },
           "title": "Creator Ids",
           "type": "array"
@@ -126,11 +118,8 @@
         "immutable_id": {
           "anyOf": [
             {
+              "format": "objectid",
               "type": "string"
-            },
-            {
-              "additionalProperties": true,
-              "type": "object"
             },
             {
               "type": "null"
@@ -163,17 +152,13 @@
           "type": "array"
         },
         "collection_id": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "integer"
-            }
-          ],
           "default": null,
           "description": "A short human-readable/usable name for the collection.",
-          "title": "Collection Id"
+          "maxLength": 40,
+          "minLength": 1,
+          "pattern": "^(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
+          "title": "Collection Id",
+          "type": "string"
         },
         "title": {
           "anyOf": [
@@ -218,6 +203,133 @@
       "title": "Collection",
       "type": "object"
     },
+    "DataBlockResponse": {
+      "additionalProperties": true,
+      "description": "A generic response model for a block, i.e., what is stored in `self.data`\nin the corresponding DataBlock class.",
+      "properties": {
+        "blocktype": {
+          "title": "Blocktype",
+          "type": "string"
+        },
+        "block_id": {
+          "title": "Block Id",
+          "type": "string"
+        },
+        "item_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Item Id"
+        },
+        "collection_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Collection Id"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        },
+        "freeform_comment": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Freeform Comment"
+        },
+        "file_id": {
+          "anyOf": [
+            {
+              "format": "objectid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "File Id"
+        },
+        "file_ids": {
+          "anyOf": [
+            {
+              "items": {
+                "format": "objectid",
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "File Ids"
+        },
+        "b64_encoded_image": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "propertyNames": {
+                "format": "objectid"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "B64 Encoded Image"
+        },
+        "bokeh_plot_data": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Bokeh Plot Data"
+        }
+      },
+      "required": [
+        "blocktype",
+        "block_id"
+      ],
+      "title": "DataBlockResponse",
+      "type": "object"
+    },
     "EntryReference": {
       "additionalProperties": true,
       "description": "A reference to a database entry by ID and type.\n\nCan include additional arbitarary metadata useful for\ninlining the item data.",
@@ -241,11 +353,8 @@
         "immutable_id": {
           "anyOf": [
             {
+              "format": "objectid",
               "type": "string"
-            },
-            {
-              "additionalProperties": true,
-              "type": "object"
             },
             {
               "type": "null"
@@ -257,10 +366,10 @@
         "item_id": {
           "anyOf": [
             {
+              "maxLength": 40,
+              "minLength": 1,
+              "pattern": "^(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
               "type": "string"
-            },
-            {
-              "type": "integer"
             },
             {
               "type": "null"
@@ -272,10 +381,10 @@
         "refcode": {
           "anyOf": [
             {
+              "maxLength": 40,
+              "minLength": 1,
+              "pattern": "^[a-z]{2,10}:(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
               "type": "string"
-            },
-            {
-              "type": "integer"
             },
             {
               "type": "null"
@@ -317,18 +426,8 @@
         "creator_ids": {
           "description": "The database IDs of the user(s) who created the item.",
           "items": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "format": "objectid",
+            "type": "string"
           },
           "title": "Creator Ids",
           "type": "array"
@@ -358,11 +457,8 @@
         "immutable_id": {
           "anyOf": [
             {
+              "format": "objectid",
               "type": "string"
-            },
-            {
-              "additionalProperties": true,
-              "type": "object"
             },
             {
               "type": "null"
@@ -674,11 +770,8 @@
         "immutable_id": {
           "anyOf": [
             {
+              "format": "objectid",
               "type": "string"
-            },
-            {
-              "additionalProperties": true,
-              "type": "object"
             },
             {
               "type": "null"
@@ -751,18 +844,8 @@
           "anyOf": [
             {
               "items": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "additionalProperties": true,
-                    "type": "object"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
+                "format": "objectid",
+                "type": "string"
               },
               "type": "array"
             },
@@ -797,6 +880,7 @@
       "type": "string"
     },
     "TypedRelationship": {
+      "additionalProperties": true,
       "properties": {
         "description": {
           "anyOf": [
@@ -830,11 +914,8 @@
         "immutable_id": {
           "anyOf": [
             {
+              "format": "objectid",
               "type": "string"
-            },
-            {
-              "additionalProperties": true,
-              "type": "object"
             },
             {
               "type": "null"
@@ -847,10 +928,10 @@
         "item_id": {
           "anyOf": [
             {
+              "maxLength": 40,
+              "minLength": 1,
+              "pattern": "^(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
               "type": "string"
-            },
-            {
-              "type": "integer"
             },
             {
               "type": "null"
@@ -863,10 +944,10 @@
         "refcode": {
           "anyOf": [
             {
+              "maxLength": 40,
+              "minLength": 1,
+              "pattern": "^[a-z]{2,10}:(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
               "type": "string"
-            },
-            {
-              "type": "integer"
             },
             {
               "type": "null"
@@ -887,13 +968,15 @@
   "description": "A model for representing electrochemical cells.",
   "properties": {
     "blocks_obj": {
-      "additionalProperties": true,
-      "description": "A mapping from block ID to block data.",
+      "additionalProperties": {
+        "$ref": "#/$defs/DataBlockResponse"
+      },
+      "default": {},
       "title": "Blocks Obj",
       "type": "object"
     },
     "display_order": {
-      "description": "The order in which to display block data in the UI.",
+      "default": [],
       "items": {
         "type": "string"
       },
@@ -931,18 +1014,8 @@
     "creator_ids": {
       "description": "The database IDs of the user(s) who created the item.",
       "items": {
-        "anyOf": [
-          {
-            "type": "string"
-          },
-          {
-            "additionalProperties": true,
-            "type": "object"
-          },
-          {
-            "type": "null"
-          }
-        ]
+        "format": "objectid",
+        "type": "string"
       },
       "title": "Creator Ids",
       "type": "array"
@@ -972,11 +1045,8 @@
     "immutable_id": {
       "anyOf": [
         {
+          "format": "objectid",
           "type": "string"
-        },
-        {
-          "additionalProperties": true,
-          "type": "object"
         },
         {
           "type": "null"
@@ -1011,10 +1081,10 @@
     "refcode": {
       "anyOf": [
         {
+          "maxLength": 40,
+          "minLength": 1,
+          "pattern": "^[a-z]{2,10}:(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
           "type": "string"
-        },
-        {
-          "type": "integer"
         },
         {
           "type": "null"
@@ -1025,16 +1095,12 @@
       "title": "Refcode"
     },
     "item_id": {
-      "anyOf": [
-        {
-          "type": "string"
-        },
-        {
-          "type": "integer"
-        }
-      ],
       "description": "A locally unique, human-readable identifier for the entry. This ID is mutable.",
-      "title": "Item Id"
+      "maxLength": 40,
+      "minLength": 1,
+      "pattern": "^(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
+      "title": "Item Id",
+      "type": "string"
     },
     "description": {
       "anyOf": [
@@ -1094,18 +1160,8 @@
     "file_ObjectIds": {
       "description": "Links to object IDs of files stored within the database.",
       "items": {
-        "anyOf": [
-          {
-            "type": "string"
-          },
-          {
-            "additionalProperties": true,
-            "type": "object"
-          },
-          {
-            "type": "null"
-          }
-        ]
+        "format": "objectid",
+        "type": "string"
       },
       "title": "File Objectids",
       "type": "array"

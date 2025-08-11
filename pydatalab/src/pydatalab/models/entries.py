@@ -1,6 +1,6 @@
 import abc
 
-from pydantic import BaseModel, ConfigDict, Field, field_serializer, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from pydatalab.models.relationships import TypedRelationship
 from pydatalab.models.utils import (
@@ -75,11 +75,3 @@ class Entry(BaseModel, abc.ABC):
         return EntryReference(**data)
 
     model_config = ConfigDict(populate_by_name=True, extra="ignore")
-
-    @field_serializer("immutable_id", when_used="json")
-    def serialize_object_id(self, value):
-        return str(value) if value else None
-
-    @field_serializer("last_modified", when_used="json")
-    def serialize_datetime(self, value):
-        return value.isoformat() if value else None

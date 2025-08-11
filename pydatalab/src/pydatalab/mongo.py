@@ -24,51 +24,34 @@ models implemented for this server.
 """
 
 
+@lru_cache(maxsize=1)
 def _get_items_fts_fields() -> set[str]:
     """Get all string fields from item models for full-text search."""
+    from pydatalab.models import ITEM_MODELS
+
     fields = set()
-    try:
-        from pydatalab.logger import LOGGER
-        from pydatalab.models import ITEM_MODELS
 
-        LOGGER.info(f"Available models: {list(ITEM_MODELS.keys())}")
+    for model_name, model in ITEM_MODELS.items():
+        schema = model.model_json_schema(by_alias=False)
 
-        for model_name, model in ITEM_MODELS.items():
-            LOGGER.info(f"Processing model: {model_name}")
-            try:
-                schema = model.model_json_schema(by_alias=False)
-                LOGGER.info(f"Schema for {model_name}: {schema.get('properties', {}).keys()}")
+        model_fields = set()
+        for f, p in schema.get("properties", {}).items():
+            if f == "type":
+                continue
 
-                model_fields = set()
-                for f, p in schema.get("properties", {}).items():
-                    if f == "type":
-                        continue
-
-                    if p.get("type") == "string" and p.get("format") not in ("date-time", "uuid"):
+            if p.get("type") == "string" and p.get("format") not in ("date-time", "uuid"):
+                model_fields.add(f)
+            elif "anyOf" in p:
+                for option in p["anyOf"]:
+                    if option.get("type") == "string" and option.get("format") not in (
+                        "date-time",
+                        "uuid",
+                    ):
                         model_fields.add(f)
-                    elif "anyOf" in p:
-                        for option in p["anyOf"]:
-                            if option.get("type") == "string" and option.get("format") not in (
-                                "date-time",
-                                "uuid",
-                            ):
-                                model_fields.add(f)
-                                break
+                        break
 
-                LOGGER.info(f"String fields found for {model_name}: {model_fields}")
-                fields.update(model_fields)
-            except Exception as model_error:
-                LOGGER.error(f"Error processing model {model_name}: {model_error}")
+        fields.update(model_fields)
 
-    except Exception as e:
-        from pydatalab.logger import LOGGER
-
-        LOGGER.warning(f"Failed to extract FTS fields from models: {e}")
-        fields = {"item_id", "name", "description", "refcode", "synthesis_description", "supplier"}
-
-    from pydatalab.logger import LOGGER
-
-    LOGGER.info(f"Final FTS fields: {fields}")
     return fields
 
 
@@ -161,17 +144,12 @@ def create_default_indices(
 
     """
 
-    from pydatalab.logger import LOGGER
-
     global ITEMS_FTS_FIELDS
 
     if not ITEMS_FTS_FIELDS:
-        LOGGER.info("ITEMS_FTS_FIELDS is empty, calculating...")
         ITEMS_FTS_FIELDS = _get_items_fts_fields()
-        LOGGER.info(f"Calculated ITEMS_FTS_FIELDS: {ITEMS_FTS_FIELDS}")
 
     if not ITEMS_FTS_FIELDS:
-        LOGGER.error("ITEMS_FTS_FIELDS is still empty after calculation")
         raise ValueError("Cannot create text indices: no fields available for full-text search")
 
     if client is None:

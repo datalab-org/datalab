@@ -4,14 +4,16 @@ import string
 from collections.abc import Callable
 from enum import Enum
 from functools import partial
-from typing import Any, TypeAlias
+from typing import Annotated, Any, TypeAlias
 
 import pint
-from bson.objectid import ObjectId
 from pydantic import (
     BaseModel,
+    BeforeValidator,
     ConfigDict,
     Field,
+    StringConstraints,
+    WithJsonSchema,
     field_validator,
     model_validator,
 )
@@ -42,60 +44,30 @@ leading or trailing punctuation.
 """
 
 
-class HumanReadableIdentifier(str):
-    """Used to constrain human-readable and URL-safe identifiers for items."""
-
-    @classmethod
-    def __get_pydantic_core_schema__(cls, source_type, handler):
-        import re
-
-        from pydantic_core import core_schema
-
-        def validate_identifier(v):
-            if not isinstance(v, str):
-                v = str(v)
-            v = v.strip()
-            if len(v) < 1 or len(v) > 40:
-                raise ValueError("String must be between 1 and 40 characters")
-            if not re.match(IDENTIFIER_REGEX, v):
-                raise ValueError(f"String does not match required pattern: {IDENTIFIER_REGEX}")
-            return cls(v)
-
-        return core_schema.no_info_after_validator_function(
-            validate_identifier,
-            core_schema.union_schema([core_schema.str_schema(), core_schema.int_schema()]),
-        )
+HumanReadableIdentifier = Annotated[
+    str,
+    StringConstraints(
+        min_length=1,
+        max_length=40,
+        strip_whitespace=True,
+        to_lower=False,
+        strict=False,
+        pattern=IDENTIFIER_REGEX,
+    ),
+]
+"""Used to constrain human-readable and URL-safe identifiers for items."""
 
 
-class Refcode(str):
-    """A regex to match refcodes that have a lower-case prefix between 2-10 chars, followed by a colon, and then the normal rules for an ID (url-safe etc.)."""
-
-    @classmethod
-    def __get_pydantic_core_schema__(cls, source_type, handler):
-        import re
-
-        from pydantic_core import core_schema
-
-        refcode_pattern = r"^[a-z]{2,10}:" + IDENTIFIER_REGEX[1:]
-
-        def validate_refcode(v):
-            if v is None:
-                return None
-            if not isinstance(v, str):
-                v = str(v)
-            v = v.strip()
-            if len(v) < 1 or len(v) > 40:
-                raise ValueError("String must be between 1 and 40 characters")
-            if not re.match(refcode_pattern, v):
-                raise ValueError(f"String does not match required pattern: {refcode_pattern}")
-            return cls(v)
-
-        return core_schema.no_info_after_validator_function(
-            validate_refcode,
-            core_schema.union_schema(
-                [core_schema.str_schema(), core_schema.int_schema(), core_schema.none_schema()]
-            ),
-        )
+Refcode = Annotated[
+    str,
+    StringConstraints(
+        min_length=1,
+        max_length=40,
+        strip_whitespace=True,
+        pattern=r"^[a-z]{2,10}:" + IDENTIFIER_REGEX[1:],
+    ),
+]
+"""A regex to match refcodes that have a lower-case prefix between 2-10 chars, followed by a colon, and then the normal rules for an ID (url-safe etc.)."""
 
 
 class UserRole(str, Enum):
@@ -135,58 +107,15 @@ Mass: TypeAlias = PintType("[mass]")  # type: ignore # noqa
 Volume: TypeAlias = PintType("[volume]")  # type: ignore # noqa
 
 
-class PyObjectId(ObjectId):
-    """A wrapper class for a BSON ObjectId that can be used as a Pydantic field type.
+PyObjectId = Annotated[
+    str, BeforeValidator(str), WithJsonSchema({"type": "string", "format": "objectid"})
+]
+"""A wrapper type for a BSON ObjectId that can be used as a Pydantic field type.
 
-    Modified from "Getting started iwth MongoDB and FastAPI":
-    https://www.mongodb.com/developer/languages/python/python-quickstart-fastapi/.
+Modified from "Getting started iwth MongoDB and FastAPI":
+https://www.mongodb.com/developer/languages/python/python-quickstart-fastapi/.
 
-    """
-
-    @classmethod
-    def __get_pydantic_core_schema__(cls, source_type: Any, handler: Any) -> core_schema.CoreSchema:
-        return core_schema.no_info_after_validator_function(
-            cls.validate,
-            core_schema.union_schema(
-                [
-                    core_schema.str_schema(),
-                    core_schema.is_instance_schema(ObjectId),
-                    core_schema.is_instance_schema(cls),
-                    core_schema.dict_schema(),
-                    core_schema.none_schema(),
-                ]
-            ),
-            serialization=core_schema.plain_serializer_function_ser_schema(
-                lambda x: str(x) if x else None, when_used="json"
-            ),
-        )
-
-    @classmethod
-    def validate(cls, v):
-        if v is None:
-            return None
-        if isinstance(v, cls):
-            return v
-        if isinstance(v, ObjectId):
-            return cls(v)
-
-        if isinstance(v, dict):
-            if "$oid" in v:
-                return cls(ObjectId(v["$oid"]))
-            elif "_id" in v and isinstance(v["_id"], (str, ObjectId)):
-                return cls(ObjectId(v["_id"]))
-            elif len(v) == 1:
-                first_val = next(iter(v.values()))
-                if isinstance(first_val, str) and ObjectId.is_valid(first_val):
-                    return cls(ObjectId(first_val))
-            raise ValueError(f"Cannot convert dict to ObjectId: {v}")
-
-        if isinstance(v, str):
-            if not ObjectId.is_valid(v):
-                raise ValueError("Invalid ObjectId string")
-            return cls(ObjectId(v))
-
-        raise ValueError(f"Cannot convert {type(v)} to ObjectId: {v}")
+"""
 
 
 class IsoformatDateTime(datetime.datetime):
@@ -229,20 +158,14 @@ class IsoformatDateTime(datetime.datetime):
         raise ValueError(f"Invalid datetime value: {v}")
 
 
-JSON_ENCODERS = {
-    pint.Quantity: str,
-    ObjectId: str,
-}
-
-
 class RefCodeFactory:
     refcode_generator: Callable
 
     @classmethod
-    def generate(self):
+    def generate(cls):
         from pydatalab.config import CONFIG
 
-        return f"{CONFIG.IDENTIFIER_PREFIX}:{self.refcode_generator()}"
+        return f"{CONFIG.IDENTIFIER_PREFIX}:{cls.refcode_generator()}"
 
 
 def random_uppercase(length: int = 6):

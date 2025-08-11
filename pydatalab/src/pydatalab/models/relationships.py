@@ -2,6 +2,7 @@ from enum import Enum
 
 from pydantic import (
     BaseModel,
+    ConfigDict,
     Field,
     field_validator,
     model_validator,
@@ -84,3 +85,5 @@ class TypedRelationship(BaseModel):
             raise ValueError(f"Must provide only one of {id_fields!r}")
 
         return values
+
+    model_config = ConfigDict(extra="allow")

@@ -30,7 +30,7 @@ def test_sample_with_inlined_reference():
     )
 
     assert b
-    assert len(b.relationships or []) == 1
+    assert len(b.relationships) == 1
 
     c = Sample(
         item_id="c-123",
@@ -41,7 +41,7 @@ def test_sample_with_inlined_reference():
     )
 
     assert c
-    assert len(c.relationships or []) == 1
+    assert len(c.relationships) == 1
 
     d = Sample(
         item_id="d-123",
@@ -51,7 +51,7 @@ def test_sample_with_inlined_reference():
         ],
     )
     assert d
-    assert len(d.relationships or []) == 0
+    assert len(d.relationships) == 0
 
 
 @pytest.mark.parametrize("model", ITEM_MODELS.values())
@@ -144,6 +144,7 @@ def test_custom_and_inherited_items():
 
     class TestItem(Item):
         type: str = "items_custom"
+        new_field: str
 
     TestItem.model_rebuild()
 
@@ -154,20 +155,22 @@ def test_custom_and_inherited_items():
         creators=None,
         date="2020-01-01 00:00",
         item_id="1234",
+        new_field="This is a new field",
     )
 
     item_dict = item.model_dump()
     assert item_dict["type"] == "items_custom"
-    assert item_dict["creator_ids"][0] == ObjectId("0123456789ab0123456789ab")
-    assert item_dict["creator_ids"][1] == ObjectId("1023456789ab0123456789ab")
+    assert item_dict["creator_ids"][0] == "0123456789ab0123456789ab"
+    assert item_dict["creator_ids"][1] == "1023456789ab0123456789ab"
     assert item_dict["date"] == datetime.datetime.fromisoformat("2020-01-01 00:00").replace(
         tzinfo=datetime.timezone.utc
     )
+    assert item_dict["new_field"] == "This is a new field"
 
     item_json = json.loads(item.model_dump_json())
     assert item_json["type"] == "items_custom"
-    assert item_json["creator_ids"][0] == str(ObjectId("0123456789ab0123456789ab"))
-    assert item_json["creator_ids"][1] == str(ObjectId("1023456789ab0123456789ab"))
+    assert item_json["creator_ids"][0] == "0123456789ab0123456789ab"
+    assert item_json["creator_ids"][1] == "1023456789ab0123456789ab"
     assert (
         item_json["date"]
         == datetime.datetime.fromisoformat("2020-01-01 00:00")
@@ -185,8 +188,8 @@ def test_custom_and_inherited_items():
 
     sample_dict = sample.model_dump()
     assert sample_dict["type"] == "samples"
-    assert sample_dict["creator_ids"][0] == ObjectId("0123456789ab0123456789ab")
-    assert sample_dict["creator_ids"][1] == ObjectId("1023456789ab0123456789ab")
+    assert sample_dict["creator_ids"][0] == "0123456789ab0123456789ab"
+    assert sample_dict["creator_ids"][1] == "1023456789ab0123456789ab"
     assert sample_dict["date"] == datetime.datetime.fromisoformat("2020-01-01 00:00").replace(
         tzinfo=datetime.timezone.utc
     )
@@ -196,8 +199,8 @@ def test_custom_and_inherited_items():
 
     sample_json = json.loads(sample.model_dump_json())
     assert sample_json["type"] == "samples"
-    assert sample_json["creator_ids"][0] == str(ObjectId("0123456789ab0123456789ab"))
-    assert sample_json["creator_ids"][1] == str(ObjectId("1023456789ab0123456789ab"))
+    assert sample_json["creator_ids"][0] == "0123456789ab0123456789ab"
+    assert sample_json["creator_ids"][1] == "1023456789ab0123456789ab"
     assert (
         sample_json["date"]
         == datetime.datetime.fromisoformat("2020-01-01 00:00")
@@ -220,7 +223,6 @@ def test_custom_and_inherited_items():
         "MP2018_TEST_COMMERCIAL",
         "MP2018_TEST_COMMERCIAL_4.5V_hold",
         "AAAAAA",
-        111111111,
     ],
 )
 def test_good_ids(id):
@@ -241,6 +243,7 @@ def test_good_ids(id):
         "mp 1 2 3 4 5 6",
         "lithium & sodium",
         "me388-123456789-123456789-really-long-descriptive-identifier-that-should-be-the-name-but-is-otherwise-valid",
+        111111111,
         1111111111111111111111111111111111111111111111111,
         "_AAAA",
         "AAA_",
@@ -278,11 +281,11 @@ def test_cell_with_inlined_reference():
     )
 
     assert cell
-    assert len(cell.relationships or []) == 1
+    assert len(cell.relationships) == 1
 
     cell = Cell(**json.loads(cell.model_dump_json()))
     assert cell
-    assert len(cell.relationships or []) == 1
+    assert len(cell.relationships) == 1
 
     # test from raw json
     cell_json = {
@@ -300,7 +303,7 @@ def test_cell_with_inlined_reference():
 
     cell = Cell(**cell_json)
     assert cell
-    assert len(cell.relationships or []) == 1
+    assert len(cell.relationships) == 1
 
     cell_json_2 = {
         "item_id": "abcd-1-2-3",
@@ -317,7 +320,7 @@ def test_cell_with_inlined_reference():
 
     cell = Cell(**cell_json_2)
     assert cell
-    assert len(cell.relationships or []) == 0
+    assert len(cell.relationships) == 0
 
     cell_json_3 = {
         "item_id": "abcd-1-2-3",
@@ -334,7 +337,7 @@ def test_cell_with_inlined_reference():
 
     cell = Cell(**cell_json_3)
     assert cell
-    assert len(cell.relationships or []) == 1
+    assert len(cell.relationships) == 1
 
 
 def test_molar_mass():
