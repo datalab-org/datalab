@@ -140,7 +140,7 @@ def add_collection_data_block():
     )
 
 
-def _save_block_to_db(block: DataBlock) -> bool:
+def _save_block_to_db(block: DataBlock) -> None:
     """Save data for a single block within an item to the database,
     overwriting previous data saved there.
 
@@ -185,7 +185,7 @@ def update_block():
     request_json = request.get_json()
     block_data = request_json["block_data"]
     event_data = request_json.get("event_data", None)
-    save_to_db = request_json.get("save_to_db", False)
+
     block_type = block_data["blocktype"]
 
     if block_type not in BLOCK_TYPES:
@@ -201,14 +201,17 @@ def update_block():
         except NotImplementedError:
             pass
 
-    saved_successfully = False
-    if save_to_db:
-        saved_successfully = _save_block_to_db(block)
+    # Save state from UI
+    _save_block_to_db(block)
+
+    # Reload the block with new UI state
+    new_block_data = block.to_web()
+
+    # Save results to DB
+    _save_block_to_db(block)
 
     return (
-        jsonify(
-            status="success", saved_successfully=saved_successfully, new_block_data=block.to_web()
-        ),
+        jsonify(status="success", saved_successfully=True, new_block_data=new_block_data),
         200,
     )
 
