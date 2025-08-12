@@ -509,7 +509,6 @@ export async function updateBlockFromServer(
   block_id,
   block_data,
   event_data = null,
-  saveToDatabase = true,
 ) {
   // Send the current block state to the API and receive an updated version
   // of the block in return, including any event data.
@@ -526,7 +525,6 @@ export async function updateBlockFromServer(
     block_id: block_id,
     block_data: block_data,
     event_data: event_data,
-    save_to_db: saveToDatabase,
   })
     .then(function (response_json) {
       store.commit("updateBlockData", {
