@@ -28,61 +28,6 @@ ITEMS = Blueprint("items", __name__)
 def _(): ...
 
 
-def reserialize_blocks(display_order: list[str], blocks_obj: dict[str, dict]) -> dict[str, dict]:
-    """Create the corresponding Python objects from JSON block data, then
-    serialize it again as JSON to populate any missing properties.
-
-    Parameters:
-        blocks_obj: A dictionary containing the JSON block data, keyed by block ID.
-
-    Returns:
-        A dictionary with the re-serialized block data.
-
-    """
-    for block_id in display_order:
-        try:
-            block_data = blocks_obj[block_id]
-        except KeyError:
-            LOGGER.warning(f"block_id {block_id} found in display order but not in blocks_obj")
-            continue
-        blocktype = block_data["blocktype"]
-        blocks_obj[block_id] = (
-            BLOCK_TYPES.get(blocktype, BLOCK_TYPES["notsupported"]).from_db(block_data).to_web()
-        )
-
-    return blocks_obj
-
-
-# Seems to be obselete now?
-def dereference_files(file_ids: list[str | ObjectId]) -> dict[str, dict]:
-    """For a list of Object IDs (as strings or otherwise), query the files collection
-    and return a dictionary of the data stored under each ID.
-
-    Parameters:
-        file_ids: The list of IDs of files to return;
-
-    Returns:
-        The dereferenced data as a dictionary with (string) ID keys.
-
-    """
-    results = {
-        str(f["_id"]): f
-        for f in flask_mongo.db.files.find(
-            {
-                "_id": {"$in": [ObjectId(_id) for _id in file_ids]},
-            }
-        )
-    }
-    if len(results) != len(file_ids):
-        raise RuntimeError(
-            "Some file IDs did not have corresponding database entries.\n"
-            f"Returned: {list(results.keys())}\n"
-            f"Requested: {file_ids}\n"
-        )
-
-    return results
-
-
 @ITEMS.route("/equipment/", methods=["GET"])
 def get_equipment_summary():
     _project = {
@@ -832,17 +777,9 @@ def delete_sample():
 
 @ITEMS.route("/items/<refcode>", methods=["GET"])
 @ITEMS.route("/get-item-data/<item_id>", methods=["GET"])
-def get_item_data(
-    item_id: str | None = None, refcode: str | None = None, load_blocks: bool = False
-):
+def get_item_data(item_id: str | None = None, refcode: str | None = None):
     """Generates a JSON response for the item with the given `item_id`,
     or `refcode` additionally resolving relationships to files and other items.
-
-    Parameters:
-       load_blocks: Whether to regenerate any data blocks associated with this
-           sample (i.e., create the Python object corresponding to the block and
-           call its render function).
-
     """
     redirect_to_ui = bool(request.args.get("redirect-to-ui", default=False, type=json.loads))
     if refcode and redirect_to_ui and CONFIG.APP_URL:
@@ -911,8 +848,6 @@ def get_item_data(
             raise KeyError(f"Item {item_id=} has no type field in document.")
 
     doc = ItemModel(**doc)
-    if load_blocks:
-        doc.blocks_obj = reserialize_blocks(doc.display_order, doc.blocks_obj)
 
     # find any documents with relationships that mention this document
     relationships_query_results = flask_mongo.db.items.find(

@@ -241,8 +241,8 @@ Start with a friendly introduction and give me a one sentence summary of what th
             str(file["immutable_id"]): file["name"] for file in item_info.get("files", [])
         }
 
-        big_data_keys = ["bokeh_plot_data", "b64_encoded_image"]
-        for block in item_info.get("blocks_obj", {}).values():
+        big_data_keys = ["bokeh_plot_data", "b64_encoded_image", "computed"]
+        for block in item_data.get("blocks_obj", {}).values():
             block_fields_to_remove = ["item_id", "block_id", "collection_id"] + big_data_keys
             [block.pop(field, None) for field in block_fields_to_remove]
 
@@ -251,13 +251,12 @@ Start with a friendly introduction and give me a one sentence summary of what th
                 "acquisition_parameters",
                 "carrier_offset_Hz",
                 "nscans",
-                "processed_data",
                 "processed_data_shape",
                 "processing_parameters",
                 "pulse_program",
                 "selected_process",
             ]
-            [block.pop(field, None) for field in NMR_fields_to_remove]
+            [block["metadata"].pop(field, None) for field in NMR_fields_to_remove]
 
             # replace file_id with the actual filename
             file_id = block.pop("file_id", None)

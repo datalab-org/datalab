@@ -1,4 +1,5 @@
 import functools
+import json
 import random
 import warnings
 from collections.abc import Callable, Sequence
@@ -6,6 +7,7 @@ from typing import Any
 
 from pydatalab import __version__
 from pydatalab.logger import LOGGER
+from pydatalab.models.blocks import DataBlockResponse
 
 __all__ = ("generate_random_id", "DataBlock", "generate_js_callback_single_float_parameter")
 
@@ -100,6 +102,8 @@ def generate_random_id():
 class DataBlock:
     """Base class for a data block."""
 
+    block_db_model = DataBlockResponse
+
     name: str = "base"
     """The human-readable block name specifying which technique
     or file format it pertains to.
@@ -191,34 +195,14 @@ class DataBlock:
             collection_id,
         )
 
-    def to_db(self):
+    def to_db(self) -> dict:
         """returns a dictionary with the data for this
         block, ready to be input into mongodb"""
-        from bson import ObjectId
 
         LOGGER.debug("Casting block %s to database object.", self.__class__.__name__)
-        dct_for_db = {
-            k: v for k, v in self.data.items() if k not in ("bokeh_plot_data", "b64_encoded_image")
-        }
-        dct_for_db["file_id"] = ObjectId(dct_for_db["file_id"]) if "file_id" in dct_for_db else None
-        return dct_for_db
-
-    @classmethod
-    def from_db(cls, block: dict):
-        """Create a block from data stored in the database."""
-        LOGGER.debug("Loading block %s from database object.", cls.__class__.__name__)
-        new_block = cls(
-            item_id=block.get("item_id"),
-            collection_id=block.get("collection_id"),
-            init_data=block,
+        return self.block_db_model(**self.data).dict(
+            exclude={"bokeh_plot_data", "b64_encoded_image"}, exclude_unset=True
         )
-        if "file_id" in new_block.data:
-            new_block.data["file_id"] = str(new_block.data["file_id"])
-
-        if new_block.data.get("title", "") == new_block.description:
-            new_block.data["title"] = new_block.name
-
-        return new_block
 
     def to_web(self) -> dict[str, Any]:
         """Returns a JSON serializable dictionary to render the data block on the web."""
@@ -253,7 +237,9 @@ class DataBlock:
         else:
             self.data.pop("warnings", None)
 
-        return self.data
+        model = self.block_db_model(**self.data)
+        serialized = json.loads(model.json(exclude_unset=True, exclude_none=True))
+        return serialized
 
     def process_events(self, events: list[dict] | dict):
         """Handle any supported events passed to the block."""
@@ -319,7 +305,6 @@ class DataBlock:
             data: The block data to initialiaze the block with.
 
         """
-        LOGGER.debug("Loading block %s from web request.", cls.__class__.__name__)
         block = cls(
             item_id=data.get("item_id"),
             collection_id=data.get("collection_id"),
@@ -329,9 +314,9 @@ class DataBlock:
         return block
 
     def update_from_web(self, data: dict):
-        """Update the block with data received from a web request.
-
-        Only updates fields that are specified in the dictionary - other fields are left alone
+        """Update the block with validated data received from a web request.
+        Will strip any fields that are "computed" or otherwise not controllable
+        by the user.
 
         Parameters:
             data: A dictionary of data to update the block with.
@@ -341,6 +326,11 @@ class DataBlock:
             "Updating block %s from web request",
             self.__class__.__name__,
         )
-        self.data.update(data)
+        self.data.update(
+            self.block_db_model(**data).dict(
+                exclude={"computed", "metadata", "bokeh_plot_data", "b64_encoded_image"},
+                exclude_unset=True,
+            )
+        )
 
         return self
