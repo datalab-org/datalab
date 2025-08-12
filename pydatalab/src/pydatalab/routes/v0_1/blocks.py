@@ -1,9 +1,9 @@
 import pymongo.errors
 from flask import Blueprint, jsonify, request
+from werkzeug.exceptions import BadRequest, InternalServerError
 
 from pydatalab.apps import BLOCK_TYPES
 from pydatalab.blocks.base import DataBlock
-from pydatalab.logger import LOGGER
 from pydatalab.mongo import flask_mongo
 from pydatalab.permissions import active_users_or_get_only, get_default_permissions
 
@@ -142,10 +142,13 @@ def add_collection_data_block():
     )
 
 
-def _save_block_to_db(block: DataBlock) -> bool:
+def _save_block_to_db(block: DataBlock) -> None:
     """Save data for a single block within an item to the database,
     overwriting previous data saved there.
-    returns true if successful, false if unsuccessful
+
+    Parameters:
+        block: The instance of DataBlock to save.
+
     """
     updated_block = block.to_db()
     update = {"$set": {f"blocks_obj.{block.block_id}": updated_block}}
@@ -166,19 +169,14 @@ def _save_block_to_db(block: DataBlock) -> bool:
     try:
         result = flask_mongo.db.items.update_one(match, update)
     except pymongo.errors.DocumentTooLarge:
-        LOGGER.warning(
-            "DocumentTooLarge error occurred while saving block to db, block.block_id='%s'",
-            block.block_id,
+        raise InternalServerError(
+            f"DocumentTooLarge error occurred while saving block to db, {block.block_id=}",
         )
-        return False
 
     if result.matched_count != 1:
-        LOGGER.warning(
-            f"_save_block_to_db failed, likely because item_id ({block.data.get('item_id')}), collection_id ({block.data.get('collection_id')}) and/or block_id ({block.block_id}) wasn't found"
+        raise BadRequest(
+            f"Failed to save block to database, likely because item_id ({block.data.get('item_id')}), collection_id ({block.data.get('collection_id')}) and/or block_id ({block.block_id}) do not exist."
         )
-        return False
-    else:
-        return True
 
 
 @BLOCKS.route("/update-block/", methods=["POST"])
