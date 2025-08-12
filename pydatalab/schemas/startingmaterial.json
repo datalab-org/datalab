@@ -282,7 +282,7 @@
     },
     "DataBlockResponse": {
       "title": "DataBlockResponse",
-      "description": "A generic response model for a block, i.e., what is stored in `self.data`\nin the corresponding DataBlock class.",
+      "description": "A generic response model for a block, i.e., what is stored in `self.data`\nin the corresponding DataBlock class.\n\nIt is expected but not mandatory that this model will be extended by the specific block type\nwhere possible.",
       "type": "object",
       "properties": {
         "blocktype": {
@@ -320,6 +320,20 @@
             "type": "string"
           }
         },
+        "errors": {
+          "title": "Errors",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "warnings": {
+          "title": "Warnings",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "b64_encoded_image": {
           "title": "B64 Encoded Image",
           "type": "object",
@@ -329,7 +343,15 @@
         },
         "bokeh_plot_data": {
           "title": "Bokeh Plot Data",
-          "type": "string"
+          "type": "object"
+        },
+        "computed": {
+          "title": "Computed",
+          "type": "object"
+        },
+        "metadata": {
+          "title": "Metadata",
+          "type": "object"
         }
       },
       "required": [
