@@ -140,6 +140,8 @@ filterwarnings = [
     "ignore:.*np.bool8*:DeprecationWarning",
     "ignore::pytest.PytestUnraisableExceptionWarning",
     "ignore:.*JCAMP-DX key without value*:UserWarning",
+    "ignore:.*Unable to find wavenumber unit*:UserWarning",
+    "ignore:.*Unable to find wavenumber offset*:UserWarning",
 ]
 
 [tool.liccheck]

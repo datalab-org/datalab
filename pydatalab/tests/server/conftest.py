@@ -71,6 +71,7 @@ def app_config(tmp_path_factory):
         "REMOTE_FILESYSTEMS": example_remotes,
         "FILE_DIRECTORY": str(tmp_path_factory.mktemp("files")),
         "TESTING": False,
+        "ROOT_PATH": "/",
         "EMAIL_AUTH_SMTP_SETTINGS": {
             "MAIL_SERVER": "smtp.example.com",
             "MAIL_PORT": 587,
