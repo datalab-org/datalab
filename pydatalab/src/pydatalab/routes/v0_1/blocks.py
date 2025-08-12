@@ -175,7 +175,7 @@ def _save_block_to_db(block: DataBlock) -> None:
 
     if result.matched_count != 1:
         raise BadRequest(
-            f"Failed to save block to database, likely because item_id ({block.data.get('item_id')}), collection_id ({block.data.get('collection_id')}) and/or block_id ({block.block_id}) do not exist."
+            f"_save_block_to_db failed, likely because item_id ({block.data.get('item_id')}), collection_id ({block.data.get('collection_id')}) and/or block_id ({block.block_id}) wasn't found"
         )
 
 
@@ -190,7 +190,6 @@ def update_block():
     block_data = request_json["block_data"]
     event_data = request_json.get("event_data", None)
     blocktype = block_data["blocktype"]
-    save_to_db = request_json.get("save_to_db", False)
 
     block = BLOCK_TYPES[blocktype].from_web(block_data)
 
@@ -200,14 +199,17 @@ def update_block():
         except NotImplementedError:
             pass
 
-    saved_successfully = False
-    if save_to_db:
-        saved_successfully = _save_block_to_db(block)
+    # Save state from UI
+    _save_block_to_db(block)
+
+    # Reload the block with new UI state
+    new_block_data = block.to_web()
+
+    # Save results to DB
+    _save_block_to_db(block)
 
     return (
-        jsonify(
-            status="success", saved_successfully=saved_successfully, new_block_data=block.to_web()
-        ),
+        jsonify(status="success", saved_successfully=True, new_block_data=new_block_data),
         200,
     )
 
