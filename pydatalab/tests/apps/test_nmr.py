@@ -91,28 +91,30 @@ def test_nmr_block(
     nmr_1d_solution_path, nmr_1d_solution_path_renamed, nmr_1d_solid_path, nmr_2d_matpass_path
 ):
     block = NMRBlock(item_id="nmr-block")
-    block.read_bruker_nmr_data(nmr_1d_solid_path)
+    block.processed_data, block.data["metadata"] = block.read_bruker_nmr_data(nmr_1d_solid_path)
     assert block.data["metadata"]["topspin_title"].split("\n")[0] == "7Li 40 kHz 40 C hahn-echo"
     block.generate_nmr_plot(parse=False)
     plot = block.data["bokeh_plot_data"]
     assert plot is not None
 
     block = NMRBlock(item_id="nmr-block")
-    block.read_bruker_nmr_data(nmr_1d_solution_path)
+    block.processed_data, block.data["metadata"] = block.read_bruker_nmr_data(nmr_1d_solution_path)
     assert block.data["metadata"]["topspin_title"].split("\n")[0] == "31P reference, 85% H3PO4"
     block.generate_nmr_plot(parse=False)
     plot = block.data["bokeh_plot_data"]
     assert plot is not None
 
     block = NMRBlock(item_id="nmr-block")
-    block.read_bruker_nmr_data(nmr_1d_solution_path_renamed)
+    block.processed_data, block.data["metadata"] = block.read_bruker_nmr_data(
+        nmr_1d_solution_path_renamed
+    )
     assert block.data["metadata"]["topspin_title"].split("\n")[0] == "31P reference, 85% H3PO4"
     block.generate_nmr_plot(parse=False)
     plot = block.data["bokeh_plot_data"]
     assert plot is not None
 
     block = NMRBlock(item_id="nmr-block")
-    block.read_bruker_nmr_data(nmr_2d_matpass_path)
+    block.processed_data, block.data["metadata"] = block.read_bruker_nmr_data(nmr_2d_matpass_path)
     assert block.data["metadata"]["topspin_title"].split("\n")[0] == "7Li 40kHz 40 C MATPASS"
     # catch warning about processed data
     with pytest.warns(UserWarning, match="Only metadata"):
