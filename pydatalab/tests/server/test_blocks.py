@@ -193,6 +193,150 @@ def test_block_info_endpoint_contains_all_blocks(client):
     )
 
 
+def test_xrd_block_lifecycle(admin_client, default_sample_dict):
+    from pydatalab.apps.xrd import XRDBlock
+
+    block_type = "xrd"
+
+    sample_id = f"test_sample_with_files-{block_type}-lifecycle"
+    sample_data = default_sample_dict.copy()
+    sample_data["item_id"] = sample_id
+
+    response = admin_client.post("/new-sample/", json=sample_data)
+    assert response.status_code == 201
+    assert response.json["status"] == "success"
+
+    example_data_path = Path(__file__).parent.parent.parent / "example_data"
+
+    response = admin_client.post(
+        "/add-data-block/",
+        json={
+            "block_type": block_type,
+            "item_id": sample_id,
+            "index": 0,
+        },
+    )
+
+    assert response.status_code == 200, f"Failed to add {block_type} block: {response.json}"
+    assert response.json["status"] == "success"
+
+    block_data = response.json["new_block_obj"]
+    block_id = block_data["block_id"]
+
+    block_file = "XRD/cod_9004112.cif"
+
+    example_file = example_data_path / block_file
+
+    with open(example_file, "rb") as f:
+        response = admin_client.post(
+            "/upload-file/",
+            buffered=True,
+            content_type="multipart/form-data",
+            data={
+                "item_id": sample_id,
+                "file": [(f, example_file.name)],
+                "type": "application/octet-stream",
+                "replace_file": "null",
+                "relativePath": "null",
+            },
+        )
+
+    assert response.status_code == 201, f"Failed to upload {example_file.name}"
+    assert response.json["status"] == "success"
+    file_id = response.json["file_id"]
+
+    response = admin_client.get(f"/get-item-data/{sample_id}")
+    assert response.status_code == 200
+    item_data = response.json["item_data"]
+    block_data = item_data["blocks_obj"][block_id]
+    block_data["file_id"] = file_id
+
+    response = admin_client.post(
+        "/update-block/", json={"block_data": block_data, "save_to_db": True}
+    )
+
+    web_block = response.json["new_block_data"]
+    assert "bokeh_plot_data" in web_block
+    assert "processed_data" in web_block
+    assert "peak_data" in web_block["processed_data"]
+    assert web_block.get("errors", []) == []
+
+    block = XRDBlock.from_web(web_block)
+    db = block.to_db()
+    assert "bokeh_plot_data" not in db
+    assert "processed_data" in db
+    assert "peak_data" in db["processed_data"]
+
+
+def test_comment_block_manipulation(admin_client, default_sample_dict, database):
+    """Create a test sample with a comment block and test it for
+    dealing with unhandled data."""
+
+    block_type = "comment"
+
+    sample_id = "test_sample_with_files-comment"
+    sample_data = default_sample_dict.copy()
+    sample_data["item_id"] = sample_id
+
+    response = admin_client.post("/new-sample/", json=sample_data)
+    assert response.status_code == 201
+    assert response.json["status"] == "success"
+
+    response = admin_client.post(
+        "/add-data-block/",
+        json={
+            "block_type": block_type,
+            "item_id": sample_id,
+            "index": 0,
+        },
+    )
+
+    assert response.status_code == 200, f"Failed to add {block_type} block: {response.json}"
+    assert response.json["status"] == "success"
+
+    block_data = response.json["new_block_obj"]
+    block_id = block_data["block_id"]
+    block_data["freeform_comment"] = "This is a test comment block."
+    block_data["title"] = "Test Comment Block"
+    block_data["errors"] = ["Test Network Failure"]
+
+    response = admin_client.post("/update-block/", json={"block_data": block_data})
+    assert response.status_code == 200
+    assert response.json["status"] == "success"
+    assert response.json["new_block_data"]["blocktype"] == block_type
+    assert response.json["new_block_data"]["freeform_comment"] == "This is a test comment block."
+    assert response.json["new_block_data"]["title"] == "Test Comment Block"
+    assert "errors" not in response.json["new_block_data"]
+
+    # Check that this result was actually stored
+    response = admin_client.get(f"/get-item-data/{sample_id}")
+    assert response.status_code == 200
+    assert response.json["status"] == "success"
+    assert (
+        response.json["item_data"]["blocks_obj"][block_id]["freeform_comment"]
+        == "This is a test comment block."
+    )
+    assert "errors" not in response.json["item_data"]["blocks_obj"][block_id]
+
+    # Try to add some bad data
+    block_data["bokeh_plot_data"] = '{"bokeh": "json"}'
+    block_data["random_new_key"] = "test new key"
+    response = admin_client.post("/update-block/", json={"block_data": block_data})
+    assert response.status_code == 200
+    assert response.json["status"] == "success"
+    assert response.json["new_block_data"]["blocktype"] == block_type
+    assert response.json["new_block_data"]["freeform_comment"] == "This is a test comment block."
+    assert response.json["new_block_data"]["title"] == "Test Comment Block"
+    assert "bokeh_plot_data" not in response.json["new_block_data"]
+    assert "random_new_key" not in response.json["new_block_data"]
+
+    raw_item = database.items.find_one({"item_id": sample_id})
+    assert raw_item
+    assert "bokeh_plot_data" not in raw_item
+    assert "random_new_key" not in raw_item
+    assert "errors" not in raw_item
+
+
 @pytest.mark.parametrize(
     "block_type, block_file",
     [
