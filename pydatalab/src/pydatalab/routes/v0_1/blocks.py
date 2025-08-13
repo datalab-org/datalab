@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from werkzeug.exceptions import BadRequest
+from werkzeug.exceptions import BadRequest, NotImplemented
 
 from pydatalab.apps import BLOCK_TYPES
 from pydatalab.blocks.base import DataBlock
@@ -27,12 +27,8 @@ def add_data_block():
     insert_index = request_json["index"]
 
     if block_type not in BLOCK_TYPES:
-        return (
-            jsonify(
-                status="error",
-                message=f"Invalid block type {block_type!r}, must be one of {BLOCK_TYPES.keys()}",
-            ),
-            400,
+        raise NotImplemented(  # noqa
+            f"Invalid block type {block_type!r}, must be one of {BLOCK_TYPES.keys()}"
         )
 
     block = BLOCK_TYPES[block_type](item_id=item_id)
@@ -93,7 +89,9 @@ def add_collection_data_block():
     insert_index = request_json["index"]
 
     if block_type not in BLOCK_TYPES:
-        return jsonify(status="error", message="Invalid block type"), 400
+        raise NotImplemented(  # noqa
+            f"Invalid block type {block_type!r}, must be one of {BLOCK_TYPES.keys()}"
+        )
 
     block = BLOCK_TYPES[block_type](collection_id=collection_id)
 
@@ -170,7 +168,7 @@ def _save_block_to_db(block: DataBlock) -> None:
 
     if result.matched_count != 1:
         raise BadRequest(
-            f"_Failed to save block, likely because item_id ({block.data.get('item_id')}), collection_id ({block.data.get('collection_id')}) and/or block_id ({block.block_id}) wasn't found"
+            f"_save_block_to_db failed, likely because item_id ({block.data.get('item_id')}), collection_id ({block.data.get('collection_id')}) and/or block_id ({block.block_id}) wasn't found"
         )
 
 
@@ -185,9 +183,14 @@ def update_block():
     request_json = request.get_json()
     block_data = request_json["block_data"]
     event_data = request_json.get("event_data", None)
-    blocktype = block_data["blocktype"]
+    block_type = block_data["blocktype"]
 
-    block = BLOCK_TYPES[blocktype].from_web(block_data)
+    if block_type not in BLOCK_TYPES:
+        raise NotImplemented(  # noqa
+            f"Invalid block type {block_type!r}, must be one of {BLOCK_TYPES.keys()}"
+        )
+
+    block = BLOCK_TYPES[block_type].from_web(block_data)
 
     if event_data:
         try:
