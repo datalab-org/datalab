@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from werkzeug.exceptions import BadRequest
+from werkzeug.exceptions import BadRequest, NotImplemented
 
 from pydatalab.apps import BLOCK_TYPES
 from pydatalab.blocks.base import DataBlock
@@ -15,6 +15,7 @@ def _(): ...
 
 
 @BLOCKS.route("/add-data-block/", methods=["POST"])
+@BLOCKS.route("/blocks/", methods=["PUT"])
 def add_data_block():
     """Call with AJAX to add a block to the sample"""
 
@@ -26,12 +27,8 @@ def add_data_block():
     insert_index = request_json["index"]
 
     if block_type not in BLOCK_TYPES:
-        return (
-            jsonify(
-                status="error",
-                message=f"Invalid block type {block_type!r}, must be one of {BLOCK_TYPES.keys()}",
-            ),
-            400,
+        raise NotImplemented(  # noqa
+            f"Invalid block type {block_type!r}, must be one of {BLOCK_TYPES.keys()}"
         )
 
     block = BLOCK_TYPES[block_type](item_id=item_id)
@@ -92,7 +89,9 @@ def add_collection_data_block():
     insert_index = request_json["index"]
 
     if block_type not in BLOCK_TYPES:
-        return jsonify(status="error", message="Invalid block type"), 400
+        raise NotImplemented(  # noqa
+            f"Invalid block type {block_type!r}, must be one of {BLOCK_TYPES.keys()}"
+        )
 
     block = BLOCK_TYPES[block_type](collection_id=collection_id)
 
@@ -144,7 +143,10 @@ def add_collection_data_block():
 def _save_block_to_db(block: DataBlock) -> bool:
     """Save data for a single block within an item to the database,
     overwriting previous data saved there.
-    returns true if successful, false if unsuccessful
+
+    Parameters:
+        block: The instance of DataBlock to save.
+
     """
     updated_block = block.to_db()
     update = {"$set": {f"blocks_obj.{block.block_id}": updated_block}}
@@ -166,13 +168,14 @@ def _save_block_to_db(block: DataBlock) -> bool:
 
     if result.matched_count != 1:
         raise BadRequest(
-            f"_Failed to save block, likely because item_id ({block.data.get('item_id')}), collection_id ({block.data.get('collection_id')}) and/or block_id ({block.block_id}) wasn't found"
+            f"Failed to save block, likely because item_id ({block.data.get('item_id')}), collection_id ({block.data.get('collection_id')}) and/or block_id ({block.block_id}) wasn't found"
         )
 
     return True
 
 
 @BLOCKS.route("/update-block/", methods=["POST"])
+@BLOCKS.route("/blocks/", methods=["POST"])
 def update_block():
     """Updates the server-side data block based on received JSON, including triggering
     any events associated with the given block type.
@@ -182,10 +185,15 @@ def update_block():
     request_json = request.get_json()
     block_data = request_json["block_data"]
     event_data = request_json.get("event_data", None)
-    blocktype = block_data["blocktype"]
     save_to_db = request_json.get("save_to_db", False)
+    block_type = block_data["blocktype"]
 
-    block = BLOCK_TYPES[blocktype].from_web(block_data)
+    if block_type not in BLOCK_TYPES:
+        raise NotImplemented(  # noqa
+            f"Invalid block type {block_type!r}, must be one of {BLOCK_TYPES.keys()}"
+        )
+
+    block = BLOCK_TYPES[block_type].from_web(block_data)
 
     if event_data:
         try:
@@ -206,6 +214,7 @@ def update_block():
 
 
 @BLOCKS.route("/delete-block/", methods=["POST"])
+@BLOCKS.route("/blocks/", methods=["DELETE"])
 def delete_block():
     """Completely delete a data block from the database. In the future,
     we may consider preserving data by moving it to a different array,
