@@ -1,5 +1,6 @@
 import json
 import os
+import warnings
 
 from langchain_anthropic import ChatAnthropic
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -8,9 +9,19 @@ from langchain_openai import ChatOpenAI
 from pydatalab.blocks.base import DataBlock
 from pydatalab.logger import LOGGER
 from pydatalab.models import ITEM_MODELS
+from pydatalab.models.blocks import DataBlockResponse
 from pydatalab.utils import CustomJSONEncoder
 
 __all__ = ("ChatBlock",)
+
+
+class ChatBlockResponse(DataBlockResponse):
+    messages: list[str]
+    prompt: str
+    model: str
+    available_models: str
+    token_count: int
+    temperature: float
 
 
 class ChatBlock(DataBlock):
@@ -33,6 +44,8 @@ class ChatBlock(DataBlock):
 
     """
 
+    block_db_model = ChatBlockResponse
+
     blocktype = "chat"
     description = "Virtual LLM assistant block allows you to converse with your data."
     name = "Whinchat assistant"
@@ -48,7 +61,6 @@ Answer questions in markdown. Specify the language for all markdown code blocks.
 Be as concise as possible. When saying your name, type a bird emoji right after whinchat 🐦.
         """,
         "temperature": 0.2,
-        "error_message": None,
         "model": "gpt-4o",
         "available_models": {
             "claude-3-5-sonnet-20241022": {
@@ -158,7 +170,7 @@ Start with a friendly introduction and give me a one sentence summary of what th
 
         if self.data.get("model") not in self.data.get("available_models", {}):
             bad_model = self.data.get("model")
-            self.data["error_message"] = (
+            warnings.warn(
                 f"Chatblock received an unknown or deprecated model: {bad_model}. Reverting to default model {self.defaults['model']}."
             )
             self.data["model"] = self.defaults["model"]
@@ -200,10 +212,9 @@ Start with a friendly introduction and give me a one sentence summary of what th
             self.data["token_count"] = token_count
 
             if token_count >= model_dict["context_window"]:
-                self.data["error_message"] = (
-                    f"""This conversation has reached its maximum context size and the chatbot won't be able to respond further ({token_count} tokens, max: {model_dict["context_window"]}). Please make a new chat block to start fresh, or use a model with a larger context window"""
+                raise RuntimeError(
+                    f"""This conversation has reached its maximum context size and the chatbot won't be able to respond further ({token_count} tokens, max: {model_dict["context_window"]}). Please make a new chat block to start fresh, or use a model with a larger context window."""
                 )
-                return
 
             # Call the chat client with the invoke method
             response = self.chat_client.invoke(langchain_messages)
@@ -214,14 +225,12 @@ Start with a friendly introduction and give me a one sentence summary of what th
 
             self.data["token_count"] = token_count
             self.data["messages"].append({"role": "assistant", "content": response.content})
-            self.data["error_message"] = None
 
         except Exception as exc:
             LOGGER.debug("Received an error from API: %s", exc)
-            self.data["error_message"] = (
+            raise RuntimeError(
                 f"Received an error from the API: {exc}.\n\n Consider choosing a different model and reloading the block."
             )
-            return
 
     def _prepare_item_json_for_chat(self, item_id: str):
         from pydatalab.routes.v0_1.items import get_item_data
