@@ -54,7 +54,7 @@ export default createStore({
         rows: 20,
       },
     },
-    block_implementation_errors: {},
+    block_errors: {},
   },
   mutations: {
     setServerInfo(state, serverInfo) {
@@ -362,11 +362,12 @@ export default createStore({
         ].filter((item) => !refcodes.includes(item.refcode));
       }
     },
-    setBlockImplementationError(state, { block_id, hasError }) {
-      if (hasError) {
-        state.block_implementation_errors[block_id] = true;
+    setBlockError(state, { block_id, error = null }) {
+      if (error) {
+        console.warn("Storing block error", block_id, error);
+        state.block_errors[block_id] = "Block creation API returned error: " + error;
       } else {
-        delete state.block_implementation_errors[block_id];
+        delete state.block_errors[block_id];
       }
     },
   },

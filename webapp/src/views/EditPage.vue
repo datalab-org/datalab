@@ -118,7 +118,7 @@ import tinymce from "tinymce/tinymce";
 
 import { itemTypes, API_URL, customBlockTypes } from "@/resources.js";
 import BokehBlock from "@/components/datablocks/BokehBlock.vue";
-import NotImplementedBlock from "@/components/datablocks/NotImplementedBlock.vue";
+import ErrorBlock from "@/components/datablocks/ErrorBlock.vue";
 import { formatDistanceToNow } from "date-fns";
 
 import StyledBlockHelp from "@/components/StyledBlockHelp";
@@ -266,13 +266,15 @@ export default {
       });
     },
     getBlockDisplayType(block_id) {
-      if (this.$store.state.block_implementation_errors[block_id]) {
-        return NotImplementedBlock;
-      }
-
       const block = this.blocks[block_id];
-      if (!block || !block.blocktype) {
-        return NotImplementedBlock;
+      if (!block) {
+        return ErrorBlock;
+      }
+      if (!(block.blocktype in this.$store.state.blocksInfos)) {
+        console.log(
+          `Block with type ${block.blocktype} does not have a valid blocktype or is not in blocksInfos.`,
+        );
+        return ErrorBlock;
       }
 
       const type = block.blocktype;
