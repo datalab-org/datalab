@@ -33,10 +33,6 @@ def add_data_block():
 
     block = BLOCK_TYPES[block_type](item_id=item_id)
 
-    data = block.to_db()
-
-    # currently, adding to both blocks and blocks_obj to mantain compatibility with
-    # the old site. The new site only uses blocks_obj
     if insert_index:
         display_order_update = {
             "$each": [block.block_id],
@@ -48,8 +44,8 @@ def add_data_block():
     result = flask_mongo.db.items.update_one(
         {"item_id": item_id, **get_default_permissions(user_only=True)},
         {
-            "$push": {"blocks": data, "display_order": display_order_update},
-            "$set": {f"blocks_obj.{block.block_id}": data},
+            "$push": {"display_order": display_order_update},
+            "$set": {f"blocks_obj.{block.block_id}": block.to_db()},
         },
     )
 

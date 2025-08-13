@@ -204,23 +204,6 @@ class DataBlock:
             exclude={"bokeh_plot_data", "b64_encoded_image"}, exclude_unset=True
         )
 
-    @classmethod
-    def from_db(cls, block: dict):
-        """Create a block from data stored in the database."""
-        LOGGER.debug("Loading block %s from database object.", cls.__class__.__name__)
-        new_block = cls(
-            item_id=block.get("item_id"),
-            collection_id=block.get("collection_id"),
-            init_data=block,
-        )
-        if "file_id" in new_block.data:
-            new_block.data["file_id"] = str(new_block.data["file_id"])
-
-        if new_block.data.get("title", "") == new_block.description:
-            new_block.data["title"] = new_block.name
-
-        return new_block
-
     def to_web(self) -> dict[str, Any]:
         """Returns a JSON serializable dictionary to render the data block on the web."""
         block_errors = []
