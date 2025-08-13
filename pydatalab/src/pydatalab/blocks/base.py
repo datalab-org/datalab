@@ -1,4 +1,5 @@
 import functools
+import json
 import random
 import warnings
 from collections.abc import Callable, Sequence
@@ -6,6 +7,7 @@ from typing import Any
 
 from pydatalab import __version__
 from pydatalab.logger import LOGGER
+from pydatalab.models.blocks import DataBlockResponse
 
 __all__ = ("generate_random_id", "DataBlock", "generate_js_callback_single_float_parameter")
 
@@ -100,6 +102,8 @@ def generate_random_id():
 class DataBlock:
     """Base class for a data block."""
 
+    block_db_model = DataBlockResponse
+
     name: str = "base"
     """The human-readable block name specifying which technique
     or file format it pertains to.
@@ -191,15 +195,14 @@ class DataBlock:
             collection_id,
         )
 
-    def to_db(self):
+    def to_db(self) -> dict:
         """returns a dictionary with the data for this
         block, ready to be input into mongodb"""
-        from bson import ObjectId
 
         LOGGER.debug("Casting block %s to database object.", self.__class__.__name__)
-        dct_for_db = {k: v for k, v in self.data.items() if k != "bokeh_plot_data"}
-        dct_for_db["file_id"] = ObjectId(dct_for_db["file_id"]) if "file_id" in dct_for_db else None
-        return dct_for_db
+        return self.block_db_model(**self.data).dict(
+            exclude={"bokeh_plot_data", "b64_encoded_image"}, exclude_unset=True
+        )
 
     @classmethod
     def from_db(cls, block: dict):
@@ -251,7 +254,9 @@ class DataBlock:
         else:
             self.data.pop("warnings", None)
 
-        return self.data
+        model = self.block_db_model(**self.data)
+        serialized = json.loads(model.json(exclude_unset=True, exclude_none=True))
+        return serialized
 
     def process_events(self, events: list[dict] | dict):
         """Handle any supported events passed to the block."""
@@ -317,7 +322,6 @@ class DataBlock:
             data: The block data to initialiaze the block with.
 
         """
-        LOGGER.debug("Loading block %s from web request.", cls.__class__.__name__)
         block = cls(
             item_id=data.get("item_id"),
             collection_id=data.get("collection_id"),
@@ -327,9 +331,7 @@ class DataBlock:
         return block
 
     def update_from_web(self, data: dict):
-        """Update the block with data received from a web request.
-
-        Only updates fields that are specified in the dictionary - other fields are left alone
+        """Update the block with validated data received from a web request.
 
         Parameters:
             data: A dictionary of data to update the block with.
@@ -339,6 +341,10 @@ class DataBlock:
             "Updating block %s from web request",
             self.__class__.__name__,
         )
-        self.data.update(data)
+        self.data.update(
+            self.block_db_model(**data).dict(
+                exclude={"bokeh_plot_data", "b64_encoded_image"}, exclude_unset=True
+            )
+        )
 
         return self

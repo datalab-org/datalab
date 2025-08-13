@@ -320,6 +320,20 @@
             "type": "string"
           }
         },
+        "errors": {
+          "title": "Errors",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "warnings": {
+          "title": "Warnings",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "b64_encoded_image": {
           "title": "B64 Encoded Image",
           "type": "object",
@@ -329,7 +343,11 @@
         },
         "bokeh_plot_data": {
           "title": "Bokeh Plot Data",
-          "type": "string"
+          "type": "object"
+        },
+        "processed_data": {
+          "title": "Processed Data",
+          "type": "object"
         }
       },
       "required": [

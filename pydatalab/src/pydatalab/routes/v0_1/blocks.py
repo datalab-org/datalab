@@ -15,6 +15,7 @@ def _(): ...
 
 
 @BLOCKS.route("/add-data-block/", methods=["POST"])
+@BLOCKS.route("/blocks/", methods=["PUT"])
 def add_data_block():
     """Call with AJAX to add a block to the sample"""
 
@@ -174,6 +175,7 @@ def _save_block_to_db(block: DataBlock) -> None:
 
 
 @BLOCKS.route("/update-block/", methods=["POST"])
+@BLOCKS.route("/blocks/", methods=["POST"])
 def update_block():
     """Updates the server-side data block based on received JSON, including triggering
     any events associated with the given block type.
@@ -209,6 +211,7 @@ def update_block():
 
 
 @BLOCKS.route("/delete-block/", methods=["POST"])
+@BLOCKS.route("/blocks/", methods=["DELETE"])
 def delete_block():
     """Completely delete a data block from the database. In the future,
     we may consider preserving data by moving it to a different array,

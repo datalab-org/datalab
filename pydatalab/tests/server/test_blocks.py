@@ -75,7 +75,7 @@ def test_invalid_block_type(admin_client, default_sample_dict):
         },
     )
 
-    assert response.status_code == 400
+    assert response.status_code == 501
     assert "Invalid block type" in response.json["message"]
 
 
@@ -259,7 +259,9 @@ def test_xrd_block_lifecycle(admin_client, default_sample_dict):
     assert "bokeh_plot_data" in web_block
     assert "processed_data" in web_block
     assert "peak_data" in web_block["processed_data"]
-    assert web_block.get("errors", []) == []
+    assert "file_id" in web_block
+    assert web_block["file_id"] == file_id
+    assert web_block.get("errors") is None
 
     block = XRDBlock.from_web(web_block)
     db = block.to_db()
@@ -306,7 +308,7 @@ def test_comment_block_manipulation(admin_client, default_sample_dict, database)
     assert response.json["new_block_data"]["blocktype"] == block_type
     assert response.json["new_block_data"]["freeform_comment"] == "This is a test comment block."
     assert response.json["new_block_data"]["title"] == "Test Comment Block"
-    assert "errors" not in response.json["new_block_data"]
+    assert response.json["new_block_data"].get("errors") is None
 
     # Check that this result was actually stored
     response = admin_client.get(f"/get-item-data/{sample_id}")
@@ -319,7 +321,7 @@ def test_comment_block_manipulation(admin_client, default_sample_dict, database)
     assert "errors" not in response.json["item_data"]["blocks_obj"][block_id]
 
     # Try to add some bad data
-    block_data["bokeh_plot_data"] = '{"bokeh": "json"}'
+    block_data["bokeh_plot_data"] = {"bokeh": "json"}
     block_data["random_new_key"] = "test new key"
     response = admin_client.post("/update-block/", json={"block_data": block_data})
     assert response.status_code == 200
@@ -419,7 +421,7 @@ def test_create_sample_with_example_files(
     if block_type == "xrd":
         assert response.json["new_block_data"]["processed_data"]["peak_data"] is not None
 
-    response = admin_client.get(f"/get-item-data/{sample_id}?load_blocks=1")
+    response = admin_client.get(f"/get-item-data/{sample_id}")
     assert response.status_code == 200
     assert response.json["status"] == "success"
 

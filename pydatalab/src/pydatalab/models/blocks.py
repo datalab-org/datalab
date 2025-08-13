@@ -32,11 +32,20 @@ class DataBlockResponse(BaseModel):
     file_ids: list[PyObjectId] | None = None
     """A list of file IDs associated with the block, if any."""
 
-    b64_encoded_image: dict[PyObjectId, str] | None = None
+    errors: list[str] | None = None
+    """Any errors that occurred during block processing."""
+
+    warnings: list[str] | None = None
+    """Any warnings that occurred during block processing."""
+
+    b64_encoded_image: dict[PyObjectId, str] | None
     """Any base64-encoded image data associated with the block, keyed by file_id, if any."""
 
-    bokeh_plot_data: str | None = None
+    bokeh_plot_data: dict | None
     """A JSON-encoded string containing the Bokeh plot data, if any."""
+
+    processed_data: dict | None = None
+    """Any processed data associated with the block, small enough to store."""
 
     class Config:
         allow_population_by_field_name = True
