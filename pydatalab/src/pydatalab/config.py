@@ -132,6 +132,11 @@ class ServerConfig(BaseSettings):
         description="The canonical URL for any UI associated with this instance; will be used for redirects on user login/registration.",
     )
 
+    ROOT_PATH: str = Field(
+        "/",
+        description="The root path of the application, e.g., `/api` if hosting from a subpath.",
+    )
+
     SECRET_KEY: str = Field(
         hashlib.sha512((platform.platform() + str(platform.python_build)).encode()).hexdigest(),
         description="The secret key to use for Flask. This value should be changed and/or loaded from an environment variable for production deployments.",
@@ -275,6 +280,16 @@ its importance when deploying a datalab instance.""",
                 f"The maximum cache age must be greater than the minimum cache age: min {values.get('REMOTE_CACHE_MIN_AGE')=}, max {values.get('REMOTE_CACHE_MAX_AGE')=}"
             )
         return values
+
+    @validator("ROOT_PATH")
+    def validate_root_path(cls, v):
+        if not v.startswith("/"):
+            v = "/" + v
+
+        if not v.endswith("/"):
+            v = v + "/"
+
+        return v
 
     @validator("IDENTIFIER_PREFIX", pre=True, always=True)
     def validate_identifier_prefix(cls, v, values):
