@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.6.1 (August 2025)
+
+This patch release adds an API config option `CONFIG.ROOT_PATH` to allow
+deployments to easily serve the API under a subpath (e.g., `\api`) on the
+same subdomain as the app.
+It also features a new validation model for block data, which should currently
+have no user-facing effects, but will allow for more formal extensions of block
+schemas in the future.
+
+### What's Changed
+* Add `DataBlockResponse` model to sanitize `blocks_obj` in API by @ml-evs in https://github.com/datalab-org/datalab/pull/1310
+* Add `CONFIG.ROOT_PATH` option to deploy API from custom path by @ml-evs in https://github.com/datalab-org/datalab/pull/1315
+
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.6.0...v0.6.1
+
 ## v0.6.0 (August 2025)
 
 This release includes significant new functionality and UI redesign, a  
@@ -60,7 +75,6 @@ This patch release simply pins the `uv` version used in builds to avoid future b
 * Bump the github-actions group across 1 directory with 2 updates by @dependabot in https://github.com/datalab-org/datalab/pull/1031
 * Update uv to 0.5.x now that dynamic versioning is supported by @ml-evs in https://github.com/datalab-org/datalab/pull/1032
 * Pin uv by @ml-evs in https://github.com/datalab-org/datalab/pull/1039
-
 
 **Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.5.0...v0.5.1
 
