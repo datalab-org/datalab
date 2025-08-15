@@ -62,6 +62,12 @@ markdown_extensions:
       alternate_style: true
   - pymdownx.tasklist
   - pymdownx.snippets
+  - pymdownx.magiclink:
+      repo_url_shorthand: true
+      hide_protocol: true
+      repo_url_shortener: true
+      provider: github
+      normalize_issue_symbols: true
   - toc:
       permalink: true
       toc_depth: 2
