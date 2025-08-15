@@ -213,13 +213,13 @@ def create_app(
     register_endpoints(app)
     LOGGER.info("App created.")
 
-    @app.route("/logout")
+    @app.route(f"{CONFIG.ROOT_PATH}logout")
     def logout():
         """Logs out the local user from the current session."""
         logout_user()
         return redirect(request.environ.get("HTTP_REFERER", "/"))
 
-    @app.route("/")
+    @app.route(CONFIG.ROOT_PATH)
     def index():
         """Landing page endpoint that renders a rudimentary welcome page based on the currently
         authenticated user.
@@ -337,14 +337,16 @@ def register_endpoints(app: Flask):
     from pydatalab.routes import BLUEPRINTS, OAUTH, __api_version__
 
     major, minor, patch = __api_version__.split(".")
-    versions = ["", f"/v{major}", f"/v{major}.{minor}", f"/v{major}.{minor}.{patch}"]
+    versions = ["", f"v{major}", f"v{major}.{minor}", f"v{major}.{minor}.{patch}"]
 
     for bp in BLUEPRINTS:
         for ver in versions:
-            app.register_blueprint(bp, url_prefix=f"{ver}", name=f"{ver}/{bp.name}")
+            app.register_blueprint(
+                bp, url_prefix=f"{CONFIG.ROOT_PATH}{ver}", name=f"{ver}/{bp.name}"
+            )
 
     for bp in OAUTH:  # type: ignore
-        app.register_blueprint(OAUTH[bp], url_prefix="/login")  # type: ignore
+        app.register_blueprint(OAUTH[bp], url_prefix=f"{CONFIG.ROOT_PATH}login")  # type: ignore
 
     for exception_type, handler in ERROR_HANDLERS:
         app.register_error_handler(exception_type, handler)
