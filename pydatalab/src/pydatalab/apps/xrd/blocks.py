@@ -262,7 +262,8 @@ class XRDBlock(DataBlock):
                 pattern_df["normalized intensity (staggered)"] += ind
                 pattern_dfs.append(pattern_df)
 
-            self.data["peak_data"] = peak_information
+            self.data["processed_data"] = {}
+            self.data["processed_data"]["peak_data"] = peak_information
 
         elif filenames is None:
             file_info = get_file_info_by_id(self.data["file_id"], update_if_live=True)
@@ -284,9 +285,11 @@ class XRDBlock(DataBlock):
                 f"{self.data.get('wavelength', self.defaults['wavelength'])} Å"
             )
             peak_model = PeakInformation(**peak_data)
-            if "peak_data" not in self.data:
-                self.data["peak_data"] = {}
-            self.data["peak_data"][str(file_info["immutable_id"])] = peak_model.dict()
+            if "processed_data" not in self.data:
+                self.data["processed_data"] = {"peak_data": {}}
+            self.data["processed_data"]["peak_data"][str(file_info["immutable_id"])] = (
+                peak_model.dict()
+            )
             pattern_dfs = [pattern_df]
 
         else:
@@ -303,9 +306,10 @@ class XRDBlock(DataBlock):
                 pattern_dfs.append(pattern_df)
 
                 peak_model = PeakInformation(**peak_data)
-                if "peak_data" not in self.data:
-                    self.data["peak_data"] = {}
-                self.data["peak_data"][f] = peak_model.dict()
+                if "processed_data" not in self.data:
+                    self.data["processed_data"] = {"peak_data": {}}
+                self.data["processed_data"]["peak_data"][f] = peak_model.dict()
+                pattern_dfs = [pattern_df]
 
         if pattern_dfs:
             p = self._make_plots(pattern_dfs, y_options)

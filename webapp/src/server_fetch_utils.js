@@ -82,9 +82,6 @@ function fetch_delete(url, body) {
 
 function handleResponse(response) {
   return response.text().then((text) => {
-    console.log("fetch was successful");
-    console.log(response);
-    console.log(text);
     const data = text && JSON.parse(text);
 
     if (!response.ok) {
@@ -531,12 +528,15 @@ export async function updateBlockFromServer(
         block_id: block_id,
         isSaved: response_json.saved_successfully,
       });
-      store.commit("setBlockImplementationError", { block_id, hasError: false });
+      store.commit("setBlockError", { block_id, hasError: false, error: "" });
     })
     .catch((error) => {
       console.warn(`Failed to update block ${block_id}:`, error);
-      store.commit("setBlockImplementationError", { block_id, hasError: true });
       store.commit("setBlockNotUpdating", block_id);
+      if (!error.includes("Invalid block type")) {
+        // Do not set any error message for NotImplemented as this will be handled elsewhere
+        store.commit("setBlockError", { block_id, error: error });
+      }
     });
 }
 
