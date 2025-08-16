@@ -11,6 +11,14 @@
         "$ref": "#/definitions/Constituent"
       }
     },
+    "synthesis_products": {
+      "title": "Synthesis Products",
+      "default": [],
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Constituent"
+      }
+    },
     "synthesis_description": {
       "title": "Synthesis Description",
       "type": "string"
