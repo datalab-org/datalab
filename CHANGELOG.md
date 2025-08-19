@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased changes
+
+### What's Changed
+
+* Major refactoring of block life cycle, with better possibilities for validation of block data before and after saving by @ml-evs in #1311
+* Replace browser-native dialogs with custom datalab dialog service by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1212
+* Resolve CVEs on mermaid.js and cross-spawn by @dependabot[bot] in https://github.com/datalab-org/datalab/pull/1317
+
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.6.2...main
+
 ## v0.6.2 (August 2025)
 
 This patch release adds a hotfix for broken media blocks when encoding TIF files (#1318).
