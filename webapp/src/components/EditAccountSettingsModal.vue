@@ -125,6 +125,8 @@
 </template>
 
 <script>
+import { DialogService } from "@/services/DialogService";
+
 import { API_URL } from "@/resources.js";
 import Modal from "@/components/Modal.vue";
 import UserBubble from "@/components/UserBubble.vue";
@@ -204,17 +206,22 @@ export default {
     },
     async requestAPIKey(event) {
       event.preventDefault();
-      if (
-        window.confirm(
+      const confirmed = await DialogService.confirm({
+        title: "Generate New API Key",
+        message:
           "Requesting a new API key will remove your old one. Are you sure you want to proceed?",
-        )
-      ) {
+        type: "warning",
+      });
+      if (confirmed) {
         const newKey = await requestNewAPIKey();
         this.apiKey = newKey;
         this.apiKeyDisplayed = true;
-        window.alert(
-          `A new API key has been generated. Please note that when you close the "Account Settings" window, the key will not be displayed again. `,
-        );
+        await DialogService.alert({
+          title: "API Key Generated",
+          message:
+            'A new API key has been generated. Please note that when you close the "Account Settings" window, the key will not be displayed again.',
+          type: "success",
+        });
       }
     },
     copyToClipboard() {
