@@ -144,25 +144,9 @@ class CycleBlock(DataBlock):
             # Multi-file logic
             file_infos = [get_file_info_by_id(fid, update_if_live=True) for fid in file_ids]
             locations = [info["location"] for info in file_infos]
-            # Use a hash of all file locations for caching
-            import hashlib
-
-            hash_str = "_".join(locations)
-            hash_digest = hashlib.sha256(hash_str.encode()).hexdigest()
-            parsed_file_loc = (
-                Path(file_infos[0]["location"]).parent / f"multi_{hash_digest}.RAW_PARSED.pkl"
-            )
-            cycle_summary_file_loc = (
-                Path(file_infos[0]["location"]).parent / f"multi_{hash_digest}.SUMMARY.pkl"
-            )
 
             raw_df = None
             cycle_summary_df = None
-            if not reload:
-                if parsed_file_loc.exists():
-                    raw_df = pd.read_pickle(parsed_file_loc)  # noqa: S301
-                if cycle_summary_file_loc.exists():
-                    cycle_summary_df = pd.read_pickle(cycle_summary_file_loc)  # noqa: S301
 
             if raw_df is None:
                 try:
@@ -177,12 +161,10 @@ class CycleBlock(DataBlock):
                     raise RuntimeError(
                         f"Navani raised an error when parsing multiple files: {exc}"
                     ) from exc
-                raw_df.to_pickle(parsed_file_loc)
 
             try:
                 if cycle_summary_df is None:
                     cycle_summary_df = ec.cycle_summary(raw_df)
-                    cycle_summary_df.to_pickle(cycle_summary_file_loc)
             except Exception as exc:
                 LOGGER.warning("Cycle summary generation failed with error: %s", exc)
         elif not isinstance(file_ids, list):
