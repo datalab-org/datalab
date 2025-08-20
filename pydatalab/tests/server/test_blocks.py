@@ -80,7 +80,7 @@ def test_invalid_block_type(admin_client, default_sample_dict):
         },
     )
 
-    assert response.status_code == 400
+    assert response.status_code == 501
     assert "Invalid block type" in response.json["message"]
 
 
