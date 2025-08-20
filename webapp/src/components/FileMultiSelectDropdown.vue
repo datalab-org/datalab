@@ -65,6 +65,14 @@
         >
           &raquo;
         </button>
+        <button
+          class="btn btn-secondary mt-2"
+          :disabled="modelValue.length === 0"
+          aria-label="Remove all files"
+          @click="removeAllSelected"
+        >
+          &laquo;
+        </button>
       </div>
 
       <div class="listbox">
@@ -270,6 +278,14 @@ export default {
       const newSelectedFiles = [...this.modelValue, ...this.availableFiles];
       this.emitUpdate(newSelectedFiles);
       this.selectedAvailable = null;
+    },
+    removeAllSelected() {
+      if (this.modelValue.length === 0) return;
+
+      this.emitUpdate([]);
+      this.selectedSelected = null;
+      this.selectedSelectedIndex = -1;
+      this.selectedAvailable = null; // Reset available selection
     },
     moveUp() {
       if (!this.canMoveUp) return;
