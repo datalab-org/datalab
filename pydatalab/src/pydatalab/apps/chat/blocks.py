@@ -3,6 +3,7 @@ import os
 
 from langchain_anthropic import ChatAnthropic
 from langchain_core.language_models.chat_models import BaseChatModel
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 
 from pydatalab.blocks.base import DataBlock
@@ -165,9 +166,7 @@ Start with a friendly introduction and give me a one sentence summary of what th
 
         try:
             model_name = self.data["model"]
-
-            model_dict = self.data["available_models"][model_name]
-            LOGGER.warning(f"Initializing chatblock with model: {model_name}")
+            LOGGER.debug(f"Initializing chatblock with model: {model_name}")
 
             if model_name.startswith("claude"):
                 self.chat_client = ChatAnthropic(
@@ -183,8 +182,6 @@ Start with a friendly introduction and give me a one sentence summary of what th
             LOGGER.debug(
                 f'submitting request to API for completion with last message role "{self.data["messages"][-1]["role"]}" (message = {self.data["messages"][-1:]}). Temperature = {self.data["temperature"]} (type {type(self.data["temperature"])})'
             )
-            from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
-
             # Convert your messages to the required format
             langchain_messages = []
             for message in self.data["messages"]:
@@ -195,24 +192,12 @@ Start with a friendly introduction and give me a one sentence summary of what th
                 else:
                     langchain_messages.append(AIMessage(content=message["content"]))
 
-            token_count = self.chat_client.get_num_tokens_from_messages(langchain_messages)
-
-            self.data["token_count"] = token_count
-
-            if token_count >= model_dict["context_window"]:
-                self.data["error_message"] = (
-                    f"""This conversation has reached its maximum context size and the chatbot won't be able to respond further ({token_count} tokens, max: {model_dict["context_window"]}). Please make a new chat block to start fresh, or use a model with a larger context window"""
-                )
-                return
-
             # Call the chat client with the invoke method
             response = self.chat_client.invoke(langchain_messages)
+            self.data["token_count"] = response.usage_metadata["total_tokens"]
 
             langchain_messages.append(response)
 
-            token_count = self.chat_client.get_num_tokens_from_messages(langchain_messages)
-
-            self.data["token_count"] = token_count
             self.data["messages"].append({"role": "assistant", "content": response.content})
             self.data["error_message"] = None
 
