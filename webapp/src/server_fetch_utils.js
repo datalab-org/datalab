@@ -539,12 +539,15 @@ export async function updateBlockFromServer(
         block_id: block_id,
         isSaved: response_json.saved_successfully,
       });
-      store.commit("setBlockImplementationError", { block_id, hasError: false });
+      store.commit("setBlockError", { block_id, error: "" });
     })
-    .catch(() => {
+    .catch((error) => {
       // The block component renders errors, so no need to make a dialog here.
-      store.commit("setBlockImplementationError", { block_id, hasError: true });
       store.commit("setBlockNotUpdating", block_id);
+      if (error && !error.includes("Invalid block type")) {
+        // Do not set any error message for NotImplemented as this will be handled elsewhere
+        store.commit("setBlockError", { block_id, error: error });
+      }
     });
 }
 
