@@ -258,12 +258,6 @@ def test_new_sample_with_relationships(client, complicated_sample):
         f"/get-item-data/{complicated_sample.item_id}",
     )
 
-    assert response.json["parent_items"] == [
-        "starting_material_1",
-        "starting_material_2",
-        "starting_material_3",
-    ]
-    assert response.json["child_items"] == []
     assert [d["item_id"] for d in response.json["item_data"]["relationships"]] == [
         "starting_material_1",
         "starting_material_2",
@@ -309,12 +303,6 @@ def test_new_sample_with_relationships(client, complicated_sample):
     )
 
     assert len(response.json["item_data"]["synthesis_constituents"]) == 2
-    assert response.json["parent_items"] == [
-        "starting_material_1",
-        "starting_material_2",
-        # i.e., "starting_material_3", has been removed
-    ]
-    assert response.json["child_items"] == []
     assert [d.get("item_id") for d in response.json["item_data"]["relationships"]] == [
         "starting_material_1",
         "starting_material_2",
@@ -370,12 +358,12 @@ def test_saved_sample_has_new_relationships(client, default_sample_dict, complic
     response = client.get(
         f"/get-item-data/{default_sample_dict['item_id']}",
     )
-    assert complicated_sample.item_id in response.json["parent_items"]
-
     response = client.get(
         f"/get-item-data/{complicated_sample.item_id}",
     )
-    assert sample_dict["item_id"] in response.json["child_items"]
+    assert sample_dict["item_id"] in {
+        d["item"]["item_id"] for d in response.json["item_data"]["synthesis_constituents"]
+    }
 
 
 @pytest.mark.dependency(depends=["test_saved_sample_has_new_relationships"])
@@ -405,12 +393,6 @@ def test_copy_from_sample(client, complicated_sample):
     response = client.get(
         f"/get-item-data/{copy_doc['item_id']}",
     )
-
-    assert response.json["parent_items"] == [
-        "starting_material_1",
-        "starting_material_2",
-        "starting_material_3",
-    ]
 
 
 @pytest.mark.dependency(depends=["test_copy_from_sample"])
