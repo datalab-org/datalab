@@ -57,6 +57,14 @@
         >
           &lt;
         </button>
+        <button
+          class="btn btn-secondary mt-2"
+          :disabled="availableFiles.length === 0"
+          aria-label="Add all available files"
+          @click="addAllAvailable"
+        >
+          &raquo;
+        </button>
       </div>
 
       <div class="listbox">
@@ -172,7 +180,14 @@ export default {
     availableFiles() {
       // Filter out files that are already selected
       const selectedSet = new Set(this.modelValue);
-      return this.all_available_file_ids.filter((id) => !selectedSet.has(id));
+      // Get filtered IDs
+      const filteredIds = this.all_available_file_ids.filter((id) => !selectedSet.has(id));
+      // Sort alphabetically by file name
+      return filteredIds.sort((a, b) => {
+        const nameA = this.getFileName(a).toLowerCase();
+        const nameB = this.getFileName(b).toLowerCase();
+        return nameA.localeCompare(nameB);
+      });
     },
     canMoveUp() {
       return this.selectedSelected !== null && this.selectedSelectedIndex > 0;
@@ -248,6 +263,13 @@ export default {
       // Reset selection in selected list
       this.selectedSelected = null;
       this.selectedSelectedIndex = -1;
+    },
+    addAllAvailable() {
+      if (this.availableFiles.length === 0) return;
+
+      const newSelectedFiles = [...this.modelValue, ...this.availableFiles];
+      this.emitUpdate(newSelectedFiles);
+      this.selectedAvailable = null;
     },
     moveUp() {
       if (!this.canMoveUp) return;
@@ -328,10 +350,6 @@ export default {
 </script>
 
 <style scoped>
-.multi-file-selector {
-  /* Add styles for the overall container if needed */
-}
-
 .dual-listbox-container {
   display: flex;
   gap: 1rem; /* Space between elements */
