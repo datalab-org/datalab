@@ -66,7 +66,7 @@ class MediaBlock(DataBlock):
             with io.BytesIO() as f:
                 im.save(f, format="PNG")
                 f.seek(0)
-                self.data["b64_encoded_image"][self.data["file_id"]] = base64.b64encode(
+                self.data["b64_encoded_image"][str(self.data["file_id"])] = base64.b64encode(
                     f.getvalue()
                 ).decode()
 
