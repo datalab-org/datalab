@@ -1,6 +1,7 @@
 import os
 import time
 from pathlib import Path
+from typing import Any
 
 import bokeh
 import pandas as pd
@@ -43,13 +44,13 @@ class CycleBlock(DataBlock):
         ".ndax",
     )
 
-    defaults = {
+    defaults: dict[str, Any] = {
         "p_spline": 5,
         "s_spline": 5,
         "win_size_2": 101,
         "win_size_1": 1001,
         "derivative_mode": None,
-        "isMultiSelect": False,
+        "file_ids": [],
     }
 
     def _get_characteristic_mass_g(self):
@@ -62,12 +63,12 @@ class CycleBlock(DataBlock):
             return characteristic_mass_mg / 1000.0
         return None
 
-    def _load(self, file_id: str | ObjectId, multi_select_flag: bool = False, reload: bool = True):
+    def _load(self, file_ids: list | ObjectId, reload: bool = True):
         """Loads the echem data using navani, summarises it, then caches the results
         to disk with suffixed names.
 
         Parameters:
-            file_id: The ID of the file to load.
+            file_ids: The IDs of the files to load.
             reload: Whether to reload the data from the file, or use the cached version, if available.
 
         """
@@ -93,8 +94,8 @@ class CycleBlock(DataBlock):
             "dqdv": "dQ/dV (mA/V)",
             "dvdq": "dV/dQ (V/mA)",
         }
-        if not multi_select_flag:
-            file_info = get_file_info_by_id(file_id, update_if_live=True)
+        if len(file_ids) == 1:
+            file_info = get_file_info_by_id(file_ids[0], update_if_live=True)
             filename = file_info["name"]
             if file_info.get("is_live"):
                 reload = True
@@ -139,9 +140,9 @@ class CycleBlock(DataBlock):
             except Exception as exc:
                 LOGGER.warning("Cycle summary generation failed with error: %s", exc)
 
-        else:
+        elif isinstance(file_ids, list) and len(file_ids) > 1:
             # Multi-file logic
-            file_infos = [get_file_info_by_id(fid, update_if_live=True) for fid in file_id]
+            file_infos = [get_file_info_by_id(fid, update_if_live=True) for fid in file_ids]
             locations = [info["location"] for info in file_infos]
             # Use a hash of all file locations for caching
             import hashlib
@@ -184,9 +185,16 @@ class CycleBlock(DataBlock):
                     cycle_summary_df.to_pickle(cycle_summary_file_loc)
             except Exception as exc:
                 LOGGER.warning("Cycle summary generation failed with error: %s", exc)
+        elif not isinstance(file_ids, list):
+            raise ValueError("Invalid file_ids type. Expected list of strings.")
+        elif len(file_ids) == 0:
+            raise ValueError("Invalid file_ids value. Expected non-empty list of strings.")
 
-        raw_df = raw_df.filter(required_keys)
-        raw_df.rename(columns=keys_with_units, inplace=True)
+        if raw_df is not None:
+            raw_df = raw_df.filter(required_keys)
+            raw_df.rename(columns=keys_with_units, inplace=True)
+        else:
+            raise ValueError("Invalid raw_df value. Expected non-empty DataFrame.")
 
         if cycle_summary_df is not None:
             cycle_summary_df.rename(columns=keys_with_units, inplace=True)
@@ -198,21 +206,11 @@ class CycleBlock(DataBlock):
 
     def plot_cycle(self):
         """Plots the electrochemical cycling data from the file ID provided in the request."""
-        if "file_id" not in self.data and "file_ids" not in self.data:
-            LOGGER.warning("No file_id or file_ids given")
+        if "file_ids" not in self.data:
+            LOGGER.warning("No file_ids given")
             return
 
-        if "isMultiSelect" not in self.data:
-            LOGGER.warning("No isMultiSelect given")
-            return
-
-        multi_select_flag = self.data.get("isMultiSelect")
-        LOGGER.debug("isMultiSelect: %s", multi_select_flag)
-
-        if multi_select_flag:
-            file_id = self.data.get("file_ids")
-        else:
-            file_id = self.data["file_id"]
+        file_ids = self.data["file_ids"]
 
         derivative_modes = (None, "dQ/dV", "dV/dQ", "final capacity")
 
@@ -234,7 +232,7 @@ class CycleBlock(DataBlock):
         if not isinstance(cycle_list, list):
             cycle_list = None
 
-        raw_df, cycle_summary_df = self._load(file_id=file_id, multi_select_flag=multi_select_flag)
+        raw_df, cycle_summary_df = self._load(file_ids=file_ids)
 
         characteristic_mass_g = self._get_characteristic_mass_g()
 

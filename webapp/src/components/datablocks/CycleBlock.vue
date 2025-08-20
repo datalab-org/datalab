@@ -184,7 +184,6 @@ export default {
       showDescription2: false,
       bokehPlotLimitedWidth: true,
       isReplotButtonDisplayed: false,
-      prev_file_id: null,
       prev_file_ids: [],
     };
   },
@@ -208,22 +207,24 @@ export default {
     },
     fileModel: {
       get() {
-        return this.isMultiSelect ? this.file_ids : this.file_id;
+        // Multi-select: return array, Single-select: return first element or null
+        return this.isMultiSelect ? this.file_ids : this.file_ids[0] || null;
       },
       set(val) {
         if (this.isMultiSelect) {
-          this.file_ids = val;
+          // Multi-select: set array directly
+          this.file_ids = Array.isArray(val) ? val : [val];
         } else {
-          this.file_id = val;
+          // Single-select: set array with one element (or empty if null)
+          this.file_ids = val ? [val] : [];
         }
-        // Optionally, update the flag in your block data for backend
-        this.setMultiSelectFlag(this.isMultiSelect);
+        this.updateBlock();
       },
     },
+
     // normalizingMass() {
     //   return this.$store.all_item_data[this.item_id]["characteristic_mass"] || null;
     // },
-    file_id: createComputedSetterForBlockField("file_id"),
     file_ids: createComputedSetterForBlockField("file_ids"),
     all_cycles: createComputedSetterForBlockField("cyclenumber"),
     s_spline: createComputedSetterForBlockField("s_spline"),
@@ -276,20 +277,16 @@ export default {
     },
     toggleMultiSelect() {
       if (this.isMultiSelect) {
-        // Switching to single select: save multi, restore single
-        this.prev_file_ids = this.file_ids;
-        if (this.prev_file_id !== null) {
-          this.file_id = this.prev_file_id;
-        }
+        // Switching to single select: save multi-file selection
+        this.prev_file_ids = this.file_ids.slice();
+        // Restore previous single selection if available, else use first from current multi
+        this.file_ids = this.prev_file_ids.length > 0 ? [this.prev_file_ids[0]] : [];
       } else {
-        // Switching to multi-select: save single, restore multi
-        this.prev_file_id = this.file_id;
-        if (this.prev_file_ids && this.prev_file_ids.length > 0) {
-          this.file_ids = this.prev_file_ids;
-        } else if (this.file_id) {
-          // If no previous multi, initialize with current single
-          this.file_ids = [this.file_id];
-        }
+        // Switching to multi-select: restore previous multi selection if available
+        this.file_ids =
+          this.prev_file_ids && this.prev_file_ids.length > 0
+            ? this.prev_file_ids.slice()
+            : this.file_ids.slice();
       }
       this.isMultiSelect = !this.isMultiSelect;
       this.setMultiSelectFlag(this.isMultiSelect);
