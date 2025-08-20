@@ -85,10 +85,8 @@ Cypress.Commands.add("deleteItems", (type, items_id) => {
   cy.get('[data-testid="selected-dropdown"]').click();
   cy.get('[data-testid="delete-selected-button"]').click();
 
-  cy.on("window:confirm", (text) => {
-    expect(text).to.contains(items_id);
-    return true;
-  });
+  cy.findByText("Confirm Deletion").should("exist");
+  cy.get('[data-testid="dialog-modal-confirm-button"]').click();
 
   items_id.forEach((item_id) => {
     cy.get(`[data-testid=${type}-table]`)

@@ -69,6 +69,8 @@
 </template>
 
 <script>
+import { DialogService } from "@/services/DialogService";
+
 import { getUsersList, saveRole, saveUser } from "@/server_fetch_utils.js";
 
 export default {
@@ -94,16 +96,20 @@ export default {
       const originalCurrentUser = this.original_users.find((user) => user._id.$oid === user_id);
 
       if (originalCurrentUser.role === "admin") {
-        window.alert("You can't change an admin's role.");
+        DialogService.error({
+          title: "Role Change Error",
+          message: "You can't change an admin's role.",
+        });
         this.users.find((user) => user._id.$oid === user_id).role = originalCurrentUser.role;
         return;
       }
 
-      if (
-        window.confirm(
-          `Are you sure you want to change ${originalCurrentUser.display_name}'s role to ${new_role} ?`,
-        )
-      ) {
+      const confirmed = await DialogService.confirm({
+        title: "Change User Role",
+        message: `Are you sure you want to change ${originalCurrentUser.display_name}'s role to ${new_role}?`,
+        type: "warning",
+      });
+      if (confirmed) {
         await this.updateUserRole(user_id, new_role);
       } else {
         this.users.find((user) => user._id.$oid === user_id).role = originalCurrentUser.role;
@@ -112,11 +118,12 @@ export default {
     async confirmUpdateUserStatus(user_id, new_status) {
       const originalCurrentUser = this.original_users.find((user) => user._id.$oid === user_id);
 
-      if (
-        window.confirm(
-          `Are you sure you want to change ${originalCurrentUser.display_name}'s status from "${originalCurrentUser.account_status}" to "${new_status}" ?`,
-        )
-      ) {
+      const confirmed = await DialogService.confirm({
+        title: "Change User Status",
+        message: `Are you sure you want to change ${originalCurrentUser.display_name}'s status from "${originalCurrentUser.account_status}" to "${new_status}"?`,
+        type: "warning",
+      });
+      if (confirmed) {
         this.users.find((user) => user._id.$oid == user_id).account_status = new_status;
         await this.updateUserStatus(user_id, new_status);
       } else {
