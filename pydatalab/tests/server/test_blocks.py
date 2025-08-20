@@ -233,7 +233,7 @@ def test_create_sample_with_example_files(admin_client, default_sample_dict):
         "raman": "raman_example.txt",
         "ms": "20221128 134958 TGA MS Megan.asc",
         "xrd": "Scan_C4.xrdml",
-        "media": "grey_group_logo.jpeg",
+        "media": "grey_group_logo.tif",
     }
 
     example_data_path = Path(__file__).parent.parent.parent / "example_data"
@@ -344,6 +344,22 @@ def test_create_sample_with_example_files(admin_client, default_sample_dict):
                 )
                 assert response.status_code == 200
                 uploaded_files.append({"block_type": block_type, "filename": example_file.name})
+
+                # For the media block, ensure we have a base64 encoded b64_encoded_image
+                # then try to save it back to the item
+                if block_type == "media":
+                    block_data = response.json["new_block_data"]
+                    assert "b64_encoded_image" in block_data
+
+                    response = admin_client.get(f"/get-item-data/{sample_id}")
+                    assert response.status_code == 200
+                    item_data = response.json["item_data"]
+
+                    item_data["blocks_obj"][block_id] = block_data
+                    response = admin_client.post(
+                        "/save-item/", json={"item_id": sample_id, "data": item_data}
+                    )
+                    assert response.status_code == 200
 
         block_index += 1
 

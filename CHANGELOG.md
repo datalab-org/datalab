@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.6.2 (August 2025)
+
+This patch release adds a hotfix for broken media blocks when encoding TIF files (#1318).
+
+#### What's Changed
+
+* Fix serialisation of block data with nested file IDs in data model by @ml-evs in #1319
+
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.6.1...v0.6.2
+
 ## v0.6.1 (August 2025)
 
 This patch release adds an API config option `CONFIG.ROOT_PATH` to allow

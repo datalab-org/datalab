@@ -198,8 +198,8 @@ class DataBlock:
 
         LOGGER.debug("Casting block %s to database object.", self.__class__.__name__)
 
-        if "bokeh_plot_data" in self.data:
-            self.data.pop("bokeh_plot_data")
+        self.data.pop("bokeh_plot_data", None)
+        self.data.pop("b64_encoded_image", None)
 
         if "file_id" in self.data:
             dict_for_db = self.data.copy()  # gross, I know
