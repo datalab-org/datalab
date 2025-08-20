@@ -42,7 +42,7 @@
 
       <div class="action-buttons">
         <button
-          class="btn btn-secondary mb-2"
+          class="btn btn-secondary btn-sm mb-2"
           :disabled="!selectedAvailable"
           aria-label="Add selected file"
           @click="addSelected()"
@@ -50,7 +50,7 @@
           &gt;
         </button>
         <button
-          class="btn btn-secondary"
+          class="btn btn-secondary btn-sm"
           :disabled="!selectedSelected"
           aria-label="Remove selected file"
           @click="removeSelected()"
@@ -58,7 +58,7 @@
           &lt;
         </button>
         <button
-          class="btn btn-secondary mt-2"
+          class="btn btn-secondary btn-sm mt-2"
           :disabled="availableFiles.length === 0"
           aria-label="Add all available files"
           @click="addAllAvailable"
@@ -66,7 +66,7 @@
           &raquo;
         </button>
         <button
-          class="btn btn-secondary mt-2"
+          class="btn btn-secondary btn-sm mt-2"
           :disabled="modelValue.length === 0"
           aria-label="Remove all files"
           @click="removeAllSelected"
