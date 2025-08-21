@@ -10,8 +10,11 @@
         :item_id="item_id"
         :block_id="block_id"
         :extensions="blockInfo.attributes.accepted_file_extensions"
-        update-block-on-change
+        :update-block-on-change="!isMultiSelect"
       />
+    </div>
+    <div v-if="isMultiSelect" class="form-row mt-2">
+      <button class="btn btn-primary btn-sm" @click="applyMultiSelect">Apply Selection</button>
     </div>
     <div v-if="fileModel && (!isMultiSelect || (isMultiSelect && fileModel.length > 0))">
       <div class="form-row">
@@ -185,6 +188,7 @@ export default {
       bokehPlotLimitedWidth: true,
       isReplotButtonDisplayed: false,
       prev_file_ids: [],
+      pending_file_ids: [],
     };
   },
   computed: {
@@ -207,18 +211,19 @@ export default {
     },
     fileModel: {
       get() {
-        // Multi-select: return array, Single-select: return first element or null
-        return this.isMultiSelect ? this.file_ids : this.file_ids[0] || null;
+        if (this.isMultiSelect) {
+          return this.pending_file_ids;
+        } else {
+          return this.file_ids[0] || null;
+        }
       },
       set(val) {
         if (this.isMultiSelect) {
-          // Multi-select: set array directly
-          this.file_ids = Array.isArray(val) ? val : [val];
+          this.pending_file_ids = Array.isArray(val) ? val : [val];
         } else {
-          // Single-select: set array with one element (or empty if null)
           this.file_ids = val ? [val] : [];
+          this.updateBlock();
         }
-        this.updateBlock();
       },
     },
 
@@ -287,16 +292,22 @@ export default {
           this.prev_file_ids && this.prev_file_ids.length > 0
             ? this.prev_file_ids.slice()
             : this.file_ids.slice();
+        this.pending_file_ids = this.file_ids.slice();
       }
       this.isMultiSelect = !this.isMultiSelect;
-      this.setMultiSelectFlag(this.isMultiSelect);
+      // this.setMultiSelectFlag(this.isMultiSelect);
       this.updateBlock();
     },
-    setMultiSelectFlag(flag) {
-      // Store the flag in your block data for backend use
-      this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id].isMultiSelect =
-        flag;
-      // Optionally, trigger updateBlockFromServer here if you want to persist immediately
+    // setMultiSelectFlag(flag) {
+    //   // Store the flag in your block data for backend use
+    //   this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id].isMultiSelect =
+    //     flag;
+    // },
+    applyMultiSelect() {
+      if (!this.isMultiSelect) return;
+
+      this.file_ids = this.pending_file_ids.slice();
+      this.updateBlock();
     },
     updateBlock() {
       updateBlockFromServer(
