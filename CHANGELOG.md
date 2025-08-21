@@ -2,11 +2,15 @@
 
 ## Unreleased changes
 
+> [!WARNING]
+> This release hardens the `SECRET_KEY` configuration to enforce setting a custom key with a minimum entropy; old keys may need to be rotated.
+
 ### What's Changed
 
 * Major refactoring of block life cycle, with better possibilities for validation of block data before and after saving by @ml-evs in #1311
 * Replace browser-native dialogs with custom datalab dialog service by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1212
 * Resolve CVEs on mermaid.js and cross-spawn by @dependabot[bot] in https://github.com/datalab-org/datalab/pull/1317
+* Hardened `SECRET_KEY` configuration by @ml-evs in #1324
 
 **Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.6.2...main
 

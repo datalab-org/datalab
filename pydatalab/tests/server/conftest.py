@@ -8,7 +8,6 @@ from bson import ObjectId
 from flask.testing import FlaskClient
 
 import pydatalab.mongo
-from pydatalab.main import create_app
 from pydatalab.models import Cell, Collection, Equipment, Sample, StartingMaterial
 from pydatalab.models.people import AccountStatus
 
@@ -21,15 +20,6 @@ class PyMongoMock(mongomock.MongoClient):
 
 
 MONGO_URI = f"mongodb://localhost:27017/{TEST_DATABASE_NAME}"
-
-
-@pytest.fixture(scope="session")
-def monkeypatch_session():
-    from _pytest.monkeypatch import MonkeyPatch
-
-    m = MonkeyPatch()
-    yield m
-    m.undo()
 
 
 @pytest.fixture(scope="module")
@@ -53,7 +43,7 @@ def database(real_mongo_client):
 
 
 @pytest.fixture(scope="session")
-def app_config(tmp_path_factory):
+def app_config(tmp_path_factory, secret_key):
     example_remotes = [
         {
             "name": "example_data",
@@ -72,6 +62,7 @@ def app_config(tmp_path_factory):
         "FILE_DIRECTORY": str(tmp_path_factory.mktemp("files")),
         "TESTING": False,
         "ROOT_PATH": "/",
+        "SECRET_KEY": secret_key,
         "EMAIL_AUTH_SMTP_SETTINGS": {
             "MAIL_SERVER": "smtp.example.com",
             "MAIL_PORT": 587,
@@ -97,6 +88,7 @@ def app(real_mongo_client, monkeypatch_session, app_config):
     mongomock testing backend.
 
     """
+    from pydatalab.main import create_app
 
     try:
         mongo_cli = real_mongo_client
