@@ -51,6 +51,7 @@ class CycleBlock(DataBlock):
         "win_size_1": 1001,
         "derivative_mode": None,
         "file_ids": [],
+        "file_id": None,
         "isMultiSelect": False,
         "prev_file_ids": [],
         "prev_single_file_id": None,
@@ -97,6 +98,11 @@ class CycleBlock(DataBlock):
             "dqdv": "dQ/dV (mA/V)",
             "dvdq": "dV/dQ (V/mA)",
         }
+
+        # Legacy case for old single file uploads using "file_id"
+        if self.data.get("file_id") is not None and self.data.get("file_ids") is None:
+            file_ids = [self.data["file_id"]]
+
         if len(file_ids) == 1:
             file_info = get_file_info_by_id(file_ids[0], update_if_live=True)
             filename = file_info["name"]
