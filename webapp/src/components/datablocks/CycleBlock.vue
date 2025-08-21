@@ -16,7 +16,7 @@
     <div v-if="isMultiSelect" class="form-row mt-2">
       <button class="btn btn-primary btn-sm" @click="applyMultiSelect">Apply Selection</button>
     </div>
-    <div v-if="fileModel && (!isMultiSelect || (isMultiSelect && fileModel.length > 0))">
+    <div>
       <div class="form-row">
         <div class="input-group form-inline">
           <label class="mr-2"><b>Cycles to plot:</b></label>
@@ -146,7 +146,7 @@
           class="col mx-auto"
           :class="{ 'limited-width': bokehPlotLimitedWidth, blurry: isUpdating }"
         >
-          <BokehPlot :bokeh-plot-data="bokehPlotData" />
+          <BokehPlot v-if="bokehPlotData" :bokeh-plot-data="bokehPlotData" />
         </div>
       </div>
     </div>
@@ -187,7 +187,6 @@ export default {
       showDescription2: false,
       bokehPlotLimitedWidth: true,
       isReplotButtonDisplayed: false,
-      prev_file_ids: [],
       pending_file_ids: [],
     };
   },
@@ -231,12 +230,20 @@ export default {
     //   return this.$store.all_item_data[this.item_id]["characteristic_mass"] || null;
     // },
     file_ids: createComputedSetterForBlockField("file_ids"),
+    isMultiSelect: createComputedSetterForBlockField("isMultiSelect"),
+    prev_file_ids: createComputedSetterForBlockField("prev_file_ids"),
+    prev_single_file_id: createComputedSetterForBlockField("prev_single_file_id"),
     all_cycles: createComputedSetterForBlockField("cyclenumber"),
     s_spline: createComputedSetterForBlockField("s_spline"),
     win_size_1: createComputedSetterForBlockField("win_size_1"),
     derivative_mode: createComputedSetterForBlockField("derivative_mode"),
     characteristic_mass: createComputedSetterForBlockField("characteristic_mass"),
-    isMultiSelect: createComputedSetterForBlockField("isMultiSelect"),
+  },
+  mounted() {
+    if (this.isMultiSelect) {
+      // Ensure pending_file_ids matches persisted file_ids on reload
+      this.pending_file_ids = this.file_ids.slice();
+    }
   },
   methods: {
     parseCycleString() {
@@ -282,20 +289,23 @@ export default {
     },
     toggleMultiSelect() {
       if (this.isMultiSelect) {
-        // Switching to single select: save multi-file selection
+        // Switching from multi to single: save multi selection, restore last single selection
         this.prev_file_ids = this.file_ids.slice();
-        // Restore previous single selection if available, else use first from current multi
-        this.file_ids = this.prev_file_ids.length > 0 ? [this.prev_file_ids[0]] : [];
+        if (this.prev_single_file_id) {
+          this.file_ids = [this.prev_single_file_id];
+        } else if (this.prev_file_ids.length > 0) {
+          this.file_ids = [this.prev_file_ids[0]];
+        } else {
+          this.file_ids = [];
+        }
       } else {
-        // Switching to multi-select: restore previous multi selection if available
+        // Switching from single to multi: save single selection, restore previous multi selection or start empty
+        this.prev_single_file_id = this.file_ids[0] || null;
         this.file_ids =
-          this.prev_file_ids && this.prev_file_ids.length > 0
-            ? this.prev_file_ids.slice()
-            : this.file_ids.slice();
+          this.prev_file_ids && this.prev_file_ids.length > 0 ? this.prev_file_ids.slice() : [];
         this.pending_file_ids = this.file_ids.slice();
       }
       this.isMultiSelect = !this.isMultiSelect;
-      // this.setMultiSelectFlag(this.isMultiSelect);
       this.updateBlock();
     },
     // setMultiSelectFlag(flag) {

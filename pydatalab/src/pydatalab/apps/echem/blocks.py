@@ -51,6 +51,9 @@ class CycleBlock(DataBlock):
         "win_size_1": 1001,
         "derivative_mode": None,
         "file_ids": [],
+        "isMultiSelect": False,
+        "prev_file_ids": [],
+        "prev_single_file_id": None,
     }
 
     def _get_characteristic_mass_g(self):
