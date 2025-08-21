@@ -99,7 +99,8 @@ class CycleBlock(DataBlock):
         }
 
         # Legacy case for old single file uploads using "file_id"
-        if self.data.get("file_id") is not None and self.data.get("file_ids") is None:
+        if self.data.get("file_id") is not None and not self.data.get("file_ids"):
+            LOGGER.info("Legacy file upload detected, using file_id")
             file_ids = [self.data["file_id"]]
 
         if len(file_ids) == 1:
