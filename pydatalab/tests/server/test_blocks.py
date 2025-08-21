@@ -250,7 +250,7 @@ def test_uvvis_block_lifecycle(admin_client, default_sample_dict, example_data_d
     item_data = response.json["item_data"]
     block_data = item_data["blocks_obj"][block_id]
     block_data["file_id"] = example_file_ids[0]
-    block_data["selected_file_order"] = example_file_ids
+    block_data["file_ids"] = example_file_ids
 
     response = admin_client.post("/update-block/", json={"block_data": block_data})
 
