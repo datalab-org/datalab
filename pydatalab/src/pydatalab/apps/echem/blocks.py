@@ -51,7 +51,6 @@ class CycleBlock(DataBlock):
         "win_size_1": 1001,
         "derivative_mode": None,
         "file_ids": [],
-        "file_id": None,
         "isMultiSelect": False,
         "prev_file_ids": [],
         "prev_single_file_id": None,
