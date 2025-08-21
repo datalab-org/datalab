@@ -9,7 +9,8 @@ from pydantic import AnyUrl, BaseModel, Field, validator
 
 from pydatalab import __version__
 from pydatalab.apps import BLOCK_TYPES
-from pydatalab.config import CONFIG, FEATURE_FLAGS, FeatureFlags
+from pydatalab.config import CONFIG
+from pydatalab.feature_flags import FEATURE_FLAGS, FeatureFlags
 from pydatalab.models import Collection, Person
 from pydatalab.models.items import Item
 from pydatalab.mongo import flask_mongo
