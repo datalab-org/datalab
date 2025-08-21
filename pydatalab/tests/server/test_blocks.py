@@ -261,6 +261,76 @@ def test_uvvis_block_lifecycle(admin_client, default_sample_dict, example_data_d
     assert web_block.get("errors") is None
 
 
+def test_echem_block_lifecycle(admin_client, default_sample_dict, example_data_dir):
+    block_type = "cycle"
+
+    sample_id = f"test_sample_with_files-{block_type}-lifecycle"
+    sample_data = default_sample_dict.copy()
+    sample_data["item_id"] = sample_id
+
+    response = admin_client.post("/new-sample/", json=sample_data)
+    assert response.status_code == 201
+    assert response.json["status"] == "success"
+
+    response = admin_client.post(
+        "/add-data-block/",
+        json={
+            "block_type": block_type,
+            "item_id": sample_id,
+            "index": 0,
+        },
+    )
+
+    assert response.status_code == 200, f"Failed to add {block_type} block: {response.json}"
+    assert response.json["status"] == "success"
+
+    block_data = response.json["new_block_obj"]
+    block_id = block_data["block_id"]
+
+    # Upload multiple echem files
+    echem_folder = example_data_dir / "echem"
+    example_files = list(echem_folder.glob("*.mpr"))[:2]
+    print("example_files:", example_files)
+    example_file_ids = []
+
+    for example_file in example_files:
+        with open(example_file, "rb") as f:
+            response = admin_client.post(
+                "/upload-file/",
+                buffered=True,
+                content_type="multipart/form-data",
+                data={
+                    "item_id": sample_id,
+                    "file": [(f, example_file.name)],
+                    "type": "application/octet-stream",
+                    "replace_file": "null",
+                    "relativePath": "null",
+                },
+            )
+            assert response.status_code == 201, f"Failed to upload {example_file.name}"
+            assert response.json["status"] == "success"
+            file_ids = response.json["file_id"]
+            example_file_ids.append(file_ids)
+
+    assert len(example_file_ids) == 2
+
+    # Update block with multiple file_ids
+    response = admin_client.get(f"/get-item-data/{sample_id}")
+    assert response.status_code == 200
+    item_data = response.json["item_data"]
+    block_data = item_data["blocks_obj"][block_id]
+    block_data["file_ids"] = example_file_ids
+
+    response = admin_client.post("/update-block/", json={"block_data": block_data})
+    assert response.status_code == 200
+    web_block = response.json["new_block_data"]
+    if "bokeh_plot_data" not in web_block:
+        print("Block errors:", web_block.get("errors"))
+
+    assert "bokeh_plot_data" in web_block
+    assert web_block.get("errors") is None
+
+
 def test_xrd_block_lifecycle(admin_client, default_sample_dict, example_data_dir):
     from pydatalab.apps.xrd import XRDBlock
 
