@@ -2,7 +2,7 @@
   <DataBlockBase :item_id="item_id" :block_id="block_id">
     <div>
       <MultiFileSelector
-        v-model="file_ids"
+        v-model="selectedFileOrder"
         :item_id="item_id"
         :block_id="block_id"
         :extensions="accepted_file_extensions"
@@ -57,7 +57,7 @@ export default {
     accepted_file_extensions() {
       return this.blockInfo?.attributes?.accepted_file_extensions || [];
     },
-    file_ids: createComputedSetterForBlockField("file_ids"),
+    selectedFileOrder: createComputedSetterForBlockField("selected_file_order"),
   },
 };
 </script>
