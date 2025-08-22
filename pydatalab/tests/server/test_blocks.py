@@ -290,7 +290,6 @@ def test_echem_block_lifecycle(admin_client, default_sample_dict, example_data_d
     # Upload multiple echem files
     echem_folder = example_data_dir / "echem"
     example_files = list(echem_folder.glob("*.mpr"))[:2]
-    print("example_files:", example_files)
     example_file_ids = []
 
     for example_file in example_files:
@@ -324,9 +323,16 @@ def test_echem_block_lifecycle(admin_client, default_sample_dict, example_data_d
     response = admin_client.post("/update-block/", json={"block_data": block_data})
     assert response.status_code == 200
     web_block = response.json["new_block_data"]
-    if "bokeh_plot_data" not in web_block:
-        print("Block errors:", web_block.get("errors"))
 
+    assert "bokeh_plot_data" in web_block
+    assert web_block.get("errors") is None
+
+    # Test for only one file_id
+    block_data["file_ids"] = [example_file_ids[0]]
+
+    response = admin_client.post("/update-block/", json={"block_data": block_data})
+    assert response.status_code == 200
+    web_block = response.json["new_block_data"]
     assert "bokeh_plot_data" in web_block
     assert web_block.get("errors") is None
 
