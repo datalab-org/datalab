@@ -103,13 +103,13 @@ class UVVisBlock(DataBlock):
 
     def generate_absorbance_plot(self):
         absorbance_data = None
-        if "file_ids" not in self.data:
-            warnings.warn("No file set in the DataBlock")
+        if "selected_file_order" not in self.data:
+            warnings.warn("No file set in the DataBlock - selected_file_order")
             return
 
         else:
             file_info = []
-            for file_id in self.data["file_ids"]:
+            for file_id in self.data["selected_file_order"]:
                 file_info.append(get_file_info_by_id((file_id), update_if_live=True))
 
             if len(file_info) < 2:
