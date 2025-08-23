@@ -119,6 +119,7 @@ dev-dependencies = [
     "pytest ~= 8.2",
     "pytest-cov ~= 5.0",
     "pytest-dependency ~= 0.6",
+    "pytest-memray ~= 1.8",
     "pre-commit ~= 4.0",
     "mongomock ~= 4.1",
     "mkdocs ~= 1.6",
@@ -134,7 +135,7 @@ dev-dependencies = [
 datalab-app-plugin-insitu = { git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git", rev = "v0.2.0" }
 
 [tool.pytest.ini_options]
-addopts = "--cov-report=term --cov-report=xml --cov ./src/pydatalab"
+addopts = "--cov-report=xml --cov ./src/pydatalab"
 filterwarnings = [
     "error",
     "ignore:.*np.bool8*:DeprecationWarning",
