@@ -8,7 +8,6 @@ from json import JSONEncoder
 from math import ceil
 
 import pandas as pd
-from bson import json_util
 from flask.json.provider import DefaultJSONProvider
 
 
@@ -43,7 +42,7 @@ class CustomJSONEncoder(JSONEncoder):
         if isinstance(o, (datetime.date, datetime.datetime)):
             return o.isoformat()
 
-        return json_util.default(o)
+        return str(o)
 
 
 class BSONProvider(DefaultJSONProvider):
