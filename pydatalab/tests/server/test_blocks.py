@@ -574,7 +574,7 @@ def create_large_xye_file(tmpdir):
     yield fname
 
 
-@pytest.mark.limit_memory("130MB")
+@pytest.mark.limit_memory("110MB")
 def test_large_fake_xrd_data_block_serialization(
     admin_client, default_sample_dict, tmpdir, create_large_xye_file
 ):
