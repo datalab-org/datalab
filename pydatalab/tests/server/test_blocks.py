@@ -256,6 +256,7 @@ def test_uvvis_block_lifecycle(admin_client, default_sample_dict, example_data_d
 
     assert response.status_code == 200
     web_block = response.json["new_block_data"]
+    assert web_block["file_id"] == example_file_ids[0]
     assert "bokeh_plot_data" in web_block
     assert web_block.get("errors") is None
 
