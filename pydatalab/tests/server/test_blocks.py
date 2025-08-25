@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 
 from pydatalab.apps import BLOCK_TYPES, BLOCKS
@@ -544,3 +546,113 @@ def test_create_sample_with_example_files(
     if block_type == "xrd":
         doc = database.items.find_one({"item_id": sample_id}, projection={"blocks_obj": 1})
         assert doc["blocks_obj"][block_id]["computed"]["peak_data"] is not None
+
+
+@pytest.fixture()
+def create_large_xye_file(tmpdir):
+    """Create a relatively large .xye file for testing tabular block serialization and memory usage,
+    as a separate fixture to avoid it being counted in memray profile."""
+
+    fname = Path(tmpdir / "large_table.xye")
+
+    # Make a dataframe of ~3 columns and 1,000,000 rows
+    # totalling ~2.4 MB (raw floats), so maybe 3 MB as a dataframe
+    import numpy as np
+    import pandas as pd
+
+    N = 50_000
+
+    pd.DataFrame(
+        {
+            "two_theta": np.array(np.linspace(5, 85, N), dtype=np.float64),
+            "intensity": np.array(np.random.rand(N), dtype=np.float64),
+            "error": np.array(0.1 * np.random.rand(N), dtype=np.float64),
+        }
+    ).to_csv(fname, sep=",", index=False)
+
+    yield fname
+
+
+@pytest.mark.limit_memory("130MB")
+def test_large_fake_xrd_data_block_serialization(
+    admin_client, default_sample_dict, tmpdir, create_large_xye_file
+):
+    """Make a fake xye file with relatively large data and test serialization
+    memory usage in particular.
+
+    As of the time of writing, we get a breakdown like:
+
+        > Allocation results for tests/server/test_blocks.py::test_large_fake_xrd_data_block_serialization at the high watermark
+        >
+        > 📦 Total memory allocated: 128.4MiB
+        > 📏 Total allocations: 382
+        > 📊 Histogram of allocation sizes: |▁▃█  |
+        > 🥇 Biggest allocating functions:
+        >	- lstsq:./pydatalab/.venv/lib/python3.11/site-packages/numpy/linalg/linalg.py:2326 -> 32.0MiB
+        >	- raw_decode:/home/mevans/.local/share/uv/python/cpython-3.11.10-linux-x86_64-gnu/lib/python3.11/json/decoder.py:353 -> 20.3MiB
+        >	- raw_decode:/home/mevans/.local/share/uv/python/cpython-3.11.10-linux-x86_64-gnu/lib/python3.11/json/decoder.py:353 -> 19.3MiB
+        >	- encode:/home/mevans/.local/share/uv/python/cpython-3.11.10-linux-x86_64-gnu/lib/python3.11/json/encoder.py:203 -> 14.0MiB
+        >	- _iterencode_list:/home/mevans/.local/share/uv/python/cpython-3.11.10-linux-x86_64-gnu/lib/python3.11/json/encoder.py:303 -> 14.0MiB
+
+    """
+    import gc
+
+    gc.collect()
+    gc.collect()
+
+    block_type = "xrd"
+
+    sample_id = "test_sample_with_large_table"
+    sample_data = default_sample_dict.copy()
+    sample_data["item_id"] = sample_id
+
+    response = admin_client.post("/new-sample/", json=sample_data)
+    assert response.status_code == 201, f"Failed to create sample for {block_type}: {response.json}"
+    assert response.json["status"] == "success"
+
+    with open(create_large_xye_file, "rb") as f:
+        response = admin_client.post(
+            "/upload-file/",
+            buffered=True,
+            content_type="multipart/form-data",
+            data={
+                "item_id": sample_id,
+                "file": [(f, create_large_xye_file.name)],
+                "type": "application/octet-stream",
+                "replace_file": "null",
+                "relativePath": "null",
+            },
+        )
+        assert response.status_code == 201, f"Failed to upload {create_large_xye_file}"
+        assert response.json["status"] == "success"
+        file_id = response.json["file_id"]
+
+    response = admin_client.post(
+        "/add-data-block/",
+        json={
+            "block_type": block_type,
+            "item_id": sample_id,
+            "index": 0,
+        },
+    )
+
+    block_id = response.json["new_block_obj"]["block_id"]
+
+    gc.collect()
+
+    response = admin_client.post(
+        "/update-block/",
+        json={
+            "block_data": {
+                "blocktype": "tabular",
+                "item_id": sample_id,
+                "file_id": file_id,
+                "block_id": block_id,
+            },
+        },
+    )
+
+    assert response.status_code == 200, f"Failed to update tabular block: {response.json}"
+    assert response.json["new_block_data"]["bokeh_plot_data"]
+
+    gc.collect()
