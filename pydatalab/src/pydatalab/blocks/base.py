@@ -1,5 +1,4 @@
 import functools
-import json
 import random
 import warnings
 from collections.abc import Callable, Sequence
@@ -237,9 +236,7 @@ class DataBlock:
         else:
             self.data.pop("warnings", None)
 
-        model = self.block_db_model(**self.data)
-        serialized = json.loads(model.json(exclude_unset=True, exclude_none=True))
-        return serialized
+        return self.block_db_model(**self.data).dict(exclude_unset=True, exclude_none=True)
 
     def process_events(self, events: list[dict] | dict):
         """Handle any supported events passed to the block."""
