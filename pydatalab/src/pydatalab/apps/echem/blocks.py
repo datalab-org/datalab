@@ -1,5 +1,6 @@
 import os
 import time
+import warnings
 from pathlib import Path
 from typing import Any
 
@@ -49,11 +50,6 @@ class CycleBlock(DataBlock):
         "s_spline": 5,
         "win_size_2": 101,
         "win_size_1": 1001,
-        "derivative_mode": None,
-        "file_ids": [],
-        "isMultiSelect": False,
-        "prev_file_ids": [],
-        "prev_single_file_id": None,
     }
 
     def _get_characteristic_mass_g(self):
@@ -66,7 +62,7 @@ class CycleBlock(DataBlock):
             return characteristic_mass_mg / 1000.0
         return None
 
-    def _load(self, file_ids: list | ObjectId, reload: bool = True):
+    def _load(self, file_ids: list[ObjectId] | ObjectId, reload: bool = True):
         """Loads the echem data using navani, summarises it, then caches the results
         to disk with suffixed names.
 
@@ -97,11 +93,6 @@ class CycleBlock(DataBlock):
             "dqdv": "dQ/dV (mA/V)",
             "dvdq": "dV/dQ (V/mA)",
         }
-
-        # Legacy case for old single file uploads using "file_id"
-        if self.data.get("file_id") is not None and not self.data.get("file_ids"):
-            LOGGER.info("Legacy file upload detected, using file_id")
-            file_ids = [self.data["file_id"]]
 
         if len(file_ids) == 1:
             file_info = get_file_info_by_id(file_ids[0], update_if_live=True)
@@ -161,7 +152,16 @@ class CycleBlock(DataBlock):
                 try:
                     LOGGER.debug("Loading multiple files: %s", locations)
                     start_time = time.time()
-                    raw_df = ec.multi_echem_file_loader(locations)
+                    # Catch the navani warning when stitching multiple files together and calculating new capacity
+                    with warnings.catch_warnings():
+                        warnings.filterwarnings(
+                            "ignore",
+                            message=(
+                                "Capacity columns are not equal, replacing with new capacity column calculated from current and time columns and renaming the old capacity column to Old Capacity"
+                            ),
+                            category=UserWarning,
+                        )
+                        raw_df = ec.multi_echem_file_loader(locations)
                     LOGGER.debug(
                         "Loaded files in %s seconds",
                         time.time() - start_time,
@@ -197,11 +197,21 @@ class CycleBlock(DataBlock):
 
     def plot_cycle(self):
         """Plots the electrochemical cycling data from the file ID provided in the request."""
-        if "file_ids" not in self.data:
-            LOGGER.warning("No file_ids given")
-            return
 
-        file_ids = self.data["file_ids"]
+        # Legacy support for when file_id was used
+        if self.data.get("file_id") is not None and not self.data.get("file_ids"):
+            LOGGER.info("Legacy file upload detected, using file_id")
+            file_ids = [self.data["file_id"]]
+
+        else:
+            if "file_ids" not in self.data:
+                LOGGER.warning("No file_ids given, skipping plot.")
+                return
+            if self.data["file_ids"] is None or len(self.data["file_ids"]) == 0:
+                LOGGER.warning("Empty file_ids list given, skipping plot.")
+                return
+
+            file_ids = self.data["file_ids"]
 
         derivative_modes = (None, "dQ/dV", "dV/dQ", "final capacity")
 
