@@ -210,10 +210,11 @@ export default {
     },
     fileModel: {
       get() {
+        const ids = this.file_ids || [];
         if (this.isMultiSelect) {
           return this.pending_file_ids;
         } else {
-          return (this.file_ids && this.file_ids[0]) || null;
+          return ids[0] || null;
         }
       },
       set(val) {
@@ -240,6 +241,11 @@ export default {
     characteristic_mass: createComputedSetterForBlockField("characteristic_mass"),
   },
   mounted() {
+    // Ensure file_ids is always an array
+    if (!Array.isArray(this.file_ids)) {
+      this.file_ids = [];
+      console.log("file_ids was not an array, so it has been reset to an empty array.");
+    }
     if (this.isMultiSelect) {
       // Ensure pending_file_ids matches persisted file_ids on reload
       this.pending_file_ids = this.file_ids.slice();
@@ -288,24 +294,21 @@ export default {
       this.all_cycles = all_cycles;
     },
     toggleMultiSelect() {
-      // Ensure file_ids and prev_file_ids are always arrays
-      const currentFileIds = this.file_ids || [];
-      const prevFileIds = this.prev_file_ids || [];
-
       if (this.isMultiSelect) {
         // Switching from multi to single: save multi selection, restore last single selection
-        this.prev_file_ids = currentFileIds.slice();
+        this.prev_file_ids = this.file_ids.slice();
         if (this.prev_single_file_id) {
           this.file_ids = [this.prev_single_file_id];
-        } else if (prevFileIds.length > 0) {
-          this.file_ids = [prevFileIds[0]];
+        } else if (this.prev_file_ids.length > 0) {
+          this.file_ids = [this.prev_file_ids[0]];
         } else {
           this.file_ids = [];
         }
       } else {
         // Switching from single to multi: save single selection, restore previous multi selection or start empty
-        this.prev_single_file_id = currentFileIds[0] || null;
-        this.file_ids = prevFileIds.length > 0 ? prevFileIds.slice() : [];
+        this.prev_single_file_id = this.file_ids[0] || null;
+        this.file_ids =
+          this.prev_file_ids && this.prev_file_ids.length > 0 ? this.prev_file_ids.slice() : [];
         this.pending_file_ids = this.file_ids.slice();
       }
       this.isMultiSelect = !this.isMultiSelect;
