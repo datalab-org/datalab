@@ -1,5 +1,4 @@
 import os
-import time
 import warnings
 from pathlib import Path
 from typing import Any
@@ -95,9 +94,16 @@ class CycleBlock(DataBlock):
             "dvdq": "dV/dQ (V/mA)",
         }
 
+        if isinstance(file_ids, ObjectId):
+            file_ids = [file_ids]
+
+        raw_df = None
+        cycle_summary_df = None
+
         if len(file_ids) == 1:
             file_info = get_file_info_by_id(file_ids[0], update_if_live=True)
             filename = file_info["name"]
+
             if file_info.get("is_live"):
                 reload = True
 
@@ -109,50 +115,26 @@ class CycleBlock(DataBlock):
                 )
 
             parsed_file_loc = Path(file_info["location"]).with_suffix(".RAW_PARSED.pkl")
-            cycle_summary_file_loc = Path(file_info["location"]).with_suffix(".SUMMARY.pkl")
 
-            raw_df = None
-            cycle_summary_df = None
             if not reload:
                 if parsed_file_loc.exists():
                     raw_df = pd.read_pickle(parsed_file_loc)  # noqa: S301
 
-                if cycle_summary_file_loc.exists():
-                    cycle_summary_df = pd.read_pickle(cycle_summary_file_loc)  # noqa: S301
-
             if raw_df is None:
                 try:
-                    LOGGER.debug("Loading file %s", file_info["location"])
-                    start_time = time.time()
                     raw_df = ec.echem_file_loader(file_info["location"])
-                    LOGGER.debug(
-                        "Loaded file %s in %s seconds",
-                        file_info["location"],
-                        time.time() - start_time,
-                    )
                 except Exception as exc:
                     raise RuntimeError(f"Navani raised an error when parsing: {exc}") from exc
                 raw_df.to_pickle(parsed_file_loc)
-
-            try:
-                if cycle_summary_df is None:
-                    cycle_summary_df = ec.cycle_summary(raw_df)
-                    cycle_summary_df.to_pickle(cycle_summary_file_loc)
-            except Exception as exc:
-                LOGGER.warning("Cycle summary generation failed with error: %s", exc)
 
         elif isinstance(file_ids, list) and len(file_ids) > 1:
             # Multi-file logic
             file_infos = [get_file_info_by_id(fid, update_if_live=True) for fid in file_ids]
             locations = [info["location"] for info in file_infos]
 
-            raw_df = None
-            cycle_summary_df = None
-
             if raw_df is None:
                 try:
-                    LOGGER.debug("Loading multiple files: %s", locations)
-                    start_time = time.time()
+                    LOGGER.debug("Loading multiple echem files with navani: %s", locations)
                     # Catch the navani warning when stitching multiple files together and calculating new capacity
                     with warnings.catch_warnings():
                         warnings.filterwarnings(
@@ -163,24 +145,21 @@ class CycleBlock(DataBlock):
                             category=UserWarning,
                         )
                         raw_df = ec.multi_echem_file_loader(locations)
-                    LOGGER.debug(
-                        "Loaded files in %s seconds",
-                        time.time() - start_time,
-                    )
                 except Exception as exc:
                     raise RuntimeError(
                         f"Navani raised an error when parsing multiple files: {exc}"
                     ) from exc
 
-            try:
-                if cycle_summary_df is None:
-                    cycle_summary_df = ec.cycle_summary(raw_df)
-            except Exception as exc:
-                LOGGER.warning("Cycle summary generation failed with error: %s", exc)
         elif not isinstance(file_ids, list):
             raise ValueError("Invalid file_ids type. Expected list of strings.")
         elif len(file_ids) == 0:
             raise ValueError("Invalid file_ids value. Expected non-empty list of strings.")
+
+        if cycle_summary_df is None and raw_df is not None:
+            try:
+                cycle_summary_df = ec.cycle_summary(raw_df)
+            except Exception as exc:
+                warnings.warn(f"Cycle summary generation failed with error: {exc}")
 
         if raw_df is not None:
             raw_df = raw_df.filter(required_keys)
