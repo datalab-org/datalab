@@ -1,5 +1,6 @@
 import datetime
 import json
+import re
 
 from bson import ObjectId
 from flask import Blueprint, jsonify, redirect, request
@@ -327,9 +328,14 @@ def search_items():
         pipeline.append({"$match": match_obj})
         pipeline.append({"$sort": {"score": {"$meta": "textScore"}}})
     else:
+        query_parts = [r"\b" + re.escape(part) for part in query.split(" ") if part]
         match_obj = {
-            "$or": [{field: {"$regex": query, "$options": "i"}} for field in ITEMS_FTS_FIELDS]
+            "$or": [
+                {"$and": [{field: {"$regex": query, "$options": "i"}} for query in query_parts]}
+                for field in ITEMS_FTS_FIELDS
+            ]
         }
+        LOGGER.debug("Performing regex search for %s with full search %s", query_parts, match_obj)
         match_obj = {"$and": [get_default_permissions(user_only=False), match_obj]}
         if types is not None:
             match_obj["$and"].append({"type": {"$in": types}})
