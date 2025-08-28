@@ -494,6 +494,7 @@ def example_items(user_id, admin_user_id):
             Sample(
                 **{
                     "item_id": "sample_2",
+                    "chemform": "vanadium(II) oxide",
                     "name": "other_sample",
                     "date": "1970-02-01",
                     "refcode": "grey:TEST3",

@@ -242,6 +242,49 @@ def test_item_search(client, admin_client, real_mongo_client, example_items):
     assert "test" in item_ids
     assert "sample_admin" in item_ids
 
+    # Search for string with brackets
+    response = admin_client.get("/search-items/?query='vanadium('")
+
+    assert response.status_code == 200
+    assert response.json["status"] == "success"
+    item_ids = {item["item_id"] for item in response.json["items"]}
+    assert len(item_ids) == 1
+    assert "sample_2" in item_ids
+
+    # Search for two words present in sample in either order
+    response = admin_client.get("/search-items/?query='vanadium oxide'")
+
+    assert response.status_code == 200
+    assert response.json["status"] == "success"
+    item_ids = {item["item_id"] for item in response.json["items"]}
+    assert len(item_ids) == 1
+    assert "sample_2" in item_ids
+
+    response = admin_client.get("/search-items/?query='oxide vanadium'")
+
+    assert response.status_code == 200
+    assert response.json["status"] == "success"
+    item_ids = {item["item_id"] for item in response.json["items"]}
+    assert len(item_ids) == 1
+    assert "sample_2" in item_ids
+
+    # Search for single char at start of word
+    response = admin_client.get("/search-items/?query='v'")
+
+    assert response.status_code == 200
+    assert response.json["status"] == "success"
+    item_ids = {item["item_id"] for item in response.json["items"]}
+    assert len(item_ids) == 1
+    assert "sample_2" in item_ids
+
+    # Search for word ending that should not return results
+    response = admin_client.get("/search-items/?query='anadium'")
+
+    assert response.status_code == 200
+    assert response.json["status"] == "success"
+    item_ids = {item["item_id"] for item in response.json["items"]}
+    assert len(item_ids) == 0
+
 
 @pytest.mark.dependency(depends=["test_delete_sample"])
 def test_new_sample_with_relationships(client, complicated_sample):
