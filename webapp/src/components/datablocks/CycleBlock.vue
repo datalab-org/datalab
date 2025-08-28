@@ -1,15 +1,22 @@
 <template>
   <DataBlockBase :item_id="item_id" :block_id="block_id">
-    <div class="form-row">
-      <FileSelectDropdown
-        v-model="file_id"
+    <div class="form-row align-items-center mb-2">
+      <button class="btn btn-outline-secondary mr-3" type="button" @click="toggleMultiSelect">
+        {{ isMultiSelect ? "Switch to Single File" : "Switch to Multi-File" }}
+      </button>
+      <component
+        :is="isMultiSelect ? 'FileMultiSelectDropdown' : 'FileSelectDropdown'"
+        v-model="fileModel"
         :item_id="item_id"
         :block_id="block_id"
         :extensions="blockInfo.attributes.accepted_file_extensions"
-        update-block-on-change
+        :update-block-on-change="!isMultiSelect"
       />
     </div>
-    <div v-if="file_id">
+    <div v-if="isMultiSelect" class="form-row mt-2">
+      <button class="btn btn-primary btn-sm" @click="applyMultiSelect">Apply Selection</button>
+    </div>
+    <div>
       <div class="form-row">
         <div class="input-group form-inline">
           <label class="mr-2"><b>Cycles to plot:</b></label>
@@ -139,7 +146,7 @@
           class="col mx-auto"
           :class="{ 'limited-width': bokehPlotLimitedWidth, blurry: isUpdating }"
         >
-          <BokehPlot :bokeh-plot-data="bokehPlotData" />
+          <BokehPlot v-if="bokehPlotData" :bokeh-plot-data="bokehPlotData" />
         </div>
       </div>
     </div>
@@ -149,6 +156,7 @@
 <script>
 import DataBlockBase from "@/components/datablocks/DataBlockBase";
 import FileSelectDropdown from "@/components/FileSelectDropdown";
+import FileMultiSelectDropdown from "@/components/FileMultiSelectDropdown";
 import BokehPlot from "@/components/BokehPlot";
 
 import { updateBlockFromServer } from "@/server_fetch_utils.js";
@@ -158,6 +166,7 @@ export default {
   components: {
     DataBlockBase,
     FileSelectDropdown,
+    FileMultiSelectDropdown,
     BokehPlot,
   },
   props: {
@@ -178,6 +187,7 @@ export default {
       showDescription2: false,
       bokehPlotLimitedWidth: true,
       isReplotButtonDisplayed: false,
+      pending_file_ids: [],
     };
   },
   computed: {
@@ -198,15 +208,48 @@ export default {
     blockInfo() {
       return this.$store.state.blocksInfos["cycle"];
     },
+    fileModel: {
+      get() {
+        const ids = this.file_ids || [];
+        if (this.isMultiSelect) {
+          return this.pending_file_ids;
+        } else {
+          return ids[0] || null;
+        }
+      },
+      set(val) {
+        if (this.isMultiSelect) {
+          this.pending_file_ids = Array.isArray(val) ? val : [val];
+        } else {
+          this.file_ids = val ? [val] : [];
+          this.updateBlock();
+        }
+      },
+    },
+
     // normalizingMass() {
     //   return this.$store.all_item_data[this.item_id]["characteristic_mass"] || null;
     // },
-    file_id: createComputedSetterForBlockField("file_id"),
+    file_ids: createComputedSetterForBlockField("file_ids"),
+    isMultiSelect: createComputedSetterForBlockField("isMultiSelect"),
+    prev_file_ids: createComputedSetterForBlockField("prev_file_ids"),
+    prev_single_file_id: createComputedSetterForBlockField("prev_single_file_id"),
     all_cycles: createComputedSetterForBlockField("cyclenumber"),
     s_spline: createComputedSetterForBlockField("s_spline"),
     win_size_1: createComputedSetterForBlockField("win_size_1"),
     derivative_mode: createComputedSetterForBlockField("derivative_mode"),
     characteristic_mass: createComputedSetterForBlockField("characteristic_mass"),
+  },
+  mounted() {
+    // Ensure file_ids is always an array
+    if (!Array.isArray(this.file_ids)) {
+      this.file_ids = [];
+      console.log("file_ids was not an array, so it has been reset to an empty array.");
+    }
+    if (this.isMultiSelect) {
+      // Ensure pending_file_ids matches persisted file_ids on reload
+      this.pending_file_ids = this.file_ids.slice();
+    }
   },
   methods: {
     parseCycleString() {
@@ -249,6 +292,38 @@ export default {
       }
 
       this.all_cycles = all_cycles;
+    },
+    toggleMultiSelect() {
+      if (this.isMultiSelect) {
+        // Switching from multi to single: save multi selection, restore last single selection
+        this.prev_file_ids = this.file_ids.slice();
+        if (this.prev_single_file_id) {
+          this.file_ids = [this.prev_single_file_id];
+        } else if (this.prev_file_ids.length > 0) {
+          this.file_ids = [this.prev_file_ids[0]];
+        } else {
+          this.file_ids = [];
+        }
+      } else {
+        // Switching from single to multi: save single selection, restore previous multi selection or start empty
+        this.prev_single_file_id = this.file_ids[0] || null;
+        this.file_ids =
+          this.prev_file_ids && this.prev_file_ids.length > 0 ? this.prev_file_ids.slice() : [];
+        this.pending_file_ids = this.file_ids.slice();
+      }
+      this.isMultiSelect = !this.isMultiSelect;
+      this.updateBlock();
+    },
+    // setMultiSelectFlag(flag) {
+    //   // Store the flag in your block data for backend use
+    //   this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id].isMultiSelect =
+    //     flag;
+    // },
+    applyMultiSelect() {
+      if (!this.isMultiSelect) return;
+
+      this.file_ids = this.pending_file_ids.slice();
+      this.updateBlock();
     },
     updateBlock() {
       updateBlockFromServer(
