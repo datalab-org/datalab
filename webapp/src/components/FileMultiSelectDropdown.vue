@@ -42,7 +42,7 @@
 
       <div class="action-buttons">
         <button
-          class="btn btn-secondary mb-2"
+          class="btn btn-secondary btn-sm mb-2"
           :disabled="!selectedAvailable"
           aria-label="Add selected file"
           @click="addSelected()"
@@ -50,12 +50,28 @@
           &gt;
         </button>
         <button
-          class="btn btn-secondary"
+          class="btn btn-secondary btn-sm"
           :disabled="!selectedSelected"
           aria-label="Remove selected file"
           @click="removeSelected()"
         >
           &lt;
+        </button>
+        <button
+          class="btn btn-secondary btn-sm mt-2"
+          :disabled="availableFiles.length === 0"
+          aria-label="Add all available files"
+          @click="addAllAvailable"
+        >
+          &raquo;
+        </button>
+        <button
+          class="btn btn-secondary btn-sm mt-2"
+          :disabled="modelValue.length === 0"
+          aria-label="Remove all files"
+          @click="removeAllSelected"
+        >
+          &laquo;
         </button>
       </div>
 
@@ -172,7 +188,14 @@ export default {
     availableFiles() {
       // Filter out files that are already selected
       const selectedSet = new Set(this.modelValue);
-      return this.all_available_file_ids.filter((id) => !selectedSet.has(id));
+      // Get filtered IDs
+      const filteredIds = this.all_available_file_ids.filter((id) => !selectedSet.has(id));
+      // Sort alphabetically by file name
+      return filteredIds.sort((a, b) => {
+        const nameA = this.getFileName(a).toLowerCase();
+        const nameB = this.getFileName(b).toLowerCase();
+        return nameA.localeCompare(nameB);
+      });
     },
     canMoveUp() {
       return this.selectedSelected !== null && this.selectedSelectedIndex > 0;
@@ -248,6 +271,21 @@ export default {
       // Reset selection in selected list
       this.selectedSelected = null;
       this.selectedSelectedIndex = -1;
+    },
+    addAllAvailable() {
+      if (this.availableFiles.length === 0) return;
+
+      const newSelectedFiles = [...this.modelValue, ...this.availableFiles];
+      this.emitUpdate(newSelectedFiles);
+      this.selectedAvailable = null;
+    },
+    removeAllSelected() {
+      if (this.modelValue.length === 0) return;
+
+      this.emitUpdate([]);
+      this.selectedSelected = null;
+      this.selectedSelectedIndex = -1;
+      this.selectedAvailable = null; // Reset available selection
     },
     moveUp() {
       if (!this.canMoveUp) return;
@@ -328,10 +366,6 @@ export default {
 </script>
 
 <style scoped>
-.multi-file-selector {
-  /* Add styles for the overall container if needed */
-}
-
 .dual-listbox-container {
   display: flex;
   gap: 1rem; /* Space between elements */
