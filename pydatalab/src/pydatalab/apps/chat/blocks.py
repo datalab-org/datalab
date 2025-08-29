@@ -19,7 +19,7 @@ class ChatBlockResponse(DataBlockResponse):
     messages: list[dict] = Field(default_factory=list)
     prompt: str | None
     model: str
-    available_models: dict[str, ModelCard] = Field(exclude=True)
+    available_models: dict[str, ModelCard]
     token_count: int | None
     temperature: float
 
@@ -120,7 +120,7 @@ Start with a friendly introduction and give me a one sentence summary of what th
             if self.data["messages"][-1]["role"] not in ("user", "system"):
                 return
 
-        if self.data.get("model") not in self.data.get("available_models", {}):
+        if self.data.get("model") not in AVAILABLE_MODELS:
             bad_model = self.data.get("model")
             warnings.warn(
                 f"Chatblock received an unknown or deprecated model: {bad_model}. Reverting to default model {self.defaults['model']}."
@@ -130,7 +130,12 @@ Start with a friendly introduction and give me a one sentence summary of what th
         try:
             model_name = self.data["model"]
 
-            model_cls = self.data["available_models"][model_name]
+            model_cls = AVAILABLE_MODELS[model_name]
+
+            if model_cls.chat_client is None:
+                raise RuntimeError(
+                    f"The model {model_name} is not available. Please choose a different model."
+                )
 
             chat_client = model_cls.chat_client(model=model_cls.name)
 
