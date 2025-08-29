@@ -8,42 +8,20 @@
       update-block-on-change
       @change="onFileChange"
     />
-    <div class="form-group mb-2">
-      <label class="mr-2"><b>Scan time (s)</b></label>
-      <input
-        v-model="scan_time_buffer"
-        type="text"
-        class="form-control"
-        placeholder="Enter scan time"
-        style="width: 160px; display: inline-block"
-        inputmode="decimal"
-        pattern="[0-9]*[.,]?[0-9]*"
-        @keydown.enter="onScanTimeSelected"
-        @blur="onScanTimeSelected"
-      />
-    </div>
     <div v-show="file_id">
       <div class="row">
         <div class="col-lg-4 col-md-6 col-sm-12 mb-2">
-          <label><b>UV-Vis folder name</b></label>
+          <label class="mr-2"><b>XRD folder name</b></label>
           <FolderSelect
-            v-model="uvvis_folder_name"
+            v-model="xrd_folder_name"
             :options="availableFolders"
             @update:model-value="onFolderSelected"
           />
         </div>
         <div class="col-lg-4 col-md-6 col-sm-12 mb-2">
-          <label><b>UV-Vis reference folder name</b></label>
+          <label class="mr-2"><b>Temperature or Echem folder name</b></label>
           <FolderSelect
-            v-model="uvvis_reference_folder_name"
-            :options="availableFolders"
-            @update:model-value="onFolderSelected"
-          />
-        </div>
-        <div class="col-lg-4 col-md-6 col-sm-12 mb-2">
-          <label><b>Echem folder name</b></label>
-          <FolderSelect
-            v-model="echem_folder_name"
+            v-model="time_series_folder_name"
             :options="availableFolders"
             @update:model-value="onFolderSelected"
           />
@@ -52,20 +30,6 @@
       <div v-if="folderNameError" class="alert alert-danger mt-2 mx-auto">
         {{ folderNameError }}
       </div>
-    </div>
-    <div class="form-group mb-2">
-      <label class="mr-2"><b>Scan time (s)</b></label>
-      <input
-        v-model="scan_time_buffer"
-        type="text"
-        class="form-control"
-        placeholder="Enter scan time"
-        style="width: 160px; display: inline-block"
-        inputmode="decimal"
-        pattern="[0-9]*[.,]?[0-9]*"
-        @keydown.enter="onScanTimeSelected"
-        @blur="onScanTimeSelected"
-      />
     </div>
     <div class="form-inline mb-2">
       <label class="mr-2"><b>Data granularity</b></label>
@@ -85,7 +49,7 @@
       <button class="btn btn-primary ml-3" @click="onGranularitySubmit">Apply</button>
     </div>
     <div
-      v-show="uvvis_folder_name && uvvis_reference_folder_name && echem_folder_name"
+      v-show="xrd_folder_name && time_series_folder_name"
       class="row mt-2 text-center justify-content-center"
     >
       <div
@@ -128,16 +92,9 @@ export default {
     return {
       folderNameError: "",
       isUpdating: false,
-      scan_time_buffer: "",
     };
   },
   watch: {
-    scan_time: {
-      immediate: true,
-      handler(newVal) {
-        this.scan_time_buffer = newVal;
-      },
-    },
     data_granularity: {
       immediate: true,
       handler(newVal) {
@@ -157,7 +114,7 @@ export default {
         .bokeh_plot_data;
     },
     blockInfo() {
-      return this.$store.state.blocksInfos["insitu-uvvis"];
+      return this.$store.state.blocksInfos["insitu-xrd"];
     },
     all_files() {
       return this.$store.state.all_item_data[this.item_id].files;
@@ -168,41 +125,26 @@ export default {
     availableFolders() {
       return this.currentBlock.available_folders || [];
     },
-    uvvis_folder_name: createComputedSetterForBlockField("uvvis_folder_name"),
-    uvvis_reference_folder_name: createComputedSetterForBlockField("uvvis_reference_folder_name"),
-    echem_folder_name: createComputedSetterForBlockField("echem_folder_name"),
+    xrd_folder_name: createComputedSetterForBlockField("xrd_folder_name"),
+    time_series_folder_name: createComputedSetterForBlockField("time_series_folder_name"),
     file_id: createComputedSetterForBlockField("file_id"),
     folder_name: createComputedSetterForBlockField("folder_name"),
-    scan_time: createComputedSetterForBlockField("scan_time"),
     data_granularity: createComputedSetterForBlockField("data_granularity"),
     sample_granularity: createComputedSetterForBlockField("sample_granularity"),
   },
   methods: {
     onFileChange() {
-      this.uvvis_folder_name = "";
-      this.uvvis_reference_folder_name = "";
-      this.echem_folder_name = "";
+      this.xrd_folder_name = "";
+      this.time_series_folder_name = "";
 
       this.updateBlock();
     },
     onFolderSelected() {
-      if (this.uvvis_folder_name && this.echem_folder_name && this.uvvis_reference_folder_name) {
+      if (this.xrd_folder_name && this.time_series_folder_name) {
         this.folderNameError = "";
         this.updateBlock();
-      } else if (
-        this.uvvis_folder_name ||
-        this.echem_folder_name ||
-        this.uvvis_reference_folder_name
-      ) {
-        this.folderNameError =
-          "UV-Vis sample and reference folders, along with an echem folder is required.";
-      }
-    },
-    onScanTimeSelected() {
-      const parsed = parseFloat(this.scan_time_buffer);
-      if (!isNaN(parsed)) {
-        this.scan_time = parsed;
-        this.updateBlock();
+      } else if (this.xrd_folder_name || this.time_series_folder_name) {
+        this.folderNameError = "XRD and either an echem or temperature folder is required.";
       }
     },
     onGranularitySubmit() {
@@ -237,3 +179,5 @@ export default {
   },
 };
 </script>
+
+<style scoped></style>
