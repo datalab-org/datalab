@@ -23,7 +23,6 @@ ENV UV_LINK_MODE=copy \
 
 # Used to fake the version of the package in cases where datalab is only
 # available as a git submodule or worktree
-ARG SETUPTOOLS_SCM_PRETEND_VERSION
 ENV SETUPTOOLS_SCM_PRETEND_VERSION=${SETUPTOOLS_SCM_PRETEND_VERSION}
 
 WORKDIR /app
@@ -40,14 +39,11 @@ RUN git config --global --add safe.directory /
 # Install editable mode so that the server runs from a sensible place where we can stuff .env files
 RUN --mount=type=bind,target=/.git,source=./.git uv pip install --python /opt/.venv/bin/python --no-deps --editable .
 
-# This will define the number of gunicorn workers
-ARG WEB_CONCURRENCY=4
-ENV WEB_CONCURRENCY=${WEB_CONCURRENCY}
+# Define some default gunicorn runtime args
+ENV WEB_CONCURRENCY=4
+ENV GUNICORN_CMD_ARGS="--preload --timeout 120 --graceful-timeout 90"
+ENV PORT=5001
 
-ARG PORT=5001
-EXPOSE ${PORT}
-ENV PORT=${PORT}
-
-CMD ["/bin/bash", "-c", "/opt/.venv/bin/python -m gunicorn --preload -w ${WEB_CONCURRENCY} --error-logfile /logs/pydatalab_error.log --access-logfile - -b 0.0.0.0:${PORT} 'pydatalab.main:create_app()'"]
+CMD ["/bin/bash", "-c", "/opt/.venv/bin/python -m gunicorn -b 0.0.0.0:${PORT} -w ${WEB_CONCURRENCY} ${GUNICORN_CMD_ARGS} 'pydatalab.main:create_app()'"]
 
 HEALTHCHECK --interval=30s --timeout=30s --start-interval=15s --start-period=30s --retries=3 CMD curl --fail http://localhost:${PORT}/healthcheck/is_ready || exit 1
