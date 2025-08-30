@@ -328,7 +328,11 @@ def search_items():
         pipeline.append({"$match": match_obj})
         pipeline.append({"$sort": {"score": {"$meta": "textScore"}}})
     else:
-        query_parts = [r"\b" + re.escape(part) for part in query.split(" ") if part]
+        query_parts = [re.escape(part) for part in query.split(" ") if part.strip()]
+
+        # Add word boundary to short parts to avoid excessive matches, i.e., search start of string
+        # for short parts, but allow match anywhere in string for longer parts
+        query_parts = [f"\\b{part}" if len(part) < 5 else part for part in query_parts]
         match_obj = {
             "$or": [
                 {"$and": [{field: {"$regex": query, "$options": "i"}} for query in query_parts]}
