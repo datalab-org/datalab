@@ -578,6 +578,11 @@ def fixture_insert_default_equipment(default_equipment):
     yield from _insert_and_cleanup_item_from_model(default_equipment)
 
 
+@pytest.fixture(scope="module", name="insert_example_items")
+def fixture_insert_example_items(example_items, real_mongo_client):
+    real_mongo_client.get_database().items.insert_many(example_items)
+
+
 @pytest.fixture(scope="module", name="inserted_default_items")
 def fixture_inserted_default_items(
     insert_default_sample,
