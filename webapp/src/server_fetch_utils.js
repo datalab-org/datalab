@@ -494,8 +494,13 @@ export function removeItemsFromCollection(collection_id, refcodes) {
     });
 }
 
-export async function getItemData(item_id) {
-  return fetch_get(`${API_URL}/get-item-data/${item_id}`)
+export async function getItemData(item_id, accessToken = null) {
+  let url = `${API_URL}/get-item-data/${item_id}`;
+  if (accessToken) {
+    url += `?at=${accessToken}`;
+  }
+
+  return fetch_get(url)
     .then((response_json) => {
       store.commit("createItemData", {
         item_id: item_id,
@@ -503,19 +508,24 @@ export async function getItemData(item_id) {
         child_items: response_json.child_items,
         parent_items: response_json.parent_items,
       });
-
       return "success";
     })
     .catch((error) => {
       DialogService.error({
         title: "Unable to retrieve item",
-        message: "Error getting sample data: " + error,
+        message: "Error getting item data: " + error,
       });
+      throw error;
     });
 }
 
-export async function getItemByRefcode(refcode) {
-  return fetch_get(`${API_URL}/items/${refcode}`)
+export async function getItemByRefcode(refcode, accessToken = null) {
+  let url = `${API_URL}/items/${refcode}`;
+  if (accessToken) {
+    url += `?at=${accessToken}`;
+  }
+
+  return fetch_get(url)
     .then((response_json) => {
       store.commit("createItemData", {
         refcode: refcode,
@@ -531,6 +541,7 @@ export async function getItemByRefcode(refcode) {
         title: "Unable to retrieve item",
         message: "Error getting item data: " + error,
       });
+      throw error;
     });
 }
 
@@ -832,6 +843,10 @@ export async function getItemGraph({ item_id = null, collection_id = null } = {}
   if (collection_id != null) {
     url = url + "?collection_id=" + collection_id;
   }
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const accessToken = urlParams.get("at");
+
   store.commit("setItemGraphIsLoading", true);
   return fetch_get(url)
     .then(function (response_json) {
@@ -840,10 +855,12 @@ export async function getItemGraph({ item_id = null, collection_id = null } = {}
     })
     .catch((error) => {
       store.commit("setItemGraphIsLoading", false);
-      DialogService.error({
-        title: "Graph Retrieval Failed",
-        message: `Error retrieving item graph from API: ${error}`,
-      });
+      if (!accessToken) {
+        DialogService.error({
+          title: "Graph Retrieval Failed",
+          message: `Error retrieving item graph from API: ${error}`,
+        });
+      }
     });
 }
 
