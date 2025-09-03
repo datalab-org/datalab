@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased changes
+## v0.6.3 (September 2025)
+
+This patch release primarily improves block serialization performance and extensibility, as well as improving error handling for both developers and users.
 
 > [!WARNING]
 > This release hardens the `SECRET_KEY` configuration to enforce setting a custom key with a minimum entropy; old keys may need to be rotated.
@@ -8,11 +10,16 @@
 ### What's Changed
 
 * Major refactoring of block life cycle, with better possibilities for validation of block data before and after saving by @ml-evs in #1311
-* Replace browser-native dialogs with custom datalab dialog service by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1212
-* Resolve CVEs on mermaid.js and cross-spawn by @dependabot[bot] in https://github.com/datalab-org/datalab/pull/1317
+* Replace browser-native dialogs with custom datalab dialog service by @BenjaminCharmes in #1212
+* Resolve CVEs on mermaid.js and cross-spawn by @dependabot[bot] in #1317
 * Hardened `SECRET_KEY` configuration by @ml-evs in #1324
+* Improve performance and memory utilisation when serialising blocks by @ml-evs in #1329
+* Improve performance of XRD block file reader by @ml-evs in #1331
+* Enable electrochemistry block to read multiple files and stitch them together by @be-smith in #1307
+* Fix issue with chat block rendering introduced in v0.6.2 by @ml-evs in #1340.
+* Fix case sensitivity of TIF file handling in media block by @ml-evs in #1326.
 
-**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.6.2...main
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.6.2...v0.6.3
 
 ## v0.6.2 (August 2025)
 
