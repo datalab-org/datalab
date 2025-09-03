@@ -793,11 +793,12 @@ def update_item_permissions(refcode: str):
     return jsonify({"status": "success"}), 200
 
 
-@ITEMS.route("/items/<refcode>/issue-access-token", methods=["GET"])
+@ITEMS.route("/items/<refcode>/issue-access-token", methods=["POST"])
+@active_users_or_get_only
 def issue_physical_token(refcode: str):
     """Issue a token that will give semi-permanent access to an
     item with this refcode. This should be used when generating
-    physicsl labels to attach to a container.
+    physical labels to attach to a container.
 
     """
 
@@ -807,50 +808,74 @@ def issue_physical_token(refcode: str):
     current_item = flask_mongo.db.items.find_one(
         {"refcode": refcode, **get_default_permissions(user_only=True)},
         {"refcode": 1},
-    )  # type: ignore
+    )
 
     if not current_item:
-        return (
-            jsonify(
-                {
-                    "status": "error",
-                    "message": f"No valid item found with the given {refcode=}.",
-                }
-            ),
-            401,
-        )
+        return jsonify(
+            {
+                "status": "error",
+                "message": f"No valid item found with the given {refcode=}.",
+            }
+        ), 404
 
-        return (
-            jsonify(
-                {
-                    "status": "error",
-                    "message": "No valid creator IDs found in the request.",
-                }
-            ),
-            400,
-        )
+    existing_token = flask_mongo.db.api_keys.find_one(
+        {"refcode": refcode, "active": True, "type": "access_token"}
+    )
 
-    # generate token and store it in `api_keys` collection
+    if existing_token:
+        return jsonify(
+            {
+                "status": "error",
+                "message": "An active access token already exists for this item. Please invalidate it first.",
+            }
+        ), 409
+
+    # Generate token and store it in `api_keys` collection
     token = str(uuid.uuid1())
     access_document = {
         "token": sha512(token.encode("utf-8")).hexdigest(),
         "refcode": refcode,
         "user": ObjectId(current_user.id),
         "active": True,
+        "created_at": datetime.datetime.now(tz=datetime.timezone.utc),
+        "type": "access_token",
     }
-    save_key = flask_mongo.db.api_keys.insert_one(**access_document)
-    if not save_key:
+
+    try:
+        result = flask_mongo.db.api_keys.insert_one(access_document)
+        if not result.inserted_id:
+            return jsonify(
+                {"status": "error", "message": "Unknown error generating token for item."}
+            ), 500
+    except Exception as e:
+        LOGGER.error(f"Error inserting access token: {e}")
         return jsonify(
-            {"status": "error", "message": "Unknown error generating token for item."}
+            {"status": "error", "message": "Database error generating token for item."}
         ), 500
 
-    return jsonify({"status": "success", "token": token}), 200
+    return jsonify({"status": "success", "token": token}), 201
 
 
 @ITEMS.route("/delete-sample/", methods=["POST"])
 def delete_sample():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
     item_id = request_json["item_id"]
+
+    item = flask_mongo.db.items.find_one(
+        {"item_id": item_id, **get_default_permissions(user_only=True, deleting=True)},
+        {"refcode": 1},
+    )
+
+    if not item:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": f"Authorization required to attempt to delete sample with {item_id=} from the database.",
+                }
+            ),
+            401,
+        )
 
     result = flask_mongo.db.items.delete_one(
         {"item_id": item_id, **get_default_permissions(user_only=True, deleting=True)}
@@ -861,19 +886,15 @@ def delete_sample():
             jsonify(
                 {
                     "status": "error",
-                    "message": f"Authorization required to attempt to delete sample with {item_id=} from the database.",
+                    "message": f"Failed to delete item with {item_id=}.",
                 }
             ),
-            401,
+            400,
         )
-    return (
-        jsonify(
-            {
-                "status": "success",
-            }
-        ),
-        200,
-    )
+
+    flask_mongo.db.api_keys.delete_many({"refcode": item["refcode"], "type": "access_token"})
+
+    return jsonify({"status": "success"}), 200
 
 
 @ITEMS.route("/items/<refcode>", methods=["GET"])
@@ -882,6 +903,7 @@ def get_item_data(item_id: str | None = None, refcode: str | None = None):
     """Generates a JSON response for the item with the given `item_id`,
     or `refcode` additionally resolving relationships to files and other items.
     """
+
     redirect_to_ui = bool(request.args.get("redirect-to-ui", default=False, type=json.loads))
     access_token = request.args.get("at")
     if refcode and redirect_to_ui and CONFIG.APP_URL:
@@ -931,11 +953,7 @@ def get_item_data(item_id: str | None = None, refcode: str | None = None):
     except IndexError:
         doc = None
 
-    if not doc or (
-        not current_user.is_authenticated
-        and not CONFIG.TESTING
-        and doc["type"] != "starting_materials"
-    ):
+    if not doc:
         return (
             jsonify(
                 {
@@ -944,6 +962,24 @@ def get_item_data(item_id: str | None = None, refcode: str | None = None):
                 }
             ),
             404,
+        )
+
+    if valid_access_token:
+        pass
+
+    elif (
+        not current_user.is_authenticated
+        and not CONFIG.TESTING
+        and doc["type"] != "starting_materials"
+    ):
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "Authentication required or invalid access token.",
+                }
+            ),
+            401,
         )
 
     # determine the item type and validate according to the appropriate schema
@@ -1183,3 +1219,55 @@ def search_users():
     return jsonify(
         {"status": "success", "users": list(json.loads(Person(**d).json()) for d in cursor)}
     ), 200
+
+
+@ITEMS.route("/items/<refcode>/access-token-info", methods=["GET"])
+def get_access_token_info(refcode: str):
+    """Get information about existing access token for this item (if any).
+
+    Returns token info (with masked token) if user has permissions to this item.
+    """
+    access_token = request.args.get("at")
+    if access_token and check_access_token(refcode, access_token):
+        pass
+    elif not (current_user.is_authenticated):
+        return jsonify({"status": "error", "message": "Authentication required."}), 401
+
+    if len(refcode.split(":")) != 2:
+        refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
+
+    current_item = flask_mongo.db.items.find_one(
+        {"refcode": refcode, **get_default_permissions(user_only=True)},
+        {"refcode": 1},
+    )
+
+    if not current_item:
+        return jsonify(
+            {
+                "status": "error",
+                "message": f"No valid item found with the given {refcode=}.",
+            }
+        ), 404
+
+    existing_token = flask_mongo.db.api_keys.find_one(
+        {"refcode": refcode, "active": True, "type": "access_token"},
+        {"token": 1, "created_at": 1, "user": 1},
+    )
+
+    if existing_token:
+        token_hash = existing_token["token"]
+        masked_token = token_hash[:8] + "..." + token_hash[-8:]
+
+        return jsonify(
+            {
+                "status": "success",
+                "has_token": True,
+                "token_info": {
+                    "masked_token": masked_token,
+                    "created_at": existing_token["created_at"],
+                    "created_by": str(existing_token["user"]),
+                },
+            }
+        ), 200
+    else:
+        return jsonify({"status": "success", "has_token": False}), 200
