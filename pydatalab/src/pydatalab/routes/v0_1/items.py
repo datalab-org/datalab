@@ -1232,14 +1232,26 @@ def get_access_token_info(refcode: str):
         token_hash = existing_token["token"]
         masked_token = token_hash[:8] + "..." + token_hash[-8:]
 
+        user_info = None
+        if existing_token.get("user"):
+            user_doc = flask_mongo.db.users.find_one(
+                {"_id": existing_token["user"]}, {"display_name": 1, "contact_email": 1}
+            )
+            if user_doc:
+                user_info = {
+                    "display_name": user_doc.get("display_name"),
+                    "contact_email": user_doc.get("contact_email"),
+                }
+
         return jsonify(
             {
                 "status": "success",
                 "has_token": True,
                 "token_info": {
-                    "masked_token": masked_token,
+                    "token": masked_token,
                     "created_at": existing_token["created_at"],
                     "created_by": str(existing_token["user"]),
+                    "created_by_info": user_info,
                 },
             }
         ), 200
