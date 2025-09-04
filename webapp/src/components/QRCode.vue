@@ -40,13 +40,22 @@
 
   <div v-else-if="!isPublicMode" class="mt-3">
     <div class="alert alert-info">
-      <strong>Generate Public QR Code:</strong><br />
-      This QR code requires authentication to access. You can generate a public QR code that allows
-      access without login.
+      <strong v-if="hasExistingToken">Public QR Code Available:</strong>
+      <strong v-else>Generate Public QR Code:</strong>
+      <br />
+      <span v-if="hasExistingToken">
+        A public QR code already exists for this item. You can view it or generate a new one if
+        needed.
+      </span>
+      <span v-else>
+        This QR code requires authentication to access. You can generate a public QR code that
+        allows access without login.
+      </span>
     </div>
 
     <button
-      class="btn btn-warning w-100"
+      class="btn w-100"
+      :class="hasExistingToken ? 'btn-info' : 'btn-warning'"
       :disabled="isGenerating"
       @click.prevent="hasExistingToken ? switchToPublic() : generatePublicQRCode()"
     >
@@ -68,17 +77,21 @@
       </div>
     </div>
 
-    <div class="d-flex justify-content-center">
-      <button class="btn btn-sm btn-outline-primary mr-2" @click="switchToPrivate">
-        <i class="fas fa-eye me-1"></i>View Private QRCode
-      </button>
-      <button
-        class="btn btn-sm btn-outline-danger"
-        :disabled="isInvalidating"
-        @click.stop.prevent="invalidateToken"
-      >
-        <i class="fas fa-trash me-1"></i>Delete Token
-      </button>
+    <div class="row g-2">
+      <div class="col-6">
+        <button class="btn btn-outline-info w-100" @click="switchToPrivate">
+          <i class="fas fa-eye me-1"></i>View Private QRCode
+        </button>
+      </div>
+      <div class="col-6">
+        <button
+          class="btn btn-outline-danger w-100"
+          :disabled="isInvalidating"
+          @click.stop.prevent="invalidateToken"
+        >
+          <i class="fas fa-trash me-1"></i>Delete Token
+        </button>
+      </div>
     </div>
   </div>
 
@@ -164,7 +177,7 @@ export default {
       }
     },
     hasExistingToken() {
-      return this.tokenInfo && this.publicToken && this.publicToken !== "existing-token";
+      return this.tokenInfo && this.publicToken === "existing-token";
     },
   },
   mounted() {
@@ -196,8 +209,7 @@ export default {
         if (response.ok && data.status === "success") {
           if (data.has_token) {
             this.tokenInfo = data.token_info;
-            this.isPublicMode = true;
-            this.publicToken = data.token_info.token;
+            this.publicToken = "existing-token";
           }
         } else if (response.status === 404) {
           console.debug("No access to item or item not found");

@@ -99,15 +99,10 @@ def save_role(user_id):
 
 @ADMIN.route("/items/<refcode>/invalidate-access-token", methods=["POST"])
 def invalidate_access_token(refcode: str):
-    request_json = request.get_json(silent=True) or {}
-
     if len(refcode.split(":")) != 2:
         refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
 
-    if request_json.get("token") == "admin-invalidation":
-        query = {"refcode": refcode, "active": True, "type": "access_token"}
-    else:
-        query = {"refcode": refcode, "active": True, "type": "access_token"}
+    query = {"refcode": refcode, "active": True, "type": "access_token"}
 
     response = flask_mongo.db.api_keys.update_one(
         query,
@@ -155,7 +150,7 @@ def list_access_tokens():
                 "active": 1,
                 "created_at": 1,
                 "invalidated_at": 1,
-                "token": {"$substr": ["$token", 0, 16]},
+                "token": "$token",
                 "item_name": {
                     "$cond": {
                         "if": {"$gt": [{"$size": "$item_info"}, 0]},

@@ -14,9 +14,7 @@
     <tbody>
       <tr v-if="isLoading">
         <td colspan="6" class="text-center">
-          <div class="spinner-border spinner-border-sm" role="status">
-            <span class="visually-hidden">Loading...</span>
-          </div>
+          <div class="spinner-border spinner-border-sm" role="status"></div>
           Loading tokens...
         </td>
       </tr>
