@@ -172,6 +172,7 @@ def list_access_tokens():
                     }
                 },
                 "created_by": {"$arrayElemAt": ["$user_info.display_name", 0]},
+                "created_by_info": {"$arrayElemAt": ["$user_info", 0]},
             }
         },
         {"$sort": {"created_at": -1}},

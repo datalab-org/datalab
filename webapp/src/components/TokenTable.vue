@@ -43,7 +43,13 @@
           />
         </td>
         <td align="left">{{ token.item_type || "Unknown" }}</td>
-        <td align="left">{{ token.created_by || "Unknown" }}</td>
+        <td>
+          <div v-if="token.created_by_info" class="d-flex align-items-center">
+            <UserBubble :creator="token.created_by_info" :size="24" />
+            <span class="ms-2">{{ token.created_by_info.display_name }}</span>
+          </div>
+          <span v-else class="text-muted">Unknown</span>
+        </td>
         <td align="left">{{ formatDate(token.created_at) }}</td>
         <td align="left">
           <button
@@ -71,14 +77,18 @@
 <script>
 import { API_URL } from "@/resources.js";
 
+import { DialogService } from "@/services/DialogService";
+
 import FormattedItemName from "@/components/FormattedItemName.vue";
 import FormattedRefcode from "@/components/FormattedRefcode.vue";
+import UserBubble from "@/components/UserBubble.vue";
 
 export default {
   name: "TokenTable",
   components: {
     FormattedRefcode,
     FormattedItemName,
+    UserBubble,
   },
   data() {
     return {
@@ -125,17 +135,19 @@ export default {
         this.isLoading = false;
       }
     },
-
     async confirmInvalidateToken(token) {
-      if (
-        window.confirm(
-          `Are you sure you want to invalidate the access token for ${token.item_id} (${token.refcode})?`,
-        )
-      ) {
+      const confirmed = await DialogService.confirm({
+        title: "Invalidate Access Token",
+        message: `Are you sure you want to invalidate the access token for <strong>${token.item_id}</strong> (${token.refcode})? <br><br>This action cannot be undone and will immediately block access for anyone using this token.`,
+        type: "error",
+        confirmButtonText: "Invalidate Token",
+        cancelButtonText: "Cancel",
+      });
+
+      if (confirmed) {
         await this.invalidateToken(token);
       }
     },
-
     async invalidateToken(token) {
       this.invalidatingTokens.add(token._id);
 

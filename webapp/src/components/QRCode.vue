@@ -75,7 +75,7 @@
       <button
         class="btn btn-sm btn-outline-danger"
         :disabled="isInvalidating"
-        @click="invalidateToken"
+        @click.stop.prevent="invalidateToken"
       >
         <i class="fas fa-trash me-1"></i>Delete Token
       </button>
@@ -98,6 +98,9 @@
 
 <script>
 import QRCodeVue3 from "qrcode-vue3";
+
+import { DialogService } from "@/services/DialogService";
+
 import { FEDERATION_QR_CODE_RESOLVER_URL, QR_CODE_RESOLVER_URL, API_URL } from "@/resources.js";
 
 export default {
@@ -161,7 +164,7 @@ export default {
       }
     },
     hasExistingToken() {
-      return this.publicToken === "existing-token";
+      return this.tokenInfo && this.publicToken && this.publicToken !== "existing-token";
     },
   },
   mounted() {
@@ -178,6 +181,7 @@ export default {
       const urlParams = new URLSearchParams(window.location.search);
       const accessToken = urlParams.get("at");
       if (accessToken) {
+        this.isLoading = false;
         return;
       }
 
@@ -206,48 +210,74 @@ export default {
         this.isLoading = false;
       }
     },
-
     async generatePublicQRCode() {
-      this.isGenerating = true;
-
-      try {
-        const response = await fetch(`${API_URL}/items/${this.refcode}/issue-access-token`, {
-          method: "POST",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-          },
+      setTimeout(async () => {
+        const confirmed = await DialogService.confirm({
+          title: "Generate Public QR Code",
+          message:
+            "This will create a QR code that can be accessed by anyone without authentication. Are you sure you want to proceed?",
+          type: "warning",
+          confirmButtonText: "Generate Public QR Code",
+          cancelButtonText: "Cancel",
         });
 
-        const data = await response.json();
-
-        if (response.ok && data.status === "success") {
-          this.publicToken = data.token;
-          this.isPublicMode = true;
-          this.tokenInfo = {
-            created_at: new Date().toISOString(),
-            created_by: this.$store.state.currentUserID,
-          };
-          this.$emit("public-token-generated", {
-            refcode: this.refcode,
-            token: data.token,
-          });
-        } else if (response.status === 409) {
-          this.errorMessage =
-            "A public QR code already exists for this item. Please refresh the page to see it.";
-          this.checkExistingToken();
-        } else {
-          throw new Error(data.message || "Failed to generate access token");
+        if (!confirmed) {
+          return;
         }
-      } catch (error) {
-        console.error("Error generating public QR code:", error);
-        this.errorMessage = `Failed to generate public QR code: ${error.message}`;
-      } finally {
-        this.isGenerating = false;
-      }
-    },
 
+        this.isGenerating = true;
+
+        try {
+          const response = await fetch(`${API_URL}/items/${this.refcode}/issue-access-token`, {
+            method: "POST",
+            credentials: "include",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          });
+
+          const data = await response.json();
+
+          if (response.ok && data.status === "success") {
+            this.publicToken = data.token;
+            this.isPublicMode = true;
+            this.tokenInfo = {
+              created_at: new Date().toISOString(),
+              created_by: this.$store.state.currentUserID,
+            };
+            this.$emit("public-token-generated", {
+              refcode: this.refcode,
+              token: data.token,
+            });
+          } else if (response.status === 409) {
+            this.errorMessage =
+              "A public QR code already exists for this item. Please refresh the page to see it.";
+            this.checkExistingToken();
+          } else {
+            throw new Error(data.message || "Failed to generate access token");
+          }
+        } catch (error) {
+          console.error("Error generating public QR code:", error);
+          this.errorMessage = `Failed to generate public QR code: ${error.message}`;
+        } finally {
+          this.isGenerating = false;
+        }
+      }, 100);
+    },
     async invalidateToken() {
+      const confirmed = await DialogService.confirm({
+        title: "Delete Public QR Code",
+        message:
+          "This will permanently invalidate the public QR code. Anyone with the current link will no longer be able to access this item. Are you sure?",
+        type: "warning",
+        confirmButtonText: "Delete Token",
+        cancelButtonText: "Cancel",
+      });
+
+      if (!confirmed) {
+        return;
+      }
+
       this.isInvalidating = true;
       this.errorMessage = null;
 
@@ -279,7 +309,6 @@ export default {
         this.isInvalidating = false;
       }
     },
-
     switchToPrivate() {
       this.isPublicMode = false;
       this.errorMessage = null;
