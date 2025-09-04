@@ -754,7 +754,6 @@ def update_item_permissions(refcode: str):
 
 
 @ITEMS.route("/items/<refcode>/issue-access-token", methods=["POST"])
-@active_users_or_get_only
 def issue_physical_token(refcode: str):
     """Issue a token that will give semi-permanent access to an
     item with this refcode. This should be used when generating
@@ -872,14 +871,9 @@ def get_item_data(item_id: str | None = None, refcode: str | None = None):
             redirect_url += f"?at={access_token}"
         return redirect(redirect_url, code=307)
 
-    valid_access_token: bool = False
+    valid_access_token = False
     if refcode and access_token:
         valid_access_token = check_access_token(refcode, access_token)
-        if not valid_access_token:
-            return (
-                jsonify({"status": "error", "message": "Invalid access token"}),
-                401,
-            )
 
     if item_id:
         match = {"item_id": item_id}
@@ -930,24 +924,6 @@ def get_item_data(item_id: str | None = None, refcode: str | None = None):
                 }
             ),
             404,
-        )
-
-    if valid_access_token:
-        pass
-
-    elif (
-        not current_user.is_authenticated
-        and not CONFIG.TESTING
-        and doc["type"] != "starting_materials"
-    ):
-        return (
-            jsonify(
-                {
-                    "status": "error",
-                    "message": "Authentication required or invalid access token.",
-                }
-            ),
-            401,
         )
 
     # determine the item type and validate according to the appropriate schema

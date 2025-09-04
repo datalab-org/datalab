@@ -91,7 +91,7 @@
       </div>
     </div>
 
-    <FileSelectModal v-if="isAuthenticated" :item_id="item_id" />
+    <FileSelectModal :item_id="item_id" />
   </div>
 </template>
 
@@ -211,9 +211,6 @@ export default {
     },
     itemApiUrl() {
       return API_URL + "/items/" + this.refcode;
-    },
-    isAuthenticated() {
-      return this.$store.state.currentUserID != null;
     },
   },
   watch: {
