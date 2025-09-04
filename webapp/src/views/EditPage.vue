@@ -300,8 +300,11 @@ export default {
       this.lastModified = "just now";
     },
     async getSampleData() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const accessToken = urlParams.get("at");
+
       if (this.item_id == null) {
-        getItemByRefcode(this.refcode).then(() => {
+        getItemByRefcode(this.refcode, accessToken).then(() => {
           this.itemDataLoaded = true;
           this.$nextTick(() => {
             this.$store.commit("setItemSaved", { item_id: this.item_id, isSaved: true });
@@ -310,7 +313,7 @@ export default {
           this.updateBlocks();
         });
       } else {
-        getItemData(this.item_id).then(() => {
+        getItemData(this.item_id, accessToken).then(() => {
           this.itemDataLoaded = true;
           this.refcode = this.item_data.refcode;
           this.$nextTick(() => {
@@ -320,7 +323,6 @@ export default {
         });
       }
     },
-
     async updateBlocks() {
       if (this.itemDataLoaded) {
         // update each block asynchronously
