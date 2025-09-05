@@ -126,6 +126,9 @@ import "tinymce/plugins/emoticons/js/emojis";
 import Editor from "@tinymce/tinymce-vue";
 import store from "./store";
 
+//! Will replace TinyMCE
+import "@vueup/vue-quill/dist/vue-quill.snow.css";
+
 // css for vue-select
 import "vue-select/dist/vue-select.css";
 

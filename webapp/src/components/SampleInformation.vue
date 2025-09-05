@@ -43,7 +43,10 @@
         <div class="form-row">
           <div class="col">
             <label id="samp-description-label">Description</label>
-            <TinyMceInline v-model="SampleDescription" aria-labelledby="samp-description-label" />
+            <EditorTransition
+              v-model="SampleDescription"
+              aria-labelledby="samp-description-label"
+            />
           </div>
         </div>
       </div>
@@ -64,7 +67,7 @@ import ChemFormulaInput from "@/components/ChemFormulaInput";
 import FormattedRefcode from "@/components/FormattedRefcode";
 import ToggleableCollectionFormGroup from "@/components/ToggleableCollectionFormGroup";
 import ToggleableCreatorsFormGroup from "@/components/ToggleableCreatorsFormGroup";
-import TinyMceInline from "@/components/TinyMceInline";
+import EditorTransition from "@/components/EditorTransition";
 import SynthesisInformation from "@/components/SynthesisInformation";
 import TableOfContents from "@/components/TableOfContents";
 import ItemRelationshipVisualization from "@/components/ItemRelationshipVisualization";
@@ -72,13 +75,13 @@ import ItemRelationshipVisualization from "@/components/ItemRelationshipVisualiz
 export default {
   components: {
     ChemFormulaInput,
-    TinyMceInline,
     SynthesisInformation,
     TableOfContents,
     ItemRelationshipVisualization,
     FormattedRefcode,
     ToggleableCollectionFormGroup,
     ToggleableCreatorsFormGroup,
+    EditorTransition,
   },
   props: {
     item_id: { type: String, required: true },
