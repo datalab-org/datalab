@@ -220,7 +220,8 @@ describe.only("Advanced sample creation features", () => {
 
   it("modifies some data in the second sample", () => {
     cy.findByText("testB").click();
-    cy.findByLabelText("Description").type("this is a description of testB.");
+    cy.findByLabelText("Description").should("exist");
+    cy.get("[data-testid=item-description-input]").type("this is a description of baseB.");
     cy.findByText("Add a block").click();
     cy.findByText("Comment").click();
 
@@ -257,7 +258,10 @@ describe.only("Advanced sample creation features", () => {
   it("checks the edit page of the copied sample", () => {
     cy.findByText("testBcopy").click();
     cy.findByLabelText("Name").should("have.value", "COPY OF the second test sample");
-    cy.findByText("this is a description of testB.");
+    cy.get("[data-testid=item-description-input]").should(
+      "have.text",
+      "this is a description of baseB.",
+    );
     cy.findByText("a comment is added here.");
     cy.findByText("a description of the synthesis here");
     cy.findAllByText("component3");
@@ -294,7 +298,10 @@ describe.only("Advanced sample creation features", () => {
   it("checks the edit page of the copied sample with components", () => {
     cy.findByText("testBcopy_copy").click();
     cy.findByLabelText("Name").should("have.value", "COPY OF COPY OF the second test sample");
-    cy.findByText("this is a description of testB.");
+    cy.get("[data-testid=item-description-input]").should(
+      "have.text",
+      "this is a description of baseB.",
+    );
     cy.findByText("a comment is added here.");
     cy.findByText("a description of the synthesis here");
     cy.findAllByText("component3");

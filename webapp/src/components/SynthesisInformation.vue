@@ -25,23 +25,24 @@
         </div>
       </div>
       <span id="synthesis-procedure-label" class="subheading ml-2">Procedure</span>
-      <TinyMceInline
+      <EditorTransition
         v-model="SynthesisDescription"
+        test-id="procedure-description-input"
         aria-labelledby="synthesis-procedure-label"
-      ></TinyMceInline>
+      />
     </div>
   </div>
 </template>
 
 <script>
-import TinyMceInline from "@/components/TinyMceInline";
+import EditorTransition from "@/components/EditorTransition";
 import { createComputedSetterForItemField } from "@/field_utils.js";
 import CompactConstituentTable from "@/components/CompactConstituentTable.vue";
 
 export default {
   components: {
-    TinyMceInline,
     CompactConstituentTable,
+    EditorTransition,
   },
   props: {
     item_id: { type: String, required: true },

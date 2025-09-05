@@ -155,7 +155,8 @@ describe("Batch sample creation", () => {
     cy.get('[data-testid="search-input"]').type("baseA");
     cy.findByText("baseA").click();
     cy.expandIfCollapsed("[data-testid=synthesis-block]");
-    cy.findByLabelText("Description").type("this is a description of baseA.");
+    cy.findByLabelText("Description").should("exist");
+    cy.get("[data-testid=item-description-input]").type("this is a description of baseA.");
     cy.findByText("Add a block").click();
     cy.findByText("Comment").click();
 
@@ -169,7 +170,8 @@ describe("Batch sample creation", () => {
     cy.get('[data-testid="search-input"]').type("baseB");
     cy.findByText("baseB").click();
     cy.expandIfCollapsed("[data-testid=synthesis-block]");
-    cy.findByLabelText("Description").type("this is a description of baseB.");
+    cy.findByLabelText("Description").should("exist");
+    cy.get("[data-testid=item-description-input]").type("this is a description of baseB.");
     cy.findByText("Add a block").click();
     cy.findByLabelText("Add a block").contains("Comment").click();
     cy.get(".datablock-content div").first().type("a comment is added here.");
@@ -225,6 +227,7 @@ describe("Batch sample creation", () => {
     cy.findByLabelText("Name").should("have.value", "a copied sample");
     cy.findByText("this is a description of baseA.");
     cy.findByText("a comment is added here.");
+    cy.get(".fa-save").click();
     cy.findByText("Home").click();
 
     cy.contains(/^baseB_copy$/).click();
@@ -238,6 +241,7 @@ describe("Batch sample creation", () => {
     cy.get("#synthesis-information tbody tr:nth-of-type(2) input")
       .eq(0)
       .should("have.value", "100");
+    cy.get(".fa-save").click();
     cy.findByText("Home").click();
 
     cy.findByText("baseB_copy2").click();
@@ -251,6 +255,7 @@ describe("Batch sample creation", () => {
     cy.get("#synthesis-information tbody tr:nth-of-type(2) input")
       .eq(0)
       .should("have.value", "100");
+    cy.get(".fa-save").click();
     cy.findByText("Home").click();
   });
 
@@ -326,6 +331,7 @@ describe("Batch sample creation", () => {
     cy.get("#synthesis-information table").contains("component2");
     cy.get("#synthesis-information tbody tr:nth-of-type(1) input").eq(0).should("have.value", "");
     cy.get("#synthesis-information tbody tr:nth-of-type(2) input").eq(0).should("have.value", "");
+    cy.get(".fa-save").click();
     cy.findByText("Home").click();
 
     cy.contains("test102").click();
@@ -339,6 +345,7 @@ describe("Batch sample creation", () => {
     cy.get("#synthesis-information tbody tr:nth-of-type(1) input").eq(0).should("have.value", "");
     cy.get("#synthesis-information tbody tr:nth-of-type(2) input").eq(0).should("have.value", "");
     cy.findByText("a comment is added here.");
+    cy.get(".fa-save").click();
     cy.findByText("Home").click();
 
     cy.contains("test103").click();
@@ -372,6 +379,7 @@ describe("Batch sample creation", () => {
 
     cy.findByText("a comment is added here.");
     cy.findByText("a second comment is added here.");
+    cy.get(".fa-save").click();
     cy.findByText("Home").click();
 
     cy.contains("test104").click();
@@ -413,7 +421,7 @@ describe("Batch sample creation", () => {
     cy.findByText("a description of the synthesis here");
     cy.findByText("a comment is added here.");
     cy.findByText("a second comment is added here.");
-
+    cy.get(".fa-save").click();
     cy.findByText("Home").click();
   });
 
@@ -538,6 +546,7 @@ describe("Batch sample creation", () => {
 
       cy.findByText("a comment is added here.");
       cy.findByText("a second comment is added here.");
+      cy.get(".fa-save").click();
       cy.findByText("Home").click();
     }
 
@@ -644,6 +653,7 @@ describe("Batch sample creation", () => {
 
       cy.findByText("a comment is added here.");
       cy.findByText("a second comment is added here.");
+      cy.get(".fa-save").click();
       cy.findByText("Home").click();
     }
 
@@ -839,7 +849,7 @@ describe("Batch cell creation", () => {
       cy.get("#electrolyte-table").contains("elyte");
 
       cy.get("#neg-electrode-table").contains("comp2");
-
+      cy.get(".fa-save").click();
       cy.findByText("Home").click();
     }
 

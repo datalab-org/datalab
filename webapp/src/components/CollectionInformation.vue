@@ -26,10 +26,11 @@
         </div>
 
         <label id="description-label" class="mr-2">Description</label>
-        <TinyMceInline
+        <EditorTransition
           v-model="CollectionDescription"
+          test-id="item-description-input"
           aria-labelledby="description-label"
-        ></TinyMceInline>
+        />
       </div>
       <div class="col-md-4">
         <CollectionRelationshipVisualization :collection_id="collection_id" />
@@ -57,17 +58,17 @@
 <script>
 import { createComputedSetterForCollectionField } from "@/field_utils.js";
 import { getCollectionSampleList } from "@/server_fetch_utils";
-import TinyMceInline from "@/components/TinyMceInline";
+import EditorTransition from "@/components/EditorTransition";
 import Creators from "@/components/Creators";
 import CollectionRelationshipVisualization from "@/components/CollectionRelationshipVisualization";
 import DynamicDataTable from "@/components/DynamicDataTable";
 
 export default {
   components: {
-    TinyMceInline,
     Creators,
     CollectionRelationshipVisualization,
     DynamicDataTable,
+    EditorTransition,
   },
   props: {
     collection_id: {

@@ -98,7 +98,7 @@
 <script>
 import { DialogService } from "@/services/DialogService";
 
-import TinyMceInline from "@/components/TinyMceInline";
+import EditorTransition from "@/components/EditorTransition";
 import SelectableFileTree from "@/components/SelectableFileTree";
 
 import FileList from "@/components/FileList";
@@ -127,13 +127,13 @@ import StyledBlockHelp from "@/components/StyledBlockHelp";
 
 export default {
   components: {
-    TinyMceInline,
     SelectableFileTree,
     FileList,
     LoginDetails,
     FileSelectModal,
     FormattedItemName,
     StyledBlockHelp,
+    EditorTransition,
   },
   async beforeRouteLeave(to, from, next) {
     // give warning before leaving the page by the vue router (which would not trigger "beforeunload")

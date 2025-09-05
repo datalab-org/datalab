@@ -85,10 +85,11 @@
         <div class="row">
           <div class="col">
             <label id="cell-description-label">Description</label>
-            <TinyMceInline
+            <EditorTransition
               v-model="SampleDescription"
+              test-id="item-description-input"
               aria-labelledby="cell-description-label"
-            ></TinyMceInline>
+            />
           </div>
         </div>
       </div>
@@ -106,7 +107,7 @@
 <script>
 import { createComputedSetterForItemField } from "@/field_utils.js";
 import ChemFormulaInput from "@/components/ChemFormulaInput";
-import TinyMceInline from "@/components/TinyMceInline";
+import EditorTransition from "@/components/EditorTransition";
 import CellPreparationInformation from "@/components/CellPreparationInformation";
 import TableOfContents from "@/components/TableOfContents";
 import ItemRelationshipVisualization from "@/components/ItemRelationshipVisualization";
@@ -118,13 +119,13 @@ import { cellFormats } from "@/resources.js";
 export default {
   components: {
     ChemFormulaInput,
-    TinyMceInline,
     CellPreparationInformation,
     TableOfContents,
     ItemRelationshipVisualization,
     FormattedRefcode,
     ToggleableCollectionFormGroup,
     ToggleableCreatorsFormGroup,
+    EditorTransition,
   },
   props: {
     item_id: {

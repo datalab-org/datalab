@@ -84,7 +84,11 @@
     </div>
 
     <label class="mr-2">Description</label>
-    <TinyMceInline v-model="ItemDescription" data-testid="item-description"></TinyMceInline>
+    <EditorTransition
+      v-model="ItemDescription"
+      test-id="item-description-input"
+      data-testid="item-description"
+    />
 
     <TableOfContents
       class="mb-3"
@@ -98,7 +102,7 @@
 
 <script>
 import { createComputedSetterForItemField } from "@/field_utils.js";
-import TinyMceInline from "@/components/TinyMceInline";
+import EditorTransition from "@/components/EditorTransition";
 import ChemicalFormula from "@/components/ChemicalFormula";
 import ChemFormulaInput from "@/components/ChemFormulaInput";
 import TableOfContents from "@/components/TableOfContents";
@@ -118,13 +122,13 @@ export default {
     ChemicalFormula,
     ChemFormulaInput,
     ItemRelationshipVisualization,
-    TinyMceInline,
     ToggleableCollectionFormGroup,
     TableOfContents,
     FormattedRefcode,
     FormattedBarCode,
     SynthesisInformation,
     GHSHazardInformation,
+    EditorTransition,
   },
   props: {
     item_id: { type: String, required: true },
