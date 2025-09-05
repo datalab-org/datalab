@@ -127,7 +127,7 @@
         </div>
       </div>
       <slot></slot>
-      <TinyMceInline v-model="BlockDescription" data-testid="block-description"></TinyMceInline>
+      <EditorTransition v-model="BlockDescription" data-testid="block-description" />
     </div>
   </div>
 </template>
@@ -143,7 +143,7 @@
 import { DialogService } from "@/services/DialogService";
 
 import { createComputedSetterForBlockField } from "@/field_utils.js";
-import TinyMceInline from "@/components/TinyMceInline";
+import EditorTransition from "@/components/EditorTransition";
 import StyledBlockInfo from "@/components/StyledBlockInfo";
 import tinymce from "tinymce/tinymce";
 
@@ -151,8 +151,8 @@ import { deleteBlock, updateBlockFromServer } from "@/server_fetch_utils";
 
 export default {
   components: {
-    TinyMceInline,
     StyledBlockInfo,
+    EditorTransition,
   },
   props: {
     item_id: {
