@@ -3,7 +3,6 @@
     :is="currentEditor"
     v-model="content"
     :placeholder="placeholder"
-    :enable-markdown="enableMarkdown"
     :test-id="testId"
     @update:model-value="handleUpdate"
   />
@@ -31,10 +30,6 @@ export default {
     forceEditor: {
       type: String,
       default: null,
-    },
-    enableMarkdown: {
-      type: Boolean,
-      default: true,
     },
     testId: {
       type: String,

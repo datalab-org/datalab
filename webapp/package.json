@@ -44,8 +44,6 @@
     "process": "^0.11.10",
     "qrcode-vue3": "^1.6.8",
     "quill": "2.0.2",
-    "quill-better-table": "^1.2.10",
-    "quill-delta-to-html": "^0.12.1",
     "quill-markdown-shortcuts": "^0.0.10",
     "serve": "^14.2.1",
     "tinymce": "^5.10.9",

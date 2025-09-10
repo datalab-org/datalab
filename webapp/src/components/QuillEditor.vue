@@ -22,10 +22,7 @@ export default {
       type: String,
       default: "Add a description",
     },
-    enableMarkdown: {
-      type: Boolean,
-      default: false,
-    },
+
     testId: {
       type: String,
       default: "quill-input",
@@ -35,7 +32,6 @@ export default {
   data() {
     return {
       quill: null,
-      isInternalUpdate: false,
     };
   },
   mounted() {
@@ -46,7 +42,6 @@ export default {
       this.quill = null;
     }
   },
-
   methods: {
     initializeQuill() {
       const modules = {
@@ -65,7 +60,7 @@ export default {
           ["link", "image"],
           ["blockquote", "code-block"],
         ],
-        ...(this.enableMarkdown && { markdownShortcuts: {} }),
+        markdownShortcuts: {},
       };
 
       this.quill = new Quill(this.$refs.quillContainer, {
@@ -75,16 +70,12 @@ export default {
       });
 
       if (this.modelValue) {
-        this.quill.root.innerHTML = this.modelValue;
+        this.quill.clipboard.dangerouslyPasteHTML(this.modelValue);
       }
 
       this.quill.on("text-change", () => {
-        this.isInternalUpdate = true;
         const html = this.quill.root.innerHTML;
         this.$emit("update:modelValue", html === "<p><br></p>" ? "" : html);
-        this.$nextTick(() => {
-          this.isInternalUpdate = false;
-        });
       });
     },
   },
