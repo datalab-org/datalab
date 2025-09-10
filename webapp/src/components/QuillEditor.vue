@@ -11,6 +11,18 @@ import "quill/dist/quill.snow.css";
 import MarkdownShortcuts from "quill-markdown-shortcuts";
 Quill.register("modules/markdownShortcuts", MarkdownShortcuts);
 
+import TableUp, {
+  defaultCustomSelect,
+  TableAlign,
+  TableMenuContextmenu,
+  TableResizeScale,
+  TableSelection,
+} from "quill-table-up";
+import "quill-table-up/index.css";
+import "quill-table-up/table-creator.css";
+
+Quill.register({ [`modules/${TableUp.moduleName}`]: TableUp }, true);
+
 export default {
   name: "QuillEditor",
   props: {
@@ -22,7 +34,6 @@ export default {
       type: String,
       default: "Add a description",
     },
-
     testId: {
       type: String,
       default: "quill-input",
@@ -50,16 +61,25 @@ export default {
           [{ script: "sub" }, { script: "super" }],
           [{ color: [] }, { background: [] }],
           ["clean"],
-
           [{ align: [] }],
           [{ list: "bullet" }, { list: "ordered" }],
           [{ indent: "-1" }, { indent: "+1" }],
-
           [{ header: [1, 2, 3, 4, 5, 6, false] }],
-
           ["link", "image"],
           ["blockquote", "code-block"],
+          [{ [TableUp.toolName]: [] }],
         ],
+        [TableUp.moduleName]: {
+          customSelect: defaultCustomSelect,
+          customBtn: false,
+          fullSwitch: true,
+          modules: [
+            { module: TableAlign },
+            { module: TableResizeScale },
+            { module: TableSelection },
+            { module: TableMenuContextmenu },
+          ],
+        },
         markdownShortcuts: {},
       };
 
@@ -70,7 +90,7 @@ export default {
       });
 
       if (this.modelValue) {
-        this.quill.clipboard.dangerouslyPasteHTML(this.modelValue);
+        this.quill.root.innerHTML = this.modelValue;
       }
 
       this.quill.on("text-change", () => {
