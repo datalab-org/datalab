@@ -1,7 +1,7 @@
 <template>
   <DataBlockBase :item_id="item_id" :block_id="block_id">
     <div class="mb-2 d-flex align-items-center">
-      <span class="mr-2 font-weight-bold">Mode:</span>
+      <label class="mr-2"><b>Mode:</b></label>
       <div class="btn-group" role="group" aria-label="Mode toggle">
         <button
           type="button"
