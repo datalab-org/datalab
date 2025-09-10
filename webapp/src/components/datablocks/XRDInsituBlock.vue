@@ -1,5 +1,26 @@
 <template>
   <DataBlockBase :item_id="item_id" :block_id="block_id">
+    <div class="mb-2 d-flex align-items-center">
+      <label class="mr-2"><b>Mode:</b></label>
+      <div class="btn-group" role="group" aria-label="Mode toggle">
+        <button
+          type="button"
+          class="btn"
+          :class="isEchemMode ? 'btn-outline-secondary' : 'btn-secondary'"
+          @click="setMode('log')"
+        >
+          Temperature
+        </button>
+        <button
+          type="button"
+          class="btn"
+          :class="isEchemMode ? 'btn-secondary' : 'btn-outline-secondary'"
+          @click="setMode('echem')"
+        >
+          Electrochemistry
+        </button>
+      </div>
+    </div>
     <FileSelectDropdown
       v-model="file_id"
       :item_id="item_id"
@@ -19,9 +40,17 @@
           />
         </div>
         <div class="col-lg-4 col-md-6 col-sm-12 mb-2">
-          <label class="mr-2"><b>Temperature or Echem folder name</b></label>
+          <label class="mr-2"><b>Log folder name</b></label>
           <FolderSelect
             v-model="time_series_folder_name"
+            :options="availableFolders"
+            @update:model-value="onFolderSelected"
+          />
+        </div>
+        <div v-if="isEchemMode" class="col-lg-4 col-md-6 col-sm-12 mb-2">
+          <label class="mr-2"><b>Echem folder name</b></label>
+          <FolderSelect
+            v-model="echem_folder_name"
             :options="availableFolders"
             @update:model-value="onFolderSelected"
           />
@@ -127,24 +156,45 @@ export default {
     },
     xrd_folder_name: createComputedSetterForBlockField("xrd_folder_name"),
     time_series_folder_name: createComputedSetterForBlockField("time_series_folder_name"),
+    echem_folder_name: createComputedSetterForBlockField("echem_folder_name"),
     file_id: createComputedSetterForBlockField("file_id"),
     folder_name: createComputedSetterForBlockField("folder_name"),
     data_granularity: createComputedSetterForBlockField("data_granularity"),
     sample_granularity: createComputedSetterForBlockField("sample_granularity"),
+    time_series_source: createComputedSetterForBlockField("time_series_source"),
+    isEchemMode() {
+      return this.time_series_source === "echem";
+    },
+  },
+  created() {
+    // Ensure time_series_source is set to "log" by default if not present
+    if (this.time_series_source === undefined || this.time_series_source === null) {
+      this.time_series_source = "log";
+    }
   },
   methods: {
+    setMode(mode) {
+      this.time_series_source = mode;
+      this.xrd_folder_name = "";
+      this.time_series_folder_name = "";
+      this.echem_folder_name = "";
+      this.folderNameError = "";
+      this.updateBlock();
+      console.info("Mode set to", mode);
+    },
     onFileChange() {
       this.xrd_folder_name = "";
       this.time_series_folder_name = "";
-
+      this.echem_folder_name = "";
       this.updateBlock();
     },
     onFolderSelected() {
-      if (this.xrd_folder_name && this.time_series_folder_name) {
-        this.folderNameError = "";
+      if (
+        this.xrd_folder_name &&
+        this.time_series_folder_name &&
+        (!this.isEchemMode || this.echem_folder_name)
+      ) {
         this.updateBlock();
-      } else if (this.xrd_folder_name || this.time_series_folder_name) {
-        this.folderNameError = "XRD and either an echem or temperature folder is required.";
       }
     },
     onGranularitySubmit() {
