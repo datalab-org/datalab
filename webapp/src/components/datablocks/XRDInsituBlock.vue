@@ -40,7 +40,7 @@
           />
         </div>
         <div class="col-lg-4 col-md-6 col-sm-12 mb-2">
-          <label class="mr-2"><b>Temperature folder name</b></label>
+          <label class="mr-2"><b>Log folder name</b></label>
           <FolderSelect
             v-model="time_series_folder_name"
             :options="availableFolders"
