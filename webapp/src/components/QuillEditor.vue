@@ -71,8 +71,6 @@ export default {
         ],
         [TableUp.moduleName]: {
           customSelect: defaultCustomSelect,
-          customBtn: false,
-          fullSwitch: true,
           modules: [
             { module: TableAlign },
             { module: TableResizeScale },
