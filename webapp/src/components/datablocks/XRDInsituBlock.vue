@@ -1,12 +1,25 @@
 <template>
   <DataBlockBase :item_id="item_id" :block_id="block_id">
-    <div class="mb-2">
-      <button class="btn btn-secondary" @click="toggleMode">
-        Switch to {{ isEchemMode ? "Temperature" : "Echem" }} mode
-      </button>
-      <span class="ml-2 font-italic"
-        >Current mode: {{ isEchemMode ? "Echem" : "Temperature" }}</span
-      >
+    <div class="mb-2 d-flex align-items-center">
+      <span class="mr-2 font-weight-bold">Mode:</span>
+      <div class="btn-group" role="group" aria-label="Mode toggle">
+        <button
+          type="button"
+          class="btn"
+          :class="isEchemMode ? 'btn-outline-secondary' : 'btn-secondary'"
+          @click="setMode('log')"
+        >
+          Temperature
+        </button>
+        <button
+          type="button"
+          class="btn"
+          :class="isEchemMode ? 'btn-secondary' : 'btn-outline-secondary'"
+          @click="setMode('echem')"
+        >
+          Electrochemistry
+        </button>
+      </div>
     </div>
     <FileSelectDropdown
       v-model="file_id"
@@ -160,13 +173,14 @@ export default {
     }
   },
   methods: {
-    toggleMode() {
-      this.time_series_source = this.isEchemMode ? "log" : "echem";
+    setMode(mode) {
+      this.time_series_source = mode;
+      this.xrd_folder_name = "";
       this.time_series_folder_name = "";
       this.echem_folder_name = "";
       this.folderNameError = "";
       this.updateBlock();
-      console.info("Toggled mode, time_series_source set to", this.time_series_source);
+      console.info("Mode set to", mode);
     },
     onFileChange() {
       this.xrd_folder_name = "";
@@ -180,12 +194,7 @@ export default {
         this.time_series_folder_name &&
         (!this.isEchemMode || this.echem_folder_name)
       ) {
-        this.folderNameError = "";
         this.updateBlock();
-      } else if (this.xrd_folder_name || this.time_series_folder_name || this.echem_folder_name) {
-        this.folderNameError = this.isEchemMode
-          ? "XRD, Temperature, and Echem folders are required."
-          : "XRD and Temperature folders are required.";
       }
     },
     onGranularitySubmit() {
