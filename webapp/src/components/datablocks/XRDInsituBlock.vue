@@ -108,7 +108,6 @@ export default {
     return {
       folderNameError: "",
       isUpdating: false,
-      isEchemMode: false, // false = temperature, true = echem
     };
   },
   watch: {
@@ -150,24 +149,24 @@ export default {
     data_granularity: createComputedSetterForBlockField("data_granularity"),
     sample_granularity: createComputedSetterForBlockField("sample_granularity"),
     time_series_source: createComputedSetterForBlockField("time_series_source"),
+    isEchemMode() {
+      return this.time_series_source === "echem";
+    },
+  },
+  created() {
+    // Ensure time_series_source is set to "log" by default if not present
+    if (this.time_series_source === undefined || this.time_series_source === null) {
+      this.time_series_source = "log";
+    }
   },
   methods: {
     toggleMode() {
-      this.isEchemMode = !this.isEchemMode;
-      // Use the computed setter to update the backend field
-      this.time_series_source = this.isEchemMode ? "echem" : "log";
-      // Optionally clear folder selections when switching modes
+      this.time_series_source = this.isEchemMode ? "log" : "echem";
       this.time_series_folder_name = "";
       this.echem_folder_name = "";
       this.folderNameError = "";
-      this.setModeFlag(this.isEchemMode ? "echem" : "log");
       this.updateBlock();
       console.info("Toggled mode, time_series_source set to", this.time_series_source);
-    },
-    setModeFlag(flag) {
-      this.$store.state.all_item_data[this.item_id]["blocks_obj"][
-        this.block_id
-      ].time_series_source = flag;
     },
     onFileChange() {
       this.xrd_folder_name = "";
