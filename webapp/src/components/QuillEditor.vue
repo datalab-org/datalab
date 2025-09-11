@@ -11,6 +11,17 @@ import "quill/dist/quill.snow.css";
 import MarkdownShortcuts from "quill-markdown-shortcuts";
 Quill.register("modules/markdownShortcuts", MarkdownShortcuts);
 
+import mermaid from "mermaid";
+window.mermaid = mermaid;
+import QuillMermaid from "quill-mermaid";
+import "quill-mermaid/dist/index.css";
+Quill.register(
+  {
+    "modules/mermaid": QuillMermaid,
+  },
+  true,
+);
+
 import TableUp, {
   defaultCustomSelect,
   TableAlign,
@@ -55,6 +66,10 @@ export default {
   },
   methods: {
     initializeQuill() {
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: "default",
+      });
       const modules = {
         toolbar: [
           ["bold", "italic", "underline", "strike"],
@@ -68,6 +83,7 @@ export default {
           ["link", "image"],
           ["blockquote", "code-block"],
           [{ [TableUp.toolName]: [] }],
+          ["mermaid-chart"],
         ],
         [TableUp.moduleName]: {
           customSelect: defaultCustomSelect,
@@ -77,6 +93,17 @@ export default {
             { module: TableSelection },
             { module: TableMenuContextmenu },
           ],
+        },
+        mermaid: {
+          selectorOptions: {
+            onDestroy() {},
+            onRemove() {},
+            onEdit() {},
+          },
+          historyStackOptions: {
+            maxStack: 100,
+            delay: 1000,
+          },
         },
         markdownShortcuts: {},
       };
