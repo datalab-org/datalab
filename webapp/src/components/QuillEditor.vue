@@ -11,17 +11,6 @@ import "quill/dist/quill.snow.css";
 import MarkdownShortcuts from "quill-markdown-shortcuts";
 Quill.register("modules/markdownShortcuts", MarkdownShortcuts);
 
-import mermaid from "mermaid";
-window.mermaid = mermaid;
-import QuillMermaid from "quill-mermaid";
-import "quill-mermaid/dist/index.css";
-Quill.register(
-  {
-    "modules/mermaid": QuillMermaid,
-  },
-  true,
-);
-
 import TableUp, {
   defaultCustomSelect,
   TableAlign,
@@ -66,10 +55,6 @@ export default {
   },
   methods: {
     initializeQuill() {
-      mermaid.initialize({
-        startOnLoad: false,
-        theme: "default",
-      });
       const modules = {
         toolbar: [
           ["bold", "italic", "underline", "strike"],
@@ -83,7 +68,6 @@ export default {
           ["link", "image"],
           ["blockquote", "code-block"],
           [{ [TableUp.toolName]: [] }],
-          ["mermaid-chart"],
         ],
         [TableUp.moduleName]: {
           customSelect: defaultCustomSelect,
@@ -93,17 +77,6 @@ export default {
             { module: TableSelection },
             { module: TableMenuContextmenu },
           ],
-        },
-        mermaid: {
-          selectorOptions: {
-            onDestroy() {},
-            onRemove() {},
-            onEdit() {},
-          },
-          historyStackOptions: {
-            maxStack: 100,
-            delay: 1000,
-          },
         },
         markdownShortcuts: {},
       };
@@ -115,29 +88,12 @@ export default {
       });
 
       if (this.modelValue) {
-        try {
-          const delta = JSON.parse(this.modelValue);
-          if (delta.ops) {
-            setTimeout(() => {
-              this.quill.setContents(delta);
-
-              const mermaidModule = this.quill.getModule("mermaid");
-              if (mermaidModule && mermaidModule.renderCharts) {
-                mermaidModule.renderCharts();
-              }
-            }, 0);
-          } else {
-            this.quill.root.innerHTML = this.modelValue;
-          }
-        } catch (e) {
-          this.quill.root.innerHTML = this.modelValue;
-        }
+        this.quill.root.innerHTML = this.modelValue;
       }
 
       this.quill.on("text-change", () => {
-        const delta = this.quill.getContents();
-        const deltaString = JSON.stringify(delta);
-        this.$emit("update:modelValue", deltaString);
+        const html = this.quill.root.innerHTML;
+        this.$emit("update:modelValue", html === "<p><br></p>" ? "" : html);
       });
     },
   },
