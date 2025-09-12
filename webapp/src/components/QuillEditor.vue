@@ -115,12 +115,29 @@ export default {
       });
 
       if (this.modelValue) {
-        this.quill.root.innerHTML = this.modelValue;
+        try {
+          const delta = JSON.parse(this.modelValue);
+          if (delta.ops) {
+            setTimeout(() => {
+              this.quill.setContents(delta);
+
+              const mermaidModule = this.quill.getModule("mermaid");
+              if (mermaidModule && mermaidModule.renderCharts) {
+                mermaidModule.renderCharts();
+              }
+            }, 0);
+          } else {
+            this.quill.root.innerHTML = this.modelValue;
+          }
+        } catch (e) {
+          this.quill.root.innerHTML = this.modelValue;
+        }
       }
 
       this.quill.on("text-change", () => {
-        const html = this.quill.root.innerHTML;
-        this.$emit("update:modelValue", html === "<p><br></p>" ? "" : html);
+        const delta = this.quill.getContents();
+        const deltaString = JSON.stringify(delta);
+        this.$emit("update:modelValue", deltaString);
       });
     },
   },
