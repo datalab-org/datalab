@@ -80,39 +80,44 @@ class XRDBlock(DataBlock):
 
         else:
             columns = ["twotheta", "intensity", "error"]
+
+            def _try_read_csv(sep: str, skiprows: int) -> pd.DataFrame | None:
+                try:
+                    df = pd.read_csv(
+                        location, sep=sep, skiprows=skiprows, dtype=np.float64, names=columns
+                    )
+                    if df.empty:
+                        return None
+
+                    return df
+
+                except (ValueError, RuntimeError):
+                    return None
+
             possible_separators = (r"\s+", ",")
             df = pd.DataFrame()
-            for sep in possible_separators:
-                # Try to parse the file by incrementing skiprows until all lines can be cast to np.float64
-                skiprows: int = 0
-                # Set arbitrary limit to avoid infinite loop; a header of 10,000 lines is unlikely to be useful
-                while skiprows < 1_000:
-                    LOGGER.debug(
-                        "Trying to read %s with skiprows=%d, sep=%s",
-                        location.split("/")[-1],
-                        skiprows,
-                        sep,
-                    )
-                    try:
-                        df = pd.read_csv(
-                            location, sep=sep, names=columns, dtype=np.float64, skiprows=skiprows
-                        )
+            # Try to parse the file by incrementing skiprows until all lines can be cast to np.float64
+            # Set arbitrary limit to avoid infinite loop; a header of >1,000 lines is unlikely to be useful
+            max_skiprows: int = 1_000
+            final_skiprows: int = 0
+            for skiprows in range(max_skiprows):
+                for sep in possible_separators:
+                    df = _try_read_csv(sep, skiprows)
+                    if df is not None and not df.empty:
+                        final_skiprows = skiprows
                         break
-                    except (ValueError, RuntimeError):
-                        skiprows += 1
 
-                if df.empty:
-                    continue
+                if df is not None and not df.empty:
+                    final_skiprows = skiprows
+                    break
 
-                break
-
-            # If no valid separator was found, raise an error
+            # If no valid separator/skiprows combo was found, raise an error
             else:
                 raise RuntimeError(
                     f"Unable to extract XRD data from file {location}; check file header for irregularities"
                 )
 
-            if skiprows > 0:
+            if final_skiprows > 0:
                 with open(location) as f:
                     header = "".join([next(f) for _ in range(skiprows)])
                     df.attrs["header"] = header
@@ -262,7 +267,8 @@ class XRDBlock(DataBlock):
                 pattern_df["normalized intensity (staggered)"] += ind
                 pattern_dfs.append(pattern_df)
 
-            self.data["peak_data"] = peak_information
+            self.data["computed"] = {}
+            self.data["computed"]["peak_data"] = peak_information
 
         elif filenames is None:
             file_info = get_file_info_by_id(self.data["file_id"], update_if_live=True)
@@ -284,9 +290,11 @@ class XRDBlock(DataBlock):
                 f"{self.data.get('wavelength', self.defaults['wavelength'])} Å"
             )
             peak_model = PeakInformation(**peak_data)
-            if "peak_data" not in self.data:
-                self.data["peak_data"] = {}
-            self.data["peak_data"][str(file_info["immutable_id"])] = peak_model.model_dump()
+            if "computed" not in self.data:
+                self.data["computed"] = {"peak_data": {}}
+            self.data["computed"]["peak_data"][str(file_info["immutable_id"])] = (
+                peak_model.model_dump()
+            )
             pattern_dfs = [pattern_df]
 
         else:
@@ -303,9 +311,10 @@ class XRDBlock(DataBlock):
                 pattern_dfs.append(pattern_df)
 
                 peak_model = PeakInformation(**peak_data)
-                if "peak_data" not in self.data:
-                    self.data["peak_data"] = {}
-                self.data["peak_data"][f] = peak_model.model_dump()
+                if "computed" not in self.data:
+                    self.data["computed"] = {"peak_data": {}}
+                self.data["computed"]["peak_data"][f] = peak_model.model_dump()
+                pattern_dfs = [pattern_df]
 
         if pattern_dfs:
             p = self._make_plots(pattern_dfs, y_options)

@@ -1,5 +1,44 @@
 # Changelog
 
+## Unreleased changes
+
+> [!WARNING]
+> This release hardens the `SECRET_KEY` configuration to enforce setting a custom key with a minimum entropy; old keys may need to be rotated.
+
+### What's Changed
+
+* Major refactoring of block life cycle, with better possibilities for validation of block data before and after saving by @ml-evs in #1311
+* Replace browser-native dialogs with custom datalab dialog service by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1212
+* Resolve CVEs on mermaid.js and cross-spawn by @dependabot[bot] in https://github.com/datalab-org/datalab/pull/1317
+* Hardened `SECRET_KEY` configuration by @ml-evs in #1324
+
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.6.2...main
+
+## v0.6.2 (August 2025)
+
+This patch release adds a hotfix for broken media blocks when encoding TIF files (#1318).
+
+#### What's Changed
+
+* Fix serialisation of block data with nested file IDs in data model by @ml-evs in #1319
+
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.6.1...v0.6.2
+
+## v0.6.1 (August 2025)
+
+This patch release adds an API config option `CONFIG.ROOT_PATH` to allow
+deployments to easily serve the API under a subpath (e.g., `\api`) on the
+same subdomain as the app.
+It also features a new validation model for block data, which should currently
+have no user-facing effects, but will allow for more formal extensions of block
+schemas in the future.
+
+### What's Changed
+* Add `DataBlockResponse` model to sanitize `blocks_obj` in API by @ml-evs in https://github.com/datalab-org/datalab/pull/1310
+* Add `CONFIG.ROOT_PATH` option to deploy API from custom path by @ml-evs in https://github.com/datalab-org/datalab/pull/1315
+
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.6.0...v0.6.1
+
 ## v0.6.0 (August 2025)
 
 This release includes significant new functionality and UI redesign, a  
@@ -60,7 +99,6 @@ This patch release simply pins the `uv` version used in builds to avoid future b
 * Bump the github-actions group across 1 directory with 2 updates by @dependabot in https://github.com/datalab-org/datalab/pull/1031
 * Update uv to 0.5.x now that dynamic versioning is supported by @ml-evs in https://github.com/datalab-org/datalab/pull/1032
 * Pin uv by @ml-evs in https://github.com/datalab-org/datalab/pull/1039
-
 
 **Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.5.0...v0.5.1
 

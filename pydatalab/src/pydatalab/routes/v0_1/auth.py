@@ -560,7 +560,7 @@ def email_logged_in():
 
     if CONFIG.APP_URL:
         return redirect(CONFIG.APP_URL, 307)
-    referer = request.headers.get("Referer", "/")
+    referer = request.headers.get("Referer", CONFIG.ROOT_PATH or "/")
     return redirect(referer, 307)
 
 
@@ -649,7 +649,7 @@ def redirect_to_ui(blueprint, token):  # pylint: disable=unused-argument
     """Intercepts the default Flask-Dance and redirects to the referring page."""
     if CONFIG.APP_URL:
         return redirect(CONFIG.APP_URL, 307)
-    referer = request.headers.get("Referer", "/")
+    referer = request.headers.get("Referer", CONFIG.ROOT_PATH or "/")
     return redirect(referer, 307)
 
 

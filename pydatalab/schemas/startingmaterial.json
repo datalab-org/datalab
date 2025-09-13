@@ -192,7 +192,7 @@
     },
     "DataBlockResponse": {
       "additionalProperties": true,
-      "description": "A generic response model for a block, i.e., what is stored in `self.data`\nin the corresponding DataBlock class.",
+      "description": "A generic response model for a block, i.e., what is stored in `self.data`\nin the corresponding DataBlock class.\n\nIt is expected but not mandatory that this model will be extended by the specific block type\nwhere possible.",
       "properties": {
         "blocktype": {
           "title": "Blocktype",
@@ -279,24 +279,6 @@
           "default": null,
           "title": "File Ids"
         },
-        "b64_encoded_image": {
-          "anyOf": [
-            {
-              "additionalProperties": {
-                "type": "string"
-              },
-              "propertyNames": {
-                "format": "objectid"
-              },
-              "type": "object"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "B64 Encoded Image"
-        },
         "bokeh_plot_data": {
           "anyOf": [
             {
@@ -308,11 +290,82 @@
           ],
           "default": null,
           "title": "Bokeh Plot Data"
+        },
+        "errors": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Errors"
+        },
+        "warnings": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Warnings"
+        },
+        "b64_encoded_image": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "B64 Encoded Image"
+        },
+        "computed": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Computed"
+        },
+        "metadata": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Metadata"
         }
       },
       "required": [
         "blocktype",
-        "block_id"
+        "block_id",
+        "b64_encoded_image"
       ],
       "title": "DataBlockResponse",
       "type": "object"

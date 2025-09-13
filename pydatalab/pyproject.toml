@@ -121,6 +121,7 @@ dev-dependencies = [
     "pytest ~= 8.2",
     "pytest-cov ~= 5.0",
     "pytest-dependency ~= 0.6",
+    "pytest-memray ~= 1.8",
     "pre-commit ~= 4.0",
     "mongomock ~= 4.1",
     "mkdocs ~= 1.6",
@@ -138,9 +139,12 @@ datalab-app-plugin-insitu = { git = "https://github.com/datalab-org/datalab-app-
 [tool.pytest.ini_options]
 filterwarnings = [
     "error",
+    "ignore:.*Capacity columns are not equal, replacing with new capacity column calculated from current and time columns and renaming the old capacity column to Old Capacity:UserWarning",
     "ignore:.*np.bool8*:DeprecationWarning",
     "ignore::pytest.PytestUnraisableExceptionWarning",
     "ignore:.*JCAMP-DX key without value*:UserWarning",
+    "ignore:.*Unable to find wavenumber unit*:UserWarning",
+    "ignore:.*Unable to find wavenumber offset*:UserWarning",
 ]
 
 [tool.liccheck]

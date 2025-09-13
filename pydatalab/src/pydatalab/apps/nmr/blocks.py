@@ -23,6 +23,7 @@ class NMRBlock(DataBlock):
     description = "A data block for loading and visualizing 1D NMR data from Bruker projects or JCAMP-DX files."
 
     accepted_file_extensions = BRUKER_FILE_EXTENSIONS + JCAMP_FILE_EXTENSIONS
+    processed_data: dict | None = None
     defaults = {"process number": 1}
     _supports_collections = False
 
@@ -34,7 +35,7 @@ class NMRBlock(DataBlock):
         self,
         filename: str | Path | None = None,
         file_info: dict | None = None,
-    ) -> tuple[dict | None, dict] | None:
+    ) -> tuple[dict | None, dict]:
         """Loads a Bruker project from the passed or attached zip file
         and parses it into a serialized dataframe and metadata dictionary.
 
@@ -119,7 +120,6 @@ class NMRBlock(DataBlock):
         metadata["title"] = topspin_title
 
         self.data["metadata"] = metadata
-        self.data["processed_data"] = serialized_df
 
         return serialized_df, metadata
 
@@ -202,23 +202,25 @@ class NMRBlock(DataBlock):
             pass
 
         serialized_df = df.to_dict() if (df is not None) else None
-
-        self.data["processed_data"] = serialized_df
         self.data["metadata"] = metadata
+
+        return serialized_df, metadata
 
     def load_nmr_data(self, file_info: dict):
         location, name, ext = self._extract_file_info(file_info=file_info)
 
         if ext == ".zip":
-            self.read_bruker_nmr_data(file_info=file_info)
+            df, metadata = self.read_bruker_nmr_data(file_info=file_info)
 
         elif ext in (".jdx", ".dx"):
-            self.read_jcamp_nmr_data(file_info=file_info)
+            df, metadata = self.read_jcamp_nmr_data(file_info=file_info)
 
         else:
             raise RuntimeError(
                 f"Unsupported file extension for NMR reader: {ext} (must be one of {self.accepted_file_extensions})"
             )
+
+        return df
 
     def generate_nmr_plot(self, parse: bool = True):
         """Generate an NMR plot and store processed data for the
@@ -232,7 +234,7 @@ class NMRBlock(DataBlock):
             file_info = get_file_info_by_id(self.data["file_id"], update_if_live=True)
             name, ext = os.path.splitext(file_info["name"])
 
-            self.load_nmr_data(file_info)
+            self.processed_data = self.load_nmr_data(file_info)
 
         processed_data_shape = self.data.get("metadata", {}).get("processed_data_shape", [])
         if not processed_data_shape or len(processed_data_shape) > 1:
@@ -241,14 +243,14 @@ class NMRBlock(DataBlock):
             )
             return
 
-        if "processed_data" not in self.data or not self.data["processed_data"]:
+        if not self.processed_data:
             self.data["bokeh_plot_data"] = None
             warnings.warn(
                 "No compatible processed data available for plotting, only metadata will be displayed."
             )
             return
 
-        df = pd.DataFrame(self.data["processed_data"])
+        df = pd.DataFrame(self.processed_data)
         df["normalized intensity"] = df.intensity / df.intensity.max()
 
         self.data["bokeh_plot_data"] = self.make_nmr_plot(df, self.data["metadata"])

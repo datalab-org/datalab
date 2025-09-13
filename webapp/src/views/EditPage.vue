@@ -96,6 +96,8 @@
 </template>
 
 <script>
+import { DialogService } from "@/services/DialogService";
+
 import TinyMceInline from "@/components/TinyMceInline";
 import SelectableFileTree from "@/components/SelectableFileTree";
 
@@ -118,7 +120,7 @@ import tinymce from "tinymce/tinymce";
 
 import { itemTypes, API_URL, customBlockTypes } from "@/resources.js";
 import BokehBlock from "@/components/datablocks/BokehBlock.vue";
-import NotImplementedBlock from "@/components/datablocks/NotImplementedBlock.vue";
+import ErrorBlock from "@/components/datablocks/ErrorBlock.vue";
 import { formatDistanceToNow } from "date-fns";
 
 import StyledBlockHelp from "@/components/StyledBlockHelp";
@@ -133,12 +135,17 @@ export default {
     FormattedItemName,
     StyledBlockHelp,
   },
-  beforeRouteLeave(to, from, next) {
+  async beforeRouteLeave(to, from, next) {
     // give warning before leaving the page by the vue router (which would not trigger "beforeunload")
     if (this.savedStatus) {
       next();
     } else {
-      if (window.confirm("Unsaved changes present. Would you like to leave without saving?")) {
+      const confirmed = await DialogService.confirm({
+        title: "Unsaved Changes",
+        message: "Unsaved changes present. Would you like to leave without saving?",
+        type: "warning",
+      });
+      if (confirmed) {
         this.$store.commit("setItemSaved", { item_id: this.item_id, isSaved: true });
         next();
       } else {
@@ -266,16 +273,18 @@ export default {
       });
     },
     getBlockDisplayType(block_id) {
-      if (this.$store.state.block_implementation_errors[block_id]) {
-        return NotImplementedBlock;
-      }
-
       const block = this.blocks[block_id];
-      if (!block || !block.blocktype) {
-        return NotImplementedBlock;
+
+      if (!block || this.$store.state.block_errors[block_id]) {
+        return ErrorBlock;
       }
 
       const type = block.blocktype;
+
+      if (!(type in this.$store.state.blocksInfos)) {
+        return ErrorBlock;
+      }
+
       if (type in customBlockTypes) {
         return customBlockTypes[type].component;
       } else {

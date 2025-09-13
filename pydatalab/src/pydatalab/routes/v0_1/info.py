@@ -16,7 +16,8 @@ from pydantic import (
 
 from pydatalab import __version__
 from pydatalab.apps import BLOCK_TYPES
-from pydatalab.config import CONFIG, FEATURE_FLAGS, FeatureFlags
+from pydatalab.config import CONFIG
+from pydatalab.feature_flags import FEATURE_FLAGS, FeatureFlags
 from pydatalab.models import ITEM_SCHEMAS, Person
 from pydatalab.mongo import flask_mongo
 
