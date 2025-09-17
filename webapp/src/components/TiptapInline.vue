@@ -78,6 +78,8 @@ import { Color } from "@tiptap/extension-color";
 import TextStyle from "@tiptap/extension-text-style";
 import Highlight from "@tiptap/extension-highlight";
 
+import Typography from "@tiptap/extension-typography";
+
 export default {
   components: { EditorContent },
 
@@ -321,6 +323,7 @@ export default {
         TextStyle,
         Color,
         Highlight.configure({ multicolor: true }),
+        Typography,
       ],
       content: this.modelValue,
       onUpdate: () => this.$emit("update:modelValue", this.editor.getHTML()),
