@@ -1,19 +1,44 @@
 <template>
   <DataBlockBase :item_id="item_id" :block_id="block_id">
     <div class="form-row align-items-center mb-2">
-      <button class="btn btn-outline-secondary mr-3" type="button" @click="toggleMultiSelect">
-        {{ isMultiSelect ? "Switch to Single File" : "Switch to Multi-File" }}
-      </button>
+      <div class="btn-group mr-3" role="group" aria-label="File selection mode">
+        <button
+          type="button"
+          class="btn btn-outline-secondary"
+          :class="{ active: mode === 'single' }"
+          @click="mode = 'single'"
+        >
+          Single File
+        </button>
+        <button
+          type="button"
+          class="btn btn-outline-secondary"
+          :class="{ active: mode === 'multi' }"
+          @click="mode = 'multi'"
+        >
+          Multi File Stitch
+        </button>
+        <button
+          type="button"
+          class="btn btn-outline-secondary"
+          :class="{ active: mode === 'comparison' }"
+          @click="mode = 'comparison'"
+        >
+          Comparison
+        </button>
+      </div>
       <component
-        :is="isMultiSelect ? 'FileMultiSelectDropdown' : 'FileSelectDropdown'"
+        :is="
+          ['multi', 'comparison'].includes(mode) ? 'FileMultiSelectDropdown' : 'FileSelectDropdown'
+        "
         v-model="fileModel"
         :item_id="item_id"
         :block_id="block_id"
         :extensions="blockInfo.attributes.accepted_file_extensions"
-        :update-block-on-change="!isMultiSelect"
+        :update-block-on-change="!['multi', 'comparison'].includes(mode)"
       />
     </div>
-    <div v-if="isMultiSelect" class="form-row mt-2">
+    <div v-if="['multi', 'comparison'].includes(mode)" class="form-row mt-2">
       <button class="btn btn-primary btn-sm" @click="applyMultiSelect">Apply Selection</button>
     </div>
     <div>
@@ -211,14 +236,14 @@ export default {
     fileModel: {
       get() {
         const ids = this.file_ids || [];
-        if (this.isMultiSelect) {
+        if (["multi", "comparison"].includes(this.mode)) {
           return this.pending_file_ids;
         } else {
           return ids[0] || null;
         }
       },
       set(val) {
-        if (this.isMultiSelect) {
+        if (["multi", "comparison"].includes(this.mode)) {
           this.pending_file_ids = Array.isArray(val) ? val : [val];
         } else {
           this.file_ids = val ? [val] : [];
@@ -231,7 +256,6 @@ export default {
     //   return this.$store.all_item_data[this.item_id]["characteristic_mass"] || null;
     // },
     file_ids: createComputedSetterForBlockField("file_ids"),
-    isMultiSelect: createComputedSetterForBlockField("isMultiSelect"),
     prev_file_ids: createComputedSetterForBlockField("prev_file_ids"),
     prev_single_file_id: createComputedSetterForBlockField("prev_single_file_id"),
     all_cycles: createComputedSetterForBlockField("cyclenumber"),
@@ -239,6 +263,7 @@ export default {
     win_size_1: createComputedSetterForBlockField("win_size_1"),
     derivative_mode: createComputedSetterForBlockField("derivative_mode"),
     characteristic_mass: createComputedSetterForBlockField("characteristic_mass"),
+    mode: createComputedSetterForBlockField("mode"),
   },
   mounted() {
     // Ensure file_ids is always an array
@@ -246,7 +271,7 @@ export default {
       this.file_ids = [];
       console.log("file_ids was not an array, so it has been reset to an empty array.");
     }
-    if (this.isMultiSelect) {
+    if (["multi", "comparison"].includes(this.mode)) {
       // Ensure pending_file_ids matches persisted file_ids on reload
       this.pending_file_ids = this.file_ids.slice();
     }
@@ -293,35 +318,8 @@ export default {
 
       this.all_cycles = all_cycles;
     },
-    toggleMultiSelect() {
-      if (this.isMultiSelect) {
-        // Switching from multi to single: save multi selection, restore last single selection
-        this.prev_file_ids = this.file_ids.slice();
-        if (this.prev_single_file_id) {
-          this.file_ids = [this.prev_single_file_id];
-        } else if (this.prev_file_ids.length > 0) {
-          this.file_ids = [this.prev_file_ids[0]];
-        } else {
-          this.file_ids = [];
-        }
-      } else {
-        // Switching from single to multi: save single selection, restore previous multi selection or start empty
-        this.prev_single_file_id = this.file_ids[0] || null;
-        this.file_ids =
-          this.prev_file_ids && this.prev_file_ids.length > 0 ? this.prev_file_ids.slice() : [];
-        this.pending_file_ids = this.file_ids.slice();
-      }
-      this.isMultiSelect = !this.isMultiSelect;
-      this.updateBlock();
-    },
-    // setMultiSelectFlag(flag) {
-    //   // Store the flag in your block data for backend use
-    //   this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id].isMultiSelect =
-    //     flag;
-    // },
     applyMultiSelect() {
-      if (!this.isMultiSelect) return;
-
+      if (!["multi", "comparison"].includes(this.mode)) return;
       this.file_ids = this.pending_file_ids.slice();
       this.updateBlock();
     },
