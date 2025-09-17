@@ -98,7 +98,7 @@
 <script>
 import { DialogService } from "@/services/DialogService";
 
-import TinyMceInline from "@/components/TinyMceInline";
+import TiptapInline from "@/components/TiptapInline";
 import SelectableFileTree from "@/components/SelectableFileTree";
 
 import FileList from "@/components/FileList";
@@ -116,8 +116,6 @@ import FormattedItemName from "@/components/FormattedItemName";
 
 import setupUppy from "@/file_upload.js";
 
-import tinymce from "tinymce/tinymce";
-
 import { itemTypes, API_URL, customBlockTypes } from "@/resources.js";
 import BokehBlock from "@/components/datablocks/BokehBlock.vue";
 import ErrorBlock from "@/components/datablocks/ErrorBlock.vue";
@@ -127,7 +125,7 @@ import StyledBlockHelp from "@/components/StyledBlockHelp";
 
 export default {
   components: {
-    TinyMceInline,
+    TiptapInline,
     SelectableFileTree,
     FileList,
     LoginDetails,
@@ -292,10 +290,6 @@ export default {
       }
     },
     saveSample() {
-      // trigger the mce save so that they update the store with their content
-      tinymce.editors.forEach((editor) => {
-        editor.isDirty() && editor.save();
-      });
       saveItem(this.item_id);
       this.lastModified = "just now";
     },
