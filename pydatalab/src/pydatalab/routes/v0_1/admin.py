@@ -35,13 +35,22 @@ def get_users():
                             "then": "user",
                             "else": {"$arrayElemAt": ["$role.role", 0]},
                         }
-                    }
+                    },
+                    "immutable_id": {"$ifNull": ["$immutable_id", {"$toString": "$_id"}]},
                 }
             },
         ]
     )
 
-    return jsonify({"status": "success", "data": list(users)})
+    users_list = list(users)
+
+    for user in users_list:
+        if "managers" not in user:
+            user["managers"] = []
+        elif not isinstance(user["managers"], list):
+            user["managers"] = []
+
+    return jsonify({"status": "success", "data": users_list})
 
 
 @ADMIN.route("/roles/<user_id>", methods=["PATCH"])
@@ -93,3 +102,45 @@ def save_role(user_id):
         )
 
     return (jsonify({"status": "success"}), 200)
+
+
+@ADMIN.route("/users/<user_id>/managers", methods=["PATCH"])
+def update_user_managers(user_id):
+    """Update the managers for a specific user using ObjectIds"""
+    request_json = request.get_json()
+
+    if request_json is None or "managers" not in request_json:
+        return jsonify({"status": "error", "message": "Managers list not provided"}), 400
+
+    managers = request_json["managers"]
+
+    if not isinstance(managers, list):
+        return jsonify({"status": "error", "message": "Managers must be a list"}), 400
+
+    existing_user = flask_mongo.db.users.find_one({"_id": ObjectId(user_id)})
+    if not existing_user:
+        return jsonify({"status": "error", "message": "User not found"}), 404
+
+    manager_object_ids = []
+    for manager_id in managers:
+        if manager_id:
+            try:
+                manager_oid = ObjectId(manager_id)
+                if not flask_mongo.db.users.find_one({"_id": manager_oid}):
+                    return jsonify(
+                        {"status": "error", "message": f"Manager with ID {manager_id} not found"}
+                    ), 404
+                manager_object_ids.append(str(manager_oid))
+            except (TypeError, ValueError):
+                return jsonify(
+                    {"status": "error", "message": f"Invalid manager ID format: {manager_id}"}
+                ), 400
+
+    update_result = flask_mongo.db.users.update_one(
+        {"_id": ObjectId(user_id)}, {"$set": {"managers": manager_object_ids}}
+    )
+
+    if update_result.matched_count != 1:
+        return jsonify({"status": "error", "message": "Unable to update user managers"}), 400
+
+    return jsonify({"status": "success"}), 200
