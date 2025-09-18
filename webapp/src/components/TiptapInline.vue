@@ -77,8 +77,9 @@ import Placeholder from "@tiptap/extension-placeholder";
 import { Color } from "@tiptap/extension-color";
 import TextStyle from "@tiptap/extension-text-style";
 import Highlight from "@tiptap/extension-highlight";
-
 import Typography from "@tiptap/extension-typography";
+
+import { MermaidNode } from "@/editor/nodes/MermaidNode";
 
 export default {
   components: { EditorContent },
@@ -104,6 +105,9 @@ export default {
         ).flat(),
       ),
       handleDocumentClick: null,
+      showMermaidModal: false,
+      mermaidDraft: "",
+      editingMermaid: false,
     };
   },
 
@@ -283,6 +287,31 @@ export default {
           ],
         },
         {
+          name: "mermaid",
+          buttons: [
+            {
+              name: "insertMermaid",
+              icon: "project-diagram",
+              title: "Insérer un Mermaid",
+              command: () => this.startMermaidCreate(),
+            },
+            {
+              name: "editMermaid",
+              icon: "pen",
+              title: "Modifier Mermaid",
+              command: () => this.startMermaidEdit(),
+              isVisible: (ed) => ed.isActive("mermaid"),
+            },
+            {
+              name: "deleteMermaid",
+              icon: "trash",
+              title: "Supprimer Mermaid",
+              command: (ed) => ed.chain().focus().deleteSelection().run(),
+              isVisible: (ed) => ed.isActive("mermaid"),
+            },
+          ],
+        },
+        {
           name: "clear",
           buttons: [
             {
@@ -324,6 +353,7 @@ export default {
         Color,
         Highlight.configure({ multicolor: true }),
         Typography,
+        MermaidNode,
       ],
       content: this.modelValue,
       onUpdate: () => this.$emit("update:modelValue", this.editor.getHTML()),
@@ -416,6 +446,34 @@ export default {
     isDirty() {
       return this.editor?.getHTML() !== this.modelValue;
     },
+    startMermaidCreate() {
+      this.mermaidDraft = "graph TD;\nA-->B;";
+      this.editingMermaid = false;
+      this.showMermaidModal = true;
+    },
+    startMermaidEdit() {
+      const node = this.editor.state.selection.$from.node();
+      if (node.type.name === "mermaid") {
+        this.mermaidDraft = node.attrs.code;
+        this.editingMermaid = true;
+        this.showMermaidModal = true;
+      }
+    },
+    applyMermaidEdit() {
+      if (this.editingMermaid) {
+        this.editor.chain().focus().updateAttributes("mermaid", { code: this.mermaidDraft }).run();
+      } else {
+        this.editor
+          .chain()
+          .focus()
+          .insertContent({
+            type: "mermaid",
+            attrs: { code: this.mermaidDraft },
+          })
+          .run();
+      }
+      this.showMermaidModal = false;
+    },
   },
 };
 </script>
@@ -500,5 +558,48 @@ export default {
   border-right: 1px solid #e5e7eb;
   padding-right: 0.5rem;
   margin-right: 0.5rem;
+}
+.mermaid-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.mermaid-modal {
+  background: white;
+  border-radius: 8px;
+  padding: 1rem;
+  width: 80%;
+  max-width: 900px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+.mermaid-modal-body {
+  display: flex;
+  gap: 1rem;
+}
+
+.mermaid-modal-body textarea {
+  flex: 1;
+  min-height: 300px;
+}
+
+.mermaid-preview {
+  flex: 1;
+  border: 1px solid #ddd;
+  padding: 0.5rem;
+  background: #fafafa;
+  overflow: auto;
+}
+.mermaid-modal-actions {
+  margin-top: 1rem;
+  text-align: right;
 }
 </style>
