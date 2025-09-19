@@ -14,19 +14,19 @@
               v-model="localCode"
               class="form-control font-monospace"
               rows="15"
-              placeholder="graph TD;&#10;  A[Start] --> B[Process];&#10;  B --> C[End];"
+              placeholder="graph TD;
+  A[Start] --> B[Process];
+  B --> C[End];"
             ></textarea>
-            <small class="form-text text-muted"> Enter your Mermaid diagram code above </small>
+            <small class="form-text text-muted">Enter your Mermaid diagram code above</small>
           </div>
         </div>
         <div class="col-md-6">
           <div class="form-group">
             <label>Preview</label>
-            <div class="border rounded p-3 bg-white" style="min-height: 350px; overflow: auto">
+            <div class="border rounded p-3 bg-white overflow-auto" style="min-height: 350px">
               <div ref="previewContainer"></div>
-              <div v-if="previewError" class="alert alert-danger mt-2">
-                {{ previewError }}
-              </div>
+              <div v-if="previewError" class="alert alert-danger mt-2">{{ previewError }}</div>
             </div>
           </div>
         </div>
@@ -51,22 +51,14 @@
 import Modal from "@/components/Modal.vue";
 
 export default {
-  components: {
-    Modal,
-  },
+  components: { Modal },
   props: {
-    modelValue: {
-      type: Boolean,
-      default: false,
-    },
+    modelValue: { type: Boolean, default: false },
     code: {
       type: String,
       default: "graph TD;\n  A[Start] --> B[Process];\n  B --> C[End];",
     },
-    isEditing: {
-      type: Boolean,
-      default: false,
-    },
+    isEditing: { type: Boolean, default: false },
   },
   emits: ["update:modelValue", "save"],
   data() {
@@ -90,23 +82,24 @@ export default {
     modelValue(newVal) {
       if (newVal) {
         this.localCode = this.code;
-        this.$nextTick(() => {
-          this.renderPreview();
-        });
+        this.$nextTick(this.renderPreview);
       }
     },
     localCode() {
       clearTimeout(this.debounceTimer);
-      this.debounceTimer = setTimeout(() => {
-        this.renderPreview();
-      }, 300);
+      this.debounceTimer = setTimeout(this.renderPreview, 300);
     },
+  },
+  beforeUnmount() {
+    clearTimeout(this.debounceTimer);
   },
   methods: {
     async renderPreview() {
-      if (!this.$refs.previewContainer || !this.localCode.trim()) {
-        return;
-      }
+      if (!this.$refs.previewContainer || !this.localCode.trim()) return;
+
+      const container = this.$refs.previewContainer;
+      container.innerHTML = "";
+      this.previewError = null;
 
       let attempts = 0;
       while (!window.mermaid && attempts < 10) {
@@ -119,39 +112,31 @@ export default {
         return;
       }
 
-      const container = this.$refs.previewContainer;
-      container.innerHTML = "";
-      this.previewError = null;
-
       try {
-        window.mermaid.initialize({
-          startOnLoad: false,
-          theme: "default",
-          securityLevel: "loose",
-        });
+        if (!window.mermaid._initialized) {
+          window.mermaid.initialize({
+            startOnLoad: false,
+            theme: "default",
+            securityLevel: "loose",
+          });
+          window.mermaid._initialized = true;
+        }
 
         const div = document.createElement("div");
         div.textContent = this.localCode;
         container.appendChild(div);
 
         await window.mermaid.init(undefined, div);
-      } catch (error) {
+      } catch {
         this.previewError = "Invalid Mermaid syntax - check your code";
-
-        const errorDiv = document.createElement("div");
-        errorDiv.className = "text-muted";
-        errorDiv.textContent = "Invalid syntax - check your code";
-        container.appendChild(errorDiv);
       }
     },
-
     handleSave() {
       if (this.localCode.trim()) {
         this.$emit("save", this.localCode);
         this.isOpen = false;
       }
     },
-
     handleClose() {
       this.isOpen = false;
     },

@@ -1,7 +1,11 @@
 <template>
-  <node-view-wrapper class="mermaid-node" @click="selectNode">
+  <node-view-wrapper class="my-2" @click="selectNode">
     <div class="border rounded p-2 bg-light position-relative">
-      <div ref="mermaidContainer" class="mermaid-render"></div>
+      <div
+        ref="mermaidContainer"
+        class="d-flex justify-content-center"
+        style="min-height: 100px"
+      ></div>
       <div v-if="error" class="alert alert-warning mb-0 mt-2">Invalid Mermaid syntax</div>
     </div>
   </node-view-wrapper>
@@ -12,30 +16,13 @@ import { NodeViewWrapper } from "@tiptap/vue-3";
 import { DialogService } from "@/services/DialogService";
 
 export default {
-  components: {
-    NodeViewWrapper,
-  },
+  components: { NodeViewWrapper },
   props: {
-    node: {
-      type: Object,
-      required: true,
-    },
-    updateAttributes: {
-      type: Function,
-      required: true,
-    },
-    selected: {
-      type: Boolean,
-      default: false,
-    },
-    editor: {
-      type: Object,
-      required: true,
-    },
-    getPos: {
-      type: Function,
-      required: true,
-    },
+    node: { type: Object, required: true },
+    updateAttributes: { type: Function, required: true },
+    selected: { type: Boolean, default: false },
+    editor: { type: Object, required: true },
+    getPos: { type: Function, required: true },
   },
   data() {
     return {
@@ -56,10 +43,8 @@ export default {
   },
   beforeUnmount() {
     if (this.renderId) {
-      const element = document.getElementById(`d${this.renderId}`);
-      if (element) {
-        element.remove();
-      }
+      const element = document.getElementById(this.renderId);
+      if (element) element.remove();
     }
   },
   methods: {
@@ -67,11 +52,11 @@ export default {
       const pos = this.getPos();
       this.editor.chain().focus().setNodeSelection(pos).run();
     },
-
     async renderDiagram() {
       if (!this.$refs.mermaidContainer) return;
 
       const container = this.$refs.mermaidContainer;
+      container.innerHTML = "";
       this.error = false;
 
       let attempts = 0;
@@ -86,28 +71,28 @@ export default {
         return;
       }
 
-      container.innerHTML = "";
-
-      this.renderId = `mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      this.renderId = `mermaid-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
 
       try {
-        const graphDefinition = this.node.attrs.code || "graph TD;\n  A[Start] --> B[End];";
+        const graphDefinition = this.node.attrs.code || "graph TD; A[Start] --> B[End];";
 
-        window.mermaid.initialize({
-          startOnLoad: false,
-          theme: "default",
-          securityLevel: "loose",
-        });
+        if (!window.mermaid._initialized) {
+          window.mermaid.initialize({
+            startOnLoad: false,
+            theme: "default",
+            securityLevel: "loose",
+          });
+          window.mermaid._initialized = true;
+        }
 
         const mermaidDiv = document.createElement("div");
+        mermaidDiv.id = this.renderId;
         mermaidDiv.textContent = graphDefinition;
         container.appendChild(mermaidDiv);
 
         await window.mermaid.init(undefined, mermaidDiv);
-      } catch (err) {
+      } catch {
         this.error = true;
-        console.error("Mermaid render error:", err);
-
         const errorDiv = document.createElement("div");
         errorDiv.className = "text-danger";
         errorDiv.textContent = "Error rendering diagram";
@@ -117,18 +102,3 @@ export default {
   },
 };
 </script>
-
-<style scoped>
-.mermaid-node {
-  margin: 0.5rem 0;
-}
-.mermaid-render {
-  display: flex;
-  justify-content: center;
-  min-height: 100px;
-}
-.mermaid-render :deep(svg) {
-  max-width: 100%;
-  height: auto;
-}
-</style>
