@@ -60,6 +60,12 @@
         'border-primary': showToolbar,
       }"
     />
+    <MermaidModal
+      v-model="showMermaidModal"
+      :code="mermaidDraft"
+      :is-editing="editingMermaid"
+      @save="handleMermaidSave"
+    />
   </div>
 </template>
 
@@ -80,9 +86,10 @@ import Highlight from "@tiptap/extension-highlight";
 import Typography from "@tiptap/extension-typography";
 
 import { MermaidNode } from "@/editor/nodes/MermaidNode";
+import MermaidModal from "@/components/MermaidModal.vue";
 
 export default {
-  components: { EditorContent },
+  components: { EditorContent, MermaidModal },
 
   props: {
     modelValue: { type: String, default: "" },
@@ -292,20 +299,20 @@ export default {
             {
               name: "insertMermaid",
               icon: "project-diagram",
-              title: "Insérer un Mermaid",
+              title: "Insert Mermaid",
               command: () => this.startMermaidCreate(),
             },
             {
               name: "editMermaid",
               icon: "pen",
-              title: "Modifier Mermaid",
+              title: "Edit Mermaid",
               command: () => this.startMermaidEdit(),
               isVisible: (ed) => ed.isActive("mermaid"),
             },
             {
               name: "deleteMermaid",
               icon: "trash",
-              title: "Supprimer Mermaid",
+              title: "Delete Mermaid",
               command: (ed) => ed.chain().focus().deleteSelection().run(),
               isVisible: (ed) => ed.isActive("mermaid"),
             },
@@ -447,32 +454,61 @@ export default {
       return this.editor?.getHTML() !== this.modelValue;
     },
     startMermaidCreate() {
-      this.mermaidDraft = "graph TD;\nA-->B;";
+      this.mermaidDraft = "graph TD;\n  A[Start] --> B[Process];\n  B --> C[End];";
       this.editingMermaid = false;
       this.showMermaidModal = true;
     },
+
     startMermaidEdit() {
-      const node = this.editor.state.selection.$from.node();
-      if (node.type.name === "mermaid") {
-        this.mermaidDraft = node.attrs.code;
+      const { state } = this.editor;
+      const { from, to } = state.selection;
+
+      let mermaidNode = null;
+
+      state.doc.nodesBetween(from, to, (node) => {
+        if (node.type.name === "mermaid") {
+          mermaidNode = node;
+          return false;
+        }
+      });
+
+      if (mermaidNode) {
+        this.mermaidDraft = mermaidNode.attrs.code || "graph TD;\n  A[Start] --> B[Process];";
         this.editingMermaid = true;
         this.showMermaidModal = true;
       }
     },
-    applyMermaidEdit() {
+
+    handleMermaidSave(code) {
       if (this.editingMermaid) {
-        this.editor.chain().focus().updateAttributes("mermaid", { code: this.mermaidDraft }).run();
+        const { state } = this.editor;
+        const { from, to } = state.selection;
+
+        state.doc.nodesBetween(from, to, (node, pos) => {
+          if (node.type.name === "mermaid") {
+            this.editor
+              .chain()
+              .focus()
+              .setNodeSelection(pos)
+              .updateAttributes("mermaid", { code })
+              .run();
+            return false;
+          }
+        });
       } else {
         this.editor
           .chain()
           .focus()
           .insertContent({
             type: "mermaid",
-            attrs: { code: this.mermaidDraft },
+            attrs: { code },
           })
           .run();
       }
+
       this.showMermaidModal = false;
+      this.mermaidDraft = "";
+      this.editingMermaid = false;
     },
   },
 };
