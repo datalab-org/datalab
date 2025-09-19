@@ -504,6 +504,7 @@ def double_axes_echem_plot(
     x_options: Sequence[str] = [],
     pick_peaks: bool = True,
     normalized: bool = False,
+    plotting_mode: str | None = None,
     **kwargs,
 ) -> gridplot:
     """Creates a Bokeh plot for electrochemistry data.
@@ -512,9 +513,13 @@ def double_axes_echem_plot(
         df: The pre-processed dataframe containing capacities and
             voltages, indexed by half cycle.
         mode: Either "dQ/dV", "dV/dQ", "normal" or None.
+        cycle_summary_dfs: Optional list of dataframes containing
+            cycle summary information, to plot final capacities.
         x_options: Columns from `df` that can be selected for the
             first plot. The first will be used as the default.
         pick_peaks: Whether or not to pick and plot the peaks in dV/dQ mode.
+        normalized: Whether or not the dataframes contain data normalised by mass
+        plotting_mode: Single, multi, or comparison mode to control legends and colors.
 
     Returns: The Bokeh layout.
     """
@@ -702,11 +707,17 @@ def double_axes_echem_plot(
         yaxis_select = Select(title="Y axis:", value=y_default, options=x_options)
         yaxis_select.js_on_change("value", callback_y)
 
-    hovertooltips = [
-        ("Filename", "@{filename}"),
-        ("Cycle No.", "@{full cycle}"),
-        ("Half-cycle", "@{half cycle}"),
-    ]
+    if plotting_mode == "comparison":
+        hovertooltips = [
+            ("Filename", "@{filename}"),
+            ("Cycle No.", "@{full cycle}"),
+            ("Half-cycle", "@{half cycle}"),
+        ]
+    else:
+        hovertooltips = [
+            ("Cycle No.", "@{full cycle}"),
+            ("Half-cycle", "@{half cycle}"),
+        ]
 
     if mode:
         crosshair = CrosshairTool(dimensions="width" if mode == "dQ/dV" else "height")
