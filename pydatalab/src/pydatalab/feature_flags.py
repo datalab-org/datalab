@@ -101,7 +101,7 @@ def check_feature_flags(app):
                 "No secret key provided, please set `CONFIG.SECRET_KEY` or the `PYDATALAB_SECRET_KEY` environment variable."
             )
 
-            _check_key_strength(CONFIG.SECRET_KEY)
+        _check_key_strength(CONFIG.SECRET_KEY)
 
     def _check_secret_and_warn(secret: str, error: str, environ: bool = False) -> bool:
         """Checks if a secret has been set, and if so, return True.
