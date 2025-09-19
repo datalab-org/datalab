@@ -1,6 +1,6 @@
 <template>
   <node-view-wrapper class="mermaid-node" @click="selectNode">
-    <div class="border rounded p-2 bg-light position-relative" style="cursor: pointer">
+    <div class="border rounded p-2 bg-light position-relative">
       <div ref="mermaidContainer" class="mermaid-render"></div>
       <div v-if="error" class="alert alert-warning mb-0 mt-2">Invalid Mermaid syntax</div>
     </div>
@@ -9,6 +9,7 @@
 
 <script>
 import { NodeViewWrapper } from "@tiptap/vue-3";
+import { DialogService } from "@/services/DialogService";
 
 export default {
   components: {
@@ -53,11 +54,20 @@ export default {
   mounted() {
     this.renderDiagram();
   },
+  beforeUnmount() {
+    if (this.renderId) {
+      const element = document.getElementById(`d${this.renderId}`);
+      if (element) {
+        element.remove();
+      }
+    }
+  },
   methods: {
     selectNode() {
       const pos = this.getPos();
       this.editor.chain().focus().setNodeSelection(pos).run();
     },
+
     async renderDiagram() {
       if (!this.$refs.mermaidContainer) return;
 
@@ -72,7 +82,7 @@ export default {
 
       if (!window.mermaid) {
         this.error = true;
-        container.innerHTML = '<div class="text-muted">Mermaid library not loaded</div>';
+        DialogService.error("Mermaid library not loaded");
         return;
       }
 
@@ -83,27 +93,25 @@ export default {
       try {
         const graphDefinition = this.node.attrs.code || "graph TD;\n  A[Start] --> B[End];";
 
+        window.mermaid.initialize({
+          startOnLoad: false,
+          theme: "default",
+          securityLevel: "loose",
+        });
+
         const mermaidDiv = document.createElement("div");
-        mermaidDiv.id = this.renderId;
         mermaidDiv.textContent = graphDefinition;
         container.appendChild(mermaidDiv);
 
-        const { svg } = await window.mermaid.render(this.renderId, graphDefinition);
-        container.innerHTML = svg;
+        await window.mermaid.init(undefined, mermaidDiv);
       } catch (err) {
-        try {
-          container.innerHTML = "";
-          const mermaidDiv = document.createElement("div");
-          mermaidDiv.className = "mermaid";
-          mermaidDiv.textContent = this.node.attrs.code;
-          container.appendChild(mermaidDiv);
+        this.error = true;
+        console.error("Mermaid render error:", err);
 
-          await window.mermaid.init(undefined, mermaidDiv);
-        } catch (err2) {
-          this.error = true;
-          container.innerHTML = '<div class="text-danger">Error rendering diagram</div>';
-          console.error("Mermaid render error:", err2);
-        }
+        const errorDiv = document.createElement("div");
+        errorDiv.className = "text-danger";
+        errorDiv.textContent = "Error rendering diagram";
+        container.appendChild(errorDiv);
       }
     },
   },

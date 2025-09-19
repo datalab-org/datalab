@@ -1,8 +1,8 @@
 <template>
-  <div class="tiptap-inline-editor">
+  <div ref="editorContainer" class="editor-wrapper position-relative">
     <div
       v-if="editor && showToolbar"
-      class="btn-toolbar mb-2 border rounded p-2 shadow-sm sticky-top bg-white"
+      class="btn-toolbar mb-2 border rounded p-2 shadow-sm bg-white editor-toolbar"
     >
       <div v-for="group in toolbarGroups" :key="group.name" class="btn-group btn-group-sm mr-2">
         <button
@@ -382,18 +382,27 @@ export default {
   beforeUnmount() {
     document.removeEventListener("click", this.handleDocumentClick);
     this.editor?.destroy();
+    if (this.handleClickOutside) {
+      document.removeEventListener("click", this.handleClickOutside, true);
+    }
   },
 
   methods: {
     visibleButtons(group) {
       return group.buttons.filter((btn) => !btn.isVisible || btn.isVisible(this.editor));
     },
-    handleClickOutside(e) {
-      if (!this.showColorPicker) return;
-      const picker = document.querySelector(".color-picker");
-      if (picker && picker.contains(e.target)) return;
-      if (this.$el && this.$el.contains(e.target)) return;
-      this.showColorPicker = false;
+    handleClickOutside(event) {
+      const editorElement = this.$refs.editorContainer;
+      const colorPicker = document.querySelector(".color-picker");
+
+      if (
+        editorElement &&
+        !editorElement.contains(event.target) &&
+        (!colorPicker || !colorPicker.contains(event.target))
+      ) {
+        this.showToolbar = false;
+        this.showColorPicker = false;
+      }
     },
     toggleColorPicker(event) {
       if (this.showColorPicker) {
@@ -515,6 +524,16 @@ export default {
 </script>
 
 <style scoped>
+.editor-wrapper {
+  position: relative;
+}
+
+.editor-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  max-width: 100%;
+}
 .form-control-plaintext :deep(.ProseMirror) {
   min-height: 60px;
   outline: none;
@@ -594,48 +613,5 @@ export default {
   border-right: 1px solid #e5e7eb;
   padding-right: 0.5rem;
   margin-right: 0.5rem;
-}
-.mermaid-modal-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10000;
-}
-
-.mermaid-modal {
-  background: white;
-  border-radius: 8px;
-  padding: 1rem;
-  width: 80%;
-  max-width: 900px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
-}
-
-.mermaid-modal-body {
-  display: flex;
-  gap: 1rem;
-}
-
-.mermaid-modal-body textarea {
-  flex: 1;
-  min-height: 300px;
-}
-
-.mermaid-preview {
-  flex: 1;
-  border: 1px solid #ddd;
-  padding: 0.5rem;
-  background: #fafafa;
-  overflow: auto;
-}
-.mermaid-modal-actions {
-  margin-top: 1rem;
-  text-align: right;
 }
 </style>
