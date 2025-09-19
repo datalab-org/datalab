@@ -124,26 +124,34 @@ export default {
       this.previewError = null;
 
       try {
+        window.mermaid.initialize({
+          startOnLoad: false,
+          theme: "default",
+          securityLevel: "loose",
+        });
+
         const div = document.createElement("div");
-        div.className = "mermaid";
         div.textContent = this.localCode;
         container.appendChild(div);
 
-        await window.mermaid.run({
-          querySelector: ".mermaid",
-          suppressErrors: false,
-        });
+        await window.mermaid.init(undefined, div);
       } catch (error) {
-        this.previewError = "Invalid Mermaid syntax";
-        container.innerHTML = '<div class="text-muted">Invalid syntax - check your code</div>';
+        this.previewError = "Invalid Mermaid syntax - check your code";
+
+        const errorDiv = document.createElement("div");
+        errorDiv.className = "text-muted";
+        errorDiv.textContent = "Invalid syntax - check your code";
+        container.appendChild(errorDiv);
       }
     },
+
     handleSave() {
       if (this.localCode.trim()) {
         this.$emit("save", this.localCode);
         this.isOpen = false;
       }
     },
+
     handleClose() {
       this.isOpen = false;
     },
