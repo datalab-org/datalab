@@ -498,9 +498,9 @@ def selectable_axes_plot(
 
 
 def double_axes_echem_plot(
-    df: pd.DataFrame,
+    dfs: list[pd.DataFrame],
     mode: str | None = None,
-    cycle_summary: pd.DataFrame = None,
+    cycle_summary_dfs: list[pd.DataFrame] | None = None,
     x_options: Sequence[str] = [],
     pick_peaks: bool = True,
     normalized: bool = False,
@@ -526,7 +526,7 @@ def double_axes_echem_plot(
             else ["capacity (mAh)", "voltage (V)", "time (s)", "current (mA)"]
         )
 
-    x_options = [opt for opt in x_options if opt in df.columns]
+    x_options = [opt for opt in x_options if opt in dfs[0].columns]
 
     common_options = {"aspect_ratio": 1.5, "tools": TOOLS}
     common_options.update(**kwargs)
@@ -570,7 +570,7 @@ def double_axes_echem_plot(
             p2.xaxis.ticker.desired_num_ticks = 5
         plots.append(p2)
 
-    elif mode == "final capacity" and cycle_summary is not None:
+    elif mode == "final capacity" and cycle_summary_dfs:
         palette = Accent[3]
 
         p3 = figure(
@@ -579,92 +579,95 @@ def double_axes_echem_plot(
             **common_options,
         )
 
-        p3.line(
-            x="full cycle",
-            y="charge capacity (mAh/g)" if normalized else "charge capacity (mAh)",
-            source=cycle_summary,
-            legend_label="charge",
-            line_width=2,
-            color=palette[0],
-        )
-        p3.circle(
-            x="full cycle",
-            y="charge capacity (mAh/g)" if normalized else "charge capacity (mAh)",
-            source=cycle_summary,
-            fill_color="white",
-            hatch_color=palette[0],
-            legend_label="charge",
-            line_width=2,
-            size=12,
-            color=palette[0],
-        )
-        p3.line(
-            x="full cycle",
-            y="discharge capacity (mAh/g)" if normalized else "discharge capacity (mAh)",
-            source=cycle_summary,
-            legend_label="discharge",
-            line_width=2,
-            color=palette[2],
-        )
-        p3.triangle(
-            x="full cycle",
-            y="discharge capacity (mAh/g)" if normalized else "discharge capacity (mAh)",
-            source=cycle_summary,
-            fill_color="white",
-            hatch_color=palette[2],
-            line_width=2,
-            legend_label="discharge",
-            size=12,
-            color=palette[2],
-        )
+        for cycle_summary in cycle_summary_dfs:
+            p3.line(
+                x="full cycle",
+                y="charge capacity (mAh/g)" if normalized else "charge capacity (mAh)",
+                source=cycle_summary,
+                legend_label="charge",
+                line_width=2,
+                color=palette[0],
+            )
+            p3.circle(
+                x="full cycle",
+                y="charge capacity (mAh/g)" if normalized else "charge capacity (mAh)",
+                source=cycle_summary,
+                fill_color="white",
+                hatch_color=palette[0],
+                legend_label="charge",
+                line_width=2,
+                size=12,
+                color=palette[0],
+            )
+            p3.line(
+                x="full cycle",
+                y="discharge capacity (mAh/g)" if normalized else "discharge capacity (mAh)",
+                source=cycle_summary,
+                legend_label="discharge",
+                line_width=2,
+                color=palette[2],
+            )
+            p3.triangle(
+                x="full cycle",
+                y="discharge capacity (mAh/g)" if normalized else "discharge capacity (mAh)",
+                source=cycle_summary,
+                fill_color="white",
+                hatch_color=palette[2],
+                line_width=2,
+                legend_label="discharge",
+                size=12,
+                color=palette[2],
+            )
 
-        p3.legend.location = "right"
-        p3.y_range.start = 0
-        p3.xaxis.ticker.desired_num_ticks = 5
+            p3.legend.location = "right"
+            p3.y_range.start = 0
+            p3.xaxis.ticker.desired_num_ticks = 5
 
     lines = []
-    grouped_by_half_cycle = df.groupby("half cycle")
 
-    for ind, plot in enumerate(plots):
-        x = x_default
-        y = "voltage (V)"
-        if ind == 1:
-            if mode == "dQ/dV":
-                x = "dQ/dV (mA/V)"
-            else:
-                y = "dV/dQ (V/mA)"
+    for df in dfs:
+        grouped_by_half_cycle = df.groupby("half cycle")
 
-        # if filtering has removed all cycles, skip making the plot
-        if len(df) < 1:
-            raise RuntimeError("No data remaining to plot after filtering.")
+        for ind, plot in enumerate(plots):
+            x = x_default
+            y = "voltage (V)"
+            if ind == 1:
+                if mode == "dQ/dV":
+                    x = "dQ/dV (mA/V)"
+                else:
+                    y = "dV/dQ (V/mA)"
 
-        # trim the end of the colour cycle for visibility on a white background
-        color_space = np.linspace(0.3, 0.7, max(int(df["half cycle"].max()), 1))  # type: ignore
+            # if filtering has removed all cycles, skip making the plot
+            if len(df) < 1:
+                raise RuntimeError("No data remaining to plot after filtering.")
 
-        for _, group in grouped_by_half_cycle:
-            line = plot.line(
-                x=x,
-                y=y,
-                source=group,
-                line_color=matplotlib.colors.rgb2hex(
-                    cmap(color_space[int(group["half cycle"].max()) - 1])
-                ),
-                hover_line_width=2,
-                selection_line_width=2,
-                selection_line_color="black",
-            )
-            if mode == "dV/dQ" and ind == 1 and pick_peaks:
-                # Check if half cycle or not
-                dvdq_array = np.array(group[y])
-                if group[y].mean() < 0:
-                    dvdq_array *= -1
+            # trim the end of the colour cycle for visibility on a white background
+            color_space = np.linspace(0.3, 0.7, max(int(df["half cycle"].max()), 1))  # type: ignore
 
-                peaks, _ = find_peaks(dvdq_array, prominence=5)
-                peak_locs = group.iloc[peaks]
-                p2.circle(x=x, y=y, source=peak_locs)
+            for _, group in grouped_by_half_cycle:
+                line = plot.line(
+                    x=x,
+                    y=y,
+                    source=group,
+                    line_color=matplotlib.colors.rgb2hex(
+                        cmap(color_space[int(group["half cycle"].max()) - 1])
+                    ),
+                    hover_line_width=2,
+                    selection_line_width=2,
+                    selection_line_color="black",
+                )
+                if mode == "dV/dQ" and ind == 1 and pick_peaks:
+                    # Check if half cycle or not
+                    dvdq_array = np.array(group[y])
+                    if group[y].mean() < 0:
+                        dvdq_array *= -1
 
-            if ind == 0:
-                lines.append(line)
+                    peaks, _ = find_peaks(dvdq_array, prominence=5)
+                    peak_locs = group.iloc[peaks]
+                    p2.circle(x=x, y=y, source=peak_locs)
+
+                if ind == 0:
+                    lines.append(line)
 
     # Only add the selectable axis to dQ/dV mode
     if mode in ("dQ/dV", None):
@@ -699,7 +702,11 @@ def double_axes_echem_plot(
         yaxis_select = Select(title="Y axis:", value=y_default, options=x_options)
         yaxis_select.js_on_change("value", callback_y)
 
-    hovertooltips = [("Cycle No.", "@{full cycle}"), ("Half-cycle", "@{half cycle}")]
+    hovertooltips = [
+        ("Filename", "@{filename}"),
+        ("Cycle No.", "@{full cycle}"),
+        ("Half-cycle", "@{half cycle}"),
+    ]
 
     if mode:
         crosshair = CrosshairTool(dimensions="width" if mode == "dQ/dV" else "height")
