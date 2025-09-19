@@ -312,6 +312,7 @@ class CycleBlock(DataBlock):
             cycle_summary_dfs=list(cycle_summary_dfs.values()),
             mode=mode,
             normalized=bool(characteristic_mass_g),
+            plotting_mode=self.data.get("mode"),
         )
 
         if layout is not None:
