@@ -10,13 +10,17 @@ export const MermaidNode = Node.create({
   addAttributes() {
     return {
       code: {
-        default: "graph TD; A-->B;",
+        default: "graph TD; A[Start] --> B[End];",
       },
     };
   },
 
   parseHTML() {
-    return [{ tag: "div[data-type='mermaid']" }];
+    return [
+      {
+        tag: "div[data-type='mermaid']",
+      },
+    ];
   },
 
   renderHTML({ HTMLAttributes }) {

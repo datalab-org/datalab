@@ -1,8 +1,9 @@
 <template>
-  <div ref="editorContainer" class="editor-wrapper position-relative">
+  <div ref="editorContainer" class="position-relative">
     <div
       v-if="editor && showToolbar"
-      class="btn-toolbar mb-2 border rounded p-2 shadow-sm bg-white editor-toolbar"
+      class="btn-toolbar mb-2 border rounded p-2 shadow-sm bg-white sticky-top overflow-auto flex-wrap"
+      style="z-index: 10; row-gap: 0.5rem"
     >
       <div v-for="group in toolbarGroups" :key="group.name" class="btn-group btn-group-sm mr-2">
         <button
@@ -25,27 +26,32 @@
     <teleport to="body">
       <div
         v-if="showColorPicker"
-        class="color-picker"
-        :style="{ top: pickerPosition.top + 'px', left: pickerPosition.left + 'px' }"
+        class="position-absolute bg-white border rounded shadow p-2"
+        :style="{ top: pickerPosition.top + 'px', left: pickerPosition.left + 'px', zIndex: 9999 }"
       >
-        <div class="color-grid">
+        <div class="d-grid" style="grid-template-columns: repeat(6, 1fr); gap: 6px; width: 220px">
           <button
-            class="color-button reset"
+            class="btn btn-sm btn-outline-secondary"
             type="button"
             title="Reset to default"
+            style="width: 28px; height: 28px; padding: 0"
             @click="resetColor"
           >
             <font-awesome-icon icon="times" />
           </button>
-
           <button
             v-for="c in predefinedColors"
             :key="c"
-            class="color-button"
+            class="btn p-0"
             type="button"
             :aria-label="c"
-            :class="{ selected: currentColor === c }"
-            :style="{ backgroundColor: c }"
+            :class="{ 'border-dark border-2': currentColor === c }"
+            :style="{
+              backgroundColor: c,
+              width: '28px',
+              height: '28px',
+              border: '1px solid #dee2e6',
+            }"
             @click="setColor(c)"
           />
         </div>
@@ -54,12 +60,10 @@
 
     <editor-content
       :editor="editor"
-      class="form-control-plaintext border rounded p-2"
-      :class="{
-        'd-inline-block w-100': inline,
-        'border-primary': showToolbar,
-      }"
+      class="form-control-plaintext border rounded p-2 d-inline-block w-100"
+      :class="{ 'border-primary': showToolbar }"
     />
+
     <MermaidModal
       v-model="showMermaidModal"
       :code="mermaidDraft"
@@ -365,14 +369,13 @@ export default {
       content: this.modelValue,
       onUpdate: () => this.$emit("update:modelValue", this.editor.getHTML()),
       onFocus: () => (this.showToolbar = true),
-      onBlur: () => {
+      onBlur: () =>
         setTimeout(() => {
           if (!this.$el.contains(document.activeElement)) {
             this.showToolbar = false;
             this.showColorPicker = false;
           }
-        }, 150);
-      },
+        }, 150),
     });
 
     this.handleDocumentClick = (e) => this.handleClickOutside(e);
@@ -382,9 +385,6 @@ export default {
   beforeUnmount() {
     document.removeEventListener("click", this.handleDocumentClick);
     this.editor?.destroy();
-    if (this.handleClickOutside) {
-      document.removeEventListener("click", this.handleClickOutside, true);
-    }
   },
 
   methods: {
@@ -393,13 +393,7 @@ export default {
     },
     handleClickOutside(event) {
       const editorElement = this.$refs.editorContainer;
-      const colorPicker = document.querySelector(".color-picker");
-
-      if (
-        editorElement &&
-        !editorElement.contains(event.target) &&
-        (!colorPicker || !colorPicker.contains(event.target))
-      ) {
+      if (editorElement && !editorElement.contains(event.target)) {
         this.showToolbar = false;
         this.showColorPicker = false;
       }
@@ -410,29 +404,19 @@ export default {
         return;
       }
       const rect = event.currentTarget.getBoundingClientRect();
-      this.pickerPosition = {
-        top: rect.bottom + window.scrollY,
-        left: rect.left + window.scrollX,
-      };
+      this.pickerPosition = { top: rect.bottom + window.scrollY, left: rect.left + window.scrollX };
       this.currentColor = this.getActiveColor();
       this.showColorPicker = true;
     },
     getActiveColor() {
       if (!this.editor) return "#000000";
-      const a = this.editor.getAttributes("textStyle") || this.editor.getAttributes("color") || {};
-      return a.color || "#000000";
+      const attrs =
+        this.editor.getAttributes("textStyle") || this.editor.getAttributes("color") || {};
+      return attrs.color || "#000000";
     },
     resetColor() {
       if (!this.editor) return;
-      if (this.editor.can().chain().focus().unsetColor) {
-        try {
-          this.editor.chain().focus().unsetColor().run();
-        } catch (e) {
-          this.editor.chain().focus().setColor("#000000").run();
-        }
-      } else {
-        this.editor.chain().focus().setColor("#000000").run();
-      }
+      this.editor.chain().focus().setColor("#000000").run();
       this.currentColor = "#000000";
       this.showColorPicker = false;
     },
@@ -448,51 +432,39 @@ export default {
       if (url === null) return;
       if (url === "") {
         this.editor.chain().focus().extendMarkRange("link").unsetLink().run();
-        return;
+      } else {
+        this.editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
       }
-      this.editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
     },
     addImage() {
       const url = window.prompt("Image URL");
       if (url) this.editor.chain().focus().setImage({ src: url }).run();
-    },
-    save() {
-      this.$emit("update:modelValue", this.editor.getHTML());
-    },
-    isDirty() {
-      return this.editor?.getHTML() !== this.modelValue;
     },
     startMermaidCreate() {
       this.mermaidDraft = "graph TD;\n  A[Start] --> B[Process];\n  B --> C[End];";
       this.editingMermaid = false;
       this.showMermaidModal = true;
     },
-
     startMermaidEdit() {
       const { state } = this.editor;
       const { from, to } = state.selection;
-
       let mermaidNode = null;
-
       state.doc.nodesBetween(from, to, (node) => {
         if (node.type.name === "mermaid") {
           mermaidNode = node;
           return false;
         }
       });
-
       if (mermaidNode) {
         this.mermaidDraft = mermaidNode.attrs.code || "graph TD;\n  A[Start] --> B[Process];";
         this.editingMermaid = true;
         this.showMermaidModal = true;
       }
     },
-
     handleMermaidSave(code) {
       if (this.editingMermaid) {
         const { state } = this.editor;
         const { from, to } = state.selection;
-
         state.doc.nodesBetween(from, to, (node, pos) => {
           if (node.type.name === "mermaid") {
             this.editor
@@ -505,16 +477,8 @@ export default {
           }
         });
       } else {
-        this.editor
-          .chain()
-          .focus()
-          .insertContent({
-            type: "mermaid",
-            attrs: { code },
-          })
-          .run();
+        this.editor.chain().focus().insertContent({ type: "mermaid", attrs: { code } }).run();
       }
-
       this.showMermaidModal = false;
       this.mermaidDraft = "";
       this.editingMermaid = false;
@@ -524,16 +488,6 @@ export default {
 </script>
 
 <style scoped>
-.editor-wrapper {
-  position: relative;
-}
-
-.editor-toolbar {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  max-width: 100%;
-}
 .form-control-plaintext :deep(.ProseMirror) {
   min-height: 60px;
   outline: none;
@@ -561,57 +515,5 @@ export default {
 }
 .form-control-plaintext :deep(.selectedCell) {
   background-color: rgba(0, 123, 255, 0.1);
-}
-.color-picker {
-  position: absolute;
-  background: #fff;
-  border: 1px solid #dee2e6;
-  padding: 6px;
-  border-radius: 6px;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
-  z-index: 9999;
-}
-.color-grid {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 6px;
-  width: 220px;
-  max-height: 220px;
-  overflow-y: auto;
-  padding: 4px;
-}
-.color-button {
-  width: 28px;
-  height: 28px;
-  border-radius: 4px;
-  border: 1px solid #dee2e6;
-  cursor: pointer;
-  padding: 0;
-  outline: none;
-}
-.color-button.selected {
-  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.12) inset;
-  transform: scale(1.05);
-}
-.color-button.reset {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #ffffff;
-  color: #000000;
-  font-size: 12px;
-  border: 1px dashed #cfcfcf;
-}
-.color-button:focus {
-  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.12);
-}
-.btn-toolbar {
-  overflow-x: auto;
-  gap: 0.5rem;
-}
-.btn-group {
-  border-right: 1px solid #e5e7eb;
-  padding-right: 0.5rem;
-  margin-right: 0.5rem;
 }
 </style>
