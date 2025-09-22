@@ -43,6 +43,21 @@ def test_config_override():
     assert CONFIG.REMOTE_FILESYSTEMS[0].path == Path("/")
 
 
+def test_env_var_flask_config_override(secret_key):
+    """Temporarily set an environment variable and check that it gets
+    passed to the flask config correctly. Also make sure that the datalab
+    secret key is preferred over the env var.
+    """
+    with pytest.MonkeyPatch.context() as m:
+        from pydatalab.main import create_app
+
+        m.setenv("FLASK_MAIL_PASSWORD_MOCK", "env_password")
+        m.setenv("FLASK_SECRET_KEY", "too-short")
+        app = create_app()
+        assert app.config["MAIL_PASSWORD_MOCK"] == "env_password"  # noqa: S105
+        assert app.config["SECRET_KEY"] == secret_key  # noqa: S105
+
+
 def test_validators():
     from pydatalab.config import ServerConfig
 
@@ -92,6 +107,10 @@ def test_mail_settings_combinations(tmpdir):
 
 def test_key_strength_checker():
     from pydatalab.feature_flags import _check_key_strength
+    from pydatalab.main import create_app
+
+    with pytest.raises(RuntimeError, match="Shannon entropy"):
+        create_app({"SECRET_KEY": "short"})
 
     with pytest.raises(RuntimeError, match="Shannon entropy"):
         assert _check_key_strength("a" * 32)
