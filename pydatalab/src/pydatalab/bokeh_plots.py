@@ -513,12 +513,12 @@ def double_axes_echem_plot(
     """Creates a Bokeh plot for electrochemistry data.
 
     Args:
-        df: The pre-processed dataframe containing capacities and
+        dfs: List of pre-processed DataFrames, each containing capacities and
             voltages, indexed by half cycle.
         mode: Either "dQ/dV", "dV/dQ", "normal" or None.
         cycle_summary_dfs: Optional list of dataframes containing
             cycle summary information, to plot final capacities.
-        x_options: Columns from `df` that can be selected for the
+        x_options: Columns from each DataFrame in `dfs` that can be selected for the
             first plot. The first will be used as the default.
         pick_peaks: Whether or not to pick and plot the peaks in dV/dQ mode.
         normalized: Whether or not the dataframes contain data normalised by mass
