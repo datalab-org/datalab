@@ -692,14 +692,15 @@ def double_axes_echem_plot(
             )
             hover_renderers.append(hover_line)
 
-        # Add a single hover tool for all files
+        unit = "mAh/g" if normalized else "mAh"
+
         hovertool = HoverTool(
             renderers=hover_renderers,
             tooltips=[
                 ("Filename", "@filename"),
                 ("Cycle No.", "@{full cycle}"),
-                ("Charge capacity", "@charge{0.00}"),
-                ("Discharge capacity", "@discharge{0.00}"),
+                (f"Charge capacity ({unit})", "@charge{0.00}"),
+                (f"Discharge capacity ({unit})", "@discharge{0.00}"),
             ],
             mode="vline",
         )
@@ -745,11 +746,11 @@ def double_axes_echem_plot(
             for _, group in grouped_by_half_cycle:
                 # Always color by half cycle, but use a different colormap for each file in comparison mode
                 if plotting_mode == "comparison":
-                    # Use the file's unique colormap for this line
+                    # If in comparison mode use a unique colormap for each file (will loop if >10 files)
                     color_idx = int(group["half cycle"].max()) - 1
                     line_color = matplotlib.colors.rgb2hex(file_cmap(color_space[color_idx]))
                 else:
-                    # Use the default colormap (e.g., cmap) for all files
+                    # Otherwise use the default colormap
                     color_idx = int(group["half cycle"].max()) - 1
                     line_color = matplotlib.colors.rgb2hex(cmap(color_space[color_idx]))
 
