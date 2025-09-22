@@ -630,8 +630,25 @@ def double_axes_echem_plot(
 
     lines = []
 
-    for df in dfs:
+    # Unique colormaps for each file in comparison mode
+    file_cmaps = [
+        plt.get_cmap("inferno"),
+        plt.get_cmap("viridis"),
+        plt.get_cmap("plasma"),
+        plt.get_cmap("magma"),
+        plt.get_cmap("cividis"),
+        plt.get_cmap("cubehelix"),
+        plt.get_cmap("twilight"),
+        plt.get_cmap("cool"),
+        plt.get_cmap("hot"),
+        plt.get_cmap("spring"),
+    ]
+
+    for file_idx, df in enumerate(dfs):
         grouped_by_half_cycle = df.groupby("half cycle")
+
+        # Pick a unique colormap for this file
+        file_cmap = file_cmaps[file_idx % len(file_cmaps)]
 
         for ind, plot in enumerate(plots):
             x = x_default
@@ -646,21 +663,31 @@ def double_axes_echem_plot(
             if len(df) < 1:
                 raise RuntimeError("No data remaining to plot after filtering.")
 
-            # trim the end of the colour cycle for visibility on a white background
-            color_space = np.linspace(0.3, 0.7, max(int(df["half cycle"].max()), 1))  # type: ignore
+            color_space = np.linspace(0.3, 0.7, max(int(df["half cycle"].max()), 1))
 
             for _, group in grouped_by_half_cycle:
+                # Always color by half cycle, but use a different colormap for each file in comparison mode
+                if plotting_mode == "comparison":
+                    # Use the file's unique colormap for this line
+                    color_idx = int(group["half cycle"].max()) - 1
+                    line_color = matplotlib.colors.rgb2hex(file_cmap(color_space[color_idx]))
+                else:
+                    # Use the default colormap (e.g., cmap) for all files
+                    color_idx = int(group["half cycle"].max()) - 1
+                    line_color = matplotlib.colors.rgb2hex(cmap(color_space[color_idx]))
+
                 line = plot.line(
                     x=x,
                     y=y,
                     source=group,
-                    line_color=matplotlib.colors.rgb2hex(
-                        cmap(color_space[int(group["half cycle"].max()) - 1])
-                    ),
+                    line_color=line_color,
                     hover_line_width=2,
                     selection_line_width=2,
                     selection_line_color="black",
                 )
+                if ind == 0:
+                    lines.append(line)
+
                 if mode == "dV/dQ" and ind == 1 and pick_peaks:
                     # Check if half cycle or not
                     dvdq_array = np.array(group[y])
@@ -670,9 +697,6 @@ def double_axes_echem_plot(
                     peaks, _ = find_peaks(dvdq_array, prominence=5)
                     peak_locs = group.iloc[peaks]
                     p2.circle(x=x, y=y, source=peak_locs)
-
-                if ind == 0:
-                    lines.append(line)
 
     # Only add the selectable axis to dQ/dV mode
     if mode in ("dQ/dV", None):
