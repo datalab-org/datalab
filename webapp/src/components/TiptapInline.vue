@@ -374,13 +374,18 @@ export default {
       content: this.modelValue,
       onUpdate: () => this.$emit("update:modelValue", this.editor.getHTML()),
       onFocus: () => (this.showToolbar = true),
-      onBlur: () =>
+      onBlur: () => {
         setTimeout(() => {
-          if (!this.$el.contains(document.activeElement)) {
+          const suggestionEl = document.querySelector(".tiptap-suggestions");
+          if (
+            !this.$el.contains(document.activeElement) &&
+            (!suggestionEl || !suggestionEl.contains(document.activeElement))
+          ) {
             this.showToolbar = false;
             this.showColorPicker = false;
           }
-        }, 150),
+        }, 150);
+      },
     });
 
     this.handleDocumentClick = (e) => this.handleClickOutside(e);

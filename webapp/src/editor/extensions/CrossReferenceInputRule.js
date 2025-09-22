@@ -76,22 +76,6 @@ function createSuggestionPlugin(options, editor) {
       },
     },
 
-    props: {
-      handleKeyDown(view, event) {
-        const state = pluginKey.getState(view.state);
-        if (!state?.active) return false;
-
-        if (event.key === "Backspace" && state.query === "" && state.range) {
-          const tr = view.state.tr.deleteRange(state.range);
-          view.dispatch(tr);
-          hideSuggestions();
-          return true;
-        }
-
-        return false;
-      },
-    },
-
     view() {
       return {
         update(view) {
@@ -142,8 +126,10 @@ function showSuggestions(view, state, options, editor) {
   suggestionEl.style.display = "block";
 
   const input = suggestionEl.querySelector("input");
-  if (input && document.activeElement !== input) {
-    input.focus();
+  if (input) {
+    requestAnimationFrame(() => {
+      input.focus({ preventScroll: true });
+    });
   }
 }
 
