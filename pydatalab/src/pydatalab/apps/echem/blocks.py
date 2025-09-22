@@ -232,9 +232,6 @@ class CycleBlock(DataBlock):
         if not isinstance(cycle_list, list):
             cycle_list = None
 
-        file_info = get_file_info_by_id(file_ids[0], update_if_live=True)
-        filename = file_info["name"]
-
         raw_dfs = {}
         cycle_summary_dfs = {}
         # Comparison mode gets a list of dataframes
@@ -254,6 +251,8 @@ class CycleBlock(DataBlock):
 
         # Single/multi mode gets a single dataframe - returned as a list for consistency with comparison mode
         elif self.data.get("mode") == "multi" or self.data.get("mode") == "single":
+            file_info = get_file_info_by_id(file_ids[0], update_if_live=True)
+            filename = file_info["name"]
             raw_df, cycle_summary_df = self._load(file_ids=file_ids)
 
             characteristic_mass_g = self._get_characteristic_mass_g()
