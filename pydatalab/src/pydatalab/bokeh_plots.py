@@ -527,6 +527,9 @@ def double_axes_echem_plot(
     Returns: The Bokeh layout.
     """
 
+    if isinstance(dfs, pd.DataFrame):
+        dfs = [dfs]
+
     if not x_options:
         x_options = (
             ["capacity (mAh/g)", "voltage (V)", "time (s)", "current (mA/g)"]
