@@ -678,7 +678,7 @@ def double_axes_echem_plot(
             # Create a source for hover
             hover_source = ColumnDataSource(
                 {
-                    "full cycle": cycle_summary["cycle index"],
+                    "full cycle": cycle_summary.reset_index()["full cycle"],
                     "filename": cycle_summary["filename"],
                     "charge": cycle_summary[charge_col],
                     "discharge": cycle_summary[discharge_col],
