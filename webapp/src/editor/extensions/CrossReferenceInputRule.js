@@ -5,6 +5,7 @@ import ItemSelect from "@/components/ItemSelect.vue";
 
 let suggestionApp = null;
 let suggestionEl = null;
+let cleanupListeners = null;
 
 export const CrossReferenceInputRule = Extension.create({
   name: "crossReferenceInputRule",
@@ -53,23 +54,41 @@ function createSuggestionPlugin(options, editor) {
 
     state: {
       init() {
-        return { active: false, query: null, range: null };
+        return { active: false, range: null, query: null };
       },
-
       apply(tr, prev, oldState, newState) {
         const { selection } = newState;
         const { empty, from } = selection;
-        if (!empty) return { ...prev, active: false };
+        if (!empty) return { active: false, range: null, query: null };
+
         const $pos = selection.$from;
         const textBefore = $pos.parent.textContent.slice(0, $pos.parentOffset);
         const match = textBefore.match(/@(\w*)$/);
+
         if (!match) {
           hideSuggestions();
-          return { ...prev, active: false };
+          return { active: false, range: null, query: null };
         }
+
         const query = match[1];
         const range = { from: from - match[0].length, to: from };
-        return { active: true, query, range };
+        return { active: true, range, query };
+      },
+    },
+
+    props: {
+      handleKeyDown(view, event) {
+        const state = pluginKey.getState(view.state);
+        if (!state?.active) return false;
+
+        if (event.key === "Backspace" && state.query === "" && state.range) {
+          const tr = view.state.tr.deleteRange(state.range);
+          view.dispatch(tr);
+          hideSuggestions();
+          return true;
+        }
+
+        return false;
       },
     },
 
@@ -95,6 +114,10 @@ function showSuggestions(view, state, options, editor) {
   if (!suggestionEl) {
     suggestionEl = document.createElement("div");
     suggestionEl.className = "dropdown-menu show p-2 tiptap-suggestions";
+    suggestionEl.style.position = "fixed";
+    suggestionEl.style.minWidth = "350px";
+    suggestionEl.style.maxWidth = "600px";
+    suggestionEl.style.zIndex = 2000;
     document.body.appendChild(suggestionEl);
   }
 
@@ -104,32 +127,33 @@ function showSuggestions(view, state, options, editor) {
       placeholder: "Search items...",
       typesToQuery: ["samples", "cells", "starting_materials"],
       "onUpdate:modelValue": (item) => {
-        if (!item) return;
+        const state = options.pluginKey.getState(editor.state);
+        if (!item || !state?.range) return;
+
         options.command({ editor, range: state.range, props: item });
         hideSuggestions();
       },
     });
     suggestionApp.mount(suggestionEl);
-    window.addEventListener("scroll", () => hideSuggestions(), true);
-    window.addEventListener("resize", () => hideSuggestions(), true);
+    cleanupListeners = setupGlobalListeners();
   }
 
-  reposition(view, state);
+  reposition(view, state.range);
   suggestionEl.style.display = "block";
-  suggestionEl.querySelector("input")?.focus();
+
+  const input = suggestionEl.querySelector("input");
+  if (input && document.activeElement !== input) {
+    input.focus();
+  }
 }
 
-function reposition(view, state) {
-  if (!suggestionEl) return;
-  const coords = view.coordsAtPos(state.range.from);
+function reposition(view, range) {
+  if (!suggestionEl || !range) return;
 
-  suggestionEl.style.position = "absolute";
+  const coords = view.coordsAtPos(range.from);
+
   suggestionEl.style.left = `${coords.left}px`;
-  suggestionEl.style.top = `${coords.bottom - 20}px`;
-  suggestionEl.style.zIndex = 1050;
-
-  suggestionEl.style.minWidth = "350px";
-  suggestionEl.style.maxWidth = "600px";
+  suggestionEl.style.top = `${coords.bottom}px`;
 }
 
 function hideSuggestions(destroy = false) {
@@ -139,6 +163,32 @@ function hideSuggestions(destroy = false) {
       suggestionEl.remove();
       suggestionEl = null;
       suggestionApp = null;
+      if (cleanupListeners) {
+        cleanupListeners();
+        cleanupListeners = null;
+      }
     }
   }
+}
+
+function setupGlobalListeners() {
+  const onClickOutside = (event) => {
+    if (suggestionEl && !suggestionEl.contains(event.target)) {
+      hideSuggestions();
+    }
+  };
+
+  const onScrollOrResize = () => {
+    if (suggestionEl) hideSuggestions();
+  };
+
+  window.addEventListener("mousedown", onClickOutside);
+  window.addEventListener("scroll", onScrollOrResize, true);
+  window.addEventListener("resize", onScrollOrResize, true);
+
+  return () => {
+    window.removeEventListener("mousedown", onClickOutside);
+    window.removeEventListener("scroll", onScrollOrResize, true);
+    window.removeEventListener("resize", onScrollOrResize, true);
+  };
 }
