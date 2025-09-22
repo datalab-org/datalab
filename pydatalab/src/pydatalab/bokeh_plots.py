@@ -28,8 +28,6 @@ from bokeh.plotting import figure
 from bokeh.themes import Theme
 from scipy.signal import find_peaks
 
-from pydatalab.logger import LOGGER
-
 FONTSIZE = "12pt"
 TYPEFACE = "Helvetica, sans-serif"
 COLORS = Dark2[8]
@@ -593,8 +591,6 @@ def double_axes_echem_plot(
         legend_items = []
 
         for i, cycle_summary in enumerate(cycle_summary_dfs):
-            LOGGER.info(f"Plotting cycle summary for file {i + 1}")
-            LOGGER.info(f"Columns available: {cycle_summary.columns.tolist()}")
             charge_color = palette[(2 * i) % len(palette)]
             discharge_color = palette[(2 * i + 1) % len(palette)]
 
@@ -839,7 +835,6 @@ def double_axes_echem_plot(
         grid = [[p1], [p2]]
     elif mode == "final capacity":
         if cycle_summary is not None:
-            LOGGER.debug(f"Cycle summary columns: {cycle_summary.columns.tolist()}")
             save_data = Button(label="Download .csv", button_type="primary", width_policy="min")
             save_data_callback = CustomJS(
                 args=dict(source=ColumnDataSource(cycle_summary)),
