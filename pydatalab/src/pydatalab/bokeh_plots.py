@@ -15,12 +15,14 @@ from bokeh.models import (
     CustomJS,
     DataTable,
     HoverTool,
+    Legend,
+    LegendItem,
     LinearColorMapper,
     TableColumn,
 )
 from bokeh.models.widgets import Dropdown, Select
 from bokeh.models.widgets.inputs import TextInput
-from bokeh.palettes import Accent, Dark2
+from bokeh.palettes import Category10, Dark2
 from bokeh.plotting import ColumnDataSource, figure
 from bokeh.themes import Theme
 from scipy.signal import find_peaks
@@ -576,7 +578,8 @@ def double_axes_echem_plot(
         plots.append(p2)
 
     elif mode == "final capacity" and cycle_summary_dfs:
-        palette = Accent[3]
+        # Use a palette with enough colors (e.g., Category10[10] gives 5 files × 2 colors)
+        palette = Category10[10]  # 10 distinct colors
 
         p3 = figure(
             x_axis_label="Cycle number",
@@ -584,49 +587,75 @@ def double_axes_echem_plot(
             **common_options,
         )
 
-        for cycle_summary in cycle_summary_dfs:
-            p3.line(
+        legend_items = []
+
+        for i, cycle_summary in enumerate(cycle_summary_dfs):
+            charge_color = palette[(2 * i) % len(palette)]
+            discharge_color = palette[(2 * i + 1) % len(palette)]
+
+            # Plot charge line and marker
+            charge_line = p3.line(
                 x="full cycle",
                 y="charge capacity (mAh/g)" if normalized else "charge capacity (mAh)",
                 source=cycle_summary,
-                legend_label="charge",
                 line_width=2,
-                color=palette[0],
+                color=charge_color,
+                visible=True,
             )
-            p3.circle(
+            charge_marker = p3.circle(
                 x="full cycle",
                 y="charge capacity (mAh/g)" if normalized else "charge capacity (mAh)",
                 source=cycle_summary,
                 fill_color="white",
-                hatch_color=palette[0],
-                legend_label="charge",
+                hatch_color=charge_color,
                 line_width=2,
                 size=12,
-                color=palette[0],
-            )
-            p3.line(
-                x="full cycle",
-                y="discharge capacity (mAh/g)" if normalized else "discharge capacity (mAh)",
-                source=cycle_summary,
-                legend_label="discharge",
-                line_width=2,
-                color=palette[2],
-            )
-            p3.triangle(
-                x="full cycle",
-                y="discharge capacity (mAh/g)" if normalized else "discharge capacity (mAh)",
-                source=cycle_summary,
-                fill_color="white",
-                hatch_color=palette[2],
-                line_width=2,
-                legend_label="discharge",
-                size=12,
-                color=palette[2],
+                color=charge_color,
+                visible=True,
             )
 
-            p3.legend.location = "right"
-            p3.y_range.start = 0
-            p3.xaxis.ticker.desired_num_ticks = 5
+            # Plot discharge line and marker
+            discharge_line = p3.line(
+                x="full cycle",
+                y="discharge capacity (mAh/g)" if normalized else "discharge capacity (mAh)",
+                source=cycle_summary,
+                line_width=2,
+                color=discharge_color,
+                visible=True,
+            )
+            discharge_marker = p3.triangle(
+                x="full cycle",
+                y="discharge capacity (mAh/g)" if normalized else "discharge capacity (mAh)",
+                source=cycle_summary,
+                fill_color="white",
+                hatch_color=discharge_color,
+                line_width=2,
+                size=12,
+                color=discharge_color,
+                visible=True,
+            )
+
+            file_label = (
+                cycle_summary["filename"].iloc[0]
+                if "filename" in cycle_summary
+                else f"File {i + 1}"
+                if len(cycle_summary_dfs) > 1
+                else "File"
+            )
+            legend_items.append(
+                LegendItem(
+                    label=file_label,
+                    renderers=[charge_marker, discharge_marker, charge_line, discharge_line],
+                    index=0,  # show both markers
+                )
+            )
+
+        # Add the custom legend to the plot
+        custom_legend = Legend(items=legend_items)
+        p3.add_layout(custom_legend)
+        p3.legend.click_policy = "hide"
+        p3.y_range.start = 0
+        p3.xaxis.ticker.desired_num_ticks = 5
 
     lines = []
 
