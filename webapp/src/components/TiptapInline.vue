@@ -92,6 +92,9 @@ import Typography from "@tiptap/extension-typography";
 import { MermaidNode } from "@/editor/nodes/MermaidNode";
 import MermaidModal from "@/components/MermaidModal.vue";
 
+import { CrossReferenceNode } from "@/editor/nodes/CrossReferenceNode";
+import { CrossReferenceInputRule } from "@/editor/extensions/CrossReferenceInputRule";
+
 export default {
   components: { EditorContent, MermaidModal },
 
@@ -365,6 +368,8 @@ export default {
         Highlight.configure({ multicolor: true }),
         Typography,
         MermaidNode,
+        CrossReferenceNode,
+        CrossReferenceInputRule,
       ],
       content: this.modelValue,
       onUpdate: () => this.$emit("update:modelValue", this.editor.getHTML()),
