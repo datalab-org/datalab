@@ -11,6 +11,7 @@ from bokeh.models import (
     Button,
     ColorBar,
     ColorMapper,
+    ColumnDataSource,
     CrosshairTool,
     CustomJS,
     DataTable,
@@ -23,9 +24,11 @@ from bokeh.models import (
 from bokeh.models.widgets import Dropdown, Select
 from bokeh.models.widgets.inputs import TextInput
 from bokeh.palettes import Category10, Dark2
-from bokeh.plotting import ColumnDataSource, figure
+from bokeh.plotting import figure
 from bokeh.themes import Theme
 from scipy.signal import find_peaks
+
+from pydatalab.logger import LOGGER
 
 FONTSIZE = "12pt"
 TYPEFACE = "Helvetica, sans-serif"
@@ -590,6 +593,8 @@ def double_axes_echem_plot(
         legend_items = []
 
         for i, cycle_summary in enumerate(cycle_summary_dfs):
+            LOGGER.info(f"Plotting cycle summary for file {i + 1}")
+            LOGGER.info(f"Columns available: {cycle_summary.columns.tolist()}")
             charge_color = palette[(2 * i) % len(palette)]
             discharge_color = palette[(2 * i + 1) % len(palette)]
 
@@ -656,6 +661,53 @@ def double_axes_echem_plot(
         p3.legend.click_policy = "hide"
         p3.y_range.start = 0
         p3.xaxis.ticker.desired_num_ticks = 5
+
+        hover_renderers = []
+
+        for i, cycle_summary in enumerate(cycle_summary_dfs):
+            # Choose the correct columns
+            charge_col = "charge capacity (mAh/g)" if normalized else "charge capacity (mAh)"
+            discharge_col = (
+                "discharge capacity (mAh/g)" if normalized else "discharge capacity (mAh)"
+            )
+
+            # Make sure filename column exists
+            if "filename" not in cycle_summary:
+                cycle_summary = cycle_summary.copy()
+                cycle_summary["filename"] = f"File {i + 1}"
+
+            # Create a source for hover
+            hover_source = ColumnDataSource(
+                {
+                    "full cycle": cycle_summary["cycle index"],
+                    "filename": cycle_summary["filename"],
+                    "charge": cycle_summary[charge_col],
+                    "discharge": cycle_summary[discharge_col],
+                }
+            )
+
+            hover_line = p3.line(
+                x="full cycle",
+                y="charge",
+                source=hover_source,
+                alpha=0,  # invisible
+                muted_alpha=0,
+                color="black",
+            )
+            hover_renderers.append(hover_line)
+
+        # Add a single hover tool for all files
+        hovertool = HoverTool(
+            renderers=hover_renderers,
+            tooltips=[
+                ("Filename", "@filename"),
+                ("Cycle No.", "@{full cycle}"),
+                ("Charge capacity", "@charge{0.00}"),
+                ("Discharge capacity", "@discharge{0.00}"),
+            ],
+            mode="vline",
+        )
+        p3.add_tools(hovertool)
 
     lines = []
 
@@ -787,6 +839,7 @@ def double_axes_echem_plot(
         grid = [[p1], [p2]]
     elif mode == "final capacity":
         if cycle_summary is not None:
+            LOGGER.debug(f"Cycle summary columns: {cycle_summary.columns.tolist()}")
             save_data = Button(label="Download .csv", button_type="primary", width_policy="min")
             save_data_callback = CustomJS(
                 args=dict(source=ColumnDataSource(cycle_summary)),
