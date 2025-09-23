@@ -413,7 +413,12 @@ def _create_sample(
                 if constituent["item"].get("item_id") is None
                 or constituent["item"].get("item_id") not in existing_consituent_ids
             ]
+
+            original_collections = sample_dict.get("collections", [])
             sample_dict = copied_doc
+
+            if original_collections:
+                sample_dict["collections"] = original_collections
 
         elif copied_doc["type"] == "cells":
             for component in (
@@ -432,7 +437,11 @@ def _create_sample(
                     or constituent["item"].get("item_id") not in existing_consituent_ids
                 ]
 
+            original_collections = sample_dict.get("collections", [])
             sample_dict = copied_doc
+
+            if original_collections:
+                sample_dict["collections"] = original_collections
 
     try:
         # If passed collection data, dereference it and check if the collection exists
