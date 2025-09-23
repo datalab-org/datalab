@@ -1113,6 +1113,195 @@ def get_item_data(
     )
 
 
+# --- VERSION CONTROL ENDPOINTS ---
+
+
+@ITEMS.route("/items/<item_id>/versions/", methods=["GET"])
+def list_versions(item_id):
+    """List all saved versions for an item, with metadata."""
+    versions = list(
+        flask_mongo.db.item_versions.find(
+            {"item_id": item_id},
+            {
+                "_id": 1,
+                "timestamp": 1,
+                "user": 1,
+                "software_version": 1,
+                "version_number": 1,
+                "old_data.version": 1,
+            },
+        ).sort("version_number", -1)
+    )
+    for v in versions:
+        v["_id"] = str(v["_id"])
+    return jsonify({"status": "success", "versions": versions}), 200
+
+
+@ITEMS.route("/items/<item_id>/versions/<version_id>/", methods=["GET"])
+def get_version(item_id, version_id):
+    """Get the full snapshot of an item at a specific version."""
+    version = flask_mongo.db.item_versions.find_one(
+        {"_id": ObjectId(version_id), "item_id": item_id}
+    )
+    if not version:
+        return jsonify({"status": "error", "message": "Version not found"}), 404
+    version["_id"] = str(version["_id"])
+    return jsonify({"status": "success", "version": version}), 200
+
+
+@ITEMS.route("/items/<item_id>/compare-versions/", methods=["GET"])
+def compare_versions(item_id):
+    """Compare two versions of an item and return their differences, including version numbers."""
+    v1_id = request.args.get("v1")
+    v2_id = request.args.get("v2")
+    if not v1_id or not v2_id:
+        return jsonify({"status": "error", "message": "Both v1 and v2 must be provided"}), 400
+
+    v1 = flask_mongo.db.item_versions.find_one({"_id": ObjectId(v1_id), "item_id": item_id})
+    v2 = flask_mongo.db.item_versions.find_one({"_id": ObjectId(v2_id), "item_id": item_id})
+    if not v1 or not v2:
+        return jsonify({"status": "error", "message": "One or both versions not found"}), 404
+
+    def dict_diff(d1, d2):
+        diff = {}
+        keys = set(d1.keys()).union(d2.keys())
+        for k in keys:
+            if d1.get(k) != d2.get(k):
+                diff[k] = {"v1": d1.get(k), "v2": d2.get(k)}
+        return diff
+
+    diff = dict_diff(v1["old_data"], v2["old_data"])
+    return jsonify(
+        {
+            "status": "success",
+            "diff": diff,
+            "v1_version_number": v1.get("version_number"),
+            "v2_version_number": v2.get("version_number"),
+            "v1_timestamp": v1.get("timestamp"),
+            "v2_timestamp": v2.get("timestamp"),
+        }
+    ), 200
+
+
+@ITEMS.route("/items/<item_id>/restore-version/", methods=["POST"])
+def restore_version(item_id):
+    """Restore an item to a previous version and increment version_number."""
+    req = request.get_json()
+    version_id = req.get("version_id")
+    if not version_id:
+        return jsonify({"status": "error", "message": "version_id must be provided"}), 400
+
+    version = flask_mongo.db.item_versions.find_one(
+        {"_id": ObjectId(version_id), "item_id": item_id}
+    )
+    if not version:
+        return jsonify({"status": "error", "message": "Version not found"}), 404
+
+    old_data = version["old_data"]
+
+    # Find the latest version_number for this item
+    last_version = flask_mongo.db.item_versions.find_one(
+        {"item_id": item_id}, sort=[("version_number", -1)]
+    )
+    next_version_number = (
+        (last_version["version_number"] + 1)
+        if last_version and "version_number" in last_version
+        else 1
+    )
+
+    old_data["version"] = old_data.get("version", 0) + 1
+    old_data["last_modified"] = datetime.datetime.now(tz=datetime.timezone.utc).isoformat()
+
+    # Save current state as a new version before restoring
+    current_item = flask_mongo.db.items.find_one({"item_id": item_id})
+    if current_item:
+        flask_mongo.db.item_versions.insert_one(
+            {
+                "item_id": item_id,
+                "version_number": next_version_number,
+                "timestamp": datetime.datetime.now(tz=datetime.timezone.utc).isoformat(),
+                "user": {
+                    "id": str(current_user.person.immutable_id)
+                    if current_user.is_authenticated
+                    else None,
+                    "display_name": getattr(current_user.person, "display_name", None)
+                    if current_user.is_authenticated
+                    else None,
+                    "email": getattr(current_user.person, "contact_email", None)
+                    if current_user.is_authenticated
+                    else None,
+                },
+                "software_version": getattr(CONFIG, "VERSION", "unknown"),
+                "old_data": current_item,
+            }
+        )
+
+    flask_mongo.db.items.update_one({"item_id": item_id}, {"$set": old_data})
+    return jsonify(
+        {
+            "status": "success",
+            "restored_version": version_id,
+            "new_version_number": next_version_number,
+        }
+    ), 200
+
+
+@ITEMS.route("/items/<item_id>/versions/<version_id>/", methods=["DELETE"])
+def delete_version(item_id, version_id):
+    """Delete a specific version (admin only)."""
+    result = flask_mongo.db.item_versions.delete_one(
+        {"_id": ObjectId(version_id), "item_id": item_id}
+    )
+    if result.deleted_count == 1:
+        return jsonify({"status": "success"}), 200
+    else:
+        return jsonify({"status": "error", "message": "Version not found"}), 404
+
+
+@ITEMS.route("/items/<item_id>/save-version/", methods=["POST"])
+def save_version(item_id):
+    """Manually save the current state of an item as a version snapshot with an incremental version number."""
+    item = flask_mongo.db.items.find_one(
+        {"item_id": item_id, **get_default_permissions(user_only=False)}
+    )
+    if not item:
+        return jsonify({"status": "error", "message": f"Item {item_id} not found."}), 404
+
+    # Find the latest version number for this item
+    last_version = flask_mongo.db.item_versions.find_one(
+        {"item_id": item_id}, sort=[("version_number", -1)]
+    )
+    next_version_number = (
+        (last_version["version_number"] + 1)
+        if last_version and "version_number" in last_version
+        else 1
+    )
+
+    version_entry = {
+        "item_id": item_id,
+        "version_number": next_version_number,
+        "timestamp": datetime.datetime.now(tz=datetime.timezone.utc).isoformat(),
+        "user": {
+            "id": str(current_user.person.immutable_id) if current_user.is_authenticated else None,
+            "display_name": getattr(current_user.person, "display_name", None)
+            if current_user.is_authenticated
+            else None,
+            "email": getattr(current_user.person, "contact_email", None)
+            if current_user.is_authenticated
+            else None,
+        },
+        "software_version": getattr(CONFIG, "VERSION", "unknown"),
+        "old_data": item,
+    }
+    flask_mongo.db.item_versions.insert_one(version_entry)
+    return jsonify(
+        {"status": "success", "message": "Version saved.", "version_number": next_version_number}
+    ), 200
+
+
+# --- END VERSION CONTROL ENDPOINTS ---
+
+
 @ITEMS.route("/save-item/", methods=["POST"])
 def save_item():
     """Update an existing item with new data provided in the request body."""
@@ -1154,6 +1343,11 @@ def save_item():
 
         updated_data["blocks_obj"][block_id] = block.to_db()
 
+    # Save a version using the new endpoint logic
+    save_version_resp = save_version(item_id)
+    if save_version_resp[1] != 200:
+        return save_version_resp
+
     # Bit of a hack for now: starting materials and equipment should be editable by anyone,
     # so we adjust the query above to be more permissive when the user is requesting such an item
     # but before returning we need to check that the actual item did indeed have that type
@@ -1169,6 +1363,9 @@ def save_item():
             ),
             404,
         )
+
+    # (Optional) Increment version number on the item itself
+    item["version"] = item.get("version", 0) + 1
 
     user_only = item["type"] not in ("starting_materials", "equipment")
 
