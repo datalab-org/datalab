@@ -10,23 +10,23 @@
             </button>
           </div>
           <div class="modal-body">
-            <div class="d-flex align-items-center">
+            <div class="d-flex align-items-start">
               <div v-if="type === 'error'" class="mr-3 text-danger">
                 <font-awesome-icon icon="exclamation-circle" size="2x" />
               </div>
-              <div v-else-if="type === 'warning'" class="mr-3 text-warning">
+              <div v-else-if="type === 'warning'" class="mr-3 text-warning flex-shrink-0">
                 <font-awesome-icon icon="exclamation-triangle" size="2x" />
               </div>
-              <div v-else-if="type === 'info'" class="mr-3 text-info">
+              <div v-else-if="type === 'info'" class="mr-3 text-info flex-shrink-0">
                 <font-awesome-icon icon="info-circle" size="2x" />
               </div>
-              <div v-else-if="type === 'success'" class="mr-3 text-success">
+              <div v-else-if="type === 'success'" class="mr-3 text-success flex-shrink-0">
                 <font-awesome-icon icon="check-circle" size="2x" />
               </div>
 
-              <div class="flex-grow-1 d-flex align-items-center">
+              <div class="flex-grow-1 text-break">
                 <!-- eslint-disable-next-line vue/no-v-html -->
-                <p v-if="message" class="mb-0" v-html="message"></p>
+                <p v-if="message" class="mb-0 text-break" v-html="message"></p>
                 <slot></slot>
               </div>
             </div>
