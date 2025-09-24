@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request
 
+from pydatalab.logger import LOGGER
 from pydatalab.mongo import flask_mongo
 from pydatalab.permissions import active_users_or_get_only, get_default_permissions
 
@@ -49,21 +50,30 @@ def get_graph_cy_format(
         all_documents.rewind()
 
     else:
+        LOGGER.debug("!!!!!!!!!!")
         all_documents = list(
             flask_mongo.db.items.find(
                 {
-                    "$or": [{"item_id": item_id}, {"relationships.item_id": item_id}],
-                    **get_default_permissions(user_only=False),
+                    "$and": [
+                        {"$or": [{"item_id": item_id}, {"relationships.item_id": item_id}]},
+                        {**get_default_permissions(user_only=False)},
+                    ],
                 },
                 projection={"item_id": 1, "name": 1, "type": 1, "relationships": 1},
             )
         )
+
+        LOGGER.debug("Found %d documents related to item %s", len(all_documents), item_id)
 
         node_ids = {document["item_id"] for document in all_documents} | {
             relationship.get("item_id")
             for document in all_documents
             for relationship in document.get("relationships", [])
         }
+
+        LOGGER.debug("Found %d unique node IDs related to item %s", len(node_ids), item_id)
+        LOGGER.debug("Node IDs: %s", node_ids)
+
         if len(node_ids) > 1:
             or_query = [{"item_id": id} for id in node_ids if id != item_id]
             next_shell = flask_mongo.db.items.find(
@@ -76,6 +86,11 @@ def get_graph_cy_format(
 
             all_documents.extend(next_shell)
             node_ids = node_ids | {document["item_id"] for document in all_documents}
+
+        LOGGER.debug(
+            "Found %d unique node IDs related to item %s after filtering", len(node_ids), item_id
+        )
+        LOGGER.debug("Node IDs: %s", node_ids)
 
     nodes = []
     edges = []

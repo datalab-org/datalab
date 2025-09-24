@@ -122,5 +122,5 @@ def test_single_starting_material(admin_client, client):
 
     # Current broken behaviour: non-admin users see the full graph, but not the things they don't have permission for
     graph = client.get("/item-graph/great-grandchild").json
-    assert len(graph["nodes"]) == 5
-    assert len(graph["edges"]) == 4
+    assert len(graph["nodes"]) == 2
+    assert len(graph["edges"]) == 1
