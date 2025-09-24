@@ -123,12 +123,21 @@ export function createNewItem(
   }).then(function (response_json) {
     if (SAMPLE_TABLE_TYPES.includes(response_json.sample_list_entry.type)) {
       store.commit("prependToSampleList", response_json.sample_list_entry);
+      if (startingCollection && startingCollection.length > 0) {
+        getSampleList();
+      }
     }
     if (INVENTORY_TABLE_TYPES.includes(response_json.sample_list_entry.type)) {
       store.commit("prependToStartingMaterialList", response_json.sample_list_entry);
+      if (startingCollection && startingCollection.length > 0) {
+        getStartingMaterialList();
+      }
     }
     if (EQUIPMENT_TABLE_TYPES.includes(response_json.sample_list_entry.type)) {
       store.commit("prependToEquipmentList", response_json.sample_list_entry);
+      if (startingCollection && startingCollection.length > 0) {
+        getEquipmentList();
+      }
     }
     return "success";
   });

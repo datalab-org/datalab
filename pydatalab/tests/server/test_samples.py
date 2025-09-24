@@ -933,3 +933,119 @@ def test_remove_items_from_collection_partial_success(
         rel for rel in item.get("relationships", []) if rel.get("type") == "collections"
     ]
     assert len(collection_relationships) == 0
+
+
+@pytest.mark.dependency(depends=["test_create_collections"])
+def test_copy_sample_and_add_to_collection(client, default_sample_dict, default_collection):
+    original_sample = default_sample_dict.copy()
+    original_sample["item_id"] = "original_for_copy_test"
+    original_sample["name"] = "Original sample"
+
+    response = client.post("/new-sample/", json=original_sample)
+    assert response.status_code == 201
+    assert response.json["status"] == "success"
+
+    collection_dict = default_collection.dict().copy()
+    collection_dict["collection_id"] = "test_copy_collection"
+    response = client.put("/collections", json={"data": collection_dict})
+    assert response.status_code == 201
+    assert response.json["status"] == "success"
+
+    copy_request = {
+        "item_id": "copied_in_collection",
+        "type": default_sample_dict["type"],
+        "collections": [{"collection_id": "test_copy_collection"}],
+        "copy_from_item_id": "original_for_copy_test",
+    }
+    response = client.post("/new-sample/", json=copy_request)
+    assert response.status_code == 201
+    assert response.json["status"] == "success"
+
+    response = client.get("/get-item-data/copied_in_collection")
+    assert response.status_code == 200
+    item_data = response.json["item_data"]
+    assert item_data["item_id"] == "copied_in_collection"
+
+    response = client.get("/collections/test_copy_collection")
+    assert response.status_code == 200
+    child_items = response.json["child_items"]
+    assert any(item["item_id"] == "copied_in_collection" for item in child_items)
+    assert not any(item["item_id"] == "original_for_copy_test" for item in child_items)
+
+
+@pytest.mark.dependency(depends=["test_copy_sample_and_add_to_collection"])
+def test_copy_sample_from_collection_to_different_collection(
+    client, default_sample_dict, default_collection
+):
+    collection1_dict = default_collection.dict().copy()
+    collection1_dict["collection_id"] = "collection_1"
+    response = client.put("/collections", json={"data": collection1_dict})
+    assert response.status_code == 201
+
+    collection2_dict = default_collection.dict().copy()
+    collection2_dict["collection_id"] = "collection_2"
+    response = client.put("/collections", json={"data": collection2_dict})
+    assert response.status_code == 201
+
+    original_sample = default_sample_dict.copy()
+    original_sample["item_id"] = "sample_in_collection1"
+    original_sample["collections"] = [{"collection_id": "collection_1"}]
+
+    response = client.post("/new-sample/", json=original_sample)
+    assert response.status_code == 201
+    assert response.json["status"] == "success"
+
+    response = client.get("/collections/collection_1")
+    assert response.status_code == 200
+    assert any(item["item_id"] == "sample_in_collection1" for item in response.json["child_items"])
+
+    copy_request = {
+        "item_id": "sample_in_collection2",
+        "type": default_sample_dict["type"],
+        "collections": [{"collection_id": "collection_2"}],
+        "copy_from_item_id": "sample_in_collection1",
+    }
+    response = client.post("/new-sample/", json=copy_request)
+    assert response.status_code == 201
+    assert response.json["status"] == "success"
+
+    response = client.get("/collections/collection_2")
+    assert response.status_code == 200
+    assert any(item["item_id"] == "sample_in_collection2" for item in response.json["child_items"])
+
+    response = client.get("/collections/collection_1")
+    assert response.status_code == 200
+    child_items = response.json["child_items"]
+    assert not any(item["item_id"] == "sample_in_collection2" for item in child_items)
+    assert any(item["item_id"] == "sample_in_collection1" for item in child_items)
+
+
+@pytest.mark.dependency(depends=["test_copy_sample_from_collection_to_different_collection"])
+def test_copy_sample_without_copying_collections(client, default_sample_dict, default_collection):
+    collection_dict = default_collection.dict().copy()
+    collection_dict["collection_id"] = "test_no_auto_copy_collection"
+    response = client.put("/collections", json={"data": collection_dict})
+    assert response.status_code == 201
+
+    original_sample = default_sample_dict.copy()
+    original_sample["item_id"] = "original_in_collection"
+    original_sample["collections"] = [{"collection_id": "test_no_auto_copy_collection"}]
+
+    response = client.post("/new-sample/", json=original_sample)
+    assert response.status_code == 201
+    assert response.json["status"] == "success"
+
+    copy_request = {
+        "item_id": "copy_without_collection",
+        "type": default_sample_dict["type"],
+        "copy_from_item_id": "original_in_collection",
+    }
+    response = client.post("/new-sample/", json=copy_request)
+    assert response.status_code == 201
+    assert response.json["status"] == "success"
+
+    response = client.get("/collections/test_no_auto_copy_collection")
+    assert response.status_code == 200
+    child_items = response.json["child_items"]
+    assert not any(item["item_id"] == "copy_without_collection" for item in child_items)
+    assert any(item["item_id"] == "original_in_collection" for item in child_items)
