@@ -454,8 +454,13 @@ export function removeItemsFromCollection(collection_id, refcodes) {
     });
 }
 
-export async function getItemData(item_id) {
-  return fetch_get(`${API_URL}/get-item-data/${item_id}`)
+export async function getItemData(item_id, accessToken = null) {
+  let url = `${API_URL}/get-item-data/${item_id}`;
+  if (accessToken) {
+    url += `?at=${accessToken}`;
+  }
+
+  return fetch_get(url)
     .then((response_json) => {
       store.commit("createItemData", {
         item_id: item_id,
@@ -463,7 +468,6 @@ export async function getItemData(item_id) {
         child_items: response_json.child_items,
         parent_items: response_json.parent_items,
       });
-
       return "success";
     })
     .catch((error) => {
@@ -474,8 +478,13 @@ export async function getItemData(item_id) {
     });
 }
 
-export async function getItemByRefcode(refcode) {
-  return fetch_get(`${API_URL}/items/${refcode}`)
+export async function getItemByRefcode(refcode, accessToken = null) {
+  let url = `${API_URL}/items/${refcode}`;
+  if (accessToken) {
+    url += `?at=${accessToken}`;
+  }
+
+  return fetch_get(url)
     .then((response_json) => {
       store.commit("createItemData", {
         refcode: refcode,
