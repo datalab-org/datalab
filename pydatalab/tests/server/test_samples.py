@@ -158,11 +158,41 @@ def test_create_indices(real_mongo_client):
         ("query=%2512345&types=samples", {"12345", "sample_1"}),
         ("query=%new material", {"material", "12345"}),
         ("query=%NaNiO2", {"test", "material", "12345"}),
-        ("query=%'grey:TEST4'", ["material", "test", "sample_1", "12345", "sample_2"]),
+        ("query=%'grey:TEST4'", {"material", "test", "sample_1", "12345", "sample_2"}),
     ],
 )
 @pytest.mark.dependency(depends=["test_create_indices"])
 def test_item_fts_search(
+    query, expected_result_ids, client, real_mongo_client, insert_example_items
+):
+    if real_mongo_client is None:
+        pytest.skip("Skipping FTS tests, not connected to real MongoDB")
+
+    response = client.get(f"/search-items/?{query}")
+
+    assert response.status_code == 200
+    assert response.json["status"] == "success"
+    item_ids = [item["item_id"] for item in response.json["items"]]
+    if isinstance(expected_result_ids, set):
+        assert all(_id in item_ids for _id in expected_result_ids), (
+            f"Some expected IDs not found for {query=}: expected {expected_result_ids}, found {item_ids}"
+        )
+
+    else:
+        assert item_ids == expected_result_ids
+
+
+@pytest.mark.parametrize(
+    "query,expected_result_ids",
+    [
+        ("query=%23mater&types=samples,starting_materials", {"12345", "material"}),
+        ("query=%23mater&types=equipment", []),
+        ("query=%23mater", {"material", "12345"}),
+        ("query=%23'magic'", {"material", "test"}),
+    ],
+)
+@pytest.mark.dependency(depends=["test_create_indices"])
+def test_item_old_regex_search(
     query, expected_result_ids, client, real_mongo_client, insert_example_items
 ):
     if real_mongo_client is None:
@@ -220,9 +250,6 @@ def test_item_fts_search(
 def test_item_regex_search(
     user, query, expected_result_ids, real_mongo_client, client, admin_client, insert_example_items
 ):
-    if real_mongo_client is None:
-        pytest.skip("Skipping FTS tests, not connected to real MongoDB")
-
     if user == "admin":
         response = admin_client.get(f"/search-items/?{query}")
     else:
