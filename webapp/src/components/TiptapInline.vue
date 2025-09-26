@@ -11,10 +11,10 @@
           :key="btn.name"
           type="button"
           class="btn btn-outline-secondary"
-          :class="{ active: btn.isActive && btn.isActive(editor) }"
-          :disabled="btn.isDisabled && btn.isDisabled(editor)"
+          :class="{ active: btn.isActive?.(editor) }"
+          :disabled="btn.isDisabled?.(editor)"
           :title="btn.title"
-          :style="btn.buttonStyle ? btn.buttonStyle() : {}"
+          :style="btn.buttonStyle?.()"
           @click="btn.command(editor, $event)"
         >
           <font-awesome-icon v-if="btn.icon" :icon="btn.icon" />
@@ -79,13 +79,10 @@ import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import Image from "@tiptap/extension-image";
 import Link from "@tiptap/extension-link";
-import Table from "@tiptap/extension-table";
-import TableRow from "@tiptap/extension-table-row";
-import TableCell from "@tiptap/extension-table-cell";
-import TableHeader from "@tiptap/extension-table-header";
+import { Table, TableRow, TableCell, TableHeader } from "@tiptap/extension-table";
 import Placeholder from "@tiptap/extension-placeholder";
 import { Color } from "@tiptap/extension-color";
-import TextStyle from "@tiptap/extension-text-style";
+import { TextStyle } from "@tiptap/extension-text-style";
 import Highlight from "@tiptap/extension-highlight";
 import Typography from "@tiptap/extension-typography";
 
@@ -353,7 +350,7 @@ export default {
       extensions: [
         StarterKit.configure({ heading: { levels: [1, 2, 3, 4, 5, 6] } }),
         Underline,
-        Image.configure({ inline: true, allowBase64: true }),
+        Image.configure({ inline: true }),
         Link.configure({
           openOnClick: false,
           HTMLAttributes: { target: "_blank", rel: "noopener noreferrer" },
@@ -372,20 +369,21 @@ export default {
         CrossReferenceInputRule,
       ],
       content: this.modelValue,
-      onUpdate: () => this.$emit("update:modelValue", this.editor.getHTML()),
-      onFocus: () => (this.showToolbar = true),
-      onBlur: () => {
-        setTimeout(() => {
-          const suggestionEl = document.querySelector(".tiptap-suggestions");
-          if (
-            !this.$el.contains(document.activeElement) &&
-            (!suggestionEl || !suggestionEl.contains(document.activeElement))
-          ) {
-            this.showToolbar = false;
-            this.showColorPicker = false;
-          }
-        }, 150);
-      },
+    });
+
+    this.editor.on("update", () => this.$emit("update:modelValue", this.editor.getHTML()));
+    this.editor.on("focus", () => (this.showToolbar = true));
+    this.editor.on("blur", () => {
+      setTimeout(() => {
+        const suggestionEl = document.querySelector(".tiptap-suggestions");
+        if (
+          !this.$el.contains(document.activeElement) &&
+          (!suggestionEl || !suggestionEl.contains(document.activeElement))
+        ) {
+          this.showToolbar = false;
+          this.showColorPicker = false;
+        }
+      }, 150);
     });
 
     this.handleDocumentClick = (e) => this.handleClickOutside(e);
@@ -409,10 +407,7 @@ export default {
       }
     },
     toggleColorPicker(event) {
-      if (this.showColorPicker) {
-        this.showColorPicker = false;
-        return;
-      }
+      if (this.showColorPicker) return (this.showColorPicker = false);
       const rect = event.currentTarget.getBoundingClientRect();
       this.pickerPosition = { top: rect.bottom + window.scrollY, left: rect.left + window.scrollX };
       this.currentColor = this.getActiveColor();
@@ -425,14 +420,12 @@ export default {
       return attrs.color || "#000000";
     },
     resetColor() {
-      if (!this.editor) return;
-      this.editor.chain().focus().setColor("#000000").run();
+      this.editor?.chain().focus().setColor("#000000").run();
       this.currentColor = "#000000";
       this.showColorPicker = false;
     },
     setColor(color) {
-      if (!this.editor) return;
-      this.editor.chain().focus().setColor(color).run();
+      this.editor?.chain().focus().setColor(color).run();
       this.currentColor = color;
       this.showColorPicker = false;
     },
@@ -440,11 +433,8 @@ export default {
       const previousUrl = this.editor.getAttributes("link").href;
       const url = window.prompt("URL", previousUrl);
       if (url === null) return;
-      if (url === "") {
-        this.editor.chain().focus().extendMarkRange("link").unsetLink().run();
-      } else {
-        this.editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
-      }
+      if (url === "") this.editor.chain().focus().extendMarkRange("link").unsetLink().run();
+      else this.editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
     },
     addImage() {
       const url = window.prompt("Image URL");
@@ -498,32 +488,21 @@ export default {
 </script>
 
 <style scoped>
-.form-control-plaintext :deep(.ProseMirror) {
-  min-height: 60px;
-  outline: none;
-}
-.form-control-plaintext :deep(.ProseMirror p.is-editor-empty:first-child::before) {
-  content: attr(data-placeholder);
-  float: left;
-  color: #6c757d;
-  pointer-events: none;
-  height: 0;
-}
-.form-control-plaintext :deep(table) {
+:deep(.ProseMirror table) {
   border-collapse: collapse;
-  width: 50%;
-  margin-left: 1rem;
+  width: 100%;
+  margin: 8px 0;
 }
-.form-control-plaintext :deep(td),
-.form-control-plaintext :deep(th) {
+
+:deep(.ProseMirror table) {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 8px 0;
+}
+
+:deep(.ProseMirror table td),
+:deep(.ProseMirror table th) {
   border: 1px solid #dee2e6;
-  padding: 0.5rem;
-  min-width: 3rem;
-}
-.form-control-plaintext :deep(th) {
-  font-weight: 600;
-}
-.form-control-plaintext :deep(.selectedCell) {
-  background-color: rgba(0, 123, 255, 0.1);
+  text-align: center;
 }
 </style>
