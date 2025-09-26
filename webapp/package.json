@@ -56,6 +56,7 @@
     "primeicons": "^7.0.0",
     "primevue": "^4.0.0",
     "process": "^0.11.10",
+    "prosemirror-tables": "^1.8.1",
     "qrcode-vue3": "^1.6.8",
     "serve": "^14.2.1",
     "turndown": "^7.2.1",
