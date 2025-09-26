@@ -58,11 +58,12 @@ export const CrossReferenceNode = Node.create({
             if (!node) return false;
 
             if (node.type.name === "crossreference") {
-              const { itemId, itemType } = node.attrs;
+              const { itemId } = node.attrs;
 
-              const url = `/items/${itemType}/${itemId}`;
+              const url = `/edit/${itemId}`;
 
               window.open(url, "_blank");
+              event.preventDefault();
 
               return true;
             }
