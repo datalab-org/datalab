@@ -85,6 +85,8 @@ import { Color } from "@tiptap/extension-color";
 import { TextStyle } from "@tiptap/extension-text-style";
 import Highlight from "@tiptap/extension-highlight";
 import Typography from "@tiptap/extension-typography";
+import Mathematics from "@tiptap/extension-mathematics";
+import "katex/dist/katex.min.css";
 
 import { MermaidNode } from "@/editor/nodes/MermaidNode";
 import MermaidModal from "@/components/MermaidModal.vue";
@@ -265,6 +267,18 @@ export default {
           name: "insert",
           buttons: [
             {
+              name: "mathInline",
+              label: "ƒ",
+              title: "Insert Inline Math",
+              command: (editor) => {
+                const formula = window.prompt("Math formula (KaTeX)", "x^2 + y^2");
+                if (!formula) return;
+
+                editor.chain().focus().insertInlineMath({ latex: formula }).run();
+              },
+              isActive: (ed) => ed.isActive("inlineMath"),
+            },
+            {
               name: "link",
               icon: "link",
               title: "Add Link",
@@ -367,6 +381,51 @@ export default {
         MermaidNode,
         CrossReferenceNode,
         CrossReferenceInputRule,
+        Mathematics.configure({
+          HTMLAttributes: {
+            class: "math",
+          },
+          inlineOptions: {
+            onClick: (node, pos) => {
+              const currentLatex = node.attrs.latex || "";
+              const newLatex = window.prompt("Edit Math formula (KaTeX):", currentLatex);
+              if (newLatex !== null && this.editor) {
+                this.editor
+                  .chain()
+                  .setNodeSelection(pos)
+                  .updateInlineMath({ latex: newLatex })
+                  .focus()
+                  .run();
+              }
+            },
+          },
+          blockOptions: {
+            onClick: (node, pos) => {
+              const currentLatex = node.attrs.latex || "";
+              const newLatex = window.prompt("Edit Math formula (KaTeX):", currentLatex);
+              if (newLatex !== null && this.editor) {
+                this.editor
+                  .chain()
+                  .setNodeSelection(pos)
+                  .updateBlockMath({ latex: newLatex })
+                  .focus()
+                  .run();
+              }
+            },
+          },
+          katexOptions: {
+            throwOnError: false,
+            strict: false,
+            trust: true,
+            macros: {
+              "\\R": "\\mathbb{R}",
+              "\\N": "\\mathbb{N}",
+              "\\Z": "\\mathbb{Z}",
+              "\\C": "\\mathbb{C}",
+              "\\d": "\\mathrm{d}",
+            },
+          },
+        }),
       ],
       content: this.modelValue,
     });
