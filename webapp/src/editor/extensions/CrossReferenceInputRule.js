@@ -146,6 +146,13 @@ function hideSuggestions(destroy = false) {
   if (suggestionEl) {
     suggestionEl.style.display = "none";
     if (destroy) {
+      try {
+        if (suggestionApp) {
+          suggestionApp.unmount();
+        }
+      } catch (e) {
+        console.error("Error unmounting suggestionApp", e);
+      }
       suggestionEl.remove();
       suggestionEl = null;
       suggestionApp = null;
