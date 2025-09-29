@@ -50,24 +50,25 @@ export const CrossReferenceNode = Node.create({
     return [
       new Plugin({
         props: {
-          handleClick: (view, pos) => {
-            const { doc } = view.state;
-            const $pos = doc.resolve(pos);
+          handleClick: (view, pos, event) => {
+            try {
+              const { doc } = view.state;
+              const $pos = doc.resolve(pos);
+              const node = $pos.nodeAfter || $pos.nodeBefore;
+              if (!node) return false;
 
-            const node = $pos.nodeAfter || $pos.nodeBefore;
-            if (!node) return false;
+              if (node.type.name === "crossreference") {
+                const { itemId } = node.attrs;
+                if (!itemId) return false;
 
-            if (node.type.name === "crossreference") {
-              const { itemId } = node.attrs;
-
-              const url = `/edit/${itemId}`;
-
-              window.open(url, "_blank");
-              event.preventDefault();
-
-              return true;
+                const url = `/edit/${itemId}`;
+                if (event && typeof event.preventDefault === "function") event.preventDefault();
+                window.open(url, "_blank");
+                return true;
+              }
+            } catch (err) {
+              console.error("CrossReferenceNode handleClick error:", err);
             }
-
             return false;
           },
         },
