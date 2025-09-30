@@ -253,6 +253,27 @@ export default {
           ],
         },
         {
+          name: "code",
+          buttons: [
+            {
+              name: "code",
+              icon: "code",
+              title: "Inline Code",
+              command: (ed) => ed.chain().focus().toggleCode().run(),
+              isActive: (ed) => ed.isActive("code"),
+              isDisabled: (ed) => !ed.can().chain().focus().toggleCode().run(),
+            },
+            {
+              name: "codeBlock",
+              icon: "file-code",
+              title: "Code Block",
+              command: (ed) => ed.chain().focus().toggleCodeBlock().run(),
+              isActive: (ed) => ed.isActive("codeBlock"),
+              isDisabled: (ed) => !ed.can().chain().focus().toggleCodeBlock().run(),
+            },
+          ],
+        },
+        {
           name: "tables",
           buttons: [
             {
@@ -726,5 +747,30 @@ export default {
 :deep(.ProseMirror table th) {
   border: 1px solid #dee2e6;
   text-align: center;
+}
+
+:deep(.ProseMirror code) {
+  background-color: #f4f4f4;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  padding: 2px 4px;
+  font-family: "Courier New", monospace;
+  font-size: 0.9em;
+}
+
+:deep(.ProseMirror pre) {
+  background-color: #f4f4f4;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 12px;
+  overflow-x: auto;
+  font-family: "Courier New", monospace;
+  font-size: 0.9em;
+}
+
+:deep(.ProseMirror pre code) {
+  background: none;
+  border: none;
+  padding: 0;
 }
 </style>
