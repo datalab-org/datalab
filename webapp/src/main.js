@@ -14,10 +14,10 @@ import {
   faSave,
   faCloudUploadAlt,
   faRedo,
+  faUndo,
   faPen,
   faFile,
   faCode,
-  faFileCode,
   faEnvelope,
   faCog,
   faCubes,
@@ -62,6 +62,10 @@ import {
   faPalette,
   faRemoveFormat,
   faTrash,
+  faMarker,
+  faQuoteRight,
+  faLaptopCode,
+  faSquareRootAlt,
 } from "@fortawesome/free-solid-svg-icons";
 import { faPlusSquare } from "@fortawesome/free-regular-svg-icons";
 import { faGithub, faOrcid } from "@fortawesome/free-brands-svg-icons";
@@ -71,10 +75,10 @@ library.add(
   faSave,
   faPen,
   faRedo,
+  faUndo,
   faCloudUploadAlt,
   faFile,
   faCode,
-  faFileCode,
   faQrcode,
   faEnvelope,
   faCog,
@@ -122,6 +126,10 @@ library.add(
   faPalette,
   faRemoveFormat,
   faTrash,
+  faMarker,
+  faQuoteRight,
+  faLaptopCode,
+  faSquareRootAlt,
 );
 
 // import "@uppy/vue"
