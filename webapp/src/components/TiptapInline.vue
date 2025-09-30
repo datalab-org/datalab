@@ -104,7 +104,8 @@
 </template>
 
 <script>
-import { Editor, EditorContent } from "@tiptap/vue-3";
+import { Editor, EditorContent, Extension } from "@tiptap/vue-3";
+import { Plugin } from "prosemirror-state";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import Image from "@tiptap/extension-image";
@@ -403,7 +404,83 @@ export default {
       extensions: [
         StarterKit.configure({ heading: { levels: [1, 2, 3, 4, 5, 6] } }),
         Underline,
-        Image.configure({ inline: true }),
+        Image.configure({
+          inline: true,
+          allowBase64: true,
+        }),
+        Extension.create({
+          name: "imageDragDrop",
+          addProseMirrorPlugins() {
+            return [
+              new Plugin({
+                props: {
+                  handleDOMEvents: {
+                    drop: (view, event) => {
+                      const hasFiles = event.dataTransfer?.files?.length > 0;
+                      if (!hasFiles) return false;
+
+                      const images = Array.from(event.dataTransfer.files).filter((file) =>
+                        file.type.startsWith("image/"),
+                      );
+
+                      if (images.length === 0) return false;
+
+                      event.preventDefault();
+
+                      const { schema } = view.state;
+                      const coordinates = view.posAtCoords({
+                        left: event.clientX,
+                        top: event.clientY,
+                      });
+
+                      images.forEach((file) => {
+                        const reader = new FileReader();
+                        reader.onload = (readerEvent) => {
+                          const node = schema.nodes.image.create({
+                            src: readerEvent.target.result,
+                          });
+                          const transaction = view.state.tr.insert(coordinates.pos, node);
+                          view.dispatch(transaction);
+                        };
+                        reader.readAsDataURL(file);
+                      });
+
+                      return true;
+                    },
+                    paste: (view, event) => {
+                      const hasFiles = event.clipboardData?.files?.length > 0;
+                      if (!hasFiles) return false;
+
+                      const images = Array.from(event.clipboardData.files).filter((file) =>
+                        file.type.startsWith("image/"),
+                      );
+
+                      if (images.length === 0) return false;
+
+                      event.preventDefault();
+
+                      const { schema } = view.state;
+
+                      images.forEach((file) => {
+                        const reader = new FileReader();
+                        reader.onload = (readerEvent) => {
+                          const node = schema.nodes.image.create({
+                            src: readerEvent.target.result,
+                          });
+                          const transaction = view.state.tr.replaceSelectionWith(node);
+                          view.dispatch(transaction);
+                        };
+                        reader.readAsDataURL(file);
+                      });
+
+                      return true;
+                    },
+                  },
+                },
+              }),
+            ];
+          },
+        }),
         Link.configure({
           openOnClick: false,
           HTMLAttributes: { target: "_blank", rel: "noopener noreferrer" },
