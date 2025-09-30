@@ -1,7 +1,7 @@
 <template>
   <div ref="editorContainer" class="position-relative">
     <div
-      v-if="editor && showToolbar"
+      v-if="editor && (showToolbar || markdownMode)"
       class="btn-toolbar mb-2 border rounded p-2 shadow-sm bg-white sticky-top overflow-auto flex-wrap"
       style="z-index: 10; row-gap: 0.5rem"
     >
@@ -11,8 +11,11 @@
           :key="btn.name"
           type="button"
           class="btn btn-outline-secondary"
-          :class="{ active: btn.isActive?.(editor) }"
-          :disabled="btn.isDisabled?.(editor)"
+          :class="{
+            active: btn.isActive?.(editor),
+            disabled: markdownMode && btn.name !== 'toggleMarkdown',
+          }"
+          :disabled="btn.isDisabled?.(editor) || (markdownMode && btn.name !== 'toggleMarkdown')"
           :title="btn.title"
           :style="btn.buttonStyle?.()"
           @click="btn.command(editor, $event)"
@@ -59,9 +62,20 @@
     </teleport>
 
     <editor-content
+      v-if="!markdownMode"
       :editor="editor"
       class="form-control-plaintext border rounded p-2 d-inline-block w-100"
       :class="{ 'border-primary': showToolbar }"
+    />
+
+    <textarea
+      v-else
+      v-model="markdownContent"
+      class="form-control border rounded p-2 w-100"
+      style="font-family: monospace; min-height: 200px; white-space: pre-wrap"
+      placeholder="Edit in Markdown..."
+      @blur="applyMarkdownChanges"
+      @input="editor.commands.updateMarkdownContent(markdownContent)"
     />
 
     <MermaidModal
@@ -94,6 +108,8 @@ import MermaidModal from "@/components/MermaidModal.vue";
 import { CrossReferenceNode } from "@/editor/nodes/CrossReferenceNode";
 import { CrossReferenceInputRule } from "@/editor/extensions/CrossReferenceInputRule";
 
+import { MarkdownToggle } from "@/editor/extensions/MarkdownToggle";
+
 export default {
   components: { EditorContent, MermaidModal },
 
@@ -121,6 +137,8 @@ export default {
       showMermaidModal: false,
       mermaidDraft: "",
       editingMermaid: false,
+      markdownMode: false,
+      markdownContent: "",
     };
   },
 
@@ -268,7 +286,7 @@ export default {
           buttons: [
             {
               name: "mathInline",
-              label: "ƒ",
+              label: "ƒ(x)",
               title: "Insert Inline Math",
               command: (editor) => {
                 const formula = window.prompt("Math formula (KaTeX)", "x^2 + y^2");
@@ -337,6 +355,18 @@ export default {
           ],
         },
         {
+          name: "view",
+          buttons: [
+            {
+              name: "toggleMarkdown",
+              icon: "code",
+              title: "Toggle Markdown View",
+              command: () => this.toggleMarkdownView(),
+              isActive: () => this.markdownMode,
+            },
+          ],
+        },
+        {
           name: "clear",
           buttons: [
             {
@@ -381,6 +411,7 @@ export default {
         MermaidNode,
         CrossReferenceNode,
         CrossReferenceInputRule,
+        MarkdownToggle,
         Mathematics.configure({
           HTMLAttributes: {
             class: "math",
@@ -431,18 +462,25 @@ export default {
     });
 
     this.editor.on("update", () => this.$emit("update:modelValue", this.editor.getHTML()));
-    this.editor.on("focus", () => (this.showToolbar = true));
+    this.editor.on("focus", () => {
+      if (!this.markdownMode) {
+        this.showToolbar = true;
+      }
+    });
+
     this.editor.on("blur", () => {
-      setTimeout(() => {
-        const suggestionEl = document.querySelector(".tiptap-suggestions");
-        if (
-          !this.$el.contains(document.activeElement) &&
-          (!suggestionEl || !suggestionEl.contains(document.activeElement))
-        ) {
-          this.showToolbar = false;
-          this.showColorPicker = false;
-        }
-      }, 150);
+      if (!this.markdownMode) {
+        setTimeout(() => {
+          const suggestionEl = document.querySelector(".tiptap-suggestions");
+          if (
+            !this.$el.contains(document.activeElement) &&
+            (!suggestionEl || !suggestionEl.contains(document.activeElement))
+          ) {
+            this.showToolbar = false;
+            this.showColorPicker = false;
+          }
+        }, 150);
+      }
     });
 
     this.handleDocumentClick = (e) => this.handleClickOutside(e);
@@ -541,6 +579,21 @@ export default {
       this.showMermaidModal = false;
       this.mermaidDraft = "";
       this.editingMermaid = false;
+    },
+    toggleMarkdownView() {
+      this.editor.commands.toggleMarkdownView();
+      this.markdownMode = !this.markdownMode;
+
+      if (this.markdownMode) {
+        this.markdownContent = this.editor.commands.getMarkdownContent();
+      } else {
+        this.showToolbar = true;
+      }
+    },
+    applyMarkdownChanges() {
+      if (this.markdownMode) {
+        this.editor.commands.updateMarkdownContent(this.markdownContent);
+      }
     },
   },
 };
