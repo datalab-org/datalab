@@ -24,6 +24,22 @@
           <span v-else>{{ btn.label }}</span>
         </button>
       </div>
+      <div
+        v-if="editor"
+        class="custom-control custom-switch ml-2 d-flex align-items-center"
+        style="height: 38px"
+      >
+        <input
+          id="markdownToggleSwitch"
+          v-model="markdownMode"
+          type="checkbox"
+          class="custom-control-input"
+          @change="toggleMarkdownView"
+        />
+        <label class="custom-control-label" for="markdownToggleSwitch">
+          {{ markdownMode ? "Markdown" : "Preview" }}
+        </label>
+      </div>
     </div>
 
     <teleport to="body">
@@ -134,6 +150,7 @@ export default {
         ).flat(),
       ),
       handleDocumentClick: null,
+      handleCrossRefClick: null,
       showMermaidModal: false,
       mermaidDraft: "",
       editingMermaid: false,
@@ -356,15 +373,7 @@ export default {
         },
         {
           name: "view",
-          buttons: [
-            {
-              name: "toggleMarkdown",
-              icon: "code",
-              title: "Toggle Markdown View",
-              command: () => this.toggleMarkdownView(),
-              isActive: () => this.markdownMode,
-            },
-          ],
+          buttons: [],
         },
         {
           name: "clear",
@@ -483,13 +492,36 @@ export default {
       }
     });
 
+    this.editor.view.dom.addEventListener(
+      "mousedown",
+      (e) => {
+        const crossRefEl = e.target.closest(".cross-reference-wrapper");
+        if (crossRefEl) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      },
+      true,
+    );
+
     this.handleDocumentClick = (e) => this.handleClickOutside(e);
     document.addEventListener("click", this.handleDocumentClick);
+    this.handleCrossRefClick = (e) => {
+      const crossRefEl = e.target.closest(".cross-reference-wrapper");
+      if (crossRefEl) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+    this.editor.view.dom.addEventListener("mousedown", this.handleCrossRefClick, true);
   },
 
   beforeUnmount() {
     document.removeEventListener("click", this.handleDocumentClick);
-    this.editor?.destroy();
+    if (this.editor) {
+      this.editor.view.dom.removeEventListener("mousedown", this.handleCrossRefClick, true);
+      this.editor.destroy();
+    }
   },
 
   methods: {
@@ -581,13 +613,14 @@ export default {
       this.editingMermaid = false;
     },
     toggleMarkdownView() {
-      this.editor.commands.toggleMarkdownView();
-      this.markdownMode = !this.markdownMode;
-
       if (this.markdownMode) {
         this.markdownContent = this.editor.commands.getMarkdownContent();
+        if (!this.markdownContent) {
+          this.editor.commands.toggleMarkdownView();
+          this.markdownContent = this.editor.commands.getMarkdownContent();
+        }
       } else {
-        this.showToolbar = true;
+        this.applyMarkdownChanges();
       }
     },
     applyMarkdownChanges() {

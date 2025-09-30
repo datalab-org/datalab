@@ -1,6 +1,5 @@
 import { Node, mergeAttributes } from "@tiptap/core";
 import { VueNodeViewRenderer } from "@tiptap/vue-3";
-import { Plugin } from "prosemirror-state";
 import CrossReferenceComponent from "@/components/CrossReferenceComponent.vue";
 
 export const CrossReferenceNode = Node.create({
@@ -44,35 +43,5 @@ export const CrossReferenceNode = Node.create({
 
   addNodeView() {
     return VueNodeViewRenderer(CrossReferenceComponent);
-  },
-
-  addProseMirrorPlugins() {
-    return [
-      new Plugin({
-        props: {
-          handleClick: (view, pos, event) => {
-            try {
-              const { doc } = view.state;
-              const $pos = doc.resolve(pos);
-              const node = $pos.nodeAfter || $pos.nodeBefore;
-              if (!node) return false;
-
-              if (node.type.name === "crossreference") {
-                const { itemId } = node.attrs;
-                if (!itemId) return false;
-
-                const url = `/edit/${itemId}`;
-                if (event && typeof event.preventDefault === "function") event.preventDefault();
-                window.open(url, "_blank");
-                return true;
-              }
-            } catch (err) {
-              console.error("CrossReferenceNode handleClick error:", err);
-            }
-            return false;
-          },
-        },
-      }),
-    ];
   },
 });
