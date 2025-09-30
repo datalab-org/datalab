@@ -10,7 +10,8 @@
     "lint": "vue-cli-service lint"
   },
   "resolutions": {
-    "cross-spawn": "^7.0.5"
+    "cross-spawn": "^7.0.5",
+    "prosemirror-view": "1.41.1"
   },
   "dependencies": {
     "@floating-ui/dom": "^1.7.4",
