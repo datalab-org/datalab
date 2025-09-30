@@ -1,7 +1,8 @@
 <template>
-  <div ref="editorContainer" class="position-relative">
+  <div ref="editorContainer" class="position-relative" v-bind="$attrs">
     <div
       v-if="editor && (showToolbar || markdownMode)"
+      ref="toolbarContainer"
       class="btn-toolbar mb-2 border rounded p-2 shadow-sm bg-white sticky-top overflow-auto flex-wrap"
       style="z-index: 10; gap: 0.5rem"
     >
@@ -31,6 +32,7 @@
           type="checkbox"
           class="custom-control-input"
           @change="toggleMarkdownView"
+          @mousedown.prevent.stop
         />
         <label class="custom-control-label" for="markdownToggleSwitch">
           {{ markdownMode ? "Markdown" : "Preview" }}
@@ -76,8 +78,9 @@
     <editor-content
       v-if="!markdownMode"
       :editor="editor"
-      class="form-control-plaintext border rounded p-2 d-inline-block w-100"
+      class="form-control-plaintext border rounded d-inline-block w-100"
       :class="{ 'border-primary': showToolbar }"
+      style="padding: 0.5rem"
     />
 
     <textarea
@@ -125,6 +128,7 @@ import { MarkdownToggle } from "@/editor/extensions/MarkdownToggle";
 
 export default {
   components: { EditorContent, MermaidModal },
+  inheritAttrs: false,
 
   props: {
     modelValue: { type: String, default: "" },
@@ -133,7 +137,6 @@ export default {
   },
 
   emits: ["update:modelValue"],
-
   data() {
     return {
       editor: null,
@@ -459,6 +462,25 @@ export default {
           allowBase64: true,
         }),
         Extension.create({
+          name: "customTab",
+          addKeyboardShortcuts() {
+            return {
+              Tab: () => {
+                if (this.editor.isActive("bulletList") || this.editor.isActive("orderedList")) {
+                  return this.editor.commands.sinkListItem("listItem");
+                }
+                return this.editor.commands.insertContent("\t");
+              },
+              "Shift-Tab": () => {
+                if (this.editor.isActive("bulletList") || this.editor.isActive("orderedList")) {
+                  return this.editor.commands.liftListItem("listItem");
+                }
+                return false;
+              },
+            };
+          },
+        }),
+        Extension.create({
           name: "imageDragDrop",
           addProseMirrorPlugins() {
             return [
@@ -596,33 +618,34 @@ export default {
       ],
       content: this.modelValue,
     });
+    this.editor.on("selectionUpdate", () => {
+      try {
+        const hasSelection = !!this.editor && !this.editor.state.selection.empty;
+        if (hasSelection) {
+          this.showToolbar = true;
+        } else if (!this.editor.isFocused) {
+          this.showToolbar = false;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    });
+
+    this.handleDocumentMouseUp = () => {
+      try {
+        if (this.editor && !this.editor.state.selection.empty) {
+          this.showToolbar = true;
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    document.addEventListener("mouseup", this.handleDocumentMouseUp);
 
     this.editor.on("update", () => this.$emit("update:modelValue", this.editor.getHTML()));
     this.editor.on("focus", () => {
-      if (!this.markdownMode) {
-        this.showToolbar = true;
-      }
+      this.showToolbar = true;
     });
-
-    this.editor.on("blur", () => {
-      if (!this.markdownMode) {
-        setTimeout(() => {
-          const suggestionEl = document.querySelector(".tiptap-suggestions");
-          const editorHasFocus = this.$refs.editorContainer?.contains(document.activeElement);
-          const editorHasSelection = !this.editor.state.selection.empty;
-
-          if (
-            !editorHasFocus &&
-            !editorHasSelection &&
-            (!suggestionEl || !suggestionEl.contains(document.activeElement))
-          ) {
-            this.showToolbar = false;
-            this.showColorPicker = false;
-          }
-        }, 150);
-      }
-    });
-
     this.editor.view.dom.addEventListener(
       "mousedown",
       (e) => {
@@ -649,6 +672,7 @@ export default {
 
   beforeUnmount() {
     document.removeEventListener("click", this.handleDocumentClick);
+    document.removeEventListener("mouseup", this.handleDocumentMouseUp);
     if (this.editor) {
       this.editor.view.dom.removeEventListener("mousedown", this.handleCrossRefClick, true);
       this.editor.destroy();
@@ -661,7 +685,13 @@ export default {
     },
     handleClickOutside(event) {
       const editorElement = this.$refs.editorContainer;
-      if (editorElement && !editorElement.contains(event.target)) {
+      const toolbarElement = this.$refs.toolbarContainer;
+      if (
+        editorElement &&
+        !editorElement.contains(event.target) &&
+        !(toolbarElement && toolbarElement.contains(event.target))
+      ) {
+        if (this.editor && !this.editor.state.selection.empty) return;
         this.showToolbar = false;
         this.showColorPicker = false;
       }
@@ -764,6 +794,10 @@ export default {
 </script>
 
 <style scoped>
+:deep(.ProseMirror) {
+  padding: 0.1em;
+}
+
 :deep(.ProseMirror table) {
   border-collapse: collapse;
   width: 100%;

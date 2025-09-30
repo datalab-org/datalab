@@ -353,7 +353,9 @@ const parseMarkdownToHTML = (markdown) => {
   html = html.replace(/<span style="([^"]+)">\$([^$\n]+)\$<\/span>/g, (match, style, latex) => {
     const index = inlineMaths.length;
     inlineMaths.push(
-      `<span style="${style}"><span data-latex="${escapeAttr(latex)}" data-type="inline-math"></span></span>`,
+      `<span style="${style}"><span data-latex="${escapeAttr(
+        latex,
+      )}" data-type="inline-math"></span></span>`,
     );
     return `__INLINE_MATH_${index}__`;
   });
@@ -399,7 +401,9 @@ const parseMarkdownToHTML = (markdown) => {
         const isHeader = content.startsWith("TH:");
         const cellContent = content.replace(/^(TH:|TD:)/, "");
         const tag = isHeader ? "th" : "td";
-        return `<${tag} colspan="1" rowspan="1"><p>${cellContent ? parseInlineMarkdown(cellContent) : ""}</p></${tag}>`;
+        return `<${tag} colspan="1" rowspan="1"><p>${
+          cellContent ? parseInlineMarkdown(cellContent) : ""
+        }</p></${tag}>`;
       })
       .join("");
 
@@ -417,7 +421,9 @@ const parseMarkdownToHTML = (markdown) => {
               const isHeader = content.startsWith("TH:");
               const cellContent = content.replace(/^(TH:|TD:)/, "");
               const tag = isHeader ? "th" : "td";
-              return `<${tag} colspan="1" rowspan="1"><p>${cellContent ? parseInlineMarkdown(cellContent) : ""}</p></${tag}>`;
+              return `<${tag} colspan="1" rowspan="1"><p>${
+                cellContent ? parseInlineMarkdown(cellContent) : ""
+              }</p></${tag}>`;
             })
             .join("");
           return `<tr>${cells}</tr>`;
@@ -448,7 +454,9 @@ const parseMarkdownToHTML = (markdown) => {
       .filter((c) => c !== "")
       .map((c) => {
         const content = c.trim();
-        return `<th colspan="1" rowspan="1"><p>${content ? parseInlineMarkdown(content) : ""}</p></th>`;
+        return `<th colspan="1" rowspan="1"><p>${
+          content ? parseInlineMarkdown(content) : ""
+        }</p></th>`;
       })
       .join("");
 
@@ -463,7 +471,9 @@ const parseMarkdownToHTML = (markdown) => {
             .filter((c) => c !== "")
             .map((c) => {
               const content = c.trim();
-              return `<td colspan="1" rowspan="1"><p>${content ? parseInlineMarkdown(content) : ""}</p></td>`;
+              return `<td colspan="1" rowspan="1"><p>${
+                content ? parseInlineMarkdown(content) : ""
+              }</p></td>`;
             })
             .join("");
           return `<tr>${cells}</tr>`;
