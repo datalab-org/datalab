@@ -1,5 +1,5 @@
 <template>
-  <node-view-wrapper class="cross-reference-wrapper" contenteditable="false">
+  <node-view-wrapper class="cross-reference-wrapper" contenteditable="false" @mousedown.stop>
     <FormattedItemName
       :item_id="node.attrs.itemId"
       :item-type="node.attrs.itemType"
