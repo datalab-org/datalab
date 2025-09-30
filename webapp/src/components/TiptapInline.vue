@@ -3,9 +3,9 @@
     <div
       v-if="editor && (showToolbar || markdownMode)"
       class="btn-toolbar mb-2 border rounded p-2 shadow-sm bg-white sticky-top overflow-auto flex-wrap"
-      style="z-index: 10; row-gap: 0.5rem"
+      style="z-index: 10; gap: 0.5rem"
     >
-      <div v-for="group in toolbarGroups" :key="group.name" class="btn-group btn-group-sm mr-2">
+      <div v-for="group in toolbarGroups" :key="group.name" class="btn-group btn-group-sm">
         <button
           v-for="btn in visibleButtons(group)"
           :key="btn.name"
@@ -24,11 +24,7 @@
           <span v-else>{{ btn.label }}</span>
         </button>
       </div>
-      <div
-        v-if="editor"
-        class="custom-control custom-switch ml-2 d-flex align-items-center"
-        style="height: 38px"
-      >
+      <div v-if="editor" class="custom-control custom-switch ml-2 d-flex align-items-center">
         <input
           id="markdownToggleSwitch"
           v-model="markdownMode"
@@ -164,6 +160,25 @@ export default {
     toolbarGroups() {
       return [
         {
+          name: "history",
+          buttons: [
+            {
+              name: "undo",
+              icon: "undo",
+              title: "Undo",
+              command: (ed) => ed.chain().focus().undo().run(),
+              isDisabled: (ed) => !ed.can().chain().focus().undo().run(),
+            },
+            {
+              name: "redo",
+              icon: "redo",
+              title: "Redo",
+              command: (ed) => ed.chain().focus().redo().run(),
+              isDisabled: (ed) => !ed.can().chain().focus().redo().run(),
+            },
+          ],
+        },
+        {
           name: "formatting",
           buttons: [
             {
@@ -197,6 +212,27 @@ export default {
               command: (ed) => ed.chain().focus().toggleStrike().run(),
               isActive: (ed) => ed.isActive("strike"),
               isDisabled: (ed) => !ed.can().chain().focus().toggleStrike().run(),
+            },
+          ],
+        },
+        {
+          name: "code",
+          buttons: [
+            {
+              name: "code",
+              icon: "code",
+              title: "Inline Code",
+              command: (ed) => ed.chain().focus().toggleCode().run(),
+              isActive: (ed) => ed.isActive("code"),
+              isDisabled: (ed) => !ed.can().chain().focus().toggleCode().run(),
+            },
+            {
+              name: "codeBlock",
+              icon: "laptop-code",
+              title: "Code Block",
+              command: (ed) => ed.chain().focus().toggleCodeBlock().run(),
+              isActive: (ed) => ed.isActive("codeBlock"),
+              isDisabled: (ed) => !ed.can().chain().focus().toggleCodeBlock().run(),
             },
           ],
         },
@@ -253,27 +289,6 @@ export default {
           ],
         },
         {
-          name: "code",
-          buttons: [
-            {
-              name: "code",
-              icon: "code",
-              title: "Inline Code",
-              command: (ed) => ed.chain().focus().toggleCode().run(),
-              isActive: (ed) => ed.isActive("code"),
-              isDisabled: (ed) => !ed.can().chain().focus().toggleCode().run(),
-            },
-            {
-              name: "codeBlock",
-              icon: "file-code",
-              title: "Code Block",
-              command: (ed) => ed.chain().focus().toggleCodeBlock().run(),
-              isActive: (ed) => ed.isActive("codeBlock"),
-              isDisabled: (ed) => !ed.can().chain().focus().toggleCodeBlock().run(),
-            },
-          ],
-        },
-        {
           name: "tables",
           buttons: [
             {
@@ -325,7 +340,7 @@ export default {
           buttons: [
             {
               name: "mathInline",
-              label: "ƒ(x)",
+              icon: "square-root-alt",
               title: "Insert Inline Math",
               command: (editor) => {
                 const formula = window.prompt("Math formula (KaTeX)", "x^2 + y^2");
@@ -334,6 +349,20 @@ export default {
                 editor.chain().focus().insertInlineMath({ latex: formula }).run();
               },
               isActive: (ed) => ed.isActive("inlineMath"),
+            },
+            {
+              name: "blockquote",
+              icon: "quote-right",
+              title: "Quote",
+              command: (ed) => ed.chain().focus().toggleBlockquote().run(),
+              isActive: (ed) => ed.isActive("blockquote"),
+            },
+            {
+              name: "highlight",
+              icon: "marker",
+              title: "Highlight",
+              command: (ed) => ed.chain().focus().toggleHighlight().run(),
+              isActive: (ed) => ed.isActive("highlight"),
             },
             {
               name: "link",
@@ -579,8 +608,12 @@ export default {
       if (!this.markdownMode) {
         setTimeout(() => {
           const suggestionEl = document.querySelector(".tiptap-suggestions");
+          const editorHasFocus = this.$refs.editorContainer?.contains(document.activeElement);
+          const editorHasSelection = !this.editor.state.selection.empty;
+
           if (
-            !this.$el.contains(document.activeElement) &&
+            !editorHasFocus &&
+            !editorHasSelection &&
             (!suggestionEl || !suggestionEl.contains(document.activeElement))
           ) {
             this.showToolbar = false;
@@ -737,12 +770,6 @@ export default {
   margin: 8px 0;
 }
 
-:deep(.ProseMirror table) {
-  border-collapse: collapse;
-  width: 100%;
-  margin: 8px 0;
-}
-
 :deep(.ProseMirror table td),
 :deep(.ProseMirror table th) {
   border: 1px solid #dee2e6;
@@ -750,27 +777,34 @@ export default {
 }
 
 :deep(.ProseMirror code) {
-  background-color: #f4f4f4;
-  border: 1px solid #ddd;
-  border-radius: 3px;
+  background-color: #e9ecef;
   padding: 2px 4px;
-  font-family: "Courier New", monospace;
-  font-size: 0.9em;
+  border-radius: 3px;
+  font-family: monospace;
 }
 
 :deep(.ProseMirror pre) {
-  background-color: #f4f4f4;
-  border: 1px solid #ddd;
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
   border-radius: 4px;
   padding: 12px;
   overflow-x: auto;
-  font-family: "Courier New", monospace;
-  font-size: 0.9em;
 }
 
 :deep(.ProseMirror pre code) {
   background: none;
-  border: none;
   padding: 0;
+}
+
+:deep(.ProseMirror blockquote) {
+  border-left: 3px solid #dee2e6;
+  padding-left: 1rem;
+  margin-left: 0;
+  color: #6c757d;
+}
+
+:deep(.ProseMirror mark) {
+  background-color: #fff3cd;
+  padding: 2px 0;
 }
 </style>
