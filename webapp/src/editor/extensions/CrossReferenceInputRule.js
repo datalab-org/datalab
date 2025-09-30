@@ -109,7 +109,7 @@ function showSuggestions(view, state, options, editor) {
     suggestionApp = createApp(ItemSelect, {
       modelValue: null,
       placeholder: "Search items...",
-      typesToQuery: ["samples", "cells", "starting_materials"],
+      typesToQuery: ["samples", "cells", "starting_materials", "equipment"],
       "onUpdate:modelValue": (item) => {
         const state = options.pluginKey.getState(editor.state);
         if (!item || !state?.range) return;
