@@ -646,6 +646,10 @@ def double_axes_echem_plot(
                 if len(cycle_summary_dfs) > 1
                 else "File"
             )
+            # Truncate long filenames for legend display
+            if len(file_label) > 40:
+                file_label = file_label[:37] + "..."
+
             legend_items.append(
                 LegendItem(
                     label=file_label,
@@ -654,10 +658,11 @@ def double_axes_echem_plot(
                 )
             )
 
-        # Add the custom legend to the plot
-        custom_legend = Legend(items=legend_items)
-        p3.add_layout(custom_legend)
-        p3.legend.click_policy = "hide"
+        # Add the custom legend to the plot only in comparison mode
+        if plotting_mode == "comparison" and len(cycle_summary_dfs) > 1:
+            custom_legend = Legend(items=legend_items)
+            p3.add_layout(custom_legend)
+            p3.legend.click_policy = "hide"
         p3.y_range.start = 0
         p3.xaxis.ticker.desired_num_ticks = 5
 

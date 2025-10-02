@@ -234,23 +234,9 @@ class CycleBlock(DataBlock):
 
         raw_dfs = {}
         cycle_summary_dfs = {}
-        # Comparison mode gets a list of dataframes
-        if self.data.get("mode") == "comparison":
-            # TODO (ben smith) Currently can't load in different masses for different files in comparison mode
-            characteristic_mass_g = None
 
-            for file in file_ids:
-                try:
-                    file_info = get_file_info_by_id(file, update_if_live=True)
-                    filename = file_info["name"]
-                    raw_df, cycle_summary_df = self._load(file_ids=[file], reload=False)
-                    raw_dfs[filename] = raw_df
-                    cycle_summary_dfs[filename] = cycle_summary_df
-                except Exception as exc:
-                    LOGGER.error("Failed to load file %s: %s", file, exc)
-
-        # Single/multi mode gets a single dataframe - returned as a list for consistency with comparison mode
-        elif self.data.get("mode") == "multi" or self.data.get("mode") == "single":
+        # Single/multi mode gets a single dataframe - returned as a dict for consistency
+        if self.data.get("mode") == "multi" or self.data.get("mode") == "single":
             file_info = get_file_info_by_id(file_ids[0], update_if_live=True)
             filename = file_info["name"]
             raw_df, cycle_summary_df = self._load(file_ids=file_ids)
@@ -280,6 +266,23 @@ class CycleBlock(DataBlock):
         else:
             raise ValueError(f"Invalid mode {self.data.get('mode')}")
 
+        # Load comparison files if provided
+        comparison_file_ids = self.data.get("comparison_file_ids", [])
+        if comparison_file_ids and len(comparison_file_ids) > 0:
+            # TODO (ben smith) Currently can't load in different masses for different files in comparison mode
+            for file in comparison_file_ids:
+                try:
+                    file_info = get_file_info_by_id(file, update_if_live=True)
+                    filename = file_info["name"]
+                    comparison_raw_df, comparison_cycle_summary_df = self._load(
+                        file_ids=[file], reload=False
+                    )
+                    # Mark comparison files with a prefix to distinguish them
+                    raw_dfs[f"[Comparison] {filename}"] = comparison_raw_df
+                    cycle_summary_dfs[f"[Comparison] {filename}"] = comparison_cycle_summary_df
+                except Exception as exc:
+                    LOGGER.error("Failed to load comparison file %s: %s", file, exc)
+
         dfs = {}
         for filename, raw_df in raw_dfs.items():
             cycle_summary_df = cycle_summary_dfs.get(filename)
@@ -306,12 +309,19 @@ class CycleBlock(DataBlock):
             dfs[filename] = df
             cycle_summary_dfs[filename] = cycle_summary_df
 
+        # Determine plotting mode - if comparison files exist, use comparison mode
+        plotting_mode = (
+            "comparison"
+            if comparison_file_ids and len(comparison_file_ids) > 0
+            else self.data.get("mode")
+        )
+
         layout = bokeh_plots.double_axes_echem_plot(
             dfs=list(dfs.values()),
             cycle_summary_dfs=list(cycle_summary_dfs.values()),
             mode=mode,
             normalized=bool(characteristic_mass_g),
-            plotting_mode=self.data.get("mode"),
+            plotting_mode=plotting_mode,
         )
 
         if layout is not None:
