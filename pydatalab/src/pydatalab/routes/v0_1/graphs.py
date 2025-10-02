@@ -104,11 +104,14 @@ def get_graph_cy_format(
     nodes = []
     edges = []
 
+    # Collect the elements that have already been added to the graph, to avoid duplication
     drawn_elements = set()
     node_collections: set[str] = set()
-
     for document in all_documents:
+        # for some reason, document["relationships"] is sometimes equal to None, so we
+        # need this `or` statement.
         for relationship in document.get("relationships") or []:
+            # only considering child-parent relationships
             if relationship.get("type") == "collections" and not collection_id:
                 if hide_collections:
                     continue
@@ -152,6 +155,7 @@ def get_graph_cy_format(
                 continue
 
         for relationship in document.get("relationships") or []:
+            # only considering child-parent relationships:
             if relationship.get("relation") not in ("parent", "is_part_of"):
                 continue
 
