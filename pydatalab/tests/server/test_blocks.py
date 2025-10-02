@@ -329,13 +329,14 @@ def test_echem_block_lifecycle(admin_client, default_sample_dict, example_data_d
     assert web_block["bokeh_plot_data"] is not None
     assert web_block.get("errors") is None
 
-    # Update block with multiple file_ids and try comparison mode
+    # Update block with comparison files (use single mode + comparison_file_ids)
     response = admin_client.get(f"/get-item-data/{sample_id}")
     assert response.status_code == 200
     item_data = response.json["item_data"]
     block_data = item_data["blocks_obj"][block_id]
-    block_data["mode"] = "comparison"
-    block_data["file_ids"] = example_file_ids
+    block_data["mode"] = "single"
+    block_data["file_ids"] = [example_file_ids[0]]
+    block_data["comparison_file_ids"] = [example_file_ids[1]]
 
     response = admin_client.post("/update-block/", json={"block_data": block_data})
     assert response.status_code == 200
