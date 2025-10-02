@@ -19,6 +19,9 @@ def get_graph_cy_format(
     hide_collections: bool = True,
 ):
     collection_id = request.args.get("collection_id", type=str)
+    hide_collections = request.args.get(
+        "hide_collections", default=False, type=lambda v: v.lower() == "true"
+    )
 
     if item_id is None:
         if collection_id is not None:
@@ -42,52 +45,70 @@ def get_graph_cy_format(
         else:
             query = {}
         all_documents = flask_mongo.db.items.find(
-            {**query, **get_default_permissions(user_only=False)},
+            {**query, **get_default_permissions(user_only=True)},
             projection={"item_id": 1, "name": 1, "type": 1, "relationships": 1},
         )
         node_ids: set[str] = {document["item_id"] for document in all_documents}
         all_documents.rewind()
 
     else:
-        all_documents = list(
+        main_item = flask_mongo.db.items.find_one(
+            {
+                "item_id": item_id,
+                **get_default_permissions(user_only=False),
+            },
+            projection={"item_id": 1, "name": 1, "type": 1, "relationships": 1},
+        )
+
+        if not main_item:
+            return (
+                jsonify(status="error", message=f"Item {item_id} not found or no permission"),
+                404,
+            )
+
+        all_documents = [main_item]
+        node_ids = {item_id}
+
+        for relationship in main_item.get("relationships", []) or []:
+            if relationship.get("item_id"):
+                node_ids.add(relationship["item_id"])
+
+        incoming_items = list(
             flask_mongo.db.items.find(
                 {
-                    "$or": [{"item_id": item_id}, {"relationships.item_id": item_id}],
+                    "relationships.item_id": item_id,
                     **get_default_permissions(user_only=False),
                 },
                 projection={"item_id": 1, "name": 1, "type": 1, "relationships": 1},
             )
         )
 
-        node_ids = {document["item_id"] for document in all_documents} | {
-            relationship.get("item_id")
-            for document in all_documents
-            for relationship in document.get("relationships", [])
-        }
-        if len(node_ids) > 1:
-            or_query = [{"item_id": id} for id in node_ids if id != item_id]
-            next_shell = flask_mongo.db.items.find(
-                {
-                    "$or": or_query,
-                    **get_default_permissions(user_only=False),
-                },
-                projection={"item_id": 1, "name": 1, "type": 1, "relationships": 1},
-            )
+        for doc in incoming_items:
+            node_ids.add(doc["item_id"])
 
-            all_documents.extend(next_shell)
-            node_ids = node_ids | {document["item_id"] for document in all_documents}
+        all_documents.extend(incoming_items)
+
+        ids_to_fetch = node_ids - {doc["item_id"] for doc in all_documents}
+        if ids_to_fetch:
+            referenced_items = list(
+                flask_mongo.db.items.find(
+                    {
+                        "item_id": {"$in": list(ids_to_fetch)},
+                        **get_default_permissions(user_only=False),
+                    },
+                    projection={"item_id": 1, "name": 1, "type": 1, "relationships": 1},
+                )
+            )
+            all_documents.extend(referenced_items)
 
     nodes = []
     edges = []
 
-    # Collect the elements that have already been added to the graph, to avoid duplication
     drawn_elements = set()
     node_collections: set[str] = set()
+
     for document in all_documents:
-        # for some reason, document["relationships"] is sometimes equal to None, so we
-        # need this `or` statement.
         for relationship in document.get("relationships") or []:
-            # only considering child-parent relationships
             if relationship.get("type") == "collections" and not collection_id:
                 if hide_collections:
                     continue
@@ -131,7 +152,6 @@ def get_graph_cy_format(
                 continue
 
         for relationship in document.get("relationships") or []:
-            # only considering child-parent relationships:
             if relationship.get("relation") not in ("parent", "is_part_of"):
                 continue
 
@@ -166,12 +186,16 @@ def get_graph_cy_format(
                 }
             )
 
-    whitelist = {edge["data"]["source"] for edge in edges} | {item_id}
+    whitelist = {edge["data"]["source"] for edge in edges}
+    if item_id:
+        whitelist.add(item_id)
 
     nodes = [
         node
         for node in nodes
-        if node["data"]["type"] in ("samples", "cells") or node["data"]["id"] in whitelist
+        if node["data"]["type"] in ("samples", "cells")
+        or node["data"]["id"] in whitelist
+        or node["data"]["id"].startswith("Collection:")
     ]
 
     return (jsonify(status="success", nodes=nodes, edges=edges), 200)
