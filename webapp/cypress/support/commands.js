@@ -38,6 +38,7 @@ Cypress.Commands.add(
     cy.get('[data-testid="create-item-form"]').within(() => {
       cy.findByText("Add new item").should("exist");
       cy.findByLabelText("ID:").type(item_id);
+      cy.findByLabelText("Name:").clear();
       if (name) {
         cy.findByLabelText("Name:").type(name);
       }
