@@ -808,8 +808,29 @@ def update_item_permissions(refcode: str):
 
 @ITEMS.route("/delete-sample/", methods=["POST"])
 def delete_sample():
-    request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
+    request_json = request.get_json()
     item_id = request_json["item_id"]
+
+    item_to_delete = flask_mongo.db.items.find_one(
+        {"item_id": item_id, **get_default_permissions(user_only=True, deleting=True)},
+        projection={"refcode": 1, "_id": 1, "name": 1, "chemform": 1},
+    )
+
+    if not item_to_delete:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": f"Authorization required to attempt to delete sample with {item_id=} from the database.",
+                }
+            ),
+            401,
+        )
+
+    refcode = item_to_delete.get("refcode")
+    immutable_id = item_to_delete["_id"]
+    item_name = item_to_delete.get("name") or item_id
+    item_chemform = item_to_delete.get("chemform")
 
     result = flask_mongo.db.items.delete_one(
         {"item_id": item_id, **get_default_permissions(user_only=True, deleting=True)}
@@ -825,6 +846,53 @@ def delete_sample():
             ),
             401,
         )
+
+    flask_mongo.db.items.update_many(
+        {"relationships.item_id": item_id}, {"$pull": {"relationships": {"item_id": item_id}}}
+    )
+
+    if refcode:
+        flask_mongo.db.items.update_many(
+            {"relationships.refcode": refcode}, {"$pull": {"relationships": {"refcode": refcode}}}
+        )
+
+    flask_mongo.db.items.update_many(
+        {"relationships.immutable_id": immutable_id},
+        {"$pull": {"relationships": {"immutable_id": immutable_id}}},
+    )
+
+    inline_item = {"name": item_name}
+    if item_chemform:
+        inline_item["chemform"] = item_chemform
+
+    items_with_constituent = flask_mongo.db.items.find(
+        {
+            "$or": [
+                {"synthesis_constituents.item.item_id": item_id},
+                {"synthesis_constituents.item.refcode": refcode},
+                {"synthesis_constituents.item.immutable_id": immutable_id},
+            ]
+        }
+    )
+
+    for item in items_with_constituent:
+        updated_constituents = []
+        for constituent in item.get("synthesis_constituents", []):
+            constituent_item = constituent.get("item", {})
+
+            if (
+                constituent_item.get("item_id") == item_id
+                or constituent_item.get("refcode") == refcode
+                or constituent_item.get("immutable_id") == immutable_id
+            ):
+                constituent["item"] = inline_item.copy()
+
+            updated_constituents.append(constituent)
+
+        flask_mongo.db.items.update_one(
+            {"_id": item["_id"]}, {"$set": {"synthesis_constituents": updated_constituents}}
+        )
+
     return (
         jsonify(
             {

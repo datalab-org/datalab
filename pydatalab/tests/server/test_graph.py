@@ -158,3 +158,61 @@ def test_simple_graph(admin_client):
     graph = admin_client.get("/item-graph/parent").json
     assert len(graph["nodes"]) == 6
     assert len(graph["edges"]) == 5
+
+
+def test_delete_item_cleans_relationships_and_constituents(admin_client):
+    """Test that deleting an item removes relationships and transforms synthesis_constituents to inline."""
+
+    parent = Sample(item_id="parent_to_delete", name="Test Parent", chemform="NaCl")
+    response = admin_client.post(
+        "/new-sample/",
+        json={"new_sample_data": json.loads(parent.json())},
+    )
+    assert response.status_code == 201
+
+    child = Sample(
+        item_id="child_with_constituent",
+        synthesis_constituents=[
+            Constituent(item={"type": "samples", "item_id": "parent_to_delete"}, quantity=5.0)
+        ],
+    )
+    response = admin_client.post(
+        "/new-sample/",
+        json={"new_sample_data": json.loads(child.json())},
+    )
+    assert response.status_code == 201
+
+    response = admin_client.get("/get-item-data/child_with_constituent")
+    assert response.status_code == 200
+    assert "parent_to_delete" in response.json["parent_items"]
+    relationships = response.json["item_data"]["relationships"]
+    assert any(r.get("item_id") == "parent_to_delete" for r in relationships)
+
+    constituents = response.json["item_data"]["synthesis_constituents"]
+    assert len(constituents) == 1
+    assert constituents[0]["item"]["item_id"] == "parent_to_delete"
+    assert constituents[0]["item"]["type"] == "samples"
+
+    response = admin_client.post("/delete-sample/", json={"item_id": "parent_to_delete"})
+    assert response.status_code == 200
+
+    response = admin_client.get("/get-item-data/child_with_constituent")
+    assert response.status_code == 200
+    assert "parent_to_delete" not in response.json["parent_items"]
+    relationships = response.json["item_data"]["relationships"]
+    assert not any(r.get("item_id") == "parent_to_delete" for r in relationships)
+
+    constituents = response.json["item_data"]["synthesis_constituents"]
+    assert len(constituents) == 1
+    constituent_item = constituents[0]["item"]
+    assert constituent_item["name"] == "Test Parent"
+    assert constituent_item["chemform"] == "NaCl"
+    assert "item_id" not in constituent_item
+    assert "refcode" not in constituent_item
+    assert "type" not in constituent_item
+    assert "immutable_id" not in constituent_item
+
+    graph = admin_client.get("/item-graph/child_with_constituent").json
+    assert graph["status"] == "success"
+    assert len(graph["nodes"]) == 1
+    assert graph["nodes"][0]["data"]["id"] == "child_with_constituent"
