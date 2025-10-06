@@ -30,6 +30,11 @@
           v-model="CollectionDescription"
           aria-labelledby="description-label"
         ></TiptapInline>
+        <div class="form-row">
+          <div class="form-group col">
+            <CollectionExportButton :collection-id="collection_id" />
+          </div>
+        </div>
       </div>
       <div class="col-md-4">
         <CollectionRelationshipVisualization :collection_id="collection_id" />
@@ -63,6 +68,7 @@ import Creators from "@/components/Creators";
 import CollectionRelationshipVisualization from "@/components/CollectionRelationshipVisualization";
 import DynamicDataTable from "@/components/DynamicDataTable";
 import FormattedItemStatus from "@/components/FormattedItemStatus.vue";
+import CollectionExportButton from "@/components/CollectionExportButton";
 
 export default {
   components: {
@@ -71,6 +77,7 @@ export default {
     CollectionRelationshipVisualization,
     DynamicDataTable,
     FormattedItemStatus,
+    CollectionExportButton,
   },
   props: {
     collection_id: {

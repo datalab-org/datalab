@@ -5,6 +5,7 @@ from .admin import ADMIN
 from .auth import AUTH, OAUTH, OAUTH_PROXIES
 from .blocks import BLOCKS
 from .collections import COLLECTIONS
+from .export import EXPORT
 from .files import FILES
 from .graphs import GRAPHS
 from .groups import GROUPS
@@ -27,6 +28,7 @@ BLUEPRINTS: tuple[Blueprint, ...] = (
     HEALTHCHECK,
     INFO,
     GRAPHS,
+    EXPORT,
 )
 
 __all__ = ("BLUEPRINTS", "OAUTH", "__api_version__", "OAUTH_PROXIES")
