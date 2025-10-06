@@ -30,6 +30,11 @@
           v-model="CollectionDescription"
           aria-labelledby="description-label"
         ></TinyMceInline>
+        <div class="form-row">
+          <div class="form-group col">
+            <CollectionExportButton :collection-id="collection_id" />
+          </div>
+        </div>
       </div>
       <div class="col-md-4">
         <CollectionRelationshipVisualization :collection_id="collection_id" />
@@ -61,6 +66,7 @@ import TinyMceInline from "@/components/TinyMceInline";
 import Creators from "@/components/Creators";
 import CollectionRelationshipVisualization from "@/components/CollectionRelationshipVisualization";
 import DynamicDataTable from "@/components/DynamicDataTable";
+import CollectionExportButton from "@/components/CollectionExportButton";
 
 export default {
   components: {
@@ -68,6 +74,7 @@ export default {
     Creators,
     CollectionRelationshipVisualization,
     DynamicDataTable,
+    CollectionExportButton,
   },
   props: {
     collection_id: {

@@ -208,4 +208,14 @@ def create_default_indices(
         db.users.drop_index(user_fts_name)
         ret += create_user_fts()
 
+    ret += db.export_tasks.create_index(
+        "task_id", unique=True, name="unique task ID", background=background
+    )
+    ret += db.export_tasks.create_index(
+        "creator_id", name="export task creator", background=background
+    )
+    ret += db.export_tasks.create_index(
+        "created_at", name="export task created at", background=background
+    )
+
     return ret

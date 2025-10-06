@@ -888,3 +888,35 @@ export async function getSchema(type) {
       throw error;
     });
 }
+
+export async function startCollectionExport(collection_id) {
+  return fetch_post(`${API_URL}/collections/${collection_id}/export`, {})
+    .then(function (response_json) {
+      return response_json;
+    })
+    .catch((error) => {
+      DialogService.error({
+        title: "Export Failed",
+        message: `Failed to start collection export: ${error}`,
+      });
+      throw error;
+    });
+}
+
+export async function getExportStatus(task_id) {
+  return fetch_get(`${API_URL}/exports/${task_id}/status`)
+    .then(function (response_json) {
+      return response_json;
+    })
+    .catch((error) => {
+      DialogService.error({
+        title: "Export Status Check Failed",
+        message: `Failed to check export status: ${error}`,
+      });
+      throw error;
+    });
+}
+
+export function getExportDownloadUrl(task_id) {
+  return `${API_URL}/exports/${task_id}/download`;
+}
