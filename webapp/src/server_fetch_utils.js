@@ -1133,6 +1133,8 @@ export function saveUserManagers(user_id, managers) {
     })
     .catch((error) => {
       console.error("Managers save failed:", error);
+    });
+}
 
 export async function getApiConfig() {
   return fetch_get(`${API_URL}/info`)
@@ -1166,6 +1168,7 @@ export function fetchUserActivity(userId = null) {
     });
     return response_json;
   });
+}
 
 export async function startCollectionExport(collection_id) {
   return fetch_post(`${API_URL}/collections/${collection_id}/export`, {})

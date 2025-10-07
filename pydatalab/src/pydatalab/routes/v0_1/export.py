@@ -1,10 +1,9 @@
 import os
-import threading
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
-from flask import Blueprint, jsonify, send_file
+from flask import Blueprint, current_app, jsonify, send_file
 from flask_login import current_user
 
 from pydatalab.config import CONFIG
@@ -12,6 +11,7 @@ from pydatalab.export_utils import create_eln_file
 from pydatalab.models.export_task import ExportStatus, ExportTask
 from pydatalab.mongo import flask_mongo
 from pydatalab.permissions import active_users_or_get_only
+from pydatalab.scheduler import export_scheduler
 
 EXPORT = Blueprint("export", __name__)
 
@@ -21,13 +21,7 @@ EXPORT = Blueprint("export", __name__)
 def _(): ...
 
 
-def _generate_export_in_background(task_id: str, collection_id: str):
-    """Background function to generate the .eln file.
-
-    Parameters:
-        task_id: ID of the export task
-        collection_id: ID of the collection to export
-    """
+def _do_export(task_id: str, collection_id: str):
     try:
         flask_mongo.db.export_tasks.update_one(
             {"task_id": task_id}, {"$set": {"status": ExportStatus.PROCESSING}}
@@ -63,25 +57,32 @@ def _generate_export_in_background(task_id: str, collection_id: str):
         )
 
 
+def _generate_export_in_background(task_id: str, collection_id: str, app):
+    if app is not None:
+        with app.app_context():
+            _do_export(task_id, collection_id)
+    else:
+        _do_export(task_id, collection_id)
+
+
 @EXPORT.route("/collections/<string:collection_id>/export", methods=["POST"])
 def start_collection_export(collection_id: str):
-    """Start exporting a collection to .eln format.
+    from pydatalab.permissions import get_default_permissions
 
-    Parameters:
-        collection_id: The collection ID to export
+    collection_exists = flask_mongo.db.collections.find_one({"collection_id": collection_id})
+    if not collection_exists:
+        return jsonify({"status": "error", "message": "Collection not found"}), 404
 
-    Returns:
-        JSON response with task_id and status_url
-    """
-
-    collection = flask_mongo.db.collections.find_one({"collection_id": collection_id})
-    if not collection:
-        return jsonify({"status": "error", "message": f"Collection {collection_id} not found"}), 404
+    collection_with_perms = flask_mongo.db.collections.find_one(
+        {"collection_id": collection_id, **get_default_permissions(user_only=True)}
+    )
+    if not collection_with_perms:
+        return jsonify({"status": "error", "message": "Access denied"}), 403
 
     task_id = str(uuid.uuid4())
 
     if not CONFIG.TESTING:
-        creator_id = current_user.person.immutable_id
+        creator_id = str(current_user.person.immutable_id)
     else:
         creator_id = "000000000000000000000000"
 
@@ -94,9 +95,16 @@ def start_collection_export(collection_id: str):
 
     flask_mongo.db.export_tasks.insert_one(export_task.dict())
 
-    thread = threading.Thread(target=_generate_export_in_background, args=(task_id, collection_id))
-    thread.daemon = True
-    thread.start()
+    try:
+        app = current_app._get_current_object()
+    except RuntimeError:
+        app = None
+
+    export_scheduler.add_job(
+        func=_generate_export_in_background,
+        args=[task_id, collection_id, app],
+        job_id=f"export_{task_id}",
+    )
 
     return jsonify(
         {"status": "success", "task_id": task_id, "status_url": f"/exports/{task_id}/status"}
@@ -105,15 +113,6 @@ def start_collection_export(collection_id: str):
 
 @EXPORT.route("/exports/<string:task_id>/status", methods=["GET"])
 def get_export_status(task_id: str):
-    """Get the status of an export task.
-
-    Parameters:
-        task_id: The export task ID
-
-    Returns:
-        JSON response with task status and download URL if ready
-    """
-
     task = flask_mongo.db.export_tasks.find_one({"task_id": task_id})
 
     if not task:
@@ -141,15 +140,6 @@ def get_export_status(task_id: str):
 
 @EXPORT.route("/exports/<string:task_id>/download", methods=["GET"])
 def download_export(task_id: str):
-    """Download the generated .eln file.
-
-    Parameters:
-        task_id: The export task ID
-
-    Returns:
-        The .eln file as attachment
-    """
-
     task = flask_mongo.db.export_tasks.find_one({"task_id": task_id})
 
     if not task:

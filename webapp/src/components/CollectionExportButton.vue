@@ -51,7 +51,7 @@ export default {
         this.isExporting = false;
         DialogService.error({
           title: "Export Failed",
-          message: "Failed to start the export. Please try again.",
+          message: error.message || "Failed to start the export. Please try again.",
         });
       }
     },

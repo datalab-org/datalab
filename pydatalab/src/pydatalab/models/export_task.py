@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
 from pydantic import BaseModel, Field
@@ -23,7 +23,8 @@ class ExportTask(BaseModel):
     )
     creator_id: str = Field(..., description="ID of the user who created the export")
     created_at: datetime = Field(
-        default_factory=datetime.now, description="When the task was created"
+        default_factory=lambda: datetime.now(tz=timezone.utc),
+        description="When the task was created",
     )
     completed_at: datetime | None = Field(None, description="When the task was completed")
     file_path: str | None = Field(None, description="Path to the generated .eln file")
