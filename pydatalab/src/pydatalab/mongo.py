@@ -217,5 +217,6 @@ def create_default_indices(
     ret += db.export_tasks.create_index(
         "created_at", name="export task created at", background=background
     )
+    ret += db.export_tasks.create_index("status", name="export task status", background=background)
 
     return ret
