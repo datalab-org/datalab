@@ -146,36 +146,21 @@ def create_eln_file(collection_id: str, output_path: str) -> None:
 
             item_metadata = {k: v for k, v in item.items() if k not in ["_id", "file_ObjectIds"]}
 
-            for key, value in item_metadata.items():
-                if isinstance(value, ObjectId):
-                    item_metadata[key] = str(value)
-                elif isinstance(value, datetime):
-                    item_metadata[key] = value.isoformat()
-                elif isinstance(value, dict):
-                    item_metadata[key] = _convert_objectids_in_dict(value)
-                elif isinstance(value, list):
-                    item_metadata[key] = [
-                        str(v)
-                        if isinstance(v, ObjectId)
-                        else v.isoformat()
-                        if isinstance(v, datetime)
-                        else _convert_objectids_in_dict(v)
-                        if isinstance(v, dict)
-                        else v
-                        for v in value
-                    ]
+            item_metadata = _convert_objectids_in_dict(item_metadata)
 
             with open(item_folder / "metadata.json", "w", encoding="utf-8") as f:
                 json.dump(item_metadata, f, indent=2, ensure_ascii=False)
 
             if item.get("file_ObjectIds"):
-                for file_id in item["file_ObjectIds"]:
+                for file_id in item.get("file_ObjectIds", []):
                     file_data = flask_mongo.db.files.find_one({"_id": ObjectId(file_id)})
-                    if file_data and file_data.get("location"):
+                    if file_data:
                         source_path = Path(file_data["location"])
                         if source_path.exists():
-                            dest_path = item_folder / file_data["name"]
-                            shutil.copy2(source_path, dest_path)
+                            dest_file = item_folder / file_data["name"]
+                            shutil.copy2(source_path, dest_file)
+                        else:
+                            print(f"Warning: File not found on disk: {file_data['location']}")
 
         with zipfile.ZipFile(output_path, "w", zipfile.ZIP_DEFLATED) as zipf:
             for file_path in root_folder.rglob("*"):
