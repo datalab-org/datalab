@@ -1,7 +1,7 @@
 <template>
   <DataBlockBase :item_id="item_id" :block_id="block_id">
-    <div class="form-row align-items-center mb-2">
-      <div class="btn-group mr-3" role="group" aria-label="File selection mode">
+    <div class="form-row mb-2">
+      <div class="btn-group" role="group" aria-label="File selection mode">
         <button
           type="button"
           class="btn btn-outline-secondary"
@@ -19,6 +19,8 @@
           Multi File Stitch
         </button>
       </div>
+    </div>
+    <div class="form-row mb-2">
       <component
         :is="mode === 'multi' ? 'FileMultiSelectDropdown' : 'FileSelectDropdown'"
         v-model="fileModel"
@@ -55,7 +57,7 @@
           :exclude-file-ids="file_ids"
         />
       </div>
-      <div class="form-row mt-2">
+      <div class="form-row mt-2 mb-3">
         <button class="btn btn-primary btn-sm" @click="applyComparisonFiles">
           Apply Comparison Files
         </button>
