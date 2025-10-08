@@ -27,11 +27,12 @@
         :item_id="item_id"
         :block_id="block_id"
         :extensions="blockInfo.attributes.accepted_file_extensions"
-        :update-block-on-change="mode !== 'multi'"
+        :update-block-on-change="false"
+        @update:modelValue="onFileSelectionChange"
       />
     </div>
-    <div v-if="mode === 'multi'" class="form-row mt-2">
-      <button class="btn btn-primary btn-sm" @click="applyMultiSelect">Apply Selection</button>
+    <div class="form-row mt-2">
+      <button class="btn btn-primary btn-sm" @click="applyFileSelection">Apply Selection</button>
     </div>
     <CollapsibleComparisonFileSelect
       v-model="comparisonFileModel"
@@ -216,7 +217,10 @@ export default {
       bokehPlotLimitedWidth: true,
       isReplotButtonDisplayed: false,
       pending_file_ids: [],
+      pending_single_file_id: null,
       pending_comparison_file_ids: [],
+      single_mode_file: null,
+      multi_mode_files: [],
     };
   },
   computed: {
@@ -239,19 +243,17 @@ export default {
     },
     fileModel: {
       get() {
-        const ids = this.file_ids || [];
         if (this.mode === "multi") {
           return this.pending_file_ids;
         } else {
-          return ids[0] || null;
+          return this.pending_single_file_id;
         }
       },
       set(val) {
         if (this.mode === "multi") {
           this.pending_file_ids = Array.isArray(val) ? val : [val];
         } else {
-          this.file_ids = val ? [val] : [];
-          this.updateBlock();
+          this.pending_single_file_id = val;
         }
       },
     },
@@ -278,16 +280,44 @@ export default {
     mode: createComputedSetterForBlockField("mode"),
     comparison_file_ids: createComputedSetterForBlockField("comparison_file_ids"),
   },
+  watch: {
+    mode(newMode, oldMode) {
+      if (oldMode === "single" && newMode === "multi") {
+        // Save current single mode selection
+        this.single_mode_file = this.pending_single_file_id;
+        // Restore multi mode selection
+        this.pending_file_ids = this.multi_mode_files.slice();
+      } else if (oldMode === "multi" && newMode === "single") {
+        // Save current multi mode selection
+        this.multi_mode_files = this.pending_file_ids.slice();
+        // Restore single mode selection
+        this.pending_single_file_id = this.single_mode_file;
+      }
+    },
+  },
   mounted() {
+    // Set default mode to 'single' if not already set
+    if (!this.mode) {
+      this.mode = "single";
+    }
+
     // Ensure file_ids is always an array
     if (!Array.isArray(this.file_ids)) {
       this.file_ids = [];
       console.log("file_ids was not an array, so it has been reset to an empty array.");
     }
+
+    // Initialize mode-specific selections from persisted file_ids
     if (this.mode === "multi") {
-      // Ensure pending_file_ids matches persisted file_ids on reload
+      // Multi mode: restore the file list from persisted file_ids
       this.pending_file_ids = this.file_ids.slice();
+      this.multi_mode_files = this.file_ids.slice();
+    } else {
+      // Single mode: restore the single file from persisted file_ids
+      this.pending_single_file_id = this.file_ids.length > 0 ? this.file_ids[0] : null;
+      this.single_mode_file = this.pending_single_file_id;
     }
+
     // Initialize pending comparison files from persisted state
     if (this.comparison_file_ids && Array.isArray(this.comparison_file_ids)) {
       this.pending_comparison_file_ids = this.comparison_file_ids.slice();
@@ -335,9 +365,23 @@ export default {
 
       this.all_cycles = all_cycles;
     },
-    applyMultiSelect() {
-      if (this.mode !== "multi") return;
-      this.file_ids = this.pending_file_ids.slice();
+    onFileSelectionChange() {
+      // Auto-update in single mode when file selection changes
+      if (this.mode === "single") {
+        this.file_ids = this.pending_single_file_id ? [this.pending_single_file_id] : [];
+        this.single_mode_file = this.pending_single_file_id;
+        this.updateBlock();
+      }
+      // In multi mode, just stage the selection (don't auto-update)
+    },
+    applyFileSelection() {
+      if (this.mode === "multi") {
+        this.file_ids = this.pending_file_ids.slice();
+        this.multi_mode_files = this.pending_file_ids.slice();
+      } else {
+        this.file_ids = this.pending_single_file_id ? [this.pending_single_file_id] : [];
+        this.single_mode_file = this.pending_single_file_id;
+      }
       this.updateBlock();
     },
     applyComparisonFiles() {
