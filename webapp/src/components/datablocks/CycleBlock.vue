@@ -33,36 +33,15 @@
     <div v-if="mode === 'multi'" class="form-row mt-2">
       <button class="btn btn-primary btn-sm" @click="applyMultiSelect">Apply Selection</button>
     </div>
-    <div class="comparison-header collapsible" :class="{ expanded: comparisonEnabled }">
-      <font-awesome-icon
-        :icon="['fas', 'chevron-right']"
-        fixed-width
-        class="collapse-arrow"
-        @click="toggleComparison"
-      />
-      <span class="comparison-title" @click="toggleComparison">Comparison Files</span>
-    </div>
-    <div
-      ref="comparisonContainer"
-      class="comparison-content-container"
-      :style="{ 'max-height': comparisonMaxHeight }"
-    >
-      <div class="form-row align-items-center mb-2">
-        <FileMultiSelectDropdown
-          v-model="comparisonFileModel"
-          :item_id="item_id"
-          :block_id="block_id"
-          :extensions="blockInfo.attributes.accepted_file_extensions"
-          :update-block-on-change="false"
-          :exclude-file-ids="file_ids"
-        />
-      </div>
-      <div class="form-row mt-2 mb-3">
-        <button class="btn btn-primary btn-sm" @click="applyComparisonFiles">
-          Apply Comparison Files
-        </button>
-      </div>
-    </div>
+    <CollapsibleComparisonFileSelect
+      v-model="comparisonFileModel"
+      :item_id="item_id"
+      :block_id="block_id"
+      :extensions="blockInfo.attributes.accepted_file_extensions"
+      :exclude-file-ids="file_ids"
+      :initially-expanded="comparisonFileModel.length > 0"
+      @apply="applyComparisonFiles"
+    />
     <div>
       <div class="form-row">
         <div class="input-group form-inline">
@@ -205,6 +184,7 @@ import DataBlockBase from "@/components/datablocks/DataBlockBase";
 import FileSelectDropdown from "@/components/FileSelectDropdown";
 import FileMultiSelectDropdown from "@/components/FileMultiSelectDropdown";
 import BokehPlot from "@/components/BokehPlot";
+import CollapsibleComparisonFileSelect from "@/components/CollapsibleComparisonFileSelect";
 
 import { updateBlockFromServer } from "@/server_fetch_utils.js";
 import { createComputedSetterForBlockField } from "@/field_utils.js";
@@ -215,6 +195,7 @@ export default {
     FileSelectDropdown,
     FileMultiSelectDropdown,
     BokehPlot,
+    CollapsibleComparisonFileSelect,
   },
   props: {
     item_id: {
@@ -236,9 +217,6 @@ export default {
       isReplotButtonDisplayed: false,
       pending_file_ids: [],
       pending_comparison_file_ids: [],
-      comparisonMaxHeight: "0px",
-      padding_height: 18,
-      comparisonEnabled: false,
     };
   },
   computed: {
@@ -313,25 +291,6 @@ export default {
     // Initialize pending comparison files from persisted state
     if (this.comparison_file_ids && Array.isArray(this.comparison_file_ids)) {
       this.pending_comparison_file_ids = this.comparison_file_ids.slice();
-      // Auto-expand if there are comparison files
-      this.comparisonEnabled = this.comparison_file_ids.length > 0;
-    }
-
-    // Initialize comparison section collapse state
-    var comparisonContent = this.$refs.comparisonContainer;
-    if (comparisonContent) {
-      if (this.comparisonEnabled) {
-        this.comparisonMaxHeight = "none";
-        comparisonContent.style.overflow = "visible";
-      } else {
-        this.comparisonMaxHeight = "0px";
-      }
-
-      comparisonContent.addEventListener("transitionend", () => {
-        if (this.comparisonEnabled) {
-          this.comparisonMaxHeight = "none";
-        }
-      });
     }
   },
   methods: {
@@ -385,23 +344,6 @@ export default {
       this.comparison_file_ids = this.pending_comparison_file_ids.slice();
       this.updateBlock();
     },
-    toggleComparison() {
-      var content = this.$refs.comparisonContainer;
-      if (!this.comparisonEnabled) {
-        this.comparisonMaxHeight = content.scrollHeight + 2 * this.padding_height + "px";
-        this.comparisonEnabled = true;
-        content.style.overflow = "visible";
-      } else {
-        content.style.overflow = "hidden";
-        requestAnimationFrame(() => {
-          this.comparisonMaxHeight = content.scrollHeight + "px";
-          requestAnimationFrame(() => {
-            this.comparisonMaxHeight = "0px";
-            this.comparisonEnabled = false;
-          });
-        });
-      }
-    },
     updateBlock() {
       updateBlockFromServer(
         this.item_id,
@@ -444,42 +386,5 @@ export default {
 .slider span {
   border-bottom: 2px dotted #0c5460;
   text-decoration: none;
-}
-
-.comparison-header {
-  display: flex;
-  align-items: center;
-  margin-top: 1rem;
-  margin-bottom: 0.5rem;
-  cursor: pointer;
-}
-
-.comparison-title {
-  margin-left: 0.5em;
-  font-size: 1rem;
-  font-weight: 500;
-  color: #004175;
-}
-
-.collapse-arrow {
-  color: #004175;
-  transition: all 0.4s;
-  cursor: pointer;
-}
-
-.collapse-arrow:hover {
-  color: #7ca7ca;
-}
-
-.expanded .collapse-arrow {
-  -webkit-transform: rotate(90deg);
-  -moz-transform: rotate(90deg);
-  transform: rotate(90deg);
-}
-
-.comparison-content-container {
-  overflow: hidden;
-  max-height: none;
-  transition: max-height 0.4s ease-in-out;
 }
 </style>
