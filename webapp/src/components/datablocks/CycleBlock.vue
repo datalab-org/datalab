@@ -5,16 +5,16 @@
         <button
           type="button"
           class="btn btn-outline-secondary"
-          :class="{ active: mode === 'single' }"
-          @click="mode = 'single'"
+          :class="{ active: mode === FILE_MODE.SINGLE }"
+          @click="mode = FILE_MODE.SINGLE"
         >
           Single File
         </button>
         <button
           type="button"
           class="btn btn-outline-secondary"
-          :class="{ active: mode === 'multi' }"
-          @click="mode = 'multi'"
+          :class="{ active: mode === FILE_MODE.MULTI }"
+          @click="mode = FILE_MODE.MULTI"
         >
           Multi File Stitch
         </button>
@@ -22,7 +22,7 @@
     </div>
     <div class="form-row mb-2">
       <component
-        :is="mode === 'multi' ? 'FileMultiSelectDropdown' : 'FileSelectDropdown'"
+        :is="mode === FILE_MODE.MULTI ? 'FileMultiSelectDropdown' : 'FileSelectDropdown'"
         v-model="fileModel"
         :item_id="item_id"
         :block_id="block_id"
@@ -190,6 +190,12 @@ import CollapsibleComparisonFileSelect from "@/components/CollapsibleComparisonF
 import { updateBlockFromServer } from "@/server_fetch_utils.js";
 import { createComputedSetterForBlockField } from "@/field_utils.js";
 
+// File selection mode constants
+const FILE_MODE = {
+  SINGLE: "single",
+  MULTI: "multi",
+};
+
 export default {
   components: {
     DataBlockBase,
@@ -208,19 +214,32 @@ export default {
       required: true,
     },
   },
+  // Expose constants to template for use in Vue 3
+  setup() {
+    return {
+      FILE_MODE,
+    };
+  },
   data() {
     return {
+      // Cycle input validation and display
       cycle_num_error: "",
       cyclesString: "",
+
+      // UI state for tooltips and plot display
       showDescription1: false,
       showDescription2: false,
       bokehPlotLimitedWidth: true,
       isReplotButtonDisplayed: false,
-      pending_file_ids: [],
-      pending_single_file_id: null,
-      pending_comparison_file_ids: [],
-      single_mode_file: null,
-      multi_mode_files: [],
+
+      // File selection staging area (what user has selected but not yet applied)
+      pending_file_ids: [], // Multi-mode: selected files before "Apply Selection"
+      pending_single_file_id: null, // Single-mode: selected file before "Apply Selection"
+      pending_comparison_file_ids: [], // Comparison files before "Apply Comparison Files"
+
+      // Mode memory (preserves selections when switching modes - session-only, not persisted)
+      single_mode_file: null, // Last file selected in single mode, restored when switching back
+      multi_mode_files: [], // Last files selected in multi mode, restored when switching back
     };
   },
   computed: {
@@ -243,14 +262,14 @@ export default {
     },
     fileModel: {
       get() {
-        if (this.mode === "multi") {
+        if (this.mode === FILE_MODE.MULTI) {
           return this.pending_file_ids;
         } else {
           return this.pending_single_file_id;
         }
       },
       set(val) {
-        if (this.mode === "multi") {
+        if (this.mode === FILE_MODE.MULTI) {
           this.pending_file_ids = Array.isArray(val) ? val : [val];
         } else {
           this.pending_single_file_id = val;
@@ -282,48 +301,88 @@ export default {
   },
   watch: {
     mode(newMode, oldMode) {
-      if (oldMode === "single" && newMode === "multi") {
-        // Save current single mode selection
+      this.handleModeSwitch(newMode, oldMode);
+    },
+  },
+  mounted() {
+    this.initializeMode();
+    this.validateFileIds();
+    this.initializeFileSelections();
+    this.initializeComparisonFiles();
+  },
+  methods: {
+    /**
+     * Initialize mode to default if not set
+     */
+    initializeMode() {
+      if (!this.mode) {
+        this.mode = FILE_MODE.SINGLE;
+      }
+    },
+
+    /**
+     * Ensure file_ids is always an array
+     */
+    validateFileIds() {
+      if (!Array.isArray(this.file_ids)) {
+        this.file_ids = [];
+        console.warn("file_ids was not an array, resetting to empty array.");
+      }
+    },
+
+    /**
+     * Initialize file selections based on current mode from persisted file_ids
+     */
+    initializeFileSelections() {
+      if (this.mode === FILE_MODE.MULTI) {
+        // Multi mode: restore the file list from persisted file_ids
+        this.pending_file_ids = this.file_ids.slice();
+        this.multi_mode_files = this.file_ids.slice();
+      } else {
+        // Single mode: restore the single file from persisted file_ids
+        this.pending_single_file_id = this.file_ids.length > 0 ? this.file_ids[0] : null;
+        this.single_mode_file = this.pending_single_file_id;
+      }
+    },
+
+    /**
+     * Initialize comparison files from persisted state
+     */
+    initializeComparisonFiles() {
+      if (this.comparison_file_ids && Array.isArray(this.comparison_file_ids)) {
+        this.pending_comparison_file_ids = this.comparison_file_ids.slice();
+      }
+    },
+
+    /**
+     * Handle switching between single and multi file modes
+     * Saves current mode's selection and restores the target mode's previous selection
+     */
+    handleModeSwitch(newMode, oldMode) {
+      if (oldMode === FILE_MODE.SINGLE && newMode === FILE_MODE.MULTI) {
+        this.saveAndRestoreSelection(FILE_MODE.SINGLE);
+      } else if (oldMode === FILE_MODE.MULTI && newMode === FILE_MODE.SINGLE) {
+        this.saveAndRestoreSelection(FILE_MODE.MULTI);
+      }
+    },
+
+    /**
+     * Save the current mode's selection and restore the target mode's selection
+     */
+    saveAndRestoreSelection(fromMode) {
+      if (fromMode === FILE_MODE.SINGLE) {
+        // Save single mode selection
         this.single_mode_file = this.pending_single_file_id;
         // Restore multi mode selection
         this.pending_file_ids = this.multi_mode_files.slice();
-      } else if (oldMode === "multi" && newMode === "single") {
-        // Save current multi mode selection
+      } else {
+        // Save multi mode selection
         this.multi_mode_files = this.pending_file_ids.slice();
         // Restore single mode selection
         this.pending_single_file_id = this.single_mode_file;
       }
     },
-  },
-  mounted() {
-    // Set default mode to 'single' if not already set
-    if (!this.mode) {
-      this.mode = "single";
-    }
 
-    // Ensure file_ids is always an array
-    if (!Array.isArray(this.file_ids)) {
-      this.file_ids = [];
-      console.log("file_ids was not an array, so it has been reset to an empty array.");
-    }
-
-    // Initialize mode-specific selections from persisted file_ids
-    if (this.mode === "multi") {
-      // Multi mode: restore the file list from persisted file_ids
-      this.pending_file_ids = this.file_ids.slice();
-      this.multi_mode_files = this.file_ids.slice();
-    } else {
-      // Single mode: restore the single file from persisted file_ids
-      this.pending_single_file_id = this.file_ids.length > 0 ? this.file_ids[0] : null;
-      this.single_mode_file = this.pending_single_file_id;
-    }
-
-    // Initialize pending comparison files from persisted state
-    if (this.comparison_file_ids && Array.isArray(this.comparison_file_ids)) {
-      this.pending_comparison_file_ids = this.comparison_file_ids.slice();
-    }
-  },
-  methods: {
     parseCycleString() {
       let cyclesString = this.cyclesString.replace(/\s/g, "");
       this.cycle_num_error = null;
@@ -365,23 +424,39 @@ export default {
 
       this.all_cycles = all_cycles;
     },
-    onFileSelectionChange() {
-      // Auto-update in single mode when file selection changes
-      if (this.mode === "single") {
-        this.file_ids = this.pending_single_file_id ? [this.pending_single_file_id] : [];
-        this.single_mode_file = this.pending_single_file_id;
-        this.updateBlock();
-      }
-      // In multi mode, just stage the selection (don't auto-update)
-    },
-    applyFileSelection() {
-      if (this.mode === "multi") {
+    /**
+     * Update file_ids from pending selections based on current mode
+     * Also updates mode memory to preserve selection when switching modes
+     */
+    updateFileIds() {
+      if (this.mode === FILE_MODE.MULTI) {
         this.file_ids = this.pending_file_ids.slice();
         this.multi_mode_files = this.pending_file_ids.slice();
       } else {
         this.file_ids = this.pending_single_file_id ? [this.pending_single_file_id] : [];
         this.single_mode_file = this.pending_single_file_id;
       }
+    },
+
+    /**
+     * Auto-update handler for file selection changes
+     * In single mode: immediately applies the selection
+     * In multi mode: only stages the selection (user must click "Apply Selection")
+     */
+    onFileSelectionChange() {
+      if (this.mode === FILE_MODE.SINGLE) {
+        this.updateFileIds();
+        this.updateBlock();
+      }
+      // In multi mode, just stage the selection (don't auto-update)
+    },
+
+    /**
+     * Apply the currently staged file selection
+     * Used by the "Apply Selection" button
+     */
+    applyFileSelection() {
+      this.updateFileIds();
       this.updateBlock();
     },
     applyComparisonFiles() {
