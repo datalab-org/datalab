@@ -9,32 +9,40 @@
       />
       <span class="comparison-title" @click="toggleExpanded">{{ title }}</span>
     </div>
-    <div
-      ref="contentContainer"
-      class="comparison-content-container"
-      :style="{ 'max-height': maxHeight }"
+    <Transition
+      name="expand"
+      @before-enter="beforeEnter"
+      @enter="enter"
+      @after-enter="afterEnter"
+      @before-leave="beforeLeave"
+      @leave="leave"
     >
-      <div class="form-row align-items-center mb-2">
-        <FileMultiSelectDropdown
-          v-model="internalFileModel"
-          :item_id="item_id"
-          :block_id="block_id"
-          :extensions="extensions"
-          :update-block-on-change="false"
-          :exclude-file-ids="excludeFileIds"
-        />
+      <div v-if="isExpanded" ref="contentContainer" class="comparison-content-container">
+        <div class="form-row align-items-center mb-2">
+          <FileMultiSelectDropdown
+            v-model="internalFileModel"
+            :item_id="item_id"
+            :block_id="block_id"
+            :extensions="extensions"
+            :update-block-on-change="false"
+            :exclude-file-ids="excludeFileIds"
+          />
+        </div>
+        <div class="form-row mt-2 mb-3">
+          <button class="btn btn-primary btn-sm" @click="applySelection">
+            {{ applyButtonText }}
+          </button>
+        </div>
       </div>
-      <div class="form-row mt-2 mb-3">
-        <button class="btn btn-primary btn-sm" @click="applySelection">
-          {{ applyButtonText }}
-        </button>
-      </div>
-    </div>
+    </Transition>
   </div>
 </template>
 
 <script>
 import FileMultiSelectDropdown from "@/components/FileMultiSelectDropdown";
+
+// Padding added to content height for smooth collapse animation
+const CONTENT_PADDING_HEIGHT = 18;
 
 export default {
   components: {
@@ -78,8 +86,6 @@ export default {
   data() {
     return {
       internalFileModel: [],
-      maxHeight: "0px",
-      paddingHeight: 18,
       isExpanded: false,
     };
   },
@@ -94,42 +100,42 @@ export default {
 
     // Set initial expanded state
     this.isExpanded = this.initiallyExpanded;
-
-    // Initialize collapse state
-    var contentContainer = this.$refs.contentContainer;
-    if (contentContainer) {
-      if (this.isExpanded) {
-        this.maxHeight = "none";
-        contentContainer.style.overflow = "visible";
-      } else {
-        this.maxHeight = "0px";
-      }
-
-      contentContainer.addEventListener("transitionend", () => {
-        if (this.isExpanded) {
-          this.maxHeight = "none";
-        }
-      });
-    }
   },
   methods: {
     toggleExpanded() {
-      var content = this.$refs.contentContainer;
-      if (!this.isExpanded) {
-        this.maxHeight = content.scrollHeight + 2 * this.paddingHeight + "px";
-        this.isExpanded = true;
-        content.style.overflow = "visible";
-      } else {
-        content.style.overflow = "hidden";
-        requestAnimationFrame(() => {
-          this.maxHeight = content.scrollHeight + "px";
-          requestAnimationFrame(() => {
-            this.maxHeight = "0px";
-            this.isExpanded = false;
-          });
-        });
-      }
+      this.isExpanded = !this.isExpanded;
     },
+
+    // Transition hooks for dynamic height animation
+    beforeEnter(el) {
+      el.style.height = "0";
+      el.style.overflow = "hidden";
+    },
+
+    enter(el) {
+      // Get actual content height including padding
+      const height = el.scrollHeight + 2 * CONTENT_PADDING_HEIGHT;
+      el.style.height = height + "px";
+    },
+
+    afterEnter(el) {
+      // Allow content to grow/shrink naturally after animation
+      el.style.height = "auto";
+      el.style.overflow = "visible";
+    },
+
+    beforeLeave(el) {
+      // Set current height before collapsing
+      el.style.height = el.scrollHeight + "px";
+      el.style.overflow = "hidden";
+    },
+
+    leave(el) {
+      // Force reflow to ensure the height is set before animating
+      el.offsetHeight;
+      el.style.height = "0";
+    },
+
     applySelection() {
       this.$emit("update:modelValue", this.internalFileModel.slice());
       this.$emit("apply", this.internalFileModel.slice());
@@ -170,9 +176,15 @@ export default {
   transform: rotate(90deg);
 }
 
-.comparison-content-container {
+/* Transition styles for expand/collapse */
+.expand-enter-active,
+.expand-leave-active {
+  transition: height 0.4s ease-in-out;
   overflow: hidden;
-  max-height: none;
-  transition: max-height 0.4s ease-in-out;
+}
+
+.expand-enter-from,
+.expand-leave-to {
+  height: 0;
 }
 </style>
