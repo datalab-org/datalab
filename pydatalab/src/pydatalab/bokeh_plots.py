@@ -501,7 +501,7 @@ def selectable_axes_plot(
 
 
 def double_axes_echem_plot(
-    dfs: list[pd.DataFrame],
+    dfs: pd.DataFrame | list[pd.DataFrame],
     mode: str | None = None,
     cycle_summary_dfs: list[pd.DataFrame] | None = None,
     x_options: Sequence[str] = [],
@@ -513,8 +513,9 @@ def double_axes_echem_plot(
     """Creates a Bokeh plot for electrochemistry data.
 
     Args:
-        dfs: List of pre-processed DataFrames, each containing capacities and
-            voltages, indexed by half cycle.
+        dfs: A single DataFrame or list of pre-processed DataFrames, each containing
+            capacities and voltages, indexed by half cycle. Single DataFrames are
+            automatically converted to a list for backward compatibility.
         mode: Either "dQ/dV", "dV/dQ", "normal" or None.
         cycle_summary_dfs: Optional list of dataframes containing
             cycle summary information, to plot final capacities.
