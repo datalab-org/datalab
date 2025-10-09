@@ -2,6 +2,7 @@ import datetime
 import json
 
 from bson import ObjectId
+from bson.errors import InvalidId
 from flask import Blueprint, jsonify, redirect, request
 from flask_login import current_user
 from pydantic import ValidationError
@@ -937,6 +938,27 @@ def get_item_data(item_id: str | None = None, refcode: str | None = None):
 # --- VERSION CONTROL ENDPOINTS ---
 
 
+def _get_next_version_number(item_id: str) -> int:
+    """Atomically get and increment the version counter for an item.
+
+    Uses a separate counters collection to track version numbers atomically.
+    This prevents race conditions when multiple users save versions simultaneously.
+
+    Args:
+        item_id: The item_id to get the next version number for
+
+    Returns:
+        The next version number (1-indexed)
+    """
+    result = flask_mongo.db.version_counters.find_one_and_update(
+        {"item_id": item_id},
+        {"$inc": {"counter": 1}},
+        upsert=True,
+        return_document=True,  # Return the document after update
+    )
+    return result["counter"]
+
+
 @ITEMS.route("/items/<item_id>/versions/", methods=["GET"])
 def list_versions(item_id):
     """List all saved versions for an item, with metadata."""
@@ -961,9 +983,12 @@ def list_versions(item_id):
 @ITEMS.route("/items/<item_id>/versions/<version_id>/", methods=["GET"])
 def get_version(item_id, version_id):
     """Get the full snapshot of an item at a specific version."""
-    version = flask_mongo.db.item_versions.find_one(
-        {"_id": ObjectId(version_id), "item_id": item_id}
-    )
+    try:
+        version_object_id = ObjectId(version_id)
+    except (InvalidId, TypeError):
+        return jsonify({"status": "error", "message": f"Invalid version_id: {version_id}"}), 400
+
+    version = flask_mongo.db.item_versions.find_one({"_id": version_object_id, "item_id": item_id})
     if not version:
         return jsonify({"status": "error", "message": "Version not found"}), 404
     version["_id"] = str(version["_id"])
@@ -978,8 +1003,14 @@ def compare_versions(item_id):
     if not v1_id or not v2_id:
         return jsonify({"status": "error", "message": "Both v1 and v2 must be provided"}), 400
 
-    v1 = flask_mongo.db.item_versions.find_one({"_id": ObjectId(v1_id), "item_id": item_id})
-    v2 = flask_mongo.db.item_versions.find_one({"_id": ObjectId(v2_id), "item_id": item_id})
+    try:
+        v1_object_id = ObjectId(v1_id)
+        v2_object_id = ObjectId(v2_id)
+    except (InvalidId, TypeError) as e:
+        return jsonify({"status": "error", "message": f"Invalid version ID format: {str(e)}"}), 400
+
+    v1 = flask_mongo.db.item_versions.find_one({"_id": v1_object_id, "item_id": item_id})
+    v2 = flask_mongo.db.item_versions.find_one({"_id": v2_object_id, "item_id": item_id})
     if not v1 or not v2:
         return jsonify({"status": "error", "message": "One or both versions not found"}), 404
 
@@ -1012,23 +1043,16 @@ def restore_version(item_id):
     if not version_id:
         return jsonify({"status": "error", "message": "version_id must be provided"}), 400
 
-    version = flask_mongo.db.item_versions.find_one(
-        {"_id": ObjectId(version_id), "item_id": item_id}
-    )
+    try:
+        version_object_id = ObjectId(version_id)
+    except (InvalidId, TypeError):
+        return jsonify({"status": "error", "message": f"Invalid version_id: {version_id}"}), 400
+
+    version = flask_mongo.db.item_versions.find_one({"_id": version_object_id, "item_id": item_id})
     if not version:
         return jsonify({"status": "error", "message": "Version not found"}), 404
 
     old_data = version["old_data"]
-
-    # Find the latest version_number for this item
-    last_version = flask_mongo.db.item_versions.find_one(
-        {"item_id": item_id}, sort=[("version_number", -1)]
-    )
-    next_version_number = (
-        (last_version["version_number"] + 1)
-        if last_version and "version_number" in last_version
-        else 1
-    )
 
     old_data["version"] = old_data.get("version", 0) + 1
     old_data["last_modified"] = datetime.datetime.now(tz=datetime.timezone.utc).isoformat()
@@ -1036,6 +1060,9 @@ def restore_version(item_id):
     # Save current state as a new version before restoring
     current_item = flask_mongo.db.items.find_one({"item_id": item_id})
     if current_item:
+        # Atomically get the next version number
+        next_version_number = _get_next_version_number(item_id)
+
         flask_mongo.db.item_versions.insert_one(
             {
                 "item_id": item_id,
@@ -1057,22 +1084,27 @@ def restore_version(item_id):
             }
         )
 
-    flask_mongo.db.items.update_one({"item_id": item_id}, {"$set": old_data})
-    return jsonify(
-        {
-            "status": "success",
-            "restored_version": version_id,
-            "new_version_number": next_version_number,
-        }
-    ), 200
+        flask_mongo.db.items.update_one({"item_id": item_id}, {"$set": old_data})
+        return jsonify(
+            {
+                "status": "success",
+                "restored_version": version_id,
+                "new_version_number": next_version_number,
+            }
+        ), 200
+    else:
+        return jsonify({"status": "error", "message": "Current item not found"}), 404
 
 
 @ITEMS.route("/items/<item_id>/versions/<version_id>/", methods=["DELETE"])
 def delete_version(item_id, version_id):
     """Delete a specific version (admin only)."""
-    result = flask_mongo.db.item_versions.delete_one(
-        {"_id": ObjectId(version_id), "item_id": item_id}
-    )
+    try:
+        version_object_id = ObjectId(version_id)
+    except (InvalidId, TypeError):
+        return jsonify({"status": "error", "message": f"Invalid version_id: {version_id}"}), 400
+
+    result = flask_mongo.db.item_versions.delete_one({"_id": version_object_id, "item_id": item_id})
     if result.deleted_count == 1:
         return jsonify({"status": "success"}), 200
     else:
@@ -1088,15 +1120,8 @@ def save_version(item_id):
     if not item:
         return jsonify({"status": "error", "message": f"Item {item_id} not found."}), 404
 
-    # Find the latest version number for this item
-    last_version = flask_mongo.db.item_versions.find_one(
-        {"item_id": item_id}, sort=[("version_number", -1)]
-    )
-    next_version_number = (
-        (last_version["version_number"] + 1)
-        if last_version and "version_number" in last_version
-        else 1
-    )
+    # Atomically get the next version number
+    next_version_number = _get_next_version_number(item_id)
 
     version_entry = {
         "item_id": item_id,
