@@ -938,20 +938,20 @@ def get_item_data(item_id: str | None = None, refcode: str | None = None):
 # --- VERSION CONTROL ENDPOINTS ---
 
 
-def _get_next_version_number(item_id: str) -> int:
+def _get_next_version_number(refcode: str) -> int:
     """Atomically get and increment the version counter for an item.
 
     Uses a separate counters collection to track version numbers atomically.
     This prevents race conditions when multiple users save versions simultaneously.
 
     Args:
-        item_id: The item_id to get the next version number for
+        refcode: The refcode to get the next version number for
 
     Returns:
         The next version number (1-indexed)
     """
     result = flask_mongo.db.version_counters.find_one_and_update(
-        {"item_id": item_id},
+        {"refcode": refcode},
         {"$inc": {"counter": 1}},
         upsert=True,
         return_document=True,  # Return the document after update
@@ -959,12 +959,15 @@ def _get_next_version_number(item_id: str) -> int:
     return result["counter"]
 
 
-@ITEMS.route("/items/<item_id>/versions/", methods=["GET"])
-def list_versions(item_id):
+@ITEMS.route("/items/<refcode>/versions/", methods=["GET"])
+def list_versions(refcode):
     """List all saved versions for an item, with metadata."""
+    if len(refcode.split(":")) != 2:
+        refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
+
     versions = list(
         flask_mongo.db.item_versions.find(
-            {"item_id": item_id},
+            {"refcode": refcode},
             {
                 "_id": 1,
                 "timestamp": 1,
@@ -980,24 +983,30 @@ def list_versions(item_id):
     return jsonify({"status": "success", "versions": versions}), 200
 
 
-@ITEMS.route("/items/<item_id>/versions/<version_id>/", methods=["GET"])
-def get_version(item_id, version_id):
+@ITEMS.route("/items/<refcode>/versions/<version_id>/", methods=["GET"])
+def get_version(refcode, version_id):
     """Get the full snapshot of an item at a specific version."""
+    if len(refcode.split(":")) != 2:
+        refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
+
     try:
         version_object_id = ObjectId(version_id)
     except (InvalidId, TypeError):
         return jsonify({"status": "error", "message": f"Invalid version_id: {version_id}"}), 400
 
-    version = flask_mongo.db.item_versions.find_one({"_id": version_object_id, "item_id": item_id})
+    version = flask_mongo.db.item_versions.find_one({"_id": version_object_id, "refcode": refcode})
     if not version:
         return jsonify({"status": "error", "message": "Version not found"}), 404
     version["_id"] = str(version["_id"])
     return jsonify({"status": "success", "version": version}), 200
 
 
-@ITEMS.route("/items/<item_id>/compare-versions/", methods=["GET"])
-def compare_versions(item_id):
+@ITEMS.route("/items/<refcode>/compare-versions/", methods=["GET"])
+def compare_versions(refcode):
     """Compare two versions of an item and return their differences, including version numbers."""
+    if len(refcode.split(":")) != 2:
+        refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
+
     v1_id = request.args.get("v1")
     v2_id = request.args.get("v2")
     if not v1_id or not v2_id:
@@ -1009,8 +1018,8 @@ def compare_versions(item_id):
     except (InvalidId, TypeError) as e:
         return jsonify({"status": "error", "message": f"Invalid version ID format: {str(e)}"}), 400
 
-    v1 = flask_mongo.db.item_versions.find_one({"_id": v1_object_id, "item_id": item_id})
-    v2 = flask_mongo.db.item_versions.find_one({"_id": v2_object_id, "item_id": item_id})
+    v1 = flask_mongo.db.item_versions.find_one({"_id": v1_object_id, "refcode": refcode})
+    v2 = flask_mongo.db.item_versions.find_one({"_id": v2_object_id, "refcode": refcode})
     if not v1 or not v2:
         return jsonify({"status": "error", "message": "One or both versions not found"}), 404
 
@@ -1035,9 +1044,12 @@ def compare_versions(item_id):
     ), 200
 
 
-@ITEMS.route("/items/<item_id>/restore-version/", methods=["POST"])
-def restore_version(item_id):
+@ITEMS.route("/items/<refcode>/restore-version/", methods=["POST"])
+def restore_version(refcode):
     """Restore an item to a previous version and increment version_number."""
+    if len(refcode.split(":")) != 2:
+        refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
+
     req = request.get_json()
     version_id = req.get("version_id")
     if not version_id:
@@ -1048,7 +1060,7 @@ def restore_version(item_id):
     except (InvalidId, TypeError):
         return jsonify({"status": "error", "message": f"Invalid version_id: {version_id}"}), 400
 
-    version = flask_mongo.db.item_versions.find_one({"_id": version_object_id, "item_id": item_id})
+    version = flask_mongo.db.item_versions.find_one({"_id": version_object_id, "refcode": refcode})
     if not version:
         return jsonify({"status": "error", "message": "Version not found"}), 404
 
@@ -1058,14 +1070,14 @@ def restore_version(item_id):
     old_data["last_modified"] = datetime.datetime.now(tz=datetime.timezone.utc).isoformat()
 
     # Save current state as a new version before restoring
-    current_item = flask_mongo.db.items.find_one({"item_id": item_id})
+    current_item = flask_mongo.db.items.find_one({"refcode": refcode})
     if current_item:
         # Atomically get the next version number
-        next_version_number = _get_next_version_number(item_id)
+        next_version_number = _get_next_version_number(refcode)
 
         flask_mongo.db.item_versions.insert_one(
             {
-                "item_id": item_id,
+                "refcode": refcode,
                 "version_number": next_version_number,
                 "timestamp": datetime.datetime.now(tz=datetime.timezone.utc).isoformat(),
                 "user": {
@@ -1084,7 +1096,7 @@ def restore_version(item_id):
             }
         )
 
-        flask_mongo.db.items.update_one({"item_id": item_id}, {"$set": old_data})
+        flask_mongo.db.items.update_one({"refcode": refcode}, {"$set": old_data})
         return jsonify(
             {
                 "status": "success",
@@ -1096,35 +1108,41 @@ def restore_version(item_id):
         return jsonify({"status": "error", "message": "Current item not found"}), 404
 
 
-@ITEMS.route("/items/<item_id>/versions/<version_id>/", methods=["DELETE"])
-def delete_version(item_id, version_id):
+@ITEMS.route("/items/<refcode>/versions/<version_id>/", methods=["DELETE"])
+def delete_version(refcode, version_id):
     """Delete a specific version (admin only)."""
+    if len(refcode.split(":")) != 2:
+        refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
+
     try:
         version_object_id = ObjectId(version_id)
     except (InvalidId, TypeError):
         return jsonify({"status": "error", "message": f"Invalid version_id: {version_id}"}), 400
 
-    result = flask_mongo.db.item_versions.delete_one({"_id": version_object_id, "item_id": item_id})
+    result = flask_mongo.db.item_versions.delete_one({"_id": version_object_id, "refcode": refcode})
     if result.deleted_count == 1:
         return jsonify({"status": "success"}), 200
     else:
         return jsonify({"status": "error", "message": "Version not found"}), 404
 
 
-@ITEMS.route("/items/<item_id>/save-version/", methods=["POST"])
-def save_version(item_id):
+@ITEMS.route("/items/<refcode>/save-version/", methods=["POST"])
+def save_version(refcode):
     """Manually save the current state of an item as a version snapshot with an incremental version number."""
+    if len(refcode.split(":")) != 2:
+        refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
+
     item = flask_mongo.db.items.find_one(
-        {"item_id": item_id, **get_default_permissions(user_only=False)}
+        {"refcode": refcode, **get_default_permissions(user_only=False)}
     )
     if not item:
-        return jsonify({"status": "error", "message": f"Item {item_id} not found."}), 404
+        return jsonify({"status": "error", "message": f"Item {refcode} not found."}), 404
 
     # Atomically get the next version number
-    next_version_number = _get_next_version_number(item_id)
+    next_version_number = _get_next_version_number(refcode)
 
     version_entry = {
-        "item_id": item_id,
+        "refcode": refcode,
         "version_number": next_version_number,
         "timestamp": datetime.datetime.now(tz=datetime.timezone.utc).isoformat(),
         "user": {
@@ -1185,11 +1203,6 @@ def save_item():
 
         updated_data["blocks_obj"][block_id] = block.to_db()
 
-    # Save a version using the new endpoint logic
-    save_version_resp = save_version(item_id)
-    if save_version_resp[1] != 200:
-        return save_version_resp
-
     # Bit of a hack for now: starting materials and equipment should be editable by anyone,
     # so we adjust the query above to be more permissive when the user is requesting such an item
     # but before returning we need to check that the actual item did indeed have that type
@@ -1205,6 +1218,20 @@ def save_item():
             ),
             404,
         )
+
+    # Save a version using the new endpoint logic (using refcode)
+    refcode = item.get("refcode")
+    if not refcode:
+        return (
+            jsonify(
+                status="error",
+                message=f"Item {item_id} does not have a refcode.",
+            ),
+            400,
+        )
+    save_version_resp = save_version(refcode)
+    if save_version_resp[1] != 200:
+        return save_version_resp
 
     # (Optional) Increment version number on the item itself
     item["version"] = item.get("version", 0) + 1
