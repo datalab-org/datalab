@@ -1229,7 +1229,16 @@ def compare_versions(refcode):
 
 @ITEMS.route("/items/<refcode>/restore-version/", methods=["POST"])
 def restore_version(refcode):
-    """Restore an item to a previous version and increment version_number."""
+    """Restore an item to a previous version.
+
+    Protected fields that cannot be restored (to maintain data integrity):
+    - refcode: Immutable identifier
+    - _id: Database primary key
+    - immutable_id: Database ObjectId reference
+    - creator_ids: Ownership/permissions information
+    - file_ObjectIds: File attachments managed separately
+    - version: Always increments forward to prevent collisions
+    """
     if len(refcode.split(":")) != 2:
         refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
 
@@ -1243,52 +1252,99 @@ def restore_version(refcode):
     except (InvalidId, TypeError):
         return jsonify({"status": "error", "message": f"Invalid version_id: {version_id}"}), 400
 
+    # Check permissions - user must have write access
+    current_item = flask_mongo.db.items.find_one(
+        {"refcode": refcode, **get_default_permissions(user_only=True)}
+    )
+    if not current_item:
+        return jsonify(
+            {"status": "error", "message": "Item not found or insufficient permissions"}
+        ), 404
+
     version = flask_mongo.db.item_versions.find_one({"_id": version_object_id, "refcode": refcode})
     if not version:
         return jsonify({"status": "error", "message": "Version not found"}), 404
 
-    old_data = version["old_data"]
+    old_data = version["old_data"].copy()
 
-    old_data["version"] = old_data.get("version", 0) + 1
-    old_data["last_modified"] = datetime.datetime.now(tz=datetime.timezone.utc).isoformat()
+    # Protect critical fields from being overwritten during restore
+    protected_fields = [
+        "refcode",
+        "_id",
+        "immutable_id",
+        "creator_ids",
+        "file_ObjectIds",
+        "version",
+    ]
+    for field in protected_fields:
+        if field in current_item:
+            old_data[field] = current_item[field]
 
-    # Save current state as a new version before restoring
-    current_item = flask_mongo.db.items.find_one({"refcode": refcode})
-    if current_item:
-        # Atomically get the next version number
-        next_version_number = _get_next_version_number(refcode)
-
-        flask_mongo.db.item_versions.insert_one(
-            {
-                "refcode": refcode,
-                "version_number": next_version_number,
-                "timestamp": datetime.datetime.now(tz=datetime.timezone.utc).isoformat(),
-                "user": {
-                    "id": str(current_user.person.immutable_id)
-                    if current_user.is_authenticated
-                    else None,
-                    "display_name": getattr(current_user.person, "display_name", None)
-                    if current_user.is_authenticated
-                    else None,
-                    "email": getattr(current_user.person, "contact_email", None)
-                    if current_user.is_authenticated
-                    else None,
-                },
-                "software_version": getattr(CONFIG, "VERSION", "unknown"),
-                "old_data": current_item,
-            }
-        )
-
-        flask_mongo.db.items.update_one({"refcode": refcode}, {"$set": old_data})
+    # Ensure type consistency
+    if old_data.get("type") != current_item.get("type"):
         return jsonify(
             {
-                "status": "success",
-                "restored_version": version_id,
-                "new_version_number": next_version_number,
+                "status": "error",
+                "message": f"Cannot restore version with different type. Current: {current_item.get('type')}, Version: {old_data.get('type')}",
             }
-        ), 200
-    else:
-        return jsonify({"status": "error", "message": "Current item not found"}), 404
+        ), 400
+
+    # Atomically get the next version number (used for both version_number and item.version)
+    next_version_number = _get_next_version_number(refcode)
+
+    # Update metadata to reflect the restore action
+    old_data["version"] = next_version_number
+    old_data["last_modified"] = datetime.datetime.now(tz=datetime.timezone.utc).isoformat()
+
+    # Validate restored data against the item model
+    item_type = current_item["type"]
+    if item_type not in ITEM_MODELS:
+        return jsonify({"status": "error", "message": f"Invalid item type: {item_type}"}), 400
+
+    try:
+        # Validate using the appropriate model
+        ITEM_MODELS[item_type](**old_data)
+    except ValidationError as exc:
+        return jsonify(
+            {
+                "status": "error",
+                "message": f"Restored data failed validation: {str(exc)}",
+                "output": str(exc),
+            }
+        ), 400
+
+    # Save current state as a new version before restoring
+    flask_mongo.db.item_versions.insert_one(
+        {
+            "refcode": refcode,
+            "version_number": next_version_number,
+            "timestamp": datetime.datetime.now(tz=datetime.timezone.utc).isoformat(),
+            "user": {
+                "id": str(current_user.person.immutable_id)
+                if current_user.is_authenticated
+                else None,
+                "display_name": getattr(current_user.person, "display_name", None)
+                if current_user.is_authenticated
+                else None,
+                "email": getattr(current_user.person, "contact_email", None)
+                if current_user.is_authenticated
+                else None,
+            },
+            "software_version": getattr(CONFIG, "VERSION", "unknown"),
+            "old_data": current_item,
+        }
+    )
+
+    # Perform the restore
+    flask_mongo.db.items.update_one({"refcode": refcode}, {"$set": old_data})
+
+    return jsonify(
+        {
+            "status": "success",
+            "restored_version": version_id,
+            "new_version_number": next_version_number,
+        }
+    ), 200
 
 
 @ITEMS.route("/items/<refcode>/versions/<version_id>/", methods=["DELETE"])
