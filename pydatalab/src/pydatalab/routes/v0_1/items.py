@@ -1305,7 +1305,7 @@ def save_item():
             404,
         )
 
-    # Save a version using the helper function (manual save since user clicked save)
+    # Store refcode for version saving after successful update
     refcode = item.get("refcode")
     if not refcode:
         return (
@@ -1315,11 +1315,6 @@ def save_item():
             ),
             400,
         )
-    save_version_resp_dict, save_version_status = _save_version_snapshot(
-        refcode, action="manual_save"
-    )
-    if save_version_status != 200:
-        return jsonify(save_version_resp_dict), save_version_status
 
     # (Optional) Increment version number on the item itself
     item["version"] = item.get("version", 0) + 1
@@ -1371,6 +1366,7 @@ def save_item():
     item.pop("collections")
     item.pop("creators")
 
+    # Update the item FIRST (transaction safety: item update before version save)
     result = flask_mongo.db.items.update_one(
         {"item_id": item_id},
         {"$set": item},
@@ -1384,6 +1380,25 @@ def save_item():
                 output=result.raw_result,
             ),
             400,
+        )
+
+    # Now save a version AFTER successful item update
+    # If this fails, we log but don't fail the request since item was already saved
+    try:
+        save_version_resp_dict, save_version_status = _save_version_snapshot(
+            refcode, action="manual_save"
+        )
+        if save_version_status != 200:
+            LOGGER.error(
+                "Failed to save version for item %s after successful update: %s",
+                item_id,
+                save_version_resp_dict,
+            )
+    except Exception as e:
+        LOGGER.error(
+            "Exception while saving version for item %s after successful update: %s",
+            item_id,
+            str(e),
         )
 
     return jsonify(status="success", last_modified=updated_data["last_modified"]), 200
