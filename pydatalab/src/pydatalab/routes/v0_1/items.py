@@ -1319,6 +1319,8 @@ def restore_version(refcode):
             "refcode": refcode,
             "version_number": next_version_number,
             "timestamp": datetime.datetime.now(tz=datetime.timezone.utc).isoformat(),
+            "action": "pre_restore_backup",  # Audit trail: why this version was created
+            "restored_from_version": str(version_object_id),  # Track which version was restored
             "user": {
                 "id": str(current_user.person.immutable_id)
                 if current_user.is_authenticated
@@ -1365,9 +1367,21 @@ def delete_version(refcode, version_id):
         return jsonify({"status": "error", "message": "Version not found"}), 404
 
 
-@ITEMS.route("/items/<refcode>/save-version/", methods=["POST"])
-def save_version(refcode):
-    """Manually save the current state of an item as a version snapshot with an incremental version number."""
+def _save_version_snapshot(refcode: str, action: str = "manual_save") -> tuple[dict, int]:
+    """Save the current state of an item as a version snapshot.
+
+    Helper function for creating version snapshots with proper audit trail.
+
+    Args:
+        refcode: The refcode of the item to save a version for
+        action: The reason for saving this version:
+            - "manual_save": User explicitly saved the version
+            - "auto_save": System or block auto-save
+            - "pre_restore_backup": Backup created before restoring to another version
+
+    Returns:
+        Tuple of (response_dict, status_code)
+    """
     if len(refcode.split(":")) != 2:
         refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
 
@@ -1375,7 +1389,10 @@ def save_version(refcode):
         {"refcode": refcode, **get_default_permissions(user_only=False)}
     )
     if not item:
-        return jsonify({"status": "error", "message": f"Item {refcode} not found."}), 404
+        return (
+            {"status": "error", "message": f"Item {refcode} not found."},
+            404,
+        )
 
     # Atomically get the next version number
     next_version_number = _get_next_version_number(refcode)
@@ -1384,6 +1401,7 @@ def save_version(refcode):
         "refcode": refcode,
         "version_number": next_version_number,
         "timestamp": datetime.datetime.now(tz=datetime.timezone.utc).isoformat(),
+        "action": action,  # Audit trail: why this version was created
         "user": {
             "id": str(current_user.person.immutable_id) if current_user.is_authenticated else None,
             "display_name": getattr(current_user.person, "display_name", None)
@@ -1397,9 +1415,17 @@ def save_version(refcode):
         "old_data": item,
     }
     flask_mongo.db.item_versions.insert_one(version_entry)
-    return jsonify(
-        {"status": "success", "message": "Version saved.", "version_number": next_version_number}
-    ), 200
+    return (
+        {"status": "success", "message": "Version saved.", "version_number": next_version_number},
+        200,
+    )
+
+
+@ITEMS.route("/items/<refcode>/save-version/", methods=["POST"])
+def save_version(refcode):
+    """Manually save the current state of an item as a version snapshot with an incremental version number."""
+    response, status_code = _save_version_snapshot(refcode, action="manual_save")
+    return jsonify(response), status_code
 
 
 # --- END VERSION CONTROL ENDPOINTS ---
@@ -1462,7 +1488,7 @@ def save_item():
             404,
         )
 
-    # Save a version using the new endpoint logic (using refcode)
+    # Save a version using the helper function (manual save since user clicked save)
     refcode = item.get("refcode")
     if not refcode:
         return (
@@ -1472,9 +1498,11 @@ def save_item():
             ),
             400,
         )
-    save_version_resp = save_version(refcode)
-    if save_version_resp[1] != 200:
-        return save_version_resp
+    save_version_resp_dict, save_version_status = _save_version_snapshot(
+        refcode, action="manual_save"
+    )
+    if save_version_status != 200:
+        return jsonify(save_version_resp_dict), save_version_status
 
     # (Optional) Increment version number on the item itself
     item["version"] = item.get("version", 0) + 1
