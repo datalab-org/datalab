@@ -6,6 +6,7 @@ from hashlib import sha512
 
 from bson import ObjectId
 from bson.errors import InvalidId
+from deepdiff import DeepDiff
 from flask import Blueprint, jsonify, redirect, request
 from flask_login import current_user
 from pydantic import ValidationError
@@ -1202,15 +1203,18 @@ def compare_versions(refcode):
     if not v1 or not v2:
         return jsonify({"status": "error", "message": "One or both versions not found"}), 404
 
-    def dict_diff(d1, d2):
-        diff = {}
-        keys = set(d1.keys()).union(d2.keys())
-        for k in keys:
-            if d1.get(k) != d2.get(k):
-                diff[k] = {"v1": d1.get(k), "v2": d2.get(k)}
-        return diff
+    # Use DeepDiff for proper nested structure comparison
+    # This handles nested dicts, lists, type changes, and provides detailed change information
+    deep_diff = DeepDiff(
+        v1["old_data"],
+        v2["old_data"],
+        ignore_order=False,  # Preserve list order in comparisons
+        verbose_level=2,  # Include detailed change information
+    )
 
-    diff = dict_diff(v1["old_data"], v2["old_data"])
+    # Convert DeepDiff result to a JSON-serializable dict
+    diff = deep_diff.to_dict() if deep_diff else {}
+
     return jsonify(
         {
             "status": "success",
