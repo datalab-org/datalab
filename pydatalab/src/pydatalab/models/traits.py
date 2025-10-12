@@ -22,6 +22,9 @@ class HasRevisionControl(BaseModel):
     revisions: dict[int, Any] | None = None
     """An optional mapping from old revision numbers to the model state at that revision."""
 
+    version: int = 1
+    """The version number used by the version control system for tracking snapshots."""
+
 
 class HasBlocks(BaseModel):
     blocks_obj: dict[str, DataBlockResponse] = Field({})
