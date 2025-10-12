@@ -48,6 +48,11 @@
       "title": "Revisions",
       "type": "object"
     },
+    "version": {
+      "title": "Version",
+      "default": 1,
+      "type": "integer"
+    },
     "creator_ids": {
       "title": "Creator Ids",
       "default": [],
@@ -630,6 +635,11 @@
         "revisions": {
           "title": "Revisions",
           "type": "object"
+        },
+        "version": {
+          "title": "Version",
+          "default": 1,
+          "type": "integer"
         },
         "creator_ids": {
           "title": "Creator Ids",
