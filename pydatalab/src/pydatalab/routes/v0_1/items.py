@@ -1499,8 +1499,8 @@ def save_item():
             400,
         )
 
-    # (Optional) Increment version number on the item itself
-    item["version"] = item.get("version", 0) + 1
+    # Increment version number on the item itself
+    updated_data["version"] = item.get("version", 0) + 1
 
     user_only = item["type"] not in ("starting_materials", "equipment")
 
