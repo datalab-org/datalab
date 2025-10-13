@@ -132,7 +132,7 @@ dev-dependencies = [
 ]
 
 [tool.uv.sources]
-datalab-app-plugin-insitu = { git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git", rev = "v0.2.0" }
+datalab-app-plugin-insitu = { git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git", rev = "bes/xrd_echem_insitu" }
 
 [tool.pytest.ini_options]
 addopts = "--cov-report=xml --cov ./src/pydatalab"
