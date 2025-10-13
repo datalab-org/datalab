@@ -975,6 +975,8 @@ def list_versions(refcode):
                 "user": 1,
                 "software_version": 1,
                 "version_number": 1,
+                "action": 1,
+                "restored_from_version": 1,
                 "old_data.version": 1,
             },
         ).sort("version_number", -1)
@@ -1134,14 +1136,19 @@ def restore_version(refcode):
             }
         ), 400
 
-    # Save current state as a new version before restoring
+    # Perform the restore first
+    flask_mongo.db.items.update_one({"refcode": refcode}, {"$set": old_data})
+
+    # Save the RESTORED state as a new version snapshot (after restore)
     flask_mongo.db.item_versions.insert_one(
         {
             "refcode": refcode,
             "version_number": next_version_number,
             "timestamp": datetime.datetime.now(tz=datetime.timezone.utc).isoformat(),
-            "action": "pre_restore_backup",  # Audit trail: why this version was created
-            "restored_from_version": str(version_object_id),  # Track which version was restored
+            "action": "restored",  # Audit trail: this is a restored version
+            "restored_from_version": str(
+                version_object_id
+            ),  # Track which version was restored from
             "user": {
                 "id": str(current_user.person.immutable_id)
                 if current_user.is_authenticated
@@ -1154,12 +1161,9 @@ def restore_version(refcode):
                 else None,
             },
             "software_version": getattr(CONFIG, "VERSION", "unknown"),
-            "old_data": current_item,
+            "old_data": old_data,  # Store the RESTORED data, not the old current_item
         }
     )
-
-    # Perform the restore
-    flask_mongo.db.items.update_one({"refcode": refcode}, {"$set": old_data})
 
     return jsonify(
         {
@@ -1198,7 +1202,7 @@ def _save_version_snapshot(refcode: str, action: str = "manual_save") -> tuple[d
         action: The reason for saving this version:
             - "manual_save": User explicitly saved the version
             - "auto_save": System or block auto-save
-            - "pre_restore_backup": Backup created before restoring to another version
+            - "restored": Version created after restoring to a previous version
 
     Returns:
         Tuple of (response_dict, status_code)
