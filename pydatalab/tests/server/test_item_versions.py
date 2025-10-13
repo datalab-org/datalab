@@ -1,7 +1,5 @@
 """Tests for item version control endpoints."""
 
-import datetime
-
 import pytest
 from bson import ObjectId
 
@@ -135,6 +133,19 @@ class TestListVersions:
         assert "user" in version
         assert "software_version" in version
         assert "version_number" in version
+        assert "action" in version
+
+    def test_list_versions_includes_action_field(self, client, sample_with_version):
+        """Test that listed versions include the action field."""
+        refcode = sample_with_version.refcode.split(":")[1]
+        client.post(f"/items/{refcode}/save-version/")
+
+        response = client.get(f"/items/{refcode}/versions/")
+        version = response.json["versions"][0]
+
+        # Should include action field in list response
+        assert "action" in version
+        assert version["action"] == "manual_save"
 
 
 class TestGetVersion:
@@ -145,7 +156,7 @@ class TestGetVersion:
         refcode = sample_with_version.refcode.split(":")[1]
 
         # Save a version
-        save_response = client.post(f"/items/{refcode}/save-version/")
+        client.post(f"/items/{refcode}/save-version/")
 
         # List versions to get the version ID
         list_response = client.get(f"/items/{refcode}/versions/")
@@ -197,7 +208,7 @@ class TestCompareVersions:
         # Modify the item
         flask_mongo.db.items.update_one(
             {"refcode": full_refcode},
-            {"$set": {"description": "Modified description", "version": 2}}
+            {"$set": {"description": "Modified description", "version": 2}},
         )
 
         # Save second version
@@ -260,7 +271,7 @@ class TestCompareVersions:
                     "synthesis_description": "Changed synthesis",
                     "version": 2,
                 }
-            }
+            },
         )
 
         # Save second version
@@ -298,7 +309,7 @@ class TestRestoreVersion:
         original_description = sample_with_version.description
         flask_mongo.db.items.update_one(
             {"refcode": full_refcode},
-            {"$set": {"description": "Modified description", "version": 2}}
+            {"$set": {"description": "Modified description", "version": 2}},
         )
 
         # Get version ID
@@ -307,8 +318,7 @@ class TestRestoreVersion:
 
         # Restore to the previous version
         response = client.post(
-            f"/items/{refcode}/restore-version/",
-            json={"version_id": version_id}
+            f"/items/{refcode}/restore-version/", json={"version_id": version_id}
         )
 
         assert response.status_code == 200
@@ -320,8 +330,8 @@ class TestRestoreVersion:
         item = flask_mongo.db.items.find_one({"refcode": full_refcode})
         assert item["description"] == original_description
 
-    def test_restore_version_creates_backup(self, client, sample_with_version):
-        """Test that restore creates a pre-restore backup."""
+    def test_restore_version_creates_snapshot(self, client, sample_with_version):
+        """Test that restore creates a version snapshot with restored data."""
         from pydatalab.mongo import flask_mongo
 
         refcode = sample_with_version.refcode.split(":")[1]
@@ -330,8 +340,7 @@ class TestRestoreVersion:
         # Save version and modify
         client.post(f"/items/{refcode}/save-version/")
         flask_mongo.db.items.update_one(
-            {"refcode": full_refcode},
-            {"$set": {"description": "Modified", "version": 2}}
+            {"refcode": full_refcode}, {"$set": {"description": "Modified", "version": 2}}
         )
 
         # Get version to restore
@@ -341,11 +350,11 @@ class TestRestoreVersion:
         # Restore
         client.post(f"/items/{refcode}/restore-version/", json={"version_id": version_id})
 
-        # Check that a backup was created
+        # Check that a restored version snapshot was created
         list_response = client.get(f"/items/{refcode}/versions/")
         versions = list_response.json["versions"]
 
-        # Should have 2 versions now: original save + pre-restore backup
+        # Should have 2 versions now: original save + restored snapshot
         assert len(versions) == 2
 
     def test_restore_version_protects_fields(self, client, sample_with_version):
@@ -365,8 +374,7 @@ class TestRestoreVersion:
 
         # Modify non-protected field
         flask_mongo.db.items.update_one(
-            {"refcode": full_refcode},
-            {"$set": {"description": "Modified", "version": 2}}
+            {"refcode": full_refcode}, {"$set": {"description": "Modified", "version": 2}}
         )
 
         # Get version and restore
@@ -391,16 +399,14 @@ class TestRestoreVersion:
 
         # Manually change the type in the current item
         flask_mongo.db.items.update_one(
-            {"refcode": full_refcode},
-            {"$set": {"type": "cells", "version": 2}}
+            {"refcode": full_refcode}, {"$set": {"type": "cells", "version": 2}}
         )
 
         # Try to restore (should fail because old type is "samples")
         list_response = client.get(f"/items/{refcode}/versions/")
         version_id = list_response.json["versions"][0]["_id"]
         response = client.post(
-            f"/items/{refcode}/restore-version/",
-            json={"version_id": version_id}
+            f"/items/{refcode}/restore-version/", json={"version_id": version_id}
         )
 
         assert response.status_code == 400
@@ -417,10 +423,7 @@ class TestRestoreVersion:
     def test_restore_version_invalid_id(self, client, sample_with_version):
         """Test restoring with invalid version ID."""
         refcode = sample_with_version.refcode.split(":")[1]
-        response = client.post(
-            f"/items/{refcode}/restore-version/",
-            json={"version_id": "invalid"}
-        )
+        response = client.post(f"/items/{refcode}/restore-version/", json={"version_id": "invalid"})
 
         assert response.status_code == 400
         assert "Invalid version_id" in response.json["message"]
@@ -429,10 +432,7 @@ class TestRestoreVersion:
         """Test restoring non-existent version."""
         refcode = sample_with_version.refcode.split(":")[1]
         fake_id = str(ObjectId())
-        response = client.post(
-            f"/items/{refcode}/restore-version/",
-            json={"version_id": fake_id}
-        )
+        response = client.post(f"/items/{refcode}/restore-version/", json={"version_id": fake_id})
 
         assert response.status_code == 404
         assert "not found" in response.json["message"].lower()
@@ -449,16 +449,14 @@ class TestRestoreVersion:
 
         # Modify
         flask_mongo.db.items.update_one(
-            {"refcode": full_refcode},
-            {"$set": {"description": "Modified", "version": 2}}
+            {"refcode": full_refcode}, {"$set": {"description": "Modified", "version": 2}}
         )
 
         # Restore
         list_response = client.get(f"/items/{refcode}/versions/")
         version_id = list_response.json["versions"][0]["_id"]
         restore_response = client.post(
-            f"/items/{refcode}/restore-version/",
-            json={"version_id": version_id}
+            f"/items/{refcode}/restore-version/", json={"version_id": version_id}
         )
 
         new_version = restore_response.json["new_version_number"]
@@ -516,7 +514,6 @@ class TestAutoVersioning:
 
     def test_save_item_creates_version(self, client, sample_with_version):
         """Test that saving an item automatically creates a version."""
-        from pydatalab.mongo import flask_mongo
 
         item_id = sample_with_version.item_id
         refcode_short = sample_with_version.refcode.split(":")[1]
@@ -525,10 +522,7 @@ class TestAutoVersioning:
         item_data = sample_with_version.dict(exclude_unset=False)
         item_data["description"] = "Updated via save-item"
 
-        response = client.post("/save-item/", json={
-            "item_id": item_id,
-            "data": item_data
-        })
+        response = client.post("/save-item/", json={"item_id": item_id, "data": item_data})
 
         assert response.status_code == 200
 
@@ -538,9 +532,9 @@ class TestAutoVersioning:
 
         # Check that the latest version has action="manual_save"
         latest_version = list_response.json["versions"][0]
-        full_version = client.get(
-            f"/items/{refcode_short}/versions/{latest_version['_id']}/"
-        ).json["version"]
+        full_version = client.get(f"/items/{refcode_short}/versions/{latest_version['_id']}/").json[
+            "version"
+        ]
         assert full_version["action"] == "manual_save"
 
     def test_save_item_increments_version(self, client, sample_with_version):
@@ -553,14 +547,162 @@ class TestAutoVersioning:
         # Save the item
         item_data = sample_with_version.dict(exclude_unset=False)
         item_data["description"] = "Updated"
-        client.post("/save-item/", json={
-            "item_id": sample_with_version.item_id,
-            "data": item_data
-        })
+        client.post("/save-item/", json={"item_id": sample_with_version.item_id, "data": item_data})
 
         # Check that version incremented
         item = flask_mongo.db.items.find_one({"refcode": refcode})
         assert item["version"] == original_version + 1
+
+
+class TestActionFields:
+    """Tests specifically for validating action field values across different operations."""
+
+    def test_manual_save_version_endpoint_action(self, client, sample_with_version):
+        """Test that manual save_version endpoint creates action='manual_save'."""
+        refcode = sample_with_version.refcode.split(":")[1]
+
+        # Manually save a version via save-version endpoint
+        client.post(f"/items/{refcode}/save-version/")
+
+        # Check the version action in list
+        list_response = client.get(f"/items/{refcode}/versions/")
+        version = list_response.json["versions"][0]
+
+        assert version["action"] == "manual_save"
+        # Manual saves should not have restored_from_version
+        assert version.get("restored_from_version") is None
+
+    def test_save_item_endpoint_creates_manual_save_action(self, client, sample_with_version):
+        """Test that save_item endpoint creates action='manual_save' (user-triggered save)."""
+        refcode_short = sample_with_version.refcode.split(":")[1]
+
+        # Save via save-item endpoint (user clicking save button)
+        item_data = sample_with_version.dict(exclude_unset=False)
+        item_data["description"] = "Updated via save-item"
+        client.post("/save-item/", json={"item_id": sample_with_version.item_id, "data": item_data})
+
+        # Check the version action
+        list_response = client.get(f"/items/{refcode_short}/versions/")
+        version = list_response.json["versions"][0]
+
+        # save_item should create manual_save action (user-triggered)
+        assert version["action"] == "manual_save"
+
+    def test_restored_action_and_reference(self, client, sample_with_version):
+        """Test that restore creates action='restored' with restored_from_version."""
+        from pydatalab.mongo import flask_mongo
+
+        refcode = sample_with_version.refcode.split(":")[1]
+        full_refcode = sample_with_version.refcode
+
+        # Save initial version
+        client.post(f"/items/{refcode}/save-version/")
+
+        # Modify
+        flask_mongo.db.items.update_one(
+            {"refcode": full_refcode}, {"$set": {"description": "Modified", "version": 2}}
+        )
+
+        # Get version to restore
+        list_response = client.get(f"/items/{refcode}/versions/")
+        version_to_restore_id = list_response.json["versions"][0]["_id"]
+
+        # Restore
+        client.post(
+            f"/items/{refcode}/restore-version/", json={"version_id": version_to_restore_id}
+        )
+
+        # Check restored version in list
+        list_response = client.get(f"/items/{refcode}/versions/")
+        restored_version = list_response.json["versions"][0]
+
+        assert restored_version["action"] == "restored"
+        assert restored_version["restored_from_version"] == version_to_restore_id
+
+    def test_restored_version_snapshot_contains_restored_data(self, client, sample_with_version):
+        """Test that the version snapshot created by restore contains the restored data, not pre-restore data."""
+        from pydatalab.mongo import flask_mongo
+
+        refcode = sample_with_version.refcode.split(":")[1]
+        full_refcode = sample_with_version.refcode
+        original_description = sample_with_version.description
+
+        # Save initial version
+        client.post(f"/items/{refcode}/save-version/")
+
+        # Modify the item
+        modified_description = "Modified description"
+        flask_mongo.db.items.update_one(
+            {"refcode": full_refcode}, {"$set": {"description": modified_description, "version": 2}}
+        )
+
+        # Get version to restore from
+        list_response = client.get(f"/items/{refcode}/versions/")
+        version_to_restore_id = list_response.json["versions"][0]["_id"]
+
+        # Restore
+        client.post(
+            f"/items/{refcode}/restore-version/", json={"version_id": version_to_restore_id}
+        )
+
+        # Get the restored version snapshot
+        list_response = client.get(f"/items/{refcode}/versions/")
+        restored_version_id = list_response.json["versions"][0]["_id"]
+
+        get_response = client.get(f"/items/{refcode}/versions/{restored_version_id}/")
+        restored_snapshot = get_response.json["version"]["old_data"]
+
+        # The snapshot should contain the RESTORED data (original_description)
+        # NOT the pre-restore data (modified_description)
+        assert restored_snapshot["description"] == original_description
+
+    def test_action_audit_trail_complete(self, client, sample_with_version):
+        """Test complete audit trail with multiple saves and restore."""
+        from pydatalab.mongo import flask_mongo
+
+        refcode = sample_with_version.refcode.split(":")[1]
+        full_refcode = sample_with_version.refcode
+
+        # Manual save via save-version endpoint (v1)
+        client.post(f"/items/{refcode}/save-version/")
+
+        # Modify and save via save-item (v2)
+        flask_mongo.db.items.update_one(
+            {"refcode": full_refcode}, {"$set": {"description": "Second version", "version": 2}}
+        )
+        item_data = flask_mongo.db.items.find_one({"refcode": full_refcode})
+        # Convert ObjectId to string for JSON serialization
+        item_data["_id"] = str(item_data["_id"])
+        if "immutable_id" in item_data:
+            item_data["immutable_id"] = str(item_data["immutable_id"])
+        client.post("/save-item/", json={"item_id": sample_with_version.item_id, "data": item_data})
+
+        # Get v1 to restore
+        list_response = client.get(f"/items/{refcode}/versions/")
+        versions = list_response.json["versions"]
+        v1_id = versions[1]["_id"]  # Second in list (sorted desc)
+
+        # Restore to v1 (creates v3)
+        client.post(f"/items/{refcode}/restore-version/", json={"version_id": v1_id})
+
+        # Check all versions
+        list_response = client.get(f"/items/{refcode}/versions/")
+        all_versions = list_response.json["versions"]
+
+        # Should have 3 versions
+        assert len(all_versions) == 3
+
+        # v3 (newest): restored
+        assert all_versions[0]["action"] == "restored"
+        assert all_versions[0]["restored_from_version"] == v1_id
+
+        # v2: manual_save (from save-item)
+        assert all_versions[1]["action"] == "manual_save"
+        assert all_versions[1].get("restored_from_version") is None
+
+        # v1 (oldest): manual_save (from save-version)
+        assert all_versions[2]["action"] == "manual_save"
+        assert all_versions[2].get("restored_from_version") is None
 
 
 class TestVersionCounter:
@@ -619,8 +761,7 @@ class TestPermissions:
         # Try to restore with different user (should fail due to permissions)
         fake_version_id = str(ObjectId())
         response = another_client.post(
-            f"/items/{refcode}/restore-version/",
-            json={"version_id": fake_version_id}
+            f"/items/{refcode}/restore-version/", json={"version_id": fake_version_id}
         )
 
         # Should fail because another_client doesn't have access to this item
