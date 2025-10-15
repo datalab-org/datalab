@@ -1215,7 +1215,7 @@ def compare_versions(refcode):
     )
 
     # Convert DeepDiff result to a JSON-serializable dict
-    diff = deep_diff.to_dict() if deep_diff else {}
+    diff = json.loads(deep_diff.to_json()) if deep_diff else {}
 
     return jsonify(
         {
