@@ -254,6 +254,10 @@ def get_file_info_by_id(file_id: str | ObjectId, update_if_live: bool = True) ->
     LOGGER.debug("getting file for file_id: %s", file_id)
     item_collection = flask_mongo.db.items
     file_id = ObjectId(file_id)
+
+    # Instead of directly querying for a file, we try to find it
+    # via attachment to an item, so that we can check that the user
+    # has the appropriate permissions for it
     result = item_collection.aggregate(
         [
             {
