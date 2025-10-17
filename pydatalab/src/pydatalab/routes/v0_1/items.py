@@ -738,6 +738,10 @@ def update_item_permissions(refcode: str):
     current_creator_ids = current_item["creator_ids"]
 
     if "creators" in request_json:
+        new_creators = request_json["creators"]
+        if not isinstance(new_creators, list):
+            raise RuntimeError("Invalid creators list provided in request.")
+
         creator_ids = [
             ObjectId(creator.get("immutable_id", None))
             for creator in request_json["creators"]
