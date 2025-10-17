@@ -20,6 +20,9 @@ def get_graph_cy_format(
     hide_collections: bool = True,
 ):
     collection_id = request.args.get("collection_id", type=str)
+    hide_collections = request.args.get(
+        "hide_collections", default=False, type=lambda v: v.lower() == "true"
+    )
 
     if item_id is None:
         if collection_id is not None:
@@ -43,7 +46,7 @@ def get_graph_cy_format(
         else:
             query = {}
         all_documents = flask_mongo.db.items.find(
-            {**query, **get_default_permissions(user_only=False)},
+            {**query, **get_default_permissions(user_only=True)},
             projection={"item_id": 1, "name": 1, "type": 1, "relationships": 1},
         )
         node_ids: set[str] = {document["item_id"] for document in all_documents}
@@ -84,8 +87,20 @@ def get_graph_cy_format(
                 projection={"item_id": 1, "name": 1, "type": 1, "relationships": 1},
             )
 
-            all_documents.extend(next_shell)
-            node_ids = node_ids | {document["item_id"] for document in all_documents}
+        all_documents.extend(incoming_items)
+
+        ids_to_fetch = node_ids - {doc["item_id"] for doc in all_documents}
+        if ids_to_fetch:
+            referenced_items = list(
+                flask_mongo.db.items.find(
+                    {
+                        "item_id": {"$in": list(ids_to_fetch)},
+                        **get_default_permissions(user_only=False),
+                    },
+                    projection={"item_id": 1, "name": 1, "type": 1, "relationships": 1},
+                )
+            )
+            all_documents.extend(referenced_items)
 
         LOGGER.debug(
             "Found %d unique node IDs related to item %s after filtering", len(node_ids), item_id
@@ -181,12 +196,16 @@ def get_graph_cy_format(
                 }
             )
 
-    whitelist = {edge["data"]["source"] for edge in edges} | {item_id}
+    whitelist = {edge["data"]["source"] for edge in edges}
+    if item_id:
+        whitelist.add(item_id)
 
     nodes = [
         node
         for node in nodes
-        if node["data"]["type"] in ("samples", "cells") or node["data"]["id"] in whitelist
+        if node["data"]["type"] in ("samples", "cells")
+        or node["data"]["id"] in whitelist
+        or node["data"]["id"].startswith("Collection:")
     ]
 
     return (jsonify(status="success", nodes=nodes, edges=edges), 200)
