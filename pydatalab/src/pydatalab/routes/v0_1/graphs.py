@@ -74,8 +74,27 @@ def get_graph_cy_format(
         )
 
         node_ids = {document["item_id"] for document in all_documents}
+        relationship_ids = {
+            rel.get("item_id")
+            for doc in all_documents
+            for rel in (doc.get("relationships") or [])
+            if rel.get("item_id")
+        }
 
-        # Filter out relationships pointing to non-existent items
+        missing_ids = relationship_ids - node_ids
+        if missing_ids:
+            additional_docs = list(
+                flask_mongo.db.items.find(
+                    {
+                        "item_id": {"$in": list(missing_ids)},
+                        **get_default_permissions(user_only=False),
+                    },
+                    projection={"item_id": 1, "name": 1, "type": 1, "relationships": 1},
+                )
+            )
+            all_documents.extend(additional_docs)
+            node_ids.update(doc["item_id"] for doc in additional_docs)
+
         all_documents = [
             {
                 **doc,
