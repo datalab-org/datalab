@@ -47,6 +47,20 @@ def get_graph_cy_format(
         )
         node_ids: set[str] = {document["item_id"] for document in all_documents}
         all_documents.rewind()
+        all_documents = list(all_documents)
+
+        # Filter out relationships pointing to non-existent items
+        all_documents = [
+            {
+                **doc,
+                "relationships": [
+                    rel
+                    for rel in (doc.get("relationships") or [])
+                    if rel.get("item_id") in node_ids
+                ],
+            }
+            for doc in all_documents
+        ]
 
     else:
         all_documents = list(
@@ -59,61 +73,57 @@ def get_graph_cy_format(
             )
         )
 
-        node_ids = {document["item_id"] for document in all_documents} | {
-            relationship.get("item_id")
-            for document in all_documents
-            for relationship in document.get("relationships", [])
-        }
-        if len(node_ids) > 1:
-            or_query = [{"item_id": id} for id in node_ids if id != item_id]
-            next_shell = flask_mongo.db.items.find(
-                {
-                    "$or": or_query,
-                    **get_default_permissions(user_only=False),
-                },
-                projection={"item_id": 1, "name": 1, "type": 1, "relationships": 1},
-            )
+        node_ids = {document["item_id"] for document in all_documents}
 
-            all_documents.extend(next_shell)
-            node_ids = node_ids | {document["item_id"] for document in all_documents}
+        # Filter out relationships pointing to non-existent items
+        all_documents = [
+            {
+                **doc,
+                "relationships": [
+                    rel
+                    for rel in (doc.get("relationships") or [])
+                    if rel.get("item_id") in node_ids
+                ],
+            }
+            for doc in all_documents
+        ]
 
     nodes = []
     edges = []
-
-    # Collect the elements that have already been added to the graph, to avoid duplication
     drawn_elements = set()
-    node_collections: set[str] = set()
+
+    node_collections = set()
+
     for document in all_documents:
-        # for some reason, document["relationships"] is sometimes equal to None, so we
-        # need this `or` statement.
-        for relationship in document.get("relationships") or []:
-            # only considering child-parent relationships
-            if relationship.get("type") == "collections" and not collection_id:
-                if hide_collections:
-                    continue
+        if not hide_collections and document.get("type") == "collections":
+            if document["_id"] not in node_collections:
                 collection_data = flask_mongo.db.collections.find_one(
-                    {
-                        "_id": relationship["immutable_id"],
-                        **get_default_permissions(user_only=False),
-                    },
-                    projection={"collection_id": 1, "title": 1, "type": 1},
+                    {"_id": document["_id"]},
+                    projection={"collection_id": 1},
                 )
                 if collection_data:
-                    if relationship["immutable_id"] not in node_collections:
-                        _id = f"Collection: {collection_data['collection_id']}"
-                        if _id not in drawn_elements:
-                            nodes.append(
-                                {
-                                    "data": {
-                                        "id": _id,
-                                        "name": collection_data["title"],
-                                        "type": collection_data["type"],
-                                        "shape": "triangle",
-                                    }
-                                }
+                    for relationship in document.get("relationships") or []:
+                        if relationship.get("type") == "items":
+                            _id = relationship["immutable_id"]
+                            node_data = flask_mongo.db.items.find_one(
+                                {"_id": _id},
+                                projection={"item_id": 1, "name": 1, "type": 1},
                             )
-                            node_collections.add(relationship["immutable_id"])
-                            drawn_elements.add(_id)
+                            if node_data and _id not in drawn_elements:
+                                nodes.append(
+                                    {
+                                        "data": {
+                                            "id": node_data["item_id"],
+                                            "name": node_data["name"]
+                                            if node_data["name"]
+                                            else node_data["item_id"],
+                                            "type": node_data["type"],
+                                            "special": node_data["item_id"] == item_id,
+                                        }
+                                    }
+                                )
+                                node_collections.add(relationship["immutable_id"])
+                                drawn_elements.add(_id)
 
                     source = f"Collection: {collection_data['collection_id']}"
                     target = document.get("item_id")
