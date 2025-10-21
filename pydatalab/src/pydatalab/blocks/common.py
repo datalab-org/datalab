@@ -1,5 +1,6 @@
 import base64
 import io
+import os
 import warnings
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -11,7 +12,8 @@ from pydatalab.logger import LOGGER
 
 from .base import DataBlock
 
-EXCEL_LIKE_EXTENSIONS = (".xls", ".xlsx", ".xlsm", ".xlsb", ".odf", ".ods", ".odt")
+EXCEL_LIKE_EXTENSIONS: tuple[str, ...] = (".xls", ".xlsx", ".xlsm", ".xlsb", ".odf", ".ods", ".odt")
+"""A tuple of file extensions that are considered Excel-like formats."""
 
 
 class NotSupportedBlock(DataBlock):
@@ -59,13 +61,13 @@ class MediaBlock(DataBlock):
         if "b64_encoded_image" not in self.data:
             self.data["b64_encoded_image"] = {}
         file_info = get_file_info_by_id(self.data["file_id"], update_if_live=True)
-        if file_info["name"].endswith(".tif") or file_info["name"].endswith(".tiff"):
+        ext = os.path.splitext(file_info["location"].split("/")[-1])[-1].lower()
+        if ext in (".tif", ".tiff"):
             im = Image.open(file_info["location"])
-            LOGGER.warning("Making base64 encoding of tif")
             with io.BytesIO() as f:
                 im.save(f, format="PNG")
                 f.seek(0)
-                self.data["b64_encoded_image"][self.data["file_id"]] = base64.b64encode(
+                self.data["b64_encoded_image"][str(self.data["file_id"])] = base64.b64encode(
                     f.getvalue()
                 ).decode()
 

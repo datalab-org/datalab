@@ -1,9 +1,8 @@
-import pymongo.errors
 from flask import Blueprint, jsonify, request
+from werkzeug.exceptions import BadRequest, NotImplemented
 
 from pydatalab.apps import BLOCK_TYPES
 from pydatalab.blocks.base import DataBlock
-from pydatalab.logger import LOGGER
 from pydatalab.mongo import flask_mongo
 from pydatalab.permissions import active_users_or_get_only, get_default_permissions
 
@@ -16,6 +15,7 @@ def _(): ...
 
 
 @BLOCKS.route("/add-data-block/", methods=["POST"])
+@BLOCKS.route("/blocks/", methods=["PUT"])
 def add_data_block():
     """Call with AJAX to add a block to the sample"""
 
@@ -27,20 +27,12 @@ def add_data_block():
     insert_index = request_json["index"]
 
     if block_type not in BLOCK_TYPES:
-        return (
-            jsonify(
-                status="error",
-                message=f"Invalid block type {block_type!r}, must be one of {BLOCK_TYPES.keys()}",
-            ),
-            400,
+        raise NotImplemented(  # noqa
+            f"Invalid block type {block_type!r}, must be one of {BLOCK_TYPES.keys()}"
         )
 
     block = BLOCK_TYPES[block_type](item_id=item_id)
 
-    data = block.to_db()
-
-    # currently, adding to both blocks and blocks_obj to mantain compatibility with
-    # the old site. The new site only uses blocks_obj
     if insert_index:
         display_order_update = {
             "$each": [block.block_id],
@@ -52,8 +44,8 @@ def add_data_block():
     result = flask_mongo.db.items.update_one(
         {"item_id": item_id, **get_default_permissions(user_only=True)},
         {
-            "$push": {"blocks": data, "display_order": display_order_update},
-            "$set": {f"blocks_obj.{block.block_id}": data},
+            "$push": {"display_order": display_order_update},
+            "$set": {f"blocks_obj.{block.block_id}": block.to_db()},
         },
     )
 
@@ -93,7 +85,9 @@ def add_collection_data_block():
     insert_index = request_json["index"]
 
     if block_type not in BLOCK_TYPES:
-        return jsonify(status="error", message="Invalid block type"), 400
+        raise NotImplemented(  # noqa
+            f"Invalid block type {block_type!r}, must be one of {BLOCK_TYPES.keys()}"
+        )
 
     block = BLOCK_TYPES[block_type](collection_id=collection_id)
 
@@ -142,10 +136,13 @@ def add_collection_data_block():
     )
 
 
-def _save_block_to_db(block: DataBlock) -> bool:
+def _save_block_to_db(block: DataBlock) -> None:
     """Save data for a single block within an item to the database,
     overwriting previous data saved there.
-    returns true if successful, false if unsuccessful
+
+    Parameters:
+        block: The instance of DataBlock to save.
+
     """
     updated_block = block.to_db()
     update = {"$set": {f"blocks_obj.{block.block_id}": updated_block}}
@@ -163,52 +160,58 @@ def _save_block_to_db(block: DataBlock) -> bool:
             **get_default_permissions(user_only=False),
         }
 
-    try:
-        result = flask_mongo.db.items.update_one(match, update)
-    except pymongo.errors.DocumentTooLarge:
-        LOGGER.warning(
-            "DocumentTooLarge error occurred while saving block to db, block.block_id='%s'",
-            block.block_id,
-        )
-        return False
+    result = flask_mongo.db.items.update_one(match, update)
 
     if result.matched_count != 1:
-        LOGGER.warning(
-            f"_save_block_to_db failed, likely because item_id ({block.data.get('item_id')}), collection_id ({block.data.get('collection_id')}) and/or block_id ({block.block_id}) wasn't found"
+        raise BadRequest(
+            f"Failed to save block, likely because item_id ({block.data.get('item_id')}), collection_id ({block.data.get('collection_id')}) and/or block_id ({block.block_id}) wasn't found"
         )
-        return False
-    else:
-        return True
 
 
 @BLOCKS.route("/update-block/", methods=["POST"])
+@BLOCKS.route("/blocks/", methods=["POST"])
 def update_block():
-    """Take in json block data from site, process, and spit
-    out updated data. May be used, for example, when the user
-    changes plot parameters and the server needs to generate a new
-    plot.
+    """Updates the server-side data block based on received JSON, including triggering
+    any events associated with the given block type.
+
     """
 
     request_json = request.get_json()
     block_data = request_json["block_data"]
-    blocktype = block_data["blocktype"]
-    save_to_db = request_json.get("save_to_db", False)
+    event_data = request_json.get("event_data", None)
 
-    block = BLOCK_TYPES[blocktype].from_web(block_data)
+    block_type = block_data["blocktype"]
 
-    saved_successfully = False
-    if save_to_db:
-        saved_successfully = _save_block_to_db(block)
+    if block_type not in BLOCK_TYPES:
+        raise NotImplemented(  # noqa
+            f"Invalid block type {block_type!r}, must be one of {BLOCK_TYPES.keys()}"
+        )
+
+    block = BLOCK_TYPES[block_type].from_web(block_data)
+
+    if event_data:
+        try:
+            block.process_events(event_data)
+        except NotImplementedError:
+            pass
+
+    # Save state from UI
+    _save_block_to_db(block)
+
+    # Reload the block with new UI state
+    new_block_data = block.to_web()
+
+    # Save results to DB
+    _save_block_to_db(block)
 
     return (
-        jsonify(
-            status="success", saved_successfully=saved_successfully, new_block_data=block.to_web()
-        ),
+        jsonify(status="success", saved_successfully=True, new_block_data=new_block_data),
         200,
     )
 
 
 @BLOCKS.route("/delete-block/", methods=["POST"])
+@BLOCKS.route("/blocks/", methods=["DELETE"])
 def delete_block():
     """Completely delete a data block from the database. In the future,
     we may consider preserving data by moving it to a different array,

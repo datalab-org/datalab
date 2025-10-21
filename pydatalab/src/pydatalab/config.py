@@ -21,6 +21,8 @@ from pydatalab.models.utils import RandomAlphabeticalRefcodeFactory, RefCodeFact
 
 __all__ = ("CONFIG", "ServerConfig", "DeploymentMetadata", "RemoteFilesystem")
 
+config_logger = logging.getLogger("pydatalab.config")
+
 
 def config_file_settings(settings: BaseSettings) -> dict[str, Any]:
     """Returns a dictionary of server settings loaded from the default or specified
@@ -31,7 +33,7 @@ def config_file_settings(settings: BaseSettings) -> dict[str, Any]:
 
     res = {}
     if config_file.is_file():
-        logging.debug("Loading from config file at %s", config_file)
+        config_logger.debug("Loading from config file at %s", config_file)
         config_file_content = config_file.read_text(encoding=settings.__config__.env_file_encoding)
 
         try:
@@ -40,7 +42,7 @@ def config_file_settings(settings: BaseSettings) -> dict[str, Any]:
             raise RuntimeError(f"Unable to read JSON config file {config_file}") from json_exc
 
     else:
-        logging.debug("Unable to load from config file at %s", config_file)
+        config_logger.debug("Unable to load from config file at %s", config_file)
         res = {}
 
     return res
@@ -132,8 +134,17 @@ class ServerConfig(BaseSettings):
         description="The canonical URL for any UI associated with this instance; will be used for redirects on user login/registration.",
     )
 
+    ROOT_PATH: str = Field(
+        "/",
+        description="The root path of the application, e.g., `/api` if hosting from a subpath.",
+    )
+
+    TESTING: bool = Field(
+        False, description="Whether to run the server in testing mode, i.e., without user auth."
+    )
+
     SECRET_KEY: str = Field(
-        hashlib.sha512((platform.platform() + str(platform.python_build)).encode()).hexdigest(),
+        None,
         description="The secret key to use for Flask. This value should be changed and/or loaded from an environment variable for production deployments.",
     )
 
@@ -157,10 +168,6 @@ class ServerConfig(BaseSettings):
     )
 
     DEBUG: bool = Field(True, description="Whether to enable debug-level logging in the server.")
-
-    TESTING: bool = Field(
-        False, description="Whether to run the server in testing mode, i.e., without user auth."
-    )
 
     IDENTIFIER_PREFIX: str = Field(
         None,
@@ -276,6 +283,29 @@ its importance when deploying a datalab instance.""",
             )
         return values
 
+    @validator("SECRET_KEY", pre=True, always=True)
+    def validate_secret_key(cls, v, values):
+        if v is None:
+            if values.get("TESTING"):
+                config_logger.error(
+                    "`CONFIG.TESTING` is enabled - generating a deterministic secret key for testing purposes. This MUST be updated for production deployments."
+                )
+                return hashlib.sha512(
+                    (platform.platform() + str(platform.python_build)).encode()
+                ).hexdigest()
+
+        return v
+
+    @validator("ROOT_PATH")
+    def validate_root_path(cls, v):
+        if not v.startswith("/"):
+            v = "/" + v
+
+        if not v.endswith("/"):
+            v = v + "/"
+
+        return v
+
     @validator("IDENTIFIER_PREFIX", pre=True, always=True)
     def validate_identifier_prefix(cls, v, values):
         """Make sure that the identifier prefix is set and is valid, raising clear error messages if not.
@@ -349,30 +379,4 @@ its importance when deploying a datalab instance.""",
 CONFIG: ServerConfig = ServerConfig()
 """The global server configuration object.
 This is a singleton instance of the `ServerConfig` model.
-"""
-
-
-class AuthMechanisms(BaseModel):
-    github: bool = False
-    orcid: bool = False
-    email: bool = False
-
-
-class AIIntegrations(BaseModel):
-    openai: bool = False
-    anthropic: bool = False
-
-
-class FeatureFlags(BaseModel):
-    auth_mechanisms: AuthMechanisms = AuthMechanisms()
-    ai_integrations: AIIntegrations = AIIntegrations()
-    email_notifications: bool = False
-
-
-FEATURE_FLAGS: FeatureFlags = FeatureFlags()
-"""The global feature flags object.
-
-This is a singleton of `FeatureFlags` that can be used to see
-the enabled features of the app at a higher-level to the
-configuration (e.g., includes runtime environment checks).
 """

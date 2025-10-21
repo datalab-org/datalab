@@ -119,25 +119,31 @@ dev-dependencies = [
     "pytest ~= 8.2",
     "pytest-cov ~= 5.0",
     "pytest-dependency ~= 0.6",
+    "pytest-memray ~= 1.8",
     "pre-commit ~= 4.0",
     "mongomock ~= 4.1",
     "mkdocs ~= 1.6",
     "mkdocs-material ~= 9.5",
     "mkdocstrings[python] ~= 0.29",
+    "docstring-inheritance ~= 2.2",
+    "griffe-inherited-docstrings ~= 1.1",
     "mkdocs-awesome-pages-plugin ~= 2.9",
     "markdown-callouts ~= 0.4",
 ]
 
 [tool.uv.sources]
-datalab-app-plugin-insitu = { git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git", rev = "v0.1.6" }
+datalab-app-plugin-insitu = { git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git", rev = "v0.2.0" }
 
 [tool.pytest.ini_options]
-addopts = "--cov-report=term --cov-report=xml --cov ./src/pydatalab"
+addopts = "--cov-report=xml --cov ./src/pydatalab"
 filterwarnings = [
     "error",
+    "ignore:.*Capacity columns are not equal, replacing with new capacity column calculated from current and time columns and renaming the old capacity column to Old Capacity:UserWarning",
     "ignore:.*np.bool8*:DeprecationWarning",
     "ignore::pytest.PytestUnraisableExceptionWarning",
     "ignore:.*JCAMP-DX key without value*:UserWarning",
+    "ignore:.*Unable to find wavenumber unit*:UserWarning",
+    "ignore:.*Unable to find wavenumber offset*:UserWarning",
 ]
 
 [tool.liccheck]
@@ -163,6 +169,7 @@ authorized_licenses = [
     "mit license",
     "python software foundation license",
     "python software foundation",
+    "PSF-2.0",
     "the unlicense",
     "zpl 2.1",
     "cmu license (MIT-CMU)",
@@ -174,6 +181,6 @@ unauthorized_licenses = [
 as_regex = true
 
 [tool.liccheck.authorized_packages]
-newarenda = ">=2025,<2026"
-galvani = ">=0.5"
+datalab-org-galvani = ">=0.5"
 flask-cors = ">=5,<7"
+regex = ">=2025"

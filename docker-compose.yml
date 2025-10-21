@@ -26,7 +26,6 @@ services:
       context: .
       dockerfile: .docker/server_dockerfile
       args:
-        WEB_CONCURRENCY: ${WEB_CONCURRENCY:-4}
         SETUPTOOLS_SCM_PRETEND_VERSION: ${SETUPTOOLS_SCM_PRETEND_VERSION}
     depends_on:
       - database
@@ -41,6 +40,9 @@ services:
       - backend
     environment:
       - PYDATALAB_MONGO_URI=mongodb://database:27017/datalabvue
+      - WEB_CONCURRENCY=4
+      - GUNICORN_CMD_ARGS=--preload --timeout 120 --graceful-timeout 90
+      - PORT=5001
 
   database:
     profiles: ["prod"]

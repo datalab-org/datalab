@@ -2,13 +2,14 @@ import warnings
 from pathlib import Path
 
 import bokeh.embed
-import numpy as np
 import pandas as pd
 from bokeh.models import HoverTool
 
 from pydatalab.blocks.base import DataBlock
 from pydatalab.bokeh_plots import DATALAB_BOKEH_THEME, selectable_axes_plot
 from pydatalab.file_utils import get_file_info_by_id
+
+from .utils import find_absorbance, parse_uvvis_txt
 
 
 class UVVisBlock(DataBlock):
@@ -24,40 +25,6 @@ class UVVisBlock(DataBlock):
     @property
     def plot_functions(self):
         return (self.generate_absorbance_plot,)
-
-    @classmethod
-    def parse_uvvis_txt(self, filename: Path) -> pd.DataFrame:
-        """
-        Parses a UV-Vis .txt file into a pandas DataFrame
-        Args:
-            filename (Path): Path to the .txt file
-        Returns:
-            pd.DataFrame: DataFrame containing the UV-Vis data with columns for wavelength and absorbance
-        """
-        # Read the file, skipping the first 7 rows and using the first row as header
-        data = pd.read_csv(filename, sep=r";", skiprows=7, header=None)
-
-        # I need to look into what dark counts and reference counts are - I never used them just the sample counts from two differernt runs
-        data.columns = ["Wavelength", "Sample counts", "Dark counts", "Reference counts"]
-        return data
-
-    @classmethod
-    def find_absorbance(self, data_df, reference_df):
-        """
-        Calculates the absorbance from the sample and reference dataframes
-        Args:
-            data_df (pd.DataFrame): DataFrame containing the sample data
-            reference_df (pd.DataFrame): DataFrame containing the reference data
-        Returns:
-            pd.DataFrame: DataFrame containing the absorbance data
-        """
-        # Calculate absorbance using Beer-Lambert Law
-        absorbance = -np.log10(data_df["Sample counts"] / reference_df["Sample counts"])
-        # Create a new DataFrame with the wavelength and absorbance
-        absorbance_data = pd.DataFrame(
-            {"Wavelength": data_df["Wavelength"], "Absorbance": absorbance}
-        )
-        return absorbance_data
 
     @classmethod
     def _format_UV_Vis_plot(
@@ -99,7 +66,7 @@ class UVVisBlock(DataBlock):
             }  # Ensure names are strings
         else:
             # Generate default names if none provided, ensuring keys are strings
-            plot_data_input = {f"Spectrum {i+1}": df for i, df in enumerate(absorbance_data_list)}
+            plot_data_input = {f"Spectrum {i + 1}": df for i, df in enumerate(absorbance_data_list)}
 
         # Define the specific HoverTool configuration needed for UV-Vis
         uv_hover_tool = HoverTool(
@@ -157,15 +124,15 @@ class UVVisBlock(DataBlock):
                         f"Unsupported file extension (must be one of {self.accepted_file_extensions}, not {ext})"
                     )
 
-            reference_data = self.parse_uvvis_txt(Path(file_info[0]["location"]))
+            reference_data = parse_uvvis_txt(Path(file_info[0]["location"]))
             absorbance_data = []
             for file in file_info[1:]:
-                sample_data = self.parse_uvvis_txt(Path(file["location"]))
+                sample_data = parse_uvvis_txt(Path(file["location"]))
                 if sample_data is None or reference_data is None:
                     warnings.warn("Could not parse the UV-Vis data files")
                     return
                 # Calculate absorbance
-                absorbance_data.append(self.find_absorbance(sample_data, reference_data))
+                absorbance_data.append(find_absorbance(sample_data, reference_data))
         _names = [Path(file["location"]).name for file in file_info[1:]]
         if len(absorbance_data) > 0:
             layout = self._format_UV_Vis_plot(absorbance_data, names=_names)

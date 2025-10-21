@@ -1,10 +1,11 @@
-import os
 from collections.abc import Callable, Iterable
 from typing import Any
 
 from flask import Response, jsonify
 from pydantic import ValidationError
 from werkzeug.exceptions import Forbidden, HTTPException, RequestEntityTooLarge
+
+from pydatalab.logger import LOGGER
 
 
 class UserRegistrationForbidden(Forbidden):
@@ -37,7 +38,8 @@ def handle_http_exception(exc: HTTPException) -> tuple[Response, int]:
     """Return a specific error message and status code if the exception stores them."""
     response = {
         "title": exc.__class__.__name__,
-        "description": exc.description,
+        "message": exc.description,
+        "status": "error",
     }
     status_code = exc.code if exc.code else 400
 
@@ -56,8 +58,8 @@ def handle_large_file_exception(exc: RequestEntityTooLarge) -> tuple[Response, i
     response = {
         "title": exc.__class__.__name__,
         "status": "error",
-        "description": f"""Uploaded file is too large.
-The maximum file size is {CONFIG.MAX_CONTENT_LENGTH / 1024 ** 3:.2f} GB.
+        "message": f"""Uploaded file is too large.
+The maximum file size is {CONFIG.MAX_CONTENT_LENGTH / 1024**3:.2f} GB.
 Contact your datalab administrator if you need to upload larger files.""",
     }
     return jsonify(response), 413
@@ -71,18 +73,24 @@ def handle_pydantic_validation_error(exc: ValidationError) -> tuple[Response, in
     response = {
         "title": exc.__class__.__name__,
         "message": str(exc.args[:]) if exc.args else "",
+        "status": "error",
     }
     return jsonify(response), 500
 
 
 def handle_generic_exception(exc: Exception) -> tuple[Response, int]:
     """Return a specific error message and status code if the exception stores them."""
-    if os.environ.get("FLASK_ENV") == "development":
-        raise exc
+
+    LOGGER.critical(
+        "An unhandled exception occurred: %s",
+        exc,
+        exc_info=True,
+    )
 
     response = {
-        "title": exc.__class__.__name__,
-        "message": str(exc.args) if exc.args else "",
+        "title": "Internal Server Error",
+        "message": exc.__class__.__name__ + " " + str(exc.args) if exc.args else "",
+        "status": "error",
     }
     return jsonify(response), 500
 

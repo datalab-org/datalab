@@ -1,11 +1,9 @@
 import { createStore } from "vuex";
 import UserBubbleLogin from "@/components/UserBubbleLogin.vue";
 import NotificationDot from "@/components/NotificationDot.vue";
-import crypto from "crypto";
+import { md5 } from "js-md5";
 
 describe("UserBubbleLogin", () => {
-  const md5 = (value) => crypto.createHash("md5").update(value).digest("hex");
-
   const creator = {
     contact_email: "test@contact.email",
     display_name: "Test User",

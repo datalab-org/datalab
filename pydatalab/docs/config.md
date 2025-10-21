@@ -12,8 +12,10 @@ administration"](deployment.md).
 1. The Python [`ServerConfig`][pydatalab.config.ServerConfig] (described below) that allows for *datalab*-specific configuration, such as database connection info, filestore locations and remote filesystem configuration.
 .
     - This can be provided via a JSON or YAML config file at the location provided by the `PYDATALAB_CONFIG_FILE` environment variable, or as environment variables themselves, prefixed with `PYDATALAB_`. The available configuration variables and their default values are listed below.
-2. Additional server configuration provided as environment variables, such as secrets like Flask's [`SECRET_KEY`][pydatalab.config.ServerConfig.SECRET_KEY], API keys for external services (e.g., SMTP) and OAuth client credentials (for logging in via GitHub or ORCID).
-    - These can be provided as environment variables or in a `.env` file in the directory from which `pydatalab` is launched.
+2. Additional server configuration provided as environment variables, such as secrets like the Flask server's [`SECRET_KEY`][pydatalab.config.ServerConfig.SECRET_KEY], API keys for external services (e.g., SMTP `MAIL_PASSWORD`) and OAuth client credentials (for logging in via GitHub or ORCID).
+These can be provided as either:
+    - environment variables with the appropriate `FLASK_` or `PYDATALAB_` prefix (for options that are also in the config model from option 1.)
+    - an `.env` file in the directory from which `pydatalab` is launched (NB: here, the `FLASK_` prefix is not required, but any options present in the pydatalab config must still have the `PYDATALAB_` prefix).
 3. Web app configuration, such as the URL of the relevant *datalab* API and branding (logo URLs, external homepage links).
     - These are typically provided as a `.env` file in the directory from which the webapp is built/served.
     - The main options include (a full list can be found in the `docker-compose.yml` file):
@@ -32,7 +34,7 @@ administration"](deployment.md).
 
 There is only one mandatory setting when creating a deployment.
 This is the [`IDENTIFIER_PREFIX`][pydatalab.config.ServerConfig.IDENTIFIER_PREFIX], which shall be prepended to every entry's refcode to enable global uniqueness of *datalab* entries.
-For now, the prefixes themselves are not checked for uniqueness across the fledling *datalab* federation, but will in the future.
+For now, the prefixes themselves are not checked for uniqueness across the fledgling *datalab* federation, but will in the future.
 
 This prefix should be set to something relatively short (max 10 chars.) that describes your group or your deployment, e.g., the PI's surname, project ID or department.
 
@@ -77,7 +79,7 @@ To support sign-in via email magic-links, you must currently provide additional 
 The SMTP server must be configured via the settings [`EMAIL_AUTH_SMTP_SETTINGS`][pydatalab.config.ServerConfig.EMAIL_AUTH_SMTP_SETTINGS], with expected values `MAIL_SERVER`, `MAIL_USER`, `MAIL_DEFAULT_SENDER`, `MAIL_PORT` and `MAIL_USE_TLS`, following the environment variables described in the [Flask-Mail documentation](https://flask-mail.readthedocs.io/en/latest/#configuring-flask-mail).
 The `MAIL_PASSWORD` setting should then be provided via a `.env` file.
 
-Third-party options could include [SendGrid](https://sendgrid.com/), which can be configured to use the `MAIL_USER` `apikey` with an appropriate API key, after verifying ownership of the `MAIL_DEFAULT_SENDER` address via DNS (see [the SendGrid documentation](https://sendgrid.com/en-us/blog/sending-emails-from-python-flask-applications-with-twilio-sendgrid) for an example configuration).
+Third-party options with a free tier include [resend](https://resend.com/), which can be configured to use an appropriate API key, after verifying ownership of the `MAIL_DEFAULT_SENDER` address via DNS (see [resend](https://resend.com/docs/dashboard/domains/introduction) for an example configuration).
 
 The email addresses that are allowed to sign up can be restricted by domain/subdomain using the [`EMAIL_DOMAIN_ALLOW_LIST`][pydatalab.config.ServerConfig.EMAIL_DOMAIN_ALLOW_LIST] setting.
 
@@ -97,20 +99,24 @@ Currently, there are two mechanisms for accessing remote files:
 
 ::: pydatalab.config.ServerConfig
     options:
+      heading_level: 2
+      show_root_heading: true
       show_source: false
-      heading_level: 3
 
 ::: pydatalab.config.RemoteFilesystem
     options:
+      heading_level: 2
+      show_root_heading: true
       show_source: false
-      heading_level: 3
 
 ::: pydatalab.config.SMTPSettings
     options:
+      heading_level: 2
+      show_root_heading: true
       show_source: false
-      heading_level: 3
 
 ::: pydatalab.config.DeploymentMetadata
     options:
+      heading_level: 2
+      show_root_heading: true
       show_source: false
-      heading_level: 3

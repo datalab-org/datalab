@@ -1,7 +1,6 @@
 name: CI tests
 on:
   pull_request:
-    types: [ready_for_review, opened, synchronize, reopened]
 
   push:
     branches:
@@ -9,6 +8,7 @@ on:
 
 env:
   FORCE_COLOR: true
+  UV_VERSION: "0.8.4"
 
 concurrency:
   group: ${{ github.head_ref || github.run_id }}
@@ -30,7 +30,7 @@ jobs:
       - name: Set up uv
         uses: astral-sh/setup-uv@v6
         with:
-          version: "0.6.4"
+          version: ${{ env.UV_VERSION }}
           enable-cache: true
 
       - name: Install dependencies
@@ -78,7 +78,7 @@ jobs:
       - name: Set up uv
         uses: astral-sh/setup-uv@v6
         with:
-          version: "0.6.4"
+          version: ${{ env.UV_VERSION }}
           working-directory: "./pydatalab"
           enable-cache: true
 
@@ -129,7 +129,7 @@ jobs:
       fail-fast: false
       max-parallel: 3
       matrix:
-        browser-backend: ["electron", "chrome", "firefox"]
+        browser-backend: ["electron", "chrome"] # , "firefox"]  # Temporarily disable Firefox until migration to Cypress v14 (https://github.com/datalab-org/datalab/issues/1289)
 
     steps:
       - uses: actions/checkout@v4

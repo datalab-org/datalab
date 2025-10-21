@@ -1,6 +1,17 @@
 <template>
   <router-view />
+  <DialogContainer />
 </template>
+
+<script>
+import DialogContainer from "@/components/DialogContainer.vue";
+
+export default {
+  components: {
+    DialogContainer,
+  },
+};
+</script>
 
 <style>
 body {

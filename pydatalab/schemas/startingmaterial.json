@@ -26,7 +26,10 @@
     "blocks_obj": {
       "title": "Blocks Obj",
       "default": {},
-      "type": "object"
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/DataBlockResponse"
+      }
     },
     "display_order": {
       "title": "Display Order",
@@ -285,6 +288,85 @@
         "quantity"
       ]
     },
+    "DataBlockResponse": {
+      "title": "DataBlockResponse",
+      "description": "A generic response model for a block, i.e., what is stored in `self.data`\nin the corresponding DataBlock class.\n\nIt is expected but not mandatory that this model will be extended by the specific block type\nwhere possible.",
+      "type": "object",
+      "properties": {
+        "blocktype": {
+          "title": "Blocktype",
+          "type": "string"
+        },
+        "block_id": {
+          "title": "Block Id",
+          "type": "string"
+        },
+        "item_id": {
+          "title": "Item Id",
+          "type": "string"
+        },
+        "collection_id": {
+          "title": "Collection Id",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "freeform_comment": {
+          "title": "Freeform Comment",
+          "type": "string"
+        },
+        "file_id": {
+          "title": "File Id",
+          "type": "string"
+        },
+        "file_ids": {
+          "title": "File Ids",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "errors": {
+          "title": "Errors",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "warnings": {
+          "title": "Warnings",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "b64_encoded_image": {
+          "title": "B64 Encoded Image",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "bokeh_plot_data": {
+          "title": "Bokeh Plot Data",
+          "type": "object"
+        },
+        "computed": {
+          "title": "Computed",
+          "type": "object"
+        },
+        "metadata": {
+          "title": "Metadata",
+          "type": "object"
+        }
+      },
+      "required": [
+        "blocktype",
+        "block_id"
+      ]
+    },
     "RelationshipType": {
       "title": "RelationshipType",
       "description": "An enumeration of the possible types of relationship between two entries.\n\n```mermaid\nclassDiagram\nclass entryC\nentryC --|> entryA: parent\nentryC ..|> entryD\nentryA <..> entryD: sibling\nentryA --|> entryB : child\n```",
@@ -470,7 +552,10 @@
         "blocks_obj": {
           "title": "Blocks Obj",
           "default": {},
-          "type": "object"
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/DataBlockResponse"
+          }
         },
         "display_order": {
           "title": "Display Order",

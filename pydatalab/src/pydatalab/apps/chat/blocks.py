@@ -1,16 +1,27 @@
 import json
-import os
+import warnings
 
-from langchain_anthropic import ChatAnthropic
-from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_openai import ChatOpenAI
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from pydantic import Field
 
 from pydatalab.blocks.base import DataBlock
 from pydatalab.logger import LOGGER
 from pydatalab.models import ITEM_MODELS
+from pydatalab.models.blocks import DataBlockResponse
 from pydatalab.utils import CustomJSONEncoder
 
+from .models import AVAILABLE_MODELS, ModelCard
+
 __all__ = ("ChatBlock",)
+
+
+class ChatBlockResponse(DataBlockResponse):
+    messages: list[dict] = Field(default_factory=list)
+    prompt: str | None
+    model: str
+    available_models: dict[str, ModelCard]
+    token_count: int | None
+    temperature: float
 
 
 class ChatBlock(DataBlock):
@@ -33,11 +44,12 @@ class ChatBlock(DataBlock):
 
     """
 
+    block_db_model = ChatBlockResponse
+
     blocktype = "chat"
     description = "Virtual LLM assistant block allows you to converse with your data."
     name = "Whinchat assistant"
     accepted_file_extensions = None
-    chat_client: BaseChatModel | None = None
 
     __supports_collections = True
 
@@ -48,106 +60,58 @@ Answer questions in markdown. Specify the language for all markdown code blocks.
 Be as concise as possible. When saying your name, type a bird emoji right after whinchat 🐦.
         """,
         "temperature": 0.2,
-        "error_message": None,
         "model": "gpt-4o",
-        "available_models": {
-            "claude-3-5-sonnet-20241022": {
-                "name": "claude-3-5-sonnet-20241022",
-                "context_window": 200_000,
-                "input_cost_usd_per_MTok": 3.00,
-                "output_cost_usd_per_MTok": 15.00,
-            },
-            "claude-3-5-haiku-20241022": {
-                "name": "claude-3-haiku-20241022",
-                "context_window": 200_000,
-                "input_cost_usd_per_MTok": 1.00,
-                "output_cost_usd_per_MTok": 5.00,
-            },
-            "claude-3-haiku-20240307": {
-                "name": "claude-3-haiku-20240307",
-                "context_window": 200_000,
-                "input_cost_usd_per_MTok": 0.25,
-                "output_cost_usd_per_MTok": 1.25,
-            },
-            "claude-3-opus-20240229": {
-                "name": "claude-3-opus-20240229",
-                "context_window": 200000,
-                "input_cost_usd_per_MTok": 15.00,
-                "output_cost_usd_per_MTok": 75.00,
-            },
-            "gpt-4o": {
-                "name": "gpt-4o",
-                "context_window": 128000,
-                "input_cost_usd_per_MTok": 5.00,
-                "output_cost_usd_per_MTok": 15.00,
-            },
-            "gpt-4o-mini": {
-                "name": "gpt-4o-mini",
-                "context_window": 128_000,
-                "input_cost_usd_per_MTok": 0.15,
-                "output_cost_usd_per_MTok": 0.60,
-            },
-            "gpt-4": {
-                "name": "gpt-4",
-                "context_window": 8192,
-                "input_cost_usd_per_MTok": 30.00,
-                "output_cost_usd_per_MTok": 60.00,
-            },
-            "gpt-4-turbo": {
-                "name": "gpt-4-turbo",
-                "context_window": 128000,
-                "input_cost_usd_per_MTok": 10.00,
-                "output_cost_usd_per_MTok": 30.00,
-            },
-        },
+        "available_models": AVAILABLE_MODELS,
     }
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-    def to_db(self):
-        """returns a dictionary with the data for this
-        block, ready to be input into mongodb"""
-        self.render()
-        return super().to_db()
 
     @property
     def plot_functions(self):
         return (self.render,)
 
-    def render(self):
-        if not self.data.get("messages"):
-            if (item_id := self.data.get("item_id")) is not None:
-                info_json = self._prepare_item_json_for_chat(item_id)
-            elif (collection_id := self.data.get("collection_id")) is not None:
-                info_json = self._prepare_collection_json_for_chat(collection_id)
-            else:
-                raise RuntimeError("No item or collection id provided")
+    def start_conversation(
+        self, item_data: dict | None = None, collection_data: dict | None = None
+    ):
+        """Starts a new conversation with the system prompt, embedding
+        the current item or collection data.
 
-            self.data["messages"] = [
-                {
-                    "role": "system",
-                    "content": self.defaults["system_prompt"],
-                },
-                {
-                    "role": "user",
-                    "content": f"""Here is the JSON data for the current item(s): {info_json}.
+        """
+
+        if (item_id := self.data.get("item_id")) is not None:
+            info_json = self._prepare_item_json_for_chat(item_id, item_data=item_data)
+        elif (collection_id := self.data.get("collection_id")) is not None:
+            info_json = self._prepare_collection_json_for_chat(
+                collection_id, collection_data=collection_data
+            )
+        else:
+            raise RuntimeError("No item or collection id provided")
+
+        self.data["messages"] = [
+            {
+                "role": "system",
+                "content": self.defaults["system_prompt"],
+            },
+            {
+                "role": "user",
+                "content": f"""Here is the JSON data for the current item(s): {info_json}.
 Start with a friendly introduction and give me a one sentence summary of what this is (not detailed, no information about specific masses). """,
-                },
-            ]
+            },
+        ]
 
-        if self.data.get("prompt") and self.data.get("prompt").strip():
+    def continue_conversation(self, prompt: str | None) -> None:
+        """Continues the conversation based on the passed user prompt.
+
+        Parameters:
+            prompt: The textual response from the user.
+
+        """
+        if prompt and prompt.strip():
             self.data["messages"].append(
                 {
                     "role": "user",
-                    "content": self.data["prompt"],
+                    "content": prompt,
                 }
             )
             self.data["prompt"] = None
-        else:
-            LOGGER.debug(
-                "Chat block: no prompt was provided (or prompt was entirely whitespace), so no inference will be performed"
-            )
 
         try:
             if self.data["messages"][-1].role not in ("user", "system"):
@@ -156,9 +120,9 @@ Start with a friendly introduction and give me a one sentence summary of what th
             if self.data["messages"][-1]["role"] not in ("user", "system"):
                 return
 
-        if self.data.get("model") not in self.data.get("available_models", {}):
+        if self.data.get("model") not in AVAILABLE_MODELS:
             bad_model = self.data.get("model")
-            self.data["error_message"] = (
+            warnings.warn(
                 f"Chatblock received an unknown or deprecated model: {bad_model}. Reverting to default model {self.defaults['model']}."
             )
             self.data["model"] = self.defaults["model"]
@@ -166,25 +130,19 @@ Start with a friendly introduction and give me a one sentence summary of what th
         try:
             model_name = self.data["model"]
 
-            model_dict = self.data["available_models"][model_name]
-            LOGGER.warning(f"Initializing chatblock with model: {model_name}")
+            model_cls = AVAILABLE_MODELS[model_name]
 
-            if model_name.startswith("claude"):
-                self.chat_client = ChatAnthropic(
-                    anthropic_api_key=os.environ.get("ANTHROPIC_API_KEY"),
-                    model=model_name,
+            if model_cls.chat_client is None:
+                raise RuntimeError(
+                    f"The model {model_name} is not available. Please choose a different model."
                 )
-            elif model_name.startswith("gpt"):
-                self.chat_client = ChatOpenAI(
-                    api_key=os.environ.get("OPENAI_API_KEY"),
-                    model=model_name,
-                )
+
+            chat_client = model_cls.chat_client(model=model_cls.name)
 
             LOGGER.debug(
-                f"submitting request to API for completion with last message role \"{self.data['messages'][-1]['role']}\" (message = {self.data['messages'][-1:]}). Temperature = {self.data['temperature']} (type {type(self.data['temperature'])})"
+                f'submitting request to API for completion with last message role "{self.data["messages"][-1]["role"]}" (message = {self.data["messages"][-1:]}).'
+                f"Temperature = {self.data['temperature']} (type {type(self.data['temperature'])})"
             )
-            from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
-
             # Convert your messages to the required format
             langchain_messages = []
             for message in self.data["messages"]:
@@ -195,54 +153,68 @@ Start with a friendly introduction and give me a one sentence summary of what th
                 else:
                     langchain_messages.append(AIMessage(content=message["content"]))
 
-            token_count = self.chat_client.get_num_tokens_from_messages(langchain_messages)
+            if model_cls.name == "langchain-debug":
+                token_count = sum(len(m["content"]) for m in self.data["messages"])
+            else:
+                token_count = chat_client.get_num_tokens_from_messages(langchain_messages)
 
             self.data["token_count"] = token_count
 
-            if token_count >= model_dict["context_window"]:
-                self.data["error_message"] = (
-                    f"""This conversation has reached its maximum context size and the chatbot won't be able to respond further ({token_count} tokens, max: {model_dict['context_window']}). Please make a new chat block to start fresh, or use a model with a larger context window"""
+            if token_count >= model_cls.context_window:
+                raise RuntimeError(
+                    f"""This conversation has reached its maximum context size and the chatbot won't be able to respond further
+({token_count} tokens, max: {model_cls.context_window}).
+Please make a new chat block to start fresh, or use a model with a larger context window."""
                 )
-                return
 
             # Call the chat client with the invoke method
-            response = self.chat_client.invoke(langchain_messages)
+            response = chat_client.invoke(langchain_messages)
 
             langchain_messages.append(response)
 
-            token_count = self.chat_client.get_num_tokens_from_messages(langchain_messages)
-
-            self.data["token_count"] = token_count
+            # Now recalculate the token count after model output
             self.data["messages"].append({"role": "assistant", "content": response.content})
-            self.data["error_message"] = None
+            if model_cls.name == "langchain-debug":
+                token_count = sum(len(m["content"]) for m in self.data["messages"])
+            else:
+                token_count = chat_client.get_num_tokens_from_messages(langchain_messages)
+            self.data["token_count"] = token_count
 
         except Exception as exc:
-            LOGGER.debug("Received an error from API: %s", exc)
-            self.data["error_message"] = (
+            raise RuntimeError(
                 f"Received an error from the API: {exc}.\n\n Consider choosing a different model and reloading the block."
             )
-            return
 
-    def _prepare_item_json_for_chat(self, item_id: str):
+    def render(self):
+        if not self.data.get("messages"):
+            self.start_conversation()
+
+        self.continue_conversation(self.data.get("prompt"))
+
+    def _prepare_item_json_for_chat(self, item_id: str, item_data: dict | None = None):
         from pydatalab.routes.v0_1.items import get_item_data
 
-        item_info = get_item_data(item_id, load_blocks=False).json
+        if item_data is None:
+            item_data = get_item_data(item_id).json
 
-        model = ITEM_MODELS[item_info["item_data"]["type"]](**item_info["item_data"])
-        if model.blocks_obj:
-            model.blocks_obj = {
-                k: value for k, value in model.blocks_obj.items() if value["blocktype"] != "chat"
+            if item_data["status"] != "success":
+                raise RuntimeError(f"Attempt to get item data for {item_id=} failed.")
+
+        item_model = ITEM_MODELS[item_data["item_data"]["type"]](**item_data["item_data"])
+        if item_model.blocks_obj:
+            item_model.blocks_obj = {
+                k: block for k, block in item_model.blocks_obj.items() if block.blocktype != "chat"
             }
-        item_info = model.dict(exclude_none=True, exclude_unset=True)
-        item_info["type"] = model.type
+        item_data = item_model.dict(exclude_none=True, exclude_unset=True)
+        item_data["type"] = item_model.type
 
         # strip irrelevant or large fields
         item_filenames = {
-            str(file["immutable_id"]): file["name"] for file in item_info.get("files", [])
+            str(file["immutable_id"]): file["name"] for file in item_data.get("files", [])
         }
 
-        big_data_keys = ["bokeh_plot_data", "b64_encoded_image"]
-        for block in item_info.get("blocks_obj", {}).values():
+        big_data_keys = ["bokeh_plot_data", "b64_encoded_image", "computed"]
+        for block in item_data.get("blocks_obj", {}).values():
             block_fields_to_remove = ["item_id", "block_id", "collection_id"] + big_data_keys
             [block.pop(field, None) for field in block_fields_to_remove]
 
@@ -251,13 +223,12 @@ Start with a friendly introduction and give me a one sentence summary of what th
                 "acquisition_parameters",
                 "carrier_offset_Hz",
                 "nscans",
-                "processed_data",
                 "processed_data_shape",
                 "processing_parameters",
                 "pulse_program",
                 "selected_process",
             ]
-            [block.pop(field, None) for field in NMR_fields_to_remove]
+            [block["metadata"].pop(field, None) for field in NMR_fields_to_remove]
 
             # replace file_id with the actual filename
             file_id = block.pop("file_id", None)
@@ -276,22 +247,22 @@ Start with a friendly introduction and give me a one sentence summary of what th
         ]
 
         for k in top_level_keys_to_remove:
-            item_info.pop(k, None)
+            item_data.pop(k, None)
 
-        for ind, f in enumerate(item_info.get("relationships", [])):
-            item_info["relationships"][ind] = {
+        for ind, f in enumerate(item_data.get("relationships", [])):
+            item_data["relationships"][ind] = {
                 k: v for k, v in f.items() if k in ["item_id", "type", "relation"]
             }
-        item_info["files"] = [file["name"] for file in item_info.get("files", [])]
-        item_info["creators"] = [
-            creator["display_name"] for creator in item_info.get("creators", [])
+        item_data["files"] = [file["name"] for file in item_data.get("files", [])]
+        item_data["creators"] = [
+            creator["display_name"] for creator in item_data.get("creators", [])
         ]
 
         # move blocks from blocks_obj to a simpler list to further cut down tokens,
         # especially in alphanumeric block_id fields
-        item_info["blocks"] = [block for block in item_info.pop("blocks_obj", {}).values()]
+        item_data["blocks"] = [block for block in item_data.pop("blocks_obj", {}).values()]
 
-        item_info = {k: value for k, value in item_info.items() if value}
+        item_data = {k: value for k, value in item_data.items() if value}
 
         for key in [
             "synthesis_constituents",
@@ -299,10 +270,8 @@ Start with a friendly introduction and give me a one sentence summary of what th
             "negative_electrode",
             "electrolyte",
         ]:
-            if key in item_info:
-                for constituent in item_info[key]:
-                    LOGGER.debug("iterating through constituents:")
-                    LOGGER.debug(constituent)
+            if key in item_data:
+                for constituent in item_data[key]:
                     if "quantity" in constituent:
                         constituent["quantity"] = (
                             f"{constituent.get('quantity', 'unknown')} {constituent.get('unit', '')}"
@@ -311,7 +280,7 @@ Start with a friendly introduction and give me a one sentence summary of what th
 
         # Note manual replaces to help avoid escape sequences that take up extra tokens
         item_info_json = (
-            json.dumps(item_info, cls=CustomJSONEncoder)
+            json.dumps(item_data, cls=CustomJSONEncoder)
             .replace('"', "'")
             .replace(r"\'", "'")
             .replace(r"\n", " ")
@@ -319,12 +288,16 @@ Start with a friendly introduction and give me a one sentence summary of what th
 
         return item_info_json
 
-    def _prepare_collection_json_for_chat(self, collection_id: str):
+    def _prepare_collection_json_for_chat(
+        self, collection_id: str, collection_data: dict | None = None
+    ):
         from pydatalab.routes.v0_1.collections import get_collection
 
-        collection_data = get_collection(collection_id).json
-        if collection_data["status"] != "success":
-            raise RuntimeError(f"Attempt to get collection data for {collection_id} failed.")
+        if not collection_data:
+            collection_data = get_collection(collection_id).json
+
+            if collection_data["status"] != "success":
+                raise RuntimeError(f"Attempt to get collection data for {collection_id} failed.")
 
         children = collection_data["child_items"]
         return (

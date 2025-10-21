@@ -104,6 +104,8 @@
 </template>
 
 <script>
+import { DialogService } from "@/services/DialogService";
+
 import Modal from "@/components/Modal.vue";
 import ItemSelect from "@/components/ItemSelect.vue";
 import { createNewItem } from "@/server_fetch_utils.js";
@@ -194,7 +196,6 @@ export default {
           // new items always show up at the top of the sample table
           // // document.getElementById(this.item_id).scrollIntoView({ behavior: "smooth" });
           this.item_id = null;
-          this.name = null;
           this.date = this.now(); // reset date to the new current time
         })
         .catch((error) => {
@@ -208,7 +209,10 @@ export default {
             console.log("error parsing error message", e);
           } finally {
             if (!is_item_id_error) {
-              alert("Error with creating new item: " + error);
+              DialogService.error({
+                title: "Creation Error",
+                message: "Error with creating new item: " + error,
+              });
             }
           }
         });

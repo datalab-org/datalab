@@ -8,7 +8,6 @@ from bson import ObjectId
 from flask.testing import FlaskClient
 
 import pydatalab.mongo
-from pydatalab.main import create_app
 from pydatalab.models import Cell, Collection, Equipment, Sample, StartingMaterial
 from pydatalab.models.people import AccountStatus
 
@@ -21,15 +20,6 @@ class PyMongoMock(mongomock.MongoClient):
 
 
 MONGO_URI = f"mongodb://localhost:27017/{TEST_DATABASE_NAME}"
-
-
-@pytest.fixture(scope="session")
-def monkeypatch_session():
-    from _pytest.monkeypatch import MonkeyPatch
-
-    m = MonkeyPatch()
-    yield m
-    m.undo()
 
 
 @pytest.fixture(scope="module")
@@ -53,7 +43,7 @@ def database(real_mongo_client):
 
 
 @pytest.fixture(scope="session")
-def app_config(tmp_path_factory):
+def app_config(tmp_path_factory, secret_key):
     example_remotes = [
         {
             "name": "example_data",
@@ -71,6 +61,8 @@ def app_config(tmp_path_factory):
         "REMOTE_FILESYSTEMS": example_remotes,
         "FILE_DIRECTORY": str(tmp_path_factory.mktemp("files")),
         "TESTING": False,
+        "ROOT_PATH": "/",
+        "SECRET_KEY": secret_key,
         "EMAIL_AUTH_SMTP_SETTINGS": {
             "MAIL_SERVER": "smtp.example.com",
             "MAIL_PORT": 587,
@@ -96,6 +88,7 @@ def app(real_mongo_client, monkeypatch_session, app_config):
     mongomock testing backend.
 
     """
+    from pydatalab.main import create_app
 
     try:
         mongo_cli = real_mongo_client
@@ -163,6 +156,12 @@ def client(app, user_api_key):
 
 
 @pytest.fixture(scope="function")
+def another_client(app, another_user_api_key):
+    """Returns a test client for the API with a second normal user access."""
+    yield client_factory(app, another_user_api_key)
+
+
+@pytest.fixture(scope="function")
 def unauthenticated_client(app):
     """Returns an unauthenticated test client for the API."""
     yield client_factory(app, None)
@@ -202,6 +201,11 @@ def user_api_key() -> str:
 
 
 @pytest.fixture(scope="session")
+def another_user_api_key() -> str:
+    return generate_api_key()
+
+
+@pytest.fixture(scope="session")
 def unverified_user_api_key() -> str:
     return generate_api_key()
 
@@ -214,6 +218,11 @@ def deactivated_user_api_key() -> str:
 @pytest.fixture(scope="session")
 def user_id():
     yield ObjectId(24 * "1")
+
+
+@pytest.fixture(scope="session")
+def another_user_id():
+    yield ObjectId(24 * "7")
 
 
 @pytest.fixture(scope="session")
@@ -253,6 +262,8 @@ def insert_demo_users(
     app,
     user_id,
     user_api_key,
+    another_user_id,
+    another_user_api_key,
     admin_user_id,
     admin_api_key,
     deactivated_user_id,
@@ -262,6 +273,7 @@ def insert_demo_users(
     real_mongo_client,
 ):
     insert_user(user_id, user_api_key, "user", real_mongo_client)
+    insert_user(another_user_id, another_user_api_key, "user", real_mongo_client)
     insert_user(admin_user_id, admin_api_key, "admin", real_mongo_client)
     insert_user(
         deactivated_user_id,
@@ -482,6 +494,7 @@ def example_items(user_id, admin_user_id):
             Sample(
                 **{
                     "item_id": "sample_2",
+                    "chemform": "vanadium(II) oxide",
                     "name": "other_sample",
                     "date": "1970-02-01",
                     "refcode": "grey:TEST3",
@@ -563,6 +576,11 @@ def fixture_insert_default_starting_material(default_starting_material):
 @pytest.fixture(scope="module", name="insert_default_equipment")
 def fixture_insert_default_equipment(default_equipment):
     yield from _insert_and_cleanup_item_from_model(default_equipment)
+
+
+@pytest.fixture(scope="module", name="insert_example_items")
+def fixture_insert_example_items(example_items, real_mongo_client):
+    real_mongo_client.get_database().items.insert_many(example_items)
 
 
 @pytest.fixture(scope="module", name="inserted_default_items")

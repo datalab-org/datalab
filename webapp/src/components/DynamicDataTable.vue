@@ -45,6 +45,7 @@
           :show-buttons="showButtons"
           :available-columns="availableColumns"
           :selected-columns="selectedColumns"
+          :collection-id="collectionId"
           @update:filters="updateFilters"
           @update:selected-columns="onToggleColumns"
           @open-create-item-modal="createItemModalIsOpen = true"
@@ -54,6 +55,7 @@
           @open-create-equipment-modal="createEquipmentModalIsOpen = true"
           @open-add-to-collection-modal="addToCollectionModalIsOpen = true"
           @delete-selected-items="deleteSelectedItems"
+          @remove-selected-items-from-collection="removeSelectedItemsFromCollection"
           @reset-table="handleResetTable"
         />
       </template>
@@ -322,7 +324,13 @@ export default {
       required: false,
       default: "edit",
     },
+    collectionId: {
+      type: String,
+      required: false,
+      default: null,
+    },
   },
+  emits: ["remove-selected-items-from-collection"],
   data() {
     return {
       createItemModalIsOpen: false,
@@ -710,6 +718,10 @@ export default {
     },
     deleteSelectedItems() {
       this.itemsSelected = [];
+    },
+    removeSelectedItemsFromCollection() {
+      this.itemsSelected = [];
+      this.$emit("remove-selected-items-from-collection");
     },
     handleItemsUpdated() {
       this.itemsSelected = [];

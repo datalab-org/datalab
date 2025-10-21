@@ -41,6 +41,10 @@ export default createStore({
         page: 0,
         rows: 20,
       },
+      collectionItems: {
+        page: 0,
+        rows: 20,
+      },
       startingMaterials: {
         page: 0,
         rows: 20,
@@ -50,6 +54,7 @@ export default createStore({
         rows: 20,
       },
     },
+    block_errors: {},
   },
   mutations: {
     setServerInfo(state, serverInfo) {
@@ -128,7 +133,7 @@ export default createStore({
       if (index > -1) {
         state.sample_list.splice(index, 1);
       } else {
-        console.log(`deleteFromSampleList couldn't find the item with id ${item_id}`);
+        console.warn(`deleteFromSampleList couldn't find the item with id ${item_id}`);
       }
     },
     deleteFromStartingMaterialList(state, item_id) {
@@ -138,7 +143,7 @@ export default createStore({
       if (index > -1) {
         state.starting_material_list.splice(index, 1);
       } else {
-        console.log(`deleteFromStartingMaterialList couldn't find the item with id ${item_id}`);
+        console.warn(`deleteFromStartingMaterialList couldn't find the item with id ${item_id}`);
       }
     },
     deleteFromCollectionList(state, collection_summary) {
@@ -150,7 +155,7 @@ export default createStore({
       if (index > -1) {
         state.collection_list.splice(index, 1);
       } else {
-        console.log("deleteFromCollectionList couldn't find the object");
+        console.warn("deleteFromCollectionList couldn't find the object");
       }
     },
     deleteFromEquipmentList(state, item_id) {
@@ -160,7 +165,7 @@ export default createStore({
       if (index > -1) {
         state.equipment_list.splice(index, 1);
       } else {
-        console.log(`deleteFromEquipmentList couldn't find the item with id ${item_id}`);
+        console.warn(`deleteFromEquipmentList couldn't find the item with id ${item_id}`);
       }
     },
     createItemData(state, payload) {
@@ -183,7 +188,6 @@ export default createStore({
     },
     addFileToSample(state, payload) {
       state.all_item_data[payload.item_id].file_ObjectIds.push(payload.file_id);
-      console.log("adding file to sample with:", payload.file_info);
       state.all_item_data[payload.item_id].files.push(payload.file_info);
     },
     removeFileFromSample(state, payload) {
@@ -213,7 +217,6 @@ export default createStore({
         item_id,
         new_block_obj.item_id,
       );
-      console.log(`addABlock called with: ${item_id}, ${new_block_obj}, ${new_block_insert_index}`);
       let new_block_id = new_block_obj.block_id;
       state.all_item_data[item_id]["blocks_obj"][new_block_id] = new_block_obj;
       if (new_block_insert_index) {
@@ -350,13 +353,26 @@ export default createStore({
     setPage(state, { type, page }) {
       state.datatablePaginationSettings[type].page = page;
     },
+    removeItemsFromCollection(state, { collection_id, refcodes }) {
+      if (state.all_collection_children[collection_id]) {
+        state.all_collection_children[collection_id] = state.all_collection_children[
+          collection_id
+        ].filter((item) => !refcodes.includes(item.refcode));
+      }
+    },
+    setBlockError(state, { block_id, error = null }) {
+      if (error) {
+        state.block_errors[block_id] = "Block API returned error: " + error;
+      } else {
+        delete state.block_errors[block_id];
+      }
+    },
   },
   getters: {
     getItem: (state) => (item_id) => {
       return state.all_item_data[item_id];
     },
     getBlockByItemIDandBlockID: (state) => (item_id, block_id) => {
-      console.log("getBlockBySampleIDandBlockID called with:", item_id, block_id);
       return state.all_item_data[item_id]["blocks_obj"][block_id];
     },
     getCurrentUserDisplayName(state) {
