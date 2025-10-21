@@ -121,9 +121,15 @@ class HasSynthesisInfo(BaseModel):
 
         synthesis_constituents = values.get("synthesis_constituents", [])
         for constituent in synthesis_constituents:
+            constituent_item_id = None
+
             if isinstance(constituent.item, EntryReference):
-                if constituent.item.item_id == item_id:
-                    raise ValueError("A sample cannot reference itself in synthesis_constituents")
+                constituent_item_id = constituent.item.item_id
+            elif isinstance(constituent.item, dict):
+                constituent_item_id = constituent.item.get("item_id")
+
+            if constituent_item_id == item_id:
+                raise ValueError("A sample cannot reference itself in synthesis_constituents")
 
         return values
 
