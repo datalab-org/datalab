@@ -69,15 +69,11 @@ def _generate_export_in_background(task_id: str, collection_id: str, app):
 def start_collection_export(collection_id: str):
     from pydatalab.permissions import get_default_permissions
 
-    collection_exists = flask_mongo.db.collections.find_one({"collection_id": collection_id})
-    if not collection_exists:
-        return jsonify({"status": "error", "message": "Collection not found"}), 404
-
     collection_with_perms = flask_mongo.db.collections.find_one(
-        {"collection_id": collection_id, **get_default_permissions(user_only=True)}
+        {"collection_id": collection_id, **get_default_permissions(user_only=False)}
     )
     if not collection_with_perms:
-        return jsonify({"status": "error", "message": "Access denied"}), 403
+        return jsonify({"status": "error", "message": "Collection not found"}), 404
 
     task_id = str(uuid.uuid4())
 
