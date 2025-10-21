@@ -153,7 +153,8 @@ def create_eln_file(collection_id: str, output_path: str) -> None:
 
             if item.get("file_ObjectIds"):
                 for file_id in item.get("file_ObjectIds", []):
-                    file_data = flask_mongo.db.files.find_one({"_id": ObjectId(file_id)})
+                    file_id_obj = ObjectId(file_id) if isinstance(file_id, str) else file_id
+                    file_data = flask_mongo.db.files.find_one({"_id": file_id_obj})
                     if file_data:
                         source_path = Path(file_data["location"])
                         if source_path.exists():
@@ -161,6 +162,10 @@ def create_eln_file(collection_id: str, output_path: str) -> None:
                             shutil.copy2(source_path, dest_file)
                         else:
                             print(f"Warning: File not found on disk: {file_data['location']}")
+                    else:
+                        print(
+                            f"Warning: File metadata not found in database for file_id: {file_id}"
+                        )
 
         with zipfile.ZipFile(output_path, "w", zipfile.ZIP_DEFLATED) as zipf:
             for file_path in root_folder.rglob("*"):
