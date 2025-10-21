@@ -11,4 +11,3 @@ class Sample(Item, HasSynthesisInfo):
 
     chemform: str | None = Field(example=["Na3P", "LiNiO2@C"])
     """A string representation of the chemical formula or composition associated with this sample."""
-
