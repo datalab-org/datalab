@@ -123,15 +123,28 @@ class HasSynthesisInfo(BaseModel):
     def add_missing_constituent_relationships(cls, values):
         from pydatalab.models.relationships import RelationshipType, TypedRelationship
 
-        existing_parent_relationship_ids = set()
-        if values.get("relationships") is not None:
-            existing_parent_relationship_ids = {
-                relationship.refcode or relationship.item_id
-                for relationship in values["relationships"]
-                if relationship.relation == RelationshipType.PARENT
-            }
-        else:
+        if values.get("relationships") is None:
             values["relationships"] = []
+
+        current_constituent_ids = set()
+        for constituent in values.get("synthesis_constituents", []):
+            if isinstance(constituent.item, EntryReference):
+                constituent_id = constituent.item.refcode or constituent.item.item_id
+                if constituent_id:
+                    current_constituent_ids.add(constituent_id)
+
+        values["relationships"] = [
+            rel
+            for rel in values["relationships"]
+            if rel.relation != RelationshipType.PARENT
+            or (rel.refcode or rel.item_id) in current_constituent_ids
+        ]
+
+        existing_parent_relationship_ids = {
+            relationship.refcode or relationship.item_id
+            for relationship in values["relationships"]
+            if relationship.relation == RelationshipType.PARENT
+        }
 
         for constituent in values.get("synthesis_constituents", []):
             if (
