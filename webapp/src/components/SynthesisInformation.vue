@@ -30,6 +30,7 @@
       <span id="synthesis-products-label" class="subheading mt-2 pb-2 ml-2"
         ><label for="synthesis-products-table">Products</label></span
       >
+
       <div class="card component-card">
         <div class="card-body pt-2 pb-0 mb-0 pl-5">
           <CompactConstituentTable
@@ -37,6 +38,11 @@
             v-model="products"
             :types-to-query="['samples', 'starting_materials']"
           />
+        </div>
+        <div v-if="calculatedYield !== null" class="ml-2 mt-2">
+          <span class="text-muted"
+            >Calculated yield: <strong>{{ calculatedYield.toFixed(2) }}%</strong></span
+          >
         </div>
       </div>
       <span id="synthesis-procedure-label" class="subheading ml-2"><label>Procedure</label></span>
@@ -76,6 +82,26 @@ export default {
     constituents: createComputedSetterForItemField("synthesis_constituents"),
     products: createComputedSetterForItemField("synthesis_products"),
     SynthesisDescription: createComputedSetterForItemField("synthesis_description"),
+    calculatedYield() {
+      const item = this.$store.state.all_item_data[this.item_id];
+      if (!item || !item.synthesis_products || !item.synthesis_constituents) {
+        return null;
+      }
+
+      const selfProduct = item.synthesis_products.find((p) => p.item?.item_id === this.item_id);
+
+      if (!selfProduct || !selfProduct.quantity) {
+        return null;
+      }
+
+      const totalInput = item.synthesis_constituents.reduce((sum, c) => sum + (c.quantity || 0), 0);
+
+      if (totalInput === 0) {
+        return null;
+      }
+
+      return (selfProduct.quantity / totalInput) * 100;
+    },
   },
   watch: {
     // Added initialization check to prevent firing on mount - this seemed to trigger an unsaved check when loading the sample for the second time

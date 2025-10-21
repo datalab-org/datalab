@@ -2,6 +2,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field, root_validator
 
+from pydatalab.models.entries import EntryReference
 from pydatalab.models.people import Person
 from pydatalab.models.utils import Constituent, PyObjectId
 
@@ -94,19 +95,69 @@ class HasSynthesisInfo(BaseModel):
 
     @root_validator
     def add_self_product(cls, values):
-        if not values.get("synthesis_products"):
+        synthesis_products = values.get("synthesis_products")
+        if not synthesis_products or len(synthesis_products) == 0:
+            if "synthesis_products" not in values:
+                values["synthesis_products"] = []
+
             values["synthesis_products"].append(
                 Constituent(
                     quantity=None,
                     item={
                         "type": values["type"],
-                        "refcode": values["refcode"],
-                        "item_id": values["item_id"],
+                        "refcode": values.get("refcode"),
+                        "item_id": values.get("item_id"),
                     },
                 )
             )
 
         return values
+
+    @root_validator
+    def prevent_self_loop_in_constituents(cls, values):
+        item_id = values.get("item_id")
+        if not item_id:
+            return values
+
+        synthesis_constituents = values.get("synthesis_constituents", [])
+        for constituent in synthesis_constituents:
+            if isinstance(constituent.item, EntryReference):
+                if constituent.item.item_id == item_id:
+                    raise ValueError("A sample cannot reference itself in synthesis_constituents")
+
+        return values
+
+    def calculate_yield_percentage(self) -> float | None:
+        from pydatalab.models.utils import EntryReference
+
+        if not self.synthesis_products:
+            return None
+
+        item_id = getattr(self, "item_id", None)
+        if not item_id:
+            return None
+
+        self_product = next(
+            (
+                p
+                for p in self.synthesis_products
+                if isinstance(p.item, EntryReference) and p.item.item_id == item_id
+            ),
+            None,
+        )
+
+        if not self_product or not self_product.quantity:
+            return None
+
+        if not self.synthesis_constituents:
+            return None
+
+        total_input = sum(c.quantity for c in self.synthesis_constituents if c.quantity is not None)
+
+        if total_input == 0:
+            return None
+
+        return (self_product.quantity / total_input) * 100
 
 
 class HasChemInfo:
