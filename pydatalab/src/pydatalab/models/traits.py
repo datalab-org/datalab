@@ -2,8 +2,8 @@ from typing import Any
 
 from pydantic import BaseModel, Field, root_validator
 
-from pydatalab.models.entries import EntryReference
 from pydatalab.models.blocks import DataBlockResponse
+from pydatalab.models.entries import EntryReference
 from pydatalab.models.people import Person
 from pydatalab.models.utils import Constituent, PyObjectId
 
@@ -95,26 +95,6 @@ class HasSynthesisInfo(BaseModel):
     """Free-text details of the procedure applied to synthesise the sample"""
 
     @root_validator
-    def add_self_product(cls, values):
-        synthesis_products = values.get("synthesis_products")
-        if not synthesis_products or len(synthesis_products) == 0:
-            if "synthesis_products" not in values:
-                values["synthesis_products"] = []
-
-            values["synthesis_products"].append(
-                Constituent(
-                    quantity=None,
-                    item={
-                        "type": values["type"],
-                        "refcode": values.get("refcode"),
-                        "item_id": values.get("item_id"),
-                    },
-                )
-            )
-
-        return values
-
-    @root_validator
     def prevent_self_loop_in_constituents(cls, values):
         item_id = values.get("item_id")
         if not item_id:
@@ -124,13 +104,71 @@ class HasSynthesisInfo(BaseModel):
         for constituent in synthesis_constituents:
             constituent_item_id = None
 
-            if isinstance(constituent.item, EntryReference):
-                constituent_item_id = constituent.item.item_id
-            elif isinstance(constituent.item, dict):
-                constituent_item_id = constituent.item.get("item_id")
+            if hasattr(constituent, "item"):
+                if isinstance(constituent.item, EntryReference):
+                    constituent_item_id = constituent.item.item_id
+                elif isinstance(constituent.item, dict):
+                    constituent_item_id = constituent.item.get("item_id")
+            elif isinstance(constituent, dict):
+                item = constituent.get("item", {})
+                if isinstance(item, dict):
+                    constituent_item_id = item.get("item_id")
 
             if constituent_item_id == item_id:
                 raise ValueError("A sample cannot reference itself in synthesis_constituents")
+
+        return values
+
+    @root_validator
+    def add_missing_constituent_relationships(cls, values):
+        from pydatalab.models.relationships import RelationshipType, TypedRelationship
+
+        existing_parent_relationship_ids = set()
+        if values.get("relationships") is not None:
+            existing_parent_relationship_ids = {
+                relationship.refcode or relationship.item_id
+                for relationship in values["relationships"]
+                if relationship.relation == RelationshipType.PARENT
+            }
+        else:
+            values["relationships"] = []
+
+        for constituent in values.get("synthesis_constituents", []):
+            if (
+                isinstance(constituent.item, EntryReference)
+                and (constituent.item.refcode or constituent.item.item_id)
+                not in existing_parent_relationship_ids
+            ):
+                relationship = TypedRelationship(
+                    relation=RelationshipType.PARENT,
+                    refcode=constituent.item.refcode,
+                    item_id=constituent.item.item_id,
+                    type=constituent.item.type,
+                    description="Is a constituent of",
+                )
+                values["relationships"].append(relationship)
+
+        return values
+
+    @root_validator
+    def add_self_product(cls, values):
+        synthesis_products = values.get("synthesis_products")
+
+        if synthesis_products is None:
+            synthesis_products = []
+            values["synthesis_products"] = synthesis_products
+
+        if len(synthesis_products) == 0:
+            values["synthesis_products"].append(
+                Constituent(
+                    quantity=None,
+                    item={
+                        "type": values.get("type"),
+                        "refcode": values.get("refcode"),
+                        "item_id": values.get("item_id"),
+                    },
+                )
+            )
 
         return values
 
