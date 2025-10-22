@@ -6,6 +6,14 @@ Cypress.on("window:before:load", (win) => {
   consoleSpy = cy.spy(win.console, "error");
 });
 
+before(() => {
+  cy.loginViaTestMagicLink("test-user@example.com", "user");
+});
+
+after(() => {
+  cy.logout();
+});
+
 let sample_ids = [
   "12345678910",
   "test1",
