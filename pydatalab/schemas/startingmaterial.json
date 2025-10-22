@@ -130,7 +130,7 @@
       }
     },
     "status": {
-      "default": "ordered",
+      "default": "available",
       "allOf": [
         {
           "$ref": "#/definitions/StartingMaterialsStatus"
@@ -765,8 +765,10 @@
       "enum": [
         "ordered",
         "disposed",
+        "planned",
         "available",
-        "unavailable"
+        "unavailable",
+        "exhausted"
       ],
       "type": "string"
     }

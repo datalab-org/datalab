@@ -34,7 +34,7 @@
             <label for="startmat-barcode">Barcode</label>
             <div id="startmat-barcode"><FormattedBarCode :barcode="Barcode" /></div>
           </div>
-          <div class="form-group col-md-4 col-sm-4 col-6"">
+          <div class="form-group col-md-4 col-sm-4 col-6">
             <ToggleableCollectionFormGroup v-model="Collections" />
           </div>
           <div class="form-group col-md-5 col-sm-4 col-12">
@@ -168,14 +168,7 @@ export default {
     Refcode: createComputedSetterForItemField("refcode"),
     Status: createComputedSetterForItemField("status"),
     possibleItemStatuses() {
-      return (
-        this.schema?.attributes.schema.definitions.StartingMaterialsStatus.enum || [
-          "ordered",
-          "disposed",
-          "available",
-          "unavailable",
-        ]
-      );
+      return this.schema?.attributes.schema.definitions.StartingMaterialsStatus.enum;
     },
     Barcode: createComputedSetterForItemField("barcode"),
   },

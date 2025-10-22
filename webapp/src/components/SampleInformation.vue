@@ -122,14 +122,7 @@ export default {
     Status: createComputedSetterForItemField("status"),
     // ItemSchema: this.$store.state.schemas["samples"],
     possibleItemStatuses() {
-      return (
-        this.schema?.attributes.schema.definitions.SampleStatus.enum || [
-          "planned",
-          "active",
-          "completed",
-          "failed",
-        ]
-      );
+      return this.schema?.attributes.schema.definitions.ItemStatus.enum;
     },
   },
   created() {

@@ -28,8 +28,9 @@ class ItemType(str, Enum):
 class ItemStatus(str, Enum):
     """An enumeration of the status of items"""
 
-    PLANNED = "planned"
     ACTIVE = "active"
+    PLANNED = "planned"
+    DISPOSED = "disposed"
     COMPLETED = "completed"
     FAILED = "failed"
 
@@ -64,8 +65,10 @@ class StartingMaterialsStatus(str, Enum):
 
     ORDERED = "ordered"
     DISPOSED = "disposed"
+    PLANNED = "planned"
     AVAILABLE = "available"
     UNAVAILABLE = "unavailable"
+    EXHAUSTED = "exhausted"
 
 
 class KnownType(str, Enum):

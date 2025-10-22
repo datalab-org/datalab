@@ -136,6 +136,7 @@ def get_items_summary(match: dict | None = None, project: dict | None = None) ->
         "type": 1,
         "date": 1,
         "refcode": 1,
+        "status": 1,
     }
 
     # Cannot mix 0 and 1 keys in MongoDB project so must loop and check

@@ -69,7 +69,7 @@ class StartingMaterial(Item, HasSynthesisInfo):
     comment: str | None = Field(alias="Comments")
     """Any additional comments or notes about the container."""
 
-    status: StartingMaterialsStatus = Field(default=StartingMaterialsStatus.ORDERED)
+    status: StartingMaterialsStatus = Field(default=StartingMaterialsStatus.AVAILABLE)
     """The status of the starting materials, indicating its current state."""
 
     @validator("molar_mass")

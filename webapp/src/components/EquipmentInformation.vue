@@ -120,15 +120,7 @@ export default {
     Contact: createComputedSetterForItemField("contact"),
     Status: createComputedSetterForItemField("status"),
     possibleItemStatuses() {
-      return (
-        this.schema?.attributes.schema.definitions.EquipmentStatus.enum || [
-          "working",
-          "broken",
-          "being_fixed",
-          "defunct",
-          "not_being_fixed",
-        ]
-      );
+      return this.schema?.attributes.schema.definitions.EquipmentStatus.enum;
     },
   },
   created() {

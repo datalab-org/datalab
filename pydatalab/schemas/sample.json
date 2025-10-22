@@ -710,8 +710,9 @@
       "title": "ItemStatus",
       "description": "An enumeration of the status of items",
       "enum": [
-        "planned",
         "active",
+        "planned",
+        "disposed",
         "completed",
         "failed"
       ],

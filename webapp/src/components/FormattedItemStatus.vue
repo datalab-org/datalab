@@ -13,7 +13,7 @@ export default {
     badgeClass() {
       const statusStyleMap = {
         // SampleStatus
-        planned: "info",
+        planned: "secondary",
         active: "success",
         completed: "primary",
         failed: "danger",

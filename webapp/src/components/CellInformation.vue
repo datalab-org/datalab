@@ -171,16 +171,7 @@ export default {
     Collections: createComputedSetterForItemField("collections"),
     Status: createComputedSetterForItemField("status"),
     possibleItemStatuses() {
-      return (
-        this.schema?.attributes.schema.definitions.CellStatus.enum || [
-          "active",
-          "planned",
-          "disposed",
-          "cycled",
-          "shorted",
-          "dismantled",
-        ]
-      );
+      return this.schema?.attributes.schema.definitions.CellStatus.enum;
     },
   },
   created() {
