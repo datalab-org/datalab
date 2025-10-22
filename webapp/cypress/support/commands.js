@@ -325,3 +325,44 @@ Cypress.Commands.add("expandIfCollapsed", (selector) => {
       }
     });
 });
+
+/**
+ * Login as a test user using a predefined magic link
+ * @param {string} email - Email address of the test user (default: test-user@example.com)
+ * @param {string} role - User role: 'user' or 'admin' (default: 'user')
+ */
+
+Cypress.Commands.add("loginViaTestMagicLink", (email = "test-user@example.com", role = "user") => {
+  cy.log(`Logging in as ${role}: ${email}`);
+
+  cy.request({
+    method: "POST",
+    url: `${API_URL}/testing/create-magic-link`,
+    body: {
+      email: email,
+      role: role,
+    },
+    failOnStatusCode: true,
+  }).then((response) => {
+    const token = response.body.token;
+
+    cy.visit(`/login/email?token=${token}`);
+
+    cy.url().should("not.include", "/login");
+
+    cy.get(".alert-info").should("not.exist");
+  });
+});
+
+Cypress.Commands.add("logout", () => {
+  cy.log("Logging out current user");
+  cy.request({
+    method: "POST",
+    url: `${API_URL}/logout`,
+    failOnStatusCode: false,
+  });
+  cy.clearCookies();
+  cy.clearLocalStorage();
+  cy.visit("/");
+  cy.get(".alert-info").should("exist");
+});

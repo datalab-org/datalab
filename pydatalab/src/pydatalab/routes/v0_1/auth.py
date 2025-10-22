@@ -686,3 +686,64 @@ def generate_user_api_key():
             ),
             401,
         )
+
+
+@AUTH.route("/testing/create-magic-link", methods=["POST"])
+def create_test_magic_link():
+    """Create a magic link for testing purposes.
+
+    This endpoint is only available when TESTING=True.
+    It creates a user with the specified email and role, generates a magic link,
+    and returns the token.
+    """
+    if not CONFIG.TESTING:
+        return jsonify(
+            {"status": "error", "detail": "This endpoint is only available in testing mode."}
+        ), 403
+
+    request_json = request.get_json()
+    email = request_json.get("email", "test-user@example.com")
+    role = request_json.get("role", "user")
+
+    token = jwt.encode(
+        {
+            "exp": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=1),
+            "email": email,
+        },
+        CONFIG.SECRET_KEY,
+        algorithm="HS256",
+    )
+
+    flask_mongo.db.magic_links.insert_one({"jwt": token})
+
+    user = find_user_with_identity(email, IdentityType.EMAIL, verify=False)
+
+    if not user:
+        identity = Identity(
+            identifier=email,
+            identity_type=IdentityType.EMAIL,
+            name=email,
+            display_name=email,
+            verified=True,
+        )
+
+        user = Person.new_user_from_identity(
+            identity, use_display_name=True, account_status=AccountStatus.ACTIVE
+        )
+        insert_pydantic_model_fork_safe(user, "users")
+
+        if role == "admin":
+            flask_mongo.db.roles.update_one(
+                {"_id": user.immutable_id}, {"$set": {"role": "admin"}}, upsert=True
+            )
+
+    return jsonify({"status": "success", "token": token, "email": email}), 200
+
+
+@AUTH.route("/logout", methods=["POST"])
+def logout():
+    """Logout the current user."""
+    from flask_login import logout_user
+
+    logout_user()
+    return jsonify({"status": "success", "detail": "Logged out successfully."}), 200
