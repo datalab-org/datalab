@@ -536,11 +536,12 @@ def email_logged_in():
     # If the email domain list is explicitly configured to None, this allows any
     # email address to make an active account, otherwise the email domain must match
     # the list of allowed domains and the admin must verify the user
-    allowed = _check_email_domain(email, CONFIG.EMAIL_DOMAIN_ALLOW_LIST)
-    if not allowed:
-        # If this point is reached, the token is valid but the server settings have
-        # changed since the link was generated, so best to fail safe
-        raise UserRegistrationForbidden
+    if not CONFIG.TESTING:
+        allowed = _check_email_domain(email, CONFIG.EMAIL_DOMAIN_ALLOW_LIST)
+        if not allowed:
+            # If this point is reached, the token is valid but the server settings have
+            # changed since the link was generated, so best to fail safe
+            raise UserRegistrationForbidden
 
     create_account = AccountStatus.UNVERIFIED
     if (
@@ -714,7 +715,9 @@ def create_test_magic_link():
         algorithm="HS256",
     )
 
-    flask_mongo.db.magic_links.insert_one({"jwt": token})
+    flask_mongo.db.magic_links.insert_one(
+        {"jwt": token, "email": email, "created_at": datetime.datetime.now(datetime.timezone.utc)}
+    )
 
     user = find_user_with_identity(email, IdentityType.EMAIL, verify=False)
 
