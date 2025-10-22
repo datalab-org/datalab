@@ -29,6 +29,7 @@ describe("Authenticated sample tests", () => {
 describe("Admin-specific functionality", () => {
   beforeEach(() => {
     cy.loginViaTestMagicLink("admin-user@example.com", "admin");
+    cy.visit("/admin");
   });
 
   afterEach(() => {
@@ -37,8 +38,9 @@ describe("Admin-specific functionality", () => {
 
   it("Accesses admin dashboard", () => {
     cy.visit("/admin");
-
-    cy.contains("Admin Dashboard").should("exist");
+    cy.url().should("include", "/admin");
+    cy.contains("Admin Menu").should("exist");
+    cy.get('[data-testid="admin-table"]').should("exist");
   });
 });
 
@@ -82,6 +84,15 @@ describe("Multi-user sample visibility", () => {
     cy.visit("/");
 
     cy.verifySample(user2SampleId, "User 2's sample");
+
+    cy.logout();
+  });
+
+  it("User 1 cannot see User 2's sample", () => {
+    cy.loginViaTestMagicLink(user1Email, "user");
+    cy.visit("/");
+
+    cy.get("[data-testid=sample-table]").should("not.contain", user2SampleId);
 
     cy.logout();
   });
