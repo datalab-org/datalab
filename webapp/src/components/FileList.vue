@@ -10,6 +10,10 @@
           <a class="filelink" target="_blank" :href="`${$API_URL}/files/${file_id}/${file.name}`">
             {{ file.name }}
           </a>
+          <span v-if="getFileSize(file)" class="file-size">
+            ({{ formatFileSize(getFileSize(file)) }})
+          </span>
+
           <font-awesome-icon
             v-if="file.is_live == true"
             v-show="true"
@@ -27,6 +31,10 @@
               <font-awesome-icon :icon="['fas', 'hdd']" class="toplevel-icon" />
               {{ file.source_server_name }}
             </span>
+            <span v-if="getFileSize(file)" class="file-size">
+              ({{ formatFileSize(getFileSize(file)) }})
+            </span>
+
             <span class="last-updated-text">
               (updated
               {{
@@ -93,6 +101,26 @@ export default {
   },
   methods: {
     formatDistance,
+    getFileSize(file) {
+    return (
+      file.size ||
+      file.size_bytes ||
+      file.file_size ||
+      file.filesize ||
+      file.length ||
+      file.bytes ||
+      file.meta?.size ||
+      file.file_information?.size ||
+      file.file_information?.size_bytes ||
+      null
+    );
+  },
+    formatFileSize(size) {
+    if (size < 1024) return `${size} B`;
+    if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+    if (size < 1024 * 1024 * 1024) return `${(size / 1024 / 1024).toFixed(1)} MB`;
+    return `${(size / 1024 / 1024 / 1024).toFixed(2)} GB`;
+  },
     async deleteFile(event, file_id) {
       const confirmed = await DialogService.confirm({
         title: "Unlink File",
@@ -153,6 +181,11 @@ export default {
   color: #888;
   font-style: italic;
   vertical-align: middle;
+}
+.file-size {
+  color: #888;
+  font-size: 0.8em;
+  margin-left: 0.25rem;
 }
 
 .server-name {
