@@ -70,6 +70,8 @@
 </template>
 
 <script>
+import { DialogService } from "@/services/DialogService";
+
 import { deleteFileFromSample } from "@/server_fetch_utils";
 import { formatDistance } from "date-fns";
 
@@ -91,8 +93,13 @@ export default {
   },
   methods: {
     formatDistance,
-    deleteFile(event, file_id) {
-      if (window.confirm("Are you sure you want to unlink this file from this entry?")) {
+    async deleteFile(event, file_id) {
+      const confirmed = await DialogService.confirm({
+        title: "Unlink File",
+        message: "Are you sure you want to unlink this file from this entry?",
+        type: "warning",
+      });
+      if (confirmed) {
         deleteFileFromSample(this.item_id, file_id);
       }
     },

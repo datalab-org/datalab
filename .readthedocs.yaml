@@ -12,4 +12,4 @@ build:
     - asdf global uv latest
     - cd pydatalab && uv sync --all-extras --dev
     - cd pydatalab && uv pip install .
-    - cd pydatalab && .venv/bin/mkdocs build --site-dir $READTHEDOCS_OUTPUT/html
+    - cd pydatalab && .venv/bin/mkdocs build --site-dir $READTHEDOCS_OUTPUT/html --strict

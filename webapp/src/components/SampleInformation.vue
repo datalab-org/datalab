@@ -32,8 +32,12 @@
           <div class="form-group col-md-3 col-sm-3 col-6 pb-3">
             <ToggleableCreatorsFormGroup v-model="ItemCreators" :refcode="Refcode" />
           </div>
-          <div class="form-group col-md-3 col-sm-3 col-6 pb-3">
-            <ToggleableCollectionFormGroup v-model="Collections" />
+          <div class="col-md-6 col-sm-7 pr-2">
+            <ToggleableCollectionFormGroup
+              ref="collectionsFormGroup"
+              v-model="Collections"
+              :item_id="item_id"
+            />
           </div>
           <div class="form-group col-md-3 col-sm-3 col-6 pb-3">
             <ToggleableItemStatusFormGroup

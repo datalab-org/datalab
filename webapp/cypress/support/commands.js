@@ -38,6 +38,7 @@ Cypress.Commands.add(
     cy.get('[data-testid="create-item-form"]').within(() => {
       cy.findByText("Add new item").should("exist");
       cy.findByLabelText("ID:").type(item_id);
+      cy.findByLabelText("Name:").clear();
       if (name) {
         cy.findByLabelText("Name:").type(name);
       }
@@ -85,10 +86,8 @@ Cypress.Commands.add("deleteItems", (type, items_id) => {
   cy.get('[data-testid="selected-dropdown"]').click();
   cy.get('[data-testid="delete-selected-button"]').click();
 
-  cy.on("window:confirm", (text) => {
-    expect(text).to.contains(items_id);
-    return true;
-  });
+  cy.findByText("Confirm Deletion").should("exist");
+  cy.get('[data-testid="dialog-modal-confirm-button"]').click();
 
   items_id.forEach((item_id) => {
     cy.get(`[data-testid=${type}-table]`)
@@ -155,6 +154,7 @@ Cypress.Commands.add("createEquipment", (item_id, name = null, date = null) => {
 
   cy.get('[data-testid="create-equipment-form"]').within(() => {
     cy.findByText("Add equipment").should("exist");
+    cy.findByLabelText("Name:").clear();
     cy.findByLabelText("ID:").type(item_id);
     if (name) {
       cy.findByLabelText("Name:").type(name);

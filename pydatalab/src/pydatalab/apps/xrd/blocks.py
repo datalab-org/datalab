@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from scipy.signal import medfilt
 
-from pydatalab.blocks.base import DataBlock
+from pydatalab.blocks.base import DataBlock, event, generate_js_callback_single_float_parameter
 from pydatalab.bokeh_plots import DATALAB_BOKEH_THEME, selectable_axes_plot
 from pydatalab.file_utils import get_file_info_by_id
 from pydatalab.logger import LOGGER
@@ -28,6 +28,22 @@ class XRDBlock(DataBlock):
     @property
     def plot_functions(self):
         return (self.generate_xrd_plot,)
+
+    @event()
+    def set_wavelength(self, wavelength: float | str | None):
+        if isinstance(wavelength, str):
+            try:
+                wavelength = float(wavelength)
+            except Exception:
+                raise ValueError(f"Invalid value for wavelength: {wavelength}. Must be a float.")
+
+        if wavelength is None:
+            wavelength = self.defaults["wavelength"]
+        elif wavelength <= 0:
+            raise ValueError("Wavelength must be a positive number")
+
+        LOGGER.debug(f"Setting wavelength to {wavelength} for block {self.block_id}")
+        self.data["wavelength"] = wavelength
 
     @classmethod
     def load_pattern(
@@ -59,43 +75,49 @@ class XRDBlock(DataBlock):
             df, peak_data = compute_cif_pxrd(
                 location, wavelength=wavelength or cls.defaults["wavelength"]
             )
-            theoretical = True  # Track whether this is a computed PXRD that does not need background subtraction
+            # Track whether this is a computed PXRD that does not need background subtraction
+            theoretical = True
 
         else:
             columns = ["twotheta", "intensity", "error"]
+
+            def _try_read_csv(sep: str, skiprows: int) -> pd.DataFrame | None:
+                try:
+                    df = pd.read_csv(
+                        location, sep=sep, skiprows=skiprows, dtype=np.float64, names=columns
+                    )
+                    if df.empty:
+                        return None
+
+                    return df
+
+                except (ValueError, RuntimeError):
+                    return None
+
             possible_separators = (r"\s+", ",")
             df = pd.DataFrame()
-            for sep in possible_separators:
-                # Try to parse the file by incrementing skiprows until all lines can be cast to np.float64
-                skiprows: int = 0
-                # Set arbitrary limit to avoid infinite loop; a header of 10,000 lines is unlikely to be useful
-                while skiprows < 1_000:
-                    LOGGER.debug(
-                        "Trying to read %s with skiprows=%d, sep=%s",
-                        location.split("/")[-1],
-                        skiprows,
-                        sep,
-                    )
-                    try:
-                        df = pd.read_csv(
-                            location, sep=sep, names=columns, dtype=np.float64, skiprows=skiprows
-                        )
+            # Try to parse the file by incrementing skiprows until all lines can be cast to np.float64
+            # Set arbitrary limit to avoid infinite loop; a header of >1,000 lines is unlikely to be useful
+            max_skiprows: int = 1_000
+            final_skiprows: int = 0
+            for skiprows in range(max_skiprows):
+                for sep in possible_separators:
+                    df = _try_read_csv(sep, skiprows)
+                    if df is not None and not df.empty:
+                        final_skiprows = skiprows
                         break
-                    except (ValueError, RuntimeError):
-                        skiprows += 1
 
-                if df.empty:
-                    continue
+                if df is not None and not df.empty:
+                    final_skiprows = skiprows
+                    break
 
-                break
-
-            # If no valid separator was found, raise an error
+            # If no valid separator/skiprows combo was found, raise an error
             else:
                 raise RuntimeError(
                     f"Unable to extract XRD data from file {location}; check file header for irregularities"
                 )
 
-            if skiprows > 0:
+            if final_skiprows > 0:
                 with open(location) as f:
                     header = "".join([next(f) for _ in range(skiprows)])
                     df.attrs["header"] = header
@@ -135,6 +157,8 @@ class XRDBlock(DataBlock):
 
         df = pd.concat([df, y_option_df], axis=1)
         df.index.name = location.split("/")[-1] + (" (theoretical)" if theoretical else "")
+
+        LOGGER.debug(f"Loaded file from {location} as XRD pattern with wavelength {wavelength}")
 
         return df, y_options, peak_data
 
@@ -182,7 +206,7 @@ class XRDBlock(DataBlock):
 
         return df
 
-    def generate_xrd_plot(self) -> None:
+    def generate_xrd_plot(self, filenames: list[str | Path] | None = None) -> None:
         """Generate a Bokeh plot potentially containing multiple XRD patterns.
 
         This function will first check whether a `file_id` is set in the block data.
@@ -197,7 +221,7 @@ class XRDBlock(DataBlock):
         all_files = None
         pattern_dfs = None
 
-        if self.data.get("file_id") is None:
+        if self.data.get("file_id") is None and filenames is None:
             # If no file set, try to plot them all
             item_info = flask_mongo.db.items.find_one(
                 {"item_id": self.data["item_id"]},
@@ -231,6 +255,11 @@ class XRDBlock(DataBlock):
                         f["location"],
                         wavelength=float(self.data.get("wavelength", self.defaults["wavelength"])),
                     )
+                    pattern_df.attrs["item_id"] = self.data.get("item_id", "unknown")
+                    pattern_df.attrs["original_filename"] = f.get("name", "unknown")
+                    pattern_df.attrs["wavelength"] = (
+                        f"{self.data.get('wavelength', self.defaults['wavelength'])} Å"
+                    )
                 except Exception as exc:
                     warnings.warn(f"Could not parse file {f['location']} as XRD data. Error: {exc}")
                     continue
@@ -238,9 +267,10 @@ class XRDBlock(DataBlock):
                 pattern_df["normalized intensity (staggered)"] += ind
                 pattern_dfs.append(pattern_df)
 
-            self.data["peak_data"] = peak_information
+            self.data["computed"] = {}
+            self.data["computed"]["peak_data"] = peak_information
 
-        else:
+        elif filenames is None:
             file_info = get_file_info_by_id(self.data["file_id"], update_if_live=True)
             ext = os.path.splitext(file_info["location"].split("/")[-1])[-1].lower()
             if ext not in self.accepted_file_extensions:
@@ -250,25 +280,60 @@ class XRDBlock(DataBlock):
                     ext,
                 )
 
-            pattern_dfs, y_options, peak_data = self.load_pattern(
+            pattern_df, y_options, peak_data = self.load_pattern(
                 file_info["location"],
                 wavelength=float(self.data.get("wavelength", self.defaults["wavelength"])),
             )
+            pattern_df.attrs["item_id"] = self.data.get("item_id", "unknown")
+            pattern_df.attrs["original_filename"] = file_info.get("name", "unknown")
+            pattern_df.attrs["wavelength"] = (
+                f"{self.data.get('wavelength', self.defaults['wavelength'])} Å"
+            )
             peak_model = PeakInformation(**peak_data)
-            if "peak_data" not in self.data:
-                self.data["peak_data"] = {}
-            self.data["peak_data"][str(file_info["immutable_id"])] = peak_model.dict()
-            pattern_dfs = [pattern_dfs]
+            if "computed" not in self.data:
+                self.data["computed"] = {"peak_data": {}}
+            self.data["computed"]["peak_data"][str(file_info["immutable_id"])] = peak_model.dict()
+            pattern_dfs = [pattern_df]
+
+        else:
+            if isinstance(filenames, (str, Path)):
+                filenames = [filenames]
+
+            pattern_dfs = []
+            for ind, f in enumerate(filenames):
+                peak_data = {}
+                pattern_df, y_options, peak_data = self.load_pattern(
+                    f,
+                    wavelength=float(self.data.get("wavelength", self.defaults["wavelength"])),
+                )
+                pattern_dfs.append(pattern_df)
+
+                peak_model = PeakInformation(**peak_data)
+                if "computed" not in self.data:
+                    self.data["computed"] = {"peak_data": {}}
+                self.data["computed"]["peak_data"][f] = peak_model.dict()
+                pattern_dfs = [pattern_df]
 
         if pattern_dfs:
-            p = selectable_axes_plot(
-                pattern_dfs,
-                x_options=["2θ (°)", "Q (Å⁻¹)", "d (Å)"],
-                y_default="normalized intensity",
-                y_options=y_options,
-                plot_line=True,
-                plot_points=True,
-                point_size=3,
-            )
-
+            p = self._make_plots(pattern_dfs, y_options)
             self.data["bokeh_plot_data"] = bokeh.embed.json_item(p, theme=DATALAB_BOKEH_THEME)
+
+    def _make_plots(self, pattern_dfs: list[pd.DataFrame], y_options: list[str]):
+        return selectable_axes_plot(
+            pattern_dfs,
+            x_options=["2θ (°)", "Q (Å⁻¹)", "d (Å)"],
+            y_default="normalized intensity",
+            y_options=y_options,
+            plot_line=True,
+            plot_points=True,
+            point_size=3,
+            parameters={
+                "wavelength": {
+                    "label": "Wavelength (Å)",
+                    "value": self.data["wavelength"],
+                    "event": generate_js_callback_single_float_parameter(
+                        "set_wavelength", "wavelength", self.block_id, throttled=False
+                    ),
+                }
+            },
+        )

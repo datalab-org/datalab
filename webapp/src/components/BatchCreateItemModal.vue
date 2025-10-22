@@ -339,6 +339,7 @@
 
 <script>
 import Modal from "@/components/Modal.vue";
+import { DialogService } from "@/services/DialogService.js";
 import ItemSelect from "@/components/ItemSelect.vue";
 import { createNewSamples } from "@/server_fetch_utils.js";
 import { validateEntryID } from "@/field_utils.js";
@@ -592,8 +593,10 @@ export default {
           this.beforeSubmit = false;
         })
         .catch((error) => {
-          window.alert("Error with creating new items: " + error);
-          console.log("Error with creating new items: " + error);
+          DialogService.error({
+            title: "Error creating item batch",
+            message: "An error occured while creating the batch:" + error.message,
+          });
         });
     },
     openEditPagesInNewTabs() {

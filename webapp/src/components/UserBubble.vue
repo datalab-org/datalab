@@ -16,7 +16,7 @@
 </template>
 
 <script>
-import crypto from "crypto";
+import { md5 } from "js-md5";
 import { GRAVATAR_STYLE } from "@/resources.js";
 export default {
   props: {
@@ -38,7 +38,7 @@ export default {
   methods: {
     md5(value) {
       // Returns the MD5 hash of the given string.
-      return crypto.createHash("md5").update(value).digest("hex");
+      return md5(value);
     },
   },
 };

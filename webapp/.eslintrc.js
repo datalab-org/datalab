@@ -18,7 +18,10 @@ module.exports = {
       babelrc: false,
       configFile: false,
       presets: ["@vue/cli-plugin-babel/preset"],
-      plugins: ["@babel/plugin-transform-export-namespace-from"],
+      plugins: [
+        "@babel/plugin-transform-export-namespace-from",
+        "@babel/plugin-transform-class-static-block",
+      ],
     },
   },
   rules: {

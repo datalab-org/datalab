@@ -17,12 +17,12 @@
 </template>
 
 <script>
-import crypto from "crypto";
 import { GRAVATAR_STYLE } from "@/resources.js";
 
 import NotificationDot from "./NotificationDot.vue";
 
 import { getUsersList } from "@/server_fetch_utils.js";
+import { md5 } from "js-md5";
 
 export default {
   components: {
@@ -57,7 +57,7 @@ export default {
   methods: {
     md5(value) {
       // Returns the MD5 hash of the given string.
-      return crypto.createHash("md5").update(value).digest("hex");
+      return md5(value);
     },
   },
 };

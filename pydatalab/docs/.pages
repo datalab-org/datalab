@@ -5,4 +5,5 @@ nav:
     - config.md
     - schemas
     - blocks
+    - plugins.md
     - CHANGELOG.md

@@ -22,14 +22,22 @@ def _(): ...
 
 @FILES.route("/files/<string:file_id>/<string:filename>", methods=["GET"])
 def get_file(file_id: str, filename: str):
+    """If this user has the appropriate permissions, return the file with the
+    given database ID and filename.
+
+    Parameters:
+        file_id: The file ID in the database.
+        filename: The filename in the database.
+
+    """
     try:
         _file_id = ObjectId(file_id)
     except InvalidId:
         # If the ID is invalid, then there will be no results in the database anyway,
         # so just 401
         _file_id = file_id
-    if not pydatalab.mongo.flask_mongo.db.files.find_one(
-        {"_id": _file_id, **get_default_permissions(user_only=False)}
+    if not pydatalab.mongo.flask_mongo.db.items.find_one(
+        {"file_ObjectIds": {"$in": [_file_id]}, **get_default_permissions(user_only=False)}
     ):
         return (
             jsonify(
@@ -41,6 +49,7 @@ def get_file(file_id: str, filename: str):
             ),
             401,
         )
+
     path = os.path.join(CONFIG.FILE_DIRECTORY, secure_filename(file_id))
     return send_from_directory(path, filename)
 

@@ -3,6 +3,7 @@ from typing import Any
 
 from flask import Blueprint, jsonify, request
 from flask_login import current_user
+from werkzeug.exceptions import BadRequest
 
 from pydatalab.config import CONFIG
 from pydatalab.permissions import active_users_or_get_only
@@ -17,7 +18,7 @@ def _check_invalidate_cache(args: dict[str, str]) -> bool | None:
     if "invalidate_cache" in args:
         invalidate_cache_arg = args.get("invalidate_cache")
         if invalidate_cache_arg not in ("1", "0"):
-            raise RuntimeError("invalidate_cache must be 0 or 1")
+            raise BadRequest("invalidate_cache must be 0 or 1")
         invalidate_cache = bool(int(invalidate_cache_arg))
 
     return invalidate_cache

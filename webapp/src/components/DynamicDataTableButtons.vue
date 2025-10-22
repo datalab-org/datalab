@@ -133,14 +133,27 @@
           aria-labelledby="dropdownMenuButton"
         >
           <a
-            v-if="dataType !== 'collections'"
+            v-if="dataType !== 'collections' && dataType !== 'collectionItems'"
             data-testid="add-to-collection-button"
             class="dropdown-item"
             @click="handleAddToCollection"
           >
             Add to collection
           </a>
-          <a data-testid="delete-selected-button" class="dropdown-item" @click="confirmDeletion">
+          <a
+            v-if="dataType === 'collectionItems'"
+            data-testid="remove-from-collection-dropdown"
+            class="dropdown-item"
+            @click="confirmRemoveFromCollection"
+          >
+            Remove from collection
+          </a>
+          <a
+            v-if="dataType !== 'collectionItems'"
+            data-testid="delete-selected-button"
+            class="dropdown-item"
+            @click="confirmDeletion"
+          >
             Delete selected
           </a>
         </div>
@@ -150,6 +163,8 @@
 </template>
 
 <script>
+import { DialogService } from "@/services/DialogService";
+
 import IconField from "primevue/iconfield";
 import InputIcon from "primevue/inputicon";
 import InputText from "primevue/inputtext";
@@ -161,6 +176,7 @@ import {
   deleteCollection,
   deleteStartingMaterial,
   deleteEquipment,
+  removeItemsFromCollection,
 } from "@/server_fetch_utils.js";
 
 export default {
@@ -202,6 +218,11 @@ export default {
       type: Array,
       required: true,
     },
+    collectionId: {
+      type: String,
+      required: false,
+      default: null,
+    },
   },
   emits: [
     "open-create-item-modal",
@@ -213,10 +234,8 @@ export default {
     "delete-selected-items",
     "update:filters",
     "update:selected-columns",
-    "deletion-started",
-    "deletion-completed",
-    "deletion-error",
     "reset-table",
+    "remove-selected-items-from-collection",
   ],
   data() {
     return {
@@ -237,13 +256,14 @@ export default {
     },
   },
   methods: {
-    confirmDeletion() {
+    async confirmDeletion() {
       const idsSelected = this.itemsSelected.map((x) => x.item_id || x.collection_id);
-      if (
-        confirm(
-          `Are you sure you want to delete ${this.itemsSelected.length} selected items? (${idsSelected})`,
-        )
-      ) {
+      const confirmed = await DialogService.confirm({
+        title: "Confirm Deletion",
+        message: `Are you sure you want to delete ${this.itemsSelected.length} selected items? (${idsSelected})`,
+        type: "warning",
+      });
+      if (confirmed) {
         this.deleteItems(idsSelected);
         this.$emit("delete-selected-items");
       }
@@ -253,7 +273,6 @@ export default {
       try {
         this.itemCount = ids.length;
         this.isDeletingItems = true;
-        this.$emit("deletion-started");
 
         let deletePromises = [];
 
@@ -268,11 +287,33 @@ export default {
         }
 
         await Promise.all(deletePromises);
-
-        this.$emit("deletion-completed");
       } catch (error) {
         console.error("Error during batch deletion:", error);
-        this.$emit("deletion-error", error);
+      } finally {
+        this.isDeletingItems = false;
+      }
+    },
+    async confirmRemoveFromCollection() {
+      const refcodesSelected = this.itemsSelected.map((item) => item.refcode);
+
+      if (
+        confirm(
+          `Are you sure you want to remove ${refcodesSelected.length} item(s) from ${this.collectionId} ? (${refcodesSelected})`,
+        )
+      ) {
+        await this.removeItemsFromCollection(refcodesSelected);
+        this.$emit("remove-selected-items-from-collection");
+      }
+      this.isSelectedDropdownVisible = false;
+    },
+    async removeItemsFromCollection(refcodes) {
+      try {
+        this.itemCount = refcodes.length;
+        this.isDeletingItems = true;
+
+        await removeItemsFromCollection(this.collectionId, refcodes);
+      } catch (error) {
+        console.error("Error during removal from collection:", error);
       } finally {
         this.isDeletingItems = false;
       }
@@ -284,12 +325,14 @@ export default {
     columnLabel(option) {
       return option.label || option.header || option.field;
     },
-    resetTable() {
-      if (
-        window.confirm(
+    async resetTable() {
+      const confirmed = await DialogService.confirm({
+        title: "Confirm reset",
+        message:
           "Are you sure you want to reset your preferences (visible columns, widths) for this table?",
-        )
-      ) {
+        type: "info",
+      });
+      if (confirmed) {
         this.$emit("reset-table");
       }
     },

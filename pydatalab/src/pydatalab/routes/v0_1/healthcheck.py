@@ -12,7 +12,7 @@ def is_ready():
     except RuntimeError:
         return (
             jsonify(status="error", message="Unable to connect to MongoDB at specified URI."),
-            500,
+            502,
         )
     return (jsonify(status="success", message="Server and database are ready"), 200)
 

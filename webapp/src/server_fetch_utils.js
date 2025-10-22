@@ -10,6 +10,8 @@ import {
   EQUIPMENT_TABLE_TYPES,
 } from "@/resources.js";
 
+import { DialogService } from "@/services/DialogService";
+
 // ****************************************************************************
 // A simple wrapper to simplify response handling for fetch calls
 // ****************************************************************************
@@ -69,11 +71,12 @@ function fetch_put(url, body) {
 }
 
 // eslint-disable-next-line no-unused-vars
-function fetch_delete(url) {
+function fetch_delete(url, body) {
   let headers = construct_headers({ "Content-Type": "application/json" });
   const requestOptions = {
     method: "DELETE",
     headers: headers,
+    body: JSON.stringify(body),
     credentials: "include",
   };
   return fetch(url, requestOptions).then(handleResponse);
@@ -81,9 +84,6 @@ function fetch_delete(url) {
 
 function handleResponse(response) {
   return response.text().then((text) => {
-    console.log("fetch was successful");
-    console.log(response);
-    console.log(text);
     const data = text && JSON.parse(text);
 
     if (!response.ok) {
@@ -121,19 +121,23 @@ export function createNewItem(
       ...startingData,
     },
   }).then(function (response_json) {
-    console.log("received the following data from fetch new-sample:");
-    console.log(response_json.sample_list_entry);
-    console.log(
-      `created a new item with item_id: ${item_id}, type: ${response_json.sample_list_entry.type}`,
-    );
     if (SAMPLE_TABLE_TYPES.includes(response_json.sample_list_entry.type)) {
       store.commit("prependToSampleList", response_json.sample_list_entry);
+      if (startingCollection && startingCollection.length > 0) {
+        getSampleList();
+      }
     }
     if (INVENTORY_TABLE_TYPES.includes(response_json.sample_list_entry.type)) {
       store.commit("prependToStartingMaterialList", response_json.sample_list_entry);
+      if (startingCollection && startingCollection.length > 0) {
+        getStartingMaterialList();
+      }
     }
     if (EQUIPMENT_TABLE_TYPES.includes(response_json.sample_list_entry.type)) {
       store.commit("prependToEquipmentList", response_json.sample_list_entry);
+      if (startingCollection && startingCollection.length > 0) {
+        getEquipmentList();
+      }
     }
     return "success";
   });
@@ -149,9 +153,6 @@ export function createNewSamples(
     new_sample_datas: newSampleDatas,
     generate_ids_automatically: generateIDsAutomatically,
   }).then(function (response_json) {
-    console.log("received the following data from fetch new-samples:");
-    console.log(response_json);
-
     response_json.responses.forEach((response) => {
       if (response.status == "success") {
         store.commit("prependToSampleList", response.sample_list_entry);
@@ -183,7 +184,6 @@ export async function getStats() {
       return response_json.counts;
     })
     .catch((error) => {
-      console.error("Error when fetching stats");
       throw error;
     });
 }
@@ -195,7 +195,10 @@ export async function getInfo() {
       return response_json.data.attributes;
     })
     .catch((error) => {
-      console.error("Error when fetching info");
+      DialogService.error({
+        title: "Unable to retrieve API",
+        message: `Unable to connect to the datalab instance at ${API_URL}.`,
+      });
       throw error;
     });
 }
@@ -203,22 +206,18 @@ export async function getInfo() {
 export function getSampleList() {
   return fetch_get(`${API_URL}/samples/`)
     .then(function (response_json) {
-      console.log(response_json);
       store.commit("setSampleList", response_json.samples);
     })
     .catch((error) => {
       if (error === "UNAUTHORIZED") {
         store.commit("setSampleList", []);
       } else {
-        console.error("Error when fetching sample list");
-        console.error(error);
         throw error;
       }
     });
 }
 
 export function getCollectionSampleList(collection_id) {
-  console.log("getCollectionSampleList");
   return fetch_get(`${API_URL}/collections/${collection_id}`)
     .then(function (response_json) {
       store.commit("setCollectionSampleList", response_json);
@@ -227,11 +226,6 @@ export function getCollectionSampleList(collection_id) {
       if (error === "UNAUTHORIZED") {
         store.commit("setCollectionSampleList", []);
       } else {
-        console.error(
-          "Error when fetching collection sample list for collection_id",
-          collection_id,
-        );
-        console.error(error);
         throw error;
       }
     });
@@ -246,8 +240,6 @@ export function getCollectionList() {
       if (error === "UNAUTHORIZED") {
         store.commit("setCollectionList", []);
       } else {
-        console.error("Error when fetching collection list");
-        console.error(error);
         throw error;
       }
     });
@@ -263,8 +255,6 @@ export function getUsersList() {
       return response_json.data;
     })
     .catch((error) => {
-      console.error("Error when fetching users list");
-      console.error(error);
       throw error;
     });
 }
@@ -278,8 +268,6 @@ export function getStartingMaterialList() {
       if (error === "UNAUTHORIZED") {
         store.commit("setStartingMaterialList", []);
       } else {
-        console.error("Error when fetching starting material list");
-        console.error(error);
         throw error;
       }
     });
@@ -294,8 +282,6 @@ export function getEquipmentList() {
       if (error === "UNAUTHORIZED") {
         store.commit("setEquipmentList", []);
       } else {
-        console.error("Error when fetching equipment list");
-        console.error(error);
         throw error;
       }
     });
@@ -306,9 +292,6 @@ export function searchItems(query, nresults = 100, types = null) {
   var url = new URL(`${API_URL}/search-items/`);
   var params = { query: query, nresults: nresults, types: types };
   Object.keys(params).forEach((key) => url.searchParams.append(key, params[key]));
-  console.log(`using to construct url for searchItems: ${url}`);
-  console.log(url);
-  console.log(params);
   return fetch_get(url).then(function (response_json) {
     return response_json.items;
   });
@@ -333,6 +316,7 @@ export async function getUserInfo() {
       return response_json;
     })
     .catch(() => {
+      // If the user is not logged in, we return null.
       return null;
     });
 }
@@ -346,6 +330,10 @@ export async function requestMagicLink(email_address) {
       return response_json;
     })
     .catch((err) => {
+      DialogService.error({
+        title: "Magic link request failed",
+        message: `Failed to request magic link: ${err}`,
+      });
       return err;
     });
 }
@@ -355,9 +343,6 @@ export function searchUsers(query, nresults = 100) {
   var url = new URL(`${API_URL}/search-users/`);
   var params = { query: query, nresults: nresults };
   Object.keys(params).forEach((key) => url.searchParams.append(key, params[key]));
-  console.log(`using to construct url for searchUsers: ${url}`);
-  console.log(url);
-  console.log(params);
   return fetch_get(url).then(function (response_json) {
     return response_json.users;
   });
@@ -368,16 +353,21 @@ export function deleteSample(item_id) {
     item_id: item_id,
   })
     .then(function (response_json) {
-      console.log("delete successful" + response_json);
+      if (response_json.status !== "success") {
+        throw new Error("Failed to delete sample: " + response_json.message);
+      }
       store.commit("deleteFromSampleList", item_id);
     })
-    .catch(() =>
-      alert(
-        "Unable to delete item with ID '" +
+    .catch((error) => {
+      DialogService.error({
+        title: "Permission error",
+        message:
+          "Unable to delete item with ID '" +
           item_id +
           "': check that you have the appropriate permissions.",
-      ),
-    );
+      });
+      throw error;
+    });
 }
 
 export function deleteStartingMaterial(item_id) {
@@ -385,31 +375,41 @@ export function deleteStartingMaterial(item_id) {
     item_id: item_id,
   })
     .then(function (response_json) {
-      console.log("delete successful" + response_json);
+      if (response_json.status !== "success") {
+        throw new Error("Failed to delete starting material: " + response_json.message);
+      }
       store.commit("deleteFromStartingMaterialList", item_id);
     })
-    .catch(() =>
-      alert(
-        "Unable to delete item with ID '" +
+    .catch((error) => {
+      DialogService.error({
+        title: "Permission error",
+        message:
+          "Unable to delete item with ID '" +
           item_id +
           "': check that you have the appropriate permissions.",
-      ),
-    );
+      });
+      throw error;
+    });
 }
 
 export function deleteCollection(collection_id, collection_summary) {
   return fetch_delete(`${API_URL}/collections/${collection_id}`)
     .then(function (response_json) {
-      console.log("delete successful" + response_json);
+      if (response_json.status !== "success") {
+        throw new Error("Failed to delete collection: " + response_json.message);
+      }
       store.commit("deleteFromCollectionList", collection_summary);
     })
-    .catch(() =>
-      alert(
-        "Unable to delete collection with ID '" +
+    .catch((error) => {
+      DialogService.error({
+        title: "Permission error",
+        message:
+          "Unable to delete collection with ID '" +
           collection_id +
           "': check that you have the appropriate permissions.",
-      ),
-    );
+      });
+      throw error;
+    });
 }
 
 export function deleteEquipment(item_id) {
@@ -417,31 +417,46 @@ export function deleteEquipment(item_id) {
     item_id: item_id,
   })
     .then(function (response_json) {
-      console.log("delete successful" + response_json);
+      if (response_json.status !== "success") {
+        throw new Error("Failed to delete equipment: " + response_json.message);
+      }
       store.commit("deleteFromEquipmentList", item_id);
     })
-    .catch(() =>
-      alert(
-        "Unable to delete item with ID '" +
+    .catch((error) => {
+      DialogService.error({
+        title: "Permission error",
+        message:
+          "Unable to delete item with ID '" +
           item_id +
           "': check that you have the appropriate permissions.",
-      ),
-    );
+      });
+      throw error;
+    });
 }
 
-export function deletSampleFromCollection(collection_id, collection_summary) {
-  return fetch_delete(`${API_URL}/collections/${collection_id}`)
+export function removeItemsFromCollection(collection_id, refcodes) {
+  return fetch_delete(`${API_URL}/collections/${collection_id}/items`, {
+    refcodes: refcodes,
+  })
     .then(function (response_json) {
-      console.log("delete successful" + response_json);
-      store.commit("deleteFromCollectionList", collection_summary);
+      store.commit("removeItemsFromCollection", {
+        collection_id: collection_id,
+        refcodes: refcodes,
+      });
+
+      return response_json;
     })
-    .catch((error) => alert("Collection delete failed for " + collection_id + ": " + error));
+    .catch((error) => {
+      DialogService.error({
+        title: "Unable to remove item(s) from collection",
+        message: "Collection delete failed for " + collection_id + ": " + error,
+      });
+    });
 }
 
 export async function getItemData(item_id) {
   return fetch_get(`${API_URL}/get-item-data/${item_id}`)
     .then((response_json) => {
-      console.log(response_json);
       store.commit("createItemData", {
         item_id: item_id,
         item_data: response_json.item_data,
@@ -451,7 +466,12 @@ export async function getItemData(item_id) {
 
       return "success";
     })
-    .catch((error) => alert("Error getting sample data: " + error));
+    .catch((error) => {
+      DialogService.error({
+        title: "Unable to retrieve item",
+        message: "Error getting sample data: " + error,
+      });
+    });
 }
 
 export async function getItemByRefcode(refcode) {
@@ -466,13 +486,17 @@ export async function getItemByRefcode(refcode) {
       });
       return "success";
     })
-    .catch((error) => alert("Error getting item data: " + error));
+    .catch((error) => {
+      DialogService.error({
+        title: "Unable to retrieve item",
+        message: "Error getting item data: " + error,
+      });
+    });
 }
 
 export async function getCollectionData(collection_id) {
   return fetch_get(`${API_URL}/collections/${collection_id}`)
     .then((response_json) => {
-      console.log("get collection", response_json);
       store.commit("setCollectionData", {
         collection_id: collection_id,
         data: response_json.data,
@@ -481,24 +505,31 @@ export async function getCollectionData(collection_id) {
 
       return "success";
     })
-    .catch((error) => alert("Error getting collection data: " + error));
+    .catch((error) => {
+      DialogService.error({
+        title: "Unable to retrieve collection",
+        message: "Error getting collection data: " + error,
+      });
+    });
 }
 
-export async function updateBlockFromServer(item_id, block_id, block_data, saveToDatabase = true) {
+export async function updateBlockFromServer(item_id, block_id, block_data, event_data = null) {
   // Send the current block state to the API and receive an updated version
-  // of the block in return
+  // of the block in return, including any event data.
   //
   // - Will strip known "large data" keys, even if not formalised, e.g., bokeh_plot_data.
   //
   delete block_data.bokeh_plot_data;
-  delete block_data.processed_data;
+  delete block_data.b64_encoded_image;
+  delete block_data.computed;
   delete block_data.metadata;
+
   store.commit("setBlockUpdating", block_id);
   return fetch_post(`${API_URL}/update-block/`, {
     item_id: item_id,
     block_id: block_id,
     block_data: block_data,
-    save_to_db: saveToDatabase,
+    event_data: event_data,
   })
     .then(function (response_json) {
       store.commit("updateBlockData", {
@@ -511,16 +542,19 @@ export async function updateBlockFromServer(item_id, block_id, block_data, saveT
         block_id: block_id,
         isSaved: response_json.saved_successfully,
       });
+      store.commit("setBlockError", { block_id, error: "" });
     })
     .catch((error) => {
-      alert("Error in updateBlockFromServer: " + error);
+      // The block component renders errors, so no need to make a dialog here.
       store.commit("setBlockNotUpdating", block_id);
-      throw error;
+      if (error && !error.includes("Invalid block type")) {
+        // Do not set any error message for NotImplemented as this will be handled elsewhere
+        store.commit("setBlockError", { block_id, error: error });
+      }
     });
 }
 
 export function addABlock(item_id, block_type, index = null) {
-  console.log("addABlock called with", item_id, block_type);
   var block_id_promise = fetch_post(`${API_URL}/add-data-block/`, {
     item_id: item_id,
     block_type: block_type,
@@ -534,16 +568,25 @@ export function addABlock(item_id, block_type, index = null) {
       });
       return response_json.new_block_obj.block_id;
     })
-    .catch((error) => console.error("Error in addABlock:", error));
+    .catch((error) => {
+      DialogService.error({
+        title: "Failed to add block",
+        message: `Error adding block to item ${item_id}: ${error}`,
+      });
+      throw error;
+    });
   return block_id_promise;
 }
 
 export function updateItemPermissions(refcode, creators) {
-  console.log("updateItemPermissions called with", refcode, creators);
   return fetch_patch(`${API_URL}/items/${refcode}/permissions`, {
     creators: creators,
   }).then(function (response_json) {
     if (response_json.status === "error") {
+      DialogService.error({
+        title: "Permission update failed",
+        message: `Failed to update permissions for item ${refcode}: ${response_json.message}`,
+      });
       throw new Error(response_json.message);
     }
     return response_json;
@@ -551,9 +594,26 @@ export function updateItemPermissions(refcode, creators) {
 }
 
 export function saveItem(item_id) {
-  console.log("saveItem Called!");
   var item_data = store.state.all_item_data[item_id];
-  console.log("Item data before saving:", item_data);
+
+  let blocks = [];
+  let keysToExclude = ["bokeh_plot_data", "computed", "metadata", "b64_encoded_image"];
+
+  // Strip large data from blocks before saving, but make
+  // sure to preserve them in the store
+  if (item_data.blocks_obj) {
+    for (const block_id in item_data.blocks_obj) {
+      blocks.push(
+        Object.fromEntries(
+          Object.entries(item_data.blocks_obj[block_id]).filter(
+            ([key]) => !keysToExclude.includes(key),
+          ),
+        ),
+      );
+    }
+  }
+
+  item_data.blocks = blocks;
 
   store.commit("setItemSaved", { item_id: item_id, isSaved: false });
   fetch_post(`${API_URL}/save-item/`, {
@@ -562,8 +622,6 @@ export function saveItem(item_id) {
   })
     .then(function (response_json) {
       if (response_json.status === "success") {
-        // this should always be true if you've gotten this far...
-        console.log("Save successful!");
         store.commit("updateItemData", {
           item_id: item_id,
           item_data: { last_modified: response_json.last_modified },
@@ -575,7 +633,10 @@ export function saveItem(item_id) {
       }
     })
     .catch(function (error) {
-      alert("Save unsuccessful :(", error);
+      DialogService.error({
+        title: "Failed to save item",
+        message: "Save unsuccessful: " + error,
+      });
     });
 }
 
@@ -584,13 +645,14 @@ export function saveCollection(collection_id) {
   fetch_patch(`${API_URL}/collections/${collection_id}`, { data: data })
     .then(function (response_json) {
       if (response_json.status === "success") {
-        // this should always be true if you've gotten this far...
-        console.log("Save successful!");
         store.commit("setSavedCollection", { collection_id: collection_id, isSaved: true });
       }
     })
     .catch(function (error) {
-      alert("Save unsuccessful :(", error);
+      DialogService.error({
+        title: "Failed to save collection",
+        message: "Save unsuccessful: " + error,
+      });
     });
 }
 
@@ -599,32 +661,37 @@ export function saveUser(user_id, user) {
     .then(function (response_json) {
       if (response_json.status === "success") {
         getUserInfo();
-        console.log("Save successful!");
       } else {
-        alert("User save unsuccessful", response_json.detail);
+        DialogService.error({
+          title: "Failed to update user",
+          message: "User save unsuccessful: " + response_json.detail,
+        });
       }
     })
     .catch(function (error) {
-      alert(`User save unsuccessful: ${error}`);
+      DialogService.error({
+        title: "Failed to update user",
+        message: `User save unsuccessful: ${error}`,
+      });
     });
 }
 
 export function saveRole(user_id, role) {
   fetch_patch(`${API_URL}/roles/${user_id}`, role)
     .then(function (response_json) {
-      if (response_json.status === "success") {
-        console.log("Save successful!");
-      } else {
-        alert("Role save unsuccessful", response_json.detail);
+      if (response_json.status !== "success") {
+        throw new Error("Failed to save role: " + response_json.detail);
       }
     })
     .catch(function (error) {
-      alert(`Role save unsuccessful: ${error}`);
+      DialogService.error({
+        title: "Role save failed",
+        message: `Role save unsuccessful: ${error}`,
+      });
     });
 }
 
 export function deleteBlock(item_id, block_id) {
-  console.log("deleteBlock called!");
   fetch_post(`${API_URL}/delete-block/`, {
     item_id: item_id,
     block_id: block_id,
@@ -638,7 +705,12 @@ export function deleteBlock(item_id, block_id) {
       });
       // currently, we don't actually delete the block from the store, so it may get re-added to the db on the next save. Fix once new schemas are established
     })
-    .catch((error) => alert(`Delete unsuccessful :(\n error: ${error}`));
+    .catch((error) => {
+      DialogService.error({
+        title: "Block deletion failed",
+        message: `Delete unsuccessful: ${error}`,
+      });
+    });
 }
 
 export function deleteFileFromSample(item_id, file_id) {
@@ -652,7 +724,12 @@ export function deleteFileFromSample(item_id, file_id) {
         file_id: file_id,
       });
     })
-    .catch((error) => alert(`Delete unsuccessful :(\n error: ${error}`));
+    .catch((error) => {
+      DialogService.error({
+        title: "Failed to unlink file",
+        message: `Delete unsuccessful: ${error}`,
+      });
+    });
 }
 
 export async function fetchRemoteTree(invalidate_cache) {
@@ -660,7 +737,6 @@ export async function fetchRemoteTree(invalidate_cache) {
   var url = new URL(
     `${API_URL}/list-remote-directories?invalidate_cache=${invalidate_cache_param}`,
   );
-  console.log("fetchRemoteTree called!");
   store.commit("setRemoteDirectoryTreeIsLoading", true);
   return fetch_get(url)
     .then(function (response_json) {
@@ -669,8 +745,10 @@ export async function fetchRemoteTree(invalidate_cache) {
       return response_json;
     })
     .catch((error) => {
-      console.error("Error when fetching cached remote tree");
-      console.error(error);
+      DialogService.error({
+        title: "Remote directory retrieval failed",
+        message: `Error retrieving remote directory tree from API: ${error}`,
+      });
       store.commit("setRemoteDirectoryTreeIsLoading", false);
       throw error;
     });
@@ -682,11 +760,7 @@ export async function addRemoteFileToSample(file_entry, item_id) {
     item_id: item_id,
   })
     .then(function (response_json) {
-      //store.commit("updateFiles", {
-      //  [response_json.file_id]: response_json.file_information,
-      //});
       if (!response_json.is_update) {
-        console.log("Adding file to sample", response_json.file_information);
         store.commit("addFileToSample", {
           item_id: item_id,
           file_id: response_json.file_id,
@@ -694,7 +768,12 @@ export async function addRemoteFileToSample(file_entry, item_id) {
         });
       }
     })
-    .catch((error) => `addRemoteFilesToSample unsuccessful. Error: ${error}`);
+    .catch((error) =>
+      DialogService.error({
+        title: "Remote File Linking Failed",
+        message: `Error adding remote file to sample: ${error}`,
+      }),
+    );
 }
 
 export async function getItemGraph({ item_id = null, collection_id = null } = {}) {
@@ -707,10 +786,14 @@ export async function getItemGraph({ item_id = null, collection_id = null } = {}
   }
   return fetch_get(url)
     .then(function (response_json) {
-      console.log("received graph");
       store.commit("setItemGraph", { nodes: response_json.nodes, edges: response_json.edges });
     })
-    .catch((error) => `getItemGraph unsuccessful. Error: ${error}`);
+    .catch((error) =>
+      DialogService.error({
+        title: "Graph Retrieval Failed",
+        message: `Error retrieving item graph from API: ${error}`,
+      }),
+    );
 }
 
 export async function requestNewAPIKey() {
@@ -718,12 +801,19 @@ export async function requestNewAPIKey() {
     const response_json = await fetch_get(`${API_URL}/get-api-key/`);
 
     if (response_json.key) {
-      console.log("New API key requested successfully!");
       return response_json.key;
     } else {
+      DialogService.error({
+        title: "API Key Request Failed",
+        message: "Failed to retrieve new API key. Please try again later or report this issue.",
+      });
       throw new Error(response_json.message);
     }
   } catch (error) {
+    DialogService.error({
+      title: "API Key Request Failed",
+      message: "Failed to retrieve new API key. Please try again later or report this issue.",
+    });
     throw new Error(`Failed to request new API key: ${error.message}`);
   }
 }
@@ -735,8 +825,10 @@ export async function getBlocksInfos() {
       return response_json.data;
     })
     .catch((error) => {
-      console.error("Error when fetching blocks info");
-      console.error(error);
+      DialogService.error({
+        title: "Block Info Retrieval Failed",
+        message: `Error retrieving block infos from API: ${error}`,
+      });
       throw error;
     });
 }
@@ -747,15 +839,16 @@ export function addItemsToCollection(collection_id, refcodes) {
   })
     .then(function (response_json) {
       if (response_json.status === "success") {
-        console.log("Items added to collection successfully!");
         return response_json;
       } else {
-        console.error("Failed to add items to collection.");
         throw new Error("Failed to add items to collection.");
       }
     })
     .catch(function (error) {
-      alert("Error adding items to collection: ", error);
+      DialogService.error({
+        title: "Collection Update Failed",
+        message: "Error adding items to collection: " + error,
+      });
       throw error;
     });
 }
@@ -770,7 +863,10 @@ export async function getSupportedSchemasList() {
       }
     })
     .catch(function (error) {
-      alert(`Error to get schemas from API: ${error}`);
+      DialogService.error({
+        title: "Schema Retrieval Failed",
+        message: `Error retrieving schemas from API: ${error}`,
+      });
       throw error;
     });
 }
@@ -785,7 +881,10 @@ export async function getSchema(type) {
       }
     })
     .catch(function (error) {
-      alert(`Error to get ${type} schema from API: ${error}`);
+      DialogService.error({
+        title: "Schema Retrieval Failed",
+        message: `Error retrieving ${type} schema from API: ${error}`,
+      });
       throw error;
     });
 }
