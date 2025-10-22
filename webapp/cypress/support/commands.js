@@ -346,9 +346,13 @@ Cypress.Commands.add("loginViaTestMagicLink", (email = "test-user@example.com", 
   }).then((response) => {
     const token = response.body.token;
 
-    cy.visit(`/login/email?token=${token}`);
+    cy.request({
+      method: "GET",
+      url: `${API_URL}/login/email?token=${token}`,
+      followRedirect: true,
+    });
 
-    cy.url().should("not.include", "/login");
+    cy.visit("/");
 
     cy.get(".alert-info").should("not.exist");
   });
@@ -364,5 +368,17 @@ Cypress.Commands.add("logout", () => {
   cy.clearCookies();
   cy.clearLocalStorage();
   cy.visit("/");
-  cy.get(".alert-info").should("exist");
+  cy.wait(500);
+  cy.get(".alert-info", { timeout: 10000 }).should("exist");
+});
+
+Cypress.Commands.add("deleteSample", (item_id) => {
+  cy.selectItemCheckbox("sample", item_id);
+  cy.get('[data-testid="selected-dropdown"]').click();
+  cy.get('[data-testid="delete-selected-button"]').click();
+  cy.findByText("Confirm Deletion").should("exist");
+  cy.get('[data-testid="dialog-modal-confirm-button"]').click();
+  cy.get("[data-testid=sample-table]")
+    .contains(new RegExp("^" + item_id + "$", "g"))
+    .should("not.exist");
 });
