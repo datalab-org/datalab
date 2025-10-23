@@ -70,29 +70,22 @@ describe("Multi-user sample visibility", () => {
     cy.logout();
   });
 
-  it("User 1 can see their own sample", () => {
+  it("User 1 can see their own sample and cannot see User 2's sample", () => {
     cy.loginViaTestMagicLink(user1Email, "user");
     cy.visit("/");
 
     cy.verifySample(user1SampleId, "User 1's sample");
+    cy.get("[data-testid=sample-table]").should("not.contain", user2SampleId);
 
     cy.logout();
   });
 
-  it("User 2 can see their own sample", () => {
+  it("User 2 can see their own sample and cannot see User 1's sample", () => {
     cy.loginViaTestMagicLink(user2Email, "user");
     cy.visit("/");
 
     cy.verifySample(user2SampleId, "User 2's sample");
-
-    cy.logout();
-  });
-
-  it("User 1 cannot see User 2's sample", () => {
-    cy.loginViaTestMagicLink(user1Email, "user");
-    cy.visit("/");
-
-    cy.get("[data-testid=sample-table]").should("not.contain", user2SampleId);
+    cy.get("[data-testid=sample-table]").should("not.contain", user1SampleId);
 
     cy.logout();
   });
