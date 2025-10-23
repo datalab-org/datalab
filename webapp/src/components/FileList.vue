@@ -104,11 +104,11 @@ export default {
     getFileSize(file) {
     return file.size
   },
-    formatFileSize(size) {
-    if (size < 1024) return `${size} B`;
-    if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
-    if (size < 1024 * 1024 * 1024) return `${(size / 1024 / 1024).toFixed(1)} MB`;
-    return `${(size / 1024 / 1024 / 1024).toFixed(2)} GB`;
+    formatFileSize(size_bytes) {
+    if (size_bytes < 1024) return `${size_bytes} B`;
+    if (size_bytes < 1024 * 1024) return `${(size_bytes / 1024).toFixed(1)} KB`;
+    if (size_bytes < 1024 * 1024 * 1024) return `${(size_bytes / 1024 / 1024).toFixed(1)} MB`;
+    return `${(size_bytes / 1024 / 1024 / 1024).toFixed(2)} GB`;
   },
     async deleteFile(event, file_id) {
       const confirmed = await DialogService.confirm({
