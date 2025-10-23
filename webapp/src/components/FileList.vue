@@ -102,18 +102,7 @@ export default {
   methods: {
     formatDistance,
     getFileSize(file) {
-    return (
-      file.size ||
-      file.size_bytes ||
-      file.file_size ||
-      file.filesize ||
-      file.length ||
-      file.bytes ||
-      file.meta?.size ||
-      file.file_information?.size ||
-      file.file_information?.size_bytes ||
-      null
-    );
+    return file.size
   },
     formatFileSize(size) {
     if (size < 1024) return `${size} B`;
