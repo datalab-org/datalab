@@ -44,7 +44,7 @@ class Item(Entry, HasOwner, HasRevisionControl, IsCollectable, HasBlocks, abc.AB
     file_ObjectIds: list[PyObjectId] = Field([])
     """Links to object IDs of files stored within the database."""
 
-    status: str
+    status: str | None
     """The status of the item, with allowed values defined by the specific item class."""
 
     @validator("refcode", pre=True, always=True)
