@@ -58,7 +58,7 @@ describe("Edit Page", () => {
     cy.findByText("editable_sample");
     cy.findByText("This is a sample name");
     cy.findByText("1990-01-07");
-    cy.get("span").should("contain.html", "NaCoO<sub>2</sub>");
+    cy.get("body").should("contain.html", "NaCoO<sub>2</sub>");
   });
 
   it("adds a chemical formula to component1", () => {
