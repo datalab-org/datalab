@@ -38,7 +38,10 @@ export default {
 
       // Create a regex that matches either element symbols or sequences of digits/periods
       const validFormulaRegex = new RegExp(
-        `^[A-Za-z0-9.+x()\\[\\]\\s${greekLetters.replace(/\|/g, "")}${specialChars.replace(/\|/g, "")}-]+$`,
+        `^[A-Za-z0-9.+x()\\[\\]\\s${greekLetters.replace(/\|/g, "")}${specialChars.replace(
+          /\|/g,
+          "",
+        )}-]+$`,
         "u",
       );
 
