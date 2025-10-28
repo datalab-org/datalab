@@ -20,7 +20,7 @@ def get_graph_cy_format(
 ):
     collection_id = request.args.get("collection_id", type=str)
     hide_collections = request.args.get(
-        "hide_collections", default=False, type=lambda v: v.lower() == "true"
+        "hide_collections", default=True, type=lambda v: v.lower() == "true"
     )
 
     if item_id is None:
