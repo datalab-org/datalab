@@ -442,9 +442,16 @@ def _validate_magic_link_request(email: str, referrer: str) -> tuple[Response | 
     return None, 200
 
 
-def _generate_and_store_token(email: str) -> str:
+def _generate_and_store_token(email: str, is_test: bool = False) -> str:
+    payload = {
+        "exp": datetime.datetime.now(datetime.timezone.utc) + LINK_EXPIRATION,
+        "email": email,
+    }
+    if is_test:
+        payload["is_test"] = True
+
     token = jwt.encode(
-        {"exp": datetime.datetime.now(datetime.timezone.utc) + LINK_EXPIRATION, "email": email},
+        payload,
         CONFIG.SECRET_KEY,
         algorithm="HS256",
     )
@@ -560,15 +567,19 @@ def email_logged_in():
     # If the email domain list is explicitly configured to None, this allows any
     # email address to make an active account, otherwise the email domain must match
     # the list of allowed domains and the admin must verify the user
-    allowed = _check_email_domain(email, CONFIG.EMAIL_DOMAIN_ALLOW_LIST)
-    if not allowed:
-        raise UserRegistrationForbidden
+    is_test = data.get("is_test", False)
+
+    if not is_test:
+        allowed = _check_email_domain(email, CONFIG.EMAIL_DOMAIN_ALLOW_LIST)
+        if not allowed:
+            raise UserRegistrationForbidden
 
     create_account = AccountStatus.UNVERIFIED
     if (
         CONFIG.EMAIL_DOMAIN_ALLOW_LIST is None
         or CONFIG.EMAIL_AUTO_ACTIVATE_ACCOUNTS
         or CONFIG.AUTO_ACTIVATE_ACCOUNTS
+        or is_test
     ):
         create_account = AccountStatus.ACTIVE
 
@@ -731,6 +742,6 @@ def create_test_magic_link():
     if error_response:
         return error_response, status_code
 
-    token = _generate_and_store_token(email)
+    token = _generate_and_store_token(email, is_test=True)
 
     return jsonify({"status": "success", "token": token}), 200
