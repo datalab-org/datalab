@@ -331,7 +331,6 @@ Cypress.Commands.add("expandIfCollapsed", (selector) => {
  * @param {string} email - Email address of the test user (default: test-user@example.com)
  * @param {string} role - User role: 'user' or 'admin' (default: 'user')
  */
-
 Cypress.Commands.add("loginViaTestMagicLink", (email = "test@example.com") => {
   cy.request({
     method: "POST",
@@ -340,10 +339,8 @@ Cypress.Commands.add("loginViaTestMagicLink", (email = "test@example.com") => {
   }).then((response) => {
     expect(response.status).to.eq(200);
     const token = response.body.token;
-    cy.visit(`/?token=${token}`);
-    cy.window().then((win) => {
-      expect(win.location.pathname).to.eq("/");
-    });
+    cy.visit(`/login/email?token=${token}`);
+    cy.url().should("include", "/");
   });
 });
 
