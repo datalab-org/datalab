@@ -645,7 +645,7 @@ def _create_sample(
     return data
 
 
-@ITEMS.route("/new-sample/", methods=["POST"])
+@ITEMS.route("/new-sample/", methods=["POST", "PUT"])
 def create_sample():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
     if "new_sample_data" in request_json:
@@ -660,7 +660,7 @@ def create_sample():
     return jsonify(response), http_code
 
 
-@ITEMS.route("/new-samples/", methods=["POST"])
+@ITEMS.route("/new-samples/", methods=["POST", "PUT"])
 def create_samples():
     """attempt to create multiple samples at once.
     Because each may result in success or failure, 207 is returned along with a
