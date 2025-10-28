@@ -120,7 +120,33 @@ def test_single_starting_material(admin_client, client):
     assert len(graph["nodes"]) == 3
     assert len(graph["edges"]) == 2
 
-    # Current broken behaviour: non-admin users see the full graph, but not the things they don't have permission for
     graph = client.get("/item-graph/great-grandchild").json
     assert len(graph["nodes"]) == 2
     assert len(graph["edges"]) == 1
+
+    # Put node in a collection and see if its shown
+    response = admin_client.put(
+        "/collections",
+        json={
+            "data": {
+                "collection_id": "test-collection",
+                "starting_members": [{"item_id": "great-grandchild"}],
+            }
+        },
+    )
+    assert response.status_code == 201
+
+    client_collection_graph = client.get("/item-graph?collection_id=test-collection").json
+    assert client_collection_graph["status"] == "error"
+
+    collection_graph = admin_client.get("/item-graph?collection_id=test-collection").json
+    assert len(collection_graph["nodes"]) == 1
+    assert len(collection_graph["edges"]) == 0
+
+    graph = client.get("/item-graph/great-grandchild?hide_collections=false").json
+    assert len(graph["nodes"]) == 2
+    assert len(graph["edges"]) == 1
+
+    admin_graph = admin_client.get("/item-graph/great-grandchild?hide_collections=false").json
+    assert len(admin_graph["nodes"]) == 4
+    assert len(admin_graph["edges"]) == 3
