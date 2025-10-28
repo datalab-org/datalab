@@ -14,7 +14,7 @@ from string import ascii_letters
 
 import jwt
 from bson import ObjectId
-from flask import Blueprint, g, jsonify, redirect, request
+from flask import Blueprint, Response, g, jsonify, redirect, request
 from flask_dance.consumer import OAuth2ConsumerBlueprint, oauth_authorized
 from flask_login import current_user, login_user
 from flask_login.utils import LocalProxy
@@ -420,16 +420,7 @@ def find_create_or_modify_user(
         wrapped_login_user(get_by_id(str(user.immutable_id)))
 
 
-@EMAIL_BLUEPRINT.route("/magic-link", methods=["POST"])
-def generate_and_share_magic_link():
-    """Generates a JWT-based magic link with which a user can log in, stores it
-    in the database and sends it to the verified email address.
-
-    """
-    request_json = request.get_json()
-    email = request_json.get("email")
-    referrer = request_json.get("referrer")
-
+def _validate_magic_link_request(email: str, referrer: str) -> tuple[Response | None, int]:
     if not email:
         return jsonify({"status": "error", "detail": "No email provided."}), 400
 
@@ -437,7 +428,7 @@ def generate_and_share_magic_link():
         return jsonify({"status": "error", "detail": "Invalid email provided."}), 400
 
     if not referrer:
-        LOGGER.warning("No referrer provided for magic link request: %s", request_json)
+        LOGGER.warning("No referrer provided for magic link request")
         return (
             jsonify(
                 {
@@ -448,25 +439,22 @@ def generate_and_share_magic_link():
             400,
         )
 
-    # Generate a JWT for the user with a short expiration; the session itself
-    # should persist
-    # The key `exp` is a standard part of JWT; pyjwt treats this as an expiration time
-    # and will correctly encode the datetime
+    return None, 200
+
+
+def _generate_and_store_token(email: str) -> str:
     token = jwt.encode(
         {"exp": datetime.datetime.now(datetime.timezone.utc) + LINK_EXPIRATION, "email": email},
         CONFIG.SECRET_KEY,
         algorithm="HS256",
     )
 
-    flask_mongo.db.magic_links.insert_one(
-        {"jwt": token},
-    )
+    flask_mongo.db.magic_links.insert_one({"jwt": token})
 
-    link = f"{referrer}?token={token}"
+    return token
 
-    instance_url = referrer.replace("https://", "")
 
-    # See if the user already exists and adjust the email if so
+def _check_user_registration_allowed(email: str) -> tuple[Response | None, int]:
     user = find_user_with_identity(email, IdentityType.EMAIL, verify=False)
 
     if not user:
@@ -483,6 +471,14 @@ def generate_and_share_magic_link():
                 403,
             )
 
+    return None, 200
+
+
+def _send_magic_link_email(email: str, token: str, referrer: str) -> tuple[Response | None, int]:
+    link = f"{referrer}?token={token}"
+    instance_url = referrer.replace("https://", "")
+    user = find_user_with_identity(email, IdentityType.EMAIL, verify=False)
+
     if user is not None:
         subject = "Datalab Sign-in Magic Link"
         body = f"Click the link below to sign-in to the datalab instance at {instance_url}:\n\n{link}\n\nThis link is single-use and will expire in 1 hour."
@@ -495,6 +491,34 @@ def generate_and_share_magic_link():
     except Exception as exc:
         LOGGER.warning("Failed to send email to %s: %s", email, exc)
         return jsonify({"status": "error", "detail": "Email not sent successfully."}), 400
+
+    return None, 200
+
+
+@EMAIL_BLUEPRINT.route("/magic-link", methods=["POST"])
+def generate_and_share_magic_link():
+    """Generates a JWT-based magic link with which a user can log in, stores it
+    in the database and sends it to the verified email address.
+
+    """
+
+    request_json = request.get_json()
+    email = request_json.get("email")
+    referrer = request_json.get("referrer")
+
+    error_response, status_code = _validate_magic_link_request(email, referrer)
+    if error_response:
+        return error_response, status_code
+
+    error_response, status_code = _check_user_registration_allowed(email)
+    if error_response:
+        return error_response, status_code
+
+    token = _generate_and_store_token(email)
+
+    error_response, status_code = _send_magic_link_email(email, token, referrer)
+    if error_response:
+        return error_response, status_code
 
     return jsonify({"status": "success", "detail": "Email sent successfully."}), 200
 
@@ -703,50 +727,13 @@ def create_test_magic_link():
         ), 403
 
     request_json = request.get_json()
-    email = request_json.get("email", "test-user@example.com")
-    role = request_json.get("role", "user")
+    email = request_json.get("email")
+    referrer = request_json.get("referrer", "http://localhost:8080")
 
-    token = jwt.encode(
-        {
-            "exp": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=1),
-            "email": email,
-        },
-        CONFIG.SECRET_KEY,
-        algorithm="HS256",
-    )
+    error_response, status_code = _validate_magic_link_request(email, referrer)
+    if error_response:
+        return error_response, status_code
 
-    flask_mongo.db.magic_links.insert_one(
-        {"jwt": token, "email": email, "created_at": datetime.datetime.now(datetime.timezone.utc)}
-    )
+    token = _generate_and_store_token(email)
 
-    user = find_user_with_identity(email, IdentityType.EMAIL, verify=False)
-
-    if not user:
-        identity = Identity(
-            identifier=email,
-            identity_type=IdentityType.EMAIL,
-            name=email,
-            display_name=email,
-            verified=True,
-        )
-
-        user = Person.new_user_from_identity(
-            identity, use_display_name=True, account_status=AccountStatus.ACTIVE
-        )
-        insert_pydantic_model_fork_safe(user, "users")
-
-        if role == "admin":
-            flask_mongo.db.roles.update_one(
-                {"_id": user.immutable_id}, {"$set": {"role": "admin"}}, upsert=True
-            )
-
-    return jsonify({"status": "success", "token": token, "email": email}), 200
-
-
-@AUTH.route("/logout", methods=["POST"])
-def logout():
-    """Logout the current user."""
-    from flask_login import logout_user
-
-    logout_user()
-    return jsonify({"status": "success", "detail": "Logged out successfully."}), 200
+    return jsonify({"status": "success", "token": token}), 200

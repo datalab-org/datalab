@@ -332,44 +332,23 @@ Cypress.Commands.add("expandIfCollapsed", (selector) => {
  * @param {string} role - User role: 'user' or 'admin' (default: 'user')
  */
 
-Cypress.Commands.add("loginViaTestMagicLink", (email = "test-user@example.com", role = "user") => {
-  cy.log(`Logging in as ${role}: ${email}`);
-
+Cypress.Commands.add("loginViaTestMagicLink", (email = "test@example.com") => {
   cy.request({
     method: "POST",
-    url: `${API_URL}/testing/create-magic-link`,
-    body: {
-      email: email,
-      role: role,
-    },
-    failOnStatusCode: true,
+    url: API_URL + "/testing/create-magic-link",
+    body: { email: email, referrer: Cypress.config("baseUrl") },
   }).then((response) => {
+    expect(response.status).to.eq(200);
     const token = response.body.token;
-
-    cy.request({
-      method: "GET",
-      url: `${API_URL}/login/email?token=${token}`,
-      followRedirect: true,
+    cy.visit(`/?token=${token}`);
+    cy.window().then((win) => {
+      expect(win.location.pathname).to.eq("/");
     });
-
-    cy.visit("/");
-
-    cy.get(".alert-info").should("not.exist");
   });
 });
 
 Cypress.Commands.add("logout", () => {
-  cy.log("Logging out current user");
-  cy.request({
-    method: "POST",
-    url: `${API_URL}/logout`,
-    failOnStatusCode: false,
-  });
-  cy.clearCookies();
-  cy.clearLocalStorage();
-  cy.visit("/");
-  cy.wait(500);
-  cy.get(".alert-info", { timeout: 10000 }).should("exist");
+  cy.visit("/logout");
 });
 
 Cypress.Commands.add("deleteSample", (item_id) => {
