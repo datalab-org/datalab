@@ -339,8 +339,12 @@ Cypress.Commands.add("loginViaTestMagicLink", (email = "test@example.com") => {
   }).then((response) => {
     expect(response.status).to.eq(200);
     const token = response.body.token;
-    cy.visit(`/login/email?token=${token}`);
-    cy.url().should("include", "/");
+    cy.request({
+      method: "GET",
+      url: API_URL + `/login/email?token=${token}`,
+      followRedirect: false,
+    });
+    cy.visit("/");
   });
 });
 
