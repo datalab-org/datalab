@@ -17,7 +17,7 @@ def test_empty_samples(client):
 
 @pytest.mark.dependency(depends=["test_empty_samples"])
 def test_new_sample(client, default_sample_dict):
-    response = client.post("/new-sample/", json=default_sample_dict)
+    response = client.put("/new-sample/", json=default_sample_dict)
     # Test that 201: Created is emitted
     assert response.status_code == 201, response.json
     assert response.json["status"] == "success"
