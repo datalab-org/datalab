@@ -102,14 +102,14 @@ export default {
   methods: {
     formatDistance,
     getFileSize(file) {
-    return file.size
-  },
+      return file.size;
+    },
     formatFileSize(size_bytes) {
-    if (size_bytes < 1024) return `${size_bytes} B`;
-    if (size_bytes < 1024 * 1024) return `${(size_bytes / 1024).toFixed(1)} KB`;
-    if (size_bytes < 1024 * 1024 * 1024) return `${(size_bytes / 1024 / 1024).toFixed(1)} MB`;
-    return `${(size_bytes / 1024 / 1024 / 1024).toFixed(2)} GB`;
-  },
+      if (size_bytes < 1024) return `${size_bytes} B`;
+      if (size_bytes < 1024 * 1024) return `${(size_bytes / 1024).toFixed(1)} KB`;
+      if (size_bytes < 1024 * 1024 * 1024) return `${(size_bytes / 1024 / 1024).toFixed(1)} MB`;
+      return `${(size_bytes / 1024 / 1024 / 1024).toFixed(2)} GB`;
+    },
     async deleteFile(event, file_id) {
       const confirmed = await DialogService.confirm({
         title: "Unlink File",
