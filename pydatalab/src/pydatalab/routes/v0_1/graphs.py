@@ -26,7 +26,8 @@ def get_graph_cy_format(
     if item_id is None:
         if collection_id is not None:
             collection_immutable_id = flask_mongo.db.collections.find_one(
-                {"collection_id": collection_id}, projection={"_id": 1}
+                {"collection_id": collection_id, **get_default_permissions(user_only=False)},
+                projection={"_id": 1},
             )
             if not collection_immutable_id:
                 return (
