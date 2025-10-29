@@ -67,16 +67,21 @@ export default {
       title: "",
       selectedCollectionToCopy: null,
       startingMembers: [],
+      takenCollectionIds: [],
     };
   },
   computed: {
-    takenCollectionIds() {
+    collectionIdsFromStore() {
       return this.$store.state.collection_list
         ? this.$store.state.collection_list.map((x) => x.collection_id)
         : [];
     },
     isValidEntryID() {
-      return validateEntryID(this.collection_id, this.takenCollectionIds);
+      return validateEntryID(
+        this.collection_id,
+        this.takenCollectionIds,
+        this.collectionIdsFromStore,
+      );
     },
   },
   methods: {
