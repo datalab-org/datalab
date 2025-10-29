@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
-from flask import Blueprint, current_app, jsonify, send_file
+from flask import Blueprint, current_app, jsonify, request, send_file
 from flask_login import current_user
 
 from pydatalab.config import CONFIG
@@ -22,7 +22,13 @@ EXPORT = Blueprint("export", __name__)
 def _(): ...
 
 
-def _do_export(task_id: str, collection_id: str):
+def _do_export(
+    task_id: str,
+    collection_id: str | None = None,
+    item_id: str | None = None,
+    export_type: str = "collection",
+    related_item_ids: list[str] | None = None,
+):
     try:
         flask_mongo.db.export_tasks.update_one(
             {"task_id": task_id}, {"$set": {"status": ExportStatus.PROCESSING}}
@@ -32,7 +38,10 @@ def _do_export(task_id: str, collection_id: str):
         export_dir.mkdir(exist_ok=True, parents=True)
 
         output_path = export_dir / f"{task_id}.eln"
-        create_eln_file(collection_id, str(output_path))
+        if export_type == "collection":
+            create_eln_file(str(output_path), collection_id=collection_id)
+        elif export_type in ["sample", "graph"]:
+            create_eln_file(str(output_path), item_id=item_id, related_item_ids=related_item_ids)
 
         flask_mongo.db.export_tasks.update_one(
             {"task_id": task_id},
@@ -58,12 +67,19 @@ def _do_export(task_id: str, collection_id: str):
         )
 
 
-def _generate_export_in_background(task_id: str, collection_id: str, app):
+def _generate_export_in_background(
+    task_id: str,
+    app,
+    collection_id: str | None = None,
+    item_id: str | None = None,
+    export_type: str = "collection",
+    related_item_ids: list[str] | None = None,
+):
     if app is not None:
         with app.app_context():
-            _do_export(task_id, collection_id)
+            _do_export(task_id, collection_id, item_id, export_type, related_item_ids)
     else:
-        _do_export(task_id, collection_id)
+        _do_export(task_id, collection_id, item_id, export_type, related_item_ids)
 
 
 @EXPORT.route("/collections/<string:collection_id>/export", methods=["POST"])
@@ -86,11 +102,12 @@ def start_collection_export(collection_id: str):
     export_task = ExportTask(
         task_id=task_id,
         collection_id=collection_id,
+        export_type="collection",
         creator_id=creator_id,
         status=ExportStatus.PENDING,
     )
 
-    flask_mongo.db.export_tasks.insert_one(export_task.dict())
+    flask_mongo.db.export_tasks.insert_one(export_task.dict(exclude_none=False))
 
     try:
         app = current_app._get_current_object()
@@ -99,7 +116,7 @@ def start_collection_export(collection_id: str):
 
     export_scheduler.add_job(
         func=_generate_export_in_background,
-        args=[task_id, collection_id, app],
+        args=[task_id, app, collection_id, None, "collection", None],
         job_id=f"export_{task_id}",
     )
 
@@ -161,8 +178,67 @@ def download_export(task_id: str):
     if not file_path or not os.path.exists(file_path):
         return jsonify({"status": "error", "message": "Export file not found"}), 404
 
-    filename = f"{task['collection_id']}.eln"
+    filename = f"{task.get('collection_id') or task.get('item_id')}.eln"
 
     return send_file(
         file_path, as_attachment=True, download_name=filename, mimetype="application/vnd.eln+zip"
     )
+
+
+@EXPORT.route("/samples/<string:item_id>/export", methods=["POST"])
+def start_sample_export(item_id: str):
+    from pydatalab.permissions import get_default_permissions
+
+    item_data = flask_mongo.db.items.find_one(
+        {"item_id": item_id, **get_default_permissions(user_only=False)}
+    )
+    if not item_data:
+        return jsonify({"status": "error", "message": "Sample not found"}), 404
+
+    task_id = str(uuid.uuid4())
+
+    if not CONFIG.TESTING:
+        creator_id = str(current_user.person.immutable_id)
+    else:
+        creator_id = "000000000000000000000000"
+
+    export_type = "sample"
+    related_item_ids = None
+
+    request_data = request.get_json() or {}
+    if request_data.get("include_related"):
+        related_item_ids = request_data.get("related_item_ids", [])
+        if not related_item_ids:
+            return jsonify(
+                {
+                    "status": "error",
+                    "message": "related_item_ids required when include_related is true",
+                }
+            ), 400
+        export_type = "graph"
+
+    export_task = ExportTask(
+        task_id=task_id,
+        collection_id=None,
+        item_id=item_id,
+        export_type=export_type,
+        creator_id=creator_id,
+        status=ExportStatus.PENDING,
+    )
+
+    flask_mongo.db.export_tasks.insert_one(export_task.dict(exclude_none=False))
+
+    try:
+        app = current_app._get_current_object()
+    except RuntimeError:
+        app = None
+
+    export_scheduler.add_job(
+        func=_generate_export_in_background,
+        args=[task_id, app, None, item_id, export_type, related_item_ids],
+        job_id=f"export_{task_id}",
+    )
+
+    return jsonify(
+        {"status": "success", "task_id": task_id, "status_url": f"/exports/{task_id}/status"}
+    ), 202

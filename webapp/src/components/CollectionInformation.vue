@@ -32,7 +32,7 @@
         ></TiptapInline>
         <div class="form-row">
           <div class="form-group col">
-            <CollectionExportButton :collection-id="collection_id" />
+            <ExportButton :collection-id="collection_id" />
           </div>
         </div>
       </div>
@@ -68,7 +68,7 @@ import Creators from "@/components/Creators";
 import CollectionRelationshipVisualization from "@/components/CollectionRelationshipVisualization";
 import DynamicDataTable from "@/components/DynamicDataTable";
 import FormattedItemStatus from "@/components/FormattedItemStatus.vue";
-import CollectionExportButton from "@/components/CollectionExportButton";
+import ExportButton from "@/components/ExportButton";
 
 export default {
   components: {
@@ -77,7 +77,7 @@ export default {
     CollectionRelationshipVisualization,
     DynamicDataTable,
     FormattedItemStatus,
-    CollectionExportButton,
+    ExportButton,
   },
   props: {
     collection_id: {
