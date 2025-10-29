@@ -89,36 +89,72 @@ def generate_ro_crate_metadata(collection_data: dict, child_items: list[dict]) -
     return metadata
 
 
-def create_eln_file(collection_id: str, output_path: str) -> None:
-    """Create a .eln file for a collection.
+def create_eln_file(
+    output_path: str,
+    collection_id: str | None = None,
+    item_id: str | None = None,
+    related_item_ids: list[str] | None = None,
+) -> None:
+    """Create a .eln file for a collection, item, or set of items.
 
     Parameters:
         collection_id: ID of the collection to export
         output_path: Path where the .eln file should be saved
+        item_id: ID of the item to export
+        related_item_ids: List of related item IDs to include in the export.
+
     """
+    if collection_id and item_id:
+        raise ValueError("Cannot specify both collection_id and item_id")
 
-    # We are outside the request context here, so cannot easily apply permissions baesd on the user.
-    # TODO: Extra safeguards here -- refactor default permissions finder to be able to use
-    # an externally set user ID
-    collection_data = flask_mongo.db.collections.find_one({"collection_id": collection_id})
-    if not collection_data:
-        raise ValueError(f"Collection {collection_id} not found")
+    if collection_id:
+        # We are outside the request context here, so cannot easily apply permissions baesd on the user.
+        # TODO: Extra safeguards here -- refactor default permissions finder to be able to use
+        # an externally set user ID
 
-    collection_immutable_id = collection_data["_id"]
-    child_items = list(
-        flask_mongo.db.items.find(
-            {
-                "relationships": {
-                    "$elemMatch": {"type": "collections", "immutable_id": collection_immutable_id}
+        collection_data = flask_mongo.db.collections.find_one({"collection_id": collection_id})
+        if not collection_data:
+            raise ValueError(f"Collection {collection_id} not found")
+
+        collection_immutable_id = collection_data["_id"]
+        child_items = list(
+            flask_mongo.db.items.find(
+                {
+                    "relationships": {
+                        "$elemMatch": {"type": "collections", "immutable_id": collection_immutable_id}
+                    }
                 }
-            }
+            )
         )
-    )
+        root_folder_name = collection_id
+
+    elif item_id:
+        # TODO: same comment about permissions as above
+        item_data = flask_mongo.db.items.find_one({"item_id": item_id})
+        if not item_data:
+            raise ValueError(f"Sample {item_id} not found")
+
+        if related_item_ids:
+            child_items = list(
+                flask_mongo.db.items.find({"item_id": {"$in": [item_id] + related_item_ids}})
+            )
+        else:
+            child_items = [item_data]
+
+        collection_data = {
+            "collection_id": item_id,
+            "title": item_data.get("name", item_id),
+            "description": f"Export of sample {item_id}"
+            + (" and related samples" if related_item_ids else ""),
+        }
+        root_folder_name = item_id
+
+    else:
+        raise ValueError("Either collection_id or item_id must be provided")
 
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
 
-        root_folder_name = collection_id
         root_folder = temp_path / root_folder_name
         root_folder.mkdir()
 
@@ -131,8 +167,6 @@ def create_eln_file(collection_id: str, output_path: str) -> None:
             item_folder.mkdir()
 
             item_metadata = ITEM_MODELS[item.get("type")](**item).json(indent=2)
-
-            # item_metadata = _convert_objectids_in_dict(item_metadata)
 
             with open(item_folder / "metadata.json", "w", encoding="utf-8") as f:
                 f.write(item_metadata)

@@ -53,6 +53,9 @@
             <label id="samp-description-label">Description</label>
             <TiptapInline v-model="SampleDescription" aria-labelledby="samp-description-label" />
           </div>
+          <div class="col">
+            <ExportButton :item-id="item_id" />
+          </div>
         </div>
       </div>
       <div class="col-md-4">
@@ -78,9 +81,11 @@ import ToggleableGroupsFormGroup from "@/components/ToggleableGroupsFormGroup";
 import SynthesisInformation from "@/components/SynthesisInformation";
 import TableOfContents from "@/components/TableOfContents";
 import ItemRelationshipVisualization from "@/components/ItemRelationshipVisualization";
+import ExportButton from "@/components/ExportButton";
 
 export default {
   components: {
+    ExportButton,
     ChemFormulaInput,
     TiptapInline,
     SynthesisInformation,

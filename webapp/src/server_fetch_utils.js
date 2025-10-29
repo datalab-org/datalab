@@ -1201,3 +1201,17 @@ export async function getExportStatus(task_id) {
 export function getExportDownloadUrl(task_id) {
   return `${API_URL}/exports/${task_id}/download`;
 }
+
+export async function startSampleExport(item_id, options = {}) {
+  return fetch_post(`${API_URL}/samples/${item_id}/export`, options)
+    .then(function (response_json) {
+      return response_json;
+    })
+    .catch((error) => {
+      DialogService.error({
+        title: "Export Failed",
+        message: `Failed to start sample export: ${error}`,
+      });
+      throw error;
+    });
+}

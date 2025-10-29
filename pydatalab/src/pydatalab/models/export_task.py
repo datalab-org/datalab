@@ -7,8 +7,6 @@ from pydatalab.models.utils import PyObjectId
 
 
 class ExportStatus(str, Enum):
-    """Status of an export task."""
-
     PENDING = "pending"
     PROCESSING = "processing"
     READY = "ready"
@@ -16,10 +14,12 @@ class ExportStatus(str, Enum):
 
 
 class ExportTask(BaseModel):
-    """Model for an export task."""
-
     task_id: str = Field(..., description="Unique identifier for the export task")
-    collection_id: str = Field(..., description="ID of the collection being exported")
+    collection_id: str | None = Field(None, description="ID of the collection being exported")
+    item_id: str | None = Field(None, description="ID of the sample being exported")
+    export_type: str = Field(
+        default="collection", description="Type of export: 'collection' or 'sample' or 'graph'"
+    )
     status: ExportStatus = Field(
         default=ExportStatus.PENDING, description="Current status of the task"
     )
