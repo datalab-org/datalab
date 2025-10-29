@@ -443,6 +443,19 @@ def _validate_magic_link_request(email: str, referrer: str) -> tuple[Response | 
 
 
 def _generate_and_store_token(email: str, is_test: bool = False) -> str:
+    """Generate a JWT for the user with a short expiration and store it in the session.
+
+    The session itself persists beyond the JWT expiration. The `exp` key is a standard
+    part of JWT that PyJWT treats as an expiration time and will correctly encode the datetime.
+
+    Args:
+        email: The user's email address to include in the token.
+        is_test: If True, generates a token for testing purposes that may have different
+                 expiration or validation rules. Defaults to False.
+
+    Returns:
+        The generated JWT token string.
+    """
     payload = {
         "exp": datetime.datetime.now(datetime.timezone.utc) + LINK_EXPIRATION,
         "email": email,
