@@ -32,7 +32,7 @@
         ></TinyMceInline>
         <div class="form-row">
           <div class="form-group col">
-            <CollectionExportButton :collection-id="collection_id" />
+            <ExportButton :collection-id="collection_id" />
           </div>
         </div>
       </div>
@@ -66,7 +66,7 @@ import TinyMceInline from "@/components/TinyMceInline";
 import Creators from "@/components/Creators";
 import CollectionRelationshipVisualization from "@/components/CollectionRelationshipVisualization";
 import DynamicDataTable from "@/components/DynamicDataTable";
-import CollectionExportButton from "@/components/CollectionExportButton";
+import ExportButton from "@/components/ExportButton";
 
 export default {
   components: {
@@ -74,7 +74,7 @@ export default {
     Creators,
     CollectionRelationshipVisualization,
     DynamicDataTable,
-    CollectionExportButton,
+    ExportButton,
   },
   props: {
     collection_id: {

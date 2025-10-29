@@ -106,33 +106,58 @@ def generate_ro_crate_metadata(collection_data: dict, child_items: list[dict]) -
     return metadata
 
 
-def create_eln_file(collection_id: str, output_path: str) -> None:
-    """Create a .eln file for a collection.
+def create_eln_file(
+    output_path: str,
+    collection_id: str | None = None,
+    item_id: str | None = None,
+    related_item_ids: list[str] | None = None,
+) -> None:
+    if collection_id:
+        collection_data = flask_mongo.db.collections.find_one({"collection_id": collection_id})
+        if not collection_data:
+            raise ValueError(f"Collection {collection_id} not found")
 
-    Parameters:
-        collection_id: ID of the collection to export
-        output_path: Path where the .eln file should be saved
-    """
-
-    collection_data = flask_mongo.db.collections.find_one({"collection_id": collection_id})
-    if not collection_data:
-        raise ValueError(f"Collection {collection_id} not found")
-
-    collection_immutable_id = collection_data["_id"]
-    child_items = list(
-        flask_mongo.db.items.find(
-            {
-                "relationships": {
-                    "$elemMatch": {"type": "collections", "immutable_id": collection_immutable_id}
+        collection_immutable_id = collection_data["_id"]
+        child_items = list(
+            flask_mongo.db.items.find(
+                {
+                    "relationships": {
+                        "$elemMatch": {
+                            "type": "collections",
+                            "immutable_id": collection_immutable_id,
+                        }
+                    }
                 }
-            }
+            )
         )
-    )
+        root_folder_name = collection_id
+
+    elif item_id:
+        item_data = flask_mongo.db.items.find_one({"item_id": item_id})
+        if not item_data:
+            raise ValueError(f"Sample {item_id} not found")
+
+        if related_item_ids:
+            child_items = list(
+                flask_mongo.db.items.find({"item_id": {"$in": [item_id] + related_item_ids}})
+            )
+        else:
+            child_items = [item_data]
+
+        collection_data = {
+            "collection_id": item_id,
+            "title": item_data.get("name", item_id),
+            "description": f"Export of sample {item_id}"
+            + (" and related samples" if related_item_ids else ""),
+        }
+        root_folder_name = item_id
+
+    else:
+        raise ValueError("Either collection_id or item_id must be provided")
 
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
 
-        root_folder_name = collection_id
         root_folder = temp_path / root_folder_name
         root_folder.mkdir()
 
@@ -145,7 +170,6 @@ def create_eln_file(collection_id: str, output_path: str) -> None:
             item_folder.mkdir()
 
             item_metadata = {k: v for k, v in item.items() if k not in ["_id", "file_ObjectIds"]}
-
             item_metadata = _convert_objectids_in_dict(item_metadata)
 
             with open(item_folder / "metadata.json", "w", encoding="utf-8") as f:
@@ -160,12 +184,6 @@ def create_eln_file(collection_id: str, output_path: str) -> None:
                         if source_path.exists():
                             dest_file = item_folder / file_data["name"]
                             shutil.copy2(source_path, dest_file)
-                        else:
-                            print(f"Warning: File not found on disk: {file_data['location']}")
-                    else:
-                        print(
-                            f"Warning: File metadata not found in database for file_id: {file_id}"
-                        )
 
         with zipfile.ZipFile(output_path, "w", zipfile.ZIP_DEFLATED) as zipf:
             for file_path in root_folder.rglob("*"):

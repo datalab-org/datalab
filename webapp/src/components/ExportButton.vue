@@ -1,9 +1,9 @@
 <template>
-  <div class="collection-export-button">
+  <div class="export-button">
     <button
       :disabled="isExporting"
       class="btn btn-sm btn-outline-primary"
-      data-testid="collection-export-button"
+      :data-testid="`${exportType}-export-button`"
       @click="handleExport"
     >
       <span v-if="!isExporting"> <i class="fa fa-download"></i> Export as .eln </span>
@@ -13,15 +13,24 @@
 </template>
 
 <script>
-import { startCollectionExport, getExportStatus, getExportDownloadUrl } from "@/server_fetch_utils";
+import {
+  startCollectionExport,
+  startSampleExport,
+  getExportStatus,
+  getExportDownloadUrl,
+} from "@/server_fetch_utils";
 import { DialogService } from "@/services/DialogService";
 
 export default {
-  name: "CollectionExportButton",
+  name: "ExportButton",
   props: {
     collectionId: {
       type: String,
-      required: true,
+      default: null,
+    },
+    itemId: {
+      type: String,
+      default: null,
     },
   },
   data() {
@@ -30,6 +39,11 @@ export default {
       exportStatusText: "Preparing export...",
       pollInterval: null,
     };
+  },
+  computed: {
+    exportType() {
+      return this.collectionId ? "collection" : "sample";
+    },
   },
   beforeUnmount() {
     if (this.pollInterval) {
@@ -42,9 +56,18 @@ export default {
         this.isExporting = true;
         this.exportStatusText = "Starting export...";
 
-        const response = await startCollectionExport(this.collectionId);
-        const taskId = response.task_id;
+        console.log("Export - collectionId:", this.collectionId, "itemId:", this.itemId);
 
+        let response;
+        if (this.collectionId) {
+          response = await startCollectionExport(this.collectionId);
+        } else if (this.itemId) {
+          response = await startSampleExport(this.itemId);
+        } else {
+          throw new Error("Either collectionId or itemId must be provided");
+        }
+
+        const taskId = response.task_id;
         this.pollExportStatus(taskId);
       } catch (error) {
         console.error("Export failed:", error);
@@ -69,7 +92,7 @@ export default {
             this.isExporting = false;
             DialogService.alert({
               title: "Export Complete",
-              message: "Your collection has been exported successfully.",
+              message: `Your ${this.exportType} has been exported successfully.`,
               type: "info",
             });
           } else if (status.status === "error") {

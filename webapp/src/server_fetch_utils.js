@@ -787,13 +787,15 @@ export async function getItemGraph({ item_id = null, collection_id = null } = {}
   return fetch_get(url)
     .then(function (response_json) {
       store.commit("setItemGraph", { nodes: response_json.nodes, edges: response_json.edges });
+      return response_json;
     })
-    .catch((error) =>
+    .catch((error) => {
       DialogService.error({
         title: "Graph Retrieval Failed",
         message: `Error retrieving item graph from API: ${error}`,
-      }),
-    );
+      });
+      throw error;
+    });
 }
 
 export async function requestNewAPIKey() {
@@ -919,4 +921,18 @@ export async function getExportStatus(task_id) {
 
 export function getExportDownloadUrl(task_id) {
   return `${API_URL}/exports/${task_id}/download`;
+}
+
+export async function startSampleExport(item_id, options = {}) {
+  return fetch_post(`${API_URL}/samples/${item_id}/export`, options)
+    .then(function (response_json) {
+      return response_json;
+    })
+    .catch((error) => {
+      DialogService.error({
+        title: "Export Failed",
+        message: `Failed to start sample export: ${error}`,
+      });
+      throw error;
+    });
 }
