@@ -5,6 +5,8 @@ from pydantic import BaseModel, Field
 
 
 class ExportStatus(str, Enum):
+    """Status of an export task."""
+
     PENDING = "pending"
     PROCESSING = "processing"
     READY = "ready"
@@ -12,6 +14,8 @@ class ExportStatus(str, Enum):
 
 
 class ExportTask(BaseModel):
+    """Model for an export task."""
+
     task_id: str = Field(..., description="Unique identifier for the export task")
     collection_id: str | None = Field(None, description="ID of the collection being exported")
     item_id: str | None = Field(None, description="ID of the sample being exported")
