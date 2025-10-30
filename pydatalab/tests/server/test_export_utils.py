@@ -106,8 +106,7 @@ class TestExportUtils:
         output_path = tmp_path / "test.eln"
 
         try:
-            create_eln_file(collection_id, str(output_path))
-
+            create_eln_file(str(output_path), collection_id)
             assert output_path.exists()
 
             with zipfile.ZipFile(output_path, "r") as zf:
