@@ -222,7 +222,9 @@ class DataBlock:
                             f"Could not create plot for {self.__class__.__name__} due to "
                             f"error at {last.filename}:{last.lineno} "
                             f"in {last.name} → {last.line!r}:\n\t{type(e).__name__}: {e}"
-                            f"\n\nthe full data for the block is:\n{pprint.pformat(self.data)}\n\n"
+                        )
+                        LOGGER.debug(
+                            f"The full data for the errored block is:\n{pprint.pformat(self.data)}"
                         )
                     finally:
                         if captured_warnings:
