@@ -104,8 +104,8 @@ def create_eln_file(
         related_item_ids: List of related item IDs to include in the export.
 
     """
-    if collection_id and item_id:
-        raise ValueError("Cannot specify both collection_id and item_id")
+    if not collection_id and not item_id:
+        raise ValueError("Either collection_id or item_id must be provided")
 
     if collection_id:
         # We are outside the request context here, so cannot easily apply permissions baesd on the user.

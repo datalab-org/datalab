@@ -53,30 +53,6 @@
             <label id="samp-description-label">Description</label>
             <TiptapInline v-model="SampleDescription" aria-labelledby="samp-description-label" />
           </div>
-          <div class="col">
-            <div class="dropdown">
-              <button
-                class="btn btn-sm btn-outline-primary dropdown-toggle"
-                type="button"
-                data-toggle="dropdown"
-                aria-haspopup="true"
-                aria-expanded="false"
-                @click="isExportDropdownVisible = !isExportDropdownVisible"
-              >
-                <i class="fa fa-download"></i> Export (as .ELN)
-              </button>
-              <div v-show="isExportDropdownVisible" class="dropdown-menu" style="display: block">
-                <a class="dropdown-item" @click="handleSampleExport">
-                  <i class="fa fa-file"></i> Export Sample Only
-                </a>
-                <a class="dropdown-item" @click="handleGraphExport">
-                  <i class="fa fa-project-diagram"></i> Export Related Samples
-                </a>
-              </div>
-            </div>
-            <ExportButton ref="exportButton" :item-id="item_id" style="display: none" />
-            <SampleGraphExportModal ref="graphExportModal" :item-id="item_id" />
-          </div>
         </div>
       </div>
       <div class="col-md-4">
@@ -102,13 +78,9 @@ import ToggleableGroupsFormGroup from "@/components/ToggleableGroupsFormGroup";
 import SynthesisInformation from "@/components/SynthesisInformation";
 import TableOfContents from "@/components/TableOfContents";
 import ItemRelationshipVisualization from "@/components/ItemRelationshipVisualization";
-import ExportButton from "@/components/ExportButton";
-import SampleGraphExportModal from "@/components/SampleGraphExportModal";
 
 export default {
   components: {
-    SampleGraphExportModal,
-    ExportButton,
     ChemFormulaInput,
     TiptapInline,
     SynthesisInformation,
@@ -134,7 +106,6 @@ export default {
         { title: "Table of Contents", targetID: "table-of-contents" },
         { title: "Synthesis Information", targetID: "synthesis-information" },
       ],
-      isExportDropdownVisible: false,
     };
   },
   computed: {
@@ -156,16 +127,6 @@ export default {
     },
     possibleItemStatuses() {
       return this.schema?.attributes?.schema?.definitions?.ItemStatus?.enum;
-    },
-  },
-  methods: {
-    handleSampleExport() {
-      this.isExportDropdownVisible = false;
-      this.$refs.exportButton.handleExport();
-    },
-    handleGraphExport() {
-      this.isExportDropdownVisible = false;
-      this.$refs.graphExportModal.show();
     },
   },
 };
