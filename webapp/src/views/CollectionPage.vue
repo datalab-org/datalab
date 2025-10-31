@@ -42,7 +42,6 @@ import { DialogService } from "@/services/DialogService";
 import CollectionInformation from "@/components/CollectionInformation";
 import { getCollectionData, saveCollection } from "@/server_fetch_utils";
 import FormattedItemName from "@/components/FormattedItemName.vue";
-import tinymce from "tinymce/tinymce";
 import { itemTypes } from "@/resources.js";
 import { API_URL } from "@/resources.js";
 import { formatDistanceToNow } from "date-fns";
@@ -129,10 +128,7 @@ export default {
         behavior: "smooth",
       });
     },
-    saveCollectionData() {
-      // trigger the mce save so that they update the store with their content
-      console.log("save clicked!");
-      tinymce.editors.forEach((editor) => editor.save());
+    async saveCollectionData() {
       saveCollection(this.collection_id);
       this.lastModified = "just now";
     },
