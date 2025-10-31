@@ -195,9 +195,16 @@ def start_sample_export(item_id: str):
     related_item_ids = None
 
     request_data = request.get_json() or {}
-    if request_data.get("include_related") and request_data.get("related_item_ids"):
+    if request_data.get("include_related"):
+        related_item_ids = request_data.get("related_item_ids", [])
+        if not related_item_ids:
+            return jsonify(
+                {
+                    "status": "error",
+                    "message": "related_item_ids required when include_related is true",
+                }
+            ), 400
         export_type = "graph"
-        related_item_ids = request_data["related_item_ids"]
 
     export_task = ExportTask(
         task_id=task_id,

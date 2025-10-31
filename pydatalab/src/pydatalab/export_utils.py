@@ -112,6 +112,9 @@ def create_eln_file(
     item_id: str | None = None,
     related_item_ids: list[str] | None = None,
 ) -> None:
+    if not collection_id and not item_id:
+        raise ValueError("Either collection_id or item_id must be provided")
+
     if collection_id:
         collection_data = flask_mongo.db.collections.find_one({"collection_id": collection_id})
         if not collection_data:

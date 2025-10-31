@@ -110,7 +110,7 @@
       </div>
     </div>
   </div>
-  <div id="cy" v-bind="$attrs" />
+  <div ref="cyContainer" v-bind="$attrs" />
 </template>
 
 <script>
@@ -195,6 +195,7 @@ export default {
       layoutIsRunning: true,
     };
   },
+
   watch: {
     graphData() {
       this.generateCyNetworkPlot();
@@ -215,6 +216,13 @@ export default {
         .style("label", this.labelItemsByName ? "data(name)" : "data(id)")
         .update();
     },
+  },
+  mounted() {
+    if (this.graphData) {
+      this.$nextTick(() => {
+        this.generateCyNetworkPlot();
+      });
+    }
   },
   async created() {
     if (typeof this.cy !== "undefined") {
@@ -248,8 +256,13 @@ export default {
       if (!this.graphData) {
         return;
       }
+      const cyElement = this.$refs.cyContainer;
+      if (!cyElement) {
+        console.warn("Cytoscape container not ready");
+        return;
+      }
       this.cy = cytoscape({
-        container: document.getElementById("cy"),
+        container: this.$refs.cyContainer,
         elements: this.graphData,
         userPanningEnabled: true,
         minZoom: 0.5,

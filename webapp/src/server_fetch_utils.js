@@ -784,12 +784,12 @@ export async function getItemGraph({ item_id = null, collection_id = null } = {}
   if (collection_id != null) {
     url = url + "?collection_id=" + collection_id;
   }
+
   store.commit("setItemGraphIsLoading", true);
   return fetch_get(url)
     .then(function (response_json) {
       store.commit("setItemGraph", { nodes: response_json.nodes, edges: response_json.edges });
       store.commit("setItemGraphIsLoading", false);
-      return response_json;
     })
     .catch((error) => {
       store.commit("setItemGraphIsLoading", false);
@@ -797,7 +797,6 @@ export async function getItemGraph({ item_id = null, collection_id = null } = {}
         title: "Graph Retrieval Failed",
         message: `Error retrieving item graph from API: ${error}`,
       });
-      throw error;
     });
 }
 
@@ -935,6 +934,35 @@ export async function startSampleExport(item_id, options = {}) {
       DialogService.error({
         title: "Export Failed",
         message: `Failed to start sample export: ${error}`,
+      });
+      throw error;
+    });
+}
+
+export async function fetchItemGraph({ item_id = null, collection_id = null, max_depth = 1 } = {}) {
+  let url = `${API_URL}/item-graph`;
+  if (item_id != null) {
+    url = url + "/" + item_id;
+  }
+  const params = new URLSearchParams();
+  if (collection_id != null) {
+    params.append("collection_id", collection_id);
+  }
+  if (max_depth != null && max_depth > 1) {
+    params.append("max_depth", max_depth.toString());
+  }
+  if (params.toString()) {
+    url = url + "?" + params.toString();
+  }
+
+  return fetch_get(url)
+    .then(function (response_json) {
+      return { nodes: response_json.nodes, edges: response_json.edges };
+    })
+    .catch((error) => {
+      DialogService.error({
+        title: "Graph Retrieval Failed",
+        message: `Error retrieving item graph from API: ${error}`,
       });
       throw error;
     });

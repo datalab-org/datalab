@@ -10,6 +10,7 @@
     </span>
     <div class="navbar-nav">
       <a class="nav-item nav-link" href="/">Home</a>
+      <ExportDropdown :collection-id="collection_id" item-type="collections" />
       <a class="nav-item nav-link" :href="collectionApiUrl" target="_blank">
         <font-awesome-icon icon="code" fixed-width /> View JSON
       </a>
@@ -47,10 +48,13 @@ import { itemTypes } from "@/resources.js";
 import { API_URL } from "@/resources.js";
 import { formatDistanceToNow } from "date-fns";
 
+import ExportDropdown from "@/components/ExportDropdown";
+
 export default {
   components: {
     CollectionInformation,
     FormattedItemName,
+    ExportDropdown,
   },
   async beforeRouteLeave(to, from, next) {
     // give warning before leaving the page by the vue router (which would not trigger "beforeunload")
