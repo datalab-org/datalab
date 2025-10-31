@@ -28,8 +28,14 @@
           <div class="form-group col-md-3 col-sm-3 col-6 pb-3">
             <ToggleableCreatorsFormGroup v-model="ItemCreators" :refcode="Refcode" />
           </div>
-          <div class="col-md-6 col-sm-7 pr-2">
+          <div class="form-group col-md-3 col-sm-7 pr-2">
             <ToggleableCollectionFormGroup v-model="Collections" />
+          </div>
+          <div class="form-group col-md-3 col-sm-7 pr-2">
+            <ToggleableItemStatusFormGroup
+              v-model="Status"
+              :possible-item-statuses="possibleItemStatuses"
+            />
           </div>
         </div>
         <div class="form-row">
@@ -105,6 +111,8 @@
 
 <script>
 import { createComputedSetterForItemField } from "@/field_utils.js";
+import { getSchema } from "@/server_fetch_utils";
+
 import ChemFormulaInput from "@/components/ChemFormulaInput";
 import TinyMceInline from "@/components/TinyMceInline";
 import CellPreparationInformation from "@/components/CellPreparationInformation";
@@ -113,6 +121,7 @@ import ItemRelationshipVisualization from "@/components/ItemRelationshipVisualiz
 import FormattedRefcode from "@/components/FormattedRefcode";
 import ToggleableCollectionFormGroup from "@/components/ToggleableCollectionFormGroup";
 import ToggleableCreatorsFormGroup from "@/components/ToggleableCreatorsFormGroup";
+import ToggleableItemStatusFormGroup from "@/components/ToggleableItemStatusFormGroup";
 import { cellFormats } from "@/resources.js";
 
 export default {
@@ -125,6 +134,7 @@ export default {
     FormattedRefcode,
     ToggleableCollectionFormGroup,
     ToggleableCreatorsFormGroup,
+    ToggleableItemStatusFormGroup,
   },
   props: {
     item_id: {
@@ -140,9 +150,13 @@ export default {
         { title: "Cell Construction", targetID: "cell-preparation-information" },
       ],
       availableCellFormats: cellFormats,
+      schema: null,
     };
   },
   computed: {
+    item() {
+      return this.$store.state.all_item_data[this.item_id];
+    },
     Refcode: createComputedSetterForItemField("refcode"),
     ItemID: createComputedSetterForItemField("item_id"),
     SampleDescription: createComputedSetterForItemField("description"),
@@ -155,6 +169,24 @@ export default {
     CellFormatDescription: createComputedSetterForItemField("cell_format_description"),
     CharacteristicMass: createComputedSetterForItemField("characteristic_mass"),
     Collections: createComputedSetterForItemField("collections"),
+    Status: createComputedSetterForItemField("status"),
+    possibleItemStatuses() {
+      return this.schema?.attributes.schema.definitions.CellStatus.enum;
+    },
+  },
+  created() {
+    this.fetchSchema();
+  },
+  methods: {
+    async fetchSchema() {
+      try {
+        const API_schema = await getSchema(this.item.type);
+
+        this.schema = API_schema;
+      } catch (error) {
+        console.error("Error retrieving schema::", error);
+      }
+    },
   },
 };
 </script>
