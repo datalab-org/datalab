@@ -152,7 +152,7 @@ def filter_df_by_cycle_index(df: pd.DataFrame, cycle_list: list[int] | None = No
 
         if len(cycle_list) == 1 and max(cycle_list) > df["cycle index"].max():
             cycle_list[0] = df["cycle index"].max()
-        return df[df["cycle index"].isin(i for i in cycle_list)]
+        return df[df["cycle index"].isin(i for i in cycle_list)].copy()
 
     try:
         if len(cycle_list) == 1 and 2 * max(cycle_list) > df["half cycle"].max():
@@ -166,4 +166,4 @@ def filter_df_by_cycle_index(df: pd.DataFrame, cycle_list: list[int] | None = No
         raise ValueError(
             f"Unable to parse `cycle_list` as integers: {cycle_list}. Error: {exc}"
         ) from exc
-    return df[df["half cycle"].isin(half_cycles)]
+    return df[df["half cycle"].isin(half_cycles)].copy()
