@@ -53,6 +53,7 @@ server = [
     "Flask-PyMongo ~= 2.3",
     "Flask-Mail ~= 0.10",
     "Flask-Compress ~= 1.15",
+    "APScheduler ~= 3.10",
     "Werkzeug ~= 3.0",
     "python-dotenv ~= 1.0",
     "pillow ~= 11.0",
