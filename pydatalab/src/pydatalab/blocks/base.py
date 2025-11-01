@@ -1,5 +1,7 @@
 import functools
+import pprint
 import random
+import traceback
 import warnings
 from collections.abc import Callable, Sequence
 from typing import Any
@@ -213,9 +215,16 @@ class DataBlock:
                     try:
                         plot()
                     except Exception as e:
+                        tb_list = traceback.extract_tb(e.__traceback__)
+                        last = tb_list[-1]
                         block_errors.append(f"{self.__class__.__name__} raised error: {e}")
                         LOGGER.warning(
-                            f"Could not create plot for {self.__class__.__name__}: {self.data}"
+                            f"Could not create plot for {self.__class__.__name__} due to "
+                            f"error at {last.filename}:{last.lineno} "
+                            f"in {last.name} → {last.line!r}:\n\t{type(e).__name__}: {e}"
+                        )
+                        LOGGER.debug(
+                            f"The full data for the errored block is:\n{pprint.pformat(self.data)}"
                         )
                     finally:
                         if captured_warnings:
