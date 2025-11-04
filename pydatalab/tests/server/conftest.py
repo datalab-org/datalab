@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Union
 from unittest.mock import patch
 
 import mongomock
@@ -9,7 +8,6 @@ from bson import ObjectId
 from flask.testing import FlaskClient
 
 import pydatalab.mongo
-from pydatalab.main import create_app
 from pydatalab.models import Cell, Collection, Equipment, Sample, StartingMaterial
 from pydatalab.models.people import AccountStatus
 
@@ -24,17 +22,8 @@ class PyMongoMock(mongomock.MongoClient):
 MONGO_URI = f"mongodb://localhost:27017/{TEST_DATABASE_NAME}"
 
 
-@pytest.fixture(scope="session")
-def monkeypatch_session():
-    from _pytest.monkeypatch import MonkeyPatch
-
-    m = MonkeyPatch()
-    yield m
-    m.undo()
-
-
 @pytest.fixture(scope="module")
-def real_mongo_client() -> Union[pymongo.MongoClient, None]:
+def real_mongo_client() -> pymongo.MongoClient | None:
     """Returns a connected MongoClient if available, otherwise `None`."""
     client = pymongo.MongoClient(
         MONGO_URI, connect=True, connectTimeoutMS=100, serverSelectionTimeoutMS=100
@@ -44,7 +33,8 @@ def real_mongo_client() -> Union[pymongo.MongoClient, None]:
     except pymongo.errors.ServerSelectionTimeoutError:
         return None
 
-    return client
+    yield client
+    client.close()
 
 
 @pytest.fixture(scope="module")
@@ -53,7 +43,7 @@ def database(real_mongo_client):
 
 
 @pytest.fixture(scope="session")
-def app_config(tmp_path_factory):
+def app_config(tmp_path_factory, secret_key):
     example_remotes = [
         {
             "name": "example_data",
@@ -71,6 +61,8 @@ def app_config(tmp_path_factory):
         "REMOTE_FILESYSTEMS": example_remotes,
         "FILE_DIRECTORY": str(tmp_path_factory.mktemp("files")),
         "TESTING": False,
+        "ROOT_PATH": "/",
+        "SECRET_KEY": secret_key,
         "EMAIL_AUTH_SMTP_SETTINGS": {
             "MAIL_SERVER": "smtp.example.com",
             "MAIL_PORT": 587,
@@ -82,6 +74,9 @@ def app_config(tmp_path_factory):
         "EMAIL_DOMAIN_ALLOW_LIST": ["example.org", "ml-evs.science"],
         "MAIL_DEBUG": True,
         "MAIL_SUPPRESS_SEND": True,
+        # Set to 10 MB to check that larger files fail; this should be larger than all of our example files.
+        # Elsewhere, we can generate an artificial large file to check that it fails.
+        "MAX_CONTENT_LENGTH": 10 * 1000**2,
     }
 
 
@@ -93,6 +88,7 @@ def app(real_mongo_client, monkeypatch_session, app_config):
     mongomock testing backend.
 
     """
+    from pydatalab.main import create_app
 
     try:
         mongo_cli = real_mongo_client
@@ -160,6 +156,12 @@ def client(app, user_api_key):
 
 
 @pytest.fixture(scope="function")
+def another_client(app, another_user_api_key):
+    """Returns a test client for the API with a second normal user access."""
+    yield client_factory(app, another_user_api_key)
+
+
+@pytest.fixture(scope="function")
 def unauthenticated_client(app):
     """Returns an unauthenticated test client for the API."""
     yield client_factory(app, None)
@@ -180,7 +182,7 @@ def deactivated_client(app, deactivated_user_api_key):
 def generate_api_key():
     import random
 
-    return "".join(random.choices("abcdef0123456789", k=24))
+    return "".join(random.choices("abcdef0123456789", k=24))  # noqa: S311
 
 
 @pytest.fixture(scope="function")
@@ -199,6 +201,11 @@ def user_api_key() -> str:
 
 
 @pytest.fixture(scope="session")
+def another_user_api_key() -> str:
+    return generate_api_key()
+
+
+@pytest.fixture(scope="session")
 def unverified_user_api_key() -> str:
     return generate_api_key()
 
@@ -211,6 +218,11 @@ def deactivated_user_api_key() -> str:
 @pytest.fixture(scope="session")
 def user_id():
     yield ObjectId(24 * "1")
+
+
+@pytest.fixture(scope="session")
+def another_user_id():
+    yield ObjectId(24 * "7")
 
 
 @pytest.fixture(scope="session")
@@ -250,6 +262,8 @@ def insert_demo_users(
     app,
     user_id,
     user_api_key,
+    another_user_id,
+    another_user_api_key,
     admin_user_id,
     admin_api_key,
     deactivated_user_id,
@@ -259,6 +273,7 @@ def insert_demo_users(
     real_mongo_client,
 ):
     insert_user(user_id, user_api_key, "user", real_mongo_client)
+    insert_user(another_user_id, another_user_api_key, "user", real_mongo_client)
     insert_user(admin_user_id, admin_api_key, "admin", real_mongo_client)
     insert_user(
         deactivated_user_id,
@@ -370,7 +385,7 @@ def fixture_default_equipment():
 
 @pytest.fixture(scope="module", name="complicated_sample")
 def fixture_complicated_sample(user_id):
-    from pydatalab.models.samples import Constituent
+    from pydatalab.models.utils import Constituent
 
     return Sample(
         **{
@@ -423,7 +438,8 @@ def fixture_complicated_sample(user_id):
 
 
 @pytest.fixture(scope="module")
-def example_items(user_id):
+def example_items(user_id, admin_user_id):
+    """Create a collection of samples with mixed ownership between the user and admin."""
     return [
         d.dict(exclude_unset=False)
         for d in [
@@ -435,6 +451,16 @@ def example_items(user_id):
                     "date": "1970-02-01",
                     "refcode": "grey:TEST1",
                     "creator_ids": [user_id],
+                }
+            ),
+            Sample(
+                **{
+                    "item_id": "123456",
+                    "name": "new material",
+                    "description": "NaNiO2",
+                    "date": "1970-02-01",
+                    "refcode": "grey:TEST10",
+                    "creator_ids": [admin_user_id],
                 }
             ),
             Sample(
@@ -457,7 +483,18 @@ def example_items(user_id):
             ),
             Sample(
                 **{
+                    "item_id": "sample_admin",
+                    "name": "bob",
+                    "description": "magic",
+                    "date": "1970-02-01",
+                    "refcode": "grey:TEST9",
+                    "creator_ids": [admin_user_id],
+                }
+            ),
+            Sample(
+                **{
                     "item_id": "sample_2",
+                    "chemform": "vanadium(II) oxide",
                     "name": "other_sample",
                     "date": "1970-02-01",
                     "refcode": "grey:TEST3",
@@ -472,6 +509,7 @@ def example_items(user_id):
                     "date": "1970-02-01",
                     "refcode": "grey:TEST4",
                     "creator_ids": [user_id],
+                    "description": "magic",
                 }
             ),
             StartingMaterial(
@@ -480,6 +518,7 @@ def example_items(user_id):
                     "chemform": "NaNiO2",
                     "name": "NaNiO2",
                     "date": "1970-02-01",
+                    "description": "magic",
                     "refcode": "grey:TEST5",
                     "creator_ids": [user_id],
                 }
@@ -537,6 +576,11 @@ def fixture_insert_default_starting_material(default_starting_material):
 @pytest.fixture(scope="module", name="insert_default_equipment")
 def fixture_insert_default_equipment(default_equipment):
     yield from _insert_and_cleanup_item_from_model(default_equipment)
+
+
+@pytest.fixture(scope="module", name="insert_example_items")
+def fixture_insert_example_items(example_items, real_mongo_client):
+    real_mongo_client.get_database().items.insert_many(example_items)
 
 
 @pytest.fixture(scope="module", name="inserted_default_items")

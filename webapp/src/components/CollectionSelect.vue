@@ -6,6 +6,7 @@
     multiple
     label="collection_id"
     :filterable="false"
+    placeholder="type to search..."
     @search="debouncedAsyncSearch"
   >
     <template #no-options="{ searching }">
@@ -36,9 +37,15 @@
 </template>
 
 <script>
+import { DialogService } from "@/services/DialogService";
+
 import vSelect from "vue-select";
 import FormattedCollectionName from "@/components/FormattedCollectionName.vue";
-import { searchCollections, createNewCollection } from "@/server_fetch_utils.js";
+import {
+  searchCollections,
+  createNewCollection,
+  removeItemsFromCollection,
+} from "@/server_fetch_utils.js";
 import { validateEntryID } from "@/field_utils.js";
 import { debounceTime } from "@/resources.js";
 
@@ -64,6 +71,7 @@ export default {
       collections: [],
       isSearchFetchError: false,
       searchQuery: "",
+      pendingRemovals: [],
     };
   },
   computed: {
@@ -73,6 +81,14 @@ export default {
         return this.modelValue;
       },
       set(newValue) {
+        const oldIds = this.modelValue?.map((c) => c.collection_id) || [];
+        const newIds = newValue?.map((c) => c.collection_id) || [];
+        const removedIds = oldIds.filter((id) => !newIds.includes(id));
+
+        if (removedIds.length > 0) {
+          this.pendingRemovals.push(...removedIds);
+        }
+
         this.$emit("update:modelValue", newValue);
       },
     },
@@ -144,10 +160,25 @@ export default {
           }
         } catch (error) {
           console.error("Error:", error);
-          alert(
-            "An error occurred while creating the collection. Please check that your desired collection ID is valid.",
-          );
+          DialogService.error({
+            title: "Collection Creation Failed",
+            message:
+              "An error occurred while creating the collection. Please check that your desired collection ID is valid.",
+          });
         }
+      }
+    },
+    async processPendingRemovals() {
+      if (this.pendingRemovals.length > 0) {
+        const item_id = this.item_id;
+        for (const collection_id of this.pendingRemovals) {
+          try {
+            await removeItemsFromCollection(collection_id, [item_id]);
+          } catch (error) {
+            console.error("Error removing item from collection:", error);
+          }
+        }
+        this.pendingRemovals = [];
       }
     },
   },

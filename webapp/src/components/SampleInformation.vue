@@ -30,13 +30,14 @@
             </div>
           </div>
           <div class="form-group col-md-3 col-sm-3 col-6 pb-3">
-            <label id="samp-creators">Creators</label>
-            <div aria-labelledby="samp-creators" class="mx-auto">
-              <Creators :creators="ItemCreators" :size="36" />
-            </div>
+            <ToggleableCreatorsFormGroup v-model="ItemCreators" :refcode="Refcode" />
           </div>
           <div class="col-md-6 col-sm-7 pr-2">
-            <ToggleableCollectionFormGroup v-model="Collections" />
+            <ToggleableCollectionFormGroup
+              ref="collectionsFormGroup"
+              v-model="Collections"
+              :item_id="item_id"
+            />
           </div>
         </div>
         <div class="form-row">
@@ -62,11 +63,11 @@ import { createComputedSetterForItemField } from "@/field_utils.js";
 import ChemFormulaInput from "@/components/ChemFormulaInput";
 import FormattedRefcode from "@/components/FormattedRefcode";
 import ToggleableCollectionFormGroup from "@/components/ToggleableCollectionFormGroup";
+import ToggleableCreatorsFormGroup from "@/components/ToggleableCreatorsFormGroup";
 import TinyMceInline from "@/components/TinyMceInline";
 import SynthesisInformation from "@/components/SynthesisInformation";
 import TableOfContents from "@/components/TableOfContents";
 import ItemRelationshipVisualization from "@/components/ItemRelationshipVisualization";
-import Creators from "@/components/Creators";
 
 export default {
   components: {
@@ -77,7 +78,7 @@ export default {
     ItemRelationshipVisualization,
     FormattedRefcode,
     ToggleableCollectionFormGroup,
-    Creators,
+    ToggleableCreatorsFormGroup,
   },
   props: {
     item_id: { type: String, required: true },

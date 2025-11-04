@@ -1,15 +1,19 @@
 import base64
 import io
+import os
 import warnings
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-import pandas as pd
-from PIL import Image
+if TYPE_CHECKING:
+    import pandas as pd
 
-from pydatalab.file_utils import get_file_info_by_id
 from pydatalab.logger import LOGGER
 
 from .base import DataBlock
+
+EXCEL_LIKE_EXTENSIONS: tuple[str, ...] = (".xls", ".xlsx", ".xlsm", ".xlsb", ".odf", ".ods", ".odt")
+"""A tuple of file extensions that are considered Excel-like formats."""
 
 
 class NotSupportedBlock(DataBlock):
@@ -29,7 +33,17 @@ class MediaBlock(DataBlock):
     name = "Media"
     blocktype = "media"
     description = "Display an image or a video of a supported format."
-    accepted_file_extensions = (".png", ".jpeg", ".jpg", ".tif", ".tiff", ".mp4", ".mov", ".webm")
+    accepted_file_extensions = (
+        ".png",
+        ".jpeg",
+        ".jpg",
+        ".tif",
+        ".tiff",
+        ".mp4",
+        ".mov",
+        ".webm",
+        ".pdf",
+    )
     _supports_collections = False
 
     @property
@@ -37,19 +51,23 @@ class MediaBlock(DataBlock):
         return (self.encode_tiff,)
 
     def encode_tiff(self):
+        from PIL import Image
+
+        from pydatalab.file_utils import get_file_info_by_id
+
         if "file_id" not in self.data:
             LOGGER.warning("ImageBlock.encode_tiff(): No file set in the DataBlock")
             return
         if "b64_encoded_image" not in self.data:
             self.data["b64_encoded_image"] = {}
         file_info = get_file_info_by_id(self.data["file_id"], update_if_live=True)
-        if file_info["name"].endswith(".tif") or file_info["name"].endswith(".tiff"):
+        ext = os.path.splitext(file_info["location"].split("/")[-1])[-1].lower()
+        if ext in (".tif", ".tiff"):
             im = Image.open(file_info["location"])
-            LOGGER.warning("Making base64 encoding of tif")
             with io.BytesIO() as f:
                 im.save(f, format="PNG")
                 f.seek(0)
-                self.data["b64_encoded_image"][self.data["file_id"]] = base64.b64encode(
+                self.data["b64_encoded_image"][str(self.data["file_id"])] = base64.b64encode(
                     f.getvalue()
                 ).decode()
 
@@ -62,23 +80,55 @@ class TabularDataBlock(DataBlock):
 
     blocktype = "tabular"
     name = "Tabular Data Block"
-    description = "This block will load tabular data from common plain text files and allow you to create simple scatter plots of the columns within."
-    accepted_file_extensions = (".csv", ".txt", ".tsv", ".dat")
+    description = "This block will load tabular data from common plain text files and Excel-like spreadsheets and allow you to create simple scatter plots of the columns within."
+    accepted_file_extensions = (".csv", ".txt", ".tsv", ".dat", *EXCEL_LIKE_EXTENSIONS)
 
     @property
     def plot_functions(self):
         return (self.plot_df,)
 
-    def _load(self) -> pd.DataFrame:
+    def _load(self) -> "pd.DataFrame":
         if "file_id" not in self.data:
             return
+        from pydatalab.file_utils import get_file_info_by_id
 
         file_info = get_file_info_by_id(self.data["file_id"], update_if_live=True)
 
         return self.load(file_info["location"])
 
     @classmethod
-    def load(cls, location: Path) -> pd.DataFrame:
+    def load(cls, location: Path | str) -> "pd.DataFrame":
+        """Throw several pandas readers at the target file.
+
+        If an excel-like format, try to read it with `pandas.read_excel()`.
+        Then, try well-described formats such as JSON, Parquet and Feather.
+        Otherwise, use decreasingly strict csv parsers until successful.
+
+        Returns:
+            pd.DataFrame: The loaded dataframe.
+
+        """
+        import pandas as pd
+
+        if not isinstance(location, Path):
+            location = Path(location)
+
+        if location.suffix in EXCEL_LIKE_EXTENSIONS:
+            try:
+                df_dict = pd.read_excel(location, sheet_name=None)
+            except Exception as e:
+                raise RuntimeError(
+                    f"`pandas.read_excel()` was not able to read the file. Error: {e}"
+                )
+
+            df = next(iter(df_dict.values()))
+            if len(df_dict) > 1:
+                warnings.warn(
+                    f"Found multiple sheets in spreadsheet file {df_dict.keys()}, only using the first one."
+                )
+
+            return df
+
         try:
             df = pd.read_csv(
                 location,
@@ -117,15 +167,11 @@ class TabularDataBlock(DataBlock):
         df = self._load()
         if df is None:
             return
-        columns = list(df.columns)
         plot = selectable_axes_plot(
             df,
-            x_options=columns,
-            y_options=columns,
-            x_default=columns[0],
-            y_default=columns[1],
             plot_points=True,
             plot_line=False,
+            show_table=True,
         )
 
         self.data["bokeh_plot_data"] = bokeh.embed.json_item(plot, theme=DATALAB_BOKEH_THEME)

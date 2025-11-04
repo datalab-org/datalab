@@ -2,11 +2,10 @@ from pathlib import Path
 
 import pytest
 
-from pydatalab.config import ServerConfig, SMTPSettings
-from pydatalab.main import create_app
-
 
 def test_default_settings():
+    from pydatalab.config import ServerConfig
+
     config = ServerConfig()
     assert config.MONGO_URI == "mongodb://localhost:27017/datalabvue"
     assert config.SECRET_KEY
@@ -14,6 +13,8 @@ def test_default_settings():
 
 
 def test_update_settings():
+    from pydatalab.config import ServerConfig
+
     config = ServerConfig()
     new_settings = {
         "mongo_uri": "mongodb://test",
@@ -21,13 +22,15 @@ def test_update_settings():
     }
     config.update(new_settings)
 
-    assert config.MONGO_URI == new_settings["mongo_uri"]
-    assert config.NEW_KEY == new_settings["new_key"]
+    assert new_settings["mongo_uri"] == config.MONGO_URI
+    assert new_settings["new_key"] == config.NEW_KEY
     assert config.SECRET_KEY
     assert Path(config.FILE_DIRECTORY).name == "files"
 
 
 def test_config_override():
+    from pydatalab.main import create_app
+
     app = create_app(
         config_override={"REMOTE_FILESYSTEMS": [{"hostname": None, "path": "/", "name": "local"}]}
     )
@@ -40,7 +43,24 @@ def test_config_override():
     assert CONFIG.REMOTE_FILESYSTEMS[0].path == Path("/")
 
 
+def test_env_var_flask_config_override(secret_key):
+    """Temporarily set an environment variable and check that it gets
+    passed to the flask config correctly. Also make sure that the datalab
+    secret key is preferred over the env var.
+    """
+    with pytest.MonkeyPatch.context() as m:
+        from pydatalab.main import create_app
+
+        m.setenv("FLASK_MAIL_PASSWORD_MOCK", "env_password")
+        m.setenv("FLASK_SECRET_KEY", "too-short")
+        app = create_app()
+        assert app.config["MAIL_PASSWORD_MOCK"] == "env_password"  # noqa: S105
+        assert app.config["SECRET_KEY"] == secret_key  # noqa: S105
+
+
 def test_validators():
+    from pydatalab.config import ServerConfig
+
     # check bad prefix
     with pytest.raises(
         RuntimeError, match="Identifier prefix must be less than 12 characters long,"
@@ -54,7 +74,8 @@ def test_mail_settings_combinations(tmpdir):
     overrides can be provided as environment variables.
     """
 
-    from pydatalab.config import CONFIG
+    from pydatalab.config import CONFIG, SMTPSettings
+    from pydatalab.main import create_app
 
     CONFIG.update(
         {
@@ -80,5 +101,21 @@ def test_mail_settings_combinations(tmpdir):
     env_file.write_text("MAIL_PASSWORD=password\nMAIL_DEFAULT_SENDER=test2@example.com")
 
     app = create_app(env_file=env_file)
-    assert app.config["MAIL_PASSWORD"] == "password"
+    assert app.config["MAIL_PASSWORD"] == "password"  # noqa: S105
     assert app.config["MAIL_DEFAULT_SENDER"] == "test2@example.com"
+
+
+def test_key_strength_checker():
+    from pydatalab.feature_flags import _check_key_strength
+    from pydatalab.main import create_app
+
+    with pytest.raises(RuntimeError, match="Shannon entropy"):
+        create_app({"SECRET_KEY": "short"})
+
+    with pytest.raises(RuntimeError, match="Shannon entropy"):
+        assert _check_key_strength("a" * 32)
+
+    with pytest.raises(RuntimeError, match="Shannon entropy"):
+        assert _check_key_strength("ab" * 16)
+
+    assert _check_key_strength("abcdefghijklmnopqrstuvwxyz") is None

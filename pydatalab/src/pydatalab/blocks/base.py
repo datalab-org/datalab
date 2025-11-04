@@ -1,12 +1,82 @@
+import functools
+import pprint
 import random
+import traceback
 import warnings
-from typing import Any, Callable, Dict, Optional, Sequence
+from collections.abc import Callable, Sequence
+from typing import Any
 
-from bson import ObjectId
-
+from pydatalab import __version__
 from pydatalab.logger import LOGGER
+from pydatalab.models.blocks import DataBlockResponse
 
-__all__ = ("generate_random_id", "DataBlock")
+__all__ = ("generate_random_id", "DataBlock", "generate_js_callback_single_float_parameter")
+
+
+def generate_js_callback_single_float_parameter(
+    event_name: str, parameter: str, block_id: str, throttled: bool = False
+) -> str:
+    """Generates a Bokeh JS callback that can be attached
+    to a widget and used to trigger datalab block events with
+    a single named parameter.
+
+    Parameters:
+        event_name: The name of the block method to call.
+        parameter: The name of the parameter to update.
+        block_id: The ID of the block to target for the event.
+        throttled: Whether to bind to the widget's `value` or `value_throttled`.
+
+    """
+
+    event_target: str = "event.target.value"
+    if throttled:
+        event_target += "_throttled"
+
+    code = (
+        r"""
+const block_event = new CustomEvent('block-event', {
+    detail: {
+        block_id: '$block_id',
+        event_name: '$event_name',
+        $parameter: $event_target,
+    }, bubbles: true
+});
+document.dispatchEvent(block_event);
+""".replace("$event_name", event_name)
+        .replace("$parameter", parameter)
+        .replace("$event_target", event_target)
+        .replace("$block_id", block_id)
+    )
+    return code.strip()
+
+
+def event(func: Callable | None = None) -> Callable:
+    """Decorator to register an event with a block."""
+
+    def decorator(f):
+        @functools.wraps(f)
+        def wrapper(*args, **kwargs):
+            # Strip the block ID from the event if passed by the app
+            kwargs.pop("block_id", None)
+            return f(*args, **kwargs)
+
+        wrapper._is_event = True
+        return wrapper
+
+    if func:
+        return decorator(func)
+
+    return decorator
+
+
+class classproperty:
+    """Decorator that creates a class-level property."""
+
+    def __init__(self, method=None):
+        self.method = method
+
+    def __get__(self, instance, cls=None):
+        return self.method(cls)
 
 
 def generate_random_id():
@@ -19,7 +89,7 @@ def generate_random_id():
     The ids here are HTML id friendly, using lowercase letters and numbers. The first character
     is always a letter.
     """
-    randlist = [random.choice("abcdefghijklmnopqrstuvwxyz")] + random.choices(
+    randlist = [random.choice("abcdefghijklmnopqrstuvwxyz")] + random.choices(  # noqa: S311
         "abcdefghijklmnopqrstuvwxyz0123456789", k=14
     )
     return "".join(randlist)
@@ -33,7 +103,9 @@ def generate_random_id():
 class DataBlock:
     """Base class for a data block."""
 
-    name: str
+    block_db_model = DataBlockResponse
+
+    name: str = "base"
     """The human-readable block name specifying which technique
     or file format it pertains to.
     """
@@ -48,23 +120,26 @@ class DataBlock:
     accepted_file_extensions: tuple[str, ...] | None
     """A list of file extensions that the block will attempt to read."""
 
-    defaults: Dict[str, Any] = {}
+    defaults: dict[str, Any] = {}
     """Any default values that should be set if they are not
     supplied during block init.
     """
 
-    plot_functions: Optional[Sequence[Callable[[], None]]] = None
+    plot_functions: Sequence[Callable[[], None]] | None = None
     """A list of methods that will generate plots for this block."""
 
     _supports_collections: bool = False
     """Whether this datablock can operate on collection data, or just individual items"""
 
+    version: str = __version__
+    """The implementation version of this particular block."""
+
     def __init__(
         self,
-        item_id: Optional[str] = None,
-        collection_id: Optional[str] = None,
-        init_data=None,
-        unique_id=None,
+        item_id: str | None = None,
+        collection_id: str | None = None,
+        init_data: dict | None = None,
+        unique_id: str | None = None,
     ):
         """Create a data block object for the given `item_id` or `collection_id`.
 
@@ -73,6 +148,7 @@ class DataBlock:
             collection_id: The collection to which the block is attached.
             init_data: A dictionary of data to initialise the block with.
             unique_id: A unique id for the block, used in the DOM and database.
+
         """
         if init_data is None:
             init_data = {}
@@ -120,40 +196,16 @@ class DataBlock:
             collection_id,
         )
 
-    def to_db(self):
+    def to_db(self) -> dict:
         """returns a dictionary with the data for this
         block, ready to be input into mongodb"""
 
         LOGGER.debug("Casting block %s to database object.", self.__class__.__name__)
-
-        if "bokeh_plot_data" in self.data:
-            self.data.pop("bokeh_plot_data")
-
-        if "file_id" in self.data:
-            dict_for_db = self.data.copy()  # gross, I know
-            dict_for_db["file_id"] = ObjectId(dict_for_db["file_id"])
-            return dict_for_db
-
-        return self.data
-
-    @classmethod
-    def from_db(cls, db_entry):
-        """create a block from json (dictionary) stored in a db"""
-        LOGGER.debug("Loading block %s from database object.", cls.__class__.__name__)
-        new_block = cls(
-            item_id=db_entry.get("item_id"),
-            collection_id=db_entry.get("collection_id"),
-            dictionary=db_entry,
+        return self.block_db_model(**self.data).dict(
+            exclude={"bokeh_plot_data", "b64_encoded_image"}, exclude_unset=True
         )
-        if "file_id" in new_block.data:
-            new_block.data["file_id"] = str(new_block.data["file_id"])
 
-        if new_block.data.get("title", "") == new_block.description:
-            new_block.data["title"] = new_block.name
-
-        return new_block
-
-    def to_web(self) -> Dict[str, Any]:
+    def to_web(self) -> dict[str, Any]:
         """Returns a JSON serializable dictionary to render the data block on the web."""
         block_errors = []
         block_warnings = []
@@ -163,9 +215,16 @@ class DataBlock:
                     try:
                         plot()
                     except Exception as e:
+                        tb_list = traceback.extract_tb(e.__traceback__)
+                        last = tb_list[-1]
                         block_errors.append(f"{self.__class__.__name__} raised error: {e}")
                         LOGGER.warning(
-                            f"Could not create plot for {self.__class__.__name__}: {self.data}"
+                            f"Could not create plot for {self.__class__.__name__} due to "
+                            f"error at {last.filename}:{last.lineno} "
+                            f"in {last.name} → {last.line!r}:\n\t{type(e).__name__}: {e}"
+                        )
+                        LOGGER.debug(
+                            f"The full data for the errored block is:\n{pprint.pformat(self.data)}"
                         )
                     finally:
                         if captured_warnings:
@@ -186,11 +245,72 @@ class DataBlock:
         else:
             self.data.pop("warnings", None)
 
-        return self.data
+        return self.block_db_model(**self.data).dict(exclude_unset=True, exclude_none=True)
+
+    def process_events(self, events: list[dict] | dict):
+        """Handle any supported events passed to the block."""
+        if isinstance(events, dict):
+            events = [events]
+
+        for event in events:
+            # Match the event to any registered by the block
+            if (event_name := event.pop("event_name")) in self.event_names:
+                # Bind the method to the instance before calling
+                bound_method = self.__class__.events_by_name[event_name].__get__(
+                    self, self.__class__
+                )
+                try:
+                    bound_method(**event)
+                except Exception as e:
+                    LOGGER.error(
+                        f"Error processing event {event_name} for block {self.__class__.__name__}: {e}"
+                    )
+                    self.data["errors"] = [
+                        f"{self.__class__.__name__}: Error processing event {event}: {e}"
+                    ]
+
+    @event()
+    def null_event(self, **kwargs):
+        """A null debug event that does nothing but logs its kwargs and overwrites the data dict with the args."""
+        LOGGER.debug(
+            "Null event received by block %s with kwargs: %s", self.__class__.__name__, kwargs
+        )
+        self.data["kwargs"] = kwargs["kwargs"]
 
     @classmethod
-    def from_web(cls, data):
-        LOGGER.debug("Loading block %s from web request.", cls.__class__.__name__)
+    def _get_events(cls) -> dict[str, Callable]:
+        events = {}
+        # Loop over parent classes to find events
+        for c in cls.__mro__:
+            for name, method in c.__dict__.items():
+                if hasattr(method, "_is_event"):
+                    events[name] = method
+
+        return events
+
+    @classproperty
+    def event_names(cls) -> set[str]:
+        """Return a list of event names supported by this block."""
+        return set(cls.events_by_name.keys())
+
+    @classproperty
+    def events_by_name(cls) -> dict[str, Callable]:
+        """Returns a dict of registered events for this block."""
+        return {
+            name: method
+            for name, method in cls._get_events().items()
+            if getattr(method, "_is_event", False)
+        }
+
+    @classmethod
+    def from_web(cls, data: dict):
+        """Initialise the block state from data passed via web request
+        with a given item, collection and block ID.
+
+        Parameters:
+            data: The block data to initialiaze the block with.
+
+        """
         block = cls(
             item_id=data.get("item_id"),
             collection_id=data.get("collection_id"),
@@ -199,13 +319,24 @@ class DataBlock:
         block.update_from_web(data)
         return block
 
-    def update_from_web(self, data):
-        """update the object with data received from the website. Only updates fields
-        that are specified in the dictionary- other fields are left alone"""
+    def update_from_web(self, data: dict):
+        """Update the block with validated data received from a web request.
+        Will strip any fields that are "computed" or otherwise not controllable
+        by the user.
+
+        Parameters:
+            data: A dictionary of data to update the block with.
+
+        """
         LOGGER.debug(
             "Updating block %s from web request",
             self.__class__.__name__,
         )
-        self.data.update(data)
+        self.data.update(
+            self.block_db_model(**data).dict(
+                exclude={"computed", "metadata", "bokeh_plot_data", "b64_encoded_image"},
+                exclude_unset=True,
+            )
+        )
 
         return self

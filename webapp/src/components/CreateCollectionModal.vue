@@ -44,6 +44,8 @@
 </template>
 
 <script>
+import { DialogService } from "@/services/DialogService";
+
 import Modal from "@/components/Modal.vue";
 import ItemSelect from "@/components/ItemSelect.vue";
 import { createNewCollection } from "@/server_fetch_utils.js";
@@ -65,16 +67,21 @@ export default {
       title: "",
       selectedCollectionToCopy: null,
       startingMembers: [],
+      takenCollectionIds: [],
     };
   },
   computed: {
-    takenCollectionIds() {
+    collectionIdsFromStore() {
       return this.$store.state.collection_list
         ? this.$store.state.collection_list.map((x) => x.collection_id)
         : [];
     },
     isValidEntryID() {
-      return validateEntryID(this.collection_id, this.takenCollectionIds);
+      return validateEntryID(
+        this.collection_id,
+        this.takenCollectionIds,
+        this.collectionIdsFromStore,
+      );
     },
   },
   methods: {
@@ -100,7 +107,10 @@ export default {
             console.log("error parsing error message", e);
           } finally {
             if (!id_error) {
-              alert("Error with creating new sample: " + error);
+              DialogService.error({
+                title: "Collection Creation Failed",
+                message: "Error with creating new collection: " + error,
+              });
             }
           }
         });

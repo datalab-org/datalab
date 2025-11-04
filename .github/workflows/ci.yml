@@ -8,6 +8,7 @@ on:
 
 env:
   FORCE_COLOR: true
+  UV_VERSION: "0.8.4"
 
 concurrency:
   group: ${{ github.head_ref || github.run_id }}
@@ -27,9 +28,9 @@ jobs:
           python-version: "3.10"
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v6
         with:
-          version: "0.4.x"
+          version: ${{ env.UV_VERSION }}
           enable-cache: true
 
       - name: Install dependencies
@@ -47,7 +48,7 @@ jobs:
 
     services:
       mongo:
-        image: mongo:3
+        image: mongo:8
         ports:
           - 27017:27017
 
@@ -75,9 +76,10 @@ jobs:
           wget https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2204-x86_64-100.9.0.deb && sudo apt install ./mongodb-database-tools-*-100.9.0.deb
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v6
         with:
-          version: "0.4.x"
+          version: ${{ env.UV_VERSION }}
+          working-directory: "./pydatalab"
           enable-cache: true
 
       - name: Install locked versions of dependencies
@@ -92,7 +94,7 @@ jobs:
 
       - name: Upload coverage to Codecov
         if: matrix.python-version == '3.10' && github.repository == 'datalab-org/datalab'
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: datalab-org/datalab
@@ -127,7 +129,7 @@ jobs:
       fail-fast: false
       max-parallel: 3
       matrix:
-        browser-backend: ["electron", "chrome", "firefox"]
+        browser-backend: ["electron", "chrome"] # , "firefox"]  # Temporarily disable Firefox until migration to Cypress v14 (https://github.com/datalab-org/datalab/issues/1289)
 
     steps:
       - uses: actions/checkout@v4
@@ -138,23 +140,29 @@ jobs:
       - name: Set some environment variables for CI containers pre-build
         run: |
           cp webapp/.env.test_e2e .env
+          echo "PYDATALAB_TESTING=true" >> .env
           echo "PYDATALAB_TESTING=true" >> pydatalab/.env
 
-      - name: Load previously built Docker images
-        uses: docker/bake-action@v5
+      - name: Build Docker images
+        uses: docker/bake-action@v6
         with:
           files: docker-compose.yml
           load: true
+          source: .
           targets: 'app,api,database'
           set: |
-            app.cache-from=type=gha,scope=build-app
-            app.cache-to=type=gha,scope=build-app,mode=max
+            app.cache-from=type=gha,scope=${{ github.ref_name }}-${{ matrix.browser-backend }}-build-app
+            app.cache-from=type=gha,scope=main-${{ matrix.browser-backend }}-build-app
+            api.cache-from=type=gha,scope=${{ github.ref_name }}-${{ matrix.browser-backend }}-build-api
+            api.cache-from=type=gha,scope=main-${{ matrix.browser-backend }}-build-api
+            database.cache-from=type=gha,scope=${{ github.ref_name }}-${{ matrix.browser-backend }}-build-database
+            database.cache-from=type=gha,scope=main-${{ matrix.browser-backend }}-build-database
+            api.cache-to=type=gha,scope=${{ github.ref_name }}-${{ matrix.browser-backend }}-build-api,mode=max
+            app.cache-to=type=gha,scope=${{ github.ref_name }}-${{ matrix.browser-backend }}-build-app,mode=max
+            database.cache-to=type=gha,scope=${{ github.ref_name }}-${{ matrix.browser-backend }}-build-database,mode=max
+            api.args.SETUPTOOLS_SCM_PRETEND_VERSION=0.11.11-rc.8
             app.tags=datalab-app:latest
-            api.cache-from=type=gha,scope=build-api
-            api.cache-to=type=gha,scope=build-api,mode=max
             api.tags=datalab-api:latest
-            database.cache-from=type=gha,scope=build-database
-            database.cache-to=type=gha,scope=build-database,mode=max
             database.tags=datalab-database:latest
 
       - name: Start services
@@ -185,3 +193,7 @@ jobs:
           group: "Component tests (${{ matrix.browser-backend }})"
         env:
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
+
+  liccheck:
+    name: Check OSS license compatibility for dependencies
+    uses: ./.github/workflows/license-check.yml

@@ -4,12 +4,13 @@
     class="navbar navbar-expand sticky-top navbar-dark py-0 editor-navbar"
     :style="{ backgroundColor: navbarColor }"
   >
+    <div v-show="false" class="navbar-nav"><LoginDetails /></div>
     <span class="navbar-brand clickable" @click="scrollToID($event, 'topScrollPoint')"
       >{{ itemTypeEntry?.navbarName || "loading..." }}&nbsp;&nbsp;|&nbsp;&nbsp;
       <FormattedItemName :item_id="item_id" :item-type="itemType" />
     </span>
     <div class="navbar-nav">
-      <a class="nav-item nav-link" href="/">Home</a>
+      <router-link class="nav-item nav-link" to="/">Home</router-link>
       <div class="nav-item dropdown">
         <a
           id="navbarDropdown"
@@ -20,12 +21,14 @@
           aria-expanded="false"
           @click="isMenuDropdownVisible = !isMenuDropdownVisible"
         >
+          <font-awesome-icon icon="cubes" fixed-width />
           Add a block
         </a>
         <div
           v-if="blockInfoLoaded"
           v-show="isMenuDropdownVisible"
           class="dropdown-menu"
+          data-testid="add-block-dropdown"
           style="display: block"
           aria-labelledby="navbarDropdown"
         >
@@ -58,16 +61,19 @@
 
   <!-- Item-type header information goes here -->
   <div class="editor-body">
-    <component :is="itemTypeEntry?.itemInformationComponent" :item_id="item_id" />
-
-    <FileList :item_id="item_id" :file_ids="file_ids" :stored_files="stored_files" />
+    <component
+      :is="itemTypeEntry?.itemInformationComponent"
+      ref="sampleInformation"
+      :item_id="item_id"
+    />
+    <FileList :item_id="item_id" :stored_files="stored_files" />
 
     <div class="container">
       <hr />
     </div>
 
     <!-- Display the blocks -->
-    <div v-if="blocksLoaded" class="container block-container">
+    <div v-if="blocksLoaded && blockInfoLoaded" class="container block-container">
       <transition-group name="block-list" tag="div">
         <div v-for="block_id in item_data.display_order" :key="block_id" class="block-list-item">
           <component :is="getBlockDisplayType(block_id)" :item_id="item_id" :block_id="block_id" />
@@ -90,6 +96,8 @@
 </template>
 
 <script>
+import { DialogService } from "@/services/DialogService";
+
 import TinyMceInline from "@/components/TinyMceInline";
 import SelectableFileTree from "@/components/SelectableFileTree";
 
@@ -103,15 +111,16 @@ import {
   updateBlockFromServer,
   getBlocksInfos,
 } from "@/server_fetch_utils";
+import LoginDetails from "@/components/LoginDetails";
 import FormattedItemName from "@/components/FormattedItemName";
 
 import setupUppy from "@/file_upload.js";
 
 import tinymce from "tinymce/tinymce";
 
-import { blockTypes, itemTypes } from "@/resources.js";
-import NotImplementedBlock from "@/components/datablocks/NotImplementedBlock.vue";
-import { API_URL } from "@/resources.js";
+import { itemTypes, API_URL, customBlockTypes } from "@/resources.js";
+import BokehBlock from "@/components/datablocks/BokehBlock.vue";
+import ErrorBlock from "@/components/datablocks/ErrorBlock.vue";
 import { formatDistanceToNow } from "date-fns";
 
 import StyledBlockHelp from "@/components/StyledBlockHelp";
@@ -121,16 +130,23 @@ export default {
     TinyMceInline,
     SelectableFileTree,
     FileList,
+    LoginDetails,
     FileSelectModal,
     FormattedItemName,
     StyledBlockHelp,
   },
-  beforeRouteLeave(to, from, next) {
+  async beforeRouteLeave(to, from, next) {
     // give warning before leaving the page by the vue router (which would not trigger "beforeunload")
     if (this.savedStatus) {
       next();
     } else {
-      if (window.confirm("Unsaved changes present. Would you like to leave without saving?")) {
+      const confirmed = await DialogService.confirm({
+        title: "Unsaved Changes",
+        message: "Unsaved changes present. Would you like to leave without saving?",
+        type: "warning",
+      });
+      if (confirmed) {
+        this.$store.commit("setItemSaved", { item_id: this.item_id, isSaved: true });
         next();
       } else {
         next(false);
@@ -179,16 +195,19 @@ export default {
       return allBlocksAreSaved && this.$store.state.saved_status_items[this.item_id];
     },
     files() {
-      return this.item_data.files;
-    },
-    file_ids() {
-      return this.item_data.file_ObjectIds;
+      return this.item_data.files || [];
     },
     stored_files() {
-      return this.$store.state.files;
+      return Object.fromEntries(this.files.map((file) => [file.immutable_id, file]));
     },
     blocksInfos() {
-      return this.$store.state.blocksInfos;
+      if (this.blockInfoLoaded) {
+        const blocksInfos = Array.from(this.$store.getters.getBlocksInfos.values());
+        return [...blocksInfos].sort((a, b) =>
+          a?.attributes?.name.localeCompare(b?.attributes?.name),
+        );
+      }
+      return [];
     },
     itemApiUrl() {
       return API_URL + "/items/" + this.refcode;
@@ -210,7 +229,7 @@ export default {
     this.interval = setInterval(() => this.setLastModified(), 30000);
   },
   beforeMount() {
-    this.blockTypes = blockTypes; // bind blockTypes as a NON-REACTIVE object to the this context so that it is accessible by the template.
+    this.customBlockTypes = customBlockTypes; // bind customBlockTypes as a NON-REACTIVE object to the this context so that it is accessible by the template.
   },
   mounted() {
     // overwrite ctrl-s and cmd-s to save the page
@@ -227,7 +246,7 @@ export default {
     // this.updateRemoteTree()
 
     // setup the uppy instsance
-    setupUppy(this.item_id, "#uppy-trigger", this.stored_files);
+    setupUppy(this.item_id, "#uppy-trigger", {});
   },
   beforeUnmount() {
     document.removeEventListener("keydown", this._keyListener);
@@ -254,16 +273,26 @@ export default {
       });
     },
     getBlockDisplayType(block_id) {
-      var type = this.blocks[block_id].blocktype;
-      if (type in blockTypes) {
-        return blockTypes[type].component;
+      const block = this.blocks[block_id];
+
+      if (!block || this.$store.state.block_errors[block_id]) {
+        return ErrorBlock;
+      }
+
+      const type = block.blocktype;
+
+      if (!(type in this.$store.state.blocksInfos)) {
+        return ErrorBlock;
+      }
+
+      if (type in customBlockTypes) {
+        return customBlockTypes[type].component;
       } else {
-        return NotImplementedBlock;
+        return BokehBlock;
       }
     },
     saveSample() {
       // trigger the mce save so that they update the store with their content
-      console.log("save sample clicked!");
       tinymce.editors.forEach((editor) => {
         editor.isDirty() && editor.save();
       });
@@ -274,6 +303,9 @@ export default {
       if (this.item_id == null) {
         getItemByRefcode(this.refcode).then(() => {
           this.itemDataLoaded = true;
+          this.$nextTick(() => {
+            this.$store.commit("setItemSaved", { item_id: this.item_id, isSaved: true });
+          });
           this.item_id = this.$store.state.refcode_to_id[this.refcode];
           this.updateBlocks();
         });
@@ -281,6 +313,9 @@ export default {
         getItemData(this.item_id).then(() => {
           this.itemDataLoaded = true;
           this.refcode = this.item_data.refcode;
+          this.$nextTick(() => {
+            this.$store.commit("setItemSaved", { item_id: this.item_id, isSaved: true });
+          });
           this.updateBlocks();
         });
       }
@@ -313,9 +348,7 @@ export default {
       if (item_date == null) {
         this.lastModified = "Unknown";
       } else {
-        // API dates are in UTC but missing Z suffix
-        const save_date = new Date(item_date + "Z");
-        this.lastModified = formatDistanceToNow(save_date, { addSuffix: true });
+        this.lastModified = formatDistanceToNow(new Date(item_date), { addSuffix: true });
       }
     },
   },

@@ -1,0 +1,44 @@
+name: Automatic `yarn` dependency upgrades
+on:
+  schedule:
+    - cron: "5 3 * * 3"  # Wednesdays in the early morning
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  yarn-update-pins:
+    name: Update `yarn.lock` pins
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        env:
+          FORCE_COLOR: 0
+        with:
+          node-version: "20"
+          cache: "yarn"
+          cache-dependency-path: ./webapp/yarn.lock
+
+      - name: Sync latest compatible dependencies and commit
+        working-directory: ./webapp
+        run: yarn upgrade
+
+      - name: Create PR with changes
+        uses: peter-evans/create-pull-request@v7
+        with:
+          base: main
+          add-paths: ./webapp/yarn.lock
+          sign-commits: true
+          branch: ci/update-yarn-lock-main-deps
+          delete-branch: true
+          commit-message: "ci: update yarn lock file"
+          title: "Update `yarn.lock` with latest dependencies"
+          body: "This PR updates the `yarn.lock` file with the latest compatible dependencies. The changes to the lockfile must be reviewed; to run the tests, mark the PR as ready-for-review."
+          labels: dependency_updates,javascript
+          draft: always-true

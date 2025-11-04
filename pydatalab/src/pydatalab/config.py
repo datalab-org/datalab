@@ -4,7 +4,7 @@ import logging
 import os
 import platform
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Type, Union
+from typing import Any
 
 from pydantic import (
     AnyUrl,
@@ -21,8 +21,10 @@ from pydatalab.models.utils import RandomAlphabeticalRefcodeFactory, RefCodeFact
 
 __all__ = ("CONFIG", "ServerConfig", "DeploymentMetadata", "RemoteFilesystem")
 
+config_logger = logging.getLogger("pydatalab.config")
 
-def config_file_settings(settings: BaseSettings) -> Dict[str, Any]:
+
+def config_file_settings(settings: BaseSettings) -> dict[str, Any]:
     """Returns a dictionary of server settings loaded from the default or specified
     JSON config file location (via the env var `PYDATALAB_CONFIG_FILE`).
 
@@ -31,7 +33,7 @@ def config_file_settings(settings: BaseSettings) -> Dict[str, Any]:
 
     res = {}
     if config_file.is_file():
-        logging.debug("Loading from config file at %s", config_file)
+        config_logger.debug("Loading from config file at %s", config_file)
         config_file_content = config_file.read_text(encoding=settings.__config__.env_file_encoding)
 
         try:
@@ -40,7 +42,7 @@ def config_file_settings(settings: BaseSettings) -> Dict[str, Any]:
             raise RuntimeError(f"Unable to read JSON config file {config_file}") from json_exc
 
     else:
-        logging.debug("Unable to load from config file at %s", config_file)
+        config_logger.debug("Unable to load from config file at %s", config_file)
         res = {}
 
     return res
@@ -49,10 +51,10 @@ def config_file_settings(settings: BaseSettings) -> Dict[str, Any]:
 class DeploymentMetadata(BaseModel):
     """A model for specifying metadata about a datalab deployment."""
 
-    maintainer: Optional[Person]
-    issue_tracker: Optional[AnyUrl] = Field("https://github.com/datalab-org/datalab/issues")
-    homepage: Optional[AnyUrl]
-    source_repository: Optional[AnyUrl] = Field("https://github.com/datalab-org/datalab")
+    maintainer: Person | None
+    issue_tracker: AnyUrl | None = Field("https://github.com/datalab-org/datalab/issues")
+    homepage: AnyUrl | None
+    source_repository: AnyUrl | None = Field("https://github.com/datalab-org/datalab")
 
     @validator("maintainer")
     def strip_fields_from_person(cls, v):
@@ -102,7 +104,7 @@ class RemoteFilesystem(BaseModel):
     """
 
     name: str = Field(description="The name of the filesystem to use in the UI.")
-    hostname: Optional[str] = Field(
+    hostname: str | None = Field(
         None,
         description="The hostname for the filesystem. `None` indicates the filesystem is already mounted locally.",
     )
@@ -132,8 +134,17 @@ class ServerConfig(BaseSettings):
         description="The canonical URL for any UI associated with this instance; will be used for redirects on user login/registration.",
     )
 
+    ROOT_PATH: str = Field(
+        "/",
+        description="The root path of the application, e.g., `/api` if hosting from a subpath.",
+    )
+
+    TESTING: bool = Field(
+        False, description="Whether to run the server in testing mode, i.e., without user auth."
+    )
+
     SECRET_KEY: str = Field(
-        hashlib.sha512((platform.platform() + str(platform.python_build)).encode()).hexdigest(),
+        None,
         description="The secret key to use for Flask. This value should be changed and/or loaded from an environment variable for production deployments.",
     )
 
@@ -146,7 +157,7 @@ class ServerConfig(BaseSettings):
         description="The lifetime of each authenticated session, in hours.",
     )
 
-    FILE_DIRECTORY: Union[str, Path] = Field(
+    FILE_DIRECTORY: str | Path = Field(
         Path(__file__).parent.joinpath("../files").resolve(),
         description="The path under which to place stored files uploaded to the server.",
     )
@@ -158,20 +169,16 @@ class ServerConfig(BaseSettings):
 
     DEBUG: bool = Field(True, description="Whether to enable debug-level logging in the server.")
 
-    TESTING: bool = Field(
-        False, description="Whether to run the server in testing mode, i.e., without user auth."
-    )
-
     IDENTIFIER_PREFIX: str = Field(
         None,
         description="The prefix to use for identifiers in this deployment, e.g., 'grey' in `grey:AAAAAA`",
     )
 
-    REFCODE_GENERATOR: Type[RefCodeFactory] = Field(
+    REFCODE_GENERATOR: type[RefCodeFactory] = Field(
         RandomAlphabeticalRefcodeFactory, description="The class to use to generate refcodes."
     )
 
-    REMOTE_FILESYSTEMS: List[RemoteFilesystem] = Field(
+    REMOTE_FILESYSTEMS: list[RemoteFilesystem] = Field(
         [],
         descripton="A list of dictionaries describing remote filesystems to be accessible from the server.",
     )
@@ -191,12 +198,12 @@ class ServerConfig(BaseSettings):
         description="Whether the Flask app is being deployed behind a reverse proxy. If `True`, the reverse proxy middleware described in the [Flask docs](https://flask.palletsprojects.com/en/2.2.x/deploying/proxy_fix/) will be attached to the app.",
     )
 
-    GITHUB_ORG_ALLOW_LIST: Optional[List[str]] = Field(
+    GITHUB_ORG_ALLOW_LIST: list[str] | None = Field(
         [],
         description="A list of GitHub organization IDs (available from `https://api.github.com/orgs/<org_name>`, and are immutable) or organisation names (which can change, so be warned), that the membership of which will be required to register a new datalab account. Setting the value to `None` will allow any GitHub user to register an account.",
     )
 
-    DEPLOYMENT_METADATA: Optional[DeploymentMetadata] = Field(
+    DEPLOYMENT_METADATA: DeploymentMetadata | None = Field(
         None, description="A dictionary containing metadata to serve at `/info`."
     )
 
@@ -220,42 +227,47 @@ class ServerConfig(BaseSettings):
         description="Whether to automatically activate accounts created via any registration method.",
     )
 
-    EMAIL_DOMAIN_ALLOW_LIST: Optional[List[str]] = Field(
+    EMAIL_DOMAIN_ALLOW_LIST: list[str] | None = Field(
         [],
         description="A list of domains for which users will be able to register accounts if they have a matching verified email address, which still need to be verified by an admin. Setting the value to `None` will allow any email addresses at any domain to register *and activate* an account, otherwise the default `[]` will not allow any email addresses registration.",
     )
 
-    EMAIL_AUTH_SMTP_SETTINGS: Optional[SMTPSettings] = Field(
+    EMAIL_AUTH_SMTP_SETTINGS: SMTPSettings | None = Field(
         None,
         description="A dictionary containing SMTP settings for sending emails for account registration.",
     )
 
     MAX_CONTENT_LENGTH: int = Field(
-        100 * 1000 * 1000,
+        10 * 1000**3,
         description=r"""Direct mapping to the equivalent Flask setting. In practice, limits the file size that can be uploaded.
-Defaults to 100 GB to avoid filling the tmp directory of a server.
+Defaults to 10 GB to avoid filling the tmp directory of a server.
 
 Warning: this value will overwrite any other values passed to `FLASK_MAX_CONTENT_LENGTH` but is included here to clarify
 its importance when deploying a datalab instance.""",
     )
 
-    BACKUP_STRATEGIES: Optional[dict[str, BackupStrategy]] = Field(
+    MAX_BATCH_CREATE_SIZE: int = Field(
+        10_000,
+        description="Maximum number of items that can be created in a single batch operation.",
+    )
+
+    BACKUP_STRATEGIES: dict[str, BackupStrategy] | None = Field(
         {
             "daily-snapshots": BackupStrategy(
                 hostname=None,
-                location="/tmp/datalab-backups/daily-snapshots/",
+                location="/tmp/datalab-backups/daily-snapshots/",  # noqa: S108
                 frequency="5 4 * * *",  # 4:05 every day
                 retention=7,
             ),
             "weekly-snapshots": BackupStrategy(
                 hostname=None,
-                location="/tmp/datalab-backups/weekly-snapshots/",
+                location="/tmp/datalab-backups/weekly-snapshots/",  # noqa: S108
                 frequency="5 3 * * 1",  # 03:05 every Monday
                 retention=5,
             ),
             "quarterly-snapshots": BackupStrategy(
                 hostname=None,
-                location="/tmp/datalab-backups/quarterly-snapshots/",
+                location="/tmp/datalab-backups/quarterly-snapshots/",  # noqa: S108
                 frequency="5 2 1 1,4,7,10 *",  # first of January, April, July, October at 02:05
                 retention=4,
             ),
@@ -270,6 +282,29 @@ its importance when deploying a datalab instance.""",
                 f"The maximum cache age must be greater than the minimum cache age: min {values.get('REMOTE_CACHE_MIN_AGE')=}, max {values.get('REMOTE_CACHE_MAX_AGE')=}"
             )
         return values
+
+    @validator("SECRET_KEY", pre=True, always=True)
+    def validate_secret_key(cls, v, values):
+        if v is None:
+            if values.get("TESTING"):
+                config_logger.error(
+                    "`CONFIG.TESTING` is enabled - generating a deterministic secret key for testing purposes. This MUST be updated for production deployments."
+                )
+                return hashlib.sha512(
+                    (platform.platform() + str(platform.python_build)).encode()
+                ).hexdigest()
+
+        return v
+
+    @validator("ROOT_PATH")
+    def validate_root_path(cls, v):
+        if not v.startswith("/"):
+            v = "/" + v
+
+        if not v.endswith("/"):
+            v = v + "/"
+
+        return v
 
     @validator("IDENTIFIER_PREFIX", pre=True, always=True)
     def validate_identifier_prefix(cls, v, values):
@@ -344,30 +379,4 @@ its importance when deploying a datalab instance.""",
 CONFIG: ServerConfig = ServerConfig()
 """The global server configuration object.
 This is a singleton instance of the `ServerConfig` model.
-"""
-
-
-class AuthMechanisms(BaseModel):
-    github: bool = False
-    orcid: bool = False
-    email: bool = False
-
-
-class AIIntegrations(BaseModel):
-    openai: bool = False
-    anthropic: bool = False
-
-
-class FeatureFlags(BaseModel):
-    auth_mechanisms: AuthMechanisms = AuthMechanisms()
-    ai_integrations: AIIntegrations = AIIntegrations()
-    email_notifications: bool = False
-
-
-FEATURE_FLAGS: FeatureFlags = FeatureFlags()
-"""The global feature flags object.
-
-This is a singleton of `FeatureFlags` that can be used to see
-the enabled features of the app at a higher-level to the
-configuration (e.g., includes runtime environment checks).
 """

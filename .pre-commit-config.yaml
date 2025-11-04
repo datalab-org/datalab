@@ -13,7 +13,7 @@ ci:
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v5.0.0
     hooks:
       - id: trailing-whitespace
         exclude: (pydatalab/example_data/)|(.*.snap)
@@ -29,7 +29,7 @@ repos:
       - id: mixed-line-ending
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.6.3
+    rev: v0.12.7
     hooks:
       - id: ruff
         args: [--fix]
@@ -41,28 +41,29 @@ repos:
       - id: eslint
         additional_dependencies:
           - prettier@3.1.0
-          - eslint@8.57.0
+          - eslint@8.57.1
           - eslint-config-prettier@8.10.0
           - eslint-plugin-prettier@5.1.3
           - eslint-plugin-vue@8.0.3
           - "@vue/cli-plugin-babel@5.0.8"
-          - "@vue/cli-plugin-eslint@5.0.8"
           - "@vue/eslint-config-prettier@8.0.0"
           - eslint-plugin-cypress@3.3.0
           - "@babel/core@7.24.8"
           - "@babel/eslint-parser@7.24.8"
           - "@babel/plugin-transform-export-namespace-from@7.24.7"
+          - "@babel/plugin-transform-class-static-block@7.26.0"
         types: [file]
         files: \.(js|jsx|ts|tsx|vue)$
         args: [--fix]
 
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.17.0
+    rev: v3.20.0
     hooks:
       - id: pyupgrade
+        args: [--py310-plus]
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.11.2
+    rev: v1.17.1
     hooks:
       - id: mypy
         additional_dependencies:

@@ -1,28 +1,35 @@
 import json
-from typing import Any, Dict, Optional
+from typing import Any
 
 from flask import Blueprint, jsonify, request
 from flask_login import current_user
+from werkzeug.exceptions import BadRequest
 
 from pydatalab.config import CONFIG
+from pydatalab.permissions import active_users_or_get_only
 from pydatalab.remote_filesystems import (
     get_directory_structure,
     get_directory_structures,
 )
 
 
-def _check_invalidate_cache(args: Dict[str, str]) -> Optional[bool]:
-    invalidate_cache: Optional[bool] = None
+def _check_invalidate_cache(args: dict[str, str]) -> bool | None:
+    invalidate_cache: bool | None = None
     if "invalidate_cache" in args:
         invalidate_cache_arg = args.get("invalidate_cache")
         if invalidate_cache_arg not in ("1", "0"):
-            raise RuntimeError("invalidate_cache must be 0 or 1")
+            raise BadRequest("invalidate_cache must be 0 or 1")
         invalidate_cache = bool(int(invalidate_cache_arg))
 
     return invalidate_cache
 
 
 REMOTES = Blueprint("remotes", __name__)
+
+
+@REMOTES.before_request
+@active_users_or_get_only
+def _(): ...
 
 
 @REMOTES.route("/list-remote-directories", methods=["GET"])
@@ -34,7 +41,10 @@ def list_remote_directories():
     then it will be reconstructed.
 
     """
-    if not current_user.is_authenticated and not CONFIG.TESTING:
+    if (
+        not (current_user.is_authenticated and current_user.account_status == "active")
+        and not CONFIG.TESTING
+    ):
         return (
             jsonify(
                 {
@@ -127,7 +137,7 @@ def get_remote_directory(remote_id: str):
 
     directory_structure = get_directory_structure(remote_obj, invalidate_cache=invalidate_cache)
 
-    response: Dict[str, Any] = {}
+    response: dict[str, Any] = {}
     response["meta"] = {}
     response["meta"]["remote"] = json.loads(d.json())
     response["data"] = directory_structure

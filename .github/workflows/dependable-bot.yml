@@ -1,0 +1,55 @@
+name: Automatic `uv` dependency upgrades
+on:
+  schedule:
+    - cron: "4 3 * * 3"  # Wednesdays in the early morning
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  UV_VERSION: "0.8.4"
+
+jobs:
+  uv-update-pins:
+    name: Update `uv.lock` pins
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Make sure to pull all tags so the version is set correctly
+          fetch-tags: true
+          fetch-depth: 0
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: ${{ env.UV_VERSION }}
+          working-directory: "./pydatalab"
+          enable-cache: true
+
+      - name: Sync latest compatible dependencies and commit
+        working-directory: ./pydatalab
+        run: |
+          uv lock -U 2> output.txt
+
+      - name: Create PR with changes
+        uses: peter-evans/create-pull-request@v7
+        with:
+          base: main
+          add-paths: pydatalab/uv.lock
+          sign-commits: true
+          branch: ci/update-uv-lock-main-deps
+          delete-branch: true
+          commit-message: "ci: update uv lock file"
+          title: "Update `uv.lock` with latest dependencies"
+          body-path: ./pydatalab/output.txt
+          labels: dependency_updates,Python
+          draft: always-true

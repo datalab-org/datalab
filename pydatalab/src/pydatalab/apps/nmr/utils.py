@@ -1,5 +1,4 @@
 import itertools
-import os
 import re
 from pathlib import Path
 
@@ -8,10 +7,6 @@ import nmrglue as ng
 import numpy as np
 import pandas as pd
 from scipy import integrate
-
-######################################################################################
-# Functions for reading in NMR data files
-######################################################################################
 
 
 def read_bruker_1d(
@@ -52,11 +47,10 @@ def read_bruker_1d(
     a_dic, a_data = ng.fileio.bruker.read(str(data_dir))  # aquisition_data
     p_dic, p_data = ng.fileio.bruker.read_pdata(str(processed_data_dir))  # processing data
 
-    try:
-        with open(os.path.join(processed_data_dir, "title")) as f:
-            topspin_title = f.read()
-    except FileNotFoundError:
-        topspin_title = None
+    topspin_title = None
+    title_file = processed_data_dir / "title"
+    if title_file.exists():
+        topspin_title = title_file.read_text()
 
     if len(p_data.shape) > 1:
         return None, a_dic, topspin_title, p_data.shape
@@ -96,6 +90,44 @@ def read_bruker_1d(
     return df, a_dic, topspin_title, a_data.shape
 
 
+def read_jcamp_dx_1d(filename: str | Path) -> tuple[pd.DataFrame, dict, str, tuple[int, ...]]:
+    """Read a 1D JCAMP-DX file and return it as a dataframe with
+    any associated metadata. Developed by analogy with the Bruker reader,
+    and will try to make use of some Bruker-specific parameters.
+
+    Returns:
+        df: A pandas DataFrame containing the spectrum data.
+        dic: A dictionary containing the acquisition parameters.
+        title: The title of the spectrum, as stored in the JCAMP-DX file.
+        shape: The shape of the spectrum data array.
+
+    """
+
+    dic, data = ng.fileio.jcampdx.read(filename)
+    udic = ng.jcampdx.guess_udic(dic, data)
+    uc = ng.fileiobase.uc_from_udic(udic)
+
+    ppm_scale = uc.ppm_scale()
+    hz_scale = uc.hz_scale()
+
+    if "$NS" in dic:
+        nscans = int(dic.get("$NS")[0])
+    else:
+        nscans = 1
+    title = dic.get("TITLE", "")
+
+    df = pd.DataFrame(
+        {
+            "ppm": ppm_scale,
+            "hz": hz_scale,
+            "intensity": data,
+            "intensity_per_scan": data / nscans,
+        }
+    )
+
+    return df, dic, title, data.shape
+
+
 def read_topspin_txt(filename, sample_mass_mg=None, nscans=None):
     MAX_HEADER_LINES = 10
     LEFTRIGHT_REGEX = r"# LEFT = (-?\d+\.\d+) ppm. RIGHT = (-?\d+\.\d+) ppm\."
@@ -117,7 +149,8 @@ def read_topspin_txt(filename, sample_mass_mg=None, nscans=None):
     size = int(size_match.group(1))
 
     intensity = np.genfromtxt(filename, comments="#")
-    assert len(intensity) == size, "length of intensities does not match I"
+    if len(intensity) != size:
+        raise RuntimeError(f"length of intensities does not match I ({size}) vs ({len(intensity)})")
 
     data = {
         "ppm": np.linspace(left, right, size),
@@ -130,11 +163,6 @@ def read_topspin_txt(filename, sample_mass_mg=None, nscans=None):
 
     df = pd.DataFrame(data)
     return df
-
-
-######################################################################################
-# Functions for analyzing NMR data files
-######################################################################################
 
 
 def integrate_1d(

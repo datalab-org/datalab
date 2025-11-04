@@ -10,11 +10,16 @@ import router from "./router";
 
 import { library } from "@fortawesome/fontawesome-svg-core";
 import {
+  faBarcode,
   faSave,
+  faCloudUploadAlt,
+  faRedo,
   faPen,
+  faFile,
   faCode,
   faEnvelope,
   faCog,
+  faCubes,
   faQrcode,
   faUsersCog,
   faChevronRight,
@@ -43,18 +48,24 @@ import {
   faEllipsisH,
   faCopy,
   faInfoCircle,
+  faPlus,
+  faCheckCircle,
 } from "@fortawesome/free-solid-svg-icons";
 import { faPlusSquare } from "@fortawesome/free-regular-svg-icons";
 import { faGithub, faOrcid } from "@fortawesome/free-brands-svg-icons";
-// import { faHdd } from '@fortawesome/free-regular-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 library.add(
+  faBarcode,
   faSave,
   faPen,
+  faRedo,
+  faCloudUploadAlt,
+  faFile,
   faCode,
   faQrcode,
   faEnvelope,
   faCog,
+  faCubes,
   faUsersCog,
   faChevronRight,
   faProjectDiagram,
@@ -81,10 +92,12 @@ library.add(
   faListOl,
   faSearch,
   faPlusSquare,
+  faPlus,
   faSpinner,
   faEllipsisH,
   faCopy,
   faInfoCircle,
+  faCheckCircle,
 );
 
 // Import TinyMCE

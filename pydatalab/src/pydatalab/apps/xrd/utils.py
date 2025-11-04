@@ -1,7 +1,9 @@
 import os
 import re
+import tempfile
 import warnings
-from typing import List, Tuple
+import zipfile
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -99,7 +101,7 @@ def convertSinglePattern(
     return outfn
 
 
-def getStartEnd(s: str) -> Tuple[float, float]:
+def getStartEnd(s: str) -> tuple[float, float]:
     """Parse a given string representation of an xrdml file to find the start and end 2Theta points of the scan.
     Note: this could match either Omega or 2Theta depending on their order in the XRDML file.
 
@@ -120,7 +122,7 @@ def getStartEnd(s: str) -> Tuple[float, float]:
     return start, end
 
 
-def getIntensities(s: str) -> List[float]:
+def getIntensities(s: str) -> list[float]:
     """Parse a given string representation of an xrdml file to find the peak intensities.
 
     Raises:
@@ -138,11 +140,83 @@ def getIntensities(s: str) -> List[float]:
     return out
 
 
-def toXY(intensities: List[float], start: float, end: float) -> str:
+def toXY(intensities: list[float], start: float, end: float) -> str:
     """Converts a given list of intensities, along with a start and end angle,
     to a string in XY format.
 
     """
     angles = np.linspace(start, end, num=len(intensities))
-    xylines = ["{:.5f} {:.3f}\r\n".format(a, i) for a, i in zip(angles, intensities)]
+    xylines = [f"{a:.5f} {i:.3f}\r\n" for a, i in zip(angles, intensities)]
     return "".join(xylines)
+
+
+def parse_rasx_zip(filename: str) -> pd.DataFrame:
+    """Parses an RASX zip file and returns a pandas DataFrame with columns
+    twotheta and intensity.
+
+    Parameters:
+        filename: The file to parse.
+
+    """
+    # Unzip the file to a tmp dir
+    zip_path = Path(filename)
+
+    # Create a temporary directory
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        # Create a Path object for the temporary directory
+        tmpdir_path = Path(tmpdirname)
+
+        # Unzip the file to the temporary directory
+        with zipfile.ZipFile(zip_path, "r") as zip_ref:
+            zip_ref.extractall(tmpdir_path)
+
+        # Find the .txt data file inside the unzipped .rasx archive
+        # Seems to normally unzip to a folder called "Data0" with one .txt file inside
+        data_file = None
+        for file in tmpdir_path.glob("Data*/*.txt"):
+            if data_file is not None:
+                warnings.warn(f"Found other data files in .rasx archive, only using {data_file}")
+                break
+            data_file = file
+
+        if data_file is None:
+            raise FileNotFoundError("No .txt file found in the .rasx archive.")
+
+        # Extract the data
+        xrd_data = pd.read_csv(data_file, sep="\t", header=None)
+        xrd_data.columns = ["twotheta", "intensity", "imnotsure"]
+
+    return pd.DataFrame(
+        {
+            "twotheta": xrd_data["twotheta"],
+            "intensity": xrd_data["intensity"],
+        }
+    )
+
+
+def compute_cif_pxrd(filename: str, wavelength: float) -> tuple[pd.DataFrame, dict]:
+    """Parses a CIF file and returns a pandas DataFrame with columns
+    twotheta and intensity.
+
+    Parameters:
+        filename: The file to parse.
+
+    """
+    from matador.fingerprints.pxrd import PXRD
+    from matador.scrapers.cif_scraper import cif2dict
+
+    structure, success = cif2dict(filename)
+    if not success:
+        raise RuntimeError(f"Failed to parse required information from CIF file {filename}.")
+
+    pxrd = PXRD(structure, wavelength=wavelength, two_theta_bounds=(5, 60))
+
+    df = pd.DataFrame({"intensity": pxrd.pattern, "twotheta": pxrd.two_thetas})
+    peak_data = {
+        "positions": pxrd.peak_positions.tolist(),
+        "intensities": pxrd.peak_intensities.tolist(),
+        "widths": None,
+        "hkls": pxrd.hkls.tolist(),
+        "theoretical": True,
+    }
+    return df, peak_data

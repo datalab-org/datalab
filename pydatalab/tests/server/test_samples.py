@@ -17,15 +17,15 @@ def test_empty_samples(client):
 
 @pytest.mark.dependency(depends=["test_empty_samples"])
 def test_new_sample(client, default_sample_dict):
-    response = client.post("/new-sample/", json=default_sample_dict)
+    response = client.put("/new-sample/", json=default_sample_dict)
     # Test that 201: Created is emitted
     assert response.status_code == 201, response.json
     assert response.json["status"] == "success"
-    for key in default_sample_dict.keys():
+    for key in default_sample_dict:
         if key == "creator_ids":
             continue
         if isinstance(v := default_sample_dict[key], datetime.datetime):
-            v = v.isoformat()
+            v = v.replace(tzinfo=datetime.timezone.utc).isoformat()
         assert response.json["sample_list_entry"][key] == v
 
 
@@ -34,11 +34,11 @@ def test_get_item_data(client, default_sample_dict):
     response = client.get("/get-item-data/12345")
     assert response.status_code == 200
     assert response.json["status"] == "success"
-    for key in default_sample_dict.keys():
+    for key in default_sample_dict:
         if key == "creator_ids":
             continue
         if isinstance(v := default_sample_dict[key], datetime.datetime):
-            v = v.isoformat()
+            v = v.replace(tzinfo=datetime.timezone.utc).isoformat()
         assert response.json["item_data"][key] == v
 
 
@@ -81,9 +81,9 @@ def test_new_sample_with_automatically_generated_id(client, user_id):
     assert response.json["status"] == "success"
     assert response.json["item_data"]["refcode"].split(":")[1] == created_item_id
 
-    for key in new_sample_data.keys():
+    for key in new_sample_data:
         if isinstance(v := new_sample_data[key], datetime.datetime):
-            v = v.isoformat()
+            v = v.replace(tzinfo=datetime.timezone.utc).isoformat()
         if key == "creator_ids":
             continue
         assert response.json["item_data"][key] == v
@@ -103,7 +103,7 @@ def test_save_good_sample(client, default_sample_dict):
     response = client.get("/get-item-data/12345")
     assert response.status_code == 200
     assert response.json["status"] == "success"
-    for key in default_sample_dict.keys():
+    for key in default_sample_dict:
         if key in updated_sample and key in response.json:
             assert response.json[key] == updated_sample[key]
 
@@ -152,45 +152,116 @@ def test_create_indices(real_mongo_client):
     assert all(name in names for name in expected_index_names)
 
 
+@pytest.mark.parametrize(
+    "query,expected_result_ids",
+    [
+        ("query=%2512345&types=samples", {"12345", "sample_1"}),
+        ("query=%new material", {"material", "12345"}),
+        ("query=%NaNiO2", {"test", "material", "12345"}),
+        ("query=%'grey:TEST4'", {"material", "test", "sample_1", "12345", "sample_2"}),
+    ],
+)
 @pytest.mark.dependency(depends=["test_create_indices"])
-def test_full_text_search(client, real_mongo_client, example_items):
+def test_item_fts_search(
+    query, expected_result_ids, client, real_mongo_client, insert_example_items
+):
     if real_mongo_client is None:
         pytest.skip("Skipping FTS tests, not connected to real MongoDB")
 
-    real_mongo_client.get_database().items.insert_many(example_items)
-
-    response = client.get("/search-items/?query=12345&types=samples")
+    response = client.get(f"/search-items/?{query}")
 
     assert response.status_code == 200
     assert response.json["status"] == "success"
-    assert len(response.json["items"]) == 2
-    assert response.json["items"][0]["item_id"] == "12345"
-    assert response.json["items"][1]["item_id"] == "sample_1"
+    item_ids = [item["item_id"] for item in response.json["items"]]
+    if isinstance(expected_result_ids, set):
+        assert all(_id in item_ids for _id in expected_result_ids), (
+            f"Some expected IDs not found for {query=}: expected {expected_result_ids}, found {item_ids}"
+        )
 
-    response = client.get("/search-items/?query=new material")
+    else:
+        assert item_ids == expected_result_ids
+
+
+@pytest.mark.parametrize(
+    "query,expected_result_ids",
+    [
+        ("query=%23mater&types=samples,starting_materials", {"12345", "material"}),
+        ("query=%23mater&types=equipment", []),
+        ("query=%23mater", {"material", "12345"}),
+        ("query=%23'magic'", {"material", "test"}),
+    ],
+)
+@pytest.mark.dependency(depends=["test_create_indices"])
+def test_item_old_regex_search(
+    query, expected_result_ids, client, real_mongo_client, insert_example_items
+):
+    if real_mongo_client is None:
+        pytest.skip("Skipping FTS tests, not connected to real MongoDB")
+
+    response = client.get(f"/search-items/?{query}")
 
     assert response.status_code == 200
     assert response.json["status"] == "success"
-    assert len(response.json["items"]) == 2
-    assert response.json["items"][0]["item_id"] == "material"
-    assert response.json["items"][1]["item_id"] == "12345"
+    item_ids = [item["item_id"] for item in response.json["items"]]
+    if isinstance(expected_result_ids, set):
+        assert all(_id in item_ids for _id in expected_result_ids), (
+            f"Some expected IDs not found for {query=}: expected {expected_result_ids}, found {item_ids}"
+        )
 
-    response = client.get("/search-items/?query=NaNiO2")
+    else:
+        assert item_ids == expected_result_ids
+
+
+@pytest.mark.dependency(depends=["test_create_indices"])
+@pytest.mark.parametrize(
+    "user,query,expected_result_ids",
+    [
+        ("user", "query=mater&types=samples,starting_materials", ["material", "12345"]),
+        ("user", "query=mater&types=equipment", []),  # Tests avoidance of different types
+        ("admin", "query=mater", ["material", "12345", "123456"]),  # Test search obeys permissions
+        (
+            "admin",
+            "query='magic'",
+            ["material", "test", "sample_admin"],
+        ),  # Test simple word in description as admin
+        (
+            "user",
+            "query='magic'",
+            ["material", "test"],
+        ),  # Test simple word in description
+        ("admin", "query='vanadium('&types=samples", ["sample_2"]),  # Test unclosed brackets
+        ("admin", "query='vanadium oxide'&types=samples", ["sample_2"]),  # Test two words
+        ("admin", "query='oxide vanadium'&types=samples", ["sample_2"]),  # Test reverse order
+        ("admin", "query='v'", ["sample_2"]),  # Test single char at start of word
+        ("admin", "query='van'", ["sample_2"]),  # Test prefix at start of word
+        ("admin", "query='oxid'", ["sample_2"]),  # Test prefix at start of word
+        (
+            "admin",
+            "query='anadium'&types=samples",
+            ["sample_2"],
+        ),  # Test word ending that should return results if long enough
+        (
+            "admin",
+            "query='dium'&types=samples",
+            [],
+        ),  # Test word ending that should not return results if its too short
+    ],
+)
+def test_item_regex_search(
+    user, query, expected_result_ids, real_mongo_client, client, admin_client, insert_example_items
+):
+    if user == "admin":
+        response = admin_client.get(f"/search-items/?{query}")
+    else:
+        response = client.get(f"/search-items/?{query}")
 
     assert response.status_code == 200
     assert response.json["status"] == "success"
-    assert len(response.json["items"]) == 3
-    assert response.json["items"][0]["item_id"] == "test"
-    assert response.json["items"][1]["item_id"] == "material"
-    assert response.json["items"][2]["item_id"] == "12345"
-
-    response = client.get("/search-items/?query='grey:TEST4'")
-
-    assert response.status_code == 200
-    assert response.json["status"] == "success"
-    # should return all grey:TEST<n> samples, with TEST4 first
-    assert len(response.json["items"]) == 5
-    assert response.json["items"][0]["item_id"] == "material"
+    item_ids = {item["item_id"] for item in response.json["items"]}
+    assert all(_id in item_ids for _id in expected_result_ids), (
+        f"Some expected IDs not found for {query=} as {user=}: expected {expected_result_ids}, found {item_ids}"
+    )
+    assert len(item_ids) == len(expected_result_ids)
 
 
 @pytest.mark.dependency(depends=["test_delete_sample"])
@@ -700,3 +771,302 @@ def test_add_items_to_collection_success(client, default_collection, example_ite
     child_refcodes = [item["refcode"] for item in collection_data["child_items"]]
 
     assert all(refcode in child_refcodes for refcode in refcodes)
+
+
+@pytest.mark.dependency()
+def test_remove_items_from_collection_success(
+    client, database, default_sample_dict, default_collection
+):
+    """Test successfully removing items from a collection."""
+    sample_1_dict = default_sample_dict.copy()
+    sample_1_dict["item_id"] = "test_sample_remove_1"
+    sample_1_dict["collections"] = []
+
+    sample_2_dict = default_sample_dict.copy()
+    sample_2_dict["item_id"] = "test_sample_remove_2"
+    sample_2_dict["collections"] = []
+
+    for sample_dict in [sample_1_dict, sample_2_dict]:
+        response = client.post("/new-sample/", json=sample_dict)
+        assert response.status_code == 201
+
+    collection_dict = default_collection.dict()
+    collection_dict["collection_id"] = "test_collection_remove"
+    response = client.put("/collections", json={"data": collection_dict})
+    assert response.status_code == 201
+
+    collection_from_db = database.collections.find_one({"collection_id": "test_collection_remove"})
+    collection_object_id = collection_from_db["_id"]
+
+    item_ids = [sample_1_dict["item_id"], sample_2_dict["item_id"]]
+
+    for item_id in item_ids:
+        database.items.update_one(
+            {"item_id": item_id},
+            {
+                "$push": {
+                    "relationships": {
+                        "type": "collections",
+                        "immutable_id": collection_object_id,
+                    }
+                }
+            },
+        )
+
+    for item_id in item_ids:
+        item = database.items.find_one({"item_id": item_id})
+        assert item is not None
+        collection_relationships = [
+            rel for rel in item.get("relationships", []) if rel.get("type") == "collections"
+        ]
+        assert len(collection_relationships) == 1
+
+    item_1_refcode = client.get(f"/get-item-data/{sample_1_dict['item_id']}").json["item_data"][
+        "refcode"
+    ]
+    item_2_refcode = client.get(f"/get-item-data/{sample_2_dict['item_id']}").json["item_data"][
+        "refcode"
+    ]
+    refcodes = [item_1_refcode, item_2_refcode]
+
+    response = client.delete(
+        "/collections/test_collection_remove/items", json={"refcodes": refcodes}
+    )
+
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["status"] == "success"
+    assert data["removed_count"] == 2
+
+    for item_id in item_ids:
+        item = database.items.find_one({"item_id": item_id})
+        assert item is not None
+        collection_relationships = [
+            rel for rel in item.get("relationships", []) if rel.get("type") == "collections"
+        ]
+        assert len(collection_relationships) == 0
+
+
+@pytest.mark.dependency()
+def test_remove_items_from_collection_not_found(client):
+    """Test removing items from non-existent collection."""
+    response = client.delete(
+        "/collections/nonexistent_collection/items", json={"refcodes": ["refcode1", "refcode2"]}
+    )
+
+    assert response.status_code == 404
+    data = response.get_json()
+    assert data["error"] == "Collection not found"
+
+
+@pytest.mark.dependency()
+def test_remove_items_from_collection_no_items_provided(client, default_collection):
+    """Test removing with no item IDs provided."""
+    collection_dict = default_collection.dict()
+    collection_dict["collection_id"] = "test_collection_empty_items"
+    response = client.put("/collections", json={"data": collection_dict})
+    assert response.status_code == 201
+
+    collection_id = collection_dict["collection_id"]
+    response = client.delete(f"/collections/{collection_id}/items", json={"refcodes": []})
+
+    assert response.status_code == 400
+    data = response.get_json()
+    assert data["error"] == "No refcodes provided"
+
+
+@pytest.mark.dependency()
+def test_remove_items_from_collection_no_matching_items(client, default_collection):
+    """Test removing items that don't exist."""
+    collection_dict = default_collection.dict()
+    collection_dict["collection_id"] = "test_collection_no_match"
+    response = client.put("/collections", json={"data": collection_dict})
+    assert response.status_code == 201
+
+    collection_id = collection_dict["collection_id"]
+    response = client.delete(
+        f"/collections/{collection_id}/items",
+        json={"refcodes": ["nonexistent_refcode_1", "nonexistent_refcode_2"]},
+    )
+
+    assert response.status_code == 404
+    data = response.get_json()
+    assert data["status"] == "error"
+    assert data["message"] == "No matching items found."
+
+
+@pytest.mark.dependency()
+def test_remove_items_from_collection_partial_success(
+    client, database, default_sample_dict, default_collection
+):
+    """Test removing items where some exist in collection and some don't."""
+    sample_dict = default_sample_dict.copy()
+    sample_dict["item_id"] = "test_sample_partial"
+    sample_dict["collections"] = []
+
+    response = client.post("/new-sample/", json=sample_dict)
+    assert response.status_code == 201
+
+    collection_dict = default_collection.dict()
+    collection_dict["collection_id"] = "test_collection_partial"
+    response = client.put("/collections", json={"data": collection_dict})
+    assert response.status_code == 201
+
+    collection_from_db = database.collections.find_one({"collection_id": "test_collection_partial"})
+    collection_object_id = collection_from_db["_id"]
+
+    item_id = sample_dict["item_id"]
+
+    database.items.update_one(
+        {"item_id": item_id},
+        {
+            "$push": {
+                "relationships": {
+                    "type": "collections",
+                    "immutable_id": collection_object_id,
+                }
+            }
+        },
+    )
+
+    item = database.items.find_one({"item_id": item_id})
+    collection_relationships = [
+        rel for rel in item.get("relationships", []) if rel.get("type") == "collections"
+    ]
+    assert len(collection_relationships) == 1
+
+    item_refcode = client.get(f"/get-item-data/{sample_dict['item_id']}").json["item_data"][
+        "refcode"
+    ]
+
+    response = client.delete(
+        "/collections/test_collection_partial/items",
+        json={"refcodes": [item_refcode, "nonexistent_refcode"]},
+    )
+
+    assert response.status_code == 207
+    data = response.get_json()
+    assert data["status"] == "partial-success"
+    assert "Only 1 items updated" in data["message"]
+
+    item = database.items.find_one({"item_id": item_id})
+    collection_relationships = [
+        rel for rel in item.get("relationships", []) if rel.get("type") == "collections"
+    ]
+    assert len(collection_relationships) == 0
+
+
+@pytest.mark.dependency(depends=["test_create_collections"])
+def test_copy_sample_and_add_to_collection(client, default_sample_dict, default_collection):
+    original_sample = default_sample_dict.copy()
+    original_sample["item_id"] = "original_for_copy_test"
+    original_sample["name"] = "Original sample"
+
+    response = client.post("/new-sample/", json=original_sample)
+    assert response.status_code == 201
+    assert response.json["status"] == "success"
+
+    collection_dict = default_collection.dict().copy()
+    collection_dict["collection_id"] = "test_copy_collection"
+    response = client.put("/collections", json={"data": collection_dict})
+    assert response.status_code == 201
+    assert response.json["status"] == "success"
+
+    copy_request = {
+        "item_id": "copied_in_collection",
+        "type": default_sample_dict["type"],
+        "collections": [{"collection_id": "test_copy_collection"}],
+        "copy_from_item_id": "original_for_copy_test",
+    }
+    response = client.post("/new-sample/", json=copy_request)
+    assert response.status_code == 201
+    assert response.json["status"] == "success"
+
+    response = client.get("/get-item-data/copied_in_collection")
+    assert response.status_code == 200
+    item_data = response.json["item_data"]
+    assert item_data["item_id"] == "copied_in_collection"
+
+    response = client.get("/collections/test_copy_collection")
+    assert response.status_code == 200
+    child_items = response.json["child_items"]
+    assert any(item["item_id"] == "copied_in_collection" for item in child_items)
+    assert not any(item["item_id"] == "original_for_copy_test" for item in child_items)
+
+
+@pytest.mark.dependency(depends=["test_copy_sample_and_add_to_collection"])
+def test_copy_sample_from_collection_to_different_collection(
+    client, default_sample_dict, default_collection
+):
+    collection1_dict = default_collection.dict().copy()
+    collection1_dict["collection_id"] = "collection_1"
+    response = client.put("/collections", json={"data": collection1_dict})
+    assert response.status_code == 201
+
+    collection2_dict = default_collection.dict().copy()
+    collection2_dict["collection_id"] = "collection_2"
+    response = client.put("/collections", json={"data": collection2_dict})
+    assert response.status_code == 201
+
+    original_sample = default_sample_dict.copy()
+    original_sample["item_id"] = "sample_in_collection1"
+    original_sample["collections"] = [{"collection_id": "collection_1"}]
+
+    response = client.post("/new-sample/", json=original_sample)
+    assert response.status_code == 201
+    assert response.json["status"] == "success"
+
+    response = client.get("/collections/collection_1")
+    assert response.status_code == 200
+    assert any(item["item_id"] == "sample_in_collection1" for item in response.json["child_items"])
+
+    copy_request = {
+        "item_id": "sample_in_collection2",
+        "type": default_sample_dict["type"],
+        "collections": [{"collection_id": "collection_2"}],
+        "copy_from_item_id": "sample_in_collection1",
+    }
+    response = client.post("/new-sample/", json=copy_request)
+    assert response.status_code == 201
+    assert response.json["status"] == "success"
+
+    response = client.get("/collections/collection_2")
+    assert response.status_code == 200
+    assert any(item["item_id"] == "sample_in_collection2" for item in response.json["child_items"])
+
+    response = client.get("/collections/collection_1")
+    assert response.status_code == 200
+    child_items = response.json["child_items"]
+    assert not any(item["item_id"] == "sample_in_collection2" for item in child_items)
+    assert any(item["item_id"] == "sample_in_collection1" for item in child_items)
+
+
+@pytest.mark.dependency(depends=["test_copy_sample_from_collection_to_different_collection"])
+def test_copy_sample_without_copying_collections(client, default_sample_dict, default_collection):
+    collection_dict = default_collection.dict().copy()
+    collection_dict["collection_id"] = "test_no_auto_copy_collection"
+    response = client.put("/collections", json={"data": collection_dict})
+    assert response.status_code == 201
+
+    original_sample = default_sample_dict.copy()
+    original_sample["item_id"] = "original_in_collection"
+    original_sample["collections"] = [{"collection_id": "test_no_auto_copy_collection"}]
+
+    response = client.post("/new-sample/", json=original_sample)
+    assert response.status_code == 201
+    assert response.json["status"] == "success"
+
+    copy_request = {
+        "item_id": "copy_without_collection",
+        "type": default_sample_dict["type"],
+        "copy_from_item_id": "original_in_collection",
+    }
+    response = client.post("/new-sample/", json=copy_request)
+    assert response.status_code == 201
+    assert response.json["status"] == "success"
+
+    response = client.get("/collections/test_no_auto_copy_collection")
+    assert response.status_code == 200
+    child_items = response.json["child_items"]
+    assert not any(item["item_id"] == "copy_without_collection" for item in child_items)
+    assert any(item["item_id"] == "original_in_collection" for item in child_items)

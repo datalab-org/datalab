@@ -3,7 +3,6 @@ import os
 import pathlib
 import re
 import time
-from typing import Tuple
 
 from invoke import Collection, task
 
@@ -16,7 +15,7 @@ admin = Collection("admin")
 migration = Collection("migration")
 
 
-def update_file(filename: str, sub_line: Tuple[str, str], strip: str | None = None):
+def update_file(filename: str, sub_line: tuple[str, str], strip: str | None = None):
     """Utility function for tasks to read, update, and write files.
 
     Modified from optimade-python-tools.
@@ -202,7 +201,9 @@ def _check_id(id=None, base_url=None, api_key=None):
     import requests
 
     log = setup_log("check_item_validity")
-    response = requests.get(f"{base_url}/get-item-data/{id}", headers={"DATALAB-API-KEY": api_key})
+    response = requests.get(
+        f"{base_url}/get-item-data/{id}", headers={"DATALAB-API-KEY": api_key}, timeout=30
+    )
     if response.status_code != 200:
         log.error(f"ꙮ {id!r}: {response.content!r}")
 
@@ -236,13 +237,13 @@ def check_item_validity(_, base_url: str | None = None, starting_materials: bool
 
     log = setup_log("check_item_validity")
 
-    user_response = requests.get(f"{base_url}/get-current-user/", headers=headers)
+    user_response = requests.get(f"{base_url}/get-current-user/", headers=headers, timeout=30)
     if not user_response.status_code == 200:
         raise SystemExit(f"Could not get current user: {user_response.content!r}")
 
     all_samples_ids = [
         d["item_id"]
-        for d in requests.get(f"{base_url}/samples/", headers=headers).json()["samples"]
+        for d in requests.get(f"{base_url}/samples/", headers=headers, timeout=30).json()["samples"]
     ]
 
     log.info(f"Found {len(all_samples_ids)} items")
@@ -255,9 +256,9 @@ def check_item_validity(_, base_url: str | None = None, starting_materials: bool
     if starting_materials:
         all_starting_material_ids = [
             d["item_id"]
-            for d in requests.get(f"{base_url}/starting-materials/", headers=headers).json()[
-                "items"
-            ]
+            for d in requests.get(
+                f"{base_url}/starting-materials/", headers=headers, timeout=30
+            ).json()["items"]
         ]
         multiprocessing.Pool(max(min(len(all_starting_material_ids), 8), 1)).map(
             functools.partial(_check_id, api_key=api_key, base_url=base_url),
@@ -296,13 +297,14 @@ def check_remotes(_, base_url: str | None = None, invalidate_cache: bool = False
 
     log = setup_log("check_remotes")
 
-    user_response = requests.get(f"{base_url}/get-current-user/", headers=headers)
+    user_response = requests.get(f"{base_url}/get-current-user/", headers=headers, timeout=30)
     if not user_response.status_code == 200:
         raise SystemExit(f"Could not get current user: {user_response.content!r}")
 
     directory_response = requests.get(
         f"{base_url}/list-remote-directories?invalidate_cache={'1' if invalidate_cache else '0'}",
         headers=headers,
+        timeout=30,
     )
 
     if directory_response.status_code != 200:

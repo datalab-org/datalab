@@ -28,63 +28,121 @@
 <a href="https://join.slack.com/t/datalab-world/shared_invite/zt-2h58ev3pc-VV496~5je~QoT2TgFIwn4g"><img src="https://img.shields.io/badge/Slack-chat_with_us-yellow?logo=slack"></a>
 </div>
 
-This repository contains the code for the *datalab* data management system, targeted (broadly) at materials chemistry labs but with customisability and extensability in mind.
+_datalab_ is a user-friendly, open-source platform that can capture all the experimental data and metadata produced in a scientific lab, targeted (broadly) at materials chemistry but with customisability and extensability in mind.
+_datalab_ records data and metadata securely and makes it accessible and reusable by both humans and machines _via_ the web UI and API, respectively.
+_datalab_ can be self-hosted and managed deployments are also available.
 
-The main aim of *datalab* is to provide a platform for capturing the significant amounts of long-tail experimental data and metadata produced in a typical lab, and enable storage, filtering and future data re-use by humans and machines.
-The platform provides researchers with a way to record sample- and cell-specific metadata, attach and sync raw data from instruments, and perform analysis and visualisation of many characterisation techniques in the browser (XRD, NMR, electrochemical cycling, TEM, TGA, Mass Spec, Raman).
-Importantly, *datalab* stores a network of interconnected research objects in the lab, such that individual pieces of data are stored with the context needed to make them scientifically useful.
+You can try the demo deployment at [demo.datalab-org.io](https://demo.datalab-org.io/) and read the online documentation at [docs.datalab-org.io](https://docs.datalab-org.io) with release notes and changelog available on [GitHub](https://github.com/datalab-org/datalab/releases/) and [online](https://docs.datalab-org.io/en/latest/CHANGELOG).
 
-The system was originally developed in and is currently deployed for the
-[Grey Group](https://www.ch.cam.ac.uk/group/grey/)
-in the Department of Chemistry at the University of Cambridge.
+Features:
 
+* Capture and store sample and device metadata
+* Connect and sync raw data directly and from laboratory instruments
+* Built-in support for multiple characterisation techniques (XRD, NMR, echem, TEM, TGA, Mass Spec, Raman and more).
+* Capture scientific context: store the graph of relationships between research objects.
+* [Python API](https://github.com/datalab-org/datalab-api) for programmatic access to your lab's data enabling custom analysis and automation.
+* Join the [_datalab_ federation](https://github.com/datalab-org/datalab-federation): you can add your _datalab_ to the federation for additional shared features.
+* [Plugin ecosystem](https://docs.datalab-org.io/en/latest/plugins) allowing for custom data blocks, [AI integration](https://github.com/datalab-org/yellowhammer) and other instance-specific code.
+* [Deployment and infrastructure automation](https://github.com/datalab-industries/datalab-ansible-terraform) via Ansible playbooks.
 
 <div align="center">
 <video width="400" controls src="https://github.com/datalab-org/datalab/assets/7916000/0065cdd6-a5f0-4391-b192-0137fe208acc">
 </video>
 </div>
 
-## Features
+> [!NOTE]
+> You may be looking for the identically named project [DataLab](https://datalab-platform.com) for signal processing, which also has plugins, clients and other similar concepts!
 
-*datalab* consists of two main components:
+## Getting started
 
-- a Flask-based Python web server (`pydatalab`) that communicates with a MongoDB
-  database backend and can perform simple analysis and ETL of particular data types,
-- a Vue 3 web application for a GUI that can be used to record information on
-  samples alongside raw data files and analysis documents.
+To set up your own _datalab_ instance or to get started with development, you can follow the installation and deployment instructions in the [online documentation](https://docs.datalab-org.io/en/latest/INSTALL).
 
+We can also provide paid managed deployments via [_datalab industries ltd._](https://datalab.industries): contact us at [hello@datalab.industries](mailto:hello@datalab.industries).
 
-### Server
+## Design philosophy and architecture
 
-- A REST API for accessing data and analysis related to chemical samples,
-  inventory and their connections, with ergonomic access provided via the
-  [*datalab* Python API](https://github.com/datalab-org/datalab-api).
-- OAuth2-based user authentication via GitHub or ORCID and simple user role
-  management.
-- Real-time data streaming and syncing with remote data sources (e.g., instrumentation, archives and file stores).
+The _datalab_ architecture is shown below:
 
-### UI
+<center>
 
-- A simple, intuitive UI for recording sample-based metadata and relationships with
-  other samples (batches, derivatives, _etc._), alongside synthesis parameters and raw data.
-- Basic analysis and plotting of live and archived data attached to a sample, _e.g._,
-  characterisation via XRD or NMR, electrochemical cycling data and images (see "Data blocks" section for a complete list).
-- Interactive network visualisation of the connections between samples and inventory.
+```mermaid
+graph TD
+classDef actor fill:#0066CC,fill-opacity:0.3,stroke:#333,stroke-width:2px,color:#000;
+classDef clientInterface fill:#00AA44,fill-opacity:0.3,stroke:#333,stroke-width:2px,color:#000;
+classDef coreComponent fill:#FF6600,fill-opacity:0.3,stroke:#333,stroke-width:2px,color:#000;
+classDef umbrellaLabel fill:#666666,fill-opacity:0.3,stroke:#666,stroke-width:1px,color:#000,rx:5,ry:5,text-align:center;
+classDef subgraphStyle fill:#f9f9f9,fill-opacity:0.1,stroke:#ccc,stroke-width:1px;
 
-## Development status
+    subgraph ExternalActors [External actors]
+        direction TB
+        User[User]
+        Machine[Machine]
+    end
+    class User,Machine actor;
+    class ExternalActors subgraphStyle;
 
-*datalab* remains under active development, and the API, data models and UI may change significantly between versions without prior notice.
-Where possible, breaking changes will be listed in the release notes for every pre-v1 release.
+    UmbrellaDesc["Raw instrument data,<br>annotations, connections"]
+    class UmbrellaDesc umbrellaLabel;
 
-## Installation
+    subgraph ClientInterfaces [Client interfaces]
+        direction TB
+        BrowserApp[_datalab_<br>Browser app]
+        PythonAPI[_datalab_<br>Python API]
+    end
+    class BrowserApp,PythonAPI clientInterface;
+    class ClientInterfaces subgraphStyle;
 
-Installation, usage and deployment instructions can be found in
-[INSTALL.md](./INSTALL.md) and in the [online documentation](https://the-datalab.readthedocs.io).
+    subgraph Backend
+        direction TB
+        RESTAPI[_datalab_<br>REST API]
+        MongoDB[MongoDB Database]
+        DataLake[Data Lake]
+    end
+    class RESTAPI,MongoDB,DataLake coreComponent;
+    class Backend subgraphStyle;
+
+    User      <-- "User data I/O" --> UmbrellaDesc;
+    Machine   <-- "Machine data I/O" --> UmbrellaDesc;
+
+    UmbrellaDesc <-- "_via_ GUI" --> BrowserApp;
+    UmbrellaDesc <-- "_via_ scripts" --> PythonAPI;
+
+    BrowserApp  <-- "HTTP (Data exchange)" --> RESTAPI;
+    PythonAPI   <-- "API calls (Data exchange)" --> RESTAPI;
+
+    RESTAPI <-- "Annotations, connections" --> MongoDB;
+    RESTAPI <-- "Raw and structured characterisation data" --> DataLake;
+
+    linkStyle 0 stroke:#666,stroke-width:3px
+    linkStyle 1 stroke:#666,stroke-width:3px
+    linkStyle 2 stroke:#666,stroke-width:3px
+    linkStyle 3 stroke:#666,stroke-width:3px
+    linkStyle 4 stroke:#666,stroke-width:3px
+    linkStyle 5 stroke:#666,stroke-width:3px
+    linkStyle 6 stroke:#666,stroke-width:3px
+    linkStyle 7 stroke:#666,stroke-width:3px
+
+    click PythonAPI "https://github.com/datalab-org/datalab-api" "datalab Python API on GitHub" _blank
+    click BrowserApp "https://github.com/datalab-org/datalab/tree/main/webapp" "datalab Browser App on GitHub" _blank
+    click RESTAPI "https://github.com/datalab-org/datalab/tree/main/pydatalab" "pydatalab REST API on GitHub" _blank
+```
+
+</center>
+
+The main aim of *datalab* is to provide a platform for capturing the significant amounts of long-tail experimental data and metadata produced in a typical lab, and enable storage, filtering and future data re-use by humans and machines. *datalab* is targeted (broadly) at materials chemistry labs but with customisability and extensability in mind.
+
+The platform provides researchers with a way to record sample- and cell-specific metadata, attach and sync raw data from instruments, and perform analysis and visualisation of many characterisation techniques in the browser (XRD, NMR, electrochemical cycling, TEM, TGA, Mass Spec, Raman).
+
+Importantly, *datalab* stores a network of interconnected research objects in the lab, such that individual pieces of data are stored with the context needed to make them scientifically useful.
 
 ## License
 
 This software is released under the conditions of the MIT license.
 Please see [LICENSE](./LICENSE) for the full text of the license.
+
+## Contact
+
+We are available for consultations on setting up and managing *datalab* deployments, as well as collaborating on or sponsoring additions of new features and techniques. Please contact Josh or Matthew on their academic emails, or join the [public *datalab* Slack workspace](https://join.slack.com/t/datalab-world/shared_invite/zt-2h58ev3pc-VV496~5je~QoT2TgFIwn4g).
 
 ## Contributions
 
@@ -94,19 +152,21 @@ This software was conceived and developed by:
 - [Dr Matthew Evans](https://ml-evs.science) ([MODL-IMCN,
   UCLouvain](https://uclouvain.be/en/research-institutes/imcn/modl) & [Matgenix](https://matgenix.com))
 
-with contributions and testing performed by other members of the Grey Group.
+with support from the group of [Professor Clare Grey](https://grey.group.ch.cam.ac.uk/group) (University of Cambridge), and major contributions from:
+
+- [Benjamin Charmes](https://github.com/BenjaminCharmes)
+- [Dr Ben Smith](https://github.com/be-smith/)
+- [Dr Yue Wu](https://github.com/yue-here)
+
+plus many contributions, feedback and testing performed by other members of the community, in particular, the groups of [Prof Matt Cliffe](https://cliffegroup.co.uk) (University of Nottingham) and [Dr Peter Kraus](https://www.tu.berlin/en/concat) (TUBerlin).
 
 A full list of code contributions can be found on [GitHub](https://github.com/datalab-org/datalab/graphs/contributors).
 
-## Contact
-
-We are available for consultations on setting up and managing *datalab* deployments, as well as collaborating on or sponsoring additions of new features and techniques.
-Please contact Josh or Matthew on their academic emails, or join the [public *datalab* Slack workspace](https://join.slack.com/t/datalab-world/shared_invite/zt-2h58ev3pc-VV496~5je~QoT2TgFIwn4g).
-
 ## Funding
 
-This project has received funding from the European Union's Horizon 2020 research and innovation programme under grant agreement 957189 (DOI: [10.3030/957189](https://doi.org/10.3030/957189)), the [Battery Interface Genome - Materials Acceleration Platform (BIG-MAP)](https://www.big-map.eu), as an external stakeholder project.
+Contributions to _datalab_ have been supported by a mixture of academic funding and consultancy work through [_datalab industries ltd_](https://datalab.industries).
 
-<div align="center">
-<img href="https://big-map.org" src="https://big-map.github.io/big-map-registry/static/img/big-map-white-transparent.png" width=100>
-</div>
+In particular, the developers thank:
+
+- Initial proof-of-concept funding from the European Union's Horizon 2020 research and innovation programme under grant agreement 957189 (DOI: [10.3030/957189](https://doi.org/10.3030/957189)), the [Battery Interface Genome - Materials Acceleration Platform (BIG-MAP)](https://www.big-map.eu), as an external stakeholder project.
+- The BEWARE fellowship scheme of the [Wallonie recherche SPW](https://recherche.wallonie.be/en/home.html) for funding under the European Commission's Marie Curie-Skłodowska Action (COFUND 847587).

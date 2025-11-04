@@ -10,7 +10,7 @@ from werkzeug.utils import secure_filename
 import pydatalab.mongo
 from pydatalab import file_utils
 from pydatalab.config import CONFIG
-from pydatalab.permissions import active_users_or_get_only, get_default_permissions
+from pydatalab.permissions import PUBLIC_USER_ID, active_users_or_get_only, get_default_permissions
 
 FILES = Blueprint("files", __name__)
 
@@ -22,14 +22,22 @@ def _(): ...
 
 @FILES.route("/files/<string:file_id>/<string:filename>", methods=["GET"])
 def get_file(file_id: str, filename: str):
+    """If this user has the appropriate permissions, return the file with the
+    given database ID and filename.
+
+    Parameters:
+        file_id: The file ID in the database.
+        filename: The filename in the database.
+
+    """
     try:
         _file_id = ObjectId(file_id)
     except InvalidId:
         # If the ID is invalid, then there will be no results in the database anyway,
         # so just 401
         _file_id = file_id
-    if not pydatalab.mongo.flask_mongo.db.files.find_one(
-        {"_id": _file_id, **get_default_permissions(user_only=False)}
+    if not pydatalab.mongo.flask_mongo.db.items.find_one(
+        {"file_ObjectIds": {"$in": [_file_id]}, **get_default_permissions(user_only=False)}
     ):
         return (
             jsonify(
@@ -41,14 +49,24 @@ def get_file(file_id: str, filename: str):
             ),
             401,
         )
+
     path = os.path.join(CONFIG.FILE_DIRECTORY, secure_filename(file_id))
     return send_from_directory(path, filename)
 
 
 @FILES.route("/upload-file/", methods=["POST"])
 def upload():
-    """method to upload files to the server
-    todo: think more about security, size limits, and about nested folders
+    """Upload a file to the server and save it to the database.
+
+    The file is received via a `multipart/form-data` request. Each
+    file is a binary octet stream. The file is saved to the server
+    in the configured file directory, under a subdirectory named with
+    the created database ID for the file.
+
+    Additional POST parameters are required:
+        - `item_id`: the ID of the item to which the file is attached
+        - `replace_file`: the database ID of the file to replace, if any
+
     """
 
     if not current_user.is_authenticated and not CONFIG.TESTING:
@@ -73,19 +91,16 @@ def upload():
     if not CONFIG.TESTING:
         creator_id = current_user.person.immutable_id
     else:
-        creator_id = ObjectId(24 * "0")
+        creator_id = PUBLIC_USER_ID
 
     is_update = replace_file_id and replace_file_id != "null"
-    for filekey in request.files:  # pretty sure there is just 1 per request
-        file = request.files[
-            filekey
-        ]  # just a weird thing about the request that comes from uppy. The key is "files[]"
-        if is_update:
-            file_information = file_utils.update_uploaded_file(file, ObjectId(replace_file_id))
-        else:
-            file_information = file_utils.save_uploaded_file(
-                file, item_ids=[item_id], creator_ids=[creator_id]
-            )
+    file = request.files[next(iter(request.files))]
+    if is_update:
+        file_information = file_utils.update_uploaded_file(file, ObjectId(replace_file_id))
+    else:
+        file_information = file_utils.save_uploaded_file(
+            file, item_ids=[item_id], creator_ids=[creator_id]
+        )
 
     return (
         jsonify(
@@ -228,7 +243,7 @@ def delete_file():
         return (
             jsonify(
                 status="error",
-                message="Delete failed. file not found: {}".format(path),
+                message=f"Delete failed. file not found: {path}",
             ),
             400,
         )

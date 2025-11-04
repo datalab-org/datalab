@@ -1,10 +1,19 @@
+const { ProvidePlugin } = require("webpack");
+
 module.exports = {
   transpileDependencies: ["mermaid"],
   configureWebpack: (config) => {
     config.resolve.fallback = {
-      crypto: require.resolve("crypto-browserify"),
-      stream: require.resolve("stream-browserify"),
+      stream: false,
+      process: require.resolve("process/browser"),
+      buffer: require.resolve("buffer/"),
+      vm: false,
     };
+    // disable stats output in production due to bad `wrap-ansi` ESM/CommonJS interop
+    if (process.env.NODE_ENV === "production") {
+      config.stats = "none";
+    }
+
     config.externals = {
       ...config.externals,
       bokeh: "Bokeh",
@@ -14,6 +23,12 @@ module.exports = {
       include: /node_modules/,
       type: "javascript/auto",
     });
+    config.plugins = [
+      ...(config.plugins || []),
+      new ProvidePlugin({
+        process: "process/browser",
+      }),
+    ];
   },
   chainWebpack: (config) => {
     config.plugin("html").tap((args) => {

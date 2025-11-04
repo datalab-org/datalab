@@ -3,14 +3,14 @@
 import json
 from datetime import datetime
 from functools import lru_cache
-from typing import Dict, List, Optional, Union
 
 from flask import Blueprint, jsonify, request
 from pydantic import AnyUrl, BaseModel, Field, validator
 
 from pydatalab import __version__
-from pydatalab.blocks import BLOCK_TYPES
-from pydatalab.config import CONFIG, FEATURE_FLAGS, FeatureFlags
+from pydatalab.apps import BLOCK_TYPES
+from pydatalab.config import CONFIG
+from pydatalab.feature_flags import FEATURE_FLAGS, FeatureFlags
 from pydatalab.models import Collection, Person
 from pydatalab.models.items import Item
 from pydatalab.mongo import flask_mongo
@@ -29,7 +29,7 @@ class Meta(BaseModel):
     timestamp: datetime = Field(default_factory=datetime.now)
     query: str = ""
     api_version: str = __api_version__
-    available_api_versions: List[str] = [__api_version__]
+    available_api_versions: list[str] = [__api_version__]
     server_version: str = __version__
     datamodel_version: str = __version__
 
@@ -48,21 +48,21 @@ class Data(BaseModel):
 
 
 class JSONAPIResponse(BaseModel):
-    data: Union[Data, List[Data]]
+    data: Data | list[Data]
     meta: Meta
-    links: Optional[Links]
+    links: Links | None
 
 
 class MetaPerson(BaseModel):
-    dislay_name: Optional[str]
+    dislay_name: str | None
     contact_email: str
 
 
 class Info(Attributes, Meta):
-    maintainer: Optional[MetaPerson]
-    issue_tracker: Optional[AnyUrl]
-    homepage: Optional[AnyUrl]
-    source_repository: Optional[AnyUrl]
+    maintainer: MetaPerson | None
+    issue_tracker: AnyUrl | None
+    homepage: AnyUrl | None
+    source_repository: AnyUrl | None
     identifier_prefix: str
     features: FeatureFlags = FEATURE_FLAGS
 
@@ -74,7 +74,7 @@ class Info(Attributes, Meta):
 
 
 @lru_cache(maxsize=1)
-def _get_deployment_metadata_once() -> Dict:
+def _get_deployment_metadata_once() -> dict:
     identifier_prefix = CONFIG.IDENTIFIER_PREFIX
     metadata = (
         CONFIG.DEPLOYMENT_METADATA.dict(exclude_none=True) if CONFIG.DEPLOYMENT_METADATA else {}
@@ -150,44 +150,67 @@ def get_all_items_models():
     return Item.__subclasses__()
 
 
+def generate_schemas():
+    schemas: dict[str, dict] = {}
+
+    for model_class in get_all_items_models() + [Collection]:
+        model_type = model_class.schema()["properties"]["type"]["default"]
+
+        schemas[model_type] = model_class.schema(by_alias=False)
+
+    return schemas
+
+
+# Generate once on import
+SCHEMAS = generate_schemas()
+
+
 @INFO.route("/info/types", methods=["GET"])
 def list_supported_types():
     """Returns a list of supported schemas."""
-    types = [cls.schema()["properties"]["type"]["default"] for cls in get_all_items_models()]
-    types.append(Collection.schema()["properties"]["type"]["default"])
 
-    return jsonify(types)
-
-
-for model_class in get_all_items_models():
-    model_type = model_class.schema()["properties"]["type"]["default"]
-
-    def make_route(model_class, model_type):
-        @INFO.route(
-            f"/info/types/{model_type}", methods=["GET"], endpoint=f"get_{model_type}_schema"
+    return jsonify(
+        json.loads(
+            JSONAPIResponse(
+                data=[
+                    Data(
+                        id=item_type,
+                        type="item_type",
+                        attributes={
+                            "version": __version__,
+                            "api_version": __api_version__,
+                            "schema": schema,
+                        },
+                    )
+                    for item_type, schema in SCHEMAS.items()
+                ],
+                meta=Meta(query=request.query_string),
+            ).json()
         )
-        def get_model_schema():
-            """Returns the JSON schema for the model."""
-            schema = model_class.schema()
-
-            response = {
-                "data": {
-                    "schema": schema,
-                }
-            }
-            return jsonify(response)
-
-    make_route(model_class, model_type)
+    )
 
 
-@INFO.route("/info/types/collections", methods=["GET"])
-def get_collection_schema():
-    """Returns the JSON schema for the Collection type."""
-    schema = Collection.schema()
+@INFO.route("/info/types/<string:item_type>", methods=["GET"])
+def get_schema_type(item_type):
+    """Returns the schema of the given type."""
+    if item_type not in SCHEMAS:
+        return jsonify(
+            {"status": "error", "detail": f"Item type {item_type} not found for this deployment"}
+        ), 404
 
-    response = {
-        "data": {
-            "schema": schema,
-        }
-    }
-    return jsonify(response)
+    return jsonify(
+        json.loads(
+            JSONAPIResponse(
+                data=Data(
+                    id=item_type,
+                    type="item_type",
+                    attributes={
+                        "version": __version__,
+                        "api_version": __api_version__,
+                        "schema": SCHEMAS[item_type],
+                    },
+                ),
+                meta=Meta(query=request.query_string),
+            ).json()
+        )
+    )

@@ -37,6 +37,8 @@
 </template>
 
 <script>
+import { DialogService } from "@/services/DialogService";
+
 import CollectionInformation from "@/components/CollectionInformation";
 import { getCollectionData, saveCollection } from "@/server_fetch_utils";
 import FormattedItemName from "@/components/FormattedItemName.vue";
@@ -50,12 +52,17 @@ export default {
     CollectionInformation,
     FormattedItemName,
   },
-  beforeRouteLeave(to, from, next) {
+  async beforeRouteLeave(to, from, next) {
     // give warning before leaving the page by the vue router (which would not trigger "beforeunload")
     if (this.savedStatus) {
       next();
     } else {
-      if (window.confirm("Unsaved changes present. Would you like to leave without saving?")) {
+      const confirmed = await DialogService.confirm({
+        title: "Unsaved Changes",
+        message: "Unsaved changes present. Would you like to leave without saving?",
+        type: "warning",
+      });
+      if (confirmed) {
         next();
       } else {
         next(false);
@@ -144,9 +151,7 @@ export default {
       if (item_date == null) {
         this.lastModified = "Unknown";
       } else {
-        // API dates are in UTC but missing Z suffix
-        const save_date = new Date(item_date + "Z");
-        this.lastModified = formatDistanceToNow(save_date, { addSuffix: true });
+        this.lastModified = formatDistanceToNow(new Date(item_date), { addSuffix: true });
       }
     },
   },

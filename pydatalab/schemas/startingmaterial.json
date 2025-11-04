@@ -1,12 +1,27 @@
 {
   "title": "StartingMaterial",
-  "description": "A model for representing an experimental sample.",
+  "description": "A model for representing an experimental sample, based on the connection\nwith cheminventory.net, which mixes container-level and substance-level\ninformation.",
   "type": "object",
   "properties": {
+    "synthesis_constituents": {
+      "title": "Synthesis Constituents",
+      "default": [],
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Constituent"
+      }
+    },
+    "synthesis_description": {
+      "title": "Synthesis Description",
+      "type": "string"
+    },
     "blocks_obj": {
       "title": "Blocks Obj",
       "default": {},
-      "type": "object"
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/DataBlockResponse"
+      }
     },
     "display_order": {
       "title": "Display Order",
@@ -57,11 +72,12 @@
     },
     "immutable_id": {
       "title": "Immutable ID",
+      "format": "uuid",
       "type": "string"
     },
     "last_modified": {
       "title": "Last Modified",
-      "type": "date",
+      "type": "string",
       "format": "date-time"
     },
     "relationships": {
@@ -91,13 +107,11 @@
     },
     "date": {
       "title": "Date Acquired",
-      "description": "The date the item was acquired",
-      "type": "date",
+      "type": "string",
       "format": "date-time"
     },
     "name": {
       "title": "Container Name",
-      "description": "name of the chemical",
       "type": "string"
     },
     "files": {
@@ -117,18 +131,15 @@
     },
     "barcode": {
       "title": "Barcode",
-      "description": "A unique barcode from ChemInventory",
       "type": "string"
     },
     "date_opened": {
       "title": "Date Opened",
-      "description": "The date the container was opened",
-      "type": "date",
+      "type": "string",
       "format": "date-time"
     },
     "CAS": {
       "title": "Substance Cas",
-      "description": "CAS Registry Number",
       "type": "string"
     },
     "chemical_purity": {
@@ -141,7 +152,6 @@
     },
     "GHS_codes": {
       "title": "Ghs H-Codes",
-      "description": "A string describing any GHS hazard codes associated with this item. See https://pubchem.ncbi.nlm.nih.gov/ghs/ for code definitions.",
       "examples": [
         "H224",
         "H303, H316, H319"
@@ -150,37 +160,30 @@
     },
     "size": {
       "title": "Container Size",
-      "description": "size of the container (see 'size_unit' for the units)",
       "type": "string"
     },
     "size_unit": {
       "title": "Unit",
-      "description": "units for the 'size' field.",
       "type": "string"
     },
     "chemform": {
       "title": "Molecular Formula",
-      "description": "A string representation of the chemical formula associated with this sample.",
       "type": "string"
     },
     "molar_mass": {
       "title": "Molecular Weight",
-      "description": "Mass per formula unit, in g/mol",
       "type": "number"
     },
     "smiles_representation": {
       "title": "Smiles",
-      "description": "Chemical structure in SMILES notation",
       "type": "string"
     },
     "supplier": {
       "title": "Supplier",
-      "description": "Manufacturer of the chemical",
       "type": "string"
     },
     "location": {
       "title": "Location",
-      "description": "Location where chemical is stored",
       "type": "string"
     },
     "comment": {
@@ -192,6 +195,170 @@
     "item_id"
   ],
   "definitions": {
+    "EntryReference": {
+      "title": "EntryReference",
+      "description": "A reference to a database entry by ID and type.\n\nCan include additional arbitarary metadata useful for\ninlining the item data.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "immutable_id": {
+          "title": "Immutable Id",
+          "type": "string"
+        },
+        "item_id": {
+          "title": "Item Id",
+          "minLength": 1,
+          "maxLength": 40,
+          "pattern": "^(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
+          "type": "string"
+        },
+        "refcode": {
+          "title": "Refcode",
+          "minLength": 1,
+          "maxLength": 40,
+          "pattern": "^[a-z]{2,10}:(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    "InlineSubstance": {
+      "title": "InlineSubstance",
+      "type": "object",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "chemform": {
+          "title": "Chemform",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "Constituent": {
+      "title": "Constituent",
+      "description": "A constituent of a sample.",
+      "type": "object",
+      "properties": {
+        "item": {
+          "title": "Item",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/EntryReference"
+            },
+            {
+              "$ref": "#/definitions/InlineSubstance"
+            }
+          ]
+        },
+        "quantity": {
+          "title": "Quantity",
+          "minimum": 0,
+          "type": "number"
+        },
+        "unit": {
+          "title": "Unit",
+          "default": "g",
+          "type": "string"
+        }
+      },
+      "required": [
+        "item",
+        "quantity"
+      ]
+    },
+    "DataBlockResponse": {
+      "title": "DataBlockResponse",
+      "description": "A generic response model for a block, i.e., what is stored in `self.data`\nin the corresponding DataBlock class.\n\nIt is expected but not mandatory that this model will be extended by the specific block type\nwhere possible.",
+      "type": "object",
+      "properties": {
+        "blocktype": {
+          "title": "Blocktype",
+          "type": "string"
+        },
+        "block_id": {
+          "title": "Block Id",
+          "type": "string"
+        },
+        "item_id": {
+          "title": "Item Id",
+          "type": "string"
+        },
+        "collection_id": {
+          "title": "Collection Id",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "freeform_comment": {
+          "title": "Freeform Comment",
+          "type": "string"
+        },
+        "file_id": {
+          "title": "File Id",
+          "type": "string"
+        },
+        "file_ids": {
+          "title": "File Ids",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "errors": {
+          "title": "Errors",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "warnings": {
+          "title": "Warnings",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "b64_encoded_image": {
+          "title": "B64 Encoded Image",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "bokeh_plot_data": {
+          "title": "Bokeh Plot Data",
+          "type": "object"
+        },
+        "computed": {
+          "title": "Computed",
+          "type": "object"
+        },
+        "metadata": {
+          "title": "Metadata",
+          "type": "object"
+        }
+      },
+      "required": [
+        "blocktype",
+        "block_id"
+      ]
+    },
     "RelationshipType": {
       "title": "RelationshipType",
       "description": "An enumeration of the possible types of relationship between two entries.\n\n```mermaid\nclassDiagram\nclass entryC\nentryC --|> entryA: parent\nentryC ..|> entryD\nentryA <..> entryD: sibling\nentryA --|> entryB : child\n```",
@@ -223,33 +390,20 @@
       "properties": {
         "description": {
           "title": "Description",
-          "description": "A description of the relationship.",
           "type": "string"
         },
         "relation": {
-          "description": "The type of relationship between the two items. If the type is 'other', then a human-readable description should be provided.",
-          "allOf": [
-            {
-              "$ref": "#/definitions/RelationshipType"
-            }
-          ]
+          "$ref": "#/definitions/RelationshipType"
         },
         "type": {
-          "description": "The type of the related resource.",
-          "allOf": [
-            {
-              "$ref": "#/definitions/KnownType"
-            }
-          ]
+          "$ref": "#/definitions/KnownType"
         },
         "immutable_id": {
           "title": "Immutable Id",
-          "description": "The immutable ID of the entry that is related to this entry.",
           "type": "string"
         },
         "item_id": {
           "title": "Item Id",
-          "description": "The ID of the entry that is related to this entry.",
           "minLength": 1,
           "maxLength": 40,
           "pattern": "^(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
@@ -257,7 +411,6 @@
         },
         "refcode": {
           "title": "Refcode",
-          "description": "The refcode of the entry that is related to this entry.",
           "minLength": 1,
           "maxLength": 40,
           "pattern": "^[a-z]{2,10}:(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
@@ -333,11 +486,12 @@
         },
         "immutable_id": {
           "title": "Immutable ID",
+          "format": "uuid",
           "type": "string"
         },
         "last_modified": {
           "title": "Last Modified",
-          "type": "date",
+          "type": "string",
           "format": "date-time"
         },
         "relationships": {
@@ -390,7 +544,10 @@
         "blocks_obj": {
           "title": "Blocks Obj",
           "default": {},
-          "type": "object"
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/DataBlockResponse"
+          }
         },
         "display_order": {
           "title": "Display Order",
@@ -424,11 +581,12 @@
         },
         "immutable_id": {
           "title": "Immutable ID",
+          "format": "uuid",
           "type": "string"
         },
         "last_modified": {
           "title": "Last Modified",
-          "type": "date",
+          "type": "string",
           "format": "date-time"
         },
         "relationships": {
@@ -497,11 +655,12 @@
         },
         "immutable_id": {
           "title": "Immutable ID",
+          "format": "uuid",
           "type": "string"
         },
         "last_modified": {
           "title": "Last Modified",
-          "type": "date",
+          "type": "string",
           "format": "date-time"
         },
         "relationships": {
@@ -513,18 +672,15 @@
         },
         "size": {
           "title": "Size",
-          "description": "The size of the file on disk in bytes.",
           "type": "integer"
         },
         "last_modified_remote": {
           "title": "Last Modified Remote",
-          "description": "The last date/time at which the remote file was modified.",
-          "type": "date",
+          "type": "string",
           "format": "date-time"
         },
         "item_ids": {
           "title": "Item Ids",
-          "description": "A list of item IDs associated with this file.",
           "type": "array",
           "items": {
             "type": "string"
@@ -532,7 +688,6 @@
         },
         "blocks": {
           "title": "Blocks",
-          "description": "A list of block IDs associated with this file.",
           "type": "array",
           "items": {
             "type": "string"
@@ -540,43 +695,35 @@
         },
         "name": {
           "title": "Name",
-          "description": "The filename on disk.",
           "type": "string"
         },
         "extension": {
           "title": "Extension",
-          "description": "The file extension that the file was uploaded with.",
           "type": "string"
         },
         "original_name": {
           "title": "Original Name",
-          "description": "The raw filename as uploaded.",
           "type": "string"
         },
         "location": {
           "title": "Location",
-          "description": "The location of the file on disk.",
           "type": "string"
         },
         "url_path": {
           "title": "Url Path",
-          "description": "The path to a remote file.",
           "type": "string"
         },
         "source": {
           "title": "Source",
-          "description": "The source of the file, e.g. 'remote' or 'uploaded'.",
           "type": "string"
         },
         "time_added": {
           "title": "Time Added",
-          "description": "The timestamp for the original file upload.",
           "type": "string",
           "format": "date-time"
         },
         "metadata": {
           "title": "Metadata",
-          "description": "Any additional metadata.",
           "type": "object"
         },
         "representation": {
@@ -584,17 +731,14 @@
         },
         "source_server_name": {
           "title": "Source Server Name",
-          "description": "The server name at which the file is stored.",
           "type": "string"
         },
         "source_path": {
           "title": "Source Path",
-          "description": "The path to the file on the remote resource.",
           "type": "string"
         },
         "is_live": {
           "title": "Is Live",
-          "description": "Whether or not the file should be watched for future updates.",
           "type": "boolean"
         }
       },

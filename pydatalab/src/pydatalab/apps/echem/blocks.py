@@ -1,7 +1,7 @@
 import os
-import time
+import warnings
 from pathlib import Path
-from typing import Union
+from typing import Any
 
 import bokeh
 import pandas as pd
@@ -38,13 +38,12 @@ class CycleBlock(DataBlock):
         ".txt",
         ".xls",
         ".xlsx",
-        ".txt",
         ".res",
         ".nda",
         ".ndax",
     )
 
-    defaults = {
+    defaults: dict[str, Any] = {
         "p_spline": 5,
         "s_spline": 5,
         "win_size_2": 101,
@@ -62,12 +61,12 @@ class CycleBlock(DataBlock):
             return characteristic_mass_mg / 1000.0
         return None
 
-    def _load(self, file_id: Union[str, ObjectId], reload: bool = True):
+    def _load(self, file_ids: list[ObjectId] | ObjectId, reload: bool = True):
         """Loads the echem data using navani, summarises it, then caches the results
         to disk with suffixed names.
 
         Parameters:
-            file_id: The ID of the file to load.
+            file_ids: The IDs of the files to load.
             reload: Whether to reload the data from the file, or use the cached version, if available.
 
         """
@@ -94,54 +93,78 @@ class CycleBlock(DataBlock):
             "dvdq": "dV/dQ (V/mA)",
         }
 
-        file_info = get_file_info_by_id(file_id, update_if_live=True)
-        filename = file_info["name"]
-
-        if file_info.get("is_live"):
-            reload = True
-
-        ext = os.path.splitext(filename)[-1].lower()
-
-        if ext not in self.accepted_file_extensions:
-            raise RuntimeError(
-                f"Unrecognized filetype {ext}, must be one of {self.accepted_file_extensions}"
-            )
-
-        parsed_file_loc = Path(file_info["location"]).with_suffix(".RAW_PARSED.pkl")
-        cycle_summary_file_loc = Path(file_info["location"]).with_suffix(".SUMMARY.pkl")
+        if isinstance(file_ids, ObjectId):
+            file_ids = [file_ids]
 
         raw_df = None
         cycle_summary_df = None
-        if not reload:
-            if parsed_file_loc.exists():
-                raw_df = pd.read_pickle(parsed_file_loc)
 
-            if cycle_summary_file_loc.exists():
-                cycle_summary_df = pd.read_pickle(cycle_summary_file_loc)
+        if len(file_ids) == 1:
+            file_info = get_file_info_by_id(file_ids[0], update_if_live=True)
+            filename = file_info["name"]
 
-        if raw_df is None:
-            try:
-                LOGGER.debug("Loading file %s", file_info["location"])
-                start_time = time.time()
-                raw_df = ec.echem_file_loader(file_info["location"])
-                LOGGER.debug(
-                    "Loaded file %s in %s seconds",
-                    file_info["location"],
-                    time.time() - start_time,
+            if file_info.get("is_live"):
+                reload = True
+
+            ext = os.path.splitext(filename)[-1].lower()
+
+            if ext not in self.accepted_file_extensions:
+                raise RuntimeError(
+                    f"Unrecognized filetype {ext}, must be one of {self.accepted_file_extensions}"
                 )
-            except Exception as exc:
-                raise RuntimeError(f"Navani raised an error when parsing: {exc}") from exc
-            raw_df.to_pickle(parsed_file_loc)
 
-        try:
-            if cycle_summary_df is None:
+            parsed_file_loc = Path(file_info["location"]).with_suffix(".RAW_PARSED.pkl")
+
+            if not reload:
+                if parsed_file_loc.exists():
+                    raw_df = pd.read_pickle(parsed_file_loc)  # noqa: S301
+
+            if raw_df is None:
+                try:
+                    raw_df = ec.echem_file_loader(file_info["location"])
+                except Exception as exc:
+                    raise RuntimeError(f"Navani raised an error when parsing: {exc}") from exc
+                raw_df.to_pickle(parsed_file_loc)
+
+        elif isinstance(file_ids, list) and len(file_ids) > 1:
+            # Multi-file logic
+            file_infos = [get_file_info_by_id(fid, update_if_live=True) for fid in file_ids]
+            locations = [info["location"] for info in file_infos]
+
+            if raw_df is None:
+                try:
+                    LOGGER.debug("Loading multiple echem files with navani: %s", locations)
+                    # Catch the navani warning when stitching multiple files together and calculating new capacity
+                    with warnings.catch_warnings():
+                        warnings.filterwarnings(
+                            "ignore",
+                            message=(
+                                "Capacity columns are not equal, replacing with new capacity column calculated from current and time columns and renaming the old capacity column to Old Capacity"
+                            ),
+                            category=UserWarning,
+                        )
+                        raw_df = ec.multi_echem_file_loader(locations)
+                except Exception as exc:
+                    raise RuntimeError(
+                        f"Navani raised an error when parsing multiple files: {exc}"
+                    ) from exc
+
+        elif not isinstance(file_ids, list):
+            raise ValueError("Invalid file_ids type. Expected list of strings.")
+        elif len(file_ids) == 0:
+            raise ValueError("Invalid file_ids value. Expected non-empty list of strings.")
+
+        if cycle_summary_df is None and raw_df is not None:
+            try:
                 cycle_summary_df = ec.cycle_summary(raw_df)
-                cycle_summary_df.to_pickle(cycle_summary_file_loc)
-        except Exception:
-            pass
+            except Exception as exc:
+                warnings.warn(f"Cycle summary generation failed with error: {exc}")
 
-        raw_df = raw_df.filter(required_keys)
-        raw_df.rename(columns=keys_with_units, inplace=True)
+        if raw_df is not None:
+            raw_df = raw_df.filter(required_keys)
+            raw_df.rename(columns=keys_with_units, inplace=True)
+        else:
+            raise ValueError("Invalid raw_df value. Expected non-empty DataFrame.")
 
         if cycle_summary_df is not None:
             cycle_summary_df.rename(columns=keys_with_units, inplace=True)
@@ -153,10 +176,21 @@ class CycleBlock(DataBlock):
 
     def plot_cycle(self):
         """Plots the electrochemical cycling data from the file ID provided in the request."""
-        if "file_id" not in self.data:
-            LOGGER.warning("No file_id given")
-            return
-        file_id = self.data["file_id"]
+
+        # Legacy support for when file_id was used
+        if self.data.get("file_id") is not None and not self.data.get("file_ids"):
+            LOGGER.info("Legacy file upload detected, using file_id")
+            file_ids = [self.data["file_id"]]
+
+        else:
+            if "file_ids" not in self.data:
+                LOGGER.warning("No file_ids given, skipping plot.")
+                return
+            if self.data["file_ids"] is None or len(self.data["file_ids"]) == 0:
+                LOGGER.warning("Empty file_ids list given, skipping plot.")
+                return
+
+            file_ids = self.data["file_ids"]
 
         derivative_modes = (None, "dQ/dV", "dV/dQ", "final capacity")
 
@@ -178,7 +212,7 @@ class CycleBlock(DataBlock):
         if not isinstance(cycle_list, list):
             cycle_list = None
 
-        raw_df, cycle_summary_df = self._load(file_id)
+        raw_df, cycle_summary_df = self._load(file_ids=file_ids)
 
         characteristic_mass_g = self._get_characteristic_mass_g()
 

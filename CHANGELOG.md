@@ -1,17 +1,151 @@
 # Changelog
 
-## v0.5.0-rc.1 (August 2024)
+## v0.6.4 (September 2025)
 
-This release candidate changes how the Python server is packaged in a potentially breaking way, with the aim to make it significantly easier to develop datalab plugins. Attempts at backwards compatibility with the former pipenv approach will be maintained for at least this minor release cycle.
+This patch release simply fixes a few UI bugs introduced in v0.6.3 (and earlier).
+It also signifies the adoption of the Contributor Covenant Code of Conduct (v2).
 
 ### What's Changed
 
-* CI build time and fork compatibility improvements by @ml-evs in https://github.com/datalab-org/datalab/pull/833
-* Tweak cache usage on docker builds by @ml-evs in https://github.com/datalab-org/datalab/pull/841
-* Repackage server as proper Python package, removing `pipenv` by @ml-evs in https://github.com/datalab-org/datalab/pull/604
-* Re-enable dependabot for Python dependencies by @ml-evs in https://github.com/datalab-org/datalab/pull/845
+* Broken admin dashboard UI for user management by @ml-evs in #1361
+* Inability to insert new items created via copying into a collection by @BenjaminCharmes in #1356
+* Long message dialog box formatting by @BenjaminCharmes in #1346
 
-**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.4.4...v0.5.0-rc.1
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.6.3...v0.6.4
+
+## v0.6.3 (September 2025)
+
+This patch release primarily improves block serialization performance and extensibility, as well as improving error handling for both developers and users.
+
+> [!WARNING]
+> This release hardens the `SECRET_KEY` configuration to enforce setting a custom key with a minimum entropy; old keys may need to be rotated.
+
+### What's Changed
+
+* Major refactoring of block life cycle, with better possibilities for validation of block data before and after saving by @ml-evs in #1311
+* Replace browser-native dialogs with custom datalab dialog service by @BenjaminCharmes in #1212
+* Resolve CVEs on mermaid.js and cross-spawn by @dependabot[bot] in #1317
+* Hardened `SECRET_KEY` configuration by @ml-evs in #1324
+* Improve performance and memory utilisation when serialising blocks by @ml-evs in #1329
+* Improve performance of XRD block file reader by @ml-evs in #1331
+* Enable electrochemistry block to read multiple files and stitch them together by @be-smith in #1307
+* Fix issue with chat block rendering introduced in v0.6.2 by @ml-evs in #1340.
+* Fix case sensitivity of TIF file handling in media block by @ml-evs in #1326.
+
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.6.2...v0.6.3
+
+## v0.6.2 (August 2025)
+
+This patch release adds a hotfix for broken media blocks when encoding TIF files (#1318).
+
+#### What's Changed
+
+* Fix serialisation of block data with nested file IDs in data model by @ml-evs in #1319
+
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.6.1...v0.6.2
+
+## v0.6.1 (August 2025)
+
+This patch release adds an API config option `CONFIG.ROOT_PATH` to allow
+deployments to easily serve the API under a subpath (e.g., `\api`) on the
+same subdomain as the app.
+It also features a new validation model for block data, which should currently
+have no user-facing effects, but will allow for more formal extensions of block
+schemas in the future.
+
+### What's Changed
+* Add `DataBlockResponse` model to sanitize `blocks_obj` in API by @ml-evs in https://github.com/datalab-org/datalab/pull/1310
+* Add `CONFIG.ROOT_PATH` option to deploy API from custom path by @ml-evs in https://github.com/datalab-org/datalab/pull/1315
+
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.6.0...v0.6.1
+
+## v0.6.0 (August 2025)
+
+This release includes significant new functionality and UI redesign, a  
+fledgling plugin ecosystem, as well as several bug and quality-of-life
+fixes, performance improvements and backwards-compatible API enhancements.
+
+> [!WARNING]
+> This release also bumps the supported MongoDB version all the way from v3 to v8. Whilst older MongoDB versions should still continue to work, version 8 will now be tested and used in the docker builds, so we recommend you upgrade. For existing databases this requires you to first dump the database using `mongodump` with the old MongoDB version, then upgrade to the new version and restore the database with `mongorestore`. If you unsure about this process then please ask us for help!
+
+### Highlights
+
+- Extra functionality for all data tables: column selection, persistent user
+  preferences and improved filtering.
+- Improved inventory management: native UI for hazard labels, CAS numbers and external barcodes,
+  complementing the first release of the
+  [`datalab-cheminventory-plugin`](https://github.com/datalab-industries/datalab-cheminventory-plugin)
+  for two-way sync with [cheminventory.net](https://cheminventory.net).
+- Starting materials can now also have synthesis information recorded for them.
+- New blocks for UV-Vis data and *in situ* NMR data (developed in separate core
+  plugin at
+  [`datalab-app-plugin-insitu`](https://github.com/datalab-org/datalab-app-plugin-insitu)),
+  as well as new file formats supported in the XRD (Rigaku's .rasx, variants of .xy), NMR (JCAMP-DX) blocks
+  and media block (PDF documents).
+- A fledgling plugin ecosystem with ways to easily add new blocks to a specific
+  *datalab* instance ([docs](https://docs.datalab-org.io/en/v0.6.0/plugins/)), with [`datalab-server`](https://pypi.org/project/datalab-server) PyPI package for easier dependency management.
+- Improved item search throughout the API, removing the need to search on
+  whitespace or punctuation delimited words (e.g., ID matches will now begin after
+  just 3 characters, rather than needing to type a full ID).
+- More powerful UI block interactions via "events" that can be written purely Python ([docs](https://docs.datalab-org.io/en/v0.6.0/blocks/)).
+
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.5.2...v0.6.0
+
+## v0.5.2 (March 2025)
+
+This patch release makes several visual/interactivity improvements around
+loading states in the UI, and adds two new blocks: FTIR and a tabular data
+block for plotting data from within generic CSV/Excel files.
+
+### What's Changed
+* Fix docs link in mkdocs by @ml-evs in https://github.com/datalab-org/datalab/pull/1044
+* Improve loading state for data-intensive blocks by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1049
+* Add support for reading excel-like spreadsheets in tabular data block by @ml-evs in https://github.com/datalab-org/datalab/pull/1052
+* Add Login Splash Screen by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/907
+* Added FTIR block and associated tests by @be-smith in https://github.com/datalab-org/datalab/pull/1061
+* Update CITATION.cff by @ml-evs in https://github.com/datalab-org/datalab/pull/1069
+
+### New Contributors
+* @be-smith made their first contribution in https://github.com/datalab-org/datalab/pull/1061
+
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.5.1...v0.5.2
+
+## v0.5.1 (January 2025)
+
+This patch release simply pins the `uv` version used in builds to avoid future breakages.
+
+### What's Changed
+
+* Bump the github-actions group across 1 directory with 2 updates by @dependabot in https://github.com/datalab-org/datalab/pull/1031
+* Update uv to 0.5.x now that dynamic versioning is supported by @ml-evs in https://github.com/datalab-org/datalab/pull/1032
+* Pin uv by @ml-evs in https://github.com/datalab-org/datalab/pull/1039
+
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.5.0...v0.5.1
+
+## v0.5.0 (December 2024)
+
+This release is long overdue following the 8 pre-releases. The 0.5.x series now provides a stable base for us to begin some major overhauling of how we handle custom schemas and data blocks, both of which will form the basis of 0.6.x in the new year.
+
+The Ansible playbooks at [datalab-ansible-terraform](https://github.com/datalab-industries/datalab-ansible-terraform) and the Python API package at [datalab-api](https://github.com/datalab-org/datalab-api) already both support this release.
+
+Many thanks to all contributors: developers, user feedback and deployment managers!
+
+### Breaking changes
+
+* The Python server has been entirely repackaged with `uv` for much more streamlined dependency management (especially for external plugins). If you are using the docker deployments, then nothing should change for you, but developers may need to adjust their development setups following the [installation instructions](./INSTALL.md).
+
+### Highlights
+
+* The table component used to display all items has been entirely rewritten, and is now more visually responsive and can accommodate custom schemas/components.
+* QR code generation and scanning for all items, optionally using the new [datalab pURL service](https://purl.datalab-org.io/) when configured with `VUE_APP_QR_CODE_RESOLVER_URL`.
+* Following from the block info from the last release, the API now reports the schemas it is using at `/info/types`, ready for these to become more easily configurable at the deployment level. The edit page and item table are beginning to dynamically use this information.
+* Improvements to the collections UI, allowing items to be added to collections more easily after creation.
+* Ability to selectively share items with certain users; this will soon be expanded to user groups and projects (via collections) with configurable defaults.
+* Several bug fixes to the UI, API (timezone consistency, tweaks to the LLM integration, better handling of permissions edge cases)
+* Ease-of-use features and new configuration options for deployments.
+
+
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.4.4...v0.5.0
 
 
 ## v0.4.4 (August 2024)
@@ -19,6 +153,7 @@ This release candidate changes how the Python server is packaged in a potentiall
 This release primarily contains some bugfixes for the echem block, as well as tidying in preparation of the next release.
 
 ### What's Changed
+
 * Removed unused css by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/826
 * Remove final mentions of odbx.science by @ml-evs in https://github.com/datalab-org/datalab/pull/827
 * Add routes for resolving items by refcode by @ml-evs in https://github.com/datalab-org/datalab/pull/807

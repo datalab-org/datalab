@@ -14,7 +14,7 @@ from pydatalab.remote_filesystems import (
 """The Unix `tree` utility is required for many of these tests,
 this variable checks whether it is installed locally."""
 TREE_AVAILABLE = False
-_ = sp.call("tree -v", shell=True)
+_ = sp.call("tree -v", shell=True)  # noqa: S602,S607
 if _ == 0:
     TREE_AVAILABLE = True
 
@@ -106,7 +106,7 @@ def test_get_directory_structure_remote(real_mongo_client, random_string):
     dummy_dir_structure = {
         "contents": [],
         "name": "test",
-        "last_updated": datetime.datetime.now(),
+        "last_updated": datetime.datetime.now(tz=datetime.timezone.utc),
         "type": "toplevel",
     }
     real_mongo_client.get_database().remoteFilesystems.insert_one(dummy_dir_structure)

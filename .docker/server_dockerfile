@@ -1,4 +1,6 @@
-# syntax=docker/dockerfile:1
+ARG UV_VERSION="0.8.4"
+FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv_image
+
 FROM python:3.10 AS api
 SHELL ["/bin/bash", "--login", "-c"]
 
@@ -12,12 +14,17 @@ RUN apt update && apt install -y gnupg curl tree mdbtools && apt clean
 WORKDIR /opt
 RUN wget https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2204-x86_64-100.9.0.deb && apt install ./mongodb-database-tools-*-100.9.0.deb
 
-COPY --from=ghcr.io/astral-sh/uv:0.4 /uv /usr/local/bin/uv
+COPY --from=uv_image /uv /usr/local/bin/uv
 ENV UV_LINK_MODE=copy \
     UV_COMPILE_BYTECODE=1 \
     UV_PYTHON_DOWNLOADS=never \
     UV_PROJECT_ENVIRONMENT=/opt/.venv \
     UV_PYTHON=python3.10
+
+# Used to fake the version of the package in cases where datalab is only
+# available as a git submodule or worktree
+ARG SETUPTOOLS_SCM_PRETEND_VERSION
+ENV SETUPTOOLS_SCM_PRETEND_VERSION=${SETUPTOOLS_SCM_PRETEND_VERSION}
 
 WORKDIR /app
 COPY ./pydatalab/pyproject.toml .
@@ -29,17 +36,15 @@ WORKDIR /app
 # Install the local version of the package and mount the repository data to get version info
 COPY ./pydatalab/ ./
 RUN git config --global --add safe.directory /
+
 # Install editable mode so that the server runs from a sensible place where we can stuff .env files
 RUN --mount=type=bind,target=/.git,source=./.git uv pip install --python /opt/.venv/bin/python --no-deps --editable .
 
-# This will define the number of gunicorn workers
-ARG WEB_CONCURRENCY=4
-ENV WEB_CONCURRENCY=${WEB_CONCURRENCY}
+# Define some default gunicorn runtime args
+ENV WEB_CONCURRENCY=4
+ENV GUNICORN_CMD_ARGS="--preload --timeout 120 --graceful-timeout 90"
+ENV PORT=5001
 
-ARG PORT=5001
-EXPOSE ${PORT}
-ENV PORT=${PORT}
-
-CMD ["/bin/bash", "-c", "/opt/.venv/bin/python -m gunicorn --preload -w ${WEB_CONCURRENCY} --error-logfile /logs/pydatalab_error.log --access-logfile - -b 0.0.0.0:${PORT} 'pydatalab.main:create_app()'"]
+CMD ["/bin/bash", "-c", "/opt/.venv/bin/python -m gunicorn -b 0.0.0.0:${PORT} -w ${WEB_CONCURRENCY} ${GUNICORN_CMD_ARGS} 'pydatalab.main:create_app()'"]
 
 HEALTHCHECK --interval=30s --timeout=30s --start-interval=15s --start-period=30s --retries=3 CMD curl --fail http://localhost:${PORT}/healthcheck/is_ready || exit 1

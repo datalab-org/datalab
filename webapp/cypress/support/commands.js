@@ -38,6 +38,7 @@ Cypress.Commands.add(
     cy.get('[data-testid="create-item-form"]').within(() => {
       cy.findByText("Add new item").should("exist");
       cy.findByLabelText("ID:").type(item_id);
+      cy.findByLabelText("Name:").clear();
       if (name) {
         cy.findByLabelText("Name:").type(name);
       }
@@ -85,10 +86,8 @@ Cypress.Commands.add("deleteItems", (type, items_id) => {
   cy.get('[data-testid="selected-dropdown"]').click();
   cy.get('[data-testid="delete-selected-button"]').click();
 
-  cy.on("window:confirm", (text) => {
-    expect(text).to.contains(items_id);
-    return true;
-  });
+  cy.findByText("Confirm Deletion").should("exist");
+  cy.get('[data-testid="dialog-modal-confirm-button"]').click();
 
   items_id.forEach((item_id) => {
     cy.get(`[data-testid=${type}-table]`)
@@ -116,6 +115,30 @@ Cypress.Commands.add("deleteSampleViaAPI", (item_id) => {
   });
 });
 
+Cypress.Commands.add("uploadFileViaAPI", (itemId, path) => {
+  cy.log("Upload a test file via the API: " + path);
+  cy.fixture(path, "binary")
+    .then(Cypress.Blob.binaryStringToBlob)
+    .then((blob) => {
+      const formData = new FormData();
+      formData.append("relativePath", "null");
+      formData.append("name", path);
+      formData.append("type", "application/octet-stream");
+      formData.append("size", blob.size.toString());
+      formData.append("item_id", itemId);
+      formData.append("replace_file", "null");
+      formData.append("files[]", blob, path);
+
+      return cy.request({
+        method: "POST",
+        url: API_URL + "/upload-file/",
+        body: formData,
+        headers: { "Content-Type": "multipart/form-data" },
+        form: false,
+      });
+    });
+});
+
 Cypress.Commands.add("searchAndSelectItem", (search_text, selector, clickPlus = false) => {
   // searches in the dropdown for the first real item with the given name, looking for a badge
   // if clickPlus, then also click the add row button before looking for the search bar
@@ -131,6 +154,7 @@ Cypress.Commands.add("createEquipment", (item_id, name = null, date = null) => {
 
   cy.get('[data-testid="create-equipment-form"]').within(() => {
     cy.findByText("Add equipment").should("exist");
+    cy.findByLabelText("Name:").clear();
     cy.findByLabelText("ID:").type(item_id);
     if (name) {
       cy.findByLabelText("Name:").type(name);
@@ -231,6 +255,21 @@ Cypress.Commands.add("removeAllTestSamples", (item_ids, check_sample_table) => {
   }
 });
 
+Cypress.Commands.add("createTestPNG", (fname) => {
+  const canvas = document.createElement("canvas");
+  canvas.width = 100;
+  canvas.height = 100;
+
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#ff0000";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  const base64 = canvas.toDataURL("image/png").split(",")[1];
+  const filePath = `cypress/fixtures/${fname}`;
+
+  return cy.writeFile(filePath, base64, "base64").then(() => {});
+});
+
 Cypress.Commands.add("removeAllTestCollections", (collection_ids, check_collection_table) => {
   collection_ids.forEach((collection_id) => {
     cy.deleteCollectionViaAPI(collection_id);
@@ -242,4 +281,47 @@ Cypress.Commands.add("removeAllTestCollections", (collection_ids, check_collecti
       cy.get("[data-testid=sample-table] > tbody > tr").should("have.length", 0);
     });
   }
+});
+
+Cypress.Commands.add("createStartingMaterial", (item_id, name = null, date = null) => {
+  cy.findByText("Add a starting material").click();
+
+  cy.get('[data-testid="create-item-form"]').within(() => {
+    cy.findByText("Add new item").should("exist");
+    cy.findByLabelText("ID:").type(item_id);
+    if (name) {
+      cy.findByLabelText("Name:").type(name);
+    }
+    if (date) {
+      cy.findByLabelText("Date Created:").type(date);
+    }
+    cy.findByText("Submit").click();
+  });
+});
+
+Cypress.Commands.add("verifyStartingMaterial", (item_id, name = null, date = null) => {
+  cy.get("[data-testid=starting_materials-table]")
+    .contains(item_id)
+    .parents("tr")
+    .within(() => {
+      if (date) {
+        cy.contains(date.slice(0, 8));
+      } else {
+        cy.contains(TODAY.split("T")[0]);
+      }
+      if (name) {
+        cy.contains(name);
+      }
+    });
+});
+
+Cypress.Commands.add("expandIfCollapsed", (selector) => {
+  cy.get(selector)
+    .find("[data-testid=collapse-arrow]")
+    .parents(".datablock-header")
+    .then(($header) => {
+      if (!$header.hasClass("expanded")) {
+        cy.wrap($header).find("[data-testid=collapse-arrow]").click();
+      }
+    });
 });

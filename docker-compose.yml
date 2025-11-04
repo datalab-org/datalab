@@ -16,6 +16,7 @@ services:
       - VUE_APP_EDITABLE_INVENTORY
       - VUE_APP_WEBSITE_TITLE
       - VUE_APP_QR_CODE_RESOLVER_URL
+      - VUE_APP_AUTOMATICALLY_GENERATE_ID_DEFAULT
     ports:
       - "8081:8081"
 
@@ -25,7 +26,7 @@ services:
       context: .
       dockerfile: .docker/server_dockerfile
       args:
-        - WEB_CONCURRENCY=4
+        SETUPTOOLS_SCM_PRETEND_VERSION: ${SETUPTOOLS_SCM_PRETEND_VERSION}
     depends_on:
       - database
     restart: unless-stopped
@@ -39,6 +40,9 @@ services:
       - backend
     environment:
       - PYDATALAB_MONGO_URI=mongodb://database:27017/datalabvue
+      - WEB_CONCURRENCY=4
+      - GUNICORN_CMD_ARGS=--preload --timeout 120 --graceful-timeout 90
+      - PORT=5001
 
   database:
     profiles: ["prod"]

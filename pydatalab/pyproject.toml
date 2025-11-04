@@ -1,10 +1,11 @@
 [project]
 name = "datalab-server"
-keywords = []
-license = { text = "MIT" }
+keywords = ["research data management", "materials", "chemistry"]
+description = "datalab is a research data management platform for materials science and chemistry."
+readme = "README.md"
+license = "MIT"
 authors = [
-    { name = "Matthew Evans", email = "matthew@ml-evs.science" },
-    { name = "Joshua Bocarsly" },
+    {name = "datalab development team", email = "dev@datalab-org.io"},
 ]
 dynamic = ["version"]
 classifiers = [
@@ -13,7 +14,6 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Intended Audience :: Science/Research",
     "Intended Audience :: Information Technology",
-    "Topic :: Other/Nonlisted Topic",
     "Topic :: Scientific/Engineering",
 ]
 
@@ -26,6 +26,7 @@ dependencies = [
     "pydantic[email, dotenv] < 2.0",
     "pint ~= 0.24",
     "pandas[excel] ~= 2.2",
+    "pymongo ~= 4.7",
 ]
 
 [project.urls]
@@ -35,29 +36,28 @@ documentation = "https://docs.datalab-org.io"
 changelog = "https://github.com/datalab-org/datalab/releases"
 
 [build-system]
-requires = ["setuptools >= 62", "setuptools_scm ~= 8.1", "wheel"]
+requires = ["setuptools >= 77.0.3", "setuptools_scm ~= 8.1", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
 root = ".."
 fallback_version = "0.1.0"
+version_scheme = "post-release"
 
 [project.optional-dependencies]
 server = [
-    "pymongo ~= 4.7",
     "Flask ~= 3.0",
     "Flask-Login ~= 0.6",
-    "Flask-Cors ~= 5.0",
+    "Flask-Cors ~= 6.0",
     "Flask-Dance ~= 7.1",
     "Flask-PyMongo ~= 2.3",
     "Flask-Mail ~= 0.10",
     "Flask-Compress ~= 1.15",
     "Werkzeug ~= 3.0",
     "python-dotenv ~= 1.0",
-    "pillow ~= 10.4",
+    "pillow ~= 11.0",
     "pyjwt ~= 2.9",
     "invoke ~= 2.2",
-    "paramiko ~= 3.4",
 ]
 apps = [
     # General
@@ -65,17 +65,25 @@ apps = [
     # NMR
     "nmrglue ~= 0.10",
     # Electrochemistry
-    "navani @ git+https://github.com/the-grey-group/navani.git@v0.1.7",
-    "galvani ~= 0.4, < 0.5",
-    "NewareNDA >= 2024",
+    "navani >= 0.1.11",
     # Raman
     "pybaselines ~= 1.1",
-    "rosettasciio ~= 0.3, < 0.4",
+    "renishawwire >= 0.1.16",
     # TGA
     "python-dateutil ~= 2.9",
+    # XRD
+    "matador-db >= 0.11.2",
+    "psutil>=7.0.0",
 ]
+
+app-plugins-git = [
+    # Insitu
+    "datalab-app-plugin-insitu",
+]
+
 chat = [
-    "langchain == 0.2.6",
+    # Hard upper pin on langchain is 0.3 as pydantic is not supported
+    "langchain >= 0.2.6, < 0.3",
     "langchain-openai ~= 0.1",
     "langchain-anthropic ~= 0.1",
     "tiktoken ~= 0.7",
@@ -94,11 +102,12 @@ line-length = 100
 target-version = "py310"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "W", "Q"]
+select = ["E", "F", "I", "W", "Q", "DTZ", "S"]
 ignore = ["E501", "E402"]
-fixable = ["A", "B", "C", "D", "E", "F", "I"]
+per-file-ignores = {"tests/*" = ["S101"]}
+
+fixable = ["A", "B", "C", "D", "E", "F", "I", "S"]
 unfixable = []
-per-file-ignores = {}
 # Allow unused variables when underscore-prefixed.
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
@@ -110,13 +119,68 @@ dev-dependencies = [
     "pytest ~= 8.2",
     "pytest-cov ~= 5.0",
     "pytest-dependency ~= 0.6",
+    "pytest-memray ~= 1.8",
     "pre-commit ~= 4.0",
     "mongomock ~= 4.1",
     "mkdocs ~= 1.6",
     "mkdocs-material ~= 9.5",
-    "mkdocstrings[python-legacy] ~= 0.25",
+    "mkdocstrings[python] ~= 0.29",
+    "docstring-inheritance ~= 2.2",
+    "griffe-inherited-docstrings ~= 1.1",
     "mkdocs-awesome-pages-plugin ~= 2.9",
+    "markdown-callouts ~= 0.4",
 ]
 
+[tool.uv.sources]
+datalab-app-plugin-insitu = { git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git", rev = "v0.3.0" }
+
 [tool.pytest.ini_options]
-addopts = "--cov-report=term --cov-report=xml --cov ./src/pydatalab"
+addopts = "--cov-report=xml --cov ./src/pydatalab"
+filterwarnings = [
+    "error",
+    "ignore:.*Capacity columns are not equal, replacing with new capacity column calculated from current and time columns and renaming the old capacity column to Old Capacity:UserWarning",
+    "ignore:.*np.bool8*:DeprecationWarning",
+    "ignore::pytest.PytestUnraisableExceptionWarning",
+    "ignore:.*JCAMP-DX key without value*:UserWarning",
+    "ignore:.*Unable to find wavenumber unit*:UserWarning",
+    "ignore:.*Unable to find wavenumber offset*:UserWarning",
+]
+
+[tool.liccheck]
+authorized_licenses = [
+    "bsd",
+    "new bsd",
+    "bsd license",
+    "new bsd license",
+    "simplified bsd",
+    "apache",
+    "apache 2.0",
+    "apache license 2.0",
+    "apache software license",
+    "apache software",
+    "public domain",
+    "gnu lgpl",
+    "lgpl with exceptions or zpl",
+    "isc license",
+    "isc",
+    "isc license (iscl)",
+    "LGPLv3+",
+    "mit",
+    "mit license",
+    "python software foundation license",
+    "python software foundation",
+    "PSF-2.0",
+    "the unlicense",
+    "zpl 2.1",
+    "cmu license (MIT-CMU)",
+    "Mozilla Public License 2.0",
+]
+unauthorized_licenses = [
+    "\bgpl",
+]
+as_regex = true
+
+[tool.liccheck.authorized_packages]
+datalab-org-galvani = ">=0.5"
+flask-cors = ">=5,<7"
+regex = ">=2025"

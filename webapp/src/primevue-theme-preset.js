@@ -10,12 +10,14 @@ const DatalabPreset = definePreset(Aura, {
       extend: {
         filterActiveBackground: "{primary.50}",
         filterActiveColor: "{primary.700}",
-        maxWidth: "1rem",
+        minWidth: "1rem",
+        maxWidth: "10rem",
         whitespace: "nowrap",
         overflow: "hidden",
         textOverflow: "ellipsis",
         divCheckboxHover: "#6C757D",
         divCheckboxCheckedHover: "#5A6268",
+        dropdownDisplay: "none",
       },
       bodyCellPadding: "0.4rem",
       sortIconColor: "transparent",
@@ -44,6 +46,7 @@ const DatalabPreset = definePreset(Aura, {
           color: ${dt("datatable.activeSVG")};
         }
         .p-datatable-tbody tr td {
+          min-width: ${dt("datatable.minWidth")};
           max-width: ${dt("datatable.maxWidth")};
           white-space: ${dt("datatable.whitespace")};
           overflow: ${dt("datatable.overflow")};
@@ -55,6 +58,31 @@ const DatalabPreset = definePreset(Aura, {
         .checkbox:hover .p-checkbox-checked .p-checkbox-box {
           border-color: ${dt("datatable.divCheckboxCheckedHover")};
           background: ${dt("datatable.divCheckboxCheckedHover")};
+        }
+        .p-datatable-filter-constraint-dropdown {
+          display: none !important;
+        }
+        .p-datatable-filter-remove-rule-button {
+          display: none !important;
+        }
+        .p-datatable-filter-add-rule-button {
+          display: none !important;
+        }
+        .no-operator .p-datatable-filter-operator {
+          display: none !important;
+        }
+        .p-datatable-sortable-column.hide-single-sort-badge .p-datatable-sort-badge {
+          display: none;
+        }
+        .p-multiselect-header .p-checkbox::after {
+          content: 'Select all';
+          position: absolute;
+          left: 28px;
+          width: 110px;
+        }
+        .p-datatable-mask {
+          color: black;
+          background: none;
         }
       `,
 });

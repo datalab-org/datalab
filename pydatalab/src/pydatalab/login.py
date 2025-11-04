@@ -4,7 +4,6 @@ for retrieving the authenticated user for a session and their identities.
 """
 
 from hashlib import sha512
-from typing import List, Optional
 
 from bson import ObjectId
 from flask_login import LoginManager, UserMixin
@@ -49,12 +48,12 @@ class LoginUser(UserMixin):
         self.role = role
 
     @property
-    def display_name(self) -> Optional[str]:
+    def display_name(self) -> str | None:
         """Returns the top-level display name for the user, if set."""
         return self.person.display_name
 
     @property
-    def contact_email(self) -> Optional[str]:
+    def contact_email(self) -> str | None:
         """Returns the top-level contact email for the user, if set."""
         return self.person.contact_email
 
@@ -64,12 +63,12 @@ class LoginUser(UserMixin):
         return self.person.account_status
 
     @property
-    def identities(self) -> List[Identity]:
+    def identities(self) -> list[Identity]:
         """Returns the list of identities of the user."""
         return self.person.identities
 
     @property
-    def identity_types(self) -> List[IdentityType]:
+    def identity_types(self) -> list[IdentityType]:
         """Returns a list of the identity types associated with the user."""
         return [_.identity_type for _ in self.person.identities]
 
@@ -88,7 +87,7 @@ def get_by_id_cached(user_id):
     return get_by_id(user_id)
 
 
-def get_by_id(user_id: str) -> Optional[LoginUser]:
+def get_by_id(user_id: str) -> LoginUser | None:
     """Lookup the user database ID and create a new `LoginUser`
     with the relevant metadata.
 
@@ -131,13 +130,13 @@ LOGIN_MANAGER: LoginManager = LoginManager()
 
 
 @LOGIN_MANAGER.user_loader
-def load_user(user_id: str) -> Optional[LoginUser]:
+def load_user(user_id: str) -> LoginUser | None:
     """Looks up the currently authenticated user and returns a `LoginUser` model."""
     return get_by_id_cached(str(user_id))
 
 
 @LOGIN_MANAGER.request_loader
-def request_loader(request) -> Optional[LoginUser]:
+def request_loader(request) -> LoginUser | None:
     api_key = request.headers.get("DATALAB-API-KEY", None)
     if api_key:
         return get_by_api_key(str(api_key))
