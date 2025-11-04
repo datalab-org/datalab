@@ -891,33 +891,3 @@ export async function getSchema(type) {
       throw error;
     });
 }
-
-export async function getSupportedSchemasList() {
-  return fetch_get(`${API_URL}/info/types`)
-    .then(function (response_json) {
-      if (response_json) {
-        return response_json;
-      } else {
-        throw new Error("Failed to get schemas from API.");
-      }
-    })
-    .catch(function (error) {
-      alert(`Error to get schemas from API: ${error}`);
-      throw error;
-    });
-}
-
-export async function getSchema(type) {
-  return fetch_get(`${API_URL}/info/types/${type}`)
-    .then(function (response_json) {
-      if (response_json) {
-        return response_json;
-      } else {
-        throw new Error(`Failed to get ${type} schemas from API.`);
-      }
-    })
-    .catch(function (error) {
-      alert(`Error to get ${type} schema from API: ${error}`);
-      throw error;
-    });
-}

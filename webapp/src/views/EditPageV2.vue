@@ -113,7 +113,7 @@ import setupUppy from "@/file_upload.js";
 import tinymce from "tinymce/tinymce";
 
 import { blockTypes, itemTypes } from "@/resources.js";
-import NotImplementedBlock from "@/components/datablocks/NotImplementedBlock.vue";
+import ErrorBlock from "@/components/datablocks/ErrorBlock.vue";
 import { API_URL } from "@/resources.js";
 import { formatDistanceToNow } from "date-fns";
 
@@ -264,7 +264,7 @@ export default {
       if (type in blockTypes) {
         return blockTypes[type].component;
       } else {
-        return NotImplementedBlock;
+        return ErrorBlock;
       }
     },
     handleItemDataUpdate(payload) {
