@@ -153,10 +153,84 @@ import ChemFormulaInput from "@/components/ChemFormulaInput";
 import SynthesisInformation from "@/components/SynthesisInformation";
 import CellPreparationInformation from "@/components/CellPreparationInformation";
 
+const LAYOUT_CONFIG = {
+  firstRow: {
+    samples: ["name", "chemform", "date"],
+    cells: ["name", "date"],
+    equipments: ["name", "date", "item_id", "refcode"],
+    starting_materials: ["chemform", "supplier"],
+  },
+  secondRow: {
+    samples: ["refcode", "creators", "collections"],
+    cells: ["refcode", "creators", "collections"],
+    equipments: ["manufacturer", "location", "collections"],
+    starting_materials: ["refcode", "creators", "collections"],
+  },
+  additionalRows: {
+    samples: [],
+    cells: [
+      "cell_format",
+      "cell_format_description",
+      "characteristic_mass",
+      "characteristic_chemical_formula",
+      "characteristic_molar_mass",
+    ],
+    equipments: ["location", "serial_numbers", "contact"],
+    starting_materials: ["CAS", "GHS_codes", "chemical_purity", "location", "date_opened"],
+  },
+};
+
+const FIELD_WIDTH_MAP = {
+  name: "col-md-8",
+  item_id: "col-md-2 col-sm-4",
+  refcode: "col-md-3 col-sm-2 col-6",
+  chemform: "col-sm-4",
+  date: "col-sm-4",
+  manufacturer: "col-sm-4",
+  supplier: "col-sm-4",
+  location: "col-lg-3 col-sm-4",
+  creators: "col-md-3 col-sm-3 col-6",
+  collections: "col-md-6 col-sm-7",
+  contact: "col-md-8",
+  serial_numbers: "col-md-8",
+  CAS: "col-lg-3 col-sm-4",
+  GHS_codes: "col-lg-3 col-sm-4",
+  chemical_purity: "col-lg-3 col-sm-4",
+  cell_format: "col-sm-4",
+  cell_format_description: "col-sm-8",
+  characteristic_mass: "col-lg-3 col-md-4",
+  characteristic_chemical_formula: "col-lg-4 col-md-4",
+  characteristic_molar_mass: "col-lg-3 col-md-4",
+  date_opened: "col-sm-4",
+};
+
+const SPECIAL_FLEX_FIELDS = {
+  refcode: true,
+  creators: true,
+};
+
+const COMPONENT_MAP = {
+  item_id: FormattedItemName,
+  collection_id: FormattedCollectionName,
+  refcode: FormattedRefcode,
+  creators: Creators,
+  collections: ToggleableCollectionFormGroup,
+  description: TinyMceInline,
+};
+
 export default {
   components: {
     ItemRelationshipVisualization,
     TableOfContents,
+    FormattedItemName,
+    FormattedCollectionName,
+    FormattedRefcode,
+    Creators,
+    ToggleableCollectionFormGroup,
+    TinyMceInline,
+    ChemFormulaInput,
+    SynthesisInformation,
+    CellPreparationInformation,
   },
   props: {
     item_data: { type: Object, required: true },
@@ -171,39 +245,16 @@ export default {
   },
   computed: {
     firstRowFields() {
-      const commonFields = ["name", "date"];
-      const typeSpecificFields = {
-        samples: ["chemform"],
-        equipments: ["item_id", "refcode"],
-        starting_materials: ["chemform", "supplier"],
-      };
-      return [...commonFields, ...(typeSpecificFields[this.item_data.type] || [])];
+      const fields = LAYOUT_CONFIG.firstRow[this.item_data.type] || ["name", "date"];
+      return this.filterExistingFields(fields);
     },
     secondRowFields() {
-      const commonFields = ["collections"];
-
-      const typeSpecificFields = {
-        samples: ["refcode", "creators"],
-        cells: ["refcode", "creators"],
-        equipments: ["manufacturer", "location"],
-        starting_materials: ["refcode", "creators", "collections"],
-      };
-      return [...(typeSpecificFields[this.item_data.type] || []), ...commonFields];
+      const fields = LAYOUT_CONFIG.secondRow[this.item_data.type] || ["collections"];
+      return this.filterExistingFields(fields);
     },
     additionalRowFields() {
-      const typeSpecificFields = {
-        cells: [
-          "cell_format",
-          "cell_format_description",
-          "characteristic_mass",
-          "characteristic_chemical_formula",
-          "characteristic_molar_mass",
-        ],
-        equipments: ["location", "serial_numbers", "contact"],
-        starting_materials: ["CAS", "GHS_codes", "chemical_purity", "location", "date_opened"],
-        samples: [],
-      };
-      return typeSpecificFields[this.item_data.type] || [];
+      const fields = LAYOUT_CONFIG.additionalRows[this.item_data.type] || [];
+      return this.filterExistingFields(fields);
     },
     hasRelationships() {
       return ["samples", "cells"].includes(this.item_data.type);
@@ -214,66 +265,47 @@ export default {
   },
   async mounted() {
     this.schema = await getSchema(this.item_data.type);
-    console.log("#%#%#%#%#%%##%#%%##%#%%##%#%%##%#%%##%");
-    console.log(this.item_data.type);
-    console.log("#%#%#%#%#%%##%#%%##%#%%##%#%%##%#%%##%");
-    console.log(this.schema);
-    console.log("#%#%#%#%#%%##%#%%##%#%%##%#%%##%#%%##%");
   },
   methods: {
-    getFieldClass(field) {
-      const baseClasses = "form-group";
-      const firstNumFields = this.firstRowFields.length;
-      let widthClass = "col";
+    filterExistingFields(fields) {
+      if (!this.schema?.properties) return [];
+      return fields.filter((field) => this.schema.properties[field] !== undefined);
+    },
 
-      if (firstNumFields === 2) {
-        widthClass = "col-md-8";
-      } else if (firstNumFields === 3) {
-        widthClass = "col-md-4";
+    getFieldClass(field, row) {
+      const baseClasses = "form-group";
+      const widthClass = FIELD_WIDTH_MAP[field] || "col";
+
+      const needsFlexColumn =
+        (row === "first" && SPECIAL_FLEX_FIELDS[field]) ||
+        (row === "second" && field === "creators");
+
+      if (needsFlexColumn) {
+        return `${baseClasses} d-flex flex-column ${widthClass} ${field === "creators" ? "pb-3" : ""}`;
       }
 
-      const fieldClasses = {
-        name: `${widthClass} pr-2`,
-        chemform: "col-sm-4 pr-2",
-        date: "col-sm-4 pr-2",
-        refcode: "d-flex flex-column col-md-3 col-sm-2 col-6",
-        creators: "d-flex flex-column col-md-3 col-sm-3 col-6 pb-3",
-        collections: "col-md-6 col-sm-7",
-        manufacturer: "col-sm-4 pr-2",
-        location: "col-lg-3 col-sm-4",
-        serial_numbers: "col-md-8",
-        contact: "col-md-8",
-        CAS: "col-lg-3 col-sm-4",
-        GHS_codes: "col-lg-3 col-sm-4",
-        chemical_purity: "col-lg-3 col-sm-4",
-        cell_format: "col-sm-4 pr-2",
-        cell_format_description: "col-sm-8",
-        characteristic_mass: "col-lg-3 col-md-4 pr-3",
-        characteristic_chemical_formula: "col-lg-4 col-md-4 pr-3",
-        characteristic_molar_mass: "col-lg-3 col-md-4",
-      };
+      return `${baseClasses} ${widthClass} pr-2`;
+    },
 
-      return `${baseClasses} ${fieldClasses[field] || "col"}`;
-    },
     getComponentType(field) {
-      const componentMap = {
-        item_id: FormattedItemName,
-        collection_id: FormattedCollectionName,
-        refcode: FormattedRefcode,
-        creators: Creators,
-        collections: ToggleableCollectionFormGroup,
-        description: TinyMceInline,
-        chemform: ChemFormulaInput,
-        characteristic_chemical_formula: ChemFormulaInput,
-      };
-      return componentMap[field] || "input";
+      if (COMPONENT_MAP[field]) {
+        return COMPONENT_MAP[field];
+      }
+
+      if (field === "chemform" || field.includes("chemical_formula")) {
+        return ChemFormulaInput;
+      }
+
+      return "input";
     },
+
     getComponentProps(field) {
       const fieldSchema = this.schema.properties[field];
       if (!fieldSchema) {
         console.warn(`Field schema for "${field}" is missing`);
         return {};
       }
+
       const componentType = this.getComponentType(field);
       const baseProps = {
         modelValue: this.localItemData[field],
@@ -281,49 +313,54 @@ export default {
       };
 
       if (componentType === "input") {
-        return {
-          value: this.localItemData[field] !== undefined ? this.localItemData[field] : "",
-          class: "form-control",
-          ...(fieldSchema.type === "date" && { type: "datetime-local" }),
-          ...(fieldSchema.type === "string" && { type: "text" }),
-          ...(fieldSchema.type === "integer" && { type: "number" }),
-          ...(fieldSchema.type === "array" && { class: "form-control" }),
-          ...(fieldSchema.type === "object" && { class: "form-control" }),
-        };
+        return this.getInputProps(field, fieldSchema);
       }
 
-      switch (field) {
-        case "item_id":
-          return {
-            ...baseProps,
-            itemType: this.localItemData.type,
-            item_id: this.localItemData.item_id,
-            enableClick: true,
-          };
-        case "creators":
-          return {
-            creators: this.localItemData[field],
-            size: "36",
-          };
-        case "collections":
-          return {
-            modelValue: this.item_data[field],
-            "onUpdate:modelValue": (value) => {
-              this.updateField(field, value);
-            },
-          };
-        case "relationships":
-          return {
-            ...baseProps,
-            item_id: this.localItemData.item_id,
-          };
-        default:
-          return {
-            ...baseProps,
-            [field]: this.localItemData[field],
-          };
-      }
+      return this.getSpecialComponentProps(field, baseProps);
     },
+
+    getInputProps(field, fieldSchema) {
+      const value = this.localItemData[field] !== undefined ? this.localItemData[field] : "";
+
+      let inputType = "text";
+      if (fieldSchema.type === "date" || fieldSchema.format === "date-time") {
+        inputType = "datetime-local";
+      } else if (fieldSchema.type === "integer" || fieldSchema.type === "number") {
+        inputType = "number";
+      }
+
+      return {
+        value,
+        class: "form-control",
+        type: inputType,
+      };
+    },
+
+    getSpecialComponentProps(field, baseProps) {
+      const specialProps = {
+        item_id: {
+          ...baseProps,
+          itemType: this.localItemData.type,
+          item_id: this.localItemData.item_id,
+          enableClick: true,
+        },
+        creators: {
+          creators: this.localItemData[field] || [],
+          size: "36",
+        },
+        collections: {
+          modelValue: this.item_data[field] || [],
+          "onUpdate:modelValue": (value) => this.updateField(field, value),
+        },
+        relationships: {
+          ...baseProps,
+          item_id: this.localItemData.item_id,
+        },
+      };
+
+      return specialProps[field] || baseProps;
+    },
+
     getAdditionalComponent() {
       const componentMap = {
         samples: SynthesisInformation,
@@ -331,6 +368,7 @@ export default {
       };
       return componentMap[this.item_data.type];
     },
+
     getTableOfContentsSections() {
       const typeToTitle = {
         samples: "Sample Information",
@@ -352,18 +390,18 @@ export default {
       const additionalSections = {
         samples: [{ title: "Synthesis Information", targetID: "synthesis-information" }],
         cells: [{ title: "Cell Construction", targetID: "cell-preparation-information" }],
-        starting_materials: [],
-        equipments: [],
       };
 
       return [...baseSections, ...(additionalSections[this.item_data.type] || [])];
     },
+
     handleInput(field, event) {
       const value = event?.target?.value;
       if (value !== undefined) {
         this.updateField(field, value);
       }
     },
+
     updateField(field, value) {
       this.localItemData = {
         ...this.localItemData,
@@ -375,6 +413,7 @@ export default {
         item_data: this.localItemData,
       });
     },
+
     handleModelValueUpdate(field, value) {
       this.localItemData[field] = value;
 
@@ -382,46 +421,6 @@ export default {
         item_id: this.item_data.item_id,
         item_data: this.localItemData,
       });
-    },
-    setDisplayedFields(schemaType) {
-      const defaultFields = ["name", "date", "refcode", "creators", "collections", "description"];
-      switch (schemaType) {
-        case "samples":
-          this.displayedFields = [...defaultFields, "chemform", "relationships"];
-          break;
-        case "cells":
-          this.displayedFields = [
-            ...defaultFields,
-            "relationships",
-            "cell_format",
-            "cell_format_description",
-            "characteristic_mass",
-            "characteristic_chemical_formula",
-            "characteristic_molar_mass",
-          ];
-          break;
-        case "equipments":
-          this.displayedFields = [
-            ...defaultFields,
-            "manufacturer",
-            "location",
-            "serial_numbers",
-            "contact",
-          ];
-          break;
-        case "starting_materials":
-          this.displayedFields = [
-            ...defaultFields,
-            "CAS",
-            "GHS_codes",
-            "date_opened",
-            "chemform",
-            "supplier",
-            "chemical_purity",
-            "location",
-          ];
-          break;
-      }
     },
   },
 };

@@ -4,7 +4,8 @@ import Equipment from "../views/Equipment.vue";
 import StartingMaterials from "../views/StartingMaterials.vue";
 import Collections from "@/views/Collections.vue";
 import NotFound from "../views/NotFound.vue";
-import EditPage from "../views/EditPageV2.vue";
+import EditPage from "../views/EditPage.vue";
+import EditPageV2 from "../views/EditPageV2.vue";
 import CollectionPage from "../views/CollectionPage.vue";
 import ExampleGraph from "@/views/ExampleGraph.vue";
 import ItemGraphPage from "@/views/ItemGraphPage.vue";
@@ -40,6 +41,16 @@ const routes = [
     path: "/items/:refcode",
     name: "edit item",
     component: EditPage,
+  },
+  {
+    path: "/edit-next/:id",
+    name: "edit-next",
+    component: EditPageV2,
+  },
+  {
+    path: "/items-next/:refcode",
+    name: "edit-next item",
+    component: EditPageV2,
   },
   {
     path: "/starting-materials",
