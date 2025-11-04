@@ -41,6 +41,7 @@ class CycleBlock(DataBlock):
         ".res",
         ".nda",
         ".ndax",
+        ".csv",
     )
 
     defaults: dict[str, Any] = {
