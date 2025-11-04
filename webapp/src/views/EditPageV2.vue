@@ -261,8 +261,8 @@ export default {
     },
     getBlockDisplayType(block_id) {
       var type = this.blocks[block_id].blocktype;
-      if (type in blockTypes) {
-        return blockTypes[type].component;
+      if (this.blockTypes && type in this.blockTypes) {
+        return this.blockTypes[type].component;
       } else {
         return ErrorBlock;
       }
@@ -322,12 +322,21 @@ export default {
     },
     setLastModified() {
       let item_date = this.item_data.last_modified || this.item_data.date;
-      if (item_date == null) {
+      if (!item_date) {
         this.lastModified = "Unknown";
-      } else {
-        // API dates are in UTC but missing Z suffix
+        return;
+      }
+
+      try {
         const save_date = new Date(item_date + "Z");
-        this.lastModified = formatDistanceToNow(save_date, { addSuffix: true });
+        if (isNaN(save_date.getTime())) {
+          this.lastModified = "Unknown";
+        } else {
+          this.lastModified = formatDistanceToNow(save_date, { addSuffix: true });
+        }
+      } catch (error) {
+        console.warn("Invalid date format:", item_date, error);
+        this.lastModified = "Unknown";
       }
     },
   },

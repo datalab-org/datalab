@@ -44,6 +44,9 @@
                 v-bind="getComponentProps(field)"
                 v-model="localItemData.collections"
               />
+              <div v-else-if="field === 'refcode'" :id="`${item_data.type}-${field}`">
+                <component :is="getComponentType(field)" v-bind="getComponentProps(field)" />
+              </div>
               <component
                 :is="getComponentType(field)"
                 v-else
@@ -157,14 +160,14 @@ const LAYOUT_CONFIG = {
   firstRow: {
     samples: ["name", "chemform", "date"],
     cells: ["name", "date"],
-    equipments: ["name", "date", "item_id", "refcode"],
-    starting_materials: ["chemform", "supplier"],
+    equipments: ["name", "date"],
+    starting_materials: ["name", "chemform", "date"],
   },
   secondRow: {
     samples: ["refcode", "creators", "collections"],
     cells: ["refcode", "creators", "collections"],
-    equipments: ["manufacturer", "location", "collections"],
-    starting_materials: ["refcode", "creators", "collections"],
+    equipments: ["refcode", "manufacturer", "location", "collections"],
+    starting_materials: ["refcode", "location", "supplier", "creators", "collections"],
   },
   additionalRows: {
     samples: [],
@@ -175,13 +178,13 @@ const LAYOUT_CONFIG = {
       "characteristic_chemical_formula",
       "characteristic_molar_mass",
     ],
-    equipments: ["location", "serial_numbers", "contact"],
-    starting_materials: ["CAS", "GHS_codes", "chemical_purity", "location", "date_opened"],
+    equipments: ["serial_numbers", "contact"],
+    starting_materials: ["CAS", "GHS_codes", "chemical_purity", "date_opened"],
   },
 };
 
 const FIELD_WIDTH_MAP = {
-  name: "col-md-8",
+  name: "col-sm-4",
   item_id: "col-md-2 col-sm-4",
   refcode: "col-md-3 col-sm-2 col-6",
   chemform: "col-sm-4",
@@ -205,7 +208,6 @@ const FIELD_WIDTH_MAP = {
 };
 
 const SPECIAL_FLEX_FIELDS = {
-  refcode: true,
   creators: true,
 };
 
@@ -264,21 +266,19 @@ export default {
     },
   },
   async mounted() {
-    this.schema = await getSchema(this.item_data.type);
+    const response = await getSchema(this.item_data.type);
+    this.schema = response?.attributes?.schema || response?.attributes || response;
   },
   methods: {
     filterExistingFields(fields) {
       if (!this.schema?.properties) return [];
       return fields.filter((field) => this.schema.properties[field] !== undefined);
     },
-
-    getFieldClass(field, row) {
+    getFieldClass(field) {
       const baseClasses = "form-group";
       const widthClass = FIELD_WIDTH_MAP[field] || "col";
 
-      const needsFlexColumn =
-        (row === "first" && SPECIAL_FLEX_FIELDS[field]) ||
-        (row === "second" && field === "creators");
+      const needsFlexColumn = SPECIAL_FLEX_FIELDS[field];
 
       if (needsFlexColumn) {
         return `${baseClasses} d-flex flex-column ${widthClass} ${field === "creators" ? "pb-3" : ""}`;
@@ -343,6 +343,11 @@ export default {
           itemType: this.localItemData.type,
           item_id: this.localItemData.item_id,
           enableClick: true,
+        },
+        refcode: {
+          refcode: this.localItemData.refcode || "",
+          enableQRCode: true,
+          enableModifiedClick: true,
         },
         creators: {
           creators: this.localItemData[field] || [],
