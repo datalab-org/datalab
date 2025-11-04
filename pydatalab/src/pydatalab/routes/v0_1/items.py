@@ -617,6 +617,17 @@ def _create_sample(
             400,
         )
 
+    # Save initial version snapshot after successful item creation
+    try:
+        _save_version_snapshot(data_model.refcode, action="created")
+    except Exception as e:
+        # Log but don't fail the request since item was already created successfully
+        LOGGER.error(
+            "Failed to save initial version for item %s after creation: %s",
+            data_model.item_id,
+            str(e),
+        )
+
     sample_list_entry = {
         "refcode": data_model.refcode,
         "item_id": data_model.item_id,
@@ -1379,6 +1390,7 @@ def _save_version_snapshot(refcode: str, action: str = "manual_save") -> tuple[d
     Args:
         refcode: The refcode of the item to save a version for
         action: The reason for saving this version:
+            - "created": Initial version when item is first created
             - "manual_save": User explicitly saved the version
             - "auto_save": System or block auto-save
             - "restored": Version created after restoring to a previous version
