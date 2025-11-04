@@ -977,7 +977,7 @@ def list_versions(refcode):
                 "version_number": 1,
                 "action": 1,
                 "restored_from_version": 1,
-                "old_data.version": 1,
+                "data.version": 1,
             },
         ).sort("version_number", -1)
     )
@@ -1029,8 +1029,8 @@ def compare_versions(refcode):
     # Use DeepDiff for proper nested structure comparison
     # This handles nested dicts, lists, type changes, and provides detailed change information
     deep_diff = DeepDiff(
-        v1["old_data"],
-        v2["old_data"],
+        v1["data"],
+        v2["data"],
         ignore_order=False,  # Preserve list order in comparisons
         verbose_level=2,  # Include detailed change information
     )
@@ -1088,7 +1088,7 @@ def restore_version(refcode):
     if not version:
         return jsonify({"status": "error", "message": "Version not found"}), 404
 
-    old_data = version["old_data"].copy()
+    restored_data = version["data"].copy()
 
     # Protect critical fields from being overwritten during restore
     protected_fields = [
@@ -1101,14 +1101,14 @@ def restore_version(refcode):
     ]
     for field in protected_fields:
         if field in current_item:
-            old_data[field] = current_item[field]
+            restored_data[field] = current_item[field]
 
     # Ensure type consistency
-    if old_data.get("type") != current_item.get("type"):
+    if restored_data.get("type") != current_item.get("type"):
         return jsonify(
             {
                 "status": "error",
-                "message": f"Cannot restore version with different type. Current: {current_item.get('type')}, Version: {old_data.get('type')}",
+                "message": f"Cannot restore version with different type. Current: {current_item.get('type')}, Version: {restored_data.get('type')}",
             }
         ), 400
 
@@ -1116,8 +1116,8 @@ def restore_version(refcode):
     next_version_number = _get_next_version_number(refcode)
 
     # Update metadata to reflect the restore action
-    old_data["version"] = next_version_number
-    old_data["last_modified"] = datetime.datetime.now(tz=datetime.timezone.utc).isoformat()
+    restored_data["version"] = next_version_number
+    restored_data["last_modified"] = datetime.datetime.now(tz=datetime.timezone.utc).isoformat()
 
     # Validate restored data against the item model
     item_type = current_item["type"]
@@ -1126,7 +1126,7 @@ def restore_version(refcode):
 
     try:
         # Validate using the appropriate model
-        ITEM_MODELS[item_type](**old_data)
+        ITEM_MODELS[item_type](**restored_data)
     except ValidationError as exc:
         return jsonify(
             {
@@ -1137,7 +1137,7 @@ def restore_version(refcode):
         ), 400
 
     # Perform the restore first
-    flask_mongo.db.items.update_one({"refcode": refcode}, {"$set": old_data})
+    flask_mongo.db.items.update_one({"refcode": refcode}, {"$set": restored_data})
 
     # Save the RESTORED state as a new version snapshot (after restore)
     flask_mongo.db.item_versions.insert_one(
@@ -1161,7 +1161,7 @@ def restore_version(refcode):
                 else None,
             },
             "software_version": getattr(CONFIG, "VERSION", "unknown"),
-            "old_data": old_data,  # Store the RESTORED data, not the old current_item
+            "data": restored_data,  # Store the complete snapshot of the restored state
         }
     )
 
@@ -1237,7 +1237,7 @@ def _save_version_snapshot(refcode: str, action: str = "manual_save") -> tuple[d
             else None,
         },
         "software_version": getattr(CONFIG, "VERSION", "unknown"),
-        "old_data": item,
+        "data": item,  # Complete snapshot of the item at this version
     }
     flask_mongo.db.item_versions.insert_one(version_entry)
     return (

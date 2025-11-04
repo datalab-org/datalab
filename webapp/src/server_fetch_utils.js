@@ -910,7 +910,7 @@ export async function getItemVersions(refcode) {
 export async function getItemVersion(refcode, versionId) {
   return fetch_get(`${API_URL}/items/${refcode}/versions/${versionId}/`)
     .then(function (response_json) {
-      return response_json.version.old_data;
+      return response_json.version.data;
     })
     .catch((error) => {
       DialogService.error({
