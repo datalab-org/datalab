@@ -169,8 +169,8 @@ class TestGetVersion:
         assert response.json["status"] == "success"
         assert response.json["version"]["_id"] == version_id
         assert response.json["version"]["refcode"] == sample_with_version.refcode
-        assert "old_data" in response.json["version"]
-        assert response.json["version"]["old_data"]["name"] == "Version Test Sample"
+        assert "data" in response.json["version"]
+        assert response.json["version"]["data"]["name"] == "Version Test Sample"
 
     def test_get_version_invalid_id(self, client, sample_with_version):
         """Test getting version with invalid ID format."""
@@ -650,7 +650,7 @@ class TestActionFields:
         restored_version_id = list_response.json["versions"][0]["_id"]
 
         get_response = client.get(f"/items/{refcode}/versions/{restored_version_id}/")
-        restored_snapshot = get_response.json["version"]["old_data"]
+        restored_snapshot = get_response.json["version"]["data"]
 
         # The snapshot should contain the RESTORED data (original_description)
         # NOT the pre-restore data (modified_description)
@@ -815,7 +815,7 @@ class TestEdgeCases:
         assert "action" in version
         assert "user" in version
         assert "software_version" in version
-        assert "old_data" in version
+        assert "data" in version
 
         # Check user info structure
         assert "id" in version["user"]
@@ -835,12 +835,12 @@ class TestEdgeCases:
         # Save version
         client.post(f"/items/{refcode}/save-version/")
 
-        # Get version and check old_data matches original
+        # Get version and check data matches original
         list_response = client.get(f"/items/{refcode}/versions/")
         version_id = list_response.json["versions"][0]["_id"]
         version_response = client.get(f"/items/{refcode}/versions/{version_id}/")
 
-        snapshot = version_response.json["version"]["old_data"]
+        snapshot = version_response.json["version"]["data"]
 
         # Key fields should match
         assert snapshot["name"] == original_item["name"]
