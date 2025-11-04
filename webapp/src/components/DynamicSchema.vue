@@ -47,6 +47,9 @@
               <div v-else-if="field === 'refcode'" :id="`${item_data.type}-${field}`">
                 <component :is="getComponentType(field)" v-bind="getComponentProps(field)" />
               </div>
+              <div v-else-if="field === 'barcode'" :id="`${item_data.type}-${field}`">
+                <component :is="getComponentType(field)" v-bind="getComponentProps(field)" />
+              </div>
               <component
                 :is="getComponentType(field)"
                 v-else
@@ -59,7 +62,99 @@
           </template>
         </div>
 
-        <div v-if="additionalRowFields.length" class="form-row">
+        <template v-if="item_data.type === 'starting_materials' && additionalRowFields.length">
+          <div v-if="additionalRowFields.includes('location')" class="form-row">
+            <div :class="getFieldClass('location')">
+              <label :for="`${item_data.type}-location`">{{
+                schema.properties.location?.title
+              }}</label>
+              <component
+                :is="getComponentType('location')"
+                :id="`${item_data.type}-location`"
+                v-bind="getComponentProps('location')"
+                @update:model-value="handleModelValueUpdate('location', $event)"
+                @input="handleInput('location', $event)"
+              />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div v-if="additionalRowFields.includes('supplier')" :class="getFieldClass('supplier')">
+              <label :for="`${item_data.type}-supplier`">{{
+                schema.properties.supplier?.title
+              }}</label>
+              <component
+                :is="getComponentType('supplier')"
+                :id="`${item_data.type}-supplier`"
+                v-bind="getComponentProps('supplier')"
+                @update:model-value="handleModelValueUpdate('supplier', $event)"
+                @input="handleInput('supplier', $event)"
+              />
+            </div>
+            <div
+              v-if="additionalRowFields.includes('chemical_purity')"
+              :class="getFieldClass('chemical_purity')"
+            >
+              <label :for="`${item_data.type}-chemical_purity`">{{
+                schema.properties.chemical_purity?.title
+              }}</label>
+              <component
+                :is="getComponentType('chemical_purity')"
+                :id="`${item_data.type}-chemical_purity`"
+                v-bind="getComponentProps('chemical_purity')"
+                @update:model-value="handleModelValueUpdate('chemical_purity', $event)"
+                @input="handleInput('chemical_purity', $event)"
+              />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div v-if="additionalRowFields.includes('CAS')" :class="getFieldClass('CAS')">
+              <label :for="`${item_data.type}-CAS`">{{ schema.properties.CAS?.title }}</label>
+              <a
+                v-if="localItemData.CAS"
+                :href="'https://commonchemistry.cas.org/detail?cas_rn=' + localItemData.CAS"
+                target="_blank"
+              >
+                <font-awesome-icon icon="search" class="fixed-width ml-2" />
+              </a>
+              <component
+                :is="getComponentType('CAS')"
+                :id="`${item_data.type}-CAS`"
+                v-bind="getComponentProps('CAS')"
+                @update:model-value="handleModelValueUpdate('CAS', $event)"
+                @input="handleInput('CAS', $event)"
+              />
+            </div>
+            <div
+              v-if="additionalRowFields.includes('date_opened')"
+              :class="getFieldClass('date_opened')"
+            >
+              <label :for="`${item_data.type}-date_opened`">{{
+                schema.properties.date_opened?.title
+              }}</label>
+              <component
+                :is="getComponentType('date_opened')"
+                :id="`${item_data.type}-date_opened`"
+                v-bind="getComponentProps('date_opened')"
+                @update:model-value="handleModelValueUpdate('date_opened', $event)"
+                @input="handleInput('date_opened', $event)"
+              />
+            </div>
+          </div>
+
+          <div v-if="additionalRowFields.includes('GHS_codes')" class="form-row">
+            <div :class="getFieldClass('GHS_codes')">
+              <component
+                :is="getComponentType('GHS_codes')"
+                v-bind="getComponentProps('GHS_codes')"
+                @update:model-value="handleModelValueUpdate('GHS_codes', $event)"
+              />
+            </div>
+          </div>
+        </template>
+
+        <div v-else-if="additionalRowFields.length" class="form-row">
           <div
             v-for="field in additionalRowFields"
             :key="field"
@@ -147,6 +242,7 @@ import { cellFormats } from "@/resources.js";
 import FormattedItemName from "@/components/FormattedItemName";
 import FormattedCollectionName from "@/components/FormattedCollectionName";
 import FormattedRefcode from "@/components/FormattedRefcode";
+import FormattedBarcode from "@/components/FormattedBarcode";
 import Creators from "@/components/Creators";
 import ToggleableCollectionFormGroup from "@/components/ToggleableCollectionFormGroup";
 import TinyMceInline from "@/components/TinyMceInline";
@@ -155,6 +251,7 @@ import TableOfContents from "@/components/TableOfContents";
 import ChemFormulaInput from "@/components/ChemFormulaInput";
 import SynthesisInformation from "@/components/SynthesisInformation";
 import CellPreparationInformation from "@/components/CellPreparationInformation";
+import GHSHazardInformation from "@/components/GHSHazardInformation";
 
 const LAYOUT_CONFIG = {
   firstRow: {
@@ -167,7 +264,7 @@ const LAYOUT_CONFIG = {
     samples: ["refcode", "creators", "collections"],
     cells: ["refcode", "creators", "collections"],
     equipments: ["refcode", "manufacturer", "location", "collections"],
-    starting_materials: ["refcode", "location", "supplier", "creators", "collections"],
+    starting_materials: ["refcode", "barcode", "collections"],
   },
   additionalRows: {
     samples: [],
@@ -179,32 +276,40 @@ const LAYOUT_CONFIG = {
       "characteristic_molar_mass",
     ],
     equipments: ["serial_numbers", "contact"],
-    starting_materials: ["CAS", "GHS_codes", "chemical_purity", "date_opened"],
+    starting_materials: [
+      "location",
+      "supplier",
+      "chemical_purity",
+      "CAS",
+      "date_opened",
+      "GHS_codes",
+    ],
   },
 };
 
 const FIELD_WIDTH_MAP = {
-  name: "col-sm-4",
+  name: "col-sm-4 pr-2 col-6",
   item_id: "col-md-2 col-sm-4",
-  refcode: "col-md-3 col-sm-2 col-6",
-  chemform: "col-sm-4",
-  date: "col-sm-4",
-  manufacturer: "col-sm-4",
-  supplier: "col-sm-4",
-  location: "col-lg-3 col-sm-4",
-  creators: "col-md-3 col-sm-3 col-6",
-  collections: "col-md-6 col-sm-7",
+  refcode: "col-md-3 col-sm-4 col-6",
+  barcode: "col-md-3 col-sm-4 col-6",
+  chemform: "col-sm-4 pr-2 col-6",
+  date: "col-sm-4 col-6",
+  manufacturer: "col-md-5",
+  supplier: "col-lg-3 col-sm-4",
+  location: "col-lg-12 col-sm-12",
+  creators: "col-md-3 col-sm-3 col-6 pb-3",
+  collections: "col-md-6 col-sm-7 pr-2",
   contact: "col-md-8",
   serial_numbers: "col-md-8",
-  CAS: "col-lg-3 col-sm-4",
-  GHS_codes: "col-lg-3 col-sm-4",
+  CAS: "col-lg-3 col-sm-3 col-6",
+  GHS_codes: "col-12",
   chemical_purity: "col-lg-3 col-sm-4",
   cell_format: "col-sm-4",
   cell_format_description: "col-sm-8",
   characteristic_mass: "col-lg-3 col-md-4",
   characteristic_chemical_formula: "col-lg-4 col-md-4",
   characteristic_molar_mass: "col-lg-3 col-md-4",
-  date_opened: "col-sm-4",
+  date_opened: "col-lg-3 col-sm-3 col-6",
 };
 
 const SPECIAL_FLEX_FIELDS = {
@@ -215,9 +320,11 @@ const COMPONENT_MAP = {
   item_id: FormattedItemName,
   collection_id: FormattedCollectionName,
   refcode: FormattedRefcode,
+  barcode: FormattedBarcode,
   creators: Creators,
   collections: ToggleableCollectionFormGroup,
   description: TinyMceInline,
+  GHS_codes: GHSHazardInformation,
 };
 
 export default {
@@ -227,12 +334,14 @@ export default {
     FormattedItemName,
     FormattedCollectionName,
     FormattedRefcode,
+    FormattedBarcode,
     Creators,
     ToggleableCollectionFormGroup,
     TinyMceInline,
     ChemFormulaInput,
     SynthesisInformation,
     CellPreparationInformation,
+    GHSHazardInformation,
   },
   props: {
     item_data: { type: Object, required: true },
@@ -349,6 +458,9 @@ export default {
           enableQRCode: true,
           enableModifiedClick: true,
         },
+        barcode: {
+          barcode: this.localItemData.barcode || "",
+        },
         creators: {
           creators: this.localItemData[field] || [],
           size: "36",
@@ -356,6 +468,21 @@ export default {
         collections: {
           modelValue: this.item_data[field] || [],
           "onUpdate:modelValue": (value) => this.updateField(field, value),
+        },
+        GHS_codes: {
+          modelValue: Array.isArray(this.localItemData[field])
+            ? this.localItemData[field].join(", ")
+            : this.localItemData[field] || "",
+          "onUpdate:modelValue": (value) => {
+            const arrayValue = value
+              ? value
+                  .split(",")
+                  .map((s) => s.trim())
+                  .filter(Boolean)
+              : [];
+            this.handleModelValueUpdate(field, arrayValue);
+          },
+          editable: true,
         },
         relationships: {
           ...baseProps,
