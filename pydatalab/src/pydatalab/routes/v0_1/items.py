@@ -1,5 +1,6 @@
 import datetime
 import json
+from importlib.metadata import PackageNotFoundError, version
 
 from bson import ObjectId
 from bson.errors import InvalidId
@@ -1161,6 +1162,13 @@ def restore_version(refcode):
             "email": getattr(current_user.person, "contact_email", None),
         }
 
+    # Get the software version
+
+    try:
+        software_version = version("datalab-server")
+    except PackageNotFoundError:
+        software_version = "unknown"
+
     # Save the RESTORED state as a new version snapshot (after restore)
     flask_mongo.db.item_versions.insert_one(
         {
@@ -1173,7 +1181,7 @@ def restore_version(refcode):
             ),  # Track which version was restored from
             "user": user_snapshot,  # Snapshot for fast display
             "user_id": user_id,  # ObjectId for efficient querying
-            "software_version": getattr(CONFIG, "VERSION", "unknown"),
+            "software_version": software_version,
             "data": restored_data,  # Store the complete snapshot of the restored state
         }
     )
@@ -1247,6 +1255,12 @@ def _save_version_snapshot(refcode: str, action: str = "manual_save") -> tuple[d
             "email": getattr(current_user.person, "contact_email", None),
         }
 
+    # Find out the software version
+    try:
+        software_version = version("datalab-server")
+    except PackageNotFoundError:
+        software_version = "unknown"
+
     version_entry = {
         "refcode": refcode,
         "version_number": next_version_number,
@@ -1254,7 +1268,7 @@ def _save_version_snapshot(refcode: str, action: str = "manual_save") -> tuple[d
         "action": action,  # Audit trail: why this version was created
         "user": user_snapshot,  # Snapshot for fast display
         "user_id": user_id,  # ObjectId for efficient querying
-        "software_version": getattr(CONFIG, "VERSION", "unknown"),
+        "software_version": software_version,
         "data": item,  # Complete snapshot of the item at this version
     }
     flask_mongo.db.item_versions.insert_one(version_entry)
