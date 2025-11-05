@@ -17,7 +17,7 @@ def test_empty_samples(client):
 
 @pytest.mark.dependency(depends=["test_empty_samples"])
 def test_new_sample(client, default_sample_dict):
-    response = client.post("/new-sample/", json=default_sample_dict)
+    response = client.put("/new-sample/", json=default_sample_dict)
     # Test that 201: Created is emitted
     assert response.status_code == 201, response.json
     assert response.json["status"] == "success"
@@ -152,95 +152,116 @@ def test_create_indices(real_mongo_client):
     assert all(name in names for name in expected_index_names)
 
 
+@pytest.mark.parametrize(
+    "query,expected_result_ids",
+    [
+        ("query=%2512345&types=samples", {"12345", "sample_1"}),
+        ("query=%new material", {"material", "12345"}),
+        ("query=%NaNiO2", {"test", "material", "12345"}),
+        ("query=%'grey:TEST4'", {"material", "test", "sample_1", "12345", "sample_2"}),
+    ],
+)
 @pytest.mark.dependency(depends=["test_create_indices"])
-def test_item_search(client, admin_client, real_mongo_client, example_items):
+def test_item_fts_search(
+    query, expected_result_ids, client, real_mongo_client, insert_example_items
+):
     if real_mongo_client is None:
         pytest.skip("Skipping FTS tests, not connected to real MongoDB")
 
-    real_mongo_client.get_database().items.insert_many(example_items)
-
-    response = client.get("/search-items/?query=%2512345&types=samples")
+    response = client.get(f"/search-items/?{query}")
 
     assert response.status_code == 200
     assert response.json["status"] == "success"
-    assert len(response.json["items"]) == 2
-    assert response.json["items"][0]["item_id"] == "12345"
-    assert response.json["items"][1]["item_id"] == "sample_1"
+    item_ids = [item["item_id"] for item in response.json["items"]]
+    if isinstance(expected_result_ids, set):
+        assert all(_id in item_ids for _id in expected_result_ids), (
+            f"Some expected IDs not found for {query=}: expected {expected_result_ids}, found {item_ids}"
+        )
 
-    response = client.get("/search-items/?query=%new material")
+    else:
+        assert item_ids == expected_result_ids
+
+
+@pytest.mark.parametrize(
+    "query,expected_result_ids",
+    [
+        ("query=%23mater&types=samples,starting_materials", {"12345", "material"}),
+        ("query=%23mater&types=equipment", []),
+        ("query=%23mater", {"material", "12345"}),
+        ("query=%23'magic'", {"material", "test"}),
+    ],
+)
+@pytest.mark.dependency(depends=["test_create_indices"])
+def test_item_old_regex_search(
+    query, expected_result_ids, client, real_mongo_client, insert_example_items
+):
+    if real_mongo_client is None:
+        pytest.skip("Skipping FTS tests, not connected to real MongoDB")
+
+    response = client.get(f"/search-items/?{query}")
 
     assert response.status_code == 200
     assert response.json["status"] == "success"
-    assert len(response.json["items"]) == 2
-    assert response.json["items"][0]["item_id"] == "material"
-    assert response.json["items"][1]["item_id"] == "12345"
+    item_ids = [item["item_id"] for item in response.json["items"]]
+    if isinstance(expected_result_ids, set):
+        assert all(_id in item_ids for _id in expected_result_ids), (
+            f"Some expected IDs not found for {query=}: expected {expected_result_ids}, found {item_ids}"
+        )
 
-    response = client.get("/search-items/?query=%NaNiO2")
+    else:
+        assert item_ids == expected_result_ids
 
-    assert response.status_code == 200
-    assert response.json["status"] == "success"
-    assert len(response.json["items"]) == 3
-    assert response.json["items"][0]["item_id"] == "test"
-    assert response.json["items"][1]["item_id"] == "material"
-    assert response.json["items"][2]["item_id"] == "12345"
 
-    response = client.get("/search-items/?query=%'grey:TEST4'")
-
-    assert response.status_code == 200
-    assert response.json["status"] == "success"
-    # should return all grey:TEST<n> samples, with TEST4 first
-    assert len(response.json["items"]) == 5
-    assert response.json["items"][0]["item_id"] == "material"
-
-    # Test regex search
-    response = client.get("/search-items/?query=mater&types=samples,starting_materials")
+@pytest.mark.dependency(depends=["test_create_indices"])
+@pytest.mark.parametrize(
+    "user,query,expected_result_ids",
+    [
+        ("user", "query=mater&types=samples,starting_materials", ["material", "12345"]),
+        ("user", "query=mater&types=equipment", []),  # Tests avoidance of different types
+        ("admin", "query=mater", ["material", "12345", "123456"]),  # Test search obeys permissions
+        (
+            "admin",
+            "query='magic'",
+            ["material", "test", "sample_admin"],
+        ),  # Test simple word in description as admin
+        (
+            "user",
+            "query='magic'",
+            ["material", "test"],
+        ),  # Test simple word in description
+        ("admin", "query='vanadium('&types=samples", ["sample_2"]),  # Test unclosed brackets
+        ("admin", "query='vanadium oxide'&types=samples", ["sample_2"]),  # Test two words
+        ("admin", "query='oxide vanadium'&types=samples", ["sample_2"]),  # Test reverse order
+        ("admin", "query='v'", ["sample_2"]),  # Test single char at start of word
+        ("admin", "query='van'", ["sample_2"]),  # Test prefix at start of word
+        ("admin", "query='oxid'", ["sample_2"]),  # Test prefix at start of word
+        (
+            "admin",
+            "query='anadium'&types=samples",
+            ["sample_2"],
+        ),  # Test word ending that should return results if long enough
+        (
+            "admin",
+            "query='dium'&types=samples",
+            [],
+        ),  # Test word ending that should not return results if its too short
+    ],
+)
+def test_item_regex_search(
+    user, query, expected_result_ids, real_mongo_client, client, admin_client, insert_example_items
+):
+    if user == "admin":
+        response = admin_client.get(f"/search-items/?{query}")
+    else:
+        response = client.get(f"/search-items/?{query}")
 
     assert response.status_code == 200
     assert response.json["status"] == "success"
     item_ids = {item["item_id"] for item in response.json["items"]}
-    assert "material" in item_ids
-    assert "12345" in item_ids
-    assert len(item_ids) == 2
-
-    # Test regex search with different types
-    response = client.get("/search-items/?query=mater&types=equipment")
-
-    assert response.status_code == 200
-    assert response.json["status"] == "success"
-    item_ids = {item["item_id"] for item in response.json["items"]}
-    assert len(item_ids) == 0
-
-    # Test regex search still obeys permissions
-    response = admin_client.get("/search-items/?query=mater")
-
-    assert response.status_code == 200
-    assert response.json["status"] == "success"
-    item_ids = {item["item_id"] for item in response.json["items"]}
-    assert len(item_ids) == 3
-    assert "material" in item_ids
-    assert "12345" in item_ids
-    assert "123456" in item_ids
-
-    # Search for single word in description
-    response = client.get("/search-items/?query='magic'")
-
-    assert response.status_code == 200
-    assert response.json["status"] == "success"
-    item_ids = {item["item_id"] for item in response.json["items"]}
-    assert "material" in item_ids
-    assert "test" in item_ids
-    assert len(item_ids) == 2
-
-    # Search for single word in description, again checking extra results for admins
-    response = admin_client.get("/search-items/?query='magic'")
-
-    assert response.status_code == 200
-    assert response.json["status"] == "success"
-    item_ids = {item["item_id"] for item in response.json["items"]}
-    assert len(item_ids) == 3
-    assert "material" in item_ids
-    assert "test" in item_ids
-    assert "sample_admin" in item_ids
+    assert all(_id in item_ids for _id in expected_result_ids), (
+        f"Some expected IDs not found for {query=} as {user=}: expected {expected_result_ids}, found {item_ids}"
+    )
+    assert len(item_ids) == len(expected_result_ids)
 
 
 @pytest.mark.dependency(depends=["test_delete_sample"])

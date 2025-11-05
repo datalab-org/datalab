@@ -2,6 +2,7 @@ import datetime
 import json
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as get_package_version
+import re
 
 from bson import ObjectId
 from bson.errors import InvalidId
@@ -320,7 +321,9 @@ def search_items():
         query = query.strip("'")
 
     if isinstance(query, str) and query.startswith("%"):
+        # Old FTS query style, using MongoDB text indexes
         query = query.lstrip("%")
+        query = query.strip("'")
         match_obj = {
             "$text": {"$search": query},
             **get_default_permissions(user_only=False),
@@ -330,10 +333,58 @@ def search_items():
 
         pipeline.append({"$match": match_obj})
         pipeline.append({"$sort": {"score": {"$meta": "textScore"}}})
-    else:
+    elif isinstance(query, str) and query.startswith("#"):
+        # Plain regex search, without word boundaries or splitting into parts
+        query = query.lstrip("#")
+        query = query.strip("'")
+
         match_obj = {
             "$or": [{field: {"$regex": query, "$options": "i"}} for field in ITEMS_FTS_FIELDS]
         }
+        match_obj = {"$and": [get_default_permissions(user_only=False), match_obj]}
+        if types is not None:
+            match_obj["$and"].append({"type": {"$in": types}})
+
+        pipeline.append({"$match": match_obj})
+
+    else:
+        # Heuristic + regex search, splitting the query into parts and adding word boundaries
+        # depending on length
+        def _generate_heuristic_regex_search(query: str, part_length: int = 4) -> dict:
+            """Generate a heuristic regex search object for MongoDB that uses
+            word boundaries for short parts of the query, but allows matches anywhere.
+
+            Parameters:
+                query: The full search query string.
+                part_length: The length below which to add a word boundary to the start of the part.
+
+            Returns:
+                A MongoDB query object that can be used in a $match stage.
+
+            """
+            query_parts = [re.escape(part) for part in query.split(" ") if part.strip()]
+
+            # Add word boundary to short parts to avoid excessive matches, i.e., search start of string
+            # for short parts, but allow match anywhere in string for longer parts
+            query_parts = [
+                f"\\b{part}" if len(part) <= part_length else part for part in query_parts
+            ]
+            match_obj = {
+                "$or": [
+                    {"$and": [{field: {"$regex": query, "$options": "i"}} for query in query_parts]}
+                    for field in ITEMS_FTS_FIELDS
+                ]
+            }
+            LOGGER.debug(
+                "Performing regex search for %s with full search %s", query_parts, match_obj
+            )
+
+            return match_obj
+
+        if not query:
+            return jsonify({"status": "error", "message": "No query provided."}), 400
+
+        match_obj = _generate_heuristic_regex_search(query)
         match_obj = {"$and": [get_default_permissions(user_only=False), match_obj]}
         if types is not None:
             match_obj["$and"].append({"type": {"$in": types}})
@@ -609,7 +660,7 @@ def _create_sample(
     return data
 
 
-@ITEMS.route("/new-sample/", methods=["POST"])
+@ITEMS.route("/new-sample/", methods=["POST", "PUT"])
 def create_sample():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
     if "new_sample_data" in request_json:
@@ -624,7 +675,7 @@ def create_sample():
     return jsonify(response), http_code
 
 
-@ITEMS.route("/new-samples/", methods=["POST"])
+@ITEMS.route("/new-samples/", methods=["POST", "PUT"])
 def create_samples():
     """attempt to create multiple samples at once.
     Because each may result in success or failure, 207 is returned along with a
@@ -702,6 +753,10 @@ def update_item_permissions(refcode: str):
     current_creator_ids = current_item["creator_ids"]
 
     if "creators" in request_json:
+        new_creators = request_json["creators"]
+        if not isinstance(new_creators, list):
+            raise RuntimeError("Invalid creators list provided in request.")
+
         creator_ids = [
             ObjectId(creator.get("immutable_id", None))
             for creator in request_json["creators"]
