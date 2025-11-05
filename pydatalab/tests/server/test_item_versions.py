@@ -847,3 +847,106 @@ class TestEdgeCases:
         assert snapshot["description"] == original_item["description"]
         assert snapshot["item_id"] == original_item["item_id"]
         assert snapshot["refcode"] == original_item["refcode"]
+
+
+class TestUserIdField:
+    """Tests for the user_id field in version documents (hybrid storage approach)."""
+
+    def test_version_includes_user_id_field(self, client, sample_with_version):
+        """Test that saved versions include both user snapshot and user_id ObjectId."""
+        from pydatalab.mongo import flask_mongo
+
+        refcode = sample_with_version.refcode.split(":")[1]
+
+        # Save a version
+        client.post(f"/items/{refcode}/save-version/")
+
+        # Get the version document directly from database
+        version_doc = flask_mongo.db.item_versions.find_one(
+            {"refcode": sample_with_version.refcode}
+        )
+
+        # Check user snapshot exists (for fast display)
+        assert "user" in version_doc
+        assert version_doc["user"] is not None
+        assert "id" in version_doc["user"]
+        assert "display_name" in version_doc["user"]
+        assert "email" in version_doc["user"]
+
+        # Check user_id ObjectId exists (for efficient querying)
+        assert "user_id" in version_doc
+        assert version_doc["user_id"] is not None
+        # Verify it's an ObjectId, not a string
+        assert isinstance(version_doc["user_id"], ObjectId)
+
+    def test_user_id_matches_user_snapshot_id(self, client, sample_with_version):
+        """Test that user_id ObjectId matches the string ID in user snapshot."""
+        from pydatalab.mongo import flask_mongo
+
+        refcode = sample_with_version.refcode.split(":")[1]
+
+        # Save a version
+        client.post(f"/items/{refcode}/save-version/")
+
+        # Get version document
+        version_doc = flask_mongo.db.item_versions.find_one(
+            {"refcode": sample_with_version.refcode}
+        )
+
+        # user_id ObjectId should match user.id string
+        assert str(version_doc["user_id"]) == version_doc["user"]["id"]
+
+    def test_restored_version_includes_user_id(self, client, sample_with_version):
+        """Test that restored versions also include user_id field."""
+        from pydatalab.mongo import flask_mongo
+
+        refcode = sample_with_version.refcode.split(":")[1]
+        full_refcode = sample_with_version.refcode
+
+        # Save initial version
+        client.post(f"/items/{refcode}/save-version/")
+
+        # Modify the item
+        flask_mongo.db.items.update_one(
+            {"refcode": full_refcode}, {"$set": {"description": "Modified", "version": 2}}
+        )
+
+        # Get version to restore
+        list_response = client.get(f"/items/{refcode}/versions/")
+        version_id = list_response.json["versions"][0]["_id"]
+
+        # Restore
+        client.post(f"/items/{refcode}/restore-version/", json={"version_id": version_id})
+
+        # Get the restored version document
+        restored_version = flask_mongo.db.item_versions.find_one(
+            {"refcode": full_refcode, "action": "restored"}
+        )
+
+        # Check both user fields exist
+        assert "user" in restored_version
+        assert "user_id" in restored_version
+        assert isinstance(restored_version["user_id"], ObjectId)
+        assert str(restored_version["user_id"]) == restored_version["user"]["id"]
+
+    def test_query_versions_by_user_id(self, client, sample_with_version, user_id):
+        """Test that we can efficiently query versions by user_id ObjectId."""
+        from pydatalab.mongo import flask_mongo
+
+        refcode = sample_with_version.refcode.split(":")[1]
+
+        # Save multiple versions
+        client.post(f"/items/{refcode}/save-version/")
+        client.post(f"/items/{refcode}/save-version/")
+        client.post(f"/items/{refcode}/save-version/")
+
+        # Query by user_id ObjectId (this uses the index)
+        versions_by_user = list(flask_mongo.db.item_versions.find({"user_id": user_id}))
+
+        # Should find all 3 versions
+        assert len(versions_by_user) >= 3
+
+        # All should belong to the same user
+        for version in versions_by_user:
+            assert version["user_id"] == user_id
+            assert version["user"]["id"] == str(user_id)
