@@ -1,8 +1,8 @@
 import datetime
 import json
+import re
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as get_package_version
-import re
 
 from bson import ObjectId
 from bson.errors import InvalidId
