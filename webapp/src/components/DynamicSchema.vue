@@ -422,9 +422,6 @@ export default {
   async mounted() {
     const response = await getSchema(this.item_data.type);
     this.schema = response?.attributes?.schema;
-    console.log("#$#$$#$#$#$#$#$#$#");
-    console.log(response);
-    console.log("#$#$$#$#$#$#$#$#$#");
   },
   methods: {
     filterExistingFields(fields) {
