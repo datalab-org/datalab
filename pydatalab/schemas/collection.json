@@ -1,0 +1,606 @@
+{
+  "$defs": {
+    "AccountStatus": {
+      "description": "A string enum representing the account status.",
+      "enum": [
+        "active",
+        "unverified",
+        "deactivated"
+      ],
+      "title": "AccountStatus",
+      "type": "string"
+    },
+    "DataBlockResponse": {
+      "additionalProperties": true,
+      "description": "A generic response model for a block, i.e., what is stored in `self.data`\nin the corresponding DataBlock class.\n\nIt is expected but not mandatory that this model will be extended by the specific block type\nwhere possible.",
+      "properties": {
+        "blocktype": {
+          "title": "Blocktype",
+          "type": "string"
+        },
+        "block_id": {
+          "title": "Block Id",
+          "type": "string"
+        },
+        "item_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Item Id"
+        },
+        "collection_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Collection Id"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        },
+        "freeform_comment": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Freeform Comment"
+        },
+        "file_id": {
+          "anyOf": [
+            {
+              "format": "objectid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "File Id"
+        },
+        "file_ids": {
+          "anyOf": [
+            {
+              "items": {
+                "format": "objectid",
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "File Ids"
+        },
+        "bokeh_plot_data": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Bokeh Plot Data"
+        },
+        "errors": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Errors"
+        },
+        "warnings": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Warnings"
+        },
+        "b64_encoded_image": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "B64 Encoded Image"
+        },
+        "computed": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Computed"
+        },
+        "metadata": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Metadata"
+        }
+      },
+      "required": [
+        "blocktype",
+        "block_id",
+        "b64_encoded_image"
+      ],
+      "title": "DataBlockResponse",
+      "type": "object"
+    },
+    "Identity": {
+      "description": "A model for identities that can be provided by external systems\nand associated with a given user.",
+      "properties": {
+        "identity_type": {
+          "$ref": "#/$defs/IdentityType",
+          "description": "The type or provider of the identity."
+        },
+        "identifier": {
+          "description": "The identifier for the identity, e.g., an email address, an ORCID, a GitHub user ID.",
+          "title": "Identifier",
+          "type": "string"
+        },
+        "name": {
+          "description": "The name associated with the identity to be exposed in free-text searches over people, e.g., an institutional username, a GitHub username.",
+          "title": "Name",
+          "type": "string"
+        },
+        "verified": {
+          "default": false,
+          "description": "Whether the identity has been verified (by some means, e.g., OAuth2 or email)",
+          "title": "Verified",
+          "type": "boolean"
+        },
+        "display_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The user's display name associated with the identity, also to be exposed in free text searches.",
+          "title": "Display Name"
+        }
+      },
+      "required": [
+        "identity_type",
+        "identifier",
+        "name"
+      ],
+      "title": "Identity",
+      "type": "object"
+    },
+    "IdentityType": {
+      "description": "A string enum representing the supported verifiable identity types.",
+      "enum": [
+        "email",
+        "orcid",
+        "github"
+      ],
+      "title": "IdentityType",
+      "type": "string"
+    },
+    "KnownType": {
+      "description": "An enumeration of the types of entry known by this implementation, should be made dynamic in the future.",
+      "enum": [
+        "samples",
+        "starting_materials",
+        "blocks",
+        "files",
+        "people",
+        "collections"
+      ],
+      "title": "KnownType",
+      "type": "string"
+    },
+    "Person": {
+      "description": "A model that describes an individual and their digital identities.",
+      "properties": {
+        "type": {
+          "const": "people",
+          "default": "people",
+          "description": "The entry type as a string.",
+          "title": "Type",
+          "type": "string"
+        },
+        "immutable_id": {
+          "anyOf": [
+            {
+              "format": "objectid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The immutable database ID of the entry.",
+          "format": "uuid",
+          "title": "Immutable ID"
+        },
+        "last_modified": {
+          "anyOf": [
+            {
+              "format": "datetime",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The timestamp at which the entry was last modified.",
+          "title": "Last Modified"
+        },
+        "relationships": {
+          "description": "A list of related entries and their types.",
+          "items": {
+            "$ref": "#/$defs/TypedRelationship"
+          },
+          "title": "Relationships",
+          "type": "array"
+        },
+        "identities": {
+          "description": "A list of identities attached to this person, e.g., email addresses, OAuth accounts.",
+          "items": {
+            "$ref": "#/$defs/Identity"
+          },
+          "title": "Identities",
+          "type": "array"
+        },
+        "display_name": {
+          "anyOf": [
+            {
+              "maxLength": 150,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The user-chosen display name.",
+          "title": "Display Name"
+        },
+        "contact_email": {
+          "anyOf": [
+            {
+              "format": "email",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "In the case of multiple *verified* email identities, this email will be used as the primary contact.",
+          "title": "Contact Email"
+        },
+        "managers": {
+          "anyOf": [
+            {
+              "items": {
+                "format": "objectid",
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A list of user IDs that can manage this person's items.",
+          "title": "Managers"
+        },
+        "account_status": {
+          "$ref": "#/$defs/AccountStatus",
+          "default": "unverified",
+          "description": "The status of the user's account."
+        }
+      },
+      "title": "Person",
+      "type": "object"
+    },
+    "RelationshipType": {
+      "description": "An enumeration of the possible types of relationship between two entries.\n\n```mermaid\nclassDiagram\nclass entryC\nentryC --|> entryA: parent\nentryC ..|> entryD\nentryA <..> entryD: sibling\nentryA --|> entryB : child\n```",
+      "enum": [
+        "parent",
+        "child",
+        "sibling",
+        "is_part_of",
+        "other",
+        "collections"
+      ],
+      "title": "RelationshipType",
+      "type": "string"
+    },
+    "TypedRelationship": {
+      "additionalProperties": true,
+      "properties": {
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A description of the relationship.",
+          "title": "Description"
+        },
+        "relation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RelationshipType"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The type of relationship between the two items. If the type is 'other', then a human-readable description should be provided."
+        },
+        "type": {
+          "$ref": "#/$defs/KnownType",
+          "description": "The type of the related resource."
+        },
+        "immutable_id": {
+          "anyOf": [
+            {
+              "format": "objectid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The immutable ID of the entry that is related to this entry.",
+          "title": "Immutable Id"
+        },
+        "item_id": {
+          "anyOf": [
+            {
+              "maxLength": 40,
+              "minLength": 1,
+              "pattern": "^(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The ID of the entry that is related to this entry.",
+          "title": "Item Id"
+        },
+        "refcode": {
+          "anyOf": [
+            {
+              "maxLength": 40,
+              "minLength": 1,
+              "pattern": "^[a-z]{2,10}:(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The refcode of the entry that is related to this entry.",
+          "title": "Refcode"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "TypedRelationship",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "blocks_obj": {
+      "additionalProperties": {
+        "$ref": "#/$defs/DataBlockResponse"
+      },
+      "default": {},
+      "title": "Blocks Obj",
+      "type": "object"
+    },
+    "display_order": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Display Order",
+      "type": "array"
+    },
+    "creator_ids": {
+      "description": "The database IDs of the user(s) who created the item.",
+      "items": {
+        "format": "objectid",
+        "type": "string"
+      },
+      "title": "Creator Ids",
+      "type": "array"
+    },
+    "creators": {
+      "anyOf": [
+        {
+          "items": {
+            "$ref": "#/$defs/Person"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Inlined info for the people associated with this item.",
+      "title": "Creators"
+    },
+    "type": {
+      "const": "collections",
+      "default": "collections",
+      "title": "Type",
+      "type": "string"
+    },
+    "immutable_id": {
+      "anyOf": [
+        {
+          "format": "objectid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The immutable database ID of the entry.",
+      "format": "uuid",
+      "title": "Immutable ID"
+    },
+    "last_modified": {
+      "anyOf": [
+        {
+          "format": "datetime",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The timestamp at which the entry was last modified.",
+      "title": "Last Modified"
+    },
+    "relationships": {
+      "description": "A list of related entries and their types.",
+      "items": {
+        "$ref": "#/$defs/TypedRelationship"
+      },
+      "title": "Relationships",
+      "type": "array"
+    },
+    "collection_id": {
+      "default": null,
+      "description": "A short human-readable/usable name for the collection.",
+      "maxLength": 40,
+      "minLength": 1,
+      "pattern": "^(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
+      "title": "Collection Id",
+      "type": "string"
+    },
+    "title": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "A descriptive title for the collection.",
+      "title": "Title"
+    },
+    "description": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "A description of the collection, either in plain-text or a markup language.",
+      "title": "Description"
+    },
+    "num_items": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Inlined number of items associated with this collection.",
+      "title": "Num Items"
+    }
+  },
+  "title": "Collection",
+  "type": "object"
+}
