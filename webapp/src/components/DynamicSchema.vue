@@ -256,7 +256,7 @@
         <ItemRelationshipVisualization :item_id="item_data.item_id" />
       </div>
     </div>
-    <div>
+    <div v-if="item_data.type !== 'collections'">
       <TableOfContents
         :item_id="item_data.item_id"
         :information-sections="getTableOfContentsSections()"

@@ -11,14 +11,16 @@ from pydatalab.models.starting_materials import StartingMaterial
 
 
 @functools.lru_cache(maxsize=1)
-def get_item_models() -> dict[str, type[Item]]:
+def get_item_models() -> dict[str, type[Item] | type[Collection]]:
     """
     Returns a dictionary of item models keyed by their type.
     """
-    return {
+    models = {
         model.model_json_schema()["properties"]["type"]["default"]: model
         for model in Item.__subclasses__()
     }
+    models["collections"] = Collection
+    return models
 
 
 @functools.lru_cache(maxsize=1)

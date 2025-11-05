@@ -31,27 +31,29 @@
   </nav>
 
   <div class="editor-body">
-    <div v-if="itemType">
+    <div v-if="itemType" class="container-lg">
       <DynamicSchema :item_data="collection_data" @update-item-data="handleCollectionDataUpdate" />
     </div>
 
-    <DynamicDataTable
-      v-if="tableIsReady"
-      :data="children"
-      :columns="collectionTableColumns"
-      :data-type="'collectionItems'"
-      :global-filter-fields="[
-        'item_id',
-        'name',
-        'refcode',
-        'blocks',
-        'chemform',
-        'characteristic_chemical_formula',
-      ]"
-      :show-buttons="true"
-      :collection-id="collection_id"
-      @remove-selected-items-from-collection="handleItemsRemovedFromCollection"
-    />
+    <div class="container-lg">
+      <DynamicDataTable
+        v-if="tableIsReady"
+        :data="children"
+        :columns="collectionTableColumns"
+        :data-type="'collectionItems'"
+        :global-filter-fields="[
+          'item_id',
+          'name',
+          'refcode',
+          'blocks',
+          'chemform',
+          'characteristic_chemical_formula',
+        ]"
+        :show-buttons="true"
+        :collection-id="collection_id"
+        @remove-selected-items-from-collection="handleItemsRemovedFromCollection"
+      />
+    </div>
   </div>
 </template>
 
