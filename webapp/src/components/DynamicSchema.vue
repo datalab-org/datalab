@@ -1,7 +1,7 @@
 <template>
   <div v-if="schema?.properties" class="container-lg">
     <div class="row">
-      <div class="col-md-8">
+      <div :class="hasRelationships ? 'col-md-8' : 'col-12'">
         <div :id="`${item_data?.type}-information`" class="form-row">
           <template v-if="firstRowFields.length">
             <div
@@ -14,8 +14,15 @@
                   ? "Chemical Formula"
                   : schema.properties[field]?.title || "Untitled"
               }}</label>
+              <div
+                v-if="field === 'refcode' || field === 'item_id'"
+                :id="`${item_data.type}-${field}`"
+              >
+                <component :is="getComponentType(field)" v-bind="getComponentProps(field)" />
+              </div>
               <component
                 :is="getComponentType(field)"
+                v-else
                 :id="`${item_data.type}-${field}`"
                 v-bind="getComponentProps(field)"
                 @update:model-value="handleModelValueUpdate(field, $event)"
@@ -47,6 +54,7 @@
               <div v-else-if="field === 'refcode'" :id="`${item_data.type}-${field}`">
                 <component :is="getComponentType(field)" v-bind="getComponentProps(field)" />
               </div>
+
               <div v-else-if="field === 'barcode'" :id="`${item_data.type}-${field}`">
                 <component :is="getComponentType(field)" v-bind="getComponentProps(field)" />
               </div>
@@ -257,14 +265,14 @@ const LAYOUT_CONFIG = {
   firstRow: {
     samples: ["name", "chemform", "date"],
     cells: ["name", "date"],
-    equipments: ["name", "date"],
+    equipment: ["refcode", "item_id", "name", "date"],
     starting_materials: ["name", "chemform", "date"],
     collections: ["title"],
   },
   secondRow: {
     samples: ["refcode", "creators", "collections"],
     cells: ["refcode", "creators", "collections"],
-    equipments: ["refcode", "manufacturer", "location", "collections"],
+    equipment: ["collections", "manufacturer", "location"],
     starting_materials: ["refcode", "barcode", "collections"],
     collections: ["creators"],
   },
@@ -277,7 +285,7 @@ const LAYOUT_CONFIG = {
       "characteristic_chemical_formula",
       "characteristic_molar_mass",
     ],
-    equipments: ["serial_numbers", "contact"],
+    equipment: ["serial_numbers", "creators", "contact"],
     starting_materials: [
       "location",
       "supplier",
@@ -314,6 +322,18 @@ const FIELD_WIDTH_MAP = {
   characteristic_molar_mass: "col-lg-3 col-md-4",
   date_opened: "col-lg-3 col-sm-3 col-6",
   title: "col",
+};
+
+const EQUIPMENT_FIELD_WIDTH_MAP = {
+  name: "col-md-6",
+  date: "col-md-2",
+  refcode: "col-md-2",
+  manufacturer: "col-md-5",
+  location: "col-md-5",
+  collections: "col-md-2",
+  serial_numbers: "col-md-8",
+  contact: "col-md-8",
+  creators: "col-md-4",
 };
 
 const SPECIAL_FLEX_FIELDS = {
@@ -391,7 +411,9 @@ export default {
     },
     getFieldClass(field) {
       const baseClasses = "form-group";
-      const widthClass = FIELD_WIDTH_MAP[field] || "col";
+      const widthMap =
+        this.item_data.type === "equipment" ? EQUIPMENT_FIELD_WIDTH_MAP : FIELD_WIDTH_MAP;
+      const widthClass = widthMap[field] || FIELD_WIDTH_MAP[field] || "col";
 
       const needsFlexColumn = SPECIAL_FLEX_FIELDS[field];
 
@@ -511,7 +533,7 @@ export default {
       const typeToTitle = {
         samples: "Sample Information",
         cells: "Cell Information",
-        equipments: "Equipment Information",
+        equipment: "Equipment Information",
         starting_materials: "Starting Material Information",
       };
 
