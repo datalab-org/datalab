@@ -3,7 +3,8 @@ import json
 import re
 import secrets
 from hashlib import sha512
-from importlib.metadata import PackageNotFoundError, version
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as get_package_version
 
 from bson import ObjectId
 from bson.errors import InvalidId
@@ -1342,9 +1343,8 @@ def restore_version(refcode):
         }
 
     # Get the software version
-
     try:
-        software_version = version("datalab-server")
+        software_version = get_package_version("datalab-server")
     except PackageNotFoundError:
         software_version = "unknown"
 
@@ -1436,7 +1436,7 @@ def _save_version_snapshot(refcode: str, action: str = "manual_save") -> tuple[d
 
     # Find out the software version
     try:
-        software_version = version("datalab-server")
+        software_version = get_package_version("datalab-server")
     except PackageNotFoundError:
         software_version = "unknown"
 
