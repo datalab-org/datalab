@@ -13,9 +13,50 @@ from pydatalab.logger import LOGGER
 
 def parse_ivium_eis_txt(filename: Path):
     eis = pd.read_csv(filename, sep="\t")
+
+    column_map = {
+        "Z1 /ohm": "Re(Z) [Ω]",
+        "Z2 /ohm": "-Im(Z) [Ω]",
+        "freq. /Hz": "Frequency [Hz]",
+    }
+
+    if not all(k in eis.columns for k in column_map):
+        raise RuntimeError(
+            f"File does not appear to be a valid Ivium EIS export, expected columns {column_map.keys()}, found {eis.columns}"
+        )
+
     eis["Z2 /ohm"] *= -1
     eis.rename(
-        {"Z1 /ohm": "Re(Z) [Ω]", "Z2 /ohm": "-Im(Z) [Ω]", "freq. /Hz": "Frequency [Hz]"},
+        column_map,
+        inplace=True,
+        axis="columns",
+    )
+    return eis
+
+
+def parse_pstrace_eis_txt(filename: Path):
+    eis = pd.read_csv(filename, sep="\t")
+
+    column_map = {
+        "Frequency": "Frequency [Hz]",
+        "Zdash": "Re(Z) [Ω]",
+        "Zdashneg": "-Im(Z) [Ω]",
+        "Z": "|Z| [Ω]",
+        "Phase": "θ [°]",
+        "Y": "|Y| [S]",
+        "YRe": "Re(Y) [S]",
+        "YIm": "Im(Y) [S]",
+        "Cdash": "Re(C) [F]",
+        "Cdashdash": "Im(C) [F]",
+    }
+
+    if not all(k in eis.columns for k in column_map):
+        raise RuntimeError(
+            f"File does not appear to be a valid PSTrace EIS export, expected columns {column_map.keys()}, found {eis.columns}"
+        )
+
+    eis.rename(
+        column_map,
         inplace=True,
         axis="columns",
     )
@@ -26,7 +67,12 @@ class EISBlock(DataBlock):
     accepted_file_extensions = (".txt",)
     blocktype = "eis"
     name = "EIS"
-    description = "This block can plot electrochemical impedance spectroscopy (EIS) data from Ivium .txt files"
+    description = """
+This block can plot electrochemical impedance spectroscopy (EIS) data from:
+
+- exported  Ivium .txt files
+- exported .txt files from PSTrace.
+    """
 
     @property
     def plot_functions(self):
@@ -51,7 +97,22 @@ class EISBlock(DataBlock):
                 )
                 return
 
-            eis_data = parse_ivium_eis_txt(Path(file_info["location"]))
+            errors = []
+            eis_data = None
+            try:
+                eis_data = parse_ivium_eis_txt(Path(file_info["location"]))
+            except RuntimeError as exc:
+                errors = [exc]
+
+            try:
+                eis_data = parse_pstrace_eis_txt(Path(file_info["location"]))
+            except RuntimeError as exc:
+                errors.append(exc)
+
+            if eis_data is None:
+                raise RuntimeError(
+                    f"Could not parse EIS data from uploaded file with implemented parsers. Errors: {errors}"
+                )
 
         if eis_data is not None:
             plot = selectable_axes_plot(

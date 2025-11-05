@@ -68,7 +68,7 @@ export default function setupUppy(item_id, trigger_selector, reactive_file_list)
           file_id: response_body.file_id,
           file_info: {
             ...response_body.file_information,
-            immutable_id: response_body.file_information.immutable_id.$oid,
+            immutable_id: response_body.file_information.immutable_id,
           },
         });
       }

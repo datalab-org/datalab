@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.6.4 (September 2025)
+
+This patch release simply fixes a few UI bugs introduced in v0.6.3 (and earlier).
+It also signifies the adoption of the Contributor Covenant Code of Conduct (v2).
+
+### What's Changed
+
+* Broken admin dashboard UI for user management by @ml-evs in #1361
+* Inability to insert new items created via copying into a collection by @BenjaminCharmes in #1356
+* Long message dialog box formatting by @BenjaminCharmes in #1346
+
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.6.3...v0.6.4
+
 ## v0.6.3 (September 2025)
 
 This patch release primarily improves block serialization performance and extensibility, as well as improving error handling for both developers and users.

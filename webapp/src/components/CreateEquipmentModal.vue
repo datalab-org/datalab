@@ -175,7 +175,6 @@ export default {
             document.getElementById(this.item_id).scrollIntoView({ behavior: "smooth" });
           }
           this.item_id = null;
-          this.name = null;
           this.date = this.now(); // reset date to the new current time
         })
         .catch((error) => {

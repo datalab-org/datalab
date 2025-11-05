@@ -123,12 +123,21 @@ export function createNewItem(
   }).then(function (response_json) {
     if (SAMPLE_TABLE_TYPES.includes(response_json.sample_list_entry.type)) {
       store.commit("prependToSampleList", response_json.sample_list_entry);
+      if (startingCollection && startingCollection.length > 0) {
+        getSampleList();
+      }
     }
     if (INVENTORY_TABLE_TYPES.includes(response_json.sample_list_entry.type)) {
       store.commit("prependToStartingMaterialList", response_json.sample_list_entry);
+      if (startingCollection && startingCollection.length > 0) {
+        getStartingMaterialList();
+      }
     }
     if (EQUIPMENT_TABLE_TYPES.includes(response_json.sample_list_entry.type)) {
       store.commit("prependToEquipmentList", response_json.sample_list_entry);
+      if (startingCollection && startingCollection.length > 0) {
+        getEquipmentList();
+      }
     }
     return "success";
   });
@@ -775,16 +784,19 @@ export async function getItemGraph({ item_id = null, collection_id = null } = {}
   if (collection_id != null) {
     url = url + "?collection_id=" + collection_id;
   }
+  store.commit("setItemGraphIsLoading", true);
   return fetch_get(url)
     .then(function (response_json) {
       store.commit("setItemGraph", { nodes: response_json.nodes, edges: response_json.edges });
+      store.commit("setItemGraphIsLoading", false);
     })
-    .catch((error) =>
+    .catch((error) => {
+      store.commit("setItemGraphIsLoading", false);
       DialogService.error({
         title: "Graph Retrieval Failed",
         message: `Error retrieving item graph from API: ${error}`,
-      }),
-    );
+      });
+    });
 }
 
 export async function requestNewAPIKey() {

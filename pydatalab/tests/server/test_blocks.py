@@ -337,7 +337,7 @@ def test_echem_block_lifecycle(admin_client, default_sample_dict, example_data_d
     assert web_block.get("errors") is None
 
 
-def test_xrd_block_lifecycle(admin_client, default_sample_dict, example_data_dir):
+def test_xrd_block_lifecycle(admin_client, client, user_id, default_sample_dict, example_data_dir):
     from pydatalab.apps.xrd import XRDBlock
 
     block_type = "xrd"
@@ -349,6 +349,14 @@ def test_xrd_block_lifecycle(admin_client, default_sample_dict, example_data_dir
     response = admin_client.post("/new-sample/", json=sample_data)
     assert response.status_code == 201
     assert response.json["status"] == "success"
+
+    refcode = response.json["sample_list_entry"]["refcode"]
+
+    response = admin_client.patch(
+        f"/items/{refcode}/permissions", json={"creators": [{"immutable_id": str(user_id)}]}
+    )
+
+    assert response.status_code == 200
 
     response = admin_client.post(
         "/add-data-block/",
@@ -396,6 +404,19 @@ def test_xrd_block_lifecycle(admin_client, default_sample_dict, example_data_dir
 
     response = admin_client.post("/update-block/", json={"block_data": block_data})
 
+    web_block = response.json["new_block_data"]
+    assert "bokeh_plot_data" in web_block
+    assert "computed" in web_block
+    assert web_block["wavelength"] == 2.0
+    assert "peak_data" in web_block["computed"]
+    assert "file_id" in web_block
+    assert web_block["file_id"] == file_id
+    assert web_block.get("errors") is None
+
+    # Check a non-admin creator can also see the block
+    response = client.post("/update-block/", json={"block_data": block_data})
+
+    assert "new_block_data" in response.json
     web_block = response.json["new_block_data"]
     assert "bokeh_plot_data" in web_block
     assert "computed" in web_block
