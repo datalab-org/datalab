@@ -47,7 +47,24 @@
           <span class="contents-blocktitle" @click="openEditPageInNewTab(child)">{{ child }}</span>
         </li>
       </ul>
-      <div v-show="activeTab == 'graph'">
+      <div v-show="activeTab == 'graph'" style="position: relative">
+        <div
+          v-if="isLoading"
+          class="position-absolute w-100 h-100 top-0 start-0 d-flex justify-content-center align-items-center"
+          style="background-color: rgba(255, 255, 255, 0.7); z-index: 100"
+        >
+          <div class="card p-3 shadow-sm">
+            <div class="text-center">
+              <font-awesome-icon
+                :icon="['fa', 'sync']"
+                class="fa-2x text-primary mb-2"
+                :spin="true"
+                aria-label="loading"
+              />
+              <p class="mb-0 fw-medium">Loading graph...</p>
+            </div>
+          </div>
+        </div>
         <ItemGraph :graph-data="graphData" style="height: 400px" />
       </div>
       <!--       <div class="alert alert-info" role="alert" v-show="activeTab == 'graph'">
@@ -85,9 +102,12 @@ export default {
     graphData() {
       return this.$store.state.itemGraphData;
     },
+    isLoading() {
+      return this.$store.state.itemGraphIsLoading;
+    },
   },
-  async mounted() {
-    await getItemGraph({ item_id: this.item_id });
+  mounted() {
+    getItemGraph({ item_id: this.item_id });
   },
   methods: {
     openEditPageInNewTab(item_id) {

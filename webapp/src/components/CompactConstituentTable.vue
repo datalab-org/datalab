@@ -46,12 +46,7 @@
           <input
             v-model="constituent.quantity"
             class="form-control form-control-sm quantity-input"
-            :class="{
-              'red-border':
-                constituent.quantity !== null &&
-                constituent.quantity !== undefined &&
-                isNaN(constituent.quantity),
-            }"
+            :class="{ 'red-border': isNaN(constituent.quantity) }"
             placeholder="quantity"
           />
         </td>
