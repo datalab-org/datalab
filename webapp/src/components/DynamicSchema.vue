@@ -259,12 +259,14 @@ const LAYOUT_CONFIG = {
     cells: ["name", "date"],
     equipments: ["name", "date"],
     starting_materials: ["name", "chemform", "date"],
+    collections: ["title"],
   },
   secondRow: {
     samples: ["refcode", "creators", "collections"],
     cells: ["refcode", "creators", "collections"],
     equipments: ["refcode", "manufacturer", "location", "collections"],
     starting_materials: ["refcode", "barcode", "collections"],
+    collections: ["creators"],
   },
   additionalRows: {
     samples: [],
@@ -284,6 +286,7 @@ const LAYOUT_CONFIG = {
       "date_opened",
       "GHS_codes",
     ],
+    collections: [],
   },
 };
 
@@ -310,6 +313,7 @@ const FIELD_WIDTH_MAP = {
   characteristic_chemical_formula: "col-lg-4 col-md-4",
   characteristic_molar_mass: "col-lg-3 col-md-4",
   date_opened: "col-lg-3 col-sm-3 col-6",
+  title: "col",
 };
 
 const SPECIAL_FLEX_FIELDS = {
@@ -368,7 +372,9 @@ export default {
       return this.filterExistingFields(fields);
     },
     hasRelationships() {
-      return ["samples", "cells"].includes(this.item_data.type);
+      return ["samples", "cells", "starting_materials", "collections"].includes(
+        this.item_data.type,
+      );
     },
     tableOfContentsSections() {
       return this.getTableOfContentsSections();

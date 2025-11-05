@@ -7,6 +7,7 @@ import NotFound from "../views/NotFound.vue";
 import EditPage from "../views/EditPage.vue";
 import EditPageV2 from "../views/EditPageV2.vue";
 import CollectionPage from "../views/CollectionPage.vue";
+import CollectionPageV2 from "../views/CollectionPageV2.vue";
 import ExampleGraph from "@/views/ExampleGraph.vue";
 import ItemGraphPage from "@/views/ItemGraphPage.vue";
 import Admin from "@/views/Admin.vue";
@@ -87,6 +88,11 @@ const routes = [
     path: "/collections/:id",
     name: "Collection",
     component: CollectionPage,
+  },
+  {
+    path: "/collections-next/:id",
+    name: "Collection-next",
+    component: CollectionPageV2,
   },
   {
     path: "/test-graph/",
