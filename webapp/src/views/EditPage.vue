@@ -42,6 +42,8 @@
       <a class="nav-item nav-link" :href="itemApiUrl" target="_blank">
         <font-awesome-icon icon="code" fixed-width /> View JSON
       </a>
+      <!-- Version History UI - Hidden until temp version system is complete -->
+      <!-- TODO: Uncomment when ready to expose version history to users
       <a
         v-if="itemDataLoaded"
         class="nav-item nav-link"
@@ -50,6 +52,7 @@
       >
         <font-awesome-icon icon="history" fixed-width /> Versions
       </a>
+      -->
     </div>
     <div class="navbar-nav ml-auto">
       <span v-if="itemDataLoaded && !savedStatus" class="navbar-text unsaved-warning">
