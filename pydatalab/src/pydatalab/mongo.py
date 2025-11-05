@@ -116,6 +116,11 @@ def create_default_indices(
         - An index over item type,
         - A unique index over `item_id` and `refcode`.
         - A text index over user names and identities.
+        - Version control indexes:
+            - Index on item_versions.refcode for fast version history lookup
+            - Index on item_versions.user_id for fast user contribution queries
+            - Compound index on (refcode, version_number) for sorted version history
+            - Unique index on version_counters.refcode for atomic version numbering
 
     Parameters:
         background: If true, indexes will be created as background jobs.
@@ -248,5 +253,17 @@ def create_default_indices(
         "created_at", name="export task created at", background=background
     )
     ret += db.export_tasks.create_index("status", name="export task status", background=background)
+
+    # Version control indexes
+    ret += db.item_versions.create_index("refcode", name="version refcode", background=background)
+    ret += db.item_versions.create_index("user_id", name="version user_id", background=background)
+    ret += db.item_versions.create_index(
+        [("refcode", pymongo.ASCENDING), ("version_number", pymongo.DESCENDING)],
+        name="refcode and version number",
+        background=background,
+    )
+    ret += db.version_counters.create_index(
+        "refcode", unique=True, name="unique refcode counter", background=background
+    )
 
     return ret
