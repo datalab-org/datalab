@@ -1150,6 +1150,17 @@ def restore_version(refcode):
     # Perform the restore first
     flask_mongo.db.items.update_one({"refcode": refcode}, {"$set": restored_data})
 
+    # Extract user information for hybrid storage approach
+    user_snapshot = None
+    user_id = None
+    if current_user.is_authenticated:
+        user_id = current_user.person.immutable_id
+        user_snapshot = {
+            "id": str(user_id),
+            "display_name": getattr(current_user.person, "display_name", None),
+            "email": getattr(current_user.person, "contact_email", None),
+        }
+
     # Save the RESTORED state as a new version snapshot (after restore)
     flask_mongo.db.item_versions.insert_one(
         {
@@ -1160,17 +1171,8 @@ def restore_version(refcode):
             "restored_from_version": str(
                 version_object_id
             ),  # Track which version was restored from
-            "user": {
-                "id": str(current_user.person.immutable_id)
-                if current_user.is_authenticated
-                else None,
-                "display_name": getattr(current_user.person, "display_name", None)
-                if current_user.is_authenticated
-                else None,
-                "email": getattr(current_user.person, "contact_email", None)
-                if current_user.is_authenticated
-                else None,
-            },
+            "user": user_snapshot,  # Snapshot for fast display
+            "user_id": user_id,  # ObjectId for efficient querying
             "software_version": getattr(CONFIG, "VERSION", "unknown"),
             "data": restored_data,  # Store the complete snapshot of the restored state
         }
@@ -1234,20 +1236,24 @@ def _save_version_snapshot(refcode: str, action: str = "manual_save") -> tuple[d
     # Atomically get the next version number
     next_version_number = _get_next_version_number(refcode)
 
+    # Extract user information for hybrid storage approach
+    user_snapshot = None
+    user_id = None
+    if current_user.is_authenticated:
+        user_id = current_user.person.immutable_id
+        user_snapshot = {
+            "id": str(user_id),
+            "display_name": getattr(current_user.person, "display_name", None),
+            "email": getattr(current_user.person, "contact_email", None),
+        }
+
     version_entry = {
         "refcode": refcode,
         "version_number": next_version_number,
         "timestamp": datetime.datetime.now(tz=datetime.timezone.utc).isoformat(),
         "action": action,  # Audit trail: why this version was created
-        "user": {
-            "id": str(current_user.person.immutable_id) if current_user.is_authenticated else None,
-            "display_name": getattr(current_user.person, "display_name", None)
-            if current_user.is_authenticated
-            else None,
-            "email": getattr(current_user.person, "contact_email", None)
-            if current_user.is_authenticated
-            else None,
-        },
+        "user": user_snapshot,  # Snapshot for fast display
+        "user_id": user_id,  # ObjectId for efficient querying
         "software_version": getattr(CONFIG, "VERSION", "unknown"),
         "data": item,  # Complete snapshot of the item at this version
     }
