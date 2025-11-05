@@ -9,11 +9,21 @@
               :key="field"
               :class="getFieldClass(field, 'first')"
             >
-              <label :for="`${item_data?.type}-${field}`">{{
-                schema.properties[field]?.title === "Chemform"
-                  ? "Chemical Formula"
-                  : schema.properties[field]?.title || "Untitled"
-              }}</label>
+              <FieldLabelDescriptionTooltip
+                :html-for="`${item_data?.type}-${field}`"
+                :label="
+                  schema.properties[field]?.title === 'Chemform'
+                    ? 'Chemical Formula'
+                    : schema.properties[field]?.title || 'Untitled'
+                "
+                :description="getFieldDescription(field)"
+              />
+              <div
+                v-if="field === 'refcode' || field === 'item_id'"
+                :id="`${item_data.type}-${field}`"
+              >
+                <component :is="getComponentType(field)" v-bind="getComponentProps(field)" />
+              </div>
               <component
                 :is="getComponentType(field)"
                 :id="`${item_data.type}-${field}`"
@@ -32,11 +42,12 @@
               :key="field"
               :class="getFieldClass(field, 'second')"
             >
-              <label
+              <FieldLabelDescriptionTooltip
                 v-if="schema.properties[field].title != 'Collections'"
-                :for="`${item_data.type}-${field}`"
-                >{{ schema.properties[field].title }}</label
-              >
+                :html-for="`${item_data.type}-${field}`"
+                :label="schema.properties[field].title"
+                :description="getFieldDescription(field)"
+              />
               <component
                 :is="getComponentType(field)"
                 v-if="field == 'collections'"
@@ -65,9 +76,11 @@
         <template v-if="item_data.type === 'starting_materials' && additionalRowFields.length">
           <div v-if="additionalRowFields.includes('location')" class="form-row">
             <div :class="getFieldClass('location')">
-              <label :for="`${item_data.type}-location`">{{
-                schema.properties.location?.title
-              }}</label>
+              <FieldLabelDescriptionTooltip
+                :html-for="`${item_data.type}-location`"
+                :label="schema.properties.location?.title"
+                :description="getFieldDescription('location')"
+              />
               <component
                 :is="getComponentType('location')"
                 :id="`${item_data.type}-location`"
@@ -80,9 +93,11 @@
 
           <div class="form-row">
             <div v-if="additionalRowFields.includes('supplier')" :class="getFieldClass('supplier')">
-              <label :for="`${item_data.type}-supplier`">{{
-                schema.properties.supplier?.title
-              }}</label>
+              <FieldLabelDescriptionTooltip
+                :html-for="`${item_data.type}-supplier`"
+                :label="schema.properties.supplier?.title"
+                :description="getFieldDescription('supplier')"
+              />
               <component
                 :is="getComponentType('supplier')"
                 :id="`${item_data.type}-supplier`"
@@ -95,9 +110,11 @@
               v-if="additionalRowFields.includes('chemical_purity')"
               :class="getFieldClass('chemical_purity')"
             >
-              <label :for="`${item_data.type}-chemical_purity`">{{
-                schema.properties.chemical_purity?.title
-              }}</label>
+              <FieldLabelDescriptionTooltip
+                :html-for="`${item_data.type}-chemical_purity`"
+                :label="schema.properties.chemical_purity?.title"
+                :description="getFieldDescription('chemical_purity')"
+              />
               <component
                 :is="getComponentType('chemical_purity')"
                 :id="`${item_data.type}-chemical_purity`"
@@ -110,7 +127,11 @@
 
           <div class="form-row">
             <div v-if="additionalRowFields.includes('CAS')" :class="getFieldClass('CAS')">
-              <label :for="`${item_data.type}-CAS`">{{ schema.properties.CAS?.title }}</label>
+              <FieldLabelDescriptionTooltip
+                :html-for="`${item_data.type}-CAS`"
+                :label="schema.properties.CAS?.title"
+                :description="getFieldDescription('CAS')"
+              />
               <a
                 v-if="localItemData.CAS"
                 :href="'https://commonchemistry.cas.org/detail?cas_rn=' + localItemData.CAS"
@@ -130,9 +151,11 @@
               v-if="additionalRowFields.includes('date_opened')"
               :class="getFieldClass('date_opened')"
             >
-              <label :for="`${item_data.type}-date_opened`">{{
-                schema.properties.date_opened?.title
-              }}</label>
+              <FieldLabelDescriptionTooltip
+                :html-for="`${item_data.type}-date_opened`"
+                :label="schema.properties.date_opened?.title"
+                :description="getFieldDescription('date_opened')"
+              />
               <component
                 :is="getComponentType('date_opened')"
                 :id="`${item_data.type}-date_opened`"
@@ -160,26 +183,36 @@
             :key="field"
             :class="getFieldClass(field, 'additional')"
           >
-            <label v-if="field == 'cell_format'" :for="`${item_data.type}-${field}`"
-              >Cell format</label
-            >
-            <label v-else-if="field == 'characteristic_mass'" :for="`${item_data.type}-${field}`"
-              >Active mass (mg)</label
-            >
-            <label
+            <FieldLabelDescriptionTooltip
+              v-if="field == 'cell_format'"
+              :html-for="`${item_data.type}-${field}`"
+              label="Cell format"
+              :description="getFieldDescription('cell_format')"
+            />
+            <FieldLabelDescriptionTooltip
+              v-else-if="field == 'characteristic_mass'"
+              :html-for="`${item_data.type}-${field}`"
+              label="Active mass (mg)"
+              :description="getFieldDescription('characteristic_mass')"
+            />
+            <FieldLabelDescriptionTooltip
               v-else-if="field == 'characteristic_chemical_formula'"
-              :for="`${item_data.type}-${field}`"
-            >
-              Active formula</label
-            >
-            <label
+              :html-for="`${item_data.type}-${field}`"
+              label="Active formula"
+              :description="getFieldDescription('characteristic_chemical_formula')"
+            />
+            <FieldLabelDescriptionTooltip
               v-else-if="field == 'characteristic_molar_mass'"
-              :for="`${item_data.type}-${field}`"
-              >Molar mass</label
-            >
-            <label v-else :for="`${item_data.type}-${field}`">{{
-              schema.properties[field]?.title
-            }}</label>
+              :html-for="`${item_data.type}-${field}`"
+              label="Molar mass"
+              :description="getFieldDescription('characteristic_molar_mass')"
+            />
+            <FieldLabelDescriptionTooltip
+              v-else
+              :html-for="`${item_data.type}-${field}`"
+              :label="schema.properties[field]?.title"
+              :description="getFieldDescription(field)"
+            />
             <select
               v-if="field === 'cell_format'"
               :id="`${item_data.type}-${field}`"
@@ -204,7 +237,11 @@
 
         <div class="form-row">
           <div class="col">
-            <label :for="`${item_data.type}-description`">Description</label>
+            <FieldLabelDescriptionTooltip
+              :html-for="`${item_data.type}-description`"
+              label="Description"
+              :description="getFieldDescription('description')"
+            />
             <component
               :is="getComponentType('description')"
               :id="`${item_data.type}-description`"
@@ -252,6 +289,7 @@ import ChemFormulaInput from "@/components/ChemFormulaInput";
 import SynthesisInformation from "@/components/SynthesisInformation";
 import CellPreparationInformation from "@/components/CellPreparationInformation";
 import GHSHazardInformation from "@/components/GHSHazardInformation";
+import FieldLabelDescriptionTooltip from "@/components/FieldLabelDescriptionTooltip";
 
 const LAYOUT_CONFIG = {
   firstRow: {
@@ -346,6 +384,7 @@ export default {
     SynthesisInformation,
     CellPreparationInformation,
     GHSHazardInformation,
+    FieldLabelDescriptionTooltip,
   },
   props: {
     item_data: { type: Object, required: true },
@@ -382,7 +421,10 @@ export default {
   },
   async mounted() {
     const response = await getSchema(this.item_data.type);
-    this.schema = response?.attributes?.schema || response?.attributes || response;
+    this.schema = response?.attributes?.schema;
+    console.log("#$#$$#$#$#$#$#$#$#");
+    console.log(response);
+    console.log("#$#$$#$#$#$#$#$#$#");
   },
   methods: {
     filterExistingFields(fields) {
@@ -559,6 +601,10 @@ export default {
         item_id: this.item_data.item_id,
         item_data: this.localItemData,
       });
+    },
+
+    getFieldDescription(field) {
+      return this.schema?.properties?.[field]?.description || null;
     },
   },
 };
