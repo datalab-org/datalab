@@ -1,0 +1,145 @@
+"""Pydantic models for version control system."""
+
+from datetime import datetime
+from typing import Literal
+
+from pydantic import BaseModel, Field, validator
+
+from pydatalab.models.utils import PyObjectId, Refcode
+
+
+class UserSnapshot(BaseModel):
+    """A snapshot of user information at the time a version was created.
+
+    This allows displaying user details even if the user account is later modified or deleted.
+    """
+
+    id: str = Field(..., description="User's ObjectId as a string")
+    display_name: str | None = Field(None, description="User's display name at time of version")
+    email: str | None = Field(None, description="User's email at time of version")
+
+    class Config:
+        extra = "forbid"
+
+
+class VersionAction(str):
+    """Valid actions that can create a version snapshot."""
+
+    CREATED = "created"
+    MANUAL_SAVE = "manual_save"
+    AUTO_SAVE = "auto_save"
+    RESTORED = "restored"
+
+
+class ItemVersion(BaseModel):
+    """A complete snapshot of an item at a specific point in time.
+
+    This model represents a version entry in the `item_versions` collection.
+    Each version captures the complete state of an item, allowing users to
+    view history and restore previous states.
+    """
+
+    refcode: Refcode = Field(..., description="The refcode of the item this version belongs to")
+    version_number: int = Field(..., ge=1, description="Sequential version number (1-indexed)")
+    timestamp: datetime = Field(
+        ..., description="When this version was created (ISO format with timezone)"
+    )
+    action: Literal["created", "manual_save", "auto_save", "restored"] = Field(
+        ...,
+        description="The action that triggered this version: 'created' (item creation), "
+        "'manual_save' (user save), 'auto_save' (system save), or 'restored' (version restore)",
+    )
+    user: UserSnapshot | None = Field(
+        None,
+        description="Snapshot of user information for display (redundant with user_id for fast display)",
+    )
+    user_id: PyObjectId | None = Field(
+        None, description="User's ObjectId for efficient querying and indexing"
+    )
+    software_version: str = Field(
+        ..., description="Version of datalab-server that created this snapshot"
+    )
+    data: dict = Field(..., description="Complete snapshot of the item data at this version")
+    restored_from_version: str | None = Field(
+        None,
+        description="ObjectId string of the version that was restored (only present if action='restored')",
+    )
+
+    @validator("restored_from_version")
+    def validate_restored_from_version(cls, v, values):
+        """Ensure restored_from_version is only present when action='restored'."""
+        action = values.get("action")
+        if action == "restored" and v is None:
+            raise ValueError("restored_from_version must be provided when action='restored'")
+        if action != "restored" and v is not None:
+            raise ValueError(
+                f"restored_from_version should only be present when action='restored', got action='{action}'"
+            )
+        return v
+
+    @validator("user_id")
+    def validate_user_id_matches_user_snapshot(cls, v, values):
+        """Ensure user_id matches the user snapshot id."""
+        user = values.get("user")
+        if user and v:
+            if str(v) != user.id:
+                raise ValueError(f"user_id ({v}) must match user.id ({user.id}) for consistency")
+        return v
+
+    class Config:
+        extra = "forbid"
+
+
+class VersionCounter(BaseModel):
+    """Atomic counter for tracking version numbers per item.
+
+    This model represents a document in the `version_counters` collection.
+    It ensures atomic increment of version numbers to prevent race conditions.
+    """
+
+    refcode: Refcode = Field(..., description="The refcode this counter belongs to")
+    counter: int = Field(0, ge=0, description="Current version counter value (0-indexed)")
+
+    class Config:
+        extra = "forbid"
+
+
+class RestoreVersionRequest(BaseModel):
+    """Request body for restoring a version."""
+
+    version_id: str = Field(..., description="ObjectId string of the version to restore to")
+
+    @validator("version_id")
+    def validate_version_id_format(cls, v):
+        """Validate that version_id is a valid ObjectId string."""
+        try:
+            from bson import ObjectId
+
+            ObjectId(v)
+        except Exception as e:
+            raise ValueError(f"version_id must be a valid ObjectId string: {e}")
+        return v
+
+    class Config:
+        extra = "forbid"
+
+
+class CompareVersionsQuery(BaseModel):
+    """Query parameters for comparing two versions."""
+
+    v1: str = Field(..., description="ObjectId string of the first version")
+    v2: str = Field(..., description="ObjectId string of the second version")
+
+    @validator("v1", "v2")
+    def validate_version_ids(cls, v):
+        """Validate that version IDs are valid ObjectId strings."""
+        try:
+            from bson import ObjectId
+
+            ObjectId(v)
+        except Exception as e:
+            raise ValueError(f"Version ID must be a valid ObjectId string: {e}")
+        return v
+
+    class Config:
+        extra = "forbid"
