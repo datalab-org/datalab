@@ -91,6 +91,21 @@ def load_app_blocks():
     except ImportError as e:
         _check_error(e)
 
+    try:
+        from pydatalab.apps.gpc_sec import GPCBlock
+        
+        app_blocks.append(GPCBlock)
+    except ImportError as e:
+        _check_error(e)
+
+    try:
+        from pydatalab.apps.dsc import DSCBlock
+        
+        app_blocks.append(DSCBlock)
+    except ImportError as e:
+        _check_error(e)
+
+
     return app_blocks
 
 
