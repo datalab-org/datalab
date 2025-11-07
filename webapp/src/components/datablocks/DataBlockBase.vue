@@ -126,7 +126,32 @@
           </div>
         </div>
       </div>
+      <slot name="controls"></slot>
+
+      <div v-if="hasMetadata" class="mt-2 mb-2">
+        <button class="btn btn-sm btn-outline-secondary" @click="metadataShown = !metadataShown">
+          {{ metadataShown ? "Hide metadata" : "Show metadata" }}
+        </button>
+      </div>
+
+      <div v-if="$slots.plot || hasMetadata" class="row mt-2">
+        <div
+          :class="
+            hasMetadata && metadataShown
+              ? 'col-xl-8 col-lg-8 col-md-12'
+              : 'col-xl-9 col-lg-10 col-md-11 mx-auto'
+          "
+        >
+          <slot name="plot"></slot>
+        </div>
+
+        <div v-if="hasMetadata && metadataShown" class="col-xl-4 col-lg-4 col-md-12">
+          <MetadataViewer :metadata="block.metadata" />
+        </div>
+      </div>
+
       <slot></slot>
+
       <TinyMceInline v-model="BlockDescription" data-testid="block-description"></TinyMceInline>
     </div>
   </div>
@@ -146,6 +171,7 @@ import { createComputedSetterForBlockField } from "@/field_utils.js";
 import TinyMceInline from "@/components/TinyMceInline";
 import StyledBlockInfo from "@/components/StyledBlockInfo";
 import tinymce from "tinymce/tinymce";
+import MetadataViewer from "@/components/MetadataViewer";
 
 import { deleteBlock, updateBlockFromServer } from "@/server_fetch_utils";
 
@@ -153,6 +179,7 @@ export default {
   components: {
     TinyMceInline,
     StyledBlockInfo,
+    MetadataViewer,
   },
   props: {
     item_id: {
@@ -171,6 +198,7 @@ export default {
       padding_height: 18,
       isErrorsExpanded: true,
       isWarningsExpanded: true,
+      metadataShown: false,
     };
   },
   computed: {
@@ -202,6 +230,12 @@ export default {
     },
     BlockTitle: createComputedSetterForBlockField("title"),
     BlockDescription: createComputedSetterForBlockField("freeform_comment"),
+    hasMetadata() {
+      console.log("#$#$#$#$#%$#%$#$%#%$#%$#%$#%$");
+      console.log(this.block);
+      console.log("#$#$#$#$#%$#%$#$%#%$#%$#%$#%$");
+      return this.block?.metadata && Object.keys(this.block.metadata).length > 0;
+    },
   },
   mounted() {
     // this is to help toggleExpandBlock() work properly. Resets contentMaxHeight to "none"

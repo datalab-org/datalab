@@ -1,108 +1,79 @@
 <template>
-  <!-- think about elegant two-way binding to DataBlockBase... or, just pass all the block data into
-DataBlockBase as a prop, and save from within DataBlockBase  -->
   <DataBlockBase :item_id="item_id" :block_id="block_id">
-    <FileSelectDropdown
-      v-model="file_id"
-      :item_id="item_id"
-      :block_id="block_id"
-      :extensions="blockInfo.attributes.accepted_file_extensions"
-      update-block-on-change
-    />
-    <div v-show="file_id">
-      <div class="form-inline mt-2">
-        <div class="form-group">
-          <label class="mr-2"><b>Process number:</b></label>
-          <select v-model="selected_process" class="form-control" @change="updateBlock">
-            <option v-for="process_number in block.available_processes" :key="process_number">
-              {{ process_number }}
-            </option>
-          </select>
+    <template #controls>
+      <div v-if="!isMultiSelect" class="form-inline mb-2">
+        <label class="mr-2"><b>Select file:</b></label>
+        <FileSelectDropdown
+          v-model="fileModel"
+          :item_id="item_id"
+          :block_id="block_id"
+          :extensions="blockInfo.attributes.accepted_file_extensions"
+        />
+        <button class="btn btn-sm btn-primary ml-2" @click="toggleMultiSelect">
+          Switch to multi-select
+        </button>
+      </div>
+
+      <div v-else>
+        <FileMultiSelectDropdown
+          v-model="fileModel"
+          :item_id="item_id"
+          :block_id="block_id"
+          :extensions="blockInfo.attributes.accepted_file_extensions"
+          :main-label="'Select and order NMR files:'"
+        />
+        <div class="mt-2">
+          <button
+            class="btn btn-sm btn-primary"
+            :disabled="!hasFileChanges"
+            @click="applyMultiSelect"
+          >
+            Apply
+          </button>
+          <button class="btn btn-sm btn-secondary ml-2" @click="toggleMultiSelect">
+            Switch to single-select
+          </button>
         </div>
       </div>
 
-      <div class="mt-4">
-        <span class="mr-2">
-          <Isotope :isotope-string="metadata?.nucleus" /> {{ metadata?.pulse_program_name }}
-        </span>
-        <a type="button" class="btn btn-default btn-sm mb-2" @click="titleShown = !titleShown">{{
-          titleShown ? "hide title" : "show title"
-        }}</a>
-        <a
-          type="button"
-          class="btn btn-default btn-sm mb-2 ml-2"
-          @click="detailsShown = !detailsShown"
-          >{{ detailsShown ? "hide measurement details" : "show measurement details" }}</a
-        >
-      </div>
-      <div v-if="titleShown" class="card mb-2">
-        <div class="card-body" style="white-space: pre">
-          {{ metadata?.topspin_title }}
+      <div v-show="file_id || (file_ids && file_ids.length > 0)">
+        <div class="form-inline mt-2">
+          <div class="form-group">
+            <label class="mr-2"><b>Process number:</b></label>
+            <select v-model="selected_process" class="form-control" @change="updateBlock">
+              <option v-for="process_number in block.available_processes" :key="process_number">
+                {{ process_number }}
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <div class="mt-4">
+          <span class="mr-2">
+            <Isotope :isotope-string="metadata?.nucleus" /> {{ metadata?.pulse_program_name }}
+          </span>
+          <a type="button" class="btn btn-default btn-sm mb-2" @click="titleShown = !titleShown">{{
+            titleShown ? "hide title" : "show title"
+          }}</a>
+        </div>
+        <div v-if="titleShown" class="card mb-2">
+          <div class="card-body" style="white-space: pre">
+            {{ metadata?.topspin_title }}
+          </div>
         </div>
       </div>
-      <div class="row">
-        <div id="bokehPlotContainer" class="col-xl-8 col-lg-8 col-md-11 mx-auto">
-          <BokehPlot v-if="bokehPlotData" :bokeh-plot-data="bokehPlotData" />
-        </div>
-        <div v-if="detailsShown" class="col-xl-4 col-lg-4 ml-0">
-          <table class="table table-sm">
-            <tbody>
-              <tr>
-                <th scope="row">nucleus</th>
-                <td><Isotope :isotope-string="metadata?.nucleus" /></td>
-              </tr>
-              <tr>
-                <th scope="row">pulse program</th>
-                <td>{{ metadata?.pulse_program_name }}</td>
-              </tr>
-              <tr>
-                <th scope="row">Data shape</th>
-                <td>
-                  {{ metadata?.processed_data_shape }} (<i>d</i> =
-                  {{ metadata?.processed_data_shape.length }})
-                </td>
-              </tr>
-              <tr>
-                <th scope="row">probe</th>
-                <td>{{ metadata?.probe_name }} s</td>
-              </tr>
+    </template>
 
-              <tr>
-                <th scope="row"># of scans</th>
-                <td>{{ metadata?.nscans }}</td>
-              </tr>
-
-              <tr>
-                <th scope="row">recycle delay</th>
-                <td>{{ metadata?.recycle_delay }} s</td>
-              </tr>
-              <tr>
-                <th scope="row">carrier frequency</th>
-                <td>{{ metadata?.carrier_frequency_MHz }} MHz</td>
-              </tr>
-
-              <tr>
-                <th scope="row">carrier offset</th>
-                <td>
-                  {{ (metadata?.carrier_offset_Hz / metadata?.carrier_frequency_MHz).toFixed(1) }}
-                  ppm
-                </td>
-              </tr>
-              <tr>
-                <th scope="row">cnst31</th>
-                <td>{{ metadata?.CNST31 }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+    <template #plot>
+      <BokehPlot v-if="bokehPlotData" :bokeh-plot-data="bokehPlotData" />
+    </template>
   </DataBlockBase>
 </template>
 
 <script>
 import DataBlockBase from "@/components/datablocks/DataBlockBase";
 import FileSelectDropdown from "@/components/FileSelectDropdown";
+import FileMultiSelectDropdown from "@/components/FileMultiSelectDropdown";
 import BokehPlot from "@/components/BokehPlot";
 import Isotope from "@/components/Isotope";
 
@@ -113,6 +84,7 @@ export default {
   components: {
     DataBlockBase,
     FileSelectDropdown,
+    FileMultiSelectDropdown,
     BokehPlot,
     Isotope,
   },
@@ -129,8 +101,8 @@ export default {
   data() {
     return {
       wavelengthParseError: "",
-      detailsShown: true,
       titleShown: false,
+      pending_file_ids: [],
     };
   },
   computed: {
@@ -148,7 +120,44 @@ export default {
       return this.$store.state.blocksInfos["nmr"];
     },
     file_id: createComputedSetterForBlockField("file_id"),
+    file_ids: createComputedSetterForBlockField("file_ids"),
+    isMultiSelect: createComputedSetterForBlockField("isMultiSelect"),
+    prev_file_ids: createComputedSetterForBlockField("prev_file_ids"),
+    prev_single_file_id: createComputedSetterForBlockField("prev_single_file_id"),
     selected_process: createComputedSetterForBlockField("selected_process"),
+    fileModel: {
+      get() {
+        const ids = this.file_ids || [];
+        if (this.isMultiSelect) {
+          return this.pending_file_ids;
+        } else {
+          return ids[0] || this.file_id || null;
+        }
+      },
+      set(val) {
+        if (this.isMultiSelect) {
+          this.pending_file_ids = Array.isArray(val) ? val : [val];
+        } else {
+          this.file_ids = val ? [val] : [];
+          this.file_id = val || null;
+          this.updateBlock();
+        }
+      },
+    },
+    hasFileChanges() {
+      if (!this.isMultiSelect) return false;
+      const currentIds = this.file_ids || [];
+      if (this.pending_file_ids.length !== currentIds.length) return true;
+      return !this.pending_file_ids.every((id, index) => id === currentIds[index]);
+    },
+  },
+  mounted() {
+    if (!Array.isArray(this.file_ids)) {
+      this.file_ids = [];
+    }
+    if (this.isMultiSelect) {
+      this.pending_file_ids = this.file_ids.slice();
+    }
   },
   methods: {
     updateBlock() {
@@ -157,6 +166,35 @@ export default {
         this.block_id,
         this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id],
       );
+    },
+    toggleMultiSelect() {
+      if (this.isMultiSelect) {
+        this.prev_file_ids = this.file_ids.slice();
+        if (this.prev_single_file_id) {
+          this.file_ids = [this.prev_single_file_id];
+          this.file_id = this.prev_single_file_id;
+        } else if (this.prev_file_ids.length > 0) {
+          this.file_ids = [this.prev_file_ids[0]];
+          this.file_id = this.prev_file_ids[0];
+        } else {
+          this.file_ids = [];
+          this.file_id = null;
+        }
+      } else {
+        this.prev_single_file_id = this.file_ids[0] || this.file_id || null;
+        this.file_ids =
+          this.prev_file_ids && this.prev_file_ids.length > 0 ? this.prev_file_ids.slice() : [];
+        this.pending_file_ids = this.file_ids.slice();
+        this.file_id = null;
+      }
+      this.isMultiSelect = !this.isMultiSelect;
+      this.updateBlock();
+    },
+    applyMultiSelect() {
+      if (!this.isMultiSelect) return;
+      this.file_ids = this.pending_file_ids.slice();
+      this.file_id = null;
+      this.updateBlock();
     },
   },
 };

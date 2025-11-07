@@ -1,93 +1,81 @@
 <template>
   <DataBlockBase :item_id="item_id" :block_id="block_id">
-    <div class="mb-2 d-flex align-items-center">
-      <label class="mr-2"><b>Mode:</b></label>
-      <div class="btn-group" role="group" aria-label="Mode toggle">
-        <button
-          type="button"
-          class="btn"
-          :class="isEchemMode ? 'btn-outline-secondary' : 'btn-secondary'"
-          @click="setMode('log')"
-        >
-          Temperature
-        </button>
-        <button
-          type="button"
-          class="btn"
-          :class="isEchemMode ? 'btn-secondary' : 'btn-outline-secondary'"
-          @click="setMode('echem')"
-        >
-          Electrochemistry
-        </button>
-      </div>
-    </div>
-    <FileSelectDropdown
-      v-model="file_id"
-      :item_id="item_id"
-      :block_id="block_id"
-      :extensions="blockInfo.attributes.accepted_file_extensions"
-      update-block-on-change
-      @change="onFileChange"
-    />
-    <div v-show="file_id">
-      <div class="row">
-        <div class="col-lg-4 col-md-6 col-sm-12 mb-2">
-          <label class="mr-2"><b>XRD folder name</b></label>
-          <FolderSelect
-            v-model="xrd_folder_name"
-            :options="availableFolders"
-            @update:model-value="onFolderSelected"
-          />
-        </div>
-        <div class="col-lg-4 col-md-6 col-sm-12 mb-2">
-          <label class="mr-2"><b>Log folder name</b></label>
-          <FolderSelect
-            v-model="time_series_folder_name"
-            :options="availableFolders"
-            @update:model-value="onFolderSelected"
-          />
-        </div>
-        <div v-if="isEchemMode" class="col-lg-4 col-md-6 col-sm-12 mb-2">
-          <label class="mr-2"><b>Echem folder name</b></label>
-          <FolderSelect
-            v-model="echem_folder_name"
-            :options="availableFolders"
-            @update:model-value="onFolderSelected"
-          />
+    <template #controls>
+      <div class="mb-2 d-flex align-items-center">
+        <label class="mr-2"><b>Mode:</b></label>
+        <div class="btn-group" role="group" aria-label="Mode toggle">
+          <button
+            type="button"
+            class="btn"
+            :class="isEchemMode ? 'btn-outline-secondary' : 'btn-secondary'"
+            @click="setMode('log')"
+          >
+            Temperature
+          </button>
+          <button
+            type="button"
+            class="btn"
+            :class="isEchemMode ? 'btn-secondary' : 'btn-outline-secondary'"
+            @click="setMode('echem')"
+          >
+            Electrochemistry
+          </button>
         </div>
       </div>
-      <div v-if="folderNameError" class="alert alert-danger mt-2 mx-auto">
-        {{ folderNameError }}
-      </div>
-    </div>
-    <div class="form-inline mb-2">
-      <label class="mr-2"><b>Data granularity</b></label>
-      <input
-        v-model="data_granularity_buffer"
-        type="text"
-        class="form-control mr-3"
-        style="width: 100px; display: inline-block"
+      <FileSelectDropdown
+        v-model="file_id"
+        :item_id="item_id"
+        :block_id="block_id"
+        :extensions="blockInfo.attributes.accepted_file_extensions"
+        update-block-on-change
+        @change="onFileChange"
       />
-      <label class="mr-2"><b>Sample granularity</b></label>
-      <input
-        v-model="sample_granularity_buffer"
-        type="text"
-        class="form-control"
-        style="width: 100px; display: inline-block"
-      />
-      <button class="btn btn-primary ml-3" @click="onGranularitySubmit">Apply</button>
-    </div>
-    <div
-      v-show="xrd_folder_name && time_series_folder_name"
-      class="row mt-2 text-center justify-content-center"
-    >
-      <div
-        id="bokehPlotContainer"
-        class="col-xl-10 col-lg-11 col-md-12 d-flex justify-content-center overflow-auto"
-      >
-        <BokehPlot :bokeh-plot-data="bokehPlotData" class="mw-100" />
+      <div v-show="file_id">
+        <div class="row">
+          <div class="col-lg-4 col-md-6 col-sm-12 mb-2">
+            <label class="mr-2"><b>XRD folder name</b></label>
+            <FolderSelect
+              v-model="xrd_folder_name"
+              :options="availableFolders"
+              @update:model-value="onFolderSelected"
+            />
+          </div>
+          <div class="col-lg-4 col-md-6 col-sm-12 mb-2">
+            <label class="mr-2"><b>Log folder name</b></label>
+            <FolderSelect
+              v-model="time_series_folder_name"
+              :options="availableFolders"
+              @update:model-value="onFolderSelected"
+            />
+          </div>
+          <div v-if="isEchemMode" class="col-lg-4 col-md-6 col-sm-12 mb-2">
+            <label class="mr-2"><b>Echem folder name</b></label>
+            <FolderSelect
+              v-model="echem_folder_name"
+              :options="availableFolders"
+              @update:model-value="onFolderSelected"
+            />
+          </div>
+        </div>
+        <div v-if="folderNameError" class="alert alert-danger mt-2 mx-auto">
+          {{ folderNameError }}
+        </div>
       </div>
-    </div>
+      <div class="form-inline mb-2">
+        <label class="mr-2"><b>Data granularity</b></label>
+        <input
+          v-model="data_granularity_buffer"
+          type="number"
+          class="form-control"
+          min="1"
+          @change="updateDataGranularity"
+        />
+      </div>
+    </template>
+
+    <template #plot>
+      <BokehPlot v-if="bokehPlotData" :bokeh-plot-data="bokehPlotData" />
+    </template>
   </DataBlockBase>
 </template>
 

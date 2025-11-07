@@ -1,20 +1,21 @@
 <template>
   <DataBlockBase :item_id="item_id" :block_id="block_id">
-    <div>
-      <MultiFileSelector
-        v-model="selectedFileOrder"
-        :item_id="item_id"
-        :block_id="block_id"
-        :extensions="accepted_file_extensions"
-        :main-label="'Select and order files: First file should be the reference scan, the subsequent files will be the sample scans.'"
-        :update-block-on-change="true"
-      />
-    </div>
-    <div class="row">
-      <div id="bokehPlotContainer" class="col-xl-9 col-lg-10 col-md-11 mx-auto">
-        <BokehPlot :bokeh-plot-data="bokehPlotData" />
+    <template #controls>
+      <div>
+        <MultiFileSelector
+          v-model="selectedFileOrder"
+          :item_id="item_id"
+          :block_id="block_id"
+          :extensions="accepted_file_extensions"
+          :main-label="'Select and order files: First file should be the reference scan, the subsequent files will be the sample scans.'"
+          :update-block-on-change="true"
+        />
       </div>
-    </div>
+    </template>
+
+    <template #plot>
+      <BokehPlot :bokeh-plot-data="bokehPlotData" />
+    </template>
   </DataBlockBase>
 </template>
 

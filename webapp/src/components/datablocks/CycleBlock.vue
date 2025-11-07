@@ -1,155 +1,108 @@
 <template>
   <DataBlockBase :item_id="item_id" :block_id="block_id">
-    <div class="form-row align-items-center mb-2">
-      <button class="btn btn-outline-secondary mr-3" type="button" @click="toggleMultiSelect">
-        {{ isMultiSelect ? "Switch to Single File" : "Switch to Multi-File" }}
-      </button>
-      <component
-        :is="isMultiSelect ? 'FileMultiSelectDropdown' : 'FileSelectDropdown'"
-        v-model="fileModel"
-        :item_id="item_id"
-        :block_id="block_id"
-        :extensions="blockInfo.attributes.accepted_file_extensions"
-        :update-block-on-change="!isMultiSelect"
-      />
-    </div>
-    <div v-if="isMultiSelect" class="form-row mt-2">
-      <button class="btn btn-primary btn-sm" @click="applyMultiSelect">Apply Selection</button>
-    </div>
-    <div>
-      <div class="form-row">
-        <div class="input-group form-inline">
-          <label class="mr-2"><b>Cycles to plot:</b></label>
-          <input
-            id="cycles-input"
-            v-model="cyclesString"
-            type="text"
-            class="form-control"
-            placeholder="e.g., 1-5, 7, 9-10. Starts at 1."
-            :class="{ 'is-invalid': cycle_num_error }"
-            @keydown.enter="
-              parseCycleString();
-              updateBlock();
-            "
-            @blur="
-              parseCycleString();
-              updateBlock();
-            "
-          />
-          <span id="list-of-cycles" class="pl-3 pt-2">Showing cycles: {{ parsedCycles }}</span>
-        </div>
-
-        <div v-if="cycle_num_error" class="alert alert-danger mt-2 mx-auto">
-          {{ cycle_num_error }}
-        </div>
-      </div>
-
-      <div class="form-row mt-2">
-        <div class="input-group form-inline">
-          <label class="mr-2"><b>Mode:</b></label>
-          <div class="btn-group">
-            <div
-              class="btn btn-default"
-              :class="{ active: derivative_mode == 'final capacity' }"
-              @click="
-                derivative_mode = derivative_mode == 'final capacity' ? null : 'final capacity';
-                updateBlock();
-              "
-            >
-              Cycle Summary
-            </div>
-            <div
-              class="btn btn-default"
-              :class="{ active: derivative_mode == 'dQ/dV' }"
-              @click="
-                derivative_mode = derivative_mode == 'dQ/dV' ? null : 'dQ/dV';
-                updateBlock();
-              "
-            >
-              d<i>Q</i>/d<i>V</i>
-            </div>
-            <div
-              class="btn btn-default"
-              :class="{ active: derivative_mode == 'dV/dQ' }"
-              @click="
-                derivative_mode = derivative_mode == 'dV/dQ' ? null : 'dV/dQ';
-                updateBlock();
-              "
-            >
-              d<i>V</i>/d<i>Q</i>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div
-        v-if="derivative_mode == 'dQ/dV' || derivative_mode == 'dV/dQ'"
-        v-show="derivative_mode"
-        class="row"
-      >
-        <div class="col-md slider" style="max-width: 250px">
-          <input
-            id="s_spline"
-            v-model="s_spline"
-            type="range"
-            class="form-control-range"
-            name="s_spline"
-            min="1"
-            max="10"
-            step="0.2"
-            @change="isReplotButtonDisplayed = true"
-          />
-          <label
-            for="s_spline"
-            @mouseover="showDescription1 = true"
-            @mouseleave="showDescription1 = false"
-          >
-            <span>Spline fit:</span> {{ -s_spline }}
-          </label>
-        </div>
-        <div class="col-md slider" style="max-width: 250px">
-          <input
-            id="win_size_1"
-            v-model="win_size_1"
-            type="range"
-            class="form-control-range"
-            name="win_size_1"
-            min="501"
-            max="1501"
-            @change="isReplotButtonDisplayed = true"
-          />
-          <label
-            for="win_size_1"
-            @mouseover="showDescription2 = true"
-            @mouseleave="showDescription2 = false"
-          >
-            <span>Window Size 1:</span> {{ win_size_1 }}
-          </label>
-        </div>
-        <button v-show="isReplotButtonDisplayed" class="btn btn-default my-4" @click="updateBlock">
-          Recalculate
+    <template #controls>
+      <div v-if="!isMultiSelect" class="form-inline">
+        <label class="mr-2"><b>Select file:</b></label>
+        <FileSelectDropdown
+          v-model="fileModel"
+          :item_id="item_id"
+          :block_id="block_id"
+          :extensions="blockInfo.attributes.accepted_file_extensions"
+          @change="handleFileChange"
+        />
+        <button class="btn btn-sm btn-primary ml-2" @click="toggleMultiSelect">
+          Switch to multi-select
         </button>
       </div>
 
-      <div v-show="showDescription1" class="alert alert-info">
-        <p>
-          Smoothing parameter that determines how close the spline fits to the real data. Larger
-          values result in a smoother fit with decreased detail.
-        </p>
-      </div>
-      <div v-show="showDescription2" class="alert alert-info">
-        <p>Window size for the Savitzky-Golay filter to apply to the derivatives.</p>
-      </div>
-
-      <div class="row mt-2">
-        <div
-          class="col mx-auto"
-          :class="{ 'limited-width': bokehPlotLimitedWidth, blurry: isUpdating }"
-        >
-          <BokehPlot v-if="bokehPlotData" :bokeh-plot-data="bokehPlotData" />
+      <div v-else>
+        <FileMultiSelectDropdown
+          v-model="fileModel"
+          :item_id="item_id"
+          :block_id="block_id"
+          :extensions="blockInfo.attributes.accepted_file_extensions"
+          :main-label="'Select and order files:'"
+        />
+        <div class="mt-2">
+          <button
+            class="btn btn-sm btn-primary"
+            :disabled="!hasFileChanges"
+            @click="applyMultiSelect"
+          >
+            Apply
+          </button>
+          <button class="btn btn-sm btn-secondary ml-2" @click="toggleMultiSelect">
+            Switch to single-select
+          </button>
         </div>
       </div>
-    </div>
+
+      <div v-show="file_ids && file_ids.length > 0" class="mt-3">
+        <div class="form-inline">
+          <label class="mr-2"><b>Cycles to plot:</b></label>
+          <input
+            v-model="cyclesString"
+            type="text"
+            class="form-control"
+            placeholder="e.g., 1,2,5-10 or 'all'"
+            @input="isReplotButtonDisplayed = true"
+          />
+          <button
+            class="btn btn-primary ml-2"
+            :disabled="!isReplotButtonDisplayed"
+            @click="updateBlock"
+          >
+            Replot
+          </button>
+          <a
+            type="button"
+            class="btn btn-default btn-sm ml-2"
+            @click="showDescription1 = !showDescription1"
+          >
+            ?
+          </a>
+        </div>
+        <div v-if="cycle_num_error" class="alert alert-danger mt-2">{{ cycle_num_error }}</div>
+
+        <div class="form-inline mt-2">
+          <label class="mr-2"><b>Smoothing parameter:</b></label>
+          <input
+            v-model="smoothing_factor"
+            type="number"
+            class="form-control"
+            min="0"
+            step="0.01"
+          />
+          <a
+            type="button"
+            class="btn btn-default btn-sm ml-2"
+            @click="showDescription2 = !showDescription2"
+          >
+            ?
+          </a>
+        </div>
+
+        <div v-show="showDescription1" class="alert alert-info mt-2">
+          <p>
+            Specify which cycles to plot. Use commas to separate individual cycles and hyphens for
+            ranges. Leave empty or type 'all' to plot all cycles.
+          </p>
+        </div>
+        <div v-show="showDescription2" class="alert alert-info mt-2">
+          <p>
+            Smoothing parameter for the Savitzky-Golay filter applied to capacity vs voltage. Larger
+            values result in a smoother fit with decreased detail.
+          </p>
+          <p>Window size for the Savitzky-Golay filter to apply to the derivatives.</p>
+        </div>
+      </div>
+    </template>
+
+    <template #plot>
+      <div :class="{ blurry: isUpdating }">
+        <BokehPlot v-if="bokehPlotData" :bokeh-plot-data="bokehPlotData" />
+      </div>
+    </template>
   </DataBlockBase>
 </template>
 
@@ -226,6 +179,12 @@ export default {
         }
       },
     },
+    hasFileChanges() {
+      if (!this.isMultiSelect) return false;
+      const currentIds = this.file_ids || [];
+      if (this.pending_file_ids.length !== currentIds.length) return true;
+      return !this.pending_file_ids.every((id, index) => id === currentIds[index]);
+    },
 
     // normalizingMass() {
     //   return this.$store.all_item_data[this.item_id]["characteristic_mass"] || null;
@@ -239,6 +198,7 @@ export default {
     win_size_1: createComputedSetterForBlockField("win_size_1"),
     derivative_mode: createComputedSetterForBlockField("derivative_mode"),
     characteristic_mass: createComputedSetterForBlockField("characteristic_mass"),
+    smoothing_factor: createComputedSetterForBlockField("s_spline"),
   },
   mounted() {
     // Ensure file_ids is always an array

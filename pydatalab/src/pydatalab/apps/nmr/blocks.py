@@ -228,7 +228,36 @@ class NMRBlock(DataBlock):
 
         """
         if parse:
-            if not self.data.get("file_id"):
+            if self.data.get("file_ids") and len(self.data.get("file_ids")) > 0:
+                all_dfs = []
+
+                for file_id in self.data["file_ids"]:
+                    try:
+                        file_info = get_file_info_by_id(file_id, update_if_live=True)
+                        df = self.load_nmr_data(file_info)
+
+                        if df:
+                            df_converted = pd.DataFrame(df)
+                            df_converted["normalized intensity"] = (
+                                df_converted.intensity / df_converted.intensity.max()
+                            )
+                            df_converted.index.name = file_info.get("name", "unknown")
+                            all_dfs.append(df_converted)
+                    except Exception as exc:
+                        warnings.warn(f"Could not load NMR file {file_id}: {exc}")
+                        continue
+
+                if not all_dfs:
+                    warnings.warn("No compatible NMR data could be loaded from file_ids")
+                    return
+
+                metadata = self.data.get("metadata", {})
+                self.data["bokeh_plot_data"] = self.make_nmr_plot(
+                    all_dfs[0], metadata, extra_dfs=all_dfs[1:]
+                )
+                return
+
+            elif not self.data.get("file_id"):
                 return None
 
             file_info = get_file_info_by_id(self.data["file_id"], update_if_live=True)
@@ -256,11 +285,13 @@ class NMRBlock(DataBlock):
         self.data["bokeh_plot_data"] = self.make_nmr_plot(df, self.data["metadata"])
 
     @classmethod
-    def make_nmr_plot(cls, df: pd.DataFrame, metadata: dict[str, Any]) -> str:
+    def make_nmr_plot(
+        cls, df: pd.DataFrame, metadata: dict[str, Any], extra_dfs: list[pd.DataFrame] | None = None
+    ) -> str:
         """Create a Bokeh plot for the NMR data stored in the dataframe and metadata."""
         nucleus_label = metadata.get("nucleus") or ""
-        # replace numbers with superscripts
         nucleus_label = nucleus_label.translate(str.maketrans("0123456789", "⁰¹²³⁴⁵⁶⁷⁸⁹"))
+
         df.rename(
             {
                 "ppm": f"{nucleus_label} chemical shift (ppm)",
@@ -273,8 +304,24 @@ class NMRBlock(DataBlock):
             inplace=True,
         )
 
+        dfs_to_plot = [df]
+        if extra_dfs:
+            for extra_df in extra_dfs:
+                extra_df.rename(
+                    {
+                        "ppm": f"{nucleus_label} chemical shift (ppm)",
+                        "hz": f"{nucleus_label} chemical shift (Hz)",
+                        "intensity": "Intensity",
+                        "intensity_per_scan": "Intensity per scan",
+                        "normalized intensity": "Normalized intensity",
+                    },
+                    axis=1,
+                    inplace=True,
+                )
+                dfs_to_plot.append(extra_df)
+
         bokeh_layout = selectable_axes_plot(
-            df,
+            dfs_to_plot,
             x_options=[
                 f"{nucleus_label} chemical shift (ppm)",
                 f"{nucleus_label} chemical shift (Hz)",
@@ -287,8 +334,9 @@ class NMRBlock(DataBlock):
             plot_line=True,
             point_size=3,
         )
-        # flip x axis, per NMR convention. Note that the figure is the second element
-        # of the layout in the current implementation, but this could be fragile.
-        bokeh_layout.children[1].x_range.flipped = True
+        for child in bokeh_layout.children:
+            if hasattr(child, "x_range"):
+                child.x_range.flipped = True
+                break
 
         return bokeh.embed.json_item(bokeh_layout, theme=DATALAB_BOKEH_THEME)
