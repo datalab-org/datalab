@@ -148,6 +148,34 @@
           </div>
         </div>
       </div>
+      <slot name="controls"></slot>
+
+      <div class="mt-2 mb-2">
+        <button
+          class="btn btn-sm btn-outline-secondary"
+          :disabled="!hasMetadata"
+          @click="metadataShown = !metadataShown"
+        >
+          {{ metadataShown ? "Hide metadata" : "Show metadata" }}
+        </button>
+      </div>
+
+      <div v-if="$slots.plot || hasMetadata" class="row mt-2">
+        <div
+          :class="
+            hasMetadata && metadataShown
+              ? 'col-xl-9 col-lg-9 col-md-12'
+              : 'col-xl-9 col-lg-10 col-md-11 mx-auto'
+          "
+        >
+          <slot name="plot"></slot>
+        </div>
+
+        <div v-if="hasMetadata && metadataShown" class="col-xl-3 col-lg-3 col-md-12">
+          <MetadataViewer :metadata="block.metadata" />
+        </div>
+      </div>
+
       <slot></slot>
       <TiptapInline v-model="BlockDescription" data-testid="block-description"></TiptapInline>
     </div>
@@ -167,6 +195,7 @@ import { DialogService } from "@/services/DialogService";
 import { createComputedSetterForBlockField } from "@/field_utils.js";
 import TiptapInline from "@/components/TiptapInline";
 import BlockTooltip from "@/components/BlockTooltip";
+import MetadataViewer from "@/components/MetadataViewer";
 
 import { deleteBlock, updateBlockFromServer } from "@/server_fetch_utils";
 
@@ -174,6 +203,7 @@ export default {
   components: {
     TiptapInline,
     BlockTooltip,
+    MetadataViewer,
   },
   props: {
     item_id: {
@@ -193,6 +223,7 @@ export default {
       isErrorsExpanded: true,
       isWarningsExpanded: true,
       isStagesExpanded: false,
+      metadataShown: false,
     };
   },
   computed: {
@@ -230,6 +261,9 @@ export default {
     latestStageMessage() {
       if (!this.processingStages || this.processingStages.length === 0) return "";
       return this.processingStages[this.processingStages.length - 1].message;
+    },
+    hasMetadata() {
+      return this.block?.metadata && Object.keys(this.block.metadata).length > 0;
     },
   },
   mounted() {

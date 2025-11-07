@@ -41,7 +41,13 @@
       :show-apply-button="false"
     />
     <div class="form-row mt-2 mb-3">
-      <button class="btn btn-primary btn-sm" @click="applyAllSelections">Apply Changes</button>
+      <button
+        class="btn btn-primary btn-sm"
+        :disabled="!hasPendingChanges"
+        @click="applyAllSelections"
+      >
+        Apply Changes
+      </button>
       <a v-if="bdf_url" :href="api_url + bdf_url" class="btn btn-secondary btn-sm ml-2" download
         >Export CSV (BDF)</a
       >
@@ -67,10 +73,25 @@
             "
           />
           <span id="list-of-cycles" class="pl-3 pt-2">Showing cycles: {{ parsedCycles }}</span>
+          <a
+            type="button"
+            class="btn btn-default btn-sm ml-2"
+            aria-label="Toggle description of cycle selection"
+            @click="showCyclesDescription = !showCyclesDescription"
+          >
+            ?
+          </a>
         </div>
 
         <div v-if="cycle_num_error" class="alert alert-danger mt-2 mx-auto">
           {{ cycle_num_error }}
+        </div>
+
+        <div v-show="showCyclesDescription" class="alert alert-info mt-2 mx-auto">
+          <p>
+            Specify which cycles to plot. Use commas to separate individual cycles and hyphens for
+            ranges. Leave empty or type 'all' to plot all cycles.
+          </p>
         </div>
       </div>
 
@@ -129,13 +150,15 @@
             step="0.2"
             @change="isReplotButtonDisplayed = true"
           />
-          <label
-            for="s_spline"
-            @mouseover="showDescription1 = true"
-            @mouseleave="showDescription1 = false"
+          <label for="s_spline"> <span>Spline fit:</span> {{ -s_spline }} </label>
+          <a
+            type="button"
+            class="btn btn-default btn-sm ml-2"
+            aria-label="Toggle description of spline fit"
+            @click="showDescription1 = !showDescription1"
           >
-            <span>Spline fit:</span> {{ -s_spline }}
-          </label>
+            ?
+          </a>
         </div>
         <div class="col-md slider" style="max-width: 250px">
           <input
@@ -148,13 +171,15 @@
             max="1501"
             @change="isReplotButtonDisplayed = true"
           />
-          <label
-            for="win_size_1"
-            @mouseover="showDescription2 = true"
-            @mouseleave="showDescription2 = false"
+          <label for="win_size_1"> <span>Window Size 1:</span> {{ win_size_1 }} </label>
+          <a
+            type="button"
+            class="btn btn-default btn-sm ml-2"
+            aria-label="Toggle description of window size"
+            @click="showDescription2 = !showDescription2"
           >
-            <span>Window Size 1:</span> {{ win_size_1 }}
-          </label>
+            ?
+          </a>
         </div>
         <button v-show="isReplotButtonDisplayed" class="btn btn-default my-4" @click="updateBlock">
           Recalculate
@@ -231,7 +256,8 @@ export default {
       cycle_num_error: "",
       cyclesString: "",
 
-      // UI state for tooltips and plot display
+      // UI state for tooltips and plot display (toggled by the "?" buttons)
+      showCyclesDescription: false,
       showDescription1: false,
       showDescription2: false,
       bokehPlotLimitedWidth: true,
@@ -281,6 +307,19 @@ export default {
         }
       },
     },
+    /**
+     * True when the staged file/comparison selections differ from what is applied,
+     * used to enable the "Apply Changes" button
+     */
+    hasPendingChanges() {
+      const applied = this.file_ids || [];
+      if (this.mode === FILE_MODE.MULTI) {
+        if (!this.sameIds(this.pending_file_ids, applied)) return true;
+      } else if ((this.pending_single_file_id || null) !== (applied[0] || null)) {
+        return true;
+      }
+      return !this.sameIds(this.pending_comparison_file_ids, this.comparison_file_ids || []);
+    },
     // normalizingMass() {
     //   return this.$store.all_item_data[this.item_id]["characteristic_mass"] || null;
     // },
@@ -310,6 +349,13 @@ export default {
     this.initializeComparisonFiles();
   },
   methods: {
+    /**
+     * Order-sensitive comparison of two lists of file IDs
+     */
+    sameIds(a, b) {
+      return a.length === b.length && a.every((id, index) => id === b[index]);
+    },
+
     /**
      * Initialize mode to default if not set
      */
