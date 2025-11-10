@@ -124,7 +124,7 @@ jobs:
 
   e2e:
     name: e2e tests
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux]
     strategy:
       fail-fast: false
       max-parallel: 1
