@@ -1,7 +1,5 @@
 from flask import Blueprint, jsonify, request
 
-from pydatalab.logger import LOGGER
-from pydatalab.models.relationships import RelationshipType
 from pydatalab.mongo import flask_mongo
 from pydatalab.permissions import active_users_or_get_only, get_default_permissions
 
@@ -122,109 +120,78 @@ def get_graph_cy_format(
                     continue
                 collection_data = flask_mongo.db.collections.find_one(
                     {
-                        "$or": or_query,
+                        "_id": relationship["immutable_id"],
                         **get_default_permissions(user_only=False),
                     },
-                    projection={"item_id": 1, "name": 1, "type": 1, "relationships": 1},
+                    projection={"collection_id": 1, "title": 1, "type": 1},
                 )
-
-                all_documents.extend(next_shell)
-                node_ids = node_ids | {document["item_id"] for document in all_documents}
-
-        nodes = []
-        edges = []
-
-        # Collect the elements that have already been added to the graph, to avoid duplication
-        drawn_elements = set()
-        node_collections: set[str] = set()
-        for document in all_documents:
-            # for some reason, document["relationships"] is sometimes equal to None, so we
-            # need this `or` statement.
-            for relationship in document.get("relationships") or []:
-                # only considering child-parent relationships
-                if relationship.get("type") == "collections" and not collection_id:
-                    if hide_collections:
-                        continue
-                    collection_data = flask_mongo.db.collections.find_one(
-                        {
-                            "_id": relationship["immutable_id"],
-                            **get_default_permissions(user_only=False),
-                        },
-                        projection={"collection_id": 1, "title": 1, "type": 1},
-                    )
-                    if collection_data:
-                        if relationship["immutable_id"] not in node_collections:
-                            _id = f"Collection: {collection_data['collection_id']}"
-                            if _id not in drawn_elements:
-                                nodes.append(
-                                    {
-                                        "data": {
-                                            "id": _id,
-                                            "name": collection_data["title"],
-                                            "type": collection_data["type"],
-                                            "shape": "triangle",
-                                        }
-                                    }
-                                )
-                                node_collections.add(relationship["immutable_id"])
-                                drawn_elements.add(_id)
-
-                        source = f"Collection: {collection_data['collection_id']}"
-                        target = document.get("item_id")
-                        if target in node_ids:
-                            edges.append(
+                if collection_data:
+                    if relationship["immutable_id"] not in node_collections:
+                        _id = f"Collection: {collection_data['collection_id']}"
+                        if _id not in drawn_elements:
+                            nodes.append(
                                 {
                                     "data": {
-                                        "id": f"{source}->{target}",
-                                        "source": source,
-                                        "target": target,
-                                        "value": 1,
+                                        "id": _id,
+                                        "name": collection_data["title"],
+                                        "type": collection_data["type"],
+                                        "shape": "triangle",
                                     }
                                 }
                             )
-                    continue
+                            node_collections.add(relationship["immutable_id"])
+                            drawn_elements.add(_id)
 
-            for relationship in document.get("relationships") or []:
-                # only considering child-parent relationships:
-                if relationship.get("relation") not in (
-                    "parent",
-                    "is_part_of",
-                    RelationshipType.PARENT.value,
-                ):
-                    continue
-
-                target = document["item_id"]
-                source = relationship["item_id"]
-                if source not in node_ids or target not in node_ids:
-                    continue
-                edge_id = f"{source}->{target}"
-                if edge_id not in drawn_elements:
-                    drawn_elements.add(edge_id)
-                    edges.append(
-                        {
-                            "data": {
-                                "id": edge_id,
-                                "source": source,
-                                "target": target,
-                                "value": 1,
+                    source = f"Collection: {collection_data['collection_id']}"
+                    target = document.get("item_id")
+                    if target in node_ids:
+                        edges.append(
+                            {
+                                "data": {
+                                    "id": f"{source}->{target}",
+                                    "source": source,
+                                    "target": target,
+                                    "value": 1,
+                                }
                             }
-                        }
-                    )
+                        )
+                continue
 
-            if document["item_id"] not in drawn_elements:
-                drawn_elements.add(document["item_id"])
-                nodes.append(
+        for relationship in document.get("relationships") or []:
+            # only considering child-parent relationships:
+            if relationship.get("relation") not in ("parent", "is_part_of"):
+                continue
+
+            target = document["item_id"]
+            source = relationship["item_id"]
+            if source not in node_ids or target not in node_ids:
+                continue
+            edge_id = f"{source}->{target}"
+            if edge_id not in drawn_elements:
+                drawn_elements.add(edge_id)
+                edges.append(
                     {
                         "data": {
-                            "id": document["item_id"],
-                            "name": document.get("name") or document["item_id"],
-                            "type": document["type"],
-                            "special": document["item_id"] == item_id,
+                            "id": edge_id,
+                            "source": source,
+                            "target": target,
+                            "value": 1,
                         }
                     }
                 )
 
-        whitelist = {edge["data"]["source"] for edge in edges} | {item_id}
+        if document["item_id"] not in drawn_elements:
+            drawn_elements.add(document["item_id"])
+            nodes.append(
+                {
+                    "data": {
+                        "id": document["item_id"],
+                        "name": document["name"] if document["name"] else document["item_id"],
+                        "type": document["type"],
+                        "special": document["item_id"] == item_id,
+                    }
+                }
+            )
 
     whitelist = {edge["data"]["source"] for edge in edges} | {
         edge["data"]["target"] for edge in edges
@@ -240,6 +207,4 @@ def get_graph_cy_format(
         or node["data"]["id"].startswith("Collection:")
     ]
 
-    except Exception as e:
-        LOGGER.exception(f"Error in get_graph_cy_format: {e}")
-        return jsonify({"status": "error", "message": str(e)}), 500
+    return (jsonify(status="success", nodes=nodes, edges=edges), 200)
