@@ -145,6 +145,8 @@ jobs:
           cp webapp/.env.test_e2e .env
           echo "PYDATALAB_TESTING=true" >> .env
           echo "PYDATALAB_TESTING=true" >> pydatalab/.env
+          echo "WEB_CONCURRENCY=1" >> .env
+          echo "WEB_CONCURRENCY=1" >> pydatalab/.env
 
       - name: Build Docker images
         uses: docker/bake-action@v6
@@ -187,6 +189,16 @@ jobs:
           group: "Component tests (${{ matrix.browser-backend }})"
         env:
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
+
+      - name: Clean up containers and volumes
+        if: always()
+        run: |
+          docker compose down api app database
+          docker container prune -f
+          docker network prune -f
+          docker volume prune -f
+          docker image prune -f
+          rm -rf /data/*
 
   liccheck:
     name: Check OSS license compatibility for dependencies
