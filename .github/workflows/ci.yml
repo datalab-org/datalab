@@ -194,7 +194,7 @@ jobs:
         if: always()
         run: |
           docker compose down database app api
-          docker compose run --rm -v /data/:/data/ --entrypoint "rm -rf /data/db /data/files/ /data/logs" database
+          docker compose run --rm -v /data/:/data/ --entrypoint "rm -rf /data/db/* /data/files/* /data/logs/*" database
           docker container prune -f
           docker network prune -f
           docker volume prune -f
