@@ -18,7 +18,7 @@ from pydatalab import __version__
 from pydatalab.apps import BLOCK_TYPES
 from pydatalab.config import CONFIG
 from pydatalab.feature_flags import FEATURE_FLAGS, FeatureFlags
-from pydatalab.models import ITEM_SCHEMAS, Person
+from pydatalab.models import ITEM_MODELS, ITEM_SCHEMAS, Person
 from pydatalab.mongo import flask_mongo
 
 from ._version import __api_version__
@@ -200,6 +200,13 @@ def get_schema_type(item_type):
             {"status": "error", "detail": f"Item type {item_type} not found for this deployment"}
         ), 404
 
+    model_class = ITEM_MODELS.get(item_type)
+
+    if model_class and hasattr(model_class, "get_ui_schema"):
+        schema = model_class.get_ui_schema()
+    else:
+        schema = ITEM_SCHEMAS[item_type]
+
     return jsonify(
         json.loads(
             JSONAPIResponse(
@@ -209,7 +216,7 @@ def get_schema_type(item_type):
                     attributes={
                         "version": __version__,
                         "api_version": __api_version__,
-                        "schema": ITEM_SCHEMAS[item_type],
+                        "schema": schema,
                     },
                 ),
                 meta=Meta(query=request.query_string),
