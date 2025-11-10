@@ -6,8 +6,6 @@ import numpy as np
 import pandas as pd
 from bokeh.models import HoverTool, LogColorMapper
 
-import codecs
-
 from pydatalab.blocks.base import DataBlock
 from pydatalab.bokeh_plots import DATALAB_BOKEH_THEME, selectable_axes_plot
 from pydatalab.file_utils import get_file_info_by_id
@@ -15,7 +13,7 @@ from pydatalab.logger import LOGGER
 
 
 class FTIRBlock(DataBlock):
-    accepted_file_extensions: tuple[str, ...] = (".asp",".txt")
+    accepted_file_extensions: tuple[str, ...] = (".asp", ".txt")
     blocktype = "ftir"
     name = "FTIR"
     description = (
@@ -48,7 +46,7 @@ class FTIRBlock(DataBlock):
         x_range = np.linspace(start_wavenumber, end_wavenumber, number_of_points)
         y = ftir[0].iloc[-number_of_points:]
         ftir = pd.DataFrame.from_dict({"Wavenumber": x_range, "Absorbance": y})
-        return ftir, 'default', 'default'
+        return ftir, "default", "default"
 
     @classmethod
     def parse_ftir_txt(cls, filename: Path) -> pd.DataFrame:
@@ -65,20 +63,20 @@ class FTIRBlock(DataBlock):
         Returns:
             FTIR dataframe with columns "Wavenumber" and "Absorbance", and strings giving the x and y units
         """
-        with open(filename,'r') as f:
+        with open(filename) as f:
             alldata = f.readlines()
-        title = alldata[0].split('=')[1]
-        dtype = alldata[1].split('=')[1]
-        xunits = alldata[2].split('=')[1]
-        yunits = alldata[3].split('=')[1]
+        xunits = alldata[2].split("=")[1]
+        yunits = alldata[3].split("=")[1]
         data = alldata[4:]
         x = [float(line.split()[0]) for line in data]
         y = [float(line.split()[1]) for line in data]
-        ftir = pd.DataFrame.from_dict({'Wavenumber':x, 'Absorbance':y})
+        ftir = pd.DataFrame.from_dict({"Wavenumber": x, "Absorbance": y})
         return ftir, xunits, yunits
 
     @classmethod
-    def _format_ftir_plot(self, ftir_data: pd.DataFrame,xunits:str,yunits:str) -> bokeh.layouts.layout:
+    def _format_ftir_plot(
+        self, ftir_data: pd.DataFrame, xunits: str, yunits: str
+    ) -> bokeh.layouts.layout:
         """Formats FTIR data for plotting in Bokeh, inverted x-axis with a buffer of 50 cm^-1 on either side
 
         Args:
@@ -87,11 +85,11 @@ class FTIRBlock(DataBlock):
         Returns:
             bokeh.layouts.layout: Bokeh layout with FTIR data plotted
         """
-        if xunits == 'default':
+        if xunits == "default":
             toollabsx = "Wavenumber / cm⁻¹"
         else:
-            toollabsx = "Wavenumber /{0}".format(xunits)
-        if yunits == 'default':
+            toollabsx = f"Wavenumber / {xunits}"
+        if yunits == "default":
             toollabsy = "Absorbance"
         else:
             toollabsy = yunits
@@ -112,15 +110,16 @@ class FTIRBlock(DataBlock):
                 mode="vline",  # Ensures hover follows the x-axis
             ),
         )
-        if xunits == 'default':
+        if xunits == "default":
             # Adding cm^-1 to the x-axis label using unicode characters - might be a more logical way
             layout.children[1].xaxis.axis_label = "Wavenumber / cm⁻¹"
+        elif xunits == "1/CM\n":
+            layout.children[1].xaxis.axis_label = "Wavenumber / cm⁻¹"
         else:
-            layout.children[1].xaxis.axis_label = "Wavenumber /{0}".format(xunits)
-        if yunits != 'default':
+            layout.children[1].xaxis.axis_label = f"Wavenumber / {xunits}"
+        if yunits != "default":
             layout.children[1].yaxis.axis_label = yunits
         return layout
-
 
     def generate_ftir_plot(self):
         file_info = None
@@ -140,12 +139,11 @@ class FTIRBlock(DataBlock):
                     ext,
                 )
                 return
-            elif ext == '.asp':
-                ftir_data,xunits,yunits = self.parse_ftir_asp(Path(file_info["location"]))
-            elif ext == '.txt':
-                ftir_data,xunits,yunits = self.parse_ftir_txt(Path(file_info["location"]))
+            elif ext == ".asp":
+                ftir_data, xunits, yunits = self.parse_ftir_asp(Path(file_info["location"]))
+            elif ext == ".txt":
+                ftir_data, xunits, yunits = self.parse_ftir_txt(Path(file_info["location"]))
 
-        print(ftir_data)
         if ftir_data is not None:
-            layout = self._format_ftir_plot(ftir_data,xunits,yunits)
+            layout = self._format_ftir_plot(ftir_data, xunits, yunits)
             self.data["bokeh_plot_data"] = bokeh.embed.json_item(layout, theme=DATALAB_BOKEH_THEME)
