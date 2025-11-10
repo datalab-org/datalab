@@ -62,7 +62,7 @@ def test_env_var_flask_config_override(secret_key):
         assert app.config["SECRET_KEY"] == secret_key  # noqa: S105
 
 
-def test_validators():
+def test_validators(secret_key):
     from pydatalab.config import ServerConfig
 
     # check bad prefix

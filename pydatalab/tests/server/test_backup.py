@@ -9,9 +9,6 @@ import time
 
 import pytest
 
-from pydatalab.backups import create_backup
-from pydatalab.config import BackupStrategy
-
 # Check whether mongodump (and mongorestore by extension) is present; skip backup tests if not
 mongodump_present = pytest.mark.skipif(
     shutil.which("mongodump") is None, reason="mongodump not installed"
@@ -23,6 +20,9 @@ def test_backup_creation(
     client, database, default_filepath, insert_default_sample, default_sample, tmp_path
 ):
     """Test whether a simple local backup can be created."""
+    from pydatalab.backups import create_backup
+    from pydatalab.config import BackupStrategy
+
     assert database.items.count_documents({}) == 1
     with open(default_filepath, "rb") as f:
         response = client.post(
