@@ -136,6 +136,9 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          install: true
+          driver: docker
 
       - name: Set some environment variables for CI containers pre-build
         run: |
