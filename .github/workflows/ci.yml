@@ -151,19 +151,9 @@ jobs:
           source: .
           targets: 'app,api,database'
           set: |
-            app.cache-from=type=gha,scope=${{ github.ref_name }}-${{ matrix.browser-backend }}-build-app
-            app.cache-from=type=gha,scope=main-${{ matrix.browser-backend }}-build-app
-            api.cache-from=type=gha,scope=${{ github.ref_name }}-${{ matrix.browser-backend }}-build-api
-            api.cache-from=type=gha,scope=main-${{ matrix.browser-backend }}-build-api
-            database.cache-from=type=gha,scope=${{ github.ref_name }}-${{ matrix.browser-backend }}-build-database
-            database.cache-from=type=gha,scope=main-${{ matrix.browser-backend }}-build-database
-            api.cache-to=type=gha,scope=${{ github.ref_name }}-${{ matrix.browser-backend }}-build-api,mode=max
-            app.cache-to=type=gha,scope=${{ github.ref_name }}-${{ matrix.browser-backend }}-build-app,mode=max
-            database.cache-to=type=gha,scope=${{ github.ref_name }}-${{ matrix.browser-backend }}-build-database,mode=max
+            *.cache-from=type=local,src=/tmp/buildx-cache
+            *.cache-to=type=local,dest=/tmp/buildx-cache,mode=max
             api.args.SETUPTOOLS_SCM_PRETEND_VERSION=0.11.11-rc.8
-            app.tags=datalab-app:latest
-            api.tags=datalab-api:latest
-            database.tags=datalab-database:latest
 
       - name: Start services
         run: |
