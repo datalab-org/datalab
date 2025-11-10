@@ -51,7 +51,7 @@ export default {
   },
   mounted() {
     if (this.description) {
-      const anchor = this.$refs.labelContainer;
+      const anchor = this.$refs.anchor;
       const tooltip = this.$refs.tooltipContent;
 
       this.popperInstance = createPopper(anchor, tooltip, {

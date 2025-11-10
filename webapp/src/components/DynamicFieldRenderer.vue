@@ -1,21 +1,35 @@
 <template>
   <div v-if="!isHidden" :class="fieldClass">
-    <label v-if="showLabel" :for="fieldId">
-      {{ label }}
+    <FieldLabelDescriptionTooltip
+      v-if="shouldShowLabel"
+      :html-for="fieldId"
+      :label="label"
+      :description="fieldSchema.description"
+    >
       <span v-if="isRequired" class="text-danger">*</span>
-    </label>
+    </FieldLabelDescriptionTooltip>
 
+    <div v-if="needsWrapper" :id="fieldId">
+      <component
+        :is="componentName"
+        v-bind="componentProps"
+        @update:model-value="$emit('update:modelValue', $event)"
+        @input="$emit('input', $event)"
+      />
+    </div>
     <component
       :is="componentName"
+      v-else-if="!isVirtualField"
       :id="fieldId"
       v-bind="componentProps"
       @update:model-value="$emit('update:modelValue', $event)"
       @input="$emit('input', $event)"
     />
-
-    <small v-if="fieldSchema.description && showDescription" class="form-text text-muted">
-      {{ fieldSchema.description }}
-    </small>
+    <TableOfContents
+      v-else-if="uiConfig.component === 'TableOfContents'"
+      :item_id="componentProps.item_id"
+      :information-sections="componentProps.informationSections"
+    />
   </div>
 </template>
 
@@ -24,11 +38,13 @@ import FormattedItemName from "@/components/FormattedItemName";
 import FormattedCollectionName from "@/components/FormattedCollectionName";
 import FormattedRefcode from "@/components/FormattedRefcode";
 import FormattedBarcode from "@/components/FormattedBarcode";
-import Creators from "@/components/Creators";
+import ToggleableCreatorsFormGroup from "@/components/ToggleableCreatorsFormGroup";
 import ToggleableCollectionFormGroup from "@/components/ToggleableCollectionFormGroup";
 import TinyMceInline from "@/components/TinyMceInline";
 import ChemFormulaInput from "@/components/ChemFormulaInput";
 import GHSHazardInformation from "@/components/GHSHazardInformation";
+import TableOfContents from "@/components/TableOfContents";
+import FieldLabelDescriptionTooltip from "@/components/FieldLabelDescriptionTooltip";
 
 export default {
   name: "DynamicFieldRenderer",
@@ -37,11 +53,13 @@ export default {
     FormattedCollectionName,
     FormattedRefcode,
     FormattedBarcode,
-    Creators,
+    ToggleableCreatorsFormGroup,
     ToggleableCollectionFormGroup,
     TinyMceInline,
     ChemFormulaInput,
     GHSHazardInformation,
+    TableOfContents,
+    FieldLabelDescriptionTooltip,
   },
   props: {
     fieldName: { type: String, required: true },
@@ -67,6 +85,20 @@ export default {
     isReadonly() {
       return this.uiConfig.readonly || false;
     },
+    isVirtualField() {
+      return this.fieldSchema.type === "null";
+    },
+
+    shouldShowLabel() {
+      if (this.uiConfig.hide_label) {
+        return false;
+      }
+      return this.showLabel;
+    },
+    needsWrapper() {
+      const wrapperComponents = ["FormattedRefcode", "FormattedBarcode"];
+      return wrapperComponents.includes(this.uiConfig.component);
+    },
     label() {
       if (this.fieldSchema.title === "Chemform") {
         return "Chemical Formula";
@@ -76,13 +108,8 @@ export default {
     fieldClass() {
       const baseClass = "form-group";
       const width = this.uiConfig.width || "col";
-      const needsFlexColumn = this.fieldName === "creators";
 
-      if (needsFlexColumn) {
-        return `${baseClass} d-flex flex-column ${width}`;
-      }
-
-      return `${baseClass} ${width} pr-2`;
+      return `${baseClass} ${width}`;
     },
     componentName() {
       const componentMap = {
@@ -90,11 +117,12 @@ export default {
         FormattedCollectionName,
         FormattedRefcode,
         FormattedBarcode,
-        Creators,
+        ToggleableCreatorsFormGroup,
         ToggleableCollectionFormGroup,
         TinyMceInline,
         ChemFormulaInput,
         GHSHazardInformation,
+        TableOfContents,
       };
 
       const componentType = this.uiConfig.component || "input";
@@ -152,8 +180,13 @@ export default {
           creators: this.modelValue || [],
           size: "36",
         },
+        ToggleableCreatorsFormGroup: {
+          modelValue: this.modelValue || [],
+          refcode: this.itemData.refcode,
+        },
         ToggleableCollectionFormGroup: {
           modelValue: this.itemData[this.fieldName] || [],
+          item_id: this.itemData.item_id,
         },
         GHSHazardInformation: {
           modelValue: Array.isArray(this.modelValue)
@@ -162,9 +195,37 @@ export default {
         },
         ChemFormulaInput: baseProps,
         TinyMceInline: baseProps,
+        TableOfContents: {
+          item_id: this.itemData.item_id,
+          informationSections: this.getTableOfContentsSections(),
+        },
       };
 
       return specialPropsMap[componentType] || baseProps;
+    },
+    getTableOfContentsSections() {
+      const sections = [
+        {
+          title: `${this.itemType.charAt(0).toUpperCase() + this.itemType.slice(1)} Information`,
+          targetID: `${this.itemType}-information`,
+        },
+      ];
+
+      if (this.itemType === "samples" && this.itemData.synthesis_constituents) {
+        sections.push({
+          title: "Synthesis Information",
+          targetID: "synthesis-information",
+        });
+      }
+
+      if (this.itemType === "cells" && this.itemData.characteristic_mass) {
+        sections.push({
+          title: "Cell Preparation Information",
+          targetID: "cell-preparation-information",
+        });
+      }
+
+      return sections;
     },
   },
 };
