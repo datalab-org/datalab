@@ -495,6 +495,7 @@ def example_items(user_id, admin_user_id):
             Sample(
                 **{
                     "item_id": "sample_2",
+                    "chemform": "vanadium(II) oxide",
                     "name": "other_sample",
                     "date": "1970-02-01",
                     "refcode": "grey:TEST3",
@@ -576,6 +577,11 @@ def fixture_insert_default_starting_material(default_starting_material):
 @pytest.fixture(scope="module", name="insert_default_equipment")
 def fixture_insert_default_equipment(default_equipment):
     yield from _insert_and_cleanup_item_from_model(default_equipment)
+
+
+@pytest.fixture(scope="module", name="insert_example_items")
+def fixture_insert_example_items(example_items, real_mongo_client):
+    real_mongo_client.get_database().items.insert_many(example_items)
 
 
 @pytest.fixture(scope="module", name="inserted_default_items")

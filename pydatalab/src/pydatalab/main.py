@@ -44,6 +44,7 @@ def create_app(
     if config_override:
         CONFIG.update(config_override)
 
+    app.config.from_prefixed_env()
     app.config.update(CONFIG.model_dump())
 
     # This value will still be overwritten by any dotenv values

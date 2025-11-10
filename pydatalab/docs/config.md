@@ -12,8 +12,10 @@ administration"](deployment.md).
 1. The Python [`ServerConfig`][pydatalab.config.ServerConfig] (described below) that allows for *datalab*-specific configuration, such as database connection info, filestore locations and remote filesystem configuration.
 .
     - This can be provided via a JSON or YAML config file at the location provided by the `PYDATALAB_CONFIG_FILE` environment variable, or as environment variables themselves, prefixed with `PYDATALAB_`. The available configuration variables and their default values are listed below.
-2. Additional server configuration provided as environment variables, such as secrets like Flask's [`SECRET_KEY`][pydatalab.config.ServerConfig.SECRET_KEY], API keys for external services (e.g., SMTP) and OAuth client credentials (for logging in via GitHub or ORCID).
-    - These can be provided as environment variables or in a `.env` file in the directory from which `pydatalab` is launched.
+2. Additional server configuration provided as environment variables, such as secrets like the Flask server's [`SECRET_KEY`][pydatalab.config.ServerConfig.SECRET_KEY], API keys for external services (e.g., SMTP `MAIL_PASSWORD`) and OAuth client credentials (for logging in via GitHub or ORCID).
+These can be provided as either:
+    - environment variables with the appropriate `FLASK_` or `PYDATALAB_` prefix (for options that are also in the config model from option 1.)
+    - an `.env` file in the directory from which `pydatalab` is launched (NB: here, the `FLASK_` prefix is not required, but any options present in the pydatalab config must still have the `PYDATALAB_` prefix).
 3. Web app configuration, such as the URL of the relevant *datalab* API and branding (logo URLs, external homepage links).
     - These are typically provided as a `.env` file in the directory from which the webapp is built/served.
     - The main options include (a full list can be found in the `docker-compose.yml` file):
