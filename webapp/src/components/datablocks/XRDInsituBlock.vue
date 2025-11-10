@@ -61,14 +61,30 @@
       </div>
     </div>
     <div class="form-inline mb-2">
-      <label class="mr-2"><b>Data granularity</b></label>
+      <label class="mr-2">
+        <b>Data granularity</b>
+        <font-awesome-icon
+          :icon="['fas', 'info-circle']"
+          class="ml-1"
+          style="cursor: help"
+          title="Controls the number of datapoints along the x-axis for the heatmap. For example a value of 2 means every other point is shown. Interpolation is done via max pooling. Higher values show fewer points for faster rendering."
+        />
+      </label>
       <input
         v-model="data_granularity_buffer"
         type="text"
         class="form-control mr-3"
         style="width: 100px; display: inline-block"
       />
-      <label class="mr-2"><b>Sample granularity</b></label>
+      <label class="mr-2">
+        <b>Sample granularity</b>
+        <font-awesome-icon
+          :icon="['fas', 'info-circle']"
+          class="ml-1"
+          style="cursor: help"
+          title="Controls how many samples are displayed in the heatmap. For example a value of 2 means every other sample is plotted. Higher values show fewer samples for faster rendering."
+        />
+      </label>
       <input
         v-model="sample_granularity_buffer"
         type="text"
