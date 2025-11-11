@@ -1372,7 +1372,7 @@ def restore_version(refcode):
         "version": next_version_number,
         "timestamp": datetime.datetime.now(tz=datetime.timezone.utc),
         "action": VersionAction.RESTORED,  # Audit trail: this is a restored version
-        "restored_from_version": str(version_object_id),  # Track which version was restored from
+        "restored_from_version": version_object_id,  # Track which version was restored from (ObjectId)
         "user_id": user_id,  # ObjectId for efficient querying
         "datalab_version": software_version,
         "data": restored_data,  # Store the complete snapshot of the restored state
