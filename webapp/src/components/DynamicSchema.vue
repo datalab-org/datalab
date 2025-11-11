@@ -14,15 +14,9 @@
               :item-type="item_data.type"
               :item-data="localItemData"
               @update:model-value="handleFieldUpdate(fieldName, $event)"
+              @update-nested="updateFromNestedComponent"
             />
           </div>
-        </div>
-
-        <div v-if="item_data.type === 'samples' && item_data.synthesis_constituents">
-          <SynthesisInformation
-            :sample-data="localItemData"
-            @update-sample-data="updateFromNestedComponent"
-          />
         </div>
 
         <div v-if="item_data.type === 'cells' && item_data.characteristic_mass">
@@ -47,8 +41,6 @@
 <script>
 import DynamicFieldRenderer from "@/components/DynamicFieldRenderer.vue";
 import ItemRelationshipVisualization from "@/components/ItemRelationshipVisualization";
-import TableOfContents from "@/components/TableOfContents";
-import SynthesisInformation from "@/components/SynthesisInformation";
 import CellPreparationInformation from "@/components/CellPreparationInformation";
 import { getSchema } from "@/server_fetch_utils";
 
@@ -56,8 +48,6 @@ export default {
   components: {
     DynamicFieldRenderer,
     ItemRelationshipVisualization,
-    TableOfContents,
-    SynthesisInformation,
     CellPreparationInformation,
   },
   props: {
@@ -108,13 +98,6 @@ export default {
         anchor: `${this.item_data.type}-information`,
         text: "Item Information",
       });
-
-      if (this.item_data.type === "samples" && this.item_data.synthesis_constituents) {
-        sections.push({
-          anchor: "synthesis-information",
-          text: "Synthesis Information",
-        });
-      }
 
       if (this.item_data.type === "cells" && this.item_data.characteristic_mass) {
         sections.push({

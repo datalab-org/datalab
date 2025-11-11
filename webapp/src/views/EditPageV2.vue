@@ -112,7 +112,7 @@ import setupUppy from "@/file_upload.js";
 
 import tinymce from "tinymce/tinymce";
 
-import { blockTypes, itemTypes } from "@/resources.js";
+import { customBlockTypes, itemTypes } from "@/resources.js";
 import ErrorBlock from "@/components/datablocks/ErrorBlock.vue";
 import { API_URL } from "@/resources.js";
 import { formatDistanceToNow } from "date-fns";
@@ -216,7 +216,8 @@ export default {
     this.interval = setInterval(() => this.setLastModified(), 30000);
   },
   beforeMount() {
-    this.blockTypes = blockTypes; // bind blockTypes as a NON-REACTIVE object to the this context so that it is accessible by the template.
+    this.blockTypes = customBlockTypes;
+    // bind blockTypes as a NON-REACTIVE object to the this context so that it is accessible by the template.
   },
   mounted() {
     // overwrite ctrl-s and cmd-s to save the page

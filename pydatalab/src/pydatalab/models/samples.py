@@ -23,6 +23,7 @@ class Sample(Item, HasSynthesisInfo, HasUIHints):
         ["refcode", "creators", "collections"],
         ["description"],
         ["table_of_contents"],
+        ["synthesis_information"],
     ]
 
     ui_field_config: ClassVar[dict[str, UIFieldConfig]] = {
@@ -43,11 +44,19 @@ class Sample(Item, HasSynthesisInfo, HasUIHints):
             hide_label=True,
         ),
         "description": UIFieldConfig(component="TinyMceInline", width="col-12"),
-        "table_of_contents": UIFieldConfig(component="TableOfContents", width="col-12"),
+        "table_of_contents": UIFieldConfig(
+            component="TableOfContents", width="col-12", hide_label=True
+        ),
+        "synthesis_information": UIFieldConfig(
+            component="SynthesisInformation", width="col-12", hide_label=True
+        ),
     }
 
     ui_virtual_fields: ClassVar[dict[str, dict[str, Any]]] = {
+        "synthesis_information": {
+            "title": "Synthesis Information",
+        },
         "table_of_contents": {
             "title": "Table of Contents",
-        }
+        },
     }

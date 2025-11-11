@@ -13,8 +13,8 @@
       <component
         :is="componentName"
         v-bind="componentProps"
-        @update:model-value="$emit('update:modelValue', $event)"
-        @input="$emit('input', $event)"
+        @update:model-value="handleUpdateValue"
+        @input="handleInput"
       />
     </div>
     <component
@@ -22,13 +22,18 @@
       v-else-if="!isVirtualField"
       :id="fieldId"
       v-bind="componentProps"
-      @update:model-value="$emit('update:modelValue', $event)"
-      @input="$emit('input', $event)"
+      @update:model-value="handleUpdateValue"
+      @input="handleInput"
     />
     <TableOfContents
       v-else-if="uiConfig.component === 'TableOfContents'"
       :item_id="componentProps.item_id"
       :information-sections="componentProps.informationSections"
+    />
+    <SynthesisInformation
+      v-else-if="uiConfig.component === 'SynthesisInformation'"
+      :sample-data="componentProps.sampleData"
+      @update-sample-data="$emit('update-nested', $event)"
     />
   </div>
 </template>
@@ -45,6 +50,9 @@ import ChemFormulaInput from "@/components/ChemFormulaInput";
 import GHSHazardInformation from "@/components/GHSHazardInformation";
 import TableOfContents from "@/components/TableOfContents";
 import FieldLabelDescriptionTooltip from "@/components/FieldLabelDescriptionTooltip";
+import SynthesisInformation from "@/components/SynthesisInformation";
+
+import { dateTimeParser, dateTimeFormatter } from "@/field_utils.js";
 
 export default {
   name: "DynamicFieldRenderer",
@@ -60,6 +68,7 @@ export default {
     GHSHazardInformation,
     TableOfContents,
     FieldLabelDescriptionTooltip,
+    SynthesisInformation,
   },
   props: {
     fieldName: { type: String, required: true },
@@ -71,7 +80,7 @@ export default {
     itemType: { type: String, required: true },
     itemData: { type: Object, required: true },
   },
-  emits: ["update:modelValue", "input"],
+  emits: ["update:modelValue", "input", "update-nested"],
   computed: {
     uiConfig() {
       return this.fieldSchema.ui || {};
@@ -123,6 +132,7 @@ export default {
         ChemFormulaInput,
         GHSHazardInformation,
         TableOfContents,
+        SynthesisInformation,
       };
 
       const componentType = this.uiConfig.component || "input";
@@ -144,11 +154,19 @@ export default {
   },
   methods: {
     getInputProps() {
-      const value = this.modelValue !== undefined ? this.modelValue : "";
+      let value = this.modelValue !== undefined ? this.modelValue : "";
 
       let inputType = "text";
-      if (this.fieldSchema.type === "date" || this.fieldSchema.format === "date-time") {
+
+      const isDatetimeField =
+        this.fieldSchema.format === "datetime" ||
+        this.fieldSchema.type === "date" ||
+        (this.fieldSchema.anyOf &&
+          this.fieldSchema.anyOf.some((option) => option.format === "datetime"));
+
+      if (isDatetimeField) {
         inputType = "datetime-local";
+        value = dateTimeParser(value);
       } else if (this.fieldSchema.type === "integer" || this.fieldSchema.type === "number") {
         inputType = "number";
       }
@@ -159,6 +177,29 @@ export default {
         type: inputType,
         disabled: this.isReadonly,
       };
+    },
+    handleUpdateValue(value) {
+      const componentType = this.uiConfig.component || "input";
+      if (componentType === "input") {
+        const inputType = this.getInputProps().type;
+        if (inputType === "datetime-local" && value) {
+          value = dateTimeFormatter(value);
+        }
+      }
+      this.$emit("update:modelValue", value);
+    },
+    handleInput(event) {
+      if (event.target && event.target.value !== undefined) {
+        const componentType = this.uiConfig.component || "input";
+        if (componentType === "input") {
+          const inputType = this.getInputProps().type;
+          let value = event.target.value;
+          if (inputType === "datetime-local" && value) {
+            value = dateTimeFormatter(value);
+          }
+          this.$emit("update:modelValue", value);
+        }
+      }
     },
     getSpecialComponentProps(componentType, baseProps) {
       const specialPropsMap = {
@@ -198,6 +239,9 @@ export default {
         TableOfContents: {
           item_id: this.itemData.item_id,
           informationSections: this.getTableOfContentsSections(),
+        },
+        SynthesisInformation: {
+          sampleData: this.itemData,
         },
       };
 
