@@ -503,7 +503,7 @@ def _create_sample(
         # so no creators are assigned
         new_sample["creator_ids"] = []
         new_sample["creators"] = []
-    elif CONFIG.TESTING:
+    elif CONFIG.TESTING and not current_user.is_authenticated:
         # Set fake ID to ObjectId("000000000000000000000000") so a dummy user can be created
         # locally for testing creator UI elements
         new_sample["creator_ids"] = [PUBLIC_USER_ID]
