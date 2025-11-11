@@ -240,7 +240,8 @@
         "bokeh_plot_data": {
           "anyOf": [
             {
-              "type": "string"
+              "additionalProperties": true,
+              "type": "object"
             },
             {
               "type": "null"

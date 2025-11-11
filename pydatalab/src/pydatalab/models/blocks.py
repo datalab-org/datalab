@@ -37,7 +37,7 @@ class DataBlockResponse(BaseModel):
     file_ids: list[PyObjectId] | None = None
     """A list of file IDs associated with the block, if any."""
 
-    bokeh_plot_data: str | None = None
+    bokeh_plot_data: dict | None = None
     """A JSON-encoded string containing the Bokeh plot data, if any."""
 
     errors: list[str] | None = None
