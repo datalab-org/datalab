@@ -1132,6 +1132,40 @@ def get_item_data(
 # --- VERSION CONTROL ENDPOINTS ---
 
 
+def _apply_protected_fields(restored_data: dict, current_item: dict) -> dict:
+    """Apply protected field values from current item to restored data.
+
+    Protected fields cannot be overwritten during restore to maintain data integrity:
+    - refcode: Immutable identifier
+    - _id: Database primary key
+    - immutable_id: Database ObjectId reference
+    - creator_ids: Ownership/permissions information
+    - file_ObjectIds: File attachments managed separately
+    - version: Always increments forward to prevent collisions
+
+    Args:
+        restored_data: The data being restored from a previous version
+        current_item: The current item in the database
+
+    Returns:
+        Modified restored_data with protected fields preserved from current_item
+    """
+    protected_fields = [
+        "refcode",
+        "_id",
+        "immutable_id",
+        "creator_ids",
+        "file_ObjectIds",
+        "version",
+    ]
+
+    for field in protected_fields:
+        if field in current_item:
+            restored_data[field] = current_item[field]
+
+    return restored_data
+
+
 def _get_next_version_number(refcode: str) -> int:
     """Atomically get and increment the version counter for an item.
 
@@ -1284,17 +1318,7 @@ def restore_version(refcode):
     restored_data = version["data"].copy()
 
     # Protect critical fields from being overwritten during restore
-    protected_fields = [
-        "refcode",
-        "_id",
-        "immutable_id",
-        "creator_ids",
-        "file_ObjectIds",
-        "version",
-    ]
-    for field in protected_fields:
-        if field in current_item:
-            restored_data[field] = current_item[field]
+    restored_data = _apply_protected_fields(restored_data, current_item)
 
     # Ensure type consistency
     if restored_data.get("type") != current_item.get("type"):
