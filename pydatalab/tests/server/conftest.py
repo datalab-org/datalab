@@ -580,6 +580,7 @@ def fixture_insert_default_equipment(default_equipment):
 
 @pytest.fixture(scope="module", name="insert_example_items")
 def fixture_insert_example_items(example_items, real_mongo_client):
+    real_mongo_client.get_database(TEST_DATABASE_NAME).items.delete_many({})
     real_mongo_client.get_database().items.insert_many(example_items)
 
 
