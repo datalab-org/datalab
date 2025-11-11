@@ -1075,7 +1075,7 @@ def list_versions(refcode):
             {
                 "_id": 1,
                 "timestamp": 1,
-                "user": 1,
+                "user_id": 1,
                 "datalab_version": 1,
                 "version": 1,
                 "action": 1,
