@@ -40,7 +40,6 @@ class TestFTIRAspFormat:
     def test_plot_asp(self, asp_file):
         """Test plotting of .asp format data"""
         ftir_data, xunits, yunits = FTIRBlock.parse_ftir_asp(asp_file)
-        # _format_ftir_plot is a static method
         layout = FTIRBlock._format_ftir_plot(ftir_data, xunits, yunits)
         assert layout
 
@@ -63,6 +62,5 @@ class TestFTIRTxtFormat:
     def test_plot_txt(self, txt_file):
         """Test plotting of .txt format data"""
         ftir_data, xunits, yunits = FTIRBlock.parse_ftir_txt(txt_file)
-        # _format_ftir_plot is a static method
         layout = FTIRBlock._format_ftir_plot(ftir_data, xunits, yunits)
         assert layout
