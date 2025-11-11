@@ -44,8 +44,8 @@ class TestSaveVersion:
 
         assert response.status_code == 200
         assert response.json["status"] == "success"
-        assert "version_number" in response.json
-        assert response.json["version_number"] == 1
+        assert "version" in response.json
+        assert response.json["version"] == 1
 
     def test_save_version_multiple_times(self, client, sample_with_version):
         """Test that version numbers increment atomically."""
@@ -54,17 +54,17 @@ class TestSaveVersion:
         # Save first version
         response1 = client.post(f"/items/{refcode}/save-version/")
         assert response1.status_code == 200
-        version1 = response1.json["version_number"]
+        version1 = response1.json["version"]
 
         # Save second version
         response2 = client.post(f"/items/{refcode}/save-version/")
         assert response2.status_code == 200
-        version2 = response2.json["version_number"]
+        version2 = response2.json["version"]
 
         # Save third version
         response3 = client.post(f"/items/{refcode}/save-version/")
         assert response3.status_code == 200
-        version3 = response3.json["version_number"]
+        version3 = response3.json["version"]
 
         # Ensure versions increment
         assert version2 == version1 + 1
@@ -116,9 +116,9 @@ class TestListVersions:
 
         # Check that versions are sorted in descending order (newest first)
         versions = response.json["versions"]
-        assert versions[0]["version_number"] == 3
-        assert versions[1]["version_number"] == 2
-        assert versions[2]["version_number"] == 1
+        assert versions[0]["version"] == 3
+        assert versions[1]["version"] == 2
+        assert versions[2]["version"] == 1
 
     def test_list_versions_contains_metadata(self, client, sample_with_version):
         """Test that listed versions contain required metadata."""
@@ -130,9 +130,8 @@ class TestListVersions:
 
         assert "_id" in version
         assert "timestamp" in version
-        assert "user" in version
-        assert "software_version" in version
-        assert "version_number" in version
+        assert "datalab_version" in version
+        assert "version" in version
         assert "action" in version
 
     def test_list_versions_includes_action_field(self, client, sample_with_version):
@@ -226,10 +225,10 @@ class TestCompareVersions:
         assert response.status_code == 200
         assert response.json["status"] == "success"
         assert "diff" in response.json
-        assert "v1_version_number" in response.json
-        assert "v2_version_number" in response.json
-        assert response.json["v1_version_number"] == 1
-        assert response.json["v2_version_number"] == 2
+        assert "v1_version" in response.json
+        assert "v2_version" in response.json
+        assert response.json["v1_version"] == 1
+        assert response.json["v2_version"] == 2
 
     def test_compare_versions_missing_parameters(self, client, sample_with_version):
         """Test comparing versions with missing parameters."""
@@ -719,7 +718,7 @@ class TestVersionCounter:
         version_numbers = []
         for i in range(5):
             response = client.post(f"/items/{refcode}/save-version/")
-            version_numbers.append(response.json["version_number"])
+            version_numbers.append(response.json["version"])
 
         # All version numbers should be unique and sequential
         assert version_numbers == [1, 2, 3, 4, 5]
@@ -740,7 +739,7 @@ class TestVersionCounter:
 
         # Save first version
         response = client.post(f"/items/{refcode}/save-version/")
-        assert response.json["version_number"] == 1
+        assert response.json["version"] == 1
 
         # Check counter was created
         counter = flask_mongo.db.version_counters.find_one({"refcode": full_refcode})
@@ -810,17 +809,11 @@ class TestEdgeCases:
 
         # Check all required fields present
         assert "refcode" in version
-        assert "version_number" in version
+        assert "version" in version
         assert "timestamp" in version
         assert "action" in version
-        assert "user" in version
-        assert "software_version" in version
+        assert "datalab_version" in version
         assert "data" in version
-
-        # Check user info structure
-        assert "id" in version["user"]
-        assert "display_name" in version["user"]
-        assert "email" in version["user"]
 
     def test_version_snapshot_is_complete(self, client, sample_with_version):
         """Test that version snapshot contains complete item data."""
@@ -866,26 +859,26 @@ class TestEdgeCases:
         version_doc = flask_mongo.db.item_versions.find_one({"refcode": full_refcode})
 
         # software_version field must exist
-        assert "software_version" in version_doc, (
+        assert "datalab_version" in version_doc, (
             "Version document should have software_version field"
         )
 
         # software_version should not be None
-        assert version_doc["software_version"] is not None, (
+        assert version_doc["datalab_version"] is not None, (
             "software_version should not be None (check package version detection)"
         )
 
         # software_version should not be "unknown"
-        assert version_doc["software_version"] != "unknown", (
+        assert version_doc["datalab_version"] != "unknown", (
             f"software_version should be detected, got '{version_doc['software_version']}'. "
             "This usually means the package version detection failed."
         )
 
         # software_version should be a non-empty string
-        assert isinstance(version_doc["software_version"], str), (
+        assert isinstance(version_doc["datalab_version"], str), (
             "software_version should be a string"
         )
-        assert len(version_doc["software_version"]) > 0, "software_version should not be empty"
+        assert len(version_doc["datalab_version"]) > 0, "software_version should not be empty"
 
 
 class TestUserIdField:
@@ -905,35 +898,11 @@ class TestUserIdField:
             {"refcode": sample_with_version.refcode}
         )
 
-        # Check user snapshot exists (for fast display)
-        assert "user" in version_doc
-        assert version_doc["user"] is not None
-        assert "id" in version_doc["user"]
-        assert "display_name" in version_doc["user"]
-        assert "email" in version_doc["user"]
-
         # Check user_id ObjectId exists (for efficient querying)
         assert "user_id" in version_doc
         assert version_doc["user_id"] is not None
         # Verify it's an ObjectId, not a string
         assert isinstance(version_doc["user_id"], ObjectId)
-
-    def test_user_id_matches_user_snapshot_id(self, client, sample_with_version):
-        """Test that user_id ObjectId matches the string ID in user snapshot."""
-        from pydatalab.mongo import flask_mongo
-
-        refcode = sample_with_version.refcode.split(":")[1]
-
-        # Save a version
-        client.post(f"/items/{refcode}/save-version/")
-
-        # Get version document
-        version_doc = flask_mongo.db.item_versions.find_one(
-            {"refcode": sample_with_version.refcode}
-        )
-
-        # user_id ObjectId should match user.id string
-        assert str(version_doc["user_id"]) == version_doc["user"]["id"]
 
     def test_restored_version_includes_user_id(self, client, sample_with_version):
         """Test that restored versions also include user_id field."""
@@ -963,10 +932,8 @@ class TestUserIdField:
         )
 
         # Check both user fields exist
-        assert "user" in restored_version
         assert "user_id" in restored_version
         assert isinstance(restored_version["user_id"], ObjectId)
-        assert str(restored_version["user_id"]) == restored_version["user"]["id"]
 
     def test_query_versions_by_user_id(self, client, sample_with_version, user_id):
         """Test that we can efficiently query versions by user_id ObjectId."""
@@ -988,7 +955,6 @@ class TestUserIdField:
         # All should belong to the same user
         for version in versions_by_user:
             assert version["user_id"] == user_id
-            assert version["user"]["id"] == str(user_id)
 
 
 def test_sample_lifecycle(client, sample_with_version):
@@ -1044,10 +1010,10 @@ def test_sample_lifecycle(client, sample_with_version):
     )
 
     initial_version = list_response.json["versions"][0]
-    assert initial_version["version_number"] == 1, "Initial version should be numbered 1"
+    assert initial_version["version"] == 1, "Initial version should be numbered 1"
     assert initial_version["action"] == "created", "Initial version should have action='created'"
-    assert "software_version" in initial_version, "Version should have software_version"
-    assert initial_version["software_version"] != "unknown", (
+    assert "datalab_version" in initial_version, "Version should have software_version"
+    assert initial_version["datalab_version"] != "unknown", (
         "Software version should be detected, not 'unknown'"
     )
     print(f"[TEST] Initial version created: {initial_version['_id']}")
@@ -1083,12 +1049,11 @@ def test_sample_lifecycle(client, sample_with_version):
     version_2_id = version_2["_id"]
 
     # Verify version 2 metadata (first manual save)
-    assert version_2["version_number"] == 2, "Second version should be numbered 2"
+    assert version_2["version"] == 2, "Second version should be numbered 2"
     assert version_2["action"] == "manual_save", "Version 2 should be marked as manual_save"
     assert "timestamp" in version_2, "Version should have timestamp"
-    assert "user" in version_2, "Version should have user info"
-    assert "software_version" in version_2, "Version should have software_version"
-    assert version_2["software_version"] != "unknown", (
+    assert "datalab_version" in version_2, "Version should have software_version"
+    assert version_2["datalab_version"] != "unknown", (
         "Software version should be detected, not 'unknown'"
     )
     assert version_2.get("restored_from_version") is None, (
@@ -1096,7 +1061,7 @@ def test_sample_lifecycle(client, sample_with_version):
     )
 
     # Verify version 1 is still there (the initial created version)
-    assert version_1["version_number"] == 1, "First version should be numbered 1"
+    assert version_1["version"] == 1, "First version should be numbered 1"
     assert version_1["action"] == "created", "First version should have action='created'"
 
     print(f"[TEST] Version 2 (first manual save) created: {version_2_id}")
@@ -1126,8 +1091,8 @@ def test_sample_lifecycle(client, sample_with_version):
     version_3_id = version_3["_id"]
     version_2_from_list = versions[1]  # Version 2
 
-    assert version_3["version_number"] == 3, "Third version should be numbered 3"
-    assert version_2_from_list["version_number"] == 2, "Second version should still be numbered 2"
+    assert version_3["version"] == 3, "Third version should be numbered 3"
+    assert version_2_from_list["version"] == 2, "Second version should still be numbered 2"
 
     print(f"[TEST] Version 3 (second manual save) created: {version_3_id}")
 
@@ -1141,8 +1106,8 @@ def test_sample_lifecycle(client, sample_with_version):
     )
 
     assert "diff" in compare_response.json, "Compare response should include diff"
-    assert compare_response.json["v1_version_number"] == 2
-    assert compare_response.json["v2_version_number"] == 3
+    assert compare_response.json["v1_version"] == 2
+    assert compare_response.json["v2_version"] == 3
 
     # Diff should not be empty since we made changes
     diff = compare_response.json["diff"]
@@ -1189,7 +1154,7 @@ def test_sample_lifecycle(client, sample_with_version):
     )
 
     version_4 = versions[0]  # Newest
-    assert version_4["version_number"] == 4
+    assert version_4["version"] == 4
     assert version_4["action"] == "restored", "Version 4 should be marked as restored"
     assert version_4["restored_from_version"] == version_2_id, (
         "Version 4 should reference version 2"
@@ -1217,14 +1182,10 @@ def test_sample_lifecycle(client, sample_with_version):
     )
 
     for version_doc in all_version_docs:
-        assert "user" in version_doc, "Version should have user snapshot"
         assert "user_id" in version_doc, "Version should have user_id ObjectId"
         assert isinstance(version_doc["user_id"], ObjectId), "user_id should be ObjectId type"
-        assert str(version_doc["user_id"]) == version_doc["user"]["id"], (
-            "user_id should match user.id"
-        )
-        assert "software_version" in version_doc, "Version should have software_version field"
-        assert version_doc["software_version"] != "unknown", (
+        assert "datalab_version" in version_doc, "Version should have software_version field"
+        assert version_doc["datalab_version"] != "unknown", (
             f"Software version should be detected for version {version_doc['version_number']}, "
             f"got '{version_doc['software_version']}'"
         )
