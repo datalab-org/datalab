@@ -73,9 +73,9 @@ class FTIRBlock(DataBlock):
         ftir = pd.DataFrame.from_dict({"Wavenumber": x, "Absorbance": y})
         return ftir, xunits, yunits
 
-    @classmethod
+    @staticmethod
     def _format_ftir_plot(
-        self, ftir_data: pd.DataFrame, xunits: str, yunits: str
+        ftir_data: pd.DataFrame, xunits: str, yunits: str
     ) -> bokeh.layouts.layout:
         """Formats FTIR data for plotting in Bokeh, inverted x-axis with a buffer of 50 cm^-1 on either side
 
@@ -86,6 +86,8 @@ class FTIRBlock(DataBlock):
             bokeh.layouts.layout: Bokeh layout with FTIR data plotted
         """
         if xunits == "default":
+            toollabsx = "Wavenumber / cm⁻¹"
+        elif xunits == "1/CM\n":
             toollabsx = "Wavenumber / cm⁻¹"
         else:
             toollabsx = f"Wavenumber / {xunits}"
