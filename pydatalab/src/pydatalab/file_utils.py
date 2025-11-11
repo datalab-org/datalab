@@ -252,11 +252,37 @@ def get_file_info_by_id(file_id: str | ObjectId, update_if_live: bool = True) ->
 
     """
     LOGGER.debug("getting file for file_id: %s", file_id)
-    file_collection = flask_mongo.db.files
+    item_collection = flask_mongo.db.items
     file_id = ObjectId(file_id)
-    file_info = file_collection.find_one(
-        {"_id": file_id, **get_default_permissions(user_only=False)}
+
+    # Instead of directly querying for a file, we try to find it
+    # via attachment to an item, so that we can check that the user
+    # has the appropriate permissions for it
+    result = item_collection.aggregate(
+        [
+            {
+                "$match": {
+                    "file_ObjectIds": {"$in": [file_id]},
+                    **get_default_permissions(user_only=False),
+                }
+            },
+            {"$limit": 1},
+            {
+                "$lookup": {
+                    "from": "files",
+                    "localField": "file_ObjectIds",
+                    "foreignField": "_id",
+                    "as": "files",
+                }
+            },
+            {"$project": {"files": 1}},
+        ]
     )
+
+    file_info = (
+        [d for d in next(result)["files"] if str(d["_id"]) == str(file_id)][0] if result else None
+    )
+
     if not file_info:
         raise OSError(f"could not find file with id: {file_id} in db")
 
@@ -301,8 +327,11 @@ def update_uploaded_file(file: FileStorage, file_id: ObjectId, size_bytes: int |
     updated_file_entry = File(**updated_file_entry)
 
     # overwrite the old file with the new location
+    if updated_file_entry.location is None:
+        raise RuntimeError("Cannot update file with no location set: %s", updated_file_entry)
+
     file.save(updated_file_entry.location)
-    size_bytes = os.path.getsize(updated_file_entry.location)
+    size_bytes = os.path.getsize(updated_file_entry.location)  # type: ignore[arg-type]
 
     file_collection.update_one(
         {"_id": file_id, **get_default_permissions(user_only=False)}, {"$set": {"size": size_bytes}}
@@ -396,7 +425,7 @@ def save_uploaded_file(
         space = get_space_available_bytes()
         if size_bytes is not None and space < size_bytes:
             raise RuntimeError(
-                f"Cannot store file: insufficient space available on disk (required: {size_bytes // 1024 ** 3} GB). Please contact your datalab administrator."
+                f"Cannot store file: insufficient space available on disk (required: {size_bytes // 1024**3} GB). Please contact your datalab administrator."
             )
         file_collection = client.get_database().files
         result = file_collection.insert_one(new_file_document.dict(), session=session)

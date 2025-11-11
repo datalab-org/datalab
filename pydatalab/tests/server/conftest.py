@@ -8,7 +8,6 @@ from bson import ObjectId
 from flask.testing import FlaskClient
 
 import pydatalab.mongo
-from pydatalab.main import create_app
 from pydatalab.models import Cell, Collection, Equipment, Sample, StartingMaterial
 from pydatalab.models.people import AccountStatus
 
@@ -21,15 +20,6 @@ class PyMongoMock(mongomock.MongoClient):
 
 
 MONGO_URI = f"mongodb://localhost:27017/{TEST_DATABASE_NAME}"
-
-
-@pytest.fixture(scope="session")
-def monkeypatch_session():
-    from _pytest.monkeypatch import MonkeyPatch
-
-    m = MonkeyPatch()
-    yield m
-    m.undo()
 
 
 @pytest.fixture(scope="module")
@@ -53,7 +43,7 @@ def database(real_mongo_client):
 
 
 @pytest.fixture(scope="session")
-def app_config(tmp_path_factory):
+def app_config(tmp_path_factory, secret_key):
     example_remotes = [
         {
             "name": "example_data",
@@ -71,6 +61,8 @@ def app_config(tmp_path_factory):
         "REMOTE_FILESYSTEMS": example_remotes,
         "FILE_DIRECTORY": str(tmp_path_factory.mktemp("files")),
         "TESTING": False,
+        "ROOT_PATH": "/",
+        "SECRET_KEY": secret_key,
         "EMAIL_AUTH_SMTP_SETTINGS": {
             "MAIL_SERVER": "smtp.example.com",
             "MAIL_PORT": 587,
@@ -96,6 +88,7 @@ def app(real_mongo_client, monkeypatch_session, app_config):
     mongomock testing backend.
 
     """
+    from pydatalab.main import create_app
 
     try:
         mongo_cli = real_mongo_client
@@ -125,7 +118,7 @@ def app(real_mongo_client, monkeypatch_session, app_config):
             )
             monkeypatch_session.setattr(pydatalab.mongo, "get_database", mock_mongo_database)
 
-    app = create_app(app_config)
+    app = create_app(app_config, env_file=False)
 
     yield app
     if mongo_cli:
@@ -501,6 +494,7 @@ def example_items(user_id, admin_user_id):
             Sample(
                 **{
                     "item_id": "sample_2",
+                    "chemform": "vanadium(II) oxide",
                     "name": "other_sample",
                     "date": "1970-02-01",
                     "refcode": "grey:TEST3",
@@ -582,6 +576,11 @@ def fixture_insert_default_starting_material(default_starting_material):
 @pytest.fixture(scope="module", name="insert_default_equipment")
 def fixture_insert_default_equipment(default_equipment):
     yield from _insert_and_cleanup_item_from_model(default_equipment)
+
+
+@pytest.fixture(scope="module", name="insert_example_items")
+def fixture_insert_example_items(example_items, real_mongo_client):
+    real_mongo_client.get_database().items.insert_many(example_items)
 
 
 @pytest.fixture(scope="module", name="inserted_default_items")

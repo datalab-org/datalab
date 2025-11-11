@@ -1,5 +1,6 @@
 import datetime
 import json
+import re
 
 from bson import ObjectId
 from flask import Blueprint, jsonify, redirect, request
@@ -7,7 +8,7 @@ from flask_login import current_user
 from pydantic import ValidationError
 from pymongo.command_cursor import CommandCursor
 from pymongo.errors import DuplicateKeyError
-from werkzeug.exceptions import BadRequest
+from werkzeug.exceptions import BadRequest, NotFound
 
 from pydatalab.apps import BLOCK_TYPES
 from pydatalab.config import CONFIG
@@ -46,61 +47,6 @@ def groups_lookup_for_items() -> dict:
 @ITEMS.before_request
 @active_users_or_get_only
 def _(): ...
-
-
-def reserialize_blocks(display_order: list[str], blocks_obj: dict[str, dict]) -> dict[str, dict]:
-    """Create the corresponding Python objects from JSON block data, then
-    serialize it again as JSON to populate any missing properties.
-
-    Parameters:
-        blocks_obj: A dictionary containing the JSON block data, keyed by block ID.
-
-    Returns:
-        A dictionary with the re-serialized block data.
-
-    """
-    for block_id in display_order:
-        try:
-            block_data = blocks_obj[block_id]
-        except KeyError:
-            LOGGER.warning(f"block_id {block_id} found in display order but not in blocks_obj")
-            continue
-        blocktype = block_data["blocktype"]
-        blocks_obj[block_id] = (
-            BLOCK_TYPES.get(blocktype, BLOCK_TYPES["notsupported"]).from_db(block_data).to_web()
-        )
-
-    return blocks_obj
-
-
-# Seems to be obselete now?
-def dereference_files(file_ids: list[str | ObjectId]) -> dict[str, dict]:
-    """For a list of Object IDs (as strings or otherwise), query the files collection
-    and return a dictionary of the data stored under each ID.
-
-    Parameters:
-        file_ids: The list of IDs of files to return;
-
-    Returns:
-        The dereferenced data as a dictionary with (string) ID keys.
-
-    """
-    results = {
-        str(f["_id"]): f
-        for f in flask_mongo.db.files.find(
-            {
-                "_id": {"$in": [ObjectId(_id) for _id in file_ids]},
-            }
-        )
-    }
-    if len(results) != len(file_ids):
-        raise RuntimeError(
-            "Some file IDs did not have corresponding database entries.\n"
-            f"Returned: {list(results.keys())}\n"
-            f"Requested: {file_ids}\n"
-        )
-
-    return results
 
 
 @ITEMS.route("/equipment/", methods=["GET"])
@@ -391,7 +337,9 @@ def search_items():
         query = query.strip("'")
 
     if isinstance(query, str) and query.startswith("%"):
+        # Old FTS query style, using MongoDB text indexes
         query = query.lstrip("%")
+        query = query.strip("'")
         match_obj = {
             "$text": {"$search": query},
             **get_default_permissions(user_only=False),
@@ -401,10 +349,58 @@ def search_items():
 
         pipeline.append({"$match": match_obj})
         pipeline.append({"$sort": {"score": {"$meta": "textScore"}}})
-    else:
+    elif isinstance(query, str) and query.startswith("#"):
+        # Plain regex search, without word boundaries or splitting into parts
+        query = query.lstrip("#")
+        query = query.strip("'")
+
         match_obj = {
             "$or": [{field: {"$regex": query, "$options": "i"}} for field in ITEMS_FTS_FIELDS]
         }
+        match_obj = {"$and": [get_default_permissions(user_only=False), match_obj]}
+        if types is not None:
+            match_obj["$and"].append({"type": {"$in": types}})
+
+        pipeline.append({"$match": match_obj})
+
+    else:
+        # Heuristic + regex search, splitting the query into parts and adding word boundaries
+        # depending on length
+        def _generate_heuristic_regex_search(query: str, part_length: int = 4) -> dict:
+            """Generate a heuristic regex search object for MongoDB that uses
+            word boundaries for short parts of the query, but allows matches anywhere.
+
+            Parameters:
+                query: The full search query string.
+                part_length: The length below which to add a word boundary to the start of the part.
+
+            Returns:
+                A MongoDB query object that can be used in a $match stage.
+
+            """
+            query_parts = [re.escape(part) for part in query.split(" ") if part.strip()]
+
+            # Add word boundary to short parts to avoid excessive matches, i.e., search start of string
+            # for short parts, but allow match anywhere in string for longer parts
+            query_parts = [
+                f"\\b{part}" if len(part) <= part_length else part for part in query_parts
+            ]
+            match_obj = {
+                "$or": [
+                    {"$and": [{field: {"$regex": query, "$options": "i"}} for query in query_parts]}
+                    for field in ITEMS_FTS_FIELDS
+                ]
+            }
+            LOGGER.debug(
+                "Performing regex search for %s with full search %s", query_parts, match_obj
+            )
+
+            return match_obj
+
+        if not query:
+            return jsonify({"status": "error", "message": "No query provided."}), 400
+
+        match_obj = _generate_heuristic_regex_search(query)
         match_obj = {"$and": [get_default_permissions(user_only=False), match_obj]}
         if types is not None:
             match_obj["$and"].append({"type": {"$in": types}})
@@ -436,14 +432,10 @@ def _create_sample(
     generate_id_automatically: bool = False,
 ) -> tuple[dict, int]:
     sample_dict["item_id"] = sample_dict.get("item_id")
+
     if generate_id_automatically and sample_dict["item_id"]:
-        return (
-            dict(
-                status="error",
-                messages=f"""Request to create item with generate_id_automatically = true is incompatible with the provided item data,
-                which has an item_id included (provided id: {sample_dict["item_id"]}")""",
-            ),
-            400,
+        raise BadRequest(
+            f"Request to create item with {generate_id_automatically=} is incompatible with the provided item data, which has an item_id included (id: {sample_dict['item_id']})"
         )
 
     if copy_from_item_id:
@@ -451,25 +443,16 @@ def _create_sample(
 
         LOGGER.debug(f"Copying from pre-existing item {copy_from_item_id} with data:\n{copied_doc}")
         if not copied_doc:
-            return (
-                dict(
-                    status="error",
-                    message=f"Request to copy item with id {copy_from_item_id} failed because item could not be found.",
-                    item_id=sample_dict["item_id"],
-                ),
-                404,
+            raise NotFound(
+                f"Request to copy item with id {copy_from_item_id} failed because item could not be found."
             )
 
         # the provided item_id, name, and date take precedence over the copied parameters, if provided
         try:
             copied_doc["item_id"] = sample_dict["item_id"]
         except KeyError:
-            return (
-                dict(
-                    status="error",
-                    message=f"Request to copy item with id {copy_from_item_id} to new item failed because the target new item_id was not provided.",
-                ),
-                400,
+            raise BadRequest(
+                f"Request to copy item with id {copy_from_item_id} to new item failed because the target new item_id was not provided."
             )
 
         copied_doc["name"] = sample_dict.get("name")
@@ -488,7 +471,12 @@ def _create_sample(
                 if constituent["item"].get("item_id") is None
                 or constituent["item"].get("item_id") not in existing_consituent_ids
             ]
+
+            original_collections = sample_dict.get("collections", [])
             sample_dict = copied_doc
+
+            if original_collections:
+                sample_dict["collections"] = original_collections
 
         elif copied_doc["type"] == "cells":
             for component in (
@@ -507,20 +495,19 @@ def _create_sample(
                     or constituent["item"].get("item_id") not in existing_consituent_ids
                 ]
 
+            original_collections = sample_dict.get("collections", [])
             sample_dict = copied_doc
+
+            if original_collections:
+                sample_dict["collections"] = original_collections
 
     try:
         # If passed collection data, dereference it and check if the collection exists
         sample_dict["collections"] = _check_collections(sample_dict)
     except ValueError as exc:
-        return (
-            dict(
-                status="error",
-                message=f"Unable to create new item {sample_dict['item_id']!r} inside non-existent collection(s): {exc}",
-                item_id=sample_dict["item_id"],
-            ),
-            401,
-        )
+        raise NotFound(
+            f"Unable to create new item {sample_dict['item_id']!r} inside non-existent collection(s) {exc}"
+        ) from exc
 
     sample_dict.pop("refcode", None)
     type_ = sample_dict["type"]
@@ -529,12 +516,6 @@ def _create_sample(
 
     model = ITEM_MODELS[type_]
 
-    # the following code was used previously to explicitely check schema properties.
-    # it doesn't seem to be necessary now, with extra = "ignore" turned on in the pydantic models,
-    # and it breaks in instances where the models use aliases (e.g., in the starting_material model)
-    # so we are taking it out now, but leaving this comment in case it needs to be reverted.
-    # schema = model.schema()
-    # new_sample = {k: sample_dict[k] for k in schema["properties"] if k in sample_dict}
     new_sample = sample_dict
 
     if type_ in ("starting_materials", "equipment"):
@@ -714,7 +695,7 @@ def _create_sample(
     return data
 
 
-@ITEMS.route("/new-sample/", methods=["POST"])
+@ITEMS.route("/new-sample/", methods=["POST", "PUT"])
 def create_sample():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
     if "new_sample_data" in request_json:
@@ -729,7 +710,7 @@ def create_sample():
     return jsonify(response), http_code
 
 
-@ITEMS.route("/new-samples/", methods=["POST"])
+@ITEMS.route("/new-samples/", methods=["POST", "PUT"])
 def create_samples():
     """attempt to create multiple samples at once.
     Because each may result in success or failure, 207 is returned along with a
@@ -805,7 +786,12 @@ def update_item_permissions(refcode: str):
     current_creator_ids = current_item["creator_ids"]
     current_group_ids = current_item.get("group_ids", [])
 
-    if "creators" in request_json and request_json["creators"] is not None:
+    if "creators" in request_json:
+
+        new_creators = request_json["creators"]
+        if not isinstance(new_creators, list):
+            raise RuntimeError("Invalid creators list provided in request.")
+
         creator_ids = [
             ObjectId(creator.get("immutable_id", None))
             for creator in request_json["creators"]
@@ -952,17 +938,9 @@ def delete_sample():
 
 @ITEMS.route("/items/<refcode>", methods=["GET"])
 @ITEMS.route("/get-item-data/<item_id>", methods=["GET"])
-def get_item_data(
-    item_id: str | None = None, refcode: str | None = None, load_blocks: bool = False
-):
+def get_item_data(item_id: str | None = None, refcode: str | None = None):
     """Generates a JSON response for the item with the given `item_id`,
     or `refcode` additionally resolving relationships to files and other items.
-
-    Parameters:
-       load_blocks: Whether to regenerate any data blocks associated with this
-           sample (i.e., create the Python object corresponding to the block and
-           call its render function).
-
     """
     redirect_to_ui = bool(request.args.get("redirect-to-ui", default=False, type=json.loads))
     if refcode and redirect_to_ui and CONFIG.APP_URL:
@@ -976,15 +954,7 @@ def get_item_data(
 
         match = {"refcode": refcode}
     else:
-        return (
-            jsonify(
-                {
-                    "status": "error",
-                    "message": "No item_id or refcode provided.",
-                }
-            ),
-            400,
-        )
+        raise BadRequest("No item_id or refcode provided.")
 
     # retrieve the entry from the database:
     cursor = flask_mongo.db.items.aggregate(
@@ -1027,13 +997,11 @@ def get_item_data(
         ItemModel = ITEM_MODELS[doc["type"]]
     except KeyError:
         if "type" in doc:
-            raise KeyError(f"Item {item_id=} has invalid type: {doc['type']}")
+            raise BadRequest(f"Item {item_id=} has invalid type: {doc['type']}")
         else:
-            raise KeyError(f"Item {item_id=} has no type field in document.")
+            raise BadRequest(f"Item {item_id=} has no type field in document.")
 
     doc = ItemModel(**doc)
-    if load_blocks:
-        doc.blocks_obj = reserialize_blocks(doc.display_order, doc.blocks_obj)
 
     # find any documents with relationships that mention this document
     relationships_query_results = flask_mongo.db.items.find(
@@ -1094,17 +1062,11 @@ def get_item_data(
     if item_id is None:
         item_id = return_dict["item_id"]
 
-    # create the files_data dictionary keyed by file ObjectId
-    files_data: dict[ObjectId, dict] = {
-        f["immutable_id"]: f for f in return_dict.get("files") or []
-    }
-
     return jsonify(
         {
             "status": "success",
             "item_id": item_id,
             "item_data": return_dict,
-            "files_data": files_data,
             "child_items": sorted(children),
             "parent_items": sorted(parents),
         }

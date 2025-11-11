@@ -163,6 +163,8 @@
 </template>
 
 <script>
+import { DialogService } from "@/services/DialogService";
+
 import IconField from "primevue/iconfield";
 import InputIcon from "primevue/inputicon";
 import InputText from "primevue/inputtext";
@@ -254,13 +256,14 @@ export default {
     },
   },
   methods: {
-    confirmDeletion() {
+    async confirmDeletion() {
       const idsSelected = this.itemsSelected.map((x) => x.item_id || x.collection_id);
-      if (
-        confirm(
-          `Are you sure you want to delete ${this.itemsSelected.length} selected items? (${idsSelected})`,
-        )
-      ) {
+      const confirmed = await DialogService.confirm({
+        title: "Confirm Deletion",
+        message: `Are you sure you want to delete ${this.itemsSelected.length} selected items? (${idsSelected})`,
+        type: "warning",
+      });
+      if (confirmed) {
         this.deleteItems(idsSelected);
         this.$emit("delete-selected-items");
       }
@@ -322,12 +325,14 @@ export default {
     columnLabel(option) {
       return option.label || option.header || option.field;
     },
-    resetTable() {
-      if (
-        window.confirm(
+    async resetTable() {
+      const confirmed = await DialogService.confirm({
+        title: "Confirm reset",
+        message:
           "Are you sure you want to reset your preferences (visible columns, widths) for this table?",
-        )
-      ) {
+        type: "info",
+      });
+      if (confirmed) {
         this.$emit("reset-table");
       }
     },

@@ -1,10 +1,11 @@
-import os
 from collections.abc import Callable, Iterable
 from typing import Any
 
 from flask import Response, jsonify
 from pydantic import ValidationError
 from werkzeug.exceptions import Forbidden, HTTPException, RequestEntityTooLarge
+
+from pydatalab.logger import LOGGER
 
 
 class UserRegistrationForbidden(Forbidden):
@@ -58,7 +59,7 @@ def handle_large_file_exception(exc: RequestEntityTooLarge) -> tuple[Response, i
         "title": exc.__class__.__name__,
         "status": "error",
         "message": f"""Uploaded file is too large.
-The maximum file size is {CONFIG.MAX_CONTENT_LENGTH / 1024 ** 3:.2f} GB.
+The maximum file size is {CONFIG.MAX_CONTENT_LENGTH / 1024**3:.2f} GB.
 Contact your datalab administrator if you need to upload larger files.""",
     }
     return jsonify(response), 413
@@ -79,8 +80,12 @@ def handle_pydantic_validation_error(exc: ValidationError) -> tuple[Response, in
 
 def handle_generic_exception(exc: Exception) -> tuple[Response, int]:
     """Return a specific error message and status code if the exception stores them."""
-    if os.environ.get("FLASK_ENV") == "development":
-        raise exc
+
+    LOGGER.critical(
+        "An unhandled exception occurred: %s",
+        exc,
+        exc_info=True,
+    )
 
     response = {
         "title": "Internal Server Error",

@@ -37,6 +37,8 @@
 </template>
 
 <script>
+import { DialogService } from "@/services/DialogService";
+
 import vSelect from "vue-select";
 import FormattedCollectionName from "@/components/FormattedCollectionName.vue";
 import {
@@ -158,9 +160,11 @@ export default {
           }
         } catch (error) {
           console.error("Error:", error);
-          alert(
-            "An error occurred while creating the collection. Please check that your desired collection ID is valid.",
-          );
+          DialogService.error({
+            title: "Collection Creation Failed",
+            message:
+              "An error occurred while creating the collection. Please check that your desired collection ID is valid.",
+          });
         }
       }
     },

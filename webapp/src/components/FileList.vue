@@ -10,6 +10,10 @@
           <a class="filelink" target="_blank" :href="`${$API_URL}/files/${file_id}/${file.name}`">
             {{ file.name }}
           </a>
+          <span v-if="getFileSize(file)" class="file-size">
+            ({{ formatFileSize(getFileSize(file)) }})
+          </span>
+
           <font-awesome-icon
             v-if="file.is_live == true"
             v-show="true"
@@ -27,6 +31,10 @@
               <font-awesome-icon :icon="['fas', 'hdd']" class="toplevel-icon" />
               {{ file.source_server_name }}
             </span>
+            <span v-if="getFileSize(file)" class="file-size">
+              ({{ formatFileSize(getFileSize(file)) }})
+            </span>
+
             <span class="last-updated-text">
               (updated
               {{
@@ -70,6 +78,8 @@
 </template>
 
 <script>
+import { DialogService } from "@/services/DialogService";
+
 import { deleteFileFromSample } from "@/server_fetch_utils";
 import { formatDistance } from "date-fns";
 
@@ -91,8 +101,22 @@ export default {
   },
   methods: {
     formatDistance,
-    deleteFile(event, file_id) {
-      if (window.confirm("Are you sure you want to unlink this file from this entry?")) {
+    getFileSize(file) {
+      return file.size;
+    },
+    formatFileSize(size_bytes) {
+      if (size_bytes < 1024) return `${size_bytes} B`;
+      if (size_bytes < 1024 * 1024) return `${(size_bytes / 1024).toFixed(1)} KB`;
+      if (size_bytes < 1024 * 1024 * 1024) return `${(size_bytes / 1024 / 1024).toFixed(1)} MB`;
+      return `${(size_bytes / 1024 / 1024 / 1024).toFixed(2)} GB`;
+    },
+    async deleteFile(event, file_id) {
+      const confirmed = await DialogService.confirm({
+        title: "Unlink File",
+        message: "Are you sure you want to unlink this file from this entry?",
+        type: "warning",
+      });
+      if (confirmed) {
         deleteFileFromSample(this.item_id, file_id);
       }
     },
@@ -146,6 +170,11 @@ export default {
   color: #888;
   font-style: italic;
   vertical-align: middle;
+}
+.file-size {
+  color: #888;
+  font-size: 0.8em;
+  margin-left: 0.25rem;
 }
 
 .server-name {
