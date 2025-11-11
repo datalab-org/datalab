@@ -84,6 +84,27 @@ def test_generate_schemas(model):
     assert model.schema()
 
 
+def test_attribute_docstrings_in_schema():
+    """Field docstrings should be pulled into the JSON schema as descriptions.
+
+    Relies on ``use_attribute_docstrings`` being set on the shared ``BaseModel``
+    in ``pydatalab.models.utils``; covers fields defined across several different
+    trait mixins to confirm the config propagates through inheritance.
+    """
+    properties = Sample.model_json_schema(by_alias=False)["properties"]
+
+    expected = {
+        "creators": "Inlined info for the people associated with this item.",  # HasOwner
+        "blocks_obj": "A mapping from block ID to block data.",  # HasBlocks
+        "revision": "The revision number of the entry.",  # HasRevisionControl
+        "collections": "Inlined info for the collections associated with this item.",  # IsCollectable
+        "name": "An optional human-readable/usable name for the entry.",  # Item
+    }
+
+    for field, description in expected.items():
+        assert properties[field]["description"] == description
+
+
 def test_relationship_with_custom_type():
     """Test that a relationship with a custom type can be created."""
     relationship = TypedRelationship(
