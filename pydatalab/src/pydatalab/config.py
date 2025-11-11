@@ -145,7 +145,7 @@ class ServerConfig(BaseSettings):
         False, description="Whether to run the server in testing mode, i.e., without user auth."
     )
 
-    SECRET_KEY: str = Field(
+    SECRET_KEY: str | None = Field(
         None,
         description="The secret key to use for Flask. This value should be changed and/or loaded from an environment variable for production deployments.",
     )

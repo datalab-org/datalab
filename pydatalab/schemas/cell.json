@@ -347,6 +347,7 @@
               "type": "null"
             }
           ],
+          "default": null,
           "title": "B64 Encoded Image"
         },
         "computed": {
@@ -378,8 +379,7 @@
       },
       "required": [
         "blocktype",
-        "block_id",
-        "b64_encoded_image"
+        "block_id"
       ],
       "title": "DataBlockResponse",
       "type": "object"

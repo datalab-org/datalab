@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture(autouse=True, scope="session")
 def monkeypatch_session():
     from _pytest.monkeypatch import MonkeyPatch
 
@@ -13,7 +13,7 @@ def monkeypatch_session():
     m.undo()
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture(autouse=True, scope="session")
 def secret_key():
     """Fixture to provide a secret key for testing purposes."""
     return hashlib.sha512(b"test").hexdigest()

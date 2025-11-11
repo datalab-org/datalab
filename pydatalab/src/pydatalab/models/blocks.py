@@ -46,7 +46,7 @@ class DataBlockResponse(BaseModel):
     warnings: list[str] | None = None
     """Any warnings that occurred during block processing."""
 
-    b64_encoded_image: dict[str, str] | None
+    b64_encoded_image: dict[str, str] | None = None
     """Any base64-encoded image data associated with the block, keyed by `file_id`."""
 
     computed: dict | None = None

@@ -978,7 +978,7 @@ def test_copy_sample_and_add_to_collection(client, default_sample_dict, default_
     assert response.status_code == 201
     assert response.json["status"] == "success"
 
-    collection_dict = default_collection.dict().copy()
+    collection_dict = default_collection.model_dump().copy()
     collection_dict["collection_id"] = "test_copy_collection"
     response = client.put("/collections", json={"data": collection_dict})
     assert response.status_code == 201
@@ -1010,12 +1010,12 @@ def test_copy_sample_and_add_to_collection(client, default_sample_dict, default_
 def test_copy_sample_from_collection_to_different_collection(
     client, default_sample_dict, default_collection
 ):
-    collection1_dict = default_collection.dict().copy()
+    collection1_dict = default_collection.model_dump().copy()
     collection1_dict["collection_id"] = "collection_1"
     response = client.put("/collections", json={"data": collection1_dict})
     assert response.status_code == 201
 
-    collection2_dict = default_collection.dict().copy()
+    collection2_dict = default_collection.model_dump().copy()
     collection2_dict["collection_id"] = "collection_2"
     response = client.put("/collections", json={"data": collection2_dict})
     assert response.status_code == 201
@@ -1055,7 +1055,7 @@ def test_copy_sample_from_collection_to_different_collection(
 
 @pytest.mark.dependency(depends=["test_copy_sample_from_collection_to_different_collection"])
 def test_copy_sample_without_copying_collections(client, default_sample_dict, default_collection):
-    collection_dict = default_collection.dict().copy()
+    collection_dict = default_collection.model_dump().copy()
     collection_dict["collection_id"] = "test_no_auto_copy_collection"
     response = client.put("/collections", json={"data": collection_dict})
     assert response.status_code == 201
