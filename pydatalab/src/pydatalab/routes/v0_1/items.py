@@ -25,7 +25,7 @@ from pydatalab.models.versions import (
     RestoreVersionRequest,
     VersionAction,
 )
-from pydatalab.mongo import ITEMS_FTS_FIELDS, build_search_pipeline, flask_mongo
+from pydatalab.mongo import build_search_pipeline, flask_mongo, get_items_fts_fields
 from pydatalab.permissions import (
     PUBLIC_USER_ID,
     access_token_or_active_users,
@@ -518,7 +518,7 @@ def search_items():
         return jsonify({"status": "error", "message": "No query provided."}), 400
 
     permissions = get_default_permissions(user_only=False)
-    pipeline = build_search_pipeline(query, ITEMS_FTS_FIELDS, permissions)
+    pipeline = build_search_pipeline(query, get_items_fts_fields(), permissions)
 
     if types is not None:
         if pipeline and "$match" in pipeline[0]:
