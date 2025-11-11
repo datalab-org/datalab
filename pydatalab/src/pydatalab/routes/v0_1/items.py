@@ -1343,10 +1343,9 @@ def restore_version(refcode):
         }
 
     # Get the software version
-    try:
-        software_version = get_package_version("datalab-server")
-    except PackageNotFoundError:
-        software_version = "unknown"
+    from pydatalab import __version__
+
+    software_version = __version__
 
     # Save the RESTORED state as a new version snapshot (after restore)
     flask_mongo.db.item_versions.insert_one(
