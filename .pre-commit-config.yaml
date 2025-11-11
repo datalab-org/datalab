@@ -67,7 +67,7 @@ repos:
     hooks:
       - id: mypy
         additional_dependencies:
-          ["types-python-dateutil", "types-requests", "types-paramiko", "pydantic~=1.10"]
+          ["types-python-dateutil", "types-requests", "types-paramiko", "pydantic~=2.0", "pydantic-settings~=2.10"]
         args: ["--config-file", "pydatalab/pyproject.toml"]
 
   - repo: local
