@@ -22,7 +22,7 @@ def test_single_item_endpoints(client, inserted_default_items):
 
 def test_fts_fields():
     """Test non-exhaustively that certain fields make it into the fts index."""
-    from pydatalab.mongo import ITEMS_FTS_FIELDS
+    from pydatalab.mongo import get_items_fts_fields
 
     fields = ("item_id", "name", "description", "refcode", "synthesis_description", "supplier")
-    assert all(field in ITEMS_FTS_FIELDS for field in fields)
+    assert all(field in get_items_fts_fields() for field in fields)
