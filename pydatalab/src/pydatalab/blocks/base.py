@@ -201,15 +201,8 @@ class DataBlock:
         block, ready to be input into mongodb"""
 
         LOGGER.debug("Casting block %s to database object.", self.__class__.__name__)
-        exclude_fields: set[str] = {
-            f
-            for (f, s) in self.block_db_model.schema()["properties"].items()
-            if s.get("datalab_exclude_from_db")
-        }
-        return self.block_db_model(**self.data).dict(
-            exclude=exclude_fields,
-            exclude_unset=True,
-            exclude_none=True,
+        return self.block_db_model(**self.data).model_dump(
+            exclude={"bokeh_plot_data", "b64_encoded_image"}, exclude_unset=True
         )
 
     def to_web(self) -> dict[str, Any]:
@@ -226,18 +219,12 @@ class DataBlock:
                         last = tb_list[-1]
                         block_errors.append(f"{self.__class__.__name__} raised error: {e}")
                         LOGGER.warning(
-                            "Could not create plot for %s due to error at %s:%s in %s → %r:\n\t%s: %s",
-                            self.__class__.__name__,
-                            last.filename,
-                            last.lineno,
-                            last.name,
-                            last.line,
-                            type(e).__name__,
-                            e,
+                            f"Could not create plot for {self.__class__.__name__} due to "
+                            f"error at {last.filename}:{last.lineno} "
+                            f"in {last.name} → {last.line!r}:\n\t{type(e).__name__}: {e}"
                         )
                         LOGGER.debug(
-                            "The full data for the errored block is:\n%s",
-                            pprint.pformat(self.data),
+                            f"The full data for the errored block is:\n{pprint.pformat(self.data)}"
                         )
                     finally:
                         if captured_warnings:
@@ -258,7 +245,7 @@ class DataBlock:
         else:
             self.data.pop("warnings", None)
 
-        return self.block_db_model(**self.data).dict(exclude_unset=True, exclude_none=True)
+        return self.block_db_model(**self.data).model_dump(exclude_unset=True, exclude_none=True)
 
     def process_events(self, events: list[dict] | dict):
         """Handle any supported events passed to the block."""
@@ -276,10 +263,7 @@ class DataBlock:
                     bound_method(**event)
                 except Exception as e:
                     LOGGER.error(
-                        "Error processing event %s for block %s: %s",
-                        event_name,
-                        self.__class__.__name__,
-                        e,
+                        f"Error processing event {event_name} for block {self.__class__.__name__}: {e}"
                     )
                     self.data["errors"] = [
                         f"{self.__class__.__name__}: Error processing event {event}: {e}"
@@ -348,11 +332,11 @@ class DataBlock:
             "Updating block %s from web request",
             self.__class__.__name__,
         )
-        exclude_fields: set[str] = {
-            f
-            for (f, s) in self.block_db_model.schema()["properties"].items()
-            if s.get("datalab_exclude_from_load")
-        }
-        [data.pop(f, None) for f in exclude_fields]
-        self.data.update(self.block_db_model(**data).dict())
+        self.data.update(
+            self.block_db_model(**data).model_dump(
+                exclude={"computed", "metadata", "bokeh_plot_data", "b64_encoded_image"},
+                exclude_unset=True,
+            )
+        )
+
         return self
