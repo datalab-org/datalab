@@ -23,6 +23,7 @@ from pydatalab.models import ITEM_MODELS, ItemVersion
 from pydatalab.models.items import Item
 from pydatalab.models.relationships import RelationshipType
 from pydatalab.models.utils import generate_unique_refcode
+from pydatalab.models.versions import VersionAction
 from pydatalab.mongo import ITEMS_FTS_FIELDS, flask_mongo
 from pydatalab.permissions import (
     PUBLIC_USER_ID,
@@ -621,7 +622,7 @@ def _create_sample(
 
     # Save initial version snapshot after successful item creation
     try:
-        _save_version_snapshot(data_model.refcode, action="created")
+        _save_version_snapshot(data_model.refcode, action=VersionAction.CREATED)
     except Exception as e:
         # Log but don't fail the request since item was already created successfully
         LOGGER.error(
@@ -1346,7 +1347,7 @@ def restore_version(refcode):
         "refcode": refcode,
         "version": next_version_number,
         "timestamp": datetime.datetime.now(tz=datetime.timezone.utc),
-        "action": "restored",  # Audit trail: this is a restored version
+        "action": VersionAction.RESTORED,  # Audit trail: this is a restored version
         "restored_from_version": str(version_object_id),  # Track which version was restored from
         "user_id": user_id,  # ObjectId for efficient querying
         "datalab_version": software_version,
@@ -1402,18 +1403,20 @@ def delete_version(refcode, version_id):
         return jsonify({"status": "error", "message": "Version not found"}), 404
 
 
-def _save_version_snapshot(refcode: str, action: str = "manual_save") -> tuple[dict, int]:
+def _save_version_snapshot(
+    refcode: str, action: VersionAction = VersionAction.MANUAL_SAVE
+) -> tuple[dict, int]:
     """Save the current state of an item as a version snapshot.
 
     Helper function for creating version snapshots with proper audit trail.
 
     Args:
         refcode: The refcode of the item to save a version for
-        action: The reason for saving this version:
-            - "created": Initial version when item is first created
-            - "manual_save": User explicitly saved the version
-            - "auto_save": System or block auto-save
-            - "restored": Version created after restoring to a previous version
+        action: The reason for saving this version (VersionAction enum):
+            - VersionAction.CREATED: Initial version when item is first created
+            - VersionAction.MANUAL_SAVE: User explicitly saved the version
+            - VersionAction.AUTO_SAVE: System or block auto-save
+            - VersionAction.RESTORED: Version created after restoring to a previous version
 
     Returns:
         Tuple of (response_dict, status_code)
@@ -1485,7 +1488,7 @@ def _save_version_snapshot(refcode: str, action: str = "manual_save") -> tuple[d
 @ITEMS.route("/items/<refcode>/save-version/", methods=["POST"])
 def save_version(refcode):
     """Manually save the current state of an item as a version snapshot with an incremental version number."""
-    response, status_code = _save_version_snapshot(refcode, action="manual_save")
+    response, status_code = _save_version_snapshot(refcode, action=VersionAction.MANUAL_SAVE)
     return jsonify(response), status_code
 
 
@@ -1630,7 +1633,7 @@ def save_item():
     # If this fails, we log but don't fail the request since item was already saved
     try:
         save_version_resp_dict, save_version_status = _save_version_snapshot(
-            refcode, action="manual_save"
+            refcode, action=VersionAction.MANUAL_SAVE
         )
         if save_version_status != 200:
             LOGGER.error(
