@@ -19,7 +19,7 @@ from werkzeug.exceptions import BadRequest, NotFound
 from pydatalab.apps import BLOCK_TYPES
 from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER
-from pydatalab.models import ITEM_MODELS
+from pydatalab.models import ITEM_MODELS, ItemVersion
 from pydatalab.models.items import Item
 from pydatalab.models.relationships import RelationshipType
 from pydatalab.models.utils import generate_unique_refcode
@@ -1342,19 +1342,37 @@ def restore_version(refcode):
     software_version = __version__
 
     # Save the RESTORED state as a new version snapshot (after restore)
+    restored_version_entry = {
+        "refcode": refcode,
+        "version": next_version_number,
+        "timestamp": datetime.datetime.now(tz=datetime.timezone.utc),
+        "action": "restored",  # Audit trail: this is a restored version
+        "restored_from_version": str(version_object_id),  # Track which version was restored from
+        "user_id": user_id,  # ObjectId for efficient querying
+        "datalab_version": software_version,
+        "data": restored_data,  # Store the complete snapshot of the restored state
+    }
+
+    # Validate with Pydantic before inserting
+    try:
+        validated_restored_version = ItemVersion(**restored_version_entry)
+    except ValidationError as exc:
+        LOGGER.error(
+            "Restored version validation failed for item %s: %s",
+            refcode,
+            str(exc),
+        )
+        return jsonify(
+            {
+                "status": "error",
+                "message": f"Restored version data validation failed: {str(exc)}",
+                "output": str(exc),
+            }
+        ), 400
+
+    # Insert validated data
     flask_mongo.db.item_versions.insert_one(
-        {
-            "refcode": refcode,
-            "version": next_version_number,
-            "timestamp": datetime.datetime.now(tz=datetime.timezone.utc).isoformat(),
-            "action": "restored",  # Audit trail: this is a restored version
-            "restored_from_version": ObjectId(
-                version_object_id
-            ),  # Track which version was restored from
-            "user_id": user_id,  # ObjectId for efficient querying
-            "datalab_version": software_version,
-            "data": restored_data,  # Store the complete snapshot of the restored state
-        }
+        validated_restored_version.dict(by_alias=True, exclude_none=True)
     )
 
     return jsonify(
@@ -1429,13 +1447,35 @@ def _save_version_snapshot(refcode: str, action: str = "manual_save") -> tuple[d
     version_entry = {
         "refcode": refcode,
         "version": next_version_number,
-        "timestamp": datetime.datetime.now(tz=datetime.timezone.utc).isoformat(),
+        "timestamp": datetime.datetime.now(tz=datetime.timezone.utc),
         "action": action,  # Audit trail: why this version was created
         "user_id": user_id,  # ObjectId for efficient querying
         "datalab_version": software_version,
         "data": item,  # Complete snapshot of the item at this version
     }
-    flask_mongo.db.item_versions.insert_one(version_entry)
+
+    # Validate with Pydantic before inserting
+    try:
+        validated_version = ItemVersion(**version_entry)
+    except ValidationError as exc:
+        LOGGER.error(
+            "Version snapshot validation failed for item %s: %s",
+            refcode,
+            str(exc),
+        )
+        return (
+            {
+                "status": "error",
+                "message": f"Version data validation failed: {str(exc)}",
+                "output": str(exc),
+            },
+            400,
+        )
+
+    # Insert validated data (convert to dict and exclude None values)
+    flask_mongo.db.item_versions.insert_one(
+        validated_version.dict(by_alias=True, exclude_none=True)
+    )
     return (
         {"status": "success", "message": "Version saved.", "version": next_version_number},
         200,
