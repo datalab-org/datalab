@@ -1,6 +1,6 @@
-from pydantic import BaseModel, Field
+from pydantic import ConfigDict, Field
 
-from pydatalab.models.utils import JSON_ENCODERS, PyObjectId
+from pydatalab.models.utils import BaseModel, PyObjectId
 
 
 class DataBlockResponse(BaseModel):
@@ -10,6 +10,8 @@ class DataBlockResponse(BaseModel):
     It is expected but not mandatory that this model will be extended by the specific block type
     where possible.
     """
+
+    model_config = ConfigDict(validate_by_name=True, extra="allow")
 
     blocktype: str
     """The type of the block."""
@@ -60,8 +62,3 @@ class DataBlockResponse(BaseModel):
     metadata: dict | None = Field(default=None, datalab_exclude_from_load=True)
     """Any structured metadata associated with the block, for example,
     experimental acquisition parameters."""
-
-    class Config:
-        allow_population_by_field_name = True
-        json_encoders = JSON_ENCODERS
-        extra = "allow"
