@@ -18,7 +18,7 @@ from pydatalab.models.items import Item
 from pydatalab.models.people import Person
 from pydatalab.models.relationships import RelationshipType
 from pydatalab.models.utils import generate_unique_refcode
-from pydatalab.mongo import ITEMS_FTS_FIELDS, flask_mongo
+from pydatalab.mongo import flask_mongo, get_items_fts_fields
 from pydatalab.permissions import PUBLIC_USER_ID, active_users_or_get_only, get_default_permissions
 
 ITEMS = Blueprint("items", __name__)
@@ -335,7 +335,7 @@ def search_items():
         query = query.strip("'")
 
         match_obj = {
-            "$or": [{field: {"$regex": query, "$options": "i"}} for field in ITEMS_FTS_FIELDS]
+            "$or": [{field: {"$regex": query, "$options": "i"}} for field in get_items_fts_fields()]
         }
         match_obj = {"$and": [get_default_permissions(user_only=False), match_obj]}
         if types is not None:
@@ -368,7 +368,7 @@ def search_items():
             match_obj = {
                 "$or": [
                     {"$and": [{field: {"$regex": query, "$options": "i"}} for query in query_parts]}
-                    for field in ITEMS_FTS_FIELDS
+                    for field in get_items_fts_fields()
                 ]
             }
             LOGGER.debug(
