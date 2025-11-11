@@ -4,9 +4,6 @@ from pathlib import Path
 
 import pytest
 
-from pydatalab.apps.nmr.blocks import NMRBlock
-from pydatalab.apps.nmr.utils import read_bruker_1d, read_jcamp_dx_1d
-
 
 def _extract_example(filename, _dir):
     with zipfile.ZipFile(filename, "r") as zip_ref:
@@ -64,6 +61,8 @@ def nmr_2d_matpass_example(tmpdir, nmr_2d_matpass_path):
 
 
 def test_bruker_reader_solution(nmr_1d_solution_example):
+    from pydatalab.apps.nmr.utils import read_bruker_1d
+
     df, a_dic, topspin_title, shape = read_bruker_1d(nmr_1d_solution_example)
     assert df is not None
     assert a_dic
@@ -72,6 +71,8 @@ def test_bruker_reader_solution(nmr_1d_solution_example):
 
 
 def test_bruker_reader_solid(nmr_1d_solid_example):
+    from pydatalab.apps.nmr.utils import read_bruker_1d
+
     df, a_dic, topspin_title, shape = read_bruker_1d(nmr_1d_solid_example)
     assert df is not None
     assert a_dic
@@ -80,6 +81,8 @@ def test_bruker_reader_solid(nmr_1d_solid_example):
 
 
 def test_bruker_reader_2D(nmr_2d_matpass_example):
+    from pydatalab.apps.nmr.utils import read_bruker_1d
+
     df, a_dic, topspin_title, shape = read_bruker_1d(nmr_2d_matpass_example)
     assert df is None
     assert a_dic
@@ -90,6 +93,8 @@ def test_bruker_reader_2D(nmr_2d_matpass_example):
 def test_nmr_block(
     nmr_1d_solution_path, nmr_1d_solution_path_renamed, nmr_1d_solid_path, nmr_2d_matpass_path
 ):
+    from pydatalab.apps.nmr.blocks import NMRBlock
+
     block = NMRBlock(item_id="nmr-block")
     block.processed_data, block.data["metadata"] = block.read_bruker_nmr_data(nmr_1d_solid_path)
     assert block.data["metadata"]["topspin_title"].split("\n")[0] == "7Li 40 kHz 40 C hahn-echo"
@@ -124,6 +129,9 @@ def test_nmr_block(
 
 
 def test_read_jcamp_1h_1d(nmr_jcamp_1h_path):
+    from pydatalab.apps.nmr.blocks import NMRBlock
+    from pydatalab.apps.nmr.utils import read_jcamp_dx_1d
+
     df, dic, title, shape = read_jcamp_dx_1d(nmr_jcamp_1h_path)
     assert df is not None
     assert dic[".OBSERVENUCLEUS"]
@@ -136,6 +144,9 @@ def test_read_jcamp_1h_1d(nmr_jcamp_1h_path):
 
 
 def test_read_jcamp_13c_1d(nmr_jcamp_13c_path):
+    from pydatalab.apps.nmr.blocks import NMRBlock
+    from pydatalab.apps.nmr.utils import read_jcamp_dx_1d
+
     df, dic, title, shape = read_jcamp_dx_1d(nmr_jcamp_13c_path)
     assert df is not None
     assert dic[".OBSERVENUCLEUS"]

@@ -1,7 +1,6 @@
-from pydatalab.blocks.base import DataBlock, generate_js_callback_single_float_parameter
-
-
 def test_base_block():
+    from pydatalab.blocks.base import DataBlock
+
     block = DataBlock(item_id="test-id")
     test_event = {"event_name": "null_event", "kwargs": {"a": 1, "b": 2, "c": 1.2, "d": "string"}}
     block.process_events(test_event)
@@ -12,6 +11,8 @@ def test_base_block():
 
 
 def test_callback():
+    from pydatalab.blocks.base import generate_js_callback_single_float_parameter
+
     callback = generate_js_callback_single_float_parameter(
         "set_wavelength", "wavelength", block_id="test", throttled=False
     )
