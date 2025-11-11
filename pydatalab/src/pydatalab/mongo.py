@@ -119,7 +119,7 @@ def create_default_indices(
         - Version control indexes:
             - Index on item_versions.refcode for fast version history lookup
             - Index on item_versions.user_id for fast user contribution queries
-            - Compound index on (refcode, version_number) for sorted version history
+            - Compound index on (refcode, version) for sorted version history
             - Unique index on version_counters.refcode for atomic version numbering
 
     Parameters:
@@ -258,8 +258,8 @@ def create_default_indices(
     ret += db.item_versions.create_index("refcode", name="version refcode", background=background)
     ret += db.item_versions.create_index("user_id", name="version user_id", background=background)
     ret += db.item_versions.create_index(
-        [("refcode", pymongo.ASCENDING), ("version_number", pymongo.DESCENDING)],
-        name="refcode and version number",
+        [("refcode", pymongo.ASCENDING), ("version", pymongo.DESCENDING)],
+        name="refcode and version",
         background=background,
     )
     ret += db.version_counters.create_index(
