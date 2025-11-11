@@ -42,9 +42,9 @@ class ItemVersion(BaseModel):
         ..., description="Version of datalab-server that created this snapshot"
     )
     data: dict = Field(..., description="Complete snapshot of the item data at this version")
-    restored_from_version: str | None = Field(
+    restored_from_version: PyObjectId | None = Field(
         None,
-        description="ObjectId string of the version that was restored (only present if action='restored')",
+        description="ObjectId of the version that was restored from (only present if action='restored')",
     )
 
     @validator("restored_from_version")
