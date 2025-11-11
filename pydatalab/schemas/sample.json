@@ -1,236 +1,198 @@
 {
-  "title": "Sample",
-  "description": "A model for representing an experimental sample.",
-  "type": "object",
-  "properties": {
-    "synthesis_constituents": {
-      "title": "Synthesis Constituents",
-      "default": [],
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/Constituent"
-      }
-    },
-    "synthesis_description": {
-      "title": "Synthesis Description",
-      "type": "string"
-    },
-    "blocks_obj": {
-      "title": "Blocks Obj",
-      "default": {},
-      "type": "object",
-      "additionalProperties": {
-        "$ref": "#/definitions/DataBlockResponse"
-      }
-    },
-    "display_order": {
-      "title": "Display Order",
-      "default": [],
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
-    "collections": {
-      "title": "Collections",
-      "default": [],
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/Collection"
-      }
-    },
-    "revision": {
-      "title": "Revision",
-      "default": 1,
-      "type": "integer"
-    },
-    "revisions": {
-      "title": "Revisions",
-      "type": "object"
-    },
-    "creator_ids": {
-      "title": "Creator Ids",
-      "default": [],
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
-    "creators": {
-      "title": "Creators",
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/Person"
-      }
-    },
-    "type": {
-      "title": "Type",
-      "default": "samples",
-      "const": "samples",
-      "pattern": "^samples$",
-      "type": "string"
-    },
-    "immutable_id": {
-      "title": "Immutable ID",
-      "format": "uuid",
-      "type": "string"
-    },
-    "last_modified": {
-      "title": "Last Modified",
-      "type": "string",
-      "format": "date-time"
-    },
-    "relationships": {
-      "title": "Relationships",
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/TypedRelationship"
-      }
-    },
-    "refcode": {
-      "title": "Refcode",
-      "minLength": 1,
-      "maxLength": 40,
-      "pattern": "^[a-z]{2,10}:(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
-      "type": "string"
-    },
-    "item_id": {
-      "title": "Item Id",
-      "minLength": 1,
-      "maxLength": 40,
-      "pattern": "^(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
-      "type": "string"
-    },
-    "description": {
-      "title": "Description",
-      "type": "string"
-    },
-    "date": {
-      "title": "Date",
-      "type": "string",
-      "format": "date-time"
-    },
-    "name": {
-      "title": "Name",
-      "type": "string"
-    },
-    "files": {
-      "title": "Files",
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/File"
-      }
-    },
-    "file_ObjectIds": {
-      "title": "File Objectids",
-      "default": [],
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
-    "chemform": {
-      "title": "Chemform",
-      "example": [
-        "Na3P",
-        "LiNiO2@C"
+  "$defs": {
+    "AccountStatus": {
+      "description": "A string enum representing the account status.",
+      "enum": [
+        "active",
+        "unverified",
+        "deactivated"
       ],
+      "title": "AccountStatus",
       "type": "string"
-    }
-  },
-  "required": [
-    "item_id"
-  ],
-  "definitions": {
-    "EntryReference": {
-      "title": "EntryReference",
-      "description": "A reference to a database entry by ID and type.\n\nCan include additional arbitarary metadata useful for\ninlining the item data.",
-      "type": "object",
+    },
+    "Collection": {
       "properties": {
+        "blocks_obj": {
+          "additionalProperties": {
+            "$ref": "#/$defs/DataBlockResponse"
+          },
+          "default": {},
+          "title": "Blocks Obj",
+          "type": "object"
+        },
+        "display_order": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Display Order",
+          "type": "array"
+        },
+        "creator_ids": {
+          "description": "The database IDs of the user(s) who created the item.",
+          "items": {
+            "format": "objectid",
+            "type": "string"
+          },
+          "title": "Creator Ids",
+          "type": "array"
+        },
+        "creators": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/Person"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Inlined info for the people associated with this item.",
+          "title": "Creators"
+        },
         "type": {
+          "const": "collections",
+          "default": "collections",
           "title": "Type",
           "type": "string"
         },
-        "name": {
-          "title": "Name",
-          "type": "string"
-        },
         "immutable_id": {
-          "title": "Immutable Id",
-          "type": "string"
-        },
-        "item_id": {
-          "title": "Item Id",
-          "minLength": 1,
-          "maxLength": 40,
-          "pattern": "^(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
-          "type": "string"
-        },
-        "refcode": {
-          "title": "Refcode",
-          "minLength": 1,
-          "maxLength": 40,
-          "pattern": "^[a-z]{2,10}:(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
-          "type": "string"
-        }
-      },
-      "required": [
-        "type"
-      ]
-    },
-    "InlineSubstance": {
-      "title": "InlineSubstance",
-      "type": "object",
-      "properties": {
-        "name": {
-          "title": "Name",
-          "type": "string"
-        },
-        "chemform": {
-          "title": "Chemform",
-          "type": "string"
-        }
-      },
-      "required": [
-        "name"
-      ]
-    },
-    "Constituent": {
-      "title": "Constituent",
-      "description": "A constituent of a sample.",
-      "type": "object",
-      "properties": {
-        "item": {
-          "title": "Item",
           "anyOf": [
             {
-              "$ref": "#/definitions/EntryReference"
+              "format": "objectid",
+              "type": "string"
             },
             {
-              "$ref": "#/definitions/InlineSubstance"
+              "type": "null"
             }
-          ]
+          ],
+          "default": null,
+          "description": "The immutable database ID of the entry.",
+          "format": "uuid",
+          "title": "Immutable ID"
+        },
+        "last_modified": {
+          "anyOf": [
+            {
+              "format": "datetime",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The timestamp at which the entry was last modified.",
+          "title": "Last Modified"
+        },
+        "relationships": {
+          "description": "A list of related entries and their types.",
+          "items": {
+            "$ref": "#/$defs/TypedRelationship"
+          },
+          "title": "Relationships",
+          "type": "array"
+        },
+        "collection_id": {
+          "default": null,
+          "description": "A short human-readable/usable name for the collection.",
+          "maxLength": 40,
+          "minLength": 1,
+          "pattern": "^(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
+          "title": "Collection Id",
+          "type": "string"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A descriptive title for the collection.",
+          "title": "Title"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A description of the collection, either in plain-text or a markup language.",
+          "title": "Description"
+        },
+        "num_items": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Inlined number of items associated with this collection.",
+          "title": "Num Items"
+        }
+      },
+      "title": "Collection",
+      "type": "object"
+    },
+    "Constituent": {
+      "description": "A constituent of a sample.",
+      "properties": {
+        "item": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EntryReference"
+            },
+            {
+              "$ref": "#/$defs/InlineSubstance"
+            }
+          ],
+          "description": "A reference to item (sample or starting material) entry for the constituent substance.",
+          "title": "Item"
         },
         "quantity": {
-          "title": "Quantity",
-          "minimum": 0,
-          "type": "number"
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The amount of the constituent material used to create the sample.",
+          "title": "Quantity"
         },
         "unit": {
-          "title": "Unit",
           "default": "g",
+          "description": "The unit symbol for the value provided in `quantity`, default is mass in grams (g) but could also refer to volumes (mL, L, etc.) or moles (mol).",
+          "title": "Unit",
           "type": "string"
         }
       },
       "required": [
-        "item",
-        "quantity"
-      ]
+        "item"
+      ],
+      "title": "Constituent",
+      "type": "object"
     },
     "DataBlockResponse": {
-      "title": "DataBlockResponse",
+      "additionalProperties": true,
       "description": "A generic response model for a block, i.e., what is stored in `self.data`\nin the corresponding DataBlock class.\n\nIt is expected but not mandatory that this model will be extended by the specific block type\nwhere possible.",
-      "type": "object",
       "properties": {
         "blocktype": {
           "title": "Blocktype",
@@ -241,85 +203,592 @@
           "type": "string"
         },
         "item_id": {
-          "title": "Item Id",
-          "type": "string"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Item Id"
         },
         "collection_id": {
-          "title": "Collection Id",
-          "type": "string"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Collection Id"
         },
         "title": {
-          "title": "Title",
-          "type": "string"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
         },
         "freeform_comment": {
-          "title": "Freeform Comment",
-          "type": "string"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Freeform Comment"
         },
         "file_id": {
-          "title": "File Id",
-          "type": "string"
+          "anyOf": [
+            {
+              "format": "objectid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "File Id"
         },
         "file_ids": {
-          "title": "File Ids",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "errors": {
-          "title": "Errors",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "warnings": {
-          "title": "Warnings",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "b64_encoded_image": {
-          "title": "B64 Encoded Image",
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
+          "anyOf": [
+            {
+              "items": {
+                "format": "objectid",
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "File Ids"
         },
         "bokeh_plot_data": {
-          "title": "Bokeh Plot Data",
-          "type": "object"
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Bokeh Plot Data"
+        },
+        "errors": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Errors"
+        },
+        "warnings": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Warnings"
+        },
+        "b64_encoded_image": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "B64 Encoded Image"
         },
         "computed": {
-          "title": "Computed",
-          "type": "object"
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Computed"
         },
         "metadata": {
-          "title": "Metadata",
-          "type": "object"
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Metadata"
         }
       },
       "required": [
         "blocktype",
         "block_id"
-      ]
-    },
-    "RelationshipType": {
-      "title": "RelationshipType",
-      "description": "An enumeration of the possible types of relationship between two entries.\n\n```mermaid\nclassDiagram\nclass entryC\nentryC --|> entryA: parent\nentryC ..|> entryD\nentryA <..> entryD: sibling\nentryA --|> entryB : child\n```",
-      "enum": [
-        "parent",
-        "child",
-        "sibling",
-        "is_part_of",
-        "other"
       ],
+      "title": "DataBlockResponse",
+      "type": "object"
+    },
+    "EntryReference": {
+      "additionalProperties": true,
+      "description": "A reference to a database entry by ID and type.\n\nCan include additional arbitarary metadata useful for\ninlining the item data.",
+      "properties": {
+        "type": {
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        },
+        "immutable_id": {
+          "anyOf": [
+            {
+              "format": "objectid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Immutable Id"
+        },
+        "item_id": {
+          "anyOf": [
+            {
+              "maxLength": 40,
+              "minLength": 1,
+              "pattern": "^(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Item Id"
+        },
+        "refcode": {
+          "anyOf": [
+            {
+              "maxLength": 40,
+              "minLength": 1,
+              "pattern": "^[a-z]{2,10}:(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Refcode"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "EntryReference",
+      "type": "object"
+    },
+    "File": {
+      "description": "A model for representing a file that has been tracked or uploaded to datalab.",
+      "properties": {
+        "revision": {
+          "default": 1,
+          "description": "The revision number of the entry.",
+          "title": "Revision",
+          "type": "integer"
+        },
+        "revisions": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "An optional mapping from old revision numbers to the model state at that revision.",
+          "title": "Revisions"
+        },
+        "creator_ids": {
+          "description": "The database IDs of the user(s) who created the item.",
+          "items": {
+            "format": "objectid",
+            "type": "string"
+          },
+          "title": "Creator Ids",
+          "type": "array"
+        },
+        "creators": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/Person"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Inlined info for the people associated with this item.",
+          "title": "Creators"
+        },
+        "type": {
+          "const": "files",
+          "default": "files",
+          "title": "Type",
+          "type": "string"
+        },
+        "immutable_id": {
+          "anyOf": [
+            {
+              "format": "objectid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The immutable database ID of the entry.",
+          "format": "uuid",
+          "title": "Immutable ID"
+        },
+        "last_modified": {
+          "anyOf": [
+            {
+              "format": "datetime",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The timestamp at which the entry was last modified.",
+          "title": "Last Modified"
+        },
+        "relationships": {
+          "description": "A list of related entries and their types.",
+          "items": {
+            "$ref": "#/$defs/TypedRelationship"
+          },
+          "title": "Relationships",
+          "type": "array"
+        },
+        "size": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The size of the file on disk in bytes.",
+          "title": "Size"
+        },
+        "last_modified_remote": {
+          "anyOf": [
+            {
+              "format": "datetime",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The last date/time at which the remote file was modified.",
+          "title": "Last Modified Remote"
+        },
+        "item_ids": {
+          "description": "A list of item IDs associated with this file.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Item Ids",
+          "type": "array"
+        },
+        "blocks": {
+          "description": "A list of block IDs associated with this file.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Blocks",
+          "type": "array"
+        },
+        "name": {
+          "description": "The filename on disk.",
+          "title": "Name",
+          "type": "string"
+        },
+        "extension": {
+          "description": "The file extension that the file was uploaded with.",
+          "title": "Extension",
+          "type": "string"
+        },
+        "original_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The raw filename as uploaded.",
+          "title": "Original Name"
+        },
+        "location": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The location of the file on disk.",
+          "title": "Location"
+        },
+        "url_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The path to a remote file.",
+          "title": "Url Path"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The source of the file, e.g. 'remote' or 'uploaded'.",
+          "title": "Source"
+        },
+        "time_added": {
+          "description": "The timestamp for the original file upload.",
+          "format": "datetime",
+          "title": "Time Added",
+          "type": "string"
+        },
+        "metadata": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Any additional metadata.",
+          "title": "Metadata"
+        },
+        "representation": {
+          "anyOf": [
+            {},
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Representation"
+        },
+        "source_server_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The server name at which the file is stored.",
+          "title": "Source Server Name"
+        },
+        "source_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The path to the file on the remote resource.",
+          "title": "Source Path"
+        },
+        "is_live": {
+          "description": "Whether or not the file should be watched for future updates.",
+          "title": "Is Live",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "extension",
+        "time_added",
+        "is_live"
+      ],
+      "title": "File",
+      "type": "object"
+    },
+    "Identity": {
+      "description": "A model for identities that can be provided by external systems\nand associated with a given user.",
+      "properties": {
+        "identity_type": {
+          "$ref": "#/$defs/IdentityType",
+          "description": "The type or provider of the identity."
+        },
+        "identifier": {
+          "description": "The identifier for the identity, e.g., an email address, an ORCID, a GitHub user ID.",
+          "title": "Identifier",
+          "type": "string"
+        },
+        "name": {
+          "description": "The name associated with the identity to be exposed in free-text searches over people, e.g., an institutional username, a GitHub username.",
+          "title": "Name",
+          "type": "string"
+        },
+        "verified": {
+          "default": false,
+          "description": "Whether the identity has been verified (by some means, e.g., OAuth2 or email)",
+          "title": "Verified",
+          "type": "boolean"
+        },
+        "display_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The user's display name associated with the identity, also to be exposed in free text searches.",
+          "title": "Display Name"
+        }
+      },
+      "required": [
+        "identity_type",
+        "identifier",
+        "name"
+      ],
+      "title": "Identity",
+      "type": "object"
+    },
+    "IdentityType": {
+      "description": "A string enum representing the supported verifiable identity types.",
+      "enum": [
+        "email",
+        "orcid",
+        "github"
+      ],
+      "title": "IdentityType",
       "type": "string"
     },
+    "InlineSubstance": {
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "chemform": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Chemform"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "InlineSubstance",
+      "type": "object"
+    },
     "KnownType": {
-      "title": "KnownType",
       "description": "An enumeration of the types of entry known by this implementation, should be made dynamic in the future.",
       "enum": [
         "samples",
@@ -329,374 +798,463 @@
         "people",
         "collections"
       ],
+      "title": "KnownType",
+      "type": "string"
+    },
+    "Person": {
+      "description": "A model that describes an individual and their digital identities.",
+      "properties": {
+        "type": {
+          "const": "people",
+          "default": "people",
+          "description": "The entry type as a string.",
+          "title": "Type",
+          "type": "string"
+        },
+        "immutable_id": {
+          "anyOf": [
+            {
+              "format": "objectid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The immutable database ID of the entry.",
+          "format": "uuid",
+          "title": "Immutable ID"
+        },
+        "last_modified": {
+          "anyOf": [
+            {
+              "format": "datetime",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The timestamp at which the entry was last modified.",
+          "title": "Last Modified"
+        },
+        "relationships": {
+          "description": "A list of related entries and their types.",
+          "items": {
+            "$ref": "#/$defs/TypedRelationship"
+          },
+          "title": "Relationships",
+          "type": "array"
+        },
+        "identities": {
+          "description": "A list of identities attached to this person, e.g., email addresses, OAuth accounts.",
+          "items": {
+            "$ref": "#/$defs/Identity"
+          },
+          "title": "Identities",
+          "type": "array"
+        },
+        "display_name": {
+          "anyOf": [
+            {
+              "maxLength": 150,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The user-chosen display name.",
+          "title": "Display Name"
+        },
+        "contact_email": {
+          "anyOf": [
+            {
+              "format": "email",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "In the case of multiple *verified* email identities, this email will be used as the primary contact.",
+          "title": "Contact Email"
+        },
+        "managers": {
+          "anyOf": [
+            {
+              "items": {
+                "format": "objectid",
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A list of user IDs that can manage this person's items.",
+          "title": "Managers"
+        },
+        "account_status": {
+          "$ref": "#/$defs/AccountStatus",
+          "default": "unverified",
+          "description": "The status of the user's account."
+        }
+      },
+      "title": "Person",
+      "type": "object"
+    },
+    "RelationshipType": {
+      "description": "An enumeration of the possible types of relationship between two entries.\n\n```mermaid\nclassDiagram\nclass entryC\nentryC --|> entryA: parent\nentryC ..|> entryD\nentryA <..> entryD: sibling\nentryA --|> entryB : child\n```",
+      "enum": [
+        "parent",
+        "child",
+        "sibling",
+        "is_part_of",
+        "other",
+        "collections"
+      ],
+      "title": "RelationshipType",
       "type": "string"
     },
     "TypedRelationship": {
-      "title": "TypedRelationship",
-      "type": "object",
+      "additionalProperties": true,
       "properties": {
         "description": {
-          "title": "Description",
-          "type": "string"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A description of the relationship.",
+          "title": "Description"
         },
         "relation": {
-          "$ref": "#/definitions/RelationshipType"
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RelationshipType"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The type of relationship between the two items. If the type is 'other', then a human-readable description should be provided."
         },
         "type": {
-          "$ref": "#/definitions/KnownType"
+          "$ref": "#/$defs/KnownType",
+          "description": "The type of the related resource."
         },
         "immutable_id": {
-          "title": "Immutable Id",
-          "type": "string"
+          "anyOf": [
+            {
+              "format": "objectid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The immutable ID of the entry that is related to this entry.",
+          "title": "Immutable Id"
         },
         "item_id": {
-          "title": "Item Id",
-          "minLength": 1,
-          "maxLength": 40,
-          "pattern": "^(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
-          "type": "string"
+          "anyOf": [
+            {
+              "maxLength": 40,
+              "minLength": 1,
+              "pattern": "^(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The ID of the entry that is related to this entry.",
+          "title": "Item Id"
         },
         "refcode": {
-          "title": "Refcode",
-          "minLength": 1,
-          "maxLength": 40,
-          "pattern": "^[a-z]{2,10}:(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
-          "type": "string"
+          "anyOf": [
+            {
+              "maxLength": 40,
+              "minLength": 1,
+              "pattern": "^[a-z]{2,10}:(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The refcode of the entry that is related to this entry.",
+          "title": "Refcode"
         }
       },
       "required": [
         "type"
-      ]
-    },
-    "IdentityType": {
-      "title": "IdentityType",
-      "description": "A string enum representing the supported verifiable identity types.",
-      "enum": [
-        "email",
-        "orcid",
-        "github"
       ],
-      "type": "string"
-    },
-    "Identity": {
-      "title": "Identity",
-      "description": "A model for identities that can be provided by external systems\nand associated with a given user.",
-      "type": "object",
-      "properties": {
-        "identity_type": {
-          "$ref": "#/definitions/IdentityType"
-        },
-        "identifier": {
-          "title": "Identifier",
-          "type": "string"
-        },
-        "name": {
-          "title": "Name",
-          "type": "string"
-        },
-        "verified": {
-          "title": "Verified",
-          "default": false,
-          "type": "boolean"
-        },
-        "display_name": {
-          "title": "Display Name",
-          "type": "string"
-        }
-      },
-      "required": [
-        "identity_type",
-        "identifier",
-        "name"
-      ]
-    },
-    "AccountStatus": {
-      "title": "AccountStatus",
-      "description": "A string enum representing the account status.",
-      "enum": [
-        "active",
-        "unverified",
-        "deactivated"
-      ],
-      "type": "string"
-    },
-    "Person": {
-      "title": "Person",
-      "description": "A model that describes an individual and their digital identities.",
-      "type": "object",
-      "properties": {
-        "type": {
-          "title": "Type",
-          "default": "people",
-          "const": "people",
-          "type": "string"
-        },
-        "immutable_id": {
-          "title": "Immutable ID",
-          "format": "uuid",
-          "type": "string"
-        },
-        "last_modified": {
-          "title": "Last Modified",
-          "type": "string",
-          "format": "date-time"
-        },
-        "relationships": {
-          "title": "Relationships",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/TypedRelationship"
-          }
-        },
-        "identities": {
-          "title": "Identities",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Identity"
-          }
-        },
-        "display_name": {
-          "title": "Display Name",
-          "minLength": 1,
-          "maxLength": 150,
-          "type": "string"
-        },
-        "contact_email": {
-          "title": "Contact Email",
-          "type": "string",
-          "format": "email"
-        },
-        "managers": {
-          "title": "Managers",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "account_status": {
-          "default": "unverified",
-          "allOf": [
-            {
-              "$ref": "#/definitions/AccountStatus"
-            }
-          ]
-        }
-      }
-    },
-    "Collection": {
-      "title": "Collection",
-      "description": "An Entry is an abstract base class for any model that can be\ndeserialized and stored in the database.",
-      "type": "object",
-      "properties": {
-        "blocks_obj": {
-          "title": "Blocks Obj",
-          "default": {},
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/definitions/DataBlockResponse"
-          }
-        },
-        "display_order": {
-          "title": "Display Order",
-          "default": [],
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "creator_ids": {
-          "title": "Creator Ids",
-          "default": [],
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "creators": {
-          "title": "Creators",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Person"
-          }
-        },
-        "type": {
-          "title": "Type",
-          "default": "collections",
-          "const": "collections",
-          "pattern": "^collections$",
-          "type": "string"
-        },
-        "immutable_id": {
-          "title": "Immutable ID",
-          "format": "uuid",
-          "type": "string"
-        },
-        "last_modified": {
-          "title": "Last Modified",
-          "type": "string",
-          "format": "date-time"
-        },
-        "relationships": {
-          "title": "Relationships",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/TypedRelationship"
-          }
-        },
-        "collection_id": {
-          "title": "Collection Id",
-          "minLength": 1,
-          "maxLength": 40,
-          "pattern": "^(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
-          "type": "string"
-        },
-        "title": {
-          "title": "Title",
-          "type": "string"
-        },
-        "description": {
-          "title": "Description",
-          "type": "string"
-        },
-        "num_items": {
-          "title": "Num Items",
-          "type": "integer"
-        }
-      }
-    },
-    "File": {
-      "title": "File",
-      "description": "A model for representing a file that has been tracked or uploaded to datalab.",
-      "type": "object",
-      "properties": {
-        "revision": {
-          "title": "Revision",
-          "default": 1,
-          "type": "integer"
-        },
-        "revisions": {
-          "title": "Revisions",
-          "type": "object"
-        },
-        "creator_ids": {
-          "title": "Creator Ids",
-          "default": [],
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "creators": {
-          "title": "Creators",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Person"
-          }
-        },
-        "type": {
-          "title": "Type",
-          "default": "files",
-          "const": "files",
-          "pattern": "^files$",
-          "type": "string"
-        },
-        "immutable_id": {
-          "title": "Immutable ID",
-          "format": "uuid",
-          "type": "string"
-        },
-        "last_modified": {
-          "title": "Last Modified",
-          "type": "string",
-          "format": "date-time"
-        },
-        "relationships": {
-          "title": "Relationships",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/TypedRelationship"
-          }
-        },
-        "size": {
-          "title": "Size",
-          "type": "integer"
-        },
-        "last_modified_remote": {
-          "title": "Last Modified Remote",
-          "type": "string",
-          "format": "date-time"
-        },
-        "item_ids": {
-          "title": "Item Ids",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "blocks": {
-          "title": "Blocks",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "name": {
-          "title": "Name",
-          "type": "string"
-        },
-        "extension": {
-          "title": "Extension",
-          "type": "string"
-        },
-        "original_name": {
-          "title": "Original Name",
-          "type": "string"
-        },
-        "location": {
-          "title": "Location",
-          "type": "string"
-        },
-        "url_path": {
-          "title": "Url Path",
-          "type": "string"
-        },
-        "source": {
-          "title": "Source",
-          "type": "string"
-        },
-        "time_added": {
-          "title": "Time Added",
-          "type": "string",
-          "format": "date-time"
-        },
-        "metadata": {
-          "title": "Metadata",
-          "type": "object"
-        },
-        "representation": {
-          "title": "Representation"
-        },
-        "source_server_name": {
-          "title": "Source Server Name",
-          "type": "string"
-        },
-        "source_path": {
-          "title": "Source Path",
-          "type": "string"
-        },
-        "is_live": {
-          "title": "Is Live",
-          "type": "boolean"
-        }
-      },
-      "required": [
-        "item_ids",
-        "blocks",
-        "name",
-        "extension",
-        "time_added",
-        "is_live"
-      ]
+      "title": "TypedRelationship",
+      "type": "object"
     }
-  }
+  },
+  "description": "A model for representing an experimental sample.",
+  "properties": {
+    "synthesis_constituents": {
+      "description": "A list of references to constituent materials giving the amount and relevant inlined details of consituent items.",
+      "items": {
+        "$ref": "#/$defs/Constituent"
+      },
+      "title": "Synthesis Constituents",
+      "type": "array"
+    },
+    "synthesis_description": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Free-text details of the procedure applied to synthesise the sample",
+      "title": "Synthesis Description"
+    },
+    "blocks_obj": {
+      "additionalProperties": {
+        "$ref": "#/$defs/DataBlockResponse"
+      },
+      "default": {},
+      "title": "Blocks Obj",
+      "type": "object"
+    },
+    "display_order": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Display Order",
+      "type": "array"
+    },
+    "collections": {
+      "description": "Inlined info for the collections associated with this item.",
+      "items": {
+        "$ref": "#/$defs/Collection"
+      },
+      "title": "Collections",
+      "type": "array"
+    },
+    "revision": {
+      "default": 1,
+      "description": "The revision number of the entry.",
+      "title": "Revision",
+      "type": "integer"
+    },
+    "revisions": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "An optional mapping from old revision numbers to the model state at that revision.",
+      "title": "Revisions"
+    },
+    "creator_ids": {
+      "description": "The database IDs of the user(s) who created the item.",
+      "items": {
+        "format": "objectid",
+        "type": "string"
+      },
+      "title": "Creator Ids",
+      "type": "array"
+    },
+    "creators": {
+      "anyOf": [
+        {
+          "items": {
+            "$ref": "#/$defs/Person"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Inlined info for the people associated with this item.",
+      "title": "Creators"
+    },
+    "type": {
+      "const": "samples",
+      "default": "samples",
+      "title": "Type",
+      "type": "string"
+    },
+    "immutable_id": {
+      "anyOf": [
+        {
+          "format": "objectid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The immutable database ID of the entry.",
+      "format": "uuid",
+      "title": "Immutable ID"
+    },
+    "last_modified": {
+      "anyOf": [
+        {
+          "format": "datetime",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The timestamp at which the entry was last modified.",
+      "title": "Last Modified"
+    },
+    "relationships": {
+      "description": "A list of related entries and their types.",
+      "items": {
+        "$ref": "#/$defs/TypedRelationship"
+      },
+      "title": "Relationships",
+      "type": "array"
+    },
+    "refcode": {
+      "anyOf": [
+        {
+          "maxLength": 40,
+          "minLength": 1,
+          "pattern": "^[a-z]{2,10}:(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "A globally unique immutable ID comprised of the deployment prefix (e.g., `grey`) and a locally unique string, ideally created with some consistent scheme.",
+      "title": "Refcode"
+    },
+    "item_id": {
+      "description": "A locally unique, human-readable identifier for the entry. This ID is mutable.",
+      "maxLength": 40,
+      "minLength": 1,
+      "pattern": "^(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
+      "title": "Item Id",
+      "type": "string"
+    },
+    "description": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "A description of the item, either in plain-text or a markup language.",
+      "title": "Description"
+    },
+    "date": {
+      "anyOf": [
+        {
+          "format": "datetime",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "A relevant 'creation' timestamp for the entry (e.g., purchase date, synthesis date).",
+      "title": "Date"
+    },
+    "name": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "An optional human-readable/usable name for the entry.",
+      "title": "Name"
+    },
+    "files": {
+      "anyOf": [
+        {
+          "items": {
+            "$ref": "#/$defs/File"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Any files attached to this sample.",
+      "title": "Files"
+    },
+    "file_ObjectIds": {
+      "description": "Links to object IDs of files stored within the database.",
+      "items": {
+        "format": "objectid",
+        "type": "string"
+      },
+      "title": "File Objectids",
+      "type": "array"
+    },
+    "chemform": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "A string representation of the chemical formula or composition associated with this sample.",
+      "examples": [
+        "Na3P",
+        "LiNiO2@C"
+      ],
+      "title": "Chemform"
+    }
+  },
+  "required": [
+    "item_id"
+  ],
+  "title": "Sample",
+  "type": "object"
 }
