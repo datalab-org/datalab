@@ -506,8 +506,8 @@ def search_items():
     Returns:
         response list of dictionaries containing the matching items in order of
         descending match score.
-    """
 
+    """
     query = request.args.get("query", type=str)
     nresults = request.args.get("nresults", default=100, type=int)
     types = request.args.get("types", default=None)
@@ -664,7 +664,7 @@ def _create_sample(
     elif CONFIG.TESTING and not current_user.is_authenticated:
         # Set fake ID to ObjectId("000000000000000000000000") so a dummy user can be created
         # locally for testing creator UI elements
-        new_sample["creator_ids"] = [PUBLIC_USER_ID]
+        new_sample["creator_ids"] = [str(PUBLIC_USER_ID)]
         new_sample["creators"] = [
             {
                 "display_name": "Public testing user",
@@ -705,7 +705,6 @@ def _create_sample(
     try:
         # Check on relationship fields and prefill
         new_sample = entry_reference_lookup(new_sample)
-
         data_model: Item = model(**new_sample)
 
     except ValidationError as error:
@@ -719,7 +718,9 @@ def _create_sample(
     # the `Entry` model.
     try:
         result = flask_mongo.db.items.insert_one(
-            data_model.dict(exclude={"creators", "collections", "groups"})
+            data_model.model_dump(
+                exclude={"creators", "collections", "groups"}, exclude_none=True, by_alias=True
+            )
         )
     except DuplicateKeyError as error:
         raise Conflict(f"Duplicate key error: {str(error)}.")
@@ -754,7 +755,7 @@ def _create_sample(
     data = {
         "status": "success",
         "item_id": data_model.item_id,
-        "sample_list_entry": data_model.dict(),
+        "sample_list_entry": data_model.model_dump(),
     }
 
     return (data, 201)  # 201 Created
@@ -1125,7 +1126,6 @@ def get_item_data(
     elif refcode:
         if len(refcode.split(":")) != 2:
             refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
-
         match = {"refcode": refcode}
     else:
         raise BadRequest("No item_id or refcode provided.")
@@ -1150,6 +1150,7 @@ def get_item_data(
 
     try:
         doc = list(cursor)[0]
+
     except IndexError:
         doc = None
 
@@ -1164,7 +1165,6 @@ def get_item_data(
             404,
         )
 
-    # determine the item type and validate according to the appropriate schema
     try:
         ItemModel = ITEM_MODELS[doc["type"]]
     except KeyError:
@@ -1221,7 +1221,7 @@ def get_item_data(
     )
 
     # loop over and collect all 'outer' relationships presented by other items
-    incoming_relationships: dict[RelationshipType, set[str]] = {}
+    incoming_relationships: dict[RelationshipType, set] = {}
     for d in relationships_query_results:
         for k in d["relationships"]:
             if k["relation"] not in incoming_relationships:
@@ -1231,7 +1231,7 @@ def get_item_data(
             )
 
     # loop over and aggregate all 'inner' relationships presented by this item
-    inlined_relationships: dict[RelationshipType, set[str]] = {}
+    inlined_relationships: dict[RelationshipType, set] = {}
     if doc.relationships is not None:
         inlined_relationships = {
             relation: {
@@ -1251,7 +1251,7 @@ def get_item_data(
     )
 
     # Must be exported to JSON first to apply the custom pydantic JSON encoders
-    return_dict = json.loads(doc.json(exclude_unset=True))
+    return_dict = doc.model_dump(mode="json", exclude_unset=True)
 
     if item_id is None:
         item_id = return_dict["item_id"]
@@ -1559,7 +1559,7 @@ def restore_version(refcode):
 
     # Insert validated data
     flask_mongo.db.item_versions.insert_one(
-        validated_restored_version.dict(by_alias=True, exclude_none=True)
+        validated_restored_version.model_dump(by_alias=True, exclude_none=True)
     )
 
     return jsonify(
@@ -1639,6 +1639,7 @@ def save_item():
     # These keys should not be updated here and cannot be modified by the user through this endpoint
     for k in (
         "_id",
+        "immutable_id",
         "file_ObjectIds",
         "files",
         "creators",
@@ -1747,6 +1748,42 @@ def save_item():
                     ]
                     updated_data["collections"] = inaccessible
 
+    existing_item = flask_mongo.db.items.find_one({"item_id": item_id})
+    if existing_item:
+        existing_relationships = existing_item.get("relationships", [])
+        non_collection_relationships = [
+            rel for rel in existing_relationships if rel.get("type") != "collections"
+        ]
+
+        collection_relationships = []
+        for coll in updated_data.get("collections", []):
+            immutable_id = coll.get("immutable_id")
+            collection_id = coll.get("collection_id")
+
+            if immutable_id:
+                if isinstance(immutable_id, str):
+                    from bson import ObjectId
+
+                    immutable_id = ObjectId(immutable_id)
+            elif collection_id:
+                collection_doc = flask_mongo.db.collections.find_one(
+                    {"collection_id": collection_id}
+                )
+                if collection_doc:
+                    immutable_id = collection_doc["_id"]
+
+            if immutable_id:
+                collection_relationships.append(
+                    {
+                        "relation": None,
+                        "immutable_id": immutable_id,
+                        "type": "collections",
+                        "description": "Is a member of",
+                    }
+                )
+
+        updated_data["relationships"] = non_collection_relationships + collection_relationships
+
     item_type = item["type"]
 
     preserve_relationships = "collections" not in updated_data
@@ -1756,7 +1793,13 @@ def save_item():
 
     try:
         item = entry_reference_lookup(item)
-        item = ITEM_MODELS[item_type](**item).dict()
+        item = ITEM_MODELS[item_type](**item).model_dump(
+            exclude_none=True,
+            exclude_unset=True,
+            by_alias=True,
+            exclude={"collections", "creators", "immutable_id"},
+        )
+
     except ValidationError as exc:
         return (
             jsonify(
@@ -1771,8 +1814,10 @@ def save_item():
         item["relationships"] = original_relationships
 
     # remove collections and creators and any other reference fields
-    item.pop("collections")
-    item.pop("creators")
+    item.pop("collections", None)
+    item.pop("creators", None)
+    item.pop("immutable_id", None)
+    item.pop("files", None)
 
     # Update the item FIRST (transaction safety: item update before version save)
     result = flask_mongo.db.items.update_one(

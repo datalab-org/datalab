@@ -6,11 +6,12 @@ from datetime import timezone as tz
 from bson import ObjectId
 from flask import Blueprint, jsonify, request
 from flask_login import current_user
+from pydantic import ValidationError
 from werkzeug.exceptions import BadRequest, Forbidden, Unauthorized
 
 from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER
-from pydatalab.models.people import AccountStatus, DisplayName, EmailStr, Person
+from pydatalab.models.people import Person
 from pydatalab.mongo import (
     USERS_FTS_FIELDS,
     build_search_pipeline,
@@ -49,22 +50,22 @@ def save_user(user_id):
 
     update = {}
 
+    if display_name:
+        update["display_name"] = display_name
+
+    if contact_email or contact_email in (None, ""):
+        if contact_email in ("", None):
+            update["contact_email"] = None
+        else:
+            update["contact_email"] = contact_email
+
+    if account_status:
+        update["account_status"] = account_status
+
     try:
-        if display_name:
-            update["display_name"] = DisplayName(display_name)
-
-    except ValueError:
-        raise BadRequest(f"Invalid display name {display_name!r} was passed")
-
-    try:
-        if contact_email or contact_email in (None, ""):
-            if contact_email in ("", None):
-                update["contact_email"] = None
-            else:
-                update["contact_email"] = EmailStr(contact_email)
-
-    except ValueError:
-        raise BadRequest(f"Invalid email address {contact_email!r} was passed")
+        _ = Person(**update)
+    except ValidationError as e:
+        raise BadRequest(f"Invalid user data: {e.errors()}") from e
 
     if "contact_email" in update or "display_name" in update:
         existing = (
@@ -127,12 +128,6 @@ def save_user(user_id):
             except RuntimeError as e:
                 trigger_email_verification = False
                 LOGGER.critical("Unable to send verification email on this deployment: %s", e)
-
-    try:
-        if account_status:
-            update["account_status"] = AccountStatus(account_status)
-    except ValueError:
-        raise BadRequest(f"Invalid account status {account_status!r} was passed")
 
     if not update:
         return jsonify({"status": "success", "message": "No update to perform."}), 200
