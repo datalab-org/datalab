@@ -14,16 +14,8 @@
               :item-type="item_data.type"
               :item-data="localItemData"
               @update:model-value="handleFieldUpdate(fieldName, $event)"
-              @update-nested="updateFromNestedComponent"
             />
           </div>
-        </div>
-
-        <div v-if="item_data.type === 'cells' && item_data.characteristic_mass">
-          <CellPreparationInformation
-            :cell-data="localItemData"
-            @update-cell-data="updateFromNestedComponent"
-          />
         </div>
       </div>
 
@@ -41,14 +33,12 @@
 <script>
 import DynamicFieldRenderer from "@/components/DynamicFieldRenderer.vue";
 import ItemRelationshipVisualization from "@/components/ItemRelationshipVisualization";
-import CellPreparationInformation from "@/components/CellPreparationInformation";
 import { getSchema } from "@/server_fetch_utils";
 
 export default {
   components: {
     DynamicFieldRenderer,
     ItemRelationshipVisualization,
-    CellPreparationInformation,
   },
   props: {
     item_data: { type: Object, required: true },
@@ -86,10 +76,6 @@ export default {
     handleFieldUpdate(field, value) {
       this.localItemData[field] = value;
       this.$emit("update-item-data", { [field]: value });
-    },
-    updateFromNestedComponent(update) {
-      Object.assign(this.localItemData, update);
-      this.$emit("update-item-data", update);
     },
     getTableOfContentsSections() {
       const sections = [];

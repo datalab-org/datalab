@@ -269,9 +269,10 @@ export default {
       }
     },
     handleItemDataUpdate(payload) {
-      if (payload.item_id && payload.item_data) {
-        this.$store.commit("updateItemData", payload);
-      }
+      this.$store.commit("updateItemData", {
+        item_id: this.item_id,
+        item_data: payload,
+      });
     },
     saveSample() {
       // trigger the mce save so that they update the store with their content

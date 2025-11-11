@@ -32,8 +32,11 @@
     />
     <SynthesisInformation
       v-else-if="uiConfig.component === 'SynthesisInformation'"
-      :sample-data="componentProps.sampleData"
-      @update-sample-data="$emit('update-nested', $event)"
+      :item_id="componentProps.item_id"
+    />
+    <CellPreparationInformation
+      v-else-if="uiConfig.component === 'CellPreparationInformation'"
+      :item_id="componentProps.item_id"
     />
   </div>
 </template>
@@ -51,6 +54,7 @@ import GHSHazardInformation from "@/components/GHSHazardInformation";
 import TableOfContents from "@/components/TableOfContents";
 import FieldLabelDescriptionTooltip from "@/components/FieldLabelDescriptionTooltip";
 import SynthesisInformation from "@/components/SynthesisInformation";
+import CellPreparationInformation from "@/components/CellPreparationInformation";
 
 import { dateTimeParser, dateTimeFormatter } from "@/field_utils.js";
 
@@ -69,6 +73,7 @@ export default {
     TableOfContents,
     FieldLabelDescriptionTooltip,
     SynthesisInformation,
+    CellPreparationInformation,
   },
   props: {
     fieldName: { type: String, required: true },
@@ -80,7 +85,7 @@ export default {
     itemType: { type: String, required: true },
     itemData: { type: Object, required: true },
   },
-  emits: ["update:modelValue", "input", "update-nested"],
+  emits: ["update:modelValue", "input"],
   computed: {
     uiConfig() {
       return this.fieldSchema.ui || {};
@@ -133,6 +138,7 @@ export default {
         GHSHazardInformation,
         TableOfContents,
         SynthesisInformation,
+        CellPreparationInformation,
       };
 
       const componentType = this.uiConfig.component || "input";
@@ -241,7 +247,10 @@ export default {
           informationSections: this.getTableOfContentsSections(),
         },
         SynthesisInformation: {
-          sampleData: this.itemData,
+          item_id: this.itemData.item_id,
+        },
+        CellPreparationInformation: {
+          item_id: this.itemData.item_id,
         },
       };
 
