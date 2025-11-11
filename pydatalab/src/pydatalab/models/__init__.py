@@ -11,7 +11,6 @@ from pydatalab.models.versions import (
     CompareVersionsQuery,
     ItemVersion,
     RestoreVersionRequest,
-    UserSnapshot,
     VersionAction,
     VersionCounter,
 )

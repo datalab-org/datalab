@@ -8,20 +8,6 @@ from pydantic import BaseModel, Field, validator
 from pydatalab.models.utils import PyObjectId, Refcode
 
 
-class UserSnapshot(BaseModel):
-    """A snapshot of user information at the time a version was created.
-
-    This allows displaying user details even if the user account is later modified or deleted.
-    """
-
-    id: str = Field(..., description="User's ObjectId as a string")
-    display_name: str | None = Field(None, description="User's display name at time of version")
-    email: str | None = Field(None, description="User's email at time of version")
-
-    class Config:
-        extra = "forbid"
-
-
 class VersionAction(str):
     """Valid actions that can create a version snapshot."""
 
@@ -40,7 +26,7 @@ class ItemVersion(BaseModel):
     """
 
     refcode: Refcode = Field(..., description="The refcode of the item this version belongs to")
-    version_number: int = Field(..., ge=1, description="Sequential version number (1-indexed)")
+    version: int = Field(..., ge=1, description="Sequential version number (1-indexed)")
     timestamp: datetime = Field(
         ..., description="When this version was created (ISO format with timezone)"
     )
@@ -49,14 +35,10 @@ class ItemVersion(BaseModel):
         description="The action that triggered this version: 'created' (item creation), "
         "'manual_save' (user save), 'auto_save' (system save), or 'restored' (version restore)",
     )
-    user: UserSnapshot | None = Field(
-        None,
-        description="Snapshot of user information for display (redundant with user_id for fast display)",
-    )
     user_id: PyObjectId | None = Field(
         None, description="User's ObjectId for efficient querying and indexing"
     )
-    software_version: str = Field(
+    datalab_version: str = Field(
         ..., description="Version of datalab-server that created this snapshot"
     )
     data: dict = Field(..., description="Complete snapshot of the item data at this version")
@@ -77,18 +59,6 @@ class ItemVersion(BaseModel):
             )
         return v
 
-    @validator("user_id")
-    def validate_user_id_matches_user_snapshot(cls, v, values):
-        """Ensure user_id matches the user snapshot id."""
-        user = values.get("user")
-        if user and v:
-            if str(v) != user.id:
-                raise ValueError(f"user_id ({v}) must match user.id ({user.id}) for consistency")
-        return v
-
-    class Config:
-        extra = "forbid"
-
 
 class VersionCounter(BaseModel):
     """Atomic counter for tracking version numbers per item.
@@ -98,7 +68,9 @@ class VersionCounter(BaseModel):
     """
 
     refcode: Refcode = Field(..., description="The refcode this counter belongs to")
-    counter: int = Field(0, ge=0, description="Current version counter value (0-indexed)")
+    counter: int = Field(
+        1, ge=1, description="Current version counter value (1-indexed, matches version numbers)"
+    )
 
     class Config:
         extra = "forbid"

@@ -1110,8 +1110,8 @@ def compare_versions(refcode):
         {
             "status": "success",
             "diff": diff,
-            "v1_version_number": v1.get("version_number"),
-            "v2_version_number": v2.get("version_number"),
+            "v1_version": v1.get("version"),
+            "v2_version": v2.get("version"),
             "v1_timestamp": v1.get("timestamp"),
             "v2_timestamp": v2.get("timestamp"),
         }
@@ -1180,7 +1180,7 @@ def restore_version(refcode):
             }
         ), 400
 
-    # Atomically get the next version number (used for both version_number and item.version)
+    # Atomically get the next version number (used for both version in item_versions and item.version)
     next_version_number = _get_next_version_number(refcode)
 
     # Update metadata to reflect the restore action
@@ -1313,7 +1313,7 @@ def _save_version_snapshot(refcode: str, action: str = "manual_save") -> tuple[d
     }
     flask_mongo.db.item_versions.insert_one(version_entry)
     return (
-        {"status": "success", "message": "Version saved.", "version_number": next_version_number},
+        {"status": "success", "message": "Version saved.", "version": next_version_number},
         200,
     )
 
