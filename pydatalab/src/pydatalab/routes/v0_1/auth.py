@@ -301,7 +301,7 @@ def find_user_with_identity(
 
         if verify and not person.identities[identity_index].verified:
             flask_mongo.db.users.update_one(
-                {"_id": person.immutable_id},
+                {"_id": ObjectId(person.immutable_id)},
                 {"$set": {f"identities.{identity_index}.verified": True}},
             )
 
@@ -354,7 +354,7 @@ def find_create_or_modify_user(
             RuntimeError: If the update was unsuccessful.
 
         """
-        update = {"$push": {"identities": identity.dict()}}
+        update = {"$push": {"identities": identity.model_dump()}}
         if use_display_name and identity and identity.display_name:
             update["$set"] = {"display_name": identity.display_name}
 
@@ -409,15 +409,14 @@ def find_create_or_modify_user(
                 identity, use_display_name=True, account_status=account_status
             )
             LOGGER.debug("Inserting new user model %s into database", user)
-            insert_pydantic_model_fork_safe(user, "users")
-            user_model = get_by_id(str(user.immutable_id))
+            inserted_id = insert_pydantic_model_fork_safe(user, "users")
+            user = get_by_id(inserted_id)
             if user is None:
                 raise RuntimeError("Failed to insert user into database")
-            wrapped_login_user(user_model)
 
     # Log the user into the session with this identity
     if user is not None:
-        wrapped_login_user(get_by_id(str(user.immutable_id)))
+        wrapped_login_user(user)
 
 
 def _validate_magic_link_request(email: str, referrer: str) -> tuple[Response | None, int]:
@@ -704,7 +703,7 @@ def redirect_to_ui(blueprint, token):  # pylint: disable=unused-argument
 def get_authenticated_user_info():
     """Returns metadata associated with the currently authenticated user."""
     if current_user.is_authenticated:
-        current_user_response = json.loads(current_user.person.json())
+        current_user_response = json.loads(current_user.person.model_dump_json())
         current_user_response["role"] = current_user.role.value
         return jsonify(current_user_response), 200
     else:
