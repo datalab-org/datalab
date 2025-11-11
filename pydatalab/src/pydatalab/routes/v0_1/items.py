@@ -1165,13 +1165,13 @@ def list_versions(refcode):
                 "_id": 1,
                 "timestamp": 1,
                 "user": 1,
-                "software_version": 1,
-                "version_number": 1,
+                "datalab_version": 1,
+                "version": 1,
                 "action": 1,
                 "restored_from_version": 1,
                 "data.version": 1,
             },
-        ).sort("version_number", -1)
+        ).sort("version", -1)
     )
     for v in versions:
         v["_id"] = str(v["_id"])
@@ -1332,15 +1332,9 @@ def restore_version(refcode):
     flask_mongo.db.items.update_one({"refcode": refcode}, {"$set": restored_data})
 
     # Extract user information for hybrid storage approach
-    user_snapshot = None
     user_id = None
     if current_user.is_authenticated:
         user_id = current_user.person.immutable_id
-        user_snapshot = {
-            "id": str(user_id),
-            "display_name": getattr(current_user.person, "display_name", None),
-            "email": getattr(current_user.person, "contact_email", None),
-        }
 
     # Get the software version
     from pydatalab import __version__
@@ -1351,15 +1345,14 @@ def restore_version(refcode):
     flask_mongo.db.item_versions.insert_one(
         {
             "refcode": refcode,
-            "version_number": next_version_number,
+            "version": next_version_number,
             "timestamp": datetime.datetime.now(tz=datetime.timezone.utc).isoformat(),
             "action": "restored",  # Audit trail: this is a restored version
-            "restored_from_version": str(
+            "restored_from_version": ObjectId(
                 version_object_id
             ),  # Track which version was restored from
-            "user": user_snapshot,  # Snapshot for fast display
             "user_id": user_id,  # ObjectId for efficient querying
-            "software_version": software_version,
+            "datalab_version": software_version,
             "data": restored_data,  # Store the complete snapshot of the restored state
         }
     )
@@ -1423,15 +1416,9 @@ def _save_version_snapshot(refcode: str, action: str = "manual_save") -> tuple[d
     next_version_number = _get_next_version_number(refcode)
 
     # Extract user information for hybrid storage approach
-    user_snapshot = None
     user_id = None
     if current_user.is_authenticated:
         user_id = current_user.person.immutable_id
-        user_snapshot = {
-            "id": str(user_id),
-            "display_name": getattr(current_user.person, "display_name", None),
-            "email": getattr(current_user.person, "contact_email", None),
-        }
 
     # Find out the software version
     try:
@@ -1441,12 +1428,11 @@ def _save_version_snapshot(refcode: str, action: str = "manual_save") -> tuple[d
 
     version_entry = {
         "refcode": refcode,
-        "version_number": next_version_number,
+        "version": next_version_number,
         "timestamp": datetime.datetime.now(tz=datetime.timezone.utc).isoformat(),
         "action": action,  # Audit trail: why this version was created
-        "user": user_snapshot,  # Snapshot for fast display
         "user_id": user_id,  # ObjectId for efficient querying
-        "software_version": software_version,
+        "datalab_version": software_version,
         "data": item,  # Complete snapshot of the item at this version
     }
     flask_mongo.db.item_versions.insert_one(version_entry)
