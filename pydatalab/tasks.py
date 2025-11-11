@@ -33,7 +33,7 @@ def load_plugin_schema():
     need them. A JSON Schema generated from the returned model is emitted to
     `pydatalab/schemas/plugin_config.json` by `invoke dev.generate-schemas`.
     """
-    from pydantic import BaseModel, root_validator
+    from pydantic import BaseModel, model_validator
 
     class UvSource(BaseModel):
         """A single entry under `[tool.uv.sources]` in plugins.toml."""
@@ -48,7 +48,8 @@ def load_plugin_schema():
         class Config:
             extra = "forbid"
 
-        @root_validator
+        @model_validator(mode="before")
+        @classmethod
         def _exactly_one_source(cls, values):
             has_git = values.get("git") is not None
             has_path = values.get("path") is not None
@@ -79,7 +80,8 @@ def load_plugin_schema():
         class Config:
             extra = "forbid"
 
-        @root_validator
+        @model_validator(mode="before")
+        @classmethod
         def _sources_must_match_dependencies(cls, values):
             deps = {d.split("[")[0].strip() for d in values.get("dependencies", [])}
             sources = values.get("tool", ToolSection()).uv.sources
