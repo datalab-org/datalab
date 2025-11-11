@@ -1,14 +1,14 @@
 """Pydantic models for version control system."""
 
 from datetime import datetime
-from typing import Literal
+from enum import Enum
 
 from pydantic import BaseModel, Field, validator
 
 from pydatalab.models.utils import PyObjectId, Refcode
 
 
-class VersionAction(str):
+class VersionAction(str, Enum):
     """Valid actions that can create a version snapshot."""
 
     CREATED = "created"
@@ -30,7 +30,7 @@ class ItemVersion(BaseModel):
     timestamp: datetime = Field(
         ..., description="When this version was created (ISO format with timezone)"
     )
-    action: Literal["created", "manual_save", "auto_save", "restored"] = Field(
+    action: VersionAction = Field(
         ...,
         description="The action that triggered this version: 'created' (item creation), "
         "'manual_save' (user save), 'auto_save' (system save), or 'restored' (version restore)",
@@ -51,9 +51,9 @@ class ItemVersion(BaseModel):
     def validate_restored_from_version(cls, v, values):
         """Ensure restored_from_version is only present when action='restored'."""
         action = values.get("action")
-        if action == "restored" and v is None:
+        if action == VersionAction.RESTORED and v is None:
             raise ValueError("restored_from_version must be provided when action='restored'")
-        if action != "restored" and v is not None:
+        if action != VersionAction.RESTORED and v is not None:
             raise ValueError(
                 f"restored_from_version should only be present when action='restored', got action='{action}'"
             )
