@@ -5,13 +5,11 @@ import re
 import shutil
 import subprocess
 import time
-import typing
 
 import tomlkit
 from invoke import Collection, task
 
-if typing.TYPE_CHECKING:
-    from pydatalab.models.utils import UserRole
+from pydatalab.models.utils import UserRole
 
 ns = Collection()
 dev = Collection("dev")
@@ -45,9 +43,6 @@ def load_plugin_schema():
         path: str | None = None
         editable: bool | None = None
 
-        class Config:
-            extra = "forbid"
-
         @model_validator(mode="before")
         @classmethod
         def _exactly_one_source(cls, values):
@@ -62,23 +57,14 @@ def load_plugin_schema():
     class UvSection(BaseModel):
         sources: dict[str, UvSource] = {}
 
-        class Config:
-            extra = "forbid"
-
     class ToolSection(BaseModel):
         uv: UvSection = UvSection()
-
-        class Config:
-            extra = "forbid"
 
     class PluginConfigModel(BaseModel):
         """The schema for the top-level plugins.toml file."""
 
         dependencies: list[str] = []
         tool: ToolSection = ToolSection()
-
-        class Config:
-            extra = "forbid"
 
         @model_validator(mode="before")
         @classmethod
@@ -117,7 +103,7 @@ def generate_schemas(_):
     schemas_path = pathlib.Path(__file__).parent / "schemas"
 
     for model in ITEM_MODELS.values():
-        schema = model.schema(by_alias=False)
+        schema = model.model_json_schema(by_alias=False)
         with open(schemas_path / f"{model.__name__.lower()}.json", "w") as f:
             json.dump(schema, f, indent=2)
 
@@ -418,10 +404,11 @@ migration.add_task(add_missing_refcodes)
 
 
 def _check_id(id=None, base_url=None, api_key=None):
-    from pydatalab.logger import setup_log
-
     """Checks the given item ID served at the base URL and logs the result."""
+
     import requests
+
+    from pydatalab.logger import setup_log
 
     log = setup_log("check_item_validity")
     response = requests.get(
