@@ -5,8 +5,9 @@
     @mouseenter="delayedShowTooltip"
     @mouseleave="hideTooltip"
   >
-    <label :for="htmlFor" class="label-text">
+    <label v-if="!iconOnly" :for="htmlFor" class="label-text">
       {{ label }}
+      <slot></slot>
       <span
         v-if="description"
         ref="anchor"
@@ -18,6 +19,16 @@
         <font-awesome-icon :icon="['fas', 'info-circle']" />
       </span>
     </label>
+    <span
+      v-else-if="description"
+      ref="anchor"
+      tabindex="0"
+      class="info-icon"
+      @focus="delayedShowTooltip"
+      @blur="hideTooltip"
+    >
+      <font-awesome-icon :icon="['fas', 'info-circle']" />
+    </span>
     <div v-if="description" ref="tooltipContent" class="field-tooltip" role="tooltip">
       {{ description }}
     </div>
@@ -41,6 +52,10 @@ export default {
     description: {
       type: String,
       default: null,
+    },
+    iconOnly: {
+      type: Boolean,
+      default: false,
     },
   },
   data() {

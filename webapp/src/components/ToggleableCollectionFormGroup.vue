@@ -4,8 +4,12 @@
     class="h-100 form-group clickable"
     @click="isEditingCollections = !isEditingCollections"
   >
-    <label id="collections" class="clickable">
-      Collections
+    <FieldLabelDescriptionTooltip
+      html-for="collections"
+      label="Collections"
+      :description="description"
+      class="clickable"
+    >
       <font-awesome-icon
         id="edit-icon"
         class="pl-1"
@@ -13,7 +17,7 @@
         size="xs"
         :fade="isEditingCollections"
       />
-    </label>
+    </FieldLabelDescriptionTooltip>
     <div>
       <CollectionList
         v-if="!isEditingCollections"
@@ -42,17 +46,23 @@
 import CollectionSelect from "@/components/CollectionSelect";
 import CollectionList from "@/components/CollectionList";
 import { OnClickOutside } from "@vueuse/components";
+import FieldLabelDescriptionTooltip from "@/components/FieldLabelDescriptionTooltip";
 
 export default {
   components: {
     CollectionSelect,
     CollectionList,
     OnClickOutside,
+    FieldLabelDescriptionTooltip,
   },
   props: {
     modelValue: {
       type: String,
       default: "",
+    },
+    description: {
+      type: String,
+      default: null,
     },
   },
   emits: ["update:modelValue"],

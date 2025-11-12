@@ -36,12 +36,12 @@ class Sample(Item, HasSynthesisInfo, HasUIHints):
         "creators": UIFieldConfig(
             component="ToggleableCreatorsFormGroup",
             width="col-md-3 col-sm-3 col-6 pb-3",
-            hide_label=True,
+            has_builtin_label=True,
         ),
         "collections": UIFieldConfig(
             component="ToggleableCollectionFormGroup",
             width="col-md-6 col-sm-7 pr-2",
-            hide_label=True,
+            has_builtin_label=True,
         ),
         "description": UIFieldConfig(component="TinyMceInline", width="col-12"),
         "table_of_contents": UIFieldConfig(

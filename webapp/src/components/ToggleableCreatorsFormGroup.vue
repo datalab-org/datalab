@@ -4,8 +4,12 @@
     class="h-100 form-group clickable"
     @click="isEditingCreators = !isEditingCreators"
   >
-    <label id="creators" class="clickable">
-      Creators
+    <FieldLabelDescriptionTooltip
+      html-for="creators"
+      label="Creators"
+      :description="description"
+      class="clickable"
+    >
       <font-awesome-icon
         id="edit-icon"
         class="pl-1"
@@ -13,7 +17,7 @@
         size="xs"
         :fade="isEditingCreators"
       />
-    </label>
+    </FieldLabelDescriptionTooltip>
     <div>
       <Creators
         v-if="!isEditingCreators"
@@ -41,17 +45,24 @@ import { OnClickOutside } from "@vueuse/components";
 import { updateItemPermissions } from "@/server_fetch_utils.js";
 import { toRaw } from "vue";
 
+import FieldLabelDescriptionTooltip from "@/components/FieldLabelDescriptionTooltip";
+
 export default {
   components: {
     UserSelect,
     Creators,
     OnClickOutside,
+    FieldLabelDescriptionTooltip,
   },
   props: {
     refcode: { type: String, required: true },
     modelValue: {
       type: Array,
       required: true,
+    },
+    description: {
+      type: String,
+      default: null,
     },
   },
   emits: ["update:modelValue"],

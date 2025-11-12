@@ -30,6 +30,13 @@
       :item_id="componentProps.item_id"
       :information-sections="componentProps.informationSections"
     />
+    <FieldLabelDescriptionTooltip
+      v-if="isVirtualField && fieldSchema.description"
+      :html-for="fieldId"
+      :label="label"
+      :description="fieldSchema.description"
+      :icon-only="true"
+    />
     <SynthesisInformation
       v-else-if="uiConfig.component === 'SynthesisInformation'"
       :item_id="componentProps.item_id"
@@ -102,12 +109,15 @@ export default {
     isVirtualField() {
       return this.fieldSchema.type === "null";
     },
-
     shouldShowLabel() {
-      if (this.uiConfig.hide_label) {
-        return false;
-      }
-      return this.showLabel;
+      const virtualFields = [
+        "TableOfContents",
+        "SynthesisInformation",
+        "CellPreparationInformation",
+      ];
+      return (
+        this.showLabel && !virtualFields.includes(this.uiConfig.component) && !this.hasBuiltinLabel
+      );
     },
     needsWrapper() {
       const wrapperComponents = ["FormattedRefcode", "FormattedBarcode"];
@@ -156,6 +166,9 @@ export default {
       }
 
       return this.getSpecialComponentProps(componentType, baseProps);
+    },
+    hasBuiltinLabel() {
+      return this.uiConfig.has_builtin_label || false;
     },
   },
   methods: {
@@ -223,17 +236,14 @@ export default {
         FormattedBarcode: {
           barcode: this.modelValue || "",
         },
-        Creators: {
-          creators: this.modelValue || [],
-          size: "36",
-        },
         ToggleableCreatorsFormGroup: {
           modelValue: this.modelValue || [],
-          refcode: this.itemData.refcode,
+          size: "36",
+          description: this.hasBuiltinLabel ? this.fieldSchema.description : null,
         },
         ToggleableCollectionFormGroup: {
           modelValue: this.itemData[this.fieldName] || [],
-          item_id: this.itemData.item_id,
+          description: this.hasBuiltinLabel ? this.fieldSchema.description : null,
         },
         GHSHazardInformation: {
           modelValue: Array.isArray(this.modelValue)

@@ -11,12 +11,14 @@ class UIFieldConfig:
         readonly: bool = False,
         hidden: bool = False,
         hide_label: bool = False,
+        has_builtin_label: bool = False,
     ):
         self.component = component
         self.width = width
         self.readonly = readonly
         self.hidden = hidden
         self.hide_label = hide_label
+        self.has_builtin_label = has_builtin_label
 
     def to_dict(self) -> dict[str, Any]:
         config: dict[str, Any] = {
@@ -29,6 +31,8 @@ class UIFieldConfig:
             config["hidden"] = True
         if self.hide_label:
             config["hide_label"] = True
+        if self.has_builtin_label:
+            config["has_builtin_label"] = True
         return config
 
 
