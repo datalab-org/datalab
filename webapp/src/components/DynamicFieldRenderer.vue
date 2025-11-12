@@ -17,6 +17,18 @@
         @input="handleInput"
       />
     </div>
+    <select
+      v-else-if="!isVirtualField && componentName === 'select'"
+      :id="fieldId"
+      :value="componentProps.value"
+      :class="componentProps.class"
+      :disabled="componentProps.disabled"
+      @change="handleSelectChange"
+    >
+      <option v-for="option in componentProps.options" :key="option" :value="option">
+        {{ option }}
+      </option>
+    </select>
     <component
       :is="componentName"
       v-else-if="!isVirtualField"
@@ -159,6 +171,10 @@ export default {
 
       const componentType = this.uiConfig.component || "input";
 
+      if (componentType === "select") {
+        return "select";
+      }
+
       return componentMap[componentType] || "input";
     },
     componentProps() {
@@ -169,6 +185,10 @@ export default {
 
       if (componentType === "input") {
         return this.getInputProps();
+      }
+
+      if (componentType === "select") {
+        return this.getSelectProps();
       }
 
       return this.getSpecialComponentProps(componentType, baseProps);
@@ -192,7 +212,14 @@ export default {
       if (isDatetimeField) {
         inputType = "datetime-local";
         value = dateTimeParser(value);
-      } else if (this.fieldSchema.type === "integer" || this.fieldSchema.type === "number") {
+      } else if (
+        this.fieldSchema.type === "integer" ||
+        this.fieldSchema.type === "number" ||
+        (this.fieldSchema.anyOf &&
+          this.fieldSchema.anyOf.some(
+            (option) => option.type === "number" || option.type === "integer",
+          ))
+      ) {
         inputType = "number";
       }
 
@@ -209,6 +236,14 @@ export default {
         class: "form-control",
         type: inputType,
         disabled: this.isReadonly,
+      };
+    },
+    getSelectProps() {
+      return {
+        value: this.modelValue || "",
+        class: "form-control",
+        disabled: this.isReadonly,
+        options: this.fieldSchema.enum || [],
       };
     },
     handleUpdateValue(value) {
@@ -233,6 +268,9 @@ export default {
           this.$emit("update:modelValue", value);
         }
       }
+    },
+    handleSelectChange(event) {
+      this.$emit("update:modelValue", event.target.value);
     },
     getSpecialComponentProps(componentType, baseProps) {
       const specialPropsMap = {

@@ -104,15 +104,13 @@ class Cell(Item, HasUIHints):
             width="col-md-6 col-sm-7 pr-2",
             has_builtin_label=True,
         ),
-        "cell_format": UIFieldConfig(component="select", width="col-sm-6"),
-        "cell_format_description": UIFieldConfig(component="input", width="col-sm-6"),
+        "cell_format": UIFieldConfig(component="select", width="col-sm-4"),
+        "cell_format_description": UIFieldConfig(component="input", width="col-sm-8"),
         "characteristic_mass": UIFieldConfig(component="input", width="col-sm-4 pr-2 col-6"),
         "characteristic_chemical_formula": UIFieldConfig(
             component="ChemFormulaInput", width="col-sm-4 pr-2 col-6"
         ),
-        "characteristic_molar_mass": UIFieldConfig(
-            component="input", width="col-sm-4 col-6", readonly=True
-        ),
+        "characteristic_molar_mass": UIFieldConfig(component="input", width="col-sm-4 col-6"),
         "active_ion": UIFieldConfig(component="input", width="col-sm-6", hidden=True),
         "active_ion_charge": UIFieldConfig(component="input", width="col-sm-6", hidden=True),
         "positive_electrode": UIFieldConfig(

@@ -51,11 +51,24 @@ class HasUIHints(BaseModel):
     def get_ui_schema(cls) -> dict[str, Any]:
         base_schema = cls.model_json_schema(by_alias=False)
         properties = base_schema.get("properties", {})
+        defs = base_schema.get("$defs", {})
 
         if hasattr(cls, "ui_field_titles"):
             for field_name, custom_title in cls.ui_field_titles.items():
                 if field_name in base_schema.get("properties", {}):
                     base_schema["properties"][field_name]["title"] = custom_title
+
+        for field_name, field_schema in properties.items():
+            if "anyOf" in field_schema:
+                for option in field_schema["anyOf"]:
+                    if "$ref" in option:
+                        ref_path = option["$ref"].split("/")[-1]
+                        if ref_path in defs:
+                            ref_definition = defs[ref_path]
+                            if "enum" in ref_definition:
+                                field_schema["enum"] = ref_definition["enum"]
+                                if "type" in ref_definition and "type" not in field_schema:
+                                    field_schema["type"] = ref_definition["type"]
 
         for field_name, config in cls.ui_field_config.items():
             if field_name in properties:
