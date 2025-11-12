@@ -310,6 +310,7 @@ export default {
             ? this.modelValue.join(", ")
             : this.modelValue || "",
           description: this.hasBuiltinLabel ? this.fieldSchema.description : null,
+          editable: !this.isReadonly,
         },
         ChemFormulaInput: baseProps,
         TinyMceInline: baseProps,
