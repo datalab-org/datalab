@@ -12,6 +12,7 @@ class UIFieldConfig:
         hidden: bool = False,
         hide_label: bool = False,
         has_builtin_label: bool = False,
+        component_props: dict[str, Any] | None = None,
     ):
         self.component = component
         self.width = width
@@ -19,6 +20,7 @@ class UIFieldConfig:
         self.hidden = hidden
         self.hide_label = hide_label
         self.has_builtin_label = has_builtin_label
+        self.component_props = component_props
 
     def to_dict(self) -> dict[str, Any]:
         config: dict[str, Any] = {
@@ -33,6 +35,8 @@ class UIFieldConfig:
             config["hide_label"] = True
         if self.has_builtin_label:
             config["has_builtin_label"] = True
+        if self.component_props:
+            config["component_props"] = self.component_props
         return config
 
 
@@ -45,8 +49,13 @@ class HasUIHints(BaseModel):
 
     @classmethod
     def get_ui_schema(cls) -> dict[str, Any]:
-        base_schema = cls.model_json_schema()
+        base_schema = cls.model_json_schema(by_alias=False)
         properties = base_schema.get("properties", {})
+
+        if hasattr(cls, "ui_field_titles"):
+            for field_name, custom_title in cls.ui_field_titles.items():
+                if field_name in base_schema.get("properties", {}):
+                    base_schema["properties"][field_name]["title"] = custom_title
 
         for field_name, config in cls.ui_field_config.items():
             if field_name in properties:

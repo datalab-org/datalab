@@ -1,13 +1,14 @@
-from typing import Literal
+from typing import Any, ClassVar, Literal
 
 from pydantic import Field, field_validator
 
 from pydatalab.models.items import Item
 from pydatalab.models.traits import HasSynthesisInfo
+from pydatalab.models.traits.ui_hints import HasUIHints, UIFieldConfig
 from pydatalab.models.utils import IsoformatDateTime
 
 
-class StartingMaterial(Item, HasSynthesisInfo):
+class StartingMaterial(Item, HasSynthesisInfo, HasUIHints):
     """A model for representing an experimental sample, based on the connection
     with cheminventory.net, which mixes container-level and substance-level
     information.
@@ -22,7 +23,10 @@ class StartingMaterial(Item, HasSynthesisInfo):
     )
 
     date: IsoformatDateTime | None = Field(
-        None, alias="Date Acquired", description="The date the item was acquired"
+        None,
+        alias="Date Acquired",
+        title="Date Acquired",
+        description="The date the item was acquired",
     )
 
     date_opened: IsoformatDateTime | None = Field(
@@ -32,6 +36,7 @@ class StartingMaterial(Item, HasSynthesisInfo):
     CAS: str | None = Field(
         None,
         alias="Substance CAS",
+        title="CAS",
         description="The CAS Registry Number for the substance described by this entry.",
     )
 
@@ -93,6 +98,69 @@ class StartingMaterial(Item, HasSynthesisInfo):
     comment: str | None = Field(
         None, alias="Comments", description="Any additional comments or notes about the container."
     )
+
+    ui_layout: ClassVar[list[list[str]]] = [
+        ["name", "chemform", "date"],
+        ["refcode", "barcode", "collections"],
+        ["location"],
+        ["supplier", "chemical_purity"],
+        ["CAS", "date_opened"],
+        ["GHS_codes"],
+        ["description"],
+        ["table_of_contents"],
+        ["synthesis_information"],
+    ]
+
+    ui_field_config: ClassVar[dict[str, UIFieldConfig]] = {
+        "name": UIFieldConfig(component="input", width="col-sm-4 pr-2 col-6"),
+        "chemform": UIFieldConfig(
+            component="ChemFormulaInput",
+            width="col-sm-4 pr-2 col-6",
+        ),
+        "date": UIFieldConfig(component="input", width="col-sm-4 col-6"),
+        "refcode": UIFieldConfig(
+            component="FormattedRefcode", width="col-md-3 col-sm-4 col-6", readonly=True
+        ),
+        "barcode": UIFieldConfig(
+            component="FormattedBarcode",
+            width="col-md-3 col-sm-4 col-6",
+            readonly=True,
+        ),
+        "collections": UIFieldConfig(
+            component="ToggleableCollectionFormGroup",
+            width="col-md-6 col-sm-7 pr-2",
+            has_builtin_label=True,
+        ),
+        "location": UIFieldConfig(component="input", width="col-lg-12 col-sm-12"),
+        "supplier": UIFieldConfig(component="input", width="col-lg-3 col-sm-4"),
+        "chemical_purity": UIFieldConfig(component="input", width="col-lg-3 col-sm-4"),
+        "CAS": UIFieldConfig(
+            component="input",
+            width="col-lg-3 col-sm-3 col-6",
+        ),
+        "date_opened": UIFieldConfig(component="input", width="col-lg-3 col-sm-3 col-6"),
+        "GHS_codes": UIFieldConfig(
+            component="GHSHazardInformation",
+            width="col-12",
+            has_builtin_label=True,
+        ),
+        "description": UIFieldConfig(component="TinyMceInline", width="col-12"),
+        "table_of_contents": UIFieldConfig(
+            component="TableOfContents", width="col-12", hide_label=True
+        ),
+        "synthesis_information": UIFieldConfig(
+            component="SynthesisInformation", width="col-12", hide_label=True
+        ),
+    }
+
+    ui_virtual_fields: ClassVar[dict[str, dict[str, Any]]] = {
+        "table_of_contents": {
+            "title": "Table of Contents",
+        },
+        "synthesis_information": {
+            "title": "Synthesis Information",
+        },
+    }
 
     @field_validator("molar_mass", mode="before")
     @classmethod

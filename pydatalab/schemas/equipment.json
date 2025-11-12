@@ -1035,7 +1035,7 @@
       ],
       "default": null,
       "description": "A relevant 'creation' timestamp for the entry (e.g., purchase date, synthesis date).",
-      "title": "Date"
+      "title": "Date Created"
     },
     "name": {
       "anyOf": [
@@ -1086,7 +1086,7 @@
       ],
       "default": null,
       "description": "A string describing one or more serial numbers for the instrument.",
-      "title": "Serial Numbers"
+      "title": "Serial no(s)."
     },
     "manufacturer": {
       "anyOf": [
@@ -1125,7 +1125,7 @@
       ],
       "default": null,
       "description": "Contact information for equipment (e.g., email address or phone number).",
-      "title": "Contact"
+      "title": "Contact Information"
     }
   },
   "required": [

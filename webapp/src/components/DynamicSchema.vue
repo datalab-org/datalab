@@ -1,7 +1,7 @@
 <template>
   <div v-if="schema?.properties" class="container-lg">
     <div class="row">
-      <div class="col-md-8">
+      <div :class="hasRelationships ? 'col-md-8' : 'col-md-12'">
         <div :id="`${item_data?.type}-information`">
           <div v-for="(row, rowIndex) in schema.layout" :key="rowIndex" class="form-row">
             <DynamicFieldRenderer

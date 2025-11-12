@@ -36,6 +36,7 @@ class Item(Entry, HasOwner, HasRevisionControl, IsCollectable, HasBlocks, abc.AB
 
     date: IsoformatDateTime | None = Field(
         None,
+        title="Date Created",
         description="A relevant 'creation' timestamp for the entry (e.g., purchase date, synthesis date).",
     )
 

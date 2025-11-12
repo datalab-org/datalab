@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Literal
+from typing import Any, ClassVar, Literal
 
 from pydantic import (
     Field,
@@ -8,6 +8,7 @@ from pydantic import (
 )
 
 from pydatalab.models.items import Item
+from pydatalab.models.traits.ui_hints import HasUIHints, UIFieldConfig
 from pydatalab.models.utils import Constituent
 
 # from pydatalab.logger import LOGGER
@@ -28,13 +29,15 @@ class CellFormat(str, Enum):
     other = "other"
 
 
-class Cell(Item):
+class Cell(Item, HasUIHints):
     """A model for representing electrochemical cells."""
 
     type: Literal["cells"] = "cells"
 
     cell_format: CellFormat | None = Field(
-        None, description="The form factor of the cell, e.g., coin, pouch, in situ or otherwise."
+        None,
+        title="Cell Format",
+        description="The form factor of the cell, e.g., coin, pouch, in situ or otherwise.",
     )
 
     cell_format_description: str | None = Field(
@@ -48,16 +51,19 @@ class Cell(Item):
 
     characteristic_mass: float | None = Field(
         None,
+        title="Active mass (mg)",
         description="The characteristic mass of the cell in milligrams. Can be used to normalize capacities.",
     )
 
     characteristic_chemical_formula: str | None = Field(
         None,
+        title="Active formula",
         description="The chemical formula of the active material. Can be used to calculated molar mass in g/mol for normalizing capacities.",
     )
 
     characteristic_molar_mass: float | None = Field(
         None,
+        title="Molar mass",
         description="The molar mass of the active material, in g/mol. Will be inferred from the chemical formula, or can be supplied if it cannot be supplied",
     )
 
@@ -68,6 +74,74 @@ class Cell(Item):
     active_ion_charge: float = 1
 
     active_ion: str | None = Field(None, description="The active ion species.")
+
+    ui_layout: ClassVar[list[list[str]]] = [
+        ["name", "date"],
+        ["refcode", "creators", "collections"],
+        ["cell_format", "cell_format_description"],
+        ["characteristic_mass", "characteristic_chemical_formula", "characteristic_molar_mass"],
+        ["description"],
+        ["table_of_contents"],
+        ["cell_preparation_information"],
+    ]
+
+    ui_field_config: ClassVar[dict[str, UIFieldConfig]] = {
+        "name": UIFieldConfig(component="input", width="col-sm-8 pr-2 col-6"),
+        "item_id": UIFieldConfig(
+            component="FormattedItemName", width="col-sm-4 pr-2 col-6", hidden=True
+        ),
+        "date": UIFieldConfig(component="input", width="col-sm-4 col-6"),
+        "refcode": UIFieldConfig(
+            component="FormattedRefcode", width="col-md-3 col-sm-4 col-6", readonly=True
+        ),
+        "creators": UIFieldConfig(
+            component="ToggleableCreatorsFormGroup",
+            width="col-md-3 col-sm-3 col-6 pb-3",
+            has_builtin_label=True,
+        ),
+        "collections": UIFieldConfig(
+            component="ToggleableCollectionFormGroup",
+            width="col-md-6 col-sm-7 pr-2",
+            has_builtin_label=True,
+        ),
+        "cell_format": UIFieldConfig(component="select", width="col-sm-6"),
+        "cell_format_description": UIFieldConfig(component="input", width="col-sm-6"),
+        "characteristic_mass": UIFieldConfig(component="input", width="col-sm-4 pr-2 col-6"),
+        "characteristic_chemical_formula": UIFieldConfig(
+            component="ChemFormulaInput", width="col-sm-4 pr-2 col-6"
+        ),
+        "characteristic_molar_mass": UIFieldConfig(
+            component="input", width="col-sm-4 col-6", readonly=True
+        ),
+        "active_ion": UIFieldConfig(component="input", width="col-sm-6", hidden=True),
+        "active_ion_charge": UIFieldConfig(component="input", width="col-sm-6", hidden=True),
+        "positive_electrode": UIFieldConfig(
+            component="ConstituentsList", width="col-12", hidden=True
+        ),
+        "negative_electrode": UIFieldConfig(
+            component="ConstituentsList", width="col-12", hidden=True
+        ),
+        "electrolyte": UIFieldConfig(component="ConstituentsList", width="col-12", hidden=True),
+        "cell_preparation_description": UIFieldConfig(
+            component="TinyMceInline", width="col-12", hidden=True
+        ),
+        "description": UIFieldConfig(component="TinyMceInline", width="col-12"),
+        "table_of_contents": UIFieldConfig(
+            component="TableOfContents", width="col-12", hide_label=True
+        ),
+        "cell_preparation_information": UIFieldConfig(
+            component="CellPreparationInformation", width="col-12", hide_label=True
+        ),
+    }
+
+    ui_virtual_fields: ClassVar[dict[str, dict[str, Any]]] = {
+        "table_of_contents": {
+            "title": "Table of Contents",
+        },
+        "cell_preparation_information": {
+            "title": "Cell Preparation Information",
+        },
+    }
 
     @field_validator("characteristic_molar_mass", mode="before")
     @classmethod

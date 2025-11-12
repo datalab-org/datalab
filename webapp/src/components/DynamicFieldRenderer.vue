@@ -62,6 +62,8 @@ import TableOfContents from "@/components/TableOfContents";
 import FieldLabelDescriptionTooltip from "@/components/FieldLabelDescriptionTooltip";
 import SynthesisInformation from "@/components/SynthesisInformation";
 import CellPreparationInformation from "@/components/CellPreparationInformation";
+import CollectionList from "@/components/CollectionList";
+import Creators from "@/components/Creators";
 
 import { dateTimeParser, dateTimeFormatter } from "@/field_utils.js";
 
@@ -81,6 +83,8 @@ export default {
     FieldLabelDescriptionTooltip,
     SynthesisInformation,
     CellPreparationInformation,
+    CollectionList,
+    Creators,
   },
   props: {
     fieldName: { type: String, required: true },
@@ -149,6 +153,8 @@ export default {
         TableOfContents,
         SynthesisInformation,
         CellPreparationInformation,
+        CollectionList,
+        Creators,
       };
 
       const componentType = this.uiConfig.component || "input";
@@ -188,6 +194,14 @@ export default {
         value = dateTimeParser(value);
       } else if (this.fieldSchema.type === "integer" || this.fieldSchema.type === "number") {
         inputType = "number";
+      }
+
+      if (this.fieldSchema.enum) {
+        return {
+          options: this.fieldSchema.enum,
+          modelValue: this.modelValue,
+          class: "form-control",
+        };
       }
 
       return {
@@ -236,6 +250,14 @@ export default {
         FormattedBarcode: {
           barcode: this.modelValue || "",
         },
+        CollectionList: {
+          collections: this.modelValue || [],
+        },
+        Creators: {
+          creators: this.modelValue || [],
+          showNames: true,
+          size: "36",
+        },
         ToggleableCreatorsFormGroup: {
           modelValue: this.modelValue || [],
           size: "36",
@@ -249,6 +271,7 @@ export default {
           modelValue: Array.isArray(this.modelValue)
             ? this.modelValue.join(", ")
             : this.modelValue || "",
+          description: this.hasBuiltinLabel ? this.fieldSchema.description : null,
         },
         ChemFormulaInput: baseProps,
         TinyMceInline: baseProps,

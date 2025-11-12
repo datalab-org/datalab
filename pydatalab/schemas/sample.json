@@ -1193,7 +1193,7 @@
       ],
       "default": null,
       "description": "A relevant 'creation' timestamp for the entry (e.g., purchase date, synthesis date).",
-      "title": "Date"
+      "title": "Date Created"
     },
     "name": {
       "anyOf": [

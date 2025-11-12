@@ -1186,7 +1186,7 @@
       ],
       "default": null,
       "description": "A relevant 'creation' timestamp for the entry (e.g., purchase date, synthesis date).",
-      "title": "Date"
+      "title": "Date Created"
     },
     "name": {
       "anyOf": [
@@ -1236,7 +1236,8 @@
         }
       ],
       "default": null,
-      "description": "The form factor of the cell, e.g., coin, pouch, in situ or otherwise."
+      "description": "The form factor of the cell, e.g., coin, pouch, in situ or otherwise.",
+      "title": "Cell Format"
     },
     "cell_format_description": {
       "anyOf": [
@@ -1275,7 +1276,7 @@
       ],
       "default": null,
       "description": "The characteristic mass of the cell in milligrams. Can be used to normalize capacities.",
-      "title": "Characteristic Mass"
+      "title": "Active mass (mg)"
     },
     "characteristic_chemical_formula": {
       "anyOf": [
@@ -1288,7 +1289,7 @@
       ],
       "default": null,
       "description": "The chemical formula of the active material. Can be used to calculated molar mass in g/mol for normalizing capacities.",
-      "title": "Characteristic Chemical Formula"
+      "title": "Active formula"
     },
     "characteristic_molar_mass": {
       "anyOf": [
@@ -1301,7 +1302,7 @@
       ],
       "default": null,
       "description": "The molar mass of the active material, in g/mol. Will be inferred from the chemical formula, or can be supplied if it cannot be supplied",
-      "title": "Characteristic Molar Mass"
+      "title": "Molar mass"
     },
     "positive_electrode": {
       "items": {

@@ -1,6 +1,10 @@
 <template>
   <div ref="outerdiv" class="h-100 form-group clickable">
-    <label id="startmat-hazards" class="clickable"> GHS Hazard Codes </label>
+    <FieldLabelDescriptionTooltip
+      html-for="GHS-codes"
+      label="GHS Hazard Information"
+      :description="description"
+    />
     <input
       v-model="value"
       type="text"
@@ -16,10 +20,12 @@
 
 <script>
 import GHSHazardPictograms from "@/components/GHSHazardPictograms";
+import FieldLabelDescriptionTooltip from "@/components/FieldLabelDescriptionTooltip";
 
 export default {
   components: {
     GHSHazardPictograms,
+    FieldLabelDescriptionTooltip,
   },
   props: {
     modelValue: {
@@ -29,6 +35,10 @@ export default {
     editable: {
       type: Boolean,
       default: false,
+    },
+    description: {
+      type: String,
+      default: null,
     },
   },
   emits: ["update:modelValue"],

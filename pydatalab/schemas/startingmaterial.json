@@ -1193,7 +1193,7 @@
       ],
       "default": null,
       "description": "The date the item was acquired",
-      "title": "Date"
+      "title": "Date Acquired"
     },
     "name": {
       "anyOf": [
@@ -1271,7 +1271,7 @@
       ],
       "default": null,
       "description": "The CAS Registry Number for the substance described by this entry.",
-      "title": "Cas"
+      "title": "CAS"
     },
     "chemical_purity": {
       "anyOf": [
