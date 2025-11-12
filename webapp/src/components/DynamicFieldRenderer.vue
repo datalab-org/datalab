@@ -25,6 +25,7 @@
       :disabled="componentProps.disabled"
       @change="handleSelectChange"
     >
+      <option value="">-- Select --</option>
       <option v-for="option in componentProps.options" :key="option" :value="option">
         {{ option }}
       </option>
@@ -69,6 +70,7 @@ import ToggleableCreatorsFormGroup from "@/components/ToggleableCreatorsFormGrou
 import ToggleableCollectionFormGroup from "@/components/ToggleableCollectionFormGroup";
 import TinyMceInline from "@/components/TinyMceInline";
 import ChemFormulaInput from "@/components/ChemFormulaInput";
+import CASInput from "@/components/CASInput";
 import GHSHazardInformation from "@/components/GHSHazardInformation";
 import TableOfContents from "@/components/TableOfContents";
 import FieldLabelDescriptionTooltip from "@/components/FieldLabelDescriptionTooltip";
@@ -90,6 +92,7 @@ export default {
     ToggleableCollectionFormGroup,
     TinyMceInline,
     ChemFormulaInput,
+    CASInput,
     GHSHazardInformation,
     TableOfContents,
     FieldLabelDescriptionTooltip,
@@ -131,8 +134,12 @@ export default {
         "SynthesisInformation",
         "CellPreparationInformation",
       ];
+      const fieldsWithBuiltinLabel = ["CASInput"];
       return (
-        this.showLabel && !virtualFields.includes(this.uiConfig.component) && !this.hasBuiltinLabel
+        this.showLabel &&
+        !virtualFields.includes(this.uiConfig.component) &&
+        !fieldsWithBuiltinLabel.includes(this.uiConfig.component) &&
+        !this.hasBuiltinLabel
       );
     },
     needsWrapper() {
@@ -161,6 +168,7 @@ export default {
         ToggleableCollectionFormGroup,
         TinyMceInline,
         ChemFormulaInput,
+        CASInput,
         GHSHazardInformation,
         TableOfContents,
         SynthesisInformation,
@@ -313,6 +321,13 @@ export default {
           editable: !this.isReadonly,
         },
         ChemFormulaInput: baseProps,
+        CASInput: {
+          ...baseProps,
+          readonly: this.isReadonly,
+          showLabel: true,
+          inputId: this.fieldId,
+          description: this.hasBuiltinLabel ? this.fieldSchema.description : null,
+        },
         TinyMceInline: baseProps,
         TableOfContents: {
           item_id: this.itemData.item_id,

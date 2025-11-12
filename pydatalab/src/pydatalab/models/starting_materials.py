@@ -135,8 +135,9 @@ class StartingMaterial(Item, HasSynthesisInfo, HasUIHints):
         "supplier": UIFieldConfig(component="input", width="col-lg-3 col-sm-4"),
         "chemical_purity": UIFieldConfig(component="input", width="col-lg-3 col-sm-4"),
         "CAS": UIFieldConfig(
-            component="input",
+            component="CASInput",
             width="col-lg-3 col-sm-3 col-6",
+            has_builtin_label=True,
         ),
         "date_opened": UIFieldConfig(component="input", width="col-lg-3 col-sm-3 col-6"),
         "GHS_codes": UIFieldConfig(
