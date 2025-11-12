@@ -15,16 +15,37 @@
       class="content-container"
       :style="{ 'max-height': contentMaxHeight }"
     >
+      <span id="synthesis-reactants-label" class="subheading mt-2 pb-2 ml-2">
+        <label for="synthesis-reactants-table">Reactants, reagents, inputs</label>
+      </span>
       <div class="card component-card">
         <div class="card-body pt-2 pb-0 mb-0 pl-5">
           <CompactConstituentTable
-            id="synthesis-table"
+            id="synthesis-reactants-table"
             v-model="constituents"
             :types-to-query="['samples', 'starting_materials']"
           />
         </div>
       </div>
-      <span id="synthesis-procedure-label" class="subheading ml-2">Procedure</span>
+      <span id="synthesis-products-label" class="subheading mt-2 pb-2 ml-2"
+        ><label for="synthesis-products-table">Products</label></span
+      >
+
+      <div class="card component-card">
+        <div class="card-body pt-2 pb-0 mb-0 pl-5">
+          <CompactConstituentTable
+            id="synthesis-products-table"
+            v-model="products"
+            :types-to-query="['samples', 'starting_materials']"
+          />
+        </div>
+        <div v-if="calculatedYield !== null" class="ml-2 mt-2">
+          <span class="text-muted"
+            >Calculated yield: <strong>{{ calculatedYield.toFixed(2) }}%</strong></span
+          >
+        </div>
+      </div>
+      <span id="synthesis-procedure-label" class="subheading ml-2"><label>Procedure</label></span>
       <TinyMceInline
         v-model="SynthesisDescription"
         aria-labelledby="synthesis-procedure-label"
@@ -59,11 +80,38 @@ export default {
   },
   computed: {
     constituents: createComputedSetterForItemField("synthesis_constituents"),
+    products: createComputedSetterForItemField("synthesis_products"),
     SynthesisDescription: createComputedSetterForItemField("synthesis_description"),
+    calculatedYield() {
+      const item = this.$store.state.all_item_data[this.item_id];
+      if (!item || !item.synthesis_products || !item.synthesis_constituents) {
+        return null;
+      }
+
+      const selfProduct = item.synthesis_products.find((p) => p.item?.item_id === this.item_id);
+
+      if (!selfProduct || !selfProduct.quantity) {
+        return null;
+      }
+
+      const totalInput = item.synthesis_constituents.reduce((sum, c) => sum + (c.quantity || 0), 0);
+
+      if (totalInput === 0) {
+        return null;
+      }
+
+      return (selfProduct.quantity / totalInput) * 100;
+    },
   },
   watch: {
     // Added initialization check to prevent firing on mount - this seemed to trigger an unsaved check when loading the sample for the second time
     constituents: {
+      handler() {
+        this.$store.commit("setItemSaved", { item_id: this.item_id, isSaved: false });
+      },
+      deep: true,
+    },
+    products: {
       handler() {
         this.$store.commit("setItemSaved", { item_id: this.item_id, isSaved: false });
       },
@@ -83,6 +131,7 @@ export default {
     // Auto-collapsed when initialised empty
     this.isExpanded =
       (this.constituents && this.constituents.length > 0) ||
+      (this.products && this.products.length > 0) ||
       (this.SynthesisDescription && this.SynthesisDescription.trim() !== "");
 
     // If expanded set height to none, otherwise set to 0px
@@ -129,6 +178,24 @@ export default {
       this.selectShown.push(false);
       this.isExpanded = true;
     },
+    addProduct(selectedItem) {
+      this.products.push({
+        item: selectedItem,
+        quantity: null,
+        unit: "g",
+      });
+      this.selectedNewProduct = null;
+      this.selectShown.push(false);
+      this.isExpanded = true;
+    },
+    turnOnRowProductSelect(index) {
+      this.selectProductShown[index] = true;
+      this.selectedChangedProduct = this.products[index].item;
+      this.$nextTick(function () {
+        // unfortunately this seems to be the "official" way to focus on the select element:
+        this.$refs[`select${index}`].$refs.selectComponent.$refs.search.focus();
+      });
+    },
     turnOnRowSelect(index) {
       this.selectShown[index] = true;
       this.selectedChangedConstituent = this.constituents[index].item;
@@ -140,6 +207,14 @@ export default {
     swapConstituent(selectedItem, index) {
       this.constituents[index].item = selectedItem;
       this.selectShown[index] = false;
+    },
+    swapProduct(selectedItem, index) {
+      this.products[index].item = selectedItem;
+      this.selectShown[index] = false;
+    },
+    removeProduct(index) {
+      this.products.splice(index, 1);
+      this.selectShown.splice(index, 1);
     },
     removeConstituent(index) {
       this.constituents.splice(index, 1);
@@ -208,7 +283,6 @@ export default {
   font-size: small;
   font-weight: 600;
   text-transform: uppercase;
-  margin-bottom: 0px;
 }
 
 .content-container {

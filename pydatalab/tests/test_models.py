@@ -436,3 +436,37 @@ def test_good_email(contact_email):
 def test_bad_email(contact_email):
     with pytest.raises(ValueError):
         assert EmailStr(contact_email)
+
+
+def test_synthesis_products_self_loop():
+    sample = Sample(item_id="test_product", chemform="NaCl")
+
+    assert len(sample.synthesis_products) == 1
+    assert sample.synthesis_products[0].item.item_id == "test_product"
+    assert sample.synthesis_products[0].quantity is None
+
+
+def test_prevent_self_loop_in_constituents():
+    with pytest.raises(ValueError, match="cannot reference itself"):
+        Sample(
+            item_id="test_loop",
+            chemform="NaCl",
+            synthesis_constituents=[
+                {"item": {"item_id": "test_loop", "type": "samples"}, "quantity": 10}
+            ],
+        )
+
+
+def test_yield_calculation():
+    sample = Sample(
+        item_id="product",
+        chemform="NaCl",
+        synthesis_constituents=[
+            {"item": {"item_id": "input1", "type": "samples"}, "quantity": 100},
+            {"item": {"item_id": "input2", "type": "samples"}, "quantity": 50},
+        ],
+        synthesis_products=[{"item": {"item_id": "product", "type": "samples"}, "quantity": 120}],
+    )
+
+    yield_pct = sample.calculate_yield_percentage()
+    assert yield_pct == 80.0
