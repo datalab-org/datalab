@@ -39,7 +39,7 @@ export default {
           body: "ChemicalFormula",
           label: "Formula",
         },
-        { field: "date", header: "Date", label: "Date" },
+        { field: "date", header: "Date", label: "Date", filter: true },
         {
           field: "collections",
           header: "Collections",
