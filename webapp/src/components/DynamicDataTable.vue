@@ -171,6 +171,7 @@
             </template>
           </MultiSelect>
         </template>
+
         <template v-else-if="column.filter && column.field === 'type'" #filter="">
           <MultiSelect
             v-model="filters[column.field].constraints[0].value"
@@ -183,6 +184,7 @@
           >
           </MultiSelect>
         </template>
+
         <template v-else-if="column.filter && column.body === 'BlocksIconCounter'" #filter>
           <MultiSelect
             v-model="filters[column.field].constraints[0].value"
@@ -214,6 +216,43 @@
             </template>
           </MultiSelect>
         </template>
+
+        <template v-else-if="column.filter && column.field === 'date'" #filter="{ filterModel }">
+          <div style="display: flex; flex-direction: column; gap: 0.5rem" @click.stop>
+            <Select
+              v-model="dateFilterMode"
+              :options="dateFilterOptions"
+              option-label="label"
+              option-value="value"
+              placeholder="Select filter type"
+              class="w-full"
+              @change="handleDateFilterModeChange(column.field)"
+            />
+
+            <DatePicker
+              v-if="dateFilterMode === 'range'"
+              v-model="filterModel.value"
+              selection-mode="range"
+              date-format="yy-mm-dd"
+              placeholder="Select date range"
+              :show-button-bar="true"
+              :manual-input="false"
+              :hide-on-range-selection="true"
+              style="width: 100%"
+            />
+
+            <DatePicker
+              v-else
+              v-model="filterModel.value"
+              date-format="yy-mm-dd"
+              :placeholder="dateFilterMode === 'before' ? 'Before date' : 'After date'"
+              :show-button-bar="true"
+              :manual-input="false"
+              style="width: 100%"
+            />
+          </div>
+        </template>
+
         <template v-else-if="column.filter" #filter="{ filterModel }">
           <InputText
             v-model="filterModel.value"
@@ -272,6 +311,8 @@ import DataTable from "primevue/datatable";
 import MultiSelect from "primevue/multiselect";
 import Column from "primevue/column";
 import InputText from "primevue/inputtext";
+import DatePicker from "primevue/datepicker";
+import Select from "primevue/select";
 
 export default {
   components: {
@@ -296,6 +337,8 @@ export default {
     CollectionList,
     Creators,
     UserBubble,
+    DatePicker,
+    Select,
   },
   props: {
     columns: {
@@ -372,10 +415,20 @@ export default {
           operator: FilterOperator.AND,
           constraints: [{ value: null, matchMode: "exactBlockMatch" }],
         },
+        date: {
+          operator: FilterOperator.AND,
+          constraints: [{ value: null, matchMode: "dateRange" }],
+        },
       },
       filteredData: [],
       allowedTypes: INVENTORY_TABLE_TYPES,
       selectedColumns: [],
+      dateFilterMode: "range",
+      dateFilterOptions: [
+        { label: "Date range", value: "range" },
+        { label: "Created before", value: "before" },
+        { label: "Created after", value: "after" },
+      ],
     };
   },
   computed: {
@@ -534,6 +587,28 @@ export default {
 
       return value.some((itemBlock) => itemBlock.title === filterValue.title);
     });
+    FilterService.register("dateBefore", (value, filterValue) => {
+      if (!filterValue || !value) return true;
+      const itemDate = new Date(value).setHours(0, 0, 0, 0);
+      const filterDate = new Date(filterValue).setHours(0, 0, 0, 0);
+      return itemDate <= filterDate;
+    });
+
+    FilterService.register("dateAfter", (value, filterValue) => {
+      if (!filterValue || !value) return true;
+      const itemDate = new Date(value).setHours(0, 0, 0, 0);
+      const filterDate = new Date(filterValue).setHours(0, 0, 0, 0);
+      return itemDate >= filterDate;
+    });
+
+    FilterService.register("dateRange", (value, filterValue) => {
+      if (!filterValue || !value || !Array.isArray(filterValue) || filterValue.length !== 2)
+        return true;
+      const itemDate = new Date(value).setHours(0, 0, 0, 0);
+      const startDate = new Date(filterValue[0]).setHours(0, 0, 0, 0);
+      const endDate = new Date(filterValue[1]).setHours(0, 0, 0, 0);
+      return itemDate >= startDate && itemDate <= endDate;
+    });
   },
   methods: {
     onSort(event) {
@@ -555,8 +630,10 @@ export default {
         this.allSelected = this.checkAllSelected();
       });
     },
-    updateFilters(newFilters) {
-      this.filters = newFilters;
+    updateFilter(field, value) {
+      this.$nextTick(() => {
+        this.filters[field].constraints[0].value = value;
+      });
     },
     goToEditPage(event) {
       const row = event.data;
@@ -801,6 +878,27 @@ export default {
       this.$nextTick(() => {
         location.reload();
       });
+    },
+    handleDateFilterModeChange(field) {
+      this.filters[field].constraints[0].value = null;
+
+      if (this.dateFilterMode === "range") {
+        this.filters[field].constraints[0].matchMode = "dateRange";
+      } else if (this.dateFilterMode === "before") {
+        this.filters[field].constraints[0].matchMode = "dateBefore";
+      } else if (this.dateFilterMode === "after") {
+        this.filters[field].constraints[0].matchMode = "dateAfter";
+      }
+    },
+    onDateRangeSelect(value) {
+      if (
+        this.dateFilterMode === "range" &&
+        Array.isArray(value) &&
+        value.length === 2 &&
+        value[1] !== null
+      ) {
+        return;
+      }
     },
   },
 };
