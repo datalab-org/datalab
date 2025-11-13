@@ -12,6 +12,8 @@ from pydantic import EmailStr as PydanticEmailStr
 from pydatalab.models.entries import Entry
 from pydatalab.models.utils import PyObjectId
 
+import bson
+
 
 class IdentityType(str, Enum):
     """A string enum representing the supported verifiable identity types."""
@@ -161,6 +163,8 @@ class Person(Entry):
             A `Person` object with only the provided identity.
 
         """
+
+        user_id = bson.ObjectId()
         display_name = None
         if use_display_name:
             display_name = identity.display_name
@@ -170,6 +174,7 @@ class Person(Entry):
             contact_email = identity.identifier
 
         return Person(
+            immutable_id=user_id,
             identities=[identity],
             display_name=display_name,
             contact_email=contact_email,

@@ -410,13 +410,12 @@ def find_create_or_modify_user(
             )
             LOGGER.debug("Inserting new user model %s into database", user)
             inserted_id = insert_pydantic_model_fork_safe(user, "users")
-            user = get_by_id(inserted_id)
-            if user is None:
-                raise RuntimeError("Failed to insert user into database")
+            user.immutable_id = ObjectId(inserted_id)  # type: ignore
 
     # Log the user into the session with this identity
     if user is not None:
-        wrapped_login_user(user)
+        login_user = get_by_id(user.immutable_id)
+        wrapped_login_user(login_user)
 
 
 def _validate_magic_link_request(email: str, referrer: str) -> tuple[Response | None, int]:
