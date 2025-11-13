@@ -104,13 +104,15 @@ class Cell(Item, HasUIHints):
             width="col-md-6 col-sm-7 pr-2",
             has_builtin_label=True,
         ),
-        "cell_format": UIFieldConfig(component="select", width="col-sm-4"),
-        "cell_format_description": UIFieldConfig(component="input", width="col-sm-8"),
+        "cell_format": UIFieldConfig(component="select", width="col-sm-6"),
+        "cell_format_description": UIFieldConfig(component="input", width="col-sm-6"),
         "characteristic_mass": UIFieldConfig(component="input", width="col-sm-4 pr-2 col-6"),
         "characteristic_chemical_formula": UIFieldConfig(
             component="ChemFormulaInput", width="col-sm-4 pr-2 col-6"
         ),
-        "characteristic_molar_mass": UIFieldConfig(component="input", width="col-sm-4 col-6"),
+        "characteristic_molar_mass": UIFieldConfig(
+            component="input", width="col-sm-4 col-6", readonly=True
+        ),
         "active_ion": UIFieldConfig(component="input", width="col-sm-6", hidden=True),
         "active_ion_charge": UIFieldConfig(component="input", width="col-sm-6", hidden=True),
         "positive_electrode": UIFieldConfig(
@@ -138,6 +140,10 @@ class Cell(Item, HasUIHints):
         },
         "cell_preparation_information": {
             "title": "Cell Preparation Information",
+        },
+        "item_relationships": {
+            "title": "Item Relationships",
+            "description": "Visual representation of this item's relationships with other items",
         },
     }
 

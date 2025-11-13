@@ -1,5 +1,7 @@
 <template>
-  <label class="mr-2">Relationships</label>
+  <FieldLabelDescriptionTooltip html-for="collection-relationships" :description="description">
+    <font-awesome-icon icon="project-diagram" /> Relationships
+  </FieldLabelDescriptionTooltip>
   <div style="position: relative">
     <div
       v-if="isLoading"
@@ -30,14 +32,21 @@
 <script>
 // import FormattedItemName from "@/components/FormattedItemName"
 import ItemGraph from "@/components/ItemGraph";
+import FieldLabelDescriptionTooltip from "@/components/FieldLabelDescriptionTooltip";
+
 import { getItemGraph } from "@/server_fetch_utils.js";
 
 export default {
   components: {
     ItemGraph,
+    FieldLabelDescriptionTooltip,
   },
   props: {
     collection_id: {
+      type: String,
+      default: null,
+    },
+    description: {
       type: String,
       default: null,
     },

@@ -76,7 +76,13 @@ class Collection(Entry, HasOwner, HasBlocks, HasUIHints):
         "items_table": {
             "title": "Collection Items",
         },
+        "collection_relationships": {
+            "title": "Collection Relationships",
+            "description": "Visual representation of this collection's relationships with other collections",
+        },
     }
+
+    ui_table_of_contents: ClassVar[list[dict[str, str]]] = []
 
     @model_validator(mode="before")
     @classmethod

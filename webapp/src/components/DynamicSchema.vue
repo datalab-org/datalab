@@ -1,7 +1,7 @@
 <template>
   <div v-if="schema?.properties" class="container-lg">
     <div class="row">
-      <div :class="hasRelationships ? 'col-md-8' : 'col-md-12'">
+      <div :class="hasRelationships || hasCollectionRelationships ? 'col-md-8' : 'col-md-12'">
         <div :id="`${item_data?.type}-information`">
           <div v-for="(row, rowIndex) in schema.layout" :key="rowIndex" class="form-row">
             <DynamicFieldRenderer
@@ -25,6 +25,14 @@
           :item_id="item_data.item_id"
           :refcode="item_data.refcode"
           :relationships="item_data.relationships"
+          :description="itemRelationshipsDescription"
+        />
+      </div>
+
+      <div v-if="hasCollectionRelationships" class="col-md-4">
+        <CollectionRelationshipVisualization
+          :collection_id="item_data.collection_id"
+          :description="collectionRelationshipsDescription"
         />
       </div>
     </div>
@@ -34,12 +42,14 @@
 <script>
 import DynamicFieldRenderer from "@/components/DynamicFieldRenderer.vue";
 import ItemRelationshipVisualization from "@/components/ItemRelationshipVisualization";
+import CollectionRelationshipVisualization from "@/components/CollectionRelationshipVisualization";
 import { getSchema } from "@/server_fetch_utils";
 
 export default {
   components: {
     DynamicFieldRenderer,
     ItemRelationshipVisualization,
+    CollectionRelationshipVisualization,
   },
   props: {
     item_data: { type: Object, required: true },
@@ -53,9 +63,19 @@ export default {
   },
   computed: {
     hasRelationships() {
-      return ["samples", "cells", "starting_materials", "collections"].includes(
-        this.item_data.type,
+      return (
+        this.item_data.relationships !== undefined &&
+        ["samples", "cells", "starting_materials"].includes(this.item_data.type)
       );
+    },
+    hasCollectionRelationships() {
+      return this.item_data.type === "collections";
+    },
+    itemRelationshipsDescription() {
+      return this.schema?.properties?.item_relationships?.description || null;
+    },
+    collectionRelationshipsDescription() {
+      return this.schema?.properties?.collection_relationships?.description || null;
     },
     tableOfContentsSections() {
       return this.getTableOfContentsSections();

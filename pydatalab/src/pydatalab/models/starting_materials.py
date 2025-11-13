@@ -137,7 +137,6 @@ class StartingMaterial(Item, HasSynthesisInfo, HasUIHints):
         "CAS": UIFieldConfig(
             component="CASInput",
             width="col-lg-3 col-sm-3 col-6",
-            has_builtin_label=True,
         ),
         "date_opened": UIFieldConfig(component="input", width="col-lg-3 col-sm-3 col-6"),
         "GHS_codes": UIFieldConfig(
@@ -160,6 +159,10 @@ class StartingMaterial(Item, HasSynthesisInfo, HasUIHints):
         },
         "synthesis_information": {
             "title": "Synthesis Information",
+        },
+        "item_relationships": {
+            "title": "Item Relationships",
+            "description": "Visual representation of this item's relationships with other items",
         },
     }
 

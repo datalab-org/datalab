@@ -59,6 +59,10 @@ class Sample(Item, HasSynthesisInfo, HasUIHints):
         "table_of_contents": {
             "title": "Table of Contents",
         },
+        "item_relationships": {
+            "title": "Item Relationships",
+            "description": "Visual representation of this item's relationships with other items",
+        },
     }
 
     ui_table_of_contents: ClassVar[list[dict[str, str]]] = [
