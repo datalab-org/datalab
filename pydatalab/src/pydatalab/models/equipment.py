@@ -69,6 +69,11 @@ class Equipment(Item, HasUIHints):
         },
     }
 
+    ui_table_of_contents: ClassVar[list[dict[str, str]]] = [
+        {"title": "Equipment Information", "targetID": "equipment-information"},
+        {"title": "Table of Contents", "targetID": "table-of-contents"},
+    ]
+
     ui_field_titles: ClassVar[dict[str, str]] = {
         "creators": "Maintainers",
     }

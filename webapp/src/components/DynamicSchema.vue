@@ -13,6 +13,7 @@
               :is-required="schema.required?.includes(fieldName)"
               :item-type="item_data.type"
               :item-data="localItemData"
+              :full-schema="schema"
               @update:model-value="handleFieldUpdate(fieldName, $event)"
             />
           </div>

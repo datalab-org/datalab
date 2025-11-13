@@ -60,3 +60,9 @@ class Sample(Item, HasSynthesisInfo, HasUIHints):
             "title": "Table of Contents",
         },
     }
+
+    ui_table_of_contents: ClassVar[list[dict[str, str]]] = [
+        {"title": "Sample Information", "targetID": "samples-information"},
+        {"title": "Table of Contents", "targetID": "table-of-contents"},
+        {"title": "Synthesis Information", "targetID": "synthesis-information"},
+    ]

@@ -141,6 +141,12 @@ class Cell(Item, HasUIHints):
         },
     }
 
+    ui_table_of_contents: ClassVar[list[dict[str, str]]] = [
+        {"title": "Sample Information", "targetID": "cells-information"},
+        {"title": "Table of Contents", "targetID": "table-of-contents"},
+        {"title": "Cell Construction", "targetID": "cell-preparation-information"},
+    ]
+
     @field_validator("characteristic_molar_mass", mode="before")
     @classmethod
     def set_molar_mass(cls, v, info):

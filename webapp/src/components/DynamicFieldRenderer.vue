@@ -110,6 +110,7 @@ export default {
     showDescription: { type: Boolean, default: false },
     itemType: { type: String, required: true },
     itemData: { type: Object, required: true },
+    fullSchema: { type: Object, default: null },
   },
   emits: ["update:modelValue", "input"],
   computed: {
@@ -326,7 +327,6 @@ export default {
           readonly: this.isReadonly,
           showLabel: true,
           inputId: this.fieldId,
-          description: this.hasBuiltinLabel ? this.fieldSchema.description : null,
         },
         TinyMceInline: baseProps,
         TableOfContents: {
@@ -344,28 +344,16 @@ export default {
       return specialPropsMap[componentType] || baseProps;
     },
     getTableOfContentsSections() {
-      const sections = [
+      if (this.fullSchema?.table_of_contents) {
+        return this.fullSchema.table_of_contents;
+      }
+
+      return [
         {
           title: `${this.itemType.charAt(0).toUpperCase() + this.itemType.slice(1)} Information`,
           targetID: `${this.itemType}-information`,
         },
       ];
-
-      if (this.itemType === "samples" && this.itemData.synthesis_constituents) {
-        sections.push({
-          title: "Synthesis Information",
-          targetID: "synthesis-information",
-        });
-      }
-
-      if (this.itemType === "cells" && this.itemData.characteristic_mass) {
-        sections.push({
-          title: "Cell Preparation Information",
-          targetID: "cell-preparation-information",
-        });
-      }
-
-      return sections;
     },
   },
 };
