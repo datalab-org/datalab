@@ -19,7 +19,7 @@ class ChatBlockResponse(DataBlockResponse):
     messages: list[dict] = Field(default_factory=list)
     prompt: str | None
     model: str
-    available_models: dict[str, ModelCard]
+    available_models: dict[str, ModelCard] | None = None
     token_count: int | None
     temperature: float
 
