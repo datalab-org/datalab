@@ -194,6 +194,8 @@
         },
         "b64_encoded_image": {
           "title": "B64 Encoded Image",
+          "datalab_exclude_from_db": true,
+          "datalab_exclude_from_load": true,
           "type": "object",
           "additionalProperties": {
             "type": "string"
@@ -201,14 +203,18 @@
         },
         "bokeh_plot_data": {
           "title": "Bokeh Plot Data",
+          "datalab_exclude_from_db": true,
+          "datalab_exclude_from_load": true,
           "type": "object"
         },
         "computed": {
           "title": "Computed",
+          "datalab_exclude_from_load": true,
           "type": "object"
         },
         "metadata": {
           "title": "Metadata",
+          "datalab_exclude_from_load": true,
           "type": "object"
         }
       },

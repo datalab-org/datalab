@@ -2,7 +2,7 @@ import json
 import warnings
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
-from pydantic import Field
+from pydantic import Field, validator
 
 from pydatalab.blocks.base import DataBlock
 from pydatalab.logger import LOGGER
@@ -19,9 +19,15 @@ class ChatBlockResponse(DataBlockResponse):
     messages: list[dict] = Field(default_factory=list)
     prompt: str | None
     model: str
-    available_models: dict[str, ModelCard]
+    available_models: dict[str, ModelCard] | None = Field(
+        datalab_exclude_from_db=True, datalab_exclude_from_load=True
+    )
     token_count: int | None
     temperature: float
+
+    @validator("available_models", pre=True, always=True)
+    def set_available_models(cls, _):
+        return AVAILABLE_MODELS
 
 
 class ChatBlock(DataBlock):
