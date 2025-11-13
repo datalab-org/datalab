@@ -25,22 +25,22 @@
         </div>
       </div>
       <span id="synthesis-procedure-label" class="subheading ml-2">Procedure</span>
-      <TinyMceInline
+      <TiptapInline
         v-model="SynthesisDescription"
         aria-labelledby="synthesis-procedure-label"
-      ></TinyMceInline>
+      ></TiptapInline>
     </div>
   </div>
 </template>
 
 <script>
-import TinyMceInline from "@/components/TinyMceInline";
+import TiptapInline from "@/components/TiptapInline";
 import { createComputedSetterForItemField } from "@/field_utils.js";
 import CompactConstituentTable from "@/components/CompactConstituentTable.vue";
 
 export default {
   components: {
-    TinyMceInline,
+    TiptapInline,
     CompactConstituentTable,
   },
   props: {

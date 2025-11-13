@@ -234,7 +234,12 @@ describe("Edit Page", () => {
     cy.get(".datablock-content div").eq(0).type("\nThe first comment box; further changes.");
     cy.contains("Unsaved changes");
 
-    cy.get('[data-testid="block-description"]').eq(0).type("The second comment box");
+    cy.get('[data-testid="block-description"]').first().find(".ProseMirror").click();
+
+    cy.get('[data-testid="block-description"]')
+      .first()
+      .find(".ProseMirror")
+      .type("The second comment box");
     cy.contains("Unsaved changes");
     cy.get('.datablock-header [aria-label="updateBlock"]').eq(1).click();
     cy.wait(500).then(() => {
@@ -242,10 +247,13 @@ describe("Edit Page", () => {
     });
     cy.get('.datablock-header [aria-label="updateBlock"]').eq(0).click();
     cy.contains("Unsaved changes").should("not.exist");
+    cy.get('[data-testid="block-description"]').first().find(".ProseMirror").click();
 
     cy.get('[data-testid="block-description"]')
-      .eq(0)
+      .first()
+      .find(".ProseMirror")
       .type("\nThe second comment box; further changes");
+
     cy.findByLabelText("Name").type("name change");
     cy.contains("Unsaved changes");
 

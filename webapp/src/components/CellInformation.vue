@@ -85,10 +85,10 @@
         <div class="row">
           <div class="col">
             <label id="cell-description-label">Description</label>
-            <TinyMceInline
+            <TiptapInline
               v-model="SampleDescription"
               aria-labelledby="cell-description-label"
-            ></TinyMceInline>
+            ></TiptapInline>
           </div>
         </div>
       </div>
@@ -106,7 +106,7 @@
 <script>
 import { createComputedSetterForItemField } from "@/field_utils.js";
 import ChemFormulaInput from "@/components/ChemFormulaInput";
-import TinyMceInline from "@/components/TinyMceInline";
+import TiptapInline from "@/components/TiptapInline";
 import CellPreparationInformation from "@/components/CellPreparationInformation";
 import TableOfContents from "@/components/TableOfContents";
 import ItemRelationshipVisualization from "@/components/ItemRelationshipVisualization";
@@ -118,7 +118,7 @@ import { cellFormats } from "@/resources.js";
 export default {
   components: {
     ChemFormulaInput,
-    TinyMceInline,
+    TiptapInline,
     CellPreparationInformation,
     TableOfContents,
     ItemRelationshipVisualization,
