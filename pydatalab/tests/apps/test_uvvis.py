@@ -3,9 +3,6 @@ from pathlib import Path
 
 import pytest
 
-from pydatalab.apps.uvvis import UVVisBlock
-from pydatalab.apps.uvvis.utils import find_absorbance, parse_uvvis_txt
-
 
 @pytest.fixture
 def data_files():
@@ -13,6 +10,9 @@ def data_files():
 
 
 def test_load(data_files):
+    from pydatalab.apps.uvvis import UVVisBlock
+    from pydatalab.apps.uvvis.utils import parse_uvvis_txt
+
     logging.info("Testing UV-Vis data loading")
     for f in data_files:
         logging.info(f"Testing file: {f}")
@@ -30,6 +30,9 @@ def test_find_absorbance(
     reference_file="1908047U1_0000.Raw8.TXT",
     sample_files=["1908047U1_0001.Raw8.txt", "1908047U1_0060.Raw8.txt"],
 ):
+    from pydatalab.apps.uvvis import UVVisBlock
+    from pydatalab.apps.uvvis.utils import find_absorbance, parse_uvvis_txt
+
     # Tests two specific sample files with one reference file, will fail if files aren't present in the example data
     reference_path = (
         Path(__file__).parent.parent.parent / "example_data" / "UV-Vis" / reference_file
@@ -62,6 +65,9 @@ def test_plot(
     reference_file="1908047U1_0000.Raw8.TXT",
     sample_files=["1908047U1_0001.Raw8.txt", "1908047U1_0060.Raw8.txt"],
 ):
+    from pydatalab.apps.uvvis import UVVisBlock
+    from pydatalab.apps.uvvis.utils import find_absorbance, parse_uvvis_txt
+
     reference_path = (
         Path(__file__).parent.parent.parent / "example_data" / "UV-Vis" / reference_file
     )

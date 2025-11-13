@@ -1,12 +1,18 @@
 from enum import Enum
+from typing import Annotated, Literal
 
-import bson
-import bson.errors
-from pydantic import BaseModel, ConstrainedStr, Field, parse_obj_as, validator
+from pydantic import (
+    BaseModel,
+    Field,
+    StringConstraints,
+    field_validator,
+)
 from pydantic import EmailStr as PydanticEmailStr
 
 from pydatalab.models.entries import Entry
 from pydatalab.models.utils import PyObjectId
+
+import bson
 
 
 class IdentityType(str, Enum):
@@ -23,38 +29,46 @@ class Identity(BaseModel):
 
     """
 
-    identity_type: IdentityType
-    """The type or provider of the identity."""
+    identity_type: IdentityType = Field(description="The type or provider of the identity.")
 
-    identifier: str
-    """The identifier for the identity, e.g., an email address, an ORCID, a GitHub user ID."""
+    identifier: str = Field(
+        description="The identifier for the identity, e.g., an email address, an ORCID, a GitHub user ID."
+    )
 
-    name: str
-    """The name associated with the identity to be exposed in free-text searches over people, e.g., an institutional username, a GitHub username."""
+    name: str = Field(
+        description="The name associated with the identity to be exposed in free-text searches over people, e.g., an institutional username, a GitHub username."
+    )
 
-    verified: bool = Field(False)
-    """Whether the identity has been verified (by some means, e.g., OAuth2 or email)"""
+    verified: bool = Field(
+        False,
+        description="Whether the identity has been verified (by some means, e.g., OAuth2 or email)",
+    )
 
-    display_name: str | None
-    """The user's display name associated with the identity, also to be exposed in free text searches."""
+    display_name: str | None = Field(
+        None,
+        description="The user's display name associated with the identity, also to be exposed in free text searches.",
+    )
 
-    @validator("name", pre=True, always=True)
-    def add_missing_name(cls, v, values):
+    @field_validator("name", mode="before")
+    @classmethod
+    def add_missing_name(cls, v, info):
         """If the identity is created without a free-text 'name', then
         for certain providers, populate this field so that it can appear
         in the free text index, e.g., an ORCID, or an institutional username
         from an email address.
 
         """
-        if v is None:
-            if values["identity_type"] == IdentityType.ORCID:
-                return values["identifier"]
-            if values["identity_type"] == IdentityType.EMAIL:
-                return values["identifier"].split("@")[0]
-
+        if v is None and hasattr(info, "data") and info.data:
+            data = info.data
+            if data.get("identity_type") == IdentityType.ORCID:
+                return data.get("identifier")
+            if data.get("identity_type") == IdentityType.EMAIL:
+                identifier = data.get("identifier", "")
+                return identifier.split("@")[0] if "@" in identifier else identifier
         return v
 
-    @validator("verified", pre=True, always=True)
+    @field_validator("verified", mode="before")
+    @classmethod
     def add_missing_verification(cls, v):
         """Fills in missing value for `verified` if not given."""
         if not v:
@@ -62,18 +76,11 @@ class Identity(BaseModel):
         return v
 
 
-class DisplayName(ConstrainedStr):
-    """A constrained string less than 150 characters long but with
-    non-empty content, intended to be entered by the user.
-
-    """
-
-    max_length = 150
-    min_length = 1
-    strip_whitespace = True
-
-    def __new__(cls, value):
-        return parse_obj_as(cls, value)
+DisplayName = Annotated[
+    str,
+    StringConstraints(min_length=1, max_length=150, strip_whitespace=True),
+]
+"""A constrained string less than 150 characters long but with non-empty content, intended to be entered by the user."""
 
 
 class EmailStr(PydanticEmailStr):
@@ -100,32 +107,37 @@ class AccountStatus(str, Enum):
 class Person(Entry):
     """A model that describes an individual and their digital identities."""
 
-    type: str = Field("people", const=True)
-    """The entry type as a string."""
+    type: Literal["people"] = Field("people", description="The entry type as a string.")
 
-    identities: list[Identity] = Field(default_factory=list)
-    """A list of identities attached to this person, e.g., email addresses, OAuth accounts."""
+    identities: list[Identity] = Field(
+        default_factory=list,
+        description="A list of identities attached to this person, e.g., email addresses, OAuth accounts.",
+    )
 
-    display_name: DisplayName | None
-    """The user-chosen display name."""
+    display_name: DisplayName | None = Field(None, description="The user-chosen display name.")
 
-    contact_email: EmailStr | None
-    """In the case of multiple *verified* email identities, this email will be used as the primary contact."""
+    contact_email: EmailStr | None = Field(
+        None,
+        description="In the case of multiple *verified* email identities, this email will be used as the primary contact.",
+    )
 
-    managers: list[PyObjectId] | None
-    """A list of user IDs that can manage this person's items."""
+    managers: list[PyObjectId] | None = Field(
+        None, description="A list of user IDs that can manage this person's items."
+    )
 
-    account_status: AccountStatus = Field(AccountStatus.UNVERIFIED)
-    """The status of the user's account."""
+    account_status: AccountStatus = Field(
+        AccountStatus.UNVERIFIED, description="The status of the user's account."
+    )
 
-    @validator("type", pre=True, always=True)
+    @field_validator("type", mode="before")
+    @classmethod
     def add_missing_type(cls, v):
         """Fill in missing `type` field if not provided."""
         if v is None:
             v = "people"
         return v
 
-    @validator("type", pre=True)
+    @classmethod
     def set_default_type(cls, _):
         return "people"
 
@@ -151,8 +163,8 @@ class Person(Entry):
             A `Person` object with only the provided identity.
 
         """
-        user_id = bson.ObjectId()
 
+        user_id = bson.ObjectId()
         display_name = None
         if use_display_name:
             display_name = identity.display_name

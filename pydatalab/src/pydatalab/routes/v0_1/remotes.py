@@ -76,7 +76,9 @@ def list_remote_directories():
 
     response = {}
     response["meta"] = {}
-    response["meta"]["remotes"] = [json.loads(d.json()) for d in CONFIG.REMOTE_FILESYSTEMS]
+    response["meta"]["remotes"] = [
+        json.loads(d.model_dump_json()) for d in CONFIG.REMOTE_FILESYSTEMS
+    ]
     if all_directory_structures:
         oldest_update = min(d["last_updated"] for d in all_directory_structures)
         response["meta"]["oldest_cache_update"] = oldest_update.isoformat()
@@ -139,7 +141,7 @@ def get_remote_directory(remote_id: str):
 
     response: dict[str, Any] = {}
     response["meta"] = {}
-    response["meta"]["remote"] = json.loads(d.json())
+    response["meta"]["remote"] = json.loads(d.model_dump_json())
     response["data"] = directory_structure
 
     return jsonify(response), 200

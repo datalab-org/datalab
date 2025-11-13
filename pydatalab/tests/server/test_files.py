@@ -2,8 +2,6 @@ import shutil
 
 import pytest
 
-from pydatalab.config import CONFIG
-
 
 def test_too_large_upload(client, tmpdir, insert_default_sample, default_sample):  # pylint: disable=unused-argument
     """Test that an artificially large file upload is rejected (413)
@@ -58,6 +56,8 @@ def test_upload(client, default_filepath, insert_default_sample, default_sample)
 
 @pytest.mark.dependency(depends=["test_upload"])
 def test_get_file_and_delete(client, default_filepath, default_sample):
+    from pydatalab.config import CONFIG
+
     response = client.get(f"/get-item-data/{default_sample.item_id}")
     assert response.json["status"] == "success"
     assert response.status_code == 200

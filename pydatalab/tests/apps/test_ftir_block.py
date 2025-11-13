@@ -2,8 +2,6 @@ from pathlib import Path
 
 import pytest
 
-from pydatalab.apps.ftir import FTIRBlock
-
 
 @pytest.fixture
 def data_files():
@@ -11,6 +9,8 @@ def data_files():
 
 
 def test_load(data_files):
+    from pydatalab.apps.ftir import FTIRBlock
+
     for f in data_files:
         df = FTIRBlock.parse_ftir_asp(f)
         assert len(df) == 1932
@@ -25,6 +25,8 @@ def test_load(data_files):
 
 
 def test_plot(data_files):
+    from pydatalab.apps.ftir import FTIRBlock
+
     f = next(data_files)
     ftir_data = FTIRBlock.parse_ftir_asp(f)
     layout = FTIRBlock._format_ftir_plot(ftir_data)

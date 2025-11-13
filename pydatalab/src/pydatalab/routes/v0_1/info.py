@@ -5,14 +5,20 @@ from datetime import datetime
 from functools import lru_cache
 
 from flask import Blueprint, jsonify, request
-from pydantic import AnyUrl, BaseModel, Field, validator
+from pydantic import (
+    AnyUrl,
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_validator,
+    model_validator,
+)
 
 from pydatalab import __version__
 from pydatalab.apps import BLOCK_TYPES
 from pydatalab.config import CONFIG
 from pydatalab.feature_flags import FEATURE_FLAGS, FeatureFlags
-from pydatalab.models import Collection, Person
-from pydatalab.models.items import Item
+from pydatalab.models import ITEM_SCHEMAS, Person
 from pydatalab.mongo import flask_mongo
 
 from ._version import __api_version__
@@ -21,8 +27,7 @@ INFO = Blueprint("info", __name__)
 
 
 class Attributes(BaseModel):
-    class Config:
-        extra = "allow"
+    model_config = ConfigDict(extra="allow")
 
 
 class Meta(BaseModel):
@@ -36,9 +41,7 @@ class Meta(BaseModel):
 
 class Links(BaseModel):
     self: AnyUrl
-
-    class Config:
-        extra = "allow"
+    model_config = ConfigDict(extra="allow")
 
 
 class Data(BaseModel):
@@ -50,36 +53,51 @@ class Data(BaseModel):
 class JSONAPIResponse(BaseModel):
     data: Data | list[Data]
     meta: Meta
-    links: Links | None
+    links: Links | None = None
 
 
 class MetaPerson(BaseModel):
-    dislay_name: str | None
+    display_name: str | None = None
     contact_email: str
 
 
 class Info(Attributes, Meta):
-    maintainer: MetaPerson | None
-    issue_tracker: AnyUrl | None
-    homepage: AnyUrl | None
-    source_repository: AnyUrl | None
+    maintainer: MetaPerson | None = None
+    issue_tracker: AnyUrl | None = None
+    homepage: AnyUrl | None = None
+    source_repository: AnyUrl | None = None
     identifier_prefix: str
     features: FeatureFlags = FEATURE_FLAGS
 
-    @validator("maintainer")
+    @field_validator("maintainer", mode="before")
+    @classmethod
     def strip_maintainer_fields(cls, v):
         if isinstance(v, Person):
             return MetaPerson(contact_email=v.contact_email, display_name=v.display_name)
         return v
+
+    @model_validator(mode="after")
+    def ensure_features_serialization(self):
+        """Ensure features are properly serialized for frontend consumption."""
+        if hasattr(self.features, "model_dump"):
+            features_dict = self.features.model_dump()
+        else:
+            features_dict = self.features
+
+        if not isinstance(self.features, FeatureFlags):
+            self.features = FeatureFlags(**features_dict)
+        return self
 
 
 @lru_cache(maxsize=1)
 def _get_deployment_metadata_once() -> dict:
     identifier_prefix = CONFIG.IDENTIFIER_PREFIX
     metadata = (
-        CONFIG.DEPLOYMENT_METADATA.dict(exclude_none=True) if CONFIG.DEPLOYMENT_METADATA else {}
+        CONFIG.DEPLOYMENT_METADATA.model_dump(exclude_none=True)
+        if CONFIG.DEPLOYMENT_METADATA
+        else {}
     )
-    metadata.update({"identifier_prefix": identifier_prefix})
+    metadata.update({"identifier_prefix": identifier_prefix, "features": FEATURE_FLAGS})
     return metadata
 
 
@@ -89,18 +107,21 @@ def get_info():
     versions, features and so on.
 
     """
-    metadata = _get_deployment_metadata_once()
+    metadata = _get_deployment_metadata_once().copy()
+    metadata["features"] = FEATURE_FLAGS
+
+    info = Info(**metadata)
+
+    attributes_dict = info.model_dump()
+
+    response_data = JSONAPIResponse(
+        data=Data(id="/", type="info", attributes=attributes_dict),
+        meta=Meta(query=request.query_string.decode() if request.query_string else ""),
+        links=Links(self=request.url),
+    )
 
     return (
-        jsonify(
-            json.loads(
-                JSONAPIResponse(
-                    data=Data(id="/", type="info", attributes=Info(**metadata)),
-                    meta=Meta(query=request.query_string),
-                    links=Links(self=request.url),
-                ).json()
-            )
-        ),
+        jsonify(json.loads(response_data.model_dump_json())),
         200,
     )
 
@@ -141,28 +162,9 @@ def list_block_types():
                     for block_type, block in BLOCK_TYPES.items()
                 ],
                 meta=Meta(query=request.query_string),
-            ).json()
+            ).model_dump_json()
         )
     )
-
-
-def get_all_items_models():
-    return Item.__subclasses__()
-
-
-def generate_schemas():
-    schemas: dict[str, dict] = {}
-
-    for model_class in get_all_items_models() + [Collection]:
-        model_type = model_class.schema()["properties"]["type"]["default"]
-
-        schemas[model_type] = model_class.schema(by_alias=False)
-
-    return schemas
-
-
-# Generate once on import
-SCHEMAS = generate_schemas()
 
 
 @INFO.route("/info/types", methods=["GET"])
@@ -182,10 +184,10 @@ def list_supported_types():
                             "schema": schema,
                         },
                     )
-                    for item_type, schema in SCHEMAS.items()
+                    for item_type, schema in ITEM_SCHEMAS.items()
                 ],
                 meta=Meta(query=request.query_string),
-            ).json()
+            ).model_dump_json()
         )
     )
 
@@ -193,7 +195,7 @@ def list_supported_types():
 @INFO.route("/info/types/<string:item_type>", methods=["GET"])
 def get_schema_type(item_type):
     """Returns the schema of the given type."""
-    if item_type not in SCHEMAS:
+    if item_type not in ITEM_SCHEMAS:
         return jsonify(
             {"status": "error", "detail": f"Item type {item_type} not found for this deployment"}
         ), 404
@@ -207,10 +209,10 @@ def get_schema_type(item_type):
                     attributes={
                         "version": __version__,
                         "api_version": __api_version__,
-                        "schema": SCHEMAS[item_type],
+                        "schema": ITEM_SCHEMAS[item_type],
                     },
                 ),
                 meta=Meta(query=request.query_string),
-            ).json()
+            ).model_dump_json()
         )
     )

@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(autouse=True, scope="session")
 def monkeypatch_session():
     from _pytest.monkeypatch import MonkeyPatch
 
@@ -13,13 +13,13 @@ def monkeypatch_session():
     m.undo()
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(autouse=True, scope="session")
 def secret_key():
     """Fixture to provide a secret key for testing purposes."""
     return hashlib.sha512(b"test").hexdigest()
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(autouse=True, scope="session")
 def override_environment_variables(monkeypatch_session, secret_key):
     """Override the secret key and other environment variables that will
     otherwise fallover outside of testing mode.

@@ -82,12 +82,12 @@ class LoginUser(UserMixin):
             self.role = user.role
 
 
-def get_by_id_cached(user_id):
+def get_by_id_cached(user_id) -> LoginUser | None:
     """Cached version of get_by_id."""
     return get_by_id(user_id)
 
 
-def get_by_id(user_id: str) -> LoginUser | None:
+def get_by_id(user_id: str | ObjectId) -> LoginUser | None:
     """Lookup the user database ID and create a new `LoginUser`
     with the relevant metadata.
 

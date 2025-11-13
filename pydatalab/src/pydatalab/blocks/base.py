@@ -201,7 +201,7 @@ class DataBlock:
         block, ready to be input into mongodb"""
 
         LOGGER.debug("Casting block %s to database object.", self.__class__.__name__)
-        return self.block_db_model(**self.data).dict(
+        return self.block_db_model(**self.data).model_dump(
             exclude={"bokeh_plot_data", "b64_encoded_image"}, exclude_unset=True
         )
 
@@ -245,7 +245,7 @@ class DataBlock:
         else:
             self.data.pop("warnings", None)
 
-        return self.block_db_model(**self.data).dict(exclude_unset=True, exclude_none=True)
+        return self.block_db_model(**self.data).model_dump(exclude_unset=True, exclude_none=True)
 
     def process_events(self, events: list[dict] | dict):
         """Handle any supported events passed to the block."""
@@ -333,7 +333,7 @@ class DataBlock:
             self.__class__.__name__,
         )
         self.data.update(
-            self.block_db_model(**data).dict(
+            self.block_db_model(**data).model_dump(
                 exclude={"computed", "metadata", "bokeh_plot_data", "b64_encoded_image"},
                 exclude_unset=True,
             )

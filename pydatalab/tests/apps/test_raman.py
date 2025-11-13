@@ -3,8 +3,6 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from pydatalab.apps.raman.blocks import RamanBlock
-
 
 @pytest.fixture
 def wdf_example():
@@ -24,6 +22,8 @@ def renishaw_txt_example():
 
 
 def test_load_wdf(wdf_example):
+    from pydatalab.apps.raman.blocks import RamanBlock
+
     df, metadata, y_options = RamanBlock.load(wdf_example)
     assert all(y in df.columns for y in y_options)
     assert df.shape == (1011, 11)
@@ -45,6 +45,8 @@ def test_load_wdf(wdf_example):
 
 
 def test_load_renishaw_txt(renishaw_txt_example):
+    from pydatalab.apps.raman.blocks import RamanBlock
+
     with pytest.warns(UserWarning, match="Unable to find wavenumber unit"):
         with pytest.warns(UserWarning, match="Unable to find wavenumber offset"):
             df, metadata, y_options = RamanBlock.load(renishaw_txt_example)
@@ -61,6 +63,8 @@ def test_load_renishaw_txt(renishaw_txt_example):
 
 
 def test_load_labspec_txt(labspec_txt_example):
+    from pydatalab.apps.raman.blocks import RamanBlock
+
     df, metadata, y_options = RamanBlock.load(labspec_txt_example)
     assert all(y in df.columns for y in y_options)
     assert df.shape == (341, 11)

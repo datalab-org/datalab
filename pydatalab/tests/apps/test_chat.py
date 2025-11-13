@@ -1,7 +1,6 @@
-from pydatalab.apps.chat import ChatBlock
-
-
 def test_chatblock():
+    from pydatalab.apps.chat import ChatBlock
+
     chat = ChatBlock(item_id="test")
     chat.data["model"] = "langchain-debug"
 

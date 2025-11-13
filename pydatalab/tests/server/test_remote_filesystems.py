@@ -5,12 +5,6 @@ from pathlib import Path
 
 import pytest
 
-from pydatalab.config import CONFIG, RemoteFilesystem
-from pydatalab.remote_filesystems import (
-    get_directory_structure,
-    get_directory_structures,
-)
-
 """The Unix `tree` utility is required for many of these tests,
 this variable checks whether it is installed locally."""
 TREE_AVAILABLE = False
@@ -25,6 +19,12 @@ def test_get_directory_structure_local(random_string):
     attempt to query a directory.
 
     """
+    from pydatalab.config import CONFIG, RemoteFilesystem
+    from pydatalab.remote_filesystems import (
+        get_directory_structure,
+        get_directory_structures,
+    )
+
     dir_name = random_string
     test_dir = RemoteFilesystem(**{"path": Path(__file__).parent.parent, "name": dir_name})
     dir_structure = get_directory_structure(test_dir)
@@ -79,6 +79,11 @@ def test_get_missing_directory_structure_local(random_string):
     """Check that missing directories do not crash everything, and that
     they still get cached.
     """
+    from pydatalab.config import RemoteFilesystem
+    from pydatalab.remote_filesystems import (
+        get_directory_structure,
+    )
+
     dir_name = random_string
     test_dir = RemoteFilesystem(**{"path": "this_directory_does_not_exist", "name": dir_name})
     dir_structure = get_directory_structure(test_dir)
@@ -97,6 +102,11 @@ def test_get_directory_structure_remote(real_mongo_client, random_string):
     once the cache has been mocked.
 
     """
+    from pydatalab.config import RemoteFilesystem
+    from pydatalab.remote_filesystems import (
+        get_directory_structure,
+    )
+
     dir_name = random_string
     test_dir = RemoteFilesystem(
         **{"name": dir_name, "hostname": "ssh://fake.host", "path": Path(__file__).parent.parent}
