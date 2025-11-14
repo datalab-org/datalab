@@ -73,7 +73,7 @@ class VersionCounter(BaseModel):
     )
 
     class Config:
-        extra = "forbid"
+        extra = "ignore"  # Allow MongoDB's _id field and other internal fields
 
 
 class RestoreVersionRequest(BaseModel):

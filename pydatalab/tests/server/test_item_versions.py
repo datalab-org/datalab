@@ -234,14 +234,27 @@ class TestCompareVersions:
         """Test comparing versions with missing parameters."""
         refcode = sample_with_version.refcode.split(":")[1]
 
-        # Missing v2
+        # Missing v2 - request.args.get() returns "" for missing params, which fails ObjectId validation
         response = client.get(f"/items/{refcode}/compare-versions/?v1=some_id")
         assert response.status_code == 400
-        assert "Both v1 and v2 must be provided" in response.json["message"]
+        assert response.json["message"] == "Invalid query parameters"
+        assert "errors" in response.json
+        errors = response.json["errors"]
+        # Should have error for v2 (empty string is invalid ObjectId)
+        v2_errors = [e for e in errors if "v2" in str(e["loc"])]
+        assert len(v2_errors) == 1
+        assert "valid objectid" in v2_errors[0]["msg"].lower()
 
-        # Missing v1
+        # Missing v1 - same behavior
         response = client.get(f"/items/{refcode}/compare-versions/?v2=some_id")
         assert response.status_code == 400
+        assert response.json["message"] == "Invalid query parameters"
+        assert "errors" in response.json
+        errors = response.json["errors"]
+        # Should have error for v1 (empty string is invalid ObjectId)
+        v1_errors = [e for e in errors if "v1" in str(e["loc"])]
+        assert len(v1_errors) == 1
+        assert "valid objectid" in v1_errors[0]["msg"].lower()
 
     def test_compare_versions_invalid_id(self, client, sample_with_version):
         """Test comparing versions with invalid ID format."""
@@ -249,7 +262,15 @@ class TestCompareVersions:
         response = client.get(f"/items/{refcode}/compare-versions/?v1=invalid&v2=invalid")
 
         assert response.status_code == 400
-        assert "Invalid version ID format" in response.json["message"]
+        assert response.json["message"] == "Invalid query parameters"
+        # Check Pydantic's structured error response
+        assert "errors" in response.json
+        errors = response.json["errors"]
+        # Should have errors for both v1 and v2
+        assert len(errors) == 2
+        for error in errors:
+            assert error["loc"][0] in ["v1", "v2"]
+            assert "valid ObjectId" in error["msg"]
 
     def test_compare_versions_detects_changes(self, client, sample_with_version):
         """Test that compare_versions properly detects changes using DeepDiff."""
@@ -417,7 +438,13 @@ class TestRestoreVersion:
         response = client.post(f"/items/{refcode}/restore-version/", json={})
 
         assert response.status_code == 400
-        assert "version_id must be provided" in response.json["message"]
+        assert response.json["message"] == "Invalid request body"
+        # Check Pydantic's structured error response
+        assert "errors" in response.json
+        errors = response.json["errors"]
+        assert len(errors) == 1
+        assert errors[0]["loc"] == ["version_id"]
+        assert "required" in errors[0]["msg"].lower()
 
     def test_restore_version_invalid_id(self, client, sample_with_version):
         """Test restoring with invalid version ID."""
@@ -425,7 +452,13 @@ class TestRestoreVersion:
         response = client.post(f"/items/{refcode}/restore-version/", json={"version_id": "invalid"})
 
         assert response.status_code == 400
-        assert "Invalid version_id" in response.json["message"]
+        assert response.json["message"] == "Invalid request body"
+        # Check Pydantic's structured error response
+        assert "errors" in response.json
+        errors = response.json["errors"]
+        assert len(errors) == 1
+        assert errors[0]["loc"] == ["version_id"]
+        assert "valid ObjectId" in errors[0]["msg"]
 
     def test_restore_version_nonexistent(self, client, sample_with_version):
         """Test restoring non-existent version."""
