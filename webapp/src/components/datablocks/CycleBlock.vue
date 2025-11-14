@@ -32,12 +32,12 @@
       />
     </div>
     <CollapsibleComparisonFileSelect
-      v-model="comparisonFileModel"
+      v-model="pending_comparison_file_ids"
       :item_id="item_id"
       :block_id="block_id"
       :extensions="blockInfo.attributes.accepted_file_extensions"
       :exclude-file-ids="file_ids"
-      :initially-expanded="comparisonFileModel.length > 0"
+      :initially-expanded="pending_comparison_file_ids.length > 0"
       :show-apply-button="false"
     />
     <div class="form-row mt-2">
@@ -276,15 +276,6 @@ export default {
         }
       },
     },
-    comparisonFileModel: {
-      get() {
-        return this.pending_comparison_file_ids;
-      },
-      set(val) {
-        this.pending_comparison_file_ids = Array.isArray(val) ? val : [val];
-      },
-    },
-
     // normalizingMass() {
     //   return this.$store.all_item_data[this.item_id]["characteristic_mass"] || null;
     // },
