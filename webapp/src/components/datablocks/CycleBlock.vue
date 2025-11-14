@@ -31,9 +31,6 @@
         @update:modelValue="onFileSelectionChange"
       />
     </div>
-    <div class="form-row mt-2">
-      <button class="btn btn-primary btn-sm" @click="applyFileSelection">Apply Selection</button>
-    </div>
     <CollapsibleComparisonFileSelect
       v-model="comparisonFileModel"
       :item_id="item_id"
@@ -41,8 +38,11 @@
       :extensions="blockInfo.attributes.accepted_file_extensions"
       :exclude-file-ids="file_ids"
       :initially-expanded="comparisonFileModel.length > 0"
-      @apply="applyComparisonFiles"
+      :show-apply-button="false"
     />
+    <div class="form-row mt-2">
+      <button class="btn btn-primary btn-sm" @click="applyAllSelections">Apply Changes</button>
+    </div>
     <div>
       <div class="form-row">
         <div class="input-group form-inline">
@@ -452,14 +452,11 @@ export default {
     },
 
     /**
-     * Apply the currently staged file selection
-     * Used by the "Apply Selection" button
+     * Apply all pending changes (file selection and comparison files)
+     * Used by the consolidated "Apply Changes" button
      */
-    applyFileSelection() {
+    applyAllSelections() {
       this.updateFileIds();
-      this.updateBlock();
-    },
-    applyComparisonFiles() {
       this.comparison_file_ids = this.pending_comparison_file_ids.slice();
       this.updateBlock();
     },

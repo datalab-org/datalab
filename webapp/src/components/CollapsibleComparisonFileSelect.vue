@@ -28,7 +28,7 @@
             :exclude-file-ids="excludeFileIds"
           />
         </div>
-        <div class="form-row mt-2 mb-3">
+        <div v-if="showApplyButton" class="form-row mt-2 mb-3">
           <button class="btn btn-primary btn-sm" @click="applySelection">
             {{ applyButtonText }}
           </button>
@@ -81,6 +81,10 @@ export default {
       type: Boolean,
       default: false,
     },
+    showApplyButton: {
+      type: Boolean,
+      default: true,
+    },
   },
   emits: ["update:modelValue", "apply"],
   data() {
@@ -90,8 +94,24 @@ export default {
     };
   },
   watch: {
-    modelValue(newVal) {
-      this.internalFileModel = newVal.slice();
+    modelValue: {
+      handler(newVal) {
+        // Avoid triggering the internalFileModel watcher when syncing from parent
+        if (JSON.stringify(newVal) !== JSON.stringify(this.internalFileModel)) {
+          this.internalFileModel = newVal.slice();
+        }
+      },
+      deep: true,
+    },
+    internalFileModel: {
+      handler(newVal, oldVal) {
+        // Emit changes immediately when showApplyButton is false
+        // Only emit if the value actually changed
+        if (!this.showApplyButton && JSON.stringify(newVal) !== JSON.stringify(oldVal)) {
+          this.$emit("update:modelValue", newVal.slice());
+        }
+      },
+      deep: true,
     },
   },
   mounted() {
