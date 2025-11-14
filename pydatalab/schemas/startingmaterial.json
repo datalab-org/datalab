@@ -1353,7 +1353,7 @@
       ],
       "default": null,
       "description": "A string representation of the chemical formula associated with this sample.",
-      "title": "Chemform"
+      "title": "Chemical Formula"
     },
     "molar_mass": {
       "anyOf": [

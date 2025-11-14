@@ -74,6 +74,7 @@ class StartingMaterial(Item, HasSynthesisInfo, HasUIHints):
     chemform: str | None = Field(
         None,
         alias="Molecular Formula",
+        title="Chemical Formula",
         description="A string representation of the chemical formula associated with this sample.",
     )
 

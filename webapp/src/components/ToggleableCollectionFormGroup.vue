@@ -64,6 +64,10 @@ export default {
       type: String,
       default: null,
     },
+    item_id: {
+      type: String,
+      default: null,
+    },
   },
   emits: ["update:modelValue"],
   data() {

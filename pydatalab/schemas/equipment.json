@@ -872,7 +872,7 @@
       "type": "object"
     }
   },
-  "description": "A model for representing laboratory equipment.",
+  "description": "A model for representing an experimental sample.",
   "properties": {
     "blocks_obj": {
       "additionalProperties": {
@@ -1074,6 +1074,58 @@
       },
       "title": "File Objectids",
       "type": "array"
+    },
+    "serial_numbers": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "A string describing one or more serial numbers for the instrument.",
+      "title": "Serial no(s)."
+    },
+    "manufacturer": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The manufacturer of this piece of equipment",
+      "title": "Manufacturer"
+    },
+    "location": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Place where the equipment is located",
+      "title": "Location"
+    },
+    "contact": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Contact information for equipment (e.g., email address or phone number).",
+      "title": "Contact Information"
     }
   },
   "required": [

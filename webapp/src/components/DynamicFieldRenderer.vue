@@ -43,13 +43,6 @@
       :item_id="componentProps.item_id"
       :information-sections="componentProps.informationSections"
     />
-    <FieldLabelDescriptionTooltip
-      v-if="isVirtualField && fieldSchema.description"
-      :html-for="fieldId"
-      :label="label"
-      :description="fieldSchema.description"
-      :icon-only="true"
-    />
     <SynthesisInformation
       v-else-if="uiConfig.component === 'SynthesisInformation'"
       :item_id="componentProps.item_id"
@@ -134,6 +127,7 @@ export default {
         "TableOfContents",
         "SynthesisInformation",
         "CellPreparationInformation",
+        "DynamicDataTable",
       ];
       const fieldsWithBuiltinLabel = ["CASInput"];
       return (
@@ -148,10 +142,7 @@ export default {
       return wrapperComponents.includes(this.uiConfig.component);
     },
     label() {
-      if (this.fieldSchema.title === "Chemform") {
-        return "Chemical Formula";
-      }
-      return this.fieldSchema.title || this.fieldName.replace(/_/g, " ");
+      return this.fieldSchema.title;
     },
     fieldClass() {
       const baseClass = "form-group";
@@ -281,6 +272,9 @@ export default {
     handleSelectChange(event) {
       this.$emit("update:modelValue", event.target.value);
     },
+    getFieldDescription() {
+      return this.hasBuiltinLabel ? this.fieldSchema.description : null;
+    },
     getSpecialComponentProps(componentType, baseProps) {
       const specialPropsMap = {
         FormattedItemName: {
@@ -308,17 +302,17 @@ export default {
         ToggleableCreatorsFormGroup: {
           modelValue: this.modelValue || [],
           size: "36",
-          description: this.hasBuiltinLabel ? this.fieldSchema.description : null,
+          description: this.getFieldDescription(),
         },
         ToggleableCollectionFormGroup: {
           modelValue: this.itemData[this.fieldName] || [],
-          description: this.hasBuiltinLabel ? this.fieldSchema.description : null,
+          description: this.getFieldDescription(),
         },
         GHSHazardInformation: {
           modelValue: Array.isArray(this.modelValue)
             ? this.modelValue.join(", ")
             : this.modelValue || "",
-          description: this.hasBuiltinLabel ? this.fieldSchema.description : null,
+          description: this.getFieldDescription(),
           editable: !this.isReadonly,
         },
         ChemFormulaInput: baseProps,

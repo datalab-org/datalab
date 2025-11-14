@@ -15,6 +15,7 @@ class Sample(Item, HasSynthesisInfo, HasUIHints):
     chemform: str | None = Field(
         None,
         examples=["Na3P", "LiNiO2@C"],
+        title="Chemical Formula",
         description="A string representation of the chemical formula or composition associated with this sample.",
     )
 

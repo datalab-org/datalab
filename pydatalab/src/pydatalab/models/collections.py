@@ -38,7 +38,7 @@ class Collection(Entry, HasOwner, HasBlocks, HasUIHints):
 
     ui_field_config: ClassVar[dict[str, UIFieldConfig]] = {
         "title": UIFieldConfig(component="input", width="col"),
-        "creators": UIFieldConfig(component="Creators", width="col", has_builtin_label=True),
+        "creators": UIFieldConfig(component="Creators", width="col"),
         "description": UIFieldConfig(component="TinyMceInline", width="col-12"),
         "items_table": UIFieldConfig(
             component="DynamicDataTable",

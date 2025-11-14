@@ -70,9 +70,6 @@ export default {
       return `https://commonchemistry.cas.org/detail?cas_rn=${this.modelValue}`;
     },
   },
-  mounted() {
-    console.log(this.description);
-  },
   methods: {
     handleInput(event) {
       this.$emit("update:modelValue", event.target.value);
