@@ -23,7 +23,12 @@ from pydatalab.models import ITEM_MODELS, ItemVersion
 from pydatalab.models.items import Item
 from pydatalab.models.relationships import RelationshipType
 from pydatalab.models.utils import generate_unique_refcode
-from pydatalab.models.versions import VersionAction
+from pydatalab.models.versions import (
+    CompareVersionsQuery,
+    RestoreVersionRequest,
+    VersionAction,
+    VersionCounter,
+)
 from pydatalab.mongo import ITEMS_FTS_FIELDS, flask_mongo
 from pydatalab.permissions import (
     PUBLIC_USER_ID,
@@ -1184,7 +1189,20 @@ def _get_next_version_number(refcode: str) -> int:
         upsert=True,
         return_document=True,  # Return the document after update
     )
-    return result["counter"]
+
+    # Validate the result with Pydantic
+    try:
+        counter_doc = VersionCounter(**result)
+        return counter_doc.counter
+    except ValidationError as exc:
+        LOGGER.error(
+            "Version counter validation failed for refcode %s: %s",
+            refcode,
+            str(exc),
+        )
+        # Fallback: return raw counter value to prevent blocking saves
+        # This should only happen if the document is corrupted
+        return result["counter"]
 
 
 @ITEMS.route("/items/<refcode>/versions/", methods=["GET"])
@@ -1237,14 +1255,19 @@ def compare_versions(refcode):
     if len(refcode.split(":")) != 2:
         refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
 
-    v1_id = request.args.get("v1")
-    v2_id = request.args.get("v2")
-    if not v1_id or not v2_id:
-        return jsonify({"status": "error", "message": "Both v1 and v2 must be provided"}), 400
+    # Validate query parameters using Pydantic model
+    try:
+        query_params = CompareVersionsQuery(
+            v1=request.args.get("v1", ""), v2=request.args.get("v2", "")
+        )
+    except ValidationError as exc:
+        return jsonify(
+            {"status": "error", "message": "Invalid query parameters", "errors": exc.errors()}
+        ), 400
 
     try:
-        v1_object_id = ObjectId(v1_id)
-        v2_object_id = ObjectId(v2_id)
+        v1_object_id = ObjectId(query_params.v1)
+        v2_object_id = ObjectId(query_params.v2)
     except (InvalidId, TypeError) as e:
         return jsonify({"status": "error", "message": f"Invalid version ID format: {str(e)}"}), 400
 
@@ -1292,15 +1315,20 @@ def restore_version(refcode):
     if len(refcode.split(":")) != 2:
         refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
 
-    req = request.get_json()
-    version_id = req.get("version_id")
-    if not version_id:
-        return jsonify({"status": "error", "message": "version_id must be provided"}), 400
+    # Validate request body using Pydantic model
+    try:
+        restore_request = RestoreVersionRequest(**request.get_json())
+    except ValidationError as exc:
+        return jsonify(
+            {"status": "error", "message": "Invalid request body", "errors": exc.errors()}
+        ), 400
 
     try:
-        version_object_id = ObjectId(version_id)
+        version_object_id = ObjectId(restore_request.version_id)
     except (InvalidId, TypeError):
-        return jsonify({"status": "error", "message": f"Invalid version_id: {version_id}"}), 400
+        return jsonify(
+            {"status": "error", "message": f"Invalid version_id: {restore_request.version_id}"}
+        ), 400
 
     # Check permissions - user must have write access
     current_item = flask_mongo.db.items.find_one(
@@ -1403,7 +1431,7 @@ def restore_version(refcode):
     return jsonify(
         {
             "status": "success",
-            "restored_version": version_id,
+            "restored_version": restore_request.version_id,
             "new_version_number": next_version_number,
         }
     ), 200
