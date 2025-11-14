@@ -20,16 +20,17 @@
       <div v-if="isExpanded" ref="contentContainer" class="comparison-content-container">
         <div class="form-row align-items-center mb-2">
           <FileMultiSelectDropdown
-            v-model="internalFileModel"
+            :model-value="modelValue"
             :item_id="item_id"
             :block_id="block_id"
             :extensions="extensions"
             :update-block-on-change="false"
             :exclude-file-ids="excludeFileIds"
+            @update:model-value="$emit('update:modelValue', $event)"
           />
         </div>
         <div v-if="showApplyButton" class="form-row mt-2 mb-3">
-          <button class="btn btn-primary btn-sm" @click="applySelection">
+          <button class="btn btn-primary btn-sm" @click="$emit('apply')">
             {{ applyButtonText }}
           </button>
         </div>
@@ -89,35 +90,10 @@ export default {
   emits: ["update:modelValue", "apply"],
   data() {
     return {
-      internalFileModel: [],
       isExpanded: false,
     };
   },
-  watch: {
-    modelValue: {
-      handler(newVal) {
-        // Avoid triggering the internalFileModel watcher when syncing from parent
-        if (JSON.stringify(newVal) !== JSON.stringify(this.internalFileModel)) {
-          this.internalFileModel = newVal.slice();
-        }
-      },
-      deep: true,
-    },
-    internalFileModel: {
-      handler(newVal, oldVal) {
-        // Emit changes immediately when showApplyButton is false
-        // Only emit if the value actually changed
-        if (!this.showApplyButton && JSON.stringify(newVal) !== JSON.stringify(oldVal)) {
-          this.$emit("update:modelValue", newVal.slice());
-        }
-      },
-      deep: true,
-    },
-  },
   mounted() {
-    // Initialize internal model from prop
-    this.internalFileModel = this.modelValue.slice();
-
     // Set initial expanded state
     this.isExpanded = this.initiallyExpanded;
   },
@@ -154,11 +130,6 @@ export default {
       // Force reflow to ensure the height is set before animating
       el.offsetHeight;
       el.style.height = "0";
-    },
-
-    applySelection() {
-      this.$emit("update:modelValue", this.internalFileModel.slice());
-      this.$emit("apply", this.internalFileModel.slice());
     },
   },
 };
