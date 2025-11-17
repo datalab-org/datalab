@@ -1,5 +1,28 @@
 # Changelog
 
+## v0.6.5 (October 2025)
+
+This patch releases includes several quality-of-life improvements and bug fixes,
+including improvements to full-text search, file permissions and the
+item relationship graph.
+
+### What's Changed
+
+* Improve regex item search: implict word boundaries, chaining and literal matches by @ml-evs in https://github.com/datalab-org/datalab/pull/1338
+* Adjust file permissions so block permission gives equivalent access by @ml-evs in https://github.com/datalab-org/datalab/pull/1376
+* Remove name reset in CreateItemModal by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1369
+* Item graph display too many items by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1367
+* Allow item creation endpoints to use `PUT` by @ml-evs in https://github.com/datalab-org/datalab/pull/1387
+* Adding file-size in the filelist by @DianaAliabieva in https://github.com/datalab-org/datalab/pull/1380
+* Add support for PSTrace EIS output txt files by @ml-evs in https://github.com/datalab-org/datalab/pull/1383
+* Fix collection creation modal error display for duplicate IDs by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1382
+
+### New Contributors
+
+* @DianaAliabieva made their first contribution in https://github.com/datalab-org/datalab/pull/1380
+
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.6.4...v0.6.5
+
 ## v0.6.4 (September 2025)
 
 This patch release simply fixes a few UI bugs introduced in v0.6.3 (and earlier).

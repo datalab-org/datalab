@@ -24,6 +24,7 @@ export default createStore({
     remoteDirectoryTree: {},
     remoteDirectoryTreeSecondsSinceLastUpdate: null,
     itemGraphData: null,
+    itemGraphIsLoading: false,
     remoteDirectoryTreeIsLoading: false,
     fileSelectModalIsOpen: false,
     currentUserDisplayName: null,
@@ -335,6 +336,9 @@ export default createStore({
     },
     setItemGraph(state, payload) {
       state.itemGraphData = payload;
+    },
+    setItemGraphIsLoading(state, isLoading) {
+      state.itemGraphIsLoading = isLoading;
     },
     setBlocksInfos(state, blocksInfos) {
       blocksInfos.forEach((info) => {

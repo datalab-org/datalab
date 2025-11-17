@@ -70,6 +70,14 @@ let sample_ids = [
 ];
 
 before(() => {
+  cy.loginViaTestMagicLink("test-user@example.com", "user");
+});
+
+after(() => {
+  cy.logout();
+});
+
+before(() => {
   cy.visit("/");
   cy.removeAllTestSamples(sample_ids, true);
 });
