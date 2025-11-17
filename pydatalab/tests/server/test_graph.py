@@ -9,14 +9,23 @@ def test_simple_graph(admin_client):
     All samples are uploaded without a creator so the test client needs admin priveleges.
 
     """
+
     parent = Sample(
         item_id="parent",
+        refcode="test:PARENT",
     )
 
     child_1 = Sample(
         item_id="child_1",
         synthesis_constituents=[
-            Constituent(item={"type": "samples", "item_id": "parent"}, quantity=None),
+            Constituent(
+                item={
+                    "type": "samples",
+                    "item_id": parent.item_id,
+                    "refcode": parent.refcode,
+                },
+                quantity=None,
+            ),
         ],
     )
 
@@ -24,28 +33,56 @@ def test_simple_graph(admin_client):
         item_id="child_2",
         refcode="test:TEST02",
         synthesis_constituents=[
-            Constituent(item={"type": "samples", "item_id": "parent"}, quantity=None),
+            Constituent(
+                item={
+                    "type": "samples",
+                    "item_id": parent.item_id,
+                    "refcode": parent.refcode,
+                },
+                quantity=None,
+            ),
         ],
     )
 
     child_3 = Sample(
         item_id="child_3",
         synthesis_constituents=[
-            Constituent(item={"type": "samples", "item_id": "parent"}, quantity=None),
+            Constituent(
+                item={
+                    "type": "samples",
+                    "item_id": parent.item_id,
+                    "refcode": parent.refcode,
+                },
+                quantity=None,
+            ),
         ],
     )
 
     child_4 = Sample(
         item_id="child_4",
         synthesis_constituents=[
-            Constituent(item={"type": "samples", "item_id": "parent"}, quantity=None),
+            Constituent(
+                item={
+                    "type": "samples",
+                    "item_id": parent.item_id,
+                    "refcode": parent.refcode,
+                },
+                quantity=None,
+            ),
         ],
     )
 
     missing_child = Sample(
         item_id="missing_child",
         synthesis_constituents=[
-            Constituent(item={"type": "samples", "item_id": "parent"}, quantity=None),
+            Constituent(
+                item={
+                    "type": "samples",
+                    "item_id": parent.item_id,
+                    "refcode": parent.refcode,
+                },
+                quantity=None,
+            ),
         ],
     )
 
