@@ -83,7 +83,7 @@
         :field="column.field"
         sortable
         :class="{ 'filter-active': isFilterActive(column.field) }"
-        :filter-menu-class="column.field === 'type' ? 'no-operator' : ''"
+        :filter-menu-class="column.field === 'type' || column.field === 'date' ? 'no-operator' : ''"
       >
         <template #header>
           <div v-if="column.icon" class="header-with-icon">
