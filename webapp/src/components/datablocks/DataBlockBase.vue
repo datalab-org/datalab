@@ -231,9 +231,6 @@ export default {
     BlockTitle: createComputedSetterForBlockField("title"),
     BlockDescription: createComputedSetterForBlockField("freeform_comment"),
     hasMetadata() {
-      console.log("#$#$#$#$#%$#%$#$%#%$#%$#%$#%$");
-      console.log(this.block);
-      console.log("#$#$#$#$#%$#%$#$%#%$#%$#%$#%$");
       return this.block?.metadata && Object.keys(this.block.metadata).length > 0;
     },
   },
