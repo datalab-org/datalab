@@ -234,7 +234,8 @@ Please make a new chat block to start fresh, or use a model with a larger contex
                 "pulse_program",
                 "selected_process",
             ]
-            [block["metadata"].pop(field, None) for field in NMR_fields_to_remove]
+            if "metadata" in block:
+                [block["metadata"].pop(field, None) for field in NMR_fields_to_remove]
 
             # replace file_id with the actual filename
             file_id = block.pop("file_id", None)
