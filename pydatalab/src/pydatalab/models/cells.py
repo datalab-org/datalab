@@ -127,7 +127,16 @@ class Cell(Item, HasUIHints):
         ),
         "description": UIFieldConfig(component="TinyMceInline", width="col-12"),
         "table_of_contents": UIFieldConfig(
-            component="TableOfContents", width="col-12", hide_label=True
+            component="TableOfContents",
+            width="col-12",
+            hide_label=True,
+            component_props={
+                "sections": [
+                    {"title": "Sample Information", "targetID": "cells-information"},
+                    {"title": "Table of Contents", "targetID": "table-of-contents"},
+                    {"title": "Cell Construction", "targetID": "cell-preparation-information"},
+                ]
+            },
         ),
         "cell_preparation_information": UIFieldConfig(
             component="CellPreparationInformation", width="col-12", hide_label=True
@@ -146,12 +155,6 @@ class Cell(Item, HasUIHints):
             "description": "Visual representation of this item's relationships with other items",
         },
     }
-
-    ui_table_of_contents: ClassVar[list[dict[str, str]]] = [
-        {"title": "Sample Information", "targetID": "cells-information"},
-        {"title": "Table of Contents", "targetID": "table-of-contents"},
-        {"title": "Cell Construction", "targetID": "cell-preparation-information"},
-    ]
 
     @field_validator("characteristic_molar_mass", mode="before")
     @classmethod

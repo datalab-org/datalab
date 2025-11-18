@@ -59,7 +59,15 @@ class Equipment(Item, HasUIHints):
         "contact": UIFieldConfig(component="input", width="col-md-8 col-sm-8"),
         "description": UIFieldConfig(component="TinyMceInline", width="col-12"),
         "table_of_contents": UIFieldConfig(
-            component="TableOfContents", width="col-12", hide_label=True
+            component="TableOfContents",
+            width="col-12",
+            hide_label=True,
+            component_props={
+                "sections": [
+                    {"title": "Equipment Information", "targetID": "equipment-information"},
+                    {"title": "Table of Contents", "targetID": "table-of-contents"},
+                ]
+            },
         ),
     }
 
@@ -68,12 +76,6 @@ class Equipment(Item, HasUIHints):
             "title": "Table of Contents",
         },
     }
-
-    ui_table_of_contents: ClassVar[list[dict[str, str]]] = [
-        {"title": "Sample Information", "targetID": "samples-information"},
-        {"title": "Table of Contents", "targetID": "table-of-contents"},
-        {"title": "Synthesis Information", "targetID": "synthesis-information"},
-    ]
 
     ui_field_titles: ClassVar[dict[str, str]] = {
         "creators": "Maintainers",

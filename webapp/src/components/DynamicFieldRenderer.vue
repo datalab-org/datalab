@@ -325,7 +325,7 @@ export default {
         TinyMceInline: baseProps,
         TableOfContents: {
           item_id: this.itemData.item_id,
-          informationSections: this.getTableOfContentsSections(),
+          informationSections: this.uiConfig.component_props?.sections,
         },
         SynthesisInformation: {
           item_id: this.itemData.item_id,
@@ -336,18 +336,6 @@ export default {
       };
 
       return specialPropsMap[componentType] || baseProps;
-    },
-    getTableOfContentsSections() {
-      if (this.fullSchema?.table_of_contents) {
-        return this.fullSchema.table_of_contents;
-      }
-
-      return [
-        {
-          title: `${this.itemType.charAt(0).toUpperCase() + this.itemType.slice(1)} Information`,
-          targetID: `${this.itemType}-information`,
-        },
-      ];
     },
   },
 };

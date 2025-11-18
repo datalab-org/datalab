@@ -46,13 +46,21 @@ class Sample(Item, HasSynthesisInfo, HasUIHints):
         ),
         "description": UIFieldConfig(component="TinyMceInline", width="col-12"),
         "table_of_contents": UIFieldConfig(
-            component="TableOfContents", width="col-12", hide_label=True
+            component="TableOfContents",
+            width="col-12",
+            hide_label=True,
+            component_props={
+                "sections": [
+                    {"title": "Sample Information", "targetID": "samples-information"},
+                    {"title": "Table of Contents", "targetID": "table-of-contents"},
+                    {"title": "Synthesis Information", "targetID": "synthesis-information"},
+                ]
+            },
         ),
         "synthesis_information": UIFieldConfig(
             component="SynthesisInformation", width="col-12", hide_label=True
         ),
     }
-
     ui_virtual_fields: ClassVar[dict[str, dict[str, Any]]] = {
         "synthesis_information": {
             "title": "Synthesis Information",
@@ -65,9 +73,3 @@ class Sample(Item, HasSynthesisInfo, HasUIHints):
             "description": "Visual representation of this item's relationships with other items",
         },
     }
-
-    ui_table_of_contents: ClassVar[list[dict[str, str]]] = [
-        {"title": "Sample Information", "targetID": "samples-information"},
-        {"title": "Table of Contents", "targetID": "table-of-contents"},
-        {"title": "Synthesis Information", "targetID": "synthesis-information"},
-    ]

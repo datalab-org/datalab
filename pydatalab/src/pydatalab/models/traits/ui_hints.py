@@ -61,8 +61,6 @@ class HasUIHints(BaseModel):
 
     ui_virtual_fields: ClassVar[dict[str, dict[str, Any]]] = {}
 
-    ui_table_of_contents: ClassVar[list[dict[str, str]]] = []
-
     @classmethod
     def get_ui_schema(cls) -> dict[str, Any]:
         base_schema = cls.model_json_schema(by_alias=False)
@@ -119,7 +117,6 @@ class HasUIHints(BaseModel):
             "properties": properties,
             "required": base_schema.get("required", []),
             "layout": cls.ui_layout,
-            "table_of_contents": cls.ui_table_of_contents,
             "title": base_schema.get("title"),
             "description": base_schema.get("description"),
         }
