@@ -73,6 +73,7 @@ describe("EquipmentTable Component Tests", () => {
     const headers = [
       "", // checkbox
       "ID",
+      "Status",
       "Name",
       "Date",
       "Location",
@@ -92,10 +93,10 @@ describe("EquipmentTable Component Tests", () => {
       .within(() => {
         cy.get("td").eq(0).should("contain.text", "");
         cy.get("td").eq(1).should("contain.text", "equipment1");
-        cy.get("td").eq(2).should("contain.text", "Equipment One");
-        cy.get("td").eq(3).should("contain.text", "9/1/2023");
-        cy.get("td").eq(4).should("contain.text", "Warehouse A");
-        cy.get("td").eq(5).find(".avatar").should("have.length", 1);
+        cy.get("td").eq(3).should("contain.text", "Equipment One");
+        cy.get("td").eq(4).should("contain.text", "9/1/2023");
+        cy.get("td").eq(5).should("contain.text", "Warehouse A");
+        cy.get("td").eq(6).find(".avatar").should("have.length", 1);
       });
 
     cy.get(".p-datatable-tbody")
@@ -104,10 +105,10 @@ describe("EquipmentTable Component Tests", () => {
       .within(() => {
         cy.get("td").eq(0).should("contain.text", "");
         cy.get("td").eq(1).should("contain.text", "equipment2");
-        cy.get("td").eq(2).should("contain.text", "Equipment Two");
-        cy.get("td").eq(3).should("contain.text", "8/15/2023");
-        cy.get("td").eq(4).should("contain.text", "Warehouse B");
-        cy.get("td").eq(5).find(".avatar").should("have.length", 2);
+        cy.get("td").eq(3).should("contain.text", "Equipment Two");
+        cy.get("td").eq(4).should("contain.text", "8/15/2023");
+        cy.get("td").eq(5).should("contain.text", "Warehouse B");
+        cy.get("td").eq(6).find(".avatar").should("have.length", 2);
       });
   });
 
@@ -128,12 +129,12 @@ describe("EquipmentTable Component Tests", () => {
     cy.get(".p-datatable-tbody tr")
       .eq(0)
       .within(() => {
-        cy.get("td").eq(5).find(".avatar").should("exist");
+        cy.get("td").eq(6).find(".avatar").should("exist");
       });
     cy.get(".p-datatable-tbody tr")
       .eq(1)
       .within(() => {
-        cy.get("td").eq(5).find(".avatar").should("exist");
+        cy.get("td").eq(6).find(".avatar").should("exist");
       });
   });
 });

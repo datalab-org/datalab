@@ -2,7 +2,7 @@ from pydantic import Field, validator
 
 from pydatalab.models.items import Item
 from pydatalab.models.traits import HasSynthesisInfo
-from pydatalab.models.utils import IsoformatDateTime
+from pydatalab.models.utils import IsoformatDateTime, StartingMaterialsStatus
 
 
 class StartingMaterial(Item, HasSynthesisInfo):
@@ -68,6 +68,9 @@ class StartingMaterial(Item, HasSynthesisInfo):
 
     comment: str | None = Field(alias="Comments")
     """Any additional comments or notes about the container."""
+
+    status: StartingMaterialsStatus = Field(default=StartingMaterialsStatus.AVAILABLE)
+    """The status of the starting materials, indicating its current state."""
 
     @validator("molar_mass")
     def add_molar_mass(cls, v, values):

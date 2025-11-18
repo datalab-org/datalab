@@ -39,6 +39,12 @@
               :item_id="item_id"
             />
           </div>
+          <div class="form-group col-md-3 col-sm-3 col-6 pb-3">
+            <ToggleableItemStatusFormGroup
+              v-model="Status"
+              :possible-item-statuses="possibleItemStatuses"
+            />
+          </div>
         </div>
         <div class="form-row">
           <div class="col">
@@ -60,10 +66,13 @@
 
 <script>
 import { createComputedSetterForItemField } from "@/field_utils.js";
+import { getSchema } from "@/server_fetch_utils";
+
 import ChemFormulaInput from "@/components/ChemFormulaInput";
 import FormattedRefcode from "@/components/FormattedRefcode";
 import ToggleableCollectionFormGroup from "@/components/ToggleableCollectionFormGroup";
 import ToggleableCreatorsFormGroup from "@/components/ToggleableCreatorsFormGroup";
+import ToggleableItemStatusFormGroup from "@/components/ToggleableItemStatusFormGroup";
 import TinyMceInline from "@/components/TinyMceInline";
 import SynthesisInformation from "@/components/SynthesisInformation";
 import TableOfContents from "@/components/TableOfContents";
@@ -79,6 +88,7 @@ export default {
     FormattedRefcode,
     ToggleableCollectionFormGroup,
     ToggleableCreatorsFormGroup,
+    ToggleableItemStatusFormGroup,
   },
   props: {
     item_id: { type: String, required: true },
@@ -94,9 +104,13 @@ export default {
         { title: "Table of Contents", targetID: "table-of-contents" },
         { title: "Synthesis Information", targetID: "synthesis-information" },
       ],
+      schema: null,
     };
   },
   computed: {
+    item() {
+      return this.$store.state.all_item_data[this.item_id];
+    },
     Refcode: createComputedSetterForItemField("refcode"),
     ItemID: createComputedSetterForItemField("item_id"),
     SampleDescription: createComputedSetterForItemField("description"),
@@ -105,6 +119,31 @@ export default {
     DateCreated: createComputedSetterForItemField("date"),
     ItemCreators: createComputedSetterForItemField("creators"),
     Collections: createComputedSetterForItemField("collections"),
+    Status: createComputedSetterForItemField("status"),
+    // ItemSchema: this.$store.state.schemas["samples"],
+    possibleItemStatuses() {
+      return this.schema?.attributes.schema.definitions.ItemStatus.enum;
+    },
+  },
+  created() {
+    this.fetchSchema();
+  },
+  methods: {
+    async fetchSchema() {
+      try {
+        const API_schema = await getSchema(this.item.type);
+
+        this.schema = API_schema;
+      } catch (error) {
+        console.error("Error retrieving schema::", error);
+      }
+    },
   },
 };
 </script>
+
+<style scoped>
+.badge {
+  font-size: 1em;
+}
+</style>

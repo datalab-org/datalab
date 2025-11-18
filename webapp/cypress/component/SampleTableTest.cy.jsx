@@ -26,6 +26,7 @@ describe("SampleTable Component Tests", () => {
               item_id: "sample1",
               type: "samples",
               name: "Sample 1",
+              status: "PLANNED",
               chemform: "H2O",
               date: "2023-09-01T12:34:56Z",
               collections: [{ collection_id: "collection1" }],
@@ -38,6 +39,7 @@ describe("SampleTable Component Tests", () => {
               item_id: "sample2",
               type: "samples",
               name: "Sample 2",
+              status: "ACTIVE",
               chemform: "H2O",
               date: "2023-09-02T12:34:56Z",
               collections: [{ collection_id: "collection2" }],
@@ -50,6 +52,7 @@ describe("SampleTable Component Tests", () => {
               item_id: "sample3",
               type: "samples",
               name: "Sample 3",
+              status: "FAILED",
               chemform: "H2O",
               date: "2023-09-03T12:34:56Z",
               collections: [{ collection_id: "collection3" }],
@@ -62,6 +65,7 @@ describe("SampleTable Component Tests", () => {
               item_id: "cell1",
               type: "cells",
               name: "Cell 1",
+              status: "CYCLED",
               chemform: "CH4",
               date: "2023-08-15T08:45:30Z",
               collections: [{ collection_id: "collection1" }],
@@ -74,6 +78,7 @@ describe("SampleTable Component Tests", () => {
               item_id: "cell2",
               type: "cells",
               name: "Cell 2",
+              status: "DISMANTLED",
               chemform: "CH4",
               date: "2023-08-16T08:45:30Z",
               collections: [{ collection_id: "collection1" }, { collection_id: "collection2" }],
@@ -86,6 +91,7 @@ describe("SampleTable Component Tests", () => {
               item_id: "cell3",
               type: "cells",
               name: "Cell 3",
+              status: "SHORTED",
               chemform: "CH4",
               date: "2023-08-17T08:45:30Z",
               collections: [
@@ -138,8 +144,8 @@ describe("SampleTable Component Tests", () => {
       "", //checkbox
       "ID",
       "Type",
-      "Sample name",
-      "Formula",
+      "Status",
+      "Name",
       "Date",
       "Collections",
       "Creators",
@@ -160,8 +166,7 @@ describe("SampleTable Component Tests", () => {
         cy.get("td").eq(0).should("contain.text", "");
         cy.get("td").eq(1).should("contain.text", "sample1");
         cy.get("td").eq(2).should("contain.text", "samples");
-        cy.get("td").eq(3).should("contain.text", "Sample 1");
-        cy.get("td").eq(4).should("contain.text", "H2O");
+        cy.get("td").eq(4).should("contain.text", "Sample 1");
         cy.get("td").eq(5).should("contain.text", "9/1/2023");
         cy.get("td").eq(6).find(".badge").should("have.length", 1);
         cy.get("td").eq(7).find(".avatar").should("have.length", 1);
@@ -174,8 +179,7 @@ describe("SampleTable Component Tests", () => {
         cy.get("td").eq(0).should("contain.text", "");
         cy.get("td").eq(1).should("contain.text", "cell1");
         cy.get("td").eq(2).should("contain.text", "cells");
-        cy.get("td").eq(3).should("contain.text", "Cell 1");
-        cy.get("td").eq(4).should("contain.text", "CH4");
+        cy.get("td").eq(4).should("contain.text", "Cell 1");
         cy.get("td").eq(5).should("contain.text", "8/15/2023");
         cy.get("td").eq(6).find(".badge").should("have.length", 1);
         cy.get("td").eq(7).find(".avatar").should("have.length", 2);
@@ -259,20 +263,28 @@ describe("SampleTable Component Tests", () => {
     cy.get(".p-datatable-tbody tr").eq(1).find("td").eq(2).should("contain.text", "samples");
 
     cy.get(".p-datatable-thead th").eq(3).find(".p-datatable-sort-icon").click();
-    cy.get(".p-datatable-tbody tr").eq(0).find("td").eq(3).should("contain.text", "Cell 1");
-    cy.get(".p-datatable-tbody tr").eq(1).find("td").eq(3).should("contain.text", "Cell 2");
+    cy.get(".p-datatable-tbody tr").eq(0).find("td").eq(3).should("contain.text", "ACTIVE");
+    cy.get(".p-datatable-tbody tr").eq(1).find("td").eq(3).should("contain.text", "CYCLED");
+    cy.get(".p-datatable-tbody tr").eq(2).find("td").eq(3).should("contain.text", "DISMANTLED");
+    cy.get(".p-datatable-tbody tr").eq(3).find("td").eq(3).should("contain.text", "FAILED");
+    cy.get(".p-datatable-tbody tr").eq(4).find("td").eq(3).should("contain.text", "PLANNED");
+    cy.get(".p-datatable-tbody tr").eq(5).find("td").eq(3).should("contain.text", "SHORTED");
 
     cy.get(".p-datatable-thead th").eq(3).find(".p-datatable-sort-icon").click();
-    cy.get(".p-datatable-tbody tr").eq(0).find("td").eq(3).should("contain.text", "Sample 3");
-    cy.get(".p-datatable-tbody tr").eq(1).find("td").eq(3).should("contain.text", "Sample 2");
+    cy.get(".p-datatable-tbody tr").eq(0).find("td").eq(3).should("contain.text", "SHORTED");
+    cy.get(".p-datatable-tbody tr").eq(1).find("td").eq(3).should("contain.text", "PLANNED");
+    cy.get(".p-datatable-tbody tr").eq(2).find("td").eq(3).should("contain.text", "FAILED");
+    cy.get(".p-datatable-tbody tr").eq(3).find("td").eq(3).should("contain.text", "DISMANTLED");
+    cy.get(".p-datatable-tbody tr").eq(4).find("td").eq(3).should("contain.text", "CYCLED");
+    cy.get(".p-datatable-tbody tr").eq(5).find("td").eq(3).should("contain.text", "ACTIVE");
 
     cy.get(".p-datatable-thead th").eq(4).find(".p-datatable-sort-icon").click();
-    cy.get(".p-datatable-tbody tr").eq(0).find("td").eq(4).should("contain.text", "CH4");
-    cy.get(".p-datatable-tbody tr").eq(1).find("td").eq(4).should("contain.text", "CH4");
+    cy.get(".p-datatable-tbody tr").eq(0).find("td").eq(4).should("contain.text", "Cell 1");
+    cy.get(".p-datatable-tbody tr").eq(1).find("td").eq(4).should("contain.text", "Cell 2");
 
     cy.get(".p-datatable-thead th").eq(4).find(".p-datatable-sort-icon").click();
-    cy.get(".p-datatable-tbody tr").eq(0).find("td").eq(4).should("contain.text", "H2O");
-    cy.get(".p-datatable-tbody tr").eq(1).find("td").eq(4).should("contain.text", "H2O");
+    cy.get(".p-datatable-tbody tr").eq(0).find("td").eq(4).should("contain.text", "Sample 3");
+    cy.get(".p-datatable-tbody tr").eq(1).find("td").eq(4).should("contain.text", "Sample 2");
 
     cy.get(".p-datatable-thead th").eq(5).find(".p-datatable-sort-icon").click();
     cy.get(".p-datatable-tbody tr").eq(0).find("td").eq(5).should("contain.text", "8/15/2023");
@@ -364,6 +376,40 @@ describe("SampleTable Component Tests", () => {
     cy.get(".p-datatable-tbody tr").eq(0).find("td").eq(1).should("contain.text", "cell1");
     cy.get(".p-datatable-tbody tr").eq(1).find("td").eq(1).should("contain.text", "cell2");
     cy.get(".p-datatable-tbody tr").eq(2).find("td").eq(1).should("contain.text", "cell3");
+  });
+
+  it("filters by Status correctly", () => {
+    cy.get(".p-datatable-thead th").eq(3).find(".p-datatable-column-filter-button").click();
+    cy.get(".p-datatable-filter-overlay").find(".p-multiselect-label-container").click();
+    cy.get(".p-multiselect-list-container").findByText("ACTIVE").click();
+    cy.get(".p-datatable-tbody tr").should("have.length", 1);
+    cy.findByText("Clear").click();
+
+    cy.get(".p-datatable-thead th").eq(3).find(".p-datatable-column-filter-button").click();
+    cy.get(".p-datatable-filter-overlay").find(".p-multiselect-label-container").click();
+    cy.get(".p-multiselect-list-container").findByText("CYCLED").click();
+    cy.get(".p-datatable-tbody tr").should("have.length", 1);
+    cy.findByText("Clear").click();
+
+    cy.get(".p-datatable-thead th").eq(3).find(".p-datatable-column-filter-button").click();
+    cy.get(".p-datatable-filter-overlay").find(".p-multiselect-label-container").click();
+    cy.get(".p-multiselect-list-container").findByText("ACTIVE").click();
+    cy.get(".p-datatable-tbody tr").should("have.length", 1);
+    cy.get(".p-datatable-filter-overlay").find(".p-multiselect-label-container").click();
+    cy.get(".p-multiselect-list-container").findByText("CYCLED").click();
+    cy.get(".p-datatable-tbody tr").should("have.length", 2);
+    cy.get(".p-datatable-filter-overlay").find(".p-multiselect-label-container").click();
+    cy.get(".p-multiselect-list-container").findByText("PLANNED").click();
+    cy.get(".p-datatable-tbody tr").should("have.length", 3);
+    cy.get(".p-datatable-filter-overlay").find(".p-multiselect-label-container").click();
+    cy.get(".p-multiselect-list-container").findByText("FAILED").click();
+    cy.get(".p-datatable-tbody tr").should("have.length", 4);
+    cy.get(".p-datatable-filter-overlay").find(".p-multiselect-label-container").click();
+    cy.get(".p-multiselect-list-container").findByText("SHORTED").click();
+    cy.get(".p-datatable-tbody tr").should("have.length", 5);
+    cy.get(".p-datatable-filter-overlay").find(".p-multiselect-label-container").click();
+    cy.get(".p-multiselect-list-container").findByText("DISMANTLED").click();
+    cy.get(".p-datatable-tbody tr").should("have.length", 6);
   });
 
   it("filters by Collections correctly", () => {
