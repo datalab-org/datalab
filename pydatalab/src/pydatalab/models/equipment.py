@@ -1,4 +1,4 @@
-from typing import Any, ClassVar, Literal
+from typing import ClassVar, Literal
 
 from pydantic import Field
 
@@ -55,6 +55,7 @@ class Equipment(Item, HasUIHints):
         "creators": UIFieldConfig(
             component="Creators",
             width="col-md-4 col-sm-4",
+            title="Maintainers",
         ),
         "contact": UIFieldConfig(component="input", width="col-md-8 col-sm-8"),
         "description": UIFieldConfig(component="TinyMceInline", width="col-12"),
@@ -62,6 +63,7 @@ class Equipment(Item, HasUIHints):
             component="TableOfContents",
             width="col-12",
             hide_label=True,
+            title="Table of Contents",
             component_props={
                 "sections": [
                     {"title": "Equipment Information", "targetID": "equipment-information"},
@@ -69,14 +71,4 @@ class Equipment(Item, HasUIHints):
                 ]
             },
         ),
-    }
-
-    ui_virtual_fields: ClassVar[dict[str, dict[str, Any]]] = {
-        "table_of_contents": {
-            "title": "Table of Contents",
-        },
-    }
-
-    ui_field_titles: ClassVar[dict[str, str]] = {
-        "creators": "Maintainers",
     }

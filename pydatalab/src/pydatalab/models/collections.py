@@ -1,4 +1,4 @@
-from typing import Any, ClassVar, Literal
+from typing import ClassVar, Literal
 
 from pydantic import (
     Field,
@@ -33,56 +33,20 @@ class Collection(Entry, HasOwner, HasBlocks, HasUIHints):
         ["title"],
         ["creators"],
         ["description"],
-        ["items_table"],
     ]
 
     ui_field_config: ClassVar[dict[str, UIFieldConfig]] = {
         "title": UIFieldConfig(component="input", width="col"),
         "creators": UIFieldConfig(component="Creators", width="col"),
         "description": UIFieldConfig(component="TinyMceInline", width="col-12"),
-        "items_table": UIFieldConfig(
-            component="DynamicDataTable",
+        "collection_relationships": UIFieldConfig(
+            component="CollectionRelationshipVisualization",
             width="col-12",
-            hide_label=True,
-            component_props={
-                "columns": [
-                    {
-                        "field": "item_id",
-                        "header": "ID",
-                        "body": "FormattedItemName",
-                        "filter": True,
-                    },
-                    {"field": "type", "header": "Type", "filter": True},
-                    {"field": "name", "header": "Sample name"},
-                    {"field": "chemform", "header": "Formula", "body": "ChemicalFormula"},
-                    {"field": "date", "header": "Date"},
-                    {"field": "creators", "header": "Creators", "body": "Creators"},
-                    {"field": "nblocks", "header": "# of blocks"},
-                ],
-                "global_filter_fields": [
-                    "item_id",
-                    "name",
-                    "refcode",
-                    "blocks",
-                    "chemform",
-                    "characteristic_chemical_formula",
-                ],
-                "show_buttons": True,
-            },
+            title="Collection Relationships",
+            description="Visual representation of this collection's relationships with other collections",
+            hidden=True,
         ),
     }
-
-    ui_virtual_fields: ClassVar[dict[str, dict[str, Any]]] = {
-        "items_table": {
-            "title": "Collection Items",
-        },
-        "collection_relationships": {
-            "title": "Collection Relationships",
-            "description": "Visual representation of this collection's relationships with other collections",
-        },
-    }
-
-    ui_table_of_contents: ClassVar[list[dict[str, str]]] = []
 
     @model_validator(mode="before")
     @classmethod

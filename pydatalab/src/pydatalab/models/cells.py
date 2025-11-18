@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, ClassVar, Literal
+from typing import ClassVar, Literal
 
 from pydantic import (
     Field,
@@ -86,11 +86,12 @@ class Cell(Item, HasUIHints):
     ]
 
     ui_field_config: ClassVar[dict[str, UIFieldConfig]] = {
-        "name": UIFieldConfig(component="input", width="col-sm-8 pr-2 col-6"),
-        "item_id": UIFieldConfig(
-            component="FormattedItemName", width="col-sm-4 pr-2 col-6", hidden=True
+        "name": UIFieldConfig(component="input", width="col-sm-4 pr-2 col-6"),
+        "characteristic_chemical_formula": UIFieldConfig(
+            component="ChemFormulaInput", width="col-sm-4 pr-2 col-6"
         ),
-        "date": UIFieldConfig(component="input", width="col-sm-4 col-6"),
+        "characteristic_molar_mass": UIFieldConfig(component="input", width="col-sm-2 col-6"),
+        "date": UIFieldConfig(component="input", width="col-sm-2 col-6"),
         "refcode": UIFieldConfig(
             component="FormattedRefcode", width="col-md-3 col-sm-4 col-6", readonly=True
         ),
@@ -104,14 +105,10 @@ class Cell(Item, HasUIHints):
             width="col-md-6 col-sm-7 pr-2",
             has_builtin_label=True,
         ),
-        "cell_format": UIFieldConfig(component="select", width="col-sm-6"),
-        "cell_format_description": UIFieldConfig(component="input", width="col-sm-6"),
-        "characteristic_mass": UIFieldConfig(component="input", width="col-sm-4 pr-2 col-6"),
-        "characteristic_chemical_formula": UIFieldConfig(
-            component="ChemFormulaInput", width="col-sm-4 pr-2 col-6"
-        ),
-        "characteristic_molar_mass": UIFieldConfig(
-            component="input", width="col-sm-4 col-6", readonly=True
+        "characteristic_mass": UIFieldConfig(component="input", width="col-sm-6", hidden=True),
+        "cell_format": UIFieldConfig(component="select", width="col-sm-6", hidden=True),
+        "cell_format_description": UIFieldConfig(
+            component="TinyMceInline", width="col-12", hidden=True
         ),
         "active_ion": UIFieldConfig(component="input", width="col-sm-6", hidden=True),
         "active_ion_charge": UIFieldConfig(component="input", width="col-sm-6", hidden=True),
@@ -130,6 +127,7 @@ class Cell(Item, HasUIHints):
             component="TableOfContents",
             width="col-12",
             hide_label=True,
+            title="Table of Contents",
             component_props={
                 "sections": [
                     {"title": "Sample Information", "targetID": "cells-information"},
@@ -139,21 +137,18 @@ class Cell(Item, HasUIHints):
             },
         ),
         "cell_preparation_information": UIFieldConfig(
-            component="CellPreparationInformation", width="col-12", hide_label=True
+            component="CellPreparationInformation",
+            width="col-12",
+            hide_label=True,
+            title="Cell Preparation Information",
         ),
-    }
-
-    ui_virtual_fields: ClassVar[dict[str, dict[str, Any]]] = {
-        "table_of_contents": {
-            "title": "Table of Contents",
-        },
-        "cell_preparation_information": {
-            "title": "Cell Preparation Information",
-        },
-        "item_relationships": {
-            "title": "Item Relationships",
-            "description": "Visual representation of this item's relationships with other items",
-        },
+        "item_relationships": UIFieldConfig(
+            component="ItemRelationshipVisualization",
+            width="col-12",
+            title="Item Relationships",
+            description="Visual representation of this item's relationships with other items",
+            hidden=True,
+        ),
     }
 
     @field_validator("characteristic_molar_mass", mode="before")

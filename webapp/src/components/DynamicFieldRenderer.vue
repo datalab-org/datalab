@@ -32,24 +32,11 @@
     </select>
     <component
       :is="componentName"
-      v-else-if="!isVirtualField"
+      v-else
       :id="fieldId"
       v-bind="componentProps"
       @update:model-value="handleUpdateValue"
       @input="handleInput"
-    />
-    <TableOfContents
-      v-else-if="uiConfig.component === 'TableOfContents'"
-      :item_id="componentProps.item_id"
-      :information-sections="componentProps.informationSections"
-    />
-    <SynthesisInformation
-      v-else-if="uiConfig.component === 'SynthesisInformation'"
-      :item_id="componentProps.item_id"
-    />
-    <CellPreparationInformation
-      v-else-if="uiConfig.component === 'CellPreparationInformation'"
-      :item_id="componentProps.item_id"
     />
   </div>
 </template>
@@ -123,19 +110,7 @@ export default {
       return this.fieldSchema.type === "null";
     },
     shouldShowLabel() {
-      const virtualFields = [
-        "TableOfContents",
-        "SynthesisInformation",
-        "CellPreparationInformation",
-        "DynamicDataTable",
-      ];
-      const fieldsWithBuiltinLabel = ["CASInput"];
-      return (
-        this.showLabel &&
-        !virtualFields.includes(this.uiConfig.component) &&
-        !fieldsWithBuiltinLabel.includes(this.uiConfig.component) &&
-        !this.hasBuiltinLabel
-      );
+      return this.showLabel && !this.uiConfig.hide_label && !this.hasBuiltinLabel;
     },
     needsWrapper() {
       const wrapperComponents = ["FormattedRefcode", "FormattedBarcode"];

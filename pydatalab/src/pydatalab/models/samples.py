@@ -1,4 +1,4 @@
-from typing import Any, ClassVar, Literal
+from typing import ClassVar, Literal
 
 from pydantic import Field
 
@@ -49,6 +49,7 @@ class Sample(Item, HasSynthesisInfo, HasUIHints):
             component="TableOfContents",
             width="col-12",
             hide_label=True,
+            title="Table of Contents",
             component_props={
                 "sections": [
                     {"title": "Sample Information", "targetID": "samples-information"},
@@ -58,18 +59,16 @@ class Sample(Item, HasSynthesisInfo, HasUIHints):
             },
         ),
         "synthesis_information": UIFieldConfig(
-            component="SynthesisInformation", width="col-12", hide_label=True
+            component="SynthesisInformation",
+            width="col-12",
+            hide_label=True,
+            title="Synthesis Information",
         ),
-    }
-    ui_virtual_fields: ClassVar[dict[str, dict[str, Any]]] = {
-        "synthesis_information": {
-            "title": "Synthesis Information",
-        },
-        "table_of_contents": {
-            "title": "Table of Contents",
-        },
-        "item_relationships": {
-            "title": "Item Relationships",
-            "description": "Visual representation of this item's relationships with other items",
-        },
+        "item_relationships": UIFieldConfig(
+            component="ItemRelationshipVisualization",
+            width="col-12",
+            title="Item Relationships",
+            description="Visual representation of this item's relationships with other items",
+            hidden=True,
+        ),
     }

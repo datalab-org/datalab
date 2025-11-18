@@ -1,4 +1,4 @@
-from typing import Any, ClassVar, Literal
+from typing import ClassVar, Literal
 
 from pydantic import Field, field_validator
 
@@ -114,42 +114,31 @@ class StartingMaterial(Item, HasSynthesisInfo, HasUIHints):
 
     ui_field_config: ClassVar[dict[str, UIFieldConfig]] = {
         "name": UIFieldConfig(component="input", width="col-sm-4 pr-2 col-6"),
-        "chemform": UIFieldConfig(
-            component="ChemFormulaInput",
-            width="col-sm-4 pr-2 col-6",
-        ),
+        "chemform": UIFieldConfig(component="ChemFormulaInput", width="col-sm-4 pr-2 col-6"),
         "date": UIFieldConfig(component="input", width="col-sm-4 col-6"),
         "refcode": UIFieldConfig(
             component="FormattedRefcode", width="col-md-3 col-sm-4 col-6", readonly=True
         ),
         "barcode": UIFieldConfig(
-            component="FormattedBarcode",
-            width="col-md-3 col-sm-4 col-6",
-            readonly=True,
+            component="FormattedBarcode", width="col-md-3 col-sm-4 col-6", readonly=True
         ),
         "collections": UIFieldConfig(
             component="ToggleableCollectionFormGroup",
             width="col-md-6 col-sm-7 pr-2",
             has_builtin_label=True,
         ),
-        "location": UIFieldConfig(component="input", width="col-lg-12 col-sm-12"),
-        "supplier": UIFieldConfig(component="input", width="col-lg-3 col-sm-4"),
-        "chemical_purity": UIFieldConfig(component="input", width="col-lg-3 col-sm-4"),
-        "CAS": UIFieldConfig(
-            component="CASInput",
-            width="col-lg-3 col-sm-3 col-6",
-        ),
-        "date_opened": UIFieldConfig(component="input", width="col-lg-3 col-sm-3 col-6"),
-        "GHS_codes": UIFieldConfig(
-            component="GHSHazardInformation",
-            width="col-12",
-            has_builtin_label=True,
-        ),
+        "CAS": UIFieldConfig(component="CASInput", width="col-sm-4 col-6"),
+        "supplier": UIFieldConfig(component="input", width="col-sm-4 col-6"),
+        "chemical_purity": UIFieldConfig(component="input", width="col-sm-4 col-6"),
+        "location": UIFieldConfig(component="input", width="col-sm-4 col-6"),
+        "date_opened": UIFieldConfig(component="input", width="col-sm-4 col-6"),
+        "molar_mass": UIFieldConfig(component="input", width="col-sm-4 col-6", readonly=True),
         "description": UIFieldConfig(component="TinyMceInline", width="col-12"),
         "table_of_contents": UIFieldConfig(
             component="TableOfContents",
             width="col-12",
             hide_label=True,
+            title="Table of Contents",
             component_props={
                 "sections": [
                     {
@@ -162,21 +151,18 @@ class StartingMaterial(Item, HasSynthesisInfo, HasUIHints):
             },
         ),
         "synthesis_information": UIFieldConfig(
-            component="SynthesisInformation", width="col-12", hide_label=True
+            component="SynthesisInformation",
+            width="col-12",
+            hide_label=True,
+            title="Synthesis Information",
         ),
-    }
-
-    ui_virtual_fields: ClassVar[dict[str, dict[str, Any]]] = {
-        "table_of_contents": {
-            "title": "Table of Contents",
-        },
-        "synthesis_information": {
-            "title": "Synthesis Information",
-        },
-        "item_relationships": {
-            "title": "Item Relationships",
-            "description": "Visual representation of this item's relationships with other items",
-        },
+        "item_relationships": UIFieldConfig(
+            component="ItemRelationshipVisualization",
+            width="col-12",
+            title="Item Relationships",
+            description="Visual representation of this item's relationships with other items",
+            hidden=True,
+        ),
     }
 
     @field_validator("molar_mass", mode="before")

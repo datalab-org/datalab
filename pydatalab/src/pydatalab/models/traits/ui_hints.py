@@ -13,6 +13,8 @@ class UIFieldConfig:
         hide_label: bool = False,
         has_builtin_label: bool = False,
         component_props: dict[str, Any] | None = None,
+        title: str | None = None,
+        description: str | None = None,
     ):
         """
         Configure UI rendering for a field.
@@ -33,6 +35,8 @@ class UIFieldConfig:
         self.hide_label = hide_label
         self.has_builtin_label = has_builtin_label
         self.component_props = component_props
+        self.title = title
+        self.description = description
 
     def to_dict(self) -> dict[str, Any]:
         config: dict[str, Any] = {
@@ -50,6 +54,10 @@ class UIFieldConfig:
             config["has_builtin_label"] = True
         if self.component_props:
             config["component_props"] = self.component_props
+        if self.title:
+            config["title"] = self.title
+        if self.description:
+            config["description"] = self.description
 
         return config
 
@@ -59,8 +67,6 @@ class HasUIHints(BaseModel):
 
     ui_field_config: ClassVar[dict[str, UIFieldConfig]] = {}
 
-    ui_virtual_fields: ClassVar[dict[str, dict[str, Any]]] = {}
-
     @classmethod
     def get_ui_schema(cls) -> dict[str, Any]:
         base_schema = cls.model_json_schema(by_alias=False)
@@ -69,15 +75,10 @@ class HasUIHints(BaseModel):
 
         for row in cls.ui_layout:
             for field_name in row:
-                if field_name not in properties and field_name not in cls.ui_virtual_fields:
+                if field_name not in properties and field_name not in cls.ui_field_config:
                     raise ValueError(
-                        f"Field '{field_name}' in ui_layout does not exist in properties or ui_virtual_fields"
+                        f"Field '{field_name}' in ui_layout does not exist in properties or ui_field_config"
                     )
-
-        if hasattr(cls, "ui_field_titles"):
-            for field_name, custom_title in cls.ui_field_titles.items():
-                if field_name in base_schema.get("properties", {}):
-                    base_schema["properties"][field_name]["title"] = custom_title
 
         for field_name, field_schema in properties.items():
             if "anyOf" in field_schema:
@@ -94,24 +95,18 @@ class HasUIHints(BaseModel):
         for field_name, config in cls.ui_field_config.items():
             if field_name in properties:
                 properties[field_name]["ui"] = config.to_dict()
-            elif field_name in cls.ui_virtual_fields:
-                virtual_field_info = cls.ui_virtual_fields[field_name]
+                if config.title:
+                    properties[field_name]["title"] = config.title
+                if config.description:
+                    properties[field_name]["description"] = config.description
+            else:
                 properties[field_name] = {
                     "type": "null",
-                    "title": virtual_field_info.get("title", field_name),
+                    "title": config.title or field_name,
                     "ui": config.to_dict(),
                 }
-                if "description" in virtual_field_info:
-                    properties[field_name]["description"] = virtual_field_info["description"]
-
-        for field_name, virtual_field_info in cls.ui_virtual_fields.items():
-            if field_name not in properties:
-                properties[field_name] = {
-                    "type": "null",
-                    "title": virtual_field_info.get("title", field_name),
-                }
-                if "description" in virtual_field_info:
-                    properties[field_name]["description"] = virtual_field_info["description"]
+                if config.description:
+                    properties[field_name]["description"] = config.description
 
         return {
             "properties": properties,
