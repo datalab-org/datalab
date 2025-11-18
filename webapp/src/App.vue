@@ -113,4 +113,8 @@ body {
 .clickable {
   cursor: pointer;
 }
+
+.modal {
+  font-family: var(--font-primary);
+}
 </style>
