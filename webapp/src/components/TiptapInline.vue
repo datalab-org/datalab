@@ -78,11 +78,9 @@
     <editor-content
       v-if="!markdownMode"
       :editor="editor"
-      class="form-control-plaintext border rounded d-inline-block w-100"
-      :class="{ 'border-primary': showToolbar }"
-      style="padding: 0.5rem"
+      class="tiptap-editor-wrapper"
+      :class="{ 'editor-focused': showToolbar }"
     />
-
     <textarea
       v-else
       v-model="markdownContent"
@@ -794,8 +792,32 @@ export default {
 </script>
 
 <style scoped>
+.tiptap-editor-wrapper {
+  border: 1px solid transparent;
+  border-radius: 0.25rem;
+  margin: 10px;
+  transition: border-color 0.2s;
+}
+
+.tiptap-editor-wrapper:hover {
+  border: 1px solid #ccc;
+}
+
+.tiptap-editor-wrapper.editor-focused {
+  border: 1px solid #ccc;
+}
+
 :deep(.ProseMirror) {
-  padding: 0.1em;
+  padding: 0;
+  outline: none;
+}
+
+:deep(.ProseMirror p.is-editor-empty:first-child::before) {
+  content: attr(data-placeholder);
+  float: left;
+  color: rgba(34, 47, 62, 0.7);
+  pointer-events: none;
+  height: 0;
 }
 
 :deep(.ProseMirror table) {
