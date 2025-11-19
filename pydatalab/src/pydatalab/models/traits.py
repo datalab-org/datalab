@@ -3,8 +3,9 @@ from typing import Any
 from pydantic import BaseModel, Field, root_validator
 
 from pydatalab.models.blocks import DataBlockResponse
+from pydatalab.models.entries import EntryReference
 from pydatalab.models.people import Person
-from pydatalab.models.utils import Constituent, InlineSubstance, PyObjectId
+from pydatalab.models.utils import Constituent, PyObjectId
 
 
 class HasOwner(BaseModel):
@@ -87,59 +88,134 @@ class HasSynthesisInfo(BaseModel):
     synthesis_constituents: list[Constituent] = Field([])
     """A list of references to constituent materials giving the amount and relevant inlined details of consituent items."""
 
+    synthesis_products: list[Constituent] = Field([])
+    """A list of references to constituent materials giving the amount and relevant inlined details of relevant sythesis products."""
+
     synthesis_description: str | None = None
     """Free-text details of the procedure applied to synthesise the sample"""
 
     @root_validator
-    def add_missing_synthesis_relationships(cls, values):
-        """Add any missing sample synthesis constituents to parent relationships"""
+    def prevent_self_loop_in_constituents(cls, values):
+        item_id = values.get("item_id")
+        if not item_id:
+            return values
+
+        synthesis_constituents = values.get("synthesis_constituents", [])
+        for constituent in synthesis_constituents:
+            constituent_item_id = None
+
+            if hasattr(constituent, "item"):
+                if isinstance(constituent.item, EntryReference):
+                    constituent_item_id = constituent.item.item_id
+                elif isinstance(constituent.item, dict):
+                    constituent_item_id = constituent.item.get("item_id")
+            elif isinstance(constituent, dict):
+                item = constituent.get("item", {})
+                if isinstance(item, dict):
+                    constituent_item_id = item.get("item_id")
+
+            if constituent_item_id == item_id:
+                raise ValueError("A sample cannot reference itself in synthesis_constituents")
+
+        return values
+
+    @root_validator
+    def add_missing_constituent_relationships(cls, values):
         from pydatalab.models.relationships import RelationshipType, TypedRelationship
 
-        constituents_set = set()
-        if values.get("synthesis_constituents") is not None:
-            existing_parent_relationship_ids = set()
-            if values.get("relationships") is not None:
-                existing_parent_relationship_ids = {
-                    relationship.refcode or relationship.item_id
-                    for relationship in values["relationships"]
-                    if relationship.relation == RelationshipType.PARENT
-                }
-            else:
-                values["relationships"] = []
+        if values.get("relationships") is None:
+            values["relationships"] = []
 
-            for constituent in values.get("synthesis_constituents", []):
-                # If this is an inline relationship, just skip it
-                if isinstance(constituent.item, InlineSubstance):
-                    continue
-
+        current_constituent_ids = set()
+        for constituent in values.get("synthesis_constituents", []):
+            if isinstance(constituent.item, EntryReference):
                 constituent_id = constituent.item.refcode or constituent.item.item_id
+                if constituent_id:
+                    current_constituent_ids.add(constituent_id)
 
-                if constituent_id not in existing_parent_relationship_ids:
-                    relationship = TypedRelationship(
-                        relation=RelationshipType.PARENT,
-                        refcode=constituent.item.refcode,
-                        item_id=constituent.item.item_id,
-                        type=constituent.item.type,
-                        description="Is a constituent of",
-                    )
-                    values["relationships"].append(relationship)
-
-                # Accumulate all constituent IDs in a set to filter those that have been deleted
-                constituents_set.add(constituent_id)
-
-        # Finally, filter out any parent relationships with item that were removed
-        # from the synthesis constituents
         values["relationships"] = [
             rel
             for rel in values["relationships"]
-            if not (
-                (rel.refcode or rel.item_id) not in constituents_set
-                and rel.relation == RelationshipType.PARENT
-                and rel.type in ("samples", "starting_materials")
-            )
+            if rel.relation != RelationshipType.PARENT
+            or (rel.refcode or rel.item_id) in current_constituent_ids
         ]
 
+        existing_parent_relationship_ids = {
+            relationship.refcode or relationship.item_id
+            for relationship in values["relationships"]
+            if relationship.relation == RelationshipType.PARENT
+        }
+
+        for constituent in values.get("synthesis_constituents", []):
+            if (
+                isinstance(constituent.item, EntryReference)
+                and (constituent.item.refcode or constituent.item.item_id)
+                not in existing_parent_relationship_ids
+            ):
+                relationship = TypedRelationship(
+                    relation=RelationshipType.PARENT,
+                    refcode=constituent.item.refcode,
+                    item_id=constituent.item.item_id,
+                    type=constituent.item.type,
+                    description="Is a constituent of",
+                )
+                values["relationships"].append(relationship)
+
         return values
+
+    @root_validator
+    def add_self_product(cls, values):
+        synthesis_products = values.get("synthesis_products")
+
+        if synthesis_products is None:
+            synthesis_products = []
+            values["synthesis_products"] = synthesis_products
+
+        if len(synthesis_products) == 0:
+            values["synthesis_products"].append(
+                Constituent(
+                    quantity=None,
+                    item={
+                        "type": values.get("type"),
+                        "refcode": values.get("refcode"),
+                        "item_id": values.get("item_id"),
+                    },
+                )
+            )
+
+        return values
+
+    def calculate_yield_percentage(self) -> float | None:
+        from pydatalab.models.utils import EntryReference
+
+        if not self.synthesis_products:
+            return None
+
+        item_id = getattr(self, "item_id", None)
+        if not item_id:
+            return None
+
+        self_product = next(
+            (
+                p
+                for p in self.synthesis_products
+                if isinstance(p.item, EntryReference) and p.item.item_id == item_id
+            ),
+            None,
+        )
+
+        if not self_product or not self_product.quantity:
+            return None
+
+        if not self.synthesis_constituents:
+            return None
+
+        total_input = sum(c.quantity for c in self.synthesis_constituents if c.quantity is not None)
+
+        if total_input == 0:
+            return None
+
+        return (self_product.quantity / total_input) * 100
 
 
 class HasChemInfo:
