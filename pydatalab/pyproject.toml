@@ -27,6 +27,7 @@ dependencies = [
     "pint ~= 0.24",
     "pandas[excel] ~= 2.2",
     "pymongo ~= 4.7",
+    "nexusformat>=2.0.0",
 ]
 
 [project.urls]

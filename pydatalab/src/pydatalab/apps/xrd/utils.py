@@ -5,6 +5,7 @@ import warnings
 import zipfile
 from pathlib import Path
 
+import nexusformat.nexus as nx
 import numpy as np
 import pandas as pd
 
@@ -220,3 +221,20 @@ def compute_cif_pxrd(filename: str, wavelength: float) -> tuple[pd.DataFrame, di
         "theoretical": True,
     }
     return df, peak_data
+
+
+def load_nexus_file(filename: str) -> nx.NXroot:
+    """Loads a Nexus file and returns the root object."""
+    try:
+        nxdata = nx.nxload(filename)
+        data_group = nxdata["entry"]["data"]
+        counts = data_group["data"].nxdata
+        tof_edges = data_group["time_of_flight"].nxdata
+        tof_centers = 0.5 * (tof_edges[:-1] + tof_edges[1:])
+        # angle = data_group["polar_angle"].nxdata
+        total_counts = counts.sum(axis=0)
+
+        df = pd.DataFrame({"tof_centers": tof_centers, "total_counts": total_counts})
+        return df
+    except Exception as e:
+        raise RuntimeError(f"Failed to load Nexus file {filename}: {e}")
