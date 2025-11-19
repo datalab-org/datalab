@@ -17,10 +17,10 @@ __all__ = ("ChatBlock",)
 
 class ChatBlockResponse(DataBlockResponse):
     messages: list[dict] = Field(default_factory=list)
-    prompt: str | None
+    prompt: str | None = None
     model: str
     available_models: dict[str, ModelCard]
-    token_count: int | None
+    token_count: int | None = None
     temperature: float
 
 
@@ -205,8 +205,8 @@ Please make a new chat block to start fresh, or use a model with a larger contex
             item_model.blocks_obj = {
                 k: block for k, block in item_model.blocks_obj.items() if block.blocktype != "chat"
             }
-        item_data = item_model.dict(exclude_none=True, exclude_unset=True)
-        item_data["type"] = item_model.type
+        item_info = item_model.model_dump(exclude_none=True, exclude_unset=True)
+        item_info["type"] = item_model.type
 
         # strip irrelevant or large fields
         item_filenames = {

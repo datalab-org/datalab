@@ -1,18 +1,13 @@
 from pathlib import Path
 
 import pytest
-from navani.echem import echem_file_loader
-
-from pydatalab.apps.echem.utils import (
-    compute_gpcl_differential,
-    filter_df_by_cycle_index,
-    reduce_echem_cycle_sampling,
-)
 
 
 @pytest.fixture
 def echem_dataframe():
     """Yields example echem data as a dataframe."""
+    from navani.echem import echem_file_loader
+
     df = echem_file_loader(
         Path(__file__)
         .parent.joinpath(
@@ -38,15 +33,27 @@ def echem_dataframe():
 
 @pytest.fixture
 def reduced_echem_dataframe(echem_dataframe):
+    from pydatalab.apps.echem.utils import (
+        reduce_echem_cycle_sampling,
+    )
+
     return reduce_echem_cycle_sampling(echem_dataframe, 100)
 
 
 @pytest.fixture
 def reduced_and_filtered_echem_dataframe(reduced_echem_dataframe):
+    from pydatalab.apps.echem.utils import (
+        filter_df_by_cycle_index,
+    )
+
     return filter_df_by_cycle_index(reduced_echem_dataframe)
 
 
 def test_reduce_size(echem_dataframe):
+    from pydatalab.apps.echem.utils import (
+        reduce_echem_cycle_sampling,
+    )
+
     original_size = echem_dataframe.shape[0]
     for size in (1, 10, int(0.5 * len(echem_dataframe)), len(echem_dataframe)):
         number_of_cycles = echem_dataframe["half cycle"].nunique()
@@ -57,6 +64,10 @@ def test_reduce_size(echem_dataframe):
 
 
 def test_compute_gpcl_differential(reduced_and_filtered_echem_dataframe):
+    from pydatalab.apps.echem.utils import (
+        compute_gpcl_differential,
+    )
+
     df = reduced_and_filtered_echem_dataframe
 
     dqdv_results = compute_gpcl_differential(df)
@@ -67,6 +78,10 @@ def test_compute_gpcl_differential(reduced_and_filtered_echem_dataframe):
 
 
 def test_filter_df_by_cycle_index(reduced_echem_dataframe):
+    from pydatalab.apps.echem.utils import (
+        filter_df_by_cycle_index,
+    )
+
     cycle_lists = ([1, 2, 3], [4.0, 6.0, 10.0], [-1, 5, 2])
     for cycle_list in cycle_lists:
         filtered_df = filter_df_by_cycle_index(reduced_echem_dataframe, cycle_list)
@@ -74,6 +89,9 @@ def test_filter_df_by_cycle_index(reduced_echem_dataframe):
 
 
 def test_plot(reduced_echem_dataframe):
+    from pydatalab.apps.echem.utils import (
+        compute_gpcl_differential,
+    )
     from pydatalab.bokeh_plots import double_axes_echem_plot
 
     layout = double_axes_echem_plot(reduced_echem_dataframe)

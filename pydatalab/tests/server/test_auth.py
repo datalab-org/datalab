@@ -1,8 +1,7 @@
-from pydatalab.routes.v0_1.auth import _check_email_domain
-
-
 def test_allow_emails():
     # Test that a valid email is allowed
+    from pydatalab.routes.v0_1.auth import _check_email_domain
+
     assert _check_email_domain("test@example.org", ["example.org"])
     assert _check_email_domain("test@example.org", ["example.org", "example2.org"])
     assert _check_email_domain("test@subdomain.example.org", ["example.org", "example2.org"])
