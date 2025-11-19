@@ -83,6 +83,8 @@
         :field="column.field"
         sortable
         :class="{ 'filter-active': isFilterActive(column.field) }"
+        :min-width="getColumnMinWidth(column)"
+        :style="{ minWidth: getColumnMinWidth(column) }"
         :filter-menu-class="column.field === 'type' || column.field === 'date' ? 'no-operator' : ''"
       >
         <template #header>
@@ -431,6 +433,7 @@ export default {
       ],
     };
   },
+
   computed: {
     rows() {
       return this.$store.state.datatablePaginationSettings[this.dataType].rows;
@@ -619,6 +622,25 @@ export default {
     });
   },
   methods: {
+    getColumnMinWidth(column) {
+      let minWidth = 20;
+
+      if (column.header) {
+        minWidth += column.header.length * 7;
+      }
+
+      if (column.icon) {
+        minWidth += 25;
+      }
+
+      minWidth += 25;
+
+      if (column.filter) {
+        minWidth += 35;
+      }
+
+      return Math.max(minWidth, 80) + "px";
+    },
     onSort(event) {
       const sortedColumns = event.multiSortMeta || [];
 
