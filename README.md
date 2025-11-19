@@ -5,8 +5,8 @@
 </div>
 
 <div align="center">
-<a href="https://github.com/datalab-org/datalab/releases"><img src="https://badgen.net/github/release/datalab-org/datalab?icon=github&color=blue"></a>
-<a href="https://github.com/datalab-org/datalab#MIT-1-ov-file"><img src="https://badgen.net/github/license/datalab-org/datalab?icon=license&color=purple"></a>
+<a href="https://github.com/datalab-org/datalab/releases"><img src="https://img.shields.io/github/v/release/datalab-org/datalab?color=blue&logo=github"></a>
+<a href="https://github.com/datalab-org/datalab#MIT-1-ov-file"><img src="https://img.shields.io/github/license/datalab-org/datalab?color=purple&logo=github"></a>
 </div>
 
 <div align="center">
