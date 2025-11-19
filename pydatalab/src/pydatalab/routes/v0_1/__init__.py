@@ -7,6 +7,7 @@ from .blocks import BLOCKS
 from .collections import COLLECTIONS
 from .files import FILES
 from .graphs import GRAPHS
+from .groups import GROUPS
 from .healthcheck import HEALTHCHECK
 from .info import INFO
 from .items import ITEMS
@@ -18,6 +19,7 @@ BLUEPRINTS: tuple[Blueprint, ...] = (
     COLLECTIONS,
     REMOTES,
     USERS,
+    GROUPS,
     ADMIN,
     ITEMS,
     BLOCKS,
