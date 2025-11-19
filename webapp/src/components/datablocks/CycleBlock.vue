@@ -353,7 +353,7 @@ export default {
 }
 
 .limited-width {
-  max-width: 650px;
+  max-width: 100%;
 }
 
 .slider {
