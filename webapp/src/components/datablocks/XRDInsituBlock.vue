@@ -1,5 +1,26 @@
 <template>
   <DataBlockBase :item_id="item_id" :block_id="block_id">
+    <div class="mb-2 d-flex align-items-center">
+      <label class="mr-2"><b>Mode:</b></label>
+      <div class="btn-group" role="group" aria-label="Mode toggle">
+        <button
+          type="button"
+          class="btn"
+          :class="isEchemMode ? 'btn-outline-secondary' : 'btn-secondary'"
+          @click="setMode('log')"
+        >
+          Temperature
+        </button>
+        <button
+          type="button"
+          class="btn"
+          :class="isEchemMode ? 'btn-secondary' : 'btn-outline-secondary'"
+          @click="setMode('echem')"
+        >
+          Electrochemistry
+        </button>
+      </div>
+    </div>
     <FileSelectDropdown
       v-model="file_id"
       :item_id="item_id"
@@ -11,23 +32,23 @@
     <div v-show="file_id">
       <div class="row">
         <div class="col-lg-4 col-md-6 col-sm-12 mb-2">
-          <label><b>UV-Vis folder name</b></label>
+          <label class="mr-2"><b>XRD folder name</b></label>
           <FolderSelect
-            v-model="uvvis_folder_name"
+            v-model="xrd_folder_name"
             :options="availableFolders"
             @update:model-value="onFolderSelected"
           />
         </div>
         <div class="col-lg-4 col-md-6 col-sm-12 mb-2">
-          <label><b>UV-Vis reference folder name</b></label>
+          <label class="mr-2"><b>Log folder name</b></label>
           <FolderSelect
-            v-model="uvvis_reference_folder_name"
+            v-model="time_series_folder_name"
             :options="availableFolders"
             @update:model-value="onFolderSelected"
           />
         </div>
-        <div class="col-lg-4 col-md-6 col-sm-12 mb-2">
-          <label><b>Echem folder name</b></label>
+        <div v-if="isEchemMode" class="col-lg-4 col-md-6 col-sm-12 mb-2">
+          <label class="mr-2"><b>Echem folder name</b></label>
           <FolderSelect
             v-model="echem_folder_name"
             :options="availableFolders"
@@ -39,39 +60,58 @@
         {{ folderNameError }}
       </div>
     </div>
-    <div class="form-group mb-2">
-      <label class="mr-2"><b>Scan time (s)</b></label>
-      <input
-        v-model="scan_time_buffer"
-        type="text"
-        class="form-control"
-        placeholder="Enter scan time"
-        style="width: 160px; display: inline-block"
-        inputmode="decimal"
-        pattern="[0-9]*[.,]?[0-9]*"
-        @keydown.enter="onScanTimeSelected"
-        @blur="onScanTimeSelected"
-      />
-    </div>
     <div class="form-inline mb-2">
-      <label class="mr-2"><b>Data granularity</b></label>
+      <label class="mr-2">
+        <b>Data granularity</b>
+        <font-awesome-icon
+          :icon="['fas', 'info-circle']"
+          class="ml-1"
+          style="cursor: help"
+          title="Controls the number of datapoints along the x-axis for the heatmap. For example a value of 2 means every other point is shown. Interpolation is done via max pooling. Higher values show fewer points for faster rendering."
+        />
+      </label>
       <input
         v-model="data_granularity_buffer"
         type="text"
         class="form-control mr-3"
         style="width: 100px; display: inline-block"
       />
-      <label class="mr-2"><b>Sample granularity</b></label>
+      <label class="mr-2">
+        <b>Sample granularity</b>
+        <font-awesome-icon
+          :icon="['fas', 'info-circle']"
+          class="ml-1"
+          style="cursor: help"
+          title="Controls how many samples are displayed in the heatmap. For example a value of 2 means every other sample is plotted. Higher values show fewer samples for faster rendering."
+        />
+      </label>
       <input
         v-model="sample_granularity_buffer"
         type="text"
-        class="form-control"
+        class="form-control mr-3"
         style="width: 100px; display: inline-block"
+      />
+      <label class="mr-2">
+        <b>File pattern</b>
+        <font-awesome-icon
+          :icon="['fas', 'info-circle']"
+          class="ml-1"
+          style="cursor: help"
+          title="Filter files by pattern (using glob). Use * as wildcard (e.g., *.xy for all .xy files, data_*.txt for files starting with 'data_' and ending with '.txt', or for example '*summed*' for all files containing 'summed'). Leave empty to use all files."
+        />
+      </label>
+      <input
+        v-model="glob_str"
+        type="text"
+        class="form-control"
+        style="width: 250px; display: inline-block"
+        placeholder="e.g., *.xy or data_*.txt"
+        @keyup.enter="updateBlock"
       />
       <button class="btn btn-primary ml-3" @click="onGranularitySubmit">Apply</button>
     </div>
     <div
-      v-show="uvvis_folder_name && uvvis_reference_folder_name && echem_folder_name"
+      v-show="xrd_folder_name && time_series_folder_name"
       class="row mt-2 text-center justify-content-center"
     >
       <div
@@ -114,16 +154,9 @@ export default {
     return {
       folderNameError: "",
       isUpdating: false,
-      scan_time_buffer: "",
     };
   },
   watch: {
-    scan_time: {
-      immediate: true,
-      handler(newVal) {
-        this.scan_time_buffer = newVal;
-      },
-    },
     data_granularity: {
       immediate: true,
       handler(newVal) {
@@ -143,7 +176,7 @@ export default {
         .bokeh_plot_data;
     },
     blockInfo() {
-      return this.$store.state.blocksInfos["insitu-uvvis"];
+      return this.$store.state.blocksInfos["insitu-xrd"];
     },
     all_files() {
       return this.$store.state.all_item_data[this.item_id].files;
@@ -154,40 +187,47 @@ export default {
     availableFolders() {
       return this.currentBlock.available_folders || [];
     },
-    uvvis_folder_name: createComputedSetterForBlockField("uvvis_folder_name"),
-    uvvis_reference_folder_name: createComputedSetterForBlockField("uvvis_reference_folder_name"),
+    xrd_folder_name: createComputedSetterForBlockField("xrd_folder_name"),
+    time_series_folder_name: createComputedSetterForBlockField("time_series_folder_name"),
     echem_folder_name: createComputedSetterForBlockField("echem_folder_name"),
     file_id: createComputedSetterForBlockField("file_id"),
     folder_name: createComputedSetterForBlockField("folder_name"),
-    scan_time: createComputedSetterForBlockField("scan_time"),
     data_granularity: createComputedSetterForBlockField("data_granularity"),
     sample_granularity: createComputedSetterForBlockField("sample_granularity"),
+    time_series_source: createComputedSetterForBlockField("time_series_source"),
+    glob_str: createComputedSetterForBlockField("glob_str"),
+    isEchemMode() {
+      return this.time_series_source === "echem";
+    },
+  },
+  created() {
+    // Ensure time_series_source is set to "log" by default if not present
+    if (this.time_series_source === undefined || this.time_series_source === null) {
+      this.time_series_source = "log";
+    }
   },
   methods: {
-    onFileChange() {
-      this.uvvis_folder_name = "";
-      this.uvvis_reference_folder_name = "";
+    setMode(mode) {
+      this.time_series_source = mode;
+      this.xrd_folder_name = "";
+      this.time_series_folder_name = "";
       this.echem_folder_name = "";
-
+      this.folderNameError = "";
+      this.updateBlock();
+      console.info("Mode set to", mode);
+    },
+    onFileChange() {
+      this.xrd_folder_name = "";
+      this.time_series_folder_name = "";
+      this.echem_folder_name = "";
       this.updateBlock();
     },
     onFolderSelected() {
-      if (this.uvvis_folder_name && this.echem_folder_name && this.uvvis_reference_folder_name) {
-        this.folderNameError = "";
-        this.updateBlock();
-      } else if (
-        this.uvvis_folder_name ||
-        this.echem_folder_name ||
-        this.uvvis_reference_folder_name
+      if (
+        this.xrd_folder_name &&
+        this.time_series_folder_name &&
+        (!this.isEchemMode || this.echem_folder_name)
       ) {
-        this.folderNameError =
-          "UV-Vis sample and reference folders, along with an echem folder is required.";
-      }
-    },
-    onScanTimeSelected() {
-      const parsed = parseFloat(this.scan_time_buffer);
-      if (!isNaN(parsed)) {
-        this.scan_time = parsed;
         this.updateBlock();
       }
     },
@@ -223,3 +263,5 @@ export default {
   },
 };
 </script>
+
+<style scoped></style>

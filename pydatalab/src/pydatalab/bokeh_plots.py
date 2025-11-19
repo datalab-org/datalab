@@ -302,6 +302,8 @@ def selectable_axes_plot(
         **kwargs,
     )
     p.toolbar.logo = "grey"
+    p.xaxis.ticker.desired_num_ticks = 5
+    p.yaxis.ticker.desired_num_ticks = 5
 
     if tools:
         if isinstance(tools, list):
