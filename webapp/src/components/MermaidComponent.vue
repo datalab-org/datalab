@@ -80,7 +80,7 @@ export default {
           window.mermaid.initialize({
             startOnLoad: false,
             theme: "default",
-            securityLevel: "loose",
+            securityLevel: "sandbox",
           });
           window.mermaid._initialized = true;
         }
