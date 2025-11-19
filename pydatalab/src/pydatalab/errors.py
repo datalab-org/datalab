@@ -99,6 +99,5 @@ ERROR_HANDLERS: Iterable[tuple[Any, Callable[[Any], tuple[Response, int]]]] = [
     (UserRegistrationForbidden, render_unauthorised_user_template),
     (RequestEntityTooLarge, handle_large_file_exception),
     (HTTPException, handle_http_exception),
-    (ValidationError, handle_pydantic_validation_error),
     (Exception, handle_generic_exception),
 ]

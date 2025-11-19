@@ -325,3 +325,40 @@ Cypress.Commands.add("expandIfCollapsed", (selector) => {
       }
     });
 });
+
+/**
+ * Login as a test user using a predefined magic link
+ * @param {string} email - Email address of the test user (default: test-user@example.com)
+ * @param {string} role - User role: 'user' or 'admin' (default: 'user')
+ */
+Cypress.Commands.add("loginViaTestMagicLink", (email = "test@example.com") => {
+  cy.request({
+    method: "POST",
+    url: API_URL + "/testing/create-magic-link",
+    body: { email: email, referrer: Cypress.config("baseUrl") },
+  }).then((response) => {
+    expect(response.status).to.eq(200);
+    const token = response.body.token;
+    cy.request({
+      method: "GET",
+      url: API_URL + `/login/email?token=${token}`,
+      followRedirect: false,
+    });
+    cy.visit("/");
+  });
+});
+
+Cypress.Commands.add("logout", () => {
+  cy.visit("/logout");
+});
+
+Cypress.Commands.add("deleteSample", (item_id) => {
+  cy.selectItemCheckbox("sample", item_id);
+  cy.get('[data-testid="selected-dropdown"]').click();
+  cy.get('[data-testid="delete-selected-button"]').click();
+  cy.findByText("Confirm Deletion").should("exist");
+  cy.get('[data-testid="dialog-modal-confirm-button"]').click();
+  cy.get("[data-testid=sample-table]")
+    .contains(new RegExp("^" + item_id + "$", "g"))
+    .should("not.exist");
+});

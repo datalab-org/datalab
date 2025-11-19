@@ -9,6 +9,14 @@ Cypress.on("window:before:load", (win) => {
 let item_ids = ["test_e1", "test_e2", "test_e3", "123equipment", "test_e3_copy"];
 
 before(() => {
+  cy.loginViaTestMagicLink("test-user@example.com", "user");
+});
+
+after(() => {
+  cy.logout();
+});
+
+before(() => {
   cy.visit("/equipment");
   cy.removeAllTestSamples(item_ids);
   cy.visit("/equipment").then(() => {

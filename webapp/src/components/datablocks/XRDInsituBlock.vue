@@ -61,19 +61,52 @@
       </div>
     </div>
     <div class="form-inline mb-2">
-      <label class="mr-2"><b>Data granularity</b></label>
+      <label class="mr-2">
+        <b>Data granularity</b>
+        <font-awesome-icon
+          :icon="['fas', 'info-circle']"
+          class="ml-1"
+          style="cursor: help"
+          title="Controls the number of datapoints along the x-axis for the heatmap. For example a value of 2 means every other point is shown. Interpolation is done via max pooling. Higher values show fewer points for faster rendering."
+        />
+      </label>
       <input
         v-model="data_granularity_buffer"
         type="text"
         class="form-control mr-3"
         style="width: 100px; display: inline-block"
       />
-      <label class="mr-2"><b>Sample granularity</b></label>
+      <label class="mr-2">
+        <b>Sample granularity</b>
+        <font-awesome-icon
+          :icon="['fas', 'info-circle']"
+          class="ml-1"
+          style="cursor: help"
+          title="Controls how many samples are displayed in the heatmap. For example a value of 2 means every other sample is plotted. Higher values show fewer samples for faster rendering."
+        />
+      </label>
       <input
         v-model="sample_granularity_buffer"
         type="text"
-        class="form-control"
+        class="form-control mr-3"
         style="width: 100px; display: inline-block"
+      />
+      <label class="mr-2">
+        <b>File pattern</b>
+        <font-awesome-icon
+          :icon="['fas', 'info-circle']"
+          class="ml-1"
+          style="cursor: help"
+          title="Filter files by pattern (using glob). Use * as wildcard (e.g., *.xy for all .xy files, data_*.txt for files starting with 'data_' and ending with '.txt', or for example '*summed*' for all files containing 'summed'). Leave empty to use all files."
+        />
+      </label>
+      <input
+        v-model="glob_str"
+        type="text"
+        class="form-control"
+        style="width: 250px; display: inline-block"
+        placeholder="e.g., *.xy or data_*.txt"
+        @keyup.enter="updateBlock"
       />
       <button class="btn btn-primary ml-3" @click="onGranularitySubmit">Apply</button>
     </div>
@@ -162,6 +195,7 @@ export default {
     data_granularity: createComputedSetterForBlockField("data_granularity"),
     sample_granularity: createComputedSetterForBlockField("sample_granularity"),
     time_series_source: createComputedSetterForBlockField("time_series_source"),
+    glob_str: createComputedSetterForBlockField("glob_str"),
     isEchemMode() {
       return this.time_series_source === "echem";
     },

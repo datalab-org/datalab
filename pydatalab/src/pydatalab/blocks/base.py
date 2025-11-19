@@ -201,8 +201,15 @@ class DataBlock:
         block, ready to be input into mongodb"""
 
         LOGGER.debug("Casting block %s to database object.", self.__class__.__name__)
+        exclude_fields: set[str] = {
+            f
+            for (f, s) in self.block_db_model.schema()["properties"].items()
+            if s.get("datalab_exclude_from_db")
+        }
         return self.block_db_model(**self.data).dict(
-            exclude={"bokeh_plot_data", "b64_encoded_image"}, exclude_unset=True
+            exclude=exclude_fields,
+            exclude_unset=True,
+            exclude_none=True,
         )
 
     def to_web(self) -> dict[str, Any]:
@@ -332,11 +339,11 @@ class DataBlock:
             "Updating block %s from web request",
             self.__class__.__name__,
         )
-        self.data.update(
-            self.block_db_model(**data).dict(
-                exclude={"computed", "metadata", "bokeh_plot_data", "b64_encoded_image"},
-                exclude_unset=True,
-            )
-        )
-
+        exclude_fields: set[str] = {
+            f
+            for (f, s) in self.block_db_model.schema()["properties"].items()
+            if s.get("datalab_exclude_from_load")
+        }
+        [data.pop(f, None) for f in exclude_fields]
+        self.data.update(self.block_db_model(**data).dict())
         return self

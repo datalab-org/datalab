@@ -1,6 +1,14 @@
 const API_URL = Cypress.config("apiUrl");
 console.log(API_URL);
 
+before(() => {
+  cy.loginViaTestMagicLink("test-user@example.com", "user");
+});
+
+after(() => {
+  cy.logout();
+});
+
 describe("Starting material table page - editable_inventory FALSE", () => {
   beforeEach(() => {
     cy.visit("/starting-materials");
