@@ -14,14 +14,14 @@ from pydatalab.logger import LOGGER
 from pydatalab.mongo import flask_mongo
 
 from .models import PeakInformation
-from .utils import compute_cif_pxrd, parse_rasx_zip, parse_xrdml
+from .utils import compute_cif_pxrd, load_nexus_file, parse_rasx_zip, parse_xrdml
 
 
 class XRDBlock(DataBlock):
     blocktype = "xrd"
     name = "Powder XRD"
     description = "Visualize XRD patterns and perform simple baseline corrections."
-    accepted_file_extensions = (".xrdml", ".xy", ".dat", ".xye", ".rasx", ".cif")
+    accepted_file_extensions = (".xrdml", ".xy", ".dat", ".xye", ".rasx", ".cif", ".nxs")
 
     defaults = {"wavelength": 1.54060}
 
@@ -71,6 +71,8 @@ class XRDBlock(DataBlock):
             df = parse_xrdml(location)
         elif ext == ".rasx":
             df = parse_rasx_zip(location)
+        elif ext == ".nxs":
+            df = load_nexus_file(location)
         elif ext == ".cif":
             df, peak_data = compute_cif_pxrd(
                 location, wavelength=wavelength or cls.defaults["wavelength"]
