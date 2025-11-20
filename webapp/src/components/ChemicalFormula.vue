@@ -38,7 +38,7 @@ export default {
 
       // Create a regex that matches either element symbols or sequences of digits/periods
       const validFormulaRegex = new RegExp(
-        `^[A-Za-z0-9.+x()\\[\\]\\s${greekLetters.replace(/\|/g, "")}${specialChars.replace(
+        `^[A-Za-z0-9.+x()\\[\\]\\/\\s<>${greekLetters.replace(/\|/g, "")}${specialChars.replace(
           /\|/g,
           "",
         )}-]+$`,
@@ -53,6 +53,15 @@ export default {
 
       let formatted = this.formula;
 
+      const tagPlaceholders = [];
+      let tagIndex = 0;
+      formatted = formatted.replace(/<(sub|sup)>(.*?)<\/\1>/g, (match) => {
+        const placeholder = `__TAG_${tagIndex}__`;
+        tagPlaceholders.push({ placeholder, content: match });
+        tagIndex++;
+        return placeholder;
+      });
+
       formatted = formatted.replace(/\.(?=\s*[A-Z([∙•])/g, " · ");
 
       formatted = formatted.replace(/[∙•]/g, " · ");
@@ -60,6 +69,13 @@ export default {
       formatted = formatted.replace(/\[([^\]]+)\](\d+)/g, (match, content, number) => {
         return `<span data-bracket>${content}</span><span data-number>${number}</span>`;
       });
+
+      formatted = formatted.replace(
+        new RegExp(`(${elementSymbols})(\\d+/\\d+)`, "g"),
+        (match, element, fraction) => {
+          return `${element}<sub>${fraction}</sub>`;
+        },
+      );
 
       formatted = formatted.replace(/([A-Z][a-z]?)(\d+)([+-])(?=\s|$|[A-Z])/g, "$1<sup>$2$3</sup>");
 
@@ -81,6 +97,10 @@ export default {
         /<span data-bracket>([^<]+)<\/span><span data-number>(\d+)<\/span>/g,
         "[$1]<sub>$2</sub>",
       );
+
+      tagPlaceholders.forEach(({ placeholder, content }) => {
+        formatted = formatted.replace(placeholder, content);
+      });
 
       return formatted;
     },
