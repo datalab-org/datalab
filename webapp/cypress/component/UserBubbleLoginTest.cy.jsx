@@ -114,7 +114,9 @@ describe("UserBubbleLogin", () => {
             creator,
           },
         });
-        cy.get("img.avatar").should("have.attr", "title", creator.display_name);
+        cy.get("img.avatar").trigger("mouseenter");
+        cy.get("[data-testid='styled-tooltip']").should("be.visible");
+        cy.get("[data-testid='styled-tooltip']").should("contain", creator.display_name);
       });
 
       it("applies the correct styles to the avatar image", () => {
@@ -161,11 +163,11 @@ describe("UserBubbleLogin", () => {
 
         if (tooltipText) {
           cy.get(".notification-dot").trigger("mouseenter");
-          cy.get("#tooltip").should("have.attr", "data-show");
-          cy.get("#tooltip p").contains(tooltipText);
+          cy.get("[data-testid='styled-tooltip']").should("have.attr", "data-show");
+          cy.get("[data-testid='styled-tooltip'] p").contains(tooltipText);
         } else {
           cy.get(".notification-dot").should("not.exist");
-          cy.get("#tooltip").should("not.have.attr", "data-show");
+          cy.get("[data-testid='styled-tooltip']").should("not.have.attr", "data-show");
         }
       });
 
@@ -181,10 +183,10 @@ describe("UserBubbleLogin", () => {
 
         if (tooltipText) {
           cy.get(".notification-dot").trigger("mouseenter");
-          cy.get("#tooltip").should("have.attr", "data-show");
+          cy.get("[data-testid='styled-tooltip']").should("have.attr", "data-show");
 
           cy.get(".notification-dot").trigger("mouseleave");
-          cy.get("#tooltip").should("not.have.attr", "data-show");
+          cy.get("[data-testid='styled-tooltip']").should("not.have.attr", "data-show");
         }
       });
 
@@ -200,10 +202,10 @@ describe("UserBubbleLogin", () => {
 
         if (tooltipText) {
           cy.get(".notification-dot").focus();
-          cy.get("#tooltip").should("have.attr", "data-show");
+          cy.get("[data-testid='styled-tooltip']").should("have.attr", "data-show");
 
           cy.get(".notification-dot").blur();
-          cy.get("#tooltip").should("not.have.attr", "data-show");
+          cy.get("[data-testid='styled-tooltip']").should("not.have.attr", "data-show");
         }
       });
 

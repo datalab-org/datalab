@@ -34,7 +34,7 @@
         >
           <template v-for="blockInfo in blocksInfos" :key="blockInfo.id">
             <span v-if="blockInfo.id !== 'notsupported'" @click="newBlock($event, blockInfo.id)">
-              <StyledBlockHelp :block-info="blockInfo.attributes" />
+              <BlockTooltip :block-info="blockInfo.attributes" />
             </span>
           </template>
         </div>
@@ -121,7 +121,7 @@ import BokehBlock from "@/components/datablocks/BokehBlock.vue";
 import ErrorBlock from "@/components/datablocks/ErrorBlock.vue";
 import { formatDistanceToNow } from "date-fns";
 
-import StyledBlockHelp from "@/components/StyledBlockHelp";
+import BlockTooltip from "@/components/BlockTooltip";
 
 export default {
   components: {
@@ -131,7 +131,7 @@ export default {
     LoginDetails,
     FileSelectModal,
     FormattedItemName,
-    StyledBlockHelp,
+    BlockTooltip,
   },
   async beforeRouteLeave(to, from, next) {
     // give warning before leaving the page by the vue router (which would not trigger "beforeunload")

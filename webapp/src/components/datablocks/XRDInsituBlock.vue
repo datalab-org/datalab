@@ -63,11 +63,8 @@
     <div class="form-inline mb-2">
       <label class="mr-2">
         <b>Data granularity</b>
-        <font-awesome-icon
-          :icon="['fas', 'info-circle']"
-          class="ml-1"
-          style="cursor: help"
-          title="Controls the number of datapoints along the x-axis for the heatmap. For example a value of 2 means every other point is shown. Interpolation is done via max pooling. Higher values show fewer points for faster rendering."
+        <TooltipIcon
+          text="Controls the number of datapoints along the x-axis for the heatmap. For example a value of 2 means every other point is shown. Interpolation is done via max pooling. Higher values show fewer points for faster rendering."
         />
       </label>
       <input
@@ -78,11 +75,8 @@
       />
       <label class="mr-2">
         <b>Sample granularity</b>
-        <font-awesome-icon
-          :icon="['fas', 'info-circle']"
-          class="ml-1"
-          style="cursor: help"
-          title="Controls how many samples are displayed in the heatmap. For example a value of 2 means every other sample is plotted. Higher values show fewer samples for faster rendering."
+        <TooltipIcon
+          text="Controls how many samples are displayed in the heatmap. For example a value of 2 means every other sample is plotted. Higher values show fewer samples for faster rendering."
         />
       </label>
       <input
@@ -93,11 +87,8 @@
       />
       <label class="mr-2">
         <b>File pattern</b>
-        <font-awesome-icon
-          :icon="['fas', 'info-circle']"
-          class="ml-1"
-          style="cursor: help"
-          title="Filter files by pattern (using glob). Use * as wildcard (e.g., *.xy for all .xy files, data_*.txt for files starting with 'data_' and ending with '.txt', or for example '*summed*' for all files containing 'summed'). Leave empty to use all files."
+        <TooltipIcon
+          text="Filter files by pattern (using glob). Use * as wildcard (e.g., *.xy for all .xy files, data_*.txt for files starting with 'data_' and ending with '.txt', or for example '*summed*' for all files containing 'summed'). Leave empty to use all files."
         />
       </label>
       <input
@@ -129,6 +120,7 @@ import DataBlockBase from "@/components/datablocks/DataBlockBase";
 import FileSelectDropdown from "@/components/FileSelectDropdown";
 import FolderSelect from "@/components/FolderSelect";
 import BokehPlot from "@/components/BokehPlot";
+import TooltipIcon from "@/components/TooltipIcon";
 
 import { createComputedSetterForBlockField } from "@/field_utils.js";
 import { updateBlockFromServer } from "@/server_fetch_utils.js";
@@ -139,6 +131,7 @@ export default {
     FileSelectDropdown,
     FolderSelect,
     BokehPlot,
+    TooltipIcon,
   },
   props: {
     item_id: {

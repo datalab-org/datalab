@@ -144,7 +144,7 @@ describe("Equipment edit page", () => {
     cy.findByLabelText("Location").type("room 101");
 
     cy.findByText("Add a block").click();
-    cy.findByText("Comment").click();
+    cy.findByLabelText("Add a block").contains("Comment").click();
 
     cy.get(".datablock-content div").first().type("a comment is added here.");
 
