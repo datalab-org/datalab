@@ -722,14 +722,7 @@ export default {
 
 .modal-enclosure :deep(.modal-dialog) {
   max-width: 95vw;
-  min-height: 90vh;
-  margin-top: 2.5vh;
-  margin-bottom: 2.5vh;
-}
-
-.modal-enclosure :deep(.modal-content) {
-  height: 90vh;
-  overflow: scroll;
-  scroll-behavior: smooth;
+  max-height: 90vh;
+  margin: 5vh auto;
 }
 </style>
