@@ -1,28 +1,9 @@
 <template>
-  <a
-    ref="anchor"
-    class="dropdown-item"
-    tabindex="0"
-    @mouseenter="delayedShowTooltip"
-    @mouseleave="hideTooltip"
-    @focus="delayedShowTooltip"
-    @blur="hideTooltip"
-  >
-    {{ blockInfo.name }}
-  </a>
+  <div ref="anchor" class="tooltip-anchor">
+    <slot name="anchor"></slot>
+  </div>
   <div ref="tooltipContent" class="styled-tooltip" role="tooltip">
-    <p>{{ blockInfo.description }}</p>
-    <p
-      v-if="
-        blockInfo.accepted_file_extensions != null && blockInfo.accepted_file_extensions.length > 0
-      "
-      class="accepted-file mb-0"
-    >
-      Accepted file extensions:
-      <span v-for="(extension, index) in blockInfo.accepted_file_extensions" :key="index">
-        {{ extension }}{{ index < blockInfo.accepted_file_extensions.length - 1 ? ", " : "" }}
-      </span>
-    </p>
+    <slot name="content"></slot>
   </div>
 </template>
 
@@ -30,11 +11,19 @@
 import { createPopper } from "@popperjs/core";
 
 export default {
-  name: "StyledBlockHelp",
+  name: "StyledTooltip",
   props: {
-    blockInfo: {
-      type: Object,
-      default: () => ({}),
+    placement: {
+      type: String,
+      default: "bottom-start",
+    },
+    delay: {
+      type: Number,
+      default: 500,
+    },
+    offset: {
+      type: Array,
+      default: () => [0, 4],
     },
   },
   data() {
@@ -48,19 +37,31 @@ export default {
     const tooltip = this.$refs.tooltipContent;
 
     this.popperInstance = createPopper(anchor, tooltip, {
-      placement: "bottom-start",
+      placement: this.placement,
       strategy: "fixed",
       modifiers: [
         {
           name: "offset",
           options: {
-            offset: [0, 4],
+            offset: this.offset,
           },
         },
       ],
     });
+
+    anchor.addEventListener("mouseenter", this.delayedShowTooltip);
+    anchor.addEventListener("mouseleave", this.hideTooltip);
+    anchor.addEventListener("focus", this.delayedShowTooltip);
+    anchor.addEventListener("blur", this.hideTooltip);
   },
   beforeUnmount() {
+    const anchor = this.$refs.anchor;
+    if (anchor) {
+      anchor.removeEventListener("mouseenter", this.delayedShowTooltip);
+      anchor.removeEventListener("mouseleave", this.hideTooltip);
+      anchor.removeEventListener("focus", this.delayedShowTooltip);
+      anchor.removeEventListener("blur", this.hideTooltip);
+    }
     if (this.popperInstance) {
       this.popperInstance.destroy();
     }
@@ -68,11 +69,9 @@ export default {
   methods: {
     delayedShowTooltip() {
       this.tooltipTimeout = setTimeout(() => {
-        if (this.blockInfo) {
-          this.$refs.tooltipContent.setAttribute("data-show", "");
-          this.popperInstance.update();
-        }
-      }, 500);
+        this.$refs.tooltipContent.setAttribute("data-show", "");
+        this.popperInstance.update();
+      }, this.delay);
     },
     hideTooltip() {
       clearTimeout(this.tooltipTimeout);
@@ -83,12 +82,8 @@ export default {
 </script>
 
 <style scoped>
-.accepted-file {
-  padding-top: 0.5em;
-}
-
-p {
-  margin: 0;
+.tooltip-anchor {
+  display: inline-block;
 }
 
 .styled-tooltip {
@@ -99,11 +94,13 @@ p {
   background: #333;
   box-shadow: 0 0 10px cornflowerblue;
   color: white;
-  font-weight: bold;
   padding: 1em;
   border-radius: 4px;
   white-space: pre-wrap;
   display: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.4;
 }
 
 .styled-tooltip[data-show] {

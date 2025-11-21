@@ -1,15 +1,5 @@
 <template>
-  <a
-    ref="anchor"
-    tabindex="0"
-    @mouseenter="delayedShowTooltip"
-    @mouseleave="hideTooltip"
-    @focus="delayedShowTooltip"
-    @blur="hideTooltip"
-  >
-    <font-awesome-icon :icon="['fas', 'info-circle']" />
-  </a>
-  <div id="tooltip" ref="tooltipContent" role="tooltip">
+  <TooltipIcon :title="blockInfo.attributes.description">
     <h4 class="block-info-title">{{ blockInfo.attributes.name }}</h4>
     <p>{{ blockInfo.attributes.description }}</p>
     <div
@@ -19,104 +9,50 @@
       "
     >
       Accepted file extensions:
-      <ul>
-        <span
+      <ul class="mb-0">
+        <li
           v-for="(extension, index) in blockInfo.attributes.accepted_file_extensions"
           :key="index"
+          class="filetype-li"
         >
-          <li class="filetype-li">{{ extension }}</li>
-        </span>
+          {{ extension }}
+        </li>
       </ul>
     </div>
-  </div>
+  </TooltipIcon>
 </template>
 
 <script>
-import { createPopper } from "@popperjs/core";
+import TooltipIcon from "@/components/TooltipIcon";
 
 export default {
   name: "StyledBlockInfo",
+  components: {
+    TooltipIcon,
+  },
   props: {
     blockInfo: {
       type: Object,
       default: () => ({}),
     },
   },
-  data() {
-    return {
-      tooltipDisplay: false,
-      tooltipTimeout: null,
-      popperInstance: null,
-    };
-  },
-  mounted() {
-    const anchor = this.$refs.anchor;
-    const tooltip = this.$refs.tooltipContent;
-
-    this.popperInstance = createPopper(anchor, tooltip, {
-      placement: "bottom-start",
-      strategy: "fixed",
-      modifiers: [
-        {
-          name: "offset",
-          options: {
-            offset: [0, 4],
-          },
-        },
-      ],
-    });
-  },
-  methods: {
-    delayedShowTooltip() {
-      this.tooltipTimeout = setTimeout(() => {
-        if (this.blockInfo) {
-          this.$refs.tooltipContent.setAttribute("data-show", "");
-          this.popperInstance.update();
-        }
-      }, 100);
-    },
-
-    hideTooltip() {
-      clearTimeout(this.tooltipTimeout);
-      this.$refs.tooltipContent.removeAttribute("data-show");
-    },
-  },
 };
 </script>
 
 <style scoped>
-input {
-  border: 1px solid grey;
-}
-
-#tooltip {
-  z-index: 9999;
-  border: 1px solid grey;
-  width: 25%;
-  background: #333;
-  box-shadow: 0 0 10px cornflowerblue;
-  color: white;
-  font-weight: bold;
-  padding: 1em;
-  border-radius: 4px;
-}
-
 .block-info-title {
-  /* add wavy blue underline */
   text-decoration: underline;
   text-decoration-color: cornflowerblue;
   text-decoration-style: wavy;
+  margin-top: 0;
+  margin-bottom: 0.5em;
 }
 
 .filetype-li {
   font-family: var(--font-monospace);
 }
 
-#tooltip {
-  display: none;
-}
-
-#tooltip[data-show] {
-  display: block;
+p {
+  margin: 0;
 }
 </style>
