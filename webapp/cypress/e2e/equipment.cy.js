@@ -34,6 +34,7 @@ after(() => {
 
 describe("Equipment table page", () => {
   beforeEach(() => {
+    cy.loginViaTestMagicLink("test-user@example.com", "user");
     cy.visit("/equipment");
   });
 
@@ -125,6 +126,7 @@ describe("Equipment table page", () => {
 
 describe("Equipment edit page", () => {
   beforeEach(() => {
+    cy.loginViaTestMagicLink("test-user@example.com", "user");
     cy.visit("/equipment");
   });
 

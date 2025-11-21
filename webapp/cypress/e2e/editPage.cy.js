@@ -28,6 +28,7 @@ after(() => {
 
 describe("Edit Page", () => {
   beforeEach(() => {
+    cy.loginViaTestMagicLink("test-user@example.com", "user");
     cy.visit("/");
   });
 
