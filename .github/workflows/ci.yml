@@ -140,10 +140,8 @@ jobs:
       - name: Set some environment variables for CI containers pre-build
         run: |
           cp webapp/.env.test_e2e .env
-          echo "PYDATALAB_TESTING=false" >> .env
-          echo "PYDATALAB_SECRET_KEY=fasdfa23434-${{ github.sha }}${{ github.run_id }}" >> .env
-          echo "PYDATALAB_TESTING=false" >> pydatalab/.env
-          echo "PYDATALAB_SECRET_KEY=fasdfa23434-${{ github.sha }}${{ github.run_id }}" >> pydatalab/.env
+          echo "PYDATALAB_TESTING=true" >> .env
+          echo "PYDATALAB_TESTING=true" >> pydatalab/.env
 
       - name: Build Docker images
         uses: docker/bake-action@v6
