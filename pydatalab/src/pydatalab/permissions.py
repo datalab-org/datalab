@@ -135,6 +135,9 @@ def check_access_token(refcode: str, token: str | None = None) -> bool:
             {"token": token_hash, "refcode": refcode, "active": True, "type": "access_token"}
         )
 
+        if access_token_doc and access_token_doc["expires_at"] is not None:
+            raise NotImplementedError("Token expiration is not yet implemented")
+
         return bool(access_token_doc)
 
     except Exception:

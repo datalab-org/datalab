@@ -1,7 +1,7 @@
 import datetime
 import json
 import re
-import uuid
+import secrets
 from hashlib import sha512
 
 from bson import ObjectId
@@ -818,13 +818,14 @@ def issue_physical_token(refcode: str):
             }
         ), 404
 
-    token = str(uuid.uuid1())
+    token = secrets.token_urlsafe(16)
     access_document = {
         "token": sha512(token.encode("utf-8")).hexdigest(),
         "refcode": refcode,
         "user": ObjectId(current_user.id),
         "active": True,
         "created_at": datetime.datetime.now(tz=datetime.timezone.utc),
+        "expires_at": None,
         "version": 1,
         "type": "access_token",
     }
