@@ -113,4 +113,73 @@ describe("ChemicalFormula", () => {
     cy.mount(ChemicalFormula, { props: { formula: "Δ-MnO2" } });
     cy.get("span").should("contain.html", "Δ-MnO<sub>2</sub>");
   });
+
+  it("handles fractional subscripts correctly", () => {
+    cy.mount(ChemicalFormula, { props: { formula: "LiNi1/3Mn1/3Co1/3O2" } });
+    cy.get("span").should(
+      "contain.html",
+      "LiNi<sub>1/3</sub>Mn<sub>1/3</sub>Co<sub>1/3</sub>O<sub>2</sub>",
+    );
+  });
+
+  it("handles mixture notation with slashes correctly", () => {
+    cy.mount(ChemicalFormula, { props: { formula: "NMC/C" } });
+    cy.get("span").should("contain.html", "NMC/C");
+  });
+
+  it("handles complex mixture with formula and slash", () => {
+    cy.mount(ChemicalFormula, { props: { formula: "Li2O/graphite" } });
+    cy.get("span").should("contain.html", "Li<sub>2</sub>O/graphite");
+  });
+
+  it("preserves explicit subscript tags", () => {
+    cy.mount(ChemicalFormula, { props: { formula: "Na<sub>x</sub>CoO2" } });
+    cy.get("span").should("contain.html", "Na<sub>x</sub>CoO<sub>2</sub>");
+  });
+
+  it("preserves explicit superscript tags", () => {
+    cy.mount(ChemicalFormula, { props: { formula: "Na<sup>+</sup>Cl<sup>-</sup>" } });
+    cy.get("span").should("contain.html", "Na<sup>+</sup>Cl<sup>-</sup>");
+  });
+
+  it("handles mixed explicit tags and auto-formatting", () => {
+    cy.mount(ChemicalFormula, { props: { formula: "Li<sub>1-x</sub>Ni0.8Co0.2O2" } });
+    cy.get("span").should(
+      "contain.html",
+      "Li<sub>1-x</sub>Ni<sub>0.8</sub>Co<sub>0.2</sub>O<sub>2</sub>",
+    );
+  });
+
+  it("handles fractions with multiple elements correctly", () => {
+    cy.mount(ChemicalFormula, { props: { formula: "Li1/2Mn1/2O2" } });
+    cy.get("span").should("contain.html", "Li<sub>1/2</sub>Mn<sub>1/2</sub>O<sub>2</sub>");
+  });
+
+  it("handles mixed fractions and decimals", () => {
+    cy.mount(ChemicalFormula, { props: { formula: "LiNi1/3Co0.1Mn0.1O2" } });
+    cy.get("span").should(
+      "contain.html",
+      "LiNi<sub>1/3</sub>Co<sub>0.1</sub>Mn<sub>0.1</sub>O<sub>2</sub>",
+    );
+  });
+
+  it("handles slash at start for phase notation", () => {
+    cy.mount(ChemicalFormula, { props: { formula: "α-NMC/C/binder" } });
+    cy.get("span").should("contain.html", "α-NMC/C/binder");
+  });
+
+  it("handles complex formula with all features", () => {
+    cy.mount(ChemicalFormula, {
+      props: { formula: "Li<sub>1-x</sub>Ni1/3Mn1/3Co1/3O2/graphite" },
+    });
+    cy.get("span").should(
+      "contain.html",
+      "Li<sub>1-x</sub>Ni<sub>1/3</sub>Mn<sub>1/3</sub>Co<sub>1/3</sub>O<sub>2</sub>/graphite",
+    );
+  });
+
+  it("preserves multiple explicit tags in sequence", () => {
+    cy.mount(ChemicalFormula, { props: { formula: "Ca<sup>2+</sup>(OH)<sub>2</sub>" } });
+    cy.get("span").should("contain.html", "Ca<sup>2+</sup>(OH)<sub>2</sub>");
+  });
 });
