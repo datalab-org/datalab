@@ -11,6 +11,7 @@ after(() => {
 
 describe("Starting material table page - editable_inventory FALSE", () => {
   beforeEach(() => {
+    cy.loginViaTestMagicLink("test-user@example.com", "user");
     cy.visit("/starting-materials");
   });
 
