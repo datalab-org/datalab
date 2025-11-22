@@ -7,6 +7,13 @@ from pydatalab.models.files import File
 from pydatalab.models.people import Person
 from pydatalab.models.samples import Sample
 from pydatalab.models.starting_materials import StartingMaterial
+from pydatalab.models.versions import (
+    CompareVersionsQuery,
+    ItemVersion,
+    RestoreVersionRequest,
+    VersionAction,
+    VersionCounter,
+)
 
 ITEM_MODELS: dict[str, type[BaseModel]] = {
     "samples": Sample,
@@ -24,4 +31,10 @@ __all__ = (
     "Collection",
     "Equipment",
     "ITEM_MODELS",
+    "ItemVersion",
+    "VersionCounter",
+    "UserSnapshot",
+    "VersionAction",
+    "RestoreVersionRequest",
+    "CompareVersionsQuery",
 )

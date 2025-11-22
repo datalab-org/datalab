@@ -42,6 +42,17 @@
       <a class="nav-item nav-link" :href="itemApiUrl" target="_blank">
         <font-awesome-icon icon="code" fixed-width /> View JSON
       </a>
+      <!-- Version History UI - Hidden until temp version system is complete -->
+      <!-- TODO: Uncomment when ready to expose version history to users
+      <a
+        v-if="itemDataLoaded"
+        class="nav-item nav-link"
+        title="Version History"
+        @click="showVersionHistory"
+      >
+        <font-awesome-icon icon="history" fixed-width /> Versions
+      </a>
+      -->
     </div>
     <div class="navbar-nav ml-auto">
       <span v-if="itemDataLoaded && !savedStatus" class="navbar-text unsaved-warning">
@@ -92,6 +103,13 @@
     </div>
 
     <FileSelectModal :item_id="item_id" />
+    <VersionHistoryModal
+      v-model="isVersionHistoryVisible"
+      :refcode="refcode"
+      :item-id="item_id"
+      :current-version="item_data.version"
+      @version-restored="handleVersionRestored"
+    />
   </div>
 </template>
 
@@ -103,6 +121,7 @@ import SelectableFileTree from "@/components/SelectableFileTree";
 
 import FileList from "@/components/FileList";
 import FileSelectModal from "@/components/FileSelectModal";
+import VersionHistoryModal from "@/components/VersionHistoryModal.vue";
 import {
   getItemData,
   getItemByRefcode,
@@ -130,6 +149,7 @@ export default {
     FileList,
     LoginDetails,
     FileSelectModal,
+    VersionHistoryModal,
     FormattedItemName,
     StyledBlockHelp,
   },
@@ -164,6 +184,7 @@ export default {
       isLoadingRemoteFiles: false,
       isLoadingNewBlock: false,
       lastModified: null,
+      isVersionHistoryVisible: false,
     };
   },
   computed: {
@@ -344,6 +365,27 @@ export default {
       } else {
         this.lastModified = formatDistanceToNow(new Date(item_date), { addSuffix: true });
       }
+    },
+    showVersionHistory() {
+      this.isVersionHistoryVisible = true;
+    },
+    async handleVersionRestored() {
+      // Reload the item data after version restoration
+      if (this.refcode) {
+        await getItemByRefcode(this.refcode);
+      } else if (this.item_id) {
+        await getItemData(this.item_id);
+      }
+      // Mark item as saved (restored data is already in DB)
+      this.$store.commit("setItemSaved", { item_id: this.item_id, isSaved: true });
+      // Mark all blocks as saved
+      this.item_data.display_order.forEach((block_id) => {
+        this.$store.commit("setBlockSaved", { block_id: block_id, isSaved: true });
+      });
+      // Refresh the blocks
+      await this.updateBlocks();
+      // Update last modified time
+      this.setLastModified();
     },
   },
 };
