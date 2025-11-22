@@ -152,6 +152,11 @@ export default {
       type: String,
       default: "Select and order files:",
     },
+    // Array of file IDs to exclude from the comparison file list as already selected elsewhere
+    excludeFileIds: {
+      type: Array,
+      default: () => [],
+    },
   },
   emits: ["update:modelValue"],
   data() {
@@ -186,10 +191,13 @@ export default {
       });
     },
     availableFiles() {
-      // Filter out files that are already selected
+      // Filter out files that are already selected or explicitly excluded
       const selectedSet = new Set(this.modelValue);
+      const excludedSet = new Set(this.excludeFileIds);
       // Get filtered IDs
-      const filteredIds = this.all_available_file_ids.filter((id) => !selectedSet.has(id));
+      const filteredIds = this.all_available_file_ids.filter(
+        (id) => !selectedSet.has(id) && !excludedSet.has(id),
+      );
       // Sort alphabetically by file name
       return filteredIds.sort((a, b) => {
         const nameA = this.getFileName(a).toLowerCase();
