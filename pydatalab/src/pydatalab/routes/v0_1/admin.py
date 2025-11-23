@@ -8,7 +8,7 @@ from flask_login import current_user
 
 from pydatalab.config import CONFIG
 from pydatalab.models.people import Group, User
-from pydatalab.mongo import flask_mongo
+from pydatalab.mongo import _get_active_mongo_client, flask_mongo
 from pydatalab.permissions import admin_only
 
 ADMIN = Blueprint("admins", __name__)
@@ -284,6 +284,7 @@ def delete_group():
 
 
 @ADMIN.route("/groups/<group_immutable_id>", methods=["PUT"])
+@admin_only
 def update_group(group_immutable_id):
     request_json = request.get_json()
 
@@ -329,21 +330,27 @@ def update_group(group_immutable_id):
 @ADMIN.route("/groups/<group_immutable_id>", methods=["PATCH"])
 def add_user_to_group(group_immutable_id):
     request_json = request.get_json()
+
     user_id = request_json.get("user_id")
 
     if not user_id:
         return jsonify({"status": "error", "message": "No user ID provided."}), 400
 
-    group_exists = flask_mongo.db.groups.find_one({"_id": ObjectId(group_immutable_id)})
-    if not group_exists:
-        return jsonify({"status": "error", "message": "Group does not exist."}), 400
+    client = _get_active_mongo_client()
+    with client.start_session(causal_consistency=True) as session:
+        group_exists = flask_mongo.db.groups.find_one(
+            {"_id": ObjectId(group_immutable_id)}, session=session
+        )
+        if not group_exists:
+            return jsonify({"status": "error", "message": "Group does not exist."}), 400
 
-    update_user = flask_mongo.db.users.update_one(
-        {"_id": ObjectId(user_id)},
-        {"$addToSet": {"group_ids": ObjectId(group_immutable_id)}},
-    )
+        update_user = flask_mongo.db.users.update_one(
+            {"_id": ObjectId(user_id)},
+            {"$addToSet": {"groups": group_immutable_id}},
+            session=session,
+        )
 
-    if update_user.modified_count == 1:
-        return jsonify({"status": "success", "message": "User added to group successfully."}), 200
-    else:
-        return jsonify({"status": "error", "message": "Unable to add user to group."}), 400
+        if not update_user.modified_count == 1:
+            return jsonify({"status": "error", "message": "Unable to add user to group."}), 400
+
+    return jsonify({"status": "error", "message": "Unable to add user to group."}), 400

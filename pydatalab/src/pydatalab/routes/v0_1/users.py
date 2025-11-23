@@ -7,7 +7,7 @@ from flask_login import current_user
 from pydatalab.config import CONFIG
 from pydatalab.models.people import DisplayName, EmailStr, Person
 from pydatalab.mongo import flask_mongo
-from pydatalab.permissions import active_users_or_get_only, admin_only
+from pydatalab.permissions import active_users_or_get_only
 
 USERS = Blueprint("users", __name__)
 
@@ -15,82 +15,6 @@ USERS = Blueprint("users", __name__)
 @USERS.before_request
 @active_users_or_get_only
 def _(): ...
-
-
-@GROUPS.before_request
-@admin_only
-def _(): ...
-
-
-@GROUPS.route("/groups", methods=["PUT"])
-def create_group():
-    request_json = request.get_json()
-
-    group_json = {
-        "group_id": request_json.get("group_id"),
-        "display_name": request_json.get("display_name"),
-        "description": request_json.get("description"),
-        "group_admins": request_json.get("group_admins"),
-    }
-    try:
-        group = Group(**group_json)
-    except Exception as e:
-        return jsonify({"status": "error", "message": f"Invalid group data: {str(e)}"}), 400
-
-    try:
-        group_immutable_id = flask_mongo.db.groups.insert_one(group.dict()).inserted_id
-    except pymongo.errors.DuplicateKeyError:
-        return jsonify(
-            {"status": "error", "message": f"Group ID {group.group_id} already exists."}
-        ), 400
-
-    if group_immutable_id:
-        return jsonify({"status": "success", "group_immutable_id": str(group_immutable_id)}), 200
-
-    return jsonify({"status": "error", "message": "Unable to create group."}), 400
-
-
-@GROUPS.route("/groups", methods=["DELETE"])
-def delete_group():
-    request_json = request.get_json()
-
-    group_id = request_json.get("immutable_id")
-    if group_id is not None:
-        result = flask_mongo.db.groups.delete_one({"_id": ObjectId(group_id)})
-
-        if result.deleted_count == 1:
-            return jsonify({"status": "success"}), 200
-
-    return jsonify({"status": "error", "message": "Unable to delete group."}), 400
-
-
-@GROUPS.route("/groups/<group_immutable_id>", methods=["PATCH"])
-def add_user_to_group(group_immutable_id):
-    request_json = request.get_json()
-
-    user_id = request_json.get("user_id")
-
-    if not user_id:
-        return jsonify({"status": "error", "message": "No user ID provided."}), 400
-
-    client = _get_active_mongo_client()
-    with client.start_session(causal_consistency=True) as session:
-        group_exists = flask_mongo.db.groups.find_one(
-            {"_id": ObjectId(group_immutable_id)}, session=session
-        )
-        if not group_exists:
-            return jsonify({"status": "error", "message": "Group does not exist."}), 400
-
-        update_user = flask_mongo.db.users.update_one(
-            {"_id": ObjectId(user_id)},
-            {"$addToSet": {"groups": group_immutable_id}},
-            session=session,
-        )
-
-        if not update_user.modified_count == 1:
-            return jsonify({"status": "error", "message": "Unable to add user to group."}), 400
-
-    return jsonify({"status": "error", "message": "Unable to add user to group."}), 400
 
 
 @USERS.route("/users/<user_id>", methods=["PATCH"])
