@@ -108,7 +108,7 @@ function fetch_put(url, body) {
 }
 
 // eslint-disable-next-line no-unused-vars
-function fetch_delete(url, body) {
+function fetch_delete(url, body = null) {
   let headers = construct_headers({ "Content-Type": "application/json" });
   const requestOptions = {
     method: "DELETE",
@@ -116,6 +116,11 @@ function fetch_delete(url, body) {
     body: JSON.stringify(body),
     credentials: "include",
   };
+
+  if (body !== null) {
+    requestOptions.body = JSON.stringify(body);
+  }
+
   return fetch(url, requestOptions).then(handleResponse);
 }
 
@@ -145,18 +150,29 @@ export function createNewItem(
   startingData = {},
   copyFrom = null,
   generateIDAutomatically = false,
+  groupsData = null,
+  creatorsData = null,
 ) {
+  const newSampleData = {
+    item_id: item_id,
+    date: date,
+    name: name,
+    type: type,
+    collections: startingCollection,
+    ...startingData,
+  };
+
+  if (groupsData && groupsData.length > 0) {
+    newSampleData.share_with_groups = groupsData;
+  }
+
+  if (creatorsData && creatorsData.length > 0) {
+    newSampleData.additional_creators = creatorsData;
+  }
   return fetch_post(`${API_URL}/new-sample/`, {
     copy_from_item_id: copyFrom,
     generate_id_automatically: generateIDAutomatically,
-    new_sample_data: {
-      item_id: item_id,
-      date: date,
-      name: name,
-      type: type,
-      collections: startingCollection,
-      ...startingData,
-    },
+    new_sample_data: newSampleData,
   }).then(function (response_json) {
     if (SAMPLE_TABLE_TYPES.includes(response_json.sample_list_entry.type)) {
       store.commit("prependToSampleList", response_json.sample_list_entry);
@@ -292,6 +308,98 @@ export function getUsersList() {
       return response_json.data;
     })
     .catch((error) => {
+      throw error;
+    });
+}
+
+export function getGroupsList() {
+  return fetch_get(`${API_URL}/groups`)
+    .then(function (response_json) {
+      return response_json.data;
+    })
+    .catch((error) => {
+      console.error("Error when fetching groups list");
+      console.error(error);
+      throw error;
+    });
+}
+
+export function getAdminGroupsList() {
+  return fetch_get(`${API_URL}/groups`)
+    .then(function (response_json) {
+      return response_json.data;
+    })
+    .catch((error) => {
+      console.error("Error when fetching admin groups list");
+      console.error(error);
+      throw error;
+    });
+}
+
+export function createGroup(groupData) {
+  console.log("createGroup");
+  return fetch_put(`${API_URL}/groups`, groupData)
+    .then(function (response_json) {
+      return response_json;
+    })
+    .catch((error) => {
+      console.error("Error when creating group");
+      console.error(error);
+      throw error;
+    });
+}
+
+export function deleteGroup(groupData) {
+  console.log("deleteGroup");
+  return fetch_delete(`${API_URL}/groups`, groupData)
+    .then(function (response_json) {
+      return response_json;
+    })
+    .catch((error) => {
+      console.error("Error when deleting group");
+      console.error(error);
+      throw error;
+    });
+}
+
+export function updateGroup(groupId, groupData) {
+  console.log("updateGroup");
+  return fetch_put(`${API_URL}/groups/${groupId}`, groupData)
+    .then(function (response_json) {
+      return response_json;
+    })
+    .catch((error) => {
+      console.error("Error when updating group");
+      console.error(error);
+      throw error;
+    });
+}
+
+export function addUserToGroup(groupId, userId) {
+  console.log("Adding user to group:", { groupId, userId }); // Debug
+  const payload = { user_id: userId };
+  console.log("Payload:", payload); // Debug
+
+  return fetch_patch(`${API_URL}/groups/${groupId}`, payload)
+    .then(function (response_json) {
+      console.log("Response:", response_json); // Debug
+      return response_json;
+    })
+    .catch((error) => {
+      console.error("Error when adding user to group");
+      console.error(error);
+      throw error;
+    });
+}
+
+export function removeUserFromGroup(groupId, userId) {
+  return fetch_delete(`${API_URL}/groups/${groupId}/users/${userId}`)
+    .then(function (response_json) {
+      return response_json;
+    })
+    .catch((error) => {
+      console.error("Error when removing user from group");
+      console.error(error);
       throw error;
     });
 }
@@ -632,19 +740,26 @@ export function addABlock(item_id, block_type, index = null) {
   return block_id_promise;
 }
 
-export function updateItemPermissions(refcode, creators) {
-  return fetch_patch(`${API_URL}/items/${refcode}/permissions`, {
-    creators: creators,
-  }).then(function (response_json) {
-    if (response_json.status === "error") {
-      DialogService.error({
-        title: "Permission update failed",
-        message: `Failed to update permissions for item ${refcode}: ${response_json.message}`,
-      });
-      throw new Error(response_json.message);
-    }
-    return response_json;
-  });
+export function updateItemPermissions(refcode, creators, groups = null) {
+  console.log("updateItemPermissions called with", refcode, creators, groups);
+
+  const payload = { creators: creators };
+  if (groups !== null) {
+    payload.groups = groups;
+  }
+
+  return fetch_patch(`${API_URL}/items/${refcode}/permissions`, payload).then(
+    function (response_json) {
+      if (response_json.status === "error") {
+        DialogService.error({
+          title: "Permission update failed",
+          message: `Failed to update permissions for item ${refcode}: ${response_json.message}`,
+        });
+        throw new Error(response_json.message);
+      }
+      return response_json;
+    },
+  );
 }
 
 export function saveItem(item_id) {

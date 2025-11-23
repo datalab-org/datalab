@@ -23,7 +23,7 @@ export default {
   },
   data() {
     return {
-      items: ["Users", "Access Tokens"],
+      items: ["Users", "Groups", "Access Tokens"],
       selectedItem: "Users",
       user: null,
     };

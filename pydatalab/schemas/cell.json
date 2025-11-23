@@ -44,11 +44,26 @@
         "type": "string"
       }
     },
+    "group_ids": {
+      "title": "Group Ids",
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
     "creators": {
       "title": "Creators",
       "type": "array",
       "items": {
         "$ref": "#/definitions/Person"
+      }
+    },
+    "groups": {
+      "title": "Groups",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Group"
       }
     },
     "type": {
@@ -363,6 +378,64 @@
         "name"
       ]
     },
+    "Group": {
+      "title": "Group",
+      "description": "A model that describes a group of users, for the sake\nof applying group permissions.\n\nEach `Person` model can point to a given group.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "title": "Type",
+          "default": "groups",
+          "const": "groups",
+          "type": "string"
+        },
+        "immutable_id": {
+          "title": "Immutable ID",
+          "format": "uuid",
+          "type": "string"
+        },
+        "last_modified": {
+          "title": "Last Modified",
+          "type": "string",
+          "format": "date-time"
+        },
+        "relationships": {
+          "title": "Relationships",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/TypedRelationship"
+          }
+        },
+        "group_id": {
+          "title": "Group Id",
+          "minLength": 1,
+          "maxLength": 40,
+          "pattern": "^(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
+          "type": "string"
+        },
+        "display_name": {
+          "title": "Display Name",
+          "minLength": 1,
+          "maxLength": 150,
+          "type": "string"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "group_admins": {
+          "title": "Group Admins",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "group_id",
+        "display_name"
+      ]
+    },
     "AccountStatus": {
       "title": "AccountStatus",
       "description": "A string enum representing the account status.",
@@ -419,6 +492,13 @@
           "type": "string",
           "format": "email"
         },
+        "groups": {
+          "title": "Groups",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Group"
+          }
+        },
         "managers": {
           "title": "Managers",
           "type": "array",
@@ -465,11 +545,26 @@
             "type": "string"
           }
         },
+        "group_ids": {
+          "title": "Group Ids",
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "creators": {
           "title": "Creators",
           "type": "array",
           "items": {
             "$ref": "#/definitions/Person"
+          }
+        },
+        "groups": {
+          "title": "Groups",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Group"
           }
         },
         "type": {
@@ -539,11 +634,26 @@
             "type": "string"
           }
         },
+        "group_ids": {
+          "title": "Group Ids",
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "creators": {
           "title": "Creators",
           "type": "array",
           "items": {
             "$ref": "#/definitions/Person"
+          }
+        },
+        "groups": {
+          "title": "Groups",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Group"
           }
         },
         "type": {

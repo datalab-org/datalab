@@ -1,5 +1,5 @@
 <template>
-  <div class="row form-inline">
+  <div class="row form-inline form-group">
     <label class="pl-3">(Optional) Cell components:</label>
     <div class="col-md-12 form-group form-row ml-2 mt-3">
       <label id="posConstituentsLabel" class="col-sm-3 text-right cell-component-label"

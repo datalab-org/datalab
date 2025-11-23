@@ -185,8 +185,8 @@ def get_default_permissions(
             {"creator_ids": {"$exists": False}},
         ]
     }
+
     if current_user.is_authenticated and current_user.person is not None:
-        # find managed users under the given user (can later be expanded to groups)
         managed_users = list(
             get_database().users.find(
                 {"managers": {"$in": [current_user.person.immutable_id]}}, projection={"_id": 1}
@@ -194,11 +194,28 @@ def get_default_permissions(
         )
         if managed_users:
             managed_users = [u["_id"] for u in managed_users]
-            LOGGER.debug("Found managed users %s for user %s", managed_users, current_user.person)
 
-        user_perm: dict[str, Any] = {
-            "creator_ids": {"$in": [current_user.person.immutable_id] + managed_users}
-        }
+        user_group_ids = []
+        if current_user.person.groups:
+            user_group_ids = [group.immutable_id for group in current_user.person.groups]
+
+        groups_where_admin = list(
+            get_database().groups.find(
+                {"group_admins": {"$in": [str(current_user.person.immutable_id)]}}, {"_id": 1}
+            )
+        )
+        if groups_where_admin:
+            admin_group_ids = [g["_id"] for g in groups_where_admin]
+            user_group_ids.extend(admin_group_ids)
+
+        user_perm_conditions = [
+            {"creator_ids": {"$in": [current_user.person.immutable_id] + managed_users}}
+        ]
+
+        if user_group_ids:
+            user_perm_conditions.append({"group_ids": {"$in": user_group_ids}})
+
+        user_perm: dict[str, Any] = {"$or": user_perm_conditions}
         if user_only:
             # TODO: remove this hack when permissions are refactored. Currently starting_materials and equipment
             # are a special case that should be group editable, so even when the route has asked to only edit this

@@ -17,7 +17,6 @@ from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER
 from pydatalab.models import ITEM_MODELS
 from pydatalab.models.items import Item
-from pydatalab.models.people import Person
 from pydatalab.models.relationships import RelationshipType
 from pydatalab.models.utils import generate_unique_refcode
 from pydatalab.mongo import ITEMS_FTS_FIELDS, flask_mongo
@@ -30,6 +29,27 @@ from pydatalab.permissions import (
 )
 
 ITEMS = Blueprint("items", __name__)
+
+
+def groups_lookup_for_items() -> dict:
+    return {
+        "from": "groups",
+        "let": {"group_ids": "$group_ids"},
+        "pipeline": [
+            {"$match": {"$expr": {"$in": ["$_id", {"$ifNull": ["$$group_ids", []]}]}}},
+            {"$addFields": {"__order": {"$indexOfArray": ["$$group_ids", "$_id"]}}},
+            {"$sort": {"__order": 1}},
+            {
+                "$project": {
+                    "_id": 1,
+                    "display_name": 1,
+                    "group_id": 1,
+                    "type": 1,
+                }
+            },
+        ],
+        "as": "groups",
+    }
 
 
 @ITEMS.before_request
@@ -529,6 +549,60 @@ def _create_sample(
             }
         ]
 
+    if "additional_creators" in sample_dict and sample_dict["additional_creators"]:
+        additional_creator_ids = []
+        for creator in sample_dict["additional_creators"]:
+            if isinstance(creator, dict) and "immutable_id" in creator:
+                additional_creator_ids.append(ObjectId(creator["immutable_id"]))
+            elif isinstance(creator, str):
+                additional_creator_ids.append(ObjectId(creator))
+
+                new_sample["creator_ids"] = list(dict.fromkeys(new_sample["creator_ids"]))
+
+        seen_creators = set()
+        unique_creators = []
+        for creator in new_sample["creators"]:
+            creator_key = (creator.get("display_name", ""), creator.get("contact_email", ""))
+            if creator_key not in seen_creators:
+                seen_creators.add(creator_key)
+                unique_creators.append(creator)
+        new_sample["creators"] = unique_creators
+
+    if "share_with_groups" in sample_dict and sample_dict["share_with_groups"]:
+        group_ids = []
+        for group in sample_dict["share_with_groups"]:
+            if isinstance(group, dict) and "immutable_id" in group:
+                group_ids.append(ObjectId(group["immutable_id"]))
+            elif isinstance(group, str):
+                group_ids.append(ObjectId(group))
+
+        if not CONFIG.TESTING and current_user.is_authenticated:
+            user_group_ids = (
+                [group.immutable_id for group in current_user.person.groups]
+                if current_user.person.groups
+                else []
+            )
+
+            groups_where_admin = list(
+                flask_mongo.db.groups.find(
+                    {"group_admins": {"$in": [str(current_user.person.immutable_id)]}}, {"_id": 1}
+                )
+            )
+            admin_group_ids = [g["_id"] for g in groups_where_admin]
+            allowed_group_ids = user_group_ids + admin_group_ids
+
+            if not all(gid in allowed_group_ids for gid in group_ids):
+                return (
+                    dict(
+                        status="error",
+                        message="You can only share with groups you belong to or administer.",
+                        item_id=new_sample["item_id"],
+                    ),
+                    403,
+                )
+
+        new_sample["group_ids"] = group_ids
+
     # Generate a unique refcode for the sample
     new_sample["refcode"] = generate_unique_refcode()
     if generate_id_automatically:
@@ -699,29 +773,28 @@ def update_item_permissions(refcode: str):
 
     request_json = request.get_json()
     creator_ids: list[ObjectId] = []
+    group_ids: list[ObjectId] = []
 
     if len(refcode.split(":")) != 2:
         refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
 
     current_item = flask_mongo.db.items.find_one(
         {"refcode": refcode, **get_default_permissions(user_only=True)},
-        {"_id": 1, "creator_ids": 1},
-    )  # type: ignore
+        {"_id": 1, "creator_ids": 1, "group_ids": 1},
+    )
 
     if not current_item:
-        return (
-            jsonify(
-                {
-                    "status": "error",
-                    "message": f"No valid item found with the given {refcode=}.",
-                }
-            ),
-            401,
-        )
+        return jsonify(
+            {
+                "status": "error",
+                "message": f"No valid item found with the given {refcode=}.",
+            }
+        ), 401
 
     current_creator_ids = current_item["creator_ids"]
+    current_group_ids = current_item.get("group_ids", [])
 
-    if "creators" in request_json:
+    if "creators" in request_json and request_json["creators"] is not None:
         new_creators = request_json["creators"]
         if not isinstance(new_creators, list):
             raise RuntimeError("Invalid creators list provided in request.")
@@ -732,62 +805,109 @@ def update_item_permissions(refcode: str):
             if creator.get("immutable_id", None) is not None
         ]
 
-    if not creator_ids:
-        return (
-            jsonify(
+        if not creator_ids:
+            return jsonify(
                 {
                     "status": "error",
                     "message": "No valid creator IDs found in the request.",
                 }
-            ),
-            400,
-        )
+            ), 400
 
-    # Validate all creator IDs are present in the database
-    found_ids = [d for d in flask_mongo.db.users.find({"_id": {"$in": creator_ids}}, {"_id": 1})]  # type: ignore
-    if len(found_ids) != len(creator_ids):
-        return (
-            jsonify(
+        # Validate all creator IDs are present in the database
+        found_ids = [
+            d for d in flask_mongo.db.users.find({"_id": {"$in": creator_ids}}, {"_id": 1})
+        ]
+        if len(found_ids) != len(creator_ids):
+            return jsonify(
                 {
                     "status": "error",
                     "message": "One or more creator IDs not found in the database.",
                 }
-            ),
-            400,
-        )
+            ), 400
 
-    # Make sure a user cannot remove their own access to an item
-    current_user_id = current_user.person.immutable_id
-    try:
-        creator_ids.remove(current_user_id)
-    except ValueError:
-        pass
-    creator_ids.insert(0, current_user_id)
-
-    # The first ID in the creator list takes precedence; always make sure this is included to avoid orphaned items
-    if current_creator_ids:
-        base_owner = current_creator_ids[0]
+        # Make sure a user cannot remove their own access to an item
+        current_user_id = current_user.person.immutable_id
         try:
-            creator_ids.remove(base_owner)
+            creator_ids.remove(current_user_id)
         except ValueError:
             pass
-        creator_ids.insert(0, base_owner)
+        creator_ids.insert(0, current_user_id)
 
-    if set(creator_ids) == set(current_creator_ids):
-        # Short circuit if the creator IDs are the same
+        # The first ID in the creator list takes precedence; always make sure this is included to avoid orphaned items
+        if current_creator_ids:
+            base_owner = current_creator_ids[0]
+            try:
+                creator_ids.remove(base_owner)
+            except ValueError:
+                pass
+            creator_ids.insert(0, base_owner)
+
+    if "groups" in request_json:
+        group_ids = [
+            ObjectId(group.get("immutable_id", None))
+            for group in request_json["groups"]
+            if group.get("immutable_id", None) is not None
+        ]
+
+        if group_ids:
+            found_group_ids = [
+                d for d in flask_mongo.db.groups.find({"_id": {"$in": group_ids}}, {"_id": 1})
+            ]
+            if len(found_group_ids) != len(group_ids):
+                return jsonify(
+                    {
+                        "status": "error",
+                        "message": "One or more group IDs not found in the database.",
+                    }
+                ), 400
+
+            user_group_ids = (
+                [group.immutable_id for group in current_user.person.groups]
+                if current_user.person.groups
+                else []
+            )
+
+            groups_where_admin = list(
+                flask_mongo.db.groups.find(
+                    {"group_admins": {"$in": [str(current_user.person.immutable_id)]}}, {"_id": 1}
+                )
+            )
+            admin_group_ids = [g["_id"] for g in groups_where_admin]
+            allowed_group_ids = user_group_ids + admin_group_ids
+
+            if not all(gid in allowed_group_ids for gid in group_ids):
+                return jsonify(
+                    {
+                        "status": "error",
+                        "message": "You can only share with groups you belong to or administer.",
+                    }
+                ), 403
+
+    update_data = {}
+    if (
+        "creators" in request_json
+        and request_json["creators"] is not None
+        and set(creator_ids) != set(current_creator_ids)
+    ):
+        update_data["creator_ids"] = creator_ids
+
+    if "groups" in request_json and set(group_ids) != set(current_group_ids):
+        update_data["group_ids"] = group_ids
+
+    if not update_data:
         return jsonify({"status": "success"}), 200
 
-    LOGGER.warning("Setting permissions for item %s to %s", refcode, creator_ids)
+    LOGGER.warning("Setting permissions for item %s: %s", refcode, update_data)
     result = flask_mongo.db.items.update_one(
         {"refcode": refcode, **get_default_permissions(user_only=True)},
-        {"$set": {"creator_ids": creator_ids}},
+        {"$set": update_data},
     )
 
     if result.modified_count != 1:
         return jsonify(
             {
                 "status": "error",
-                "message": "Failed to update permissions: you cannot remove yourself or the base owner as a creator.",
+                "message": "Failed to update permissions.",
             }
         ), 400
 
@@ -937,6 +1057,7 @@ def get_item_data(
             {"$lookup": creators_lookup()},
             {"$lookup": collections_lookup()},
             {"$lookup": files_lookup()},
+            {"$lookup": groups_lookup_for_items()},
         ],
     )
 
@@ -1153,46 +1274,6 @@ def save_item():
         )
 
     return jsonify(status="success", last_modified=updated_data["last_modified"]), 200
-
-
-@ITEMS.route("/search-users/", methods=["GET"])
-def search_users():
-    """Perform free text search on users and return the top results.
-    GET parameters:
-        query: String with the search terms.
-        nresults: Maximum number of  (default 100)
-
-    Returns:
-        response list of dictionaries containing the matching items in order of
-        descending match score.
-    """
-
-    query = request.args.get("query", type=str)
-    nresults = request.args.get("nresults", default=100, type=int)
-    types = request.args.get("types", default=None)
-
-    match_obj = {"$text": {"$search": query}}
-    if types is not None:
-        match_obj["type"] = {"$in": types}
-
-    cursor = flask_mongo.db.users.aggregate(
-        [
-            {"$match": match_obj},
-            {"$sort": {"score": {"$meta": "textScore"}}},
-            {"$limit": nresults},
-            {
-                "$project": {
-                    "_id": 1,
-                    "identities": 1,
-                    "display_name": 1,
-                    "contact_email": 1,
-                }
-            },
-        ]
-    )
-    return jsonify(
-        {"status": "success", "users": list(json.loads(Person(**d).json()) for d in cursor)}
-    ), 200
 
 
 @ITEMS.route("/items/<refcode>/access-token-info", methods=["GET"])
