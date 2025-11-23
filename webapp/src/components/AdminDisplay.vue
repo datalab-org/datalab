@@ -6,7 +6,7 @@
     <template v-if="selectedItem === 'Access Tokens'">
       <TokenTable />
     </template>
-    <template v-if="selectedItem === 'Groups'"> 
+    <template v-if="selectedItem === 'Groups'">
       <div class="mb-3">
         <button class="btn btn-default" @click="showCreateGroupModal = true">
           <font-awesome-icon :icon="['fas', 'plus']" class="mr-2" />
@@ -35,7 +35,7 @@ export default {
     UserTable,
     TokenTable,
     GroupTable,
-    CreateGroupModal 
+    CreateGroupModal,
   },
   props: {
     selectedItem: {
