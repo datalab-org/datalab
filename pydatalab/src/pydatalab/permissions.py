@@ -7,6 +7,7 @@ from flask import request
 from flask_login import current_user
 
 from pydatalab.config import CONFIG
+from pydatalab.logger import LOGGER
 from pydatalab.login import UserRole
 from pydatalab.models.people import AccountStatus
 from pydatalab.mongo import flask_mongo, get_database
