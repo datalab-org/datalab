@@ -3,7 +3,7 @@ from typing import Any
 from pydantic import BaseModel, Field, root_validator
 
 from pydatalab.models.blocks import DataBlockResponse
-from pydatalab.models.people import Person, Group
+from pydatalab.models.people import Group, Person
 from pydatalab.models.utils import Constituent, InlineSubstance, PyObjectId
 
 
