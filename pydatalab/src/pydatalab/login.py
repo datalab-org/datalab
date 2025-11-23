@@ -92,9 +92,6 @@ def get_by_id_cached(user_id):
     return get_by_id(user_id)
 
 
-<<<<<<< HEAD
-def get_by_id(user_id: str) -> LoginUser | None:
-=======
 def groups_lookup() -> dict:
     return {
         "from": "groups",
@@ -117,8 +114,7 @@ def groups_lookup() -> dict:
     }
 
 
-def get_by_id(user_id: str) -> Optional[LoginUser]:
->>>>>>> 82a1eb81 (Add endpoints for group management)
+def get_by_id(user_id: str) -> LoginUser | None:
     """Lookup the user database ID and create a new `LoginUser`
     with the relevant metadata.
 
