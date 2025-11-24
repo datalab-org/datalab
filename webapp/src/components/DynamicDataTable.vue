@@ -74,7 +74,12 @@
       </template>
       <template #empty> No entries found. </template>
 
-      <Column v-if="showButtons" class="checkbox" selection-mode="multiple"></Column>
+      <Column
+        v-if="showButtons"
+        class="checkbox"
+        selection-mode="multiple"
+        :style="{ minWidth: '3.5ch' }"
+      ></Column>
 
       <!-- <Column expander style="width: 5rem" /> -->
       <Column
@@ -83,7 +88,6 @@
         :field="column.field"
         sortable
         :class="{ 'filter-active': isFilterActive(column.field) }"
-        :min-width="getColumnMinWidth(column)"
         :style="{ minWidth: getColumnMinWidth(column) }"
         :filter-menu-class="column.field === 'type' || column.field === 'date' ? 'no-operator' : ''"
       >
@@ -623,23 +627,30 @@ export default {
   },
   methods: {
     getColumnMinWidth(column) {
-      let minWidth = 20;
+      const COLUMN_BASE_PADDING = 2.5;
+      const CHAR_WIDTH_ESTIMATE = 0.75;
+      const SORT_ICON_SPACE = 2.5;
+      const FILTER_BUTTON_WIDTH = 3.5;
+      const HEADER_ICON_SPACE = 2.5;
+      const MIN_COLUMN_WIDTH = 10;
+
+      let minWidth = COLUMN_BASE_PADDING;
 
       if (column.header) {
-        minWidth += column.header.length * 7;
+        minWidth += column.header.length * CHAR_WIDTH_ESTIMATE;
       }
 
       if (column.icon) {
-        minWidth += 25;
+        minWidth += HEADER_ICON_SPACE;
       }
 
-      minWidth += 25;
+      minWidth += SORT_ICON_SPACE;
 
       if (column.filter) {
-        minWidth += 35;
+        minWidth += FILTER_BUTTON_WIDTH;
       }
 
-      return Math.max(minWidth, 80) + "px";
+      return Math.max(minWidth, MIN_COLUMN_WIDTH) + "ch";
     },
     onSort(event) {
       const sortedColumns = event.multiSortMeta || [];
