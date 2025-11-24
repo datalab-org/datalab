@@ -524,7 +524,6 @@ source = { editable = "." }
 dependencies = [
     { name = "bokeh" },
     { name = "matplotlib" },
-    { name = "nexusformat" },
     { name = "pandas", extra = ["excel"] },
     { name = "periodictable" },
     { name = "pint" },
@@ -547,6 +546,7 @@ all = [
     { name = "langchain-openai" },
     { name = "matador-db" },
     { name = "navani" },
+    { name = "nexusformat" },
     { name = "nmrglue" },
     { name = "pillow" },
     { name = "psutil" },
@@ -567,6 +567,7 @@ app-plugins-git = [
 apps = [
     { name = "matador-db" },
     { name = "navani" },
+    { name = "nexusformat" },
     { name = "nmrglue" },
     { name = "psutil" },
     { name = "pybaselines" },
@@ -637,7 +638,7 @@ requires-dist = [
     { name = "matador-db", marker = "extra == 'apps'", specifier = ">=0.11.2" },
     { name = "matplotlib", specifier = "~=3.8" },
     { name = "navani", marker = "extra == 'apps'", specifier = ">=0.1.13" },
-    { name = "nexusformat", specifier = ">=2.0.0" },
+    { name = "nexusformat", marker = "extra == 'apps'", specifier = ">=2.0.0" },
     { name = "nmrglue", marker = "extra == 'apps'", specifier = "~=0.10" },
     { name = "pandas", extras = ["excel"], specifier = "~=2.2" },
     { name = "periodictable", specifier = "~=1.7" },

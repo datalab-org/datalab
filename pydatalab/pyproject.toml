@@ -27,7 +27,6 @@ dependencies = [
     "pint ~= 0.24",
     "pandas[excel] ~= 2.2",
     "pymongo ~= 4.7",
-    "nexusformat>=2.0.0",
 ]
 
 [project.urls]
@@ -75,6 +74,9 @@ apps = [
     # XRD
     "matador-db >= 0.11.2",
     "psutil>=7.0.0",
+    # Nexus file format
+    "nexusformat>=2.0.0",
+
 ]
 
 app-plugins-git = [
