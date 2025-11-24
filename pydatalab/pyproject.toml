@@ -77,6 +77,9 @@ apps = [
     # XRD
     "matador-db >= 0.11.2",
     "psutil>=7.0.0",
+    # Nexus file format
+    "nexusformat>=2.0.0",
+
 ]
 
 app-plugins-git = [

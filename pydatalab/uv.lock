@@ -614,6 +614,7 @@ all = [
     { name = "langchain-openai" },
     { name = "matador-db" },
     { name = "navani" },
+    { name = "nexusformat" },
     { name = "nmrglue" },
     { name = "pillow" },
     { name = "psutil" },
@@ -634,6 +635,7 @@ app-plugins-git = [
 apps = [
     { name = "matador-db" },
     { name = "navani" },
+    { name = "nexusformat" },
     { name = "nmrglue" },
     { name = "psutil" },
     { name = "pybaselines" },
@@ -707,6 +709,7 @@ requires-dist = [
     { name = "matplotlib", specifier = "~=3.8" },
     { name = "navani", marker = "extra == 'apps'", specifier = "~=0.1.16" },
     { name = "nexusformat", specifier = ">=2.0.0" },
+    { name = "nexusformat", marker = "extra == 'apps'", specifier = ">=2.0.0" },
     { name = "nmrglue", marker = "extra == 'apps'", git = "https://github.com/jjhelmus/nmrglue.git?rev=b6408751bf18801a0a4ce084acf4d31335e2b02a" },
     { name = "pandas", extras = ["excel"], specifier = "~=2.2" },
     { name = "periodictable", specifier = "~=1.7" },
