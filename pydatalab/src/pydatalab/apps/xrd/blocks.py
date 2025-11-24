@@ -13,8 +13,15 @@ from pydatalab.file_utils import get_file_info_by_id
 from pydatalab.logger import LOGGER
 from pydatalab.mongo import flask_mongo
 
+from ..nexus import load_nexus_file
 from .models import PeakInformation
-from .utils import compute_cif_pxrd, load_nexus_file, parse_rasx_zip, parse_xrdml
+from .utils import (
+    XRD_COLUMN_MAPPING,
+    compute_cif_pxrd,
+    parse_rasx_zip,
+    parse_xrdml,
+    validate_xrd_columns,
+)
 
 
 class XRDBlock(DataBlock):
@@ -72,7 +79,15 @@ class XRDBlock(DataBlock):
         elif ext == ".rasx":
             df = parse_rasx_zip(location)
         elif ext == ".nxs":
-            df = load_nexus_file(location)
+            df, nexus_metadata = load_nexus_file(
+                location,
+                validator=validate_xrd_columns,
+                column_mapping=XRD_COLUMN_MAPPING,
+                extract_metadata=True,
+            )
+            # Use wavelength from NeXus file if available and not already specified
+            if wavelength is None and "wavelength" in nexus_metadata:
+                wavelength = nexus_metadata["wavelength"]
         elif ext == ".cif":
             df, peak_data = compute_cif_pxrd(
                 location, wavelength=wavelength or cls.defaults["wavelength"]
