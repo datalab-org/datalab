@@ -396,7 +396,13 @@ class GPCBlock(DataBlock):
                 return
             
             gpc_data, gpcmw, slicebounds, npeaks, calinfo, fminfo, gpcbase = self.parse_gpc_sheet(Path(file_info["location"]))
-            
+
+        self.data["npeaks"] = len(gpcmw)
+        for i in range(len(gpcmw)):
+            for column in gpcmw.columns[1:]:
+                print(column)
+                self.data["{0} Peak {1}".format(column,i+1)] = float(gpcmw[column][i])
+        
         if gpc_data is not None:
             fulllayout = self._format_gpc_plot(gpc_data,gpcmw,slicebounds,npeaks,calinfo,fminfo,gpcbase)
             self.data["bokeh_plot_data"] = bokeh.embed.json_item(fulllayout, theme=DATALAB_BOKEH_THEME)
