@@ -23,7 +23,15 @@
         </div>
         <div class="modal-footer">
           <slot name="footer">
-            <input type="submit" class="btn btn-info" :disabled="disableSubmit" value="Submit" />
+            <button
+              type="button"
+              class="btn btn-info"
+              :disabled="disableSubmit || submitLocked"
+              @click="lockAndSubmit"
+            >
+              Submit
+            </button>
+
             <button
               type="button"
               class="btn btn-secondary"
@@ -57,6 +65,7 @@ export default {
     return {
       modalDisplayed: false,
       modalOpaque: false,
+      submitLocked: false,
     };
   },
   watch: {
@@ -70,7 +79,37 @@ export default {
     },
   },
   methods: {
+    lockAndSubmit(event) {
+      this.submitLocked = true;
+
+      let el = event && event.target ? event.target : null;
+      if (!el) return;
+
+      const form = el.closest && el.closest("form");
+
+      if (form) {
+        if (typeof form.requestSubmit === "function") {
+          form.requestSubmit();
+          return;
+        }
+
+        try {
+          const submitEvent = new Event("submit", { bubbles: true, cancelable: true });
+          const canceled = !form.dispatchEvent(submitEvent);
+          if (!canceled) {
+            if (typeof form.submit === "function") {
+              form.submit();
+            }
+          }
+        } catch (e) {
+          if (typeof form.submit === "function") {
+            form.submit();
+          }
+        }
+      }
+    },
     async openModal() {
+      this.submitLocked = false;
       this.modalDisplayed = true;
       await new Promise((resolve) => setTimeout(resolve, 20)); //hacky...
       this.$nextTick(() => {
@@ -81,6 +120,7 @@ export default {
       this.modalOpaque = false;
       await new Promise((resolve) => setTimeout(resolve, 200)); // super hacky
       this.modalDisplayed = false;
+      this.submitLocked = false;
       this.$emit("update:modelValue", false);
     },
   },
