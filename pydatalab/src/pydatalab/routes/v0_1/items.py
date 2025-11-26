@@ -1159,13 +1159,13 @@ def save_item():
         if "freeform_comment" in block_data:
             all_mentioned_ids.update(extract_mentioned_items(block_data["freeform_comment"]))
 
+    current_relationships = item.get("relationships", [])
+
+    updated_relationships = [
+        rel for rel in current_relationships if rel.get("relation") != "mentioned"
+    ]
+
     if all_mentioned_ids:
-        current_relationships = item.get("relationships", [])
-
-        updated_relationships = [
-            rel for rel in current_relationships if rel.get("relation") != "mentioned"
-        ]
-
         for mentioned_id in all_mentioned_ids:
             if mentioned_id != item_id:
                 mentioned_item = flask_mongo.db.items.find_one(
@@ -1180,7 +1180,7 @@ def save_item():
                         }
                     )
 
-        updated_data["relationships"] = updated_relationships
+    updated_data["relationships"] = updated_relationships
 
     item_type = item["type"]
     item.update(updated_data)

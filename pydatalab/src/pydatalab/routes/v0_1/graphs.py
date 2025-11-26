@@ -188,7 +188,7 @@ def get_graph_cy_format(
                 {
                     "data": {
                         "id": document["item_id"],
-                        "name": document["name"] if document["name"] else document["item_id"],
+                        "name": document.get("name") or document["item_id"],
                         "type": document["type"],
                         "special": document["item_id"] == item_id,
                     }
