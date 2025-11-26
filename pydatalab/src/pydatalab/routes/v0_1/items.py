@@ -32,6 +32,39 @@ from pydatalab.permissions import (
 ITEMS = Blueprint("items", __name__)
 
 
+def extract_mentioned_items(html_content: str) -> set[str]:
+    """Extract item IDs from TipTap cross-reference nodes in HTML content.
+
+    Args:
+        html_content: HTML string potentially containing cross-reference spans
+
+    Returns:
+        Set of item IDs found in cross-reference nodes
+    """
+    print("Trigger extract")
+    if not html_content:
+        return set()
+    print("HTML FOUND:")
+    print(html_content)
+    try:
+        crossref_pattern = r'<span[^>]*data-type="crossreference"[^>]*>.*?</span>'
+        crossref_spans = re.findall(crossref_pattern, html_content, re.DOTALL)
+        print(crossref_pattern)
+        print(crossref_spans)
+
+        mentioned_ids = set()
+        for span in crossref_spans:
+            item_id_match = re.search(r'data-item-id="([^"]+)"', span)
+            if item_id_match:
+                mentioned_ids.add(item_id_match.group(1))
+        print(mentioned_ids)
+
+        return mentioned_ids
+    except Exception as e:
+        print(f"Error extracting mentioned items: {e}")
+        return set()
+
+
 @ITEMS.before_request
 @active_users_or_get_only
 def _(): ...
@@ -1060,7 +1093,6 @@ def save_item():
         "creators",
         "creator_ids",
         "item_id",
-        "relationships",
     ):
         if k in updated_data:
             del updated_data[k]
@@ -1117,6 +1149,38 @@ def save_item():
                 ),
                 401,
             )
+
+    all_mentioned_ids = set()
+
+    if "description" in updated_data:
+        all_mentioned_ids.update(extract_mentioned_items(updated_data["description"]))
+
+    for block_id, block_data in updated_data.get("blocks_obj", {}).items():
+        if "freeform_comment" in block_data:
+            all_mentioned_ids.update(extract_mentioned_items(block_data["freeform_comment"]))
+
+    if all_mentioned_ids:
+        current_relationships = item.get("relationships", [])
+
+        updated_relationships = [
+            rel for rel in current_relationships if rel.get("relation") != "mentioned"
+        ]
+
+        for mentioned_id in all_mentioned_ids:
+            if mentioned_id != item_id:
+                mentioned_item = flask_mongo.db.items.find_one(
+                    {"item_id": mentioned_id}, {"type": 1}
+                )
+                if mentioned_item:
+                    updated_relationships.append(
+                        {
+                            "relation": "mentioned",
+                            "item_id": mentioned_id,
+                            "type": mentioned_item["type"],
+                        }
+                    )
+
+        updated_data["relationships"] = updated_relationships
 
     item_type = item["type"]
     item.update(updated_data)
