@@ -165,6 +165,10 @@ def get_graph_cy_format(
 
             target = document["item_id"]
             source = relationship["item_id"]
+
+            if relation_type == "mentioned":
+                source, target = target, source
+
             if source not in node_ids or target not in node_ids:
                 continue
             edge_id = f"{source}->{target}"
