@@ -56,6 +56,8 @@ def test_user_update(client, real_mongo_client, user_id, admin_user_id):
     assert resp.status_code == 200
     user = real_mongo_client.get_database().users.find_one({"_id": user_id})
     assert user["contact_email"] == "test2@example.org"
+    assert user["identities"][-1]["identifier"] == "test2@example.org"
+    assert not user["identities"][-1]["verified"]
 
     # Test that display name -> None does not remove display name
     user_request = {"display_name": None}

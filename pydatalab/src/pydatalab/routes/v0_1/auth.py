@@ -14,11 +14,11 @@ from string import ascii_letters
 
 import jwt
 from bson import ObjectId
-from flask import Blueprint, Response, g, jsonify, redirect, request
+from flask import Blueprint, g, jsonify, redirect, request
 from flask_dance.consumer import OAuth2ConsumerBlueprint, oauth_authorized
 from flask_login import current_user, login_user
 from flask_login.utils import LocalProxy
-from werkzeug.exceptions import BadRequest
+from werkzeug.exceptions import BadRequest, Forbidden
 
 from pydatalab.config import CONFIG
 from pydatalab.errors import UserRegistrationForbidden
@@ -253,6 +253,9 @@ def _check_email_domain(email: str, allow_list: list[str] | None) -> bool:
         Whether the email address is allowed to register an account.
 
     """
+    if CONFIG.TESTING:
+        return True
+
     domain = email.split("@")[-1]
     if isinstance(allow_list, list) and not allow_list:
         return False
@@ -420,29 +423,18 @@ def find_create_or_modify_user(
         wrapped_login_user(get_by_id(str(user.immutable_id)))
 
 
-def _validate_magic_link_request(email: str, referrer: str) -> tuple[Response | None, int]:
+def _validate_magic_link_request(email: str, referrer: str) -> None:
     if not email:
-        return jsonify({"status": "error", "detail": "No email provided."}), 400
+        raise BadRequest("No email provided")
 
     if not re.match(r"^\S+@\S+.\S+$", email):
-        return jsonify({"status": "error", "detail": "Invalid email provided."}), 400
+        raise BadRequest("Invalid email provided.")
 
     if not referrer:
-        LOGGER.warning("No referrer provided for magic link request")
-        return (
-            jsonify(
-                {
-                    "status": "error",
-                    "detail": "Referrer address not provided, please contact the datalab administrator.",
-                }
-            ),
-            400,
-        )
-
-    return None, 200
+        raise BadRequest("Referrer address not provided, please contact the datalab administrator")
 
 
-def _generate_and_store_token(email: str, is_test: bool = False) -> str:
+def _generate_and_store_token(email: str, intent: str = "register") -> str:
     """Generate a JWT for the user with a short expiration and store it in the session.
 
     The session itself persists beyond the JWT expiration. The `exp` key is a standard
@@ -450,18 +442,17 @@ def _generate_and_store_token(email: str, is_test: bool = False) -> str:
 
     Args:
         email: The user's email address to include in the token.
-        is_test: If True, generates a token for testing purposes that may have different
-                 expiration or validation rules. Defaults to False.
+        intent: The intent of the magic link, e.g., "register" "verify", or "login".
 
     Returns:
         The generated JWT token string.
+
     """
     payload = {
         "exp": datetime.datetime.now(datetime.timezone.utc) + LINK_EXPIRATION,
         "email": email,
+        "intent": intent,
     }
-    if is_test:
-        payload["is_test"] = True
 
     token = jwt.encode(
         payload,
@@ -474,45 +465,49 @@ def _generate_and_store_token(email: str, is_test: bool = False) -> str:
     return token
 
 
-def _check_user_registration_allowed(email: str) -> tuple[Response | None, int]:
+def _check_user_registration_allowed(email: str) -> None:
     user = find_user_with_identity(email, IdentityType.EMAIL, verify=False)
 
     if not user:
         allowed = _check_email_domain(email, CONFIG.EMAIL_DOMAIN_ALLOW_LIST)
         if not allowed:
-            LOGGER.info("Did not allow %s to register an account", email)
-            return (
-                jsonify(
-                    {
-                        "status": "error",
-                        "detail": f"Email address {email} is not allowed to register an account. Please contact the administrator if you believe this is an error.",
-                    }
-                ),
-                403,
+            LOGGER.warning("Did not allow %s to register an account", email)
+            raise Forbidden(
+                f"Email address {email} is not allowed to register an account. Please contact the administrator if you believe this is an error."
             )
 
-    return None, 200
 
+def _send_magic_link_email(
+    email: str, token: str, referrer: str | None, purpose: str = "authorize"
+) -> None:
+    if not referrer:
+        referrer = "https://example.com"
 
-def _send_magic_link_email(email: str, token: str, referrer: str) -> tuple[Response | None, int]:
     link = f"{referrer}?token={token}"
     instance_url = referrer.replace("https://", "")
-    user = find_user_with_identity(email, IdentityType.EMAIL, verify=False)
 
-    if user is not None:
-        subject = "Datalab Sign-in Magic Link"
-        body = f"Click the link below to sign-in to the datalab instance at {instance_url}:\n\n{link}\n\nThis link is single-use and will expire in 1 hour."
+    if purpose == "authorize":
+        user = find_user_with_identity(email, IdentityType.EMAIL, verify=False)
+        if user is not None:
+            subject = "datalab Sign-in Magic Link"
+            body = f"Click the link below to sign-in to the datalab instance at {instance_url}:\n\n{link}\n\nThis link is single-use and will expire in 1 hour."
+        else:
+            subject = "datalab Registration Magic Link"
+            body = f"Click the link below to register for the datalab instance at {instance_url}:\n\n{link}\n\nThis link is single-use and will expire in 1 hour."
+
+    elif purpose == "verify":
+        subject = "datalab Email Address Verification"
+        body = f"Click the link below to verify your email address for the datalab instance at {instance_url}:\n\n{link}\n\nThis link is single-use and will expire in 1 hour."
+
     else:
-        subject = "Datalab Registration Magic Link"
-        body = f"Click the link below to register for the datalab instance at {instance_url}:\n\n{link}\n\nThis link is single-use and will expire in 1 hour."
+        LOGGER.critical("Unknown purpose %s for magic link email", purpose)
+        raise RuntimeError("Unknown error occurred")
 
     try:
         send_mail(email, subject, body)
     except Exception as exc:
         LOGGER.warning("Failed to send email to %s: %s", email, exc)
-        return jsonify({"status": "error", "detail": "Email not sent successfully."}), 400
-
-    return None, 200
+        raise RuntimeError("Email not sent successfully.")
 
 
 @EMAIL_BLUEPRINT.route("/magic-link", methods=["POST"])
@@ -526,21 +521,12 @@ def generate_and_share_magic_link():
     email = request_json.get("email")
     referrer = request_json.get("referrer")
 
-    error_response, status_code = _validate_magic_link_request(email, referrer)
-    if error_response:
-        return error_response, status_code
+    _validate_magic_link_request(email, referrer)
+    _check_user_registration_allowed(email)
+    token = _generate_and_store_token(email, intent="register")
+    _send_magic_link_email(email, token, referrer)
 
-    error_response, status_code = _check_user_registration_allowed(email)
-    if error_response:
-        return error_response, status_code
-
-    token = _generate_and_store_token(email)
-
-    error_response, status_code = _send_magic_link_email(email, token, referrer)
-    if error_response:
-        return error_response, status_code
-
-    return jsonify({"status": "success", "detail": "Email sent successfully."}), 200
+    return jsonify({"status": "success", "message": "Email sent successfully."}), 200
 
 
 @EMAIL_BLUEPRINT.route("/email")
@@ -580,21 +566,22 @@ def email_logged_in():
     # If the email domain list is explicitly configured to None, this allows any
     # email address to make an active account, otherwise the email domain must match
     # the list of allowed domains and the admin must verify the user
-    is_test = data.get("is_test", False)
 
-    if not is_test:
+    if data.get("intent") == "register":
         allowed = _check_email_domain(email, CONFIG.EMAIL_DOMAIN_ALLOW_LIST)
         if not allowed:
             raise UserRegistrationForbidden
 
-    create_account = AccountStatus.UNVERIFIED
-    if (
-        CONFIG.EMAIL_DOMAIN_ALLOW_LIST is None
-        or CONFIG.EMAIL_AUTO_ACTIVATE_ACCOUNTS
-        or CONFIG.AUTO_ACTIVATE_ACCOUNTS
-        or is_test
-    ):
-        create_account = AccountStatus.ACTIVE
+        create_account = AccountStatus.UNVERIFIED
+        if (
+            CONFIG.EMAIL_DOMAIN_ALLOW_LIST is None
+            or CONFIG.EMAIL_AUTO_ACTIVATE_ACCOUNTS
+            or CONFIG.AUTO_ACTIVATE_ACCOUNTS
+        ):
+            create_account = AccountStatus.ACTIVE
+
+    else:
+        create_account = False
 
     find_create_or_modify_user(
         email,
@@ -751,10 +738,8 @@ def create_test_magic_link():
     email = request_json.get("email")
     referrer = request_json.get("referrer", "http://localhost:8080")
 
-    error_response, status_code = _validate_magic_link_request(email, referrer)
-    if error_response:
-        return error_response, status_code
+    _validate_magic_link_request(email, referrer)
 
-    token = _generate_and_store_token(email, is_test=True)
+    token = _generate_and_store_token(email, intent="register")
 
     return jsonify({"status": "success", "token": token}), 200
