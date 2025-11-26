@@ -19,7 +19,7 @@ def test_magic_link_account_creation(unauthenticated_client, app, database):
             "/login/magic-link",
             json={"email": "test@ml-evs.science", "referrer": "datalab.example.org"},
         )
-        assert response.json["detail"] == "Email sent successfully."
+        assert response.json["message"] == "Email sent successfully."
         assert response.status_code == 200
         assert len(outbox) == 1
 
@@ -46,7 +46,7 @@ def test_magic_links_expected_failures(unauthenticated_client, app):
         )
         assert response.status_code == 400
         assert len(outbox) == 0
-        assert response.json["detail"] == "Invalid email provided."
+        assert response.json["message"] == "Invalid email provided."
 
         response = unauthenticated_client.post(
             "/login/magic-link",
