@@ -23,6 +23,10 @@
           <StatisticsTable />
         </div>
 
+        <h5>Community Activity:</h5>
+        <p>Combined contributions from all users over the past year</p>
+        <UserActivityGraph :combined="true" />
+
         <h5>Deployment info:</h5>
         <div class="p-3">
           <table>
@@ -147,10 +151,11 @@
 import Navbar from "@/components/Navbar";
 import { getInfo } from "@/server_fetch_utils.js";
 import StatisticsTable from "@/components/StatisticsTable";
+import UserActivityGraph from "@/components/UserActivityGraph.vue";
 import { APP_VERSION } from "@/resources.js";
 
 export default {
-  components: { Navbar, StatisticsTable },
+  components: { Navbar, StatisticsTable, UserActivityGraph },
   data() {
     return {
       apiInfo: { server_version: "unknown" },
