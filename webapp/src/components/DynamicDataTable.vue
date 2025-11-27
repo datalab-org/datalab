@@ -490,6 +490,14 @@ export default {
     },
   },
   created() {
+    this.$store.commit("setPage", { type: this.dataType, page: 0 });
+
+    const savedState = localStorage.getItem(`datatable-state-${this.dataType}`);
+    if (savedState) {
+      const parsed = JSON.parse(savedState);
+      parsed.first = 0;
+      localStorage.setItem(`datatable-state-${this.dataType}`, JSON.stringify(parsed));
+    }
     this.editable_inventory = EDITABLE_INVENTORY;
     this.selectedColumns = this.availableColumns.filter((col) => !col.hidden);
 
@@ -846,12 +854,11 @@ export default {
             state.columnWidths = customState.columnWidths;
           }
 
-          if (customState.first) {
-            state.first = customState.first;
-          }
+          state.first = 0;
 
           if (customState.rows) {
             state.rows = customState.rows;
+            this.updateRows(customState.rows);
           }
 
           if (customState.visibleColumns && Array.isArray(customState.visibleColumns)) {
@@ -869,6 +876,7 @@ export default {
       } catch (error) {
         console.error("Error restoring DataTable state:", error);
         this.selectedColumns = [...this.availableColumns];
+        state.first = 0;
         return false;
       }
     },
