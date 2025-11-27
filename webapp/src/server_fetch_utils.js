@@ -989,3 +989,10 @@ export async function getSchema(type) {
       throw error;
     });
 }
+
+export function fetchUserActivity(userId = null) {
+  const endpoint = userId ? `/users/${userId}/activity` : "/users/combined-activity";
+  return fetch_get(`${API_URL}${endpoint}`).then(function (response_json) {
+    return response_json;
+  });
+}
