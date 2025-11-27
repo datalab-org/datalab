@@ -1047,3 +1047,10 @@ export async function getApiConfig() {
       return { maxUploadBytes: null };
     });
 }
+
+export function fetchUserActivity(userId = null) {
+  const endpoint = userId ? `/users/${userId}/activity` : "/info/user-activity";
+  return fetch_get(`${API_URL}${endpoint}`).then(function (response_json) {
+    return response_json;
+  });
+}

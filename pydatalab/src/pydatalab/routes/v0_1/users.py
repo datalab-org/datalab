@@ -1,3 +1,7 @@
+from datetime import datetime
+from datetime import timedelta as td
+from datetime import timezone as tz
+
 from bson import ObjectId
 from flask import Blueprint, jsonify, request
 from flask_login import current_user
@@ -127,3 +131,40 @@ def save_user(user_id):
         )
 
     return (jsonify({"message": "User updated successfully", "status": "success"}), 200)
+
+
+@USERS.route("/users/<user_id>/activity", methods=["GET"])
+@active_users_or_get_only
+def get_user_activity(user_id):
+    """Get activity data for a specific user (creation dates)."""
+
+    if str(current_user.person.immutable_id) != user_id and current_user.role != "admin":
+        return jsonify({"status": "error", "message": "Unauthorized"}), 403
+
+    months = int(request.args.get("months", 12))
+
+    start_date = datetime.now(tz=tz.utc) - td(days=30 * months)
+    end_date = datetime.now(tz=tz.utc)
+
+    try:
+        user_object_id = ObjectId(user_id)
+        creator_match = user_object_id
+    except Exception:
+        creator_match = user_id
+
+    pipeline = [
+        {"$match": {"creator_ids": creator_match, "date": {"$gte": start_date, "$lte": end_date}}},
+        {
+            "$group": {
+                "_id": {"$dateToString": {"format": "%Y-%m-%d", "date": "$date"}},
+                "count": {"$sum": 1},
+            }
+        },
+        {"$sort": {"_id": 1}},
+    ]
+
+    activity_data = list(flask_mongo.db.items.aggregate(pipeline))
+
+    result = {date_entry["_id"]: date_entry["count"] for date_entry in activity_data}
+
+    return jsonify({"status": "success", "data": result}), 200
