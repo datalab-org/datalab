@@ -119,6 +119,17 @@
             </div>
           </div>
         </div>
+        <div class="form-row">
+          <div class="form-group col-md-12">
+            <label class="col-form-label">Your Activity:</label>
+            <UserActivityGraph
+              v-if="user && user.immutable_id"
+              :key="user.immutable_id"
+              :user-id="user.immutable_id"
+              :compact="true"
+            />
+          </div>
+        </div>
       </template>
     </Modal>
   </form>
@@ -130,6 +141,8 @@ import { DialogService } from "@/services/DialogService";
 import { API_URL } from "@/resources.js";
 import Modal from "@/components/Modal.vue";
 import UserBubble from "@/components/UserBubble.vue";
+import UserActivityGraph from "@/components/UserActivityGraph.vue";
+
 import { getUserInfo, saveUser, requestNewAPIKey } from "@/server_fetch_utils.js";
 import StyledInput from "./StyledInput.vue";
 
@@ -139,6 +152,7 @@ export default {
     Modal,
     StyledInput,
     UserBubble,
+    UserActivityGraph,
   },
   props: {
     modelValue: Boolean,
