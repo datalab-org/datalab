@@ -114,7 +114,6 @@ class CycleBlock(DataBlock):
             "dqdv": "dQ/dV (mA/V)",
             "dvdq": "dV/dQ (V/mA)",
         }
-
         if isinstance(file_ids, ObjectId):
             file_ids = [file_ids]
 
@@ -198,7 +197,6 @@ class CycleBlock(DataBlock):
 
     def plot_cycle(self):
         """Plots the electrochemical cycling data from the file ID provided in the request."""
-
         # Legacy support for when file_id was used
         if self.data.get("file_id") is not None and not self.data.get("file_ids"):
             LOGGER.info("Legacy file upload detected, using file_id")
@@ -234,42 +232,96 @@ class CycleBlock(DataBlock):
         if not isinstance(cycle_list, list):
             cycle_list = None
 
-        raw_df, cycle_summary_df = self._load(file_ids=file_ids)
+        raw_dfs = {}
+        cycle_summary_dfs = {}
 
-        characteristic_mass_g = self._get_characteristic_mass_g()
+        # Single/multi mode gets a single dataframe - returned as a dict for consistency
+        if self.data.get("mode") == "multi" or self.data.get("mode") == "single":
+            file_info = get_file_info_by_id(file_ids[0], update_if_live=True)
+            filename = file_info["name"]
+            raw_df, cycle_summary_df = self._load(file_ids=file_ids)
 
-        if characteristic_mass_g:
-            raw_df["capacity (mAh/g)"] = raw_df["capacity (mAh)"] / characteristic_mass_g
-            raw_df["current (mA/g)"] = raw_df["current (mA)"] / characteristic_mass_g
+            characteristic_mass_g = self._get_characteristic_mass_g()
+
+            if characteristic_mass_g:
+                raw_df["capacity (mAh/g)"] = raw_df["capacity (mAh)"] / characteristic_mass_g
+                raw_df["current (mA/g)"] = raw_df["current (mA)"] / characteristic_mass_g
+                if cycle_summary_df is not None:
+                    cycle_summary_df["charge capacity (mAh/g)"] = (
+                        cycle_summary_df["charge capacity (mAh)"] / characteristic_mass_g
+                    )
+                    cycle_summary_df["discharge capacity (mAh/g)"] = (
+                        cycle_summary_df["discharge capacity (mAh)"] / characteristic_mass_g
+                    )
+
+            if self.data.get("mode") == "multi":
+                p = Path(filename)
+                filename = f"{p.stem}_merged{p.suffix}"
+                raw_dfs[filename] = raw_df
+                cycle_summary_dfs[filename] = cycle_summary_df
+            elif self.data.get("mode") == "single":
+                raw_dfs[filename] = raw_df
+                cycle_summary_dfs[filename] = cycle_summary_df
+
+        else:
+            raise ValueError(f"Invalid mode {self.data.get('mode')}")
+
+        # Load comparison files if provided
+        comparison_file_ids = self.data.get("comparison_file_ids", [])
+        if comparison_file_ids and len(comparison_file_ids) > 0:
+            # TODO (ben smith) Currently can't load in different masses for different files in comparison mode
+            for file in comparison_file_ids:
+                try:
+                    file_info = get_file_info_by_id(file, update_if_live=True)
+                    filename = file_info["name"]
+                    comparison_raw_df, comparison_cycle_summary_df = self._load(
+                        file_ids=[file], reload=False
+                    )
+                    # Mark comparison files with a prefix to distinguish them
+                    raw_dfs[f"[Comparison] {filename}"] = comparison_raw_df
+                    cycle_summary_dfs[f"[Comparison] {filename}"] = comparison_cycle_summary_df
+                except Exception as exc:
+                    LOGGER.error("Failed to load comparison file %s: %s", file, exc)
+
+        dfs = {}
+        for filename, raw_df in raw_dfs.items():
+            cycle_summary_df = cycle_summary_dfs.get(filename)
+            df = filter_df_by_cycle_index(raw_df, cycle_list)
             if cycle_summary_df is not None:
-                cycle_summary_df["charge capacity (mAh/g)"] = (
-                    cycle_summary_df["charge capacity (mAh)"] / characteristic_mass_g
+                cycle_summary_df = filter_df_by_cycle_index(cycle_summary_df, cycle_list)
+
+            if mode in ("dQ/dV", "dV/dQ"):
+                df = compute_gpcl_differential(
+                    df,
+                    mode=mode,
+                    polynomial_spline=int(self.data["p_spline"]),
+                    s_spline=10 ** (-float(self.data["s_spline"])),
+                    window_size_1=int(self.data["win_size_1"]),
+                    window_size_2=int(self.data["win_size_2"]),
+                    use_normalized_capacity=bool(characteristic_mass_g),
                 )
-                cycle_summary_df["discharge capacity (mAh/g)"] = (
-                    cycle_summary_df["discharge capacity (mAh)"] / characteristic_mass_g
-                )
+            # Reduce df size to 100 points per cycle by default if there are more than a 100k points
+            if len(df) > 1e5:
+                df = reduce_echem_cycle_sampling(df, num_samples=100)
+                LOGGER.debug("Reduced df size, df length: %d", len(df))
+            df["filename"] = filename
+            cycle_summary_df["filename"] = filename
+            dfs[filename] = df
+            cycle_summary_dfs[filename] = cycle_summary_df
 
-        df = filter_df_by_cycle_index(raw_df, cycle_list)
-        if cycle_summary_df is not None:
-            cycle_summary_df = filter_df_by_cycle_index(cycle_summary_df, cycle_list)
-
-        if mode in ("dQ/dV", "dV/dQ"):
-            df = compute_gpcl_differential(
-                df,
-                mode=mode,
-                polynomial_spline=int(self.data["p_spline"]),
-                s_spline=10 ** (-float(self.data["s_spline"])),
-                window_size_1=int(self.data["win_size_1"]),
-                window_size_2=int(self.data["win_size_2"]),
-                use_normalized_capacity=bool(characteristic_mass_g),
-            )
-
-        # Reduce df size to 100 points per cycle by default if there are more than a 100k points
-        if len(df) > 1e5:
-            df = reduce_echem_cycle_sampling(df, num_samples=100)
+        # Determine plotting mode - if comparison files exist, use comparison mode
+        plotting_mode = (
+            "comparison"
+            if comparison_file_ids and len(comparison_file_ids) > 0
+            else self.data.get("mode")
+        )
 
         layout = bokeh_plots.double_axes_echem_plot(
-            df, cycle_summary=cycle_summary_df, mode=mode, normalized=bool(characteristic_mass_g)
+            dfs=list(dfs.values()),
+            cycle_summary_dfs=list(cycle_summary_dfs.values()),
+            mode=mode,
+            normalized=bool(characteristic_mass_g),
+            plotting_mode=plotting_mode,
         )
 
         if layout is not None:

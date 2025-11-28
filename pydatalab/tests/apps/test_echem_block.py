@@ -76,8 +76,8 @@ def test_filter_df_by_cycle_index(reduced_echem_dataframe):
 def test_plot(reduced_echem_dataframe):
     from pydatalab.bokeh_plots import double_axes_echem_plot
 
-    layout = double_axes_echem_plot(reduced_echem_dataframe)
+    layout = double_axes_echem_plot([reduced_echem_dataframe])
     assert layout
     differential_df = compute_gpcl_differential(reduced_echem_dataframe, mode="dV/dQ")
-    layout = double_axes_echem_plot(differential_df, mode="dV/dQ")
+    layout = double_axes_echem_plot([differential_df], mode="dV/dQ")
     assert layout
