@@ -70,7 +70,7 @@ function fetch_get(url) {
     headers: construct_headers(),
     credentials: "include",
   };
-  return fetch(url, requestOptions).then(handleResponse);
+  return fetch(url, requestOptions).then(handleJSONResponse);
 }
 
 function fetch_post(url, body) {
@@ -81,7 +81,7 @@ function fetch_post(url, body) {
     body: JSON.stringify(body),
     credentials: "include",
   };
-  return fetch(url, requestOptions).then(handleResponse);
+  return fetch(url, requestOptions).then(handleJSONResponse);
 }
 
 function fetch_patch(url, body) {
@@ -92,7 +92,7 @@ function fetch_patch(url, body) {
     body: JSON.stringify(body),
     credentials: "include",
   };
-  return fetch(url, requestOptions).then(handleResponse);
+  return fetch(url, requestOptions).then(handleJSONResponse);
 }
 
 // eslint-disable-next-line no-unused-vars
@@ -104,7 +104,7 @@ function fetch_put(url, body) {
     body: JSON.stringify(body),
     credentials: "include",
   };
-  return fetch(url, requestOptions).then(handleResponse);
+  return fetch(url, requestOptions).then(handleJSONResponse);
 }
 
 // eslint-disable-next-line no-unused-vars
@@ -116,10 +116,47 @@ function fetch_delete(url, body) {
     body: JSON.stringify(body),
     credentials: "include",
   };
-  return fetch(url, requestOptions).then(handleResponse);
+  return fetch(url, requestOptions).then(handleJSONResponse);
 }
 
-function handleResponse(response) {
+/**
+ * Fetches a file with optional size limit checking
+ * @param {string} url - The URL to fetch
+ * @param {number} maxSizeBytes - Maximum allowed file size in bytes (default: 100 MB)
+ * @returns {Promise<Response>} The fetch Response object
+ * @throws {Error} If file exceeds size limit or fetch fails
+ */
+export async function fetch_file(url, maxSizeBytes = 100 * 1024 * 1024) {
+  const requestOptions = {
+    method: "GET",
+    headers: construct_headers(),
+    credentials: "include",
+  };
+
+  const response = await fetch(url, requestOptions);
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  // Check Content-Length header if available to warn about large files
+  // Note: This doesn't prevent the download (already happened), but provides
+  // a better error message than running out of memory during response parsing
+  const contentLength = response.headers.get("content-length");
+  if (contentLength && parseInt(contentLength, 10) > maxSizeBytes) {
+    throw new Error(
+      `File too large: ${(parseInt(contentLength, 10) / 1024 / 1024).toFixed(2)} MB (max: ${(
+        maxSizeBytes /
+        1024 /
+        1024
+      ).toFixed(2)} MB)`,
+    );
+  }
+
+  return response;
+}
+
+function handleJSONResponse(response) {
   return response.text().then((text) => {
     const data = text && JSON.parse(text);
 
