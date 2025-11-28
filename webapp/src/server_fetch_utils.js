@@ -4,7 +4,6 @@
 import store from "@/store/index.js";
 import {
   API_URL,
-  API_TOKEN,
   SAMPLE_TABLE_TYPES,
   INVENTORY_TABLE_TYPES,
   EQUIPMENT_TABLE_TYPES,
@@ -56,9 +55,6 @@ export function construct_headers(additional_headers = null) {
   let headers = {};
   if (additional_headers != null) {
     headers = additional_headers;
-  }
-  if (API_TOKEN != null && API_TOKEN != "") {
-    headers["Authorization"] = API_TOKEN;
   }
   return headers;
 }
