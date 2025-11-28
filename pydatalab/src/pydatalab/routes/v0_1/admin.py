@@ -1,3 +1,5 @@
+import datetime
+
 from bson import ObjectId
 from flask import Blueprint, jsonify, request
 from flask_login import current_user
@@ -182,3 +184,84 @@ def update_user_managers(user_id):
         return jsonify({"status": "error", "message": "Unable to update user managers"}), 400
 
     return jsonify({"status": "success"}), 200
+
+
+@ADMIN.route("/items/<refcode>/invalidate-access-token", methods=["POST"])
+def invalidate_access_token(refcode: str):
+    if len(refcode.split(":")) != 2:
+        refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
+
+    query = {"refcode": refcode, "active": True, "type": "access_token"}
+
+    response = flask_mongo.db.api_keys.update_one(
+        query,
+        {
+            "$set": {
+                "active": False,
+                "invalidated_at": datetime.datetime.now(tz=datetime.timezone.utc),
+                "invalidated_by": ObjectId(current_user.id),
+            }
+        },
+    )
+
+    if response.modified_count == 1:
+        return jsonify({"status": "success"}), 200
+    else:
+        return jsonify({"status": "error", "detail": "Token not found or already invalidated"}), 404
+
+
+@ADMIN.route("/access-tokens", methods=["GET"])
+def list_access_tokens():
+    """List all access tokens with their status and metadata."""
+
+    pipeline = [
+        {"$match": {"type": "access_token"}},
+        {
+            "$lookup": {
+                "from": "items",
+                "localField": "refcode",
+                "foreignField": "refcode",
+                "as": "item_info",
+            }
+        },
+        {
+            "$lookup": {
+                "from": "users",
+                "localField": "user",
+                "foreignField": "_id",
+                "as": "user_info",
+            }
+        },
+        {
+            "$project": {
+                "_id": 1,
+                "refcode": 1,
+                "active": 1,
+                "created_at": 1,
+                "invalidated_at": 1,
+                "token": "$token",
+                "item_name": {
+                    "$cond": {
+                        "if": {"$gt": [{"$size": "$item_info"}, 0]},
+                        "then": {"$arrayElemAt": ["$item_info.name", 0]},
+                        "else": None,
+                    }
+                },
+                "item_id": {"$arrayElemAt": ["$item_info.item_id", 0]},
+                "item_type": {
+                    "$cond": {
+                        "if": {"$gt": [{"$size": "$item_info"}, 0]},
+                        "then": {"$arrayElemAt": ["$item_info.type", 0]},
+                        "else": "deleted",
+                    }
+                },
+                "created_by": {"$arrayElemAt": ["$user_info.display_name", 0]},
+                "created_by_info": {"$arrayElemAt": ["$user_info", 0]},
+            }
+        },
+        {"$sort": {"created_at": -1}},
+    ]
+
+    tokens = list(flask_mongo.db.api_keys.aggregate(pipeline))
+
+    return jsonify({"status": "success", "tokens": tokens}), 200

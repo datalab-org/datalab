@@ -84,3 +84,47 @@ def test_basic_permissions_update(admin_client, admin_user_id, client, user_id):
     # but that the admin still remains the creator
     response = admin_client.get(f"/items/{refcode}")
     assert response.status_code == 200
+
+
+def test_access_token_permissions(client, unauthenticated_client, admin_client, database):
+    response = client.post("/new-sample/", json={"type": "samples", "item_id": "private-sample"})
+    assert response.status_code == 201
+    response = response.json
+
+    refcode = response["sample_list_entry"]["refcode"]
+    assert refcode
+
+    response = client.post(f"/items/{refcode}/issue-access-token")
+    response = response.json
+    assert response["status"] == "success"
+    token = response["token"]
+    assert token
+
+    response = unauthenticated_client.get(f"/items/{refcode}")
+    assert response.status_code == 401
+
+    response = unauthenticated_client.get(f"/items/{refcode}?at={token}")
+    assert response.status_code == 200
+
+    response = unauthenticated_client.get(f"/items/{refcode}?at={token}123")
+    assert response.status_code == 401
+
+    response = admin_client.get(f"/items/{refcode}")
+    assert response.status_code == 200
+
+    response = admin_client.get(f"/items/{refcode}?at={token}")
+    assert response.status_code == 200
+
+    database.api_keys.delete_many({"type": "access_token"})
+
+    response = admin_client.get(f"/items/{refcode}?at={token}")
+    assert response.status_code == 401
+
+    response = client.get(f"/items/{refcode}?at={token}")
+    assert response.status_code == 401
+
+    response = client.get(f"/items/{refcode}")
+    assert response.status_code == 200
+
+    response = unauthenticated_client.get(f"/items/{refcode}?at={token}")
+    assert response.status_code == 401

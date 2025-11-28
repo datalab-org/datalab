@@ -55,6 +55,7 @@ after(() => {
 
 describe("Sample table page", () => {
   beforeEach(() => {
+    cy.loginViaTestMagicLink("test-user@example.com", "user");
     cy.visit("/");
   });
 
@@ -195,6 +196,7 @@ describe("Sample table page", () => {
 
 describe.only("Advanced sample creation features", () => {
   beforeEach(() => {
+    cy.loginViaTestMagicLink("test-user@example.com", "user");
     cy.visit("/");
   });
   it("Adds some valid samples", () => {

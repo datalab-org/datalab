@@ -23,7 +23,6 @@ import StartingMaterialCreateModalAddon from "./components/itemCreateModalAddons
 // Look for values set in .env file. Use defaults if `null` is not explicitly handled elsewhere in the code.
 export const API_URL =
   process.env.VUE_APP_API_URL != null ? process.env.VUE_APP_API_URL : "http://localhost:5001";
-export const API_TOKEN = process.env.VUE_APP_API_TOKEN;
 
 export const QR_CODE_RESOLVER_URL = process.env.VUE_APP_QR_CODE_RESOLVER_URL;
 

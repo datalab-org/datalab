@@ -98,7 +98,7 @@
 <script>
 import { DialogService } from "@/services/DialogService";
 
-import TinyMceInline from "@/components/TinyMceInline";
+import TiptapInline from "@/components/TiptapInline";
 import SelectableFileTree from "@/components/SelectableFileTree";
 
 import FileList from "@/components/FileList";
@@ -116,8 +116,6 @@ import FormattedItemName from "@/components/FormattedItemName";
 
 import setupUppy from "@/file_upload.js";
 
-import tinymce from "tinymce/tinymce";
-
 import { itemTypes, API_URL, customBlockTypes } from "@/resources.js";
 import BokehBlock from "@/components/datablocks/BokehBlock.vue";
 import ErrorBlock from "@/components/datablocks/ErrorBlock.vue";
@@ -127,7 +125,7 @@ import StyledBlockHelp from "@/components/StyledBlockHelp";
 
 export default {
   components: {
-    TinyMceInline,
+    TiptapInline,
     SelectableFileTree,
     FileList,
     LoginDetails,
@@ -292,37 +290,43 @@ export default {
       }
     },
     saveSample() {
-      // trigger the mce save so that they update the store with their content
-      tinymce.editors.forEach((editor) => {
-        editor.isDirty() && editor.save();
-      });
       saveItem(this.item_id);
       this.lastModified = "just now";
     },
     async getSampleData() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const accessToken = urlParams.get("at");
+
       if (this.item_id == null) {
-        getItemByRefcode(this.refcode).then(() => {
-          this.itemDataLoaded = true;
-          this.$nextTick(() => {
-            this.$store.commit("setItemSaved", { item_id: this.item_id, isSaved: true });
+        getItemByRefcode(this.refcode, accessToken)
+          .then(() => {
+            this.itemDataLoaded = true;
+            this.$nextTick(() => {
+              this.$store.commit("setItemSaved", { item_id: this.item_id, isSaved: true });
+            });
+            this.item_id = this.$store.state.refcode_to_id[this.refcode];
+            this.updateBlocks();
+          })
+          .catch(() => {
+            this.itemDataLoaded = false;
           });
-          this.item_id = this.$store.state.refcode_to_id[this.refcode];
-          this.updateBlocks();
-        });
       } else {
-        getItemData(this.item_id).then(() => {
-          this.itemDataLoaded = true;
-          this.refcode = this.item_data.refcode;
-          this.$nextTick(() => {
-            this.$store.commit("setItemSaved", { item_id: this.item_id, isSaved: true });
+        getItemData(this.item_id, accessToken)
+          .then(() => {
+            this.itemDataLoaded = true;
+            this.refcode = this.item_data.refcode;
+            this.$nextTick(() => {
+              this.$store.commit("setItemSaved", { item_id: this.item_id, isSaved: true });
+            });
+            this.updateBlocks();
+          })
+          .catch(() => {
+            this.itemDataLoaded = false;
           });
-          this.updateBlocks();
-        });
       }
     },
-
     async updateBlocks() {
-      if (this.itemDataLoaded) {
+      if (this.itemDataLoaded && this.item_data && this.item_data.display_order) {
         // update each block asynchronously
         this.item_data.display_order.forEach((block_id) => {
           console.log(`calling update on block ${block_id}`);

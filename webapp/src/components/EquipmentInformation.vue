@@ -56,7 +56,7 @@
       </div>
     </div>
     <label id="equip-description-label" class="mr-2">Description</label>
-    <TinyMceInline v-model="ItemDescription" aria-labelledby="equip-description-label" />
+    <TiptapInline v-model="ItemDescription" aria-labelledby="equip-description-label" />
 
     <TableOfContents
       class="mb-3"
@@ -68,7 +68,7 @@
 
 <script>
 import { createComputedSetterForItemField } from "@/field_utils.js";
-import TinyMceInline from "@/components/TinyMceInline";
+import TiptapInline from "@/components/TiptapInline";
 import TableOfContents from "@/components/TableOfContents";
 import CollectionList from "@/components/CollectionList";
 import FormattedRefcode from "@/components/FormattedRefcode";
@@ -76,7 +76,7 @@ import Creators from "@/components/Creators";
 
 export default {
   components: {
-    TinyMceInline,
+    TiptapInline,
     CollectionList,
     TableOfContents,
     FormattedRefcode,

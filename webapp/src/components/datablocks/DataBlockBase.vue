@@ -127,7 +127,7 @@
         </div>
       </div>
       <slot></slot>
-      <TinyMceInline v-model="BlockDescription" data-testid="block-description"></TinyMceInline>
+      <TiptapInline v-model="BlockDescription" data-testid="block-description"></TiptapInline>
     </div>
   </div>
 </template>
@@ -143,15 +143,14 @@
 import { DialogService } from "@/services/DialogService";
 
 import { createComputedSetterForBlockField } from "@/field_utils.js";
-import TinyMceInline from "@/components/TinyMceInline";
+import TiptapInline from "@/components/TiptapInline";
 import StyledBlockInfo from "@/components/StyledBlockInfo";
-import tinymce from "tinymce/tinymce";
 
 import { deleteBlock, updateBlockFromServer } from "@/server_fetch_utils";
 
 export default {
   components: {
-    TinyMceInline,
+    TiptapInline,
     StyledBlockInfo,
   },
   props: {
@@ -219,14 +218,6 @@ export default {
   },
   methods: {
     async updateBlock() {
-      // check for any tinymce editors within the block. If so, trigger them
-      // to save so that the store is updated before sending data to the server
-      tinymce.editors.forEach((editor) => {
-        // check if editor is a child of this datablock
-        if (editor.bodyElement.closest(`#${this.block_id}`) && editor.isDirty()) {
-          editor.save();
-        }
-      });
       await updateBlockFromServer(this.item_id, this.block_id, this.block);
     },
     async handleBokehEvent(event) {

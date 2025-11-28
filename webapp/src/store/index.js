@@ -29,6 +29,7 @@ export default createStore({
     fileSelectModalIsOpen: false,
     currentUserDisplayName: null,
     currentUserID: null,
+    currentUserInfoLoading: false,
     serverInfo: null,
     blocksInfos: {},
     currentUserIsUnverified: false,
@@ -336,6 +337,9 @@ export default createStore({
     },
     setItemGraph(state, payload) {
       state.itemGraphData = payload;
+    },
+    setCurrentUserInfoLoading(state, isLoading) {
+      state.currentUserInfoLoading = isLoading;
     },
     setItemGraphIsLoading(state, isLoading) {
       state.itemGraphIsLoading = isLoading;

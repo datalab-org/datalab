@@ -43,6 +43,7 @@ class MediaBlock(DataBlock):
         ".mov",
         ".webm",
         ".pdf",
+        ".svg",
     )
     _supports_collections = False
 

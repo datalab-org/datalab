@@ -1,6 +1,8 @@
 import datetime
 import json
 import re
+import secrets
+from hashlib import sha512
 
 from bson import ObjectId
 from flask import Blueprint, jsonify, redirect, request
@@ -19,7 +21,13 @@ from pydatalab.models.people import Person
 from pydatalab.models.relationships import RelationshipType
 from pydatalab.models.utils import generate_unique_refcode
 from pydatalab.mongo import ITEMS_FTS_FIELDS, flask_mongo
-from pydatalab.permissions import PUBLIC_USER_ID, active_users_or_get_only, get_default_permissions
+from pydatalab.permissions import (
+    PUBLIC_USER_ID,
+    access_token_or_active_users,
+    active_users_or_get_only,
+    check_access_token,
+    get_default_permissions,
+)
 
 ITEMS = Blueprint("items", __name__)
 
@@ -786,10 +794,77 @@ def update_item_permissions(refcode: str):
     return jsonify({"status": "success"}), 200
 
 
+@ITEMS.route("/items/<refcode>/issue-access-token", methods=["POST"])
+def issue_physical_token(refcode: str):
+    """Issue a token that will give semi-permanent access to an
+    item with this refcode. This should be used when generating
+    physical labels to attach to a container.
+
+    """
+
+    if len(refcode.split(":")) != 2:
+        refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
+
+    current_item = flask_mongo.db.items.find_one(
+        {"refcode": refcode, **get_default_permissions(user_only=True)},
+        {"refcode": 1},
+    )
+
+    if not current_item:
+        return jsonify(
+            {
+                "status": "error",
+                "message": f"No valid item found with the given {refcode=}.",
+            }
+        ), 404
+
+    token = secrets.token_urlsafe(16)
+    access_document = {
+        "token": sha512(token.encode("utf-8")).hexdigest(),
+        "refcode": refcode,
+        "user": ObjectId(current_user.id),
+        "active": True,
+        "created_at": datetime.datetime.now(tz=datetime.timezone.utc),
+        "expires_at": None,
+        "version": 1,
+        "type": "access_token",
+    }
+
+    try:
+        result = flask_mongo.db.api_keys.insert_one(access_document)
+        if not result.inserted_id:
+            return jsonify(
+                {"status": "error", "message": "Unknown error generating token for item."}
+            ), 500
+    except Exception as e:
+        LOGGER.error(f"Error inserting access token: {e}")
+        return jsonify(
+            {"status": "error", "message": "Database error generating token for item."}
+        ), 500
+
+    return jsonify({"status": "success", "token": token}), 201
+
+
 @ITEMS.route("/delete-sample/", methods=["POST"])
 def delete_sample():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
     item_id = request_json["item_id"]
+
+    item = flask_mongo.db.items.find_one(
+        {"item_id": item_id, **get_default_permissions(user_only=True, deleting=True)},
+        {"refcode": 1},
+    )
+
+    if not item:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": f"Authorization required to attempt to delete sample with {item_id=} from the database.",
+                }
+            ),
+            401,
+        )
 
     result = flask_mongo.db.items.delete_one(
         {"item_id": item_id, **get_default_permissions(user_only=True, deleting=True)}
@@ -800,30 +875,43 @@ def delete_sample():
             jsonify(
                 {
                     "status": "error",
-                    "message": f"Authorization required to attempt to delete sample with {item_id=} from the database.",
+                    "message": f"Failed to delete item with {item_id=}.",
                 }
             ),
-            401,
+            400,
         )
-    return (
-        jsonify(
-            {
-                "status": "success",
-            }
-        ),
-        200,
-    )
+
+    flask_mongo.db.api_keys.delete_many({"refcode": item["refcode"], "type": "access_token"})
+
+    return jsonify({"status": "success"}), 200
 
 
 @ITEMS.route("/items/<refcode>", methods=["GET"])
+@access_token_or_active_users
+def get_item_by_refcode(refcode: str, elevate_permissions: bool = False):
+    return get_item_data(refcode=refcode, elevate_permissions=elevate_permissions)
+
+
 @ITEMS.route("/get-item-data/<item_id>", methods=["GET"])
-def get_item_data(item_id: str | None = None, refcode: str | None = None):
+@active_users_or_get_only
+def get_item_by_id(item_id: str):
+    return get_item_data(item_id=item_id, elevate_permissions=False)
+
+
+def get_item_data(
+    item_id: str | None = None, refcode: str | None = None, elevate_permissions: bool = False
+):
     """Generates a JSON response for the item with the given `item_id`,
     or `refcode` additionally resolving relationships to files and other items.
     """
+
     redirect_to_ui = bool(request.args.get("redirect-to-ui", default=False, type=json.loads))
+    access_token = request.args.get("at")
     if refcode and redirect_to_ui and CONFIG.APP_URL:
-        return redirect(f"{CONFIG.APP_URL}/items/{refcode}", code=307)
+        redirect_url = f"{CONFIG.APP_URL}/items/{refcode}"
+        if access_token:
+            redirect_url += f"?at={access_token}"
+        return redirect(redirect_url, code=307)
 
     if item_id:
         match = {"item_id": item_id}
@@ -841,7 +929,9 @@ def get_item_data(item_id: str | None = None, refcode: str | None = None):
             {
                 "$match": {
                     **match,
-                    **get_default_permissions(user_only=False),
+                    **get_default_permissions(
+                        user_only=False, elevate_permissions=elevate_permissions
+                    ),
                 }
             },
             {"$lookup": creators_lookup()},
@@ -855,11 +945,7 @@ def get_item_data(item_id: str | None = None, refcode: str | None = None):
     except IndexError:
         doc = None
 
-    if not doc or (
-        not current_user.is_authenticated
-        and not CONFIG.TESTING
-        and doc["type"] != "starting_materials"
-    ):
+    if not doc:
         return (
             jsonify(
                 {
@@ -1052,7 +1138,7 @@ def save_item():
     item.pop("creators")
 
     result = flask_mongo.db.items.update_one(
-        {"item_id": item_id},
+        {"item_id": item_id, **get_default_permissions(user_only=True)},
         {"$set": item},
     )
 
@@ -1107,3 +1193,67 @@ def search_users():
     return jsonify(
         {"status": "success", "users": list(json.loads(Person(**d).json()) for d in cursor)}
     ), 200
+
+
+@ITEMS.route("/items/<refcode>/access-token-info", methods=["GET"])
+def get_access_token_info(refcode: str):
+    """Get information about existing access token for this item (if any).
+
+    Returns token info (with masked token) if user has permissions to this item.
+    """
+    access_token = request.args.get("at")
+    if access_token and check_access_token(refcode, access_token):
+        pass
+    elif not (current_user.is_authenticated):
+        return jsonify({"status": "error", "message": "Authentication required."}), 401
+
+    if len(refcode.split(":")) != 2:
+        refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
+
+    current_item = flask_mongo.db.items.find_one(
+        {"refcode": refcode, **get_default_permissions(user_only=True)},
+        {"refcode": 1},
+    )
+
+    if not current_item:
+        return jsonify(
+            {
+                "status": "error",
+                "message": f"No valid item found with the given {refcode=}.",
+            }
+        ), 404
+
+    existing_token = flask_mongo.db.api_keys.find_one(
+        {"refcode": refcode, "active": True, "type": "access_token"},
+        {"token": 1, "created_at": 1, "user": 1},
+    )
+
+    if existing_token:
+        token_hash = existing_token["token"]
+        masked_token = token_hash[:8] + "..." + token_hash[-8:]
+
+        user_info = None
+        if existing_token.get("user"):
+            user_doc = flask_mongo.db.users.find_one(
+                {"_id": existing_token["user"]}, {"display_name": 1, "contact_email": 1}
+            )
+            if user_doc:
+                user_info = {
+                    "display_name": user_doc.get("display_name"),
+                    "contact_email": user_doc.get("contact_email"),
+                }
+
+        return jsonify(
+            {
+                "status": "success",
+                "has_token": True,
+                "token_info": {
+                    "token": masked_token,
+                    "created_at": existing_token["created_at"],
+                    "created_by": str(existing_token["user"]),
+                    "created_by_info": user_info,
+                },
+            }
+        ), 200
+    else:
+        return jsonify({"status": "success", "has_token": False}), 200

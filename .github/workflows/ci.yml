@@ -168,7 +168,14 @@ jobs:
       - name: Start services
         run: |
           # Launch production container profiles and wait for them to come up
-          docker compose up database api app --no-build --force-recreate -d --wait
+          if ! docker compose up database api app --no-build --force-recreate -d --wait; then
+            echo "=== Docker compose startup failed ==="
+            echo "=== Container logs: ==="
+            docker compose logs database api app
+            echo "=== Container status: ==="
+            docker compose ps database api app
+            exit 1
+          fi
 
       - name: Run end-to-end tests
         uses: cypress-io/github-action@v6

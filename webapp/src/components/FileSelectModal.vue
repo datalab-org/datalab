@@ -98,6 +98,9 @@ export default {
     fetchRemoteTree: fetchRemoteTree, // imported directly from server_fetch_utils. Note: automatically sets and usets the remote tree loading status.
     async loadCachedTree() {
       var response_json = await fetchRemoteTree(false);
+      if (!response_json) {
+        return;
+      }
       var oldest_cache_update = null;
       var seconds_since_oldest_update = null;
       if ("meta" in response_json) {

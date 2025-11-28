@@ -270,6 +270,28 @@ Cypress.Commands.add("createTestPNG", (fname) => {
   return cy.writeFile(filePath, base64, "base64").then(() => {});
 });
 
+Cypress.Commands.add("createTestSVG", (fname) => {
+  // Create an SVG with malicious content that should be stripped by DOMPurify
+  const svgContent = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" data-testid="test-svg">
+  <!-- This script should be stripped by DOMPurify -->
+  <script type="text/javascript">
+    alert('XSS Attack!');
+    console.log('This script should not execute');
+  </script>
+
+  <!-- Event handlers should also be stripped -->
+  <rect x="10" y="10" width="80" height="80" fill="blue" onclick="alert('onclick XSS')" onerror="alert('onerror XSS')" />
+
+  <!-- Valid SVG content that should remain -->
+  <circle cx="100" cy="100" r="50" fill="red" data-testid="test-circle" />
+  <text x="100" y="180" text-anchor="middle" fill="black">Test SVG</text>
+</svg>`;
+
+  const filePath = `cypress/fixtures/${fname}`;
+  return cy.writeFile(filePath, svgContent).then(() => {});
+});
+
 Cypress.Commands.add("removeAllTestCollections", (collection_ids, check_collection_table) => {
   collection_ids.forEach((collection_id) => {
     cy.deleteCollectionViaAPI(collection_id);
