@@ -327,6 +327,16 @@
         "name"
       ]
     },
+    "UserRole": {
+      "title": "UserRole",
+      "description": "An enumeration.",
+      "enum": [
+        "user",
+        "admin",
+        "manager"
+      ],
+      "type": "string"
+    },
     "AccountStatus": {
       "title": "AccountStatus",
       "description": "A string enum representing the account status.",
@@ -389,6 +399,14 @@
           "items": {
             "type": "string"
           }
+        },
+        "role": {
+          "default": "user",
+          "allOf": [
+            {
+              "$ref": "#/definitions/UserRole"
+            }
+          ]
         },
         "account_status": {
           "default": "unverified",

@@ -10,7 +10,7 @@
       </tr>
     </thead>
     <tbody>
-      <tr v-for="user in users" :key="user._id">
+      <tr v-for="user in users" :key="user.immutable_id">
         <td align="left">
           {{ user.display_name }}
           <span v-if="user.account_status === 'active'" class="badge badge-success text-uppercase">
@@ -37,19 +37,19 @@
             :clearable="false"
             :searchable="false"
             class="form-control p-0 border-0"
-            @update:model-value="(value) => confirmUpdateUserRole(user._id, value)"
+            @update:model-value="(value) => confirmUpdateUserRole(user.immutable_id, value)"
           />
         </td>
         <td align="left">
           <vSelect
             v-model="user.managers"
-            :options="potentialManagersMap[user._id]"
+            :options="potentialManagersMap[user.immutable_id]"
             label="display_name"
             multiple
             placeholder="No managers"
             :clearable="false"
             class="w-100"
-            @update:model-value="(value) => handleManagersChange(user._id, value)"
+            @update:model-value="(value) => handleManagersChange(user.immutable_id, value)"
           >
             <template #option="option">
               <div class="d-flex align-items-center">
@@ -71,21 +71,21 @@
           <button
             v-if="user.account_status === 'active'"
             class="btn btn-outline-danger btn-sm text-uppercase text-monospace"
-            @click="confirmUpdateUserStatus(user._id, 'deactivated')"
+            @click="confirmUpdateUserStatus(user.immutable_id, 'deactivated')"
           >
             Deactivate
           </button>
           <button
             v-else-if="user.account_status === 'unverified'"
             class="btn btn-outline-success btn-sm text-uppercase text-monospace"
-            @click="confirmUpdateUserStatus(user._id, 'active')"
+            @click="confirmUpdateUserStatus(user.immutable_id, 'active')"
           >
             Activate
           </button>
           <button
             v-else-if="user.account_status === 'deactivated'"
             class="btn btn-outline-success btn-sm text-uppercase text-monospace"
-            @click="confirmUpdateUserStatus(user._id, 'active')"
+            @click="confirmUpdateUserStatus(user.immutable_id, 'active')"
           >
             Activate
           </button>
@@ -122,7 +122,8 @@ export default {
       this.users.forEach((u) => {
         map[u.immutable_id] = this.users.filter(
           (user) =>
-            user._id !== u.immutable_id && (user.role === "admin" || user.role === "manager"),
+            user.immutable_id !== u.immutable_id &&
+            (user.role === "admin" || user.role === "manager"),
         );
       });
       return map;
@@ -137,7 +138,7 @@ export default {
       if (data != null) {
         const byId = {};
         data.forEach((u) => {
-          const id = u._id;
+          const id = u.immutable_id;
           byId[id] = u;
         });
 
@@ -148,7 +149,7 @@ export default {
 
           user.managers = user.managers
             .map((m) => {
-              const mid = typeof m === "string" ? m : m._id;
+              const mid = typeof m === "string" ? m : m.immutable_id;
               return byId[mid];
             })
             .filter(Boolean);
@@ -171,7 +172,7 @@ export default {
     },
 
     async confirmUpdateUserRole(user_id, new_role) {
-      const originalCurrentUser = this.original_users.find((user) => user._id === user_id);
+      const originalCurrentUser = this.original_users.find((user) => user.immutable_id === user_id);
 
       if (!originalCurrentUser) {
         DialogService.error({
@@ -190,7 +191,7 @@ export default {
           type: "warning",
         });
         if (!confirmed) {
-          this.users.find((user) => user._id === user_id).role = originalCurrentUser.role;
+          this.users.find((user) => user.immutable_id === user_id).role = originalCurrentUser.role;
           return;
         }
       }
@@ -205,20 +206,20 @@ export default {
         try {
           await this.updateUserRole(user_id, new_role);
         } catch (err) {
-          this.users.find((user) => user._id === user_id).role = originalCurrentUser.role;
+          this.users.find((user) => user.immutable_id === user_id).role = originalCurrentUser.role;
         }
       } else {
-        this.users.find((user) => user._id === user_id).role = originalCurrentUser.role;
+        this.users.find((user) => user.immutable_id === user_id).role = originalCurrentUser.role;
       }
     },
 
     async handleManagersChange(userId, managers) {
       if (!managers) managers = [];
 
-      const managerIds = managers.map((m) => m._id);
+      const managerIds = managers.map((m) => m.immutable_id);
 
-      const userIndex = this.users.findIndex((u) => u._id === userId);
-      const originalIndex = this.original_users.findIndex((u) => u._id === userId);
+      const userIndex = this.users.findIndex((u) => u.immutable_id === userId);
+      const originalIndex = this.original_users.findIndex((u) => u.immutable_id === userId);
 
       if (userIndex === -1 || originalIndex === -1) {
         DialogService.error({
@@ -229,7 +230,7 @@ export default {
       }
 
       const originalUser = this.original_users[originalIndex];
-      const originalManagerIds = (originalUser?.managers || []).map((m) => m._id);
+      const originalManagerIds = (originalUser?.managers || []).map((m) => m.immutable_id);
 
       if (JSON.stringify(managerIds.sort()) === JSON.stringify(originalManagerIds.sort())) return;
 
@@ -248,7 +249,7 @@ export default {
         await saveUserManagers(userId, managerIds);
 
         const newManagers = this.potentialManagersMap[userId].filter((u) =>
-          managerIds.includes(u._id),
+          managerIds.includes(u.immutable_id),
         );
 
         this.users[userIndex].managers = newManagers;
@@ -263,7 +264,7 @@ export default {
       }
     },
     async confirmUpdateUserStatus(user_id, new_status) {
-      const originalCurrentUser = this.original_users.find((user) => user._id === user_id);
+      const originalCurrentUser = this.original_users.find((user) => user.immutable_id === user_id);
 
       if (!originalCurrentUser) {
         DialogService.error({
@@ -279,15 +280,15 @@ export default {
         type: "warning",
       });
       if (confirmed) {
-        this.users.find((user) => user._id == user_id).account_status = new_status;
+        this.users.find((user) => user.immutable_id == user_id).account_status = new_status;
         try {
           await this.updateUserStatus(user_id, new_status);
         } catch (err) {
-          this.users.find((user) => user._id === user_id).account_status =
+          this.users.find((user) => user.immutable_id === user_id).account_status =
             originalCurrentUser.account_status;
         }
       } else {
-        this.users.find((user) => user._id === user_id).account_status =
+        this.users.find((user) => user.immutable_id === user_id).account_status =
           originalCurrentUser.account_status;
       }
     },

@@ -5,6 +5,7 @@ from flask import Blueprint, jsonify, request
 from flask_login import current_user
 
 from pydatalab.config import CONFIG
+from pydatalab.models.people import Person
 from pydatalab.mongo import flask_mongo
 from pydatalab.permissions import admin_only, get_default_permissions
 
@@ -65,7 +66,6 @@ def get_users():
                             "else": {"$arrayElemAt": ["$role.role", 0]},
                         }
                     },
-                    "immutable_id": {"$ifNull": ["$immutable_id", {"$toString": "$_id"}]},
                 }
             },
         ]
@@ -79,7 +79,7 @@ def get_users():
         elif not isinstance(user["managers"], list):
             user["managers"] = []
 
-    return jsonify({"status": "success", "data": users_list})
+    return jsonify({"status": "success", "data": [Person(**d).dict() for d in users_list]})
 
 
 @ADMIN.route("/roles/<user_id>", methods=["PATCH"])
