@@ -744,15 +744,17 @@ export function saveCollection(collection_id) {
 }
 
 export function saveUser(user_id, user) {
-  fetch_patch(`${API_URL}/users/${user_id}`, user)
+  return fetch_patch(`${API_URL}/users/${user_id}`, user)
     .then(function (response_json) {
       if (response_json.status === "success") {
         getUserInfo();
+        return response_json;
       } else {
         DialogService.error({
           title: "Failed to update user",
           message: "User save unsuccessful: " + response_json.detail,
         });
+        throw new Error(response_json.detail || "User save unsuccessful");
       }
     })
     .catch(function (error) {
@@ -760,21 +762,24 @@ export function saveUser(user_id, user) {
         title: "Failed to update user",
         message: `User save unsuccessful: ${error}`,
       });
+      throw error;
     });
 }
 
 export function saveRole(user_id, role) {
-  fetch_patch(`${API_URL}/roles/${user_id}`, role)
+  return fetch_patch(`${API_URL}/roles/${user_id}`, role)
     .then(function (response_json) {
       if (response_json.status !== "success") {
-        throw new Error("Failed to save role: " + response_json.detail);
+        throw new Error("Failed to save role: " + (response_json.detail || response_json.message));
       }
+      return response_json;
     })
     .catch(function (error) {
       DialogService.error({
         title: "Role save failed",
         message: `Role save unsuccessful: ${error}`,
       });
+      throw error;
     });
 }
 
@@ -986,6 +991,20 @@ export async function getSchema(type) {
         title: "Schema Retrieval Failed",
         message: `Error retrieving ${type} schema from API: ${error}`,
       });
+      throw error;
+    });
+}
+
+export function saveUserManagers(user_id, managers) {
+  return fetch_patch(`${API_URL}/users/${user_id}/managers`, { managers })
+    .then((response_json) => {
+      if (response_json.status && response_json.status !== "success") {
+        console.warn("Warning: saveUserManagers response:", response_json);
+      }
+      return response_json;
+    })
+    .catch((error) => {
+      console.error("Managers save failed:", error);
       throw error;
     });
 }
