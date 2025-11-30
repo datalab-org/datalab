@@ -38,7 +38,14 @@
             :searchable="false"
             class="form-control p-0 border-0"
             @update:model-value="(value) => confirmUpdateUserRole(user.immutable_id, value)"
-          />
+          >
+            <template #option="option">
+              <RoleBadge :role="option.label" />
+            </template>
+            <template #selected-option="option">
+              <RoleBadge :role="option.label" />
+            </template>
+          </vSelect>
         </td>
         <td align="left">
           <vSelect
@@ -55,7 +62,7 @@
               <div class="d-flex align-items-center">
                 <UserBubble :creator="option" :size="20" />
                 <span class="ml-2">{{ option.display_name }}</span>
-                <span class="ml-auto badge badge-secondary small">{{ option.role }}</span>
+                <span class="ml-auto"><RoleBadge :role="option.role" /></span>
               </div>
             </template>
 
@@ -99,10 +106,12 @@
 import { DialogService } from "@/services/DialogService";
 import vSelect from "vue-select";
 import UserBubble from "@/components/UserBubble.vue";
+import RoleBadge from "@/components/RoleBadge.vue";
 import { getUsersList, saveRole, saveUser, saveUserManagers } from "@/server_fetch_utils.js";
 
 export default {
   components: {
+    RoleBadge,
     vSelect,
     UserBubble,
   },
@@ -317,6 +326,6 @@ select {
 
 .badge {
   margin-left: 1em;
-  font-family: "Andalé Mono", monospace;
+  font-family: var(--font-monospace);
 }
 </style>
