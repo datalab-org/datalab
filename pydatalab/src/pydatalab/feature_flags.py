@@ -79,11 +79,13 @@ def check_feature_flags(app):
             )
             FEATURE_FLAGS.email_notifications = False
 
-        if CONFIG.EMAIL_DOMAIN_ALLOW_LIST and FEATURE_FLAGS.email_notifications:
+        if (
+            CONFIG.EMAIL_DOMAIN_ALLOW_LIST is None or CONFIG.EMAIL_DOMAIN_ALLOW_LIST
+        ) and FEATURE_FLAGS.email_notifications:
             FEATURE_FLAGS.auth_mechanisms.email = True
         else:
             LOGGER.warning(
-                "`CONFIG.EMAIL_DOMAIN_ALLOW_LIST` is usnet or empty; email registration will not be enabled."
+                "`CONFIG.EMAIL_DOMAIN_ALLOW_LIST` is unset or empty; email registration will not be enabled."
             )
 
     if CONFIG.IDENTIFIER_PREFIX == "test":
