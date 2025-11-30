@@ -2,8 +2,8 @@
   <table class="table table-hover table-sm table-responsive-sm" data-testid="user-table">
     <thead>
       <tr>
-        <th scope="col">Name</th>
-        <th scope="col">Email</th>
+        <th scope="col">Status</th>
+        <th scope="col">Display Name</th>
         <th scope="col">Role</th>
         <th scope="col">Managers</th>
         <th scope="col">Actions</th>
@@ -11,32 +11,30 @@
     </thead>
     <tbody>
       <tr v-for="user in users" :key="user.immutable_id">
-        <td align="left">
-          {{ user.display_name }}
-          <span v-if="user.account_status === 'active'" class="badge badge-success text-uppercase">
-            Active
-          </span>
+        <td style="text-align: center">
+          <span v-if="user.account_status === 'active'" class="mx-auto dot bg-success"></span>
           <span
             v-else-if="user.account_status === 'unverified'"
-            class="badge badge-warning text-uppercase"
+            class="badge activity-badge text-warning"
           >
             Unverified
           </span>
           <span
             v-else-if="user.account_status === 'deactivated'"
-            class="badge badge-danger text-uppercase"
+            class="badge activity-badge text-secondary"
           >
             Deactivated
           </span>
         </td>
-        <td align="left">{{ user.contact_email }}</td>
+        <td align="left">
+          {{ user.display_name }}
+        </td>
         <td align="left">
           <vSelect
             v-model="user.role"
             :options="roleOptions"
             :clearable="false"
             :searchable="false"
-            class="form-control p-0 border-0"
             @update:model-value="(value) => confirmUpdateUserRole(user.immutable_id, value)"
           >
             <template #option="option">
@@ -55,7 +53,6 @@
             multiple
             placeholder="No managers"
             :clearable="false"
-            class="w-100"
             @update:model-value="(value) => handleManagersChange(user.immutable_id, value)"
           >
             <template #option="option">
@@ -75,27 +72,29 @@
           </vSelect>
         </td>
         <td align="left">
-          <button
-            v-if="user.account_status === 'active'"
-            class="btn btn-outline-danger btn-sm text-uppercase text-monospace"
-            @click="confirmUpdateUserStatus(user.immutable_id, 'deactivated')"
-          >
-            Deactivate
-          </button>
-          <button
-            v-else-if="user.account_status === 'unverified'"
-            class="btn btn-outline-success btn-sm text-uppercase text-monospace"
-            @click="confirmUpdateUserStatus(user.immutable_id, 'active')"
-          >
-            Activate
-          </button>
-          <button
-            v-else-if="user.account_status === 'deactivated'"
-            class="btn btn-outline-success btn-sm text-uppercase text-monospace"
-            @click="confirmUpdateUserStatus(user.immutable_id, 'active')"
-          >
-            Activate
-          </button>
+          <span class="mx-auto" style="text-align: center">
+            <button
+              v-if="user.account_status === 'active'"
+              class="btn btn-outline-danger status-action-button"
+              @click="confirmUpdateUserStatus(user.immutable_id, 'deactivated')"
+            >
+              Deactivate
+            </button>
+            <button
+              v-else-if="user.account_status === 'unverified'"
+              class="btn btn-outline-success status-action-button"
+              @click="confirmUpdateUserStatus(user.immutable_id, 'active')"
+            >
+              Activate
+            </button>
+            <button
+              v-else-if="user.account_status === 'deactivated'"
+              class="btn btn-outline-success status-action-button"
+              @click="confirmUpdateUserStatus(user.immutable_id, 'active')"
+            >
+              Activate
+            </button>
+          </span>
         </td>
       </tr>
     </tbody>
@@ -324,8 +323,30 @@ select {
   border-radius: 0.25rem;
 }
 
-.badge {
-  margin-left: 1em;
+.dot {
+  height: 0.8ch;
+  width: 0.8ch;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.status-action-button {
   font-family: var(--font-monospace);
+  text-transform: uppercase;
+  font-size: 0.8em;
+  padding: 0.15rem 0.3rem;
+  border: 2px solid;
+}
+
+.activity-badge {
+  font-family: var(--font-monospace);
+  text-transform: uppercase;
+  border: 2px solid;
+  border-radius: 0.25rem;
+}
+
+.vs__dropdown-option--highlight .formatted-role-name {
+  color: white !important;
+  border: none !important;
 }
 </style>

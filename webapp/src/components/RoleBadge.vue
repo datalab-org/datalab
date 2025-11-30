@@ -28,6 +28,6 @@ export default {
 .formatted-role-name {
   border: 2px solid;
   text-transform: uppercase;
-  font-style: var(--font-monospace);
+  font-family: var(--font-monospace);
 }
 </style>
