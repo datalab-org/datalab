@@ -120,11 +120,7 @@ export default {
       if (!this.users) return {};
       const map = {};
       this.users.forEach((u) => {
-        map[u.immutable_id] = this.users.filter(
-          (user) =>
-            user.immutable_id !== u.immutable_id &&
-            (user.role === "admin" || user.role === "manager"),
-        );
+        map[u.immutable_id] = this.users.filter((user) => user.immutable_id !== u.immutable_id);
       });
       return map;
     },
@@ -163,8 +159,7 @@ export default {
       if (!this.users) return [];
 
       const potentials = this.users.filter((u) => {
-        const isEligible =
-          u.immutable_id !== userId && (u.role === "admin" || u.role === "manager");
+        const isEligible = u.immutable_id !== userId;
         return isEligible;
       });
 
