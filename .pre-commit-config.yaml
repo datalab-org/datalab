@@ -36,7 +36,7 @@ repos:
       - id: ruff-format
 
   - repo: https://github.com/pre-commit/mirrors-eslint
-    rev: v10.0.0-alpha.1
+    rev: v8.56.0
     hooks:
       - id: eslint
         additional_dependencies:
