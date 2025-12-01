@@ -1,7 +1,9 @@
 <template>
   <TooltipIcon v-if="showIcon">
     <h4 class="tooltip-title">{{ blockName }}</h4>
-    <p v-if="blockVersion" class="block-version">Version: {{ blockVersion }}</p>
+    <p v-if="blockVersion" class="block-version">
+      Block implementation version: {{ blockVersion }}
+    </p>
     <p>{{ blockDescription }}</p>
     <div v-if="acceptedExtensions && acceptedExtensions.length > 0">
       Accepted file extensions:
@@ -20,7 +22,9 @@
     </template>
     <template #content>
       <h4 class="tooltip-title">{{ blockName }}</h4>
-      <p v-if="blockVersion" class="block-version">Version: {{ blockVersion }}</p>
+      <p v-if="blockVersion" class="block-version">
+        Block implementation version: {{ blockVersion }}
+      </p>
       <p>{{ blockDescription }}</p>
       <p v-if="acceptedExtensions && acceptedExtensions.length > 0" class="accepted-file mb-0">
         Accepted file extensions:

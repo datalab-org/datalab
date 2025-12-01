@@ -143,14 +143,14 @@ export default {
   text-decoration-color: cornflowerblue;
   text-decoration-style: wavy;
   margin-top: 0;
-  margin-bottom: 0.5em;
-  font-size: 2em;
+  margin-bottom: 0.25em;
+  font-size: 1.35em;
   font-weight: 500;
 }
 
 .styled-tooltip :deep(p) {
   margin: 0;
-  margin-bottom: 0.5em;
+  margin-bottom: 0.25em;
 }
 
 .styled-tooltip :deep(p:last-child) {
