@@ -128,7 +128,7 @@ export default {
   border-radius: 4px;
   white-space: pre-wrap;
   display: none;
-  font-size: 0.875rem;
+  font-size: 1.125rem;
   font-weight: 500;
   line-height: 1.4;
 }
