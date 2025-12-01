@@ -29,6 +29,7 @@ dependencies = [
     "pint ~= 0.24",
     "pandas[excel] ~= 2.2",
     "pymongo ~= 4.7",
+    "dara-xrd>=1.1.4",
 ]
 
 [project.urls]

@@ -17,6 +17,19 @@ from .models import PeakInformation
 from .utils import compute_cif_pxrd, parse_rasx_zip, parse_xrdml
 
 
+def generate_js_callback_action_button(event_name: str, block_id: str) -> str:
+    code = r"""
+const block_event = new CustomEvent('block-event', {
+    detail: {
+        block_id: '$block_id',
+        event_name: '$event_name',
+    }, bubbles: true
+});
+document.dispatchEvent(block_event);
+""".replace("$event_name", event_name).replace("$block_id", block_id)
+    return code.strip()
+
+
 class XRDBlock(DataBlock):
     blocktype = "xrd"
     name = "Powder XRD"
@@ -162,6 +175,74 @@ class XRDBlock(DataBlock):
 
         return df, y_options, peak_data
 
+    @event()
+    def run_refinement(self):
+        """Run an automated refinement on any loaded CIFs and the first attached pattern."""
+        from dara.refine import do_refinement_no_saving
+
+        if "metadata" not in self.data:
+            self.data["metadata"] = {}
+
+        if "refinement_msgs" not in self.data["metadata"]:
+            self.data["metadata"]["refinement_msgs"] = []
+
+        item_info = flask_mongo.db.items.find_one(
+            {"item_id": self.data["item_id"]},
+            projection={"file_ObjectIds": 1},
+        )
+
+        all_files = []
+        for f in item_info["file_ObjectIds"]:
+            try:
+                file_info = get_file_info_by_id(f, update_if_live=False)
+            except OSError:
+                LOGGER.warning("Missing file found in database but no on disk: %s", f)
+                continue
+            ext = os.path.splitext(file_info["location"].split("/")[-1])[-1].lower()
+            if any(
+                file_info["name"].lower().endswith(ext) for ext in self.accepted_file_extensions
+            ):
+                all_files.append(file_info)
+
+        patterns = [_f for _f in all_files if not _f["name"].lower().endswith(".cif")]
+        if not patterns:
+            self.data["warnings"].append("No compatible XRD patterns found in item for refinement")
+            return
+
+        if len(patterns) > 1:
+            self.data["warnings"].append(
+                f"Multiple XRD patterns found in item; only the first will be used for refinement: {patterns[0]['name']}"
+            )
+
+        pattern_file = patterns[0]
+
+        df = self.load_pattern(pattern_file["location"])[0]
+
+        with open("/tmp/pattern.xy", "w") as f:
+            for _, row in df.iterrows():
+                f.write(f"{row['2θ (°)']} {row['intensity']}\n")
+
+        all_cifs = [_f for _f in all_files if _f["name"].lower().endswith(".cif")]
+        self.data["metadata"]["refinement_msgs"].append(
+            f"Found {len(all_cifs)} CIF files for refinement."
+        )
+
+        LOGGER.debug("Beginning refinements")
+
+        refinement = do_refinement_no_saving(
+            pattern_path="/tmp/pattern.xy",
+            phases=[_f["location"] for _f in all_cifs],
+            wavelength=float(self.data.get("wavelength", self.defaults["wavelength"])),
+        )
+
+        LOGGER.debug("Completed refinements")
+
+        results = refinement.lst_data.phases_results
+
+        self.data["metadata"]["refinement_msgs"].append(
+            f"Refinement completed. Some results:\n\n{results}\n"
+        )
+
     @classmethod
     def _calc_baselines_and_normalize(
         cls,
@@ -220,6 +301,10 @@ class XRDBlock(DataBlock):
         file_info = None
         all_files = None
         pattern_dfs = None
+
+        if self.data.get("metadata", {}).get("refinement_msgs"):
+            for msg in self.data["metadata"]["refinement_msgs"]:
+                warnings.warn(msg)
 
         if self.data.get("file_id") is None and filenames is None:
             # If no file set, try to plot them all
@@ -337,5 +422,11 @@ class XRDBlock(DataBlock):
                         "set_wavelength", "wavelength", self.block_id, throttled=False
                     ),
                 }
+            },
+            actions={
+                "refinement": {
+                    "label": "Run refinement",
+                    "event": generate_js_callback_action_button("run_refinement", self.block_id),
+                },
             },
         )

@@ -252,6 +252,8 @@ class DataBlock:
         if isinstance(events, dict):
             events = [events]
 
+        block_warnings = []
+
         for event in events:
             # Match the event to any registered by the block
             if (event_name := event.pop("event_name")) in self.event_names:
@@ -259,15 +261,26 @@ class DataBlock:
                 bound_method = self.__class__.events_by_name[event_name].__get__(
                     self, self.__class__
                 )
-                try:
-                    bound_method(**event)
-                except Exception as e:
-                    LOGGER.error(
-                        f"Error processing event {event_name} for block {self.__class__.__name__}: {e}"
-                    )
-                    self.data["errors"] = [
-                        f"{self.__class__.__name__}: Error processing event {event}: {e}"
-                    ]
+                with warnings.catch_warnings(record=True) as captured_warnings:
+                    try:
+                        bound_method(**event)
+                    except Exception as e:
+                        LOGGER.error(
+                            f"Error processing event {event_name} for block {self.__class__.__name__}: {e}"
+                        )
+                        self.data["errors"] = [
+                            f"{self.__class__.__name__}: Error processing event {event}: {e}"
+                        ]
+                    finally:
+                        if captured_warnings:
+                            block_warnings.extend(
+                                [
+                                    f"{self.__class__.__name__} raised warning: {w.message}"
+                                    for w in captured_warnings
+                                ]
+                            )
+
+        self.data["warnings"] = block_warnings
 
     @event()
     def null_event(self, **kwargs):

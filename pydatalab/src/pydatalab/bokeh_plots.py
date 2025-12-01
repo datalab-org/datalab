@@ -220,6 +220,7 @@ def selectable_axes_plot(
     tools: list | None = None,
     show_table: bool = False,
     parameters: dict | None = None,
+    actions: dict | None = None,
     **kwargs,
 ):
     """
@@ -454,8 +455,18 @@ def selectable_axes_plot(
                 input_widget.js_on_change("value", *[CustomJS(code=code)])
             input_widgets.append(input_widget)
 
-        if input_widgets:
-            plot_columns.extend(input_widgets)
+    if actions:
+        for action in actions.values():
+            input_widget = Button(label=action["label"])
+            if action["event"]:
+                code = action["event"]
+                code += f"console.log('Dispatched event for {action['label']}')"
+                input_widget.js_on_click(*[CustomJS(code=code)])
+
+            input_widgets.append(input_widget)
+
+    if input_widgets:
+        plot_columns.extend(input_widgets)
 
     if not skip_plot:
         plot_columns.append(p)
