@@ -703,10 +703,21 @@ export default {
         return null;
       }
 
+      const clickedElement = event.originalEvent.target;
+      const isFormattedCollectionName = clickedElement.closest(" .formatted-collection-name");
+      if (isFormattedCollectionName && isFormattedCollectionName.classList.contains("clickable")) {
+        return null;
+      }
+
       if (window.Cypress) {
         window.location.href = `/${this.editPageRoutePrefix}/${row_id}`;
       } else {
-        window.open(`/${this.editPageRoutePrefix}/${row_id}`, "_blank");
+        if (event.originalEvent.ctrlKey || event.originalEvent.metaKey) {
+          const newWindow = window.open(`/${this.editPageRoutePrefix}/${row_id}`, "_blank");
+          if (newWindow) newWindow.focus();
+        } else {
+          window.location.href = `/${this.editPageRoutePrefix}/${row_id}`;
+        }
       }
     },
     getComponentProps(componentName, data) {
@@ -714,6 +725,7 @@ export default {
         FormattedItemName: {
           item_id: "item_id",
           itemType: "type",
+          enableClick: true,
           enableModifiedClick: true,
         },
         FormattedRefcode: {
@@ -727,6 +739,7 @@ export default {
         },
         FormattedCollectionName: {
           collection_id: "collection_id",
+          enableClick: true,
           enableModifiedClick: true,
         },
         ChemicalFormula: {
