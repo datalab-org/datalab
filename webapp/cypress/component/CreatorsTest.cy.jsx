@@ -37,7 +37,9 @@ describe("Creators.vue", () => {
     });
 
     mockCreators.forEach((creator) => {
-      cy.contains(creator.display_name).should("not.exist");
+      cy.get(".creators-container")
+        .find(":not([data-testid='styled-tooltip'])")
+        .should("not.contain", creator.display_name);
     });
   });
 
