@@ -23,7 +23,7 @@ describe("BlockTooltip", () => {
         .within(() => {
           cy.contains(blockInfoWithAttributes.attributes.name).should("be.visible");
           cy.contains(blockInfoWithAttributes.attributes.description).should("be.visible");
-          cy.contains("Version: 1.2.3").should("be.visible");
+          cy.contains("Block implementation version: 1.2.3").should("be.visible");
           cy.contains(".pdf").should("be.visible");
           cy.contains(".docx").should("be.visible");
           cy.contains(".xlsx").should("be.visible");
@@ -97,7 +97,7 @@ describe("BlockTooltip", () => {
         .within(() => {
           cy.contains(blockInfoDirect.name).should("be.visible");
           cy.contains(blockInfoDirect.description).should("be.visible");
-          cy.contains("Version: 2.0.0").should("be.visible");
+          cy.contains("Block implementation version: 2.0.0").should("be.visible");
           cy.contains("Accepted file extensions:").should("be.visible");
           cy.contains(".jpg, .png, .gif").should("be.visible");
         });
