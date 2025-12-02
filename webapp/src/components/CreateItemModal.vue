@@ -4,6 +4,7 @@
       :model-value="modelValue"
       :disable-submit="Boolean(isValidEntryID) || (!generateIDAutomatically && !Boolean(item_id))"
       @update:model-value="$emit('update:modelValue', $event)"
+      @submit="submitForm"
     >
       <template #header> Add new item </template>
 
