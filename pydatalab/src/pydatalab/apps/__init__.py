@@ -64,6 +64,13 @@ def load_app_blocks():
         _check_error(e)
 
     try:
+        from pydatalab.apps.profiling import ProfilingBlock
+
+        app_blocks.append(ProfilingBlock)
+    except ImportError as e:
+        _check_error(e)
+
+    try:
         from pydatalab.apps.raman import RamanBlock
 
         app_blocks.append(RamanBlock)
