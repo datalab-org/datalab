@@ -7,43 +7,41 @@
     <div v-else-if="error" class="alert alert-danger">
       {{ error }}
     </div>
-    <div v-else class="heatmap-container">
-      <div class="months-labels">
-        <span
-          v-for="(month, index) in monthLabels"
-          :key="index"
-          class="month-label"
-          :style="{
-            position: 'absolute',
-            left: month.weekIndex * (cellSize + 3) + (compact ? 8 : 10) + 'px',
-          }"
-        >
-          {{ month.month }}
-        </span>
-      </div>
-      <div class="heatmap-grid">
-        <div v-for="(week, weekIndex) in weeks" :key="weekIndex" class="week-column">
-          <div
-            v-for="(day, dayIndex) in week"
-            v-show="day.count !== -1"
-            :key="dayIndex"
-            :class="['day-cell', getIntensityClass(day.count)]"
-            :data-date="day.date"
-            @mouseenter="showTooltip($event, day.date, day.count)"
-            @mouseleave="hideTooltip"
-          ></div>
+    <div v-else class="heatmap-wrapper">
+      <div class="heatmap-container">
+        <div class="months-labels">
+          <span
+            v-for="(month, index) in monthLabels"
+            :key="index"
+            class="month-label"
+            :style="{
+              position: 'absolute',
+              left: month.weekIndex * (cellSize + cellGap) + 10 + 'px',
+            }"
+          >
+            {{ month.month }}
+          </span>
+        </div>
+        <div class="heatmap-grid">
+          <div v-for="(week, weekIndex) in weeks" :key="weekIndex" class="week-column">
+            <div
+              v-for="(day, dayIndex) in week"
+              v-show="day.count !== -1"
+              :key="dayIndex"
+              :class="['day-cell', getIntensityClass(day.count)]"
+              :data-date="day.date"
+              @mouseenter="showTooltip($event, day.date, day.count)"
+              @mouseleave="hideTooltip"
+            ></div>
+          </div>
         </div>
       </div>
       <div class="legend">
-        <span>Less</span>
-        <div class="legend-colors">
-          <div class="day-cell intensity-0"></div>
-          <div class="day-cell intensity-1"></div>
-          <div class="day-cell intensity-2"></div>
-          <div class="day-cell intensity-3"></div>
-          <div class="day-cell intensity-4"></div>
+        <div class="legend-scale">
+          <div class="legend-label">0</div>
+          <div class="legend-gradient"></div>
+          <div class="legend-label">10+</div>
         </div>
-        <span>More</span>
       </div>
     </div>
   </div>
@@ -86,10 +84,10 @@ export default {
   },
   computed: {
     cellSize() {
-      return this.compact ? 7 : 10;
+      return this.compact ? 10 : 10;
     },
     cellGap() {
-      return this.compact ? 9 : 13;
+      return this.compact ? 2 : 2;
     },
   },
   async mounted() {
@@ -192,19 +190,25 @@ export default {
       tooltip.className = "activity-tooltip";
       const formattedDate = new Date(date).toLocaleDateString("en-US", {
         year: "numeric",
-        month: "short",
+        month: "long",
         day: "numeric",
       });
-      tooltip.textContent = `${count} contribution${count !== 1 ? "s" : ""} on ${formattedDate}`;
+      tooltip.innerHTML = `
+        <div style="font-weight: 600; margin-bottom: 2px;">${count} contribution${
+          count !== 1 ? "s" : ""
+        }</div>
+        <div style="font-size: 11px; opacity: 0.9;">${formattedDate}</div>
+      `;
       tooltip.style.cssText = `
-        background: #24292f;
+        background: linear-gradient(135deg, #00897b 0%, #00695c 100%);
         color: white;
-        padding: 6px 10px;
-        border-radius: 4px;
+        padding: 10px 14px;
+        border-radius: 10px;
         font-size: 12px;
         z-index: 9999;
         white-space: nowrap;
         pointer-events: none;
+        box-shadow: 0 6px 16px rgba(0, 137, 123, 0.4);
       `;
 
       document.body.appendChild(tooltip);
@@ -216,7 +220,7 @@ export default {
           {
             name: "offset",
             options: {
-              offset: [0, 8],
+              offset: [0, 12],
             },
           },
         ],
@@ -243,32 +247,41 @@ export default {
 .activity-graph-container {
   margin: 20px 0;
   width: 100%;
-  overflow: hidden;
 }
 
 .activity-graph-container.compact {
   overflow-x: visible;
 }
 
+.heatmap-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
 .heatmap-container {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  width: fit-content;
-  min-width: 100%;
-}
-
-.activity-graph-container.compact .heatmap-container {
-  transform: scale(1);
-  min-width: fit-content;
+  width: 100%;
+  overflow: hidden;
+  padding: 15px;
+  background: #fafafa;
+  border-radius: 12px;
+  border: 1px solid #e0e0e0;
 }
 
 .months-labels {
   position: relative;
   height: 20px;
   font-size: 11px;
-  color: #586069;
+  color: #00695c;
+  font-weight: 700;
   margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  min-width: fit-content;
 }
 
 .month-label {
@@ -279,81 +292,97 @@ export default {
 
 .heatmap-grid {
   display: flex;
-  gap: 3px;
+  gap: 2px;
   flex-wrap: nowrap;
   padding: 0 10px;
+  min-width: fit-content;
 }
 
 .week-column {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
   flex-shrink: 0;
 }
 
 .day-cell {
   width: 10px;
   height: 10px;
-  border-radius: 2px;
+  border-radius: 4px;
   cursor: pointer;
-  transition: transform 0.1s ease;
+  transition: all 0.15s ease;
+  border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .activity-graph-container.compact .day-cell {
-  width: 7px;
-  height: 7px;
+  width: 10px;
+  height: 10px;
 }
 
 .day-cell:hover {
-  outline: 2px solid rgba(27, 31, 35, 0.3);
-  outline-offset: 1px;
-  transform: scale(1.15);
+  transform: scale(1.25) rotate(5deg);
+  box-shadow: 0 4px 12px rgba(0, 137, 123, 0.5);
   z-index: 100;
+  border-color: transparent;
 }
 
 .intensity-0 {
-  background-color: #ebedf0;
+  background-color: #e0f2f1;
+  border-color: #b2dfdb;
 }
 
 .intensity-1 {
-  background-color: #9be9a8;
+  background-color: #80cbc4;
 }
 
 .intensity-2 {
-  background-color: #40c463;
+  background-color: #26a69a;
 }
 
 .intensity-3 {
-  background-color: #30a14e;
+  background-color: #00897b;
 }
 
 .intensity-4 {
-  background-color: #216e39;
+  background-color: #00695c;
 }
 
 .legend {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  font-size: 11px;
-  color: #586069;
-  margin-top: 8px;
-  padding-right: 10px;
+  justify-content: center;
+  margin-top: 5px;
 }
 
-.legend-colors {
+.legend-scale {
   display: flex;
-  gap: 3px;
+  align-items: center;
+  gap: 12px;
+  background: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.legend .day-cell {
-  pointer-events: none;
+.legend-gradient {
+  width: 150px;
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(
+    to right,
+    #e0f2f1 0%,
+    #80cbc4 25%,
+    #26a69a 50%,
+    #00897b 75%,
+    #00695c 100%
+  );
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
-.activity-graph-container.compact .day-cell {
-  width: 9px;
-  height: 9px;
+.legend-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #00695c;
 }
 
 .activity-graph-container.compact .heatmap-grid {
@@ -398,6 +427,10 @@ export default {
   .month-label {
     font-size: 8px;
     min-width: 28px;
+  }
+
+  .legend-gradient {
+    width: 100px;
   }
 }
 </style>
