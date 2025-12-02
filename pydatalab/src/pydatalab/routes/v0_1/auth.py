@@ -22,7 +22,8 @@ from werkzeug.exceptions import BadRequest, Forbidden
 
 from pydatalab.config import CONFIG
 from pydatalab.errors import UserRegistrationForbidden
-from pydatalab.logger import LOGGER, logged_route
+from pydatalab.feature_flags import FEATURE_FLAGS
+from pydatalab.logger import LOGGER
 from pydatalab.login import get_by_id
 from pydatalab.models.people import AccountStatus, Identity, IdentityType, Person
 from pydatalab.mongo import flask_mongo, insert_pydantic_model_fork_safe
@@ -202,7 +203,6 @@ def make_orcid_blueprint(
 orcid = LocalProxy(lambda: g.flask_dance_orcid)
 
 
-@logged_route
 def wrapped_login_user(*args, **kwargs):
     login_user(*args, **kwargs)
 
@@ -273,7 +273,6 @@ def _check_email_domain(email: str, allow_list: list[str] | None) -> bool:
     return True
 
 
-@logged_route
 def find_user_with_identity(
     identifier: str,
     identity_type: str | IdentityType,
@@ -332,7 +331,6 @@ def find_create_or_modify_user(
 
     """
 
-    @logged_route
     def attach_identity_to_user(
         user_id: str,
         identity: Identity,
@@ -416,7 +414,13 @@ def find_create_or_modify_user(
             user_model = get_by_id(str(user.immutable_id))
             if user is None:
                 raise RuntimeError("Failed to insert user into database")
+
             wrapped_login_user(user_model)
+            # Send email notification to admins
+            _send_admin_email_notification(user)
+
+    if user is not None and user.account_status == AccountStatus.DEACTIVATED:
+        _send_admin_email_notification(user)
 
     # Log the user into the session with this identity
     if user is not None:
@@ -475,6 +479,56 @@ def _check_user_registration_allowed(email: str) -> None:
             raise Forbidden(
                 f"Email address {email} is not allowed to register an account. Please contact the administrator if you believe this is an error."
             )
+
+
+def _send_admin_email_notification(user: Person) -> None:
+    """Sends an email notification to the admin email address when an unverified user
+    attempts to register an account.
+
+    """
+    if not FEATURE_FLAGS.email_notifications:
+        LOGGER.info("Email notifications are disabled; not sending unverified user notification.")
+        return
+
+    admins = flask_mongo.db.users.aggregate(
+        [
+            {
+                "$lookup": {
+                    "from": "roles",
+                    "localField": "_id",
+                    "foreignField": "_id",
+                    "as": "role",
+                }
+            },
+            {"$unwind": "$role"},
+            {"$match": {"role.role": "admin"}},
+        ]
+    )
+
+    admin_emails = [a["contact_email"] for a in admins if a.get("contact_email")]
+
+    # Get contact emails of admin users via lookup in the roles and users collections
+    if user.account_status == AccountStatus.UNVERIFIED:
+        subject = "User Registration Notification"
+        subject += f": {CONFIG.APP_URL}" if CONFIG.APP_URL else ""
+        body = (
+            f"A new user with display name {user.display_name} attempted to register an account on {CONFIG.APP_URL}.\n\n"
+            "Please review the registration in your admin panel and verify the user if appropriate."
+        )
+
+    if user.account_status == AccountStatus.DEACTIVATED:
+        subject = "Deactivated User Login Attempt Notification"
+        subject += f": {CONFIG.APP_URL}" if CONFIG.APP_URL else ""
+        body = (
+            f"A deactivated user with display name {user.display_name} attempted to log in to the datalab instance at {CONFIG.APP_URL}.\n\n"
+            "No action is required unless you wish to reactivate this user."
+        )
+
+    try:
+        for email in admin_emails:
+            send_mail(email, subject, body)
+    except Exception as exc:
+        LOGGER.warning("Failed to send unverified user notification email: %s", exc)
 
 
 def _send_magic_link_email(

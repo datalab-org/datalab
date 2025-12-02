@@ -26,9 +26,12 @@ def test_magic_link_account_creation(unauthenticated_client, app, database):
     doc = database.magic_links.find_one()
     assert "jwt" in doc
 
-    response = unauthenticated_client.get(f"/login/email?token={doc['jwt']}")
-    assert response.status_code == 307
-    assert database.users.find_one({"contact_email": "test@ml-evs.science"})
+    with app.extensions["mail"].record_messages() as outbox:
+        response = unauthenticated_client.get(f"/login/email?token={doc['jwt']}")
+        assert response.status_code == 307
+        assert database.users.find_one({"contact_email": "test@ml-evs.science"})
+
+        assert len(outbox) == 1  # Should be a notification to admins
 
 
 def test_magic_links_expected_failures(unauthenticated_client, app):

@@ -164,3 +164,8 @@ def check_feature_flags(app):
         LOGGER.warning(
             "No deployment metadata provided, please set `CONFIG.DEPLOYMENT_METADATA` to allow the UI to provide helpful information to users"
         )
+
+    if not CONFIG.APP_URL:
+        LOGGER.warning(
+            "Canonical URL for deployment is not set, please set `CONFIG.APP_URL` otherwise some features (redirects, email notifications) may not work correctly."
+        )
