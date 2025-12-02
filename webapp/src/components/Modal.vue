@@ -60,7 +60,7 @@ export default {
       default: false,
     },
   },
-  emits: ["update:modelValue"],
+  emits: ["update:modelValue", "submit"],
   data() {
     return {
       modalDisplayed: false,
@@ -79,34 +79,9 @@ export default {
     },
   },
   methods: {
-    lockAndSubmit(event) {
+    lockAndSubmit() {
       this.submitLocked = true;
-
-      let el = event && event.target ? event.target : null;
-      if (!el) return;
-
-      const form = el.closest && el.closest("form");
-
-      if (form) {
-        if (typeof form.requestSubmit === "function") {
-          form.requestSubmit();
-          return;
-        }
-
-        try {
-          const submitEvent = new Event("submit", { bubbles: true, cancelable: true });
-          const canceled = !form.dispatchEvent(submitEvent);
-          if (!canceled) {
-            if (typeof form.submit === "function") {
-              form.submit();
-            }
-          }
-        } catch (e) {
-          if (typeof form.submit === "function") {
-            form.submit();
-          }
-        }
-      }
+      this.$emit("submit");
     },
     async openModal() {
       this.submitLocked = false;
