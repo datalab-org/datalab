@@ -66,14 +66,14 @@ def app_config(tmp_path_factory, secret_key):
         "EMAIL_AUTH_SMTP_SETTINGS": {
             "MAIL_SERVER": "smtp.example.com",
             "MAIL_PORT": 587,
-            "MAIL_USERNAME": "",
-            "MAIL_PASSWORD": "",
+            "MAIL_USERNAME": "test",
             "MAIL_USE_TLS": True,
             "MAIL_DEFAULT_SENDER": "test@example.org",
         },
         "EMAIL_DOMAIN_ALLOW_LIST": ["example.org", "ml-evs.science"],
         "MAIL_DEBUG": True,
         "MAIL_SUPPRESS_SEND": True,
+        "MAIL_PASSWORD": "test",
         # Set to 10 MB to check that larger files fail; this should be larger than all of our example files.
         # Elsewhere, we can generate an artificial large file to check that it fails.
         "MAX_CONTENT_LENGTH": 10 * 1000**2,
@@ -240,13 +240,20 @@ def deactivated_user_id():
     yield ObjectId(24 * "3")
 
 
-def insert_user(id, api_key, role, real_mongo_client, status: AccountStatus = AccountStatus.ACTIVE):
+def insert_user(
+    id,
+    api_key,
+    role,
+    real_mongo_client,
+    display_name: str = "Test Admin",
+    status: AccountStatus = AccountStatus.ACTIVE,
+):
     from hashlib import sha512
 
     demo_user = {
         "_id": id,
         "contact_email": "test@example.org",
-        "display_name": "Test Admin",
+        "display_name": display_name,
         "account_status": status,
     }
     real_mongo_client.get_database(TEST_DATABASE_NAME).users.insert_one(demo_user)
@@ -272,14 +279,21 @@ def insert_demo_users(
     unverified_user_api_key,
     real_mongo_client,
 ):
-    insert_user(user_id, user_api_key, "user", real_mongo_client)
-    insert_user(another_user_id, another_user_api_key, "user", real_mongo_client)
-    insert_user(admin_user_id, admin_api_key, "admin", real_mongo_client)
+    insert_user(user_id, user_api_key, "user", real_mongo_client, display_name="Test User")
+    insert_user(
+        another_user_id,
+        another_user_api_key,
+        "user",
+        real_mongo_client,
+        display_name="Another User",
+    )
+    insert_user(admin_user_id, admin_api_key, "admin", real_mongo_client, display_name="Test Admin")
     insert_user(
         deactivated_user_id,
         deactivated_user_api_key,
         "user",
         real_mongo_client,
+        display_name="Deactivated User",
         status=AccountStatus.DEACTIVATED,
     )
     insert_user(
@@ -287,6 +301,7 @@ def insert_demo_users(
         unverified_user_api_key,
         "user",
         real_mongo_client,
+        display_name="Unverified User",
         status=AccountStatus.UNVERIFIED,
     )
 
