@@ -84,7 +84,7 @@
     </div>
 
     <label class="mr-2">Description</label>
-    <TinyMceInline v-model="ItemDescription" data-testid="item-description"></TinyMceInline>
+    <TiptapInline v-model="ItemDescription" data-testid="item-description"></TiptapInline>
 
     <TableOfContents
       class="mb-3"
@@ -98,7 +98,7 @@
 
 <script>
 import { createComputedSetterForItemField } from "@/field_utils.js";
-import TinyMceInline from "@/components/TinyMceInline";
+import TiptapInline from "@/components/TiptapInline";
 import ChemicalFormula from "@/components/ChemicalFormula";
 import ChemFormulaInput from "@/components/ChemFormulaInput";
 import TableOfContents from "@/components/TableOfContents";
@@ -118,7 +118,7 @@ export default {
     ChemicalFormula,
     ChemFormulaInput,
     ItemRelationshipVisualization,
-    TinyMceInline,
+    TiptapInline,
     ToggleableCollectionFormGroup,
     TableOfContents,
     FormattedRefcode,

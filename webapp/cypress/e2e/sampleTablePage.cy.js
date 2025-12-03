@@ -55,6 +55,7 @@ after(() => {
 
 describe("Sample table page", () => {
   beforeEach(() => {
+    cy.loginViaTestMagicLink("test-user@example.com", "user");
     cy.visit("/");
   });
 
@@ -195,6 +196,7 @@ describe("Sample table page", () => {
 
 describe.only("Advanced sample creation features", () => {
   beforeEach(() => {
+    cy.loginViaTestMagicLink("test-user@example.com", "user");
     cy.visit("/");
   });
   it("Adds some valid samples", () => {
@@ -230,7 +232,7 @@ describe.only("Advanced sample creation features", () => {
     cy.findByText("testB").click();
     cy.findByLabelText("Description").type("this is a description of testB.");
     cy.findByText("Add a block").click();
-    cy.findByText("Comment").click();
+    cy.findByLabelText("Add a block").contains("Comment").click();
 
     cy.get(".datablock-content div").first().type("a comment is added here.");
     cy.expandIfCollapsed("[data-testid=synthesis-block]");

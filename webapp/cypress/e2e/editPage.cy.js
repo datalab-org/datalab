@@ -28,6 +28,7 @@ after(() => {
 
 describe("Edit Page", () => {
   beforeEach(() => {
+    cy.loginViaTestMagicLink("test-user@example.com", "user");
     cy.visit("/");
   });
 
@@ -234,7 +235,12 @@ describe("Edit Page", () => {
     cy.get(".datablock-content div").eq(0).type("\nThe first comment box; further changes.");
     cy.contains("Unsaved changes");
 
-    cy.get('[data-testid="block-description"]').eq(0).type("The second comment box");
+    cy.get('[data-testid="block-description"]').first().find(".ProseMirror").click();
+
+    cy.get('[data-testid="block-description"]')
+      .first()
+      .find(".ProseMirror")
+      .type("The second comment box");
     cy.contains("Unsaved changes");
     cy.get('.datablock-header [aria-label="updateBlock"]').eq(1).click();
     cy.wait(500).then(() => {
@@ -242,10 +248,13 @@ describe("Edit Page", () => {
     });
     cy.get('.datablock-header [aria-label="updateBlock"]').eq(0).click();
     cy.contains("Unsaved changes").should("not.exist");
+    cy.get('[data-testid="block-description"]').first().find(".ProseMirror").click();
 
     cy.get('[data-testid="block-description"]')
-      .eq(0)
+      .first()
+      .find(".ProseMirror")
       .type("\nThe second comment box; further changes");
+
     cy.findByLabelText("Name").type("name change");
     cy.contains("Unsaved changes");
 
@@ -313,6 +322,34 @@ describe("Edit Page", () => {
     cy.get('img[data-testid="media-block-img"]').should("exist");
   });
 
+  it("Uploads a fake SVG, creates a Media block, and verifies sanitization", () => {
+    let test_fname = "test_image.svg";
+    cy.createTestSVG(test_fname);
+    cy.uploadFileViaAPI("editable_sample", test_fname);
+
+    cy.get('[data-testid="search-input"]').type("editable_sample");
+    cy.findByText("editable_sample").click();
+
+    cy.findByText("Add a block").click();
+    cy.get('[data-testid="add-block-dropdown"]').findByText("Media").click();
+    cy.findAllByText("Select a file:").eq(2).should("exist");
+    cy.get("select.file-select-dropdown").eq(2).select(test_fname);
+
+    // Check that the SVG is displayed
+    cy.get(".svg-wrapper").should("exist");
+    cy.get('[data-testid="test-svg"]').should("exist");
+    cy.get('[data-testid="test-circle"]').should("exist");
+
+    // Verify that malicious content has been stripped
+    cy.get(".svg-content").within(() => {
+      // Script tags should be removed
+      cy.get("script").should("not.exist");
+      // Event handlers should be removed (check that rect exists but without onclick)
+      cy.get("rect").should("exist").and("not.have.attr", "onclick");
+      cy.get("rect").should("not.have.attr", "onerror");
+    });
+  });
+
   it("Uploads an Raman data file, makes a Raman block and checks that the plot is shown", () => {
     cy.uploadFileViaAPI("editable_sample", "example_data/raman/labspec_raman_example.txt");
 
@@ -321,9 +358,9 @@ describe("Edit Page", () => {
 
     cy.findByText("Add a block").click();
     cy.get('[data-testid="add-block-dropdown"]').findByText("Raman spectroscopy").click();
-    cy.findAllByText("Select a file:").eq(2).should("exist");
+    cy.findAllByText("Select a file:").eq(3).should("exist");
     cy.get("select.file-select-dropdown")
-      .eq(2)
+      .eq(3)
       .select("example_data_raman_labspec_raman_example.txt");
     cy.contains("label", "X axis").should("exist");
     cy.contains("label", "Y axis").should("exist");

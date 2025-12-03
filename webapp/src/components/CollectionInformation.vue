@@ -26,10 +26,10 @@
         </div>
 
         <label id="description-label" class="mr-2">Description</label>
-        <TinyMceInline
+        <TiptapInline
           v-model="CollectionDescription"
           aria-labelledby="description-label"
-        ></TinyMceInline>
+        ></TiptapInline>
       </div>
       <div class="col-md-4">
         <CollectionRelationshipVisualization :collection_id="collection_id" />
@@ -57,14 +57,14 @@
 <script>
 import { createComputedSetterForCollectionField } from "@/field_utils.js";
 import { getCollectionSampleList } from "@/server_fetch_utils";
-import TinyMceInline from "@/components/TinyMceInline";
+import TiptapInline from "@/components/TiptapInline";
 import Creators from "@/components/Creators";
 import CollectionRelationshipVisualization from "@/components/CollectionRelationshipVisualization";
 import DynamicDataTable from "@/components/DynamicDataTable";
 
 export default {
   components: {
-    TinyMceInline,
+    TiptapInline,
     Creators,
     CollectionRelationshipVisualization,
     DynamicDataTable,

@@ -1,5 +1,18 @@
 <template>
-  <div v-if="count > 0" class="counter-wrapper" :title="hoverText">
+  <StyledTooltip v-if="count > 0 && hoverText" :delay="500">
+    <template #anchor>
+      <div class="counter-wrapper">
+        <font-awesome-icon v-if="showIcon" class="icon" :icon="icon" />
+        <span :class="showIcon ? 'counter-badge' : 'counter'">
+          {{ displayCount }}
+        </span>
+      </div>
+    </template>
+    <template #content>
+      {{ hoverText }}
+    </template>
+  </StyledTooltip>
+  <div v-else-if="count > 0" class="counter-wrapper">
     <font-awesome-icon v-if="showIcon" class="icon" :icon="icon" />
     <span :class="showIcon ? 'counter-badge' : 'counter'">
       {{ displayCount }}
@@ -8,8 +21,13 @@
 </template>
 
 <script>
+import StyledTooltip from "@/components/StyledTooltip";
+
 export default {
   name: "BaseIconCounter",
+  components: {
+    StyledTooltip,
+  },
   props: {
     count: {
       type: Number,
@@ -57,7 +75,6 @@ export default {
   min-width: 20px;
   height: 20px;
   font-size: 14px;
-  font-weight: bold;
   font-weight: bold;
   display: flex;
 }

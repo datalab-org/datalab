@@ -1,15 +1,24 @@
 <template>
   <div class="admin-display">
-    <template v-if="selectedItem === 'Users'"> <UserTable /> </template>
+    <template v-if="selectedItem === 'Users'">
+      <UserTable />
+    </template>
+    <template v-if="selectedItem === 'Access Tokens'">
+      <TokenTable />
+    </template>
   </div>
 </template>
 
 <script>
 import UserTable from "./UserTable.vue";
+import TokenTable from "./TokenTable.vue";
 
 export default {
   name: "AdminDisplay",
-  components: { UserTable },
+  components: {
+    UserTable,
+    TokenTable,
+  },
   props: {
     selectedItem: {
       type: String,

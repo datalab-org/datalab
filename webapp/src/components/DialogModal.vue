@@ -1,8 +1,12 @@
 <template>
   <Teleport to="body">
-    <div v-if="isVisible" class="modal fade show d-block" @click.self="handleOverlayClick">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
+    <div
+      v-if="isVisible"
+      class="modal fade show d-block dialog-modal-overlay"
+      @click.self="handleOverlayClick"
+    >
+      <div class="modal-dialog modal-dialog-centered dialog-modal-container">
+        <div class="modal-content dialog-modal-content">
           <div class="modal-header">
             <h5 class="modal-title">{{ title }}</h5>
             <button v-if="showCloseButton" type="button" class="close" @click="cancel">
@@ -54,7 +58,7 @@
         </div>
       </div>
     </div>
-    <div v-if="isVisible" class="modal-backdrop fade show"></div>
+    <div v-if="isVisible" class="modal-backdrop fade show dialog-modal-backdrop"></div>
   </Teleport>
 </template>
 
@@ -130,3 +134,13 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.dialog-modal-overlay {
+  z-index: 9999 !important;
+}
+
+.dialog-modal-backdrop {
+  z-index: 9998 !important;
+}
+</style>
