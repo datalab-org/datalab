@@ -1,22 +1,40 @@
 <template>
   <DataBlockBase ref="xrdBlockBase" :item_id="item_id" :block_id="block_id">
     <template #controls>
-      <div class="form-row align-items-center mb-2">
-        <button class="btn btn-outline-secondary mr-3" type="button" @click="toggleMultiSelect">
-          {{ isMultiSelect ? "Switch to Single File" : "Switch to Multi-File" }}
-        </button>
-        <component
-          :is="isMultiSelect ? 'FileMultiSelectDropdown' : 'FileSelectDropdown'"
+      <div v-if="!isMultiSelect" class="form-inline mb-2">
+        <label class="mr-2"><b>Select file:</b></label>
+        <FileSelectDropdown
           v-model="fileModel"
           :item_id="item_id"
           :block_id="block_id"
           :extensions="blockInfo.attributes.accepted_file_extensions"
-          :default-to-all-files="!isMultiSelect"
-          :update-block-on-change="!isMultiSelect"
+          :default-to-all-files="true"
         />
+        <button class="btn btn-sm btn-primary ml-2" @click="toggleMultiSelect">
+          Switch to multi-select
+        </button>
       </div>
-      <div v-if="isMultiSelect" class="form-row mt-2">
-        <button class="btn btn-primary btn-sm" @click="applyMultiSelect">Apply Selection</button>
+
+      <div v-else>
+        <FileMultiSelectDropdown
+          v-model="fileModel"
+          :item_id="item_id"
+          :block_id="block_id"
+          :extensions="blockInfo.attributes.accepted_file_extensions"
+          :main-label="'Select and order XRD files:'"
+        />
+        <div class="mt-2">
+          <button
+            class="btn btn-sm btn-primary"
+            :disabled="!hasFileChanges"
+            @click="applyMultiSelect"
+          >
+            Apply
+          </button>
+          <button class="btn btn-sm btn-secondary ml-2" @click="toggleMultiSelect">
+            Switch to single-select
+          </button>
+        </div>
       </div>
     </template>
 
