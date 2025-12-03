@@ -1,11 +1,14 @@
 from bson import ObjectId
 from flask import Blueprint, jsonify, request
 from flask_login import current_user
+from werkzeug.exceptions import BadRequest, Forbidden, Unauthorized
 
 from pydatalab.config import CONFIG
-from pydatalab.models.people import DisplayName, EmailStr
+from pydatalab.logger import LOGGER
+from pydatalab.models.people import AccountStatus, DisplayName, EmailStr
 from pydatalab.mongo import flask_mongo
 from pydatalab.permissions import active_users_or_get_only
+from pydatalab.routes.v0_1.auth import _generate_and_store_token, _send_magic_link_email
 
 USERS = Blueprint("users", __name__)
 
@@ -29,13 +32,10 @@ def save_user(user_id):
         account_status = request_json.get("account_status", None)
 
     if not current_user.is_authenticated and not CONFIG.TESTING:
-        return (jsonify({"status": "error", "message": "No user authenticated."}), 401)
+        raise Unauthorized("No user authenticated.")
 
     if not CONFIG.TESTING and current_user.id != user_id and current_user.role != "admin":
-        return (
-            jsonify({"status": "error", "message": "User not allowed to edit this profile."}),
-            403,
-        )
+        raise Forbidden("Current user not allowed to edit this profile.")
 
     update = {}
 
@@ -43,37 +43,87 @@ def save_user(user_id):
         if display_name:
             update["display_name"] = DisplayName(display_name)
 
+    except ValueError:
+        raise BadRequest(f"Invalid display name {display_name!r} was passed")
+
+    try:
         if contact_email or contact_email in (None, ""):
             if contact_email in ("", None):
                 update["contact_email"] = None
             else:
                 update["contact_email"] = EmailStr(contact_email)
 
-        if account_status:
-            update["account_status"] = account_status
+    except ValueError:
+        raise BadRequest(f"Invalid email address {contact_email!r} was passed")
 
-    except ValueError as e:
-        return jsonify(
-            {"status": "error", "message": f"Invalid display name or email was passed: {str(e)}"}
-        ), 400
+    trigger_email_verification = False
+    if update.get("contact_email"):
+        # Check if this email identity already exists for this user
+        existing_email_identity = False
+        if update.get("contact_email") is not None:
+            existing_email_identity = flask_mongo.db.users.find_one(
+                {
+                    "_id": ObjectId(user_id),
+                    "identities": {"$elemMatch": {"type": "email", "identifier": contact_email}},
+                }
+            )
+            if not existing_email_identity:
+                # If not, push it as a new unverified identity
+                flask_mongo.db.users.update_one(
+                    {"_id": ObjectId(user_id)},
+                    {
+                        "$push": {
+                            "identities": {
+                                "identity_type": "email",
+                                "identifier": contact_email,
+                                "name": contact_email,
+                                "verified": False,
+                            }
+                        }
+                    },
+                )
+                trigger_email_verification = True
+
+        if existing_email_identity and not existing_email_identity.get("verified"):
+            # If this did exist, but is not yet verified, also trigger an email
+            trigger_email_verification = True
+
+        if trigger_email_verification:
+            token = _generate_and_store_token(
+                email=contact_email,
+                intent="verify",
+            )
+            try:
+                _send_magic_link_email(
+                    email=contact_email,
+                    token=token,
+                    referrer=CONFIG.APP_URL,
+                    purpose="verify",
+                )
+            except RuntimeError as e:
+                trigger_email_verification = False
+                LOGGER.critical(f"Unable to send verification email on this deployment: {e}")
+
+    try:
+        if account_status:
+            update["account_status"] = AccountStatus(account_status)
+    except ValueError:
+        raise BadRequest(f"Invalid account status {account_status!r} was passed")
 
     if not update:
-        return jsonify({"status": "success", "message": "No update was performed."}), 200
+        return jsonify({"status": "success", "message": "No update to perform."}), 200
 
     update_result = flask_mongo.db.users.update_one({"_id": ObjectId(user_id)}, {"$set": update})
 
     if update_result.matched_count != 1:
-        return (jsonify({"status": "error", "message": "Unable to update user."}), 400)
+        raise BadRequest("Unable to update user.")
 
-    if update_result.modified_count != 1:
+    if trigger_email_verification:
         return (
             jsonify(
-                {
-                    "status": "success",
-                    "message": "No update was performed",
-                }
+                {"message": f"Verification email sent to {contact_email}", "status": "success"}
             ),
             200,
         )
 
-    return (jsonify({"status": "success"}), 200)
+    return (jsonify({"message": "User updated successfully", "status": "success"}), 200)

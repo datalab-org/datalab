@@ -748,7 +748,13 @@ export function saveUser(user_id, user) {
     .then(function (response_json) {
       if (response_json.status === "success") {
         getUserInfo();
-        return response_json;
+        if (response_json.message.includes("Verification email sent")) {
+          DialogService.alert({
+            title: "Verification Email Sent",
+            message:
+              "A verification email has been sent to the updated email address. Please check your inbox.",
+          });
+        }
       } else {
         DialogService.error({
           title: "Failed to update user",
