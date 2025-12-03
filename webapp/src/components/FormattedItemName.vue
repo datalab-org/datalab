@@ -81,8 +81,7 @@ export default {
       if (window.Cypress && window.location.href.includes("__cypress")) {
         return;
       }
-      const newWindow = window.open(`/edit/${this.item_id}`, "_blank");
-      if (newWindow) newWindow.focus();
+      window.open(`/edit/${this.item_id}`, "_blank");
     },
   },
 };

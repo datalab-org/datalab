@@ -63,8 +63,7 @@ export default {
     },
     openEditPageInNewTab() {
       this.$emit("collectionIdClicked");
-      const newWindow = window.open(`/collections/${this.collection_id}`, "_blank");
-      if (newWindow) newWindow.focus();
+      window.open(`/collections/${this.collection_id}`, "_blank");
     },
   },
 };

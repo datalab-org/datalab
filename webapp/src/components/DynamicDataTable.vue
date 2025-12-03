@@ -713,8 +713,7 @@ export default {
         window.location.href = `/${this.editPageRoutePrefix}/${row_id}`;
       } else {
         if (event.originalEvent.ctrlKey || event.originalEvent.metaKey) {
-          const newWindow = window.open(`/${this.editPageRoutePrefix}/${row_id}`, "_blank");
-          if (newWindow) newWindow.focus();
+          window.open(`/${this.editPageRoutePrefix}/${row_id}`, "_blank");
         } else {
           window.location.href = `/${this.editPageRoutePrefix}/${row_id}`;
         }
