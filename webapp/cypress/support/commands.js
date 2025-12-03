@@ -270,6 +270,28 @@ Cypress.Commands.add("createTestPNG", (fname) => {
   return cy.writeFile(filePath, base64, "base64").then(() => {});
 });
 
+Cypress.Commands.add("createTestSVG", (fname) => {
+  // Create an SVG with malicious content that should be stripped by DOMPurify
+  const svgContent = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" data-testid="test-svg">
+  <!-- This script should be stripped by DOMPurify -->
+  <script type="text/javascript">
+    alert('XSS Attack!');
+    console.log('This script should not execute');
+  </script>
+
+  <!-- Event handlers should also be stripped -->
+  <rect x="10" y="10" width="80" height="80" fill="blue" onclick="alert('onclick XSS')" onerror="alert('onerror XSS')" />
+
+  <!-- Valid SVG content that should remain -->
+  <circle cx="100" cy="100" r="50" fill="red" data-testid="test-circle" />
+  <text x="100" y="180" text-anchor="middle" fill="black">Test SVG</text>
+</svg>`;
+
+  const filePath = `cypress/fixtures/${fname}`;
+  return cy.writeFile(filePath, svgContent).then(() => {});
+});
+
 Cypress.Commands.add("removeAllTestCollections", (collection_ids, check_collection_table) => {
   collection_ids.forEach((collection_id) => {
     cy.deleteCollectionViaAPI(collection_id);
@@ -324,4 +346,41 @@ Cypress.Commands.add("expandIfCollapsed", (selector) => {
         cy.wrap($header).find("[data-testid=collapse-arrow]").click();
       }
     });
+});
+
+/**
+ * Login as a test user using a predefined magic link
+ * @param {string} email - Email address of the test user (default: test-user@example.com)
+ * @param {string} role - User role: 'user' or 'admin' (default: 'user')
+ */
+Cypress.Commands.add("loginViaTestMagicLink", (email = "test@example.com") => {
+  cy.request({
+    method: "POST",
+    url: API_URL + "/testing/create-magic-link",
+    body: { email: email, referrer: Cypress.config("baseUrl") },
+  }).then((response) => {
+    expect(response.status).to.eq(200);
+    const token = response.body.token;
+    cy.request({
+      method: "GET",
+      url: API_URL + `/login/email?token=${token}`,
+      followRedirect: false,
+    });
+    cy.visit("/");
+  });
+});
+
+Cypress.Commands.add("logout", () => {
+  cy.visit("/logout");
+});
+
+Cypress.Commands.add("deleteSample", (item_id) => {
+  cy.selectItemCheckbox("sample", item_id);
+  cy.get('[data-testid="selected-dropdown"]').click();
+  cy.get('[data-testid="delete-selected-button"]').click();
+  cy.findByText("Confirm Deletion").should("exist");
+  cy.get('[data-testid="dialog-modal-confirm-button"]').click();
+  cy.get("[data-testid=sample-table]")
+    .contains(new RegExp("^" + item_id + "$", "g"))
+    .should("not.exist");
 });

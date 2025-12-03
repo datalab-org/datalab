@@ -27,11 +27,32 @@ class CycleBlock(DataBlock):
     This class that contains functions for processing dataframes created by navani
     from raw cycler files and plotting them with Bokeh.
 
+    Navani documentation: https://be-smith.github.io/navani/
+
+    The file formats currently supported are:
+
+    - Biologic (.mpr) - requires galvani https://github.com/echemdata/galvani
+    - Arbin (.res, .xls and .xlsx) - the .res format requires galvani https://github.com/echemdata/galvani
+    - Neware (.nda, .ndax)
+    - Ivium (.txt)
+    - Lanhe/Lande (.xls, .xlsx) - most formats, certain exports may not work depending on the software version or settings
+    - Preprocessed (.csv) - CSV files with appropriate columns ['Capacity', 'Voltage', 'half cycle', 'full cycle', 'Current', 'state']
+
     """
 
     blocktype = "cycle"
     name = "Electrochemical cycling"
-    description = "This block can plot data from electrochemical cycling experiments from many different cycler's file formats."
+    description = """This block can plot data from electrochemical cycling experiments from many different cycler's file formats.
+    The file formats currently supported are:
+
+    - Biologic (.mpr)
+    - Arbin (.res, .xls and .xlsx)
+    - Neware (.nda, .ndax)
+    - Ivium (.txt)
+    - Lanhe/Lande (.xls, .xlsx)
+    - Preprocessed (.csv) (previously extracted by navani or other tools)
+
+    """
 
     accepted_file_extensions = (
         ".mpr",
@@ -41,6 +62,7 @@ class CycleBlock(DataBlock):
         ".res",
         ".nda",
         ".ndax",
+        ".csv",
     )
 
     defaults: dict[str, Any] = {

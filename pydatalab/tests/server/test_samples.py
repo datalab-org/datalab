@@ -387,10 +387,10 @@ def test_saved_sample_has_new_relationships(client, default_sample_dict, complic
         "/save-item/", json={"item_id": sample_dict["item_id"], "data": sample_dict}
     )
 
-    # Saving this link *should* add a searchable relationship in the database on both the new and old sample
     response = client.get(
         f"/get-item-data/{default_sample_dict['item_id']}",
     )
+
     assert complicated_sample.item_id in response.json["parent_items"]
 
     response = client.get(
@@ -643,7 +643,7 @@ def test_items_added_to_existing_collection(client, default_collection, default_
     default_sample_dict["item_id"] = new_id
     default_sample_dict["collections"] = [{"collection_id": "random_id"}]
     response = client.post("/new-sample/", json=default_sample_dict)
-    assert response.status_code == 401, response.json
+    assert response.status_code == 404, response.json
     response = client.get(f"/get-item-data/{new_id}")
     assert response.status_code == 404, response.json
 

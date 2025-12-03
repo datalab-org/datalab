@@ -79,11 +79,13 @@ def check_feature_flags(app):
             )
             FEATURE_FLAGS.email_notifications = False
 
-        if CONFIG.EMAIL_DOMAIN_ALLOW_LIST and FEATURE_FLAGS.email_notifications:
+        if (
+            CONFIG.EMAIL_DOMAIN_ALLOW_LIST is None or CONFIG.EMAIL_DOMAIN_ALLOW_LIST
+        ) and FEATURE_FLAGS.email_notifications:
             FEATURE_FLAGS.auth_mechanisms.email = True
         else:
             LOGGER.warning(
-                "`CONFIG.EMAIL_DOMAIN_ALLOW_LIST` is usnet or empty; email registration will not be enabled."
+                "`CONFIG.EMAIL_DOMAIN_ALLOW_LIST` is unset or empty; email registration will not be enabled."
             )
 
     if CONFIG.IDENTIFIER_PREFIX == "test":
@@ -161,4 +163,9 @@ def check_feature_flags(app):
     if not CONFIG.DEPLOYMENT_METADATA:
         LOGGER.warning(
             "No deployment metadata provided, please set `CONFIG.DEPLOYMENT_METADATA` to allow the UI to provide helpful information to users"
+        )
+
+    if not CONFIG.APP_URL:
+        LOGGER.warning(
+            "Canonical URL for deployment is not set, please set `CONFIG.APP_URL` otherwise some features (redirects, email notifications) may not work correctly."
         )

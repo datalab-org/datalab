@@ -483,8 +483,8 @@ wheels = [
 
 [[package]]
 name = "datalab-app-plugin-insitu"
-version = "0.3.0"
-source = { git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git?rev=v0.3.0#030c1dd267d351f0c6cad71a105b3e778a087890" }
+version = "0.3.2"
+source = { git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git?rev=v0.3.2#4eeec75038a1eaf51d08d9554ee57c2f45e0cb44" }
 dependencies = [
     { name = "datalab-server" },
     { name = "lmfit" },
@@ -610,7 +610,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "bokeh", specifier = "~=2.4,<3.0" },
-    { name = "datalab-app-plugin-insitu", marker = "extra == 'app-plugins-git'", git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git?rev=v0.3.0" },
+    { name = "datalab-app-plugin-insitu", marker = "extra == 'app-plugins-git'", git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git?rev=v0.3.2" },
     { name = "datalab-server", extras = ["apps", "chat", "server"], marker = "extra == 'all'" },
     { name = "flask", marker = "extra == 'server'", specifier = "~=3.0" },
     { name = "flask-compress", marker = "extra == 'server'", specifier = "~=1.15" },
@@ -626,7 +626,7 @@ requires-dist = [
     { name = "langchain-openai", marker = "extra == 'chat'", specifier = "~=0.1" },
     { name = "matador-db", marker = "extra == 'apps'", specifier = ">=0.11.2" },
     { name = "matplotlib", specifier = "~=3.8" },
-    { name = "navani", marker = "extra == 'apps'", specifier = ">=0.1.11" },
+    { name = "navani", marker = "extra == 'apps'", specifier = ">=0.1.13" },
     { name = "nmrglue", marker = "extra == 'apps'", specifier = "~=0.10" },
     { name = "pandas", extras = ["excel"], specifier = "~=2.2" },
     { name = "periodictable", specifier = "~=1.7" },
@@ -1768,7 +1768,7 @@ wheels = [
 
 [[package]]
 name = "navani"
-version = "0.1.12"
+version = "0.1.13"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "datalab-org-galvani" },
@@ -1781,9 +1781,9 @@ dependencies = [
     { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "scipy", version = "1.16.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/4c/cc/8be94a7133a41277ca31aced56e67a4e25f2ea34c91f3da7085ed59cadcf/navani-0.1.12.tar.gz", hash = "sha256:b87237ccac6d1fa25804ff6f322228857b45554a621ce7b1a275a9adb4ddfa63", size = 4697700, upload-time = "2025-07-07T15:21:37.565Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ee/f5/32e81658448ab177074c185f0982cc39e2a7898214ebbf06a6b40918a0b8/navani-0.1.13.tar.gz", hash = "sha256:51efaacaddbf52d3f2df6834e3fa7bc5654957db7a375506efcce91bd40dedb2", size = 4700411, upload-time = "2025-11-04T09:53:43.113Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/67/2b/5409d5d73cadd4f01ca11b9b5bf82ca690b0e89a0cf61b2ea79ec2e27be2/navani-0.1.12-py3-none-any.whl", hash = "sha256:e9eb27d2365a21816c5df3828fbe984b1658d58701765ca65b66d24317fe4bb4", size = 14953, upload-time = "2025-07-07T15:21:36.47Z" },
+    { url = "https://files.pythonhosted.org/packages/1d/d5/139fc1f2681a587c1ae22e1f57b15138357f239f172ee5b48463b56856b5/navani-0.1.13-py3-none-any.whl", hash = "sha256:1092a943c1e4d1d492591645da94bc5d06555bf27f10170fe1bbfb04ef55eaea", size = 14952, upload-time = "2025-11-04T09:53:40.954Z" },
 ]
 
 [[package]]

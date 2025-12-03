@@ -258,9 +258,13 @@ export default {
   methods: {
     async confirmDeletion() {
       const idsSelected = this.itemsSelected.map((x) => x.item_id || x.collection_id);
+      let idsSelectedLabel = idsSelected;
+      if (idsSelected.length > 10) {
+        idsSelectedLabel = idsSelected.slice(0, 10).join(", ") + ", ...";
+      }
       const confirmed = await DialogService.confirm({
         title: "Confirm Deletion",
-        message: `Are you sure you want to delete ${this.itemsSelected.length} selected items? (${idsSelected})`,
+        message: `Are you sure you want to delete ${this.itemsSelected.length} selected items? (${idsSelectedLabel})`,
         type: "warning",
       });
       if (confirmed) {

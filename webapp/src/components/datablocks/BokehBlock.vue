@@ -72,4 +72,8 @@ export default {
 };
 </script>
 
-<style scoped></style>
+<style scoped>
+.limited-width {
+  max-width: 100%;
+}
+</style>

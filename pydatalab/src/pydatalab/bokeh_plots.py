@@ -25,6 +25,8 @@ from bokeh.plotting import ColumnDataSource, figure
 from bokeh.themes import Theme
 from scipy.signal import find_peaks
 
+from .utils import shrink_label
+
 FONTSIZE = "12pt"
 TYPEFACE = "Helvetica, sans-serif"
 COLORS = Dark2[8]
@@ -301,6 +303,7 @@ def selectable_axes_plot(
         title=plot_title,
         **kwargs,
     )
+
     p.toolbar.logo = "grey"
     p.xaxis.ticker.desired_num_ticks = 5
     p.yaxis.ticker.desired_num_ticks = 5
@@ -338,19 +341,14 @@ def selectable_axes_plot(
         if isinstance(df, dict):
             df_ = df[df_]
 
-        df_with_metadata = df_.copy()
-
         if labels:
             label = labels[ind]
         else:
             label = df_.index.name if len(df) > 1 else ""
 
-        if hasattr(df_, "attrs"):
-            for attr in ["item_id", "original_filename", "wavelength"]:
-                if attr in df_.attrs:
-                    df_with_metadata[attr] = df_.attrs[attr]
+        label = shrink_label(label)
 
-        source = ColumnDataSource(df_with_metadata)
+        source = ColumnDataSource(df_)
 
         if color_options:
             color = {"field": color_options[0], "transform": color_mapper}
@@ -391,7 +389,14 @@ def selectable_axes_plot(
         )
 
         lines = (
-            p.line(x=x_default, y=y_default, source=source, color=line_color, legend_label=label)
+            p.line(
+                x=x_default,
+                y=y_default,
+                source=source,
+                color=line_color,
+                legend_label=label,
+                line_width=2,
+            )
             if plot_line
             else None
         )
@@ -441,6 +446,21 @@ def selectable_axes_plot(
         p.legend.click_policy = "hide"
         if len(df) <= 1:
             p.legend.visible = False
+        else:
+            legend_items = p.legend.items
+            p.legend.visible = False
+
+            from bokeh.models import Legend
+
+            external_legend = Legend(
+                items=legend_items,
+                click_policy="hide",
+                background_fill_alpha=0.8,
+                label_text_font_size="9pt",
+                spacing=1,
+                margin=2,
+            )
+            p.add_layout(external_legend, "right")
 
     input_widgets = []
     if parameters:
@@ -491,7 +511,40 @@ def selectable_axes_plot(
         )
         plot_columns = [table] + plot_columns
 
-    layout = column(*plot_columns)
+    if plot_points and plot_line:
+        from bokeh.layouts import row
+
+        show_points_btn = Button(
+            label="✓ Show points", button_type="primary", width_policy="min", margin=(2, 5, 2, 5)
+        )
+
+        circle_renderers = [r for r in p.renderers if hasattr(r.glyph, "size")]
+
+        points_callback = CustomJS(
+            args=dict(btn=show_points_btn, renderers=circle_renderers),
+            code="""
+                if (btn.label.includes('✓')) {
+                    btn.label = '✗ Show points';
+                    btn.button_type = 'default';
+                    for (var i = 0; i < renderers.length; i++) {
+                        renderers[i].visible = false;
+                    }
+                } else {
+                    btn.label = '✓ Show points';
+                    btn.button_type = 'primary';
+                    for (var i = 0; i < renderers.length; i++) {
+                        renderers[i].visible = true;
+                    }
+                }
+            """,
+        )
+
+        show_points_btn.js_on_click(points_callback)
+        controls_layout = row(show_points_btn, sizing_mode="scale_width", margin=(10, 0, 10, 0))
+
+        plot_columns.append(controls_layout)
+
+    layout = column(*plot_columns, sizing_mode="scale_width")
 
     p.js_on_event(DoubleTap, CustomJS(args=dict(p=p), code="p.reset.emit()"))
     return layout

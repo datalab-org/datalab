@@ -65,7 +65,36 @@
     </template>
 
     <template #plot>
-      <BokehPlot v-if="bokehPlotData" :bokeh-plot-data="bokehPlotData" />
+      <div class="row">
+        <div id="bokehPlotContainer" class="col-xl-8 col-lg-8 col-md-11">
+          <BokehPlot v-if="bokehPlotData" :bokeh-plot-data="bokehPlotData" />
+        </div>
+        <div v-if="detailsShown" class="col-xl-4 col-lg-4 ml-0">
+          <table class="table table-sm">
+            <tbody>
+              <tr>
+                <th scope="row">nucleus</th>
+                <td><Isotope :isotope-string="metadata?.nucleus" /></td>
+              </tr>
+              <tr>
+                <th scope="row">pulse program</th>
+                <td>{{ metadata?.pulse_program_name }}</td>
+              </tr>
+              <tr>
+                <th scope="row">Data shape</th>
+                <td>
+                  {{ metadata?.processed_data_shape }} (<i>d</i> =
+                  {{ metadata?.processed_data_shape.length }})
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">probe</th>
+                <td>{{ metadata?.probe_name }} s</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </template>
   </DataBlockBase>
 </template>

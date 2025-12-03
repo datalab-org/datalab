@@ -60,21 +60,62 @@
         <div v-if="folderNameError" class="alert alert-danger mt-2 mx-auto">
           {{ folderNameError }}
         </div>
-      </div>
-      <div class="form-inline mb-2">
-        <label class="mr-2"><b>Data granularity</b></label>
-        <input
-          v-model="data_granularity_buffer"
-          type="number"
-          class="form-control"
-          min="1"
-          @change="updateDataGranularity"
-        />
+        <div class="form-inline mb-2">
+          <label class="mr-2">
+            <b>Data granularity</b>
+            <TooltipIcon
+              text="Controls the number of datapoints along the x-axis for the heatmap. For example a value of 2 means every other point is shown. Interpolation is done via max pooling. Higher values show fewer points for faster rendering."
+            />
+          </label>
+          <input
+            v-model="data_granularity_buffer"
+            type="text"
+            class="form-control mr-3"
+            style="width: 100px; display: inline-block"
+          />
+          <label class="mr-2">
+            <b>Sample granularity</b>
+            <TooltipIcon
+              text="Controls how many samples are displayed in the heatmap. For example a value of 2 means every other sample is plotted. Higher values show fewer samples for faster rendering."
+            />
+          </label>
+          <input
+            v-model="sample_granularity_buffer"
+            type="text"
+            class="form-control mr-3"
+            style="width: 100px; display: inline-block"
+          />
+          <label class="mr-2">
+            <b>File pattern</b>
+            <TooltipIcon
+              text="Filter files by pattern (using glob). Use * as wildcard (e.g., *.xy for all .xy files, data_*.txt for files starting with 'data_' and ending with '.txt', or for example '*summed*' for all files containing 'summed'). Leave empty to use all files."
+            />
+          </label>
+          <input
+            v-model="glob_str"
+            type="text"
+            class="form-control"
+            style="width: 250px; display: inline-block"
+            placeholder="e.g., *.xy or data_*.txt"
+            @keyup.enter="updateBlock"
+          />
+          <button class="btn btn-primary ml-3" @click="onGranularitySubmit">Apply</button>
+        </div>
       </div>
     </template>
 
     <template #plot>
-      <BokehPlot v-if="bokehPlotData" :bokeh-plot-data="bokehPlotData" />
+      <div
+        v-show="xrd_folder_name && time_series_folder_name"
+        class="row mt-2 text-center justify-content-center"
+      >
+        <div
+          id="bokehPlotContainer"
+          class="col-xl-10 col-lg-11 col-md-12 d-flex justify-content-center overflow-auto"
+        >
+          <BokehPlot :bokeh-plot-data="bokehPlotData" class="mw-100" />
+        </div>
+      </div>
     </template>
   </DataBlockBase>
 </template>
@@ -84,6 +125,7 @@ import DataBlockBase from "@/components/datablocks/DataBlockBase";
 import FileSelectDropdown from "@/components/FileSelectDropdown";
 import FolderSelect from "@/components/FolderSelect";
 import BokehPlot from "@/components/BokehPlot";
+import TooltipIcon from "@/components/TooltipIcon";
 
 import { createComputedSetterForBlockField } from "@/field_utils.js";
 import { updateBlockFromServer } from "@/server_fetch_utils.js";
@@ -94,6 +136,7 @@ export default {
     FileSelectDropdown,
     FolderSelect,
     BokehPlot,
+    TooltipIcon,
   },
   props: {
     item_id: {
@@ -150,6 +193,7 @@ export default {
     data_granularity: createComputedSetterForBlockField("data_granularity"),
     sample_granularity: createComputedSetterForBlockField("sample_granularity"),
     time_series_source: createComputedSetterForBlockField("time_series_source"),
+    glob_str: createComputedSetterForBlockField("glob_str"),
     isEchemMode() {
       return this.time_series_source === "echem";
     },

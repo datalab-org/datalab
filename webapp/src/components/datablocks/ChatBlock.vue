@@ -15,7 +15,7 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
           <div class="input-group">
             <label class="mr-2">Model:</label>
             <select v-model="modelName" class="form-control">
-              <option v-for="model in Object.keys(availableModels)" :key="model">
+              <option v-for="model in Object.keys(availableModels || {})" :key="model">
                 {{ model }}
               </option>
             </select>
@@ -134,6 +134,9 @@ export default {
     modelName: createComputedSetterForBlockField("model"),
     availableModels: createComputedSetterForBlockField("available_models"),
     modelObj() {
+      if (!this.availableModels) {
+        return {};
+      }
       return this.availableModels[this.modelName] || {};
     },
     tempInvalid() {

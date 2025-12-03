@@ -16,6 +16,7 @@ export default {
 <style>
 body {
   margin: 0rem !important; /* for some reason, tinymce sets margin 1rem globally :o */
+  font-family: var(--font-primary) !important;
 }
 
 * {
@@ -112,5 +113,9 @@ body {
 
 .clickable {
   cursor: pointer;
+}
+
+.modal {
+  font-family: var(--font-primary);
 }
 </style>

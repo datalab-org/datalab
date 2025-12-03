@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConstrainedStr, Field, parse_obj_as, validator
 from pydantic import EmailStr as PydanticEmailStr
 
 from pydatalab.models.entries import Entry
-from pydatalab.models.utils import PyObjectId
+from pydatalab.models.utils import PyObjectId, UserRole
 
 
 class IdentityType(str, Enum):
@@ -114,6 +114,9 @@ class Person(Entry):
 
     managers: list[PyObjectId] | None
     """A list of user IDs that can manage this person's items."""
+
+    role: UserRole = Field(UserRole.USER)
+    """The role assigned to this person."""
 
     account_status: AccountStatus = Field(AccountStatus.UNVERIFIED)
     """The status of the user's account."""

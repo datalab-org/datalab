@@ -320,7 +320,7 @@ class XRDBlock(DataBlock):
                 f"{self.data.get('wavelength', self.defaults['wavelength'])} Å"
             )
             peak_model = PeakInformation(**peak_data)
-            if "computed" not in self.data:
+            if self.data.get("computed") is None:
                 self.data["computed"] = {"peak_data": {}}
             self.data["computed"]["peak_data"][str(file_info["immutable_id"])] = peak_model.dict()
             pattern_dfs = [pattern_df]
@@ -339,7 +339,7 @@ class XRDBlock(DataBlock):
                 pattern_dfs.append(pattern_df)
 
                 peak_model = PeakInformation(**peak_data)
-                if "computed" not in self.data:
+                if self.data.get("computed") is None:
                     self.data["computed"] = {"peak_data": {}}
                 self.data["computed"]["peak_data"][f] = peak_model.dict()
 

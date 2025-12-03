@@ -70,6 +70,14 @@ let sample_ids = [
 ];
 
 before(() => {
+  cy.loginViaTestMagicLink("test-user@example.com", "user");
+});
+
+after(() => {
+  cy.logout();
+});
+
+before(() => {
   cy.visit("/");
   cy.removeAllTestSamples(sample_ids, true);
 });
@@ -81,6 +89,7 @@ after(() => {
 
 describe("Batch sample creation", () => {
   beforeEach(() => {
+    cy.loginViaTestMagicLink("test-user@example.com", "user");
     cy.visit("/");
   });
   it("Adds 3 valid samples", () => {
@@ -157,7 +166,7 @@ describe("Batch sample creation", () => {
     cy.expandIfCollapsed("[data-testid=synthesis-block]");
     cy.findByLabelText("Description").type("this is a description of baseA.");
     cy.findByText("Add a block").click();
-    cy.findByText("Comment").click();
+    cy.findByLabelText("Add a block").contains("Comment").click();
 
     cy.get(".datablock-content div").first().type("a comment is added here.");
 
@@ -714,6 +723,7 @@ describe("Batch sample creation", () => {
 
 describe("Batch cell creation", () => {
   beforeEach(() => {
+    cy.loginViaTestMagicLink("test-user@example.com", "user");
     cy.visit("/");
   });
 

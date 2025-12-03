@@ -27,7 +27,7 @@ export default {
   computed: {
     hoverText() {
       let block_count_message = `${this.count} block${this.count !== 1 ? "s" : ""}`;
-      if (!this.blockInfo || this.blockInfo.length === 0) {
+      if (this.blockInfo.length === 0) {
         return block_count_message;
       }
       const blockTypeValues = this.blockInfo.map((item) => item.blocktype).filter(Boolean);

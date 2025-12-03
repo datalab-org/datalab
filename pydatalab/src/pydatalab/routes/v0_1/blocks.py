@@ -4,7 +4,10 @@ from werkzeug.exceptions import BadRequest, NotImplemented
 from pydatalab.apps import BLOCK_TYPES
 from pydatalab.blocks.base import DataBlock
 from pydatalab.mongo import flask_mongo
-from pydatalab.permissions import active_users_or_get_only, get_default_permissions
+from pydatalab.permissions import (
+    active_users_or_get_only,
+    get_default_permissions,
+)
 
 BLOCKS = Blueprint("blocks", __name__)
 
@@ -136,7 +139,7 @@ def add_collection_data_block():
     )
 
 
-def _save_block_to_db(block: DataBlock) -> None:
+def _save_block_to_db(block: DataBlock):
     """Save data for a single block within an item to the database,
     overwriting previous data saved there.
 
@@ -183,7 +186,7 @@ def update_block():
     block_type = block_data["blocktype"]
 
     if block_type not in BLOCK_TYPES:
-        raise NotImplemented(  # noqa
+        raise NotImplemented(  # noqa: F901
             f"Invalid block type {block_type!r}, must be one of {BLOCK_TYPES.keys()}"
         )
 

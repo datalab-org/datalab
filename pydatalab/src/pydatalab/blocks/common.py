@@ -43,6 +43,7 @@ class MediaBlock(DataBlock):
         ".mov",
         ".webm",
         ".pdf",
+        ".svg",
     )
     _supports_collections = False
 
@@ -58,7 +59,7 @@ class MediaBlock(DataBlock):
         if "file_id" not in self.data:
             LOGGER.warning("ImageBlock.encode_tiff(): No file set in the DataBlock")
             return
-        if "b64_encoded_image" not in self.data:
+        if not self.data.get("b64_encoded_image"):
             self.data["b64_encoded_image"] = {}
         file_info = get_file_info_by_id(self.data["file_id"], update_if_live=True)
         ext = os.path.splitext(file_info["location"].split("/")[-1])[-1].lower()

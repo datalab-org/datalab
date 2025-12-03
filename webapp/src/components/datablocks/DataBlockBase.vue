@@ -12,9 +12,9 @@
       <span class="blocktype-label ml-auto mr-3 d-inline" style="white-space: nowrap">
         {{ blockType }}
       </span>
-      <span v-if="blockInfo" class="block-header-icon"
-        ><StyledBlockInfo :block-info="blockInfo"
-      /></span>
+      <span v-if="blockInfo" class="block-header-icon">
+        <BlockTooltip :block-info="blockInfo" :show-icon="true" />
+      </span>
       <font-awesome-icon
         :icon="['fa', 'sync']"
         class="block-header-icon"
@@ -151,8 +151,7 @@
       </div>
 
       <slot></slot>
-
-      <TinyMceInline v-model="BlockDescription" data-testid="block-description"></TinyMceInline>
+      <TiptapInline v-model="BlockDescription" data-testid="block-description"></TiptapInline>
     </div>
   </div>
 </template>
@@ -168,18 +167,18 @@
 import { DialogService } from "@/services/DialogService";
 
 import { createComputedSetterForBlockField } from "@/field_utils.js";
-import TinyMceInline from "@/components/TinyMceInline";
-import StyledBlockInfo from "@/components/StyledBlockInfo";
-import tinymce from "tinymce/tinymce";
+  
 import MetadataViewer from "@/components/MetadataViewer";
+import TiptapInline from "@/components/TiptapInline";
+import BlockTooltip from "@/components/BlockTooltip";
 
 import { deleteBlock, updateBlockFromServer } from "@/server_fetch_utils";
 
 export default {
   components: {
-    TinyMceInline,
-    StyledBlockInfo,
     MetadataViewer,
+    TiptapInline,
+    BlockTooltip,
   },
   props: {
     item_id: {
@@ -250,14 +249,6 @@ export default {
   },
   methods: {
     async updateBlock() {
-      // check for any tinymce editors within the block. If so, trigger them
-      // to save so that the store is updated before sending data to the server
-      tinymce.editors.forEach((editor) => {
-        // check if editor is a child of this datablock
-        if (editor.bodyElement.closest(`#${this.block_id}`) && editor.isDirty()) {
-          editor.save();
-        }
-      });
       await updateBlockFromServer(this.item_id, this.block_id, this.block);
     },
     async handleBokehEvent(event) {
