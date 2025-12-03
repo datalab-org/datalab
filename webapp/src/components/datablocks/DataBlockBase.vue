@@ -167,7 +167,7 @@
 import { DialogService } from "@/services/DialogService";
 
 import { createComputedSetterForBlockField } from "@/field_utils.js";
-  
+
 import MetadataViewer from "@/components/MetadataViewer";
 import TiptapInline from "@/components/TiptapInline";
 import BlockTooltip from "@/components/BlockTooltip";
