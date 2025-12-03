@@ -64,6 +64,13 @@ def load_app_blocks():
         _check_error(e)
 
     try:
+        from pydatalab.apps.oms import OMSBlock
+
+        app_blocks.append(OMSBlock)
+    except ImportError as e:
+        _check_error(e)
+
+    try:
         from pydatalab.apps.raman import RamanBlock
 
         app_blocks.append(RamanBlock)
