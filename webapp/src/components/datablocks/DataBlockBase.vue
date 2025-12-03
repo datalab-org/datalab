@@ -138,14 +138,14 @@
         <div
           :class="
             hasMetadata && metadataShown
-              ? 'col-xl-8 col-lg-8 col-md-12'
+              ? 'col-xl-9 col-lg-9 col-md-12'
               : 'col-xl-9 col-lg-10 col-md-11 mx-auto'
           "
         >
           <slot name="plot"></slot>
         </div>
 
-        <div v-if="hasMetadata && metadataShown" class="col-xl-4 col-lg-4 col-md-12">
+        <div v-if="hasMetadata && metadataShown" class="col-xl-3 col-lg-3 col-md-12">
           <MetadataViewer :metadata="block.metadata" />
         </div>
       </div>
