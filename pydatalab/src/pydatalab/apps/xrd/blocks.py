@@ -226,7 +226,8 @@ class XRDBlock(DataBlock):
         y_options: list[str] = []
         peak_data: dict = {}
 
-        if self.data.get("file_ids") and len(self.data.get("file_ids")) > 0 and filenames is None:
+        file_ids = self.data.get("file_ids")
+        if file_ids and len(file_ids) > 0 and filenames is None:
             pattern_dfs = []
             peak_information = {}
 

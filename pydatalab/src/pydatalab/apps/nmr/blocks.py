@@ -228,7 +228,8 @@ class NMRBlock(DataBlock):
 
         """
         if parse:
-            if self.data.get("file_ids") and len(self.data.get("file_ids")) > 0:
+            file_ids = self.data.get("file_ids")
+            if file_ids and len(file_ids) > 0:
                 all_dfs = []
 
                 for file_id in self.data["file_ids"]:
