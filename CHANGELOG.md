@@ -13,7 +13,8 @@ Another patch release with several UI usability improvements, with highlights in
 - Admins can now assign managers to users through the UI alone, and will now receive email notifications when a user registers, plus users can now verify their contact email addresses via magic links.
 - Email authentication no longer requires a global allow list of domains.
 
-## What's Changed
+### What's Changed
+
 * Migrate from TinyMCE to TipTap by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1349
 * Fix modal scrolling for large content by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1446
 * Add client-side auth helper for that delays requests until authorised by @ml-evs in https://github.com/datalab-org/datalab/pull/1449
@@ -36,7 +37,7 @@ Another patch release with several UI usability improvements, with highlights in
 
 This patch release includes several quality-of-life changes (asynchronous loading of item relationships, filtering by date in the sample table, chemical formula formatting, block plotting improvements), as well as new block options (*in situ* XRD, extensions to FTIR to Shimazdu output files), in preparation for the upcoming 0.7.0 release.
 
-## What's Changed
+### What's Changed
 
 * Make relationship graph loading asynchronous by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1388
 * Add *in situ* XRD block that can handle temperature and electrochemical data by @be-smith in https://github.com/datalab-org/datalab/pull/1287
