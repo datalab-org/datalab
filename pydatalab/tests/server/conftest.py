@@ -219,6 +219,7 @@ def insert_user(
     real_mongo_client,
     display_name: str = "Test Admin",
     status: AccountStatus = AccountStatus.ACTIVE,
+    group_immutable_id: ObjectId | None = None,
 ):
     from hashlib import sha512
 
@@ -228,6 +229,9 @@ def insert_user(
         "display_name": display_name,
         "account_status": status,
     }
+    if group_immutable_id is not None:
+        demo_user["groups"] = [{"immutable_id": group_immutable_id}]
+
     real_mongo_client.get_database(TEST_DATABASE_NAME).users.insert_one(demo_user)
     hash = sha512(api_key.encode("utf-8")).hexdigest()
     real_mongo_client.get_database(TEST_DATABASE_NAME).api_keys.insert_one(
@@ -251,13 +255,24 @@ def insert_demo_users(
     unverified_user_api_key,
     real_mongo_client,
 ):
-    insert_user(user_id, user_api_key, "user", real_mongo_client, display_name="Test User")
+    insert_user(
+        user_id,
+        user_api_key,
+        "user",
+        real_mongo_client,
+        display_name="Test User",
+        group_immutable_id=ObjectId(24 * "2"),
+    )
     insert_user(
         another_user_id,
         another_user_api_key,
         "user",
         real_mongo_client,
         display_name="Another User",
+        group_immutable_id=ObjectId(24 * "2"),
+    )
+    real_mongo_client.get_database(TEST_DATABASE_NAME).groups.insert_one(
+        {"_id": ObjectId(24 * "2"), "display_name": "Demo Group", "group_id": "demo"}
     )
     insert_user(admin_user_id, admin_api_key, "admin", real_mongo_client, display_name="Test Admin")
     insert_user(
