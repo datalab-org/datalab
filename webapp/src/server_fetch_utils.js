@@ -1001,6 +1001,13 @@ export async function getSchema(type) {
     });
 }
 
+export function fetchUserActivity(userId = null) {
+  const endpoint = userId ? `/users/${userId}/activity` : "/users/combined-activity";
+  return fetch_get(`${API_URL}${endpoint}`).then(function (response_json) {
+    return response_json;
+  });
+}
+
 export function saveUserManagers(user_id, managers) {
   return fetch_patch(`${API_URL}/users/${user_id}/managers`, { managers })
     .then((response_json) => {

@@ -2,9 +2,13 @@
 
 import json
 from datetime import datetime
+from datetime import timedelta as td
+from datetime import timezone as tz
 from functools import lru_cache
 
+from bson import ObjectId
 from flask import Blueprint, jsonify, request
+from flask_login import current_user
 from pydantic import AnyUrl, BaseModel, Field, validator
 
 from pydatalab import __version__
@@ -14,6 +18,7 @@ from pydatalab.feature_flags import FEATURE_FLAGS, FeatureFlags
 from pydatalab.models import Collection, Person
 from pydatalab.models.items import Item
 from pydatalab.mongo import flask_mongo
+from pydatalab.permissions import active_users_or_get_only
 
 from ._version import __api_version__
 
@@ -214,3 +219,68 @@ def get_schema_type(item_type):
             ).json()
         )
     )
+
+
+@INFO.route("/users/<user_id>/activity", methods=["GET"])
+@active_users_or_get_only
+def get_user_activity(user_id):
+    """Get activity data for a specific user (creation dates)."""
+
+    if str(current_user.person.immutable_id) != user_id and current_user.role != "admin":
+        return jsonify({"status": "error", "message": "Unauthorized"}), 403
+
+    months = int(request.args.get("months", 12))
+
+    start_date = datetime.now(tz=tz.utc) - td(days=30 * months)
+    end_date = datetime.now(tz=tz.utc)
+
+    try:
+        user_object_id = ObjectId(user_id)
+        creator_match = user_object_id
+    except Exception:
+        creator_match = user_id
+
+    pipeline = [
+        {"$match": {"creator_ids": creator_match, "date": {"$gte": start_date, "$lte": end_date}}},
+        {
+            "$group": {
+                "_id": {"$dateToString": {"format": "%Y-%m-%d", "date": "$date"}},
+                "count": {"$sum": 1},
+            }
+        },
+        {"$sort": {"_id": 1}},
+    ]
+
+    activity_data = list(flask_mongo.db.items.aggregate(pipeline))
+
+    result = {date_entry["_id"]: date_entry["count"] for date_entry in activity_data}
+
+    return jsonify({"status": "success", "data": result}), 200
+
+
+@INFO.route("/users/combined-activity", methods=["GET"])
+@active_users_or_get_only
+def get_combined_activity():
+    """Get combined activity data for all users."""
+
+    months = int(request.args.get("months", 12))
+
+    end_date = datetime.now(tz=tz.utc).replace(tzinfo=None)
+    start_date = end_date - td(days=30 * months)
+
+    pipeline = [
+        {"$match": {"date": {"$gte": start_date, "$lte": end_date}}},
+        {
+            "$group": {
+                "_id": {"$dateToString": {"format": "%Y-%m-%d", "date": "$date"}},
+                "count": {"$sum": 1},
+            }
+        },
+        {"$sort": {"_id": 1}},
+    ]
+
+    activity_data = list(flask_mongo.db.items.aggregate(pipeline))
+
+    result = {date_entry["_id"]: date_entry["count"] for date_entry in activity_data}
+
+    return jsonify({"status": "success", "data": result}), 200
