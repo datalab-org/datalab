@@ -4,7 +4,7 @@
       class="formatted-item-name badge badge-light"
       :class="{ clickable: enableClick || enableModifiedClick }"
       :style="{ backgroundColor: badgeColor }"
-      @click.exact="enableClick ? openEditPageInNewTab() : null"
+      @click.exact="enableClick ? openEditPageInSameTab() : null"
       @click.meta.stop="enableModifiedClick ? openEditPageInNewTab() : null"
       @click.ctrl.stop="enableModifiedClick ? openEditPageInNewTab() : null"
     >
@@ -69,8 +69,18 @@ export default {
     },
   },
   methods: {
+    openEditPageInSameTab() {
+      this.$emit("itemIdClicked");
+      if (window.Cypress && window.location.href.includes("__cypress")) {
+        return;
+      }
+      window.location.href = `/edit/${this.item_id}`;
+    },
     openEditPageInNewTab() {
       this.$emit("itemIdClicked");
+      if (window.Cypress && window.location.href.includes("__cypress")) {
+        return;
+      }
       window.open(`/edit/${this.item_id}`, "_blank");
     },
   },
