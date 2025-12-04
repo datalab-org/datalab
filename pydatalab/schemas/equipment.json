@@ -231,7 +231,8 @@
         "child",
         "sibling",
         "is_part_of",
-        "other"
+        "other",
+        "mentioned"
       ],
       "type": "string"
     },
