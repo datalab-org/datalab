@@ -35,7 +35,7 @@ export default async function setupUppy(item_id, trigger_selector, reactive_file
     .use(Dashboard, {
       inline: false,
       trigger: trigger_selector,
-      closeAfterFinish: true,
+      close_after_finish: true,
     })
     .use(Webcam, { target: Dashboard })
     .use(XHRUpload, {
@@ -76,7 +76,9 @@ export default async function setupUppy(item_id, trigger_selector, reactive_file
     if (error.message.includes("exceeds maximum allowed size")) {
       DialogService.error({
         title: "File Too Large",
-        message: `The file "${file?.name || "Unknown"}" (${fileSizeGB} GB) exceeds the maximum allowed size of ${maxSizeGB} GB. Please contact your datalab administrator if you need to upload larger files.`,
+        message: `The file "${
+          file?.name || "Unknown"
+        }" (${fileSizeGB} GB) exceeds the maximum allowed size of ${maxSizeGB} GB. Please contact your datalab administrator if you need to upload larger files.`,
       });
     } else if (error.message.includes("maxNumberOfFiles")) {
       DialogService.error({
