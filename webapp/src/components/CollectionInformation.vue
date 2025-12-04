@@ -90,7 +90,21 @@ export default {
         { field: "chemform", header: "Formula", body: "ChemicalFormula", label: "Formula" },
         { field: "date", header: "Date", label: "Date" },
         { field: "creators", header: "Creators", body: "Creators", label: "Creators" },
-        { field: "nblocks", header: "# of blocks", label: "Blocks" },
+        {
+          field: "blocks",
+          header: "",
+          body: "BlocksIconCounter",
+          icon: ["fa", "cubes"],
+          label: "Blocks",
+          filter: true,
+        },
+        {
+          field: "nfiles",
+          header: "",
+          body: "FilesIconCounter",
+          icon: ["fa", "file"],
+          label: "Files",
+        },
       ],
     };
   },
