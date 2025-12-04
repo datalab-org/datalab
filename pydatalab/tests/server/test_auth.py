@@ -29,8 +29,9 @@ def test_magic_link_account_creation(unauthenticated_client, app, database):
     with app.extensions["mail"].record_messages() as outbox:
         response = unauthenticated_client.get(f"/login/email?token={doc['jwt']}")
         assert response.status_code == 307
-        assert database.users.find_one({"contact_email": "test@ml-evs.science"})
-
+        new_user = database.users.find_one({"contact_email": "test@ml-evs.science"})
+        assert new_user
+        assert new_user["account_status"] == "unverified"
         assert len(outbox) == 1  # Should be a notification to admins
 
 

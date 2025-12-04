@@ -516,13 +516,25 @@ def _send_admin_email_notification(user: Person) -> None:
             "Please review the registration in your admin panel and verify the user if appropriate."
         )
 
-    if user.account_status == AccountStatus.DEACTIVATED:
+    elif user.account_status == AccountStatus.DEACTIVATED:
         subject = "Deactivated User Login Attempt Notification"
         subject += f": {CONFIG.APP_URL}" if CONFIG.APP_URL else ""
         body = (
             f"A deactivated user with display name {user.display_name} attempted to log in to the datalab instance at {CONFIG.APP_URL}.\n\n"
             "No action is required unless you wish to reactivate this user."
         )
+
+    elif user.account_status == AccountStatus.ACTIVE:
+        subject = "New User Created"
+        subject += f": {CONFIG.APP_URL}" if CONFIG.APP_URL else ""
+        body = (
+            f"A new user with display name {user.display_name} has registered on the datalab instance at {CONFIG.APP_URL}.\n\n"
+            "No action is required unless you wish to deactivate this user."
+        )
+
+    else:
+        LOGGER.critical("Unknown user status %s for new user %s", user.account_status, user)
+        return
 
     try:
         for email in admin_emails:

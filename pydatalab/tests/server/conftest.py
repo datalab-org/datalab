@@ -63,6 +63,8 @@ def app_config(tmp_path_factory, secret_key):
         "TESTING": False,
         "ROOT_PATH": "/",
         "SECRET_KEY": secret_key,
+        "AUTO_ACTIVATE_ACCOUNTS": False,
+        "EMAIL_AUTO_ACTIVATE_ACCOUNTS": False,
         "EMAIL_AUTH_SMTP_SETTINGS": {
             "MAIL_SERVER": "smtp.example.com",
             "MAIL_PORT": 587,
