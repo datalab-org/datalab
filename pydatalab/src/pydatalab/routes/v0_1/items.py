@@ -1,6 +1,5 @@
 import datetime
 import json
-import re
 import secrets
 from hashlib import sha512
 
@@ -26,7 +25,7 @@ from pydatalab.models.versions import (
     RestoreVersionRequest,
     VersionAction,
 )
-from pydatalab.mongo import ITEMS_FTS_FIELDS, flask_mongo
+from pydatalab.mongo import ITEMS_FTS_FIELDS, build_search_pipeline, flask_mongo
 from pydatalab.permissions import (
     PUBLIC_USER_ID,
     access_token_or_active_users,
@@ -420,84 +419,22 @@ def search_items():
     nresults = request.args.get("nresults", default=100, type=int)
     types = request.args.get("types", default=None)
     if isinstance(types, str):
-        # should figure out how to parse as list automatically
         types = types.split(",")
 
-    pipeline = []
+    if not query:
+        return jsonify({"status": "error", "message": "No query provided."}), 400
 
-    if isinstance(query, str):
-        query = query.strip("'")
+    permissions = get_default_permissions(user_only=False)
+    pipeline = build_search_pipeline(query, ITEMS_FTS_FIELDS, permissions)
 
-    if isinstance(query, str) and query.startswith("%"):
-        # Old FTS query style, using MongoDB text indexes
-        query = query.lstrip("%")
-        query = query.strip("'")
-        match_obj = {
-            "$text": {"$search": query},
-            **get_default_permissions(user_only=False),
-        }
-        if types is not None:
-            match_obj["type"] = {"$in": types}
-
-        pipeline.append({"$match": match_obj})
-        pipeline.append({"$sort": {"score": {"$meta": "textScore"}}})
-    elif isinstance(query, str) and query.startswith("#"):
-        # Plain regex search, without word boundaries or splitting into parts
-        query = query.lstrip("#")
-        query = query.strip("'")
-
-        match_obj = {
-            "$or": [{field: {"$regex": query, "$options": "i"}} for field in ITEMS_FTS_FIELDS]
-        }
-        match_obj = {"$and": [get_default_permissions(user_only=False), match_obj]}
-        if types is not None:
-            match_obj["$and"].append({"type": {"$in": types}})
-
-        pipeline.append({"$match": match_obj})
-
-    else:
-        # Heuristic + regex search, splitting the query into parts and adding word boundaries
-        # depending on length
-        def _generate_heuristic_regex_search(query: str, part_length: int = 4) -> dict:
-            """Generate a heuristic regex search object for MongoDB that uses
-            word boundaries for short parts of the query, but allows matches anywhere.
-
-            Parameters:
-                query: The full search query string.
-                part_length: The length below which to add a word boundary to the start of the part.
-
-            Returns:
-                A MongoDB query object that can be used in a $match stage.
-
-            """
-            query_parts = [re.escape(part) for part in query.split(" ") if part.strip()]
-
-            # Add word boundary to short parts to avoid excessive matches, i.e., search start of string
-            # for short parts, but allow match anywhere in string for longer parts
-            query_parts = [
-                f"\\b{part}" if len(part) <= part_length else part for part in query_parts
-            ]
-            match_obj = {
-                "$or": [
-                    {"$and": [{field: {"$regex": query, "$options": "i"}} for query in query_parts]}
-                    for field in ITEMS_FTS_FIELDS
-                ]
-            }
-            LOGGER.debug(
-                "Performing regex search for %s with full search %s", query_parts, match_obj
-            )
-
-            return match_obj
-
-        if not query:
-            return jsonify({"status": "error", "message": "No query provided."}), 400
-
-        match_obj = _generate_heuristic_regex_search(query)
-        match_obj = {"$and": [get_default_permissions(user_only=False), match_obj]}
-        if types is not None:
-            match_obj["$and"].append({"type": {"$in": types}})
-
-        pipeline.append({"$match": match_obj})
+    if types is not None:
+        if pipeline and "$match" in pipeline[0]:
+            if "$and" in pipeline[0]["$match"]:
+                pipeline[0]["$match"]["$and"].append({"type": {"$in": types}})
+            else:
+                pipeline[0]["$match"] = {"$and": [pipeline[0]["$match"], {"type": {"$in": types}}]}
+        else:
+            pipeline.insert(0, {"$match": {"type": {"$in": types}}})
 
     pipeline.append({"$limit": nresults})
     pipeline.append(
@@ -511,12 +448,12 @@ def search_items():
                 "refcode": 1,
                 "status": 1,
                 "location": 1,
+                "date": 1,
             }
         }
     )
 
     cursor = flask_mongo.db.items.aggregate(pipeline)
-
     return jsonify({"status": "success", "items": list(cursor)}), 200
 
 

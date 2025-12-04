@@ -1,11 +1,14 @@
 import atexit
+import re
 from functools import lru_cache
+from typing import Any
 
 import pymongo
 from flask_pymongo import PyMongo
 from pydantic import BaseModel
 from pymongo.errors import ConnectionFailure
 
+from pydatalab.logger import LOGGER
 from pydatalab.models import ITEM_MODELS
 
 __all__ = (
@@ -15,6 +18,10 @@ __all__ = (
     "_get_active_mongo_client",
     "insert_pydantic_model_fork_safe",
     "ITEMS_FTS_FIELDS",
+    "USERS_FTS_FIELDS",
+    "COLLECTIONS_FTS_FIELDS",
+    "generate_heuristic_regex_search",
+    "build_search_pipeline",
 )
 
 flask_mongo = PyMongo()
@@ -37,6 +44,97 @@ ITEMS_FTS_FIELDS: set[str] = set().union(
         for model in ITEM_MODELS.values()
     )
 )
+
+USERS_FTS_FIELDS: set[str] = {"identities.name", "display_name", "contact_email"}
+"""Fields to search for users."""
+
+COLLECTIONS_FTS_FIELDS: set[str] = {"collection_id", "title", "description"}
+"""Fields to search for collections."""
+
+
+def generate_heuristic_regex_search(
+    query: str, fields: set[str], part_length: int = 4
+) -> dict[str, Any]:
+    """Generate a heuristic regex search object for MongoDB that uses
+    word boundaries for short parts of the query, but allows matches anywhere.
+
+    Parameters:
+        query: The full search query string.
+        fields: Set of field names to search across.
+        part_length: The length below which to add a word boundary to the start of the part.
+
+    Returns:
+        A MongoDB query object that can be used in a $match stage.
+
+    """
+
+    query_parts = [re.escape(part) for part in query.split(" ") if part.strip()]
+
+    query_parts = [f"\\b{part}" if len(part) <= part_length else part for part in query_parts]
+    match_obj = {
+        "$or": [
+            {"$and": [{field: {"$regex": query, "$options": "i"}} for query in query_parts]}
+            for field in fields
+        ]
+    }
+    LOGGER.debug("Performing regex search for %s with full search %s", query_parts, match_obj)
+
+    return match_obj
+
+
+def build_search_pipeline(
+    query: str,
+    fields: set[str],
+    permissions: dict | None = None,
+) -> list[dict]:
+    """Build a MongoDB aggregation pipeline for search with support for FTS, regex, and heuristic modes.
+
+    Parameters:
+        query: The search query string.
+        fields: Set of field names to search across.
+        permissions: Optional permissions filter to apply.
+
+    Returns:
+        A list of pipeline stages for MongoDB aggregation.
+
+    """
+    pipeline = []
+    match_obj: dict[str, Any]
+
+    if isinstance(query, str):
+        query = query.strip("'")
+
+    if isinstance(query, str) and query.startswith("%"):
+        # Old FTS query style, using MongoDB text indexes
+        query = query.lstrip("%")
+        query = query.strip("'")
+        match_obj = {"$text": {"$search": query}}
+        if permissions:
+            match_obj.update(permissions)
+
+        pipeline.append({"$match": match_obj})
+        pipeline.append({"$sort": {"score": {"$meta": "textScore"}}})
+
+    elif isinstance(query, str) and query.startswith("#"):
+        # Plain regex search, without word boundaries or splitting into parts
+        query = query.lstrip("#")
+        query = query.strip("'")
+
+        match_obj = {"$or": [{field: {"$regex": query, "$options": "i"}} for field in fields]}
+        if permissions:
+            match_obj = {"$and": [permissions, match_obj]}
+
+        pipeline.append({"$match": match_obj})
+
+    else:
+        # Heuristic + regex search, splitting the query into parts and adding word boundaries
+        match_obj = generate_heuristic_regex_search(query, fields)
+        if permissions:
+            match_obj = {"$and": [permissions, match_obj]}
+
+        pipeline.append({"$match": match_obj})
+
+    return pipeline
 
 
 def insert_pydantic_model_fork_safe(model: BaseModel, collection: str) -> str:
