@@ -65,6 +65,7 @@ class Info(Attributes, Meta):
     source_repository: AnyUrl | None
     identifier_prefix: str
     features: FeatureFlags = FEATURE_FLAGS
+    max_upload_bytes: int
 
     @validator("maintainer")
     def strip_maintainer_fields(cls, v):
@@ -80,6 +81,8 @@ def _get_deployment_metadata_once() -> dict:
         CONFIG.DEPLOYMENT_METADATA.dict(exclude_none=True) if CONFIG.DEPLOYMENT_METADATA else {}
     )
     metadata.update({"identifier_prefix": identifier_prefix})
+    metadata.update({"max_upload_bytes": CONFIG.MAX_CONTENT_LENGTH})
+
     return metadata
 
 
