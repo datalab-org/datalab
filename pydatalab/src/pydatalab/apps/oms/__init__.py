@@ -8,6 +8,7 @@ from bokeh.models import Button, CustomJS, HoverTool, Legend
 from bokeh.palettes import Category10_10
 from bokeh.plotting import ColumnDataSource, figure
 
+from pydatalab.apps.oms.utils import parse_oms_csv, parse_oms_dat
 from pydatalab.blocks.base import DataBlock
 from pydatalab.bokeh_plots import DATALAB_BOKEH_THEME, TOOLS
 from pydatalab.file_utils import get_file_info_by_id
@@ -17,54 +18,11 @@ class OMSBlock(DataBlock):
     blocktype = "oms"
     name = "OMS"
     description = "Block for plotting OMS time series data."
-    accepted_file_extensions: tuple[str, ...] = (".csv",)
+    accepted_file_extensions: tuple[str, ...] = (".csv", ".dat", ".exp")
 
     @property
     def plot_functions(self):
         return (self.generate_oms_plot,)
-
-    @classmethod
-    def parse_oms_csv(cls, filename: Path) -> pd.DataFrame:
-        """Parses .csv OMS data from mass spectrometer
-
-        The file consists of a header with metadata. The header size is specified
-        in a line containing "header" (e.g., "header",0000000026,"lines"), normally on line 2.
-        This method searches the first 10 lines for this information.
-
-        Args:
-            filename: Path to the .csv file
-
-        Returns:
-            OMS dataframe with time and species concentration columns.
-        """
-        # Search the first 10 lines for the header size
-        header_size = None
-        with open(filename) as f:
-            for i in range(10):
-                line = f.readline()
-                if not line:
-                    break
-                if "header" in line.lower():
-                    # Parse the header size from the line
-                    # Format: "header",0000000026,"lines"
-                    header_parts = line.strip().split(",")
-                    header_size = int(header_parts[1])
-                    break
-
-        if header_size is None:
-            raise ValueError("Could not find header size information in the first 10 lines")
-
-        # Read the data, skipping the header, added +1 as the header seemed to appear one line lower...
-        oms_data = pd.read_csv(filename, skiprows=header_size + 1)
-
-        # Drop any unnamed columns (caused by trailing commas in the CSV)
-        oms_data = oms_data.loc[:, ~oms_data.columns.str.contains("^Unnamed")]
-
-        # Convert milliseconds to seconds
-        if "ms" in oms_data.columns:
-            oms_data["Time (s)"] = oms_data["ms"] / 1000.0
-
-        return oms_data
 
     @staticmethod
     def _format_oms_plot(oms_data: pd.DataFrame) -> bokeh.layouts.layout:
@@ -76,8 +34,24 @@ class OMSBlock(DataBlock):
         Returns:
             bokeh.layouts.layout: Bokeh layout with OMS data plotted
         """
-        # Get all columns except Time, ms, and Time (s)
-        species_columns = [col for col in oms_data.columns if col not in ["Time", "ms", "Time (s)"]]
+        # Determine x-axis column and label based on what's available
+        if "Time (s)" in oms_data.columns:
+            x_column = "Time (s)"
+            x_label = "Time (s)"
+        elif "Data Point" in oms_data.columns:
+            x_column = "Data Point"
+            x_label = "Data Point"
+        else:
+            # Fallback - shouldn't happen
+            x_column = oms_data.columns[0]
+            x_label = x_column
+
+        # Get all columns except Time, ms, Time (s), Data Point, and timepoint
+        species_columns = [
+            col
+            for col in oms_data.columns
+            if col not in ["Time", "ms", "Time (s)", "Data Point", "timepoint"]
+        ]
 
         # Calculate mean of all species for the dummy hover glyph
         oms_data["_mean_concentration"] = oms_data[species_columns].mean(axis=1)
@@ -93,7 +67,7 @@ class OMSBlock(DataBlock):
             p = figure(
                 sizing_mode="scale_width",
                 aspect_ratio=1.5,
-                x_axis_label="Time (s)",
+                x_axis_label=x_label,
                 y_axis_label="Concentration",
                 tools=TOOLS,
                 y_axis_type=y_axis_type,
@@ -106,7 +80,7 @@ class OMSBlock(DataBlock):
             # Create an invisible dummy glyph for hover that won't be hidden by legend
             # Use mean concentration to stay within the data range
             dummy_hover_glyph = p.line(
-                x="Time (s)",
+                x=x_column,
                 y="_mean_concentration",  # Use mean to stay in concentration range
                 source=source,
                 alpha=0,  # Completely invisible
@@ -120,12 +94,12 @@ class OMSBlock(DataBlock):
 
                 # Plot line
                 line = p.line(
-                    x="Time (s)", y=species, source=source, color=color, line_width=2, name=species
+                    x=x_column, y=species, source=source, color=color, line_width=2, name=species
                 )
 
                 # Plot points
                 circle = p.circle(
-                    x="Time (s)", y=species, source=source, color=color, size=4, name=species
+                    x=x_column, y=species, source=source, color=color, size=4, name=species
                 )
 
                 # Add to legend items
@@ -143,7 +117,10 @@ class OMSBlock(DataBlock):
             p.add_layout(legend, "right")
 
             # Build tooltips dynamically for each species with scientific notation
-            tooltips = [("Time", "@{Time (s)}{0,0.0} s")]
+            # Tooltip label adjusts based on whether we have real time or just data points
+            tooltip_label = x_label if "Time" in x_label else "Data Point"
+            tooltip_format = "{0,0.0} s" if "Time" in x_label else "{0,0}"
+            tooltips = [(tooltip_label, f"@{{{x_column}}}{tooltip_format}")]
             formatters = {}
 
             for species in species_columns:
@@ -203,6 +180,16 @@ class OMSBlock(DataBlock):
         return layout
 
     def generate_oms_plot(self):
+        """Generate OMS plot from uploaded file
+
+        Supports three file formats:
+        - .csv: Manual export with headers (standard format)
+        - .dat: Binary live-updating format (46-byte records)
+        - .exp: ASCII live-updating format (space-separated integers)
+
+        The .dat and .exp formats may contain more timepoints than CSV if they
+        were still updating when the CSV was exported.
+        """
         file_info = None
         oms_data = None
 
@@ -216,8 +203,30 @@ class OMSBlock(DataBlock):
             raise ValueError(
                 f"Extension not in recognised extensions: {self.accepted_file_extensions}"
             )
-        elif ext == ".csv":
-            oms_data = self.parse_oms_csv(Path(file_info["location"]))
+
+        file_path = Path(file_info["location"])
+
+        if ext == ".csv":
+            oms_data = parse_oms_csv(file_path)
+        elif ext == ".dat":
+            oms_data = parse_oms_dat(file_path)
+        elif ext == ".exp":
+            # .exp files don't contain the actual concentration data,
+            # only quality/status codes, so we can't plot them directly.
+            # Try to find a corresponding .dat or .csv file instead.
+            base_path = file_path.with_suffix("")
+            dat_path = base_path.with_suffix(".dat")
+            csv_path = base_path.with_suffix(".csv")
+
+            if dat_path.exists():
+                oms_data = parse_oms_dat(dat_path)
+            elif csv_path.exists():
+                oms_data = parse_oms_csv(csv_path)
+            else:
+                raise ValueError(
+                    f".exp file '{file_path.name}' found, but cannot be plotted directly. "
+                    f"Please upload the corresponding .dat or .csv file instead."
+                )
 
         if oms_data is not None:
             layout = self._format_oms_plot(oms_data)
