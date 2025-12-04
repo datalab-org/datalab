@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConstrainedStr, Field, parse_obj_as, validator
 from pydantic import EmailStr as PydanticEmailStr
 
 from pydatalab.models.entries import Entry
-from pydatalab.models.utils import PyObjectId, UserRole
+from pydatalab.models.utils import HumanReadableIdentifier, PyObjectId, UserRole
 
 
 class IdentityType(str, Enum):
@@ -97,6 +97,33 @@ class AccountStatus(str, Enum):
     DEACTIVATED = "deactivated"
 
 
+class Group(Entry):
+    """A model that describes a group of users, for the sake
+    of applying group permissions.
+
+    Each `Person` can point to multiple groups.
+
+    Relationships between groups can be described via the `relationships`
+    field inherited from `Entry`.
+
+    """
+
+    type: str = Field("groups", const=True)
+    """The entry type as a string."""
+
+    group_id: HumanReadableIdentifier
+    """A short, locally-unique ID for the group."""
+
+    display_name: DisplayName
+    """The chosen display name for the group"""
+
+    description: str | None = Field(None)
+    """A description of the group"""
+
+    managers: list[PyObjectId] = Field(default_factory=list)
+    """A list of user IDs that can manage this group."""
+
+
 class Person(Entry):
     """A model that describes an individual and their digital identities."""
 
@@ -106,17 +133,20 @@ class Person(Entry):
     identities: list[Identity] = Field(default_factory=list)
     """A list of identities attached to this person, e.g., email addresses, OAuth accounts."""
 
-    display_name: DisplayName | None
+    display_name: DisplayName | None = Field(None)
     """The user-chosen display name."""
 
-    contact_email: EmailStr | None
+    contact_email: EmailStr | None = Field(None)
     """In the case of multiple *verified* email identities, this email will be used as the primary contact."""
 
-    managers: list[PyObjectId] | None
+    managers: list[PyObjectId] | None = Field(None)
     """A list of user IDs that can manage this person's items."""
 
     role: UserRole = Field(UserRole.USER)
     """The role assigned to this person."""
+
+    groups: list[Group] = Field(default_factory=list)
+    """A list of groups that this person belongs to."""
 
     account_status: AccountStatus = Field(AccountStatus.UNVERIFIED)
     """The status of the user's account."""
@@ -171,3 +201,7 @@ class Person(Entry):
             contact_email=contact_email,
             account_status=account_status,
         )
+
+
+class User(Person):
+    role: UserRole
