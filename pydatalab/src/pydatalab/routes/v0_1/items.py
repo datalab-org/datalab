@@ -489,6 +489,10 @@ def _create_sample(
             if original_collections:
                 sample_dict["collections"] = original_collections
 
+        else:
+            copied_doc.update(sample_dict)
+            sample_dict = copied_doc
+
     try:
         # If passed collection data, dereference it and check if the collection exists
         sample_dict["collections"] = _check_collections(sample_dict)
