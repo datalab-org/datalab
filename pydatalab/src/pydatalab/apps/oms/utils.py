@@ -21,7 +21,7 @@ def parse_oms_dat(filepath: str | Path) -> pd.DataFrame:
     Parse OMS .dat binary file
 
     The .dat format contains 46-byte binary records, each starting with a 'V1' marker.
-    There are 7 records per timepoint (6 measured species + 1 total pressure measurement).
+    There are 7 records per timepoint (6 measured species + 1 (assumed) total pressure measurement).
 
     File structure:
         - 46-byte records starting with 'V1' marker (2 bytes)
@@ -57,6 +57,7 @@ def parse_oms_dat(filepath: str | Path) -> pd.DataFrame:
 
     # Species mapping based on observed order in .dat file
     # The CSV header defines 6 scans, but .dat has 7 records per timepoint
+    # This might change based on feedback from users - currently inferred from .csv file
     species_map = {
         0: "total_pressure",  # Not in CSV export, ~2x sum of species, ~1.7e-06
         1: "O2",  # Scan 2: mass 32
@@ -87,14 +88,14 @@ def parse_oms_dat(filepath: str | Path) -> pd.DataFrame:
         value_pos = pos + 38
         value = struct.unpack("<d", data[value_pos : value_pos + 8])[0]
 
-        # Determine timepoint and species
-        timepoint = record_num // 7
+        # Determine data point and species (data_point being a row in the csv)
+        data_point = record_num // 7
         species_idx = record_num % 7
         species = species_map.get(species_idx, f"unknown_{species_idx}")
 
         records.append(
             {
-                "timepoint": timepoint,
+                "data_point": data_point,
                 "species": species,
                 "value": value,
             }
@@ -106,8 +107,8 @@ def parse_oms_dat(filepath: str | Path) -> pd.DataFrame:
     # Convert to DataFrame and pivot to wide format
     df = pd.DataFrame(records)
 
-    # Pivot to wide format (one row per timepoint, one column per species)
-    pivot_df = df.pivot(index="timepoint", columns="species", values="value")
+    # Pivot to wide format (one row per data_point, one column per species)
+    pivot_df = df.pivot(index="data_point", columns="species", values="value")
 
     # Reorder columns to match CSV format
     csv_column_order = ["CO2", "O2", "Ar", "CO/N2", "H2", "C2H2"]
@@ -121,13 +122,12 @@ def parse_oms_dat(filepath: str | Path) -> pd.DataFrame:
 
     result_df = result_df.reset_index()
 
-    # .dat files don't contain real time information, so we use timepoint index
-    # Column name reflects this - "Data Point" rather than "Time (s)"
-    result_df["Data Point"] = result_df["timepoint"]
+    # .dat files don't contain real time information, so we use data_point index
+    result_df["Data Point"] = result_df["data_point"]
 
     # Reorder to put Data Point first
     cols = ["Data Point"] + [
-        col for col in result_df.columns if col not in ["Data Point", "timepoint"]
+        col for col in result_df.columns if col not in ["Data Point", "data_point"]
     ]
     result_df = result_df[cols]
 
@@ -166,40 +166,28 @@ def parse_oms_exp(filepath: str | Path) -> pd.DataFrame:
     # Split by whitespace
     numbers = content.split()
 
-    records = []
+    # Parse numbers into groups of 7 (one group per timepoint)
+    timepoint_data: dict[int, dict[str, int]] = {}
+
     for i, num_str in enumerate(numbers):
         try:
             value = int(num_str)
             timepoint = i // 7
             position_in_group = i % 7
 
-            records.append(
-                {
-                    "timepoint": timepoint,
-                    f"position_{position_in_group}": value,
-                }
-            )
+            # Initialize timepoint dict if not exists
+            if timepoint not in timepoint_data:
+                timepoint_data[timepoint] = {}
+
+            # Add value to correct position
+            timepoint_data[timepoint][f"position_{position_in_group}"] = value
+
         except ValueError:
             # Skip non-integer values
             continue
 
     # Convert to DataFrame
-    df = pd.DataFrame(records)
-
-    # Pivot to have one row per timepoint with columns position_0 through position_6
-    if len(df) > 0:
-        # Group by timepoint and aggregate
-        timepoint_data: dict[int, dict[str, int]] = {}
-        for _, row in df.iterrows():
-            tp = row["timepoint"]
-            if tp not in timepoint_data:
-                timepoint_data[tp] = {}
-            # Get the position column name and value
-            for col in row.index:
-                if col.startswith("position_"):
-                    timepoint_data[tp][col] = row[col]
-
-        # Convert to DataFrame
+    if len(timepoint_data) > 0:
         result_df = pd.DataFrame.from_dict(timepoint_data, orient="index")
         result_df.index.name = "timepoint"
         result_df = result_df.reset_index()
