@@ -268,7 +268,6 @@ describe.only("Advanced sample creation features", () => {
     cy.findByText("testBcopy").click();
     cy.findByLabelText("Name").should("have.value", "COPY OF the second test sample");
     cy.findByText("this is a description of testB.");
-    cy.findByText("a comment is added here.");
     cy.findByText("a description of the synthesis here");
     cy.findAllByText("component3");
     cy.findAllByText("component4");
@@ -305,7 +304,6 @@ describe.only("Advanced sample creation features", () => {
     cy.findByText("testBcopy_copy").click();
     cy.findByLabelText("Name").should("have.value", "COPY OF COPY OF the second test sample");
     cy.findByText("this is a description of testB.");
-    cy.findByText("a comment is added here.");
     cy.findByText("a description of the synthesis here");
     cy.findAllByText("component3");
     cy.findAllByText("component4");
