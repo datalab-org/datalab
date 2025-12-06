@@ -181,13 +181,23 @@ class ProfilingBlock(DataBlock):
 
         return p
 
-    def generate_profiling_plot(self):
-        """Generate the profiling plot from the associated file."""
-        if "file_id" not in self.data:
-            return
+    def generate_profiling_plot(self, filepath=None):
+        """Generate the profiling plot from the associated file.
 
-        file_info = get_file_info_by_id(self.data["file_id"], update_if_live=True)
-        ext = Path(file_info["location"]).suffix.lower()
+        Args:
+            filepath: Optional path to the file to plot. If not provided,
+                     uses the file_id from self.data to look up the file.
+        """
+        # Get file path either from parameter or from database lookup
+        if filepath is not None:
+            file_path = Path(filepath)
+        else:
+            if "file_id" not in self.data:
+                return
+            file_info = get_file_info_by_id(self.data["file_id"], update_if_live=True)
+            file_path = Path(file_info["location"])
+
+        ext = file_path.suffix.lower()
 
         if ext not in self.accepted_file_extensions:
             warnings.warn(
@@ -197,9 +207,7 @@ class ProfilingBlock(DataBlock):
 
         try:
             # Load the Wyko ASC file
-            result = load_wyko_asc(
-                Path(file_info["location"]), load_intensity=False, progress=False
-            )
+            result = load_wyko_asc(file_path, load_intensity=False, progress=False)
 
             # Get the height data
             height_data = result["raw_data"]
