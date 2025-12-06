@@ -2,7 +2,6 @@
 Profiling data blocks for surface profilometry visualization.
 """
 
-import os
 import warnings
 from pathlib import Path
 
@@ -188,7 +187,7 @@ class ProfilingBlock(DataBlock):
             return
 
         file_info = get_file_info_by_id(self.data["file_id"], update_if_live=True)
-        ext = os.path.splitext(file_info["location"].split("/")[-1])[-1].lower()
+        ext = Path(file_info["location"]).suffix.lower()
 
         if ext not in self.accepted_file_extensions:
             warnings.warn(
