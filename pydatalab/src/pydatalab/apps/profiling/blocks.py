@@ -8,6 +8,7 @@ from pathlib import Path
 
 import bokeh.embed
 import numpy as np
+from bokeh.layouts import column
 from bokeh.models import ColorBar, LinearColorMapper
 from bokeh.plotting import figure
 
@@ -119,6 +120,68 @@ class ProfilingBlock(DataBlock):
 
         return p
 
+    @staticmethod
+    def _create_histogram_plot(
+        image_data: np.ndarray,
+        title: str = "Height Distribution",
+        x_label: str = "Height",
+        n_bins: int = 100,
+    ):
+        """
+        Create a histogram plot for z-values (height distribution).
+
+        Args:
+            image_data: 2D numpy array of height/intensity values
+            title: Plot title
+            x_label: Label for x-axis
+            n_bins: Number of bins for the histogram
+
+        Returns:
+            Bokeh figure with histogram plot
+        """
+        # Get valid (non-NaN) data
+        valid_data = image_data[~np.isnan(image_data)]
+
+        if len(valid_data) == 0:
+            # Create empty plot if no valid data
+            p = figure(
+                title=title,
+                x_axis_label=x_label,
+                y_axis_label="Count",
+                sizing_mode="scale_width",
+                height=300,
+            )
+            return p
+
+        # Compute histogram
+        hist, edges = np.histogram(valid_data, bins=n_bins)
+
+        # Create figure
+        p = figure(
+            title=title,
+            x_axis_label=x_label,
+            y_axis_label="Count",
+            tools="pan,wheel_zoom,box_zoom,reset,save",
+            sizing_mode="scale_width",
+            height=300,
+        )
+
+        # Plot histogram as quads
+        p.quad(
+            top=hist,
+            bottom=0,
+            left=edges[:-1],
+            right=edges[1:],
+            fill_color="navy",
+            line_color="white",
+            alpha=0.7,
+        )
+
+        # Style
+        p.toolbar.logo = "grey"
+
+        return p
+
     def generate_profiling_plot(self):
         """Generate the profiling plot from the associated file."""
         if "file_id" not in self.data:
@@ -143,13 +206,24 @@ class ProfilingBlock(DataBlock):
             height_data = result["raw_data"]
             pixel_size = result["metadata"].get("pixel_size")
 
-            # Create the plot
-            layout = self._create_image_plot(
+            # Create the 2D image plot
+            image_plot = self._create_image_plot(
                 height_data,
                 pixel_size=pixel_size,
                 title="Surface Height Profile",
                 colorbar_label="Height",
             )
+
+            # Create the histogram plot
+            histogram_plot = self._create_histogram_plot(
+                height_data,
+                title="Height Distribution",
+                x_label="Height (µm)",
+                n_bins=100,
+            )
+
+            # Combine plots in a vertical layout
+            layout = column(image_plot, histogram_plot, sizing_mode="scale_width")
 
             # Store as bokeh JSON
             self.data["bokeh_plot_data"] = bokeh.embed.json_item(layout, theme=DATALAB_BOKEH_THEME)
