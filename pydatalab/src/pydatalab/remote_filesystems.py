@@ -76,7 +76,7 @@ def get_directory_structure(
 
     """
 
-    LOGGER.debug(f"Accessing directory structure of {directory}")
+    LOGGER.debug("Accessing directory structure of %s", directory)
 
     try:
         cached_dir_structure = _get_cached_directory_structure(directory)
@@ -90,7 +90,9 @@ def get_directory_structure(
                 minutes=CONFIG.REMOTE_CACHE_MIN_AGE
             ):
                 LOGGER.debug(
-                    f"Not invalidating cache as its age ({cache_age=}) is less than the configured {CONFIG.REMOTE_CACHE_MIN_AGE=}."
+                    "Not invalidating cache as its age (%s) is less than the configured %s.",
+                    cache_age,
+                    CONFIG.REMOTE_CACHE_MIN_AGE,
                 )
 
         # If either:
@@ -227,7 +229,7 @@ def _get_latest_directory_structure(
         process = subprocess.Popen(  # noqa: S602,S607
             command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
-        LOGGER.debug(f"Calling {command}")
+        LOGGER.debug("Calling %s", command)
         try:
             stdout, stderr = process.communicate(timeout=20)
         except Exception as exc:
@@ -272,7 +274,7 @@ def _get_latest_directory_structure(
             raise RuntimeError(msg)
 
     if hostname:
-        LOGGER.debug(f"Calling remote {tree_command} on {directory_path}")
+        LOGGER.debug("Calling remote %s on %s", tree_command, directory_path)
         dir_structure = _call_remote_tree(directory_path, hostname)
 
     elif os.path.isdir(directory_path):

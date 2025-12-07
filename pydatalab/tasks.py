@@ -205,7 +205,7 @@ def _check_id(id=None, base_url=None, api_key=None):
         f"{base_url}/get-item-data/{id}", headers={"DATALAB-API-KEY": api_key}, timeout=30
     )
     if response.status_code != 200:
-        log.error(f"ꙮ {id!r}: {response.content!r}")
+        log.error("ꙮ  %s: %s", id, response.content)
 
 
 @task
@@ -246,7 +246,7 @@ def check_item_validity(_, base_url: str | None = None, starting_materials: bool
         for d in requests.get(f"{base_url}/samples/", headers=headers, timeout=30).json()["samples"]
     ]
 
-    log.info(f"Found {len(all_samples_ids)} items")
+    log.info("Found %s items", len(all_samples_ids))
 
     multiprocessing.Pool(max(min(len(all_samples_ids), 8), 1)).map(
         functools.partial(_check_id, api_key=api_key, base_url=base_url),
@@ -314,11 +314,11 @@ def check_remotes(_, base_url: str | None = None, invalidate_cache: bool = False
 
     for d in directory_structures:
         if d["status"] == "error":
-            log.error(f"ꙮ {d['name']!r}: {d['contents'][0]['details']!r}")
+            log.error("ꙮ %s: %s", d["name"], d["contents"][0]["details"])
         elif d["status"] == "cached":
-            log.info(f"✩ {d['name']!r}: {d['last_updated']!r}")
+            log.info("✩ %s: %s", d["name"], d["last_updated"])
         elif d["status"] == "updated":
-            log.info(f"✓ {d['name']!r}: {d['last_updated']!r}")
+            log.info("✓ %s: %s", d["name"], d["last_updated"])
 
 
 admin.add_task(check_remotes)

@@ -102,7 +102,7 @@ def save_user(user_id):
                 )
             except RuntimeError as e:
                 trigger_email_verification = False
-                LOGGER.critical(f"Unable to send verification email on this deployment: {e}")
+                LOGGER.critical("Unable to send verification email on this deployment: %s", e)
 
     try:
         if account_status:

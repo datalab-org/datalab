@@ -60,7 +60,8 @@ def compute_gpcl_differential(
     """
     if len(df) < 2:
         LOGGER.debug(
-            f"compute_gpcl_differential called on dataframe with length {len(df)}, too small to calculate derivatives"
+            "compute_gpcl_differential called on dataframe with length %s, too small to calculate derivatives",
+            len(df),
         )
         return df
 
@@ -97,9 +98,10 @@ def compute_gpcl_differential(
             )
         except TypeError as e:
             LOGGER.debug(
-                f"""Calculating derivative {mode} of half_cycle {cycle} failed with the following error (likely it is a rest or voltage hold):
-                 {e}
-                Skipping derivative calculation for this half cycle."""
+                "Calculating derivative %s of half_cycle %s failed with the following error (likely it is a rest or voltage hold):\n                 %s\n                Skipping derivative calculation for this half cycle.",
+                mode,
+                cycle,
+                e,
             )
             continue
 

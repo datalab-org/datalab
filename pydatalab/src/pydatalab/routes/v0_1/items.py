@@ -429,7 +429,9 @@ def _create_sample(
     if copy_from_item_id:
         copied_doc = flask_mongo.db.items.find_one({"item_id": copy_from_item_id})
 
-        LOGGER.debug(f"Copying from pre-existing item {copy_from_item_id} with data:\n{copied_doc}")
+        LOGGER.debug(
+            "Copying from pre-existing item %s with data:\n%s", copy_from_item_id, copied_doc
+        )
         if not copied_doc:
             raise NotFound(
                 f"Request to copy item with id {copy_from_item_id} failed because item could not be found."
@@ -837,7 +839,7 @@ def issue_physical_token(refcode: str):
                 {"status": "error", "message": "Unknown error generating token for item."}
             ), 500
     except Exception as e:
-        LOGGER.error(f"Error inserting access token: {e}")
+        LOGGER.error("Error inserting access token: %s", e)
         return jsonify(
             {"status": "error", "message": "Database error generating token for item."}
         ), 500

@@ -226,12 +226,18 @@ class DataBlock:
                         last = tb_list[-1]
                         block_errors.append(f"{self.__class__.__name__} raised error: {e}")
                         LOGGER.warning(
-                            f"Could not create plot for {self.__class__.__name__} due to "
-                            f"error at {last.filename}:{last.lineno} "
-                            f"in {last.name} → {last.line!r}:\n\t{type(e).__name__}: {e}"
+                            "Could not create plot for %s due to error at %s:%s in %s → %r:\n\t%s: %s",
+                            self.__class__.__name__,
+                            last.filename,
+                            last.lineno,
+                            last.name,
+                            last.line,
+                            type(e).__name__,
+                            e,
                         )
                         LOGGER.debug(
-                            f"The full data for the errored block is:\n{pprint.pformat(self.data)}"
+                            "The full data for the errored block is:\n%s",
+                            pprint.pformat(self.data),
                         )
                     finally:
                         if captured_warnings:
@@ -270,7 +276,10 @@ class DataBlock:
                     bound_method(**event)
                 except Exception as e:
                     LOGGER.error(
-                        f"Error processing event {event_name} for block {self.__class__.__name__}: {e}"
+                        "Error processing event %s for block %s: %s",
+                        event_name,
+                        self.__class__.__name__,
+                        e,
                     )
                     self.data["errors"] = [
                         f"{self.__class__.__name__}: Error processing event {event}: {e}"
