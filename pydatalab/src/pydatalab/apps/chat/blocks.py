@@ -5,7 +5,6 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from pydantic import Field, validator
 
 from pydatalab.blocks.base import DataBlock
-from pydatalab.logger import LOGGER
 from pydatalab.models import ITEM_MODELS
 from pydatalab.models.blocks import DataBlockResponse
 from pydatalab.utils import CustomJSONEncoder
@@ -145,10 +144,6 @@ Start with a friendly introduction and give me a one sentence summary of what th
 
             chat_client = model_cls.chat_client(model=model_cls.name)
 
-            LOGGER.debug(
-                f'submitting request to API for completion with last message role "{self.data["messages"][-1]["role"]}" (message = {self.data["messages"][-1:]}).'
-                f"Temperature = {self.data['temperature']} (type {type(self.data['temperature'])})"
-            )
             # Convert your messages to the required format
             langchain_messages = []
             for message in self.data["messages"]:

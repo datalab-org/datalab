@@ -80,7 +80,7 @@ def _get_active_mongo_client(timeoutMS: int = 1000) -> pymongo.MongoClient:
         return client
 
     except ConnectionFailure as exc:
-        LOGGER.critical(f"Unable to connect to MongoDB at {CONFIG.MONGO_URI!r}: {exc}")
+        LOGGER.critical("Unable to connect to MongoDB at %r: %s", CONFIG.MONGO_URI, exc)
         raise RuntimeError from exc
 
 
