@@ -165,8 +165,8 @@ describe("Batch sample creation", () => {
     cy.findByText("baseA").click();
     cy.expandIfCollapsed("[data-testid=synthesis-block]");
     cy.findByLabelText("Description").type("this is a description of baseA.");
-    cy.findByText("Add a block").click();
-    cy.findByLabelText("Add a block").contains("Comment").click();
+    cy.get('[data-testid="add-block-button-top"]').click();
+    cy.get('[data-testid="add-block-dropdown"]').findByText("Comment").click();
 
     cy.get(".datablock-content div").first().type("a comment is added here.");
 
@@ -179,14 +179,14 @@ describe("Batch sample creation", () => {
     cy.findByText("baseB").click();
     cy.expandIfCollapsed("[data-testid=synthesis-block]");
     cy.findByLabelText("Description").type("this is a description of baseB.");
-    cy.findByText("Add a block").click();
-    cy.findByLabelText("Add a block").contains("Comment").click();
+    cy.get('[data-testid="add-block-button-top"]').click();
+    cy.get('[data-testid="add-block-dropdown"]').findByText("Comment").click();
     cy.get(".datablock-content div").first().type("a comment is added here.");
 
     cy.findByLabelText("Procedure").type("a description of the synthesis here");
 
-    cy.findByText("Add a block").click();
-    cy.findByLabelText("Add a block").findByText("Comment").click();
+    cy.get('[data-testid="add-block-button-top"]').click();
+    cy.get('[data-testid="add-block-dropdown"]').findByText("Comment").click();
     cy.get(".datablock-content").eq(1).type("a second comment is added here.");
 
     cy.searchAndSelectItem("component3", "#synthesis-information .vs__search");
