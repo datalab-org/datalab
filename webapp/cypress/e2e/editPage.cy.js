@@ -214,12 +214,12 @@ describe("Edit Page", () => {
     cy.get('[data-testid="search-input"]').type("editable_sample");
     cy.findByText("editable_sample").click();
 
-    cy.findByText("Add a block").click();
+    cy.get('[data-testid="add-block-button-top"]').click();
     cy.get('[data-testid="add-block-dropdown"]').findByText("Comment").click();
 
     cy.contains("Unsaved changes").should("not.exist");
 
-    cy.findByText("Add a block").click();
+    cy.get('[data-testid="add-block-button-top"]').click();
     cy.get('[data-testid="add-block-dropdown"]').findByText("Comment").click();
 
     cy.contains("Unsaved changes").should("not.exist");
@@ -286,7 +286,7 @@ describe("Edit Page", () => {
     cy.get('[data-testid="search-input"]').type("editable_sample");
     cy.findByText("editable_sample").click();
 
-    cy.findByText("Add a block").click();
+    cy.get('[data-testid="add-block-button-top"]').click();
     cy.get('[data-testid="add-block-dropdown"]').findByText("Powder XRD").click();
 
     cy.findByText("Select a file:").should("exist");
@@ -313,7 +313,7 @@ describe("Edit Page", () => {
     cy.get('[data-testid="search-input"]').type("editable_sample");
     cy.findByText("editable_sample").click();
 
-    cy.findByText("Add a block").click();
+    cy.get('[data-testid="add-block-button-top"]').click();
     cy.get('[data-testid="add-block-dropdown"]').findByText("Media").click();
     cy.findAllByText("Select a file:").eq(1).should("exist");
     cy.get("select.file-select-dropdown").eq(1).select(test_fname);
@@ -330,7 +330,7 @@ describe("Edit Page", () => {
     cy.get('[data-testid="search-input"]').type("editable_sample");
     cy.findByText("editable_sample").click();
 
-    cy.findByText("Add a block").click();
+    cy.get('[data-testid="add-block-button-top"]').click();
     cy.get('[data-testid="add-block-dropdown"]').findByText("Media").click();
     cy.findAllByText("Select a file:").eq(2).should("exist");
     cy.get("select.file-select-dropdown").eq(2).select(test_fname);
@@ -356,7 +356,7 @@ describe("Edit Page", () => {
     cy.get('[data-testid="search-input"]').type("editable_sample");
     cy.findByText("editable_sample").click();
 
-    cy.findByText("Add a block").click();
+    cy.get('[data-testid="add-block-button-top"]').click();
     cy.get('[data-testid="add-block-dropdown"]').findByText("Raman spectroscopy").click();
     cy.findAllByText("Select a file:").eq(3).should("exist");
     cy.get("select.file-select-dropdown")
@@ -364,5 +364,84 @@ describe("Edit Page", () => {
       .select("example_data_raman_labspec_raman_example.txt");
     cy.contains("label", "X axis").should("exist");
     cy.contains("label", "Y axis").should("exist");
+  });
+
+  it("Tests the bottom 'Add a block' button without files", () => {
+    cy.get('[data-testid="search-input"]').type("editable_sample");
+    cy.findByText("editable_sample").click();
+
+    cy.scrollTo("bottom");
+
+    cy.get("#bottomAddBlockDropdown").should("exist");
+    cy.get("#bottomAddBlockDropdown").click();
+    cy.get('[data-testid="add-block-dropdown-bottom"]').should("be.visible");
+
+    cy.get('[data-testid="add-block-dropdown-bottom"]').contains("All block types").should("exist");
+
+    cy.get('[data-testid="add-block-dropdown-bottom"]').findByText("Comment").click();
+
+    cy.wait(500);
+    cy.get(".data-block").should("exist");
+  });
+
+  it("Tests the bottom 'Add a block' button with suggested blocks", () => {
+    cy.uploadFileViaAPI("editable_sample", "example_data/XRD/example_bmb.xye");
+
+    cy.get('[data-testid="search-input"]').type("editable_sample");
+    cy.findByText("editable_sample").click();
+
+    cy.scrollTo("bottom");
+
+    cy.get("#bottomAddBlockDropdown").click();
+    cy.get('[data-testid="add-block-dropdown-bottom"]').should("be.visible");
+
+    // Should show suggested header
+    cy.get('[data-testid="add-block-dropdown-bottom"]')
+      .contains("Suggested based on your files")
+      .should("exist");
+
+    // Check that XRD is in the suggested section (appears before the divider)
+    cy.get('[data-testid="add-block-dropdown-bottom"]').findByText("Powder XRD").should("exist");
+
+    // Should also show "All block types" header
+    cy.get('[data-testid="add-block-dropdown-bottom"]').contains("All block types").should("exist");
+  });
+
+  it("Creates a block from the bottom dropdown suggested section", () => {
+    cy.uploadFileViaAPI("editable_sample", "example_data/raman/labspec_raman_example.txt");
+
+    cy.get('[data-testid="search-input"]').type("editable_sample");
+    cy.findByText("editable_sample").click();
+
+    cy.scrollTo("bottom");
+
+    cy.get("#bottomAddBlockDropdown").click();
+
+    cy.get('[data-testid="add-block-dropdown-bottom"]')
+      .findByText("Raman spectroscopy")
+      .first()
+      .click();
+
+    cy.wait(1000);
+    cy.get(".data-block").should("exist");
+    cy.findAllByText("Select a file:").should("exist");
+  });
+
+  it("Verifies bottom and top 'Add a block' dropdowns work independently", () => {
+    cy.get('[data-testid="search-input"]').type("editable_sample");
+    cy.findByText("editable_sample").click();
+
+    cy.get("#navbarDropdown").click();
+    cy.get('[data-testid="add-block-dropdown"]').should("be.visible");
+
+    cy.scrollTo("bottom");
+
+    cy.get("#bottomAddBlockDropdown").click();
+    cy.get('[data-testid="add-block-dropdown-bottom"]').should("be.visible");
+
+    cy.get('[data-testid="add-block-dropdown-bottom"]').findByText("Comment").click();
+
+    cy.wait(500);
+    cy.get('[data-testid="add-block-dropdown-bottom"]').should("not.be.visible");
   });
 });
