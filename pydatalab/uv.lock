@@ -510,6 +510,48 @@ dependencies = [
 ]
 
 [[package]]
+name = "datalab-app-plugin-printability"
+source = { editable = "plugins/datalab-app-plugin-printability" }
+dependencies = [
+    { name = "numpy" },
+    { name = "pandas" },
+    { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "scipy", version = "1.16.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "numpy", specifier = "<2" },
+    { name = "pandas" },
+    { name = "scipy" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "datalab-server", extras = ["server"], specifier = ">0.5" },
+    { name = "docstring-inheritance", specifier = "~=2.2" },
+    { name = "griffe-inherited-docstrings", specifier = "~=1.1" },
+    { name = "markdown-callouts", specifier = "~=0.4" },
+    { name = "mkdocs", specifier = "~=1.6" },
+    { name = "mkdocs-awesome-pages-plugin", specifier = "~=2.9" },
+    { name = "mkdocs-material", specifier = "~=9.5" },
+    { name = "mkdocstrings", extras = ["python"], specifier = "~=0.30" },
+    { name = "pre-commit", specifier = "~=4.0" },
+    { name = "pytest", specifier = "~=8.2" },
+    { name = "pytest-cov", specifier = "~=5.0" },
+]
+
+[[package]]
+name = "datalab-app-plugin-profilometry"
+version = "0.0.0"
+source = { git = "https://github.com/datalab-industries/datalab-app-plugin-profilometry.git?rev=v0.1.0-rc.1#cbf621ea27c24bb62983531f6d2380ce661064ae" }
+dependencies = [
+    { name = "numpy" },
+    { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "scipy", version = "1.16.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+]
+
+[[package]]
 name = "datalab-org-galvani"
 version = "0.5.2"
 source = { registry = "https://pypi.org/simple" }
@@ -589,6 +631,10 @@ chat = [
 deploy = [
     { name = "gunicorn" },
 ]
+dialup = [
+    { name = "datalab-app-plugin-printability" },
+    { name = "datalab-app-plugin-profilometry" },
+]
 server = [
     { name = "apscheduler" },
     { name = "flask" },
@@ -626,6 +672,8 @@ requires-dist = [
     { name = "apscheduler", marker = "extra == 'server'", specifier = "~=3.10" },
     { name = "bokeh", specifier = "~=2.4,<3.0" },
     { name = "datalab-app-plugin-insitu", marker = "extra == 'app-plugins-git'", git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git?rev=v0.3.2" },
+    { name = "datalab-app-plugin-printability", marker = "extra == 'dialup'", editable = "plugins/datalab-app-plugin-printability" },
+    { name = "datalab-app-plugin-profilometry", marker = "extra == 'dialup'", git = "https://github.com/datalab-industries/datalab-app-plugin-profilometry.git?rev=v0.1.0-rc.1" },
     { name = "datalab-server", extras = ["apps", "chat", "server"], marker = "extra == 'all'" },
     { name = "deepdiff", specifier = "~=8.1" },
     { name = "flask", marker = "extra == 'server'", specifier = "~=3.0" },
@@ -661,7 +709,7 @@ requires-dist = [
     { name = "transformers", marker = "extra == 'chat'", specifier = "~=4.42" },
     { name = "werkzeug", marker = "extra == 'server'", specifier = "~=3.0" },
 ]
-provides-extras = ["server", "apps", "app-plugins-git", "chat", "deploy", "all"]
+provides-extras = ["server", "apps", "dialup", "app-plugins-git", "chat", "deploy", "all"]
 
 [package.metadata.requires-dev]
 dev = [

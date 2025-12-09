@@ -41,7 +41,7 @@ services:
       - backend
     environment:
       - PYDATALAB_MONGO_URI=mongodb://database:27017/datalabvue
-      - WEB_CONCURRENCY=4
+      - WEB_CONCURRENCY=1
       - GUNICORN_CMD_ARGS=--preload --timeout 120 --graceful-timeout 90
       - PORT=5001
 

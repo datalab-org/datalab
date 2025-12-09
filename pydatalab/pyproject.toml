@@ -78,6 +78,11 @@ apps = [
     "psutil>=7.0.0",
 ]
 
+dialup = [
+    "datalab-app-plugin-profilometry",
+    "datalab-app-plugin-printability",
+]
+
 app-plugins-git = [
     # Insitu
     "datalab-app-plugin-insitu",
@@ -136,6 +141,8 @@ dev = [
 
 [tool.uv.sources]
 datalab-app-plugin-insitu = { git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git", rev = "v0.3.2" }
+datalab-app-plugin-profilometry = { git = "https://github.com/datalab-industries/datalab-app-plugin-profilometry.git", rev = "v0.1.0-rc.1" }
+datalab-app-plugin-printability = { path = "./plugins/datalab-app-plugin-printability", editable = true }
 
 [tool.pytest.ini_options]
 filterwarnings = [

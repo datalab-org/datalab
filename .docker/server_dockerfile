@@ -46,6 +46,7 @@ WORKDIR /app
 
 # Install the local version of the package and mount the repository data to get version info
 COPY ./pydatalab/ ./
+
 RUN git config --global --add safe.directory /
 
 # Install editable mode so that the server runs from a sensible place where we can stuff .env files
