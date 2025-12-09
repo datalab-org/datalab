@@ -102,7 +102,17 @@ const router = createRouter({
   routes,
 });
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
+  if (to.path === "/" || (to.name === "samples" && from.path === "/")) {
+    const { getUserInfo } = await import("@/server_fetch_utils.js");
+    const user = await getUserInfo();
+
+    if (!user) {
+      next("/about");
+      return;
+    }
+  }
+
   const websiteTitle = process.env.VUE_APP_WEBSITE_TITLE || "datalab";
 
   const capitalizeFirstLetter = (string) => {
