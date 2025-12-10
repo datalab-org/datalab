@@ -57,6 +57,7 @@ export default createStore({
       },
     },
     block_errors: {},
+    schemas: {}, // keys: item types, vals: schema objects
   },
   mutations: {
     setServerInfo(state, serverInfo) {
@@ -374,6 +375,9 @@ export default createStore({
       } else {
         delete state.block_errors[block_id];
       }
+    },
+    setSchema(state, { type, schema }) {
+      state.schemas[type] = schema;
     },
   },
   getters: {

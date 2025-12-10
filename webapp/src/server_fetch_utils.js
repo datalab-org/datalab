@@ -1001,6 +1001,24 @@ export async function getSchema(type) {
     });
 }
 
+export async function loadItemSchemas() {
+  // Load schemas for all item types and store them in the Vuex store
+  try {
+    const supportedTypes = await getSupportedSchemasList();
+
+    for (const typeInfo of supportedTypes) {
+      try {
+        const schema = await getSchema(typeInfo.id);
+        store.commit("setSchema", { type: typeInfo.id, schema });
+      } catch (error) {
+        console.error(`Failed to load schema for ${typeInfo.id}:`, error);
+      }
+    }
+  } catch (error) {
+    console.error("Failed to get supported schemas list:", error);
+  }
+}
+
 export function saveUserManagers(user_id, managers) {
   return fetch_patch(`${API_URL}/users/${user_id}/managers`, { managers })
     .then((response_json) => {

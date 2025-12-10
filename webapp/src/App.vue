@@ -5,10 +5,15 @@
 
 <script>
 import DialogContainer from "@/components/DialogContainer.vue";
+import { loadItemSchemas } from "@/server_fetch_utils";
 
 export default {
   components: {
     DialogContainer,
+  },
+  created() {
+    // Pre-load item schemas on app initialization
+    loadItemSchemas();
   },
 };
 </script>
