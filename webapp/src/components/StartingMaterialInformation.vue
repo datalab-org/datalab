@@ -34,8 +34,14 @@
             <label for="startmat-barcode">Barcode</label>
             <div id="startmat-barcode"><FormattedBarCode :barcode="Barcode" /></div>
           </div>
-          <div class="form-group col-md-6 col-sm-7 pr-2">
+          <div class="form-group col-md-4 col-sm-4 col-6">
             <ToggleableCollectionFormGroup v-model="Collections" />
+          </div>
+          <div class="form-group col-md-5 col-sm-4 col-12">
+            <ToggleableItemStatusFormGroup
+              v-model="Status"
+              :possible-item-statuses="possibleItemStatuses"
+            />
           </div>
         </div>
         <div class="form-row">
@@ -103,6 +109,7 @@ import ChemicalFormula from "@/components/ChemicalFormula";
 import ChemFormulaInput from "@/components/ChemFormulaInput";
 import TableOfContents from "@/components/TableOfContents";
 import ToggleableCollectionFormGroup from "@/components/ToggleableCollectionFormGroup";
+import ToggleableItemStatusFormGroup from "@/components/ToggleableItemStatusFormGroup";
 import FormattedRefcode from "@/components/FormattedRefcode";
 import FormattedBarCode from "@/components/FormattedBarcode";
 import StyledInput from "@/components/StyledInput";
@@ -120,6 +127,7 @@ export default {
     ItemRelationshipVisualization,
     TiptapInline,
     ToggleableCollectionFormGroup,
+    ToggleableItemStatusFormGroup,
     TableOfContents,
     FormattedRefcode,
     FormattedBarCode,
@@ -155,6 +163,13 @@ export default {
     ItemDescription: createComputedSetterForItemField("description"),
     Collections: createComputedSetterForItemField("collections"),
     Refcode: createComputedSetterForItemField("refcode"),
+    Status: createComputedSetterForItemField("status"),
+    schema() {
+      return this.$store.state.schemas[this.item?.type];
+    },
+    possibleItemStatuses() {
+      return this.schema?.attributes?.schema?.definitions?.StartingMaterialsStatus?.enum;
+    },
     Barcode: createComputedSetterForItemField("barcode"),
   },
   created() {
