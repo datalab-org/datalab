@@ -169,4 +169,5 @@ Contributions to _datalab_ have been supported by a mixture of academic funding 
 In particular, the developers thank:
 
 - Initial proof-of-concept funding from the European Union's Horizon 2020 research and innovation programme under grant agreement 957189 (DOI: [10.3030/957189](https://doi.org/10.3030/957189)), the [Battery Interface Genome - Materials Acceleration Platform (BIG-MAP)](https://www.big-map.eu), as an external stakeholder project.
-- The [Leverhulme Trust](https://leverhulme.ac.uk) and [Isaac Newton Trust](https://newtontrust.cam.ac.uk) for support provided by an early career fellowship for Dr Matthew Evans and the Faraday Institution CATMAT project (FIRG016) for support of Dr Joshua Bocarsly during initial development of Datalab. 
+- The [Faraday Institution] CATMAT project (FIRG016) for support of Dr Joshua Bocarsly during initial development of *datalab*. 
+- The [Leverhulme Trust](https://leverhulme.ac.uk) and [Isaac Newton Trust](https://newtontrust.cam.ac.uk) for support provided by an early career fellowship for Dr Matthew Evans.
