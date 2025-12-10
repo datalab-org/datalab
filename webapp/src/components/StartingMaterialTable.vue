@@ -27,6 +27,13 @@ export default {
       startingMaterialColumn: [
         { field: "item_id", header: "ID", body: "FormattedItemName", filter: true, label: "ID" },
         {
+          field: "status",
+          header: "Status",
+          body: "FormattedItemStatus",
+          filter: true,
+          label: "Status",
+        },
+        {
           field: "barcode",
           body: "FormattedBarcode",
           header: "",
