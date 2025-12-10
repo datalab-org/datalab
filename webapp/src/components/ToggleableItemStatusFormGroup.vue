@@ -9,7 +9,12 @@
       <font-awesome-icon id="edit-icon" class="pl-1" icon="pen" size="xs" :fade="isEditingStatus" />
     </label>
     <div>
-      <FormattedItemStatus v-if="!isEditingStatus" :status="value" aria-labelledby="status" />
+      <FormattedItemStatus
+        v-if="!isEditingStatus"
+        :dot-only="false"
+        :status="value"
+        aria-labelledby="status"
+      />
       <OnClickOutside
         v-if="isEditingStatus"
         :options="{ ignore: [outerDivRef] }"

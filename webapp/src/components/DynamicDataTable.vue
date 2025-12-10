@@ -239,7 +239,7 @@
           >
             <template #option="slotProps">
               <div class="flex items-center">
-                <FormattedItemStatus :status="slotProps.option.status" />
+                <FormattedItemStatus :status="slotProps.option.status" :dot-only="false" />
               </div>
             </template>
             <template #value="slotProps">
@@ -250,7 +250,7 @@
                     :key="index"
                     class="inline-flex items-center mr-2"
                   >
-                    <FormattedItemStatus :status="option.status" />
+                    <FormattedItemStatus :status="option.status" :dot-only="false" />
                   </span>
                 </template>
                 <span v-else class="text-gray-400">Any</span>
