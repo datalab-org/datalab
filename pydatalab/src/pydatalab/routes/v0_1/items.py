@@ -47,6 +47,7 @@ def get_equipment_summary():
         "date": 1,
         "refcode": 1,
         "location": 1,
+        "status": 1,
     }
 
     items = [
@@ -93,6 +94,7 @@ def get_starting_materials():
                         "refcode": 1,
                         "supplier": 1,
                         "location": 1,
+                        "status": 1,
                     }
                 },
                 {
@@ -142,6 +144,7 @@ def get_items_summary(match: dict | None = None, project: dict | None = None) ->
         "type": 1,
         "date": 1,
         "refcode": 1,
+        "status": 1,
     }
 
     # Cannot mix 0 and 1 keys in MongoDB project so must loop and check
@@ -197,6 +200,7 @@ def get_samples_summary(match: dict | None = None, project: dict | None = None) 
         "type": 1,
         "date": 1,
         "refcode": 1,
+        "status": 1,
     }
 
     # Cannot mix 0 and 1 keys in MongoDB project so must loop and check
@@ -612,6 +616,7 @@ def _create_sample(
         if data_model.collections
         else [],
         "type": data_model.type,
+        "status": data_model.status,
     }
 
     # hack to let us use _create_sample() for equipment too. We probably want to make
