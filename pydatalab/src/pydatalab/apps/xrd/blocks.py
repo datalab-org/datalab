@@ -322,7 +322,9 @@ class XRDBlock(DataBlock):
         return selectable_axes_plot(
             pattern_dfs,
             x_options=["2θ (°)", "Q (Å⁻¹)", "d (Å)"],
-            y_default="normalized intensity",
+            y_default="normalized intensity (staggered)"
+            if len(pattern_dfs) > 1
+            else "normalized intensity",
             y_options=y_options,
             plot_line=True,
             plot_points=True,
