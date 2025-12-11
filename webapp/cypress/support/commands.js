@@ -384,3 +384,31 @@ Cypress.Commands.add("deleteSample", (item_id) => {
     .contains(new RegExp("^" + item_id + "$", "g"))
     .should("not.exist");
 });
+
+/**
+ * Get a map of column header text to column index for DataTable tests
+ * @param {Object} columnMap - Optional mapping of custom keys to column labels for unnamed columns
+ * @returns {Cypress.Chainable<Object>} Object mapping column header text (and custom keys) to index
+ * @example
+ * // Basic usage - only maps named columns
+ * cy.getColumnIndices().then((columnIndices) => {
+ *   cy.get("td").eq(columnIndices["Name"]).should("contain.text", "Sample 1");
+ * });
+ *
+ * // With custom keys for unnamed columns
+ * cy.getColumnIndices({ checkbox: 0, barcode: 3, nblocks: 8 }).then((columnIndices) => {
+ *   cy.get("td").eq(columnIndices["barcode"]).should("exist");
+ * });
+ */
+Cypress.Commands.add("getColumnIndices", (columnMap = {}) => {
+  const columnIndices = { ...columnMap };
+  return cy
+    .get(".p-datatable-column-header-content")
+    .each((header, index) => {
+      const headerText = header.text().trim();
+      if (headerText) {
+        columnIndices[headerText] = index;
+      }
+    })
+    .then(() => columnIndices);
+});
