@@ -5,10 +5,14 @@
 
 <script>
 import DialogContainer from "@/components/DialogContainer.vue";
+import { getApiConfig } from "@/server_fetch_utils.js";
 
 export default {
   components: {
     DialogContainer,
+  },
+  async created() {
+    await getApiConfig();
   },
 };
 </script>

@@ -57,6 +57,9 @@ export default createStore({
       },
     },
     block_errors: {},
+    apiConfig: {
+      maxUploadBytes: null,
+    },
   },
   mutations: {
     setServerInfo(state, serverInfo) {
@@ -374,6 +377,9 @@ export default createStore({
       } else {
         delete state.block_errors[block_id];
       }
+    },
+    setApiConfig(state, config) {
+      state.apiConfig = config;
     },
   },
   getters: {

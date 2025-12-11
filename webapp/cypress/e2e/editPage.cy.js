@@ -274,7 +274,7 @@ describe("Edit Page", () => {
     cy.get(".uppy-Dashboard-AddFiles-title").should("contain.text", "Drop files here,");
     cy.get(".uppy-Dashboard-AddFiles-title").should("contain.text", "browse files");
     cy.get(".uppy-Dashboard-AddFiles-title").should("contain.text", "or import from:");
-    cy.findByLabelText("Close Modal").click();
+    cy.get("body").type("{esc}");
 
     cy.findByText("Add files from server...").click();
     cy.findByText("Select files to add").should("exist");
