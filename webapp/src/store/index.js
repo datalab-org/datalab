@@ -371,6 +371,12 @@ export default createStore({
         delete state.block_errors[block_id];
       }
     },
+    setBlockProcessing(state, { block_id, task_id }) {
+      if (!state.blockProcessingTasks) {
+        state.blockProcessingTasks = {};
+      }
+      state.blockProcessingTasks[block_id] = task_id;
+    },
   },
   getters: {
     getItem: (state) => (item_id) => {
