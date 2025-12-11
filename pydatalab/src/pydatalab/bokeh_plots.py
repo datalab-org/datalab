@@ -28,7 +28,7 @@ from bokeh.plotting import figure
 from bokeh.themes import Theme
 from scipy.signal import find_peaks
 
-from .utils import shrink_label
+from .utils import generate_unique_labels
 
 FONTSIZE = "12pt"
 TYPEFACE = "Helvetica, sans-serif"
@@ -335,6 +335,27 @@ def selectable_axes_plot(
     if isinstance(df, dict):
         labels = list(df.keys())
 
+    original_labels_list = []
+
+    for ind, df_ in enumerate(df):
+        if isinstance(df, dict):
+            df_temp = df[df_]
+        else:
+            df_temp = df_
+
+        if labels:
+            orig = labels[ind]
+        else:
+            if hasattr(df_temp, "attrs") and "original_filename" in df_temp.attrs:
+                orig = df_temp.attrs["original_filename"] if len(df) > 1 else ""
+            else:
+                orig = df_temp.index.name if len(df) > 1 else ""
+
+        original_labels_list.append(orig)
+
+    legend_labels = (
+        generate_unique_labels(original_labels_list) if len(df) > 1 else original_labels_list
+    )
     plot_columns = []
 
     for ind, df_ in enumerate(df):
@@ -344,12 +365,12 @@ def selectable_axes_plot(
         if isinstance(df, dict):
             df_ = df[df_]
 
-        if labels:
-            label = labels[ind]
-        else:
-            label = df_.index.name if len(df) > 1 else ""
+        label = legend_labels[ind] if legend_labels else ""
 
-        label = shrink_label(label)
+        if hasattr(df_, "attrs"):
+            for attr in ["item_id", "original_filename", "wavelength"]:
+                if attr in df_.attrs:
+                    df_[attr] = df_.attrs[attr]
 
         source = ColumnDataSource(df_)
 
@@ -383,7 +404,6 @@ def selectable_axes_plot(
                 size=point_size,
                 line_color=color,
                 fill_color=fill_color,
-                legend_label=label,
                 hatch_pattern=hatch_patterns[ind % len(hatch_patterns)],
                 hatch_color=color,
             )
@@ -412,7 +432,6 @@ def selectable_axes_plot(
                         y=y,
                         source=source,
                         color=color,
-                        legend_label=label,
                         alpha=0.3,
                     )
                     if plot_line
@@ -457,9 +476,8 @@ def selectable_axes_plot(
 
             external_legend = Legend(
                 items=legend_items,
-                click_policy="hide",
+                click_policy="none",
                 background_fill_alpha=0.8,
-                label_text_font_size="9pt",
                 spacing=1,
                 margin=2,
             )
