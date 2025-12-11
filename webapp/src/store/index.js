@@ -410,6 +410,11 @@ export default createStore({
         data,
         timestamp: Date.now(),
       };
+    setBlockProcessing(state, { block_id, task_id }) {
+      if (!state.blockProcessingTasks) {
+        state.blockProcessingTasks = {};
+      }
+      state.blockProcessingTasks[block_id] = task_id;
     },
   },
   getters: {
