@@ -62,6 +62,33 @@ export function construct_headers(additional_headers = null) {
   return headers;
 }
 
+function pollBlockStatus(item_id, block_id, task_id) {
+  const pollInterval = setInterval(async () => {
+    try {
+      const response = await fetch_get(`${API_URL}/blocks/${task_id}/status`);
+
+      if (response.status === "ready") {
+        clearInterval(pollInterval);
+        store.commit("updateBlockData", {
+          item_id: item_id,
+          block_id: block_id,
+          block_data: response.block_data,
+        });
+        store.commit("setBlockNotUpdating", block_id);
+        store.commit("setBlockSaved", { block_id: block_id, isSaved: true });
+      } else if (response.status === "error") {
+        clearInterval(pollInterval);
+        store.commit("setBlockNotUpdating", block_id);
+        store.commit("setBlockError", { block_id, error: response.error_message });
+      }
+    } catch (error) {
+      clearInterval(pollInterval);
+      store.commit("setBlockNotUpdating", block_id);
+      store.commit("setBlockError", { block_id, error: String(error) });
+    }
+  }, 2000);
+}
+
 // eslint-disable-next-line no-unused-vars
 function fetch_get(url) {
   // If admin super-user mode is enabled, append sudo=1
@@ -790,17 +817,22 @@ export async function updateBlockFromServer(item_id, block_id, block_data, event
     event_data: event_data,
   })
     .then(function (response_json) {
-      store.commit("updateBlockData", {
-        item_id: item_id,
-        block_id: block_id,
-        block_data: response_json.new_block_data,
-      });
-      store.commit("setBlockNotUpdating", block_id);
-      store.commit("setBlockSaved", {
-        block_id: block_id,
-        isSaved: response_json.saved_successfully,
-      });
-      store.commit("setBlockError", { block_id, error: "" });
+      if (response_json.processing_async) {
+        store.commit("setBlockProcessing", { block_id, task_id: response_json.task_id });
+        pollBlockStatus(item_id, block_id, response_json.task_id);
+      } else {
+        store.commit("updateBlockData", {
+          item_id: item_id,
+          block_id: block_id,
+          block_data: response_json.new_block_data,
+        });
+        store.commit("setBlockNotUpdating", block_id);
+        store.commit("setBlockSaved", {
+          block_id: block_id,
+          isSaved: response_json.saved_successfully,
+        });
+        store.commit("setBlockError", { block_id, error: "" });
+      }
     })
     .catch((error) => {
       // The block component renders errors, so no need to make a dialog here.
