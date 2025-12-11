@@ -221,7 +221,24 @@ export default {
         this.time_series_folder_name &&
         (!this.isEchemMode || this.echem_folder_name)
       ) {
-        this.updateBlock();
+        this.folderNameError = "";
+
+        this.isUpdating = true;
+        const foundFile = this.all_files.find((file) => file.immutable_id === this.file_id);
+        this.folder_name = foundFile?.name || "Folder not found";
+
+        const blockToUpdate = {
+          ...this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id],
+        };
+
+        updateBlockFromServer(this.item_id, this.block_id, blockToUpdate, { trigger_async: true })
+          .then(() => {
+            this.isUpdating = false;
+          })
+          .catch((error) => {
+            this.isUpdating = false;
+            console.error("Error updating block:", error);
+          });
       }
     },
     onGranularitySubmit() {
@@ -232,7 +249,22 @@ export default {
       if (!isNaN(sampleVal)) this.sample_granularity = sampleVal;
 
       if (!isNaN(dataVal) || !isNaN(sampleVal)) {
-        this.updateBlock();
+        this.isUpdating = true;
+        const foundFile = this.all_files.find((file) => file.immutable_id === this.file_id);
+        this.folder_name = foundFile?.name || "Folder not found";
+
+        const blockToUpdate = {
+          ...this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id],
+        };
+
+        updateBlockFromServer(this.item_id, this.block_id, blockToUpdate, { trigger_async: true })
+          .then(() => {
+            this.isUpdating = false;
+          })
+          .catch((error) => {
+            this.isUpdating = false;
+            console.error("Error updating block:", error);
+          });
       }
     },
     updateBlock() {
