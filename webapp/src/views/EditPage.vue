@@ -39,6 +39,12 @@
           </template>
         </div>
       </div>
+      <ExportDropdown
+        v-if="itemType === 'samples' || itemType === 'collections'"
+        :item-id="item_id"
+        :collection-id="itemType === 'collections' ? item_id : null"
+        :item-type="itemType"
+      />
       <a class="nav-item nav-link" :href="itemApiUrl" target="_blank">
         <font-awesome-icon icon="code" fixed-width /> View JSON
       </a>
@@ -123,6 +129,8 @@ import { formatDistanceToNow } from "date-fns";
 
 import BlockTooltip from "@/components/BlockTooltip";
 
+import ExportDropdown from "@/components/ExportDropdown";
+
 export default {
   components: {
     TiptapInline,
@@ -132,6 +140,7 @@ export default {
     FileSelectModal,
     FormattedItemName,
     BlockTooltip,
+    ExportDropdown,
   },
   async beforeRouteLeave(to, from, next) {
     // give warning before leaving the page by the vue router (which would not trigger "beforeunload")
