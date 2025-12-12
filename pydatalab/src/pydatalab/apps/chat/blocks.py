@@ -2,10 +2,9 @@ import json
 import warnings
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
-from pydantic import Field
+from pydantic import Field, validator
 
 from pydatalab.blocks.base import DataBlock
-from pydatalab.logger import LOGGER
 from pydatalab.models import ITEM_MODELS
 from pydatalab.models.blocks import DataBlockResponse
 from pydatalab.utils import CustomJSONEncoder
@@ -19,9 +18,15 @@ class ChatBlockResponse(DataBlockResponse):
     messages: list[dict] = Field(default_factory=list)
     prompt: str | None
     model: str
-    available_models: dict[str, ModelCard]
+    available_models: dict[str, ModelCard] | None = Field(
+        datalab_exclude_from_db=True, datalab_exclude_from_load=True
+    )
     token_count: int | None
     temperature: float
+
+    @validator("available_models", pre=True, always=True)
+    def set_available_models(cls, _):
+        return AVAILABLE_MODELS
 
 
 class ChatBlock(DataBlock):
@@ -139,10 +144,6 @@ Start with a friendly introduction and give me a one sentence summary of what th
 
             chat_client = model_cls.chat_client(model=model_cls.name)
 
-            LOGGER.debug(
-                f'submitting request to API for completion with last message role "{self.data["messages"][-1]["role"]}" (message = {self.data["messages"][-1:]}).'
-                f"Temperature = {self.data['temperature']} (type {type(self.data['temperature'])})"
-            )
             # Convert your messages to the required format
             langchain_messages = []
             for message in self.data["messages"]:
@@ -228,7 +229,8 @@ Please make a new chat block to start fresh, or use a model with a larger contex
                 "pulse_program",
                 "selected_process",
             ]
-            [block["metadata"].pop(field, None) for field in NMR_fields_to_remove]
+            if "metadata" in block:
+                [block["metadata"].pop(field, None) for field in NMR_fields_to_remove]
 
             # replace file_id with the actual filename
             file_id = block.pop("file_id", None)

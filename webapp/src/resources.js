@@ -2,6 +2,7 @@
 import DataBlockBase from "@/components/datablocks/DataBlockBase";
 import MediaBlock from "@/components/datablocks/MediaBlock";
 import XRDBlock from "@/components/datablocks/XRDBlock";
+import XRDInsituBlock from "@/components/datablocks/XRDInsituBlock";
 import ChatBlock from "@/components/datablocks/ChatBlock";
 import CycleBlock from "@/components/datablocks/CycleBlock";
 import NMRBlock from "@/components/datablocks/NMRBlock";
@@ -22,7 +23,6 @@ import StartingMaterialCreateModalAddon from "./components/itemCreateModalAddons
 // Look for values set in .env file. Use defaults if `null` is not explicitly handled elsewhere in the code.
 export const API_URL =
   process.env.VUE_APP_API_URL != null ? process.env.VUE_APP_API_URL : "http://localhost:5001";
-export const API_TOKEN = process.env.VUE_APP_API_TOKEN;
 
 export const QR_CODE_RESOLVER_URL = process.env.VUE_APP_QR_CODE_RESOLVER_URL;
 
@@ -73,6 +73,7 @@ export const customBlockTypes = {
     component: UVVisInsituBlock,
     name: "UV-Vis insitu",
   },
+  "insitu-xrd": { description: "XRD insitu", component: XRDInsituBlock, name: "XRD insitu" },
 };
 
 export const itemTypes = {

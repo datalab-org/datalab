@@ -20,6 +20,7 @@ const DatalabPreset = definePreset(Aura, {
         dropdownDisplay: "none",
       },
       bodyCellPadding: "0.4rem",
+      headerCellPadding: "0.4rem",
       sortIconColor: "transparent",
     },
     checkbox: {

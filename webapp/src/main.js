@@ -14,6 +14,7 @@ import {
   faSave,
   faCloudUploadAlt,
   faRedo,
+  faUndo,
   faPen,
   faFile,
   faCode,
@@ -50,6 +51,21 @@ import {
   faInfoCircle,
   faPlus,
   faCheckCircle,
+  faBold,
+  faItalic,
+  faUnderline,
+  faStrikethrough,
+  faListUl,
+  faImage,
+  faTable,
+  faMinus,
+  faPalette,
+  faRemoveFormat,
+  faTrash,
+  faMarker,
+  faQuoteRight,
+  faLaptopCode,
+  faSquareRootAlt,
 } from "@fortawesome/free-solid-svg-icons";
 import { faPlusSquare } from "@fortawesome/free-regular-svg-icons";
 import { faGithub, faOrcid } from "@fortawesome/free-brands-svg-icons";
@@ -59,6 +75,7 @@ library.add(
   faSave,
   faPen,
   faRedo,
+  faUndo,
   faCloudUploadAlt,
   faFile,
   faCode,
@@ -98,32 +115,27 @@ library.add(
   faCopy,
   faInfoCircle,
   faCheckCircle,
+  faBold,
+  faItalic,
+  faUnderline,
+  faStrikethrough,
+  faListUl,
+  faImage,
+  faTable,
+  faMinus,
+  faPalette,
+  faRemoveFormat,
+  faTrash,
+  faMarker,
+  faQuoteRight,
+  faLaptopCode,
+  faSquareRootAlt,
 );
-
-// Import TinyMCE
-// eslint-disable-next-line no-unused-vars
-import tinymce from "tinymce/tinymce";
-
-import "tinymce/icons/default";
-import "tinymce/themes/silver";
-import "tinymce/skins/ui/oxide/skin.min.css";
-import "tinymce/skins/ui/oxide/content.min.css";
-import "tinymce/skins/content/default/content.min.css";
-import "tinymce/plugins/hr";
-import "tinymce/plugins/image";
-import "tinymce/plugins/link";
-import "tinymce/plugins/lists";
-import "tinymce/plugins/charmap";
-import "tinymce/plugins/table";
-import "tinymce/plugins/emoticons";
-import "tinymce/plugins/emoticons/js/emojis";
 
 // import "@uppy/vue"
 
 // import VueScrollTo from 'vue-scrollto';
 
-// import 'tinymce/plugins/link';
-import Editor from "@tinymce/tinymce-vue";
 import store from "./store";
 
 // css for vue-select
@@ -142,7 +154,6 @@ app
     theme: DatalabPreset,
   })
   .component("font-awesome-icon", FontAwesomeIcon)
-  .component("editor", Editor)
   .mount("#app");
 
 console.log(`initializing app with global variable $API_URL = ${API_URL}`);

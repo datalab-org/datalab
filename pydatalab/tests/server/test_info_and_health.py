@@ -67,3 +67,16 @@ def test_types_info_endpoint(client):
 
     response = client.get("/info/types/random-type-that-doesnt-exist", follow_redirects=True)
     assert response.status_code == 404
+
+
+def test_info_endpoint_includes_max_upload_bytes(client, app):
+    """Test that the /info endpoint includes the max_upload_bytes configuration."""
+    response = client.get("/info")
+    assert response.status_code == 200
+    assert "data" in response.json
+    assert "attributes" in response.json["data"]
+    attributes = response.json["data"]["attributes"]
+    assert "max_upload_bytes" in attributes
+    assert isinstance(attributes["max_upload_bytes"], int)
+    assert attributes["max_upload_bytes"] > 0
+    assert attributes["max_upload_bytes"] == 10 * 1000 * 1000

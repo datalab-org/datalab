@@ -1,5 +1,7 @@
 import functools
+import pprint
 import random
+import traceback
 import warnings
 from collections.abc import Callable, Sequence
 from typing import Any
@@ -199,8 +201,15 @@ class DataBlock:
         block, ready to be input into mongodb"""
 
         LOGGER.debug("Casting block %s to database object.", self.__class__.__name__)
+        exclude_fields: set[str] = {
+            f
+            for (f, s) in self.block_db_model.schema()["properties"].items()
+            if s.get("datalab_exclude_from_db")
+        }
         return self.block_db_model(**self.data).dict(
-            exclude={"bokeh_plot_data", "b64_encoded_image"}, exclude_unset=True
+            exclude=exclude_fields,
+            exclude_unset=True,
+            exclude_none=True,
         )
 
     def to_web(self) -> dict[str, Any]:
@@ -213,9 +222,22 @@ class DataBlock:
                     try:
                         plot()
                     except Exception as e:
+                        tb_list = traceback.extract_tb(e.__traceback__)
+                        last = tb_list[-1]
                         block_errors.append(f"{self.__class__.__name__} raised error: {e}")
                         LOGGER.warning(
-                            f"Could not create plot for {self.__class__.__name__}: {self.data}"
+                            "Could not create plot for %s due to error at %s:%s in %s → %r:\n\t%s: %s",
+                            self.__class__.__name__,
+                            last.filename,
+                            last.lineno,
+                            last.name,
+                            last.line,
+                            type(e).__name__,
+                            e,
+                        )
+                        LOGGER.debug(
+                            "The full data for the errored block is:\n%s",
+                            pprint.pformat(self.data),
                         )
                     finally:
                         if captured_warnings:
@@ -254,7 +276,10 @@ class DataBlock:
                     bound_method(**event)
                 except Exception as e:
                     LOGGER.error(
-                        f"Error processing event {event_name} for block {self.__class__.__name__}: {e}"
+                        "Error processing event %s for block %s: %s",
+                        event_name,
+                        self.__class__.__name__,
+                        e,
                     )
                     self.data["errors"] = [
                         f"{self.__class__.__name__}: Error processing event {event}: {e}"
@@ -323,11 +348,11 @@ class DataBlock:
             "Updating block %s from web request",
             self.__class__.__name__,
         )
-        self.data.update(
-            self.block_db_model(**data).dict(
-                exclude={"computed", "metadata", "bokeh_plot_data", "b64_encoded_image"},
-                exclude_unset=True,
-            )
-        )
-
+        exclude_fields: set[str] = {
+            f
+            for (f, s) in self.block_db_model.schema()["properties"].items()
+            if s.get("datalab_exclude_from_load")
+        }
+        [data.pop(f, None) for f in exclude_fields]
+        self.data.update(self.block_db_model(**data).dict())
         return self

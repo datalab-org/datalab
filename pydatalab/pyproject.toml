@@ -66,7 +66,7 @@ apps = [
     # NMR
     "nmrglue ~= 0.10",
     # Electrochemistry
-    "navani >= 0.1.11",
+    "navani >= 0.1.13",
     # Raman
     "pybaselines ~= 1.1",
     "renishawwire >= 0.1.16",
@@ -103,14 +103,16 @@ line-length = 100
 target-version = "py310"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "W", "Q", "DTZ", "S"]
+select = ["E", "F", "I", "W", "Q", "DTZ", "S", "G"]
 ignore = ["E501", "E402"]
 per-file-ignores = {"tests/*" = ["S101"]}
 
-fixable = ["A", "B", "C", "D", "E", "F", "I", "S"]
+fixable = ["A", "B", "C", "D", "E", "F", "I", "S", "G"]
 unfixable = []
 # Allow unused variables when underscore-prefixed.
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+logger-objects = ["pydatalab.logger.LOGGER"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["pydatalab"]
@@ -133,10 +135,9 @@ dev-dependencies = [
 ]
 
 [tool.uv.sources]
-datalab-app-plugin-insitu = { git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git", rev = "v0.2.0" }
+datalab-app-plugin-insitu = { git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git", rev = "v0.3.2" }
 
 [tool.pytest.ini_options]
-addopts = "--cov-report=xml --cov ./src/pydatalab"
 filterwarnings = [
     "error",
     "ignore:.*Capacity columns are not equal, replacing with new capacity column calculated from current and time columns and renaming the old capacity column to Old Capacity:UserWarning",

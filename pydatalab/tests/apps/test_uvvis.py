@@ -1,4 +1,3 @@
-import logging
 from pathlib import Path
 
 import pytest
@@ -13,11 +12,8 @@ def data_files():
 
 
 def test_load(data_files):
-    logging.info("Testing UV-Vis data loading")
     for f in data_files:
-        logging.info(f"Testing file: {f}")
         if f.suffix in UVVisBlock.accepted_file_extensions:
-            logging.info(f"Loading file: {f}")
             df = parse_uvvis_txt(f)
             expected_columns = ["Wavelength", "Sample counts", "Dark counts", "Reference counts"]
             assert df is not None

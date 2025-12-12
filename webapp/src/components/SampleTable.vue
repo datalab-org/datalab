@@ -32,6 +32,7 @@ export default {
           label: "ID",
         },
         { field: "type", header: "Type", filter: true, label: "Type" },
+        { field: "status", header: "Status", body: "FormattedItemStatus", filter: true },
         { field: "name", header: "Sample name", label: "Sample name" },
         {
           field: "chemform",
@@ -39,7 +40,7 @@ export default {
           body: "ChemicalFormula",
           label: "Formula",
         },
-        { field: "date", header: "Date", label: "Date" },
+        { field: "date", header: "Date", label: "Date", filter: true },
         {
           field: "collections",
           header: "Collections",

@@ -9,6 +9,14 @@ Cypress.on("window:before:load", (win) => {
 let item_ids = ["test_e1", "test_e2", "test_e3", "123equipment", "test_e3_copy"];
 
 before(() => {
+  cy.loginViaTestMagicLink("test-user@example.com", "user");
+});
+
+after(() => {
+  cy.logout();
+});
+
+before(() => {
   cy.visit("/equipment");
   cy.removeAllTestSamples(item_ids);
   cy.visit("/equipment").then(() => {
@@ -26,6 +34,7 @@ after(() => {
 
 describe("Equipment table page", () => {
   beforeEach(() => {
+    cy.loginViaTestMagicLink("test-user@example.com", "user");
     cy.visit("/equipment");
   });
 
@@ -117,6 +126,7 @@ describe("Equipment table page", () => {
 
 describe("Equipment edit page", () => {
   beforeEach(() => {
+    cy.loginViaTestMagicLink("test-user@example.com", "user");
     cy.visit("/equipment");
   });
 
@@ -134,7 +144,7 @@ describe("Equipment edit page", () => {
     cy.findByLabelText("Location").type("room 101");
 
     cy.findByText("Add a block").click();
-    cy.findByText("Comment").click();
+    cy.findByLabelText("Add a block").contains("Comment").click();
 
     cy.get(".datablock-content div").first().type("a comment is added here.");
 

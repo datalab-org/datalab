@@ -21,7 +21,7 @@ def send_mail(recipient: str, subject: str, body: str):
         body (str): The body of the email.
 
     """
-    LOGGER.debug("Sending email to %s", recipient)
+    LOGGER.debug("Sending email to %s with subject %s", recipient, subject)
 
     sender = None
     if CONFIG.EMAIL_AUTH_SMTP_SETTINGS is not None:

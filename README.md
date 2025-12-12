@@ -5,8 +5,8 @@
 </div>
 
 <div align="center">
-<a href="https://github.com/datalab-org/datalab/releases"><img src="https://badgen.net/github/release/datalab-org/datalab?icon=github&color=blue"></a>
-<a href="https://github.com/datalab-org/datalab#MIT-1-ov-file"><img src="https://badgen.net/github/license/datalab-org/datalab?icon=license&color=purple"></a>
+<a href="https://github.com/datalab-org/datalab/releases"><img src="https://img.shields.io/github/v/release/datalab-org/datalab?color=blue&logo=github"></a>
+<a href="https://github.com/datalab-org/datalab#MIT-1-ov-file"><img src="https://img.shields.io/github/license/datalab-org/datalab?color=purple&logo=github"></a>
 </div>
 
 <div align="center">
@@ -149,7 +149,7 @@ We are available for consultations on setting up and managing *datalab* deployme
 This software was conceived and developed by:
 
 - [Prof Joshua Bocarsly](https://jdbocarsly.github.io) ([Department of Chemistry, University of Houston](https://www.uh.edu/nsm/chemistry), previously [Department of Chemistry, University of Cambridge](https://www.ch.cam.ac.uk/))
-- [Dr Matthew Evans](https://ml-evs.science) ([MODL-IMCN,
+- [Dr Matthew Evans](https://ml-evs.science) ([Department of Chemistry, University of Cambridge](https://www.ch.cam.ac.uk/), previously [MODL-IMCN,
   UCLouvain](https://uclouvain.be/en/research-institutes/imcn/modl) & [Matgenix](https://matgenix.com))
 
 with support from the group of [Professor Clare Grey](https://grey.group.ch.cam.ac.uk/group) (University of Cambridge), and major contributions from:
@@ -158,7 +158,7 @@ with support from the group of [Professor Clare Grey](https://grey.group.ch.cam.
 - [Dr Ben Smith](https://github.com/be-smith/)
 - [Dr Yue Wu](https://github.com/yue-here)
 
-plus many contributions, feedback and testing performed by other members of the community, in particular, the groups of [Prof Matt Cliffe](https://cliffegroup.co.uk) (University of Nottingham) and [Dr Peter Kraus](https://www.tu.berlin/en/concat) (TUBerlin).
+plus many contributions, feedback and testing performed by other members of the community, in particular, the groups of [Prof Matt Cliffe](https://cliffegroup.co.uk) (University of Nottingham) and [Dr Peter Kraus](https://www.tu.berlin/en/concat) (TUBerlin) and the company [Matgenix SRL](https://matgenix.com).
 
 A full list of code contributions can be found on [GitHub](https://github.com/datalab-org/datalab/graphs/contributors).
 
@@ -169,4 +169,5 @@ Contributions to _datalab_ have been supported by a mixture of academic funding 
 In particular, the developers thank:
 
 - Initial proof-of-concept funding from the European Union's Horizon 2020 research and innovation programme under grant agreement 957189 (DOI: [10.3030/957189](https://doi.org/10.3030/957189)), the [Battery Interface Genome - Materials Acceleration Platform (BIG-MAP)](https://www.big-map.eu), as an external stakeholder project.
-- The BEWARE fellowship scheme of the [Wallonie recherche SPW](https://recherche.wallonie.be/en/home.html) for funding under the European Commission's Marie Curie-Skłodowska Action (COFUND 847587).
+- The [Faraday Institution](https://www.faraday.ac.uk) CATMAT project (FIRG016) for support of Dr Joshua Bocarsly during initial development of *datalab*.
+- The [Leverhulme Trust](https://leverhulme.ac.uk) and [Isaac Newton Trust](https://newtontrust.cam.ac.uk) for support provided by an early career fellowship for Dr Matthew Evans.

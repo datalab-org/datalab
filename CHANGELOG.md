@@ -1,5 +1,87 @@
 # Changelog
 
+## v0.6.7 (December 2025)
+
+Another patch release with several UI usability improvements, with highlights including:
+
+- Migration from TinyMCE to TipTap for all free text editors, which features mermaid diagram editing, cross-referencing and markdown support.
+- QR codes can now be generated for samples that give public access to sample data to those that scan them.
+- Multiple electrochemical cycling files can now be plotted alongside one another in "comparison mode" for the echem block.
+- Clicking on the sample table will now open in the current tab by default, with modified click opening in a new tab.
+- The media data block now supports SVG files for vector graphics and plots.
+- Rule-based chemical formula formatting has been expanded to cover more cases.
+- Admins can now assign managers to users through the UI alone, and will now receive email notifications when a user registers, plus users can now verify their contact email addresses via magic links.
+- Email authentication no longer requires a global allow list of domains.
+
+### What's Changed
+
+* Migrate from TinyMCE to TipTap by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1349
+* Fix modal scrolling for large content by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1446
+* Add client-side auth helper for that delays requests until authorised by @ml-evs in https://github.com/datalab-org/datalab/pull/1449
+* Add persistent per-item access tokens that can be used in QR codes by @ml-evs in https://github.com/datalab-org/datalab/pull/1220
+* Switch access token generating scheme to `secrets.token_urlsafe(16)` by @ml-evs in https://github.com/datalab-org/datalab/pull/1452
+* Add support for sanitized SVGs in media block by @ml-evs in https://github.com/datalab-org/datalab/pull/1464
+* Reset DataTable page on refresh by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1460
+* Enhanced chemical formula formatting by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1445
+* Add minimum resizable column width based on header content by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1444
+* Added manager to the admin dashboard by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1352
+* Unify tooltip styling and add block version display by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1454
+* Improvements to email-based authentication and notifications by @ml-evs in https://github.com/datalab-org/datalab/pull/1457
+* Add comparison mode for the echem block by @be-smith in https://github.com/datalab-org/datalab/pull/1353
+* Allow normal click to open items in same tab from table by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1468
+
+
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.6.6...v0.6.7
+
+## v0.6.6 (November 2025)
+
+This patch release includes several quality-of-life changes (asynchronous loading of item relationships, filtering by date in the sample table, chemical formula formatting, block plotting improvements), as well as new block options (*in situ* XRD, extensions to FTIR to Shimazdu output files), in preparation for the upcoming 0.7.0 release.
+
+### What's Changed
+
+* Make relationship graph loading asynchronous by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1388
+* Add *in situ* XRD block that can handle temperature and electrochemical data by @be-smith in https://github.com/datalab-org/datalab/pull/1287
+* Log more informative block errors by @jdbocarsly in https://github.com/datalab-org/datalab/pull/1393
+* Server Dockerfile fixes for `arm64` architecture by @DianaAliabieva in https://github.com/datalab-org/datalab/pull/1407
+* Clear items before inserting example data to avoid regex search matching a random ID by @ml-evs in https://github.com/datalab-org/datalab/pull/1416
+* Add Cypress e2e tests with authenticated user login via magic links by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1379
+* Minor improvements to the XRD-insitu block front end by @be-smith in https://github.com/datalab-org/datalab/pull/1412
+* Added .csv option to echem block and bumped navani version number by @be-smith in https://github.com/datalab-org/datalab/pull/1397
+* Fix dialog boxes font consistency by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1428
+* Add calendar date filtering to Datatable by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1422
+* Improving formatting of valid chemical formulae by @ml-evs in https://github.com/datalab-org/datalab/pull/1121
+* Truncate dialog message when deleting many samples by @ml-evs in https://github.com/datalab-org/datalab/pull/1425
+* Constrain which block fields can be set from web requests and saved in db by @ml-evs in https://github.com/datalab-org/datalab/pull/1421
+* Update funding/contributor information in README.md by @ml-evs in https://github.com/datalab-org/datalab/pull/1438
+* Add Shimazdu file loader for FTIR block by @be-smith in https://github.com/datalab-org/datalab/pull/1413
+* Block plotting improvements: ability to hide points, larger plots, external legends by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1263
+
+
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.6.5...v0.6.6
+
+## v0.6.5 (October 2025)
+
+This patch releases includes several quality-of-life improvements and bug fixes,
+including improvements to full-text search, file permissions and the
+item relationship graph.
+
+### What's Changed
+
+* Improve regex item search: implict word boundaries, chaining and literal matches by @ml-evs in https://github.com/datalab-org/datalab/pull/1338
+* Adjust file permissions so block permission gives equivalent access by @ml-evs in https://github.com/datalab-org/datalab/pull/1376
+* Remove name reset in CreateItemModal by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1369
+* Item graph display too many items by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1367
+* Allow item creation endpoints to use `PUT` by @ml-evs in https://github.com/datalab-org/datalab/pull/1387
+* Adding file-size in the filelist by @DianaAliabieva in https://github.com/datalab-org/datalab/pull/1380
+* Add support for PSTrace EIS output txt files by @ml-evs in https://github.com/datalab-org/datalab/pull/1383
+* Fix collection creation modal error display for duplicate IDs by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1382
+
+### New Contributors
+
+* @DianaAliabieva made their first contribution in https://github.com/datalab-org/datalab/pull/1380
+
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.6.4...v0.6.5
+
 ## v0.6.4 (September 2025)
 
 This patch release simply fixes a few UI bugs introduced in v0.6.3 (and earlier).
@@ -7,9 +89,9 @@ It also signifies the adoption of the Contributor Covenant Code of Conduct (v2).
 
 ### What's Changed
 
-* Broken admin dashboard UI for user management by @ml-evs in #1361
-* Inability to insert new items created via copying into a collection by @BenjaminCharmes in #1356
-* Long message dialog box formatting by @BenjaminCharmes in #1346
+* Broken admin dashboard UI for user management by @ml-evs in https://github.com/datalab-org/datalab/pull/1361
+* Inability to insert new items created via copying into a collection by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1356
+* Long message dialog box formatting by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1346
 
 **Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.6.3...v0.6.4
 
@@ -22,25 +104,25 @@ This patch release primarily improves block serialization performance and extens
 
 ### What's Changed
 
-* Major refactoring of block life cycle, with better possibilities for validation of block data before and after saving by @ml-evs in #1311
-* Replace browser-native dialogs with custom datalab dialog service by @BenjaminCharmes in #1212
-* Resolve CVEs on mermaid.js and cross-spawn by @dependabot[bot] in #1317
-* Hardened `SECRET_KEY` configuration by @ml-evs in #1324
-* Improve performance and memory utilisation when serialising blocks by @ml-evs in #1329
-* Improve performance of XRD block file reader by @ml-evs in #1331
-* Enable electrochemistry block to read multiple files and stitch them together by @be-smith in #1307
-* Fix issue with chat block rendering introduced in v0.6.2 by @ml-evs in #1340.
-* Fix case sensitivity of TIF file handling in media block by @ml-evs in #1326.
+* Major refactoring of block life cycle, with better possibilities for validation of block data before and after saving by @ml-evs in https://github.com/datalab-org/datalab/pull/1311
+* Replace browser-native dialogs with custom datalab dialog service by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1212
+* Resolve CVEs on mermaid.js and cross-spawn by @dependabot[bot] in https://github.com/datalab-org/datalab/pull/1317
+* Hardened `SECRET_KEY` configuration by @ml-evs in https://github.com/datalab-org/datalab/pull/1324
+* Improve performance and memory utilisation when serialising blocks by @ml-evs in https://github.com/datalab-org/datalab/pull/1329
+* Improve performance of XRD block file reader by @ml-evs in https://github.com/datalab-org/datalab/pull/1331
+* Enable electrochemistry block to read multiple files and stitch them together by @be-smith in https://github.com/datalab-org/datalab/pull/1307
+* Fix issue with chat block rendering introduced in v0.6.2 by @ml-evs in https://github.com/datalab-org/datalab/pull/1340.
+* Fix case sensitivity of TIF file handling in media block by @ml-evs in https://github.com/datalab-org/datalab/pull/1326.
 
 **Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.6.2...v0.6.3
 
 ## v0.6.2 (August 2025)
 
-This patch release adds a hotfix for broken media blocks when encoding TIF files (#1318).
+This patch release adds a hotfix for broken media blocks when encoding TIF files (https://github.com/datalab-org/datalab/pull/1318).
 
 #### What's Changed
 
-* Fix serialisation of block data with nested file IDs in data model by @ml-evs in #1319
+* Fix serialisation of block data with nested file IDs in data model by @ml-evs in https://github.com/datalab-org/datalab/pull/1319
 
 **Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.6.1...v0.6.2
 

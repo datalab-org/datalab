@@ -1,5 +1,5 @@
 <template>
-  <div class="creators">
+  <div class="creators-container">
     <span v-for="creator in creators" :key="creator.display_name">
       <span v-if="showBubble">
         <UserBubble v-if="showBubble" :creator="creator" :size="size" />
@@ -47,7 +47,7 @@ export default {
 </script>
 
 <style scoped>
-.creators {
+.creators-container {
   display: flex;
   flex-wrap: wrap;
   gap: 0.2rem;

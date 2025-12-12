@@ -49,7 +49,7 @@
 
     <div class="form-group ml-5 mt-3">
       <label id="synthesis-procedure-label" class="subheading">Procedure</label>
-      <TinyMceInline
+      <TiptapInline
         v-model="CellPreparationDescription"
         aria-labelledby="synthesis-procedure-label"
       />
@@ -58,7 +58,7 @@
 </template>
 
 <script>
-import TinyMceInline from "@/components/TinyMceInline";
+import TiptapInline from "@/components/TiptapInline";
 // import ChemicalFormula from "@/components/ChemicalFormula.vue";
 import { createComputedSetterForItemField } from "@/field_utils.js";
 
@@ -69,7 +69,7 @@ import CompactConstituentTable from "@/components/CompactConstituentTable";
 
 export default {
   components: {
-    TinyMceInline,
+    TiptapInline,
     CompactConstituentTable,
   },
   props: {

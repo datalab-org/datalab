@@ -1,6 +1,8 @@
 import datetime
 import json
 import re
+import secrets
+from hashlib import sha512
 
 from bson import ObjectId
 from flask import Blueprint, jsonify, redirect, request
@@ -8,7 +10,7 @@ from flask_login import current_user
 from pydantic import ValidationError
 from pymongo.command_cursor import CommandCursor
 from pymongo.errors import DuplicateKeyError
-from werkzeug.exceptions import BadRequest
+from werkzeug.exceptions import BadRequest, NotFound
 
 from pydatalab.apps import BLOCK_TYPES
 from pydatalab.config import CONFIG
@@ -19,7 +21,13 @@ from pydatalab.models.people import Person
 from pydatalab.models.relationships import RelationshipType
 from pydatalab.models.utils import generate_unique_refcode
 from pydatalab.mongo import ITEMS_FTS_FIELDS, flask_mongo
-from pydatalab.permissions import PUBLIC_USER_ID, active_users_or_get_only, get_default_permissions
+from pydatalab.permissions import (
+    PUBLIC_USER_ID,
+    access_token_or_active_users,
+    active_users_or_get_only,
+    check_access_token,
+    get_default_permissions,
+)
 
 ITEMS = Blueprint("items", __name__)
 
@@ -39,6 +47,7 @@ def get_equipment_summary():
         "date": 1,
         "refcode": 1,
         "location": 1,
+        "status": 1,
     }
 
     items = [
@@ -85,6 +94,7 @@ def get_starting_materials():
                         "refcode": 1,
                         "supplier": 1,
                         "location": 1,
+                        "status": 1,
                     }
                 },
                 {
@@ -134,6 +144,7 @@ def get_items_summary(match: dict | None = None, project: dict | None = None) ->
         "type": 1,
         "date": 1,
         "refcode": 1,
+        "status": 1,
     }
 
     # Cannot mix 0 and 1 keys in MongoDB project so must loop and check
@@ -189,6 +200,7 @@ def get_samples_summary(match: dict | None = None, project: dict | None = None) 
         "type": 1,
         "date": 1,
         "refcode": 1,
+        "status": 1,
     }
 
     # Cannot mix 0 and 1 keys in MongoDB project so must loop and check
@@ -412,40 +424,29 @@ def _create_sample(
     generate_id_automatically: bool = False,
 ) -> tuple[dict, int]:
     sample_dict["item_id"] = sample_dict.get("item_id")
+
     if generate_id_automatically and sample_dict["item_id"]:
-        return (
-            dict(
-                status="error",
-                messages=f"""Request to create item with generate_id_automatically = true is incompatible with the provided item data,
-                which has an item_id included (provided id: {sample_dict["item_id"]}")""",
-            ),
-            400,
+        raise BadRequest(
+            f"Request to create item with {generate_id_automatically=} is incompatible with the provided item data, which has an item_id included (id: {sample_dict['item_id']})"
         )
 
     if copy_from_item_id:
         copied_doc = flask_mongo.db.items.find_one({"item_id": copy_from_item_id})
 
-        LOGGER.debug(f"Copying from pre-existing item {copy_from_item_id} with data:\n{copied_doc}")
+        LOGGER.debug(
+            "Copying from pre-existing item %s with data:\n%s", copy_from_item_id, copied_doc
+        )
         if not copied_doc:
-            return (
-                dict(
-                    status="error",
-                    message=f"Request to copy item with id {copy_from_item_id} failed because item could not be found.",
-                    item_id=sample_dict["item_id"],
-                ),
-                404,
+            raise NotFound(
+                f"Request to copy item with id {copy_from_item_id} failed because item could not be found."
             )
 
         # the provided item_id, name, and date take precedence over the copied parameters, if provided
         try:
             copied_doc["item_id"] = sample_dict["item_id"]
         except KeyError:
-            return (
-                dict(
-                    status="error",
-                    message=f"Request to copy item with id {copy_from_item_id} to new item failed because the target new item_id was not provided.",
-                ),
-                400,
+            raise BadRequest(
+                f"Request to copy item with id {copy_from_item_id} to new item failed because the target new item_id was not provided."
             )
 
         copied_doc["name"] = sample_dict.get("name")
@@ -498,14 +499,9 @@ def _create_sample(
         # If passed collection data, dereference it and check if the collection exists
         sample_dict["collections"] = _check_collections(sample_dict)
     except ValueError as exc:
-        return (
-            dict(
-                status="error",
-                message=f"Unable to create new item {sample_dict['item_id']!r} inside non-existent collection(s): {exc}",
-                item_id=sample_dict["item_id"],
-            ),
-            401,
-        )
+        raise NotFound(
+            f"Unable to create new item {sample_dict['item_id']!r} inside non-existent collection(s) {exc}"
+        ) from exc
 
     sample_dict.pop("refcode", None)
     type_ = sample_dict["type"]
@@ -514,12 +510,6 @@ def _create_sample(
 
     model = ITEM_MODELS[type_]
 
-    # the following code was used previously to explicitely check schema properties.
-    # it doesn't seem to be necessary now, with extra = "ignore" turned on in the pydantic models,
-    # and it breaks in instances where the models use aliases (e.g., in the starting_material model)
-    # so we are taking it out now, but leaving this comment in case it needs to be reverted.
-    # schema = model.schema()
-    # new_sample = {k: sample_dict[k] for k in schema["properties"] if k in sample_dict}
     new_sample = sample_dict
 
     if type_ in ("starting_materials", "equipment"):
@@ -527,7 +517,7 @@ def _create_sample(
         # so no creators are assigned
         new_sample["creator_ids"] = []
         new_sample["creators"] = []
-    elif CONFIG.TESTING:
+    elif CONFIG.TESTING and not current_user.is_authenticated:
         # Set fake ID to ObjectId("000000000000000000000000") so a dummy user can be created
         # locally for testing creator UI elements
         new_sample["creator_ids"] = [PUBLIC_USER_ID]
@@ -626,6 +616,7 @@ def _create_sample(
         if data_model.collections
         else [],
         "type": data_model.type,
+        "status": data_model.status,
     }
 
     # hack to let us use _create_sample() for equipment too. We probably want to make
@@ -810,10 +801,77 @@ def update_item_permissions(refcode: str):
     return jsonify({"status": "success"}), 200
 
 
+@ITEMS.route("/items/<refcode>/issue-access-token", methods=["POST"])
+def issue_physical_token(refcode: str):
+    """Issue a token that will give semi-permanent access to an
+    item with this refcode. This should be used when generating
+    physical labels to attach to a container.
+
+    """
+
+    if len(refcode.split(":")) != 2:
+        refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
+
+    current_item = flask_mongo.db.items.find_one(
+        {"refcode": refcode, **get_default_permissions(user_only=True)},
+        {"refcode": 1},
+    )
+
+    if not current_item:
+        return jsonify(
+            {
+                "status": "error",
+                "message": f"No valid item found with the given {refcode=}.",
+            }
+        ), 404
+
+    token = secrets.token_urlsafe(16)
+    access_document = {
+        "token": sha512(token.encode("utf-8")).hexdigest(),
+        "refcode": refcode,
+        "user": ObjectId(current_user.id),
+        "active": True,
+        "created_at": datetime.datetime.now(tz=datetime.timezone.utc),
+        "expires_at": None,
+        "version": 1,
+        "type": "access_token",
+    }
+
+    try:
+        result = flask_mongo.db.api_keys.insert_one(access_document)
+        if not result.inserted_id:
+            return jsonify(
+                {"status": "error", "message": "Unknown error generating token for item."}
+            ), 500
+    except Exception as e:
+        LOGGER.error("Error inserting access token: %s", e)
+        return jsonify(
+            {"status": "error", "message": "Database error generating token for item."}
+        ), 500
+
+    return jsonify({"status": "success", "token": token}), 201
+
+
 @ITEMS.route("/delete-sample/", methods=["POST"])
 def delete_sample():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
     item_id = request_json["item_id"]
+
+    item = flask_mongo.db.items.find_one(
+        {"item_id": item_id, **get_default_permissions(user_only=True, deleting=True)},
+        {"refcode": 1},
+    )
+
+    if not item:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": f"Authorization required to attempt to delete sample with {item_id=} from the database.",
+                }
+            ),
+            401,
+        )
 
     result = flask_mongo.db.items.delete_one(
         {"item_id": item_id, **get_default_permissions(user_only=True, deleting=True)}
@@ -824,30 +882,43 @@ def delete_sample():
             jsonify(
                 {
                     "status": "error",
-                    "message": f"Authorization required to attempt to delete sample with {item_id=} from the database.",
+                    "message": f"Failed to delete item with {item_id=}.",
                 }
             ),
-            401,
+            400,
         )
-    return (
-        jsonify(
-            {
-                "status": "success",
-            }
-        ),
-        200,
-    )
+
+    flask_mongo.db.api_keys.delete_many({"refcode": item["refcode"], "type": "access_token"})
+
+    return jsonify({"status": "success"}), 200
 
 
 @ITEMS.route("/items/<refcode>", methods=["GET"])
+@access_token_or_active_users
+def get_item_by_refcode(refcode: str, elevate_permissions: bool = False):
+    return get_item_data(refcode=refcode, elevate_permissions=elevate_permissions)
+
+
 @ITEMS.route("/get-item-data/<item_id>", methods=["GET"])
-def get_item_data(item_id: str | None = None, refcode: str | None = None):
+@active_users_or_get_only
+def get_item_by_id(item_id: str):
+    return get_item_data(item_id=item_id, elevate_permissions=False)
+
+
+def get_item_data(
+    item_id: str | None = None, refcode: str | None = None, elevate_permissions: bool = False
+):
     """Generates a JSON response for the item with the given `item_id`,
     or `refcode` additionally resolving relationships to files and other items.
     """
+
     redirect_to_ui = bool(request.args.get("redirect-to-ui", default=False, type=json.loads))
+    access_token = request.args.get("at")
     if refcode and redirect_to_ui and CONFIG.APP_URL:
-        return redirect(f"{CONFIG.APP_URL}/items/{refcode}", code=307)
+        redirect_url = f"{CONFIG.APP_URL}/items/{refcode}"
+        if access_token:
+            redirect_url += f"?at={access_token}"
+        return redirect(redirect_url, code=307)
 
     if item_id:
         match = {"item_id": item_id}
@@ -857,15 +928,7 @@ def get_item_data(item_id: str | None = None, refcode: str | None = None):
 
         match = {"refcode": refcode}
     else:
-        return (
-            jsonify(
-                {
-                    "status": "error",
-                    "message": "No item_id or refcode provided.",
-                }
-            ),
-            400,
-        )
+        raise BadRequest("No item_id or refcode provided.")
 
     # retrieve the entry from the database:
     cursor = flask_mongo.db.items.aggregate(
@@ -873,7 +936,9 @@ def get_item_data(item_id: str | None = None, refcode: str | None = None):
             {
                 "$match": {
                     **match,
-                    **get_default_permissions(user_only=False),
+                    **get_default_permissions(
+                        user_only=False, elevate_permissions=elevate_permissions
+                    ),
                 }
             },
             {"$lookup": creators_lookup()},
@@ -887,11 +952,7 @@ def get_item_data(item_id: str | None = None, refcode: str | None = None):
     except IndexError:
         doc = None
 
-    if not doc or (
-        not current_user.is_authenticated
-        and not CONFIG.TESTING
-        and doc["type"] != "starting_materials"
-    ):
+    if not doc:
         return (
             jsonify(
                 {
@@ -907,9 +968,9 @@ def get_item_data(item_id: str | None = None, refcode: str | None = None):
         ItemModel = ITEM_MODELS[doc["type"]]
     except KeyError:
         if "type" in doc:
-            raise KeyError(f"Item {item_id=} has invalid type: {doc['type']}")
+            raise BadRequest(f"Item {item_id=} has invalid type: {doc['type']}")
         else:
-            raise KeyError(f"Item {item_id=} has no type field in document.")
+            raise BadRequest(f"Item {item_id=} has no type field in document.")
 
     doc = ItemModel(**doc)
 
@@ -972,17 +1033,11 @@ def get_item_data(item_id: str | None = None, refcode: str | None = None):
     if item_id is None:
         item_id = return_dict["item_id"]
 
-    # create the files_data dictionary keyed by file ObjectId
-    files_data: dict[ObjectId, dict] = {
-        f["immutable_id"]: f for f in return_dict.get("files") or []
-    }
-
     return jsonify(
         {
             "status": "success",
             "item_id": item_id,
             "item_data": return_dict,
-            "files_data": files_data,
             "child_items": sorted(children),
             "parent_items": sorted(parents),
         }
@@ -1090,7 +1145,7 @@ def save_item():
     item.pop("creators")
 
     result = flask_mongo.db.items.update_one(
-        {"item_id": item_id},
+        {"item_id": item_id, **get_default_permissions(user_only=True)},
         {"$set": item},
     )
 
@@ -1145,3 +1200,67 @@ def search_users():
     return jsonify(
         {"status": "success", "users": list(json.loads(Person(**d).json()) for d in cursor)}
     ), 200
+
+
+@ITEMS.route("/items/<refcode>/access-token-info", methods=["GET"])
+def get_access_token_info(refcode: str):
+    """Get information about existing access token for this item (if any).
+
+    Returns token info (with masked token) if user has permissions to this item.
+    """
+    access_token = request.args.get("at")
+    if access_token and check_access_token(refcode, access_token):
+        pass
+    elif not (current_user.is_authenticated):
+        return jsonify({"status": "error", "message": "Authentication required."}), 401
+
+    if len(refcode.split(":")) != 2:
+        refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
+
+    current_item = flask_mongo.db.items.find_one(
+        {"refcode": refcode, **get_default_permissions(user_only=True)},
+        {"refcode": 1},
+    )
+
+    if not current_item:
+        return jsonify(
+            {
+                "status": "error",
+                "message": f"No valid item found with the given {refcode=}.",
+            }
+        ), 404
+
+    existing_token = flask_mongo.db.api_keys.find_one(
+        {"refcode": refcode, "active": True, "type": "access_token"},
+        {"token": 1, "created_at": 1, "user": 1},
+    )
+
+    if existing_token:
+        token_hash = existing_token["token"]
+        masked_token = token_hash[:8] + "..." + token_hash[-8:]
+
+        user_info = None
+        if existing_token.get("user"):
+            user_doc = flask_mongo.db.users.find_one(
+                {"_id": existing_token["user"]}, {"display_name": 1, "contact_email": 1}
+            )
+            if user_doc:
+                user_info = {
+                    "display_name": user_doc.get("display_name"),
+                    "contact_email": user_doc.get("contact_email"),
+                }
+
+        return jsonify(
+            {
+                "status": "success",
+                "has_token": True,
+                "token_info": {
+                    "token": masked_token,
+                    "created_at": existing_token["created_at"],
+                    "created_by": str(existing_token["user"]),
+                    "created_by_info": user_info,
+                },
+            }
+        ), 200
+    else:
+        return jsonify({"status": "success", "has_token": False}), 200

@@ -60,7 +60,8 @@ def compute_gpcl_differential(
     """
     if len(df) < 2:
         LOGGER.debug(
-            f"compute_gpcl_differential called on dataframe with length {len(df)}, too small to calculate derivatives"
+            "compute_gpcl_differential called on dataframe with length %s, too small to calculate derivatives",
+            len(df),
         )
         return df
 
@@ -97,9 +98,10 @@ def compute_gpcl_differential(
             )
         except TypeError as e:
             LOGGER.debug(
-                f"""Calculating derivative {mode} of half_cycle {cycle} failed with the following error (likely it is a rest or voltage hold):
-                 {e}
-                Skipping derivative calculation for this half cycle."""
+                "Calculating derivative %s of half_cycle %s failed with the following error (likely it is a rest or voltage hold):\n                 %s\n                Skipping derivative calculation for this half cycle.",
+                mode,
+                cycle,
+                e,
             )
             continue
 
@@ -152,7 +154,7 @@ def filter_df_by_cycle_index(df: pd.DataFrame, cycle_list: list[int] | None = No
 
         if len(cycle_list) == 1 and max(cycle_list) > df["cycle index"].max():
             cycle_list[0] = df["cycle index"].max()
-        return df[df["cycle index"].isin(i for i in cycle_list)]
+        return df[df["cycle index"].isin(i for i in cycle_list)].copy()
 
     try:
         if len(cycle_list) == 1 and 2 * max(cycle_list) > df["half cycle"].max():
@@ -166,4 +168,4 @@ def filter_df_by_cycle_index(df: pd.DataFrame, cycle_list: list[int] | None = No
         raise ValueError(
             f"Unable to parse `cycle_list` as integers: {cycle_list}. Error: {exc}"
         ) from exc
-    return df[df["half cycle"].isin(half_cycles)]
+    return df[df["half cycle"].isin(half_cycles)].copy()

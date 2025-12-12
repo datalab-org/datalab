@@ -56,3 +56,22 @@ class BSONProvider(DefaultJSONProvider):
     @staticmethod
     def default(o):
         return CustomJSONEncoder.default(o)
+
+
+def shrink_label(label: str | None, max_length: int = 15) -> str:
+    """Shrink label to fit within max_length, preserving file extension when possible."""
+    if not label or len(label) <= max_length:
+        return label or ""
+
+    if "." in label:
+        name, ext = label.rsplit(".", 1)
+        if len(ext) < 6:
+            available = max_length - len(ext) - 4
+            if available > 3:
+                return f"{name[:available]}...{ext}"
+            else:
+                return f"{label[:12]}..."
+        else:
+            return f"{label[:12]}..."
+    else:
+        return f"{label[:12]}..."

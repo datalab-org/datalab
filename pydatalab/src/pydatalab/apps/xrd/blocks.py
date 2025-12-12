@@ -42,7 +42,7 @@ class XRDBlock(DataBlock):
         elif wavelength <= 0:
             raise ValueError("Wavelength must be a positive number")
 
-        LOGGER.debug(f"Setting wavelength to {wavelength} for block {self.block_id}")
+        LOGGER.debug("Setting wavelength to %s for block %s", wavelength, self.block_id)
         self.data["wavelength"] = wavelength
 
     @classmethod
@@ -158,7 +158,7 @@ class XRDBlock(DataBlock):
         df = pd.concat([df, y_option_df], axis=1)
         df.index.name = location.split("/")[-1] + (" (theoretical)" if theoretical else "")
 
-        LOGGER.debug(f"Loaded file from {location} as XRD pattern with wavelength {wavelength}")
+        LOGGER.debug("Loaded file from %s as XRD pattern with wavelength %s", location, wavelength)
 
         return df, y_options, peak_data
 
@@ -290,7 +290,7 @@ class XRDBlock(DataBlock):
                 f"{self.data.get('wavelength', self.defaults['wavelength'])} Å"
             )
             peak_model = PeakInformation(**peak_data)
-            if "computed" not in self.data:
+            if self.data.get("computed") is None:
                 self.data["computed"] = {"peak_data": {}}
             self.data["computed"]["peak_data"][str(file_info["immutable_id"])] = peak_model.dict()
             pattern_dfs = [pattern_df]
@@ -309,7 +309,7 @@ class XRDBlock(DataBlock):
                 pattern_dfs.append(pattern_df)
 
                 peak_model = PeakInformation(**peak_data)
-                if "computed" not in self.data:
+                if self.data.get("computed") is None:
                     self.data["computed"] = {"peak_data": {}}
                 self.data["computed"]["peak_data"][f] = peak_model.dict()
                 pattern_dfs = [pattern_df]

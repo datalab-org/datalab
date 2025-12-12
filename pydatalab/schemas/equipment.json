@@ -117,6 +117,14 @@
         "type": "string"
       }
     },
+    "status": {
+      "default": "working",
+      "allOf": [
+        {
+          "$ref": "#/definitions/EquipmentStatus"
+        }
+      ]
+    },
     "serial_numbers": {
       "title": "Serial Numbers",
       "type": "string"
@@ -632,6 +640,19 @@
         "time_added",
         "is_live"
       ]
+    },
+    "EquipmentStatus": {
+      "title": "EquipmentStatus",
+      "description": "An enumeration of the status of equipments",
+      "enum": [
+        "working",
+        "broken",
+        "being_fixed",
+        "defunct",
+        "not_being_fixed",
+        "other"
+      ],
+      "type": "string"
     }
   }
 }

@@ -29,6 +29,7 @@ export default createStore({
     fileSelectModalIsOpen: false,
     currentUserDisplayName: null,
     currentUserID: null,
+    currentUserInfoLoading: false,
     serverInfo: null,
     blocksInfos: {},
     currentUserIsUnverified: false,
@@ -56,6 +57,10 @@ export default createStore({
       },
     },
     block_errors: {},
+    apiConfig: {
+      maxUploadBytes: null,
+    },
+    schemas: {}, // keys: item types, vals: schema objects
   },
   mutations: {
     setServerInfo(state, serverInfo) {
@@ -337,6 +342,9 @@ export default createStore({
     setItemGraph(state, payload) {
       state.itemGraphData = payload;
     },
+    setCurrentUserInfoLoading(state, isLoading) {
+      state.currentUserInfoLoading = isLoading;
+    },
     setItemGraphIsLoading(state, isLoading) {
       state.itemGraphIsLoading = isLoading;
     },
@@ -376,6 +384,12 @@ export default createStore({
         state.blockProcessingTasks = {};
       }
       state.blockProcessingTasks[block_id] = task_id;
+    },
+    setApiConfig(state, config) {
+      state.apiConfig = config;
+    },
+    setSchema(state, { type, schema }) {
+      state.schemas[type] = schema;
     },
   },
   getters: {

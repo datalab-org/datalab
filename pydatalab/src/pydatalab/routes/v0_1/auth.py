@@ -18,11 +18,12 @@ from flask import Blueprint, g, jsonify, redirect, request
 from flask_dance.consumer import OAuth2ConsumerBlueprint, oauth_authorized
 from flask_login import current_user, login_user
 from flask_login.utils import LocalProxy
-from werkzeug.exceptions import BadRequest
+from werkzeug.exceptions import BadRequest, Forbidden
 
 from pydatalab.config import CONFIG
 from pydatalab.errors import UserRegistrationForbidden
-from pydatalab.logger import LOGGER, logged_route
+from pydatalab.feature_flags import FEATURE_FLAGS
+from pydatalab.logger import LOGGER
 from pydatalab.login import get_by_id
 from pydatalab.models.people import AccountStatus, Identity, IdentityType, Person
 from pydatalab.mongo import flask_mongo, insert_pydantic_model_fork_safe
@@ -202,7 +203,6 @@ def make_orcid_blueprint(
 orcid = LocalProxy(lambda: g.flask_dance_orcid)
 
 
-@logged_route
 def wrapped_login_user(*args, **kwargs):
     login_user(*args, **kwargs)
 
@@ -253,6 +253,9 @@ def _check_email_domain(email: str, allow_list: list[str] | None) -> bool:
         Whether the email address is allowed to register an account.
 
     """
+    if CONFIG.TESTING:
+        return True
+
     domain = email.split("@")[-1]
     if isinstance(allow_list, list) and not allow_list:
         return False
@@ -270,7 +273,6 @@ def _check_email_domain(email: str, allow_list: list[str] | None) -> bool:
     return True
 
 
-@logged_route
 def find_user_with_identity(
     identifier: str,
     identity_type: str | IdentityType,
@@ -329,7 +331,6 @@ def find_create_or_modify_user(
 
     """
 
-    @logged_route
     def attach_identity_to_user(
         user_id: str,
         identity: Identity,
@@ -413,11 +414,166 @@ def find_create_or_modify_user(
             user_model = get_by_id(str(user.immutable_id))
             if user is None:
                 raise RuntimeError("Failed to insert user into database")
+
             wrapped_login_user(user_model)
+            # Send email notification to admins
+            _send_admin_email_notification(user)
+
+    if user is not None and user.account_status == AccountStatus.DEACTIVATED:
+        _send_admin_email_notification(user)
 
     # Log the user into the session with this identity
     if user is not None:
         wrapped_login_user(get_by_id(str(user.immutable_id)))
+
+
+def _validate_magic_link_request(email: str, referrer: str) -> None:
+    if not email:
+        raise BadRequest("No email provided")
+
+    if not re.match(r"^\S+@\S+.\S+$", email):
+        raise BadRequest("Invalid email provided.")
+
+    if not referrer:
+        raise BadRequest("Referrer address not provided, please contact the datalab administrator")
+
+
+def _generate_and_store_token(email: str, intent: str = "register") -> str:
+    """Generate a JWT for the user with a short expiration and store it in the session.
+
+    The session itself persists beyond the JWT expiration. The `exp` key is a standard
+    part of JWT that PyJWT treats as an expiration time and will correctly encode the datetime.
+
+    Args:
+        email: The user's email address to include in the token.
+        intent: The intent of the magic link, e.g., "register" "verify", or "login".
+
+    Returns:
+        The generated JWT token string.
+
+    """
+    payload = {
+        "exp": datetime.datetime.now(datetime.timezone.utc) + LINK_EXPIRATION,
+        "email": email,
+        "intent": intent,
+    }
+
+    token = jwt.encode(
+        payload,
+        CONFIG.SECRET_KEY,
+        algorithm="HS256",
+    )
+
+    flask_mongo.db.magic_links.insert_one({"jwt": token})
+
+    return token
+
+
+def _check_user_registration_allowed(email: str) -> None:
+    user = find_user_with_identity(email, IdentityType.EMAIL, verify=False)
+
+    if not user:
+        allowed = _check_email_domain(email, CONFIG.EMAIL_DOMAIN_ALLOW_LIST)
+        if not allowed:
+            LOGGER.warning("Did not allow %s to register an account", email)
+            raise Forbidden(
+                f"Email address {email} is not allowed to register an account. Please contact the administrator if you believe this is an error."
+            )
+
+
+def _send_admin_email_notification(user: Person) -> None:
+    """Sends an email notification to the admin email address when an unverified user
+    attempts to register an account.
+
+    """
+    if not FEATURE_FLAGS.email_notifications:
+        LOGGER.info("Email notifications are disabled; not sending unverified user notification.")
+        return
+
+    admins = flask_mongo.db.users.aggregate(
+        [
+            {
+                "$lookup": {
+                    "from": "roles",
+                    "localField": "_id",
+                    "foreignField": "_id",
+                    "as": "role",
+                }
+            },
+            {"$unwind": "$role"},
+            {"$match": {"role.role": "admin"}},
+        ]
+    )
+
+    admin_emails = [a["contact_email"] for a in admins if a.get("contact_email")]
+
+    # Get contact emails of admin users via lookup in the roles and users collections
+    if user.account_status == AccountStatus.UNVERIFIED:
+        subject = "User Registration Notification"
+        subject += f": {CONFIG.APP_URL}" if CONFIG.APP_URL else ""
+        body = (
+            f"A new user with display name {user.display_name} attempted to register an account on {CONFIG.APP_URL}.\n\n"
+            "Please review the registration in your admin panel and verify the user if appropriate."
+        )
+
+    elif user.account_status == AccountStatus.DEACTIVATED:
+        subject = "Deactivated User Login Attempt Notification"
+        subject += f": {CONFIG.APP_URL}" if CONFIG.APP_URL else ""
+        body = (
+            f"A deactivated user with display name {user.display_name} attempted to log in to the datalab instance at {CONFIG.APP_URL}.\n\n"
+            "No action is required unless you wish to reactivate this user."
+        )
+
+    elif user.account_status == AccountStatus.ACTIVE:
+        subject = "New User Created"
+        subject += f": {CONFIG.APP_URL}" if CONFIG.APP_URL else ""
+        body = (
+            f"A new user with display name {user.display_name} has registered on the datalab instance at {CONFIG.APP_URL}.\n\n"
+            "No action is required unless you wish to deactivate this user."
+        )
+
+    else:
+        LOGGER.critical("Unknown user status %s for new user %s", user.account_status, user)
+        return
+
+    try:
+        for email in admin_emails:
+            send_mail(email, subject, body)
+    except Exception as exc:
+        LOGGER.warning("Failed to send unverified user notification email: %s", exc)
+
+
+def _send_magic_link_email(
+    email: str, token: str, referrer: str | None, purpose: str = "authorize"
+) -> None:
+    if not referrer:
+        referrer = "https://example.com"
+
+    link = f"{referrer}?token={token}"
+    instance_url = referrer.replace("https://", "")
+
+    if purpose == "authorize":
+        user = find_user_with_identity(email, IdentityType.EMAIL, verify=False)
+        if user is not None:
+            subject = "datalab Sign-in Magic Link"
+            body = f"Click the link below to sign-in to the datalab instance at {instance_url}:\n\n{link}\n\nThis link is single-use and will expire in 1 hour."
+        else:
+            subject = "datalab Registration Magic Link"
+            body = f"Click the link below to register for the datalab instance at {instance_url}:\n\n{link}\n\nThis link is single-use and will expire in 1 hour."
+
+    elif purpose == "verify":
+        subject = "datalab Email Address Verification"
+        body = f"Click the link below to verify your email address for the datalab instance at {instance_url}:\n\n{link}\n\nThis link is single-use and will expire in 1 hour."
+
+    else:
+        LOGGER.critical("Unknown purpose %s for magic link email", purpose)
+        raise RuntimeError("Unknown error occurred")
+
+    try:
+        send_mail(email, subject, body)
+    except Exception as exc:
+        LOGGER.warning("Failed to send email to %s: %s", email, exc)
+        raise RuntimeError("Email not sent successfully.")
 
 
 @EMAIL_BLUEPRINT.route("/magic-link", methods=["POST"])
@@ -426,77 +582,17 @@ def generate_and_share_magic_link():
     in the database and sends it to the verified email address.
 
     """
+
     request_json = request.get_json()
     email = request_json.get("email")
     referrer = request_json.get("referrer")
 
-    if not email:
-        return jsonify({"status": "error", "detail": "No email provided."}), 400
+    _validate_magic_link_request(email, referrer)
+    _check_user_registration_allowed(email)
+    token = _generate_and_store_token(email, intent="register")
+    _send_magic_link_email(email, token, referrer)
 
-    if not re.match(r"^\S+@\S+.\S+$", email):
-        return jsonify({"status": "error", "detail": "Invalid email provided."}), 400
-
-    if not referrer:
-        LOGGER.warning("No referrer provided for magic link request: %s", request_json)
-        return (
-            jsonify(
-                {
-                    "status": "error",
-                    "detail": "Referrer address not provided, please contact the datalab administrator.",
-                }
-            ),
-            400,
-        )
-
-    # Generate a JWT for the user with a short expiration; the session itself
-    # should persist
-    # The key `exp` is a standard part of JWT; pyjwt treats this as an expiration time
-    # and will correctly encode the datetime
-    token = jwt.encode(
-        {"exp": datetime.datetime.now(datetime.timezone.utc) + LINK_EXPIRATION, "email": email},
-        CONFIG.SECRET_KEY,
-        algorithm="HS256",
-    )
-
-    flask_mongo.db.magic_links.insert_one(
-        {"jwt": token},
-    )
-
-    link = f"{referrer}?token={token}"
-
-    instance_url = referrer.replace("https://", "")
-
-    # See if the user already exists and adjust the email if so
-    user = find_user_with_identity(email, IdentityType.EMAIL, verify=False)
-
-    if not user:
-        allowed = _check_email_domain(email, CONFIG.EMAIL_DOMAIN_ALLOW_LIST)
-        if not allowed:
-            LOGGER.info("Did not allow %s to register an account", email)
-            return (
-                jsonify(
-                    {
-                        "status": "error",
-                        "detail": f"Email address {email} is not allowed to register an account. Please contact the administrator if you believe this is an error.",
-                    }
-                ),
-                403,
-            )
-
-    if user is not None:
-        subject = "Datalab Sign-in Magic Link"
-        body = f"Click the link below to sign-in to the datalab instance at {instance_url}:\n\n{link}\n\nThis link is single-use and will expire in 1 hour."
-    else:
-        subject = "Datalab Registration Magic Link"
-        body = f"Click the link below to register for the datalab instance at {instance_url}:\n\n{link}\n\nThis link is single-use and will expire in 1 hour."
-
-    try:
-        send_mail(email, subject, body)
-    except Exception as exc:
-        LOGGER.warning("Failed to send email to %s: %s", email, exc)
-        return jsonify({"status": "error", "detail": "Email not sent successfully."}), 400
-
-    return jsonify({"status": "success", "detail": "Email sent successfully."}), 200
+    return jsonify({"status": "success", "message": "Email sent successfully."}), 200
 
 
 @EMAIL_BLUEPRINT.route("/email")
@@ -536,19 +632,22 @@ def email_logged_in():
     # If the email domain list is explicitly configured to None, this allows any
     # email address to make an active account, otherwise the email domain must match
     # the list of allowed domains and the admin must verify the user
-    allowed = _check_email_domain(email, CONFIG.EMAIL_DOMAIN_ALLOW_LIST)
-    if not allowed:
-        # If this point is reached, the token is valid but the server settings have
-        # changed since the link was generated, so best to fail safe
-        raise UserRegistrationForbidden
 
-    create_account = AccountStatus.UNVERIFIED
-    if (
-        CONFIG.EMAIL_DOMAIN_ALLOW_LIST is None
-        or CONFIG.EMAIL_AUTO_ACTIVATE_ACCOUNTS
-        or CONFIG.AUTO_ACTIVATE_ACCOUNTS
-    ):
-        create_account = AccountStatus.ACTIVE
+    if data.get("intent") == "register":
+        allowed = _check_email_domain(email, CONFIG.EMAIL_DOMAIN_ALLOW_LIST)
+        if not allowed:
+            raise UserRegistrationForbidden
+
+        create_account = AccountStatus.UNVERIFIED
+        if (
+            CONFIG.EMAIL_DOMAIN_ALLOW_LIST is None
+            or CONFIG.EMAIL_AUTO_ACTIVATE_ACCOUNTS
+            or CONFIG.AUTO_ACTIVATE_ACCOUNTS
+        ):
+            create_account = AccountStatus.ACTIVE
+
+    else:
+        create_account = False
 
     find_create_or_modify_user(
         email,
@@ -686,3 +785,27 @@ def generate_user_api_key():
             ),
             401,
         )
+
+
+@AUTH.route("/testing/create-magic-link", methods=["POST"])
+def create_test_magic_link():
+    """Create a magic link for testing purposes.
+
+    This endpoint is only available when TESTING=True.
+    It creates a user with the specified email and role, generates a magic link,
+    and returns the token.
+    """
+    if not CONFIG.TESTING:
+        return jsonify(
+            {"status": "error", "detail": "This endpoint is only available in testing mode."}
+        ), 403
+
+    request_json = request.get_json()
+    email = request_json.get("email")
+    referrer = request_json.get("referrer", "http://localhost:8080")
+
+    _validate_magic_link_request(email, referrer)
+
+    token = _generate_and_store_token(email, intent="register")
+
+    return jsonify({"status": "success", "token": token}), 200
