@@ -452,6 +452,11 @@ def _create_sample(
         copied_doc["name"] = sample_dict.get("name")
         copied_doc["date"] = sample_dict.get("date")
 
+        copied_doc.pop("blocks_obj", None)
+        copied_doc.pop("display_order", None)
+        copied_doc.pop("blocks", None)
+        copied_doc.pop("file_ObjectIds", None)
+
         # any provided constituents will be added to the synthesis information table in
         # addition to the constituents copied from the copy_from_item_id, avoiding duplicates
         if copied_doc["type"] == "samples":

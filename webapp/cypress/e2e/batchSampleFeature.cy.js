@@ -233,13 +233,10 @@ describe("Batch sample creation", () => {
     cy.contains("baseA_copy").click();
     cy.findByLabelText("Name").should("have.value", "a copied sample");
     cy.findByText("this is a description of baseA.");
-    cy.findByText("a comment is added here.");
     cy.findByText("Home").click();
 
     cy.contains(/^baseB_copy$/).click();
     cy.findByText("this is a description of baseB.");
-    cy.findByText("a comment is added here.");
-    cy.findByText("a second comment is added here.");
     cy.findByText("a description of the synthesis here");
     cy.findAllByText("component3");
     cy.findAllByText("component4");
@@ -251,8 +248,6 @@ describe("Batch sample creation", () => {
 
     cy.findByText("baseB_copy2").click();
     cy.findByText("this is a description of baseB.");
-    cy.findByText("a comment is added here.");
-    cy.findByText("a second comment is added here.");
     cy.findByText("a description of the synthesis here");
     cy.findAllByText("component3");
     cy.findAllByText("component4");
@@ -347,7 +342,6 @@ describe("Batch sample creation", () => {
     cy.get("#synthesis-information table").contains("component2");
     cy.get("#synthesis-information tbody tr:nth-of-type(1) input").eq(0).should("have.value", "");
     cy.get("#synthesis-information tbody tr:nth-of-type(2) input").eq(0).should("have.value", "");
-    cy.findByText("a comment is added here.");
     cy.findByText("Home").click();
 
     cy.contains("test103").click();
@@ -379,8 +373,6 @@ describe("Batch sample creation", () => {
       "g",
     );
 
-    cy.findByText("a comment is added here.");
-    cy.findByText("a second comment is added here.");
     cy.findByText("Home").click();
 
     cy.contains("test104").click();
@@ -420,8 +412,6 @@ describe("Batch sample creation", () => {
     );
 
     cy.findByText("a description of the synthesis here");
-    cy.findByText("a comment is added here.");
-    cy.findByText("a second comment is added here.");
 
     cy.findByText("Home").click();
   });
@@ -545,8 +535,6 @@ describe("Batch sample creation", () => {
         .should("have.value", "100");
       cy.get("#synthesis-information tbody tr:nth-of-type(3) input").eq(0).should("have.value", "");
 
-      cy.findByText("a comment is added here.");
-      cy.findByText("a second comment is added here.");
       cy.findByText("Home").click();
     }
 
@@ -651,8 +639,6 @@ describe("Batch sample creation", () => {
         .should("have.value", "100");
       cy.get("#synthesis-information tbody tr:nth-of-type(3) input").eq(0).should("have.value", "");
 
-      cy.findByText("a comment is added here.");
-      cy.findByText("a second comment is added here.");
       cy.findByText("Home").click();
     }
 
