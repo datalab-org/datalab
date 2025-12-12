@@ -193,6 +193,11 @@ def user_id():
 
 
 @pytest.fixture(scope="session")
+def group_id():
+    yield ObjectId(24 * "2")
+
+
+@pytest.fixture(scope="session")
 def another_user_id():
     yield ObjectId(24 * "7")
 
@@ -254,6 +259,7 @@ def insert_demo_users(
     unverified_user_id,
     unverified_user_api_key,
     real_mongo_client,
+    group_id,
 ):
     insert_user(
         user_id,
@@ -261,7 +267,7 @@ def insert_demo_users(
         "user",
         real_mongo_client,
         display_name="Test User",
-        group_immutable_id=ObjectId(24 * "2"),
+        group_immutable_id=group_id,
     )
     insert_user(
         another_user_id,
@@ -269,10 +275,10 @@ def insert_demo_users(
         "user",
         real_mongo_client,
         display_name="Another User",
-        group_immutable_id=ObjectId(24 * "2"),
+        group_immutable_id=group_id,
     )
     real_mongo_client.get_database(TEST_DATABASE_NAME).groups.insert_one(
-        {"_id": ObjectId(24 * "2"), "display_name": "Demo Group", "group_id": "demo"}
+        {"_id": group_id, "display_name": "Demo Group", "group_id": "demo"}
     )
     insert_user(admin_user_id, admin_api_key, "admin", real_mongo_client, display_name="Test Admin")
     insert_user(

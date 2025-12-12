@@ -51,6 +51,21 @@
         "$ref": "#/definitions/Person"
       }
     },
+    "group_ids": {
+      "title": "Group Ids",
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "groups": {
+      "title": "Groups",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Group"
+      }
+    },
     "type": {
       "title": "Type",
       "default": "equipment",
@@ -527,6 +542,21 @@
             "$ref": "#/definitions/Person"
           }
         },
+        "group_ids": {
+          "title": "Group Ids",
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "groups": {
+          "title": "Groups",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Group"
+          }
+        },
         "type": {
           "title": "Type",
           "default": "collections",
@@ -599,6 +629,21 @@
           "type": "array",
           "items": {
             "$ref": "#/definitions/Person"
+          }
+        },
+        "group_ids": {
+          "title": "Group Ids",
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "groups": {
+          "title": "Groups",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Group"
           }
         },
         "type": {
