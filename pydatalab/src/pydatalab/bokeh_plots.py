@@ -335,6 +335,28 @@ def selectable_axes_plot(
     if isinstance(df, dict):
         labels = list(df.keys())
 
+    label_counts: dict[str, int] = {}
+    original_labels_list = []
+
+    for ind, df_ in enumerate(df):
+        if isinstance(df, dict):
+            df_temp = df[df_]
+        else:
+            df_temp = df_
+
+        if labels:
+            orig = labels[ind]
+        else:
+            if hasattr(df_temp, "attrs") and "original_filename" in df_temp.attrs:
+                orig = df_temp.attrs["original_filename"] if len(df) > 1 else ""
+            else:
+                orig = df_temp.index.name if len(df) > 1 else ""
+
+        original_labels_list.append(orig)
+        shrunk = shrink_label(orig)
+        label_counts[shrunk] = label_counts.get(shrunk, 0) + 1
+
+    label_counter: dict[str, int] = {}
     plot_columns = []
 
     for ind, df_ in enumerate(df):
@@ -344,14 +366,23 @@ def selectable_axes_plot(
         if isinstance(df, dict):
             df_ = df[df_]
 
-        if labels:
-            label = labels[ind]
-        else:
-            label = df_.index.name if len(df) > 1 else ""
+        df_with_metadata = df_.copy()
 
-        label = shrink_label(label)
+        original_label = original_labels_list[ind]
+        label = shrink_label(original_label)
 
-        source = ColumnDataSource(df_)
+        if label and len(df) > 1 and label_counts.get(label, 0) > 1:
+            if label not in label_counter:
+                label_counter[label] = 0
+            label_counter[label] += 1
+            label = f"{label} [{label_counter[label]:02d}]"
+
+        if hasattr(df_, "attrs"):
+            for attr in ["item_id", "original_filename", "wavelength"]:
+                if attr in df_.attrs:
+                    df_with_metadata[attr] = df_.attrs[attr]
+
+        source = ColumnDataSource(df_with_metadata)
 
         if color_options:
             color = {"field": color_options[0], "transform": color_mapper}
@@ -383,7 +414,6 @@ def selectable_axes_plot(
                 size=point_size,
                 line_color=color,
                 fill_color=fill_color,
-                legend_label=label,
                 hatch_pattern=hatch_patterns[ind % len(hatch_patterns)],
                 hatch_color=color,
             )
@@ -412,7 +442,6 @@ def selectable_axes_plot(
                         y=y,
                         source=source,
                         color=color,
-                        legend_label=label,
                         alpha=0.3,
                     )
                     if plot_line
