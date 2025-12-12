@@ -140,6 +140,7 @@ export default {
     FileSelectModal,
     FormattedItemName,
     BlockTooltip,
+    ExportDropdown,
   },
   async beforeRouteLeave(to, from, next) {
     // give warning before leaving the page by the vue router (which would not trigger "beforeunload")

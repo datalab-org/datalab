@@ -10,7 +10,6 @@ from pydatalab.blocks.base import DataBlock
 from pydatalab.config import CONFIG
 from pydatalab.models.block_task import BlockProcessingStatus, BlockTask
 from pydatalab.mongo import flask_mongo
-
 from pydatalab.permissions import (
     active_users_or_get_only,
     get_default_permissions,
@@ -66,6 +65,7 @@ def _process_block_async(task_id: str, block_data: dict, event_data: dict | None
             _process_block_async_internal(task_id, block_data, event_data)
     else:
         _process_block_async_internal(task_id, block_data, event_data)
+
 
 BLOCKS = Blueprint("blocks", __name__)
 
