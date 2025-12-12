@@ -60,6 +60,7 @@ export default createStore({
     apiConfig: {
       maxUploadBytes: null,
     },
+    schemas: {}, // keys: item types, vals: schema objects
   },
   mutations: {
     setServerInfo(state, serverInfo) {
@@ -380,6 +381,9 @@ export default createStore({
     },
     setApiConfig(state, config) {
       state.apiConfig = config;
+    },
+    setSchema(state, { type, schema }) {
+      state.schemas[type] = schema;
     },
   },
   getters: {

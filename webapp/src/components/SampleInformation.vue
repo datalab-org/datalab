@@ -39,6 +39,12 @@
               :item_id="item_id"
             />
           </div>
+          <div class="form-group col-md-3 col-sm-3 col-6 pb-3">
+            <ToggleableItemStatusFormGroup
+              v-model="Status"
+              :possible-item-statuses="possibleItemStatuses"
+            />
+          </div>
         </div>
         <div class="form-row">
           <div class="col">
@@ -60,10 +66,12 @@
 
 <script>
 import { createComputedSetterForItemField } from "@/field_utils.js";
+
 import ChemFormulaInput from "@/components/ChemFormulaInput";
 import FormattedRefcode from "@/components/FormattedRefcode";
 import ToggleableCollectionFormGroup from "@/components/ToggleableCollectionFormGroup";
 import ToggleableCreatorsFormGroup from "@/components/ToggleableCreatorsFormGroup";
+import ToggleableItemStatusFormGroup from "@/components/ToggleableItemStatusFormGroup";
 import TiptapInline from "@/components/TiptapInline";
 import SynthesisInformation from "@/components/SynthesisInformation";
 import TableOfContents from "@/components/TableOfContents";
@@ -79,6 +87,7 @@ export default {
     FormattedRefcode,
     ToggleableCollectionFormGroup,
     ToggleableCreatorsFormGroup,
+    ToggleableItemStatusFormGroup,
   },
   props: {
     item_id: { type: String, required: true },
@@ -97,6 +106,9 @@ export default {
     };
   },
   computed: {
+    item() {
+      return this.$store.state.all_item_data[this.item_id];
+    },
     Refcode: createComputedSetterForItemField("refcode"),
     ItemID: createComputedSetterForItemField("item_id"),
     SampleDescription: createComputedSetterForItemField("description"),
@@ -105,6 +117,19 @@ export default {
     DateCreated: createComputedSetterForItemField("date"),
     ItemCreators: createComputedSetterForItemField("creators"),
     Collections: createComputedSetterForItemField("collections"),
+    Status: createComputedSetterForItemField("status"),
+    schema() {
+      return this.$store.state.schemas[this.item?.type];
+    },
+    possibleItemStatuses() {
+      return this.schema?.attributes?.schema?.definitions?.ItemStatus?.enum;
+    },
   },
 };
 </script>
+
+<style scoped>
+.badge {
+  font-size: 1em;
+}
+</style>

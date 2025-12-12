@@ -117,6 +117,14 @@
         "type": "string"
       }
     },
+    "status": {
+      "default": "active",
+      "allOf": [
+        {
+          "$ref": "#/definitions/CellStatus"
+        }
+      ]
+    },
     "cell_format": {
       "$ref": "#/definitions/CellFormat"
     },
@@ -668,6 +676,20 @@
         "time_added",
         "is_live"
       ]
+    },
+    "CellStatus": {
+      "title": "CellStatus",
+      "description": "An enumeration of the status of cells",
+      "enum": [
+        "active",
+        "planned",
+        "disposed",
+        "cycled",
+        "shorted",
+        "dismantled",
+        "other"
+      ],
+      "type": "string"
     },
     "CellFormat": {
       "title": "CellFormat",
