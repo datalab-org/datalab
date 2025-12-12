@@ -1033,6 +1033,38 @@ export async function getSchema(type) {
     });
 }
 
+export async function loadItemSchemas() {
+  // Load schemas for all item types and store them in the Vuex store
+  try {
+    const supportedTypes = await getSupportedSchemasList();
+
+    for (const typeInfo of supportedTypes) {
+      try {
+        const schema = await getSchema(typeInfo.id);
+        store.commit("setSchema", { type: typeInfo.id, schema });
+      } catch (error) {
+        console.error(`Failed to load schema for ${typeInfo.id}:`, error);
+      }
+    }
+  } catch (error) {
+    console.error("Failed to get supported schemas list:", error);
+  }
+}
+
+export function saveUserManagers(user_id, managers) {
+  return fetch_patch(`${API_URL}/users/${user_id}/managers`, { managers })
+    .then((response_json) => {
+      if (response_json.status && response_json.status !== "success") {
+        console.warn("Warning: saveUserManagers response:", response_json);
+      }
+      return response_json;
+    })
+    .catch((error) => {
+      console.error("Managers save failed:", error);
+      throw error;
+    });
+}
+
 export async function startCollectionExport(collection_id) {
   return fetch_post(`${API_URL}/collections/${collection_id}/export`, {})
     .then(function (response_json) {
@@ -1075,34 +1107,6 @@ export async function startSampleExport(item_id, options = {}) {
         title: "Export Failed",
         message: `Failed to start sample export: ${error}`,
       });
-export async function loadItemSchemas() {
-  // Load schemas for all item types and store them in the Vuex store
-  try {
-    const supportedTypes = await getSupportedSchemasList();
-
-    for (const typeInfo of supportedTypes) {
-      try {
-        const schema = await getSchema(typeInfo.id);
-        store.commit("setSchema", { type: typeInfo.id, schema });
-      } catch (error) {
-        console.error(`Failed to load schema for ${typeInfo.id}:`, error);
-      }
-    }
-  } catch (error) {
-    console.error("Failed to get supported schemas list:", error);
-  }
-}
-
-export function saveUserManagers(user_id, managers) {
-  return fetch_patch(`${API_URL}/users/${user_id}/managers`, { managers })
-    .then((response_json) => {
-      if (response_json.status && response_json.status !== "success") {
-        console.warn("Warning: saveUserManagers response:", response_json);
-      }
-      return response_json;
-    })
-    .catch((error) => {
-      console.error("Managers save failed:", error);
       throw error;
     });
 }
@@ -1133,6 +1137,9 @@ export async function fetchItemGraph({ item_id = null, collection_id = null, max
         message: `Error retrieving item graph from API: ${error}`,
       });
       throw error;
+    });
+}
+
 export async function getApiConfig() {
   return fetch_get(`${API_URL}/info`)
     .then((response_json) => {
