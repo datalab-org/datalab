@@ -196,9 +196,19 @@ def get_default_permissions(
             managed_users = [u["_id"] for u in managed_users]
             LOGGER.debug("Found managed users %s for user %s", managed_users, current_user.person)
 
-        user_perm: dict[str, Any] = {
-            "creator_ids": {"$in": [current_user.person.immutable_id] + managed_users}
-        }
+        user_group_ids = []
+        if current_user.person.groups:
+            user_group_ids = [group.immutable_id for group in current_user.person.groups]
+
+        user_perm_conditions = [
+            {"creator_ids": {"$in": [current_user.person.immutable_id] + managed_users}}
+        ]
+
+        if user_group_ids:
+            user_perm_conditions.append({"group_ids": {"$in": user_group_ids}})
+
+        user_perm: dict[str, Any] = {"$or": user_perm_conditions}
+
         if user_only:
             # TODO: remove this hack when permissions are refactored. Currently starting_materials and equipment
             # are a special case that should be group editable, so even when the route has asked to only edit this
