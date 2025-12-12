@@ -599,7 +599,6 @@ dev = [
     { name = "mkdocs-awesome-pages-plugin" },
     { name = "mkdocs-material" },
     { name = "mkdocstrings", extra = ["python"] },
-    { name = "mongomock" },
     { name = "pre-commit" },
     { name = "pytest" },
     { name = "pytest-cov" },
@@ -656,7 +655,6 @@ dev = [
     { name = "mkdocs-awesome-pages-plugin", specifier = "~=2.9" },
     { name = "mkdocs-material", specifier = "~=9.5" },
     { name = "mkdocstrings", extras = ["python"], specifier = "~=0.29" },
-    { name = "mongomock", specifier = "~=4.1" },
     { name = "pre-commit", specifier = "~=4.0" },
     { name = "pytest", specifier = "~=8.2" },
     { name = "pytest-cov", specifier = "~=5.0" },
@@ -1696,20 +1694,6 @@ wheels = [
 ]
 
 [[package]]
-name = "mongomock"
-version = "4.3.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "packaging" },
-    { name = "pytz" },
-    { name = "sentinels" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/4d/a4/4a560a9f2a0bec43d5f63104f55bc48666d619ca74825c8ae156b08547cf/mongomock-4.3.0.tar.gz", hash = "sha256:32667b79066fabc12d4f17f16a8fd7361b5f4435208b3ba32c226e52212a8c30", size = 135862, upload-time = "2024-11-16T11:23:25.957Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/94/4d/8bea712978e3aff017a2ab50f262c620e9239cc36f348aae45e48d6a4786/mongomock-4.3.0-py2.py3-none-any.whl", hash = "sha256:5ef86bd12fc8806c6e7af32f21266c61b6c4ba96096f85129852d1c4fec1327e", size = 64891, upload-time = "2024-11-16T11:23:24.748Z" },
-]
-
-[[package]]
 name = "multidict"
 version = "6.6.3"
 source = { registry = "https://pypi.org/simple" }
@@ -2686,12 +2670,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/04/d6/bb5468da53321baeb001f6e4e0d9049eadd175a4a497709939128556e3ec/scipy-1.16.1-cp311-cp311-musllinux_1_2_x86_64.whl", hash = "sha256:d85495cef541729a70cdddbbf3e6b903421bc1af3e8e3a9a72a06751f33b7c39", size = 38129275, upload-time = "2025-07-27T16:27:23.873Z" },
     { url = "https://files.pythonhosted.org/packages/c4/94/994369978509f227cba7dfb9e623254d0d5559506fe994aef4bea3ed469c/scipy-1.16.1-cp311-cp311-win_amd64.whl", hash = "sha256:226652fca853008119c03a8ce71ffe1b3f6d2844cc1686e8f9806edafae68596", size = 38644572, upload-time = "2025-07-27T16:27:32.637Z" },
 ]
-
-[[package]]
-name = "sentinels"
-version = "1.0.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/ac/b7/1af07a98390aba07da31807f3723e7bbd003d6441b4b3d67b20d97702b23/sentinels-1.0.0.tar.gz", hash = "sha256:7be0704d7fe1925e397e92d18669ace2f619c92b5d4eb21a89f31e026f9ff4b1", size = 4074, upload-time = "2016-08-30T07:19:19.963Z" }
 
 [[package]]
 name = "setuptools"

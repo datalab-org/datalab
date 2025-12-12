@@ -1,7 +1,6 @@
 import atexit
 from functools import lru_cache
 
-# Must be imported in this way to allow for easy patching with mongomock
 import pymongo
 from flask_pymongo import PyMongo
 from pydantic import BaseModel
