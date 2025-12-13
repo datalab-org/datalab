@@ -276,11 +276,21 @@ class EntryReference(BaseModel):
 
     @root_validator
     def check_id_fields(cls, values):
-        """Check that at least one of the possible identifier fields is provided."""
+        """Check that refcode is provided for item references.
+
+        The refcode is immutable and should always be used to reference items.
+        The item_id is mutable and should not be used alone for persistent references.
+        """
         id_fields = ("immutable_id", "item_id", "refcode")
 
         if all(values.get(f) is None for f in id_fields):
             raise ValueError(f"Must provide at least one of {id_fields!r}")
+
+        if values.get("item_id") and not values.get("refcode") and not values.get("immutable_id"):
+            raise ValueError(
+                "When referencing an item, 'refcode' must be provided alongside 'item_id'. "
+                "The 'item_id' alone is insufficient as it is mutable and not suitable for persistent references."
+            )
 
         return values
 

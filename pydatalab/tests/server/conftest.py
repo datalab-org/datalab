@@ -300,19 +300,34 @@ def fixture_default_cell():
             "date": "1970-02-01",
             "negative_electrode": [
                 {
-                    "item": {"item_id": "test", "chemform": "Li15Si4", "type": "samples"},
+                    "item": {
+                        "item_id": "test",
+                        "refcode": "test:TESTNE1",
+                        "chemform": "Li15Si4",
+                        "type": "samples",
+                    },
                     "quantity": 2.0,
                     "unit": "mg",
                 },
                 {
-                    "item": {"item_id": "test", "chemform": "C", "type": "samples"},
+                    "item": {
+                        "item_id": "test",
+                        "refcode": "test:TESTNE2",
+                        "chemform": "C",
+                        "type": "samples",
+                    },
                     "quantity": 2.0,
                     "unit": "mg",
                 },
             ],
             "positive_electrode": [
                 {
-                    "item": {"item_id": "test_cathode", "chemform": "LiCoO2", "type": "samples"},
+                    "item": {
+                        "item_id": "test_cathode",
+                        "refcode": "test:TESTPE",
+                        "chemform": "LiCoO2",
+                        "type": "samples",
+                    },
                     "quantity": 2000,
                     "unit": "kg",
                 }
@@ -377,6 +392,7 @@ def fixture_complicated_sample(user_id):
     return Sample(
         **{
             "item_id": "sample_with_synthesis",
+            "refcode": "test:COMPLEX",
             "name": "complex_sample",
             "date": "1970-02-01",
             "chemform": "Na3P",
@@ -387,6 +403,7 @@ def fixture_complicated_sample(user_id):
                     **{
                         "item": {
                             "item_id": "starting_material_1",
+                            "refcode": "test:SM1",
                             "name": "first Na",
                             "chemform": "Na",
                             "type": "starting_materials",
@@ -398,6 +415,7 @@ def fixture_complicated_sample(user_id):
                     **{
                         "item": {
                             "item_id": "starting_material_2",
+                            "refcode": "test:SM2",
                             "name": "second Na",
                             "chemform": "Na",
                             "type": "starting_materials",
@@ -410,6 +428,7 @@ def fixture_complicated_sample(user_id):
                     **{
                         "item": {
                             "item_id": "starting_material_3",
+                            "refcode": "test:SM3",
                             "name": "liquid Na",
                             "chemform": "Na",
                             "type": "starting_materials",
