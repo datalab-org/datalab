@@ -123,7 +123,6 @@ dev-dependencies = [
     "pytest-dependency ~= 0.6",
     "pytest-memray ~= 1.8",
     "pre-commit ~= 4.0",
-    "mongomock ~= 4.1",
     "mkdocs ~= 1.6",
     "mkdocs-material ~= 9.5",
     "mkdocstrings[python] ~= 0.29",
