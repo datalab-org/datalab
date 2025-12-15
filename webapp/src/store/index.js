@@ -57,6 +57,7 @@ export default createStore({
       },
     },
     block_errors: {},
+    block_infos: {},
     apiConfig: {
       maxUploadBytes: null,
     },
@@ -379,6 +380,19 @@ export default createStore({
       } else {
         delete state.block_errors[block_id];
       }
+    },
+    setBlockInfo(state, { block_id, info = null }) {
+      if (info) {
+        state.block_infos[block_id] = info;
+      } else {
+        delete state.block_infos[block_id];
+      }
+    },
+    setBlockProcessing(state, { block_id, task_id }) {
+      if (!state.blockProcessingTasks) {
+        state.blockProcessingTasks = {};
+      }
+      state.blockProcessingTasks[block_id] = task_id;
     },
     setApiConfig(state, config) {
       state.apiConfig = config;

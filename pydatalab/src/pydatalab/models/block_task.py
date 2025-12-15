@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from enum import Enum
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -9,6 +10,14 @@ class BlockProcessingStatus(str, Enum):
     PROCESSING = "processing"
     READY = "ready"
     ERROR = "error"
+
+
+class BlockProcessingStage(BaseModel):
+    timestamp: datetime = Field(..., description="When this stage occurred")
+    message: str = Field(..., description="Description of this processing stage")
+    level: Literal["info", "warning", "error"] = Field(
+        default="info", description="Severity level of this stage"
+    )
 
 
 class BlockTask(BaseModel):
@@ -25,6 +34,10 @@ class BlockTask(BaseModel):
     )
     completed_at: datetime | None = Field(None, description="When the task was completed")
     error_message: str | None = Field(None, description="Error message if status is ERROR")
+    stages: list[BlockProcessingStage] = Field(
+        default_factory=list,
+        description="Timestamped log of processing stages for incremental progress tracking",
+    )
 
     class Config:
         use_enum_values = True
