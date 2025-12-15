@@ -1,8 +1,20 @@
 {
-  "title": "Equipment",
-  "description": "A model for representing an experimental sample.",
+  "title": "StartingMaterial",
+  "description": "A model for representing an experimental sample, based on the connection\nwith cheminventory.net, which mixes container-level and substance-level\ninformation.",
   "type": "object",
   "properties": {
+    "synthesis_constituents": {
+      "title": "Synthesis Constituents",
+      "default": [],
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Constituent"
+      }
+    },
+    "synthesis_description": {
+      "title": "Synthesis Description",
+      "type": "string"
+    },
     "blocks_obj": {
       "title": "Blocks Obj",
       "default": {},
@@ -53,9 +65,9 @@
     },
     "type": {
       "title": "Type",
-      "default": "equipment",
-      "const": "equipment",
-      "pattern": "^equipment$",
+      "default": "starting_materials",
+      "const": "starting_materials",
+      "pattern": "^starting_materials$",
       "type": "string"
     },
     "immutable_id": {
@@ -94,12 +106,12 @@
       "type": "string"
     },
     "date": {
-      "title": "Date",
+      "title": "Date Acquired",
       "type": "string",
       "format": "date-time"
     },
     "name": {
-      "title": "Name",
+      "title": "Container Name",
       "type": "string"
     },
     "files": {
@@ -118,27 +130,72 @@
       }
     },
     "status": {
-      "default": "working",
+      "default": "available",
       "allOf": [
         {
-          "$ref": "#/definitions/EquipmentStatus"
+          "$ref": "#/definitions/StartingMaterialsStatus"
         }
       ]
     },
-    "serial_numbers": {
-      "title": "Serial Numbers",
+    "barcode": {
+      "title": "Barcode",
       "type": "string"
     },
-    "manufacturer": {
-      "title": "Manufacturer",
+    "date_opened": {
+      "title": "Date Opened",
+      "type": "string",
+      "format": "date-time"
+    },
+    "CAS": {
+      "title": "Substance Cas",
+      "type": "string"
+    },
+    "chemical_purity": {
+      "title": "Chemical Purity",
+      "type": "string"
+    },
+    "full_percent": {
+      "title": "Full %",
+      "type": "string"
+    },
+    "GHS_codes": {
+      "title": "Ghs H-Codes",
+      "examples": [
+        "H224",
+        "H303, H316, H319"
+      ],
+      "type": "string"
+    },
+    "size": {
+      "title": "Container Size",
+      "type": "string"
+    },
+    "size_unit": {
+      "title": "Unit",
+      "type": "string"
+    },
+    "chemform": {
+      "title": "Molecular Formula",
+      "type": "string"
+    },
+    "molar_mass": {
+      "title": "Molecular Weight",
+      "type": "number"
+    },
+    "smiles_representation": {
+      "title": "Smiles",
+      "type": "string"
+    },
+    "supplier": {
+      "title": "Supplier",
       "type": "string"
     },
     "location": {
       "title": "Location",
       "type": "string"
     },
-    "contact": {
-      "title": "Contact",
+    "comment": {
+      "title": "Comments",
       "type": "string"
     }
   },
@@ -146,6 +203,91 @@
     "item_id"
   ],
   "definitions": {
+    "EntryReference": {
+      "title": "EntryReference",
+      "description": "A reference to a database entry by ID and type.\n\nCan include additional arbitarary metadata useful for\ninlining the item data.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "immutable_id": {
+          "title": "Immutable Id",
+          "type": "string"
+        },
+        "item_id": {
+          "title": "Item Id",
+          "minLength": 1,
+          "maxLength": 40,
+          "pattern": "^(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
+          "type": "string"
+        },
+        "refcode": {
+          "title": "Refcode",
+          "minLength": 1,
+          "maxLength": 40,
+          "pattern": "^[a-z]{2,10}:(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    "InlineSubstance": {
+      "title": "InlineSubstance",
+      "type": "object",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "chemform": {
+          "title": "Chemform",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "Constituent": {
+      "title": "Constituent",
+      "description": "A constituent of a sample.",
+      "type": "object",
+      "properties": {
+        "item": {
+          "title": "Item",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/EntryReference"
+            },
+            {
+              "$ref": "#/definitions/InlineSubstance"
+            }
+          ]
+        },
+        "quantity": {
+          "title": "Quantity",
+          "minimum": 0,
+          "type": "number"
+        },
+        "unit": {
+          "title": "Unit",
+          "default": "g",
+          "type": "string"
+        }
+      },
+      "required": [
+        "item",
+        "quantity"
+      ]
+    },
     "DataBlockResponse": {
       "title": "DataBlockResponse",
       "description": "A generic response model for a block, i.e., what is stored in `self.data`\nin the corresponding DataBlock class.\n\nIt is expected but not mandatory that this model will be extended by the specific block type\nwhere possible.",
@@ -641,15 +783,16 @@
         "is_live"
       ]
     },
-    "EquipmentStatus": {
-      "title": "EquipmentStatus",
-      "description": "An enumeration of the status of equipments",
+    "StartingMaterialsStatus": {
+      "title": "StartingMaterialsStatus",
+      "description": "An enumeration of the status of starting materials",
       "enum": [
-        "working",
-        "broken",
-        "being_fixed",
-        "defunct",
-        "not_being_fixed",
+        "ordered",
+        "disposed",
+        "planned",
+        "available",
+        "unavailable",
+        "exhausted",
         "other"
       ],
       "type": "string"

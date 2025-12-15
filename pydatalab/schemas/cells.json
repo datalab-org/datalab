@@ -1,6 +1,6 @@
 {
-  "title": "Equipment",
-  "description": "A model for representing an experimental sample.",
+  "title": "Cell",
+  "description": "A model for representing electrochemical cells.",
   "type": "object",
   "properties": {
     "blocks_obj": {
@@ -53,9 +53,9 @@
     },
     "type": {
       "title": "Type",
-      "default": "equipment",
-      "const": "equipment",
-      "pattern": "^equipment$",
+      "default": "cells",
+      "const": "cells",
+      "pattern": "^cells$",
       "type": "string"
     },
     "immutable_id": {
@@ -118,28 +118,64 @@
       }
     },
     "status": {
-      "default": "working",
+      "default": "active",
       "allOf": [
         {
-          "$ref": "#/definitions/EquipmentStatus"
+          "$ref": "#/definitions/CellStatus"
         }
       ]
     },
-    "serial_numbers": {
-      "title": "Serial Numbers",
+    "cell_format": {
+      "$ref": "#/definitions/CellFormat"
+    },
+    "cell_format_description": {
+      "title": "Cell Format Description",
       "type": "string"
     },
-    "manufacturer": {
-      "title": "Manufacturer",
+    "cell_preparation_description": {
+      "title": "Cell Preparation Description",
       "type": "string"
     },
-    "location": {
-      "title": "Location",
+    "characteristic_mass": {
+      "title": "Characteristic Mass",
+      "type": "number"
+    },
+    "characteristic_chemical_formula": {
+      "title": "Characteristic Chemical Formula",
       "type": "string"
     },
-    "contact": {
-      "title": "Contact",
-      "type": "string"
+    "characteristic_molar_mass": {
+      "title": "Characteristic Molar Mass",
+      "type": "number"
+    },
+    "positive_electrode": {
+      "title": "Positive Electrode",
+      "default": [],
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/CellComponent"
+      }
+    },
+    "negative_electrode": {
+      "title": "Negative Electrode",
+      "default": [],
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/CellComponent"
+      }
+    },
+    "electrolyte": {
+      "title": "Electrolyte",
+      "default": [],
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/CellComponent"
+      }
+    },
+    "active_ion_charge": {
+      "title": "Active Ion Charge",
+      "default": 1,
+      "type": "number"
     }
   },
   "required": [
@@ -641,18 +677,120 @@
         "is_live"
       ]
     },
-    "EquipmentStatus": {
-      "title": "EquipmentStatus",
-      "description": "An enumeration of the status of equipments",
+    "CellStatus": {
+      "title": "CellStatus",
+      "description": "An enumeration of the status of cells",
       "enum": [
-        "working",
-        "broken",
-        "being_fixed",
-        "defunct",
-        "not_being_fixed",
+        "active",
+        "planned",
+        "disposed",
+        "cycled",
+        "shorted",
+        "dismantled",
         "other"
       ],
       "type": "string"
+    },
+    "CellFormat": {
+      "title": "CellFormat",
+      "description": "An enumeration.",
+      "enum": [
+        "coin",
+        "pouch",
+        "in situ (XRD)",
+        "in situ (NMR)",
+        "in situ (SQUID)",
+        "in situ (optical)",
+        "swagelok",
+        "cylindrical",
+        "other"
+      ],
+      "type": "string"
+    },
+    "EntryReference": {
+      "title": "EntryReference",
+      "description": "A reference to a database entry by ID and type.\n\nCan include additional arbitarary metadata useful for\ninlining the item data.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "immutable_id": {
+          "title": "Immutable Id",
+          "type": "string"
+        },
+        "item_id": {
+          "title": "Item Id",
+          "minLength": 1,
+          "maxLength": 40,
+          "pattern": "^(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
+          "type": "string"
+        },
+        "refcode": {
+          "title": "Refcode",
+          "minLength": 1,
+          "maxLength": 40,
+          "pattern": "^[a-z]{2,10}:(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    "InlineSubstance": {
+      "title": "InlineSubstance",
+      "type": "object",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "chemform": {
+          "title": "Chemform",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "CellComponent": {
+      "title": "CellComponent",
+      "description": "A constituent of a sample.",
+      "type": "object",
+      "properties": {
+        "item": {
+          "title": "Item",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/EntryReference"
+            },
+            {
+              "$ref": "#/definitions/InlineSubstance"
+            }
+          ]
+        },
+        "quantity": {
+          "title": "Quantity",
+          "minimum": 0,
+          "type": "number"
+        },
+        "unit": {
+          "title": "Unit",
+          "default": "g",
+          "type": "string"
+        }
+      },
+      "required": [
+        "item",
+        "quantity"
+      ]
     }
   }
 }

@@ -1,8 +1,20 @@
 {
-  "title": "Equipment",
+  "title": "Sample",
   "description": "A model for representing an experimental sample.",
   "type": "object",
   "properties": {
+    "synthesis_constituents": {
+      "title": "Synthesis Constituents",
+      "default": [],
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Constituent"
+      }
+    },
+    "synthesis_description": {
+      "title": "Synthesis Description",
+      "type": "string"
+    },
     "blocks_obj": {
       "title": "Blocks Obj",
       "default": {},
@@ -53,9 +65,9 @@
     },
     "type": {
       "title": "Type",
-      "default": "equipment",
-      "const": "equipment",
-      "pattern": "^equipment$",
+      "default": "samples",
+      "const": "samples",
+      "pattern": "^samples$",
       "type": "string"
     },
     "immutable_id": {
@@ -118,27 +130,19 @@
       }
     },
     "status": {
-      "default": "working",
+      "default": "active",
       "allOf": [
         {
-          "$ref": "#/definitions/EquipmentStatus"
+          "$ref": "#/definitions/ItemStatus"
         }
       ]
     },
-    "serial_numbers": {
-      "title": "Serial Numbers",
-      "type": "string"
-    },
-    "manufacturer": {
-      "title": "Manufacturer",
-      "type": "string"
-    },
-    "location": {
-      "title": "Location",
-      "type": "string"
-    },
-    "contact": {
-      "title": "Contact",
+    "chemform": {
+      "title": "Chemform",
+      "example": [
+        "Na3P",
+        "LiNiO2@C"
+      ],
       "type": "string"
     }
   },
@@ -146,6 +150,91 @@
     "item_id"
   ],
   "definitions": {
+    "EntryReference": {
+      "title": "EntryReference",
+      "description": "A reference to a database entry by ID and type.\n\nCan include additional arbitarary metadata useful for\ninlining the item data.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "immutable_id": {
+          "title": "Immutable Id",
+          "type": "string"
+        },
+        "item_id": {
+          "title": "Item Id",
+          "minLength": 1,
+          "maxLength": 40,
+          "pattern": "^(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
+          "type": "string"
+        },
+        "refcode": {
+          "title": "Refcode",
+          "minLength": 1,
+          "maxLength": 40,
+          "pattern": "^[a-z]{2,10}:(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    "InlineSubstance": {
+      "title": "InlineSubstance",
+      "type": "object",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "chemform": {
+          "title": "Chemform",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "Constituent": {
+      "title": "Constituent",
+      "description": "A constituent of a sample.",
+      "type": "object",
+      "properties": {
+        "item": {
+          "title": "Item",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/EntryReference"
+            },
+            {
+              "$ref": "#/definitions/InlineSubstance"
+            }
+          ]
+        },
+        "quantity": {
+          "title": "Quantity",
+          "minimum": 0,
+          "type": "number"
+        },
+        "unit": {
+          "title": "Unit",
+          "default": "g",
+          "type": "string"
+        }
+      },
+      "required": [
+        "item",
+        "quantity"
+      ]
+    },
     "DataBlockResponse": {
       "title": "DataBlockResponse",
       "description": "A generic response model for a block, i.e., what is stored in `self.data`\nin the corresponding DataBlock class.\n\nIt is expected but not mandatory that this model will be extended by the specific block type\nwhere possible.",
@@ -641,15 +730,15 @@
         "is_live"
       ]
     },
-    "EquipmentStatus": {
-      "title": "EquipmentStatus",
-      "description": "An enumeration of the status of equipments",
+    "ItemStatus": {
+      "title": "ItemStatus",
+      "description": "An enumeration of the status of items",
       "enum": [
-        "working",
-        "broken",
-        "being_fixed",
-        "defunct",
-        "not_being_fixed",
+        "active",
+        "planned",
+        "disposed",
+        "completed",
+        "failed",
         "other"
       ],
       "type": "string"
