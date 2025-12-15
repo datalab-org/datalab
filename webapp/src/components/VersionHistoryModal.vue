@@ -40,15 +40,12 @@
                 v-for="version in sortedVersions"
                 :key="version._id"
                 class="version-row"
-                :class="{ 'table-active': version.version_number === currentVersion }"
-                @click="previewVersionData(version._id, version.version_number)"
+                :class="{ 'table-active': version.version === currentVersion }"
+                @click="previewVersionData(version._id, version.version)"
               >
                 <td>
-                  <strong>{{ version.version_number }}</strong>
-                  <span
-                    v-if="version.version_number === currentVersion"
-                    class="badge badge-primary ml-2"
-                  >
+                  <strong>{{ version.version }}</strong>
+                  <span v-if="version.version === currentVersion" class="badge badge-primary ml-2">
                     Current
                   </span>
                 </td>
@@ -64,9 +61,9 @@
                 </td>
                 <td class="text-right">
                   <button
-                    v-if="version.version_number !== currentVersion"
+                    v-if="version.version !== currentVersion"
                     class="btn btn-sm btn-outline-primary"
-                    @click.stop="confirmRestore(version._id, version.version_number)"
+                    @click.stop="confirmRestore(version._id, version.version)"
                   >
                     <font-awesome-icon icon="undo" fixed-width />
                     Restore
@@ -275,7 +272,7 @@ export default {
     },
     getVersionNumberById(versionId) {
       const version = this.versions.find((v) => v._id === versionId);
-      return version ? version.version_number : "?";
+      return version ? version.version : "?";
     },
     async loadVersions() {
       this.isLoadingVersions = true;
