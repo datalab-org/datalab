@@ -129,14 +129,6 @@
         "type": "string"
       }
     },
-    "status": {
-      "default": "active",
-      "allOf": [
-        {
-          "$ref": "#/definitions/ItemStatus"
-        }
-      ]
-    },
     "chemform": {
       "title": "Chemform",
       "example": [
@@ -729,19 +721,6 @@
         "time_added",
         "is_live"
       ]
-    },
-    "ItemStatus": {
-      "title": "ItemStatus",
-      "description": "An enumeration of the status of items",
-      "enum": [
-        "active",
-        "planned",
-        "disposed",
-        "completed",
-        "failed",
-        "other"
-      ],
-      "type": "string"
     }
   }
 }

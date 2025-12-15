@@ -57,6 +57,7 @@ export default createStore({
       },
     },
     block_errors: {},
+    block_infos: {},
     apiConfig: {
       maxUploadBytes: null,
     },
@@ -377,6 +378,13 @@ export default createStore({
         state.block_errors[block_id] = "Block API returned error: " + error;
       } else {
         delete state.block_errors[block_id];
+      }
+    },
+    setBlockInfo(state, { block_id, info = null }) {
+      if (info) {
+        state.block_infos[block_id] = info;
+      } else {
+        delete state.block_infos[block_id];
       }
     },
     setBlockProcessing(state, { block_id, task_id }) {

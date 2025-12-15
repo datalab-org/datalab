@@ -129,14 +129,6 @@
         "type": "string"
       }
     },
-    "status": {
-      "default": "available",
-      "allOf": [
-        {
-          "$ref": "#/definitions/StartingMaterialsStatus"
-        }
-      ]
-    },
     "barcode": {
       "title": "Barcode",
       "type": "string"
@@ -782,20 +774,6 @@
         "time_added",
         "is_live"
       ]
-    },
-    "StartingMaterialsStatus": {
-      "title": "StartingMaterialsStatus",
-      "description": "An enumeration of the status of starting materials",
-      "enum": [
-        "ordered",
-        "disposed",
-        "planned",
-        "available",
-        "unavailable",
-        "exhausted",
-        "other"
-      ],
-      "type": "string"
     }
   }
 }
