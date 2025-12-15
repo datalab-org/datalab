@@ -1,22 +1,14 @@
 from pathlib import Path
-from unittest.mock import patch
 
-import mongomock
 import pymongo
 import pytest
 from bson import ObjectId
 from flask.testing import FlaskClient
 
-import pydatalab.mongo
 from pydatalab.models import Cell, Collection, Equipment, Sample, StartingMaterial
 from pydatalab.models.people import AccountStatus
 
 TEST_DATABASE_NAME = "__datalab-testing__"
-
-
-class PyMongoMock(mongomock.MongoClient):
-    def init_app(self, _, *args, **kwargs):
-        return super().__init__(MONGO_URI)
 
 
 MONGO_URI = f"mongodb://localhost:27017/{TEST_DATABASE_NAME}"
@@ -83,42 +75,20 @@ def app_config(tmp_path_factory, secret_key):
 
 
 @pytest.fixture(scope="module")
-def app(real_mongo_client, monkeypatch_session, app_config):
-    """Yields the test app.
-
-    If it exists, connects to a local MongoDB, otherwise uses the
-    mongomock testing backend.
-
-    """
+def app(real_mongo_client, app_config):
+    """Yields the test app."""
     from pydatalab.main import create_app
 
-    try:
-        mongo_cli = real_mongo_client
-        if mongo_cli is None:
-            raise pymongo.errors.ServerSelectionTimeoutError
+    mongo_cli = real_mongo_client
+    if mongo_cli is None:
+        raise pymongo.errors.ServerSelectionTimeoutError(
+            "Tests require a running local MongoDB instance."
+        )
 
-        databases = mongo_cli.list_database_names()
+    databases = mongo_cli.list_database_names()
 
-        if TEST_DATABASE_NAME in databases:
-            mongo_cli.drop_database(TEST_DATABASE_NAME)
-
-    except pymongo.errors.ServerSelectionTimeoutError:
-        with patch.object(
-            pydatalab.mongo,
-            "flask_mongo",
-            PyMongoMock(MONGO_URI, connectTimeoutMS=100, serverSelectionTimeoutMS=100),
-        ):
-
-            def mock_mongo_client():
-                return PyMongoMock(MONGO_URI, connectTimeoutMS=100, serverSelectionTimeoutMS=100)
-
-            def mock_mongo_database():
-                return mock_mongo_client().get_database(TEST_DATABASE_NAME)
-
-            monkeypatch_session.setattr(
-                pydatalab.mongo, "_get_active_mongo_client", mock_mongo_client
-            )
-            monkeypatch_session.setattr(pydatalab.mongo, "get_database", mock_mongo_database)
+    if TEST_DATABASE_NAME in databases:
+        mongo_cli.drop_database(TEST_DATABASE_NAME)
 
     app = create_app(app_config, env_file=False)
 
