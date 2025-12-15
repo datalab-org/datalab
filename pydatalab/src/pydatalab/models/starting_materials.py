@@ -1,11 +1,11 @@
 from pydantic import Field, validator
 
 from pydatalab.models.items import Item
-from pydatalab.models.traits import HasSynthesisInfo
+from pydatalab.models.traits import HasSubstanceInfo, HasSynthesisInfo
 from pydatalab.models.utils import IsoformatDateTime, StartingMaterialsStatus
 
 
-class StartingMaterial(Item, HasSynthesisInfo):
+class StartingMaterial(Item, HasSynthesisInfo, HasSubstanceInfo):
     """A model for representing an experimental sample, based on the connection
     with cheminventory.net, which mixes container-level and substance-level
     information.
@@ -36,12 +36,6 @@ class StartingMaterial(Item, HasSynthesisInfo):
     full_percent: str | None = Field(alias="Full %")
     """The amount of the defined substance remaining in the container, expressed as a percentage."""
 
-    GHS_codes: str | None = Field(
-        alias="GHS H-codes",
-        examples=["H224", "H303, H316, H319"],
-    )
-    """A string describing any GHS hazard codes associated with this item. See https://pubchem.ncbi.nlm.nih.gov/ghs/ for code definitions."""
-
     name: str | None = Field(alias="Container Name")
     """The name of the substance in the container."""
 
@@ -50,15 +44,6 @@ class StartingMaterial(Item, HasSynthesisInfo):
 
     size_unit: str | None = Field(alias="Unit")
     """Units for the 'size' field."""
-
-    chemform: str | None = Field(alias="Molecular Formula")
-    """A string representation of the chemical formula associated with this sample."""
-
-    molar_mass: float | None = Field(alias="Molecular Weight")
-    """Mass per formula unit, in g/mol."""
-
-    smiles_representation: str | None = Field(alias="SMILES")
-    """A SMILES string representation of a chemical structure associated with this substance."""
 
     supplier: str | None = Field(alias="Supplier")
     """Supplier or manufacturer of the chemical."""

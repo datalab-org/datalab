@@ -151,12 +151,33 @@ class HasSynthesisInfo(BaseModel):
         return values
 
 
-class HasChemInfo:
-    smile: str | None = Field(None)
+class HasSubstanceInfo(BaseModel):
+    """Trait mixin for models that have substance information."""
+
+    chemform: str | None = Field(
+        example=["Na3P", "Na<sub>3</sub>P", "LiNiO2@C", "Na3+xP", "LiNi1/3Co0.1Mn0.1O2"],
+    )
+    """A string representation of the chemical formula or composition associated with this sample.
+
+    The representation is relatively free-form; clients are expected parse and interpret HTML markup for subscripts
+    and accept unicode characters for greek letters.
+
+    """
+
+    smiles: str | None = Field(None, aliases=["SMILES", "smiles_representation"])
     """A SMILES string representation of the chemical structure associated with this sample."""
+
     inchi: str | None = Field(None)
-    """An InChI string representation of the chemical structure associated with this sample."""
+    """An International Chemical Identifier (InChI) string representation of chemicals/molecules associated with this sample."""
+
     inchi_key: str | None = Field(None)
-    """An InChI key representation of the chemical structure associated with this sample."""
-    """A unique key derived from the InChI string."""
-    chemform: str | None = Field(None)
+    """A unique key derived from the InChI."""
+
+    GHS_codes: str | None = Field(
+        alias="GHS H-codes",
+        examples=["H224", "H303, H316, H319"],
+    )
+    """A string describing any GHS hazard codes associated with this item. See https://pubchem.ncbi.nlm.nih.gov/ghs/ for code definitions."""
+
+    molar_mass: float | None = Field(alias="Molecular Weight")
+    """Mass per formula unit, in g/mol."""
