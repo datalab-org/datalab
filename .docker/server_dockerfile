@@ -38,6 +38,9 @@ ENV SETUPTOOLS_SCM_PRETEND_VERSION=${SETUPTOOLS_SCM_PRETEND_VERSION}
 WORKDIR /app
 COPY ./pydatalab/pyproject.toml .
 COPY ./pydatalab/uv.lock .
+
+# copy any plugin directory, if it exists, using a glob to prevent crashes if it doesn't
+COPY ./pydatalab/plugin[s] .
 RUN uv sync --locked --no-dev --all-extras
 
 WORKDIR /app
