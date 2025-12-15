@@ -32,6 +32,8 @@
           <div class="form-group col-md-3 col-sm-3 col-6 pb-3">
             <ToggleableCreatorsFormGroup v-model="ItemCreators" :refcode="Refcode" />
           </div>
+        </div>
+        <div class="form-row">
           <div class="col-md-6 col-sm-7 pr-2">
             <ToggleableCollectionFormGroup
               ref="collectionsFormGroup"
@@ -46,20 +48,24 @@
             />
           </div>
         </div>
-        <div class="form-row">
-          <div class="col">
-            <label id="samp-description-label">Description</label>
-            <TiptapInline v-model="SampleDescription" aria-labelledby="samp-description-label" />
-          </div>
-        </div>
       </div>
       <div class="col-md-4">
         <ItemRelationshipVisualization :item_id="item_id" />
       </div>
     </div>
+    <div class="row">
+      <div class="form-group">
+        <SubstanceInformation class="mt-3" :item_id="item_id" />
+      </div>
+    </div>
+    <div class="row">
+      <div class="col">
+        <label id="samp-description-label">Description</label>
+        <TiptapInline v-model="SampleDescription" aria-labelledby="samp-description-label" />
+      </div>
+    </div>
 
     <TableOfContents :item_id="item_id" :information-sections="tableOfContentsSections" />
-
     <SynthesisInformation class="mt-3" :item_id="item_id" />
   </div>
 </template>
@@ -74,6 +80,7 @@ import ToggleableCreatorsFormGroup from "@/components/ToggleableCreatorsFormGrou
 import ToggleableItemStatusFormGroup from "@/components/ToggleableItemStatusFormGroup";
 import TiptapInline from "@/components/TiptapInline";
 import SynthesisInformation from "@/components/SynthesisInformation";
+import SubstanceInformation from "@/components/SubstanceInformation";
 import TableOfContents from "@/components/TableOfContents";
 import ItemRelationshipVisualization from "@/components/ItemRelationshipVisualization";
 
@@ -82,6 +89,7 @@ export default {
     ChemFormulaInput,
     TiptapInline,
     SynthesisInformation,
+    SubstanceInformation,
     TableOfContents,
     ItemRelationshipVisualization,
     FormattedRefcode,
@@ -99,8 +107,9 @@ export default {
   data() {
     return {
       tableOfContentsSections: [
-        { title: "Sample Information", targetID: "sample-information" },
         { title: "Table of Contents", targetID: "table-of-contents" },
+        { title: "Sample Information", targetID: "sample-information" },
+        { title: "Substance Information", targetID: "substance-information" },
         { title: "Synthesis Information", targetID: "synthesis-information" },
       ],
     };
