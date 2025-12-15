@@ -109,6 +109,14 @@
         </ul>
       </div>
       <div
+        v-if="processingInfo"
+        class="alert alert-info d-flex align-items-center ml-3"
+        role="alert"
+      >
+        <font-awesome-icon icon="info-circle" class="mr-2" />
+        {{ processingInfo }}
+      </div>
+      <div
         v-if="showOverlay"
         class="position-absolute w-100 h-100 top-0 start-0 d-flex justify-content-center align-items-center"
         style="background-color: rgba(255, 255, 255, 0.7); z-index: 100"
@@ -201,6 +209,9 @@ export default {
     },
     BlockTitle: createComputedSetterForBlockField("title"),
     BlockDescription: createComputedSetterForBlockField("freeform_comment"),
+    processingInfo() {
+      return this.$store.state.block_infos[this.block_id];
+    },
   },
   mounted() {
     // this is to help toggleExpandBlock() work properly. Resets contentMaxHeight to "none"
