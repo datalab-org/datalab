@@ -15,24 +15,44 @@ from pydatalab.scheduler import export_scheduler
 
 
 def _process_block_async_internal(task_id: str, block_data: dict, event_data: dict | None):
+    from pydatalab.models.block_task import BlockProcessingStage
+
+    def add_stage(message: str, level: str = "info"):
+        stage = BlockProcessingStage(
+            timestamp=datetime.now(tz=timezone.utc), message=message, level=level
+        )
+        flask_mongo.db.block_tasks.update_one(
+            {"task_id": task_id}, {"$push": {"stages": stage.dict()}}
+        )
+
     try:
         flask_mongo.db.block_tasks.update_one(
             {"task_id": task_id}, {"$set": {"status": BlockProcessingStatus.PROCESSING}}
         )
+        add_stage("Processing started")
 
         block_type = block_data["blocktype"]
+        add_stage(f"Loading {block_type} block from database")
+
         block = BLOCK_TYPES[block_type].from_web(block_data)
 
         if event_data and not event_data.get("trigger_async", False):
+            add_stage("Processing block events")
             try:
                 block.process_events(event_data)
             except NotImplementedError:
                 pass
 
-        _save_block_to_db(block)
-        block.to_web()
+        add_stage("Saving block state to database")
         _save_block_to_db(block)
 
+        add_stage("Generating visualization data")
+        block.to_web()
+
+        add_stage("Saving final results to database")
+        _save_block_to_db(block)
+
+        add_stage("Processing completed successfully", level="info")
         flask_mongo.db.block_tasks.update_one(
             {"task_id": task_id},
             {
@@ -44,6 +64,7 @@ def _process_block_async_internal(task_id: str, block_data: dict, event_data: di
         )
 
     except Exception as e:
+        add_stage(f"Error during processing: {str(e)}", level="error")
         flask_mongo.db.block_tasks.update_one(
             {"task_id": task_id},
             {
@@ -398,6 +419,8 @@ def get_block_task_status(task_id: str):
         "created_at": task["created_at"],
     }
 
+    if task.get("stages"):
+        response["stages"] = task["stages"]
     if task.get("completed_at"):
         response["completed_at"] = task["completed_at"]
     if task.get("error_message"):
