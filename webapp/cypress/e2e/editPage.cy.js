@@ -56,6 +56,7 @@ describe("Edit Page", () => {
     cy.get('[data-testid="search-input"]').type("editable_sample");
     cy.findByText("editable_sample").click();
     cy.findByLabelText("Name").should("have.value", "This is a sample name");
+    cy.get('[data-testid="substance-block"]').click();
     cy.findByLabelText("Chemical formula").type("NaCoO2", { force: true });
 
     cy.findByText("Unsaved changes");
@@ -72,6 +73,7 @@ describe("Edit Page", () => {
 
   it("adds a chemical formula to component1", () => {
     cy.findByText("component1").click();
+    cy.get('[data-testid="substance-block"]').click();
     cy.findByLabelText("Chemical formula").type("Na2O", { force: true });
 
     cy.findByText("Unsaved changes");

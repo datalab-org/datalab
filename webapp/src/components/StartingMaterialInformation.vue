@@ -3,18 +3,11 @@
     <div class="row">
       <div class="col">
         <div id="starting-material-information" class="form-row">
-          <div class="form-group col-sm-4 pr-2 col-6">
+          <div class="form-group col-sm-6 pr-2">
             <label for="samp-name">Name</label>
             <input id="samp-name" v-model="Name" class="form-control" />
           </div>
-          <div class="form-group col-sm-4 pr-2 col-6">
-            <label for="startmat-chemform">Chemical formula</label>
-            <ChemFormulaInput v-if="isEditable" id="startmat-chemform" v-model="ChemForm" />
-            <span v-if="!isEditable" class="form-control-plaintext" readonly>
-              <ChemicalFormula id="startmat-chemform" :formula="ChemForm" />
-            </span>
-          </div>
-          <div class="form-group col-sm-4 col-6">
+          <div class="form-group col-sm-6">
             <label for="startmat-date-acquired">Date acquired</label>
             <StyledInput
               id="startmat-date-acquired"
@@ -94,14 +87,15 @@
             />
           </div>
         </div>
-        <div class="form-row">
-          <div class="form-group col-12">
-            <GHSHazardInformation v-model="GHS" :editable="isEditable" />
-          </div>
-        </div>
       </div>
       <div class="col-md-4">
         <ItemRelationshipVisualization :item_id="item_id" />
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col">
+        <SubstanceInformation class="mt-3" :item_id="item_id" />
       </div>
     </div>
 
@@ -121,9 +115,8 @@
 <script>
 import { createComputedSetterForItemField } from "@/field_utils.js";
 import TiptapInline from "@/components/TiptapInline";
-import ChemicalFormula from "@/components/ChemicalFormula";
-import ChemFormulaInput from "@/components/ChemFormulaInput";
 import TableOfContents from "@/components/TableOfContents";
+import SubstanceInformation from "@/components/SubstanceInformation";
 import ToggleableCollectionFormGroup from "@/components/ToggleableCollectionFormGroup";
 import ToggleableItemStatusFormGroup from "@/components/ToggleableItemStatusFormGroup";
 import FormattedRefcode from "@/components/FormattedRefcode";
@@ -131,7 +124,6 @@ import FormattedBarCode from "@/components/FormattedBarcode";
 import StyledInput from "@/components/StyledInput";
 import SynthesisInformation from "@/components/SynthesisInformation";
 import ItemRelationshipVisualization from "@/components/ItemRelationshipVisualization";
-import GHSHazardInformation from "@/components/GHSHazardInformation";
 
 import AutoComplete from "primevue/autocomplete";
 import { getStartingMaterialList, getEquipmentList } from "@/server_fetch_utils.js";
@@ -141,8 +133,6 @@ export default {
   components: {
     AutoComplete,
     StyledInput,
-    ChemicalFormula,
-    ChemFormulaInput,
     ItemRelationshipVisualization,
     TiptapInline,
     ToggleableCollectionFormGroup,
@@ -151,7 +141,7 @@ export default {
     FormattedRefcode,
     FormattedBarCode,
     SynthesisInformation,
-    GHSHazardInformation,
+    SubstanceInformation,
   },
   props: {
     item_id: { type: String, required: true },
@@ -163,6 +153,7 @@ export default {
       tableOfContentsSections: [
         { title: "Starting Material Information", targetID: "starting-material-information" },
         { title: "Table of Contents", targetID: "table-of-contents" },
+        { title: "Substance Information", targetID: "substance-information" },
         { title: "Synthesis Information", targetID: "synthesis-information" },
       ],
     };
@@ -174,10 +165,8 @@ export default {
     ItemID: createComputedSetterForItemField("item_id"),
     Name: createComputedSetterForItemField("name"),
     CAS: createComputedSetterForItemField("CAS"),
-    GHS: createComputedSetterForItemField("GHS_codes"),
     DateAcquired: createComputedSetterForItemField("date"),
     DateOpened: createComputedSetterForItemField("date_opened"),
-    ChemForm: createComputedSetterForItemField("chemform"),
     Supplier: createComputedSetterForItemField("supplier"),
     ChemicalPurity: createComputedSetterForItemField("chemical_purity"),
     Location: createComputedSetterForItemField("location"),
