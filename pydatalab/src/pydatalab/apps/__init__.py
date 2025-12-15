@@ -22,9 +22,10 @@ def load_app_blocks():
 
     try:
         # A dummy block that is used to check that bad blocks do not break the import
-        from pydatalab.apps._canary import CanaryBlock
+        from pydatalab.apps._canary import AsyncCanaryBlock, CanaryBlock
 
         app_blocks.append(CanaryBlock)
+        app_blocks.append(AsyncCanaryBlock)
     except ImportError as e:
         _check_error(e)
 

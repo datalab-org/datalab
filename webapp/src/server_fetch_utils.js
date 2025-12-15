@@ -67,6 +67,15 @@ function pollBlockStatus(item_id, block_id, task_id) {
     try {
       const response = await fetch_get(`${API_URL}/blocks/${task_id}/status`);
 
+      if (response.stages && response.stages.length > 0) {
+        const latestStage = response.stages[response.stages.length - 1];
+
+        store.commit("setBlockInfo", {
+          block_id,
+          info: latestStage.message,
+        });
+      }
+
       if (response.status === "ready") {
         clearInterval(pollInterval);
         store.commit("updateBlockData", {
@@ -76,10 +85,12 @@ function pollBlockStatus(item_id, block_id, task_id) {
         });
         store.commit("setBlockNotUpdating", block_id);
         store.commit("setBlockSaved", { block_id: block_id, isSaved: true });
+        store.commit("setBlockInfo", { block_id, info: null });
       } else if (response.status === "error") {
         clearInterval(pollInterval);
         store.commit("setBlockNotUpdating", block_id);
         store.commit("setBlockError", { block_id, error: response.error_message });
+        store.commit("setBlockInfo", { block_id, info: null });
       }
     } catch (error) {
       clearInterval(pollInterval);
