@@ -37,7 +37,7 @@ export default {
         {
           field: "chemform",
           header: "Formula",
-          body: "ChemicalFormula",
+          body: "FormulaWithSubstanceCell",
           label: "Formula",
         },
         { field: "date", header: "Date", label: "Date", filter: true },

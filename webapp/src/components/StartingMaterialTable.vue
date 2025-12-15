@@ -41,7 +41,12 @@ export default {
           icon: ["fa", "barcode"],
         },
         { field: "name", header: "Name", label: "Name" },
-        { field: "chemform", header: "Formula", body: "ChemicalFormula", label: "Formula" },
+        {
+          field: "chemform",
+          header: "Formula",
+          body: "FormulaWithSubstanceCell",
+          label: "Formula",
+        },
         { field: "date", header: "Date", label: "Date" },
         {
           field: "collections",
