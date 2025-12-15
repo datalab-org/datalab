@@ -66,7 +66,6 @@ function pollBlockStatus(item_id, block_id, task_id) {
 
       if (response.stages && response.stages.length > 0) {
         const latestStage = response.stages[response.stages.length - 1];
-        console.log(`Block processing stage: ${latestStage.message}`);
 
         store.commit("setBlockInfo", {
           block_id,
