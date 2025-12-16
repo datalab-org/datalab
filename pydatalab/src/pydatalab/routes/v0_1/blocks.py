@@ -8,26 +8,20 @@ from werkzeug.exceptions import BadRequest, NotImplemented
 from pydatalab.apps import BLOCK_TYPES
 from pydatalab.blocks.base import DataBlock
 from pydatalab.config import CONFIG
-from pydatalab.models.block_task import BlockProcessingStatus, BlockTask
+from pydatalab.models.tasks import Task, TaskStage, TaskStatus, TaskType
 from pydatalab.mongo import flask_mongo
 from pydatalab.permissions import active_users_or_get_only, get_default_permissions
 from pydatalab.scheduler import export_scheduler
 
 
 def _process_block_async_internal(task_id: str, block_data: dict, event_data: dict | None):
-    from pydatalab.models.block_task import BlockProcessingStage
-
     def add_stage(message: str, level: str = "info"):
-        stage = BlockProcessingStage(
-            timestamp=datetime.now(tz=timezone.utc), message=message, level=level
-        )
-        flask_mongo.db.block_tasks.update_one(
-            {"task_id": task_id}, {"$push": {"stages": stage.dict()}}
-        )
+        stage = TaskStage(timestamp=datetime.now(tz=timezone.utc), message=message, level=level)
+        flask_mongo.db.tasks.update_one({"task_id": task_id}, {"$push": {"stages": stage.dict()}})
 
     try:
-        flask_mongo.db.block_tasks.update_one(
-            {"task_id": task_id}, {"$set": {"status": BlockProcessingStatus.PROCESSING}}
+        flask_mongo.db.tasks.update_one(
+            {"task_id": task_id}, {"$set": {"status": TaskStatus.PROCESSING}}
         )
         add_stage("Processing started")
 
@@ -53,11 +47,11 @@ def _process_block_async_internal(task_id: str, block_data: dict, event_data: di
         _save_block_to_db(block)
 
         add_stage("Processing completed successfully", level="info")
-        flask_mongo.db.block_tasks.update_one(
+        flask_mongo.db.tasks.update_one(
             {"task_id": task_id},
             {
                 "$set": {
-                    "status": BlockProcessingStatus.READY,
+                    "status": TaskStatus.READY,
                     "completed_at": datetime.now(tz=timezone.utc),
                 }
             },
@@ -65,11 +59,11 @@ def _process_block_async_internal(task_id: str, block_data: dict, event_data: di
 
     except Exception as e:
         add_stage(f"Error during processing: {str(e)}", level="error")
-        flask_mongo.db.block_tasks.update_one(
+        flask_mongo.db.tasks.update_one(
             {"task_id": task_id},
             {
                 "$set": {
-                    "status": BlockProcessingStatus.ERROR,
+                    "status": TaskStatus.ERROR,
                     "error_message": str(e),
                     "completed_at": datetime.now(tz=timezone.utc),
                 }
@@ -279,15 +273,16 @@ def update_block():
         else:
             creator_id = "000000000000000000000000"
 
-        block_task = BlockTask(
+        block_task = Task(
             task_id=task_id,
+            type=TaskType.BLOCK_PROCESSING,
             item_id=block_data["item_id"],
             block_id=block_data["block_id"],
             creator_id=creator_id,
-            status=BlockProcessingStatus.PENDING,
+            status=TaskStatus.PENDING,
         )
 
-        flask_mongo.db.block_tasks.insert_one(block_task.dict())
+        flask_mongo.db.tasks.insert_one(block_task.dict())
 
         try:
             app = current_app._get_current_object()
@@ -408,7 +403,7 @@ def delete_collection_block():
 
 @BLOCKS.route("/blocks/<string:task_id>/status", methods=["GET"])
 def get_block_task_status(task_id: str):
-    task = flask_mongo.db.block_tasks.find_one({"task_id": task_id})
+    task = flask_mongo.db.tasks.find_one({"task_id": task_id, "type": TaskType.BLOCK_PROCESSING})
 
     if not task:
         return jsonify({"status": "error", "message": "Task not found"}), 404
@@ -426,7 +421,7 @@ def get_block_task_status(task_id: str):
     if task.get("error_message"):
         response["error_message"] = task["error_message"]
 
-    if task["status"] == BlockProcessingStatus.READY:
+    if task["status"] == TaskStatus.READY:
         item_id = task["item_id"]
         block_id = task["block_id"]
 
