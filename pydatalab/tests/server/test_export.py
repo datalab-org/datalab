@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from bson import ObjectId
 
-from pydatalab.models.export_task import ExportStatus, ExportTask
+from pydatalab.models.tasks import Task, TaskStatus, TaskType
 
 
 @pytest.fixture
@@ -51,13 +51,14 @@ class TestExportRoutes:
         assert mock_scheduler.add_job.called
 
         # Verify the task was created in the database
-        task = database.export_tasks.find_one({"task_id": data["task_id"]})
+        task = database.tasks.find_one({"task_id": data["task_id"]})
         assert task is not None
+        assert task["type"] == TaskType.EXPORT
         assert task["collection_id"] == collection_id
-        assert task["status"] == ExportStatus.PENDING
+        assert task["status"] == TaskStatus.PENDING
 
         # Clean up
-        database.export_tasks.delete_one({"task_id": data["task_id"]})
+        database.tasks.delete_one({"task_id": data["task_id"]})
 
     def test_start_collection_export_not_found(self, client):
         response = client.post("/collections/nonexistent/export")
@@ -69,13 +70,15 @@ class TestExportRoutes:
 
     def test_get_export_status_pending(self, client, database):
         task_id = "test-task-pending"
-        task = ExportTask(
+        task = Task(
             task_id=task_id,
+            type=TaskType.EXPORT,
             collection_id="test_collection",
             creator_id="000000000000000000000000",
-            status=ExportStatus.PENDING,
+            status=TaskStatus.PENDING,
         )
-        database.export_tasks.insert_one(task.dict())
+
+        database.tasks.insert_one(task.dict())
 
         response = client.get(f"/exports/{task_id}/status")
         assert response.status_code == 200
@@ -84,22 +87,24 @@ class TestExportRoutes:
         assert data["status"] == "pending"
         assert "created_at" in data
 
-        database.export_tasks.delete_one({"task_id": task_id})
+        database.tasks.delete_one({"task_id": task_id})
 
     def test_get_export_status_ready(self, client, database, tmp_path):
         task_id = "test-task-ready"
         file_path = tmp_path / f"{task_id}.eln"
         file_path.write_text("test content")
 
-        task = ExportTask(
+        task = Task(
             task_id=task_id,
+            type=TaskType.EXPORT,
             collection_id="test_collection",
             creator_id="000000000000000000000000",
-            status=ExportStatus.READY,
+            status=TaskStatus.READY,
             file_path=str(file_path),
             completed_at=datetime.now(tz=timezone.utc),
         )
-        database.export_tasks.insert_one(task.dict())
+
+        database.tasks.insert_one(task.dict())
 
         response = client.get(f"/exports/{task_id}/status")
         assert response.status_code == 200
@@ -109,21 +114,23 @@ class TestExportRoutes:
         assert data["download_url"] == f"/exports/{task_id}/download"
         assert "completed_at" in data
 
-        database.export_tasks.delete_one({"task_id": task_id})
+        database.tasks.delete_one({"task_id": task_id})
 
     def test_get_export_status_error(self, client, database):
         task_id = "test-task-error"
         error_message = "Export failed due to test error"
 
-        task = ExportTask(
+        task = Task(
             task_id=task_id,
+            type=TaskType.EXPORT,
             collection_id="test_collection",
             creator_id="000000000000000000000000",
-            status=ExportStatus.ERROR,
+            status=TaskStatus.ERROR,
             error_message=error_message,
             completed_at=datetime.now(tz=timezone.utc),
         )
-        database.export_tasks.insert_one(task.dict())
+
+        database.tasks.insert_one(task.dict())
 
         response = client.get(f"/exports/{task_id}/status")
         assert response.status_code == 200
@@ -133,7 +140,7 @@ class TestExportRoutes:
         assert data["error_message"] == error_message
         assert "completed_at" in data
 
-        database.export_tasks.delete_one({"task_id": task_id})
+        database.tasks.delete_one({"task_id": task_id})
 
     def test_get_export_status_not_found(self, client):
         response = client.get("/exports/nonexistent-task/status")
@@ -149,32 +156,36 @@ class TestExportRoutes:
         file_path = tmp_path / f"{task_id}.eln"
         file_path.write_bytes(b"test export content")
 
-        task = ExportTask(
+        task = Task(
             task_id=task_id,
+            type=TaskType.EXPORT,
             collection_id=collection_id,
             creator_id="000000000000000000000000",
-            status=ExportStatus.READY,
+            status=TaskStatus.READY,
             file_path=str(file_path),
         )
-        database.export_tasks.insert_one(task.dict())
+
+        database.tasks.insert_one(task.dict())
 
         response = client.get(f"/exports/{task_id}/download")
         assert response.status_code == 200
         assert response.data == b"test export content"
         assert f"filename={collection_id}.eln" in response.headers.get("Content-Disposition", "")
 
-        database.export_tasks.delete_one({"task_id": task_id})
+        database.tasks.delete_one({"task_id": task_id})
 
     def test_download_export_not_ready(self, client, database):
         task_id = "test-not-ready-task"
 
-        task = ExportTask(
+        task = Task(
             task_id=task_id,
+            type=TaskType.EXPORT,
             collection_id="test_collection",
             creator_id="000000000000000000000000",
-            status=ExportStatus.PROCESSING,
+            status=TaskStatus.PROCESSING,
         )
-        database.export_tasks.insert_one(task.dict())
+
+        database.tasks.insert_one(task.dict())
 
         response = client.get(f"/exports/{task_id}/download")
         assert response.status_code == 400
@@ -182,19 +193,21 @@ class TestExportRoutes:
         data = json.loads(response.data)
         assert "not ready" in data["message"].lower()
 
-        database.export_tasks.delete_one({"task_id": task_id})
+        database.tasks.delete_one({"task_id": task_id})
 
     def test_download_export_file_missing(self, client, database):
         task_id = "test-missing-file-task"
 
-        task = ExportTask(
+        task = Task(
             task_id=task_id,
+            type=TaskType.EXPORT,
             collection_id="test_collection",
             creator_id="000000000000000000000000",
-            status=ExportStatus.READY,
+            status=TaskStatus.READY,
             file_path="/nonexistent/path.eln",
         )
-        database.export_tasks.insert_one(task.dict())
+
+        database.tasks.insert_one(task.dict())
 
         response = client.get(f"/exports/{task_id}/download")
         assert response.status_code == 404
@@ -202,4 +215,4 @@ class TestExportRoutes:
         data = json.loads(response.data)
         assert "file not found" in data["message"].lower()
 
-        database.export_tasks.delete_one({"task_id": task_id})
+        database.tasks.delete_one({"task_id": task_id})
