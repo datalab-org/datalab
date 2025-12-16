@@ -1093,7 +1093,6 @@ export async function startCollectionExport(collection_id) {
 export async function getExportStatus(task_id) {
   return fetch_get(`${API_URL}/exports/${task_id}/status`)
     .then(function (response_json) {
-      console.log(response_json);
       return response_json;
     })
     .catch((error) => {
