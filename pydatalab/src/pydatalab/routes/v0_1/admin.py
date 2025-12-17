@@ -342,10 +342,22 @@ def create_group():
         "description": request_json.get("description"),
         "managers": request_json.get("managers"),
     }
+
+    if group_json["managers"]:
+        group_json["managers"] = [ObjectId(u) for u in request_json["managers"]]
+
     try:
         group = Group(**group_json)
     except Exception as e:
-        return jsonify({"status": "error", "message": f"Invalid group data: {str(e)}"}), 400
+        raise BadRequest(f"Invalid new group data: {str(e)}")
+
+    bad_managers = [
+        m for m in group_json["managers"] if not flask_mongo.db.users.find_one({"_id": m})
+    ]
+    if bad_managers:
+        raise BadRequest(
+            f"Manager(s) with ID(s) {bad_managers} not found; cannot create group {group_json['group_id']}"
+        )
 
     try:
         group_immutable_id = flask_mongo.db.groups.insert_one(group.dict()).inserted_id
@@ -360,13 +372,10 @@ def create_group():
     return jsonify({"status": "error", "message": "Unable to create group."}), 400
 
 
-@ADMIN.route("/groups", methods=["DELETE"])
-def delete_group():
-    request_json = request.get_json()
-
-    group_id = request_json.get("immutable_id")
-    if group_id is not None:
-        result = flask_mongo.db.groups.delete_one({"_id": ObjectId(group_id)})
+@ADMIN.route("/groups/<group_immutable_id>", methods=["DELETE"])
+def delete_group(group_immutable_id: str):
+    if group_immutable_id is not None:
+        result = flask_mongo.db.groups.delete_one({"_id": ObjectId(group_immutable_id)})
 
         if result.deleted_count == 1:
             return jsonify({"status": "success"}), 200
@@ -374,8 +383,8 @@ def delete_group():
     return jsonify({"status": "error", "message": "Unable to delete group."}), 400
 
 
-@ADMIN.route("/groups/<group_immutable_id>", methods=["PUT"])
-def update_group(group_immutable_id):
+@ADMIN.route("/groups/<group_immutable_id>", methods=["PATCH"])
+def update_group(group_immutable_id: str):
     request_json = request.get_json()
 
     existing_group = flask_mongo.db.groups.find_one({"_id": ObjectId(group_immutable_id)})
@@ -391,7 +400,14 @@ def update_group(group_immutable_id):
         update_data["description"] = request_json["description"]
 
     if "managers" in request_json:
-        update_data["managers"] = request_json["managers"]
+        update_data["managers"] = [ObjectId(u) for u in request_json["managers"]]
+        bad_managers = [
+            m for m in update_data["managers"] if not flask_mongo.db.users.find_one({"_id": m})
+        ]
+        if bad_managers:
+            raise BadRequest(
+                f"Manager(s) with ID(s) {bad_managers} not found; cannot update group {group_immutable_id}"
+            )
 
     try:
         temp_group_data = {**existing_group, **update_data}
@@ -417,8 +433,8 @@ def update_group(group_immutable_id):
         return jsonify({"status": "error", "message": f"Failed to update group: {str(e)}"}), 500
 
 
-@ADMIN.route("/groups/<group_immutable_id>", methods=["PATCH"])
-def add_user_to_group(group_immutable_id):
+@ADMIN.route("/groups/<group_immutable_id>", methods=["PUT"])
+def add_user_to_group(group_immutable_id: str):
     request_json = request.get_json()
 
     user_id = request_json.get("user_id")

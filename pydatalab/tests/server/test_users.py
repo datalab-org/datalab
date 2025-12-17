@@ -5,7 +5,7 @@ def test_get_current_user_unauthenticated(unauthenticated_client):
     assert resp.status_code == 401
 
 
-def test_get_current_user(client, real_mongo_client):
+def test_get_current_user(client, database):
     """Test that the API key for the demo user has been set correctly."""
 
     resp = client.get("/get-current-user/")
@@ -26,21 +26,21 @@ def test_get_current_user_admin(admin_client):
     assert resp_json["role"] == "admin"
 
 
-def test_role(admin_client, real_mongo_client, user_id):
+def test_role(admin_client, database, user_id):
     endpoint = f"/roles/{str(user_id)}"
     admin_request = {"role": "manager"}
     resp = admin_client.patch(endpoint, json=admin_request)
     assert resp.status_code == 200
-    user = real_mongo_client.get_database().roles.find_one({"_id": user_id})
+    user = database.roles.find_one({"_id": user_id})
     assert user["role"] == "manager"
 
 
-def test_role_update_by_user(client, real_mongo_client, user_id):
+def test_role_update_by_user(client, database, user_id):
     endpoint = f"/roles/{str(user_id)}"
     user_request = {"role": "admin"}
     resp = client.patch(endpoint, json=user_request)
     assert resp.status_code == 403
-    user = real_mongo_client.get_database().roles.find_one({"_id": user_id})
+    user = database.roles.find_one({"_id": user_id})
     assert user["role"] == "manager"
 
 
@@ -58,20 +58,20 @@ def test_list_groups(admin_client, client):
     assert resp.status_code == 403
 
 
-def test_user_update(client, unauthenticated_client, real_mongo_client, user_id, admin_user_id):
+def test_user_update(client, unauthenticated_client, database, user_id, admin_user_id):
     endpoint = f"/users/{str(user_id)}"
     # Test display name update
     user_request = {"display_name": "Test Person II"}
     resp = client.patch(endpoint, json=user_request)
     assert resp.status_code == 200
-    user = real_mongo_client.get_database().users.find_one({"_id": user_id})
+    user = database.users.find_one({"_id": user_id})
     assert user["display_name"] == "Test Person II"
 
     # Test contact email update
     user_request = {"contact_email": "test2@example.org"}
     resp = client.patch(endpoint, json=user_request)
     assert resp.status_code == 200
-    user = real_mongo_client.get_database().users.find_one({"_id": user_id})
+    user = database.users.find_one({"_id": user_id})
     assert user["contact_email"] == "test2@example.org"
     assert user["identities"][-1]["identifier"] == "test2@example.org"
     assert not user["identities"][-1]["verified"]
@@ -80,40 +80,40 @@ def test_user_update(client, unauthenticated_client, real_mongo_client, user_id,
     user_request = {"display_name": None}
     resp = client.patch(endpoint, json=user_request)
     assert resp.status_code == 200
-    user = real_mongo_client.get_database().users.find_one({"_id": user_id})
+    user = database.users.find_one({"_id": user_id})
     assert user["display_name"] == "Test Person II"
 
     # Test that contact_email -> None or empty DOES remove email
     user_request = {"contact_email": None}
     resp = client.patch(endpoint, json=user_request)
     assert resp.status_code == 200
-    user = real_mongo_client.get_database().users.find_one({"_id": user_id})
+    user = database.users.find_one({"_id": user_id})
     assert user["contact_email"] is None
 
     # Check empty string does the same, but reset email first
     user_request = {"contact_email": "test2@example.org"}
     resp = client.patch(endpoint, json=user_request)
     assert resp.status_code == 200
-    user = real_mongo_client.get_database().users.find_one({"_id": user_id})
+    user = database.users.find_one({"_id": user_id})
     assert user["contact_email"] == "test2@example.org"
     user_request = {"contact_email": ""}
     resp = client.patch(endpoint, json=user_request)
     assert resp.status_code == 200
-    user = real_mongo_client.get_database().users.find_one({"_id": user_id})
+    user = database.users.find_one({"_id": user_id})
     assert user["contact_email"] is None
 
     # Test bad display name does not update
     user_request = {"display_name": " "}
     resp = client.patch(endpoint, json=user_request)
     assert resp.status_code == 400
-    user = real_mongo_client.get_database().users.find_one({"_id": user_id})
+    user = database.users.find_one({"_id": user_id})
     assert user["display_name"] == "Test Person II"
 
     # Test bad contact email does not update
     user_request = {"contact_email": "not_an_email"}
     resp = client.patch(endpoint, json=user_request)
     assert resp.status_code == 400
-    user = real_mongo_client.get_database().users.find_one({"_id": user_id})
+    user = database.users.find_one({"_id": user_id})
     assert user["contact_email"] is None
 
     # Test that user cannot update admin account
@@ -121,7 +121,7 @@ def test_user_update(client, unauthenticated_client, real_mongo_client, user_id,
     user_request = {"display_name": "Test Person"}
     resp = client.patch(endpoint, json=user_request)
     assert resp.status_code == 403
-    user = real_mongo_client.get_database().users.find_one({"_id": admin_user_id})
+    user = database.users.find_one({"_id": admin_user_id})
     assert user["display_name"] == "Test Admin"
 
     # Test that differing user auth can/cannot search for users
@@ -140,18 +140,18 @@ def test_user_update(client, unauthenticated_client, real_mongo_client, user_id,
     assert resp.status_code == 401
 
 
-def test_user_update_admin(admin_client, real_mongo_client, user_id):
+def test_user_update_admin(admin_client, database, user_id):
     endpoint = f"/users/{str(user_id)}"
     # Test admin override of display name
     user_request = {"display_name": "Test Person"}
     resp = admin_client.patch(endpoint, json=user_request)
     assert resp.status_code == 200
-    user = real_mongo_client.get_database().users.find_one({"_id": user_id})
+    user = database.users.find_one({"_id": user_id})
     assert user["display_name"] == "Test Person"
 
 
-def test_create_group(
-    admin_client, client, unauthenticated_client, real_mongo_client, another_user_id
+def test_groups(
+    admin_client, client, unauthenticated_client, database, admin_id, user_id, another_user_id
 ):
     from bson import ObjectId
 
@@ -172,7 +172,7 @@ def test_create_group(
     resp = admin_client.put("/groups", json=good_group)
     assert resp.status_code == 200
     group_immutable_id = ObjectId(resp.json["group_immutable_id"])
-    assert real_mongo_client.get_database().groups.find_one({"_id": group_immutable_id})
+    assert database.groups.find_one({"_id": group_immutable_id})
 
     # Group ID must be unique
     resp = admin_client.put("/groups", json=good_group)
@@ -181,20 +181,14 @@ def test_create_group(
     # Request must come from admin
     # Make ID unique so that this would otherwise pass
     good_group["group_id"] = "my-new-group-2"
-    resp = unauthenticated_client.put("/groups", json=good_group)
+    resp = unauthenticated_client.patch("/groups", json=good_group)
     assert resp.status_code == 401
-    assert (
-        real_mongo_client.get_database().groups.find_one({"group_id": good_group["group_id"]})
-        is None
-    )
+    assert database.groups.find_one({"group_id": good_group["group_id"]}) is None
 
     # Request must come from admin
     resp = client.put("/groups", json=good_group)
     assert resp.status_code == 403
-    assert (
-        real_mongo_client.get_database().groups.find_one({"group_id": good_group["group_id"]})
-        is None
-    )
+    assert database.groups.find_one({"group_id": good_group["group_id"]}) is None
 
     # Check a user can search groups
     resp = client.get("/search/groups?query=New")
@@ -202,20 +196,28 @@ def test_create_group(
     assert len(resp.json["data"]) == 1
 
     # Check that a user can be added to the group by an admin
-    resp = admin_client.patch(f"/groups/{group_immutable_id}", json={"user_id": another_user_id})
+    resp = admin_client.put(f"/groups/{group_immutable_id}", json={"user_id": another_user_id})
     assert resp.status_code == 200
 
-    user_groups = real_mongo_client.get_database().users.find_one(
-        {"_id": ObjectId(another_user_id)}
-    )["groups"]
+    user_groups = database.users.find_one({"_id": ObjectId(another_user_id)})["groups"]
     assert user_groups[1]["immutable_id"] == group_immutable_id
     assert len(user_groups) == 2
 
     # Check that repeated addition is idempotent
-    resp = admin_client.patch(f"/groups/{group_immutable_id}", json={"user_id": another_user_id})
+    resp = admin_client.put(f"/groups/{group_immutable_id}", json={"user_id": another_user_id})
     assert resp.status_code == 304
 
-    user_groups = real_mongo_client.get_database().users.find_one(
-        {"_id": ObjectId(another_user_id)}
-    )["groups"]
+    user_groups = database.users.find_one({"_id": ObjectId(another_user_id)})["groups"]
     assert len(user_groups) == 2
+
+    # Test that an admin can update a group's details/managers
+    new_details = {
+        "display_name": "My Newly Named Group",
+        "group_id": "my-new-group-renamed",
+        "description": "A group for testing the group update mechanism",
+        "managers": [admin_id, user_id, another_user_id],
+    }
+
+    resp = admin_client.patch(f"/groups/{group_immutable_id}", json=new_details)
+    assert resp.status_code == 200
+    assert database.groups.find_one({"group_id": new_details["group_id"]}) is not None
