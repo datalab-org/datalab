@@ -911,10 +911,10 @@ def double_axes_echem_plot(
         grid = [[save_data], [p1], [p2]]
 
     elif mode == "final capacity":
-        if cycle_summary is not None:
+        if cycle_summary_dfs:
             save_data = Button(label="Download .csv", button_type="primary", width_policy="min")
             save_data_callback = CustomJS(
-                args=dict(source=ColumnDataSource(cycle_summary)),
+                args=dict(source=ColumnDataSource(cycle_summary_dfs[0])),
                 code=GENERATE_CSV_CALLBACK,
             )
             save_data.js_on_click(save_data_callback)
