@@ -1,5 +1,4 @@
 import datetime
-import json
 
 import pymongo.errors
 from bson import ObjectId
@@ -284,52 +283,49 @@ def list_access_tokens():
 
 @ADMIN.route("/groups", methods=["GET"])
 def get_groups():
-    groups_data = []
-    for group_doc in flask_mongo.db.groups.find():
-        group_doc["immutable_id"] = str(group_doc["_id"])
-
-        group_data = json.loads(Group(**group_doc).json())
-
-        # TODO: remove or refactor into $lookup
-        group_members = list(
-            flask_mongo.db.users.find(
-                {"group_ids": group_doc["_id"]}, {"_id": 1, "display_name": 1, "contact_email": 1}
-            )
-        )
-        group_data["members"] = [
+    # Lookup members from users collection: find all those that refer to this group ID in their groups->immutable_id field
+    members_lookup = {
+        "from": "users",
+        "let": {"group_id": "$_id"},
+        "pipeline": [
             {
-                "immutable_id": str(member["_id"]),
-                "display_name": member.get("display_name", ""),
-                "contact_email": member.get("contact_email", ""),
-            }
-            for member in group_members
-        ]
-
-        # TODO: remove or refactor into $lookup
-        if group_doc.get("managers"):
-            admin_ids = [ObjectId(admin_id) for admin_id in group_doc["managers"]]
-            managers = list(
-                flask_mongo.db.users.find(
-                    {"_id": {"$in": admin_ids}}, {"_id": 1, "display_name": 1, "contact_email": 1}
-                )
-            )
-            group_data["managers"] = [
-                {
-                    "immutable_id": str(admin["_id"]),
-                    "display_name": admin.get("display_name", ""),
-                    "contact_email": admin.get("contact_email", ""),
+                "$match": {
+                    "$expr": {"$in": ["$$group_id", {"$ifNull": ["$groups.immutable_id", []]}]}
                 }
-                for admin in managers
-            ]
+            },
+            {
+                "$project": {
+                    "_id": 1,
+                    "display_name": 1,
+                    "contact_email": 1,
+                }
+            },
+        ],
+        "as": "members",
+    }
 
-        groups_data.append(group_data)
+    # Lookup managers from users collection: find all those referred to by ID in this group under the managers field
+    managers_lookup = {
+        "from": "users",
+        "let": {"manager_ids": "$managers"},
+        "pipeline": [
+            {"$match": {"$expr": {"$in": ["$_id", {"$ifNull": ["$$manager_ids", []]}]}}},
+            {
+                "$project": {
+                    "_id": 1,
+                    "display_name": 1,
+                    "contact_email": 1,
+                }
+            },
+        ],
+        "as": "managers",
+    }
 
-    return jsonify(
-        {
-            "status": "success",
-            "data": groups_data,
-        }
-    ), 200
+    group_docs = flask_mongo.db.groups.aggregate(
+        [{"$match": {}}, {"$lookup": members_lookup}, {"$lookup": managers_lookup}]
+    )
+
+    return jsonify({"status": "success", "data": [Group(**d).dict() for d in group_docs]}), 200
 
 
 @ADMIN.route("/groups", methods=["PUT"])
@@ -398,6 +394,9 @@ def update_group(group_immutable_id: str):
 
     if "description" in request_json:
         update_data["description"] = request_json["description"]
+
+    if "group_id" in request_json:
+        update_data["group_id"] = request_json["group_id"]
 
     if "managers" in request_json:
         update_data["managers"] = [ObjectId(u) for u in request_json["managers"]]

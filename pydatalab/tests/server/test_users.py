@@ -151,7 +151,7 @@ def test_user_update_admin(admin_client, database, user_id):
 
 
 def test_groups(
-    admin_client, client, unauthenticated_client, database, admin_id, user_id, another_user_id
+    admin_client, client, unauthenticated_client, database, admin_user_id, user_id, another_user_id
 ):
     from bson import ObjectId
 
@@ -181,7 +181,7 @@ def test_groups(
     # Request must come from admin
     # Make ID unique so that this would otherwise pass
     good_group["group_id"] = "my-new-group-2"
-    resp = unauthenticated_client.patch("/groups", json=good_group)
+    resp = unauthenticated_client.put("/groups", json=good_group)
     assert resp.status_code == 401
     assert database.groups.find_one({"group_id": good_group["group_id"]}) is None
 
@@ -215,7 +215,7 @@ def test_groups(
         "display_name": "My Newly Named Group",
         "group_id": "my-new-group-renamed",
         "description": "A group for testing the group update mechanism",
-        "managers": [admin_id, user_id, another_user_id],
+        "managers": [admin_user_id, user_id, another_user_id],
     }
 
     resp = admin_client.patch(f"/groups/{group_immutable_id}", json=new_details)
