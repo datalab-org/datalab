@@ -3,8 +3,6 @@ import json
 import re
 import secrets
 from hashlib import sha512
-from importlib.metadata import PackageNotFoundError
-from importlib.metadata import version as get_package_version
 
 from bson import ObjectId
 from bson.errors import InvalidId
@@ -1494,10 +1492,9 @@ def _save_version_snapshot(
         user_id = current_user.person.immutable_id
 
     # Find out the software version
-    try:
-        software_version = get_package_version("datalab-server")
-    except PackageNotFoundError:
-        software_version = "unknown"
+    from pydatalab import __version__
+
+    software_version = __version__
 
     version_entry = {
         "refcode": refcode,
