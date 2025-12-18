@@ -59,6 +59,44 @@ export function construct_headers(additional_headers = null) {
   return headers;
 }
 
+function pollBlockStatus(item_id, block_id, task_id) {
+  const pollInterval = setInterval(async () => {
+    try {
+      const response = await fetch_get(`${API_URL}/blocks/${task_id}/status`);
+
+      if (response.stages && response.stages.length > 0) {
+        const latestStage = response.stages[response.stages.length - 1];
+
+        store.commit("setBlockInfo", {
+          block_id,
+          info: latestStage.message,
+        });
+      }
+
+      if (response.status === "ready") {
+        clearInterval(pollInterval);
+        store.commit("updateBlockData", {
+          item_id: item_id,
+          block_id: block_id,
+          block_data: response.block_data,
+        });
+        store.commit("setBlockNotUpdating", block_id);
+        store.commit("setBlockSaved", { block_id: block_id, isSaved: true });
+        store.commit("setBlockInfo", { block_id, info: null });
+      } else if (response.status === "error") {
+        clearInterval(pollInterval);
+        store.commit("setBlockNotUpdating", block_id);
+        store.commit("setBlockError", { block_id, error: response.error_message });
+        store.commit("setBlockInfo", { block_id, info: null });
+      }
+    } catch (error) {
+      clearInterval(pollInterval);
+      store.commit("setBlockNotUpdating", block_id);
+      store.commit("setBlockError", { block_id, error: String(error) });
+    }
+  }, 2000);
+}
+
 // eslint-disable-next-line no-unused-vars
 function fetch_get(url) {
   const requestOptions = {
@@ -619,17 +657,22 @@ export async function updateBlockFromServer(item_id, block_id, block_data, event
     event_data: event_data,
   })
     .then(function (response_json) {
-      store.commit("updateBlockData", {
-        item_id: item_id,
-        block_id: block_id,
-        block_data: response_json.new_block_data,
-      });
-      store.commit("setBlockNotUpdating", block_id);
-      store.commit("setBlockSaved", {
-        block_id: block_id,
-        isSaved: response_json.saved_successfully,
-      });
-      store.commit("setBlockError", { block_id, error: "" });
+      if (response_json.processing_async) {
+        store.commit("setBlockProcessing", { block_id, task_id: response_json.task_id });
+        pollBlockStatus(item_id, block_id, response_json.task_id);
+      } else {
+        store.commit("updateBlockData", {
+          item_id: item_id,
+          block_id: block_id,
+          block_data: response_json.new_block_data,
+        });
+        store.commit("setBlockNotUpdating", block_id);
+        store.commit("setBlockSaved", {
+          block_id: block_id,
+          isSaved: response_json.saved_successfully,
+        });
+        store.commit("setBlockError", { block_id, error: "" });
+      }
     })
     .catch((error) => {
       // The block component renders errors, so no need to make a dialog here.
@@ -1029,6 +1072,81 @@ export function saveUserManagers(user_id, managers) {
     })
     .catch((error) => {
       console.error("Managers save failed:", error);
+      throw error;
+    });
+}
+
+export async function startCollectionExport(collection_id) {
+  return fetch_post(`${API_URL}/collections/${collection_id}/export`, {})
+    .then(function (response_json) {
+      return response_json;
+    })
+    .catch((error) => {
+      DialogService.error({
+        title: "Export Failed",
+        message: `Failed to start collection export: ${error}`,
+      });
+      throw error;
+    });
+}
+
+export async function getExportStatus(task_id) {
+  return fetch_get(`${API_URL}/exports/${task_id}/status`)
+    .then(function (response_json) {
+      return response_json;
+    })
+    .catch((error) => {
+      DialogService.error({
+        title: "Export Status Check Failed",
+        message: `Failed to check export status: ${error}`,
+      });
+      throw error;
+    });
+}
+
+export function getExportDownloadUrl(task_id) {
+  return `${API_URL}/exports/${task_id}/download`;
+}
+
+export async function startSampleExport(item_id, options = {}) {
+  return fetch_post(`${API_URL}/samples/${item_id}/export`, options)
+    .then(function (response_json) {
+      return response_json;
+    })
+    .catch((error) => {
+      DialogService.error({
+        title: "Export Failed",
+        message: `Failed to start sample export: ${error}`,
+      });
+      throw error;
+    });
+}
+
+export async function fetchItemGraph({ item_id = null, collection_id = null, max_depth = 1 } = {}) {
+  let url = `${API_URL}/item-graph`;
+  if (item_id != null) {
+    url = url + "/" + item_id;
+  }
+  const params = new URLSearchParams();
+  if (collection_id != null) {
+    params.append("collection_id", collection_id);
+  }
+  if (max_depth != null && max_depth > 1) {
+    params.append("max_depth", max_depth.toString());
+  }
+  if (params.toString()) {
+    url = url + "?" + params.toString();
+  }
+
+  return fetch_get(url)
+    .then(function (response_json) {
+      return { nodes: response_json.nodes, edges: response_json.edges };
+    })
+    .catch((error) => {
+      DialogService.error({
+        title: "Graph Retrieval Failed",
+        message: `Error retrieving item graph from API: ${error}`,
+      });
       throw error;
     });
 }
