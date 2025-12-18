@@ -15,6 +15,8 @@ __all__ = (
     "_get_active_mongo_client",
     "insert_pydantic_model_fork_safe",
     "ITEMS_FTS_FIELDS",
+    "USERS_FTS_FIELDS",
+    "COLLECTIONS_FTS_FIELDS",
 )
 
 flask_mongo = PyMongo()
@@ -37,6 +39,12 @@ ITEMS_FTS_FIELDS: set[str] = set().union(
         for model in ITEM_MODELS.values()
     )
 )
+
+USERS_FTS_FIELDS: set[str] = {"identities.name", "display_name", "contact_email"}
+"""Fields to search for users."""
+
+COLLECTIONS_FTS_FIELDS: set[str] = {"collection_id", "title", "description"}
+"""Fields to search for collections."""
 
 
 def insert_pydantic_model_fork_safe(model: BaseModel, collection: str) -> str:

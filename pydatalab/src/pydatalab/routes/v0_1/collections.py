@@ -10,9 +10,13 @@ from pymongo.results import InsertOneResult, UpdateResult
 from pydatalab.config import CONFIG
 from pydatalab.logger import logged_route
 from pydatalab.models.collections import Collection
-from pydatalab.mongo import flask_mongo
+from pydatalab.mongo import COLLECTIONS_FTS_FIELDS, flask_mongo
 from pydatalab.permissions import active_users_or_get_only, get_default_permissions
-from pydatalab.routes.v0_1.items import creators_lookup, get_items_summary
+from pydatalab.routes.v0_1.items import (
+    _generate_heuristic_regex_search,
+    creators_lookup,
+    get_items_summary,
+)
 
 COLLECTIONS = Blueprint("collections", __name__)
 
@@ -339,28 +343,68 @@ def delete_collection(collection_id: str):
     )
 
 
-@COLLECTIONS.route("/search-collections", methods=["GET"])
+@COLLECTIONS.route("/search-collections/", methods=["GET"])
 def search_collections():
+    """Perform free text search on collections and return the top results.
+    GET parameters:
+        query: String with the search terms.
+        nresults: Maximum number of  (default 100)
+
+    Returns:
+        response list of dictionaries containing the matching collections in order of
+        descending match score.
+    """
     query = request.args.get("query", type=str)
     nresults = request.args.get("nresults", default=100, type=int)
 
-    match_obj = {"$text": {"$search": query}, **get_default_permissions(user_only=True)}
+    if not query:
+        return jsonify({"status": "error", "message": "No query provided."}), 400
+
+    pipeline = []
+
+    if isinstance(query, str):
+        query = query.strip("'")
+
+    if isinstance(query, str) and query.startswith("%"):
+        # Old FTS query style, using MongoDB text indexes
+        query = query.lstrip("%")
+        query = query.strip("'")
+        match_obj = {"$text": {"$search": query}, **get_default_permissions(user_only=True)}
+
+        pipeline.append({"$match": match_obj})
+        pipeline.append({"$sort": {"score": {"$meta": "textScore"}}})
+    elif isinstance(query, str) and query.startswith("#"):
+        # Plain regex search, without word boundaries or splitting into parts
+        query = query.lstrip("#")
+        query = query.strip("'")
+
+        match_obj = {
+            "$or": [{field: {"$regex": query, "$options": "i"}} for field in COLLECTIONS_FTS_FIELDS]
+        }
+        match_obj = {"$and": [get_default_permissions(user_only=True), match_obj]}
+
+        pipeline.append({"$match": match_obj})
+
+    else:
+        # Heuristic + regex search
+        match_obj = _generate_heuristic_regex_search(query, COLLECTIONS_FTS_FIELDS)
+        match_obj = {"$and": [get_default_permissions(user_only=True), match_obj]}
+
+        pipeline.append({"$match": match_obj})
+
+    pipeline.append({"$limit": nresults})
+    pipeline.append(
+        {
+            "$project": {
+                "collection_id": 1,
+                "title": 1,
+            }
+        }
+    )
 
     cursor = [
         json.loads(Collection(**doc).json(exclude_unset=True))
-        for doc in flask_mongo.db.collections.aggregate(
-            [
-                {"$match": match_obj},
-                {"$sort": {"score": {"$meta": "textScore"}}},
-                {"$limit": nresults},
-                {
-                    "$project": {
-                        "collection_id": 1,
-                        "title": 1,
-                    }
-                },
-            ]
-        )
+        for doc in flask_mongo.db.collections.aggregate(pipeline)
     ]
 
     return jsonify({"status": "success", "data": list(cursor)}), 200

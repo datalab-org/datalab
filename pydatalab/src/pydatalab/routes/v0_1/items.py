@@ -3,6 +3,7 @@ import json
 import re
 import secrets
 from hashlib import sha512
+from typing import Any
 
 from bson import ObjectId
 from flask import Blueprint, jsonify, redirect, request
@@ -20,7 +21,7 @@ from pydatalab.models.items import Item
 from pydatalab.models.people import Person
 from pydatalab.models.relationships import RelationshipType
 from pydatalab.models.utils import generate_unique_refcode
-from pydatalab.mongo import ITEMS_FTS_FIELDS, flask_mongo
+from pydatalab.mongo import ITEMS_FTS_FIELDS, USERS_FTS_FIELDS, flask_mongo
 from pydatalab.permissions import (
     PUBLIC_USER_ID,
     access_token_or_active_users,
@@ -28,6 +29,93 @@ from pydatalab.permissions import (
     check_access_token,
     get_default_permissions,
 )
+
+
+def _generate_heuristic_regex_search(
+    query: str, fields: set[str], part_length: int = 4
+) -> dict[str, Any]:
+    """Generate a heuristic regex search object for MongoDB that uses
+    word boundaries for short parts of the query, but allows matches anywhere.
+
+    Parameters:
+        query: The full search query string.
+        fields: Set of field names to search across.
+        part_length: The length below which to add a word boundary to the start of the part.
+
+    Returns:
+        A MongoDB query object that can be used in a $match stage.
+
+    """
+    query_parts = [re.escape(part) for part in query.split(" ") if part.strip()]
+
+    # Add word boundary to short parts to avoid excessive matches, i.e., search start of string
+    # for short parts, but allow match anywhere in string for longer parts
+    query_parts = [f"\\b{part}" if len(part) <= part_length else part for part in query_parts]
+    match_obj = {
+        "$or": [
+            {"$and": [{field: {"$regex": query, "$options": "i"}} for query in query_parts]}
+            for field in fields
+        ]
+    }
+    LOGGER.debug("Performing regex search for %s with full search %s", query_parts, match_obj)
+
+    return match_obj
+
+
+def build_search_pipeline(
+    query: str,
+    fields: set[str],
+    permissions: dict | None = None,
+) -> list[dict]:
+    """Build a MongoDB aggregation pipeline for search with support for FTS, regex, and heuristic modes.
+
+    Parameters:
+        query: The search query string.
+        fields: Set of field names to search across.
+        permissions: Optional permissions filter to apply.
+
+    Returns:
+        A list of pipeline stages for MongoDB aggregation.
+
+    """
+    pipeline = []
+    match_obj: dict[str, Any]
+
+    if isinstance(query, str):
+        query = query.strip("'")
+
+    if isinstance(query, str) and query.startswith("%"):
+        # Old FTS query style, using MongoDB text indexes
+        query = query.lstrip("%")
+        query = query.strip("'")
+        match_obj = {"$text": {"$search": query}}
+        if permissions:
+            match_obj.update(permissions)
+
+        pipeline.append({"$match": match_obj})
+        pipeline.append({"$sort": {"score": {"$meta": "textScore"}}})
+
+    elif isinstance(query, str) and query.startswith("#"):
+        # Plain regex search, without word boundaries or splitting into parts
+        query = query.lstrip("#")
+        query = query.strip("'")
+
+        match_obj = {"$or": [{field: {"$regex": query, "$options": "i"}} for field in fields]}
+        if permissions:
+            match_obj = {"$and": [permissions, match_obj]}
+
+        pipeline.append({"$match": match_obj})
+
+    else:
+        # Heuristic + regex search, splitting the query into parts and adding word boundaries
+        match_obj = _generate_heuristic_regex_search(query, fields)
+        if permissions:
+            match_obj = {"$and": [permissions, match_obj]}
+
+        pipeline.append({"$match": match_obj})
+
+    return pipeline
+
 
 ITEMS = Blueprint("items", __name__)
 
@@ -323,6 +411,9 @@ def search_items():
         # should figure out how to parse as list automatically
         types = types.split(",")
 
+    if not query:
+        return jsonify({"status": "error", "message": "No query provided."}), 400
+
     pipeline = []
 
     if isinstance(query, str):
@@ -356,43 +447,8 @@ def search_items():
         pipeline.append({"$match": match_obj})
 
     else:
-        # Heuristic + regex search, splitting the query into parts and adding word boundaries
-        # depending on length
-        def _generate_heuristic_regex_search(query: str, part_length: int = 4) -> dict:
-            """Generate a heuristic regex search object for MongoDB that uses
-            word boundaries for short parts of the query, but allows matches anywhere.
-
-            Parameters:
-                query: The full search query string.
-                part_length: The length below which to add a word boundary to the start of the part.
-
-            Returns:
-                A MongoDB query object that can be used in a $match stage.
-
-            """
-            query_parts = [re.escape(part) for part in query.split(" ") if part.strip()]
-
-            # Add word boundary to short parts to avoid excessive matches, i.e., search start of string
-            # for short parts, but allow match anywhere in string for longer parts
-            query_parts = [
-                f"\\b{part}" if len(part) <= part_length else part for part in query_parts
-            ]
-            match_obj = {
-                "$or": [
-                    {"$and": [{field: {"$regex": query, "$options": "i"}} for query in query_parts]}
-                    for field in ITEMS_FTS_FIELDS
-                ]
-            }
-            LOGGER.debug(
-                "Performing regex search for %s with full search %s", query_parts, match_obj
-            )
-
-            return match_obj
-
-        if not query:
-            return jsonify({"status": "error", "message": "No query provided."}), 400
-
-        match_obj = _generate_heuristic_regex_search(query)
+        # Heuristic + regex search
+        match_obj = _generate_heuristic_regex_search(query, ITEMS_FTS_FIELDS)
         match_obj = {"$and": [get_default_permissions(user_only=False), match_obj]}
         if types is not None:
             match_obj["$and"].append({"type": {"$in": types}})
@@ -1175,33 +1231,59 @@ def search_users():
         nresults: Maximum number of  (default 100)
 
     Returns:
-        response list of dictionaries containing the matching items in order of
+        response list of dictionaries containing the matching users in order of
         descending match score.
     """
 
     query = request.args.get("query", type=str)
     nresults = request.args.get("nresults", default=100, type=int)
-    types = request.args.get("types", default=None)
 
-    match_obj = {"$text": {"$search": query}}
-    if types is not None:
-        match_obj["type"] = {"$in": types}
+    if not query:
+        return jsonify({"status": "error", "message": "No query provided."}), 400
 
-    cursor = flask_mongo.db.users.aggregate(
-        [
-            {"$match": match_obj},
-            {"$sort": {"score": {"$meta": "textScore"}}},
-            {"$limit": nresults},
-            {
-                "$project": {
-                    "_id": 1,
-                    "identities": 1,
-                    "display_name": 1,
-                    "contact_email": 1,
-                }
-            },
-        ]
+    pipeline = []
+
+    if isinstance(query, str):
+        query = query.strip("'")
+
+    if isinstance(query, str) and query.startswith("%"):
+        # Old FTS query style, using MongoDB text indexes
+        query = query.lstrip("%")
+        query = query.strip("'")
+        match_obj = {"$text": {"$search": query}}
+
+        pipeline.append({"$match": match_obj})
+        pipeline.append({"$sort": {"score": {"$meta": "textScore"}}})
+    elif isinstance(query, str) and query.startswith("#"):
+        # Plain regex search, without word boundaries or splitting into parts
+        query = query.lstrip("#")
+        query = query.strip("'")
+
+        match_obj = {
+            "$or": [{field: {"$regex": query, "$options": "i"}} for field in USERS_FTS_FIELDS]
+        }
+
+        pipeline.append({"$match": match_obj})
+
+    else:
+        # Heuristic + regex search
+        match_obj = _generate_heuristic_regex_search(query, USERS_FTS_FIELDS)
+
+        pipeline.append({"$match": match_obj})
+
+    pipeline.append({"$limit": nresults})
+    pipeline.append(
+        {
+            "$project": {
+                "_id": 1,
+                "identities": 1,
+                "display_name": 1,
+                "contact_email": 1,
+            }
+        }
     )
+
+    cursor = flask_mongo.db.users.aggregate(pipeline)
     return jsonify(
         {"status": "success", "users": list(json.loads(Person(**d).json()) for d in cursor)}
     ), 200
