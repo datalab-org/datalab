@@ -222,13 +222,9 @@ def get_schema_type(item_type):
     )
 
 
-@INFO.route("/info/user-activity", methods=["GET"])
-@active_users_or_get_only
-def get_combined_activity():
-    """Get combined activity data for all users."""
-
-    months = int(request.args.get("months", 12))
-
+@lru_cache(maxsize=3)
+def _fetch_activity_data(months: int, cache_date: str):
+    """Fetch activity data - cache_date forces daily refresh."""
     end_date = datetime.now(tz=tz.utc).replace(tzinfo=None)
     start_date = end_date - td(days=30 * months)
 
@@ -245,6 +241,17 @@ def get_combined_activity():
 
     activity_data = list(flask_mongo.db.items.aggregate(pipeline))
 
-    result = {date_entry["_id"]: date_entry["count"] for date_entry in activity_data}
+    return {date_entry["_id"]: date_entry["count"] for date_entry in activity_data}
+
+
+@INFO.route("/info/user-activity", methods=["GET"])
+@active_users_or_get_only
+def get_combined_activity():
+    """Get combined activity data for all users."""
+
+    months = int(request.args.get("months", 12))
+    cache_date = datetime.now(tz=tz.utc).date().isoformat()
+
+    result = _fetch_activity_data(months, cache_date)
 
     return jsonify({"status": "success", "data": result}), 200

@@ -61,6 +61,7 @@ export default createStore({
       maxUploadBytes: null,
     },
     schemas: {}, // keys: item types, vals: schema objects
+    userActivityCache: {}, // keys: userId (or 'combined' for combined activity), vals: { data, timestamp }
   },
   mutations: {
     setServerInfo(state, serverInfo) {
@@ -385,6 +386,14 @@ export default createStore({
     setSchema(state, { type, schema }) {
       state.schemas[type] = schema;
     },
+    setUserActivityCache(state, { userId, data }) {
+      // userId can be a user ID string or 'combined' for combined activity
+      // data is the activity data object
+      state.userActivityCache[userId || "combined"] = {
+        data,
+        timestamp: Date.now(),
+      };
+    },
   },
   getters: {
     getItem: (state) => (item_id) => {
@@ -407,6 +416,11 @@ export default createStore({
     },
     getBlocksInfos(state) {
       return Object.values(state.blocksInfos);
+    },
+    getUserActivityCache: (state) => (userId) => {
+      // userId can be a user ID string or null/undefined for combined activity
+      const cacheKey = userId || "combined";
+      return state.userActivityCache[cacheKey];
     },
   },
   actions: {},

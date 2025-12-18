@@ -1049,8 +1049,20 @@ export async function getApiConfig() {
 }
 
 export function fetchUserActivity(userId = null) {
+  // Check if data is already cached in the store
+  const cachedData = store.getters.getUserActivityCache(userId);
+  if (cachedData) {
+    return Promise.resolve({ data: cachedData.data });
+  }
+
+  // If not cached, fetch from API
   const endpoint = userId ? `/users/${userId}/activity` : "/info/user-activity";
   return fetch_get(`${API_URL}${endpoint}`).then(function (response_json) {
+    // Store in cache
+    store.commit("setUserActivityCache", {
+      userId: userId,
+      data: response_json.data,
+    });
     return response_json;
   });
 }
