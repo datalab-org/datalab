@@ -221,3 +221,13 @@ def test_groups(
     resp = admin_client.patch(f"/groups/{group_immutable_id}", json=new_details)
     assert resp.status_code == 200
     assert database.groups.find_one({"group_id": new_details["group_id"]}) is not None
+
+    # Now remove the user from the group and make sure they are also removed from the managers list
+    resp = admin_client.delete(f"/groups/{group_immutable_id}/members/{another_user_id}")
+
+    assert resp.status_code == 200
+    user_groups = database.users.find_one({"_id": ObjectId(another_user_id)})["groups"]
+    assert len(user_groups) == 1
+
+    managers = database.groups.find_one({"_id": group_immutable_id})["managers"]
+    assert ObjectId(another_user_id) not in managers

@@ -452,13 +452,38 @@ def add_user_to_group(group_immutable_id: str):
         {"$addToSet": {"groups": {"immutable_id": ObjectId(group_immutable_id)}}},
     )
 
-    if update_user.modified_count == 1:
-        return jsonify({"status": "success", "message": "User added to group."}), 200
+    if update_user.matched_count == 0:
+        raise BadRequest("Unable to add user to group: user does not exist.")
 
-    if not update_user.modified_count == 1:
-        if update_user.matched_count == 0:
-            raise BadRequest("Unable to add user to group: user does not exist.")
-        if update_user.matched_count == 1:
-            return jsonify({"status": "success", "message": "User already in group."}), 304
+    if update_user.modified_count == 0:
+        return jsonify({"status": "success", "message": "User already in group."}), 304
 
-    raise BadRequest("Unable to add user to group.")
+    return jsonify({"status": "success", "message": "User added to group."}), 200
+
+
+@ADMIN.route("/groups/<group_immutable_id>/members/<user_id>", methods=["DELETE"])
+def remove_user_from_group(group_immutable_id: str, user_id: str):
+    group_exists = flask_mongo.db.groups.find_one(
+        {"_id": ObjectId(group_immutable_id)},
+    )
+    if not group_exists:
+        raise NotFound("Group does not exist.")
+
+    update_user = flask_mongo.db.users.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$pull": {"groups": {"immutable_id": ObjectId(group_immutable_id)}}},
+    )
+
+    if update_user.matched_count == 0:
+        raise BadRequest("Unable to remove user from group: user does not exist.")
+
+    # Also remove user from group's managers list if they are a manager
+    flask_mongo.db.groups.update_one(
+        {"_id": ObjectId(group_immutable_id)},
+        {"$pull": {"managers": ObjectId(user_id)}},
+    )
+
+    if update_user.modified_count == 0:
+        return jsonify({"status": "success", "message": "User was not in group."}), 304
+
+    return jsonify({"status": "success", "message": "User removed from group."}), 200
