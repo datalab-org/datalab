@@ -1,13 +1,13 @@
 <template>
   <div class="activity-graph-container" :class="{ compact: compact }">
-    <h5 v-if="title">{{ title }}</h5>
     <div v-if="isLoading" class="text-center p-4">
-      <font-awesome-icon :icon="['fa', 'sync']" spin /> Loading activity...
+      <font-awesome-icon :icon="['fa', 'sync']" spin />
     </div>
-    <div v-else-if="error" class="alert alert-danger">
+    <div v-else-if="showErrors && error" class="alert alert-danger">
       {{ error }}
     </div>
-    <div v-else class="heatmap-wrapper">
+    <div v-else-if="!error" class="heatmap-wrapper">
+      <h5 v-if="title">{{ title }}</h5>
       <div class="heatmap-container">
         <div class="months-labels">
           <span
@@ -65,6 +65,10 @@ export default {
     title: {
       type: String,
       default: "",
+    },
+    showErrors: {
+      type: Boolean,
+      default: false,
     },
     compact: {
       type: Boolean,

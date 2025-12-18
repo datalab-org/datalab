@@ -23,9 +23,7 @@
           <StatisticsTable />
         </div>
 
-        <h5>Community Activity:</h5>
-        <p>Combined contributions from all users over the past year</p>
-        <UserActivityGraph :combined="true" />
+        <UserActivityGraph :combined="true" :title="'User activity:'" />
 
         <h5>Deployment info:</h5>
         <div class="p-3">
