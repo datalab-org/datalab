@@ -4,13 +4,14 @@
     class="dropdown-item btn login btn-link"
     aria-label="Account settings"
     @click="editAccountSettingIsOpen = true"
-    ><font-awesome-icon icon="cog" /> &nbsp;&nbsp;Account settings
-    <span v-if="isUnverified"><NotificationDot /></span>
+  >
+    <font-awesome-icon icon="cog" /> &nbsp;&nbsp;Account settings
+    <span v-if="isUnverified" class="notification-wrapper"><NotificationDot /></span>
   </a>
   <span v-if="user.role === 'admin'">
     <router-link to="/admin" class="dropdown-item btn login btn-link" aria-label="Administration">
       <font-awesome-icon icon="users-cog" /> &nbsp;Administration
-      <span v-if="hasUnverifiedUser"><NotificationDot /></span>
+      <span v-if="hasUnverifiedUser" class="notification-wrapper"><NotificationDot /></span>
     </router-link>
   </span>
   <a
@@ -69,5 +70,12 @@ export default {
 
 .user-display-name {
   font-weight: bold;
+}
+
+.notification-wrapper {
+  position: relative;
+  display: inline-block;
+  margin-left: 0.25rem;
+  vertical-align: middle;
 }
 </style>
