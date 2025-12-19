@@ -157,6 +157,8 @@ import FormattedGroupName from "@/components/FormattedGroupName.vue";
 import { getUserInfo, saveUser, requestNewAPIKey } from "@/server_fetch_utils.js";
 import StyledInput from "./StyledInput.vue";
 
+import { invalidateCurrentUserCache } from "@/server_fetch_utils.js";
+
 export default {
   name: "EditAccountSettingsModal",
   components: {
@@ -214,6 +216,7 @@ export default {
   methods: {
     async submitForm() {
       await saveUser(this.user.immutable_id, this.user);
+      invalidateCurrentUserCache();
       this.$store.commit("setDisplayName", this.user.display_name);
       this.$emit("update:modelValue", false);
     },
