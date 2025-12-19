@@ -112,6 +112,12 @@ export default {
         }
       },
     },
+    hasFileChanges() {
+      if (!this.isMultiSelect) return false;
+      const currentIds = this.file_ids || [];
+      if (this.pending_file_ids.length !== currentIds.length) return true;
+      return !this.pending_file_ids.every((id, index) => id === currentIds[index]);
+    },
   },
 
   mounted() {
