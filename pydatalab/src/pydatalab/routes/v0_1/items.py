@@ -235,6 +235,20 @@ def creators_lookup() -> dict:
     }
 
 
+def groups_lookup() -> dict:
+    return {
+        "from": "groups",
+        "let": {"group_ids": "$group_ids"},
+        "pipeline": [
+            {"$match": {"$expr": {"$in": ["$_id", {"$ifNull": ["$$group_ids", []]}]}}},
+            {"$addFields": {"__order": {"$indexOfArray": ["$$group_ids", "$_id"]}}},
+            {"$sort": {"__order": 1}},
+            {"$project": {"_id": 1, "display_name": 1, "group_id": 1}},
+        ],
+        "as": "groups",
+    }
+
+
 def files_lookup() -> dict:
     return {
         "from": "files",
@@ -996,6 +1010,7 @@ def get_item_data(
                 }
             },
             {"$lookup": creators_lookup()},
+            {"$lookup": groups_lookup()},
             {"$lookup": collections_lookup()},
             {"$lookup": files_lookup()},
         ],

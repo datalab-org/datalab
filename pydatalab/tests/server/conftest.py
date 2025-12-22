@@ -78,6 +78,7 @@ def app_config(tmp_path_factory, secret_key):
 def app(real_mongo_client, app_config):
     """Yields the test app."""
     from pydatalab.main import create_app
+    from pydatalab.mongo import flask_mongo
 
     mongo_cli = real_mongo_client
     if mongo_cli is None:
@@ -93,6 +94,11 @@ def app(real_mongo_client, app_config):
     app = create_app(app_config, env_file=False)
 
     yield app
+
+    # Explicitly close the flask-pymongo connection
+    if flask_mongo.cx:
+        flask_mongo.cx.close()
+
     if mongo_cli:
         mongo_cli.drop_database(TEST_DATABASE_NAME)
 
@@ -300,7 +306,7 @@ def insert_demo_users(
 
 
 @pytest.fixture(scope="module", name="default_sample")
-def fixture_default_sample(admin_user_id, user_id):
+def fixture_default_sample(admin_user_id, user_id, group_id):
     return Sample(
         **{
             "item_id": "12345",
@@ -308,12 +314,13 @@ def fixture_default_sample(admin_user_id, user_id):
             "date": "1970-02-01",
             "type": "samples",
             "creator_ids": [admin_user_id, user_id],
+            "group_ids": [group_id],
         }
     )
 
 
 @pytest.fixture(scope="module", name="default_cell")
-def fixture_default_cell():
+def fixture_default_cell(user_id):
     return Cell(
         **{
             "item_id": "test_cell",
@@ -341,6 +348,7 @@ def fixture_default_cell():
             "electrolyte": [{"item": {"name": "inlined reference"}, "quantity": 100, "unit": "ml"}],
             "cell_format": "swagelok",
             "type": "cells",
+            "creator_ids": [user_id],
         }
     )
 

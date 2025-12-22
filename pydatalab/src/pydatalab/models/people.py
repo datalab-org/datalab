@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from enum import Enum
 
 import bson
@@ -114,14 +116,25 @@ class Group(Entry):
     group_id: HumanReadableIdentifier
     """A short, locally-unique ID for the group."""
 
+    members: list[dict] = Field(None)
+    """A list of people that belong to this group."""
+
     display_name: DisplayName
     """The chosen display name for the group"""
 
     description: str | None = Field(None)
     """A description of the group"""
 
-    managers: list[PyObjectId] = Field(default_factory=list)
+    managers: list[PyObjectId | dict] = Field(default_factory=list)
     """A list of user IDs that can manage this group."""
+
+    @validator("members", pre=True, always=True)
+    def cast_members_to_people(cls, v):
+        """Casts members to list of people if not None."""
+        if v is not None:
+            return [Person(**member).dict(exclude_unset=True) for member in v]
+
+        return v
 
 
 class Person(Entry):
@@ -168,7 +181,7 @@ class Person(Entry):
         use_display_name: bool = True,
         use_contact_email: bool = True,
         account_status: AccountStatus = AccountStatus.UNVERIFIED,
-    ) -> "Person":
+    ) -> Person:
         """Create a new `Person` object with the given identity.
 
         Arguments:
@@ -201,7 +214,3 @@ class Person(Entry):
             contact_email=contact_email,
             account_status=account_status,
         )
-
-
-class User(Person):
-    role: UserRole

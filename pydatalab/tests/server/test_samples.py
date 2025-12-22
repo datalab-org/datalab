@@ -22,7 +22,7 @@ def test_new_sample(client, default_sample_dict):
     assert response.status_code == 201, response.json
     assert response.json["status"] == "success"
     for key in default_sample_dict:
-        if key == "creator_ids":
+        if key in ["creator_ids", "group_ids"]:
             continue
         if isinstance(v := default_sample_dict[key], datetime.datetime):
             v = v.replace(tzinfo=datetime.timezone.utc).isoformat()
@@ -35,11 +35,17 @@ def test_get_item_data(client, default_sample_dict):
     assert response.status_code == 200
     assert response.json["status"] == "success"
     for key in default_sample_dict:
-        if key == "creator_ids":
+        if key in ["creator_ids", "group_ids"]:
             continue
         if isinstance(v := default_sample_dict[key], datetime.datetime):
             v = v.replace(tzinfo=datetime.timezone.utc).isoformat()
         assert response.json["item_data"][key] == v
+    assert response.json["item_data"]["groups"][0]["immutable_id"] == str(
+        sorted(default_sample_dict["group_ids"])[0]
+    )
+    assert response.json["item_data"]["creators"][0]["immutable_id"] == str(
+        sorted(default_sample_dict["creator_ids"])[0]
+    )
 
 
 @pytest.mark.dependency(depends=["test_new_sample"])
@@ -84,7 +90,7 @@ def test_new_sample_with_automatically_generated_id(client, user_id):
     for key in new_sample_data:
         if isinstance(v := new_sample_data[key], datetime.datetime):
             v = v.replace(tzinfo=datetime.timezone.utc).isoformat()
-        if key == "creator_ids":
+        if key in ["creator_ids", "group_ids"]:
             continue
         assert response.json["item_data"][key] == v
 

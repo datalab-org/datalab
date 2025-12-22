@@ -356,7 +356,9 @@ def create_group():
         )
 
     try:
-        group_immutable_id = flask_mongo.db.groups.insert_one(group.dict()).inserted_id
+        group_immutable_id = flask_mongo.db.groups.insert_one(
+            group.dict(exclude_unset=True)
+        ).inserted_id
     except pymongo.errors.DuplicateKeyError:
         return jsonify(
             {"status": "error", "message": f"Group ID {group.group_id} already exists."}
