@@ -40,7 +40,7 @@ def test_unauthenticated_user_permissions(unauthenticated_client):
     assert response.status_code == 401
 
 
-def test_basic_permissions_update(admin_client, admin_user_id, client, user_id):
+def test_basic_permissions_update(admin_client, admin_user_id, client, user_id, another_client):
     """Test that an admin can share an item with a normal user."""
 
     response = admin_client.post(
@@ -128,3 +128,37 @@ def test_access_token_permissions(client, unauthenticated_client, admin_client, 
 
     response = unauthenticated_client.get(f"/items/{refcode}?at={token}")
     assert response.status_code == 401
+
+
+def test_group_permissions(client, another_client, user_id, another_user_id, group_id):
+    response = client.post(
+        "/new-sample/", json={"type": "samples", "item_id": "private-sample-in-a-group"}
+    )
+    assert response.status_code == 201
+    refcode = response.json["sample_list_entry"]["refcode"]
+
+    response = client.patch(
+        f"/items/{refcode}/permissions",
+        json={"groups": [{"immutable_id": str(group_id)}]},
+    )
+
+    # Group membership gives read access
+    assert another_client.get(f"/items/{refcode}").status_code == 200
+
+    # But not write access, which returns 404 Not Found as the user cannot "see" the item
+    assert (
+        another_client.post(
+            "/save-item/", json={"item_id": "private-sample-in-a-group", "data": {"group_ids": []}}
+        ).status_code
+        == 404
+    )
+    # Removing the group removes access
+    response = client.patch(
+        f"/items/{refcode}/permissions",
+        json={"groups": []},
+    )
+
+    assert response.status_code == 200
+
+    # Also removes read access
+    assert another_client.get(f"/items/{refcode}").status_code == 404

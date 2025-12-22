@@ -577,7 +577,7 @@ def _create_sample(
     # the `Entry` model.
     try:
         result = flask_mongo.db.items.insert_one(
-            data_model.dict(exclude={"creators", "collections"})
+            data_model.dict(exclude={"creators", "collections", "groups"})
         )
     except DuplicateKeyError as error:
         LOGGER.debug("item_id %s already exists in database", sample_dict["item_id"], sample_dict)
@@ -616,8 +616,12 @@ def _create_sample(
         "collections": [
             json.loads(c.json(exclude_unset=True, exclude_none=True))
             for c in data_model.collections
+        ],
+        "group_ids": data_model.group_ids,
+        "groups": [
+            json.loads(c.json(exclude_unset=True, exclude_none=True)) for c in data_model.groups
         ]
-        if data_model.collections
+        if data_model.groups
         else [],
         "type": data_model.type,
         "status": data_model.status,
@@ -710,13 +714,14 @@ def update_item_permissions(refcode: str):
 
     request_json = request.get_json()
     creator_ids: list[ObjectId] = []
+    group_ids: list[ObjectId] = []
 
     if len(refcode.split(":")) != 2:
         refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
 
     current_item = flask_mongo.db.items.find_one(
         {"refcode": refcode, **get_default_permissions(user_only=True)},
-        {"_id": 1, "creator_ids": 1},
+        {"_id": 1, "creator_ids": 1, "group_ids": 1},
     )  # type: ignore
 
     if not current_item:
@@ -732,7 +737,11 @@ def update_item_permissions(refcode: str):
 
     current_creator_ids = current_item["creator_ids"]
 
-    if "creators" in request_json:
+    creators_requested = False
+    groups_requested = False
+
+    if "creators" in request_json and request_json["creators"] is not None:
+        creators_requested = True
         new_creators = request_json["creators"]
         if not isinstance(new_creators, list):
             raise RuntimeError("Invalid creators list provided in request.")
@@ -743,55 +752,96 @@ def update_item_permissions(refcode: str):
             if creator.get("immutable_id", None) is not None
         ]
 
-    if not creator_ids:
+    if "groups" in request_json and request_json["groups"] is not None:
+        groups_requested = True
+        new_groups = request_json["groups"]
+        if not isinstance(new_groups, list):
+            raise RuntimeError("Invalid groups list provided in request.")
+
+        group_ids = [
+            ObjectId(group.get("immutable_id", None))
+            for group in request_json["groups"]
+            if group.get("immutable_id", None) is not None
+        ]
+
+    if not groups_requested and not creators_requested:
         return (
             jsonify(
                 {
                     "status": "error",
-                    "message": "No valid creator IDs found in the request.",
+                    "message": "No valid creator or group IDs found in the request.",
                 }
             ),
             400,
         )
 
     # Validate all creator IDs are present in the database
-    found_ids = [d for d in flask_mongo.db.users.find({"_id": {"$in": creator_ids}}, {"_id": 1})]  # type: ignore
-    if len(found_ids) != len(creator_ids):
-        return (
-            jsonify(
-                {
-                    "status": "error",
-                    "message": "One or more creator IDs not found in the database.",
-                }
-            ),
-            400,
-        )
+    if creator_ids:
+        found_creator_ids = [
+            d for d in flask_mongo.db.users.find({"_id": {"$in": creator_ids}}, {"_id": 1})
+        ]  # type: ignore
+        if len(found_creator_ids) != len(creator_ids):
+            return (
+                jsonify(
+                    {
+                        "status": "error",
+                        "message": "One or more creator IDs not found in the database.",
+                    }
+                ),
+                400,
+            )
 
-    # Make sure a user cannot remove their own access to an item
-    current_user_id = current_user.person.immutable_id
-    try:
-        creator_ids.remove(current_user_id)
-    except ValueError:
-        pass
-    creator_ids.insert(0, current_user_id)
+    if group_ids:
+        # Validate all group IDs are present in the database
+        found_group_ids = [
+            d for d in flask_mongo.db.groups.find({"_id": {"$in": group_ids}}, {"_id": 1})
+        ]  # type: ignore
+        if len(found_group_ids) != len(group_ids):
+            return (
+                jsonify(
+                    {
+                        "status": "error",
+                        "message": "One or more group IDs not found in the database.",
+                    }
+                ),
+                400,
+            )
 
-    # The first ID in the creator list takes precedence; always make sure this is included to avoid orphaned items
-    if current_creator_ids:
-        base_owner = current_creator_ids[0]
+    if creator_ids:
+        # Make sure a user cannot remove their own access to an item
+        current_user_id = current_user.person.immutable_id
         try:
-            creator_ids.remove(base_owner)
+            creator_ids.remove(current_user_id)
         except ValueError:
             pass
-        creator_ids.insert(0, base_owner)
+        creator_ids.insert(0, current_user_id)
 
-    if set(creator_ids) == set(current_creator_ids):
-        # Short circuit if the creator IDs are the same
-        return jsonify({"status": "success"}), 200
+        # The first ID in the creator list takes precedence; always make sure this is included to avoid orphaned items
+        if current_creator_ids:
+            base_owner = current_creator_ids[0]
+            try:
+                creator_ids.remove(base_owner)
+            except ValueError:
+                pass
+            creator_ids.insert(0, base_owner)
 
-    LOGGER.warning("Setting permissions for item %s to %s", refcode, creator_ids)
+    LOGGER.warning(
+        "Setting permissions for item %s to %s (creators) / %s (groups)",
+        refcode,
+        creator_ids,
+        group_ids,
+    )
+
+    set_op = {}
+    if creators_requested:
+        set_op["creator_ids"] = creator_ids
+    if groups_requested:
+        set_op["group_ids"] = group_ids
+
+    LOGGER.debug("Updating item %s with set op: %s", refcode, set_op)
+
     result = flask_mongo.db.items.update_one(
-        {"refcode": refcode, **get_default_permissions(user_only=True)},
-        {"$set": {"creator_ids": creator_ids}},
+        {"refcode": refcode, **get_default_permissions(user_only=True)}, {"$set": set_op}
     )
 
     if result.modified_count != 1:
@@ -1050,6 +1100,8 @@ def get_item_data(
 
 @ITEMS.route("/save-item/", methods=["POST"])
 def save_item():
+    """Update an existing item with new data provided in the request body."""
+
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
 
     if "item_id" not in request_json:
@@ -1070,6 +1122,8 @@ def save_item():
         "files",
         "creators",
         "creator_ids",
+        "groups",
+        "group_ids",
         "item_id",
         "relationships",
     ):
