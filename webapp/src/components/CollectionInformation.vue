@@ -41,6 +41,7 @@
       :data-type="'collectionItems'"
       :global-filter-fields="[
         'item_id',
+        'status',
         'name',
         'refcode',
         'blocks',
@@ -61,6 +62,7 @@ import TiptapInline from "@/components/TiptapInline";
 import Creators from "@/components/Creators";
 import CollectionRelationshipVisualization from "@/components/CollectionRelationshipVisualization";
 import DynamicDataTable from "@/components/DynamicDataTable";
+import FormattedItemStatus from "@/components/FormattedItemStatus.vue";
 
 export default {
   components: {
@@ -68,6 +70,7 @@ export default {
     Creators,
     CollectionRelationshipVisualization,
     DynamicDataTable,
+    FormattedItemStatus,
   },
   props: {
     collection_id: {
@@ -86,11 +89,32 @@ export default {
           label: "ID",
         },
         { field: "type", header: "Type", filter: true, label: "Type" },
+        { field: "status", header: "Status", body: "FormattedItemStatus", filter: true },
         { field: "name", header: "Sample name", label: "Sample Name" },
         { field: "chemform", header: "Formula", body: "ChemicalFormula", label: "Formula" },
-        { field: "date", header: "Date", label: "Date" },
-        { field: "creators", header: "Creators", body: "Creators", label: "Creators" },
-        { field: "nblocks", header: "# of blocks", label: "Blocks" },
+        { field: "date", header: "Date", label: "Date", filter: true },
+        {
+          field: "creators",
+          header: "Creators",
+          body: "Creators",
+          label: "Creators",
+          filter: true,
+        },
+        {
+          field: "blocks",
+          header: "",
+          body: "BlocksIconCounter",
+          icon: ["fa", "cubes"],
+          label: "Blocks",
+          filter: true,
+        },
+        {
+          field: "nfiles",
+          header: "",
+          body: "FilesIconCounter",
+          icon: ["fa", "file"],
+          label: "Files",
+        },
       ],
     };
   },
