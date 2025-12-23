@@ -178,18 +178,29 @@ export function createNewItem(
   startingData = {},
   copyFrom = null,
   generateIDAutomatically = false,
+  groupsData = null,
+  creatorsData = null,
 ) {
+  const newSampleData = {
+    item_id: item_id,
+    date: date,
+    name: name,
+    type: type,
+    collections: startingCollection,
+    ...startingData,
+  };
+
+  if (groupsData && groupsData.length > 0) {
+    newSampleData.share_with_groups = groupsData;
+  }
+
+  if (creatorsData && creatorsData.length > 0) {
+    newSampleData.additional_creators = creatorsData;
+  }
   return fetch_post(`${API_URL}/new-sample/`, {
     copy_from_item_id: copyFrom,
     generate_id_automatically: generateIDAutomatically,
-    new_sample_data: {
-      item_id: item_id,
-      date: date,
-      name: name,
-      type: type,
-      collections: startingCollection,
-      ...startingData,
-    },
+    new_sample_data: newSampleData,
   }).then(function (response_json) {
     if (SAMPLE_TABLE_TYPES.includes(response_json.sample_list_entry.type)) {
       store.commit("prependToSampleList", response_json.sample_list_entry);
@@ -329,6 +340,85 @@ export function getUsersList() {
     });
 }
 
+export function getAdminGroupsList() {
+  return fetch_get(`${API_URL}/groups`)
+    .then(function (response_json) {
+      return response_json.data;
+    })
+    .catch((error) => {
+      console.error("Error when fetching admin groups list");
+      console.error(error);
+      throw error;
+    });
+}
+
+export function createGroup(groupData) {
+  console.log("createGroup");
+  return fetch_put(`${API_URL}/groups`, groupData)
+    .then(function (response_json) {
+      return response_json;
+    })
+    .catch((error) => {
+      console.error("Error when creating group");
+      console.error(error);
+      throw error;
+    });
+}
+export function deleteGroup(groupId) {
+  console.log("deleteGroup");
+  return fetch_delete(`${API_URL}/groups/${groupId}`)
+    .then(function (response_json) {
+      return response_json;
+    })
+    .catch((error) => {
+      console.error("Error when deleting group");
+      console.error(error);
+      throw error;
+    });
+}
+
+export function updateGroup(groupId, groupData) {
+  console.log("updateGroup");
+  return fetch_patch(`${API_URL}/groups/${groupId}`, groupData)
+    .then(function (response_json) {
+      return response_json;
+    })
+    .catch((error) => {
+      console.error("Error when updating group");
+      console.error(error);
+      throw error;
+    });
+}
+
+export function addUserToGroup(groupId, userId) {
+  console.log("Adding user to group:", { groupId, userId }); // Debug
+  const payload = { user_id: userId };
+  console.log("Payload:", payload); // Debug
+
+  return fetch_put(`${API_URL}/groups/${groupId}`, payload)
+    .then(function (response_json) {
+      console.log("Response:", response_json); // Debug
+      return response_json;
+    })
+    .catch((error) => {
+      console.error("Error when adding user to group");
+      console.error(error);
+      throw error;
+    });
+}
+
+export function removeUserFromGroup(groupId, userId) {
+  return fetch_delete(`${API_URL}/groups/${groupId}/members/${userId}`)
+    .then(function (response_json) {
+      return response_json;
+    })
+    .catch((error) => {
+      console.error("Error when removing user from group");
+      console.error(error);
+      throw error;
+    });
+}
+
 export function getStartingMaterialList() {
   return fetch_get(`${API_URL}/starting-materials/`)
     .then(function (response_json) {
@@ -370,6 +460,16 @@ export function searchItems(query, nresults = 100, types = null) {
 export function searchCollections(query, nresults = 100) {
   // construct a url with parameters:
   var url = new URL(`${API_URL}/search-collections`);
+  var params = { query: query, nresults: nresults };
+  Object.keys(params).forEach((key) => url.searchParams.append(key, params[key]));
+  return fetch_get(url).then(function (response_json) {
+    return response_json.data;
+  });
+}
+
+export function searchGroups(query, nresults = 100) {
+  // construct a url with parameters:
+  var url = new URL(`${API_URL}/search/groups`);
   var params = { query: query, nresults: nresults };
   Object.keys(params).forEach((key) => url.searchParams.append(key, params[key]));
   return fetch_get(url).then(function (response_json) {
@@ -665,19 +765,23 @@ export function addABlock(item_id, block_type, index = null) {
   return block_id_promise;
 }
 
-export function updateItemPermissions(refcode, creators) {
-  return fetch_patch(`${API_URL}/items/${refcode}/permissions`, {
-    creators: creators,
-  }).then(function (response_json) {
-    if (response_json.status === "error") {
-      DialogService.error({
-        title: "Permission update failed",
-        message: `Failed to update permissions for item ${refcode}: ${response_json.message}`,
-      });
-      throw new Error(response_json.message);
-    }
-    return response_json;
-  });
+export function updateItemPermissions(refcode, creators = null, groups = null) {
+  console.log("updateItemPermissions called with", refcode, creators, groups);
+
+  const payload = { creators: creators, groups: groups };
+
+  return fetch_patch(`${API_URL}/items/${refcode}/permissions`, payload).then(
+    function (response_json) {
+      if (response_json.status === "error") {
+        DialogService.error({
+          title: "Permission update failed",
+          message: `Failed to update permissions for item ${refcode}: ${response_json.message}`,
+        });
+        throw new Error(response_json.message);
+      }
+      return response_json;
+    },
+  );
 }
 
 export function saveItem(item_id) {
