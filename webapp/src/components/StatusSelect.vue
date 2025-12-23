@@ -1,10 +1,10 @@
 <template>
   <vSelect ref="selectComponent" v-model="value" :options="options">
     <template #option="option">
-      <FormattedItemStatus :status="option.label" />
+      <FormattedItemStatus :dot-only="false" :status="option.label" />
     </template>
     <template #selected-option="option">
-      <FormattedItemStatus :status="option.label" />
+      <FormattedItemStatus :dot-only="false" :status="option.label" />
     </template>
   </vSelect>
 </template>
