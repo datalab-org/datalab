@@ -1,4 +1,4 @@
-from pydatalab.utils import generate_unique_labels
+from pydatalab.utils.plotting import generate_unique_labels
 
 
 def test_generate_unique_labels_single_file():
