@@ -113,13 +113,13 @@ class Group(Entry):
     type: str = Field("groups", const=True)
     """The entry type as a string."""
 
-    group_id: HumanReadableIdentifier
+    group_id: HumanReadableIdentifier | None = Field(None)
     """A short, locally-unique ID for the group."""
 
     members: list[dict] = Field(None)
     """A list of people that belong to this group."""
 
-    display_name: DisplayName
+    display_name: DisplayName | None = Field(None)
     """The chosen display name for the group"""
 
     description: str | None = Field(None)
@@ -158,7 +158,7 @@ class Person(Entry):
     role: UserRole = Field(UserRole.USER)
     """The role assigned to this person."""
 
-    groups: list[Group] = Field(default_factory=list)
+    groups: list[Group] | None = Field(default_factory=list)
     """A list of groups that this person belongs to."""
 
     account_status: AccountStatus = Field(AccountStatus.UNVERIFIED)

@@ -568,11 +568,7 @@
             ]
           }
         }
-      },
-      "required": [
-        "group_id",
-        "display_name"
-      ]
+      }
     },
     "AccountStatus": {
       "title": "AccountStatus",

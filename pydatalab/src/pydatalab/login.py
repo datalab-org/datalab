@@ -73,7 +73,7 @@ class LoginUser(UserMixin):
         return [_.identity_type for _ in self.person.identities]
 
     @property
-    def groups(self) -> list[Group]:
+    def groups(self) -> list[Group] | None:
         """Returns the list of groups that the user is a member of."""
         return self.person.groups
 
