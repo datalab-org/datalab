@@ -28,7 +28,7 @@ from bokeh.plotting import figure
 from bokeh.themes import Theme
 from scipy.signal import find_peaks
 
-from .utils import generate_unique_labels
+from .utils.plotting import generate_unique_labels
 
 FONTSIZE = "12pt"
 TYPEFACE = "Helvetica, sans-serif"
