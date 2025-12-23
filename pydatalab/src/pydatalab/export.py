@@ -1,3 +1,8 @@
+"""This module implements methods for exporting datalab data
+to other formats, such as .eln files.
+
+"""
+
 import json
 import shutil
 import tempfile
@@ -8,33 +13,11 @@ from pathlib import Path
 from bson import ObjectId
 
 from pydatalab.config import CONFIG
+from pydatalab.logger import LOGGER
+from pydatalab.models import ITEM_MODELS
 from pydatalab.mongo import flask_mongo
 
-
-def _convert_objectids_in_dict(d: dict) -> dict:
-    """Recursively convert ObjectIds and datetimes in a dictionary to strings."""
-    result: dict = {}
-    for key, value in d.items():
-        if isinstance(value, ObjectId):
-            result[key] = str(value)
-        elif isinstance(value, datetime):
-            result[key] = value.isoformat()
-        elif isinstance(value, dict):
-            result[key] = _convert_objectids_in_dict(value)
-        elif isinstance(value, list):
-            result[key] = [
-                str(v)
-                if isinstance(v, ObjectId)
-                else v.isoformat()
-                if isinstance(v, datetime)
-                else _convert_objectids_in_dict(v)
-                if isinstance(v, dict)
-                else v
-                for v in value
-            ]
-        else:
-            result[key] = value
-    return result
+__all__ = ("generate_ro_crate_metadata", "create_eln_file")
 
 
 def generate_ro_crate_metadata(collection_data: dict, child_items: list[dict]) -> dict:
@@ -114,6 +97,9 @@ def create_eln_file(collection_id: str, output_path: str) -> None:
         output_path: Path where the .eln file should be saved
     """
 
+    # We are outside the request context here, so cannot easily apply permissions baesd on the user.
+    # TODO: Extra safeguards here -- refactor default permissions finder to be able to use
+    # an externally set user ID
     collection_data = flask_mongo.db.collections.find_one({"collection_id": collection_id})
     if not collection_data:
         raise ValueError(f"Collection {collection_id} not found")
@@ -144,12 +130,12 @@ def create_eln_file(collection_id: str, output_path: str) -> None:
             item_folder = root_folder / item["item_id"]
             item_folder.mkdir()
 
-            item_metadata = {k: v for k, v in item.items() if k not in ["_id", "file_ObjectIds"]}
+            item_metadata = ITEM_MODELS[item.get("type")](**item).json(indent=2)
 
-            item_metadata = _convert_objectids_in_dict(item_metadata)
+            # item_metadata = _convert_objectids_in_dict(item_metadata)
 
             with open(item_folder / "metadata.json", "w", encoding="utf-8") as f:
-                json.dump(item_metadata, f, indent=2, ensure_ascii=False)
+                f.write(item_metadata)
 
             if item.get("file_ObjectIds"):
                 for file_id in item.get("file_ObjectIds", []):
@@ -161,10 +147,13 @@ def create_eln_file(collection_id: str, output_path: str) -> None:
                             dest_file = item_folder / file_data["name"]
                             shutil.copy2(source_path, dest_file)
                         else:
-                            print(f"Warning: File not found on disk: {file_data['location']}")
+                            LOGGER.warning(
+                                "ELN export: File not found on disk: %s", file_data["location"]
+                            )
                     else:
-                        print(
-                            f"Warning: File metadata not found in database for file_id: {file_id}"
+                        LOGGER.warning(
+                            "ELN export: File metadata not found in database for file_id: %s",
+                            file_id,
                         )
 
         with zipfile.ZipFile(output_path, "w", zipfile.ZIP_DEFLATED) as zipf:
