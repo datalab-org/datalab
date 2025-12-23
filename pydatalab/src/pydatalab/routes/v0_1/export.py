@@ -1,4 +1,5 @@
 import os
+import tempfile
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -27,8 +28,8 @@ def _do_export(task_id: str, collection_id: str):
             {"task_id": task_id}, {"$set": {"status": ExportStatus.PROCESSING}}
         )
 
-        export_dir = Path(CONFIG.FILE_DIRECTORY) / "exports"
-        export_dir.mkdir(exist_ok=True)
+        export_dir = Path(tempfile.gettempdir()) / "eln-exports"
+        export_dir.mkdir(exist_ok=True, parents=True)
 
         output_path = export_dir / f"{task_id}.eln"
         create_eln_file(collection_id, str(output_path))

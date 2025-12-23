@@ -33,6 +33,7 @@ services:
     volumes:
       - ./logs:/logs
       - /data/files:/app/files
+      - /tmp/eln-exports:/tmp/eln-exports
       - /data/backups:/tmp/datalab-backups
     ports:
       - "5001:5001"
