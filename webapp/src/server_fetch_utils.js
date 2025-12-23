@@ -1126,13 +1126,14 @@ export async function loadItemSchemas() {
 export function saveUserManagers(user_id, managers) {
   return fetch_patch(`${API_URL}/users/${user_id}/managers`, { managers })
     .then((response_json) => {
-      if (response_json.status && response_json.status !== "success") {
-        console.warn("Warning: saveUserManagers response:", response_json);
-      }
       return response_json;
     })
     .catch((error) => {
-      console.error("Managers save failed:", error);
+      DialogService.error({
+        title: "User Managers Save Failed",
+        message: `Error saving user managers: ${error}`,
+      });
+      throw error;
     });
 }
 

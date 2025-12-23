@@ -259,11 +259,6 @@ export default {
         this.original_users[originalIndex].managers = [...newManagers];
       } catch (err) {
         this.users[userIndex].managers = [...originalUser.managers];
-
-        DialogService.error({
-          title: "Error",
-          message: err,
-        });
       }
     },
     async confirmUpdateUserStatus(user_id, new_status) {

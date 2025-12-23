@@ -8,10 +8,10 @@ from flask import Blueprint, current_app, jsonify, send_file
 from flask_login import current_user
 
 from pydatalab.config import CONFIG
-from pydatalab.export_utils import create_eln_file
+from pydatalab.export import create_eln_file
 from pydatalab.models.export_task import ExportStatus, ExportTask
 from pydatalab.mongo import flask_mongo
-from pydatalab.permissions import active_users_or_get_only
+from pydatalab.permissions import PUBLIC_USER_ID, active_users_or_get_only
 from pydatalab.scheduler import export_scheduler
 
 EXPORT = Blueprint("export", __name__)
@@ -79,9 +79,9 @@ def start_collection_export(collection_id: str):
     task_id = str(uuid.uuid4())
 
     if not CONFIG.TESTING:
-        creator_id = str(current_user.person.immutable_id)
+        creator_id = current_user.person.immutable_id
     else:
-        creator_id = "000000000000000000000000"
+        creator_id = PUBLIC_USER_ID
 
     export_task = ExportTask(
         task_id=task_id,
@@ -110,7 +110,9 @@ def start_collection_export(collection_id: str):
 
 @EXPORT.route("/exports/<string:task_id>/status", methods=["GET"])
 def get_export_status(task_id: str):
-    task = flask_mongo.db.export_tasks.find_one({"task_id": task_id})
+    task = flask_mongo.db.export_tasks.find_one(
+        {"task_id": task_id, "creator_id": current_user.person.immutable_id}
+    )
 
     if not task:
         return jsonify({"status": "error", "message": "Export task not found"}), 404
@@ -137,9 +139,17 @@ def get_export_status(task_id: str):
 
 @EXPORT.route("/exports/<string:task_id>/download", methods=["GET"])
 def download_export(task_id: str):
-    task = flask_mongo.db.export_tasks.find_one({"task_id": task_id})
+    # In production, check ownership; in testing, allow all
+    if not CONFIG.TESTING:
+        current_creator_id = current_user.person.immutable_id
+        task = flask_mongo.db.export_tasks.find_one(
+            {"task_id": task_id, "creator_id": current_creator_id}
+        )
+    else:
+        task = flask_mongo.db.export_tasks.find_one({"task_id": task_id})
 
     if not task:
+        # Return 404 for both "not found" and "not authorized" to avoid leaking task existence
         return jsonify({"status": "error", "message": "Export task not found"}), 404
 
     if task["status"] != ExportStatus.READY:
