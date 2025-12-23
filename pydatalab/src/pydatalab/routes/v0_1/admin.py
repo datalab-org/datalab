@@ -339,6 +339,9 @@ def create_group():
         "managers": request_json.get("managers"),
     }
 
+    if group_json["group_id"] is None:
+        raise BadRequest("Group ID is required to create a new group.")
+
     if group_json["managers"]:
         group_json["managers"] = [ObjectId(u) for u in request_json["managers"]]
 
