@@ -3,6 +3,8 @@ from enum import Enum
 
 from pydantic import BaseModel, Field
 
+from pydatalab.models.utils import PyObjectId
+
 
 class ExportStatus(str, Enum):
     """Status of an export task."""
@@ -21,7 +23,7 @@ class ExportTask(BaseModel):
     status: ExportStatus = Field(
         default=ExportStatus.PENDING, description="Current status of the task"
     )
-    creator_id: str = Field(..., description="ID of the user who created the export")
+    creator_id: PyObjectId = Field(..., description="ID of the user who created the export")
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(tz=timezone.utc),
         description="When the task was created",
