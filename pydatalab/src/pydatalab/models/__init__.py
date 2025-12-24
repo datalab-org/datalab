@@ -7,6 +7,7 @@ from pydatalab.models.files import File
 from pydatalab.models.people import Person
 from pydatalab.models.samples import Sample
 from pydatalab.models.starting_materials import StartingMaterial
+from pydatalab.models.versions import ItemVersion
 
 ITEM_MODELS: dict[str, type[BaseModel]] = {
     "samples": Sample,
@@ -23,5 +24,6 @@ __all__ = (
     "Cell",
     "Collection",
     "Equipment",
+    "ItemVersion",
     "ITEM_MODELS",
 )

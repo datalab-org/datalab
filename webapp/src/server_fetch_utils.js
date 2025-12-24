@@ -1252,3 +1252,73 @@ export async function startItemExport(item_id, options = {}) {
       throw error;
     });
 }
+
+// ****************************************************************************
+// Version Control API Functions
+// ****************************************************************************
+
+export async function getItemVersions(refcode) {
+  return fetch_get(`${API_URL}/items/${refcode}/versions/`)
+    .then(function (response_json) {
+      return response_json.versions;
+    })
+    .catch((error) => {
+      DialogService.error({
+        title: "Version History Retrieval Failed",
+        message: `Error retrieving version history for ${refcode}: ${error}`,
+      });
+      throw error;
+    });
+}
+
+export async function getItemVersion(refcode, versionId) {
+  return fetch_get(`${API_URL}/items/${refcode}/versions/${versionId}/`)
+    .then(function (response_json) {
+      return response_json.version.data;
+    })
+    .catch((error) => {
+      DialogService.error({
+        title: "Version Retrieval Failed",
+        message: `Error retrieving version for ${refcode}: ${error}`,
+      });
+      throw error;
+    });
+}
+
+export async function restoreItemVersion(refcode, versionId) {
+  return fetch_post(`${API_URL}/items/${refcode}/restore-version/`, {
+    version_id: versionId,
+  })
+    .then(function (response_json) {
+      if (response_json.status === "success") {
+        return response_json;
+      } else {
+        throw new Error(response_json.message || "Failed to restore version");
+      }
+    })
+    .catch((error) => {
+      DialogService.error({
+        title: "Version Restore Failed",
+        message: `Error restoring version for ${refcode}: ${error}`,
+      });
+      throw error;
+    });
+}
+
+export async function compareItemVersions(refcode, baseVersion, targetVersion) {
+  var url = new URL(`${API_URL}/items/${refcode}/versions/compare`);
+  url.searchParams.append("base", baseVersion);
+  url.searchParams.append("target", targetVersion);
+
+  return fetch_get(url)
+    .then(function (response_json) {
+      return response_json.comparison;
+    })
+    .catch((error) => {
+      DialogService.error({
+        title: "Version Comparison Failed",
+        message: `Error comparing versions for ${refcode}: ${error}`,
+      });
+      throw error;
+    });
+}
