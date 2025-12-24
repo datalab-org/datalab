@@ -12,10 +12,10 @@
     </a>
     <div v-show="isDropdownVisible" class="dropdown-menu" style="display: block">
       <a class="dropdown-item" @click="handleSimpleExport">
-        <i class="fa fa-file"></i> Export {{ itemTypeLabel }} Only
+        <i class="fa fa-file"></i> Export {{ itemType === "collections" ? "collection" : "item" }}
       </a>
-      <a v-if="itemType === 'samples'" class="dropdown-item" @click="handleGraphExport">
-        <i class="fa fa-project-diagram"></i> Export Related Samples
+      <a v-if="itemType !== 'collections'" class="dropdown-item" @click="handleGraphExport">
+        <i class="fa fa-project-diagram"></i> Export with related items
       </a>
     </div>
     <ExportButton
@@ -25,7 +25,7 @@
       style="display: none"
     />
     <SampleGraphExportModal
-      v-if="itemType === 'samples'"
+      v-if="itemType !== 'collections'"
       ref="graphExportModal"
       :item-id="itemId"
     />
@@ -60,15 +60,6 @@ export default {
     return {
       isDropdownVisible: false,
     };
-  },
-  computed: {
-    itemTypeLabel() {
-      const labels = {
-        samples: "Sample",
-        collections: "Collection",
-      };
-      return labels[this.itemType] || "Item";
-    },
   },
   methods: {
     handleSimpleExport() {

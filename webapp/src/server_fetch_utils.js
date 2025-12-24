@@ -980,7 +980,21 @@ export async function addRemoteFileToSample(file_entry, item_id) {
     );
 }
 
-export async function getItemGraph({ item_id = null, collection_id = null } = {}) {
+/**
+ * Fetches an item graph from the API with optional store updates
+ * @param {Object} options - Configuration options
+ * @param {string|null} options.item_id - The item ID to fetch graph for
+ * @param {string|null} options.collection_id - The collection ID to filter by
+ * @param {number} options.max_depth - Maximum depth for related items (default: 1)
+ * @param {boolean} options.updateStore - Whether to update Vuex store (default: true)
+ * @returns {Promise<Object|void>} Returns graph data if updateStore is false, void otherwise
+ */
+export async function getItemGraph({
+  item_id = null,
+  collection_id = null,
+  max_depth = 1,
+  updateStore = true,
+} = {}) {
   // Short-circuit and do not send request if user is not logged in
   if (!(await waitForUserAuth())) return;
 
@@ -988,27 +1002,49 @@ export async function getItemGraph({ item_id = null, collection_id = null } = {}
   if (item_id != null) {
     url = url + "/" + item_id;
   }
+
+  const params = new URLSearchParams();
   if (collection_id != null) {
-    url = url + "?collection_id=" + collection_id;
+    params.append("collection_id", collection_id);
+  }
+  if (max_depth != null && max_depth > 1) {
+    params.append("max_depth", max_depth.toString());
+  }
+  if (params.toString()) {
+    url = url + "?" + params.toString();
   }
 
   const urlParams = new URLSearchParams(window.location.search);
   const accessToken = urlParams.get("at");
 
-  store.commit("setItemGraphIsLoading", true);
+  if (updateStore) {
+    store.commit("setItemGraphIsLoading", true);
+  }
+
   return fetch_get(url)
     .then(function (response_json) {
-      store.commit("setItemGraph", { nodes: response_json.nodes, edges: response_json.edges });
-      store.commit("setItemGraphIsLoading", false);
+      const graphData = { nodes: response_json.nodes, edges: response_json.edges };
+
+      if (updateStore) {
+        store.commit("setItemGraph", graphData);
+        store.commit("setItemGraphIsLoading", false);
+      }
+
+      return graphData;
     })
     .catch((error) => {
-      store.commit("setItemGraphIsLoading", false);
+      if (updateStore) {
+        store.commit("setItemGraphIsLoading", false);
+      }
+
       if (!accessToken) {
         DialogService.error({
           title: "Graph Retrieval Failed",
           message: `Error retrieving item graph from API: ${error}`,
         });
       }
+
+      throw error;
     });
 }
 
@@ -1203,44 +1239,15 @@ export function getExportDownloadUrl(task_id) {
   return `${API_URL}/exports/${task_id}/download`;
 }
 
-export async function startSampleExport(item_id, options = {}) {
-  return fetch_post(`${API_URL}/samples/${item_id}/export`, options)
+export async function startItemExport(item_id, options = {}) {
+  return fetch_post(`${API_URL}/items/${item_id}/export`, options)
     .then(function (response_json) {
       return response_json;
     })
     .catch((error) => {
       DialogService.error({
         title: "Export Failed",
-        message: `Failed to start sample export: ${error}`,
-      });
-      throw error;
-    });
-}
-
-export async function fetchItemGraph({ item_id = null, collection_id = null, max_depth = 1 } = {}) {
-  let url = `${API_URL}/item-graph`;
-  if (item_id != null) {
-    url = url + "/" + item_id;
-  }
-  const params = new URLSearchParams();
-  if (collection_id != null) {
-    params.append("collection_id", collection_id);
-  }
-  if (max_depth != null && max_depth > 1) {
-    params.append("max_depth", max_depth.toString());
-  }
-  if (params.toString()) {
-    url = url + "?" + params.toString();
-  }
-
-  return fetch_get(url)
-    .then(function (response_json) {
-      return { nodes: response_json.nodes, edges: response_json.edges };
-    })
-    .catch((error) => {
-      DialogService.error({
-        title: "Graph Retrieval Failed",
-        message: `Error retrieving item graph from API: ${error}`,
+        message: `Failed to start item export: ${error}`,
       });
       throw error;
     });

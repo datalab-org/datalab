@@ -40,7 +40,7 @@ def _do_export(
         output_path = export_dir / f"{task_id}.eln"
         if export_type == "collection":
             create_eln_file(str(output_path), collection_id=collection_id)
-        elif export_type in ["sample", "graph"]:
+        elif export_type in ["item", "graph"]:
             create_eln_file(str(output_path), item_id=item_id, related_item_ids=related_item_ids)
 
         flask_mongo.db.export_tasks.update_one(
@@ -185,24 +185,24 @@ def download_export(task_id: str):
     )
 
 
-@EXPORT.route("/samples/<string:item_id>/export", methods=["POST"])
-def start_sample_export(item_id: str):
+@EXPORT.route("/items/<string:item_id>/export", methods=["POST"])
+def start_item_export(item_id: str):
     from pydatalab.permissions import get_default_permissions
 
     item_data = flask_mongo.db.items.find_one(
         {"item_id": item_id, **get_default_permissions(user_only=False)}
     )
     if not item_data:
-        return jsonify({"status": "error", "message": "Sample not found"}), 404
+        return jsonify({"status": "error", "message": "Item not found"}), 404
 
     task_id = str(uuid.uuid4())
 
     if not CONFIG.TESTING:
-        creator_id = str(current_user.person.immutable_id)
+        creator_id = current_user.person.immutable_id
     else:
-        creator_id = "000000000000000000000000"
+        creator_id = PUBLIC_USER_ID
 
-    export_type = "sample"
+    export_type = "item"
     related_item_ids = None
 
     request_data = request.get_json() or {}

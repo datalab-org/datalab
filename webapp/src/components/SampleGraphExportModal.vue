@@ -1,7 +1,7 @@
 <template>
   <div class="modal-enclosure">
     <Modal v-model="isModalOpen" :is-large="true">
-      <template #header>Export Sample and Related Items</template>
+      <template #header>Export with related items</template>
 
       <template #body>
         <div class="mb-4">
@@ -42,13 +42,13 @@
         </div>
         <div v-if="isLoading" class="text-center">
           <i class="fa fa-spinner fa-spin fa-2x"></i>
-          <p class="mt-2">Loading related samples...</p>
+          <p class="mt-2">Loading related items...</p>
         </div>
         <div v-else-if="relatedSamples.length === 0">
-          <p>No related samples found for this item.</p>
+          <p>No related items found for this item.</p>
         </div>
         <div v-else>
-          <p>Select the samples you want to include in the export:</p>
+          <p>Select the items you want to include in the export:</p>
           <div class="form-check">
             <input
               id="select-all"
@@ -86,7 +86,7 @@
               class="form-check-input"
             />
             <label class="form-check-label" for="create-collection">
-              <strong>Create a collection from selected samples</strong>
+              <strong>Create a collection from selected items</strong>
             </label>
           </div>
           <div v-if="createCollection" class="mt-3">
@@ -145,7 +145,7 @@ import {
   getExportStatus,
   getExportDownloadUrl,
   createNewCollection,
-  fetchItemGraph,
+  getItemGraph,
 } from "@/server_fetch_utils";
 import { DialogService } from "@/services/DialogService";
 
@@ -201,9 +201,10 @@ export default {
     async loadRelatedSamples() {
       try {
         this.isLoading = true;
-        const graphData = await fetchItemGraph({
+        const graphData = await getItemGraph({
           item_id: this.itemId,
           max_depth: this.graphDepth,
+          updateStore: false,
         });
 
         const previouslySelected = new Set(this.selectedSampleIds);
@@ -229,12 +230,12 @@ export default {
 
         this.createCollection = false;
         this.collectionId = `${this.itemId}-collection`;
-        this.collectionTitle = `${this.itemId} and related samples`;
+        this.collectionTitle = `${this.itemId} and related items`;
       } catch (error) {
-        console.error("Failed to load related samples:", error);
+        console.error("Failed to load related items:", error);
         DialogService.error({
           title: "Loading Failed",
-          message: "Failed to load related samples. Please try again.",
+          message: "Failed to load related items. Please try again.",
         });
       } finally {
         this.isLoading = false;
@@ -316,7 +317,8 @@ export default {
             this.isModalOpen = false;
             DialogService.alert({
               title: "Export Complete",
-              message: "Your samples have been exported successfully.",
+              message:
+                "Your items have been exported successfully and the download should begin shortly.",
               type: "info",
             });
           } else if (status.status === "error") {
@@ -353,9 +355,10 @@ export default {
     async loadGraphWithDepth() {
       this.isGraphLoading = true;
       try {
-        const response = await fetchItemGraph({
+        const response = await getItemGraph({
           item_id: this.itemId,
           max_depth: this.graphDepth,
+          updateStore: false,
         });
         this.graphData = response;
       } catch (error) {
