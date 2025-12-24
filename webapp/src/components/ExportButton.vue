@@ -15,7 +15,7 @@
 <script>
 import {
   startCollectionExport,
-  startSampleExport,
+  startItemExport,
   getExportStatus,
   getExportDownloadUrl,
 } from "@/server_fetch_utils";
@@ -42,7 +42,7 @@ export default {
   },
   computed: {
     exportType() {
-      return this.collectionId ? "collection" : "sample";
+      return this.collectionId ? "collection" : "item";
     },
   },
   beforeUnmount() {
@@ -62,7 +62,7 @@ export default {
         if (this.collectionId) {
           response = await startCollectionExport(this.collectionId);
         } else if (this.itemId) {
-          response = await startSampleExport(this.itemId);
+          response = await startItemExport(this.itemId);
         } else {
           throw new Error("Either collectionId or itemId must be provided");
         }

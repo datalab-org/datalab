@@ -40,7 +40,6 @@
         </div>
       </div>
       <ExportDropdown
-        v-if="itemType === 'samples' || itemType === 'collections'"
         :item-id="item_id"
         :collection-id="itemType === 'collections' ? item_id : null"
         :item-type="itemType"

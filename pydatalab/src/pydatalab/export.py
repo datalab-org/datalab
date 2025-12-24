@@ -121,7 +121,10 @@ def create_eln_file(
             flask_mongo.db.items.find(
                 {
                     "relationships": {
-                        "$elemMatch": {"type": "collections", "immutable_id": collection_immutable_id}
+                        "$elemMatch": {
+                            "type": "collections",
+                            "immutable_id": collection_immutable_id,
+                        }
                     }
                 }
             )
@@ -132,7 +135,7 @@ def create_eln_file(
         # TODO: same comment about permissions as above
         item_data = flask_mongo.db.items.find_one({"item_id": item_id})
         if not item_data:
-            raise ValueError(f"Sample {item_id} not found")
+            raise ValueError(f"Item {item_id} not found")
 
         if related_item_ids:
             child_items = list(
@@ -144,8 +147,8 @@ def create_eln_file(
         collection_data = {
             "collection_id": item_id,
             "title": item_data.get("name", item_id),
-            "description": f"Export of sample {item_id}"
-            + (" and related samples" if related_item_ids else ""),
+            "description": f"Export of item {item_id}"
+            + (" and related items" if related_item_ids else ""),
         }
         root_folder_name = item_id
 

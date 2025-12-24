@@ -51,7 +51,68 @@ def test_generate_ro_crate_metadata():
     assert sample1["identifier"] == "sample1"
 
 
-def test_create_eln_file(database, tmp_path, user_id):
+def test_create_eln_file_items(database, tmp_path, user_id):
+    sample_id = ObjectId()
+    sample_id_2 = ObjectId()
+    sample_item_id = "test_sample"
+    sample_item_id_2 = "test_sample_2"
+
+    sample_data = {
+        "_id": sample_id,
+        "item_id": sample_item_id,
+        "name": "Test Sample",
+        "type": "samples",
+        "refcode": "test:ABCDEF",
+        "relationships": [{"type": "samples", "immutable_id": sample_id_2}],
+        "creator_ids": [user_id],
+    }
+
+    sample_data_2 = {
+        "_id": sample_id_2,
+        "item_id": sample_item_id_2,
+        "name": "Test Sample",
+        "type": "samples",
+        "refcode": "test:ABCDEF2",
+        "creator_ids": [user_id],
+    }
+
+    database.items.insert_one(sample_data)
+    database.items.insert_one(sample_data_2)
+
+    output_path = tmp_path / "test_samples.eln"
+
+    try:
+        create_eln_file(output_path, item_id=sample_item_id, related_item_ids=[sample_item_id_2])
+        assert output_path.exists()
+
+        with zipfile.ZipFile(output_path, "r") as zf:
+            files = zf.namelist()
+
+            assert f"{sample_item_id}/ro-crate-metadata.json" in files
+
+            with zf.open(f"{sample_item_id}/ro-crate-metadata.json") as f:
+                ro_crate = json.load(f)
+                assert ro_crate["@context"] == "https://w3id.org/ro/crate/1.1/context"
+
+            try:
+                with zf.open(f"{sample_item_id}/{sample_item_id}/metadata.json") as f:
+                    sample_metadata = json.load(f)
+                    assert sample_metadata["item_id"] == sample_item_id
+                    assert sample_metadata["name"] == "Test Sample"
+
+                with zf.open(f"{sample_item_id}/{sample_item_id_2}/metadata.json") as f:
+                    sample_metadata = json.load(f)
+                    assert sample_metadata["item_id"] == sample_item_id_2
+
+            except KeyError:
+                pytest.fail(f"Metadata file for {sample_item_id} not found in ELN file: {files}")
+
+    finally:
+        database.items.delete_one({"_id": sample_id})
+        database.items.delete_one({"_id": sample_id_2})
+
+
+def test_create_eln_file_collection(database, tmp_path, user_id):
     collection_id = "test_export"
     collection_data = {
         "_id": ObjectId(),
@@ -65,26 +126,37 @@ def test_create_eln_file(database, tmp_path, user_id):
         "_id": sample_id,
         "item_id": "test_sample",
         "name": "Test Sample",
+        "refcode": "test:test123",
         "type": "samples",
+        "relationships": [{"type": "collections", "immutable_id": collection_data["_id"]}],
+        "creator_ids": [user_id],
+    }
+
+    cell_id = ObjectId()
+    cell_data = {
+        "_id": cell_id,
+        "item_id": "test_cell",
+        "name": "Test Cell",
+        "type": "cells",
         "relationships": [{"type": "collections", "immutable_id": collection_data["_id"]}],
         "creator_ids": [user_id],
     }
 
     database.collections.insert_one(collection_data)
     database.items.insert_one(sample_data)
+    database.items.insert_one(cell_data)
 
     output_path = tmp_path / "test.eln"
 
     try:
-        create_eln_file(collection_id, str(output_path))
-
+        create_eln_file(output_path, collection_id)
         assert output_path.exists()
 
         with zipfile.ZipFile(output_path, "r") as zf:
             files = zf.namelist()
 
-            assert f"{collection_id}/ro-crate-metadata.json" in files
-            assert f"{collection_id}/test_sample/metadata.json" in files
+            assert f"{collection_id}/ro-crate-metadata.json" in files, files
+            assert f"{collection_id}/test_sample/metadata.json" in files, files
 
             with zf.open(f"{collection_id}/ro-crate-metadata.json") as f:
                 ro_crate = json.load(f)
@@ -95,9 +167,15 @@ def test_create_eln_file(database, tmp_path, user_id):
                 assert sample_metadata["item_id"] == "test_sample"
                 assert sample_metadata["name"] == "Test Sample"
 
+            with zf.open(f"{collection_id}/test_cell/metadata.json") as f:
+                cell_metadata = json.load(f)
+                assert cell_metadata["item_id"] == "test_cell"
+                assert cell_metadata["name"] == "Test Cell"
+
     finally:
         database.collections.delete_one({"collection_id": collection_id})
         database.items.delete_one({"_id": sample_id})
+        database.items.delete_one({"_id": cell_id})
 
 
 def test_create_eln_file_collection_not_found(tmp_path):
