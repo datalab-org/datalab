@@ -51,7 +51,7 @@ export default {
 };
 </script>
 
-<style>
+<style scoped>
 .dot {
   height: 0.5rem;
   width: 0.5rem;
