@@ -121,7 +121,10 @@ def create_eln_file(
             flask_mongo.db.items.find(
                 {
                     "relationships": {
-                        "$elemMatch": {"type": "collections", "immutable_id": collection_immutable_id}
+                        "$elemMatch": {
+                            "type": "collections",
+                            "immutable_id": collection_immutable_id,
+                        }
                     }
                 }
             )
