@@ -25,7 +25,6 @@ from pydatalab.models.versions import (
     CompareVersionsQuery,
     RestoreVersionRequest,
     VersionAction,
-    VersionCounter,
 )
 from pydatalab.mongo import ITEMS_FTS_FIELDS, flask_mongo
 from pydatalab.permissions import (
@@ -34,6 +33,12 @@ from pydatalab.permissions import (
     active_users_or_get_only,
     check_access_token,
     get_default_permissions,
+)
+from pydatalab.versioning import (
+    apply_protected_fields,
+    check_version_access,
+    get_next_version_number,
+    save_version_snapshot,
 )
 
 ITEMS = Blueprint("items", __name__)
@@ -625,7 +630,7 @@ def _create_sample(
 
     # Save initial version snapshot after successful item creation
     try:
-        _save_version_snapshot(data_model.refcode, action=VersionAction.CREATED)
+        save_version_snapshot(data_model.refcode, action=VersionAction.CREATED)
     except Exception as e:
         # Log but don't fail the request since item was already created successfully
         LOGGER.error(
@@ -1135,77 +1140,19 @@ def get_item_data(
 # --- VERSION CONTROL ENDPOINTS ---
 
 
-def _apply_protected_fields(restored_data: dict, current_item: dict) -> dict:
-    """Apply protected field values from current item to restored data.
-
-    Protected fields cannot be overwritten during restore to maintain data integrity:
-    - refcode: Immutable identifier
-    - _id: Database primary key
-    - immutable_id: Database ObjectId reference
-    - creator_ids: Ownership/permissions information
-    - file_ObjectIds: File attachments managed separately
-    - version: Always increments forward to prevent collisions
-
-    Args:
-        restored_data: The data being restored from a previous version
-        current_item: The current item in the database
-
-    Returns:
-        Modified restored_data with protected fields preserved from current_item
-    """
-    protected_fields = [
-        "refcode",
-        "_id",
-        "immutable_id",
-        "creator_ids",
-        "file_ObjectIds",
-        "version",
-    ]
-
-    for field in protected_fields:
-        if field in current_item:
-            restored_data[field] = current_item[field]
-
-    return restored_data
-
-
-def _get_next_version_number(refcode: str) -> int:
-    """Atomically get and increment the version counter for an item.
-
-    Uses a separate counters collection to track version numbers atomically.
-    This prevents race conditions when multiple users save versions simultaneously.
-
-    Args:
-        refcode: The refcode to get the next version number for
-
-    Returns:
-        The next version number (1-indexed)
-    """
-    result = flask_mongo.db.version_counters.find_one_and_update(
-        {"refcode": refcode},
-        {"$inc": {"counter": 1}},
-        upsert=True,
-        return_document=True,  # Return the document after update
-    )
-
-    # Validate the result with Pydantic
-    try:
-        counter_doc = VersionCounter(**result)
-        return counter_doc.counter
-    except ValidationError as exc:
-        LOGGER.error(
-            "Version counter validation failed for refcode %s: %s",
-            refcode,
-            str(exc),
-        )
-        # Fallback: return raw counter value to prevent blocking saves
-        # This should only happen if the document is corrupted
-        return result["counter"]
-
-
 @ITEMS.route("/items/<refcode>/versions/", methods=["GET"])
 def list_versions(refcode):
-    """List all saved versions for an item, with metadata."""
+    """List all saved versions for an item, with metadata.
+
+    Requires read access to the item.
+    """
+    # Check if user has access to the item (read access)
+    has_access, _ = check_version_access(refcode, user_only=False)
+    if not has_access:
+        return jsonify(
+            {"status": "error", "message": "Item not found or insufficient permissions"}
+        ), 404
+
     if len(refcode.split(":")) != 2:
         refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
 
@@ -1231,7 +1178,17 @@ def list_versions(refcode):
 
 @ITEMS.route("/items/<refcode>/versions/<version_id>/", methods=["GET"])
 def get_version(refcode, version_id):
-    """Get the full snapshot of an item at a specific version."""
+    """Get the full snapshot of an item at a specific version.
+
+    Requires read access to the item.
+    """
+    # Check if user has access to the item (read access)
+    has_access, _ = check_version_access(refcode, user_only=False)
+    if not has_access:
+        return jsonify(
+            {"status": "error", "message": "Item not found or insufficient permissions"}
+        ), 404
+
     if len(refcode.split(":")) != 2:
         refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
 
@@ -1249,7 +1206,17 @@ def get_version(refcode, version_id):
 
 @ITEMS.route("/items/<refcode>/compare-versions/", methods=["GET"])
 def compare_versions(refcode):
-    """Compare two versions of an item and return their differences, including version numbers."""
+    """Compare two versions of an item and return their differences, including version numbers.
+
+    Requires read access to the item.
+    """
+    # Check if user has access to the item (read access)
+    has_access, _ = check_version_access(refcode, user_only=False)
+    if not has_access:
+        return jsonify(
+            {"status": "error", "message": "Item not found or insufficient permissions"}
+        ), 404
+
     if len(refcode.split(":")) != 2:
         refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
 
@@ -1344,7 +1311,7 @@ def restore_version(refcode):
     restored_data = version["data"].copy()
 
     # Protect critical fields from being overwritten during restore
-    restored_data = _apply_protected_fields(restored_data, current_item)
+    restored_data = apply_protected_fields(restored_data, current_item)
 
     # Ensure type consistency
     if restored_data.get("type") != current_item.get("type"):
@@ -1356,7 +1323,7 @@ def restore_version(refcode):
         ), 400
 
     # Atomically get the next version number (used for both version in item_versions and item.version)
-    next_version_number = _get_next_version_number(refcode)
+    next_version_number = get_next_version_number(refcode)
 
     # Update metadata to reflect the restore action
     restored_data["version"] = next_version_number
@@ -1437,7 +1404,17 @@ def restore_version(refcode):
 
 @ITEMS.route("/items/<refcode>/versions/<version_id>/", methods=["DELETE"])
 def delete_version(refcode, version_id):
-    """Delete a specific version (admin only)."""
+    """Delete a specific version.
+
+    Requires write access to the item.
+    """
+    # Check if user has write access to the item (write access required)
+    has_access, _ = check_version_access(refcode, user_only=True)
+    if not has_access:
+        return jsonify(
+            {"status": "error", "message": "Item not found or insufficient permissions"}
+        ), 404
+
     if len(refcode.split(":")) != 2:
         refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
 
@@ -1453,91 +1430,14 @@ def delete_version(refcode, version_id):
         return jsonify({"status": "error", "message": "Version not found"}), 404
 
 
-def _save_version_snapshot(
-    refcode: str, action: VersionAction = VersionAction.MANUAL_SAVE
-) -> tuple[dict, int]:
-    """Save the current state of an item as a version snapshot.
-
-    Helper function for creating version snapshots with proper audit trail.
-
-    Args:
-        refcode: The refcode of the item to save a version for
-        action: The reason for saving this version (VersionAction enum):
-            - VersionAction.CREATED: Initial version when item is first created
-            - VersionAction.MANUAL_SAVE: User explicitly saved the version
-            - VersionAction.AUTO_SAVE: System or block auto-save
-            - VersionAction.RESTORED: Version created after restoring to a previous version
-
-    Returns:
-        Tuple of (response_dict, status_code)
-    """
-    if len(refcode.split(":")) != 2:
-        refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
-
-    item = flask_mongo.db.items.find_one(
-        {"refcode": refcode, **get_default_permissions(user_only=False)}
-    )
-    if not item:
-        return (
-            {"status": "error", "message": f"Item {refcode} not found."},
-            404,
-        )
-
-    # Atomically get the next version number
-    next_version_number = _get_next_version_number(refcode)
-
-    # Extract user information for hybrid storage approach
-    user_id = None
-    if current_user.is_authenticated:
-        user_id = current_user.person.immutable_id
-
-    # Find out the software version
-    from pydatalab import __version__
-
-    software_version = __version__
-
-    version_entry = {
-        "refcode": refcode,
-        "version": next_version_number,
-        "timestamp": datetime.datetime.now(tz=datetime.timezone.utc),
-        "action": action,  # Audit trail: why this version was created
-        "user_id": user_id,  # ObjectId for efficient querying
-        "datalab_version": software_version,
-        "data": item,  # Complete snapshot of the item at this version
-    }
-
-    # Validate with Pydantic before inserting
-    try:
-        validated_version = ItemVersion(**version_entry)
-    except ValidationError as exc:
-        LOGGER.error(
-            "Version snapshot validation failed for item %s: %s",
-            refcode,
-            str(exc),
-        )
-        return (
-            {
-                "status": "error",
-                "message": f"Version data validation failed: {str(exc)}",
-                "output": str(exc),
-            },
-            400,
-        )
-
-    # Insert validated data (convert to dict and exclude None values)
-    flask_mongo.db.item_versions.insert_one(
-        validated_version.dict(by_alias=True, exclude_none=True)
-    )
-    return (
-        {"status": "success", "message": "Version saved.", "version": next_version_number},
-        200,
-    )
-
-
 @ITEMS.route("/items/<refcode>/save-version/", methods=["POST"])
 def save_version(refcode):
     """Manually save the current state of an item as a version snapshot with an incremental version number."""
-    response, status_code = _save_version_snapshot(refcode, action=VersionAction.MANUAL_SAVE)
+    response, status_code = save_version_snapshot(
+        refcode,
+        action=VersionAction.MANUAL_SAVE,
+        permission_filter=get_default_permissions(user_only=False),
+    )
     return jsonify(response), status_code
 
 
@@ -1681,7 +1581,7 @@ def save_item():
     # Now save a version AFTER successful item update
     # If this fails, we log but don't fail the request since item was already saved
     try:
-        save_version_resp_dict, save_version_status = _save_version_snapshot(
+        save_version_resp_dict, save_version_status = save_version_snapshot(
             refcode, action=VersionAction.MANUAL_SAVE
         )
         if save_version_status != 200:
