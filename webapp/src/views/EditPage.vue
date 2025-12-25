@@ -19,6 +19,7 @@
           data-toggle="dropdown"
           aria-haspopup="true"
           aria-expanded="false"
+          data-testid="add-block-button-top"
           @click="isMenuDropdownVisible = !isMenuDropdownVisible"
         >
           <font-awesome-icon icon="cubes" fixed-width />
@@ -105,6 +106,52 @@
           size="2x"
         />
       </div>
+
+      <div class="mt-4 text-center">
+        <div class="dropdown d-inline-block">
+          <button
+            id="bottomAddBlockDropdown"
+            class="btn btn-primary dropdown-toggle"
+            type="button"
+            data-toggle="dropdown"
+            aria-haspopup="true"
+            aria-expanded="false"
+            data-testid="add-block-button-bottom"
+            @click="isBottomDropdownVisible = !isBottomDropdownVisible"
+          >
+            <font-awesome-icon icon="cubes" fixed-width /> Add a block
+          </button>
+          <div
+            class="dropdown-menu"
+            :class="{ show: isBottomDropdownVisible }"
+            aria-labelledby="bottomAddBlockDropdown"
+            data-testid="add-block-dropdown-bottom"
+          >
+            <h6 v-if="suggestedBlockTypes.length > 0" class="dropdown-header">
+              Suggested based on your files
+            </h6>
+            <span
+              v-for="blockInfo in suggestedBlockTypes"
+              :key="'suggested-' + blockInfo.id"
+              @click="newBlock($event, blockInfo.id)"
+            >
+              <BlockTooltip :block-info="blockInfo.attributes" />
+            </span>
+            <div
+              v-if="suggestedBlockTypes.length > 0 && otherBlockTypes.length > 0"
+              class="dropdown-divider"
+            ></div>
+            <h6 v-if="otherBlockTypes.length > 0" class="dropdown-header">All block types</h6>
+            <span
+              v-for="blockInfo in otherBlockTypes"
+              :key="'other-' + blockInfo.id"
+              @click="newBlock($event, blockInfo.id)"
+            >
+              <BlockTooltip :block-info="blockInfo.attributes" />
+            </span>
+          </div>
+        </div>
+      </div>
     </div>
 
     <FileSelectModal :item_id="item_id" />
@@ -187,6 +234,7 @@ export default {
       blockInfoLoaded: false,
       blocksLoaded: false,
       isMenuDropdownVisible: false,
+      isBottomDropdownVisible: false,
       selectedRemoteFiles: [],
       isLoadingRemoteTree: false,
       isLoadingRemoteFiles: false,
@@ -239,6 +287,45 @@ export default {
     itemApiUrl() {
       return API_URL + "/items/" + this.refcode;
     },
+    uploadedFileExtensions() {
+      if (!this.files || this.files.length === 0) {
+        return [];
+      }
+      const extensions = this.files.map((file) => file.extension).filter((ext) => ext);
+      return [...new Set(extensions)];
+    },
+    suggestedBlockTypes() {
+      if (this.uploadedFileExtensions.length === 0 || !this.blockInfoLoaded) {
+        return [];
+      }
+
+      return this.blocksInfos.filter((blockInfo) => {
+        if (blockInfo.id === "notsupported") {
+          return false;
+        }
+
+        const acceptedExtensions = blockInfo.attributes?.accepted_file_extensions;
+        if (!acceptedExtensions || acceptedExtensions.length === 0) {
+          return false;
+        }
+
+        return this.uploadedFileExtensions.some((uploadedExt) =>
+          acceptedExtensions.some(
+            (acceptedExt) => uploadedExt.toLowerCase() === acceptedExt.toLowerCase(),
+          ),
+        );
+      });
+    },
+    otherBlockTypes() {
+      if (!this.blockInfoLoaded) {
+        return [];
+      }
+
+      const suggestedIds = this.suggestedBlockTypes.map((b) => b.id);
+      return this.blocksInfos.filter(
+        (blockInfo) => blockInfo.id !== "notsupported" && !suggestedIds.includes(blockInfo.id),
+      );
+    },
   },
   watch: {
     // add a warning before leaving page if unsaved
@@ -281,6 +368,7 @@ export default {
   methods: {
     async newBlock(event, blockType, index = null) {
       this.isMenuDropdownVisible = false;
+      this.isBottomDropdownVisible = false;
       this.isLoadingNewBlock = true;
       this.$refs.blockLoadingIndicator.scrollIntoView({
         behavior: "smooth",
@@ -470,5 +558,26 @@ label,
 
 .dropdown-menu {
   cursor: pointer;
+}
+
+.dropdown-menu {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.dropdown-header {
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.dropdown-item {
+  cursor: pointer;
+}
+
+.dropdown-item:hover {
+  background-color: #f8f9fa;
 }
 </style>
