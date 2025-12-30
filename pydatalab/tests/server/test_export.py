@@ -76,7 +76,7 @@ def test_get_export_status_pending(client, user_id, database):
         creator_id=user_id,
         status=ExportStatus.PENDING,
     )
-    database.export_tasks.insert_one(task.dict())
+    database.export_tasks.insert_one(task.model_dump())
 
     response = client.get(f"/exports/{task_id}/status")
     assert response.status_code == 200
@@ -101,7 +101,7 @@ def test_get_export_status_ready(client, user_id, database, tmp_path):
         file_path=str(file_path),
         completed_at=datetime.now(tz=timezone.utc),
     )
-    database.export_tasks.insert_one(task.dict())
+    database.export_tasks.insert_one(task.model_dump())
 
     response = client.get(f"/exports/{task_id}/status")
     assert response.status_code == 200
@@ -126,7 +126,7 @@ def test_get_export_status_error(client, user_id, database):
         error_message=error_message,
         completed_at=datetime.now(tz=timezone.utc),
     )
-    database.export_tasks.insert_one(task.dict())
+    database.export_tasks.insert_one(task.model_dump())
 
     response = client.get(f"/exports/{task_id}/status")
     assert response.status_code == 200
@@ -161,7 +161,7 @@ def test_download_export_success(client, user_id, database, tmp_path):
         status=ExportStatus.READY,
         file_path=str(file_path),
     )
-    database.export_tasks.insert_one(task.dict())
+    database.export_tasks.insert_one(task.model_dump())
 
     response = client.get(f"/exports/{task_id}/download")
     assert response.status_code == 200
@@ -180,7 +180,7 @@ def test_not_users_export_download(client, user_id, another_client, database):
         creator_id=user_id,
         status=ExportStatus.PROCESSING,
     )
-    database.export_tasks.insert_one(task.dict())
+    database.export_tasks.insert_one(task.model_dump())
 
     response = another_client.get(f"/exports/{task_id}/download")
     assert response.status_code == 404
@@ -196,7 +196,7 @@ def test_download_export_not_ready(client, user_id, database):
         creator_id=user_id,
         status=ExportStatus.PROCESSING,
     )
-    database.export_tasks.insert_one(task.dict())
+    database.export_tasks.insert_one(task.model_dump())
 
     response = client.get(f"/exports/{task_id}/download")
     assert response.status_code == 400
@@ -217,7 +217,7 @@ def test_download_export_file_missing(client, user_id, database):
         status=ExportStatus.READY,
         file_path="/nonexistent/path.eln",
     )
-    database.export_tasks.insert_one(task.dict())
+    database.export_tasks.insert_one(task.model_dump())
 
     response = client.get(f"/exports/{task_id}/download")
     assert response.status_code == 404
@@ -242,7 +242,7 @@ def test_do_export_success(database, sample_collection, insert_default_sample, u
         creator_id=user_id,
         status=ExportStatus.PENDING,
     )
-    database.export_tasks.insert_one(task.dict())
+    database.export_tasks.insert_one(task.model_dump())
 
     _do_export(task_id, collection_id=collection_id, export_type="collection")
 
@@ -264,7 +264,7 @@ def test_do_export_success(database, sample_collection, insert_default_sample, u
         status=ExportStatus.PENDING,
         export_type="item",
     )
-    database.export_tasks.insert_one(task.dict())
+    database.export_tasks.insert_one(task.model_dump())
 
     _do_export(task_id, item_id=item_id, export_type="item")
 
@@ -289,7 +289,7 @@ def test_do_export_error_handling(database, user_id):
         status=ExportStatus.PENDING,
         export_type="collection",
     )
-    database.export_tasks.insert_one(task.dict())
+    database.export_tasks.insert_one(task.model_dump())
 
     _do_export(task_id, collection_id="nonexistent_collection", export_type="collection")
 
@@ -314,7 +314,7 @@ def test_do_export_status_transitions(database, sample_collection, user_id):
         creator_id=user_id,
         status=ExportStatus.PENDING,
     )
-    database.export_tasks.insert_one(task.dict())
+    database.export_tasks.insert_one(task.model_dump())
 
     status_during_export = []
 
