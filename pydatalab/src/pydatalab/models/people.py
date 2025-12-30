@@ -10,7 +10,7 @@ from pydantic import (
 from pydantic import EmailStr as PydanticEmailStr
 
 from pydatalab.models.entries import Entry
-from pydatalab.models.utils import PyObjectId
+from pydatalab.models.utils import HumanReadableIdentifier, PyObjectId, UserRole
 
 
 class IdentityType(str, Enum):
@@ -125,7 +125,7 @@ class Person(Entry):
 
     role: UserRole = Field(UserRole.USER, description="The role assigned to this person.")
 
-    groups: list[Group] | None = Field(
+    groups: list["Group"] | None = Field(
         default_factory=list, description="A list of groups that this person belongs to."
     )
 
@@ -181,3 +181,44 @@ class Person(Entry):
             contact_email=contact_email,
             account_status=account_status,
         )
+
+
+class Group(Entry):
+    """A model that describes a group of users, for the sake
+    of applying group permissions.
+
+    Each `Person` can point to multiple groups.
+
+    Relationships between groups can be described via the `relationships`
+    field inherited from `Entry`.
+
+    """
+
+    type: Literal["groups"] = Field("groups", description="The entry type as a string.")
+
+    group_id: HumanReadableIdentifier | None = Field(
+        None, description="A short, locally-unique ID for the group."
+    )
+
+    members: list[dict] | None = Field(
+        None, description="A list of people that belong to this group."
+    )
+
+    display_name: DisplayName | None = Field(
+        None, description="The chosen display name for the group"
+    )
+
+    description: str | None = Field(None, description="A description of the group")
+
+    managers: list[PyObjectId | dict] = Field(
+        default_factory=list, description="A list of user IDs that can manage this group."
+    )
+
+    @field_validator("members", mode="before")
+    @classmethod
+    def cast_members_to_people(cls, v):
+        """Casts members to list of people if not None."""
+        if v is not None:
+            return [Person(**member).model_dump(exclude_unset=True) for member in v]
+
+        return v

@@ -34,11 +34,8 @@ from pydatalab.permissions import (
 from pydatalab.versioning import (
     apply_protected_fields,
     check_version_access,
-    checkpoint_item,
-    compare_items,
-    get_item_versions_for_user,
-    restore_item_from_version,
-    rollback_item,
+    get_next_version_number,
+    save_version_snapshot,
 )
 
 ITEMS = Blueprint("items", __name__)

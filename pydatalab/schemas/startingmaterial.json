@@ -53,6 +53,31 @@
           "description": "Inlined info for the people associated with this item.",
           "title": "Creators"
         },
+        "group_ids": {
+          "description": "The database IDs of the group(s) that have read-access to this item.",
+          "items": {
+            "format": "objectid",
+            "type": "string"
+          },
+          "title": "Group Ids",
+          "type": "array"
+        },
+        "groups": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/Group"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Inlined info for the groups with access to this item.",
+          "title": "Groups"
+        },
         "type": {
           "const": "collections",
           "default": "collections",
@@ -464,6 +489,12 @@
           "description": "An optional mapping from old revision numbers to the model state at that revision.",
           "title": "Revisions"
         },
+        "version": {
+          "default": 1,
+          "description": "The version number used by the version control system for tracking snapshots.",
+          "title": "Version",
+          "type": "integer"
+        },
         "creator_ids": {
           "description": "The database IDs of the user(s) who created the item.",
           "items": {
@@ -488,6 +519,31 @@
           "default": null,
           "description": "Inlined info for the people associated with this item.",
           "title": "Creators"
+        },
+        "group_ids": {
+          "description": "The database IDs of the group(s) that have read-access to this item.",
+          "items": {
+            "format": "objectid",
+            "type": "string"
+          },
+          "title": "Group Ids",
+          "type": "array"
+        },
+        "groups": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/Group"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Inlined info for the groups with access to this item.",
+          "title": "Groups"
         },
         "type": {
           "const": "files",
@@ -708,6 +764,135 @@
       "title": "File",
       "type": "object"
     },
+    "Group": {
+      "description": "A model that describes a group of users, for the sake\nof applying group permissions.\n\nEach `Person` can point to multiple groups.\n\nRelationships between groups can be described via the `relationships`\nfield inherited from `Entry`.",
+      "properties": {
+        "type": {
+          "const": "groups",
+          "default": "groups",
+          "description": "The entry type as a string.",
+          "title": "Type",
+          "type": "string"
+        },
+        "immutable_id": {
+          "anyOf": [
+            {
+              "format": "objectid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The immutable database ID of the entry.",
+          "format": "uuid",
+          "title": "Immutable ID"
+        },
+        "last_modified": {
+          "anyOf": [
+            {
+              "format": "datetime",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The timestamp at which the entry was last modified.",
+          "title": "Last Modified"
+        },
+        "relationships": {
+          "description": "A list of related entries and their types.",
+          "items": {
+            "$ref": "#/$defs/TypedRelationship"
+          },
+          "title": "Relationships",
+          "type": "array"
+        },
+        "group_id": {
+          "anyOf": [
+            {
+              "maxLength": 40,
+              "minLength": 1,
+              "pattern": "^(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A short, locally-unique ID for the group.",
+          "title": "Group Id"
+        },
+        "members": {
+          "anyOf": [
+            {
+              "items": {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A list of people that belong to this group.",
+          "title": "Members"
+        },
+        "display_name": {
+          "anyOf": [
+            {
+              "maxLength": 150,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The chosen display name for the group",
+          "title": "Display Name"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A description of the group",
+          "title": "Description"
+        },
+        "managers": {
+          "description": "A list of user IDs that can manage this group.",
+          "items": {
+            "anyOf": [
+              {
+                "format": "objectid",
+                "type": "string"
+              },
+              {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            ]
+          },
+          "title": "Managers",
+          "type": "array"
+        }
+      },
+      "title": "Group",
+      "type": "object"
+    },
     "Identity": {
       "description": "A model for identities that can be provided by external systems\nand associated with a given user.",
       "properties": {
@@ -902,6 +1087,26 @@
           "description": "A list of user IDs that can manage this person's items.",
           "title": "Managers"
         },
+        "role": {
+          "$ref": "#/$defs/UserRole",
+          "default": "user",
+          "description": "The role assigned to this person."
+        },
+        "groups": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/Group"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A list of groups that this person belongs to.",
+          "title": "Groups"
+        },
         "account_status": {
           "$ref": "#/$defs/AccountStatus",
           "default": "unverified",
@@ -922,6 +1127,20 @@
         "collections"
       ],
       "title": "RelationshipType",
+      "type": "string"
+    },
+    "StartingMaterialsStatus": {
+      "description": "An enumeration of the status of starting materials",
+      "enum": [
+        "ordered",
+        "disposed",
+        "planned",
+        "available",
+        "unavailable",
+        "exhausted",
+        "other"
+      ],
+      "title": "StartingMaterialsStatus",
       "type": "string"
     },
     "TypedRelationship": {
@@ -1008,6 +1227,15 @@
       ],
       "title": "TypedRelationship",
       "type": "object"
+    },
+    "UserRole": {
+      "enum": [
+        "user",
+        "admin",
+        "manager"
+      ],
+      "title": "UserRole",
+      "type": "string"
     }
   },
   "description": "A model for representing an experimental sample, based on the connection\nwith cheminventory.net, which mixes container-level and substance-level\ninformation.",
@@ -1077,6 +1305,12 @@
       "description": "An optional mapping from old revision numbers to the model state at that revision.",
       "title": "Revisions"
     },
+    "version": {
+      "default": 1,
+      "description": "The version number used by the version control system for tracking snapshots.",
+      "title": "Version",
+      "type": "integer"
+    },
     "creator_ids": {
       "description": "The database IDs of the user(s) who created the item.",
       "items": {
@@ -1101,6 +1335,31 @@
       "default": null,
       "description": "Inlined info for the people associated with this item.",
       "title": "Creators"
+    },
+    "group_ids": {
+      "description": "The database IDs of the group(s) that have read-access to this item.",
+      "items": {
+        "format": "objectid",
+        "type": "string"
+      },
+      "title": "Group Ids",
+      "type": "array"
+    },
+    "groups": {
+      "anyOf": [
+        {
+          "items": {
+            "$ref": "#/$defs/Group"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Inlined info for the groups with access to this item.",
+      "title": "Groups"
     },
     "type": {
       "const": "starting_materials",
@@ -1233,6 +1492,11 @@
       },
       "title": "File Objectids",
       "type": "array"
+    },
+    "status": {
+      "$ref": "#/$defs/StartingMaterialsStatus",
+      "default": "available",
+      "description": "The status of the starting materials, indicating its current state."
     },
     "barcode": {
       "anyOf": [

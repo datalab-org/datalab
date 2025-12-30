@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from enum import Enum
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from pydatalab.models.utils import PyObjectId
 
@@ -36,5 +36,4 @@ class ExportTask(BaseModel):
     file_path: str | None = Field(None, description="Path to the generated .eln file")
     error_message: str | None = Field(None, description="Error message if status is ERROR")
 
-    class Config:
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)
