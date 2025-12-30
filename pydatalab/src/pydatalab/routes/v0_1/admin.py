@@ -93,7 +93,7 @@ def get_users():
         elif not isinstance(user["managers"], list):
             user["managers"] = []
 
-    return jsonify({"status": "success", "data": [Person(**d).dict() for d in users_list]})
+    return jsonify({"status": "success", "data": [Person(**d).model_dump() for d in users_list]})
 
 
 @ADMIN.route("/roles/<user_id>", methods=["PATCH"])
@@ -325,7 +325,9 @@ def get_groups():
         [{"$match": {}}, {"$lookup": members_lookup}, {"$lookup": managers_lookup}]
     )
 
-    return jsonify({"status": "success", "data": [Group(**d).dict() for d in group_docs]}), 200
+    return jsonify(
+        {"status": "success", "data": [Group(**d).model_dump() for d in group_docs]}
+    ), 200
 
 
 @ADMIN.route("/groups", methods=["PUT"])
@@ -360,7 +362,7 @@ def create_group():
 
     try:
         group_immutable_id = flask_mongo.db.groups.insert_one(
-            group.dict(exclude_unset=True)
+            group.model_dump(exclude_unset=True)
         ).inserted_id
     except pymongo.errors.DuplicateKeyError:
         return jsonify(
