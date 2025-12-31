@@ -97,7 +97,13 @@ def _get_deployment_metadata_once() -> dict:
         if CONFIG.DEPLOYMENT_METADATA
         else {}
     )
-    metadata.update({"identifier_prefix": identifier_prefix, "features": FEATURE_FLAGS})
+    metadata.update(
+        {
+            "identifier_prefix": identifier_prefix,
+            "features": FEATURE_FLAGS,
+            "max_upload_bytes": CONFIG.MAX_CONTENT_LENGTH,
+        }
+    )
     return metadata
 
 
