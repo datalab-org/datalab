@@ -1,6 +1,8 @@
 import datetime
 import json
 import re
+import secrets
+from hashlib import sha512
 
 from bson import ObjectId
 from bson.errors import InvalidId
@@ -28,6 +30,7 @@ from pydatalab.models.versions import (
 from pydatalab.mongo import flask_mongo, get_items_fts_fields
 from pydatalab.permissions import (
     PUBLIC_USER_ID,
+    access_token_or_active_users,
     active_users_or_get_only,
     get_default_permissions,
 )
@@ -56,6 +59,7 @@ def get_equipment_summary():
         "date": 1,
         "refcode": 1,
         "location": 1,
+        "status": 1,
     }
 
     items = [
@@ -102,6 +106,7 @@ def get_starting_materials():
                         "refcode": 1,
                         "supplier": 1,
                         "location": 1,
+                        "status": 1,
                     }
                 },
                 {
@@ -151,6 +156,7 @@ def get_items_summary(match: dict | None = None, project: dict | None = None) ->
         "type": 1,
         "date": 1,
         "refcode": 1,
+        "status": 1,
     }
 
     # Cannot mix 0 and 1 keys in MongoDB project so must loop and check
@@ -206,6 +212,7 @@ def get_samples_summary(match: dict | None = None, project: dict | None = None) 
         "type": 1,
         "date": 1,
         "refcode": 1,
+        "status": 1,
     }
 
     # Cannot mix 0 and 1 keys in MongoDB project so must loop and check
@@ -238,6 +245,20 @@ def creators_lookup() -> dict:
             {"$project": {"_id": 1, "display_name": 1, "contact_email": 1}},
         ],
         "as": "creators",
+    }
+
+
+def groups_lookup() -> dict:
+    return {
+        "from": "groups",
+        "let": {"group_ids": "$group_ids"},
+        "pipeline": [
+            {"$match": {"$expr": {"$in": ["$_id", {"$ifNull": ["$$group_ids", []]}]}}},
+            {"$addFields": {"__order": {"$indexOfArray": ["$$group_ids", "$_id"]}}},
+            {"$sort": {"__order": 1}},
+            {"$project": {"_id": 1, "display_name": 1, "group_id": 1}},
+        ],
+        "as": "groups",
     }
 
 
@@ -438,7 +459,9 @@ def _create_sample(
     if copy_from_item_id:
         copied_doc = flask_mongo.db.items.find_one({"item_id": copy_from_item_id})
 
-        LOGGER.debug(f"Copying from pre-existing item {copy_from_item_id} with data:\n{copied_doc}")
+        LOGGER.debug(
+            "Copying from pre-existing item %s with data:\n%s", copy_from_item_id, copied_doc
+        )
         if not copied_doc:
             raise NotFound(
                 f"Request to copy item with id {copy_from_item_id} failed because item could not be found."
@@ -455,6 +478,11 @@ def _create_sample(
 
         copied_doc["name"] = sample_dict.get("name")
         copied_doc["date"] = sample_dict.get("date")
+
+        copied_doc.pop("blocks_obj", None)
+        copied_doc.pop("display_order", None)
+        copied_doc.pop("blocks", None)
+        copied_doc.pop("file_ObjectIds", None)
 
         # any provided constituents will be added to the synthesis information table in
         # addition to the constituents copied from the copy_from_item_id, avoiding duplicates
@@ -521,10 +549,10 @@ def _create_sample(
         # so no creators are assigned
         new_sample["creator_ids"] = []
         new_sample["creators"] = []
-    elif CONFIG.TESTING:
+    elif CONFIG.TESTING and not current_user.is_authenticated:
         # Set fake ID to ObjectId("000000000000000000000000") so a dummy user can be created
         # locally for testing creator UI elements
-        new_sample["creator_ids"] = [str(PUBLIC_USER_ID)]
+        new_sample["creator_ids"] = [PUBLIC_USER_ID]
         new_sample["creators"] = [
             {
                 "display_name": "Public testing user",
@@ -581,7 +609,7 @@ def _create_sample(
     try:
         result = flask_mongo.db.items.insert_one(
             data_model.model_dump(
-                exclude={"creators", "collections"}, exclude_none=True, by_alias=True
+                exclude={"creators", "collections", "groups"}, exclude_none=True, by_alias=True
             )
         )
     except DuplicateKeyError as error:
@@ -606,6 +634,17 @@ def _create_sample(
             400,
         )
 
+    # Save initial version snapshot after successful item creation
+    try:
+        save_version_snapshot(data_model.refcode, action=VersionAction.CREATED)
+    except Exception as e:
+        # Log but don't fail the request since item was already created successfully
+        LOGGER.error(
+            "Failed to save initial version for item %s after creation: %s",
+            data_model.item_id,
+            str(e),
+        )
+
     sample_list_entry = {
         "refcode": data_model.refcode,
         "item_id": data_model.item_id,
@@ -624,7 +663,15 @@ def _create_sample(
         ]
         if data_model.collections
         else [],
+        "group_ids": data_model.group_ids,
+        "groups": [
+            json.loads(c.model_dump_json(exclude_unset=True, exclude_none=True))
+            for c in data_model.groups
+        ]
+        if data_model.groups
+        else [],
         "type": data_model.type,
+        "status": data_model.status,
     }
 
     # hack to let us use _create_sample() for equipment too. We probably want to make
@@ -712,13 +759,14 @@ def update_item_permissions(refcode: str):
 
     request_json = request.get_json()
     creator_ids: list[ObjectId] = []
+    group_ids: list[ObjectId] = []
 
     if len(refcode.split(":")) != 2:
         refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
 
     current_item = flask_mongo.db.items.find_one(
         {"refcode": refcode, **get_default_permissions(user_only=True)},
-        {"_id": 1, "creator_ids": 1},
+        {"_id": 1, "creator_ids": 1, "group_ids": 1},
     )  # type: ignore
 
     if not current_item:
@@ -734,7 +782,11 @@ def update_item_permissions(refcode: str):
 
     current_creator_ids = current_item["creator_ids"]
 
-    if "creators" in request_json:
+    creators_requested = False
+    groups_requested = False
+
+    if "creators" in request_json and request_json["creators"] is not None:
+        creators_requested = True
         new_creators = request_json["creators"]
         if not isinstance(new_creators, list):
             raise RuntimeError("Invalid creators list provided in request.")
@@ -745,55 +797,96 @@ def update_item_permissions(refcode: str):
             if creator.get("immutable_id", None) is not None
         ]
 
-    if not creator_ids:
+    if "groups" in request_json and request_json["groups"] is not None:
+        groups_requested = True
+        new_groups = request_json["groups"]
+        if not isinstance(new_groups, list):
+            raise RuntimeError("Invalid groups list provided in request.")
+
+        group_ids = [
+            ObjectId(group.get("immutable_id", None))
+            for group in request_json["groups"]
+            if group.get("immutable_id", None) is not None
+        ]
+
+    if not groups_requested and not creators_requested:
         return (
             jsonify(
                 {
                     "status": "error",
-                    "message": "No valid creator IDs found in the request.",
+                    "message": "No valid creator or group IDs found in the request.",
                 }
             ),
             400,
         )
 
     # Validate all creator IDs are present in the database
-    found_ids = [d for d in flask_mongo.db.users.find({"_id": {"$in": creator_ids}}, {"_id": 1})]  # type: ignore
-    if len(found_ids) != len(creator_ids):
-        return (
-            jsonify(
-                {
-                    "status": "error",
-                    "message": "One or more creator IDs not found in the database.",
-                }
-            ),
-            400,
-        )
+    if creator_ids:
+        found_creator_ids = [
+            d for d in flask_mongo.db.users.find({"_id": {"$in": creator_ids}}, {"_id": 1})
+        ]  # type: ignore
+        if len(found_creator_ids) != len(creator_ids):
+            return (
+                jsonify(
+                    {
+                        "status": "error",
+                        "message": "One or more creator IDs not found in the database.",
+                    }
+                ),
+                400,
+            )
 
-    # Make sure a user cannot remove their own access to an item
-    current_user_id = current_user.person.immutable_id
-    try:
-        creator_ids.remove(current_user_id)
-    except ValueError:
-        pass
-    creator_ids.insert(0, current_user_id)
+    if group_ids:
+        # Validate all group IDs are present in the database
+        found_group_ids = [
+            d for d in flask_mongo.db.groups.find({"_id": {"$in": group_ids}}, {"_id": 1})
+        ]  # type: ignore
+        if len(found_group_ids) != len(group_ids):
+            return (
+                jsonify(
+                    {
+                        "status": "error",
+                        "message": "One or more group IDs not found in the database.",
+                    }
+                ),
+                400,
+            )
 
-    # The first ID in the creator list takes precedence; always make sure this is included to avoid orphaned items
-    if current_creator_ids:
-        base_owner = current_creator_ids[0]
+    if creator_ids:
+        # Make sure a user cannot remove their own access to an item
+        current_user_id = current_user.person.immutable_id
         try:
-            creator_ids.remove(base_owner)
+            creator_ids.remove(current_user_id)
         except ValueError:
             pass
-        creator_ids.insert(0, base_owner)
+        creator_ids.insert(0, current_user_id)
 
-    if set(creator_ids) == set(current_creator_ids):
-        # Short circuit if the creator IDs are the same
-        return jsonify({"status": "success"}), 200
+        # The first ID in the creator list takes precedence; always make sure this is included to avoid orphaned items
+        if current_creator_ids:
+            base_owner = current_creator_ids[0]
+            try:
+                creator_ids.remove(base_owner)
+            except ValueError:
+                pass
+            creator_ids.insert(0, base_owner)
 
-    LOGGER.warning("Setting permissions for item %s to %s", refcode, creator_ids)
+    LOGGER.warning(
+        "Setting permissions for item %s to %s (creators) / %s (groups)",
+        refcode,
+        creator_ids,
+        group_ids,
+    )
+
+    set_op = {}
+    if creators_requested:
+        set_op["creator_ids"] = creator_ids
+    if groups_requested:
+        set_op["group_ids"] = group_ids
+
+    LOGGER.debug("Updating item %s with set op: %s", refcode, set_op)
+
     result = flask_mongo.db.items.update_one(
-        {"refcode": refcode, **get_default_permissions(user_only=True)},
-        {"$set": {"creator_ids": creator_ids}},
+        {"refcode": refcode, **get_default_permissions(user_only=True)}, {"$set": set_op}
     )
 
     if result.modified_count != 1:
@@ -807,10 +900,77 @@ def update_item_permissions(refcode: str):
     return jsonify({"status": "success"}), 200
 
 
+@ITEMS.route("/items/<refcode>/issue-access-token", methods=["POST"])
+def issue_physical_token(refcode: str):
+    """Issue a token that will give semi-permanent access to an
+    item with this refcode. This should be used when generating
+    physical labels to attach to a container.
+
+    """
+
+    if len(refcode.split(":")) != 2:
+        refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
+
+    current_item = flask_mongo.db.items.find_one(
+        {"refcode": refcode, **get_default_permissions(user_only=True)},
+        {"refcode": 1},
+    )
+
+    if not current_item:
+        return jsonify(
+            {
+                "status": "error",
+                "message": f"No valid item found with the given {refcode=}.",
+            }
+        ), 404
+
+    token = secrets.token_urlsafe(16)
+    access_document = {
+        "token": sha512(token.encode("utf-8")).hexdigest(),
+        "refcode": refcode,
+        "user": ObjectId(current_user.id),
+        "active": True,
+        "created_at": datetime.datetime.now(tz=datetime.timezone.utc),
+        "expires_at": None,
+        "version": 1,
+        "type": "access_token",
+    }
+
+    try:
+        result = flask_mongo.db.api_keys.insert_one(access_document)
+        if not result.inserted_id:
+            return jsonify(
+                {"status": "error", "message": "Unknown error generating token for item."}
+            ), 500
+    except Exception as e:
+        LOGGER.error("Error inserting access token: %s", e)
+        return jsonify(
+            {"status": "error", "message": "Database error generating token for item."}
+        ), 500
+
+    return jsonify({"status": "success", "token": token}), 201
+
+
 @ITEMS.route("/delete-sample/", methods=["POST"])
 def delete_sample():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
     item_id = request_json["item_id"]
+
+    item = flask_mongo.db.items.find_one(
+        {"item_id": item_id, **get_default_permissions(user_only=True, deleting=True)},
+        {"refcode": 1},
+    )
+
+    if not item:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": f"Authorization required to attempt to delete sample with {item_id=} from the database.",
+                }
+            ),
+            401,
+        )
 
     result = flask_mongo.db.items.delete_one(
         {"item_id": item_id, **get_default_permissions(user_only=True, deleting=True)}
@@ -821,36 +981,50 @@ def delete_sample():
             jsonify(
                 {
                     "status": "error",
-                    "message": f"Authorization required to attempt to delete sample with {item_id=} from the database.",
+                    "message": f"Failed to delete item with {item_id=}.",
                 }
             ),
-            401,
+            400,
         )
-    return (
-        jsonify(
-            {
-                "status": "success",
-            }
-        ),
-        200,
-    )
+
+    flask_mongo.db.api_keys.delete_many({"refcode": item["refcode"], "type": "access_token"})
+
+    return jsonify({"status": "success"}), 200
 
 
 @ITEMS.route("/items/<refcode>", methods=["GET"])
+@access_token_or_active_users
+def get_item_by_refcode(refcode: str, elevate_permissions: bool = False):
+    return get_item_data(refcode=refcode, elevate_permissions=elevate_permissions)
+
+
 @ITEMS.route("/get-item-data/<item_id>", methods=["GET"])
-def get_item_data(item_id: str | None = None, refcode: str | None = None):
+@active_users_or_get_only
+def get_item_by_id(item_id: str):
+    return get_item_data(item_id=item_id, elevate_permissions=False)
+
+
+def get_item_data(
+    item_id: str | None = None, refcode: str | None = None, elevate_permissions: bool = False
+):
     """Generates a JSON response for the item with the given `item_id`,
     or `refcode` additionally resolving relationships to files and other items.
     """
+
     redirect_to_ui = bool(request.args.get("redirect-to-ui", default=False, type=json.loads))
+    access_token = request.args.get("at")
     if refcode and redirect_to_ui and CONFIG.APP_URL:
-        return redirect(f"{CONFIG.APP_URL}/items/{refcode}", code=307)
+        redirect_url = f"{CONFIG.APP_URL}/items/{refcode}"
+        if access_token:
+            redirect_url += f"?at={access_token}"
+        return redirect(redirect_url, code=307)
 
     if item_id:
         match = {"item_id": item_id}
     elif refcode:
         if len(refcode.split(":")) != 2:
             refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
+
         match = {"refcode": refcode}
     else:
         raise BadRequest("No item_id or refcode provided.")
@@ -861,10 +1035,13 @@ def get_item_data(item_id: str | None = None, refcode: str | None = None):
             {
                 "$match": {
                     **match,
-                    **get_default_permissions(user_only=False),
+                    **get_default_permissions(
+                        user_only=False, elevate_permissions=elevate_permissions
+                    ),
                 }
             },
             {"$lookup": creators_lookup()},
+            {"$lookup": groups_lookup()},
             {"$lookup": collections_lookup()},
             {"$lookup": files_lookup()},
         ],
@@ -898,8 +1075,8 @@ def get_item_data(item_id: str | None = None, refcode: str | None = None):
     try:
         doc = ItemModel(**doc)
     except ValidationError as e:
-        LOGGER.error(f"Pydantic validation error: {e}")
-        LOGGER.error(f"Document keys: {list(doc.keys())}")
+        LOGGER.error("Pydantic validation error: %s", e)
+        LOGGER.error("Document keys: %s", list(doc.keys()))
         raise e
 
     # find any documents with relationships that mention this document
