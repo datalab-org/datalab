@@ -86,7 +86,7 @@ app-plugins-git = [
 chat = [
     # Hard upper pin on langchain is 0.3 as pydantic is not supported
     "langchain >= 0.2.6, < 0.3",
-    "langchain-openai ~= 0.1",
+    "langchain-openai ~= 1.1",
     "langchain-anthropic ~= 0.1",
     "tiktoken ~= 0.7",
     "transformers ~= 4.42",
