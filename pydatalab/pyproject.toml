@@ -87,7 +87,7 @@ chat = [
     # Hard upper pin on langchain is 0.3 as pydantic is not supported
     "langchain >= 0.2.6, < 0.3",
     "langchain-openai ~= 0.1",
-    "langchain-anthropic ~= 0.1",
+    "langchain-anthropic ~= 1.3",
     "tiktoken ~= 0.7",
     "transformers ~= 4.42",
 ]
