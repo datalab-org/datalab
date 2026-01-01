@@ -5,6 +5,7 @@ from pydantic import (
     BaseModel,
     Field,
     StringConstraints,
+    TypeAdapter,
     field_validator,
 )
 from pydantic import EmailStr as PydanticEmailStr
@@ -89,9 +90,10 @@ class EmailStr(PydanticEmailStr):
     """
 
     max_length = 1000
+    _adapter = TypeAdapter(PydanticEmailStr)
 
     def __new__(cls, value):
-        return cls.validate(value)
+        return cls._adapter.validate_python(value)
 
 
 class AccountStatus(str, Enum):
