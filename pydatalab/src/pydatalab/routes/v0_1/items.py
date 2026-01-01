@@ -28,9 +28,7 @@ from pydatalab.models.versions import (
 from pydatalab.mongo import flask_mongo, get_items_fts_fields
 from pydatalab.permissions import (
     PUBLIC_USER_ID,
-    access_token_or_active_users,
     active_users_or_get_only,
-    check_access_token,
     get_default_permissions,
 )
 from pydatalab.versioning import (
@@ -1043,6 +1041,20 @@ def save_item():
             404,
         )
 
+    # Store refcode for version saving after successful update
+    refcode = item.get("refcode")
+    if not refcode:
+        return (
+            jsonify(
+                status="error",
+                message=f"Item {item_id} does not have a refcode.",
+            ),
+            400,
+        )
+
+    # Increment version number on the item itself
+    updated_data["version"] = item.get("version", 0) + 1
+
     if updated_data.get("collections", []):
         try:
             updated_data["collections"] = _check_collections(updated_data)
@@ -1132,6 +1144,25 @@ def save_item():
                 output=result.raw_result,
             ),
             400,
+        )
+
+    # Now save a version AFTER successful item update
+    # If this fails, we log but don't fail the request since item was already saved
+    try:
+        save_version_resp_dict, save_version_status = save_version_snapshot(
+            refcode, action=VersionAction.MANUAL_SAVE
+        )
+        if save_version_status != 200:
+            LOGGER.error(
+                "Failed to save version for item %s after successful update: %s",
+                item_id,
+                save_version_resp_dict,
+            )
+    except Exception as e:
+        LOGGER.error(
+            "Exception while saving version for item %s after successful update: %s",
+            item_id,
+            str(e),
         )
 
     return jsonify(status="success", last_modified=updated_data["last_modified"]), 200
@@ -1272,7 +1303,11 @@ def compare_versions(refcode):
         )
     except ValidationError as exc:
         return jsonify(
-            {"status": "error", "message": "Invalid query parameters", "errors": exc.errors()}
+            {
+                "status": "error",
+                "message": "Invalid query parameters",
+                "errors": json.loads(exc.json()),
+            }
         ), 400
 
     try:
@@ -1330,7 +1365,7 @@ def restore_version(refcode):
         restore_request = RestoreVersionRequest(**request.get_json())
     except ValidationError as exc:
         return jsonify(
-            {"status": "error", "message": "Invalid request body", "errors": exc.errors()}
+            {"status": "error", "message": "Invalid request body", "errors": json.loads(exc.json())}
         ), 400
 
     try:
