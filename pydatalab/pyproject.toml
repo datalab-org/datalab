@@ -37,7 +37,7 @@ documentation = "https://docs.datalab-org.io"
 changelog = "https://github.com/datalab-org/datalab/releases"
 
 [build-system]
-requires = ["setuptools >= 77.0.3", "setuptools_scm ~= 8.1", "wheel"]
+requires = ["setuptools >= 77.0.3", "setuptools_scm ~= 9.2", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
