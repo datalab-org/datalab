@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from bson import ObjectId
 
-from pydatalab.models.tasks import TaskStatus, Task, TaskType
+from pydatalab.models.tasks import Task, TaskStatus, TaskType
 
 
 @pytest.fixture

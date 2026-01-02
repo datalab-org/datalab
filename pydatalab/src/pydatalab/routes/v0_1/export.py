@@ -129,7 +129,11 @@ def start_collection_export(collection_id: str):
 @EXPORT.route("/exports/<string:task_id>/status", methods=["GET"])
 def get_export_status(task_id: str):
     task = flask_mongo.db.tasks.find_one(
-            {"task_id": task_id, "creator_id": current_user.person.immutable_id, "type": TaskType.EXPORT}
+        {
+            "task_id": task_id,
+            "creator_id": current_user.person.immutable_id,
+            "type": TaskType.EXPORT,
+        }
     )
 
     if not task:
@@ -161,7 +165,7 @@ def download_export(task_id: str):
     if not CONFIG.TESTING:
         current_creator_id = current_user.person.immutable_id
         task = flask_mongo.db.tasks.find_one(
-                {"task_id": task_id, "creator_id": current_creator_id, "type": TaskType.EXPORT}
+            {"task_id": task_id, "creator_id": current_creator_id, "type": TaskType.EXPORT}
         )
     else:
         task = flask_mongo.db.tasks.find_one({"task_id": task_id, "type": TaskType.EXPORT})
