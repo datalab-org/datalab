@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           # Make sure to pull all tags so the version is set correctly
           fetch-tags: true
@@ -41,7 +41,7 @@ jobs:
           uv lock -U 2> output.txt
 
       - name: Create PR with changes
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           base: main
           add-paths: pydatalab/uv.lock
