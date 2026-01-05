@@ -118,8 +118,8 @@ logger-objects = ["pydatalab.logger.LOGGER"]
 [tool.ruff.lint.isort]
 known-first-party = ["pydatalab"]
 
-[tool.uv]
-dev-dependencies = [
+[dependency-groups]
+dev = [
     "pytest ~= 8.2",
     "pytest-cov ~= 5.0",
     "pytest-dependency ~= 0.6",
