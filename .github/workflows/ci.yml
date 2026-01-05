@@ -167,6 +167,11 @@ jobs:
         run: |
           uv lock -P datalab-app-plugin-template
 
+      - name: Set some environment variables for CI containers pre-build
+        run: |
+          echo "PYDATALAB_TESTING=true" >> .env
+          echo "PYDATALAB_TESTING=true" >> pydatalab/.env
+
       - name: Build Docker images
         uses: docker/bake-action@v6
         with:
