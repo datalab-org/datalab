@@ -4,6 +4,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from pydatalab.models.utils import PyObjectId
+
 
 class TaskStatus(str, Enum):
     PENDING = "pending"
@@ -29,7 +31,7 @@ class Task(BaseModel):
     task_id: str = Field(..., description="Unique identifier for the task")
     type: TaskType = Field(..., description="Type of task")
     status: TaskStatus = Field(default=TaskStatus.PENDING, description="Current status")
-    creator_id: str = Field(..., description="ID of the user who created the task")
+    creator_id: PyObjectId = Field(..., description="ID of the user who created the task")
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(tz=timezone.utc),
         description="When the task was created",
