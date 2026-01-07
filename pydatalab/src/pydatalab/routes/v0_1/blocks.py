@@ -8,7 +8,7 @@ from werkzeug.exceptions import BadRequest, NotImplemented
 from pydatalab.apps import BLOCK_TYPES
 from pydatalab.blocks.base import DataBlock
 from pydatalab.config import CONFIG
-from pydatalab.models.tasks import Task, TaskStage, TaskStatus, TaskType
+from pydatalab.models.tasks import BlockProcessingTaskSpec, Task, TaskStage, TaskStatus, TaskType
 from pydatalab.mongo import flask_mongo
 from pydatalab.permissions import active_users_or_get_only, get_default_permissions
 from pydatalab.scheduler import export_scheduler
@@ -17,7 +17,9 @@ from pydatalab.scheduler import export_scheduler
 def _process_block_async_internal(task_id: str, block_data: dict, event_data: dict | None):
     def add_stage(message: str, level: str = "info"):
         stage = TaskStage(timestamp=datetime.now(tz=timezone.utc), message=message, level=level)
-        flask_mongo.db.tasks.update_one({"task_id": task_id}, {"$push": {"stages": stage.dict()}})
+        flask_mongo.db.tasks.update_one(
+            {"task_id": task_id}, {"$push": {"spec.stages": stage.dict()}}
+        )
 
     try:
         flask_mongo.db.tasks.update_one(
@@ -276,10 +278,12 @@ def update_block():
         block_task = Task(
             task_id=task_id,
             type=TaskType.BLOCK_PROCESSING,
-            item_id=block_data["item_id"],
-            block_id=block_data["block_id"],
             creator_id=creator_id,
             status=TaskStatus.PENDING,
+            spec=BlockProcessingTaskSpec(
+                item_id=block_data["item_id"],
+                block_id=block_data["block_id"],
+            ),
         )
 
         flask_mongo.db.tasks.insert_one(block_task.dict())
@@ -414,16 +418,16 @@ def get_block_task_status(task_id: str):
         "created_at": task["created_at"],
     }
 
-    if task.get("stages"):
-        response["stages"] = task["stages"]
+    if task.get("spec", {}).get("stages"):
+        response["stages"] = task["spec"]["stages"]
     if task.get("completed_at"):
         response["completed_at"] = task["completed_at"]
     if task.get("error_message"):
         response["error_message"] = task["error_message"]
 
     if task["status"] == TaskStatus.READY:
-        item_id = task["item_id"]
-        block_id = task["block_id"]
+        item_id = task["spec"]["item_id"]
+        block_id = task["spec"]["block_id"]
 
         item = flask_mongo.db.items.find_one(
             {"item_id": item_id, **get_default_permissions(user_only=False)},
