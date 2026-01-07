@@ -9,7 +9,7 @@ from flask_login import current_user
 
 from pydatalab.config import CONFIG
 from pydatalab.export import create_eln_file
-from pydatalab.models.tasks import Task, TaskStatus, TaskType
+from pydatalab.models.tasks import ExportTaskSpec, Task, TaskStatus, TaskType
 from pydatalab.mongo import flask_mongo
 from pydatalab.permissions import PUBLIC_USER_ID, active_users_or_get_only
 from pydatalab.scheduler import export_scheduler
@@ -38,6 +38,7 @@ def _do_export(
         export_dir.mkdir(exist_ok=True, parents=True)
 
         output_path = export_dir / f"{task_id}.eln"
+
         if export_type == "collection":
             create_eln_file(str(output_path), collection_id=collection_id)
         elif export_type in ["item", "graph"]:
@@ -48,7 +49,7 @@ def _do_export(
             {
                 "$set": {
                     "status": TaskStatus.READY,
-                    "file_path": str(output_path),
+                    "spec.file_path": str(output_path),
                     "completed_at": datetime.now(tz=timezone.utc),
                 }
             },
@@ -102,10 +103,12 @@ def start_collection_export(collection_id: str):
     export_task = Task(
         task_id=task_id,
         type=TaskType.EXPORT,
-        collection_id=collection_id,
-        export_type="collection",
         creator_id=creator_id,
         status=TaskStatus.PENDING,
+        spec=ExportTaskSpec(
+            collection_id=collection_id,
+            export_type="collection",
+        ),
     )
 
     flask_mongo.db.tasks.insert_one(export_task.dict(exclude_none=False))
@@ -161,7 +164,6 @@ def get_export_status(task_id: str):
 
 @EXPORT.route("/exports/<string:task_id>/download", methods=["GET"])
 def download_export(task_id: str):
-    # In production, check ownership; in testing, allow all
     if not CONFIG.TESTING:
         current_creator_id = current_user.person.immutable_id
         task = flask_mongo.db.tasks.find_one(
@@ -171,7 +173,6 @@ def download_export(task_id: str):
         task = flask_mongo.db.tasks.find_one({"task_id": task_id, "type": TaskType.EXPORT})
 
     if not task:
-        # Return 404 for both "not found" and "not authorized" to avoid leaking task existence
         return jsonify({"status": "error", "message": "Export task not found"}), 404
 
     if task["status"] != TaskStatus.READY:
@@ -179,11 +180,12 @@ def download_export(task_id: str):
             {"status": "error", "message": f"Export is not ready. Current status: {task['status']}"}
         ), 400
 
-    file_path = task.get("file_path")
+    spec = task.get("spec", {})
+    file_path = spec.get("file_path")
     if not file_path or not os.path.exists(file_path):
         return jsonify({"status": "error", "message": "Export file not found"}), 404
 
-    filename = f"{task.get('collection_id') or task.get('item_id')}.eln"
+    filename = f"{spec.get('collection_id') or spec.get('item_id')}.eln"
 
     return send_file(
         file_path, as_attachment=True, download_name=filename, mimetype="application/vnd.eln+zip"
@@ -225,10 +227,12 @@ def start_item_export(item_id: str):
     export_task = Task(
         task_id=task_id,
         type=TaskType.EXPORT,
-        item_id=item_id,
-        export_type=export_type,
         creator_id=creator_id,
         status=TaskStatus.PENDING,
+        spec=ExportTaskSpec(
+            item_id=item_id,
+            export_type=export_type,
+        ),
     )
 
     flask_mongo.db.tasks.insert_one(export_task.dict(exclude_none=False))

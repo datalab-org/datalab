@@ -48,11 +48,6 @@
       "title": "Revisions",
       "type": "object"
     },
-    "version": {
-      "title": "Version",
-      "default": 1,
-      "type": "integer"
-    },
     "creator_ids": {
       "title": "Creator Ids",
       "default": [],
@@ -66,21 +61,6 @@
       "type": "array",
       "items": {
         "$ref": "#/definitions/Person"
-      }
-    },
-    "group_ids": {
-      "title": "Group Ids",
-      "default": [],
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
-    "groups": {
-      "title": "Groups",
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/Group"
       }
     },
     "type": {
@@ -148,14 +128,6 @@
       "items": {
         "type": "string"
       }
-    },
-    "status": {
-      "default": "available",
-      "allOf": [
-        {
-          "$ref": "#/definitions/StartingMaterialsStatus"
-        }
-      ]
     },
     "barcode": {
       "title": "Barcode",
@@ -511,74 +483,6 @@
       ],
       "type": "string"
     },
-    "Group": {
-      "title": "Group",
-      "description": "A model that describes a group of users, for the sake\nof applying group permissions.\n\nEach `Person` can point to multiple groups.\n\nRelationships between groups can be described via the `relationships`\nfield inherited from `Entry`.",
-      "type": "object",
-      "properties": {
-        "type": {
-          "title": "Type",
-          "default": "groups",
-          "const": "groups",
-          "type": "string"
-        },
-        "immutable_id": {
-          "title": "Immutable ID",
-          "format": "uuid",
-          "type": "string"
-        },
-        "last_modified": {
-          "title": "Last Modified",
-          "type": "string",
-          "format": "date-time"
-        },
-        "relationships": {
-          "title": "Relationships",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/TypedRelationship"
-          }
-        },
-        "group_id": {
-          "title": "Group Id",
-          "minLength": 1,
-          "maxLength": 40,
-          "pattern": "^(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
-          "type": "string"
-        },
-        "members": {
-          "title": "Members",
-          "type": "array",
-          "items": {
-            "type": "object"
-          }
-        },
-        "display_name": {
-          "title": "Display Name",
-          "minLength": 1,
-          "maxLength": 150,
-          "type": "string"
-        },
-        "description": {
-          "title": "Description",
-          "type": "string"
-        },
-        "managers": {
-          "title": "Managers",
-          "type": "array",
-          "items": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "object"
-              }
-            ]
-          }
-        }
-      }
-    },
     "AccountStatus": {
       "title": "AccountStatus",
       "description": "A string enum representing the account status.",
@@ -650,13 +554,6 @@
             }
           ]
         },
-        "groups": {
-          "title": "Groups",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Group"
-          }
-        },
         "account_status": {
           "default": "unverified",
           "allOf": [
@@ -701,21 +598,6 @@
           "type": "array",
           "items": {
             "$ref": "#/definitions/Person"
-          }
-        },
-        "group_ids": {
-          "title": "Group Ids",
-          "default": [],
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "groups": {
-          "title": "Groups",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Group"
           }
         },
         "type": {
@@ -777,11 +659,6 @@
           "title": "Revisions",
           "type": "object"
         },
-        "version": {
-          "title": "Version",
-          "default": 1,
-          "type": "integer"
-        },
         "creator_ids": {
           "title": "Creator Ids",
           "default": [],
@@ -795,21 +672,6 @@
           "type": "array",
           "items": {
             "$ref": "#/definitions/Person"
-          }
-        },
-        "group_ids": {
-          "title": "Group Ids",
-          "default": [],
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "groups": {
-          "title": "Groups",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Group"
           }
         },
         "type": {
@@ -916,20 +778,6 @@
         "time_added",
         "is_live"
       ]
-    },
-    "StartingMaterialsStatus": {
-      "title": "StartingMaterialsStatus",
-      "description": "An enumeration of the status of starting materials",
-      "enum": [
-        "ordered",
-        "disposed",
-        "planned",
-        "available",
-        "unavailable",
-        "exhausted",
-        "other"
-      ],
-      "type": "string"
     }
   }
 }
