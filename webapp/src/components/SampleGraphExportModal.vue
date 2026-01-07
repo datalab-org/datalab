@@ -141,7 +141,7 @@ import Modal from "@/components/Modal";
 import ItemGraph from "@/components/ItemGraph";
 
 import {
-  startSampleExport,
+  startItemExport,
   getExportStatus,
   getExportDownloadUrl,
   createNewCollection,
@@ -287,7 +287,7 @@ export default {
           }
         }
 
-        const response = await startSampleExport(this.itemId, {
+        const response = await startItemExport(this.itemId, {
           include_related: true,
           related_item_ids: this.selectedSampleIds,
           max_depth: this.graphDepth,
