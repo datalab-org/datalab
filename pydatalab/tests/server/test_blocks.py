@@ -2,11 +2,10 @@ from pathlib import Path
 
 import pytest
 
-from pydatalab.apps import BLOCK_TYPES, BLOCKS
-
 
 def test_get_all_available_block_types():
-    """Test that we can enumerate all available block types."""
+    from pydatalab.apps import BLOCK_TYPES, BLOCKS
+
     assert len(BLOCKS) > 0
     assert len(BLOCK_TYPES) > 0
 
@@ -20,41 +19,47 @@ def test_get_all_available_block_types():
         assert BLOCK_TYPES[block_class.blocktype] == block_class
 
 
-@pytest.mark.parametrize("block_type", list(BLOCK_TYPES.keys()))
-def test_create_sample_with_each_block_type(admin_client, block_type, default_sample_dict):
+def test_create_sample_with_each_block_type(admin_client, default_sample_dict):
     """Test creating a sample and adding each available block type via API."""
-    sample_id = f"test_sample_with_{block_type.replace('-', '_')}"
-    sample_data = default_sample_dict.copy()
-    sample_data["item_id"] = sample_id
+    from pydatalab.apps import BLOCK_TYPES
 
-    response = admin_client.post("/new-sample/", json=sample_data)
-    assert response.status_code == 201, f"Failed to create sample for {block_type}: {response.json}"
-    assert response.json["status"] == "success"
+    block_types = list(BLOCK_TYPES.keys())
 
-    response = admin_client.post(
-        "/add-data-block/",
-        json={
-            "block_type": block_type,
-            "item_id": sample_id,
-            "index": 0,
-        },
-    )
+    for block_type in block_types:
+        sample_id = f"test_sample_with_{block_type.replace('-', '_')}"
+        sample_data = default_sample_dict.copy()
+        sample_data["item_id"] = sample_id
 
-    assert response.status_code == 200, f"Failed to add {block_type} block: {response.json}"
-    assert response.json["status"] == "success"
-    assert response.json["new_block_obj"]
-    assert response.json["new_block_obj"]["blocktype"] == block_type
-    assert response.json["new_block_insert_index"] == 0
+        response = admin_client.post("/new-sample/", json=sample_data)
+        assert response.status_code == 201, (
+            f"Failed to create sample for {block_type}: {response.json}"
+        )
+        assert response.json["status"] == "success"
 
-    response = admin_client.get(f"/get-item-data/{sample_id}")
-    assert response.status_code == 200
-    assert response.json["status"] == "success"
+        response = admin_client.post(
+            "/add-data-block/",
+            json={
+                "block_type": block_type,
+                "item_id": sample_id,
+                "index": 0,
+            },
+        )
 
-    item_data = response.json["item_data"]
-    assert "blocks_obj" in item_data
-    assert len(item_data["blocks_obj"]) == 1
-    first_block = next(iter(item_data["blocks_obj"].values()))
-    assert first_block["blocktype"] == block_type
+        assert response.status_code == 200, f"Failed to add {block_type} block: {response.json}"
+        assert response.json["status"] == "success"
+        assert response.json["new_block_obj"]
+        assert response.json["new_block_obj"]["blocktype"] == block_type
+        assert response.json["new_block_insert_index"] == 0
+
+        response = admin_client.get(f"/get-item-data/{sample_id}")
+        assert response.status_code == 200
+        assert response.json["status"] == "success"
+
+        item_data = response.json["item_data"]
+        assert "blocks_obj" in item_data
+        assert len(item_data["blocks_obj"]) == 1
+        first_block = next(iter(item_data["blocks_obj"].values()))
+        assert first_block["blocktype"] == block_type
 
 
 def test_invalid_block_type(admin_client, default_sample_dict):
@@ -81,6 +86,8 @@ def test_invalid_block_type(admin_client, default_sample_dict):
 
 def test_add_multiple_blocks_to_sample(admin_client, default_sample_dict):
     """Test adding multiple different block types to the same sample."""
+    from pydatalab.apps import BLOCK_TYPES
+
     sample_id = "test_sample_multiple_blocks"
     sample_data = default_sample_dict.copy()
     sample_data["item_id"] = sample_id
@@ -119,6 +126,8 @@ def test_add_multiple_blocks_to_sample(admin_client, default_sample_dict):
 
 def test_block_permissions(client, admin_client, unauthenticated_client, default_sample_dict):
     """Test that normal users can add blocks to samples they have access to, but unauthenticated users cannot."""
+    from pydatalab.apps import BLOCK_TYPES
+
     sample_id = "test_sample_user_permissions"
     sample_data = default_sample_dict.copy()
     sample_data["item_id"] = sample_id
@@ -165,6 +174,8 @@ def test_block_permissions(client, admin_client, unauthenticated_client, default
 
 def test_add_block_to_nonexistent_item(admin_client):
     """Test that adding a block to a nonexistent item fails gracefully."""
+    from pydatalab.apps import BLOCK_TYPES
+
     block_type = list(BLOCK_TYPES.keys())[0]
 
     response = admin_client.post(
@@ -182,6 +193,8 @@ def test_add_block_to_nonexistent_item(admin_client):
 
 def test_block_info_endpoint_contains_all_blocks(client):
     """Test that the /info/blocks endpoint returns all available block types."""
+    from pydatalab.apps import BLOCK_TYPES
+
     response = client.get("/info/blocks")
     assert response.status_code == 200
 

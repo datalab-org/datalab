@@ -66,7 +66,7 @@ def take_snapshot(snapshot_path: Path, encrypt: bool = False) -> None:
         LOGGER.debug("Dumping server config.")
         with tempfile.TemporaryDirectory() as temp_dir:
             with open(tmp_config := Path(temp_dir) / "config.json", "w") as f:
-                data = CONFIG.json(indent=2, exclude_unset=True)
+                data = CONFIG.model_dump_json(indent=2, exclude_unset=True)
                 f.write(data)
 
                 tar.add(

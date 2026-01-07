@@ -107,7 +107,7 @@ def start_collection_export(collection_id: str):
         status=ExportStatus.PENDING,
     )
 
-    flask_mongo.db.export_tasks.insert_one(export_task.dict(exclude_none=False))
+    flask_mongo.db.export_tasks.insert_one(export_task.model_dump(exclude_none=False))
 
     try:
         app = current_app._get_current_object()
@@ -226,7 +226,7 @@ def start_item_export(item_id: str):
         status=ExportStatus.PENDING,
     )
 
-    flask_mongo.db.export_tasks.insert_one(export_task.dict(exclude_none=False))
+    flask_mongo.db.export_tasks.insert_one(export_task.model_dump(exclude_none=False))
 
     try:
         app = current_app._get_current_object()

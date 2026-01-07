@@ -11,8 +11,6 @@ updates:
   - dependency_updates
   versioning-strategy: "increase-if-necessary"
   ignore:
-    - dependency-name: "pydantic"
-      versions: [ ">=2" ]
     - dependency-name: "bokeh"
       versions: [ ">=3" ]
     - dependency-name: "langchain"

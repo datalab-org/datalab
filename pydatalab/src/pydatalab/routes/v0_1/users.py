@@ -6,6 +6,7 @@ from datetime import timezone as tz
 from bson import ObjectId
 from flask import Blueprint, jsonify, request
 from flask_login import current_user
+from pydantic import TypeAdapter
 from werkzeug.exceptions import BadRequest, Forbidden, Unauthorized
 
 from pydatalab.config import CONFIG
@@ -14,6 +15,10 @@ from pydatalab.models.people import AccountStatus, DisplayName, EmailStr, Person
 from pydatalab.mongo import flask_mongo
 from pydatalab.permissions import active_users_or_get_only
 from pydatalab.routes.v0_1.auth import _generate_and_store_token, _send_magic_link_email
+
+# Create type adapters for validation
+_display_name_adapter = TypeAdapter(DisplayName)
+_email_adapter = TypeAdapter(EmailStr)
 
 USERS = Blueprint("users", __name__)
 
@@ -46,7 +51,7 @@ def save_user(user_id):
 
     try:
         if display_name:
-            update["display_name"] = DisplayName(display_name)
+            update["display_name"] = _display_name_adapter.validate_python(display_name)
 
     except ValueError:
         raise BadRequest(f"Invalid display name {display_name!r} was passed")
@@ -56,7 +61,7 @@ def save_user(user_id):
             if contact_email in ("", None):
                 update["contact_email"] = None
             else:
-                update["contact_email"] = EmailStr(contact_email)
+                update["contact_email"] = _email_adapter.validate_python(contact_email)
 
     except ValueError:
         raise BadRequest(f"Invalid email address {contact_email!r} was passed")
@@ -208,5 +213,5 @@ def search_users():
         ]
     )
     return jsonify(
-        {"status": "success", "users": list(json.loads(Person(**d).json()) for d in cursor)}
+        {"status": "success", "users": list(json.loads(Person(**d).model_dump_json()) for d in cursor)}
     ), 200

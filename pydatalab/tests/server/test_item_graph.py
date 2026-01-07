@@ -15,7 +15,7 @@ def test_single_starting_material(admin_client, client):
 
     creation = client.post(
         "/new-sample/",
-        json={"new_sample_data": json.loads(material.json())},
+        json={"new_sample_data": json.loads(material.model_dump_json())},
     )
 
     assert creation.status_code == 201
@@ -39,7 +39,7 @@ def test_single_starting_material(admin_client, client):
 
     creation = client.post(
         "/new-sample/",
-        json={"new_sample_data": json.loads(parent.json())},
+        json={"new_sample_data": json.loads(parent.model_dump_json())},
     )
 
     assert creation.status_code == 201
@@ -68,7 +68,7 @@ def test_single_starting_material(admin_client, client):
 
     creation = client.post(
         "/new-sample/",
-        json={"new_sample_data": json.loads(child.json())},
+        json={"new_sample_data": json.loads(child.model_dump_json())},
     )
 
     grandchild = Sample(
@@ -80,7 +80,7 @@ def test_single_starting_material(admin_client, client):
 
     creation = client.post(
         "/new-sample/",
-        json={"new_sample_data": json.loads(grandchild.json())},
+        json={"new_sample_data": json.loads(grandchild.model_dump_json())},
     )
 
     great_grandchild = Sample(
@@ -92,7 +92,7 @@ def test_single_starting_material(admin_client, client):
 
     creation = client.post(
         "/new-sample/",
-        json={"new_sample_data": json.loads(great_grandchild.json())},
+        json={"new_sample_data": json.loads(great_grandchild.model_dump_json())},
     )
 
     graph = client.get("/item-graph").json
@@ -113,7 +113,8 @@ def test_single_starting_material(admin_client, client):
     )
 
     creation = admin_client.post(
-        "/new-sample/", json={"new_sample_data": json.loads(admin_great_great_grandchild.json())}
+        "/new-sample/",
+        json={"new_sample_data": json.loads(admin_great_great_grandchild.model_dump_json())},
     )
 
     graph = admin_client.get("/item-graph/great-grandchild").json

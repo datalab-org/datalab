@@ -3,19 +3,19 @@ from pathlib import Path
 import pytest
 
 
-def test_default_settings():
+def test_default_settings(secret_key):
     from pydatalab.config import ServerConfig
 
-    config = ServerConfig()
+    config = ServerConfig(SECRET_KEY=secret_key)
     assert config.MONGO_URI == "mongodb://localhost:27017/datalabvue"
     assert config.SECRET_KEY
     assert Path(config.FILE_DIRECTORY).name == "files"
 
 
-def test_update_settings():
+def test_update_settings(secret_key):
     from pydatalab.config import ServerConfig
 
-    config = ServerConfig()
+    config = ServerConfig(SECRET_KEY=secret_key)
     new_settings = {
         "mongo_uri": "mongodb://test",
         "new_key": "some new data",
@@ -28,11 +28,14 @@ def test_update_settings():
     assert Path(config.FILE_DIRECTORY).name == "files"
 
 
-def test_config_override():
+def test_config_override(secret_key):
     from pydatalab.main import create_app
 
     app = create_app(
-        config_override={"REMOTE_FILESYSTEMS": [{"hostname": None, "path": "/", "name": "local"}]}
+        config_override={
+            "SECRET_KEY": secret_key,
+            "REMOTE_FILESYSTEMS": [{"hostname": None, "path": "/", "name": "local"}],
+        }
     )
     assert app.config["REMOTE_FILESYSTEMS"][0]["hostname"] is None
     assert app.config["REMOTE_FILESYSTEMS"][0]["path"] == Path("/")
@@ -41,6 +44,7 @@ def test_config_override():
 
     assert CONFIG.REMOTE_FILESYSTEMS[0].hostname is None
     assert CONFIG.REMOTE_FILESYSTEMS[0].path == Path("/")
+    assert CONFIG.SECRET_KEY == secret_key
 
 
 def test_env_var_flask_config_override(secret_key):
@@ -58,17 +62,21 @@ def test_env_var_flask_config_override(secret_key):
         assert app.config["SECRET_KEY"] == secret_key  # noqa: S105
 
 
-def test_validators():
+def test_validators(secret_key):
     from pydatalab.config import ServerConfig
 
     # check bad prefix
     with pytest.raises(
         RuntimeError, match="Identifier prefix must be less than 12 characters long,"
     ):
-        _ = ServerConfig(IDENTIFIER_PREFIX="this prefix is way way too long", TESTING=False)
+        _ = ServerConfig(
+            IDENTIFIER_PREFIX="this prefix is way way too long",
+            TESTING=False,
+            SECRET_KEY=secret_key,
+        )
 
 
-def test_mail_settings_combinations(tmpdir):
+def test_mail_settings_combinations(tmpdir, secret_key):
     """Tests that the config file mail settings get passed
     correctly to the flask settings, and that additional
     overrides can be provided as environment variables.
@@ -79,13 +87,14 @@ def test_mail_settings_combinations(tmpdir):
 
     CONFIG.update(
         {
+            "SECRET_KEY": secret_key,
             "EMAIL_AUTH_SMTP_SETTINGS": SMTPSettings(
                 MAIL_SERVER="example.com",
                 MAIL_DEFAULT_SENDER="test@example.com",
                 MAIL_PORT=587,
                 MAIL_USE_TLS=True,
                 MAIL_USERNAME="user",
-            )
+            ),
         }
     )
 

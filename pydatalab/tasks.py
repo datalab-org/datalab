@@ -6,7 +6,6 @@ import time
 
 from invoke import Collection, task
 
-from pydatalab.logger import setup_log
 from pydatalab.models.utils import UserRole
 
 ns = Collection()
@@ -37,7 +36,7 @@ def generate_schemas(_):
     schemas_path = pathlib.Path(__file__).parent / "schemas"
 
     for model in ITEM_MODELS.values():
-        schema = model.schema(by_alias=False)
+        schema = model.model_json_schema(by_alias=False)
         with open(schemas_path / f"{model.__name__.lower()}.json", "w") as f:
             json.dump(schema, f, indent=2)
 
@@ -200,6 +199,8 @@ def _check_id(id=None, base_url=None, api_key=None):
     """Checks the given item ID served at the base URL and logs the result."""
     import requests
 
+    from pydatalab.logger import setup_log
+
     log = setup_log("check_item_validity")
     response = requests.get(
         f"{base_url}/get-item-data/{id}", headers={"DATALAB-API-KEY": api_key}, timeout=30
@@ -227,6 +228,8 @@ def check_item_validity(_, base_url: str | None = None, starting_materials: bool
     import os
 
     import requests
+
+    from pydatalab.logger import setup_log
 
     api_key = os.environ.get("DATALAB_API_KEY")
     if not api_key:
@@ -286,6 +289,8 @@ def check_remotes(_, base_url: str | None = None, invalidate_cache: bool = False
     import os
 
     import requests
+
+    from pydatalab.logger import setup_log
 
     api_key = os.environ.get("DATALAB_API_KEY")
     if not api_key:

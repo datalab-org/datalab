@@ -2,9 +2,10 @@ import json
 import warnings
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
-from pydantic import Field, validator
+from pydantic import Field
 
 from pydatalab.blocks.base import DataBlock
+from pydatalab.logger import LOGGER
 from pydatalab.models import ITEM_MODELS
 from pydatalab.models.blocks import DataBlockResponse
 from pydatalab.utils import CustomJSONEncoder
@@ -16,17 +17,11 @@ __all__ = ("ChatBlock",)
 
 class ChatBlockResponse(DataBlockResponse):
     messages: list[dict] = Field(default_factory=list)
-    prompt: str | None
+    prompt: str | None = None
     model: str
-    available_models: dict[str, ModelCard] | None = Field(
-        datalab_exclude_from_db=True, datalab_exclude_from_load=True
-    )
-    token_count: int | None
+    available_models: dict[str, ModelCard]
+    token_count: int | None = None
     temperature: float
-
-    @validator("available_models", pre=True, always=True)
-    def set_available_models(cls, _):
-        return AVAILABLE_MODELS
 
 
 class ChatBlock(DataBlock):
@@ -144,6 +139,10 @@ Start with a friendly introduction and give me a one sentence summary of what th
 
             chat_client = model_cls.chat_client(model=model_cls.name)
 
+            LOGGER.debug(
+                f'submitting request to API for completion with last message role "{self.data["messages"][-1]["role"]}" (message = {self.data["messages"][-1:]}).'
+                f"Temperature = {self.data['temperature']} (type {type(self.data['temperature'])})"
+            )
             # Convert your messages to the required format
             langchain_messages = []
             for message in self.data["messages"]:
@@ -206,8 +205,8 @@ Please make a new chat block to start fresh, or use a model with a larger contex
             item_model.blocks_obj = {
                 k: block for k, block in item_model.blocks_obj.items() if block.blocktype != "chat"
             }
-        item_data = item_model.dict(exclude_none=True, exclude_unset=True)
-        item_data["type"] = item_model.type
+        item_info = item_model.model_dump(exclude_none=True, exclude_unset=True)
+        item_info["type"] = item_model.type
 
         # strip irrelevant or large fields
         item_filenames = {
@@ -229,8 +228,7 @@ Please make a new chat block to start fresh, or use a model with a larger contex
                 "pulse_program",
                 "selected_process",
             ]
-            if "metadata" in block:
-                [block["metadata"].pop(field, None) for field in NMR_fields_to_remove]
+            [block["metadata"].pop(field, None) for field in NMR_fields_to_remove]
 
             # replace file_id with the actual filename
             file_id = block.pop("file_id", None)

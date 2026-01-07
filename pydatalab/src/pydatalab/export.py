@@ -169,7 +169,7 @@ def create_eln_file(
             item_folder = root_folder / item["item_id"]
             item_folder.mkdir()
 
-            item_metadata = ITEM_MODELS[item.get("type")](**item).json(indent=2)
+            item_metadata = ITEM_MODELS[item.get("type")](**item).model_dump_json(indent=2)
 
             with open(item_folder / "metadata.json", "w", encoding="utf-8") as f:
                 f.write(item_metadata)

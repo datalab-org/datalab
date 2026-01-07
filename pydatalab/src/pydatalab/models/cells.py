@@ -1,8 +1,12 @@
 from enum import Enum
+from typing import Literal
 
-from pydantic import Field, root_validator, validator
+from pydantic import (
+    Field,
+    field_validator,
+    model_validator,
+)
 
-from pydatalab.models.entries import EntryReference
 from pydatalab.models.items import Item
 from pydatalab.models.utils import CellStatus, Constituent
 
@@ -27,80 +31,127 @@ class CellFormat(str, Enum):
 class Cell(Item):
     """A model for representing electrochemical cells."""
 
-    type: str = Field("cells", const="cells", pattern="^cells$")
+    type: Literal["cells"] = "cells"
 
-    cell_format: CellFormat | None
-    """The form factor of the cell, e.g., coin, pouch, in situ or otherwise."""
+    cell_format: CellFormat | None = Field(
+        None, description="The form factor of the cell, e.g., coin, pouch, in situ or otherwise."
+    )
 
-    cell_format_description: str | None
-    """Additional human-readable description of the cell form factor, e.g., 18650, AMPIX, CAMPIX"""
+    cell_format_description: str | None = Field(
+        None,
+        description="Additional human-readable description of the cell form factor, e.g., 18650, AMPIX, CAMPIX",
+    )
 
-    cell_preparation_description: str | None
+    cell_preparation_description: str | None = Field(
+        None, description="Description of how the cell was prepared."
+    )
 
-    characteristic_mass: float | None
-    """The characteristic mass of the cell in milligrams. Can be used to normalize capacities."""
+    characteristic_mass: float | None = Field(
+        None,
+        description="The characteristic mass of the cell in milligrams. Can be used to normalize capacities.",
+    )
 
-    characteristic_chemical_formula: str | None
-    """The chemical formula of the active material. Can be used to calculated molar mass in g/mol for normalizing capacities."""
+    characteristic_chemical_formula: str | None = Field(
+        None,
+        description="The chemical formula of the active material. Can be used to calculated molar mass in g/mol for normalizing capacities.",
+    )
 
-    characteristic_molar_mass: float | None
-    """The molar mass of the active material, in g/mol. Will be inferred from the chemical formula, or can be supplied if it cannot be supplied"""
+    characteristic_molar_mass: float | None = Field(
+        None,
+        description="The molar mass of the active material, in g/mol. Will be inferred from the chemical formula, or can be supplied if it cannot be supplied",
+    )
 
-    positive_electrode: list[CellComponent] = []
-
-    negative_electrode: list[CellComponent] = []
-
-    electrolyte: list[CellComponent] = []
+    positive_electrode: list[CellComponent] = Field(default_factory=list)
+    negative_electrode: list[CellComponent] = Field(default_factory=list)
+    electrolyte: list[CellComponent] = Field(default_factory=list)
 
     active_ion_charge: float = 1
 
-    status: CellStatus = Field(default=CellStatus.ACTIVE)
-    """The status of the cells, indicating its current state."""
+    active_ion: str | None = Field(None, description="The active ion species.")
 
-    @validator("characteristic_molar_mass", always=True, pre=True)
-    def set_molar_mass(cls, v, values):
+    status: CellStatus = Field(
+        default=CellStatus.ACTIVE, description="The status of the cells, indicating its current state."
+    )
+
+    @field_validator("characteristic_molar_mass", mode="before")
+    @classmethod
+    def set_molar_mass(cls, v, info):
         from periodictable import formula
 
-        if not v:
-            chemical_formula = values.get("characteristic_chemical_formula")
-
+        if not v and hasattr(info, "data") and info.data:
+            chemical_formula = info.data.get("characteristic_chemical_formula")
             if chemical_formula:
                 try:
                     return formula(chemical_formula).mass
                 except Exception:
                     return None
-
         return v
 
-    @root_validator
+    @model_validator(mode="before")
+    @classmethod
     def add_missing_electrode_relationships(cls, values):
-        """Add any missing sample synthesis constituents to parent relationships"""
-        from pydatalab.models.relationships import RelationshipType, TypedRelationship
+        """Add any missing electrode constituents to parent relationships"""
+        from pydatalab.models.relationships import RelationshipType
 
         existing_parthood_relationship_ids = set()
         if values.get("relationships") is not None:
-            existing_parthood_relationship_ids = {
-                relationship.refcode or relationship.item_id
-                for relationship in values["relationships"]
-                if relationship.relation == RelationshipType.PARTHOOD
-            }
+            for relationship in values["relationships"]:
+                if isinstance(relationship, dict):
+                    relation = relationship.get("relation")
+                    if relation == RelationshipType.PARTHOOD or relation == "is_part_of":
+                        ref_id = relationship.get("refcode") or relationship.get("item_id")
+                        if ref_id:
+                            existing_parthood_relationship_ids.add(ref_id)
+                else:
+                    if (
+                        hasattr(relationship, "relation")
+                        and relationship.relation == RelationshipType.PARTHOOD
+                    ):
+                        ref_id = getattr(relationship, "refcode", None) or getattr(
+                            relationship, "item_id", None
+                        )
+                        if ref_id:
+                            existing_parthood_relationship_ids.add(ref_id)
         else:
             values["relationships"] = []
 
         for component in ("positive_electrode", "negative_electrode", "electrolyte"):
             for constituent in values.get(component, []):
-                if (
-                    isinstance(constituent.item, EntryReference)
-                    and (constituent.item.refcode or constituent.item.item_id)
-                    not in existing_parthood_relationship_ids
-                ):
-                    relationship = TypedRelationship(
-                        relation=RelationshipType.PARTHOOD,
-                        refcode=constituent.item.refcode,
-                        item_id=constituent.item.item_id,
-                        type=constituent.item.type,
-                        description="Is a constituent of",
-                    )
-                    values["relationships"].append(relationship)
+                if isinstance(constituent, dict):
+                    item_data = constituent.get("item")
+                else:
+                    item_data = getattr(constituent, "item", None)
+
+                if item_data is None:
+                    continue
+
+                if isinstance(item_data, dict):
+                    item_id = item_data.get("item_id")
+                    refcode = item_data.get("refcode")
+                    item_type = item_data.get("type")
+
+                    if not item_id and not refcode:
+                        continue
+
+                    constituent_id = refcode or item_id
+                else:
+                    item_id = getattr(item_data, "item_id", None)
+                    refcode = getattr(item_data, "refcode", None)
+                    item_type = getattr(item_data, "type", None)
+
+                    if not item_id and not refcode:
+                        continue
+
+                    constituent_id = refcode or item_id
+
+                if constituent_id and constituent_id not in existing_parthood_relationship_ids:
+                    relationship_dict = {
+                        "relation": RelationshipType.PARTHOOD,
+                        "refcode": refcode,
+                        "item_id": item_id,
+                        "type": item_type,
+                        "description": "Is a constituent of",
+                    }
+                    values["relationships"].append(relationship_dict)
 
         return values

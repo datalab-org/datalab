@@ -19,6 +19,7 @@ from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER
 from pydatalab.models import ITEM_MODELS, ItemVersion
 from pydatalab.models.items import Item
+from pydatalab.models.people import Person
 from pydatalab.models.relationships import RelationshipType
 from pydatalab.models.utils import generate_unique_refcode
 from pydatalab.models.versions import (
@@ -26,12 +27,11 @@ from pydatalab.models.versions import (
     RestoreVersionRequest,
     VersionAction,
 )
-from pydatalab.mongo import ITEMS_FTS_FIELDS, flask_mongo
+from pydatalab.mongo import flask_mongo, get_items_fts_fields
 from pydatalab.permissions import (
     PUBLIC_USER_ID,
     access_token_or_active_users,
     active_users_or_get_only,
-    check_access_token,
     get_default_permissions,
 )
 from pydatalab.versioning import (
@@ -340,8 +340,8 @@ def search_items():
     Returns:
         response list of dictionaries containing the matching items in order of
         descending match score.
-    """
 
+    """
     query = request.args.get("query", type=str)
     nresults = request.args.get("nresults", default=100, type=int)
     types = request.args.get("types", default=None)
@@ -373,7 +373,7 @@ def search_items():
         query = query.strip("'")
 
         match_obj = {
-            "$or": [{field: {"$regex": query, "$options": "i"}} for field in ITEMS_FTS_FIELDS]
+            "$or": [{field: {"$regex": query, "$options": "i"}} for field in get_items_fts_fields()]
         }
         match_obj = {"$and": [get_default_permissions(user_only=False), match_obj]}
         if types is not None:
@@ -406,7 +406,7 @@ def search_items():
             match_obj = {
                 "$or": [
                     {"$and": [{field: {"$regex": query, "$options": "i"}} for query in query_parts]}
-                    for field in ITEMS_FTS_FIELDS
+                    for field in get_items_fts_fields()
                 ]
             }
             LOGGER.debug(
@@ -470,6 +470,7 @@ def _create_sample(
         # the provided item_id, name, and date take precedence over the copied parameters, if provided
         try:
             copied_doc["item_id"] = sample_dict["item_id"]
+            copied_doc.pop("_id", None)
         except KeyError:
             raise BadRequest(
                 f"Request to copy item with id {copy_from_item_id} to new item failed because the target new item_id was not provided."
@@ -585,6 +586,9 @@ def _create_sample(
 
     new_sample["date"] = new_sample.get("date", datetime.datetime.now(tz=datetime.timezone.utc))
     try:
+        if "immutable_id" in new_sample:
+            del new_sample["immutable_id"]
+
         data_model: Item = model(**new_sample)
 
     except ValidationError as error:
@@ -604,7 +608,9 @@ def _create_sample(
     # the `Entry` model.
     try:
         result = flask_mongo.db.items.insert_one(
-            data_model.dict(exclude={"creators", "collections", "groups"})
+            data_model.model_dump(
+                exclude={"creators", "collections", "groups"}, exclude_none=True, by_alias=True
+            )
         )
     except DuplicateKeyError as error:
         LOGGER.debug("item_id %s already exists in database", sample_dict["item_id"], sample_dict)
@@ -648,16 +654,19 @@ def _create_sample(
         "name": data_model.name,
         "creator_ids": data_model.creator_ids,
         # TODO: This workaround for creators & collections is still gross, need to figure this out properly
-        "creators": [json.loads(c.json(exclude_unset=True)) for c in data_model.creators]
+        "creators": [json.loads(c.model_dump_json(exclude_unset=True)) for c in data_model.creators]
         if data_model.creators
         else [],
         "collections": [
-            json.loads(c.json(exclude_unset=True, exclude_none=True))
+            json.loads(c.model_dump_json(exclude_unset=True, exclude_none=True))
             for c in data_model.collections
-        ],
+        ]
+        if data_model.collections
+        else [],
         "group_ids": data_model.group_ids,
         "groups": [
-            json.loads(c.json(exclude_unset=True, exclude_none=True)) for c in data_model.groups
+            json.loads(c.model_dump_json(exclude_unset=True, exclude_none=True))
+            for c in data_model.groups
         ]
         if data_model.groups
         else [],
@@ -670,7 +679,7 @@ def _create_sample(
     if data_model.type == "equipment":
         sample_list_entry["location"] = data_model.location
 
-    data = (
+    return (
         {
             "status": "success",
             "item_id": data_model.item_id,
@@ -678,8 +687,6 @@ def _create_sample(
         },
         201,  # 201: Created
     )
-
-    return data
 
 
 @ITEMS.route("/new-sample/", methods=["POST", "PUT"])
@@ -1042,6 +1049,7 @@ def get_item_data(
 
     try:
         doc = list(cursor)[0]
+
     except IndexError:
         doc = None
 
@@ -1056,7 +1064,6 @@ def get_item_data(
             404,
         )
 
-    # determine the item type and validate according to the appropriate schema
     try:
         ItemModel = ITEM_MODELS[doc["type"]]
     except KeyError:
@@ -1065,7 +1072,12 @@ def get_item_data(
         else:
             raise BadRequest(f"Item {item_id=} has no type field in document.")
 
-    doc = ItemModel(**doc)
+    try:
+        doc = ItemModel(**doc)
+    except ValidationError as e:
+        LOGGER.error("Pydantic validation error: %s", e)
+        LOGGER.error("Document keys: %s", list(doc.keys()))
+        raise e
 
     # find any documents with relationships that mention this document
     relationships_query_results = flask_mongo.db.items.find(
@@ -1091,7 +1103,7 @@ def get_item_data(
     )
 
     # loop over and collect all 'outer' relationships presented by other items
-    incoming_relationships: dict[RelationshipType, set[str]] = {}
+    incoming_relationships: dict[RelationshipType, set] = {}
     for d in relationships_query_results:
         for k in d["relationships"]:
             if k["relation"] not in incoming_relationships:
@@ -1101,7 +1113,7 @@ def get_item_data(
             )
 
     # loop over and aggregate all 'inner' relationships presented by this item
-    inlined_relationships: dict[RelationshipType, set[str]] = {}
+    inlined_relationships: dict[RelationshipType, set] = {}
     if doc.relationships is not None:
         inlined_relationships = {
             relation: {
@@ -1121,7 +1133,7 @@ def get_item_data(
     )
 
     # Must be exported to JSON first to apply the custom pydantic JSON encoders
-    return_dict = json.loads(doc.json(exclude_unset=True))
+    return_dict = doc.model_dump(mode="json", exclude_unset=True)
 
     if item_id is None:
         item_id = return_dict["item_id"]
@@ -1136,6 +1148,247 @@ def get_item_data(
         }
     )
 
+
+@ITEMS.route("/save-item/", methods=["POST"])
+def save_item():
+    request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
+
+    if "item_id" not in request_json:
+        raise BadRequest(
+            "`/save-item/` endpoint requires 'item_id' to be passed in JSON request body"
+        )
+
+    if "data" not in request_json:
+        raise BadRequest("`/save-item/` endpoint requires 'data' to be passed in JSON request body")
+
+    item_id = str(request_json["item_id"])
+    updated_data = request_json["data"]
+
+    # These keys should not be updated here and cannot be modified by the user through this endpoint
+    for k in (
+        "_id",
+        "immutable_id",
+        "file_ObjectIds",
+        "files",
+        "creators",
+        "creator_ids",
+        "item_id",
+        "relationships",
+    ):
+        if k in updated_data:
+            del updated_data[k]
+
+    updated_data["last_modified"] = datetime.datetime.now(tz=datetime.timezone.utc).isoformat()
+
+    for block_id, block_data in updated_data.get("blocks_obj", {}).items():
+        blocktype = block_data["blocktype"]
+
+        block = BLOCK_TYPES.get(blocktype, BLOCK_TYPES["notsupported"]).from_web(block_data)
+
+        updated_data["blocks_obj"][block_id] = block.to_db()
+
+    # Bit of a hack for now: starting materials and equipment should be editable by anyone,
+    # so we adjust the query above to be more permissive when the user is requesting such an item
+    # but before returning we need to check that the actual item did indeed have that type
+    item = flask_mongo.db.items.find_one(
+        {"item_id": item_id, **get_default_permissions(user_only=False)}
+    )
+
+    if not item:
+        return (
+            jsonify(
+                status="error",
+                message=f"Unable to find item with appropriate permissions and {item_id=}.",
+            ),
+            404,
+        )
+
+    user_only = item["type"] not in ("starting_materials", "equipment")
+
+    item = flask_mongo.db.items.find_one(
+        {"item_id": item_id, **get_default_permissions(user_only=user_only)}
+    )
+
+    if not item:
+        return (
+            jsonify(
+                status="error",
+                message=f"Unable to find item with appropriate permissions and {item_id=}.",
+            ),
+            404,
+        )
+
+    # Store refcode for version saving after successful update
+    refcode = item.get("refcode")
+    if not refcode:
+        return (
+            jsonify(
+                status="error",
+                message=f"Item {item_id} does not have a refcode.",
+            ),
+            400,
+        )
+
+    # Increment version number on the item itself
+    updated_data["version"] = item.get("version", 0) + 1
+
+    if updated_data.get("collections", []):
+        try:
+            updated_data["collections"] = _check_collections(updated_data)
+        except ValueError as exc:
+            return (
+                dict(
+                    status="error",
+                    message=f"Cannot update {item_id!r} with missing collections {updated_data['collections']!r}: {exc}",
+                    item_id=item_id,
+                ),
+                401,
+            )
+
+    existing_item = flask_mongo.db.items.find_one({"item_id": item_id})
+    if existing_item:
+        existing_relationships = existing_item.get("relationships", [])
+        non_collection_relationships = [
+            rel for rel in existing_relationships if rel.get("type") != "collections"
+        ]
+
+        collection_relationships = []
+        for coll in updated_data.get("collections", []):
+            immutable_id = coll.get("immutable_id")
+            collection_id = coll.get("collection_id")
+
+            if immutable_id:
+                if isinstance(immutable_id, str):
+                    from bson import ObjectId
+
+                    immutable_id = ObjectId(immutable_id)
+            elif collection_id:
+                collection_doc = flask_mongo.db.collections.find_one(
+                    {"collection_id": collection_id}
+                )
+                if collection_doc:
+                    immutable_id = collection_doc["_id"]
+
+            if immutable_id:
+                collection_relationships.append(
+                    {
+                        "relation": None,
+                        "immutable_id": immutable_id,
+                        "type": "collections",
+                        "description": "Is a member of",
+                    }
+                )
+
+        updated_data["relationships"] = non_collection_relationships + collection_relationships
+
+    item_type = item["type"]
+    item.update(updated_data)
+
+    try:
+        model_instance = ITEM_MODELS[item_type](**item)
+        item = model_instance.model_dump(
+            exclude_none=True,
+            exclude_unset=True,
+            by_alias=True,
+            exclude={"collections", "creators", "immutable_id"},
+        )
+    except ValidationError as exc:
+        return (
+            jsonify(
+                status="error",
+                message=f"Unable to update item {item_id=} ({item_type=}) with new data {updated_data}",
+                output=str(exc),
+            ),
+            400,
+        )
+
+    # remove collections and creators and any other reference fields
+    item.pop("collections", None)
+    item.pop("creators", None)
+    item.pop("immutable_id", None)
+    item.pop("files", None)
+
+    result = flask_mongo.db.items.update_one(
+        {"item_id": item_id},
+        {"$set": item},
+    )
+
+    if result.matched_count != 1:
+        return (
+            jsonify(
+                status="error",
+                message=f"{item_id} item update failed. no subdocument matched",
+                output=result.raw_result,
+            ),
+            400,
+        )
+
+    # Now save a version AFTER successful item update
+    # If this fails, we log but don't fail the request since item was already saved
+    try:
+        save_version_resp_dict, save_version_status = save_version_snapshot(
+            refcode, action=VersionAction.MANUAL_SAVE
+        )
+        if save_version_status != 200:
+            LOGGER.error(
+                "Failed to save version for item %s after successful update: %s",
+                item_id,
+                save_version_resp_dict,
+            )
+    except Exception as e:
+        LOGGER.error(
+            "Exception while saving version for item %s after successful update: %s",
+            item_id,
+            str(e),
+        )
+
+    return jsonify(status="success", last_modified=updated_data["last_modified"]), 200
+
+
+@ITEMS.route("/search-users/", methods=["GET"])
+def search_users():
+    """Perform free text search on users and return the top results.
+    GET parameters:
+        query: String with the search terms.
+        nresults: Maximum number of  (default 100)
+
+    Returns:
+        response list of dictionaries containing the matching items in order of
+        descending match score.
+    """
+
+    query = request.args.get("query", type=str)
+    nresults = request.args.get("nresults", default=100, type=int)
+    types = request.args.get("types", default=None)
+
+    match_obj = {"$text": {"$search": query}}
+    if types is not None:
+        match_obj["type"] = {"$in": types}
+
+    cursor = flask_mongo.db.users.aggregate(
+        [
+            {"$match": match_obj},
+            {"$sort": {"score": {"$meta": "textScore"}}},
+            {"$limit": nresults},
+            {
+                "$project": {
+                    "_id": 1,
+                    "identities": 1,
+                    "display_name": 1,
+                    "contact_email": 1,
+                }
+            },
+        ]
+    )
+    return jsonify(
+        {
+            "status": "success",
+            "users": list(json.loads(Person(**d).model_dump_json()) for d in cursor),
+        }
+    ), 200
+
+
+# --- VERSION CONTROL ENDPOINTS ---
 
 # --- VERSION CONTROL ENDPOINTS ---
 
@@ -1227,7 +1480,11 @@ def compare_versions(refcode):
         )
     except ValidationError as exc:
         return jsonify(
-            {"status": "error", "message": "Invalid query parameters", "errors": exc.errors()}
+            {
+                "status": "error",
+                "message": "Invalid query parameters",
+                "errors": json.loads(exc.json()),
+            }
         ), 400
 
     try:
@@ -1285,7 +1542,7 @@ def restore_version(refcode):
         restore_request = RestoreVersionRequest(**request.get_json())
     except ValidationError as exc:
         return jsonify(
-            {"status": "error", "message": "Invalid request body", "errors": exc.errors()}
+            {"status": "error", "message": "Invalid request body", "errors": json.loads(exc.json())}
         ), 400
 
     try:
@@ -1390,7 +1647,7 @@ def restore_version(refcode):
 
     # Insert validated data
     flask_mongo.db.item_versions.insert_one(
-        validated_restored_version.dict(by_alias=True, exclude_none=True)
+        validated_restored_version.model_dump(by_alias=True, exclude_none=True)
     )
 
     return jsonify(
@@ -1442,223 +1699,3 @@ def save_version(refcode):
 
 
 # --- END VERSION CONTROL ENDPOINTS ---
-
-
-@ITEMS.route("/save-item/", methods=["POST"])
-def save_item():
-    """Update an existing item with new data provided in the request body."""
-
-    request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
-
-    if "item_id" not in request_json:
-        raise BadRequest(
-            "`/save-item/` endpoint requires 'item_id' to be passed in JSON request body"
-        )
-
-    if "data" not in request_json:
-        raise BadRequest("`/save-item/` endpoint requires 'data' to be passed in JSON request body")
-
-    item_id = str(request_json["item_id"])
-    updated_data = request_json["data"]
-
-    # These keys should not be updated here and cannot be modified by the user through this endpoint
-    for k in (
-        "_id",
-        "file_ObjectIds",
-        "files",
-        "creators",
-        "creator_ids",
-        "groups",
-        "group_ids",
-        "item_id",
-        "relationships",
-    ):
-        if k in updated_data:
-            del updated_data[k]
-
-    updated_data["last_modified"] = datetime.datetime.now(tz=datetime.timezone.utc).isoformat()
-
-    for block_id, block_data in updated_data.get("blocks_obj", {}).items():
-        blocktype = block_data["blocktype"]
-
-        block = BLOCK_TYPES.get(blocktype, BLOCK_TYPES["notsupported"]).from_web(block_data)
-
-        updated_data["blocks_obj"][block_id] = block.to_db()
-
-    # Bit of a hack for now: starting materials and equipment should be editable by anyone,
-    # so we adjust the query above to be more permissive when the user is requesting such an item
-    # but before returning we need to check that the actual item did indeed have that type
-    item = flask_mongo.db.items.find_one(
-        {"item_id": item_id, **get_default_permissions(user_only=False)}
-    )
-
-    if not item:
-        return (
-            jsonify(
-                status="error",
-                message=f"Unable to find item with appropriate permissions and {item_id=}.",
-            ),
-            404,
-        )
-
-    # Store refcode for version saving after successful update
-    refcode = item.get("refcode")
-    if not refcode:
-        return (
-            jsonify(
-                status="error",
-                message=f"Item {item_id} does not have a refcode.",
-            ),
-            400,
-        )
-
-    # Increment version number on the item itself
-    updated_data["version"] = item.get("version", 0) + 1
-
-    user_only = item["type"] not in ("starting_materials", "equipment")
-
-    item = flask_mongo.db.items.find_one(
-        {"item_id": item_id, **get_default_permissions(user_only=user_only)}
-    )
-
-    if not item:
-        return (
-            jsonify(
-                status="error",
-                message=f"Unable to find item with appropriate permissions and {item_id=}.",
-            ),
-            404,
-        )
-
-    if updated_data.get("collections", []):
-        try:
-            updated_data["collections"] = _check_collections(updated_data)
-        except ValueError as exc:
-            return (
-                dict(
-                    status="error",
-                    message=f"Cannot update {item_id!r} with missing collections {updated_data['collections']!r}: {exc}",
-                    item_id=item_id,
-                ),
-                401,
-            )
-
-    item_type = item["type"]
-    item.update(updated_data)
-
-    try:
-        item = ITEM_MODELS[item_type](**item).dict()
-    except ValidationError as exc:
-        return (
-            jsonify(
-                status="error",
-                message=f"Unable to update item {item_id=} ({item_type=}) with new data {updated_data}",
-                output=str(exc),
-            ),
-            400,
-        )
-
-    # remove collections and creators and any other reference fields
-    item.pop("collections")
-    item.pop("creators")
-
-    # Update the item FIRST (transaction safety: item update before version save)
-    result = flask_mongo.db.items.update_one(
-        {"item_id": item_id, **get_default_permissions(user_only=True)},
-        {"$set": item},
-    )
-
-    if result.matched_count != 1:
-        return (
-            jsonify(
-                status="error",
-                message=f"{item_id} item update failed. no subdocument matched",
-                output=result.raw_result,
-            ),
-            400,
-        )
-
-    # Now save a version AFTER successful item update
-    # If this fails, we log but don't fail the request since item was already saved
-    try:
-        save_version_resp_dict, save_version_status = save_version_snapshot(
-            refcode, action=VersionAction.MANUAL_SAVE
-        )
-        if save_version_status != 200:
-            LOGGER.error(
-                "Failed to save version for item %s after successful update: %s",
-                item_id,
-                save_version_resp_dict,
-            )
-    except Exception as e:
-        LOGGER.error(
-            "Exception while saving version for item %s after successful update: %s",
-            item_id,
-            str(e),
-        )
-
-    return jsonify(status="success", last_modified=updated_data["last_modified"]), 200
-
-
-@ITEMS.route("/items/<refcode>/access-token-info", methods=["GET"])
-def get_access_token_info(refcode: str):
-    """Get information about existing access token for this item (if any).
-
-    Returns token info (with masked token) if user has permissions to this item.
-    """
-    access_token = request.args.get("at")
-    if access_token and check_access_token(refcode, access_token):
-        pass
-    elif not (current_user.is_authenticated):
-        return jsonify({"status": "error", "message": "Authentication required."}), 401
-
-    if len(refcode.split(":")) != 2:
-        refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
-
-    current_item = flask_mongo.db.items.find_one(
-        {"refcode": refcode, **get_default_permissions(user_only=True)},
-        {"refcode": 1},
-    )
-
-    if not current_item:
-        return jsonify(
-            {
-                "status": "error",
-                "message": f"No valid item found with the given {refcode=}.",
-            }
-        ), 404
-
-    existing_token = flask_mongo.db.api_keys.find_one(
-        {"refcode": refcode, "active": True, "type": "access_token"},
-        {"token": 1, "created_at": 1, "user": 1},
-    )
-
-    if existing_token:
-        token_hash = existing_token["token"]
-        masked_token = token_hash[:8] + "..." + token_hash[-8:]
-
-        user_info = None
-        if existing_token.get("user"):
-            user_doc = flask_mongo.db.users.find_one(
-                {"_id": existing_token["user"]}, {"display_name": 1, "contact_email": 1}
-            )
-            if user_doc:
-                user_info = {
-                    "display_name": user_doc.get("display_name"),
-                    "contact_email": user_doc.get("contact_email"),
-                }
-
-        return jsonify(
-            {
-                "status": "success",
-                "has_token": True,
-                "token_info": {
-                    "token": masked_token,
-                    "created_at": existing_token["created_at"],
-                    "created_by": str(existing_token["user"]),
-                    "created_by_info": user_info,
-                },
-            }
-        ), 200
-    else:
-        return jsonify({"status": "success", "has_token": False}), 200

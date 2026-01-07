@@ -355,7 +355,7 @@ def find_create_or_modify_user(
             RuntimeError: If the update was unsuccessful.
 
         """
-        update = {"$push": {"identities": identity.dict()}}
+        update = {"$push": {"identities": identity.model_dump()}}
         if use_display_name and identity and identity.display_name:
             update["$set"] = {"display_name": identity.display_name}
 
@@ -410,8 +410,9 @@ def find_create_or_modify_user(
                 identity, use_display_name=True, account_status=account_status
             )
             LOGGER.debug("Inserting new user model %s into database", user)
-            insert_pydantic_model_fork_safe(user, "users")
-            user_model = get_by_id(str(user.immutable_id))
+            inserted_id = insert_pydantic_model_fork_safe(user, "users")
+            user.immutable_id = inserted_id  # Update the user object with the inserted ID
+            user_model = get_by_id(str(inserted_id))
             if user is None:
                 raise RuntimeError("Failed to insert user into database")
 
@@ -757,7 +758,7 @@ def redirect_to_ui(blueprint, token):  # pylint: disable=unused-argument
 def get_authenticated_user_info():
     """Returns metadata associated with the currently authenticated user."""
     if current_user.is_authenticated:
-        current_user_response = json.loads(current_user.person.json())
+        current_user_response = json.loads(current_user.person.model_dump_json())
         current_user_response["role"] = current_user.role.value
         return jsonify(current_user_response), 200
     else:

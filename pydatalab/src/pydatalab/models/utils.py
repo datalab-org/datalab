@@ -4,18 +4,19 @@ import string
 from collections.abc import Callable
 from enum import Enum
 from functools import partial
-from typing import TypeAlias
+from typing import Annotated, Any, TypeAlias
 
 import pint
-from bson.objectid import ObjectId
+from bson import ObjectId
 from pydantic import (
     BaseModel,
-    ConstrainedStr,
+    ConfigDict,
     Field,
-    parse_obj_as,
-    root_validator,
-    validator,
+    StringConstraints,
+    field_validator,
+    model_validator,
 )
+from pydantic_core import core_schema
 
 
 class ItemType(str, Enum):
@@ -92,43 +93,30 @@ leading or trailing punctuation.
 """
 
 
-class HumanReadableIdentifier(ConstrainedStr):
-    """Used to constrain human-readable and URL-safe identifiers for items."""
-
-    min_length = 1
-    max_length = 40
-    strip_whitespace = True
-    to_lower = False
-    strict = False
-    regex = IDENTIFIER_REGEX
-
-    def __init__(self, value):
-        self.value = parse_obj_as(type(self), value)
-
-    def __str__(self):
-        return self.value
-
-    def __repr__(self):
-        return self.value
-
-    def __bool__(self):
-        return bool(self.value)
+HumanReadableIdentifier = Annotated[
+    str,
+    StringConstraints(
+        min_length=1,
+        max_length=40,
+        strip_whitespace=True,
+        to_lower=False,
+        strict=False,
+        pattern=IDENTIFIER_REGEX,
+    ),
+]
+"""Used to constrain human-readable and URL-safe identifiers for items."""
 
 
-class Refcode(HumanReadableIdentifier):
-    regex = r"^[a-z]{2,10}:" + IDENTIFIER_REGEX[1:]
-    """A regex to match refcodes that have a lower-case prefix between 2-10 chars, followed by a colon,
-    and then the normal rules for an ID (url-safe etc.).
-
-    """
-
-    @property
-    def prefix(self):
-        return self.value.split(":")[0]
-
-    @property
-    def identifier(self):
-        return self.value.split(":")[1]
+Refcode = Annotated[
+    str,
+    StringConstraints(
+        min_length=1,
+        max_length=40,
+        strip_whitespace=True,
+        pattern=r"^[a-z]{2,10}:" + IDENTIFIER_REGEX[1:],
+    ),
+]
+"""A regex to match refcodes that have a lower-case prefix between 2-10 chars, followed by a colon, and then the normal rules for an ID (url-safe etc.)."""
 
 
 class UserRole(str, Enum):
@@ -149,8 +137,12 @@ class PintType(str):
         self._dimensions = dimensions
 
     @classmethod
-    def __get_validators__(self):
-        yield self.validate
+    def __get_pydantic_core_schema__(cls, source_type: Any, handler: Any) -> core_schema.CoreSchema:
+        return core_schema.no_info_after_validator_function(
+            cls.validate,
+            core_schema.str_schema(),
+            serialization=core_schema.plain_serializer_function_ser_schema(str, when_used="json"),
+        )
 
     @classmethod
     def validate(self, v):
@@ -159,77 +151,120 @@ class PintType(str):
             raise ValueError("Value {v} must have dimensions of mass, not {v.dimensions}")
         return q
 
-    @classmethod
-    def __modify_schema__(cls, field_schema):
-        field_schema.update(type="string")
-
 
 Mass: TypeAlias = PintType("[mass]")  # type: ignore # noqa
 Volume: TypeAlias = PintType("[volume]")  # type: ignore # noqa
 
 
 class PyObjectId(ObjectId):
-    """A wrapper class for a BSON ObjectId that can be used as a Pydantic field type.
-
-    Modified from "Getting started iwth MongoDB and FastAPI":
-    https://www.mongodb.com/developer/languages/python/python-quickstart-fastapi/.
-
-    """
+    @classmethod
+    def __get_pydantic_core_schema__(cls, source_type: Any, handler: Any) -> core_schema.CoreSchema:
+        return core_schema.no_info_after_validator_function(
+            cls.validate,
+            core_schema.union_schema(
+                [
+                    core_schema.str_schema(),
+                    core_schema.is_instance_schema(ObjectId),
+                    core_schema.is_instance_schema(cls),
+                    core_schema.dict_schema(),
+                    core_schema.none_schema(),
+                ]
+            ),
+            serialization=core_schema.plain_serializer_function_ser_schema(
+                lambda x: str(x) if x else None, when_used="json"
+            ),
+        )
 
     @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
+    def __get_pydantic_json_schema__(cls, core_schema, handler):
+        return {
+            "type": "string",
+            "format": "objectid",
+        }
 
     @classmethod
     def validate(cls, v):
-        if isinstance(v, dict) and "$oid" in v:
-            v = v["$oid"]
+        if v is None:
+            return None
+        if isinstance(v, cls):
+            return v
+        if isinstance(v, ObjectId):
+            return cls(v)
 
-        if not ObjectId.is_valid(v):
-            raise ValueError("Invalid ObjectId")
+        if isinstance(v, dict):
+            if "$oid" in v:
+                return cls(ObjectId(v["$oid"]))
+            elif "_id" in v and isinstance(v["_id"], (str, ObjectId)):
+                return cls(ObjectId(v["_id"]))
+            elif len(v) == 1:
+                first_val = next(iter(v.values()))
+                if isinstance(first_val, str) and ObjectId.is_valid(first_val):
+                    return cls(ObjectId(first_val))
+            raise ValueError(f"Cannot convert dict to ObjectId: {v}")
 
-        return ObjectId(v)
+        if isinstance(v, str):
+            if not ObjectId.is_valid(v):
+                raise ValueError("Invalid ObjectId string")
+            return cls(ObjectId(v))
 
-    @classmethod
-    def __modify_schema__(cls, field_schema):
-        field_schema.update(type="string")
+        raise ValueError(f"Cannot convert {type(v)} to ObjectId: {v}")
 
 
 class IsoformatDateTime(datetime.datetime):
     """A datetime container that is more flexible than the pydantic default."""
 
     @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
+    def __get_pydantic_core_schema__(cls, source_type: Any, handler: Any) -> core_schema.CoreSchema:
+        return core_schema.no_info_after_validator_function(
+            cls.validate,
+            core_schema.union_schema(
+                [
+                    core_schema.str_schema(),
+                    core_schema.is_instance_schema(datetime.datetime),
+                ]
+            ),
+            serialization=core_schema.plain_serializer_function_ser_schema(
+                lambda x: x.isoformat() if x else None, when_used="json"
+            ),
+        )
+
+    @classmethod
+    def __get_pydantic_json_schema__(cls, core_schema, handler):
+        return {
+            "type": "string",
+            "format": "datetime",
+        }
 
     @classmethod
     def validate(cls, v) -> datetime.datetime | None:
         """Cast isoformat strings to datetimes and enforce UTC if tzinfo is missing."""
+        if v is None:
+            return None
+
+        if isinstance(v, datetime.datetime):
+            if v.tzinfo is None:
+                v = v.replace(tzinfo=datetime.timezone.utc)
+            return v
+
         if isinstance(v, str):
-            if v in ["0", " "]:
+            if v in ["0", " ", ""]:
                 return None
             v = datetime.datetime.fromisoformat(v)
+            if v.tzinfo is None:
+                v = v.replace(tzinfo=datetime.timezone.utc)
+            return v
 
-        if v.tzinfo is None:
-            v = v.replace(tzinfo=datetime.timezone.utc)
-
-        return v
-
-
-JSON_ENCODERS = {
-    pint.Quantity: str,
-    ObjectId: str,
-}
+        raise ValueError(f"Invalid datetime value: {v}")
 
 
 class RefCodeFactory:
     refcode_generator: Callable
 
     @classmethod
-    def generate(self):
+    def generate(cls):
         from pydatalab.config import CONFIG
 
-        return f"{CONFIG.IDENTIFIER_PREFIX}:{self.refcode_generator()}"
+        return f"{CONFIG.IDENTIFIER_PREFIX}:{cls.refcode_generator()}"
 
 
 def random_uppercase(length: int = 6):
@@ -257,7 +292,7 @@ def generate_unique_refcode():
 
 class InlineSubstance(BaseModel):
     name: str
-    chemform: str | None
+    chemform: str | None = None
 
 
 class EntryReference(BaseModel):
@@ -269,14 +304,18 @@ class EntryReference(BaseModel):
     """
 
     type: str
-    name: str | None
-    immutable_id: PyObjectId | None
-    item_id: HumanReadableIdentifier | None
-    refcode: Refcode | None
+    name: str | None = None
+    immutable_id: PyObjectId | None = None
+    item_id: HumanReadableIdentifier | None = None
+    refcode: Refcode | None = None
 
-    @root_validator
+    @model_validator(mode="before")
+    @classmethod
     def check_id_fields(cls, values):
         """Check that at least one of the possible identifier fields is provided."""
+        if not isinstance(values, dict):
+            return values
+
         id_fields = ("immutable_id", "item_id", "refcode")
 
         if all(values.get(f) is None for f in id_fields):
@@ -284,33 +323,37 @@ class EntryReference(BaseModel):
 
         return values
 
-    class Config:
-        extra = "allow"
+    model_config = ConfigDict(extra="allow")
 
 
 class Constituent(BaseModel):
     """A constituent of a sample."""
 
-    item: EntryReference | InlineSubstance
-    """A reference to item (sample or starting material) entry for the constituent substance."""
+    item: EntryReference | InlineSubstance = Field(
+        description="A reference to item (sample or starting material) entry for the constituent substance."
+    )
 
-    quantity: float | None = Field(..., ge=0)
-    """The amount of the constituent material used to create the sample."""
+    quantity: float | None = Field(
+        default=None,
+        ge=0,
+        description="The amount of the constituent material used to create the sample.",
+    )
 
-    unit: str = Field("g")
-    """The unit symbol for the value provided in `quantity`, default is mass
-    in grams (g) but could also refer to volumes (mL, L, etc.) or moles (mol).
-    """
+    unit: str = Field(
+        "g",
+        description="The unit symbol for the value provided in `quantity`, default is mass in grams (g) but could also refer to volumes (mL, L, etc.) or moles (mol).",
+    )
 
-    @validator("item")
+    @field_validator("item")
+    @classmethod
     def check_itemhood(cls, v):
         """Check that the reference within the constituent is to an item type."""
-        if "type" in (v.value for v in ItemType):
-            raise ValueError(f"`type` must be one of {ItemType!r}")
-
+        if hasattr(v, "type") and v.type not in [item_type.value for item_type in ItemType]:
+            raise ValueError(f"`type` must be one of {[t.value for t in ItemType]!r}")
         return v
 
-    @validator("item", pre=True, always=True)
+    @field_validator("item", mode="before")
+    @classmethod
     def coerce_reference(cls, v):
         if isinstance(v, dict):
             refcode = v.pop("refcode", None)
@@ -326,4 +369,18 @@ class Constituent(BaseModel):
                 if not name:
                     raise ValueError("Inline substance must have a name!")
                 return InlineSubstance(name=name, chemform=chemform)
+        elif hasattr(v, "model_dump"):
+            item_id = getattr(v, "item_id", None)
+            refcode = getattr(v, "refcode", None)
+            item_type = getattr(v, "type", None)
+            name = getattr(v, "name", None)
+            chemform = getattr(v, "chemform", None)
+
+            if item_id or refcode:
+                return EntryReference(
+                    item_id=item_id, refcode=refcode, type=item_type, name=name, chemform=chemform
+                )
+            else:
+                return InlineSubstance(name=name or str(v), chemform=chemform)
+
         return v

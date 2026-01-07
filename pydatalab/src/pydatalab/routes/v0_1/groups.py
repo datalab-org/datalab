@@ -46,5 +46,5 @@ def search_groups():
         ]
     )
     return jsonify(
-        {"status": "success", "data": list(json.loads(Group(**d).json()) for d in cursor)}
+        {"status": "success", "data": list(json.loads(Group(**d).model_dump_json()) for d in cursor)}
     ), 200
