@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from bson import ObjectId
 
-from pydatalab.models.tasks import Task, TaskStatus, TaskType
+from pydatalab.models.tasks import ExportTaskSpec, Task, TaskStatus, TaskType
 
 
 @pytest.fixture
@@ -49,13 +49,11 @@ def test_start_collection_export_success(client, sample_collection, mock_schedul
 
     assert mock_scheduler.add_job.called
 
-    # Verify the task was created in the database
     task = database.tasks.find_one({"task_id": data["task_id"]})
     assert task is not None
-    assert task["collection_id"] == collection_id
+    assert task["spec"]["collection_id"] == collection_id
     assert task["status"] == TaskStatus.PENDING
 
-    # Clean up
     database.tasks.delete_one({"task_id": data["task_id"]})
 
 
@@ -73,9 +71,12 @@ def test_get_export_status_pending(client, user_id, database):
     task = Task(
         type=TaskType.EXPORT,
         task_id=task_id,
-        collection_id="test_collection",
         creator_id=user_id,
         status=TaskStatus.PENDING,
+        spec=ExportTaskSpec(
+            collection_id="test_collection",
+            export_type="collection",
+        ),
     )
     database.tasks.insert_one(task.dict())
 
@@ -97,11 +98,14 @@ def test_get_export_status_ready(client, user_id, database, tmp_path):
     task = Task(
         type=TaskType.EXPORT,
         task_id=task_id,
-        collection_id="test_collection",
         creator_id=user_id,
         status=TaskStatus.READY,
-        file_path=str(file_path),
         completed_at=datetime.now(tz=timezone.utc),
+        spec=ExportTaskSpec(
+            collection_id="test_collection",
+            export_type="collection",
+            file_path=str(file_path),
+        ),
     )
     database.tasks.insert_one(task.dict())
 
@@ -123,11 +127,14 @@ def test_get_export_status_error(client, user_id, database):
     task = Task(
         type=TaskType.EXPORT,
         task_id=task_id,
-        collection_id="test_collection",
         creator_id=user_id,
         status=TaskStatus.ERROR,
         error_message=error_message,
         completed_at=datetime.now(tz=timezone.utc),
+        spec=ExportTaskSpec(
+            collection_id="test_collection",
+            export_type="collection",
+        ),
     )
     database.tasks.insert_one(task.dict())
 
@@ -160,10 +167,13 @@ def test_download_export_success(client, user_id, database, tmp_path):
     task = Task(
         type=TaskType.EXPORT,
         task_id=task_id,
-        collection_id=collection_id,
         creator_id=user_id,
         status=TaskStatus.READY,
-        file_path=str(file_path),
+        spec=ExportTaskSpec(
+            collection_id=collection_id,
+            export_type="collection",
+            file_path=str(file_path),
+        ),
     )
     database.tasks.insert_one(task.dict())
 
@@ -181,9 +191,12 @@ def test_not_users_export_download(client, user_id, another_client, database):
     task = Task(
         type=TaskType.EXPORT,
         task_id=task_id,
-        collection_id="test_collection",
         creator_id=user_id,
         status=TaskStatus.PROCESSING,
+        spec=ExportTaskSpec(
+            collection_id="test_collection",
+            export_type="collection",
+        ),
     )
     database.tasks.insert_one(task.dict())
 
@@ -198,9 +211,12 @@ def test_download_export_not_ready(client, user_id, database):
     task = Task(
         type=TaskType.EXPORT,
         task_id=task_id,
-        collection_id="test_collection",
         creator_id=user_id,
         status=TaskStatus.PROCESSING,
+        spec=ExportTaskSpec(
+            collection_id="test_collection",
+            export_type="collection",
+        ),
     )
     database.tasks.insert_one(task.dict())
 
@@ -219,10 +235,13 @@ def test_download_export_file_missing(client, user_id, database):
     task = Task(
         type=TaskType.EXPORT,
         task_id=task_id,
-        collection_id="test_collection",
         creator_id=user_id,
         status=TaskStatus.READY,
-        file_path="/nonexistent/path.eln",
+        spec=ExportTaskSpec(
+            collection_id="test_collection",
+            export_type="collection",
+            file_path="/nonexistent/path.eln",
+        ),
     )
     database.tasks.insert_one(task.dict())
 
@@ -236,19 +255,20 @@ def test_download_export_file_missing(client, user_id, database):
 
 
 def test_do_export_success(database, sample_collection, insert_default_sample, user_id):
-    """Test the _do_export function for both collections and items"""
     from pydatalab.routes.v0_1.export import _do_export
 
-    # Test collection export
     task_id = "direct-collection-export-test"
     collection_id = sample_collection["collection_id"]
 
     task = Task(
         type=TaskType.EXPORT,
         task_id=task_id,
-        collection_id=collection_id,
         creator_id=user_id,
         status=TaskStatus.PENDING,
+        spec=ExportTaskSpec(
+            collection_id=collection_id,
+            export_type="collection",
+        ),
     )
     database.tasks.insert_one(task.dict())
 
@@ -256,22 +276,23 @@ def test_do_export_success(database, sample_collection, insert_default_sample, u
 
     updated_task = database.tasks.find_one({"task_id": task_id})
     assert updated_task["status"] == TaskStatus.READY
-    assert os.path.exists(updated_task["file_path"])
+    assert os.path.exists(updated_task["spec"]["file_path"])
 
-    os.remove(updated_task["file_path"])
+    os.remove(updated_task["spec"]["file_path"])
     database.tasks.delete_one({"task_id": task_id})
 
-    # Test item export
     task_id = "direct-item-export-test"
     item_id = insert_default_sample.item_id
 
     task = Task(
         type=TaskType.EXPORT,
         task_id=task_id,
-        item_id=item_id,
         creator_id=user_id,
         status=TaskStatus.PENDING,
-        export_type="item",
+        spec=ExportTaskSpec(
+            item_id=item_id,
+            export_type="item",
+        ),
     )
     database.tasks.insert_one(task.dict())
 
@@ -279,14 +300,13 @@ def test_do_export_success(database, sample_collection, insert_default_sample, u
 
     updated_task = database.tasks.find_one({"task_id": task_id})
     assert updated_task["status"] == TaskStatus.READY
-    assert os.path.exists(updated_task["file_path"])
+    assert os.path.exists(updated_task["spec"]["file_path"])
 
-    os.remove(updated_task["file_path"])
+    os.remove(updated_task["spec"]["file_path"])
     database.tasks.delete_one({"task_id": task_id})
 
 
 def test_do_export_error_handling(database, user_id):
-    """Test that _do_export handles errors properly"""
     from pydatalab.routes.v0_1.export import _do_export
 
     task_id = "error-export-test"
@@ -294,10 +314,12 @@ def test_do_export_error_handling(database, user_id):
     task = Task(
         type=TaskType.EXPORT,
         task_id=task_id,
-        collection_id="nonexistent_collection",
         creator_id=user_id,
         status=TaskStatus.PENDING,
-        export_type="collection",
+        spec=ExportTaskSpec(
+            collection_id="nonexistent_collection",
+            export_type="collection",
+        ),
     )
     database.tasks.insert_one(task.dict())
 
@@ -312,7 +334,6 @@ def test_do_export_error_handling(database, user_id):
 
 
 def test_do_export_status_transitions(database, sample_collection, user_id):
-    """Test that _do_export updates status to PROCESSING before starting work"""
     from pydatalab.routes.v0_1.export import _do_export
 
     task_id = "processing-status-test"
@@ -321,9 +342,12 @@ def test_do_export_status_transitions(database, sample_collection, user_id):
     task = Task(
         type=TaskType.EXPORT,
         task_id=task_id,
-        collection_id=collection_id,
         creator_id=user_id,
         status=TaskStatus.PENDING,
+        spec=ExportTaskSpec(
+            collection_id=collection_id,
+            export_type="collection",
+        ),
     )
     database.tasks.insert_one(task.dict())
 
@@ -342,15 +366,16 @@ def test_do_export_status_transitions(database, sample_collection, user_id):
     final_task = database.tasks.find_one({"task_id": task_id})
     assert final_task["status"] == TaskStatus.READY
 
-    if final_task.get("file_path") and os.path.exists(final_task["file_path"]):
-        os.remove(final_task["file_path"])
+    if final_task.get("spec", {}).get("file_path") and os.path.exists(
+        final_task["spec"]["file_path"]
+    ):
+        os.remove(final_task["spec"]["file_path"])
     database.tasks.delete_one({"task_id": task_id})
 
 
 def test_start_item_export_with_related_items(
     client, insert_default_sample, mock_scheduler, database, user_id
 ):
-    """Test starting an item export with related items"""
     item_id = insert_default_sample.item_id
 
     related_item = {
@@ -372,7 +397,7 @@ def test_start_item_export_with_related_items(
 
     data = json.loads(response.data)
     task = database.tasks.find_one({"task_id": data["task_id"]})
-    assert task["export_type"] == "graph"
+    assert task["spec"]["export_type"] == "graph"
     assert mock_scheduler.add_job.called
 
     database.tasks.delete_one({"task_id": data["task_id"]})
