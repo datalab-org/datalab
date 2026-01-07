@@ -226,16 +226,14 @@ def _save_block_to_db(block: DataBlock):
         match = {
             "collection_id": block.data["collection_id"],
             f"blocks_obj.{block.block_id}": {"$exists": True},
-            **get_default_permissions(user_only=False),
         }
+        result = flask_mongo.db.collections.update_one(match, update)
     else:
         match = {
             "item_id": block.data["item_id"],
             f"blocks_obj.{block.block_id}": {"$exists": True},
-            **get_default_permissions(user_only=False),
         }
-
-    result = flask_mongo.db.items.update_one(match, update)
+        result = flask_mongo.db.items.update_one(match, update)
 
     if result.matched_count != 1:
         raise BadRequest(
