@@ -9,7 +9,7 @@
       v-model:filters="filters"
       v-model:selection="itemsSelected"
       v-model:select-all="allSelected"
-      :value="data"
+      :value="displayedData"
       :data-testid="computedDataTestId"
       selection-mode="checkbox"
       paginator
@@ -39,24 +39,24 @@
       <template #header>
         <DynamicDataTableButtons
           :data-type="dataType"
-          :items-selected="itemsSelected"
-          :filters="filters"
-          :editable-inventory="editable_inventory"
-          :show-buttons="showButtons"
           :available-columns="availableColumns"
           :selected-columns="selectedColumns"
+          :filters="filters"
+          :items-selected="itemsSelected"
           :collection-id="collectionId"
-          @update:filters="updateFilters"
-          @update:selected-columns="onToggleColumns"
+          :is-loading-api-search="isLoadingApiSearch"
+          @update:use-api-search="handleUseApiSearchChange"
+          @api-search="performApiSearch"
+          @update:selected-columns="selectedColumns = $event"
+          @update:filters="filters = $event"
           @open-create-item-modal="createItemModalIsOpen = true"
           @open-batch-create-item-modal="batchCreateItemModalIsOpen = true"
           @open-qr-scanner-modal="qrScannerModalIsOpen = true"
           @open-create-collection-modal="createCollectionModalIsOpen = true"
           @open-create-equipment-modal="createEquipmentModalIsOpen = true"
           @open-add-to-collection-modal="addToCollectionModalIsOpen = true"
-          @delete-selected-items="deleteSelectedItems"
-          @remove-selected-items-from-collection="removeSelectedItemsFromCollection"
-          @reset-table="handleResetTable"
+          @reset-table="resetTable"
+          @delete-selected-items="itemsSelected = []"
         />
       </template>
       <template #loading>
@@ -374,6 +374,8 @@ import InputText from "primevue/inputtext";
 import DatePicker from "primevue/datepicker";
 import Select from "primevue/select";
 
+import { searchItems, searchCollections } from "@/server_fetch_utils.js";
+
 export default {
   components: {
     DynamicDataTableButtons,
@@ -448,6 +450,9 @@ export default {
       isSampleFetchError: false,
       itemsSelected: [],
       allSelected: false,
+      useApiSearch: false,
+      apiSearchResults: null,
+      isLoadingApiSearch: false,
       filters: {
         global: { value: null },
         item_id: {
@@ -594,6 +599,12 @@ export default {
     },
     availableColumns() {
       return this.columns.map((col) => ({ ...col }));
+    },
+    displayedData() {
+      if (this.useApiSearch && this.apiSearchResults !== null) {
+        return this.apiSearchResults;
+      }
+      return this.data;
     },
   },
   created() {
@@ -785,6 +796,46 @@ export default {
     });
   },
   methods: {
+    handleUseApiSearchChange(value) {
+      this.useApiSearch = value;
+      if (!value) {
+        this.apiSearchResults = null;
+        this.filters.global.value = null;
+      }
+    },
+    async performApiSearch(query) {
+      if (!query || query.trim() === "") {
+        this.apiSearchResults = null;
+        this.isLoadingApiSearch = false;
+        return;
+      }
+
+      this.isLoadingApiSearch = true;
+
+      try {
+        const typesMap = {
+          samples: ["samples", "cells"],
+          startingMaterials: ["starting_materials"],
+          equipment: ["equipment"],
+          collections: null,
+        };
+
+        const types = typesMap[this.dataType];
+
+        if (this.dataType === "collections") {
+          const results = await searchCollections(query, 100);
+          this.apiSearchResults = results;
+        } else {
+          const results = await searchItems(query, 100, types ? types.join(",") : null);
+          this.apiSearchResults = results;
+        }
+      } catch (error) {
+        console.error("API search error:", error);
+        this.apiSearchResults = [];
+      } finally {
+        this.isLoadingApiSearch = false;
+      }
+    },
     getColumnMinWidth(column) {
       const COLUMN_BASE_PADDING = 2.5;
       const CHAR_WIDTH_ESTIMATE = 0.75;
