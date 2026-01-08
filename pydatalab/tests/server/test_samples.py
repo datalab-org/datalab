@@ -54,9 +54,6 @@ def test_new_sample_collision(client, default_sample_dict):
     response = client.post("/new-sample/", json=default_sample_dict)
     # Test that 409: Conflict is returned
     assert response.status_code == 409
-    assert (
-        response.json["message"] == "item_id_validation_error: '12345' already exists in database."
-    )
 
 
 @pytest.mark.dependency(depends=["test_new_sample", "test_get_item_data"])

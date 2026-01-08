@@ -91,10 +91,6 @@ def test_new_starting_material_collision(client, default_starting_material_dict)
     response = client.post("/new-sample/", json=default_starting_material_dict)
     # Test that 409: Conflict is returned
     assert response.status_code == 409
-    assert (
-        response.json["message"]
-        == "item_id_validation_error: 'test_sm' already exists in database."
-    )
 
 
 @pytest.mark.dependency(depends=["test_new_starting_material"])

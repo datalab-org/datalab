@@ -12,7 +12,7 @@ from flask_login import current_user
 from pydantic import ValidationError
 from pymongo.command_cursor import CommandCursor
 from pymongo.errors import DuplicateKeyError
-from werkzeug.exceptions import BadRequest, NotFound
+from werkzeug.exceptions import BadRequest, Conflict, NotFound
 
 from pydatalab.apps import BLOCK_TYPES
 from pydatalab.config import CONFIG
@@ -42,6 +42,9 @@ from pydatalab.versioning import (
 )
 
 ITEMS = Blueprint("items", __name__)
+
+# item types that should be accessed by anyone with an account
+ACCESSIBLE_TYPES = ("equipment", "starting_materials")
 
 
 @ITEMS.before_request
@@ -444,6 +447,76 @@ def search_items():
     return jsonify({"status": "success", "items": list(cursor)}), 200
 
 
+def _copy_sample_from_id(sample_dict: dict, copy_from_item_id: str) -> dict:
+    copied_doc = flask_mongo.db.items.find_one({"item_id": copy_from_item_id})
+
+    LOGGER.debug("Copying from pre-existing item %s with data:\n%s", copy_from_item_id, copied_doc)
+    if not copied_doc:
+        raise NotFound(
+            f"Request to copy item with id {copy_from_item_id} failed because item could not be found."
+        )
+
+    # the provided item_id, name, and date take precedence over the copied parameters, if provided
+    try:
+        copied_doc["item_id"] = sample_dict["item_id"]
+    except KeyError:
+        raise BadRequest(
+            f"Request to copy item with id {copy_from_item_id} to new item failed because the target new item_id was not provided."
+        )
+
+    copied_doc["name"] = sample_dict.get("name")
+    copied_doc["date"] = sample_dict.get("date")
+
+    copied_doc.pop("blocks_obj", None)
+    copied_doc.pop("display_order", None)
+    copied_doc.pop("blocks", None)
+    copied_doc.pop("file_ObjectIds", None)
+
+    # any provided constituents will be added to the synthesis information table in
+    # addition to the constituents copied from the copy_from_item_id, avoiding duplicates
+    if copied_doc["type"] == "samples":
+        existing_consituent_ids = [
+            constituent["item"].get("item_id", None)
+            for constituent in copied_doc["synthesis_constituents"]
+        ]
+        copied_doc["synthesis_constituents"] += [
+            constituent
+            for constituent in sample_dict.get("synthesis_constituents", [])
+            if constituent["item"].get("item_id") is None
+            or constituent["item"].get("item_id") not in existing_consituent_ids
+        ]
+
+        original_collections = sample_dict.get("collections", [])
+        sample_dict = copied_doc
+
+        if original_collections:
+            sample_dict["collections"] = original_collections
+
+    elif copied_doc["type"] == "cells":
+        for component in (
+            "positive_electrode",
+            "negative_electrode",
+            "electrolyte",
+        ):
+            existing_consituent_ids = [
+                constituent["item"].get("item_id", None) for constituent in copied_doc[component]
+            ]
+            copied_doc[component] += [
+                constituent
+                for constituent in sample_dict.get(component, [])
+                if constituent["item"].get("item_id", None) is None
+                or constituent["item"].get("item_id") not in existing_consituent_ids
+            ]
+
+        original_collections = sample_dict.get("collections", [])
+        sample_dict = copied_doc
+
+        if original_collections:
+            sample_dict["collections"] = original_collections
+
+    return sample_dict
+
+
 def _create_sample(
     sample_dict: dict,
     copy_from_item_id: str | None = None,
@@ -457,74 +530,7 @@ def _create_sample(
         )
 
     if copy_from_item_id:
-        copied_doc = flask_mongo.db.items.find_one({"item_id": copy_from_item_id})
-
-        LOGGER.debug(
-            "Copying from pre-existing item %s with data:\n%s", copy_from_item_id, copied_doc
-        )
-        if not copied_doc:
-            raise NotFound(
-                f"Request to copy item with id {copy_from_item_id} failed because item could not be found."
-            )
-
-        # the provided item_id, name, and date take precedence over the copied parameters, if provided
-        try:
-            copied_doc["item_id"] = sample_dict["item_id"]
-        except KeyError:
-            raise BadRequest(
-                f"Request to copy item with id {copy_from_item_id} to new item failed because the target new item_id was not provided."
-            )
-
-        copied_doc["name"] = sample_dict.get("name")
-        copied_doc["date"] = sample_dict.get("date")
-
-        copied_doc.pop("blocks_obj", None)
-        copied_doc.pop("display_order", None)
-        copied_doc.pop("blocks", None)
-        copied_doc.pop("file_ObjectIds", None)
-
-        # any provided constituents will be added to the synthesis information table in
-        # addition to the constituents copied from the copy_from_item_id, avoiding duplicates
-        if copied_doc["type"] == "samples":
-            existing_consituent_ids = [
-                constituent["item"].get("item_id", None)
-                for constituent in copied_doc["synthesis_constituents"]
-            ]
-            copied_doc["synthesis_constituents"] += [
-                constituent
-                for constituent in sample_dict.get("synthesis_constituents", [])
-                if constituent["item"].get("item_id") is None
-                or constituent["item"].get("item_id") not in existing_consituent_ids
-            ]
-
-            original_collections = sample_dict.get("collections", [])
-            sample_dict = copied_doc
-
-            if original_collections:
-                sample_dict["collections"] = original_collections
-
-        elif copied_doc["type"] == "cells":
-            for component in (
-                "positive_electrode",
-                "negative_electrode",
-                "electrolyte",
-            ):
-                existing_consituent_ids = [
-                    constituent["item"].get("item_id", None)
-                    for constituent in copied_doc[component]
-                ]
-                copied_doc[component] += [
-                    constituent
-                    for constituent in sample_dict.get(component, [])
-                    if constituent["item"].get("item_id", None) is None
-                    or constituent["item"].get("item_id") not in existing_consituent_ids
-                ]
-
-            original_collections = sample_dict.get("collections", [])
-            sample_dict = copied_doc
-
-            if original_collections:
-                sample_dict["collections"] = original_collections
+        sample_dict = _copy_sample_from_id(sample_dict, copy_from_item_id)
 
     try:
         # If passed collection data, dereference it and check if the collection exists
@@ -534,7 +540,8 @@ def _create_sample(
             f"Unable to create new item {sample_dict['item_id']!r} inside non-existent collection(s) {exc}"
         ) from exc
 
-    sample_dict.pop("refcode", None)
+    sample_dict.pop("refcode", None)  # Refcodes cannot be set manually
+    # Check type
     type_ = sample_dict["type"]
     if type_ not in ITEM_MODELS:
         raise BadRequest(f"Invalid type {type_!r}, must be one of {ITEM_MODELS.keys()}")
@@ -543,11 +550,12 @@ def _create_sample(
 
     new_sample = sample_dict.copy()
 
-    if type_ in ("starting_materials", "equipment"):
+    if type_ in ACCESSIBLE_TYPES:
         # starting_materials and equipment are open to all in the deploment at this point,
         # so no creators are assigned
         new_sample["creator_ids"] = []
         new_sample["creators"] = []
+
     elif CONFIG.TESTING and not current_user.is_authenticated:
         # Set fake ID to ObjectId("000000000000000000000000") so a dummy user can be created
         # locally for testing creator UI elements
@@ -581,31 +589,20 @@ def _create_sample(
     if generate_id_automatically:
         new_sample["item_id"] = new_sample["refcode"].split(":")[1]
 
-    # check to make sure that item_id isn't taken already
+    # Check to make sure that item_id isn't taken already
     if flask_mongo.db.items.find_one({"item_id": str(sample_dict["item_id"])}):
-        LOGGER.debug("item_id %s already exists in database", sample_dict["item_id"])
-        return (
-            dict(
-                status="error",
-                message=f"item_id_validation_error: {sample_dict['item_id']!r} already exists in database.",
-                item_id=new_sample["item_id"],
-            ),
-            409,  # 409: Conflict
-        )
+        raise Conflict(f"Chosen {sample_dict['item_id']=} already exists in database.")
 
+    # Set creation timestamp to now if not provided
     new_sample["date"] = new_sample.get("date", datetime.datetime.now(tz=datetime.timezone.utc))
+
+    # Try to deserialize the item data into the appropriate model
     try:
         data_model: Item = model(**new_sample)
 
     except ValidationError as error:
-        return (
-            dict(
-                status="error",
-                message=f"Unable to create new item with ID {new_sample['item_id']}: {str(error)}.",
-                item_id=new_sample["item_id"],
-                output=str(error),
-            ),
-            400,
+        raise BadRequest(
+            f"Unable to create new item with ID {new_sample['item_id']}: {new_sample} / {error}"
         )
 
     # Do not store the fields `collections` or `creators` in the database as these should be populated
@@ -617,26 +614,10 @@ def _create_sample(
             data_model.dict(exclude={"creators", "collections", "groups"})
         )
     except DuplicateKeyError as error:
-        LOGGER.debug("item_id %s already exists in database", sample_dict["item_id"], sample_dict)
-        return (
-            dict(
-                status="error",
-                message=f"Duplicate key error: {str(error)}.",
-                item_id=new_sample["item_id"],
-            ),
-            409,
-        )
+        raise Conflict(f"Duplicate key error: {str(error)}.")
 
     if not result.acknowledged:
-        return (
-            dict(
-                status="error",
-                message=f"Failed to add new item {new_sample['item_id']!r} to database.",
-                item_id=new_sample["item_id"],
-                output=result.raw_result,
-            ),
-            400,
-        )
+        raise BadRequest(f"Failed to add new item {new_sample['item_id']!r} to database.")
 
     # Save initial version snapshot after successful item creation
     try:
@@ -649,47 +630,44 @@ def _create_sample(
             str(e),
         )
 
-    sample_list_entry = {
-        "refcode": data_model.refcode,
-        "item_id": data_model.item_id,
-        "nblocks": 0,
-        "nfiles": 0,
-        "date": data_model.date,
-        "name": data_model.name,
-        "creator_ids": data_model.creator_ids,
-        # TODO: This workaround for creators & collections is still gross, need to figure this out properly
-        "creators": [json.loads(c.json(exclude_unset=True)) for c in data_model.creators]
-        if data_model.creators
-        else [],
-        "collections": [
-            json.loads(c.json(exclude_unset=True, exclude_none=True))
-            for c in data_model.collections
-        ],
-        "group_ids": data_model.group_ids,
-        "groups": [
-            json.loads(c.json(exclude_unset=True, exclude_none=True)) for c in data_model.groups
-        ]
-        if data_model.groups
-        else [],
-        "type": data_model.type,
-        "status": data_model.status,
-    }
+    # sample_list_entry = {
+    #     "refcode": data_model.refcode,
+    #     "item_id": data_model.item_id,
+    #     "nblocks": 0,
+    #     "nfiles": 0,
+    #     "date": data_model.date,
+    #     "name": data_model.name,
+    #     "creator_ids": data_model.creator_ids,
+    #     # TODO: This workaround for creators & collections is still gross, need to figure this out properly
+    #     "creators": [json.loads(c.json(exclude_unset=True)) for c in data_model.creators]
+    #     if data_model.creators
+    #     else [],
+    #     "collections": [
+    #         json.loads(c.json(exclude_unset=True, exclude_none=True))
+    #         for c in data_model.collections
+    #     ],
+    #     "group_ids": data_model.group_ids,
+    #     "groups": [
+    #         json.loads(c.json(exclude_unset=True, exclude_none=True)) for c in data_model.groups
+    #     ]
+    #     if data_model.groups
+    #     else [],
+    #     "type": data_model.type,
+    #     "status": data_model.status,
+    # }
 
     # hack to let us use _create_sample() for equipment too. We probably want to make
     # a more general create_item() to more elegantly handle different returns.
-    if data_model.type == "equipment":
-        sample_list_entry["location"] = data_model.location
+    # if data_model.type == "equipment":
+    #     sample_list_entry["location"] = data_model.location
 
-    data = (
-        {
-            "status": "success",
-            "item_id": data_model.item_id,
-            "sample_list_entry": sample_list_entry,
-        },
-        201,  # 201: Created
-    )
+    data = {
+        "status": "success",
+        "item_id": data_model.item_id,
+        "sample_list_entry": data_model.dict(),
+    }
 
-    return data
+    return (data, 201)  # 201 Created
 
 
 @ITEMS.route("/new-sample/", methods=["POST", "PUT"])
