@@ -345,10 +345,12 @@ export function getAdminGroupsList() {
     .then(function (response_json) {
       return response_json.data;
     })
-    .catch((error) => {
-      console.error("Error when fetching admin groups list");
-      console.error(error);
-      throw error;
+    .catch((err) => {
+      DialogService.error({
+        title: "Unable to list groups",
+        message: `Failed to list groups: ${err}`,
+      });
+      return err;
     });
 }
 
@@ -358,10 +360,12 @@ export function createGroup(groupData) {
     .then(function (response_json) {
       return response_json;
     })
-    .catch((error) => {
-      console.error("Error when creating group");
-      console.error(error);
-      throw error;
+    .catch((err) => {
+      DialogService.error({
+        title: "Unable to create group",
+        message: `Failed to create group: ${err}`,
+      });
+      return err;
     });
 }
 export function deleteGroup(groupId) {
@@ -370,23 +374,27 @@ export function deleteGroup(groupId) {
     .then(function (response_json) {
       return response_json;
     })
-    .catch((error) => {
-      console.error("Error when deleting group");
-      console.error(error);
-      throw error;
+    .catch((err) => {
+      DialogService.error({
+        title: "Unable to delete group",
+        message: `Failed to delete group: ${err}`,
+      });
+      return err;
     });
 }
 
 export function updateGroup(groupId, groupData) {
-  console.log("updateGroup");
+  console.log("updateGroup", groupData);
   return fetch_patch(`${API_URL}/groups/${groupId}`, groupData)
     .then(function (response_json) {
       return response_json;
     })
-    .catch((error) => {
-      console.error("Error when updating group");
-      console.error(error);
-      throw error;
+    .catch((err) => {
+      DialogService.error({
+        title: "Unable to update group",
+        message: `Failed to update group: ${err}`,
+      });
+      return err;
     });
 }
 
@@ -400,10 +408,12 @@ export function addUserToGroup(groupId, userId) {
       console.log("Response:", response_json); // Debug
       return response_json;
     })
-    .catch((error) => {
-      console.error("Error when adding user to group");
-      console.error(error);
-      throw error;
+    .catch((err) => {
+      DialogService.error({
+        title: "Error adding user to group",
+        message: `Failed to add user to group: ${err}`,
+      });
+      return err;
     });
 }
 
@@ -412,10 +422,12 @@ export function removeUserFromGroup(groupId, userId) {
     .then(function (response_json) {
       return response_json;
     })
-    .catch((error) => {
-      console.error("Error when removing user from group");
-      console.error(error);
-      throw error;
+    .catch((err) => {
+      DialogService.error({
+        title: "Error reomving user from group",
+        message: `Failed to remove user from group: ${err}`,
+      });
+      return err;
     });
 }
 
