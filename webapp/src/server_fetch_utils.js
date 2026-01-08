@@ -191,11 +191,11 @@ export function createNewItem(
   };
 
   if (groupsData && groupsData.length > 0) {
-    newSampleData.share_with_groups = groupsData;
+    newSampleData.groups = groupsData;
   }
 
   if (creatorsData && creatorsData.length > 0) {
-    newSampleData.additional_creators = creatorsData;
+    newSampleData.creators = creatorsData;
   }
   return fetch_post(`${API_URL}/new-sample/`, {
     copy_from_item_id: copyFrom,
