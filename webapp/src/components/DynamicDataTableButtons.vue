@@ -97,9 +97,24 @@
             v-model="localFilters.global.value"
             data-testid="search-input"
             class="search-input"
-            placeholder="Search"
+            :placeholder="localUseApiSearch ? 'Search via API...' : 'Search'"
+            :disabled="isLoadingApiSearch"
           />
         </IconField>
+
+        <div class="d-flex align-items-center ml-2">
+          <small class="text-muted mr-1">UI</small>
+          <div class="custom-control custom-switch">
+            <input
+              id="api-search-switch"
+              v-model="localUseApiSearch"
+              type="checkbox"
+              class="custom-control-input"
+            />
+            <label class="custom-control-label" for="api-search-switch"></label>
+          </div>
+          <small class="text-muted ml-1">API</small>
+        </div>
 
         <button
           data-testid="reset-table-button"
@@ -223,6 +238,11 @@ export default {
       required: false,
       default: null,
     },
+    isLoadingApiSearch: {
+      type: Boolean,
+      required: false,
+      default: false,
+    },
   },
   emits: [
     "open-create-item-modal",
@@ -236,6 +256,8 @@ export default {
     "update:selected-columns",
     "reset-table",
     "remove-selected-items-from-collection",
+    "update:use-api-search",
+    "api-search",
   ],
   data() {
     return {
@@ -243,6 +265,8 @@ export default {
       isSelectedDropdownVisible: false,
       isDeletingItems: false,
       itemCount: 0,
+      localUseApiSearch: false,
+      searchDebounceTimer: null,
     };
   },
   watch: {
@@ -251,9 +275,27 @@ export default {
         this.isSelectedDropdownVisible = false;
       }
     },
-    "localFilters.global.value"(newValue) {
-      this.$emit("update:filters", { ...this.filters, global: { value: newValue } });
+    localUseApiSearch(newValue) {
+      this.$emit("update:use-api-search", newValue);
+      if (!newValue) {
+        this.localFilters.global.value = "";
+      }
     },
+    "localFilters.global.value"(newValue) {
+      if (this.localUseApiSearch) {
+        clearTimeout(this.searchDebounceTimer);
+        this.searchDebounceTimer = setTimeout(() => {
+          this.$emit("api-search", newValue);
+        }, 1000);
+      } else {
+        this.$emit("update:filters", { ...this.filters, global: { value: newValue } });
+      }
+    },
+  },
+  beforeUnmount() {
+    if (this.searchDebounceTimer) {
+      clearTimeout(this.searchDebounceTimer);
+    }
   },
   methods: {
     async confirmDeletion() {
