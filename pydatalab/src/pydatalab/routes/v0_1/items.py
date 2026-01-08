@@ -541,7 +541,7 @@ def _create_sample(
 
     model = ITEM_MODELS[type_]
 
-    new_sample = sample_dict
+    new_sample = sample_dict.copy()
 
     if type_ in ("starting_materials", "equipment"):
         # starting_materials and equipment are open to all in the deploment at this point,
@@ -565,6 +565,16 @@ def _create_sample(
                 "contact_email": current_user.person.contact_email,
             }
         ]
+
+    # Check for initialised sharing options, e.g., groups and other creators
+    if sample_dict.get("creators"):
+        for c in sample_dict["creators"]:
+            new_sample["creator_ids"].append(ObjectId(c["immutable_id"]))
+
+    if sample_dict.get("groups"):
+        new_sample["group_ids"] = []
+        for g in sample_dict["groups"]:
+            new_sample["group_ids"].append(ObjectId(g["immutable_id"]))
 
     # Generate a unique refcode for the sample
     new_sample["refcode"] = generate_unique_refcode()
