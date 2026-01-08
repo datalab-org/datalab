@@ -77,7 +77,7 @@ export default {
       this.debounceTimeout = setTimeout(async () => {
         await searchGroups(query, 100)
           .then((groups) => {
-            // check if the searched collections are already listed in the value
+            // check if the searched groups are already listed in the value
             // if so, remove it from the list of options
             if (this.value) {
               const valueIds = this.value.map((item) => item.group_id);
@@ -85,9 +85,7 @@ export default {
             }
             this.groups = groups;
           })
-          .catch((error) => {
-            console.error("Fetch error");
-            console.error(error);
+          .catch(() => {
             this.isSearchFetchError = true;
           });
         loading(false);
