@@ -8,7 +8,7 @@
       aria-expanded="false"
       @click="isDropdownVisible = !isDropdownVisible"
     >
-      <i class="fa fa-download"></i> Export
+      <font-awesome-icon icon="file-export" fixed-width /> Export
     </a>
     <div v-show="isDropdownVisible" class="dropdown-menu" style="display: block">
       <a class="dropdown-item" @click="handleSimpleExport">
