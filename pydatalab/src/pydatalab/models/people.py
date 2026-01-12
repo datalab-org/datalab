@@ -136,6 +136,18 @@ class Group(Entry):
 
         return v
 
+    @validator("managers", pre=True, always=True)
+    def cast_managers_to_people(cls, v):
+        """Casts managers to list of people if not None."""
+        if v and isinstance(v[0], dict):
+            return [
+                Person(**member).dict(exclude_unset=True)
+                for member in v
+                if isinstance(member, dict)
+            ]
+
+        return v
+
 
 class Person(Entry):
     """A model that describes an individual and their digital identities."""

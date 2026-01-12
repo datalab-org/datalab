@@ -351,7 +351,7 @@ def create_group():
         raise BadRequest(f"Invalid new group data: {str(e)}")
 
     bad_managers = [
-        m for m in group_json["managers"] if not flask_mongo.db.users.find_one({"_id": m})
+        m for m in group_json["managers"] if not flask_mongo.db.users.find_one({"_id": ObjectId(m)})
     ]
     if bad_managers:
         raise BadRequest(
