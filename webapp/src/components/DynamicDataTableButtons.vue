@@ -149,6 +149,14 @@
             Remove from collection
           </a>
           <a
+            v-if="dataType !== 'collections' && dataType !== 'collectionItems'"
+            data-testid="batch-share-button"
+            class="dropdown-item"
+            @click="handleBatchShare"
+          >
+            Batch share
+          </a>
+          <a
             v-if="dataType !== 'collectionItems'"
             data-testid="delete-selected-button"
             class="dropdown-item"
@@ -231,6 +239,7 @@ export default {
     "open-create-collection-modal",
     "open-create-equipment-modal",
     "open-add-to-collection-modal",
+    "open-batch-share-modal",
     "delete-selected-items",
     "update:filters",
     "update:selected-columns",
@@ -339,6 +348,10 @@ export default {
       if (confirmed) {
         this.$emit("reset-table");
       }
+    },
+    handleBatchShare() {
+      this.$emit("open-batch-share-modal");
+      this.isSelectedDropdownVisible = false;
     },
   },
 };

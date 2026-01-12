@@ -1371,3 +1371,19 @@ export async function compareItemVersions(refcode, baseVersion, targetVersion) {
       throw error;
     });
 }
+
+export async function fetchItemPermissions(refcode) {
+  let url = `${API_URL}/items/${refcode}`;
+
+  return fetch_get(url)
+    .then((response_json) => {
+      return {
+        creators: response_json.item_data.creators || [],
+        groups: response_json.item_data.groups || [],
+      };
+    })
+    .catch((error) => {
+      console.error(`Error fetching permissions for ${refcode}:`, error);
+      throw error;
+    });
+}

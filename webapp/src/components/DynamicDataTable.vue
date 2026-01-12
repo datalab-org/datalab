@@ -54,6 +54,7 @@
           @open-create-collection-modal="createCollectionModalIsOpen = true"
           @open-create-equipment-modal="createEquipmentModalIsOpen = true"
           @open-add-to-collection-modal="addToCollectionModalIsOpen = true"
+          @open-batch-share-modal="batchShareModalIsOpen = true"
           @delete-selected-items="deleteSelectedItems"
           @remove-selected-items-from-collection="removeSelectedItemsFromCollection"
           @reset-table="handleResetTable"
@@ -339,6 +340,11 @@
     :items-selected="itemsSelected"
     @items-updated="handleItemsUpdated"
   />
+  <BatchShareModal
+    v-model="batchShareModalIsOpen"
+    :items-selected="itemsSelected"
+    @items-updated="handleItemsUpdated"
+  />
 </template>
 
 <script>
@@ -349,6 +355,7 @@ import QRScannerModal from "@/components/QRScannerModal";
 import CreateCollectionModal from "@/components/CreateCollectionModal";
 import CreateEquipmentModal from "@/components/CreateEquipmentModal";
 import AddToCollectionModal from "@/components/AddToCollectionModal";
+import BatchShareModal from "@/components/BatchShareModal";
 
 import { INVENTORY_TABLE_TYPES, EDITABLE_INVENTORY } from "@/resources.js";
 
@@ -387,6 +394,7 @@ export default {
     CreateCollectionModal,
     CreateEquipmentModal,
     AddToCollectionModal,
+    BatchShareModal,
     DataTable,
     MultiSelect,
     Column,
@@ -445,6 +453,7 @@ export default {
       createCollectionModalIsOpen: false,
       createEquipmentModalIsOpen: false,
       addToCollectionModalIsOpen: false,
+      batchShareModalIsOpen: false,
       isSampleFetchError: false,
       itemsSelected: [],
       allSelected: false,
