@@ -3,48 +3,50 @@
     <Modal :model-value="modelValue" @update:model-value="handleClose">
       <template #header> Share Items</template>
       <template #body>
-        <div class="form-row">
-          <div class="form-group col-md-12">
-            <label for="items-selected" class="col-form-label">Items Selected:</label>
-            <div id="items-selected" class="dynamic-input">
-              <FormattedItemName
-                v-for="(item, index) in itemsSelected"
-                :key="index"
-                :item_id="item.item_id"
-                :item-type="item.type"
-                enable-click
-              />
+        <div v-if="modelValue">
+          <div class="form-row">
+            <div class="form-group col-md-12">
+              <label for="items-selected" class="col-form-label">Items Selected:</label>
+              <div id="items-selected" class="dynamic-input">
+                <FormattedItemName
+                  v-for="(item, index) in itemsSelected"
+                  :key="index"
+                  :item_id="item.item_id"
+                  :item-type="item.type"
+                  enable-click
+                />
+              </div>
             </div>
           </div>
-        </div>
 
-        <div class="alert alert-info">
-          <small>
-            <font-awesome-icon icon="info-circle" class="mr-1" />
-            Select people and/or groups to add to these items. Existing permissions will be
-            preserved.
-          </small>
-        </div>
-
-        <div class="form-row">
-          <div class="col-md-6 form-group">
-            <label id="creatorsLabel">Add creators <br />(read/write access):</label>
-            <UserSelect v-model="newCreators" aria-labelledby="creatorsLabel" multiple />
+          <div class="alert alert-info">
+            <small>
+              <font-awesome-icon icon="info-circle" class="mr-1" />
+              Select people and/or groups to add to these items. Existing permissions will be
+              preserved.
+            </small>
           </div>
-          <div class="col-md-6 form-group">
-            <label id="groupsLabel"
-              >Add groups <br />
-              (read-only access):</label
-            >
-            <GroupSelect v-model="newGroups" aria-labelledby="groupsLabel" multiple />
-          </div>
-        </div>
 
-        <div v-if="newCreators.length === 0 && newGroups.length === 0" class="alert alert-warning">
-          <small>
-            <font-awesome-icon icon="exclamation-triangle" class="mr-1" />
-            Please select at least one person or group to add.
-          </small>
+          <div class="form-row">
+            <div class="col-md-6 form-group">
+              <label id="creatorsLabel">Add creators (read/write access):</label>
+              <UserSelect v-model="newCreators" aria-labelledby="creatorsLabel" multiple />
+            </div>
+            <div class="col-md-6 form-group">
+              <label id="groupsLabel">Add groups (read-only access):</label>
+              <GroupSelect v-model="newGroups" aria-labelledby="groupsLabel" multiple />
+            </div>
+          </div>
+
+          <div
+            v-if="newCreators.length === 0 && newGroups.length === 0"
+            class="alert alert-warning"
+          >
+            <small>
+              <font-awesome-icon icon="exclamation-triangle" class="mr-1" />
+              Please select at least one person or group to add.
+            </small>
+          </div>
         </div>
       </template>
     </Modal>
