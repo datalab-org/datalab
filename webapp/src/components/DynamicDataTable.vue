@@ -348,6 +348,7 @@ import UserBubble from "@/components/UserBubble.vue";
 import FormattedItemStatus from "@/components/FormattedItemStatus.vue";
 import FormattedBarcode from "@/components/FormattedBarcode.vue";
 import FormattedRefcode from "@/components/FormattedRefcode.vue";
+import GroupsIconCounter from "@/components/GroupsIconCounter";
 
 import { FilterMatchMode, FilterOperator, FilterService } from "@primevue/core/api";
 import DataTable from "primevue/datatable";
@@ -381,6 +382,7 @@ export default {
     CollectionList,
     Creators,
     UserBubble,
+    GroupsIconCounter,
     DatePicker,
     Select,
   },
@@ -810,6 +812,7 @@ export default {
         },
         Creators: {
           creators: "creators",
+          groups: "groups",
           showNames: data.creators?.length === 1,
         },
         FormattedItemStatus: {
@@ -846,6 +849,11 @@ export default {
           props[prop] = true;
         }
       });
+
+      if (componentName === "Creators") {
+        props.creators = data.creators || [];
+        props.groups = data.groups || [];
+      }
 
       return props;
     },

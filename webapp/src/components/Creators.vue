@@ -6,7 +6,13 @@
       </span>
       <span v-if="showNames && creator.display_name" class="display-name">
         {{ creator.display_name }}
-        <span v-if="creator !== creators[creators.length - 1]">,</span>
+        <span v-if="creator !== creators[creators.length - 1] || groups.length > 0">,</span>
+      </span>
+    </span>
+    <span v-if="groups.length > 0">
+      <GroupsIconCounter v-if="showBubble" :groups="groups" :size="size" />
+      <span v-if="showNames" class="display-name">
+        {{ groupsDisplayText }}
       </span>
     </span>
   </div>
@@ -14,10 +20,12 @@
 
 <script>
 import UserBubble from "@/components/UserBubble.vue";
+import GroupsIconCounter from "@/components/GroupsIconCounter.vue";
 
 export default {
   components: {
     UserBubble,
+    GroupsIconCounter,
   },
   props: {
     creators: {
@@ -39,9 +47,20 @@ export default {
       default: 24,
       required: false,
     },
+    groups: {
+      type: Array,
+      default: () => [],
+    },
   },
   data() {
     return {};
+  },
+  computed: {
+    groupsDisplayText() {
+      if (this.groups.length === 0) return "";
+      if (this.groups.length === 1) return this.groups[0].display_name;
+      return `${this.groups.length} groups`;
+    },
   },
 };
 </script>
