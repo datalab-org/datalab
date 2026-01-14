@@ -1,4 +1,5 @@
 import os
+import numpy as np
 import tempfile
 import warnings
 import zipfile
@@ -8,21 +9,21 @@ from typing import Any
 import bokeh.embed
 import pandas as pd
 
-from pydatalab.apps.nmr.utils import read_bruker_1d, read_jcamp_dx_1d
+from pydatalab.apps.nmr.utils import read_bruker_1d, read_jcamp_dx_1d, read_jeol_jdf_1d
 from pydatalab.blocks.base import DataBlock
 from pydatalab.bokeh_plots import DATALAB_BOKEH_THEME, selectable_axes_plot
 from pydatalab.file_utils import get_file_info_by_id
 
 BRUKER_FILE_EXTENSIONS = (".zip",)
 JCAMP_FILE_EXTENSIONS = (".jdx", ".dx")
-
+JEOL_FILE_EXTENSIONS = (".jdf",)
 
 class NMRBlock(DataBlock):
     blocktype = "nmr"
     name = "NMR"
     description = "A data block for loading and visualizing 1D NMR data from Bruker projects or JCAMP-DX files."
 
-    accepted_file_extensions = BRUKER_FILE_EXTENSIONS + JCAMP_FILE_EXTENSIONS
+    accepted_file_extensions = BRUKER_FILE_EXTENSIONS + JCAMP_FILE_EXTENSIONS + JEOL_FILE_EXTENSIONS
     processed_data: dict | None = None
     defaults = {"process number": 1}
     _supports_collections = False
@@ -206,6 +207,87 @@ class NMRBlock(DataBlock):
 
         return serialized_df, metadata
 
+    def read_jeol_nmr_data(
+            self, filename: str | Path | None = None, file_info: dict | None = None
+            ):
+        """Loads a JEOL output file (.jdx)
+        and parses it into a serialized dataframe and metadata dictionary.
+        Based on the existing jcamp and Bruker readers
+    
+        Parameters:
+            filename: Optional local file to use instead of the database lookup.
+            file_info: Optional file information dictionary to use for the database lookup.
+
+        Returns:
+            A tuple of the dataframe (serialized as dictionary) and the metadata
+                dictionary, or None if no compatible data is available.
+
+        """
+        location, name, ext = self._extract_file_info(filename, file_info)
+
+        if ext not in JEOL_FILE_EXTENSIONS:
+            raise RuntimeError(
+                f"Unsupported file extension for JEOL reader: {ext} (must be one of {JEOL_FILE_EXTENSIONS})"
+            )
+
+        df, a_dic, title, shape, a_udic, nscans = read_jeol_jdf_1d(location)
+      
+        file_id = a_dic['header'].get("file_identifier", [])
+
+        if file_id not in ("JEOL.NMR",):
+            warnings.warn(
+                f"Unexpected file identifier: {file_id[0]}. Expected 'JEOL.NMR'. Will attempt to plot regardless."
+            )
+
+        metadata: dict[str, Any] = {}
+        metadata["processed_data_shape"] = shape
+        metadata["title"] = title
+
+        # Scrape the dictionaries that nmrglue makes for the relevant metadata
+        keys_to_scrape = {
+                "carrier_frequency_Hz":"car",
+                "nucleus":"x_domain",
+                "carrier_offset_ppm":"x_offset",
+                "relaxation_delay":"relaxation_delay",
+                "pulse_program_name":"experiment",
+                "spectral_window_Hz":"x_sweep"
+                }
+        for key, jeol_key in keys_to_scrape.items():
+            try:
+                if jeol_key in a_udic[0]:
+                    metadata[key] = a_udic[0][jeol_key]
+                elif jeol_key in a_dic['header']:
+                    metadata[key] = a_dic['header'][jeol_key]
+                elif jeol_key in a_dic['parameters']:
+                    metadata[key] = a_dic['parameters'][jeol_key]
+                else:
+                    warnings.warn(
+                        f"Could not find {key} in JEOL file"
+                        )
+            except Exception as e:
+                warnings.warn(
+                        f"Unable to parse {key} from {jeol_key} in JEOL file - {e}"
+                        )
+
+        if "carrier_frequency_Hz" in metadata and "carrier_frequency_MHz" not in metadata:
+            # JEOL gives carrier frequency in Hz. Convert to MHz for display
+            metadata["carrier_frequency_MHz"] = float(metadata["carrier_frequency_Hz"]) * 1e-6
+        if metadata["nucleus"] == 'Proton':
+            # JEOL labels proton NMR as proton, convert to 1H
+            metadata["nucleus"] = '1H'
+
+        if "nucleus" in metadata:
+            metadata["nucleus"] = metadata["nucleus"].replace("^", "")
+
+        try:
+            metadata["nscans"] = nscans
+        except Exception:  
+            pass
+
+        serialized_df = df.to_dict() if (df is not None) else None
+        self.data["metadata"] = metadata
+        return serialized_df, metadata
+
     def load_nmr_data(self, file_info: dict):
         location, name, ext = self._extract_file_info(file_info=file_info)
 
@@ -215,6 +297,8 @@ class NMRBlock(DataBlock):
         elif ext in (".jdx", ".dx"):
             df, metadata = self.read_jcamp_nmr_data(file_info=file_info)
 
+        elif ext in JEOL_FILE_EXTENSIONS:
+            df, metadata = self.read_jeol_nmr_data(file_info=file_info)
         else:
             raise RuntimeError(
                 f"Unsupported file extension for NMR reader: {ext} (must be one of {self.accepted_file_extensions})"
@@ -252,7 +336,7 @@ class NMRBlock(DataBlock):
 
         df = pd.DataFrame(self.processed_data)
         df["normalized intensity"] = df.intensity / df.intensity.max()
-
+        
         self.data["bokeh_plot_data"] = self.make_nmr_plot(df, self.data["metadata"])
 
     @classmethod
