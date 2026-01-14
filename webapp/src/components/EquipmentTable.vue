@@ -20,7 +20,7 @@ export default {
         { field: "status", header: "Status", body: "FormattedItemStatus", filter: true },
         { field: "name", header: "Name" },
         { field: "date", header: "Date" },
-        { field: "location", header: "Location" },
+        { field: "location", header: "Location", body: "CollapsibleLocation" },
         { field: "creators", header: "Maintainers", body: "Creators" },
       ],
     };

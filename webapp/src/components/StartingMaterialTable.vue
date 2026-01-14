@@ -43,7 +43,13 @@ export default {
         { field: "name", header: "Name", label: "Name" },
         { field: "chemform", header: "Formula", body: "ChemicalFormula", label: "Formula" },
         { field: "date", header: "Date", label: "Date" },
-        { field: "location", header: "Location", label: "Location", filter: true },
+        {
+          field: "location",
+          header: "Location",
+          label: "Location",
+          filter: true,
+          body: "CollapsibleLocation",
+        },
         {
           field: "blocks",
           header: "",

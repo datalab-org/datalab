@@ -348,6 +348,7 @@ import UserBubble from "@/components/UserBubble.vue";
 import FormattedItemStatus from "@/components/FormattedItemStatus.vue";
 import FormattedBarcode from "@/components/FormattedBarcode.vue";
 import FormattedRefcode from "@/components/FormattedRefcode.vue";
+import CollapsibleLocation from "@/components/CollapsibleLocation.vue";
 
 import { FilterMatchMode, FilterOperator, FilterService } from "@primevue/core/api";
 import DataTable from "primevue/datatable";
@@ -383,6 +384,7 @@ export default {
     UserBubble,
     DatePicker,
     Select,
+    CollapsibleLocation,
   },
   props: {
     columns: {
@@ -821,6 +823,9 @@ export default {
         },
         FilesIconCounter: {
           count: "nfiles",
+        },
+        CollapsibleLocation: {
+          location: "location",
         },
       };
 

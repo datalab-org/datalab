@@ -47,7 +47,8 @@
         <div class="form-row">
           <div class="form-group col-lg-12 col-sm-12">
             <label for="startmat-location">Location</label>
-            <StyledInput id="startmat-location" v-model="Location" :readonly="!isEditable" />
+            <!--<StyledInput v-if="isEditable" id="startmat-location" v-model="Location" /> -->
+            <CollapsibleLocation :location="Location" />
           </div>
         </div>
         <div class="form-row">
@@ -116,6 +117,7 @@ import StyledInput from "@/components/StyledInput";
 import SynthesisInformation from "@/components/SynthesisInformation";
 import ItemRelationshipVisualization from "@/components/ItemRelationshipVisualization";
 import GHSHazardInformation from "@/components/GHSHazardInformation";
+import CollapsibleLocation from "@/components/CollapsibleLocation";
 
 import { EDITABLE_INVENTORY } from "@/resources.js";
 
@@ -133,6 +135,7 @@ export default {
     FormattedBarCode,
     SynthesisInformation,
     GHSHazardInformation,
+    CollapsibleLocation,
   },
   props: {
     item_id: { type: String, required: true },
