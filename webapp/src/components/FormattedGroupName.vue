@@ -65,9 +65,4 @@ export default {
   transition: border 0.25s ease;
   box-shadow: 0 0 5px 0 skyblue;
 }
-
-.group-name {
-  font-size: 14px;
-  color: #333;
-}
 </style>
