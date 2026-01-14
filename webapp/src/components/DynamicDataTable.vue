@@ -136,7 +136,9 @@
                   :group="slotProps.option"
                   :size="20"
                 />
-                <span class="ml-1">{{ slotProps.option.display_name }}</span>
+                <span v-if="slotProps.option.type === 'creator'" class="ml-1">{{
+                  slotProps.option.display_name
+                }}</span>
               </div>
             </template>
             <template #value="slotProps">
