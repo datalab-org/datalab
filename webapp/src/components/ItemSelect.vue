@@ -16,7 +16,10 @@
       <span v-if="searching"> Sorry, no matches found. </span>
       <span v-else class="empty-search"> Type a search term... </span>
     </template>
-    <template #option="{ type, item_id, name, chemform }">
+    <template #option="{ type, item_id, name, chemform, status }">
+      <span v-if="status != 'dummy'" class="item-status"
+        ><FormattedItemStatus :status="status"
+      /></span>
       <FormattedItemName
         :item_id="item_id"
         :item-type="type"
@@ -27,7 +30,8 @@
         :max-length="formattedItemNameMaxLength"
       />
     </template>
-    <template #selected-option="{ type, item_id, name }">
+    <template #selected-option="{ type, item_id, name, status }">
+      <FormattedItemStatus :status="status" />
       <FormattedItemName
         :item_id="item_id"
         :item-type="type"
@@ -43,6 +47,7 @@
 <script>
 import vSelect from "vue-select";
 import FormattedItemName from "@/components/FormattedItemName.vue";
+import FormattedItemStatus from "@/components/FormattedItemStatus.vue";
 import { searchItems } from "@/server_fetch_utils.js";
 import { debounceTime } from "@/resources.js";
 
@@ -50,6 +55,7 @@ export default {
   components: {
     vSelect,
     FormattedItemName,
+    FormattedItemStatus,
   },
   props: {
     modelValue: {
@@ -90,9 +96,6 @@ export default {
   },
   methods: {
     async debouncedAsyncSearch(query, loading) {
-      // if (query == "") {
-      //   return;
-      // }
       loading(true);
       clearTimeout(this.debounceTimeout); // reset the timer
       // start the timer
@@ -101,9 +104,7 @@ export default {
           .then((items) => {
             this.items = items;
           })
-          .catch((error) => {
-            console.error("Fetch error");
-            console.error(error);
+          .catch(() => {
             this.isSearchFetchError = true;
           });
         loading(false);
@@ -115,8 +116,14 @@ export default {
         item_id: "",
         name: newOption,
         type: "none",
+        status: "dummy",
       };
     },
   },
 };
 </script>
+<style scoped>
+.item-status {
+  margin-right: 1rem;
+}
+</style>
