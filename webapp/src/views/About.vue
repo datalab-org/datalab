@@ -116,14 +116,14 @@
         </ul>
 
         <div align="center" style="padding-top: 20px">
-          <a href="https://wwww.big-map.eu"
+          <a href="https://www.big-map.eu"
             ><img
               class="funding-logo"
               src="https://avatars.githubusercontent.com/u/75324577"
               width="100"
               target="_blank"
           /></a>
-          <a href="https://wwww.leverhulme.ac.uk"
+          <a href="https://www.leverhulme.ac.uk"
             ><img
               class="funding-logo"
               src="https://www.leverhulme.ac.uk/sites/default/files/Leverhulme_Trust_RGB_blue_0_0.png"
