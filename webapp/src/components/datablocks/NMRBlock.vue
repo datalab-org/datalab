@@ -41,7 +41,7 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
         </div>
       </div>
       <div class="row">
-        <div id="bokehPlotContainer" class="col-xl-8 col-lg-8 col-md-11">
+        <div id="bokehPlotContainer" class="col-xl-8 col-lg-8 col-md-11 mx-auto">
           <BokehPlot v-if="bokehPlotData" :bokeh-plot-data="bokehPlotData" />
         </div>
         <div v-if="detailsShown" class="col-xl-4 col-lg-4 ml-0">
@@ -72,23 +72,45 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
                 <td>{{ metadata?.nscans }}</td>
               </tr>
 
-              <tr>
+	      <tr v-if="metadata?.relaxation_delay" >
+		<th scope="row">relaxation delay</th>
+		<td>{{metadata?.relaxation_delay }} s</td>
+	      </tr>
+
+
+              <tr v-if="metadata?.recycle_delay || !metadata?.relaxation_delay">
                 <th scope="row">recycle delay</th>
                 <td>{{ metadata?.recycle_delay }} s</td>
               </tr>
               <tr>
                 <th scope="row">carrier frequency</th>
-                <td>{{ metadata?.carrier_frequency_MHz }} MHz</td>
+                <td>{{ metadata?.carrier_frequency_MHz.toPrecision(4) }} MHz</td>
               </tr>
 
-              <tr>
+	      <tr v-if="metadata?.carrier_offset_ppm">
+		<th scope="row">carrier offset</th>
+		<td>
+		{{ metadata?.carrier_offset_ppm }}
+		ppm
+		</td>
+	      </tr>
+
+              <tr v-else>
                 <th scope="row">carrier offset</th>
                 <td>
                   {{ (metadata?.carrier_offset_Hz / metadata?.carrier_frequency_MHz).toFixed(1) }}
                   ppm
                 </td>
               </tr>
-              <tr>
+              
+	      <tr v-if="metadata?.spectral_window_Hz">
+		<th scope="row">spectral window</th>
+		<td>
+		{{ metadata?.spectral_window_Hz.toFixed(1) }}
+		Hz
+		</td>
+	      </tr>
+	      <tr>
                 <th scope="row">cnst31</th>
                 <td>{{ metadata?.CNST31 }}</td>
               </tr>
