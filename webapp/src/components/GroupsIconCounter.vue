@@ -59,7 +59,7 @@ export default {
 
 .group-bubble {
   position: relative;
-  border-radius: 4px;
+  border-radius: 50%;
   border: 2px solid grey;
   background-color: #f8f9fa;
   display: flex;

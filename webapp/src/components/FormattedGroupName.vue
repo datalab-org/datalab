@@ -5,7 +5,7 @@
         <div class="group-bubble" :style="{ width: size + 'px', height: size + 'px' }">
           <font-awesome-icon icon="users" :style="{ fontSize: size * 0.5 + 'px' }" />
         </div>
-        <span class="group-name">{{ group.display_name }}</span>
+        <span v-if="showName" class="group-name">{{ group.display_name }}</span>
       </div>
     </template>
     <template #content>
@@ -34,6 +34,10 @@ export default {
     size: {
       type: Number,
       default: 24,
+    },
+    showName: {
+      type: Boolean,
+      default: true,
     },
   },
 };

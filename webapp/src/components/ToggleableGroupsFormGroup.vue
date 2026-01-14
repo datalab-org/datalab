@@ -73,10 +73,12 @@ export default {
         }
 
         try {
-          let answer = confirm(
-            "Are you sure you want to update the group permissions of this item?",
-          );
-          if (answer) {
+          const confirmed = await DialogService.confirm({
+            title: "Update Permissions",
+            message: "Are you sure you want to update the group permissions of this item?",
+            type: "warning",
+          });
+          if (confirmed) {
             await updateItemPermissions(this.refcode, null, this.shadowValue);
             this.$emit("update:modelValue", [...this.shadowValue]);
           } else {
