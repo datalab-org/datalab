@@ -47,8 +47,8 @@ export default {
 .group-chip {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  margin-right: 8px;
+  gap: 0.25em;
+  vertical-align: middle;
 }
 
 .group-bubble {

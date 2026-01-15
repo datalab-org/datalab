@@ -76,11 +76,11 @@ export default {
 
 <style scoped>
 .creators-container {
-  display: flex;
+  display: inline-flex;
   flex-wrap: wrap;
-  gap: 0.2rem;
+  gap: 0.25rem;
 }
 .display-name {
-  margin-left: 0.5em;
+  margin-left: 0.25em;
 }
 </style>
