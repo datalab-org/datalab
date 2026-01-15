@@ -55,6 +55,7 @@ export default {
 .group-bubble-wrapper {
   position: relative;
   display: inline-block;
+  vertical-align: middle;
 }
 
 .group-bubble {
