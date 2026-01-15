@@ -106,3 +106,9 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+#edit-icon {
+  color: grey;
+}
+</style>
