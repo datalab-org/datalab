@@ -717,8 +717,20 @@ def test_items_added_to_existing_collection(client, default_collection, default_
     default_sample_dict["collections"] = [
         {"collection_id": "test_collection_3"},
     ]
+
     response = client.post("/save-item/", json={"data": default_sample_dict, "item_id": new_id2})
-    assert response.status_code == 401, response.json
+    assert response.status_code == 200, response.json
+
+    response = client.get(f"/get-item-data/{new_id2}")
+    assert response.status_code == 200, response.json
+    assert "test_collection_2" in [
+        d["collection_id"] for d in response.json["item_data"]["collections"]
+    ], (
+        "Existing accessible collection should be preserved when user tries to add non-existent collection"
+    )
+    assert len(response.json["item_data"]["collections"]) == 1, (
+        "Should only have the one existing collection"
+    )
 
     # Check that sending same collection multiple times doesn't lead to duplicates
     default_sample_dict["item_id"] = new_id2

@@ -396,6 +396,32 @@ def _check_collections(sample_dict: dict) -> list[dict[str, str]]:
     return sample_dict.get("collections", []) or []
 
 
+def _scrub_collections_for_save(sample_dict: dict) -> list[dict[str, str]]:
+    """Scrub collection data to only include collections the user has access to.
+
+    This allows users to save items that are part of private collections they don't control.
+    Collections the user doesn't have access to are silently ignored.
+
+    Returns:
+        A list of dictionaries with singular key `immutable_id` for accessible collections only.
+    """
+    accessible_collections = []
+
+    if sample_dict.get("collections", []):
+        for c in sample_dict.get("collections", []):
+            query = {}
+            query.update(c)
+            if "immutable_id" in c:
+                query["_id"] = ObjectId(query.pop("immutable_id"))
+
+            result = flask_mongo.db.collections.find_one({**query, **get_default_permissions()})
+
+            if result:
+                accessible_collections.append({"immutable_id": result["_id"]})
+
+    return accessible_collections
+
+
 @ITEMS.route("/samples/", methods=["GET"])
 def get_samples():
     return jsonify({"status": "success", "samples": list(get_samples_summary())})
@@ -1524,20 +1550,56 @@ def save_item():
             404,
         )
 
-    if updated_data.get("collections", []):
-        try:
-            updated_data["collections"] = _check_collections(updated_data)
-        except ValueError as exc:
-            return (
-                dict(
-                    status="error",
-                    message=f"Cannot update {item_id!r} with missing collections {updated_data['collections']!r}: {exc}",
-                    item_id=item_id,
-                ),
-                401,
-            )
+    if "collections" in updated_data:
+        requested_collections = updated_data["collections"]
+
+        if requested_collections:
+            scrubbed_collections = _scrub_collections_for_save(updated_data)
+
+            if len(scrubbed_collections) != len(requested_collections):
+                existing_collection_relationships = [
+                    rel for rel in item.get("relationships", []) if rel.get("type") == "collections"
+                ]
+
+                scrubbed_collection_ids = {c["immutable_id"] for c in scrubbed_collections}
+
+                inaccessible_collections = [
+                    {"immutable_id": rel["immutable_id"]}
+                    for rel in existing_collection_relationships
+                    if rel["immutable_id"] not in scrubbed_collection_ids
+                    and rel["immutable_id"]
+                    not in [c.get("immutable_id") for c in requested_collections]
+                ]
+
+                updated_data["collections"] = inaccessible_collections + scrubbed_collections
+            else:
+                updated_data["collections"] = scrubbed_collections
+        else:
+            existing_collection_relationships = [
+                rel for rel in item.get("relationships", []) if rel.get("type") == "collections"
+            ]
+
+            if existing_collection_relationships:
+                existing_collections = [
+                    {"immutable_id": rel["immutable_id"]}
+                    for rel in existing_collection_relationships
+                ]
+                accessible = _scrub_collections_for_save({"collections": existing_collections})
+
+                if len(accessible) != len(existing_collections):
+                    accessible_ids = {c["immutable_id"] for c in accessible}
+                    inaccessible = [
+                        {"immutable_id": rel["immutable_id"]}
+                        for rel in existing_collection_relationships
+                        if rel["immutable_id"] not in accessible_ids
+                    ]
+                    updated_data["collections"] = inaccessible
 
     item_type = item["type"]
+
+    preserve_relationships = "collections" not in updated_data
+    original_relationships = item.get("relationships", []) if preserve_relationships else None
+
     item.update(updated_data)
 
     try:
@@ -1551,6 +1613,9 @@ def save_item():
             ),
             400,
         )
+
+    if preserve_relationships and original_relationships is not None:
+        item["relationships"] = original_relationships
 
     # remove collections and creators and any other reference fields
     item.pop("collections")
