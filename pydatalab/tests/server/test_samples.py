@@ -220,8 +220,10 @@ def test_item_old_regex_search(
     "user,query,expected_result_ids",
     [
         ("user", "query=mater&types=samples,starting_materials", ["material", "12345"]),
-        ("user", "query=mater&types=equipment", []),  # Tests avoidance of different types
-        ("admin", "query=mater", ["material", "12345", "123456"]),  # Test search obeys permissions
+        # Tests avoidance of different types
+        ("user", "query=mater&types=equipment", []),
+        # Test search obeys permissions
+        ("admin", "query=mater", ["material", "12345", "123456"]),
         (
             "admin",
             "query='magic'",
@@ -235,9 +237,11 @@ def test_item_old_regex_search(
         ("admin", "query='vanadium('&types=samples", ["sample_2"]),  # Test unclosed brackets
         ("admin", "query='vanadium oxide'&types=samples", ["sample_2"]),  # Test two words
         ("admin", "query='oxide vanadium'&types=samples", ["sample_2"]),  # Test reverse order
-        ("admin", "query='v'", ["sample_2"]),  # Test single char at start of word
+        # Test single char at start of word
+        ("admin", "query='v'", ["sample_2"]),
         ("admin", "query='van'", ["sample_2"]),  # Test prefix at start of word
-        ("admin", "query='oxid'", ["sample_2"]),  # Test prefix at start of word
+        # Test prefix at start of word
+        ("admin", "query='oxid'", ["sample_2"]),
         (
             "admin",
             "query='anadium'&types=samples",
@@ -700,8 +704,20 @@ def test_items_added_to_existing_collection(client, default_collection, default_
     default_sample_dict["collections"] = [
         {"collection_id": "test_collection_3"},
     ]
+
     response = client.post("/save-item/", json={"data": default_sample_dict, "item_id": new_id2})
-    assert response.status_code == 401, response.json
+    assert response.status_code == 200, response.json
+
+    response = client.get(f"/get-item-data/{new_id2}")
+    assert response.status_code == 200, response.json
+    assert "test_collection_2" in [
+        d["collection_id"] for d in response.json["item_data"]["collections"]
+    ], (
+        "Existing accessible collection should be preserved when user tries to add non-existent collection"
+    )
+    assert len(response.json["item_data"]["collections"]) == 1, (
+        "Should only have the one existing collection"
+    )
 
     # Check that sending same collection multiple times doesn't lead to duplicates
     default_sample_dict["item_id"] = new_id2
