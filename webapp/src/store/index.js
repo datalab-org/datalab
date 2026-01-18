@@ -2,6 +2,8 @@ import { createStore } from "vuex";
 // import { createLogger } from "vuex";
 // import { set } from 'vue'
 
+import { getCurrentUser } from "@/server_fetch_utils.js";
+
 export default createStore({
   state: {
     all_item_data: {}, // keys: item_ids, vals: objects containing all data
@@ -30,6 +32,8 @@ export default createStore({
     currentUserDisplayName: null,
     currentUserID: null,
     currentUserInfoLoading: false,
+    currentUserInfoLoaded: false,
+    currentUserInfoPromise: null,
     serverInfo: null,
     blocksInfos: {},
     currentUserIsUnverified: false,
@@ -423,7 +427,25 @@ export default createStore({
       return state.userActivityCache[cacheKey];
     },
   },
-  actions: {},
+  actions: {
+    async fetchCurrentUser({ state }, { fullInfo = false } = {}) {
+      if (!fullInfo && state.currentUserInfoLoaded && state.currentUserID !== null) {
+        return state.currentUserID !== null;
+      }
+
+      if (fullInfo && state.currentUserInfoLoaded) {
+        return state.currentUserID !== null
+          ? {
+              immutable_id: state.currentUserID,
+              display_name: state.currentUserDisplayName,
+              account_status: state.currentUserIsUnverified ? "unverified" : "active",
+            }
+          : null;
+      }
+
+      return await getCurrentUser();
+    },
+  },
   modules: {},
   // plugins: [createLogger()],
 });
