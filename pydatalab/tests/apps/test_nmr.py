@@ -5,13 +5,24 @@ from pathlib import Path
 import pytest
 
 from pydatalab.apps.nmr.blocks import NMRBlock
-from pydatalab.apps.nmr.utils import read_bruker_1d, read_jcamp_dx_1d
+from pydatalab.apps.nmr.utils import read_bruker_1d, read_jcamp_dx_1d, read_jeol_jdf_1d
 
 
 def _extract_example(filename, _dir):
-    with zipfile.ZipFile(filename, "r") as zip_ref:
-        zip_ref.extractall(_dir)
-    return Path(_dir) / filename.stem
+    if filename.suffix == ".zip":
+        with zipfile.ZipFile(filename, "r") as zip_ref:
+            zip_ref.extractall(_dir)
+        return Path(_dir) / filename.stem
+
+    elif filename.suffix == ".gz":
+        import gzip
+        import shutil
+
+        new_path = Path(_dir) / filename.stem
+        with gzip.open(filename, "rb") as f_in:
+            with open(new_path, "wb") as f_out:
+                shutil.copyfileobj(f_in, f_out)
+        return new_path
 
 
 @pytest.fixture(scope="function")
@@ -31,6 +42,16 @@ def nmr_1d_solution_path_renamed(tmpdir, nmr_1d_solution_path):
 @pytest.fixture(scope="function")
 def nmr_1d_solution_example(tmpdir, nmr_1d_solution_path):
     return _extract_example(nmr_1d_solution_path, tmpdir)
+
+
+@pytest.fixture(scope="function")
+def nmr_1d_jeol_path():
+    yield Path(__file__).parent.parent.parent / "example_data" / "NMR" / "SW20AP_proton.jdf.gz"
+
+
+@pytest.fixture(scope="function")
+def nmr_1d_jeol_example(tmpdir, nmr_1d_jeol_path):
+    return _extract_example(nmr_1d_jeol_path, tmpdir)
 
 
 @pytest.fixture(scope="function")
@@ -145,3 +166,11 @@ def test_read_jcamp_13c_1d(nmr_jcamp_13c_path):
     assert block.data["metadata"]["title"] == title
     assert block.data["metadata"]["nucleus"] == "13C"
     assert block.data["metadata"]["carrier_frequency_Hz"] == 100.695689e6
+
+
+def test_read_jeol_proton_1d(nmr_1d_jeol_example):
+    df, dic, title, shape, udic, nscans = read_jeol_jdf_1d(nmr_1d_jeol_example)
+    assert df is not None
+
+    block = NMRBlock(item_id="nmr-block")
+    block.read_jeol_nmr_data(nmr_1d_jeol_example)

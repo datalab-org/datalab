@@ -65,7 +65,7 @@ apps = [
     # General
     "scipy ~= 1.13",
     # NMR
-    "nmrglue ~= 0.10",
+    "nmrglue ~= 0.12",
     # Electrochemistry
     "navani >= 0.1.13",
     # Raman
@@ -136,6 +136,7 @@ dev = [
 
 [tool.uv.sources]
 datalab-app-plugin-insitu = { git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git", rev = "v0.3.2" }
+nmrglue = { git = "https://github.com/jjhelmus/nmrglue.git", rev = "b6408751bf18801a0a4ce084acf4d31335e2b02a" }
 
 [tool.pytest.ini_options]
 filterwarnings = [
