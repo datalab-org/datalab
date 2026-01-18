@@ -150,7 +150,7 @@
                     class="inline-flex items-center mr-2"
                   >
                     <UserBubble v-if="option.type === 'creator'" :creator="option" :size="20" />
-                    <FormattedGroupName v-if="option.type === 'group'" :group="option" :size="16" />
+                    <FormattedGroupName v-if="option.type === 'group'" :group="option" :size="20" />
                     <span v-if="option.type === 'creator'" class="ml-1">{{
                       option.display_name
                     }}</span>
