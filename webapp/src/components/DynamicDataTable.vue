@@ -134,7 +134,7 @@
                 <FormattedGroupName
                   v-if="slotProps.option.type === 'group'"
                   :group="slotProps.option"
-                  :size="20"
+                  :size="24"
                 />
                 <span v-if="slotProps.option.type === 'creator'" class="ml-1">{{
                   slotProps.option.display_name
