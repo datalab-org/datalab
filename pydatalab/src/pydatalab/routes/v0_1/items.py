@@ -146,6 +146,10 @@ def get_items_summary(match: dict | None = None, project: dict | None = None) ->
             "display_name": 1,
             "contact_email": 1,
         },
+        "groups": {
+            "display_name": 1,
+            "group_id": 1,
+        },
         "collections": {
             "collection_id": 1,
             "title": 1,
@@ -174,6 +178,7 @@ def get_items_summary(match: dict | None = None, project: dict | None = None) ->
         [
             {"$match": match},
             {"$lookup": creators_lookup()},
+            {"$lookup": groups_lookup()},
             {"$lookup": collections_lookup()},
             {"$project": _project},
             {"$sort": {"date": -1}},
@@ -202,6 +207,10 @@ def get_samples_summary(match: dict | None = None, project: dict | None = None) 
             "display_name": 1,
             "contact_email": 1,
         },
+        "groups": {
+            "display_name": 1,
+            "group_id": 1,
+        },
         "collections": {
             "collection_id": 1,
             "title": 1,
@@ -230,6 +239,7 @@ def get_samples_summary(match: dict | None = None, project: dict | None = None) 
         [
             {"$match": match},
             {"$lookup": creators_lookup()},
+            {"$lookup": groups_lookup()},
             {"$lookup": collections_lookup()},
             {"$project": _project},
             {"$sort": {"date": -1}},

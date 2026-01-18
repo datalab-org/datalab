@@ -5,7 +5,7 @@
         <div class="group-bubble" :style="{ width: size + 'px', height: size + 'px' }">
           <font-awesome-icon icon="users" :style="{ fontSize: size * 0.5 + 'px' }" />
         </div>
-        <span class="group-name">{{ group.display_name }}</span>
+        <span v-if="showName" class="group-name">{{ group.display_name }}</span>
       </div>
     </template>
     <template #content>
@@ -35,6 +35,10 @@ export default {
       type: Number,
       default: 24,
     },
+    showName: {
+      type: Boolean,
+      default: true,
+    },
   },
 };
 </script>
@@ -43,8 +47,8 @@ export default {
 .group-chip {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  margin-right: 8px;
+  gap: 0.25em;
+  vertical-align: middle;
 }
 
 .group-bubble {
