@@ -72,11 +72,10 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
                 <td>{{ metadata?.nscans }}</td>
               </tr>
 
-	      <tr v-if="metadata?.relaxation_delay" >
-		<th scope="row">relaxation delay</th>
-		<td>{{metadata?.relaxation_delay }} s</td>
-	      </tr>
-
+              <tr v-if="metadata?.relaxation_delay">
+                <th scope="row">relaxation delay</th>
+                <td>{{ metadata?.relaxation_delay }} s</td>
+              </tr>
 
               <tr v-if="metadata?.recycle_delay || !metadata?.relaxation_delay">
                 <th scope="row">recycle delay</th>
@@ -87,13 +86,13 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
                 <td>{{ metadata?.carrier_frequency_MHz.toPrecision(4) }} MHz</td>
               </tr>
 
-	      <tr v-if="metadata?.carrier_offset_ppm">
-		<th scope="row">carrier offset</th>
-		<td>
-		{{ metadata?.carrier_offset_ppm }}
-		ppm
-		</td>
-	      </tr>
+              <tr v-if="metadata?.carrier_offset_ppm">
+                <th scope="row">carrier offset</th>
+                <td>
+                  {{ metadata?.carrier_offset_ppm }}
+                  ppm
+                </td>
+              </tr>
 
               <tr v-else>
                 <th scope="row">carrier offset</th>
@@ -102,15 +101,15 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
                   ppm
                 </td>
               </tr>
-              
-	      <tr v-if="metadata?.spectral_window_Hz">
-		<th scope="row">spectral window</th>
-		<td>
-		{{ metadata?.spectral_window_Hz.toFixed(1) }}
-		Hz
-		</td>
-	      </tr>
-	      <tr>
+
+              <tr v-if="metadata?.spectral_window_Hz">
+                <th scope="row">spectral window</th>
+                <td>
+                  {{ metadata?.spectral_window_Hz.toFixed(1) }}
+                  Hz
+                </td>
+              </tr>
+              <tr>
                 <th scope="row">cnst31</th>
                 <td>{{ metadata?.CNST31 }}</td>
               </tr>
