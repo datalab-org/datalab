@@ -218,7 +218,9 @@ export default {
   },
   methods: {
     async updateBlock() {
-      await updateBlockFromServer(this.item_id, this.block_id, this.block);
+      await updateBlockFromServer(this.item_id, this.block_id, this.block).catch((error) => {
+        console.error("Error updating block:", error);
+      });
     },
     async handleBokehEvent(event) {
       // Only handle events for this specific block
@@ -233,7 +235,9 @@ export default {
         this.block_id,
         this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id],
         event.detail,
-      );
+      ).catch((error) => {
+        console.error("Error updating block:", error);
+      });
     },
     async deleteThisBlock() {
       const confirmed = await DialogService.confirm({

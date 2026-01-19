@@ -458,7 +458,11 @@ export default {
         // update each block asynchronously
         this.item_data.display_order.forEach((block_id) => {
           console.log(`calling update on block ${block_id}`);
-          updateBlockFromServer(this.item_id, block_id, this.item_data.blocks_obj[block_id]);
+          updateBlockFromServer(this.item_id, block_id, this.item_data.blocks_obj[block_id]).catch(
+            (error) => {
+              console.error(`Error updating block ${block_id}:`, error);
+            },
+          );
         });
         this.blocksLoaded = true;
         this.setLastModified();
