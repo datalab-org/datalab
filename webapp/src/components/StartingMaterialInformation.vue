@@ -26,22 +26,29 @@
           </div>
         </div>
         <div class="form-row">
-          <div class="form-group col-md-3 col-sm-4 col-6">
+          <div class="form-group col-md-3 col-sm-3 col-3">
             <label for="startmat-refcode">Refcode</label>
             <div id="startmat-refcode"><FormattedRefcode :refcode="Refcode" /></div>
           </div>
-          <div v-if="Barcode" class="form-group col-md-3 col-sm-4 col-6">
+          <div v-if="Barcode" class="form-group col-md-3 col-sm-3 col-3">
             <label for="startmat-barcode">Barcode</label>
             <div id="startmat-barcode"><FormattedBarCode :barcode="Barcode" /></div>
           </div>
-          <div class="form-group col-md-4 col-sm-4 col-6">
-            <ToggleableCollectionFormGroup v-model="Collections" />
-          </div>
-          <div class="form-group col-md-5 col-sm-4 col-12">
+
+          <div class="form-group col-md-3 col-sm-3 col-3">
             <ToggleableItemStatusFormGroup
               v-model="Status"
               :possible-item-statuses="possibleItemStatuses"
             />
+          </div>
+          <div class="form-group col-md-3 col-sm-3 col-3">
+            <ToggleableItemAvailabilityFormGroup
+              v-model="Availability"
+              :possible-item-availabilities="possibleItemAvailabilities"
+            />
+          </div>
+          <div class="form-group col-md-3 col-sm-3 col-3 pb-3">
+            <ToggleableCollectionFormGroup v-model="Collections" />
           </div>
         </div>
         <div class="form-row">
@@ -116,6 +123,7 @@ import StyledInput from "@/components/StyledInput";
 import SynthesisInformation from "@/components/SynthesisInformation";
 import ItemRelationshipVisualization from "@/components/ItemRelationshipVisualization";
 import GHSHazardInformation from "@/components/GHSHazardInformation";
+import ToggleableItemAvailabilityFormGroup from "@/components/ToggleableItemAvailabilityFormGroup";
 
 import { EDITABLE_INVENTORY } from "@/resources.js";
 
@@ -133,6 +141,7 @@ export default {
     FormattedBarCode,
     SynthesisInformation,
     GHSHazardInformation,
+    ToggleableItemAvailabilityFormGroup,
   },
   props: {
     item_id: { type: String, required: true },
@@ -171,6 +180,10 @@ export default {
       return this.schema?.attributes?.schema?.definitions?.StartingMaterialsStatus?.enum;
     },
     Barcode: createComputedSetterForItemField("barcode"),
+    Availability: createComputedSetterForItemField("availability"),
+    possibleItemAvailabilities() {
+      return this.schema?.attributes?.schema?.definitions?.ItemAvailability?.enum;
+    },
   },
   created() {
     this.isEditable = EDITABLE_INVENTORY;
