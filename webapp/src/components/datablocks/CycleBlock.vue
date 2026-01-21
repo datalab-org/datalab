@@ -1,48 +1,47 @@
 <template>
   <DataBlockBase :item_id="item_id" :block_id="block_id">
-  <template #controls>
-
-    <div class="form-row mb-2">
-      <div class="btn-group" role="group" aria-label="File selection mode">
-        <button
-          type="button"
-          class="btn btn-outline-secondary"
-          :class="{ active: mode === FILE_MODE.SINGLE }"
-          @click="mode = FILE_MODE.SINGLE"
-        >
-          Single File
-        </button>
-        <button
-          type="button"
-          class="btn btn-outline-secondary"
-          :class="{ active: mode === FILE_MODE.MULTI }"
-          @click="mode = FILE_MODE.MULTI"
-        >
-          Multi File Stitch
-        </button>
+    <template #controls>
+      <div class="form-row mb-2">
+        <div class="btn-group" role="group" aria-label="File selection mode">
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            :class="{ active: mode === FILE_MODE.SINGLE }"
+            @click="mode = FILE_MODE.SINGLE"
+          >
+            Single File
+          </button>
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            :class="{ active: mode === FILE_MODE.MULTI }"
+            @click="mode = FILE_MODE.MULTI"
+          >
+            Multi File Stitch
+          </button>
+        </div>
       </div>
-    </div>
-    <div class="form-row mb-2">
-      <component
-        :is="mode === FILE_MODE.MULTI ? 'FileMultiSelectDropdown' : 'FileSelectDropdown'"
-        v-model="fileModel"
+      <div class="form-row mb-2">
+        <component
+          :is="mode === FILE_MODE.MULTI ? 'FileMultiSelectDropdown' : 'FileSelectDropdown'"
+          v-model="fileModel"
+          :item_id="item_id"
+          :block_id="block_id"
+          :extensions="blockInfo.attributes.accepted_file_extensions"
+          :update-block-on-change="false"
+          @update:model-value="onFileSelectionChange"
+        />
+      </div>
+      <CollapsibleComparisonFileSelect
+        v-model="pending_comparison_file_ids"
         :item_id="item_id"
         :block_id="block_id"
         :extensions="blockInfo.attributes.accepted_file_extensions"
-        :update-block-on-change="false"
-        @update:modelValue="onFileSelectionChange"
+        :exclude-file-ids="file_ids"
+        :initially-expanded="pending_comparison_file_ids.length > 0"
+        :show-apply-button="false"
       />
-    </div>
-    <CollapsibleComparisonFileSelect
-      v-model="pending_comparison_file_ids"
-      :item_id="item_id"
-      :block_id="block_id"
-      :extensions="blockInfo.attributes.accepted_file_extensions"
-      :exclude-file-ids="file_ids"
-      :initially-expanded="pending_comparison_file_ids.length > 0"
-      :show-apply-button="false"
-    />
-    <div class="form-row mt-2">
+      <div class="form-row mt-2">
         <button class="btn btn-primary btn-sm" @click="applyAllSelections">Apply Changes</button>
       </div>
 
@@ -56,8 +55,14 @@
             class="form-control"
             placeholder="e.g., 1-5, 7, 9-10. Starts at 1."
             :class="{ 'is-invalid': cycle_num_error }"
-            @keydown.enter="parseCycleString(); updateBlock();"
-            @blur="parseCycleString(); updateBlock();"
+            @keydown.enter="
+              parseCycleString();
+              updateBlock();
+            "
+            @blur="
+              parseCycleString();
+              updateBlock();
+            "
           />
           <span id="list-of-cycles" class="pl-3 pt-2">Showing cycles: {{ parsedCycles }}</span>
           <a
