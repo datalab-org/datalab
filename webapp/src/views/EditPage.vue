@@ -33,11 +33,28 @@
           style="display: block"
           aria-labelledby="navbarDropdown"
         >
-          <template v-for="blockInfo in blocksInfos" :key="blockInfo.id">
-            <span v-if="blockInfo.id !== 'notsupported'" @click="newBlock($event, blockInfo.id)">
-              <BlockTooltip :block-info="blockInfo.attributes" />
-            </span>
-          </template>
+          <h6 v-if="suggestedBlockTypes.length > 0" class="dropdown-header">
+            Suggested based on your files
+          </h6>
+          <span
+            v-for="blockInfo in suggestedBlockTypes"
+            :key="'nav-suggested-' + blockInfo.id"
+            @click="newBlock($event, blockInfo.id)"
+          >
+            <BlockTooltip :block-info="blockInfo.attributes" />
+          </span>
+          <div
+            v-if="suggestedBlockTypes.length > 0 && allBlockTypes.length > 0"
+            class="dropdown-divider"
+          ></div>
+          <h6 v-if="allBlockTypes.length > 0" class="dropdown-header">All block types</h6>
+          <span
+            v-for="blockInfo in allBlockTypes"
+            :key="'nav-all-' + blockInfo.id"
+            @click="newBlock($event, blockInfo.id)"
+          >
+            <BlockTooltip :block-info="blockInfo.attributes" />
+          </span>
         </div>
       </div>
       <ExportDropdown
@@ -108,7 +125,7 @@
       </div>
 
       <div class="mt-4 text-center">
-        <div class="dropdown d-inline-block">
+        <div class="dropup d-inline-block">
           <button
             id="bottomAddBlockDropdown"
             class="btn btn-primary dropdown-toggle"
@@ -132,19 +149,19 @@
             </h6>
             <span
               v-for="blockInfo in suggestedBlockTypes"
-              :key="'suggested-' + blockInfo.id"
+              :key="'bottom-suggested-' + blockInfo.id"
               @click="newBlock($event, blockInfo.id)"
             >
               <BlockTooltip :block-info="blockInfo.attributes" />
             </span>
             <div
-              v-if="suggestedBlockTypes.length > 0 && otherBlockTypes.length > 0"
+              v-if="suggestedBlockTypes.length > 0 && allBlockTypes.length > 0"
               class="dropdown-divider"
             ></div>
-            <h6 v-if="otherBlockTypes.length > 0" class="dropdown-header">All block types</h6>
+            <h6 v-if="allBlockTypes.length > 0" class="dropdown-header">All block types</h6>
             <span
-              v-for="blockInfo in otherBlockTypes"
-              :key="'other-' + blockInfo.id"
+              v-for="blockInfo in allBlockTypes"
+              :key="'bottom-all-' + blockInfo.id"
               @click="newBlock($event, blockInfo.id)"
             >
               <BlockTooltip :block-info="blockInfo.attributes" />
@@ -316,15 +333,12 @@ export default {
         );
       });
     },
-    otherBlockTypes() {
+    allBlockTypes() {
       if (!this.blockInfoLoaded) {
         return [];
       }
 
-      const suggestedIds = this.suggestedBlockTypes.map((b) => b.id);
-      return this.blocksInfos.filter(
-        (blockInfo) => blockInfo.id !== "notsupported" && !suggestedIds.includes(blockInfo.id),
-      );
+      return this.blocksInfos.filter((blockInfo) => blockInfo.id !== "notsupported");
     },
   },
   watch: {

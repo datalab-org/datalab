@@ -215,12 +215,12 @@ describe("Edit Page", () => {
     cy.findByText("editable_sample").click();
 
     cy.get('[data-testid="add-block-button-top"]').click();
-    cy.get('[data-testid="add-block-dropdown"]').findByText("Comment").click();
+    cy.get('[data-testid="add-block-dropdown"]').contains("Comment").click();
 
     cy.contains("Unsaved changes").should("not.exist");
 
     cy.get('[data-testid="add-block-button-top"]').click();
-    cy.get('[data-testid="add-block-dropdown"]').findByText("Comment").click();
+    cy.get('[data-testid="add-block-dropdown"]').contains("Comment").click();
 
     cy.contains("Unsaved changes").should("not.exist");
 
@@ -287,7 +287,7 @@ describe("Edit Page", () => {
     cy.findByText("editable_sample").click();
 
     cy.get('[data-testid="add-block-button-top"]').click();
-    cy.get('[data-testid="add-block-dropdown"]').findByText("Powder XRD").click();
+    cy.get('[data-testid="add-block-dropdown"]').contains("Powder XRD").click();
 
     cy.findByText("Select a file:").should("exist");
     cy.get("select.file-select-dropdown").select("example_data_XRD_example_bmb.xye");
@@ -314,7 +314,7 @@ describe("Edit Page", () => {
     cy.findByText("editable_sample").click();
 
     cy.get('[data-testid="add-block-button-top"]').click();
-    cy.get('[data-testid="add-block-dropdown"]').findByText("Media").click();
+    cy.get('[data-testid="add-block-dropdown"]').contains("Media").click();
     cy.findAllByText("Select a file:").eq(1).should("exist");
     cy.get("select.file-select-dropdown").eq(1).select(test_fname);
 
@@ -331,7 +331,7 @@ describe("Edit Page", () => {
     cy.findByText("editable_sample").click();
 
     cy.get('[data-testid="add-block-button-top"]').click();
-    cy.get('[data-testid="add-block-dropdown"]').findByText("Media").click();
+    cy.get('[data-testid="add-block-dropdown"]').contains("Media").click();
     cy.findAllByText("Select a file:").eq(2).should("exist");
     cy.get("select.file-select-dropdown").eq(2).select(test_fname);
 
@@ -357,7 +357,7 @@ describe("Edit Page", () => {
     cy.findByText("editable_sample").click();
 
     cy.get('[data-testid="add-block-button-top"]').click();
-    cy.get('[data-testid="add-block-dropdown"]').findByText("Raman spectroscopy").click();
+    cy.get('[data-testid="add-block-dropdown"]').contains("Raman spectroscopy").click();
     cy.findAllByText("Select a file:").eq(3).should("exist");
     cy.get("select.file-select-dropdown")
       .eq(3)
@@ -378,7 +378,7 @@ describe("Edit Page", () => {
 
     cy.get('[data-testid="add-block-dropdown-bottom"]').contains("All block types").should("exist");
 
-    cy.get('[data-testid="add-block-dropdown-bottom"]').findByText("Comment").click();
+    cy.get('[data-testid="add-block-dropdown-bottom"]').contains("Comment").click();
 
     cy.wait(500);
     cy.get(".data-block").should("exist");
@@ -401,7 +401,7 @@ describe("Edit Page", () => {
       .should("exist");
 
     // Check that XRD is in the suggested section (appears before the divider)
-    cy.get('[data-testid="add-block-dropdown-bottom"]').findByText("Powder XRD").should("exist");
+    cy.get('[data-testid="add-block-dropdown-bottom"]').contains("Powder XRD").should("exist");
 
     // Should also show "All block types" header
     cy.get('[data-testid="add-block-dropdown-bottom"]').contains("All block types").should("exist");
@@ -417,10 +417,7 @@ describe("Edit Page", () => {
 
     cy.get("#bottomAddBlockDropdown").click();
 
-    cy.get('[data-testid="add-block-dropdown-bottom"]')
-      .findByText("Raman spectroscopy")
-      .first()
-      .click();
+    cy.get('[data-testid="add-block-dropdown-bottom"]').contains("Raman spectroscopy").click();
 
     cy.wait(1000);
     cy.get(".data-block").should("exist");
@@ -439,7 +436,7 @@ describe("Edit Page", () => {
     cy.get("#bottomAddBlockDropdown").click();
     cy.get('[data-testid="add-block-dropdown-bottom"]').should("be.visible");
 
-    cy.get('[data-testid="add-block-dropdown-bottom"]').findByText("Comment").click();
+    cy.get('[data-testid="add-block-dropdown-bottom"]').contains("Comment").click();
 
     cy.wait(500);
     cy.get('[data-testid="add-block-dropdown-bottom"]').should("not.be.visible");
