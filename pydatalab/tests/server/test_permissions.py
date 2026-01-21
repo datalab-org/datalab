@@ -130,6 +130,42 @@ def test_access_token_permissions(client, unauthenticated_client, admin_client, 
     assert response.status_code == 401
 
 
+def test_manager_permissions(admin_client, client, another_client, user_id, another_user_id):
+    response = client.post(
+        "/new-sample/", json={"type": "samples", "item_id": "private-sample-with-manager"}
+    )
+    assert response.status_code == 201
+    refcode = response.json["sample_list_entry"]["refcode"]
+
+    # Add manager to the original user
+    response = admin_client.patch(
+        f"/users/{user_id}/managers", json={"managers": [str(another_user_id)]}
+    )
+    assert response.status_code == 200
+
+    # Manager gets read access
+    assert client.get(f"/items/{refcode}").status_code == 200
+
+    # Manager gets read access
+    assert another_client.get(f"/items/{refcode}").status_code == 200
+
+    # Manager also gets write access
+    assert (
+        another_client.post(
+            "/save-item/",
+            json={"item_id": "private-sample-with-manager", "data": {"description": "set"}},
+        ).status_code
+        == 200
+    )
+
+    # Remove manager from the original user
+    response = admin_client.patch(f"/users/{user_id}/managers", json={"managers": []})
+    assert response.status_code == 200
+
+    # Also removes read access
+    assert another_client.get(f"/items/{refcode}").status_code == 404
+
+
 def test_group_permissions(client, another_client, user_id, another_user_id, group_id):
     response = client.post(
         "/new-sample/", json={"type": "samples", "item_id": "private-sample-in-a-group"}
