@@ -20,8 +20,10 @@ RUN if [ "$TARGETARCH" = "arm64" ]; then \
       ARCH="x86_64"; \
     fi && \
     wget https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2204-${ARCH}-100.9.0.deb && \
-    apt update && apt install -y ./mongodb-database-tools-*-100.9.0.deb || apt --fix-broken install -y && \
-    rm -f mongodb-database-tools-*.deb
+    apt update && \
+    apt install -y ./mongodb-database-tools-*-100.9.0.deb || apt --fix-broken install -y && \
+    rm -f mongodb-database-tools-*.deb && \
+    apt clean
 
 COPY --from=uv_image /uv /usr/local/bin/uv
 ENV UV_LINK_MODE=copy \
