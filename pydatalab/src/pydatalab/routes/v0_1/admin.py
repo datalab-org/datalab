@@ -188,7 +188,7 @@ def update_user_managers(user_id):
                     }
                 ), 400
 
-            manager_object_ids.append(str(manager_oid))
+            manager_object_ids.append(manager_oid)
 
     update_result = flask_mongo.db.users.update_one(
         {"_id": ObjectId(user_id)}, {"$set": {"managers": manager_object_ids}}
