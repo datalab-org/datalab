@@ -1,7 +1,6 @@
 import atexit
 from functools import lru_cache
 
-# Must be imported in this way to allow for easy patching with mongomock
 import pymongo
 from flask_pymongo import PyMongo
 from pydantic import BaseModel
@@ -80,7 +79,7 @@ def _get_active_mongo_client(timeoutMS: int = 1000) -> pymongo.MongoClient:
         return client
 
     except ConnectionFailure as exc:
-        LOGGER.critical(f"Unable to connect to MongoDB at {CONFIG.MONGO_URI!r}: {exc}")
+        LOGGER.critical("Unable to connect to MongoDB at %r: %s", CONFIG.MONGO_URI, exc)
         raise RuntimeError from exc
 
 
@@ -117,6 +116,11 @@ def create_default_indices(
         - An index over item type,
         - A unique index over `item_id` and `refcode`.
         - A text index over user names and identities.
+        - Version control indexes:
+            - Index on item_versions.refcode for fast version history lookup
+            - Index on item_versions.user_id for fast user contribution queries
+            - Compound index on (refcode, version) for sorted version history
+            - Unique index on version_counters.refcode for atomic version numbering
 
     Parameters:
         background: If true, indexes will be created as background jobs.
@@ -207,5 +211,59 @@ def create_default_indices(
     except pymongo.errors.OperationFailure:
         db.users.drop_index(user_fts_name)
         ret += create_user_fts()
+
+    group_fts_fields = {"display_name", "description"}
+    group_fts_name = "group full-text search"
+    group_index_name = "unique group identifiers"
+
+    def create_group_index(group_index_name):
+        return db.groups.create_index(
+            "group_id",
+            unique=True,
+            name=group_index_name,
+            background=background,
+        )
+
+    try:
+        ret += create_group_index(group_index_name)
+    except pymongo.errors.OperationFailure:
+        db.users.drop_index(group_index_name)
+        ret += create_group_index(group_index_name)
+
+    def create_group_fts():
+        return db.groups.create_index(
+            [(k, pymongo.TEXT) for k in group_fts_fields],
+            name=group_fts_name,
+            background=background,
+        )
+
+    try:
+        ret += create_group_fts()
+    except pymongo.errors.OperationFailure:
+        db.users.drop_index(group_fts_name)
+        ret += create_group_fts()
+
+    ret += db.export_tasks.create_index(
+        "task_id", unique=True, name="unique task ID", background=background
+    )
+    ret += db.export_tasks.create_index(
+        "creator_id", name="export task creator", background=background
+    )
+    ret += db.export_tasks.create_index(
+        "created_at", name="export task created at", background=background
+    )
+    ret += db.export_tasks.create_index("status", name="export task status", background=background)
+
+    # Version control indexes
+    ret += db.item_versions.create_index("refcode", name="version refcode", background=background)
+    ret += db.item_versions.create_index("user_id", name="version user_id", background=background)
+    ret += db.item_versions.create_index(
+        [("refcode", pymongo.ASCENDING), ("version", pymongo.DESCENDING)],
+        name="refcode and version",
+        background=background,
+    )
+    ret += db.version_counters.create_index(
+        "refcode", unique=True, name="unique refcode counter", background=background
+    )
 
     return ret

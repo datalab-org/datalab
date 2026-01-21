@@ -17,11 +17,13 @@ def get_graph_cy_format(
     item_id: str | None = None,
     collection_id: str | None = None,
     hide_collections: bool = True,
+    max_depth: int = 1,
 ):
     collection_id = request.args.get("collection_id", type=str)
     hide_collections = request.args.get(
         "hide_collections", default=True, type=lambda v: v.lower() == "true"
     )
+    max_depth = request.args.get("max_depth", default=1, type=int)
 
     if item_id is None:
         if collection_id is not None:
@@ -67,42 +69,59 @@ def get_graph_cy_format(
                 404,
             )
 
-        all_documents = [main_item]
         node_ids = {item_id}
+        all_documents = [main_item]
 
-        for relationship in main_item.get("relationships", []) or []:
-            if relationship.get("item_id"):
-                node_ids.add(relationship["item_id"])
+        def add_related_items(current_item_id: str, current_depth: int):
+            if current_depth > max_depth:
+                return
 
-        incoming_items = list(
-            flask_mongo.db.items.find(
+            current_item = flask_mongo.db.items.find_one(
                 {
-                    "$and": [
-                        {"relationships": {"$elemMatch": {"item_id": item_id}}},
-                        get_default_permissions(user_only=False),
-                    ]
+                    "item_id": current_item_id,
+                    **get_default_permissions(user_only=False),
                 },
                 projection={"item_id": 1, "name": 1, "type": 1, "relationships": 1},
             )
-        )
 
-        for doc in incoming_items:
-            node_ids.add(doc["item_id"])
+            if not current_item:
+                return
 
-        all_documents.extend(incoming_items)
+            for relationship in current_item.get("relationships", []) or []:
+                if relationship.get("item_id") and relationship["item_id"] not in node_ids:
+                    node_ids.add(relationship["item_id"])
+                    related_item = flask_mongo.db.items.find_one(
+                        {
+                            "item_id": relationship["item_id"],
+                            **get_default_permissions(user_only=False),
+                        },
+                        projection={"item_id": 1, "name": 1, "type": 1, "relationships": 1},
+                    )
+                    if related_item:
+                        all_documents.append(related_item)
+                        add_related_items(relationship["item_id"], current_depth + 1)
 
-        ids_to_fetch = node_ids - {doc["item_id"] for doc in all_documents}
-        if ids_to_fetch:
-            referenced_items = list(
+            incoming_items = list(
                 flask_mongo.db.items.find(
                     {
-                        "item_id": {"$in": list(ids_to_fetch)},
+                        "relationships": {
+                            "$elemMatch": {
+                                "item_id": current_item_id,
+                            }
+                        },
                         **get_default_permissions(user_only=False),
                     },
                     projection={"item_id": 1, "name": 1, "type": 1, "relationships": 1},
                 )
             )
-            all_documents.extend(referenced_items)
+
+            for incoming_item in incoming_items:
+                if incoming_item["item_id"] not in node_ids:
+                    node_ids.add(incoming_item["item_id"])
+                    all_documents.append(incoming_item)
+                    add_related_items(incoming_item["item_id"], current_depth + 1)
+
+        add_related_items(item_id, 1)
 
     nodes = []
     edges = []

@@ -11,7 +11,7 @@ export default {
     badgeStyle() {
       switch (this.role) {
         case "admin":
-          return "text-warning";
+          return "text-primary";
         case "manager":
           return "text-info";
         case "user":

@@ -27,6 +27,7 @@ dependencies = [
     "pint ~= 0.24",
     "pandas[excel] ~= 2.2",
     "pymongo ~= 4.7",
+    "deepdiff ~= 8.1",
 ]
 
 [project.urls]
@@ -53,6 +54,7 @@ server = [
     "Flask-PyMongo ~= 2.3",
     "Flask-Mail ~= 0.10",
     "Flask-Compress ~= 1.15",
+    "APScheduler ~= 3.10",
     "Werkzeug ~= 3.0",
     "python-dotenv ~= 1.0",
     "pillow ~= 11.0",
@@ -102,26 +104,27 @@ line-length = 100
 target-version = "py310"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "W", "Q", "DTZ", "S"]
+select = ["E", "F", "I", "W", "Q", "DTZ", "S", "G"]
 ignore = ["E501", "E402"]
 per-file-ignores = {"tests/*" = ["S101"]}
 
-fixable = ["A", "B", "C", "D", "E", "F", "I", "S"]
+fixable = ["A", "B", "C", "D", "E", "F", "I", "S", "G"]
 unfixable = []
 # Allow unused variables when underscore-prefixed.
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
+logger-objects = ["pydatalab.logger.LOGGER"]
+
 [tool.ruff.lint.isort]
 known-first-party = ["pydatalab"]
 
-[tool.uv]
-dev-dependencies = [
+[dependency-groups]
+dev = [
     "pytest ~= 8.2",
     "pytest-cov ~= 5.0",
     "pytest-dependency ~= 0.6",
     "pytest-memray ~= 1.8",
     "pre-commit ~= 4.0",
-    "mongomock ~= 4.1",
     "mkdocs ~= 1.6",
     "mkdocs-material ~= 9.5",
     "mkdocstrings[python] ~= 0.29",

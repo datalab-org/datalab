@@ -1,10 +1,43 @@
 # Changelog
 
+## v0.6.7 (December 2025)
+
+Another patch release with several UI usability improvements, with highlights including:
+
+- Migration from TinyMCE to TipTap for all free text editors, which features mermaid diagram editing, cross-referencing and markdown support.
+- QR codes can now be generated for samples that give public access to sample data to those that scan them.
+- Multiple electrochemical cycling files can now be plotted alongside one another in "comparison mode" for the echem block.
+- Clicking on the sample table will now open in the current tab by default, with modified click opening in a new tab.
+- The media data block now supports SVG files for vector graphics and plots.
+- Rule-based chemical formula formatting has been expanded to cover more cases.
+- Admins can now assign managers to users through the UI alone, and will now receive email notifications when a user registers, plus users can now verify their contact email addresses via magic links.
+- Email authentication no longer requires a global allow list of domains.
+
+### What's Changed
+
+* Migrate from TinyMCE to TipTap by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1349
+* Fix modal scrolling for large content by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1446
+* Add client-side auth helper for that delays requests until authorised by @ml-evs in https://github.com/datalab-org/datalab/pull/1449
+* Add persistent per-item access tokens that can be used in QR codes by @ml-evs in https://github.com/datalab-org/datalab/pull/1220
+* Switch access token generating scheme to `secrets.token_urlsafe(16)` by @ml-evs in https://github.com/datalab-org/datalab/pull/1452
+* Add support for sanitized SVGs in media block by @ml-evs in https://github.com/datalab-org/datalab/pull/1464
+* Reset DataTable page on refresh by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1460
+* Enhanced chemical formula formatting by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1445
+* Add minimum resizable column width based on header content by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1444
+* Added manager to the admin dashboard by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1352
+* Unify tooltip styling and add block version display by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1454
+* Improvements to email-based authentication and notifications by @ml-evs in https://github.com/datalab-org/datalab/pull/1457
+* Add comparison mode for the echem block by @be-smith in https://github.com/datalab-org/datalab/pull/1353
+* Allow normal click to open items in same tab from table by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1468
+
+
+**Full Changelog**: https://github.com/datalab-org/datalab/compare/v0.6.6...v0.6.7
+
 ## v0.6.6 (November 2025)
 
 This patch release includes several quality-of-life changes (asynchronous loading of item relationships, filtering by date in the sample table, chemical formula formatting, block plotting improvements), as well as new block options (*in situ* XRD, extensions to FTIR to Shimazdu output files), in preparation for the upcoming 0.7.0 release.
 
-## What's Changed
+### What's Changed
 
 * Make relationship graph loading asynchronous by @BenjaminCharmes in https://github.com/datalab-org/datalab/pull/1388
 * Add *in situ* XRD block that can handle temperature and electrochemical data by @be-smith in https://github.com/datalab-org/datalab/pull/1287

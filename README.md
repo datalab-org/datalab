@@ -158,7 +158,7 @@ with support from the group of [Professor Clare Grey](https://grey.group.ch.cam.
 - [Dr Ben Smith](https://github.com/be-smith/)
 - [Dr Yue Wu](https://github.com/yue-here)
 
-plus many contributions, feedback and testing performed by other members of the community, in particular, the groups of [Prof Matt Cliffe](https://cliffegroup.co.uk) (University of Nottingham) and [Dr Peter Kraus](https://www.tu.berlin/en/concat) (TUBerlin) and the company [Matgenix SRL](https://matgenix.com).
+plus many contributions, feedback and testing performed by other members of the community, in particular, the groups of [Prof Matt Cliffe](https://cliffegroup.co.uk) (University of Cambridge) and [Dr Peter Kraus](https://www.tu.berlin/en/concat) (TUBerlin) and the company [Matgenix SRL](https://matgenix.com).
 
 A full list of code contributions can be found on [GitHub](https://github.com/datalab-org/datalab/graphs/contributors).
 
@@ -169,4 +169,5 @@ Contributions to _datalab_ have been supported by a mixture of academic funding 
 In particular, the developers thank:
 
 - Initial proof-of-concept funding from the European Union's Horizon 2020 research and innovation programme under grant agreement 957189 (DOI: [10.3030/957189](https://doi.org/10.3030/957189)), the [Battery Interface Genome - Materials Acceleration Platform (BIG-MAP)](https://www.big-map.eu), as an external stakeholder project.
+- The [Faraday Institution](https://www.faraday.ac.uk) CATMAT project (FIRG016) for support of Dr Joshua Bocarsly during initial development of *datalab*.
 - The [Leverhulme Trust](https://leverhulme.ac.uk) and [Isaac Newton Trust](https://newtontrust.cam.ac.uk) for support provided by an early career fellowship for Dr Matthew Evans.

@@ -57,6 +57,11 @@ export default createStore({
       },
     },
     block_errors: {},
+    apiConfig: {
+      maxUploadBytes: null,
+    },
+    schemas: {}, // keys: item types, vals: schema objects
+    userActivityCache: {}, // keys: userId (or 'combined' for combined activity), vals: { data, timestamp }
   },
   mutations: {
     setServerInfo(state, serverInfo) {
@@ -257,8 +262,8 @@ export default createStore({
       //requires the following fields in payload:
       // item_id, item_data
       Object.assign(state.all_item_data[payload.item_id], payload.item_data);
-      if (payload.item_data.creators && state.saved_status_items[payload.item_id] == true) {
-        state.saved_status_items[payload.item_id] = true;
+      if (payload.item_data.creators || payload.item_data.groups) {
+        return;
       } else {
         state.saved_status_items[payload.item_id] = false;
       }
@@ -375,6 +380,20 @@ export default createStore({
         delete state.block_errors[block_id];
       }
     },
+    setApiConfig(state, config) {
+      state.apiConfig = config;
+    },
+    setSchema(state, { type, schema }) {
+      state.schemas[type] = schema;
+    },
+    setUserActivityCache(state, { userId, data }) {
+      // userId can be a user ID string or 'combined' for combined activity
+      // data is the activity data object
+      state.userActivityCache[userId || "combined"] = {
+        data,
+        timestamp: Date.now(),
+      };
+    },
   },
   getters: {
     getItem: (state) => (item_id) => {
@@ -397,6 +416,11 @@ export default createStore({
     },
     getBlocksInfos(state) {
       return Object.values(state.blocksInfos);
+    },
+    getUserActivityCache: (state) => (userId) => {
+      // userId can be a user ID string or null/undefined for combined activity
+      const cacheKey = userId || "combined";
+      return state.userActivityCache[cacheKey];
     },
   },
   actions: {},

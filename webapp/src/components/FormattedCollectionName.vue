@@ -3,7 +3,7 @@
     class="formatted-collection-name badge badge-light"
     :class="{ clickable: enableClick || enableModifiedClick }"
     :style="{ 'border-color': badgeColor, color: badgeColor }"
-    @click.exact="enableClick ? openEditPageInNewTab() : null"
+    @click.exact="enableClick ? openEditPageInSameTab() : null"
     @click.meta.stop="enableModifiedClick ? openEditPageInNewTab() : null"
     @click.ctrl.stop="enableModifiedClick ? openEditPageInNewTab() : null"
   >
@@ -57,6 +57,10 @@ export default {
     },
   },
   methods: {
+    openEditPageInSameTab() {
+      this.$emit("collectionIdClicked");
+      window.location.href = `/collections/${this.collection_id}`;
+    },
     openEditPageInNewTab() {
       this.$emit("collectionIdClicked");
       window.open(`/collections/${this.collection_id}`, "_blank");

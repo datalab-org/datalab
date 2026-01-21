@@ -13,6 +13,12 @@ describe("FormattedItemName.vue", () => {
   const item_id = "Test";
   const itemType = ["samples", "cells", "starting_materials", "equipment"];
 
+  beforeEach(() => {
+    cy.window().then((win) => {
+      cy.stub(win, "open").as("windowOpen");
+    });
+  });
+
   it("should display item details and apply correct color based on item type", () => {
     itemType.forEach((type) => {
       cy.mount(FormattedItemName, {
@@ -63,42 +69,38 @@ describe("FormattedItemName.vue", () => {
 
   it("should emit 'itemIdClicked' event when item_id is clicked", () => {
     const item_id = "Test";
-
-    cy.window().then((win) => {
-      cy.spy(win, "open").as("windowOpen");
-    });
+    const onItemIdClicked = cy.spy().as("itemIdClickedSpy");
 
     cy.mount(FormattedItemName, {
       props: {
         item_id,
         itemType: "samples",
         enableClick: true,
+        onItemIdClicked,
       },
     });
 
     cy.get(".formatted-item-name").click();
 
-    cy.get("@windowOpen").should("have.been.calledWith", `/edit/${item_id}`, "_blank");
+    cy.get("@itemIdClickedSpy").should("have.been.calledOnce");
   });
 
   it("should emit 'itemIdClicked' event when clicked with Ctrl or Meta key", () => {
     const item_id = "Test";
-
-    cy.window().then((win) => {
-      cy.spy(win, "open").as("windowOpen");
-    });
+    const onItemIdClicked = cy.spy().as("itemIdClickedSpy");
 
     cy.mount(FormattedItemName, {
       props: {
         item_id,
         itemType: "samples",
         enableModifiedClick: true,
+        onItemIdClicked,
       },
     });
 
     cy.get(".formatted-item-name").click({ ctrlKey: true });
 
-    cy.get("@windowOpen").should("have.been.calledWith", `/edit/${item_id}`, "_blank");
+    cy.get("@itemIdClickedSpy").should("have.been.calledOnce");
   });
 
   it("should display chemical formula when chemform is provided", () => {

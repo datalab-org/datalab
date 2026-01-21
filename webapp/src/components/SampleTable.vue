@@ -32,6 +32,7 @@ export default {
           label: "ID",
         },
         { field: "type", header: "Type", filter: true, label: "Type" },
+        { field: "status", header: "Status", body: "FormattedItemStatus", filter: true },
         { field: "name", header: "Sample name", label: "Sample name" },
         {
           field: "chemform",
@@ -48,7 +49,7 @@ export default {
           label: "Collections",
         },
         {
-          field: "creators",
+          field: "creatorsAndGroups",
           header: "Creators",
           body: "Creators",
           filter: true,
@@ -80,6 +81,10 @@ export default {
       return this.$store.state.sample_list.map((sample) => {
         return {
           ...sample,
+          creatorsAndGroups: [
+            ...(sample.creators || []).map((c) => ({ ...c, type: "creator" })),
+            ...(sample.groups || []).map((g) => ({ ...g, type: "group" })),
+          ],
           collectionsList: sample.collections
             .map((collection) => collection.collection_id)
             .join(", "),

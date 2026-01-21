@@ -1,3 +1,8 @@
+import json
+from datetime import datetime
+from datetime import timedelta as td
+from datetime import timezone as tz
+
 from bson import ObjectId
 from flask import Blueprint, jsonify, request
 from flask_login import current_user
@@ -5,7 +10,7 @@ from werkzeug.exceptions import BadRequest, Forbidden, Unauthorized
 
 from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER
-from pydatalab.models.people import AccountStatus, DisplayName, EmailStr
+from pydatalab.models.people import AccountStatus, DisplayName, EmailStr, Person
 from pydatalab.mongo import flask_mongo
 from pydatalab.permissions import active_users_or_get_only
 from pydatalab.routes.v0_1.auth import _generate_and_store_token, _send_magic_link_email
@@ -102,7 +107,7 @@ def save_user(user_id):
                 )
             except RuntimeError as e:
                 trigger_email_verification = False
-                LOGGER.critical(f"Unable to send verification email on this deployment: {e}")
+                LOGGER.critical("Unable to send verification email on this deployment: %s", e)
 
     try:
         if account_status:
@@ -127,3 +132,81 @@ def save_user(user_id):
         )
 
     return (jsonify({"message": "User updated successfully", "status": "success"}), 200)
+
+
+@USERS.route("/users/<user_id>/activity", methods=["GET"])
+@active_users_or_get_only
+def get_user_activity(user_id):
+    """Get activity data for a specific user (creation dates)."""
+
+    if str(current_user.person.immutable_id) != user_id and current_user.role != "admin":
+        return jsonify({"status": "error", "message": "Unauthorized"}), 403
+
+    months = int(request.args.get("months", 12))
+
+    start_date = datetime.now(tz=tz.utc) - td(days=30 * months)
+    end_date = datetime.now(tz=tz.utc)
+
+    try:
+        user_object_id = ObjectId(user_id)
+        creator_match = user_object_id
+    except Exception:
+        creator_match = user_id
+
+    pipeline = [
+        {"$match": {"creator_ids": creator_match, "date": {"$gte": start_date, "$lte": end_date}}},
+        {
+            "$group": {
+                "_id": {"$dateToString": {"format": "%Y-%m-%d", "date": "$date"}},
+                "count": {"$sum": 1},
+            }
+        },
+        {"$sort": {"_id": 1}},
+    ]
+
+    activity_data = list(flask_mongo.db.items.aggregate(pipeline))
+
+    result = {date_entry["_id"]: date_entry["count"] for date_entry in activity_data}
+
+    return jsonify({"status": "success", "data": result}), 200
+
+
+@USERS.route("/search-users/", methods=["GET"])
+@USERS.route("/search/users/", methods=["GET"])
+def search_users():
+    """Perform free text search on users and return the top results.
+    GET parameters:
+        query: String with the search terms.
+        nresults: Maximum number of  (default 100)
+
+    Returns:
+        response list of dictionaries containing the matching items in order of
+        descending match score.
+    """
+
+    query = request.args.get("query", type=str)
+    nresults = request.args.get("nresults", default=100, type=int)
+    types = request.args.get("types", default=None)
+
+    match_obj = {"$text": {"$search": query}}
+    if types is not None:
+        match_obj["type"] = {"$in": types}
+
+    cursor = flask_mongo.db.users.aggregate(
+        [
+            {"$match": match_obj},
+            {"$sort": {"score": {"$meta": "textScore"}}},
+            {"$limit": nresults},
+            {
+                "$project": {
+                    "_id": 1,
+                    "identities": 1,
+                    "display_name": 1,
+                    "contact_email": 1,
+                }
+            },
+        ]
+    )
+    return jsonify(
+        {"status": "success", "users": list(json.loads(Person(**d).json()) for d in cursor)}
+    ), 200

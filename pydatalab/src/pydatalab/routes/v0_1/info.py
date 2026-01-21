@@ -2,6 +2,8 @@
 
 import json
 from datetime import datetime
+from datetime import timedelta as td
+from datetime import timezone as tz
 from functools import lru_cache
 
 from flask import Blueprint, jsonify, request
@@ -14,6 +16,7 @@ from pydatalab.feature_flags import FEATURE_FLAGS, FeatureFlags
 from pydatalab.models import Collection, Person
 from pydatalab.models.items import Item
 from pydatalab.mongo import flask_mongo
+from pydatalab.permissions import active_users_or_get_only
 
 from ._version import __api_version__
 
@@ -65,6 +68,7 @@ class Info(Attributes, Meta):
     source_repository: AnyUrl | None
     identifier_prefix: str
     features: FeatureFlags = FEATURE_FLAGS
+    max_upload_bytes: int
 
     @validator("maintainer")
     def strip_maintainer_fields(cls, v):
@@ -80,6 +84,8 @@ def _get_deployment_metadata_once() -> dict:
         CONFIG.DEPLOYMENT_METADATA.dict(exclude_none=True) if CONFIG.DEPLOYMENT_METADATA else {}
     )
     metadata.update({"identifier_prefix": identifier_prefix})
+    metadata.update({"max_upload_bytes": CONFIG.MAX_CONTENT_LENGTH})
+
     return metadata
 
 
@@ -214,3 +220,38 @@ def get_schema_type(item_type):
             ).json()
         )
     )
+
+
+@lru_cache(maxsize=3)
+def _fetch_activity_data(months: int, cache_date: str):
+    """Fetch activity data - cache_date forces daily refresh."""
+    end_date = datetime.now(tz=tz.utc).replace(tzinfo=None)
+    start_date = end_date - td(days=30 * months)
+
+    pipeline = [
+        {"$match": {"date": {"$gte": start_date, "$lte": end_date}}},
+        {
+            "$group": {
+                "_id": {"$dateToString": {"format": "%Y-%m-%d", "date": "$date"}},
+                "count": {"$sum": 1},
+            }
+        },
+        {"$sort": {"_id": 1}},
+    ]
+
+    activity_data = list(flask_mongo.db.items.aggregate(pipeline))
+
+    return {date_entry["_id"]: date_entry["count"] for date_entry in activity_data}
+
+
+@INFO.route("/info/user-activity", methods=["GET"])
+@active_users_or_get_only
+def get_combined_activity():
+    """Get combined activity data for all users."""
+
+    months = int(request.args.get("months", 12))
+    cache_date = datetime.now(tz=tz.utc).date().isoformat()
+
+    result = _fetch_activity_data(months, cache_date)
+
+    return jsonify({"status": "success", "data": result}), 200

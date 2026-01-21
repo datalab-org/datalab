@@ -178,18 +178,29 @@ export function createNewItem(
   startingData = {},
   copyFrom = null,
   generateIDAutomatically = false,
+  groupsData = null,
+  creatorsData = null,
 ) {
+  const newSampleData = {
+    item_id: item_id,
+    date: date,
+    name: name,
+    type: type,
+    collections: startingCollection,
+    ...startingData,
+  };
+
+  if (groupsData && groupsData.length > 0) {
+    newSampleData.groups = groupsData;
+  }
+
+  if (creatorsData && creatorsData.length > 0) {
+    newSampleData.creators = creatorsData;
+  }
   return fetch_post(`${API_URL}/new-sample/`, {
     copy_from_item_id: copyFrom,
     generate_id_automatically: generateIDAutomatically,
-    new_sample_data: {
-      item_id: item_id,
-      date: date,
-      name: name,
-      type: type,
-      collections: startingCollection,
-      ...startingData,
-    },
+    new_sample_data: newSampleData,
   }).then(function (response_json) {
     if (SAMPLE_TABLE_TYPES.includes(response_json.sample_list_entry.type)) {
       store.commit("prependToSampleList", response_json.sample_list_entry);
@@ -329,6 +340,97 @@ export function getUsersList() {
     });
 }
 
+export function getAdminGroupsList() {
+  return fetch_get(`${API_URL}/groups`)
+    .then(function (response_json) {
+      return response_json.data;
+    })
+    .catch((err) => {
+      DialogService.error({
+        title: "Unable to list groups",
+        message: `Failed to list groups: ${err}`,
+      });
+      return err;
+    });
+}
+
+export function createGroup(groupData) {
+  console.log("createGroup");
+  return fetch_put(`${API_URL}/groups`, groupData)
+    .then(function (response_json) {
+      return response_json;
+    })
+    .catch((err) => {
+      DialogService.error({
+        title: "Unable to create group",
+        message: `Failed to create group: ${err}`,
+      });
+      return err;
+    });
+}
+export function deleteGroup(groupId) {
+  console.log("deleteGroup");
+  return fetch_delete(`${API_URL}/groups/${groupId}`)
+    .then(function (response_json) {
+      return response_json;
+    })
+    .catch((err) => {
+      DialogService.error({
+        title: "Unable to delete group",
+        message: `Failed to delete group: ${err}`,
+      });
+      return err;
+    });
+}
+
+export function updateGroup(groupId, groupData) {
+  console.log("updateGroup", groupData);
+  return fetch_patch(`${API_URL}/groups/${groupId}`, groupData)
+    .then(function (response_json) {
+      return response_json;
+    })
+    .catch((err) => {
+      DialogService.error({
+        title: "Unable to update group",
+        message: `Failed to update group: ${err}`,
+      });
+      return err;
+    });
+}
+
+export function addUserToGroup(groupId, userId) {
+  console.log("Adding user to group:", { groupId, userId }); // Debug
+  const payload = { user_id: userId };
+  console.log("Payload:", payload); // Debug
+
+  return fetch_put(`${API_URL}/groups/${groupId}`, payload)
+    .then(function (response_json) {
+      console.log("Response:", response_json); // Debug
+      return response_json;
+    })
+    .catch((err) => {
+      DialogService.error({
+        title: "Error adding user to group",
+        message: `Failed to add user to group: ${err}`,
+      });
+      return err;
+    });
+}
+
+export function removeUserFromGroup(groupId, userId) {
+  return fetch_delete(`${API_URL}/groups/${groupId}/members/${userId}`)
+    .then(function (response_json) {
+      return response_json;
+    })
+    .catch((err) => {
+      DialogService.error({
+        title: "Error reomving user from group",
+        message: `Failed to remove user from group: ${err}`,
+      });
+      return err;
+    });
+}
+
 export function getStartingMaterialList() {
   return fetch_get(`${API_URL}/starting-materials/`)
     .then(function (response_json) {
@@ -370,6 +472,16 @@ export function searchItems(query, nresults = 100, types = null) {
 export function searchCollections(query, nresults = 100) {
   // construct a url with parameters:
   var url = new URL(`${API_URL}/search-collections`);
+  var params = { query: query, nresults: nresults };
+  Object.keys(params).forEach((key) => url.searchParams.append(key, params[key]));
+  return fetch_get(url).then(function (response_json) {
+    return response_json.data;
+  });
+}
+
+export function searchGroups(query, nresults = 100) {
+  // construct a url with parameters:
+  var url = new URL(`${API_URL}/search/groups`);
   var params = { query: query, nresults: nresults };
   Object.keys(params).forEach((key) => url.searchParams.append(key, params[key]));
   return fetch_get(url).then(function (response_json) {
@@ -665,19 +777,23 @@ export function addABlock(item_id, block_type, index = null) {
   return block_id_promise;
 }
 
-export function updateItemPermissions(refcode, creators) {
-  return fetch_patch(`${API_URL}/items/${refcode}/permissions`, {
-    creators: creators,
-  }).then(function (response_json) {
-    if (response_json.status === "error") {
-      DialogService.error({
-        title: "Permission update failed",
-        message: `Failed to update permissions for item ${refcode}: ${response_json.message}`,
-      });
-      throw new Error(response_json.message);
-    }
-    return response_json;
-  });
+export function updateItemPermissions(refcode, creators = null, groups = null) {
+  console.log("updateItemPermissions called with", refcode, creators, groups);
+
+  const payload = { creators: creators, groups: groups };
+
+  return fetch_patch(`${API_URL}/items/${refcode}/permissions`, payload).then(
+    function (response_json) {
+      if (response_json.status === "error") {
+        DialogService.error({
+          title: "Permission update failed",
+          message: `Failed to update permissions for item ${refcode}: ${response_json.message}`,
+        });
+        throw new Error(response_json.message);
+      }
+      return response_json;
+    },
+  );
 }
 
 export function saveItem(item_id) {
@@ -876,7 +992,21 @@ export async function addRemoteFileToSample(file_entry, item_id) {
     );
 }
 
-export async function getItemGraph({ item_id = null, collection_id = null } = {}) {
+/**
+ * Fetches an item graph from the API with optional store updates
+ * @param {Object} options - Configuration options
+ * @param {string|null} options.item_id - The item ID to fetch graph for
+ * @param {string|null} options.collection_id - The collection ID to filter by
+ * @param {number} options.max_depth - Maximum depth for related items (default: 1)
+ * @param {boolean} options.updateStore - Whether to update Vuex store (default: true)
+ * @returns {Promise<Object|void>} Returns graph data if updateStore is false, void otherwise
+ */
+export async function getItemGraph({
+  item_id = null,
+  collection_id = null,
+  max_depth = 1,
+  updateStore = true,
+} = {}) {
   // Short-circuit and do not send request if user is not logged in
   if (!(await waitForUserAuth())) return;
 
@@ -884,27 +1014,49 @@ export async function getItemGraph({ item_id = null, collection_id = null } = {}
   if (item_id != null) {
     url = url + "/" + item_id;
   }
+
+  const params = new URLSearchParams();
   if (collection_id != null) {
-    url = url + "?collection_id=" + collection_id;
+    params.append("collection_id", collection_id);
+  }
+  if (max_depth != null && max_depth > 1) {
+    params.append("max_depth", max_depth.toString());
+  }
+  if (params.toString()) {
+    url = url + "?" + params.toString();
   }
 
   const urlParams = new URLSearchParams(window.location.search);
   const accessToken = urlParams.get("at");
 
-  store.commit("setItemGraphIsLoading", true);
+  if (updateStore) {
+    store.commit("setItemGraphIsLoading", true);
+  }
+
   return fetch_get(url)
     .then(function (response_json) {
-      store.commit("setItemGraph", { nodes: response_json.nodes, edges: response_json.edges });
-      store.commit("setItemGraphIsLoading", false);
+      const graphData = { nodes: response_json.nodes, edges: response_json.edges };
+
+      if (updateStore) {
+        store.commit("setItemGraph", graphData);
+        store.commit("setItemGraphIsLoading", false);
+      }
+
+      return graphData;
     })
     .catch((error) => {
-      store.commit("setItemGraphIsLoading", false);
+      if (updateStore) {
+        store.commit("setItemGraphIsLoading", false);
+      }
+
       if (!accessToken) {
         DialogService.error({
           title: "Graph Retrieval Failed",
           message: `Error retrieving item graph from API: ${error}`,
         });
       }
+
+      throw error;
     });
 }
 
@@ -1001,16 +1153,184 @@ export async function getSchema(type) {
     });
 }
 
+export async function loadItemSchemas() {
+  // Load schemas for all item types and store them in the Vuex store
+  try {
+    const supportedTypes = await getSupportedSchemasList();
+
+    for (const typeInfo of supportedTypes) {
+      try {
+        const schema = await getSchema(typeInfo.id);
+        store.commit("setSchema", { type: typeInfo.id, schema });
+      } catch (error) {
+        console.error(`Failed to load schema for ${typeInfo.id}:`, error);
+      }
+    }
+  } catch (error) {
+    console.error("Failed to get supported schemas list:", error);
+  }
+}
+
 export function saveUserManagers(user_id, managers) {
   return fetch_patch(`${API_URL}/users/${user_id}/managers`, { managers })
     .then((response_json) => {
-      if (response_json.status && response_json.status !== "success") {
-        console.warn("Warning: saveUserManagers response:", response_json);
-      }
       return response_json;
     })
     .catch((error) => {
-      console.error("Managers save failed:", error);
+      DialogService.error({
+        title: "User Managers Save Failed",
+        message: `Error saving user managers: ${error}`,
+      });
+      throw error;
+    });
+}
+
+export async function getApiConfig() {
+  return fetch_get(`${API_URL}/info`)
+    .then((response_json) => {
+      const config = {
+        maxUploadBytes: response_json.data?.attributes?.max_upload_bytes || null,
+      };
+      store.commit("setApiConfig", config);
+      return config;
+    })
+    .catch((error) => {
+      console.error("Failed to fetch API config:", error);
+      return { maxUploadBytes: null };
+    });
+}
+
+export function fetchUserActivity(userId = null) {
+  // Check if data is already cached in the store
+  const cachedData = store.getters.getUserActivityCache(userId);
+  if (cachedData) {
+    return Promise.resolve({ data: cachedData.data });
+  }
+
+  // If not cached, fetch from API
+  const endpoint = userId ? `/users/${userId}/activity` : "/info/user-activity";
+  return fetch_get(`${API_URL}${endpoint}`).then(function (response_json) {
+    // Store in cache
+    store.commit("setUserActivityCache", {
+      userId: userId,
+      data: response_json.data,
+    });
+    return response_json;
+  });
+}
+
+export async function startCollectionExport(collection_id) {
+  return fetch_post(`${API_URL}/collections/${collection_id}/export`, {})
+    .then(function (response_json) {
+      return response_json;
+    })
+    .catch((error) => {
+      DialogService.error({
+        title: "Export Failed",
+        message: `Failed to start collection export: ${error}`,
+      });
+      throw error;
+    });
+}
+
+export async function getExportStatus(task_id) {
+  return fetch_get(`${API_URL}/exports/${task_id}/status`)
+    .then(function (response_json) {
+      return response_json;
+    })
+    .catch((error) => {
+      DialogService.error({
+        title: "Export Status Check Failed",
+        message: `Failed to check export status: ${error}`,
+      });
+      throw error;
+    });
+}
+
+export function getExportDownloadUrl(task_id) {
+  return `${API_URL}/exports/${task_id}/download`;
+}
+
+export async function startItemExport(item_id, options = {}) {
+  return fetch_post(`${API_URL}/items/${item_id}/export`, options)
+    .then(function (response_json) {
+      return response_json;
+    })
+    .catch((error) => {
+      DialogService.error({
+        title: "Export Failed",
+        message: `Failed to start item export: ${error}`,
+      });
+      throw error;
+    });
+}
+
+// ****************************************************************************
+// Version Control API Functions
+// ****************************************************************************
+
+export async function getItemVersions(refcode) {
+  return fetch_get(`${API_URL}/items/${refcode}/versions/`)
+    .then(function (response_json) {
+      return response_json.versions;
+    })
+    .catch((error) => {
+      DialogService.error({
+        title: "Version History Retrieval Failed",
+        message: `Error retrieving version history for ${refcode}: ${error}`,
+      });
+      throw error;
+    });
+}
+
+export async function getItemVersion(refcode, versionId) {
+  return fetch_get(`${API_URL}/items/${refcode}/versions/${versionId}/`)
+    .then(function (response_json) {
+      return response_json.version.data;
+    })
+    .catch((error) => {
+      DialogService.error({
+        title: "Version Retrieval Failed",
+        message: `Error retrieving version for ${refcode}: ${error}`,
+      });
+      throw error;
+    });
+}
+
+export async function restoreItemVersion(refcode, versionId) {
+  return fetch_post(`${API_URL}/items/${refcode}/restore-version/`, {
+    version_id: versionId,
+  })
+    .then(function (response_json) {
+      if (response_json.status === "success") {
+        return response_json;
+      } else {
+        throw new Error(response_json.message || "Failed to restore version");
+      }
+    })
+    .catch((error) => {
+      DialogService.error({
+        title: "Version Restore Failed",
+        message: `Error restoring version for ${refcode}: ${error}`,
+      });
+      throw error;
+    });
+}
+
+export async function compareItemVersions(refcode, baseVersion, targetVersion) {
+  var url = new URL(`${API_URL}/items/${refcode}/versions/compare`);
+  url.searchParams.append("base", baseVersion);
+  url.searchParams.append("target", targetVersion);
+
+  return fetch_get(url)
+    .then(function (response_json) {
+      return response_json.comparison;
+    })
+    .catch((error) => {
+      DialogService.error({
+        title: "Version Comparison Failed",
+        message: `Error comparing versions for ${refcode}: ${error}`,
+      });
       throw error;
     });
 }

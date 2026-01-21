@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from enum import Enum
 
 import bson
@@ -6,7 +8,7 @@ from pydantic import BaseModel, ConstrainedStr, Field, parse_obj_as, validator
 from pydantic import EmailStr as PydanticEmailStr
 
 from pydatalab.models.entries import Entry
-from pydatalab.models.utils import PyObjectId, UserRole
+from pydatalab.models.utils import HumanReadableIdentifier, PyObjectId, UserRole
 
 
 class IdentityType(str, Enum):
@@ -97,6 +99,56 @@ class AccountStatus(str, Enum):
     DEACTIVATED = "deactivated"
 
 
+class Group(Entry):
+    """A model that describes a group of users, for the sake
+    of applying group permissions.
+
+    Each `Person` can point to multiple groups.
+
+    Relationships between groups can be described via the `relationships`
+    field inherited from `Entry`.
+
+    """
+
+    type: str = Field("groups", const=True)
+    """The entry type as a string."""
+
+    group_id: HumanReadableIdentifier | None = Field(None)
+    """A short, locally-unique ID for the group."""
+
+    members: list[dict] = Field(None)
+    """A list of people that belong to this group."""
+
+    display_name: DisplayName | None = Field(None)
+    """The chosen display name for the group"""
+
+    description: str | None = Field(None)
+    """A description of the group"""
+
+    managers: list[PyObjectId | dict] = Field(default_factory=list)
+    """A list of user IDs that can manage this group."""
+
+    @validator("members", pre=True, always=True)
+    def cast_members_to_people(cls, v):
+        """Casts members to list of people if not None."""
+        if v is not None:
+            return [Person(**member).dict(exclude_unset=True) for member in v]
+
+        return v
+
+    @validator("managers", pre=True, always=True)
+    def cast_managers_to_people(cls, v):
+        """Casts managers to list of people if not None."""
+        if v and isinstance(v[0], dict):
+            return [
+                Person(**member).dict(exclude_unset=True)
+                for member in v
+                if isinstance(member, dict)
+            ]
+
+        return v
+
+
 class Person(Entry):
     """A model that describes an individual and their digital identities."""
 
@@ -106,17 +158,20 @@ class Person(Entry):
     identities: list[Identity] = Field(default_factory=list)
     """A list of identities attached to this person, e.g., email addresses, OAuth accounts."""
 
-    display_name: DisplayName | None
+    display_name: DisplayName | None = Field(None)
     """The user-chosen display name."""
 
-    contact_email: EmailStr | None
+    contact_email: EmailStr | None = Field(None)
     """In the case of multiple *verified* email identities, this email will be used as the primary contact."""
 
-    managers: list[PyObjectId] | None
+    managers: list[PyObjectId] | None = Field(None)
     """A list of user IDs that can manage this person's items."""
 
     role: UserRole = Field(UserRole.USER)
     """The role assigned to this person."""
+
+    groups: list[Group] | None = Field(default_factory=list)
+    """A list of groups that this person belongs to."""
 
     account_status: AccountStatus = Field(AccountStatus.UNVERIFIED)
     """The status of the user's account."""
@@ -138,7 +193,7 @@ class Person(Entry):
         use_display_name: bool = True,
         use_contact_email: bool = True,
         account_status: AccountStatus = AccountStatus.UNVERIFIED,
-    ) -> "Person":
+    ) -> Person:
         """Create a new `Person` object with the given identity.
 
         Arguments:

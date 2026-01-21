@@ -103,7 +103,7 @@ def _call_remote_stat(path: str):
     hostname, file_path = path.split(":", 1)
     command = f"ssh {hostname} 'stat -c %Y {file_path}'"
     process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)  # noqa: S602
-    LOGGER.debug(f"Calling {command}")
+    LOGGER.debug("Calling %s", command)
     try:
         stdout, stderr = process.communicate(timeout=20)
         timestamp = int(stdout.decode("utf-8"))
@@ -146,7 +146,9 @@ def _check_and_sync_file(file_info: File, file_id: ObjectId) -> File:
     remote: RemoteFilesystem | None = directories_dict.get(file_info.source_server_name, None)
     if not remote:
         LOGGER.warning(
-            f"Could not find desired remote for {file_info.source_server_name!r} in {directories_dict}, cannot sync file"
+            "Could not find desired remote for %r in %s, cannot sync file",
+            file_info.source_server_name,
+            directories_dict,
         )
         return file_info
 

@@ -11,21 +11,24 @@ from bokeh.models import (
     Button,
     ColorBar,
     ColorMapper,
+    ColumnDataSource,
     CrosshairTool,
     CustomJS,
     DataTable,
     HoverTool,
+    Legend,
+    LegendItem,
     LinearColorMapper,
     TableColumn,
 )
 from bokeh.models.widgets import Dropdown, Select
 from bokeh.models.widgets.inputs import TextInput
-from bokeh.palettes import Accent, Dark2
-from bokeh.plotting import ColumnDataSource, figure
+from bokeh.palettes import Category10, Dark2
+from bokeh.plotting import figure
 from bokeh.themes import Theme
 from scipy.signal import find_peaks
 
-from .utils import shrink_label
+from .utils.plotting import generate_unique_labels
 
 FONTSIZE = "12pt"
 TYPEFACE = "Helvetica, sans-serif"
@@ -332,6 +335,27 @@ def selectable_axes_plot(
     if isinstance(df, dict):
         labels = list(df.keys())
 
+    original_labels_list = []
+
+    for ind, df_ in enumerate(df):
+        if isinstance(df, dict):
+            df_temp = df[df_]
+        else:
+            df_temp = df_
+
+        if labels:
+            orig = labels[ind]
+        else:
+            if hasattr(df_temp, "attrs") and "original_filename" in df_temp.attrs:
+                orig = df_temp.attrs["original_filename"] if len(df) > 1 else ""
+            else:
+                orig = df_temp.index.name if len(df) > 1 else ""
+
+        original_labels_list.append(orig)
+
+    legend_labels = (
+        generate_unique_labels(original_labels_list) if len(df) > 1 else original_labels_list
+    )
     plot_columns = []
 
     for ind, df_ in enumerate(df):
@@ -341,12 +365,12 @@ def selectable_axes_plot(
         if isinstance(df, dict):
             df_ = df[df_]
 
-        if labels:
-            label = labels[ind]
-        else:
-            label = df_.index.name if len(df) > 1 else ""
+        label = legend_labels[ind] if legend_labels else ""
 
-        label = shrink_label(label)
+        if hasattr(df_, "attrs"):
+            for attr in ["item_id", "original_filename", "wavelength"]:
+                if attr in df_.attrs:
+                    df_[attr] = df_.attrs[attr]
 
         source = ColumnDataSource(df_)
 
@@ -380,7 +404,6 @@ def selectable_axes_plot(
                 size=point_size,
                 line_color=color,
                 fill_color=fill_color,
-                legend_label=label,
                 hatch_pattern=hatch_patterns[ind % len(hatch_patterns)],
                 hatch_color=color,
             )
@@ -409,7 +432,6 @@ def selectable_axes_plot(
                         y=y,
                         source=source,
                         color=color,
-                        legend_label=label,
                         alpha=0.3,
                     )
                     if plot_line
@@ -454,9 +476,8 @@ def selectable_axes_plot(
 
             external_legend = Legend(
                 items=legend_items,
-                click_policy="hide",
+                click_policy="none",
                 background_fill_alpha=0.8,
-                label_text_font_size="9pt",
                 spacing=1,
                 margin=2,
             )
@@ -551,26 +572,35 @@ def selectable_axes_plot(
 
 
 def double_axes_echem_plot(
-    df: pd.DataFrame,
+    dfs: pd.DataFrame | list[pd.DataFrame],
     mode: str | None = None,
-    cycle_summary: pd.DataFrame = None,
+    cycle_summary_dfs: list[pd.DataFrame] | None = None,
     x_options: Sequence[str] = [],
     pick_peaks: bool = True,
     normalized: bool = False,
+    plotting_mode: str | None = None,
     **kwargs,
 ) -> gridplot:
     """Creates a Bokeh plot for electrochemistry data.
 
     Args:
-        df: The pre-processed dataframe containing capacities and
-            voltages, indexed by half cycle.
+        dfs: A single DataFrame or list of pre-processed DataFrames, each containing
+            capacities and voltages, indexed by half cycle. Single DataFrames are
+            automatically converted to a list for backward compatibility.
         mode: Either "dQ/dV", "dV/dQ", "normal" or None.
-        x_options: Columns from `df` that can be selected for the
+        cycle_summary_dfs: Optional list of dataframes containing
+            cycle summary information, to plot final capacities.
+        x_options: Columns from each DataFrame in `dfs` that can be selected for the
             first plot. The first will be used as the default.
         pick_peaks: Whether or not to pick and plot the peaks in dV/dQ mode.
+        normalized: Whether or not the dataframes contain data normalised by mass
+        plotting_mode: Single, multi, or comparison mode to control legends and colors.
 
     Returns: The Bokeh layout.
     """
+
+    if isinstance(dfs, pd.DataFrame):
+        dfs = [dfs]
 
     if not x_options:
         x_options = (
@@ -579,7 +609,7 @@ def double_axes_echem_plot(
             else ["capacity (mAh)", "voltage (V)", "time (s)", "current (mA)"]
         )
 
-    x_options = [opt for opt in x_options if opt in df.columns]
+    x_options = [opt for opt in x_options if opt in dfs[0].columns]
 
     common_options = {"aspect_ratio": 1.5, "tools": TOOLS}
     common_options.update(**kwargs)
@@ -623,8 +653,9 @@ def double_axes_echem_plot(
             p2.xaxis.ticker.desired_num_ticks = 5
         plots.append(p2)
 
-    elif mode == "final capacity" and cycle_summary is not None:
-        palette = Accent[3]
+    elif mode == "final capacity" and cycle_summary_dfs:
+        # Use a palette with enough colors (e.g., Category10[10] gives 5 files × 2 colors)
+        palette = Category10[10]  # 10 distinct colors
 
         p3 = figure(
             x_axis_label="Cycle number",
@@ -632,92 +663,198 @@ def double_axes_echem_plot(
             **common_options,
         )
 
-        p3.line(
-            x="full cycle",
-            y="charge capacity (mAh/g)" if normalized else "charge capacity (mAh)",
-            source=cycle_summary,
-            legend_label="charge",
-            line_width=2,
-            color=palette[0],
-        )
-        p3.circle(
-            x="full cycle",
-            y="charge capacity (mAh/g)" if normalized else "charge capacity (mAh)",
-            source=cycle_summary,
-            fill_color="white",
-            hatch_color=palette[0],
-            legend_label="charge",
-            line_width=2,
-            size=12,
-            color=palette[0],
-        )
-        p3.line(
-            x="full cycle",
-            y="discharge capacity (mAh/g)" if normalized else "discharge capacity (mAh)",
-            source=cycle_summary,
-            legend_label="discharge",
-            line_width=2,
-            color=palette[2],
-        )
-        p3.triangle(
-            x="full cycle",
-            y="discharge capacity (mAh/g)" if normalized else "discharge capacity (mAh)",
-            source=cycle_summary,
-            fill_color="white",
-            hatch_color=palette[2],
-            line_width=2,
-            legend_label="discharge",
-            size=12,
-            color=palette[2],
-        )
+        legend_items = []
 
-        p3.legend.location = "right"
+        for i, cycle_summary in enumerate(cycle_summary_dfs):
+            charge_color = palette[(2 * i) % len(palette)]
+            discharge_color = palette[(2 * i + 1) % len(palette)]
+
+            # Plot charge line and marker
+            charge_line = p3.line(
+                x="full cycle",
+                y="charge capacity (mAh/g)" if normalized else "charge capacity (mAh)",
+                source=cycle_summary,
+                line_width=2,
+                color=charge_color,
+                visible=True,
+            )
+            charge_marker = p3.circle(
+                x="full cycle",
+                y="charge capacity (mAh/g)" if normalized else "charge capacity (mAh)",
+                source=cycle_summary,
+                fill_color="white",
+                hatch_color=charge_color,
+                line_width=2,
+                size=12,
+                color=charge_color,
+                visible=True,
+            )
+
+            # Plot discharge line and marker
+            discharge_line = p3.line(
+                x="full cycle",
+                y="discharge capacity (mAh/g)" if normalized else "discharge capacity (mAh)",
+                source=cycle_summary,
+                line_width=2,
+                color=discharge_color,
+                visible=True,
+            )
+            discharge_marker = p3.triangle(
+                x="full cycle",
+                y="discharge capacity (mAh/g)" if normalized else "discharge capacity (mAh)",
+                source=cycle_summary,
+                fill_color="white",
+                hatch_color=discharge_color,
+                line_width=2,
+                size=12,
+                color=discharge_color,
+                visible=True,
+            )
+
+            file_label = (
+                cycle_summary["filename"].iloc[0]
+                if "filename" in cycle_summary
+                else f"File {i + 1}"
+                if len(cycle_summary_dfs) > 1
+                else "File"
+            )
+            # Truncate long filenames for legend display
+            if len(file_label) > 40:
+                file_label = file_label[:37] + "..."
+
+            legend_items.append(
+                LegendItem(
+                    label=file_label,
+                    renderers=[charge_marker, discharge_marker, charge_line, discharge_line],
+                    index=0,  # show both markers
+                )
+            )
+
+        # Add the custom legend to the plot only in comparison mode
+        if plotting_mode == "comparison" and len(cycle_summary_dfs) > 1:
+            custom_legend = Legend(items=legend_items)
+            p3.add_layout(custom_legend)
+            p3.legend.click_policy = "hide"
         p3.y_range.start = 0
         p3.xaxis.ticker.desired_num_ticks = 5
 
-    lines = []
-    grouped_by_half_cycle = df.groupby("half cycle")
+        hover_renderers = []
 
-    for ind, plot in enumerate(plots):
-        x = x_default
-        y = "voltage (V)"
-        if ind == 1:
-            if mode == "dQ/dV":
-                x = "dQ/dV (mA/V)"
-            else:
-                y = "dV/dQ (V/mA)"
-
-        # if filtering has removed all cycles, skip making the plot
-        if len(df) < 1:
-            raise RuntimeError("No data remaining to plot after filtering.")
-
-        # trim the end of the colour cycle for visibility on a white background
-        color_space = np.linspace(0.3, 0.7, max(int(df["half cycle"].max()), 1))  # type: ignore
-
-        for _, group in grouped_by_half_cycle:
-            line = plot.line(
-                x=x,
-                y=y,
-                source=group,
-                line_color=matplotlib.colors.rgb2hex(
-                    cmap(color_space[int(group["half cycle"].max()) - 1])
-                ),
-                hover_line_width=2,
-                selection_line_width=2,
-                selection_line_color="black",
+        for i, cycle_summary in enumerate(cycle_summary_dfs):
+            # Choose the correct columns
+            charge_col = "charge capacity (mAh/g)" if normalized else "charge capacity (mAh)"
+            discharge_col = (
+                "discharge capacity (mAh/g)" if normalized else "discharge capacity (mAh)"
             )
-            if mode == "dV/dQ" and ind == 1 and pick_peaks:
-                # Check if half cycle or not
-                dvdq_array = np.array(group[y])
-                if group[y].mean() < 0:
-                    dvdq_array *= -1
 
-                peaks, _ = find_peaks(dvdq_array, prominence=5)
-                peak_locs = group.iloc[peaks]
-                p2.circle(x=x, y=y, source=peak_locs)
+            # Make sure filename column exists
+            if "filename" not in cycle_summary:
+                cycle_summary = cycle_summary.copy()
+                cycle_summary["filename"] = f"File {i + 1}"
 
-            if ind == 0:
-                lines.append(line)
+            # Create a source for hover
+            hover_source = ColumnDataSource(
+                {
+                    "full cycle": cycle_summary.reset_index()["full cycle"],
+                    "filename": cycle_summary["filename"],
+                    "charge": cycle_summary[charge_col],
+                    "discharge": cycle_summary[discharge_col],
+                }
+            )
+
+            hover_line = p3.line(
+                x="full cycle",
+                y="charge",
+                source=hover_source,
+                alpha=0,  # invisible
+                muted_alpha=0,
+                color="black",
+            )
+            hover_renderers.append(hover_line)
+
+        unit = "mAh/g" if normalized else "mAh"
+
+        hovertool = HoverTool(
+            renderers=hover_renderers,
+            tooltips=[
+                ("Filename", "@filename"),
+                ("Cycle No.", "@{full cycle}"),
+                (f"Charge capacity ({unit})", "@charge{0.00}"),
+                (f"Discharge capacity ({unit})", "@discharge{0.00}"),
+            ],
+            mode="vline",
+        )
+        p3.add_tools(hovertool)
+
+    lines = []
+
+    # Unique colormaps for each file in comparison mode
+    file_cmaps = [
+        plt.get_cmap("inferno"),
+        plt.get_cmap("viridis"),
+        plt.get_cmap("plasma"),
+        plt.get_cmap("magma"),
+        plt.get_cmap("cividis"),
+        plt.get_cmap("cubehelix"),
+        plt.get_cmap("twilight"),
+        plt.get_cmap("cool"),
+        plt.get_cmap("hot"),
+        plt.get_cmap("spring"),
+    ]
+
+    for file_idx, df in enumerate(dfs):
+        grouped_by_half_cycle = df.groupby("half cycle")
+
+        # Pick a unique colormap for this file
+        file_cmap = file_cmaps[file_idx % len(file_cmaps)]
+
+        for ind, plot in enumerate(plots):
+            x = x_default
+            y = "voltage (V)"
+            if ind == 1:
+                if mode == "dQ/dV":
+                    x = "dQ/dV (mA/V)"
+                else:
+                    y = "dV/dQ (V/mA)"
+
+            # if filtering has removed all cycles, skip making the plot
+            if len(df) < 1:
+                raise RuntimeError("No data remaining to plot after filtering.")
+
+            color_space = np.linspace(0.3, 0.7, max(int(df["half cycle"].max()), 1))
+
+            for _, group in grouped_by_half_cycle:
+                # Always color by half cycle, but use a different colormap for each file in comparison mode
+                if plotting_mode == "comparison":
+                    # If in comparison mode use a unique colormap for each file (will loop if >10 files)
+                    color_idx = int(group["half cycle"].max()) - 1
+                    line_color = matplotlib.colors.rgb2hex(file_cmap(color_space[color_idx]))
+                else:
+                    # Otherwise use the default colormap
+                    color_idx = int(group["half cycle"].max()) - 1
+                    line_color = matplotlib.colors.rgb2hex(cmap(color_space[color_idx]))
+
+                line = plot.line(
+                    x=x,
+                    y=y,
+                    source=group,
+                    line_color=line_color,
+                    hover_line_width=2,
+                    selection_line_width=2,
+                    selection_line_color="black",
+                )
+                if ind == 0:
+                    lines.append(line)
+
+                if mode == "dV/dQ" and ind == 1 and pick_peaks:
+                    # Check if half cycle or not
+                    dvdq_array = np.array(group[y])
+                    if group[y].mean() < 0:
+                        dvdq_array *= -1
+
+                    peaks, _ = find_peaks(dvdq_array, prominence=5)
+                    peak_locs = group.iloc[peaks]
+                    p2.circle(x=x, y=y, source=peak_locs)
 
     # Only add the selectable axis to dQ/dV mode
     if mode in ("dQ/dV", None):
@@ -752,7 +889,17 @@ def double_axes_echem_plot(
         yaxis_select = Select(title="Y axis:", value=y_default, options=x_options)
         yaxis_select.js_on_change("value", callback_y)
 
-    hovertooltips = [("Cycle No.", "@{full cycle}"), ("Half-cycle", "@{half cycle}")]
+    if plotting_mode == "comparison":
+        hovertooltips = [
+            ("Filename", "@{filename}"),
+            ("Cycle No.", "@{full cycle}"),
+            ("Half-cycle", "@{half cycle}"),
+        ]
+    else:
+        hovertooltips = [
+            ("Cycle No.", "@{full cycle}"),
+            ("Half-cycle", "@{half cycle}"),
+        ]
 
     if mode:
         crosshair = CrosshairTool(dimensions="width" if mode == "dQ/dV" else "height")
@@ -764,14 +911,28 @@ def double_axes_echem_plot(
         p.js_on_event(DoubleTap, CustomJS(args=dict(p=p), code="p.reset.emit()"))
 
     if mode == "dQ/dV":
-        grid = [[p1, p2], [xaxis_select]]
+        save_data = Button(label="Download .csv", button_type="primary", width_policy="min")
+        save_data_callback = CustomJS(
+            args=dict(source=ColumnDataSource(dfs[0])),
+            code=GENERATE_CSV_CALLBACK,
+        )
+        save_data.js_on_click(save_data_callback)
+        grid = [[save_data], [p1, p2], [xaxis_select]]
+
     elif mode == "dV/dQ":
-        grid = [[p1], [p2]]
+        save_data = Button(label="Download .csv", button_type="primary", width_policy="min")
+        save_data_callback = CustomJS(
+            args=dict(source=ColumnDataSource(dfs[0])),
+            code=GENERATE_CSV_CALLBACK,
+        )
+        save_data.js_on_click(save_data_callback)
+        grid = [[save_data], [p1], [p2]]
+
     elif mode == "final capacity":
-        if cycle_summary is not None:
+        if cycle_summary_dfs:
             save_data = Button(label="Download .csv", button_type="primary", width_policy="min")
             save_data_callback = CustomJS(
-                args=dict(source=ColumnDataSource(cycle_summary)),
+                args=dict(source=ColumnDataSource(cycle_summary_dfs[0])),
                 code=GENERATE_CSV_CALLBACK,
             )
             save_data.js_on_click(save_data_callback)

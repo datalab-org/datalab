@@ -9,7 +9,7 @@ from bson import ObjectId
 from flask_login import LoginManager, UserMixin
 
 from pydatalab.models import Person
-from pydatalab.models.people import AccountStatus, Identity, IdentityType
+from pydatalab.models.people import AccountStatus, Group, Identity, IdentityType
 from pydatalab.models.utils import UserRole
 from pydatalab.mongo import flask_mongo
 
@@ -72,6 +72,11 @@ class LoginUser(UserMixin):
         """Returns a list of the identity types associated with the user."""
         return [_.identity_type for _ in self.person.identities]
 
+    @property
+    def groups(self) -> list[Group] | None:
+        """Returns the list of groups that the user is a member of."""
+        return self.person.groups
+
     def refresh(self) -> None:
         """Reconstruct the user object from their database entry, to be used when,
         e.g., a new identity has been associated with them.
@@ -87,6 +92,19 @@ def get_by_id_cached(user_id):
     return get_by_id(user_id)
 
 
+def groups_lookup() -> dict:
+    return {
+        "from": "groups",
+        "let": {"group_ids": "$groups.immutable_id"},
+        "pipeline": [
+            {"$match": {"$expr": {"$in": ["$_id", {"$ifNull": ["$$group_ids", []]}]}}},
+            {"$sort": {"__order": 1}},
+            {"$project": {"_id": 1, "display_name": 1, "group_id": 1}},
+        ],
+        "as": "groups",
+    }
+
+
 def get_by_id(user_id: str) -> LoginUser | None:
     """Lookup the user database ID and create a new `LoginUser`
     with the relevant metadata.
@@ -100,7 +118,12 @@ def get_by_id(user_id: str) -> LoginUser | None:
 
     """
 
-    user = flask_mongo.db.users.find_one({"_id": ObjectId(user_id)})
+    user = flask_mongo.db.users.aggregate(
+        [
+            {"$match": {"_id": ObjectId(user_id)}},
+            {"$lookup": groups_lookup()},
+        ]
+    ).next()
     if not user:
         return None
 

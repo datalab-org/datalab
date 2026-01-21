@@ -19,17 +19,28 @@
           </div>
         </div>
         <div class="form-row">
-          <div class="form-group col-md-3 col-sm-2 col-6 pr-2">
+          <div class="form-group col-md-3 col-sm-3 col-3 pr-2">
             <label for="cell-refcode">Refcode</label>
             <div id="cell-refcode">
               <FormattedRefcode :refcode="Refcode" />
             </div>
           </div>
-          <div class="form-group col-md-3 col-sm-3 col-6 pb-3">
+          <div class="form-group col-md-3 col-sm-3 col-3 pr-2">
+            <ToggleableItemStatusFormGroup
+              v-model="Status"
+              :possible-item-statuses="possibleItemStatuses"
+            />
+          </div>
+          <div class="col-md-6 col-6 col-sm-6 pr-2">
+            <ToggleableCollectionFormGroup v-model="Collections" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group col-6 pb-3">
             <ToggleableCreatorsFormGroup v-model="ItemCreators" :refcode="Refcode" />
           </div>
-          <div class="col-md-6 col-sm-7 pr-2">
-            <ToggleableCollectionFormGroup v-model="Collections" />
+          <div class="form-group col-6 pb-3">
+            <ToggleableGroupsFormGroup v-model="ItemGroups" :refcode="Refcode" />
           </div>
         </div>
         <div class="form-row">
@@ -113,6 +124,8 @@ import ItemRelationshipVisualization from "@/components/ItemRelationshipVisualiz
 import FormattedRefcode from "@/components/FormattedRefcode";
 import ToggleableCollectionFormGroup from "@/components/ToggleableCollectionFormGroup";
 import ToggleableCreatorsFormGroup from "@/components/ToggleableCreatorsFormGroup";
+import ToggleableItemStatusFormGroup from "@/components/ToggleableItemStatusFormGroup";
+import ToggleableGroupsFormGroup from "@/components/ToggleableGroupsFormGroup";
 import { cellFormats } from "@/resources.js";
 
 export default {
@@ -125,6 +138,8 @@ export default {
     FormattedRefcode,
     ToggleableCollectionFormGroup,
     ToggleableCreatorsFormGroup,
+    ToggleableItemStatusFormGroup,
+    ToggleableGroupsFormGroup,
   },
   props: {
     item_id: {
@@ -143,6 +158,9 @@ export default {
     };
   },
   computed: {
+    item() {
+      return this.$store.state.all_item_data[this.item_id];
+    },
     Refcode: createComputedSetterForItemField("refcode"),
     ItemID: createComputedSetterForItemField("item_id"),
     SampleDescription: createComputedSetterForItemField("description"),
@@ -151,10 +169,18 @@ export default {
     MolarMass: createComputedSetterForItemField("characteristic_molar_mass"),
     DateCreated: createComputedSetterForItemField("date"),
     ItemCreators: createComputedSetterForItemField("creators"),
+    ItemGroups: createComputedSetterForItemField("groups"),
     CellFormat: createComputedSetterForItemField("cell_format"),
     CellFormatDescription: createComputedSetterForItemField("cell_format_description"),
     CharacteristicMass: createComputedSetterForItemField("characteristic_mass"),
     Collections: createComputedSetterForItemField("collections"),
+    Status: createComputedSetterForItemField("status"),
+    schema() {
+      return this.$store.state.schemas[this.item?.type];
+    },
+    possibleItemStatuses() {
+      return this.schema?.attributes?.schema?.definitions?.CellStatus?.enum;
+    },
   },
 };
 </script>

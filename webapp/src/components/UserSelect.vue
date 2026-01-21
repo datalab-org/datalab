@@ -75,11 +75,8 @@ export default {
         await searchUsers(query, 100)
           .then((users) => {
             this.users = users;
-            console.log(users);
           })
-          .catch((error) => {
-            console.error("Fetch error");
-            console.error(error);
+          .catch(() => {
             this.isSearchFetchError = true;
           });
         loading(false);

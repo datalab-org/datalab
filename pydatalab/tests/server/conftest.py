@@ -1,22 +1,14 @@
 from pathlib import Path
-from unittest.mock import patch
 
-import mongomock
 import pymongo
 import pytest
 from bson import ObjectId
 from flask.testing import FlaskClient
 
-import pydatalab.mongo
 from pydatalab.models import Cell, Collection, Equipment, Sample, StartingMaterial
 from pydatalab.models.people import AccountStatus
 
 TEST_DATABASE_NAME = "__datalab-testing__"
-
-
-class PyMongoMock(mongomock.MongoClient):
-    def init_app(self, _, *args, **kwargs):
-        return super().__init__(MONGO_URI)
 
 
 MONGO_URI = f"mongodb://localhost:27017/{TEST_DATABASE_NAME}"
@@ -63,6 +55,8 @@ def app_config(tmp_path_factory, secret_key):
         "TESTING": False,
         "ROOT_PATH": "/",
         "SECRET_KEY": secret_key,
+        "AUTO_ACTIVATE_ACCOUNTS": False,
+        "EMAIL_AUTO_ACTIVATE_ACCOUNTS": False,
         "EMAIL_AUTH_SMTP_SETTINGS": {
             "MAIL_SERVER": "smtp.example.com",
             "MAIL_PORT": 587,
@@ -81,46 +75,30 @@ def app_config(tmp_path_factory, secret_key):
 
 
 @pytest.fixture(scope="module")
-def app(real_mongo_client, monkeypatch_session, app_config):
-    """Yields the test app.
-
-    If it exists, connects to a local MongoDB, otherwise uses the
-    mongomock testing backend.
-
-    """
+def app(real_mongo_client, app_config):
+    """Yields the test app."""
     from pydatalab.main import create_app
+    from pydatalab.mongo import flask_mongo
 
-    try:
-        mongo_cli = real_mongo_client
-        if mongo_cli is None:
-            raise pymongo.errors.ServerSelectionTimeoutError
+    mongo_cli = real_mongo_client
+    if mongo_cli is None:
+        raise pymongo.errors.ServerSelectionTimeoutError(
+            "Tests require a running local MongoDB instance."
+        )
 
-        databases = mongo_cli.list_database_names()
+    databases = mongo_cli.list_database_names()
 
-        if TEST_DATABASE_NAME in databases:
-            mongo_cli.drop_database(TEST_DATABASE_NAME)
-
-    except pymongo.errors.ServerSelectionTimeoutError:
-        with patch.object(
-            pydatalab.mongo,
-            "flask_mongo",
-            PyMongoMock(MONGO_URI, connectTimeoutMS=100, serverSelectionTimeoutMS=100),
-        ):
-
-            def mock_mongo_client():
-                return PyMongoMock(MONGO_URI, connectTimeoutMS=100, serverSelectionTimeoutMS=100)
-
-            def mock_mongo_database():
-                return mock_mongo_client().get_database(TEST_DATABASE_NAME)
-
-            monkeypatch_session.setattr(
-                pydatalab.mongo, "_get_active_mongo_client", mock_mongo_client
-            )
-            monkeypatch_session.setattr(pydatalab.mongo, "get_database", mock_mongo_database)
+    if TEST_DATABASE_NAME in databases:
+        mongo_cli.drop_database(TEST_DATABASE_NAME)
 
     app = create_app(app_config, env_file=False)
 
     yield app
+
+    # Explicitly close the flask-pymongo connection
+    if flask_mongo.cx:
+        flask_mongo.cx.close()
+
     if mongo_cli:
         mongo_cli.drop_database(TEST_DATABASE_NAME)
 
@@ -221,6 +199,11 @@ def user_id():
 
 
 @pytest.fixture(scope="session")
+def group_id():
+    yield ObjectId(24 * "2")
+
+
+@pytest.fixture(scope="session")
 def another_user_id():
     yield ObjectId(24 * "7")
 
@@ -247,6 +230,7 @@ def insert_user(
     real_mongo_client,
     display_name: str = "Test Admin",
     status: AccountStatus = AccountStatus.ACTIVE,
+    group_immutable_id: ObjectId | None = None,
 ):
     from hashlib import sha512
 
@@ -256,6 +240,9 @@ def insert_user(
         "display_name": display_name,
         "account_status": status,
     }
+    if group_immutable_id is not None:
+        demo_user["groups"] = [{"immutable_id": group_immutable_id}]
+
     real_mongo_client.get_database(TEST_DATABASE_NAME).users.insert_one(demo_user)
     hash = sha512(api_key.encode("utf-8")).hexdigest()
     real_mongo_client.get_database(TEST_DATABASE_NAME).api_keys.insert_one(
@@ -278,14 +265,26 @@ def insert_demo_users(
     unverified_user_id,
     unverified_user_api_key,
     real_mongo_client,
+    group_id,
 ):
-    insert_user(user_id, user_api_key, "user", real_mongo_client, display_name="Test User")
+    insert_user(
+        user_id,
+        user_api_key,
+        "user",
+        real_mongo_client,
+        display_name="Test User",
+        group_immutable_id=group_id,
+    )
     insert_user(
         another_user_id,
         another_user_api_key,
         "user",
         real_mongo_client,
         display_name="Another User",
+        group_immutable_id=group_id,
+    )
+    real_mongo_client.get_database(TEST_DATABASE_NAME).groups.insert_one(
+        {"_id": group_id, "display_name": "Demo Group", "group_id": "demo"}
     )
     insert_user(admin_user_id, admin_api_key, "admin", real_mongo_client, display_name="Test Admin")
     insert_user(
@@ -307,7 +306,7 @@ def insert_demo_users(
 
 
 @pytest.fixture(scope="module", name="default_sample")
-def fixture_default_sample(admin_user_id, user_id):
+def fixture_default_sample(admin_user_id, user_id, group_id):
     return Sample(
         **{
             "item_id": "12345",
@@ -315,12 +314,13 @@ def fixture_default_sample(admin_user_id, user_id):
             "date": "1970-02-01",
             "type": "samples",
             "creator_ids": [admin_user_id, user_id],
+            "group_ids": [group_id],
         }
     )
 
 
 @pytest.fixture(scope="module", name="default_cell")
-def fixture_default_cell():
+def fixture_default_cell(user_id):
     return Cell(
         **{
             "item_id": "test_cell",
@@ -348,6 +348,7 @@ def fixture_default_cell():
             "electrolyte": [{"item": {"name": "inlined reference"}, "quantity": 100, "unit": "ml"}],
             "cell_format": "swagelok",
             "type": "cells",
+            "creator_ids": [user_id],
         }
     )
 

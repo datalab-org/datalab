@@ -43,8 +43,8 @@ describe("Edit Page", () => {
 
   it("Adds a valid sample", () => {
     cy.createSample("editable_sample", "This is a sample name", "1990-01-07T00:00");
-    cy.get("tr>td").eq(8).should("be.empty"); // 0 blocks are present
-    cy.get("tr>td").eq(9).should("be.empty"); // 0 files are present
+    cy.get("tr>td").eq(9).should("be.empty"); // 0 blocks are present
+    cy.get("tr>td").eq(10).should("be.empty"); // 0 files are present
   });
 
   it("Add some more samples, to use as components", () => {
@@ -263,7 +263,7 @@ describe("Edit Page", () => {
 
     cy.findByText("Home").click();
     cy.get('[data-testid="search-input"]').type("editable_sample");
-    cy.get("[data-testid=sample-table] tr:nth-of-type(1) > td:nth-of-type(9)").contains(2); // 2 blocks are present
+    cy.get("[data-testid=sample-table] tr:nth-of-type(1) > td:nth-of-type(10)").contains(2); // 2 blocks are present
   });
 
   it("Clicks the upload buttons and checks that the modals are shown", () => {
@@ -274,7 +274,7 @@ describe("Edit Page", () => {
     cy.get(".uppy-Dashboard-AddFiles-title").should("contain.text", "Drop files here,");
     cy.get(".uppy-Dashboard-AddFiles-title").should("contain.text", "browse files");
     cy.get(".uppy-Dashboard-AddFiles-title").should("contain.text", "or import from:");
-    cy.findByLabelText("Close Modal").click();
+    cy.get("body").type("{esc}");
 
     cy.findByText("Add files from server...").click();
     cy.findByText("Select files to add").should("exist");

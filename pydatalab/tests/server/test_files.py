@@ -157,9 +157,10 @@ def test_file_permissions(
     client,
     another_client,
     another_user_id,
+    group_id,
     default_filepath,
-    insert_default_sample,
-    default_sample,
+    insert_default_cell,
+    default_cell,
     tmpdir,
 ):  # pylint: disable=unused-argument
     """Upload a file as one user, then test access as two different users."""
@@ -170,7 +171,7 @@ def test_file_permissions(
             buffered=True,
             content_type="multipart/form-data",
             data={
-                "item_id": default_sample.item_id,
+                "item_id": default_cell.item_id,
                 "file": [(f, filename)],
                 "type": "application/octet-stream",
                 "replace_file": "null",
@@ -190,7 +191,7 @@ def test_file_permissions(
 
     # Give the user access to the item, then check again
     # First get refcode for item ID
-    response = client.get(f"/get-item-data/{default_sample.item_id}")
+    response = client.get(f"/get-item-data/{default_cell.item_id}")
     refcode = response.json["item_data"]["refcode"]
 
     # Add normal user to the item
@@ -199,5 +200,15 @@ def test_file_permissions(
     )
 
     # Now check they have access to the file
+    response = another_client.get(f"/files/{file_id}/{filename}")
+    assert response.status_code == 200
+
+    # Now remove them, but add their group
+    response = client.patch(
+        f"/items/{refcode}/permissions",
+        json={"creators": [], "groups": [{"immutable_id": group_id}]},
+    )
+
+    # Now check they still have access to the file
     response = another_client.get(f"/files/{file_id}/{filename}")
     assert response.status_code == 200

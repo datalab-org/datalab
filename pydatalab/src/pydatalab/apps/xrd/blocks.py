@@ -42,7 +42,7 @@ class XRDBlock(DataBlock):
         elif wavelength <= 0:
             raise ValueError("Wavelength must be a positive number")
 
-        LOGGER.debug(f"Setting wavelength to {wavelength} for block {self.block_id}")
+        LOGGER.debug("Setting wavelength to %s for block %s", wavelength, self.block_id)
         self.data["wavelength"] = wavelength
 
     @classmethod
@@ -158,7 +158,7 @@ class XRDBlock(DataBlock):
         df = pd.concat([df, y_option_df], axis=1)
         df.index.name = location.split("/")[-1] + (" (theoretical)" if theoretical else "")
 
-        LOGGER.debug(f"Loaded file from {location} as XRD pattern with wavelength {wavelength}")
+        LOGGER.debug("Loaded file from %s as XRD pattern with wavelength %s", location, wavelength)
 
         return df, y_options, peak_data
 
@@ -352,7 +352,9 @@ class XRDBlock(DataBlock):
         return selectable_axes_plot(
             pattern_dfs,
             x_options=["2θ (°)", "Q (Å⁻¹)", "d (Å)"],
-            y_default="normalized intensity",
+            y_default="normalized intensity (staggered)"
+            if len(pattern_dfs) > 1
+            else "normalized intensity",
             y_options=y_options,
             plot_line=True,
             plot_points=True,

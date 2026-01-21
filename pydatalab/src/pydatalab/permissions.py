@@ -196,9 +196,23 @@ def get_default_permissions(
             managed_users = [u["_id"] for u in managed_users]
             LOGGER.debug("Found managed users %s for user %s", managed_users, current_user.person)
 
-        user_perm: dict[str, Any] = {
-            "creator_ids": {"$in": [current_user.person.immutable_id] + managed_users}
-        }
+        # Create user permissions conditions related to their ownership of items and managed users
+        user_perm_conditions = [
+            {"creator_ids": {"$in": [current_user.person.immutable_id] + managed_users}}
+        ]
+
+        # If we are not restricting to user-only (i.e., writes, deletes), then also add group-based permissions
+        if not user_only:
+            user_group_ids = []
+            if current_user.person.groups:
+                user_group_ids = [group.immutable_id for group in current_user.person.groups]
+
+            if user_group_ids:
+                group_perm_conditions = {"group_ids": {"$in": user_group_ids}}
+                user_perm_conditions.append(group_perm_conditions)
+
+        user_perm: dict[str, Any] = {"$or": user_perm_conditions}
+
         if user_only:
             # TODO: remove this hack when permissions are refactored. Currently starting_materials and equipment
             # are a special case that should be group editable, so even when the route has asked to only edit this
@@ -207,8 +221,10 @@ def get_default_permissions(
             # If we are trying to delete, then make sure they cannot delete items that do not match their user
             if deleting:
                 return user_perm
+
             user_perm = {"$or": [user_perm, {"type": {"$in": ["starting_materials", "equipment"]}}]}
             return user_perm
+
         return {"$or": [user_perm, null_perm]}
 
     elif user_only:
