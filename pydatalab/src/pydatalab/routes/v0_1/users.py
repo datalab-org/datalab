@@ -69,7 +69,9 @@ def save_user(user_id):
             existing_email_identity = flask_mongo.db.users.find_one(
                 {
                     "_id": ObjectId(user_id),
-                    "identities": {"$elemMatch": {"type": "email", "identifier": contact_email}},
+                    "identities": {
+                        "$elemMatch": {"identity_type": "email", "identifier": contact_email}
+                    },
                 }
             )
             if not existing_email_identity:
@@ -186,11 +188,7 @@ def search_users():
 
     query = request.args.get("query", type=str)
     nresults = request.args.get("nresults", default=100, type=int)
-    types = request.args.get("types", default=None)
-
     match_obj = {"$text": {"$search": query}}
-    if types is not None:
-        match_obj["type"] = {"$in": types}
 
     cursor = flask_mongo.db.users.aggregate(
         [
