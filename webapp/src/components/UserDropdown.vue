@@ -14,6 +14,19 @@
       <span v-if="hasUnverifiedUser" class="notification-wrapper"><NotificationDot /></span>
     </router-link>
   </span>
+  <span v-if="user.role === 'admin'" class="dropdown-item super-user-toggle">
+    <div class="form-check form-switch">
+      <input
+        id="superUserModeToggle"
+        class="form-check-input"
+        type="checkbox"
+        role="switch"
+        :checked="adminSuperUserMode"
+        @change="toggleSuperUserMode"
+      />
+      <label class="form-check-label" for="superUserModeToggle">Super-user mode</label>
+    </div>
+  </span>
   <a
     type="button"
     class="dropdown-item btn login btn-link"
@@ -52,12 +65,21 @@ export default {
     hasUnverifiedUser() {
       return this.$store.getters.getHasUnverifiedUser;
     },
+    adminSuperUserMode() {
+      return this.$store.state.adminSuperUserMode;
+    },
   },
   watch: {
     editAccountSettingIsOpen: function (val) {
       if (!val) {
         this.$emit("update:modelValue", false);
       }
+    },
+  },
+  methods: {
+    toggleSuperUserMode(event) {
+      this.$store.commit("setAdminSuperUserMode", event.target.checked);
+      window.location.reload();
     },
   },
 };
@@ -77,5 +99,13 @@ export default {
   display: inline-block;
   margin-left: 0.25rem;
   vertical-align: middle;
+}
+
+.super-user-toggle {
+  padding: 0.5rem 1rem;
+}
+
+.super-user-toggle .form-check-label {
+  cursor: pointer;
 }
 </style>
