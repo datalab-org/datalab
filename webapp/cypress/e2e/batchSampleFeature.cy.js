@@ -168,7 +168,7 @@ describe("Batch sample creation", () => {
     cy.findByText("Add a block").click();
     cy.findByLabelText("Add a block").contains("Comment").click();
 
-    cy.get(".datablock-content div").first().type("a comment is added here.");
+    cy.get(".datablock-content [contenteditable]").first().type("a comment is added here.");
 
     cy.get(".fa-save").click();
     cy.findByText("Home").click();
@@ -181,7 +181,7 @@ describe("Batch sample creation", () => {
     cy.findByLabelText("Description").type("this is a description of baseB.");
     cy.findByText("Add a block").click();
     cy.findByLabelText("Add a block").contains("Comment").click();
-    cy.get(".datablock-content div").first().type("a comment is added here.");
+    cy.get(".datablock-content [contenteditable]").first().type("a comment is added here.");
 
     cy.findByLabelText("Procedure").type("a description of the synthesis here");
 

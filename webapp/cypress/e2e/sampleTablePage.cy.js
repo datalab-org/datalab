@@ -234,7 +234,7 @@ describe.only("Advanced sample creation features", () => {
     cy.findByText("Add a block").click();
     cy.findByLabelText("Add a block").contains("Comment").click();
 
-    cy.get(".datablock-content div").first().type("a comment is added here.");
+    cy.get(".datablock-content [contenteditable]").first().type("a comment is added here.");
     cy.expandIfCollapsed("[data-testid=synthesis-block]");
     cy.get("#synthesis-information .vs__search").first().type("component3");
     cy.get(".vs__dropdown-menu").contains(".badge", "component3").click();
