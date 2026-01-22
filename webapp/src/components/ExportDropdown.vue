@@ -1,5 +1,7 @@
 <template>
-  <a class="nav-item nav-link" @click="handleExport"> <i class="fa fa-download"></i> Export </a>
+  <a class="nav-item nav-link" @click="handleExport">
+    <font-awesome-icon icon="file-export" fixed-width /> Export
+  </a>
   <ExportButton
     ref="exportButton"
     :item-id="itemId"
@@ -48,3 +50,20 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.nav-link {
+  cursor: pointer;
+}
+
+.nav-link:hover {
+  background-color: black;
+  color: white;
+}
+
+.navbar-icon {
+  width: 1.9rem;
+  height: 1.9rem;
+  padding: 0.3rem;
+}
+</style>
