@@ -46,6 +46,16 @@
           </div>
         </div>
         <div class="form-row">
+          <div class="form-group col-md-8">
+            <label for="account-groups" class="col-form-label">Groups:</label>
+            <div>
+              <div v-for="group in user.groups" :key="group" class="dropdown-item">
+                <FormattedGroupName :group="group" />
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="form-row">
           <div class="form-group col-md-6">
             <label for="connected-accounts" class="col-form-label">Connected accounts:</label>
             <a
@@ -142,6 +152,7 @@ import { API_URL } from "@/resources.js";
 import Modal from "@/components/Modal.vue";
 import UserBubble from "@/components/UserBubble.vue";
 import UserActivityGraph from "@/components/UserActivityGraph.vue";
+import FormattedGroupName from "@/components/FormattedGroupName.vue";
 
 import { getUserInfo, saveUser, requestNewAPIKey } from "@/server_fetch_utils.js";
 import StyledInput from "./StyledInput.vue";
@@ -153,6 +164,7 @@ export default {
     StyledInput,
     UserBubble,
     UserActivityGraph,
+    FormattedGroupName,
   },
   props: {
     modelValue: Boolean,
