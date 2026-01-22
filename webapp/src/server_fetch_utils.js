@@ -126,6 +126,13 @@ function fetch_delete(url, body) {
  * @throws {Error} If file exceeds size limit or fetch fails
  */
 export async function fetch_file(url, maxSizeBytes = 100 * 1024 * 1024) {
+  // If admin super-user mode is enabled, append sudo=1
+  if (store.state.adminSuperUserMode) {
+    const urlObj = url instanceof URL ? url : new URL(url, window.location.origin);
+    urlObj.searchParams.set("sudo", "1");
+    url = urlObj.toString();
+  }
+
   const requestOptions = {
     method: "GET",
     headers: construct_headers(),

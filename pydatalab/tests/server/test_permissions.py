@@ -109,7 +109,11 @@ def test_access_token_permissions(client, unauthenticated_client, admin_client, 
     response = unauthenticated_client.get(f"/items/{refcode}?at={token}123")
     assert response.status_code == 401
 
+    # Admin needs ?sudo=1 to see another user's item
     response = admin_client.get(f"/items/{refcode}")
+    assert response.status_code == 404
+
+    response = admin_client.get(f"/items/{refcode}?sudo=1")
     assert response.status_code == 200
 
     response = admin_client.get(f"/items/{refcode}?at={token}")
@@ -394,3 +398,47 @@ def test_append_permissions_preserves_base_owner(client, another_user_id):
     creator_ids_final = response.json["item_data"]["creator_ids"]
     assert len(creator_ids_final) == 2
     assert creator_ids_final[0] == original_owner_id
+
+def test_admin_super_user_mode(admin_client, client):
+    """Test that admins must opt-in to super-user mode with ?sudo=1 for GET requests.
+
+    - Admin GET without ?sudo=1: should only see own items (not other users' items)
+    - Admin GET with ?sudo=1: should see all items
+    - Non-admin GET with ?sudo=1: should only see own items (param ignored)
+    - Admin non-GET methods: should always have full access (no ?sudo=1 needed)
+    """
+    # Create a sample as a normal user
+    response = client.post("/new-sample/", json={"type": "samples", "item_id": "user-owned-sample"})
+    assert response.status_code == 201
+    user_refcode = response.json["sample_list_entry"]["refcode"]
+
+    # Create a sample as an admin
+    response = admin_client.post(
+        "/new-sample/", json={"type": "samples", "item_id": "admin-owned-sample"}
+    )
+    assert response.status_code == 201
+    admin_refcode = response.json["sample_list_entry"]["refcode"]
+
+    # Admin without ?sudo=1 cannot see user's item on GET
+    response = admin_client.get(f"/items/{user_refcode}")
+    assert response.status_code == 404
+
+    # Admin with ?sudo=1 can see user's item on GET
+    response = admin_client.get(f"/items/{user_refcode}?sudo=1")
+    assert response.status_code == 200
+
+    # Admin can always see their own item (no ?sudo=1 needed)
+    response = admin_client.get(f"/items/{admin_refcode}")
+    assert response.status_code == 200
+
+    # Normal user with ?sudo=1 still cannot see admin's item (param ignored for non-admins)
+    response = client.get(f"/items/{admin_refcode}?sudo=1")
+    assert response.status_code == 404
+
+    # Normal user can see their own item
+    response = client.get(f"/items/{user_refcode}")
+    assert response.status_code == 200
+
+    # Admin can still PATCH/DELETE user's item without ?sudo=1 (non-GET methods unaffected)
+    response = admin_client.patch(f"/items/{user_refcode}/permissions", json={"creators": []})
+    assert response.status_code == 200
