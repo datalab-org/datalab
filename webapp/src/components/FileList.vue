@@ -7,7 +7,7 @@
           <a @click="deleteFile($event, file_id)">
             <font-awesome-icon icon="times" fixed-width class="delete-file-button" />
           </a>
-          <a class="filelink" target="_blank" :href="`${$API_URL}/files/${file_id}/${file.name}`">
+          <a class="filelink" target="_blank" :href="getFileUrl(file_id, file.name)">
             {{ file.name }}
           </a>
           <span v-if="getFileSize(file)" class="file-size">
@@ -99,7 +99,16 @@ export default {
       serverFileModalIsOpen: false,
     };
   },
+  computed: {
+    adminSuperUserMode() {
+      return this.$store.state.adminSuperUserMode;
+    },
+  },
   methods: {
+    getFileUrl(file_id, filename) {
+      const baseUrl = `${this.$API_URL}/files/${file_id}/${filename}`;
+      return this.adminSuperUserMode ? `${baseUrl}?sudo=1` : baseUrl;
+    },
     formatDistance,
     getFileSize(file) {
       return file.size;
