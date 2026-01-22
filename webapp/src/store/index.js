@@ -38,6 +38,7 @@ export default createStore({
     blocksInfos: {},
     currentUserIsUnverified: false,
     hasUnverifiedUser: false,
+    adminSuperUserMode: sessionStorage.getItem("adminSuperUserMode") === "true", // Toggle state for admin super-user (sudo) mode
     datatablePaginationSettings: {
       samples: {
         page: 0,
@@ -363,6 +364,10 @@ export default createStore({
     },
     updateHasUnverified(state, hasUnverified) {
       state.hasUnverifiedUser = hasUnverified;
+    },
+    setAdminSuperUserMode(state, enabled) {
+      state.adminSuperUserMode = enabled;
+      sessionStorage.setItem("adminSuperUserMode", enabled);
     },
     setRows(state, { type, rows }) {
       state.datatablePaginationSettings[type].rows = rows;
