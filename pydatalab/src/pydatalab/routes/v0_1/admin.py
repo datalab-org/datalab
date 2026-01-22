@@ -12,28 +12,52 @@ from pydatalab.mongo import flask_mongo
 from pydatalab.permissions import admin_only
 
 
-def check_manager_cycle(user_id_str, new_manager_id_str):
-    visited = set()
-    current_id = new_manager_id_str
+def check_manager_cycle(user_id: ObjectId, new_manager_id: ObjectId) -> bool:
+    """Query the database to check if assigning new_manager_id as a manager
+    causes any cyclic management relationships with user_id.
 
-    while current_id is not None:
-        if current_id == user_id_str:
+    Parameters:
+        user_id: The ObjectId of the user being assigned a new manager.
+        new_manager_id: The ObjectId of the proposed new manager.
+
+    Returns:
+        True if a cycle is detected, False otherwise.
+
+    """
+    visited: set[ObjectId] = set()
+    user_id = ObjectId(user_id)
+
+    max_depth: int = 10
+    depth: int = 0
+    ids_to_check: set[ObjectId] = {ObjectId(new_manager_id)}
+
+    # Loop through the management hierarchy; after looping, if the `user_id` is found listed as a manager
+    # of any "parents", then we have a cycle
+    while ids_to_check and depth <= max_depth:
+        # If we have found the user as another manager in the hierarchy, we have a cycle
+        if user_id in ids_to_check:
             return True
-        if current_id in visited:
-            break
-        visited.add(current_id)
 
-        try:
-            manager = flask_mongo.db.users.find_one({"_id": ObjectId(current_id)})
-            if manager and "managers" in manager and manager["managers"]:
-                if isinstance(manager["managers"], list) and len(manager["managers"]) > 0:
-                    current_id = manager["managers"][0]
-                else:
-                    break
-            else:
-                break
-        except Exception:
-            break
+        depth += 1
+
+        # Otherwise descend further and look at previous managers of managers
+        ids_to_check -= visited
+        next_ids_to_check = set()
+
+        for _id in ids_to_check:
+            manager = flask_mongo.db.users.find_one({"_id": _id}, projection={"managers": 1})
+            visited.add(_id)
+            if manager and manager.get("managers", []):
+                for m in manager["managers"]:
+                    next_ids_to_check.add(ObjectId(m))
+
+        if next_ids_to_check:
+            ids_to_check = ids_to_check.union(next_ids_to_check)
+
+    if depth > max_depth:
+        raise RuntimeError(
+            "Maximum management hierarchy depth exceeded indicating malformed user database; possible cycle detected but not proceeding further"
+        )
 
     return False
 
