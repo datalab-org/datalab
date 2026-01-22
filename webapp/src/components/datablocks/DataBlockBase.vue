@@ -128,8 +128,12 @@
       </div>
       <slot name="controls"></slot>
 
-      <div v-if="hasMetadata" class="mt-2 mb-2">
-        <button class="btn btn-sm btn-outline-secondary" @click="metadataShown = !metadataShown">
+      <div class="mt-2 mb-2">
+        <button
+          class="btn btn-sm btn-outline-secondary"
+          :disabled="!hasMetadata"
+          @click="metadataShown = !metadataShown"
+        >
           {{ metadataShown ? "Hide metadata" : "Show metadata" }}
         </button>
       </div>

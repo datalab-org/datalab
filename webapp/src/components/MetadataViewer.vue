@@ -64,17 +64,6 @@ export default {
         return JSON.stringify(value);
       }
 
-      const keyLower = key.toLowerCase();
-      if (keyLower.includes("_hz") && !isNaN(value)) {
-        return `${value} Hz`;
-      }
-      if (keyLower.includes("_mhz") && !isNaN(value)) {
-        return `${value} MHz`;
-      }
-      if (keyLower.includes("_s") && !isNaN(value)) {
-        return `${value} s`;
-      }
-
       return value;
     },
   },
