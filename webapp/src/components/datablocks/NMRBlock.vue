@@ -2,7 +2,6 @@
   <DataBlockBase :item_id="item_id" :block_id="block_id">
     <template #controls>
       <div v-if="!isMultiSelect" class="form-inline mb-2">
-        <label class="mr-2"><b>Select file:</b></label>
         <FileSelectDropdown
           v-model="fileModel"
           :item_id="item_id"
