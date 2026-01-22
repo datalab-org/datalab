@@ -231,8 +231,8 @@ describe.only("Advanced sample creation features", () => {
   it("modifies some data in the second sample", () => {
     cy.findByText("testB").click();
     cy.findByLabelText("Description").type("this is a description of testB.");
-    cy.findByText("Add a block").click();
-    cy.findByLabelText("Add a block").contains("Comment").click();
+    cy.get('[data-testid="add-block-button-top"]').click();
+    cy.get('[data-testid="add-block-dropdown"]').findByText("Comment").click();
 
     cy.get(".datablock-content [contenteditable]").first().type("a comment is added here.");
     cy.expandIfCollapsed("[data-testid=synthesis-block]");
