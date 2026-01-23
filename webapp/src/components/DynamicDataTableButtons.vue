@@ -102,18 +102,27 @@
           />
         </IconField>
 
-        <div class="d-flex align-items-center ml-2">
-          <small class="text-muted mr-1">UI</small>
-          <div class="custom-control custom-switch">
-            <input
-              id="api-search-switch"
-              v-model="localUseApiSearch"
-              type="checkbox"
-              class="custom-control-input"
-            />
-            <label class="custom-control-label" for="api-search-switch"></label>
-          </div>
-          <small class="text-muted ml-1">API</small>
+        <div class="btn-group ml-2" role="group" aria-label="Advanced search controls">
+          <button
+            data-testid="advanced-search-button"
+            class="btn btn-default"
+            aria-label="Advanced search"
+            title="Advanced search via API"
+            @click="openAdvancedSearchModal"
+          >
+            <font-awesome-icon icon="search-plus" />
+          </button>
+
+          <button
+            v-if="useApiSearch"
+            data-testid="clear-api-search-button"
+            class="btn btn-default"
+            aria-label="Clear API search"
+            title="Clear API search and return to normal view"
+            @click="clearApiSearch"
+          >
+            <font-awesome-icon icon="times" />
+          </button>
         </div>
 
         <button
@@ -175,6 +184,7 @@
       </div>
     </div>
   </div>
+  <AdvancedSearchModal v-model="isAdvancedSearchModalVisible" @search="handleAdvancedSearch" />
 </template>
 
 <script>
@@ -185,6 +195,8 @@ import InputIcon from "primevue/inputicon";
 import InputText from "primevue/inputtext";
 import MultiSelect from "primevue/multiselect";
 import "primeicons/primeicons.css";
+
+import AdvancedSearchModal from "@/components/AdvancedSearchModal";
 
 import {
   deleteSample,
@@ -200,6 +212,7 @@ export default {
     InputIcon,
     InputText,
     MultiSelect,
+    AdvancedSearchModal,
   },
   props: {
     dataType: {
@@ -243,6 +256,7 @@ export default {
       required: false,
       default: false,
     },
+    useApiSearch: { type: Boolean, default: false },
   },
   emits: [
     "open-create-item-modal",
@@ -258,6 +272,7 @@ export default {
     "remove-selected-items-from-collection",
     "update:use-api-search",
     "api-search",
+    "clear-api-search",
   ],
   data() {
     return {
@@ -265,8 +280,7 @@ export default {
       isSelectedDropdownVisible: false,
       isDeletingItems: false,
       itemCount: 0,
-      localUseApiSearch: false,
-      searchDebounceTimer: null,
+      isAdvancedSearchModalVisible: false,
     };
   },
   watch: {
@@ -381,6 +395,15 @@ export default {
       if (confirmed) {
         this.$emit("reset-table");
       }
+    },
+    openAdvancedSearchModal() {
+      this.isAdvancedSearchModalVisible = true;
+    },
+    handleAdvancedSearch(query) {
+      this.$emit("api-search", query);
+    },
+    clearApiSearch() {
+      this.$emit("clear-api-search");
     },
   },
 };

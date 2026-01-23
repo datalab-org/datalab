@@ -22,18 +22,35 @@ COLLECTIONS = Blueprint("collections", __name__)
 def _(): ...
 
 
-@COLLECTIONS.route("/collections")
+@COLLECTIONS.route("/collections", methods=["GET"])
 def get_collections():
-    collections = flask_mongo.db.collections.aggregate(
-        [
-            {"$match": get_default_permissions(user_only=True)},
-            {"$lookup": creators_lookup()},
-            {"$project": {"_id": 0}},
-            {"$sort": {"_id": -1}},
-        ]
-    )
+    limit = request.args.get("limit", default=None, type=int)
+    skip = request.args.get("skip", default=0, type=int)
 
-    return jsonify({"status": "success", "data": list(collections)})
+    match_obj = get_default_permissions(user_only=True)
+
+    total_count = flask_mongo.db.collections.count_documents(match_obj)
+
+    pipeline = [{"$match": match_obj}, {"$sort": {"last_modified": -1}}]
+
+    if skip > 0:
+        pipeline.append({"$skip": skip})
+
+    if limit is not None:
+        pipeline.append({"$limit": limit})
+
+    cursor = flask_mongo.db.collections.aggregate(pipeline)
+    collections_list = [json.loads(Collection(**doc).json(exclude_unset=True)) for doc in cursor]
+
+    return jsonify(
+        {
+            "status": "success",
+            "data": collections_list,
+            "total_count": total_count,
+            "limit": limit,
+            "skip": skip,
+        }
+    ), 200
 
 
 @COLLECTIONS.route("/collections/<collection_id>", methods=["GET"])
@@ -343,8 +360,13 @@ def delete_collection(collection_id: str):
 def search_collections():
     query = request.args.get("query", type=str)
     nresults = request.args.get("nresults", default=100, type=int)
+    skip = request.args.get("skip", default=0, type=int)
 
     match_obj = {"$text": {"$search": query}, **get_default_permissions(user_only=True)}
+
+    count_pipeline = [{"$match": match_obj}, {"$count": "total"}]
+    count_result = list(flask_mongo.db.collections.aggregate(count_pipeline))
+    total_count = count_result[0]["total"] if count_result else 0
 
     cursor = [
         json.loads(Collection(**doc).json(exclude_unset=True))
@@ -352,6 +374,7 @@ def search_collections():
             [
                 {"$match": match_obj},
                 {"$sort": {"score": {"$meta": "textScore"}}},
+                {"$skip": skip},
                 {"$limit": nresults},
                 {
                     "$project": {
@@ -363,7 +386,15 @@ def search_collections():
         )
     ]
 
-    return jsonify({"status": "success", "data": list(cursor)}), 200
+    return jsonify(
+        {
+            "status": "success",
+            "data": list(cursor),
+            "total_count": total_count,
+            "limit": nresults,
+            "skip": skip,
+        }
+    ), 200
 
 
 @COLLECTIONS.route("/collections/<collection_id>", methods=["POST"])
