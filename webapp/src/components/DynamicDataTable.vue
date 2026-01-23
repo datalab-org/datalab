@@ -16,6 +16,8 @@
       :first="page * rows"
       :rows="rows"
       :rows-per-page-options="[10, 20, 50, 100]"
+      :total-records="useApiSearch ? apiSearchTotalCount : displayedData ? displayedData.length : 0"
+      :lazy="useApiSearch"
       filter-display="menu"
       :global-filter-fields="globalFilterFields"
       removable-sort
@@ -24,7 +26,7 @@
       sort-mode="multiple"
       state-storage="local"
       :state-key="`datatable-state-${dataType}`"
-      :loading="data === null"
+      :loading="data === null || isLoadingApiSearch"
       @state-restore="onStateRestore"
       @state-save="onStateSave"
       @filter="onFilter"
@@ -45,8 +47,10 @@
           :items-selected="itemsSelected"
           :collection-id="collectionId"
           :is-loading-api-search="isLoadingApiSearch"
+          :use-api-search="useApiSearch"
           @update:use-api-search="handleUseApiSearchChange"
           @api-search="performApiSearch"
+          @clear-api-search="clearApiSearch"
           @update:selected-columns="selectedColumns = $event"
           @update:filters="filters = $event"
           @open-create-item-modal="createItemModalIsOpen = true"
@@ -453,6 +457,8 @@ export default {
       useApiSearch: false,
       apiSearchResults: null,
       isLoadingApiSearch: false,
+      apiSearchTotalCount: 0,
+      currentApiSearchQuery: null,
       filters: {
         global: { value: null },
         item_id: {
@@ -800,16 +806,43 @@ export default {
       this.useApiSearch = value;
       if (!value) {
         this.apiSearchResults = null;
+        this.apiSearchTotalCount = 0;
+        this.currentApiSearchQuery = null;
         this.filters.global.value = null;
       }
     },
-    async performApiSearch(query) {
+    clearApiSearch() {
+      this.useApiSearch = false;
+      this.apiSearchResults = null;
+      this.apiSearchTotalCount = 0;
+      this.currentApiSearchQuery = null;
+      this.filters.global.value = null;
+    },
+    async onPageChange(event) {
+      this.updatePage(event.page);
+      this.updateRows(event.rows);
+
+      if (this.useApiSearch && this.currentApiSearchQuery) {
+        const skip = event.page * event.rows;
+        await this.performApiSearch(this.currentApiSearchQuery, skip);
+      }
+
+      this.$nextTick(() => {
+        this.allSelected = this.checkAllSelected();
+      });
+    },
+    async performApiSearch(query, skip = 0) {
       if (!query || query.trim() === "") {
         this.apiSearchResults = null;
         this.isLoadingApiSearch = false;
+        this.apiSearchTotalCount = 0;
+        this.useApiSearch = false;
+        this.currentApiSearchQuery = null;
         return;
       }
 
+      this.useApiSearch = true;
+      this.currentApiSearchQuery = query;
       this.isLoadingApiSearch = true;
 
       try {
@@ -821,17 +854,21 @@ export default {
         };
 
         const types = typesMap[this.dataType];
+        const limit = this.rows || 50;
 
         if (this.dataType === "collections") {
-          const results = await searchCollections(query, 100);
-          this.apiSearchResults = results;
+          const response = await searchCollections(query, limit, skip);
+          this.apiSearchResults = response.data;
+          this.apiSearchTotalCount = response.total_count;
         } else {
-          const results = await searchItems(query, 100, types ? types.join(",") : null);
-          this.apiSearchResults = results;
+          const response = await searchItems(query, limit, types ? types.join(",") : null, skip);
+          this.apiSearchResults = response.items;
+          this.apiSearchTotalCount = response.total_count;
         }
       } catch (error) {
         console.error("API search error:", error);
         this.apiSearchResults = [];
+        this.apiSearchTotalCount = 0;
       } finally {
         this.isLoadingApiSearch = false;
       }
@@ -1080,13 +1117,6 @@ export default {
     },
     updatePage(page) {
       this.$store.commit("setPage", { type: this.dataType, page });
-    },
-    onPageChange(event) {
-      this.updatePage(event.page);
-      this.updateRows(event.rows);
-      this.$nextTick(() => {
-        this.allSelected = this.checkAllSelected();
-      });
     },
     onToggleColumns(value) {
       this.$nextTick(() => {
