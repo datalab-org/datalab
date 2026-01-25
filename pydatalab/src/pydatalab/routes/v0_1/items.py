@@ -449,6 +449,7 @@ def search_items():
                 "chemform": 1,
                 "refcode": 1,
                 "status": 1,
+                "location": 1,
             }
         }
     )
