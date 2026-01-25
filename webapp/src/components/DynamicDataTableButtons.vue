@@ -18,99 +18,97 @@
       </div>
     </div>
 
-    <div class="d-flex justify-content-between align-items-center">
-      <div class="button-left">
+    <div class="button-bar">
+      <div v-if="dataType === 'samples'" class="btn-action-group">
         <button
-          v-if="dataType === 'samples'"
           data-testid="add-item-button"
-          class="btn btn-default ml-2"
+          class="btn btn-default btn-action"
           @click="$emit('open-create-item-modal')"
         >
           Add an item
         </button>
         <button
-          v-if="dataType === 'samples'"
           data-testid="batch-item-button"
-          class="btn btn-default ml-2"
+          class="btn btn-default btn-action"
           @click="$emit('open-batch-create-item-modal')"
         >
           Add batch of items
         </button>
         <button
-          v-if="dataType === 'samples'"
           data-testid="scan-qr-button"
-          class="btn btn-default ml-2"
+          class="btn btn-default btn-action"
           aria-label="Scan QR code"
           title="Scan QR code"
           @click="$emit('open-qr-scanner-modal')"
         >
-          <font-awesome-icon icon="qrcode" />
-        </button>
-        <button
-          v-if="dataType === 'collections'"
-          data-testid="add-collection-button"
-          class="btn btn-default ml-2"
-          @click="$emit('open-create-collection-modal')"
-        >
-          Create new collection
-        </button>
-        <button
-          v-if="dataType === 'startingMaterials' && editableInventory"
-          data-testid="add-starting-material-button"
-          class="btn btn-default ml-2"
-          @click="$emit('open-create-item-modal')"
-        >
-          Add a starting material
-        </button>
-        <button
-          v-if="dataType === 'equipment'"
-          data-testid="add-equipment-button"
-          class="btn btn-default ml-2"
-          @click="$emit('open-create-equipment-modal')"
-        >
-          Add an item
+          <font-awesome-icon icon="qrcode" /> Scan QR code
         </button>
       </div>
+      <button
+        v-if="dataType === 'collections'"
+        data-testid="add-collection-button"
+        class="btn btn-default"
+        @click="$emit('open-create-collection-modal')"
+      >
+        Create new collection
+      </button>
+      <button
+        v-if="dataType === 'startingMaterials' && editableInventory"
+        data-testid="add-starting-material-button"
+        class="btn btn-default"
+        @click="$emit('open-create-item-modal')"
+      >
+        Add a starting material
+      </button>
+      <button
+        v-if="dataType === 'equipment'"
+        data-testid="add-equipment-button"
+        class="btn btn-default"
+        @click="$emit('open-create-equipment-modal')"
+      >
+        Add an item
+      </button>
 
-      <div class="button-right d-flex">
-        <MultiSelect
-          :model-value="selectedColumns"
-          :options="availableColumns"
-          :option-label="columnLabel"
-          placeholder="Select column(s) to display"
-          display="chip"
-          @update:model-value="$emit('update:selected-columns', $event)"
-        >
-          <template #value="{ value }">
-            <span v-if="value && value.length == availableColumns.length" class="text-gray-400"
-              >All columns displayed</span
-            >
-            <span v-else>{{ value.length }} columns displayed</span>
-          </template>
-        </MultiSelect>
+      <div class="button-bar-spacer"></div>
 
-        <IconField class="ml-2">
-          <InputIcon>
-            <font-awesome-icon icon="search" />
-          </InputIcon>
-          <InputText
-            v-model="localFilters.global.value"
-            data-testid="search-input"
-            class="search-input"
-            placeholder="Search"
-          />
-        </IconField>
+      <MultiSelect
+        :model-value="selectedColumns"
+        :options="availableColumns"
+        :option-label="columnLabel"
+        placeholder="Select column(s) to display"
+        display="chip"
+        class="column-select"
+        @update:model-value="$emit('update:selected-columns', $event)"
+      >
+        <template #value="{ value }">
+          <span v-if="value && value.length == availableColumns.length" class="text-gray-400"
+            >All columns displayed</span
+          >
+          <span v-else>{{ value.length }} columns displayed</span>
+        </template>
+      </MultiSelect>
 
-        <button
-          data-testid="reset-table-button"
-          class="btn btn-default ml-2"
-          aria-label="Reset table"
-          title="Reset table"
-          @click="resetTable"
-        >
-          <font-awesome-icon icon="redo" />
-        </button>
-      </div>
+      <IconField class="search-field">
+        <InputIcon>
+          <font-awesome-icon icon="search" />
+        </InputIcon>
+        <InputText
+          v-model="localFilters.global.value"
+          data-testid="search-input"
+          class="search-input"
+          placeholder="Search"
+        />
+      </IconField>
+
+      <button
+        data-testid="reset-table-button"
+        class="btn btn-default"
+        aria-label="Reset table"
+        title="Reset table"
+        @click="resetTable"
+      >
+        <font-awesome-icon icon="redo" />
+      </button>
     </div>
 
     <div v-if="itemsSelected.length > 0" class="d-flex justify-content-end align-items-center mt-2">
@@ -358,11 +356,59 @@ export default {
 </script>
 
 <style scoped>
+.button-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-action-group {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-action {
+  flex: 1;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.button-bar-spacer {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.column-select {
+  flex: 0 1 auto;
+  min-width: 120px;
+  max-width: 220px;
+}
+
+.column-select :deep(.p-multiselect) {
+  height: calc(1.5em + 0.75rem + 2px);
+  align-items: center;
+}
+
+.search-field {
+  flex: 0 1 auto;
+  min-width: 100px;
+  max-width: 200px;
+}
+
+.search-field :deep(.p-inputtext) {
+  height: calc(1.5em + 0.75rem + 2px);
+  padding: 0.375rem 0.75rem;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
 .search-input {
   height: calc(1.5em + 0.75rem + 2px);
   padding: 0.375rem 0.75rem;
   font-size: 1rem;
   line-height: 1.5;
   border-radius: 0.25rem;
+  width: 100%;
 }
 </style>
