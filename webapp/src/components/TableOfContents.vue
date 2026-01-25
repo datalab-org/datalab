@@ -116,7 +116,7 @@ export default {
 }
 
 .contents-blocktitle {
-  color: #004175;
+  color: var(--theme-primary, #004175);
 }
 
 #contents-ol {
@@ -129,9 +129,9 @@ export default {
   z-index: 2;
   top: 2rem;
   left: 0px;
-  background: #fff;
+  background: var(--theme-card-bg, #fff);
   border-width: 1px;
-  border-color: lightgrey;
+  border-color: var(--theme-border-color, lightgrey);
   border-style: solid;
   padding: 0.5rem;
   margin-top: 3rem;
@@ -168,13 +168,13 @@ export default {
   z-index: 1;
   top: 2rem;
   left: 0px;
-  background: #fff;
+  background: var(--theme-card-bg, #fff);
   overflow-x: hidden;
   padding: 1rem 1rem;
   margin-top: 3rem;
   border-radius: 0px 5px 5px 0px;
   border-width: 1px;
-  border-color: lightgrey;
+  border-color: var(--theme-border-color, lightgrey);
   border-style: solid;
 }
 
@@ -192,12 +192,12 @@ export default {
   padding: 6px 8px 6px 16px;
   text-decoration: none;
   font-size: 25px;
-  color: #2196f3;
+  color: var(--theme-primary, #2196f3);
   display: block;
 }
 
 .sidenav a:hover {
-  color: #064579;
+  color: var(--theme-muted-color, #064579);
 }
 </style>
 

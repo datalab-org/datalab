@@ -1,6 +1,6 @@
 // import BootstrapVue from 'bootstrap-vue';
 
-import "bootstrap/dist/css/bootstrap.css";
+import "@/styles/custom-bootstrap.scss";
 // import 'bootstrap-vue/dist/bootstrap-vue.css'
 
 import { API_URL } from "@/resources.js";

@@ -32,6 +32,14 @@
   <a
     type="button"
     class="dropdown-item btn login btn-link"
+    aria-label="Change theme"
+    @click.stop="cycleTheme"
+  >
+    <font-awesome-icon icon="palette" /> &nbsp;&nbsp;Theme: {{ currentTheme }}
+  </a>
+  <a
+    type="button"
+    class="dropdown-item btn login btn-link"
     aria-label="Logout"
     :href="apiUrl + '/logout'"
     ><font-awesome-icon icon="sign-out-alt" /> &nbsp;&nbsp;Logout</a
@@ -72,6 +80,9 @@ export default {
     adminSuperUserMode() {
       return this.$store.state.adminSuperUserMode;
     },
+    currentTheme() {
+      return this.$store.state.theme;
+    },
   },
   watch: {
     editAccountSettingIsOpen: function (val) {
@@ -84,6 +95,12 @@ export default {
     toggleSuperUserMode(event) {
       this.$store.commit("setAdminSuperUserMode", event.target.checked);
       window.location.reload();
+    },
+    cycleTheme() {
+      const themes = ["default", "plum", "dark"];
+      const currentIndex = themes.indexOf(this.currentTheme);
+      const nextIndex = (currentIndex + 1) % themes.length;
+      this.$store.commit("setTheme", themes[nextIndex]);
     },
   },
 };

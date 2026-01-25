@@ -188,12 +188,12 @@ export default {
   font-size: large;
   margin-left: 10px;
   margin-right: 10px;
-  color: #004175;
+  color: var(--theme-primary, #004175);
   transition: all 0.4s;
 }
 
 .collapse-arrow:hover {
-  color: #7ca7ca;
+  color: var(--theme-muted-color, #7ca7ca);
 }
 
 /* expanded is on the parent (the header) */
@@ -204,7 +204,7 @@ export default {
 }
 
 .subheading {
-  color: darkslategrey;
+  color: var(--theme-muted-color, darkslategrey);
   font-size: small;
   font-weight: 600;
   text-transform: uppercase;

@@ -139,7 +139,7 @@ export default {
 }
 
 .filelink {
-  color: #004175;
+  color: var(--theme-primary, #004175);
   font-family: var(--font-monospace);
 }
 
@@ -152,7 +152,7 @@ export default {
 .upload-icon,
 .remote-upload-icon {
   margin-left: 0rem;
-  color: #888;
+  color: var(--theme-muted-color, #888);
   font-size: small;
 }
 
@@ -166,7 +166,7 @@ export default {
 }
 
 .delete-file-button:hover {
-  color: #dc3545;
+  color: var(--theme-danger, #dc3545);
   cursor: pointer;
 }
 
@@ -177,12 +177,12 @@ export default {
 
 .last-updated-text {
   font-size: 0.8em;
-  color: #888;
+  color: var(--theme-muted-color, #888);
   font-style: italic;
   vertical-align: middle;
 }
 .file-size {
-  color: #888;
+  color: var(--theme-muted-color, #888);
   font-size: 0.8em;
   margin-left: 0.25rem;
 }
@@ -191,8 +191,8 @@ export default {
   font-family: var(--font-monospace);
   font-weight: 400;
   /*font-style: italic;*/
-  color: teal;
-  border: solid 1px teal;
+  color: var(--theme-info, teal);
+  border: solid 1px var(--theme-info, teal);
   padding: 0.1rem 0.25rem;
   margin-left: 0.5rem;
   border-radius: 0.2rem;

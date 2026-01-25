@@ -40,6 +40,7 @@ export default createStore({
     currentUserIsUnverified: false,
     hasUnverifiedUser: false,
     adminSuperUserMode: sessionStorage.getItem("adminSuperUserMode") === "true", // Toggle state for admin super-user (sudo) mode
+    theme: localStorage.getItem("theme") || "default", // UI theme: "default" or "plum"
     datatablePaginationSettings: {
       samples: {
         page: 0,
@@ -372,6 +373,15 @@ export default createStore({
     setAdminSuperUserMode(state, enabled) {
       state.adminSuperUserMode = enabled;
       sessionStorage.setItem("adminSuperUserMode", enabled);
+    },
+    setTheme(state, theme) {
+      state.theme = theme;
+      localStorage.setItem("theme", theme);
+      // Apply theme class to body
+      document.body.classList.remove("theme-default", "theme-plum", "theme-dark");
+      if (theme !== "default") {
+        document.body.classList.add(`theme-${theme}`);
+      }
     },
     setRows(state, { type, rows }) {
       state.datatablePaginationSettings[type].rows = rows;

@@ -102,49 +102,49 @@ a > .logo-banner:hover {
 }
 
 .info-banner {
-  background-color: white;
-  border-color: #007bff;
-  color: #004085;
+  background-color: var(--theme-card-bg, white);
+  border-color: var(--theme-primary, #007bff);
+  color: var(--theme-primary, #004085);
   background: repeating-linear-gradient(
     45deg,
-    #004085,
-    #004085 1px,
+    var(--theme-crosshatch-info, #004085),
+    var(--theme-crosshatch-info, #004085) 1px,
     transparent 1px,
     transparent 10px
   );
 }
 
 .info-banner-text {
-  background-color: white;
+  background-color: var(--theme-card-bg, white);
   display: inline-block;
   padding: 0.25rem 0.5rem;
 }
 
 .super-user-banner {
-  background-color: white;
+  background-color: var(--theme-card-bg, white);
   background: repeating-linear-gradient(
     45deg,
-    #a52a2a,
-    #a52a2a 1px,
+    var(--theme-crosshatch-danger, #a52a2a),
+    var(--theme-crosshatch-danger, #a52a2a) 1px,
     transparent 1px,
     transparent 10px
   );
-  border-color: #a52a2a;
-  color: #721c24;
+  border-color: var(--theme-danger, #a52a2a);
+  color: var(--theme-danger, #721c24);
 }
 
 .super-user-banner-text {
-  background-color: white;
+  background-color: var(--theme-card-bg, white);
   display: inline-block;
   padding: 0.25rem 0.5rem;
 }
 
 .super-user-banner .disable-link {
-  color: #721c24;
+  color: var(--theme-danger, #721c24);
   text-decoration: underline;
 }
 
 .super-user-banner .disable-link:hover {
-  color: #721c24;
+  color: var(--theme-danger, #721c24);
 }
 </style>
