@@ -31,6 +31,7 @@ export default createStore({
     fileSelectModalIsOpen: false,
     currentUserDisplayName: null,
     currentUserID: null,
+    currentUserRole: null,
     currentUserInfoLoading: false,
     currentUserInfoLoaded: false,
     currentUserInfoPromise: null,
@@ -90,6 +91,9 @@ export default createStore({
     },
     setCurrentUserID(state, userID) {
       state.currentUserID = userID;
+    },
+    setCurrentUserRole(state, role) {
+      state.currentUserRole = role;
     },
     setIsUnverified(state, isUnverified) {
       state.currentUserIsUnverified = isUnverified;
@@ -430,6 +434,14 @@ export default createStore({
       // userId can be a user ID string or null/undefined for combined activity
       const cacheKey = userId || "combined";
       return state.userActivityCache[cacheKey];
+    },
+    isAdminSuperUserModeActive(state) {
+      // Super-user mode is only active if: flag is set, user is logged in, and user is an admin
+      return (
+        state.adminSuperUserMode &&
+        state.currentUserDisplayName !== null &&
+        state.currentUserRole === "admin"
+      );
     },
   },
   actions: {

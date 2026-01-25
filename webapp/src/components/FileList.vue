@@ -101,7 +101,7 @@ export default {
   },
   computed: {
     adminSuperUserMode() {
-      return this.$store.state.adminSuperUserMode;
+      return this.$store.getters.isAdminSuperUserModeActive;
     },
   },
   methods: {

@@ -65,7 +65,7 @@ export function construct_headers(additional_headers = null) {
 // eslint-disable-next-line no-unused-vars
 function fetch_get(url) {
   // If admin super-user mode is enabled, append sudo=1
-  if (store.state.adminSuperUserMode) {
+  if (store.getters.isAdminSuperUserModeActive) {
     const urlObj = url instanceof URL ? url : new URL(url, window.location.origin);
     urlObj.searchParams.set("sudo", "1");
     url = urlObj.toString();
@@ -134,7 +134,7 @@ function fetch_delete(url, body) {
  */
 export async function fetch_file(url, maxSizeBytes = 100 * 1024 * 1024) {
   // If admin super-user mode is enabled, append sudo=1
-  if (store.state.adminSuperUserMode) {
+  if (store.getters.isAdminSuperUserModeActive) {
     const urlObj = url instanceof URL ? url : new URL(url, window.location.origin);
     urlObj.searchParams.set("sudo", "1");
     url = urlObj.toString();
@@ -548,6 +548,7 @@ export async function getCurrentUser() {
       store.commit("setCurrentUserInfoLoading", false);
       store.state.currentUserInfoLoaded = true;
       currentUserPromise = null;
+      sessionStorage.removeItem("adminSuperUserMode");
       return null;
     });
 
@@ -557,6 +558,7 @@ export async function getCurrentUser() {
 export function invalidateCurrentUserCache() {
   currentUserCache = null;
   currentUserPromise = null;
+  sessionStorage.removeItem("adminSuperUserMode");
 }
 
 export async function requestMagicLink(email_address) {

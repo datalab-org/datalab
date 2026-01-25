@@ -520,6 +520,9 @@ export default {
     page() {
       return this.$store.state.datatablePaginationSettings[this.dataType].page;
     },
+    adminSuperUserMode() {
+      return this.$store.getters.isAdminSuperUserModeActive;
+    },
     uniqueCreators() {
       return Array.from(
         new Map(

@@ -24,6 +24,8 @@
           v-if="dataType === 'samples'"
           data-testid="add-item-button"
           class="btn btn-default ml-2"
+          :disabled="adminSuperUserMode"
+          :title="adminSuperUserMode ? 'Disabled in super-user mode' : ''"
           @click="$emit('open-create-item-modal')"
         >
           Add an item
@@ -32,6 +34,8 @@
           v-if="dataType === 'samples'"
           data-testid="batch-item-button"
           class="btn btn-default ml-2"
+          :disabled="adminSuperUserMode"
+          :title="adminSuperUserMode ? 'Disabled in super-user mode' : ''"
           @click="$emit('open-batch-create-item-modal')"
         >
           Add batch of items
@@ -253,6 +257,11 @@ export default {
       isDeletingItems: false,
       itemCount: 0,
     };
+  },
+  computed: {
+    adminSuperUserMode() {
+      return this.$store.getters.isAdminSuperUserModeActive;
+    },
   },
   watch: {
     itemsSelected(newVal) {
