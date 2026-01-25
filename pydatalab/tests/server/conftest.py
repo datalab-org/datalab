@@ -328,12 +328,12 @@ def fixture_default_cell(user_id):
             "date": "1970-02-01",
             "negative_electrode": [
                 {
-                    "item": {"item_id": "test", "chemform": "Li15Si4", "type": "samples"},
+                    "item": {"item_id": "test", "type": "starting_materials"},
                     "quantity": 2.0,
                     "unit": "mg",
                 },
                 {
-                    "item": {"item_id": "test", "chemform": "C", "type": "samples"},
+                    "item": {"item_id": "test_carbon", "chemform": "C", "type": "samples"},
                     "quantity": 2.0,
                     "unit": "mg",
                 },
@@ -451,6 +451,36 @@ def fixture_complicated_sample(user_id):
             "synthesis_description": "Take one gram of sodium and add 2 kg of...sodium, then 3 ml of liquid sodium(??) <i>et voila</i>, you have some real good sodium!",
         }
     )
+
+
+@pytest.fixture(scope="module", name="insert_complicated_sample_constituents")
+def fixture_insert_complicated_sample_constituents(user_id):
+    """Insert the starting materials referenced by complicated_sample into the database
+    so that entry_reference_lookup can resolve them."""
+    from pydatalab.models.utils import generate_unique_refcode
+    from pydatalab.mongo import flask_mongo
+
+    items = []
+    for sm_id, sm_name in [
+        ("starting_material_1", "first Na"),
+        ("starting_material_2", "second Na"),
+        ("starting_material_3", "liquid Na"),
+    ]:
+        sm = StartingMaterial(
+            item_id=sm_id,
+            name=sm_name,
+            chemform="Na",
+            type="starting_materials",
+            creator_ids=[user_id],
+            refcode=generate_unique_refcode(),
+        )
+        flask_mongo.db.items.insert_one(sm.dict(exclude_unset=False))
+        items.append(sm)
+
+    yield items
+
+    for item in items:
+        flask_mongo.db.items.delete_one({"refcode": item.refcode})
 
 
 @pytest.fixture(scope="module")
