@@ -79,7 +79,7 @@
         <p>
           plus contributions, feedback and testing performed by other members of the community, in
           particular, the groups of
-          <a href="https://cliffegroup.co.uk">Prof Matt Cliffe</a> (University of Nottingham) and
+          <a href="https://cliffegroup.co.uk">Prof Matt Cliffe</a> (University of Cambridge) and
           <a href="https://www.tu.berlin/en/concat">Dr Peter Kraus</a> (TUBerlin) and the company
           <a href="https://matgenix.com">Matgenix SRL</a>.
         </p>
