@@ -79,7 +79,7 @@
         <p>
           plus contributions, feedback and testing performed by other members of the community, in
           particular, the groups of
-          <a href="https://cliffegroup.co.uk">Prof Matt Cliffe</a> (University of Nottingham) and
+          <a href="https://cliffegroup.co.uk">Prof Matt Cliffe</a> (University of Cambridge) and
           <a href="https://www.tu.berlin/en/concat">Dr Peter Kraus</a> (TUBerlin) and the company
           <a href="https://matgenix.com">Matgenix SRL</a>.
         </p>
@@ -116,26 +116,14 @@
         </ul>
 
         <div align="center" style="padding-top: 20px">
-          <a href="https://www.big-map.eu"
-            ><img
-              class="funding-logo"
-              src="https://avatars.githubusercontent.com/u/75324577"
-              width="100"
-              target="_blank"
+          <a href="https://www.big-map.eu" target="_blank"
+            ><img class="funding-logo" src="/logos/bigmap.png" width="100"
           /></a>
-          <a href="https://www.leverhulme.ac.uk"
-            ><img
-              class="funding-logo"
-              src="https://www.leverhulme.ac.uk/sites/default/files/Leverhulme_Trust_RGB_blue_0_0.png"
-              width="250"
-              target="_blank"
+          <a href="https://www.leverhulme.ac.uk" target="_blank"
+            ><img class="funding-logo" src="/logos/leverhulme.png" width="250"
           /></a>
-          <a href="https://www.faraday.ac.uk"
-            ><img
-              class="funding-logo"
-              src="https://www.faraday.ac.uk/wp-content/themes/faraday/assets/faraday-logo-highres.png"
-              width="250"
-              target="_blank"
+          <a href="https://www.faraday.ac.uk" target="_blank"
+            ><img class="funding-logo" src="/logos/faraday.png" width="250"
           /></a>
         </div>
 

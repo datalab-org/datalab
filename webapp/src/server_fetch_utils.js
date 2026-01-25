@@ -11,6 +11,9 @@ import {
 
 import { DialogService } from "@/services/DialogService";
 
+let currentUserCache = null;
+let currentUserPromise = null;
+
 /**
  * Waits for user info to finish loading and checks if user is authenticated.
  *
@@ -490,20 +493,54 @@ export function searchGroups(query, nresults = 100) {
 }
 
 export async function getUserInfo() {
+  return await getCurrentUser();
+}
+
+export async function isUserAuthenticated() {
+  const result = await getCurrentUser();
+  return result !== null && result.immutable_id !== undefined;
+}
+
+export async function getCurrentUser() {
+  if (currentUserCache !== null) {
+    store.commit("setDisplayName", currentUserCache.display_name);
+    store.commit("setCurrentUserID", currentUserCache.immutable_id);
+    store.commit("setIsUnverified", currentUserCache.account_status === "unverified");
+    return currentUserCache;
+  }
+
+  if (currentUserPromise !== null) {
+    return currentUserPromise;
+  }
+
   store.commit("setCurrentUserInfoLoading", true);
-  return fetch_get(`${API_URL}/get-current-user/`)
-    .then((response_json) => {
-      store.commit("setDisplayName", response_json.display_name);
-      store.commit("setCurrentUserID", response_json.immutable_id);
-      store.commit("setIsUnverified", response_json.account_status == "unverified" ? true : false);
-      store.commit("setCurrentUserInfoLoading", false);
-      return response_json;
+
+  currentUserPromise = fetch_get(`${API_URL}/get-current-user/`)
+    .then((response) => {
+      if (response) {
+        currentUserCache = response;
+        store.commit("setDisplayName", response.display_name);
+        store.commit("setCurrentUserID", response.immutable_id);
+        store.commit("setIsUnverified", response.account_status === "unverified");
+        store.commit("setCurrentUserInfoLoading", false);
+        store.state.currentUserInfoLoaded = true;
+        currentUserPromise = null;
+        return response;
+      }
     })
     .catch(() => {
-      // If the user is not logged in, we return null.
       store.commit("setCurrentUserInfoLoading", false);
+      store.state.currentUserInfoLoaded = true;
+      currentUserPromise = null;
       return null;
     });
+
+  return currentUserPromise;
+}
+
+export function invalidateCurrentUserCache() {
+  currentUserCache = null;
+  currentUserPromise = null;
 }
 
 export async function requestMagicLink(email_address) {
