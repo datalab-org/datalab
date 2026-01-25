@@ -16,7 +16,7 @@
       <span v-if="searching"> Sorry, no matches found. </span>
       <span v-else class="empty-search"> Type a search term... </span>
     </template>
-    <template #option="{ type, item_id, name, chemform, status }">
+    <template #option="{ type, item_id, name, chemform, status, location }">
       <span v-if="status != 'dummy'" class="item-status"
         ><FormattedItemStatus :status="status"
       /></span>
@@ -26,6 +26,7 @@
         :name="name"
         :selecting="true"
         :chemform="chemform"
+        :location="location"
         enable-modified-click
         :max-length="formattedItemNameMaxLength"
       />
@@ -116,6 +117,7 @@ export default {
         item_id: "",
         name: newOption,
         type: "none",
+        location: "",
         status: "dummy",
       };
     },
