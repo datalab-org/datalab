@@ -72,7 +72,7 @@ export default {
       return this.$store.state.blocksInfos["media"];
     },
     adminSuperUserMode() {
-      return this.$store.state.adminSuperUserMode;
+      return this.$store.getters.isAdminSuperUserModeActive;
     },
     media_url() {
       // If the API has already base64 encoded the image, then use it,
@@ -80,7 +80,10 @@ export default {
       if ((b64_encoding != null && b64_encoding[this.file_id]) || null != null) {
         return `data:image/png;base64,${b64_encoding[this.file_id]}`;
       }
-      const baseUrl = `${API_URL}/files/${this.file_id}/${this.lookup_file_field("name", this.file_id)}`;
+      const baseUrl = `${API_URL}/files/${this.file_id}/${this.lookup_file_field(
+        "name",
+        this.file_id,
+      )}`;
       return this.adminSuperUserMode ? `${baseUrl}?sudo=1` : baseUrl;
     },
     isPhoto() {
