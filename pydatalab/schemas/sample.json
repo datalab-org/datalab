@@ -200,6 +200,10 @@
           "maxLength": 40,
           "pattern": "^[a-z]{2,10}:(?:[a-zA-Z0-9]+|[a-zA-Z0-9][a-zA-Z0-9._-]+[a-zA-Z0-9])$",
           "type": "string"
+        },
+        "chemform": {
+          "title": "Chemform",
+          "type": "string"
         }
       },
       "required": [

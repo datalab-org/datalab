@@ -508,10 +508,10 @@ def test_create_cell(client, default_cell):
         cell["positive_electrode"][0]["item"]["name"]
         == default_cell.positive_electrode[0].item.name
     )
-    assert (
-        cell["negative_electrode"][0]["item"]["name"]
-        == default_cell.negative_electrode[0].item.name
-    )
+    # The anode has a "real" entry in the db, so it should be looked up properly
+    # with dereferenced chemical formula and name, even if it was not provided at link time
+    assert cell["negative_electrode"][0]["item"]["name"] == "NaNiO2"
+    assert cell["negative_electrode"][0]["item"]["chemform"] == "NaNiO2"
 
 
 @pytest.mark.dependency(depends=["test_create_cell"])
