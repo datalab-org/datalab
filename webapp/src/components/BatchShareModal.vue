@@ -58,6 +58,7 @@ import Modal from "@/components/Modal.vue";
 import FormattedItemName from "@/components/FormattedItemName";
 import UserSelect from "@/components/UserSelect.vue";
 import GroupSelect from "@/components/GroupSelect.vue";
+import { DialogService } from "@/services/DialogService";
 
 import {
   appendItemPermissions,
@@ -97,6 +98,8 @@ export default {
       try {
         const refcodes = this.itemsSelected.map((item) => item.refcode);
         let itemsWithNoChanges = 0;
+        let itemsWithErrors = 0;
+        let successfulUpdates = 0;
 
         for (const refcode of refcodes) {
           try {
@@ -108,9 +111,12 @@ export default {
 
             if (response.message === "No changes needed") {
               itemsWithNoChanges++;
+            } else {
+              successfulUpdates++;
             }
           } catch (error) {
             console.error(`Error sharing item ${refcode}:`, error);
+            itemsWithErrors++;
           }
         }
 
@@ -124,17 +130,38 @@ export default {
           getEquipmentList();
         }
 
-        if (itemsWithNoChanges === refcodes.length) {
-          console.log("All selected items already have these permissions.");
+        if (itemsWithErrors > 0) {
+          DialogService.error({
+            title: "Batch Sharing Partially Failed",
+            message: `Successfully updated ${successfulUpdates} item(s), but ${itemsWithErrors} item(s) failed. ${itemsWithNoChanges > 0 ? `${itemsWithNoChanges} item(s) already had these permissions.` : ""}`,
+          });
+        } else if (itemsWithNoChanges === refcodes.length) {
+          DialogService.alert({
+            title: "No Changes Made",
+            message: "All selected items already have these permissions.",
+            type: "info",
+          });
         } else if (itemsWithNoChanges > 0) {
-          console.log(`${itemsWithNoChanges} items already had these permissions.`);
+          DialogService.alert({
+            title: "Batch Sharing Completed",
+            message: `Successfully shared with ${successfulUpdates} item(s). ${itemsWithNoChanges} item(s) already had these permissions.`,
+            type: "success",
+          });
         } else {
-          console.log("Items shared successfully.");
+          DialogService.alert({
+            title: "Batch Sharing Successful",
+            message: `Successfully shared ${refcodes.length} item(s) with the selected people and groups.`,
+            type: "success",
+          });
         }
 
         this.handleClose();
       } catch (error) {
         console.error("Error sharing items:", error);
+        DialogService.error({
+          title: "Batch Sharing Failed",
+          message: `An unexpected error occurred: ${error.message || error}`,
+        });
       }
     },
     handleClose() {
