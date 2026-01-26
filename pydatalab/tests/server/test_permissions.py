@@ -223,7 +223,7 @@ def test_append_permissions_creators(client, another_client, user_id, another_us
     updated_creators = response.json["item_data"]["creators"]
     assert len(updated_creators) == 2
 
-    creator_ids = [c["_id"] for c in updated_creators]
+    creator_ids = response.json["item_data"]["creator_ids"]
     assert str(user_id) in creator_ids
     assert str(another_user_id) in creator_ids
 
@@ -250,7 +250,9 @@ def test_append_permissions_groups(client, another_client, user_id, another_user
     assert response.status_code == 200
     updated_groups = response.json["item_data"]["groups"]
     assert len(updated_groups) == 1
-    assert updated_groups[0]["_id"] == str(group_id)
+
+    group_ids = response.json["item_data"]["group_ids"]
+    assert str(group_id) in group_ids
 
 
 def test_append_permissions_no_duplicates(client, another_user_id):
@@ -302,39 +304,6 @@ def test_append_permissions_both_creators_and_groups(client, another_user_id, gr
     assert len(item_data["groups"]) == 1
 
 
-def test_patch_vs_put_permissions(client, another_user_id, third_user_id):
-    response = client.post(
-        "/new-sample/", json={"type": "samples", "item_id": "sample-for-patch-vs-put"}
-    )
-    assert response.status_code == 201
-    refcode = response.json["sample_list_entry"]["refcode"]
-
-    response = client.put(
-        f"/items/{refcode}/permissions",
-        json={"creators": [{"immutable_id": str(another_user_id)}]},
-    )
-    assert response.status_code == 200
-
-    response = client.get(f"/items/{refcode}")
-    assert response.status_code == 200
-    assert len(response.json["item_data"]["creators"]) == 2
-
-    response = client.patch(
-        f"/items/{refcode}/permissions",
-        json={"creators": [{"immutable_id": str(third_user_id)}]},
-    )
-    assert response.status_code == 200
-
-    response = client.get(f"/items/{refcode}")
-    assert response.status_code == 200
-    creators = response.json["item_data"]["creators"]
-    assert len(creators) == 2
-
-    creator_ids = [c["_id"] for c in creators]
-    assert str(third_user_id) in creator_ids
-    assert str(another_user_id) not in creator_ids
-
-
 def test_append_permissions_invalid_user(client):
     from bson import ObjectId
 
@@ -353,15 +322,12 @@ def test_append_permissions_invalid_user(client):
     assert "not found in the database" in response.json["message"]
 
 
-def test_append_permissions_preserves_base_owner(client, another_user_id, third_user_id):
+def test_patch_vs_put_permissions(client, user_id, another_user_id):
     response = client.post(
-        "/new-sample/", json={"type": "samples", "item_id": "sample-for-owner-preservation"}
+        "/new-sample/", json={"type": "samples", "item_id": "sample-for-patch-vs-put"}
     )
     assert response.status_code == 201
     refcode = response.json["sample_list_entry"]["refcode"]
-
-    response = client.get(f"/items/{refcode}")
-    original_owner_id = response.json["item_data"]["creators"][0]["_id"]
 
     response = client.put(
         f"/items/{refcode}/permissions",
@@ -369,14 +335,62 @@ def test_append_permissions_preserves_base_owner(client, another_user_id, third_
     )
     assert response.status_code == 200
 
-    response = client.put(
+    response = client.get(f"/items/{refcode}")
+    assert response.status_code == 200
+    creators_after_put = response.json["item_data"]["creators"]
+    assert len(creators_after_put) == 2
+
+    creator_ids_after_put = response.json["item_data"]["creator_ids"]
+    assert str(user_id) in creator_ids_after_put
+    assert str(another_user_id) in creator_ids_after_put
+
+    response = client.patch(
         f"/items/{refcode}/permissions",
-        json={"creators": [{"immutable_id": str(third_user_id)}]},
+        json={"creators": [{"immutable_id": str(user_id)}]},
     )
     assert response.status_code == 200
 
     response = client.get(f"/items/{refcode}")
     assert response.status_code == 200
-    creators = response.json["item_data"]["creators"]
+    creators_after_patch = response.json["item_data"]["creators"]
+    assert len(creators_after_patch) == 1
 
-    assert creators[0]["_id"] == original_owner_id
+    creator_ids_after_patch = response.json["item_data"]["creator_ids"]
+    assert str(user_id) in creator_ids_after_patch
+    assert str(another_user_id) not in creator_ids_after_patch
+
+
+def test_append_permissions_preserves_base_owner(client, another_user_id):
+    response = client.post(
+        "/new-sample/", json={"type": "samples", "item_id": "sample-for-owner-preservation"}
+    )
+    assert response.status_code == 201
+    refcode = response.json["sample_list_entry"]["refcode"]
+
+    response = client.get(f"/items/{refcode}")
+    original_owner_id = response.json["item_data"]["creator_ids"][0]
+
+    response = client.put(
+        f"/items/{refcode}/permissions",
+        json={"creators": [{"immutable_id": str(another_user_id)}]},
+    )
+    assert response.status_code == 200
+
+    response = client.get(f"/items/{refcode}")
+    assert response.status_code == 200
+    creator_ids_after_first_append = response.json["item_data"]["creator_ids"]
+    assert len(creator_ids_after_first_append) == 2
+    assert creator_ids_after_first_append[0] == original_owner_id
+
+    response = client.put(
+        f"/items/{refcode}/permissions",
+        json={"creators": [{"immutable_id": str(another_user_id)}]},
+    )
+    assert response.status_code == 200
+    assert response.json["message"] == "No changes needed"
+
+    response = client.get(f"/items/{refcode}")
+    assert response.status_code == 200
+    creator_ids_final = response.json["item_data"]["creator_ids"]
+    assert len(creator_ids_final) == 2
+    assert creator_ids_final[0] == original_owner_id

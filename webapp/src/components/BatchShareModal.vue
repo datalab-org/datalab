@@ -95,12 +95,13 @@ export default {
         return;
       }
 
-      try {
-        const refcodes = this.itemsSelected.map((item) => item.refcode);
-        let itemsWithNoChanges = 0;
-        let itemsWithErrors = 0;
-        let successfulUpdates = 0;
+      const refcodes = this.itemsSelected.map((item) => item.refcode);
+      let itemsWithNoChanges = 0;
+      let itemsWithErrors = 0;
+      let successfulUpdates = 0;
+      const errorDetails = [];
 
+      try {
         for (const refcode of refcodes) {
           try {
             const response = await appendItemPermissions(
@@ -117,6 +118,7 @@ export default {
           } catch (error) {
             console.error(`Error sharing item ${refcode}:`, error);
             itemsWithErrors++;
+            errorDetails.push(`${refcode}: ${error.message || error}`);
           }
         }
 
@@ -131,9 +133,16 @@ export default {
         }
 
         if (itemsWithErrors > 0) {
+          const errorMessage =
+            `Successfully updated ${successfulUpdates} item(s), but ${itemsWithErrors} item(s) failed.` +
+            (itemsWithNoChanges > 0
+              ? ` ${itemsWithNoChanges} item(s) already had these permissions.`
+              : "") +
+            `\n\nErrors:\n${errorDetails.join("\n")}`;
+
           DialogService.error({
             title: "Batch Sharing Partially Failed",
-            message: `Successfully updated ${successfulUpdates} item(s), but ${itemsWithErrors} item(s) failed. ${itemsWithNoChanges > 0 ? `${itemsWithNoChanges} item(s) already had these permissions.` : ""}`,
+            message: errorMessage,
           });
         } else if (itemsWithNoChanges === refcodes.length) {
           DialogService.alert({
@@ -160,7 +169,7 @@ export default {
         console.error("Error sharing items:", error);
         DialogService.error({
           title: "Batch Sharing Failed",
-          message: `An unexpected error occurred: ${error.message || error}`,
+          message: error.message || error,
         });
       }
     },
