@@ -198,3 +198,185 @@ def test_group_permissions(client, another_client, user_id, another_user_id, gro
 
     # Also removes read access
     assert another_client.get(f"/items/{refcode}").status_code == 404
+
+
+def test_append_permissions_creators(client, another_client, user_id, another_user_id):
+    response = client.post(
+        "/new-sample/", json={"type": "samples", "item_id": "sample-for-append-test"}
+    )
+    assert response.status_code == 201
+    refcode = response.json["sample_list_entry"]["refcode"]
+
+    response = client.get(f"/items/{refcode}")
+    assert response.status_code == 200
+    original_creators = response.json["item_data"]["creators"]
+    assert len(original_creators) == 1
+
+    response = client.put(
+        f"/items/{refcode}/permissions",
+        json={"creators": [{"immutable_id": str(another_user_id)}]},
+    )
+    assert response.status_code == 200
+
+    response = client.get(f"/items/{refcode}")
+    assert response.status_code == 200
+    updated_creators = response.json["item_data"]["creators"]
+    assert len(updated_creators) == 2
+
+    creator_ids = [c["_id"] for c in updated_creators]
+    assert str(user_id) in creator_ids
+    assert str(another_user_id) in creator_ids
+
+
+def test_append_permissions_groups(client, another_client, user_id, another_user_id, group_id):
+    response = client.post(
+        "/new-sample/", json={"type": "samples", "item_id": "sample-for-group-append-test"}
+    )
+    assert response.status_code == 201
+    refcode = response.json["sample_list_entry"]["refcode"]
+
+    response = client.get(f"/items/{refcode}")
+    assert response.status_code == 200
+    original_groups = response.json["item_data"].get("groups", [])
+    assert len(original_groups) == 0
+
+    response = client.put(
+        f"/items/{refcode}/permissions",
+        json={"groups": [{"immutable_id": str(group_id)}]},
+    )
+    assert response.status_code == 200
+
+    response = client.get(f"/items/{refcode}")
+    assert response.status_code == 200
+    updated_groups = response.json["item_data"]["groups"]
+    assert len(updated_groups) == 1
+    assert updated_groups[0]["_id"] == str(group_id)
+
+
+def test_append_permissions_no_duplicates(client, another_user_id):
+    response = client.post(
+        "/new-sample/", json={"type": "samples", "item_id": "sample-for-duplicate-test"}
+    )
+    assert response.status_code == 201
+    refcode = response.json["sample_list_entry"]["refcode"]
+
+    response = client.put(
+        f"/items/{refcode}/permissions",
+        json={"creators": [{"immutable_id": str(another_user_id)}]},
+    )
+    assert response.status_code == 200
+
+    response = client.put(
+        f"/items/{refcode}/permissions",
+        json={"creators": [{"immutable_id": str(another_user_id)}]},
+    )
+    assert response.status_code == 200
+    assert response.json["message"] == "No changes needed"
+
+    response = client.get(f"/items/{refcode}")
+    assert response.status_code == 200
+    creators = response.json["item_data"]["creators"]
+    assert len(creators) == 2
+
+
+def test_append_permissions_both_creators_and_groups(client, another_user_id, group_id):
+    response = client.post(
+        "/new-sample/", json={"type": "samples", "item_id": "sample-for-both-append-test"}
+    )
+    assert response.status_code == 201
+    refcode = response.json["sample_list_entry"]["refcode"]
+
+    response = client.put(
+        f"/items/{refcode}/permissions",
+        json={
+            "creators": [{"immutable_id": str(another_user_id)}],
+            "groups": [{"immutable_id": str(group_id)}],
+        },
+    )
+    assert response.status_code == 200
+
+    response = client.get(f"/items/{refcode}")
+    assert response.status_code == 200
+    item_data = response.json["item_data"]
+    assert len(item_data["creators"]) == 2
+    assert len(item_data["groups"]) == 1
+
+
+def test_patch_vs_put_permissions(client, another_user_id, third_user_id):
+    response = client.post(
+        "/new-sample/", json={"type": "samples", "item_id": "sample-for-patch-vs-put"}
+    )
+    assert response.status_code == 201
+    refcode = response.json["sample_list_entry"]["refcode"]
+
+    response = client.put(
+        f"/items/{refcode}/permissions",
+        json={"creators": [{"immutable_id": str(another_user_id)}]},
+    )
+    assert response.status_code == 200
+
+    response = client.get(f"/items/{refcode}")
+    assert response.status_code == 200
+    assert len(response.json["item_data"]["creators"]) == 2
+
+    response = client.patch(
+        f"/items/{refcode}/permissions",
+        json={"creators": [{"immutable_id": str(third_user_id)}]},
+    )
+    assert response.status_code == 200
+
+    response = client.get(f"/items/{refcode}")
+    assert response.status_code == 200
+    creators = response.json["item_data"]["creators"]
+    assert len(creators) == 2
+
+    creator_ids = [c["_id"] for c in creators]
+    assert str(third_user_id) in creator_ids
+    assert str(another_user_id) not in creator_ids
+
+
+def test_append_permissions_invalid_user(client):
+    from bson import ObjectId
+
+    response = client.post(
+        "/new-sample/", json={"type": "samples", "item_id": "sample-for-invalid-user"}
+    )
+    assert response.status_code == 201
+    refcode = response.json["sample_list_entry"]["refcode"]
+
+    fake_user_id = str(ObjectId())
+    response = client.put(
+        f"/items/{refcode}/permissions",
+        json={"creators": [{"immutable_id": fake_user_id}]},
+    )
+    assert response.status_code == 400
+    assert "not found in the database" in response.json["message"]
+
+
+def test_append_permissions_preserves_base_owner(client, another_user_id, third_user_id):
+    response = client.post(
+        "/new-sample/", json={"type": "samples", "item_id": "sample-for-owner-preservation"}
+    )
+    assert response.status_code == 201
+    refcode = response.json["sample_list_entry"]["refcode"]
+
+    response = client.get(f"/items/{refcode}")
+    original_owner_id = response.json["item_data"]["creators"][0]["_id"]
+
+    response = client.put(
+        f"/items/{refcode}/permissions",
+        json={"creators": [{"immutable_id": str(another_user_id)}]},
+    )
+    assert response.status_code == 200
+
+    response = client.put(
+        f"/items/{refcode}/permissions",
+        json={"creators": [{"immutable_id": str(third_user_id)}]},
+    )
+    assert response.status_code == 200
+
+    response = client.get(f"/items/{refcode}")
+    assert response.status_code == 200
+    creators = response.json["item_data"]["creators"]
+
+    assert creators[0]["_id"] == original_owner_id

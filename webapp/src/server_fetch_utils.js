@@ -833,6 +833,22 @@ export function updateItemPermissions(refcode, creators = null, groups = null) {
   );
 }
 
+export function appendItemPermissions(refcode, creators = null, groups = null) {
+  console.log("appendItemPermissions called with", refcode, creators, groups);
+
+  const payload = { creators: creators, groups: groups };
+
+  return fetch_put(`${API_URL}/items/${refcode}/permissions`, payload).then(
+    function (response_json) {
+      if (response_json.status === "success") {
+        return response_json;
+      } else {
+        throw new Error(response_json.message);
+      }
+    },
+  );
+}
+
 export function saveItem(item_id) {
   var item_data = store.state.all_item_data[item_id];
 
@@ -1368,22 +1384,6 @@ export async function compareItemVersions(refcode, baseVersion, targetVersion) {
         title: "Version Comparison Failed",
         message: `Error comparing versions for ${refcode}: ${error}`,
       });
-      throw error;
-    });
-}
-
-export async function fetchItemPermissions(refcode) {
-  let url = `${API_URL}/items/${refcode}`;
-
-  return fetch_get(url)
-    .then((response_json) => {
-      return {
-        creators: response_json.item_data.creators || [],
-        groups: response_json.item_data.groups || [],
-      };
-    })
-    .catch((error) => {
-      console.error(`Error fetching permissions for ${refcode}:`, error);
       throw error;
     });
 }

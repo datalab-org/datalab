@@ -60,8 +60,7 @@ import UserSelect from "@/components/UserSelect.vue";
 import GroupSelect from "@/components/GroupSelect.vue";
 
 import {
-  fetchItemPermissions,
-  updateItemPermissions,
+  appendItemPermissions,
   getSampleList,
   getStartingMaterialList,
   getEquipmentList,
@@ -97,26 +96,21 @@ export default {
 
       try {
         const refcodes = this.itemsSelected.map((item) => item.refcode);
+        let itemsWithNoChanges = 0;
 
         for (const refcode of refcodes) {
-          const { creators: currentCreators, groups: currentGroups } =
-            await fetchItemPermissions(refcode);
+          try {
+            const response = await appendItemPermissions(
+              refcode,
+              this.newCreators.length > 0 ? this.newCreators : null,
+              this.newGroups.length > 0 ? this.newGroups : null,
+            );
 
-          const currentCreatorIds = currentCreators.map((c) => c.immutable_id || c._id);
-          const creatorsToAdd = this.newCreators.filter(
-            (c) => !currentCreatorIds.includes(c.immutable_id),
-          );
-
-          const currentGroupIds = currentGroups.map((g) => g.immutable_id || g._id);
-          const groupsToAdd = this.newGroups.filter(
-            (g) => !currentGroupIds.includes(g.immutable_id),
-          );
-
-          if (creatorsToAdd.length > 0 || groupsToAdd.length > 0) {
-            const mergedCreators = [...currentCreators, ...creatorsToAdd];
-            const mergedGroups = [...currentGroups, ...groupsToAdd];
-
-            await updateItemPermissions(refcode, mergedCreators, mergedGroups);
+            if (response.message === "No changes needed") {
+              itemsWithNoChanges++;
+            }
+          } catch (error) {
+            console.error(`Error sharing item ${refcode}:`, error);
           }
         }
 
@@ -130,14 +124,19 @@ export default {
           getEquipmentList();
         }
 
-        console.log("Items shared successfully.");
+        if (itemsWithNoChanges === refcodes.length) {
+          console.log("All selected items already have these permissions.");
+        } else if (itemsWithNoChanges > 0) {
+          console.log(`${itemsWithNoChanges} items already had these permissions.`);
+        } else {
+          console.log("Items shared successfully.");
+        }
 
         this.handleClose();
       } catch (error) {
         console.error("Error sharing items:", error);
       }
     },
-
     handleClose() {
       this.newCreators = [];
       this.newGroups = [];
