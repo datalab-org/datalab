@@ -456,10 +456,14 @@ export default {
         this.item_id,
         this.block_id,
         this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id],
-      ).then(() => {
-        this.bokehPlotLimitedWidth = this.derivative_mode != "dQ/dV";
-        this.isReplotButtonDisplayed = false;
-      });
+      )
+        .then(() => {
+          this.bokehPlotLimitedWidth = this.derivative_mode != "dQ/dV";
+          this.isReplotButtonDisplayed = false;
+        })
+        .catch((error) => {
+          console.error("Error updating block:", error);
+        });
     },
   },
 };
