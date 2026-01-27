@@ -1,5 +1,6 @@
 import itertools
 import re
+import warnings
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -45,47 +46,52 @@ def read_bruker_1d(
     processed_data_dir = data_dir / "pdata" / str(process_number)
 
     a_dic, a_data = ng.fileio.bruker.read(str(data_dir))  # aquisition_data
-    p_dic, p_data = ng.fileio.bruker.read_pdata(str(processed_data_dir))  # processing data
+    try:
+        p_dic, p_data = ng.fileio.bruker.read_pdata(str(processed_data_dir))  # processing data
+    except Exception:
+        p_dic = {}
+        p_data = None
+        warnings.warn("No Bruker binary file could be found in %s" % processed_data_dir)
 
     topspin_title = None
     title_file = processed_data_dir / "title"
     if title_file.exists():
         topspin_title = title_file.read_text()
 
-    if len(p_data.shape) > 1:
+    if p_data is not None and len(p_data.shape) > 1:
         return None, a_dic, topspin_title, p_data.shape
 
     nscans = a_dic["acqus"]["NS"]
 
     # create a unit convertor to get the x-axis in ppm units
-    udic = ng.bruker.guess_udic(p_dic, p_data)
-    uc = ng.fileiobase.uc_from_udic(udic)
+    if p_dic:
+        udic = ng.bruker.guess_udic(p_dic, p_data)
+        uc = ng.fileiobase.uc_from_udic(udic)
 
-    ppm_scale = uc.ppm_scale()
-    hz_scale = uc.hz_scale()
+        ppm_scale = uc.ppm_scale()
+        hz_scale = uc.hz_scale()
 
-    df = pd.DataFrame(
-        {
-            "ppm": ppm_scale,
-            "hz": hz_scale,
-            "intensity": p_data,
-            "intensity_per_scan": p_data / nscans,
-        }
-    )
+        df = pd.DataFrame(
+            {
+                "ppm": ppm_scale,
+                "hz": hz_scale,
+                "intensity": p_data,
+                "intensity_per_scan": p_data / nscans,
+            }
+        )
+
+    else:
+        df = pd.DataFrame(
+            {
+                "ppm": np.linspace(0, 100, len(a_data)),
+                "hz": np.linspace(0, 100, len(a_data)),
+                "intensity": np.abs(a_data),
+                "intensity_per_scan": np.abs(a_data) / nscans,
+            },
+        )
+
     if sample_mass_mg:
         df["intensity_per_scan_per_gram"] = df["intensity_per_scan"] / sample_mass_mg * 1000.0
-
-    if verbose:
-        print(f"reading bruker data file. {udic[0]['label']} 1D spectrum, {nscans} scans.")
-        if sample_mass_mg:
-            print(
-                f'sample mass was provided: {sample_mass_mg:f} mg. "intensity_per_scan_per_gram" column included. '
-            )
-        if topspin_title:
-            print("\nTitle:\n")
-            print(topspin_title)
-        else:
-            print("No title found in scan")
 
     return df, a_dic, topspin_title, a_data.shape
 
