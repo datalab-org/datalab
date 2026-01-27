@@ -23,7 +23,15 @@
         </div>
         <div class="modal-footer">
           <slot name="footer">
-            <input type="submit" class="btn btn-info" :disabled="disableSubmit" value="Submit" />
+            <button
+              type="button"
+              class="btn btn-info"
+              :disabled="disableSubmit || submitLocked"
+              @click="lockAndSubmit"
+            >
+              Submit
+            </button>
+
             <button
               type="button"
               class="btn btn-secondary"
@@ -52,11 +60,12 @@ export default {
       default: true,
     },
   },
-  emits: ["update:modelValue"],
+  emits: ["update:modelValue", "submit"],
   data() {
     return {
       modalDisplayed: false,
       modalOpaque: false,
+      submitLocked: false,
     };
   },
   watch: {
@@ -70,7 +79,12 @@ export default {
     },
   },
   methods: {
+    lockAndSubmit() {
+      this.submitLocked = true;
+      this.$emit("submit");
+    },
     async openModal() {
+      this.submitLocked = false;
       this.modalDisplayed = true;
       await new Promise((resolve) => setTimeout(resolve, 20)); //hacky...
       this.$nextTick(() => {
@@ -81,6 +95,7 @@ export default {
       this.modalOpaque = false;
       await new Promise((resolve) => setTimeout(resolve, 200)); // super hacky
       this.modalDisplayed = false;
+      this.submitLocked = false;
       this.$emit("update:modelValue", false);
     },
   },
