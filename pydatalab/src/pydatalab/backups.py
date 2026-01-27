@@ -8,6 +8,29 @@ from pydatalab.config import CONFIG, BackupStrategy
 from pydatalab.logger import LOGGER
 
 
+def check_mongodump_available() -> None:
+    """Check that mongodump is available and raise a clear error if not."""
+    try:
+        result = subprocess.run(
+            ["mongodump", "--version"],  # noqa: S607
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        LOGGER.debug(
+            "mongodump version: %s", result.stdout.splitlines()[0] if result.stdout else "unknown"
+        )
+    except FileNotFoundError as e:
+        raise RuntimeError(
+            "mongodump is not installed or not in PATH. "
+            "Install MongoDB Database Tools: https://www.mongodb.com/docs/database-tools/installation/"
+        ) from e
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(
+            f"mongodump is installed but returned an error: {e.stderr or e.stdout}"
+        ) from e
+
+
 def take_snapshot(snapshot_path: Path, encrypt: bool = False) -> None:
     """Make a compressed snapshot of the entire datalab deployment that
     can be restored from with sufficient granularity, e.g., including
@@ -38,6 +61,9 @@ def take_snapshot(snapshot_path: Path, encrypt: bool = False) -> None:
         raise RuntimeError(
             f"Output path should either be a .tar or .tar.gz file, not {snapshot_path} with {snapshot_path.suffix}"
         )
+
+    # Check mongodump is available before starting
+    check_mongodump_available()
 
     LOGGER.info("Creating snapshot of entire datalab instance.")
     LOGGER.debug("Creating snapshot of %s", CONFIG.FILE_DIRECTORY)
