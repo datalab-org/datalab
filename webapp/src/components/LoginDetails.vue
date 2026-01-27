@@ -4,6 +4,7 @@
       <button
         id="userDropdown"
         class="btn dropdown-toggle border"
+        :class="{ 'super-user-active': adminSuperUserMode }"
         type="button"
         aria-haspopup="true"
         aria-expanded="false"
@@ -17,6 +18,7 @@
       <div
         v-show="isUserDropdownVisible"
         class="dropdown-menu"
+        :class="{ 'super-user-active': adminSuperUserMode }"
         style="display: block"
         aria-labelledby="UserDropdown"
       >
@@ -102,6 +104,9 @@ export default {
     hasUnverifiedUser() {
       return this.$store.getters.getHasUnverifiedUser;
     },
+    adminSuperUserMode() {
+      return this.$store.getters.isAdminSuperUserModeActive;
+    },
   },
   watch: {
     modelValue(newValue) {
@@ -146,5 +151,25 @@ export default {
 
 .user-display-name {
   font-weight: bold;
+}
+
+#userDropdown:hover,
+#userDropdown:focus {
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.super-user-active {
+  border-color: #a52a2a !important;
+}
+
+#userDropdown.super-user-active:hover,
+#userDropdown.super-user-active:focus {
+  border-color: #a52a2a !important;
+  box-shadow: 0 0 0 0.2rem rgba(165, 42, 42, 0.25) !important;
+}
+
+.dropdown-menu.super-user-active {
+  border-color: #a52a2a;
+  min-width: auto;
 }
 </style>

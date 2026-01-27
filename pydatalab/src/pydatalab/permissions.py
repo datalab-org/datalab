@@ -150,7 +150,8 @@ def get_default_permissions(
     """Return the MongoDB query terms corresponding to the current user.
 
     Will return open permissions if a) the `CONFIG.TESTING` parameter is `True`,
-    or b) if the current user is registered as an admin.
+    or b) if the current user is registered as an admin and has opted into super-user
+    mode via `?sudo=1` (for GET requests) or is performing a write operation.
 
     Parameters:
         user_only: Whether to exclude items that also have no attached user (`False`),
@@ -164,13 +165,21 @@ def get_default_permissions(
     if CONFIG.TESTING:
         return {}
 
+    # Super-user mode for admins: only activates on GET with ?sudo=1
+    # For non-GET methods, admins always have full access
     if (
         current_user.is_authenticated
         and current_user.person is not None
         and current_user.account_status == AccountStatus.ACTIVE
         and current_user.role == UserRole.ADMIN
     ):
-        return {}
+        # Non-GET methods: admin always has full access
+        if request.method != "GET":
+            return {}
+        # GET methods: require ?sudo=1 for full access
+        if request.args.get("sudo") == "1":
+            return {}
+        # Otherwise: treat admin as normal user (fall through)
 
     if elevate_permissions:
         LOGGER.warning(
