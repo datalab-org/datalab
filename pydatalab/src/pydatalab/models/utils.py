@@ -25,6 +25,14 @@ class ItemType(str, Enum):
     STARTING_MATERIALS = "starting_materials"
 
 
+class ItemAvailability(str, Enum):
+    """An enumeration of the availability status of items"""
+
+    AVAILABLE = "available"
+    UNAVAILABLE = "unavailable"
+    EXHAUSTED = "exhausted"
+
+
 class ItemStatus(str, Enum):
     """An enumeration of the status of items"""
 
@@ -67,11 +75,8 @@ class StartingMaterialsStatus(str, Enum):
     """An enumeration of the status of starting materials"""
 
     ORDERED = "ordered"
-    DISPOSED = "disposed"
     PLANNED = "planned"
-    AVAILABLE = "available"
-    UNAVAILABLE = "unavailable"
-    EXHAUSTED = "exhausted"
+    DISPOSED = "disposed"
     OTHER = "other"
 
 
