@@ -33,8 +33,21 @@
     >
   </div>
   <div v-if="!isLoggedIn" class="container">
-    <div class="alert alert-info col-md-6 col-lg-4 text-center mx-auto">
-      Please login to view or create items.
+    <div class="alert alert-info col-md-6 col-lg-4 text-center mx-auto info-banner">
+      <div class="info-banner-text">
+        <font-awesome-icon icon="info-circle" fixed-width /> Please login to view or create items.
+      </div>
+    </div>
+  </div>
+  <div v-if="adminSuperUserMode" class="container">
+    <div class="alert alert-warning col-md-8 col-lg-8 text-center mx-auto super-user-banner">
+      <div class="super-user-banner-text">
+        <font-awesome-icon icon="exclamation-triangle" fixed-width /> Super-user mode is currently
+        active. You have read access to all items.
+        <div>
+          <a href="#" class="disable-link" @click.prevent="disableSuperUserMode">(disable)</a>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -60,6 +73,15 @@ export default {
     isLoggedIn() {
       return Boolean(this.$store.state.currentUserDisplayName);
     },
+    adminSuperUserMode() {
+      return this.$store.getters.isAdminSuperUserModeActive;
+    },
+  },
+  methods: {
+    disableSuperUserMode() {
+      this.$store.commit("setAdminSuperUserMode", false);
+      window.location.reload();
+    },
   },
 };
 </script>
@@ -77,5 +99,52 @@ export default {
 a > .logo-banner:hover {
   filter: alpha(opacity=40);
   opacity: 0.4;
+}
+
+.info-banner {
+  background-color: var(--theme-card-bg, white);
+  border-color: var(--theme-primary, #007bff);
+  color: var(--theme-primary, #004085);
+  background: repeating-linear-gradient(
+    45deg,
+    var(--theme-crosshatch-info, #004085),
+    var(--theme-crosshatch-info, #004085) 1px,
+    transparent 1px,
+    transparent 10px
+  );
+}
+
+.info-banner-text {
+  background-color: var(--theme-card-bg, white);
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+}
+
+.super-user-banner {
+  background-color: var(--theme-card-bg, white);
+  background: repeating-linear-gradient(
+    45deg,
+    var(--theme-crosshatch-danger, #a52a2a),
+    var(--theme-crosshatch-danger, #a52a2a) 1px,
+    transparent 1px,
+    transparent 10px
+  );
+  border-color: var(--theme-danger, #a52a2a);
+  color: var(--theme-danger, #721c24);
+}
+
+.super-user-banner-text {
+  background-color: var(--theme-card-bg, white);
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+}
+
+.super-user-banner .disable-link {
+  color: var(--theme-danger, #721c24);
+  text-decoration: underline;
+}
+
+.super-user-banner .disable-link:hover {
+  color: var(--theme-danger, #721c24);
 }
 </style>

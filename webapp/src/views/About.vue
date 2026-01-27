@@ -165,10 +165,10 @@ h1 {
 td,
 th {
   text-align: center;
-  border-top: 1px solid #ddd;
-  border-right: 1px solid #ddd;
-  border-left: 1px solid #ddd;
-  border-bottom: 1px solid #ddd;
+  border-top: 1px solid var(--theme-border-color, #ddd);
+  border-right: 1px solid var(--theme-border-color, #ddd);
+  border-left: 1px solid var(--theme-border-color, #ddd);
+  border-bottom: 1px solid var(--theme-border-color, #ddd);
 }
 
 .funding-logo {

@@ -1,0 +1,497 @@
+// Google Fonts for plum theme
+@import url("https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;700&display=swap");
+
+// Default theme colors (before Bootstrap import)
+$primary: #004085;
+$danger: #a52a2a;
+$warning: #a52a2a;
+$info: #004085;
+
+@import "~bootstrap/scss/bootstrap";
+
+// ============================================
+// Theme CSS Custom Properties
+// ============================================
+
+:root {
+  // Default theme
+  --theme-body-bg: #ffffff;
+  --theme-body-color: #212529;
+  --theme-primary: #004085;
+  --theme-danger: #a52a2a;
+  --theme-card-bg: #ffffff;
+  --theme-border-color: #dee2e6;
+  --theme-muted-color: #6c757d;
+  --theme-link-color: #004085;
+  --theme-success: #28a745;
+  --theme-warning: #ffc107;
+  --theme-info: #17a2b8;
+  --theme-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+  --theme-headings-font: var(--theme-font-family);
+  --theme-crosshatch-info: #004085;
+  --theme-crosshatch-danger: #a52a2a;
+}
+
+// Plum theme
+.theme-plum {
+  --theme-body-bg: #faf6e8;
+  --theme-body-color: #4a2040;
+  --theme-primary: #6b2d4a;
+  --theme-danger: #8b2a4a;
+  --theme-card-bg: #fffdf2;
+  --theme-border-color: #d8c8d0;
+  --theme-muted-color: #806070;
+  --theme-link-color: #6b2d4a;
+  --theme-success: #4a8050;
+  --theme-warning: #c08030;
+  --theme-info: #406080;
+  --theme-font-family: "Fira Sans", sans-serif;
+  --theme-headings-font: "Fira Sans", sans-serif;
+  --theme-crosshatch-info: #6b2d4a;
+  --theme-crosshatch-danger: #8b2a4a;
+
+  // Override App.vue's --font-primary variable
+  --font-primary: "Fira Sans", sans-serif;
+}
+
+// Dark amber theme
+.theme-dark {
+  --theme-body-bg: #1a1a18;
+  --theme-body-color: #f5b800;
+  --theme-primary: #f5b800;
+  --theme-danger: #ff6b4a;
+  --theme-card-bg: #252522;
+  --theme-border-color: #3a3a35;
+  --theme-muted-color: #a08800;
+  --theme-link-color: #f5b800;
+  --theme-success: #7cb800;
+  --theme-warning: #ff9800;
+  --theme-info: #4dc0e0;
+  --theme-font-family: "Fira Sans", sans-serif;
+  --theme-headings-font: "Fira Sans", sans-serif;
+  --theme-crosshatch-info: #f5b800;
+  --theme-crosshatch-danger: #ff6b4a;
+
+  // Override App.vue's --font-primary variable
+  --font-primary: "Fira Sans", sans-serif;
+
+  // PrimeVue surface colors
+  --p-surface-0: #1a1a18;
+  --p-surface-50: #222220;
+  --p-surface-100: #2a2a27;
+  --p-surface-200: #333330;
+  --p-surface-300: #3d3d3a;
+  --p-surface-400: #4a4a45;
+  --p-surface-500: #5a5a55;
+  --p-surface-600: #909088;
+  --p-surface-700: #b0b0a8;
+  --p-surface-800: #d0d0c8;
+  --p-surface-900: #f0f0e8;
+
+  // PrimeVue primary colors (amber)
+  --p-primary-50: #3a3520;
+  --p-primary-100: #4a4525;
+  --p-primary-200: #5a5530;
+  --p-primary-300: #7a7540;
+  --p-primary-400: #c0a800;
+  --p-primary-500: #f5b800;
+  --p-primary-600: #ffc820;
+  --p-primary-700: #ffd450;
+  --p-primary-800: #ffe080;
+  --p-primary-900: #fff8e0;
+
+  // PrimeVue text colors
+  --p-text-color: #f5b800;
+  --p-text-muted-color: #a08800;
+
+  // PrimeVue component backgrounds
+  --p-content-background: #1a1a18;
+  --p-content-border-color: #3a3a35;
+
+  // PrimeVue DataTable specific
+  --p-datatable-header-cell-background: #252522;
+  --p-datatable-row-background: #1a1a18;
+  --p-datatable-body-cell-border-color: #3a3a35;
+  --p-datatable-header-cell-border-color: #3a3a35;
+  --p-datatable-footer-cell-border-color: #3a3a35;
+  --p-datatable-row-selected-background: #3a3520;
+  --p-datatable-row-selected-color: #f5b800;
+
+  // PrimeVue other components
+  --p-inputtext-background: #252522;
+  --p-inputtext-color: #f5b800;
+  --p-inputtext-border-color: #3a3a35;
+  --p-button-primary-background: #f5b800;
+  --p-button-primary-color: #1a1a18;
+  --p-checkbox-background: #252522;
+  --p-checkbox-border-color: #3a3a35;
+  --p-paginator-background: #1a1a18;
+
+  // Font
+  --p-font-family: "Fira Sans", sans-serif;
+}
+
+// ============================================
+// Dark theme direct CSS overrides
+// ============================================
+
+.theme-dark {
+  // PrimeVue DataTable
+  .p-datatable {
+    background: var(--theme-body-bg);
+    color: var(--theme-body-color);
+
+    .p-datatable-thead > tr > th {
+      background: var(--theme-card-bg);
+      color: var(--theme-body-color);
+      border-color: var(--theme-border-color);
+    }
+
+    .p-datatable-tbody > tr {
+      background: var(--theme-body-bg);
+      color: var(--theme-body-color);
+
+      > td {
+        border-color: var(--theme-border-color);
+      }
+
+      &:hover {
+        background: var(--theme-card-bg);
+      }
+
+      &.p-row-selected {
+        background: #3a3520;
+        color: var(--theme-body-color);
+      }
+    }
+
+    .p-datatable-footer {
+      background: var(--theme-card-bg);
+      color: var(--theme-body-color);
+      border-color: var(--theme-border-color);
+    }
+  }
+
+  // PrimeVue Paginator
+  .p-paginator {
+    background: var(--theme-body-bg);
+    color: var(--theme-body-color);
+    border-color: var(--theme-border-color);
+
+    .p-paginator-page,
+    .p-paginator-next,
+    .p-paginator-prev,
+    .p-paginator-first,
+    .p-paginator-last {
+      color: var(--theme-body-color);
+
+      &:hover {
+        background: var(--theme-card-bg);
+      }
+
+      &.p-highlight {
+        background: var(--theme-primary);
+        color: var(--theme-body-bg);
+      }
+    }
+  }
+
+  // PrimeVue inputs
+  .p-inputtext,
+  .p-dropdown,
+  .p-multiselect {
+    background: var(--theme-card-bg);
+    color: var(--theme-body-color);
+    border-color: var(--theme-border-color);
+  }
+
+  // PrimeVue buttons
+  .p-button {
+    &.p-button-secondary {
+      background: var(--theme-card-bg);
+      color: var(--theme-body-color);
+      border-color: var(--theme-border-color);
+    }
+  }
+
+  // PrimeVue dropdown panel
+  .p-dropdown-panel,
+  .p-multiselect-panel {
+    background: var(--theme-card-bg);
+    color: var(--theme-body-color);
+    border-color: var(--theme-border-color);
+
+    .p-dropdown-item,
+    .p-multiselect-item {
+      color: var(--theme-body-color);
+
+      &:hover {
+        background: var(--theme-body-bg);
+      }
+    }
+  }
+
+  // Bootstrap overrides for dark theme
+  .btn-default,
+  .btn-secondary {
+    background-color: var(--theme-card-bg);
+    color: var(--theme-body-color);
+    border-color: var(--theme-border-color);
+
+    &:hover,
+    &:focus {
+      background-color: var(--theme-border-color);
+      color: var(--theme-body-color);
+    }
+  }
+
+  .btn-link {
+    color: var(--theme-primary);
+  }
+
+  // Cards and containers
+  .card,
+  .modal-content,
+  .popover {
+    background-color: var(--theme-card-bg);
+    color: var(--theme-body-color);
+    border-color: var(--theme-border-color);
+  }
+
+  // Tables
+  .table {
+    color: var(--theme-body-color);
+
+    th,
+    td {
+      border-color: var(--theme-border-color);
+    }
+
+    thead th {
+      background-color: var(--theme-card-bg);
+    }
+  }
+
+  // Inputs
+  .form-control,
+  .custom-select,
+  input,
+  select,
+  textarea {
+    background-color: var(--theme-card-bg);
+    color: var(--theme-body-color);
+    border-color: var(--theme-border-color);
+
+    &::placeholder {
+      color: var(--theme-muted-color);
+    }
+  }
+
+  // Muted text
+  .text-muted {
+    color: var(--theme-muted-color) !important;
+  }
+
+  // Code blocks
+  code,
+  pre {
+    background-color: var(--theme-card-bg);
+    color: var(--theme-primary);
+  }
+}
+
+// ============================================
+// Global utility classes
+// ============================================
+
+// Loading overlay - use this instead of inline rgba(255,255,255,0.7)
+.loading-overlay {
+  background-color: rgba(255, 255, 255, 0.7);
+
+  .theme-dark & {
+    background-color: rgba(26, 26, 24, 0.85);
+  }
+
+  .theme-plum & {
+    background-color: rgba(250, 246, 232, 0.85);
+  }
+}
+
+// ============================================
+// Apply theme variables
+// ============================================
+
+body {
+  background-color: var(--theme-body-bg);
+  color: var(--theme-body-color);
+  font-family: var(--theme-font-family);
+
+  &.theme-plum,
+  &.theme-dark {
+    font-family: "Fira Sans", sans-serif !important;
+  }
+}
+
+body.theme-plum #app,
+body.theme-dark #app {
+  font-family: "Fira Sans", sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--theme-headings-font);
+}
+
+a {
+  color: var(--theme-primary);
+}
+
+.card {
+  background-color: var(--theme-card-bg);
+  border-color: var(--theme-border-color);
+}
+
+.btn-primary {
+  background-color: var(--theme-primary);
+  border-color: var(--theme-primary);
+
+  &:hover,
+  &:focus {
+    background-color: var(--theme-primary);
+    border-color: var(--theme-primary);
+    filter: brightness(0.85);
+  }
+}
+
+.btn-danger {
+  background-color: var(--theme-danger);
+  border-color: var(--theme-danger);
+
+  &:hover,
+  &:focus {
+    background-color: var(--theme-danger);
+    border-color: var(--theme-danger);
+    filter: brightness(0.85);
+  }
+}
+
+// ============================================
+// Crosshatch alert styling
+// ============================================
+
+@mixin crosshatch-bg($color-var) {
+  background: repeating-linear-gradient(
+    45deg,
+    var(#{$color-var}),
+    var(#{$color-var}) 1px,
+    transparent 1px,
+    transparent 10px
+  );
+}
+
+.alert-info,
+.alert-primary {
+  @include crosshatch-bg(--theme-crosshatch-info);
+  border-color: var(--theme-primary);
+  color: var(--theme-primary);
+}
+
+.alert-danger,
+.alert-warning {
+  @include crosshatch-bg(--theme-crosshatch-danger);
+  border-color: var(--theme-danger);
+  color: var(--theme-danger);
+}
+
+// Utility class for text with white background inside alerts
+.alert-text {
+  background-color: var(--theme-card-bg);
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+}
+
+// ============================================
+// Additional theme-aware overrides
+// ============================================
+
+.table {
+  color: var(--theme-body-color);
+}
+
+.modal-content {
+  background-color: var(--theme-card-bg);
+}
+
+.dropdown-menu {
+  background-color: var(--theme-card-bg);
+  border-color: var(--theme-border-color);
+}
+
+.dropdown-item {
+  color: var(--theme-body-color);
+
+  &:hover,
+  &:focus {
+    background-color: var(--theme-body-bg);
+  }
+}
+
+.form-control {
+  background-color: var(--theme-card-bg);
+  border-color: var(--theme-border-color);
+  color: var(--theme-body-color);
+}
+
+.navbar,
+#nav {
+  a {
+    color: var(--theme-primary);
+  }
+}
+
+// ============================================
+// PrimeVue theme overrides
+// ============================================
+
+.theme-plum {
+  // PrimeVue surface colors
+  --p-surface-0: #fffdf2;
+  --p-surface-50: #fdfaf0;
+  --p-surface-100: #f8f4e8;
+  --p-surface-200: #f0ebe0;
+  --p-surface-300: #e0d8d0;
+  --p-surface-400: #c8c0b8;
+  --p-surface-500: #a09890;
+  --p-surface-600: #706860;
+  --p-surface-700: #4a2040;
+  --p-surface-800: #3a1830;
+  --p-surface-900: #2a1020;
+
+  // PrimeVue primary colors
+  --p-primary-50: #fdf0f4;
+  --p-primary-100: #f8d8e0;
+  --p-primary-200: #f0b0c0;
+  --p-primary-300: #d87090;
+  --p-primary-400: #a04060;
+  --p-primary-500: #6b2d4a;
+  --p-primary-600: #5a2540;
+  --p-primary-700: #4a1d35;
+  --p-primary-800: #3a152a;
+  --p-primary-900: #2a0d1f;
+
+  // PrimeVue text colors
+  --p-text-color: #4a2040;
+  --p-text-muted-color: #705060;
+
+  // PrimeVue component backgrounds
+  --p-content-background: #fffdf2;
+  --p-content-border-color: #d8c8d0;
+
+  // Font
+  --p-font-family: "Fira Sans", sans-serif;
+}

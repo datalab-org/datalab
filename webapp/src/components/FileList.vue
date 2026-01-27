@@ -7,7 +7,7 @@
           <a @click="deleteFile($event, file_id)">
             <font-awesome-icon icon="times" fixed-width class="delete-file-button" />
           </a>
-          <a class="filelink" target="_blank" :href="`${$API_URL}/files/${file_id}/${file.name}`">
+          <a class="filelink" target="_blank" :href="getFileUrl(file_id, file.name)">
             {{ file.name }}
           </a>
           <span v-if="getFileSize(file)" class="file-size">
@@ -58,20 +58,17 @@
             }})
           </span>
         </div>
-      </div>
-      <div class="row">
-        <button id="uppy-trigger" class="btn btn-default btn-sm mb-3 ml-4" type="button">
-          <font-awesome-icon class="upload-icon" icon="file" fixed-width />
-          Upload files...</button
-        ><!-- Surrounding divs so that buttons  don't become full-width in the card -->
-        <button
-          class="btn btn-default btn-sm mb-3 ml-2"
-          type="button"
-          @click="setFileSelectModalOpen"
-        >
-          <font-awesome-icon class="remote-upload-icon" icon="cloud-upload-alt" fixed-width />
-          Add files from server...
-        </button>
+        <div class="row buttons">
+          <div class="btn-group" role="group">
+            <button id="uppy-trigger" class="btn btn-default btn-sm" type="button">
+              <font-awesome-icon class="upload-icon" icon="file" fixed-width /> Upload files
+            </button>
+            <button class="btn btn-default btn-sm" type="button" @click="setFileSelectModalOpen">
+              <font-awesome-icon class="remote-upload-icon" icon="cloud-upload-alt" fixed-width />
+              Add files from server
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -99,7 +96,16 @@ export default {
       serverFileModalIsOpen: false,
     };
   },
+  computed: {
+    adminSuperUserMode() {
+      return this.$store.getters.isAdminSuperUserModeActive;
+    },
+  },
   methods: {
+    getFileUrl(file_id, filename) {
+      const baseUrl = `${this.$API_URL}/files/${file_id}/${filename}`;
+      return this.adminSuperUserMode ? `${baseUrl}?sudo=1` : baseUrl;
+    },
     formatDistance,
     getFileSize(file) {
       return file.size;
@@ -133,7 +139,7 @@ export default {
 }
 
 .filelink {
-  color: #004175;
+  color: var(--theme-primary, #004175);
   font-family: var(--font-monospace);
 }
 
@@ -145,9 +151,13 @@ export default {
 .unlink-icon,
 .upload-icon,
 .remote-upload-icon {
-  margin-left: 0.4rem;
-  color: #888;
+  margin-left: 0rem;
+  color: var(--theme-muted-color, #888);
   font-size: small;
+}
+
+.btn-group {
+  margin-top: 0.5rem;
 }
 
 #filearea {
@@ -156,7 +166,7 @@ export default {
 }
 
 .delete-file-button:hover {
-  color: #dc3545;
+  color: var(--theme-danger, #dc3545);
   cursor: pointer;
 }
 
@@ -167,12 +177,12 @@ export default {
 
 .last-updated-text {
   font-size: 0.8em;
-  color: #888;
+  color: var(--theme-muted-color, #888);
   font-style: italic;
   vertical-align: middle;
 }
 .file-size {
-  color: #888;
+  color: var(--theme-muted-color, #888);
   font-size: 0.8em;
   margin-left: 0.25rem;
 }
@@ -181,8 +191,8 @@ export default {
   font-family: var(--font-monospace);
   font-weight: 400;
   /*font-style: italic;*/
-  color: teal;
-  border: solid 1px teal;
+  color: var(--theme-info, teal);
+  border: solid 1px var(--theme-info, teal);
   padding: 0.1rem 0.25rem;
   margin-left: 0.5rem;
   border-radius: 0.2rem;

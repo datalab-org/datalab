@@ -82,7 +82,7 @@ const DatalabPreset = definePreset(Aura, {
           width: 110px;
         }
         .p-datatable-mask {
-          color: black;
+          color: var(--theme-body-color, black);
           background: none;
         }
       `,

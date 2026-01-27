@@ -331,16 +331,16 @@ ul {
 
 .blocktype-label {
   font-style: italic;
-  color: grey;
+  color: var(--theme-muted-color, grey);
 }
 
 .collapsible {
-  background-color: #eee;
-  color: #444;
+  background-color: var(--theme-card-bg, #eee);
+  color: var(--theme-body-color, #444);
   /*cursor: pointer;*/
   /*padding: 6px;*/
   width: 100%;
-  border: 1px solid #ccc;
+  border: 1px solid var(--theme-border-color, #ccc);
   text-align: left;
   outline: none;
   border-radius: 3px;
@@ -359,7 +359,7 @@ ul {
 
 /* Style the collapsible content. */
 .datablock-content {
-  background-color: white;
+  background-color: var(--theme-card-bg, white);
   /*border: 1px solid #ccc;*/
   border-radius: 3px;
   max-height: 0px;
@@ -380,12 +380,12 @@ ul {
   font-size: large;
   margin-left: 10px;
   margin-right: 10px;
-  color: #004175;
+  color: var(--theme-primary, #004175);
   transition: all 0.4s;
 }
 
 .collapse-arrow:hover {
-  color: #7ca7ca;
+  color: var(--theme-muted-color, #7ca7ca);
 }
 
 /* expanded is on the parent (the header) */
@@ -397,14 +397,14 @@ ul {
 
 .block-header-icon {
   font-size: large;
-  color: #004175;
+  color: var(--theme-primary, #004175);
   /*margin-left: auto;*/
   margin-right: 10px;
   cursor: pointer;
 }
 
 .block-header-icon:hover {
-  color: #7ca7ca;
+  color: var(--theme-muted-color, #7ca7ca);
 }
 
 .spin {
