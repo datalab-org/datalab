@@ -16,11 +16,17 @@
             </div>
           </div>
           <div class="form-row">
-            <div class="form-group col">
-              <label id="creators" class="mr-2">Creators</label>
-              <div>
-                <Creators :creators="CollectionCreators" aria-labelledby="creators" />
-              </div>
+            <div class="form-group col-md-6">
+              <ToggleableCreatorsFormGroup
+                v-model="CollectionCreators"
+                :collection-id="collection_id"
+              />
+            </div>
+            <div class="form-group col-md-6">
+              <ToggleableGroupsFormGroup
+                v-model="CollectionGroups"
+                :collection-id="collection_id"
+              />
             </div>
           </div>
         </div>
@@ -69,6 +75,8 @@ import CollectionRelationshipVisualization from "@/components/CollectionRelation
 import DynamicDataTable from "@/components/DynamicDataTable";
 import FormattedItemStatus from "@/components/FormattedItemStatus.vue";
 import ExportButton from "@/components/ExportButton";
+import ToggleableCreatorsFormGroup from "@/components/ToggleableCreatorsFormGroup";
+import ToggleableGroupsFormGroup from "@/components/ToggleableGroupsFormGroup";
 
 export default {
   components: {
@@ -78,6 +86,8 @@ export default {
     DynamicDataTable,
     FormattedItemStatus,
     ExportButton,
+    ToggleableCreatorsFormGroup,
+    ToggleableGroupsFormGroup,
   },
   props: {
     collection_id: {
@@ -131,8 +141,13 @@ export default {
     Title: createComputedSetterForCollectionField("title"),
     Name: createComputedSetterForCollectionField("name"),
     CollectionCreators: createComputedSetterForCollectionField("creators"),
+    CollectionGroups: createComputedSetterForCollectionField("groups"),
     children() {
       return this.$store.state.all_collection_children[this.collection_id] || [];
+    },
+    collectionRefcode() {
+      const collection = this.$store.state.all_collection_data[this.collection_id];
+      return collection?.refcode || null;
     },
   },
   created() {
