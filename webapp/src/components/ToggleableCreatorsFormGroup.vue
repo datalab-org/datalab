@@ -88,7 +88,9 @@ export default {
           }
           const confirmed = await DialogService.confirm({
             title: "Update Permissions",
-            message: `Are you sure you want to update the permissions of this ${this.collectionId ? "collection" : "item"}?`,
+            message: `Are you sure you want to update the permissions of this ${
+              this.collectionId ? "collection" : "item"
+            }?`,
             type: "warning",
           });
           if (confirmed) {
