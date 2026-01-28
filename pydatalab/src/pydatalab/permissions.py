@@ -194,6 +194,15 @@ def get_default_permissions(
             {"creator_ids": {"$exists": False}},
         ]
     }
+
+    # Define permission for inventory items with no groups (accessible to all)
+    null_group_perm = {
+        "$or": [
+            {"group_ids": {"$size": 0}},
+            {"group_ids": {"$exists": False}},
+        ]
+    }
+
     if current_user.is_authenticated and current_user.person is not None:
         # find managed users under the given user (can later be expanded to groups)
         managed_users = list(
@@ -223,18 +232,21 @@ def get_default_permissions(
         user_perm: dict[str, Any] = {"$or": user_perm_conditions}
 
         if user_only:
-            # TODO: remove this hack when permissions are refactored. Currently starting_materials and equipment
-            # are a special case that should be group editable, so even when the route has asked to only edit this
-            # user's stuff, we can also let starting materials and equipment through.
-
-            # If we are trying to delete, then make sure they cannot delete items that do not match their user
             if deleting:
                 return user_perm
-
-            user_perm = {"$or": [user_perm, {"type": {"$in": ["starting_materials", "equipment"]}}]}
-            return user_perm
-
-        return {"$or": [user_perm, null_perm]}
+            else:
+                inventory_types_perm = {
+                    "$and": [
+                        {"type": {"$in": ["starting_materials", "equipment"]}},
+                        null_group_perm,
+                    ]
+                }
+                return {"$or": [user_perm, inventory_types_perm]}
+        else:
+            inventory_types_perm = {
+                "$and": [{"type": {"$in": ["starting_materials", "equipment"]}}, null_group_perm]
+            }
+            return {"$or": [user_perm, null_perm, inventory_types_perm]}
 
     elif user_only:
         return {"_id": -1}

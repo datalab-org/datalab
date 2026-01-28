@@ -50,15 +50,18 @@
       </div>
     </div>
     <div class="form-row">
-      <div class="form-group col-md-8">
+      <div class="form-group col-md-5">
         <label for="equip-contact" class="mr-2">Contact information</label>
         <input id="equip-contact" v-model="Contact" class="form-control" />
       </div>
-      <div class="form-group col-md-3 col-sm-3 col-6 pb-3">
+      <div class="form-group col-md-3 pb-3">
         <ToggleableItemStatusFormGroup
           v-model="Status"
           :possible-item-statuses="possibleItemStatuses"
         />
+      </div>
+      <div class="form-group col-md-4 pb-3">
+        <ToggleableGroupsFormGroup v-model="ItemGroups" :refcode="Refcode" />
       </div>
     </div>
     <label id="equip-description-label" class="mr-2">Description</label>
@@ -80,6 +83,7 @@ import CollectionList from "@/components/CollectionList";
 import FormattedRefcode from "@/components/FormattedRefcode";
 import Creators from "@/components/Creators";
 import ToggleableItemStatusFormGroup from "@/components/ToggleableItemStatusFormGroup";
+import ToggleableGroupsFormGroup from "@/components/ToggleableGroupsFormGroup";
 
 export default {
   components: {
@@ -89,6 +93,7 @@ export default {
     FormattedRefcode,
     Creators,
     ToggleableItemStatusFormGroup,
+    ToggleableGroupsFormGroup,
   },
   props: {
     item_id: { type: String, required: true },
@@ -114,6 +119,7 @@ export default {
     EquipmentDate: createComputedSetterForItemField("date"),
     SerialNos: createComputedSetterForItemField("serial_numbers"),
     Maintainers: createComputedSetterForItemField("creators"),
+    ItemGroups: createComputedSetterForItemField("groups"),
     Contact: createComputedSetterForItemField("contact"),
     Status: createComputedSetterForItemField("status"),
     schema() {
