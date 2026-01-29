@@ -60,7 +60,7 @@ repos:
         language: system
       - id: eslint
         name: eslint
-        entry: bash -c 'cd webapp && ./node_modules/.bin/eslint --fix "${@#webapp/}"' --
+        entry: bash -c 'if [ -f webapp/node_modules/.bin/eslint ]; then cd webapp && ./node_modules/.bin/eslint --fix "${@#webapp/}"; else echo "Skipping eslint (node_modules not installed)"; fi' --
         language: system
         types: [file]
         files: ^webapp/.*\.(js|jsx|ts|tsx|vue)$
