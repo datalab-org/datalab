@@ -45,30 +45,33 @@
           </div>
         </div>
         <div class="form-row">
-          <div class="form-group col-lg-12 col-sm-12">
+          <div class="form-group col-md-6 pb-3">
+            <ToggleableGroupsFormGroup v-model="ItemGroups" :refcode="Refcode" />
+          </div>
+          <div class="form-group col-lg-6 col-sm-6">
             <label for="startmat-location">Location</label>
             <StyledInput id="startmat-location" v-model="Location" :readonly="!isEditable" />
           </div>
         </div>
         <div class="form-row">
-          <div class="form-group col-lg-3 col-sm-4">
+          <div class="form-group col-lg-4 col-sm-4">
             <label for="startmat-supplier">Supplier</label>
             <StyledInput id="startmat-supplier" v-model="Supplier" :readonly="!isEditable" />
           </div>
-          <div class="form-group col-lg-3 col-sm-4">
+          <div class="form-group col-lg-4 col-sm-4">
             <label for="startmat-purity">Chemical purity</label>
             <StyledInput id="startmat-purity" v-model="ChemicalPurity" :readonly="!isEditable" />
           </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group col-lg-3 col-sm-3 col-6">
+          <div class="form-group col-lg-4 col-sm-4">
             <label for="startmat-cas">CAS</label>
             <a v-if="CAS" :href="'https://commonchemistry.cas.org/detail?cas_rn=' + CAS"
               ><font-awesome-icon icon="search" class="fixed-width ml-2"
             /></a>
             <StyledInput id="startmat-cas" v-model="CAS" :readonly="!isEditable" />
           </div>
-          <div class="form-group col-lg-3 col-sm-3 col-6">
+        </div>
+        <div class="form-row">
+          <div class="form-group col-lg-6 col-sm-6">
             <label for="startmat-date-opened">Date opened</label>
             <StyledInput
               id="startmat-date-opened"
@@ -110,6 +113,7 @@ import ChemFormulaInput from "@/components/ChemFormulaInput";
 import TableOfContents from "@/components/TableOfContents";
 import ToggleableCollectionFormGroup from "@/components/ToggleableCollectionFormGroup";
 import ToggleableItemStatusFormGroup from "@/components/ToggleableItemStatusFormGroup";
+import ToggleableGroupsFormGroup from "@/components/ToggleableGroupsFormGroup";
 import FormattedRefcode from "@/components/FormattedRefcode";
 import FormattedBarCode from "@/components/FormattedBarcode";
 import StyledInput from "@/components/StyledInput";
@@ -128,6 +132,7 @@ export default {
     TiptapInline,
     ToggleableCollectionFormGroup,
     ToggleableItemStatusFormGroup,
+    ToggleableGroupsFormGroup,
     TableOfContents,
     FormattedRefcode,
     FormattedBarCode,
@@ -162,6 +167,7 @@ export default {
     Location: createComputedSetterForItemField("location"),
     ItemDescription: createComputedSetterForItemField("description"),
     Collections: createComputedSetterForItemField("collections"),
+    ItemGroups: createComputedSetterForItemField("groups"),
     Refcode: createComputedSetterForItemField("refcode"),
     Status: createComputedSetterForItemField("status"),
     schema() {
