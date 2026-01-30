@@ -15,9 +15,11 @@ export default createStore({
     all_collection_parents: {},
     refcode_to_id: {},
     sample_list: null,
+    sample_list_total_count: 0,
     equipment_list: null,
     starting_material_list: null,
     collection_list: null,
+    collection_list_total_count: 0,
     saved_status_items: {},
     saved_status_blocks: {},
     saved_status_collections: {},
@@ -76,6 +78,9 @@ export default createStore({
       // sampleSummaries is an array of json objects summarizing the available samples
       state.sample_list = sampleSummaries || [];
     },
+    setSampleListTotalCount(state, totalCount) {
+      state.sample_list_total_count = totalCount;
+    },
     setStartingMaterialList(state, startingMaterialSummaries) {
       // startingMaterialSummaries is an array of json objects summarizing the available starting materials
       state.starting_material_list = startingMaterialSummaries || [];
@@ -83,6 +88,9 @@ export default createStore({
     setCollectionList(state, collectionSummaries) {
       // collectionSummaries is an array of json objects summarizing the available collections
       state.collection_list = collectionSummaries || [];
+    },
+    setCollectionListTotalCount(state, totalCount) {
+      state.collection_list_total_count = totalCount;
     },
     setDisplayName(state, displayName) {
       state.currentUserDisplayName = displayName;

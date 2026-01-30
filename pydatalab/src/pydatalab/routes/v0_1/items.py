@@ -338,7 +338,26 @@ def _check_collections(sample_dict: dict) -> list[dict[str, str]]:
 
 @ITEMS.route("/samples/", methods=["GET"])
 def get_samples():
-    return jsonify({"status": "success", "samples": list(get_samples_summary())})
+    limit = request.args.get("limit", default=None, type=int)
+    skip = request.args.get("skip", default=0, type=int)
+
+    samples_generator = get_samples_summary()
+    samples_list = list(samples_generator)
+
+    total_count = len(samples_list)
+
+    if limit is not None:
+        samples_list = samples_list[skip : skip + limit]
+
+    return jsonify(
+        {
+            "status": "success",
+            "samples": samples_list,
+            "total_count": total_count,
+            "limit": limit,
+            "skip": skip,
+        }
+    )
 
 
 @ITEMS.route("/search-items/", methods=["GET"])
@@ -357,6 +376,7 @@ def search_items():
 
     query = request.args.get("query", type=str)
     nresults = request.args.get("nresults", default=100, type=int)
+    skip = request.args.get("skip", default=0, type=int)
     types = request.args.get("types", default=None)
     if isinstance(types, str):
         # should figure out how to parse as list automatically
@@ -438,6 +458,15 @@ def search_items():
 
         pipeline.append({"$match": match_obj})
 
+    count_pipeline = pipeline.copy()
+    count_pipeline.append({"$count": "total"})
+
+    count_result = list(flask_mongo.db.items.aggregate(count_pipeline))
+    total_count = count_result[0]["total"] if count_result else 0
+
+    if skip > 0:
+        pipeline.append({"$skip": skip})
+
     pipeline.append({"$limit": nresults})
     pipeline.append(
         {
@@ -456,7 +485,15 @@ def search_items():
 
     cursor = flask_mongo.db.items.aggregate(pipeline)
 
-    return jsonify({"status": "success", "items": list(cursor)}), 200
+    return jsonify(
+        {
+            "status": "success",
+            "items": list(cursor),
+            "total_count": total_count,
+            "limit": nresults,
+            "skip": skip,
+        }
+    ), 200
 
 
 def _copy_sample_from_id(sample_dict: dict, copy_from_item_id: str) -> dict:
@@ -1365,7 +1402,8 @@ def restore_version(refcode):
         "version": next_version_number,
         "timestamp": datetime.datetime.now(tz=datetime.timezone.utc),
         "action": VersionAction.RESTORED,  # Audit trail: this is a restored version
-        "restored_from_version": version_object_id,  # Track which version was restored from (ObjectId)
+        # Track which version was restored from (ObjectId)
+        "restored_from_version": version_object_id,
         "user_id": user_id,  # ObjectId for efficient querying
         "datalab_version": software_version,
         "data": restored_data,  # Store the complete snapshot of the restored state

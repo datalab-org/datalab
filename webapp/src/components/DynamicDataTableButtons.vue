@@ -97,9 +97,33 @@
             v-model="localFilters.global.value"
             data-testid="search-input"
             class="search-input"
-            placeholder="Search"
+            :placeholder="localUseApiSearch ? 'Search via API...' : 'Search'"
+            :disabled="isLoadingApiSearch"
           />
         </IconField>
+
+        <div class="btn-group ml-2" role="group" aria-label="Advanced search controls">
+          <button
+            data-testid="advanced-search-button"
+            class="btn btn-default"
+            aria-label="Advanced search"
+            title="Advanced search via API"
+            @click="openAdvancedSearchModal"
+          >
+            <font-awesome-icon icon="search-plus" />
+          </button>
+
+          <button
+            v-if="useApiSearch"
+            data-testid="clear-api-search-button"
+            class="btn btn-default"
+            aria-label="Clear API search"
+            title="Clear API search and return to normal view"
+            @click="clearApiSearch"
+          >
+            <font-awesome-icon icon="times" />
+          </button>
+        </div>
 
         <button
           data-testid="reset-table-button"
@@ -160,6 +184,7 @@
       </div>
     </div>
   </div>
+  <AdvancedSearchModal v-model="isAdvancedSearchModalVisible" @search="handleAdvancedSearch" />
 </template>
 
 <script>
@@ -170,6 +195,8 @@ import InputIcon from "primevue/inputicon";
 import InputText from "primevue/inputtext";
 import MultiSelect from "primevue/multiselect";
 import "primeicons/primeicons.css";
+
+import AdvancedSearchModal from "@/components/AdvancedSearchModal";
 
 import {
   deleteSample,
@@ -185,6 +212,7 @@ export default {
     InputIcon,
     InputText,
     MultiSelect,
+    AdvancedSearchModal,
   },
   props: {
     dataType: {
@@ -223,6 +251,12 @@ export default {
       required: false,
       default: null,
     },
+    isLoadingApiSearch: {
+      type: Boolean,
+      required: false,
+      default: false,
+    },
+    useApiSearch: { type: Boolean, default: false },
   },
   emits: [
     "open-create-item-modal",
@@ -236,6 +270,9 @@ export default {
     "update:selected-columns",
     "reset-table",
     "remove-selected-items-from-collection",
+    "update:use-api-search",
+    "api-search",
+    "clear-api-search",
   ],
   data() {
     return {
@@ -243,6 +280,7 @@ export default {
       isSelectedDropdownVisible: false,
       isDeletingItems: false,
       itemCount: 0,
+      isAdvancedSearchModalVisible: false,
     };
   },
   watch: {
@@ -251,9 +289,27 @@ export default {
         this.isSelectedDropdownVisible = false;
       }
     },
-    "localFilters.global.value"(newValue) {
-      this.$emit("update:filters", { ...this.filters, global: { value: newValue } });
+    localUseApiSearch(newValue) {
+      this.$emit("update:use-api-search", newValue);
+      if (!newValue) {
+        this.localFilters.global.value = "";
+      }
     },
+    "localFilters.global.value"(newValue) {
+      if (this.localUseApiSearch) {
+        clearTimeout(this.searchDebounceTimer);
+        this.searchDebounceTimer = setTimeout(() => {
+          this.$emit("api-search", newValue);
+        }, 1000);
+      } else {
+        this.$emit("update:filters", { ...this.filters, global: { value: newValue } });
+      }
+    },
+  },
+  beforeUnmount() {
+    if (this.searchDebounceTimer) {
+      clearTimeout(this.searchDebounceTimer);
+    }
   },
   methods: {
     async confirmDeletion() {
@@ -339,6 +395,15 @@ export default {
       if (confirmed) {
         this.$emit("reset-table");
       }
+    },
+    openAdvancedSearchModal() {
+      this.isAdvancedSearchModalVisible = true;
+    },
+    handleAdvancedSearch(query) {
+      this.$emit("api-search", query);
+    },
+    clearApiSearch() {
+      this.$emit("clear-api-search");
     },
   },
 };
