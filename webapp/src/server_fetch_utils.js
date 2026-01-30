@@ -833,6 +833,22 @@ export function updateItemPermissions(refcode, creators = null, groups = null) {
   );
 }
 
+export function appendItemPermissions(refcode, creators = null, groups = null) {
+  console.log("appendItemPermissions called with", refcode, creators, groups);
+
+  const payload = { creators: creators, groups: groups };
+
+  return fetch_put(`${API_URL}/items/${refcode}/permissions`, payload).then(
+    function (response_json) {
+      if (response_json.status === "success") {
+        return response_json;
+      } else {
+        throw new Error(response_json.message);
+      }
+    },
+  );
+}
+
 export function saveItem(item_id) {
   var item_data = store.state.all_item_data[item_id];
 
