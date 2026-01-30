@@ -64,7 +64,9 @@ export default {
 
   methods: {
     updateBlock() {
-      updateBlockFromServer(this.item_id, this.block_id, this.block);
+      updateBlockFromServer(this.item_id, this.block_id, this.block).catch((error) => {
+        console.error("Error updating block:", error);
+      });
     },
   },
 };
