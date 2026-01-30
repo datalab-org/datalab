@@ -643,7 +643,7 @@ requires-dist = [
     { name = "matador-db", marker = "extra == 'apps'", specifier = ">=0.11.2" },
     { name = "matplotlib", specifier = "~=3.8" },
     { name = "navani", marker = "extra == 'apps'", specifier = ">=0.1.13" },
-    { name = "nmrglue", marker = "extra == 'apps'", specifier = "~=0.10" },
+    { name = "nmrglue", marker = "extra == 'apps'", git = "https://github.com/jjhelmus/nmrglue.git?rev=b6408751bf18801a0a4ce084acf4d31335e2b02a" },
     { name = "pandas", extras = ["excel"], specifier = "~=2.2" },
     { name = "periodictable", specifier = "~=1.7" },
     { name = "pillow", marker = "extra == 'server'", specifier = "~=11.0" },
@@ -1813,16 +1813,12 @@ wheels = [
 
 [[package]]
 name = "nmrglue"
-version = "0.11"
-source = { registry = "https://pypi.org/simple" }
+version = "0.12.dev0"
+source = { git = "https://github.com/jjhelmus/nmrglue.git?rev=b6408751bf18801a0a4ce084acf4d31335e2b02a#b6408751bf18801a0a4ce084acf4d31335e2b02a" }
 dependencies = [
     { name = "numpy" },
     { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "scipy", version = "1.16.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/77/82/2101ea5440d357641b234a092b53177974d84b507f9e69fc09e3e7997639/nmrglue-0.11.tar.gz", hash = "sha256:9e740a02d34ce5df9eb0390274c6a5f37b4837d59139512a3dd169106a8e3fe1", size = 205874, upload-time = "2024-10-29T21:07:20.314Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/cb/e4/79b679185d83a7b2513997203afd6c23359063d97738968f51d34e3ee9c8/nmrglue-0.11-py2.py3-none-any.whl", hash = "sha256:6e698b07cd71d12034664a3414ce0bb7bf5cd87cf750b03e33e439fb31dc13bd", size = 226135, upload-time = "2024-10-29T21:07:18.669Z" },
 ]
 
 [[package]]
