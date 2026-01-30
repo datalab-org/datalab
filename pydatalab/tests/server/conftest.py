@@ -328,12 +328,12 @@ def fixture_default_cell(user_id):
             "date": "1970-02-01",
             "negative_electrode": [
                 {
-                    "item": {"item_id": "test", "chemform": "Li15Si4", "type": "samples"},
+                    "item": {"item_id": "test", "type": "starting_materials"},
                     "quantity": 2.0,
                     "unit": "mg",
                 },
                 {
-                    "item": {"item_id": "test", "chemform": "C", "type": "samples"},
+                    "item": {"item_id": "test_carbon", "chemform": "C", "type": "samples"},
                     "quantity": 2.0,
                     "unit": "mg",
                 },
