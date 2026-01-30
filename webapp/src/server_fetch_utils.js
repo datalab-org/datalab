@@ -548,7 +548,7 @@ export async function getCurrentUser() {
       store.commit("setCurrentUserInfoLoading", false);
       store.state.currentUserInfoLoaded = true;
       currentUserPromise = null;
-      sessionStorage.removeItem("adminSuperUserMode");
+      store.commit("setAdminSuperUserMode", false);
       return null;
     });
 
@@ -558,7 +558,7 @@ export async function getCurrentUser() {
 export function invalidateCurrentUserCache() {
   currentUserCache = null;
   currentUserPromise = null;
-  sessionStorage.removeItem("adminSuperUserMode");
+  store.commit("setAdminSuperUserMode", false);
 }
 
 export async function requestMagicLink(email_address) {

@@ -70,7 +70,7 @@ export default {
       return this.$store.getters.getHasUnverifiedUser;
     },
     adminSuperUserMode() {
-      return this.$store.state.adminSuperUserMode;
+      return this.$store.getters.isAdminSuperUserModeActive;
     },
   },
   watch: {

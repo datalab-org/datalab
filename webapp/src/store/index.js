@@ -39,7 +39,7 @@ export default createStore({
     blocksInfos: {},
     currentUserIsUnverified: false,
     hasUnverifiedUser: false,
-    adminSuperUserMode: sessionStorage.getItem("adminSuperUserMode") === "true", // Toggle state for admin super-user (sudo) mode
+    adminSuperUserMode: false,
     datatablePaginationSettings: {
       samples: {
         page: 0,
@@ -371,7 +371,11 @@ export default createStore({
     },
     setAdminSuperUserMode(state, enabled) {
       state.adminSuperUserMode = enabled;
-      sessionStorage.setItem("adminSuperUserMode", enabled);
+      if (enabled) {
+        sessionStorage.setItem("adminSuperUserMode", enabled);
+      } else {
+        sessionStorage.removeItem("adminSuperUserMode");
+      }
     },
     setRows(state, { type, rows }) {
       state.datatablePaginationSettings[type].rows = rows;
@@ -435,13 +439,9 @@ export default createStore({
       const cacheKey = userId || "combined";
       return state.userActivityCache[cacheKey];
     },
-    isAdminSuperUserModeActive(state) {
+    isAdminSuperUserModeActive() {
       // Super-user mode is only active if: flag is set, user is logged in, and user is an admin
-      return (
-        state.adminSuperUserMode &&
-        state.currentUserDisplayName !== null &&
-        state.currentUserRole === "admin"
-      );
+      return sessionStorage.getItem("adminSuperUserMode");
     },
   },
   actions: {

@@ -399,6 +399,7 @@ def test_append_permissions_preserves_base_owner(client, another_user_id):
     assert len(creator_ids_final) == 2
     assert creator_ids_final[0] == original_owner_id
 
+
 def test_admin_super_user_mode(admin_client, client):
     """Test that admins must opt-in to super-user mode with ?sudo=1 for GET requests.
 
