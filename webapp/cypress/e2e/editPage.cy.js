@@ -224,15 +224,17 @@ describe("Edit Page", () => {
 
     cy.contains("Unsaved changes").should("not.exist");
 
-    cy.get(".datablock-content div").eq(0).type("the first comment box");
+    cy.get(".datablock-content [contenteditable]").eq(0).type("the first comment box");
     cy.contains("Unsaved changes");
 
     // click update block icon and make sure unsaved changes warning goes away
     cy.get('.datablock-header [aria-label="updateBlock"]').eq(0).click();
     cy.contains("Unsaved changes").should("not.exist");
-    cy.get(".datablock-content div").eq(0).contains("the first comment box");
+    cy.get(".datablock-content [contenteditable]").eq(0).contains("the first comment box");
 
-    cy.get(".datablock-content div").eq(0).type("\nThe first comment box; further changes.");
+    cy.get(".datablock-content [contenteditable]")
+      .eq(0)
+      .type("\nThe first comment box; further changes.");
     cy.contains("Unsaved changes");
 
     cy.get('[data-testid="block-description"]').first().find(".ProseMirror").click();
