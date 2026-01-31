@@ -100,7 +100,8 @@ def test_single_starting_material(admin_client, client):
     assert len(graph["edges"]) == 4
 
     # Check for bug where this behaviour was inconsistent between admin and non-admin users
-    graph = admin_client.get("/item-graph/great-grandchild").json
+    # Admin needs ?sudo=1 to see items not created by them (super-user mode)
+    graph = admin_client.get("/item-graph/great-grandchild?sudo=1").json
     assert len(graph["nodes"]) == 2
     assert len(graph["edges"]) == 1
 
@@ -116,7 +117,7 @@ def test_single_starting_material(admin_client, client):
         "/new-sample/", json={"new_sample_data": json.loads(admin_great_great_grandchild.json())}
     )
 
-    graph = admin_client.get("/item-graph/great-grandchild").json
+    graph = admin_client.get("/item-graph/great-grandchild?sudo=1").json
     assert len(graph["nodes"]) == 3
     assert len(graph["edges"]) == 2
 
@@ -139,7 +140,7 @@ def test_single_starting_material(admin_client, client):
     client_collection_graph = client.get("/item-graph?collection_id=test-collection").json
     assert client_collection_graph["status"] == "error"
 
-    collection_graph = admin_client.get("/item-graph?collection_id=test-collection").json
+    collection_graph = admin_client.get("/item-graph?collection_id=test-collection&sudo=1").json
     assert len(collection_graph["nodes"]) == 1
     assert len(collection_graph["edges"]) == 0
 
@@ -147,6 +148,8 @@ def test_single_starting_material(admin_client, client):
     assert len(graph["nodes"]) == 2
     assert len(graph["edges"]) == 1
 
-    admin_graph = admin_client.get("/item-graph/great-grandchild?hide_collections=false").json
+    admin_graph = admin_client.get(
+        "/item-graph/great-grandchild?hide_collections=false&sudo=1"
+    ).json
     assert len(admin_graph["nodes"]) == 4
     assert len(admin_graph["edges"]) == 3
