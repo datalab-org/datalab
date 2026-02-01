@@ -20,6 +20,8 @@ def test_single_starting_material(admin_client, client):
 
     assert creation.status_code == 201
 
+    material_refcode = creation.json["sample_list_entry"]["refcode"]
+
     # A single material without connections should be ignored
     graph = client.get("/item-graph").json
     assert len(graph["nodes"]) == 0
@@ -33,7 +35,14 @@ def test_single_starting_material(admin_client, client):
     parent = Sample(
         item_id="parent",
         synthesis_constituents=[
-            {"item": {"item_id": item_id, "type": "starting_materials"}, "quantity": None}
+            {
+                "item": {
+                    "item_id": item_id,
+                    "refcode": material_refcode,
+                    "type": "starting_materials",
+                },
+                "quantity": None,
+            }
         ],
     )
 
@@ -58,11 +67,21 @@ def test_single_starting_material(admin_client, client):
     assert len(graph["nodes"]) == 2
     assert len(graph["edges"]) == 1
 
+    parent_response = client.get("/get-item-data/parent")
+    parent_refcode = parent_response.json["item_data"]["refcode"]
+
     # Now add a few more samples in a chain and check that only the relevant ones are shown
     child = Sample(
         item_id="child",
         synthesis_constituents=[
-            {"item": {"item_id": "parent", "type": "samples"}, "quantity": None}
+            {
+                "item": {
+                    "item_id": "parent",
+                    "refcode": parent_refcode,
+                    "type": "samples",
+                },
+                "quantity": None,
+            }
         ],
     )
 
@@ -71,10 +90,22 @@ def test_single_starting_material(admin_client, client):
         json={"new_sample_data": json.loads(child.json())},
     )
 
+    assert creation.status_code == 201
+
+    child_response = client.get("/get-item-data/child")
+    child_refcode = child_response.json["item_data"]["refcode"]
+
     grandchild = Sample(
         item_id="grandchild",
         synthesis_constituents=[
-            {"item": {"item_id": "child", "type": "samples"}, "quantity": None}
+            {
+                "item": {
+                    "item_id": "child",
+                    "refcode": child_refcode,
+                    "type": "samples",
+                },
+                "quantity": None,
+            }
         ],
     )
 
@@ -83,10 +114,22 @@ def test_single_starting_material(admin_client, client):
         json={"new_sample_data": json.loads(grandchild.json())},
     )
 
+    assert creation.status_code == 201
+
+    grandchild_response = client.get("/get-item-data/grandchild")
+    grandchild_refcode = grandchild_response.json["item_data"]["refcode"]
+
     great_grandchild = Sample(
         item_id="great-grandchild",
         synthesis_constituents=[
-            {"item": {"item_id": "grandchild", "type": "samples"}, "quantity": None}
+            {
+                "item": {
+                    "item_id": "grandchild",
+                    "refcode": grandchild_refcode,
+                    "type": "samples",
+                },
+                "quantity": None,
+            }
         ],
     )
 
@@ -94,6 +137,8 @@ def test_single_starting_material(admin_client, client):
         "/new-sample/",
         json={"new_sample_data": json.loads(great_grandchild.json())},
     )
+
+    assert creation.status_code == 201
 
     graph = client.get("/item-graph").json
     assert len(graph["nodes"]) == 5
@@ -105,11 +150,21 @@ def test_single_starting_material(admin_client, client):
     assert len(graph["nodes"]) == 2
     assert len(graph["edges"]) == 1
 
+    great_grandchild_response = admin_client.get("/get-item-data/great-grandchild")
+    great_grandchild_refcode = great_grandchild_response.json["item_data"]["refcode"]
+
     # Add an admin only item and check that the non-admin user still sees the same graph
     admin_great_great_grandchild = Sample(
         item_id="admin-great-great-grandchild",
         synthesis_constituents=[
-            {"item": {"item_id": "great-grandchild", "type": "samples"}, "quantity": None}
+            {
+                "item": {
+                    "item_id": "great-grandchild",
+                    "refcode": great_grandchild_refcode,
+                    "type": "samples",
+                },
+                "quantity": None,
+            }
         ],
     )
 

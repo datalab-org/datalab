@@ -20,12 +20,15 @@ from pydatalab.models.utils import HumanReadableIdentifier, Refcode
 def test_sample_with_inlined_reference():
     from pydatalab.models.samples import Sample
 
-    a = Sample(item_id="test_anode", chemform="C")
+    a = Sample(item_id="test_anode", refcode="test:TESTA", chemform="C")
 
     b = Sample(
         item_id="abcd-1-2-3",
         synthesis_constituents=[
-            {"item": {"item_id": a.item_id, "type": "samples"}, "quantity": None}
+            {
+                "item": {"item_id": a.item_id, "refcode": a.refcode, "type": "samples"},
+                "quantity": None,
+            }
         ],
     )
 
@@ -35,7 +38,10 @@ def test_sample_with_inlined_reference():
     c = Sample(
         item_id="c-123",
         synthesis_constituents=[
-            {"item": {"item_id": a.item_id, "type": "samples"}, "quantity": None},
+            {
+                "item": {"item_id": a.item_id, "refcode": a.refcode, "type": "samples"},
+                "quantity": None,
+            },
             {"item": {"name": "inline"}, "quantity": None},
         ],
     )
@@ -251,7 +257,7 @@ def test_cell_with_inlined_reference():
     from pydatalab.models.cells import Cell
     from pydatalab.models.samples import Sample
 
-    anode = Sample(item_id="test_anode", chemform="C")
+    anode = Sample(item_id="test_anode", refcode="test:ANODE", chemform="C")
 
     cell = Cell(
         item_id="abcd-1-2-3",
@@ -275,7 +281,15 @@ def test_cell_with_inlined_reference():
     cell_json = {
         "item_id": "abcd-1-2-3",
         "positive_electrode": [
-            {"item": {"type": "samples", "item_id": "test_anode", "chemform": "C"}, "quantity": 2}
+            {
+                "item": {
+                    "type": "samples",
+                    "item_id": "test_anode",
+                    "refcode": "test:ANODE",
+                    "chemform": "C",
+                },
+                "quantity": 2,
+            }
         ],
         "negative_electrode": [
             {"item": {"name": "My secret cathode", "chemform": "NaCoO2"}, "quantity": 3}
@@ -309,7 +323,14 @@ def test_cell_with_inlined_reference():
     cell_json_3 = {
         "item_id": "abcd-1-2-3",
         "positive_electrode": [
-            {"item": {"type": "samples", "item_id": "real_item"}, "quantity": 2}
+            {
+                "item": {
+                    "type": "samples",
+                    "item_id": "real_item",
+                    "refcode": "test:REALITEM",
+                },
+                "quantity": 2,
+            }
         ],
         "negative_electrode": [
             {"item": {"name": "My secret cathode", "chemform": "NaCoO2"}, "quantity": 3}
