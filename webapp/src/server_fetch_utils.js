@@ -282,7 +282,11 @@ export async function getStats() {
       return response_json.counts;
     })
     .catch((error) => {
-      throw error;
+      if (error === "UNAUTHORIZED") {
+        return null;
+      } else {
+        throw error;
+      }
     });
 }
 
