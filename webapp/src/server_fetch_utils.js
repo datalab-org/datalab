@@ -64,6 +64,13 @@ export function construct_headers(additional_headers = null) {
 
 // eslint-disable-next-line no-unused-vars
 function fetch_get(url) {
+  // If admin super-user mode is enabled, append sudo=1
+  if (store.getters.isAdminSuperUserModeActive) {
+    const urlObj = url instanceof URL ? url : new URL(url, window.location.origin);
+    urlObj.searchParams.set("sudo", "1");
+    url = urlObj.toString();
+  }
+
   const requestOptions = {
     method: "GET",
     headers: construct_headers(),
@@ -126,6 +133,13 @@ function fetch_delete(url, body) {
  * @throws {Error} If file exceeds size limit or fetch fails
  */
 export async function fetch_file(url, maxSizeBytes = 100 * 1024 * 1024) {
+  // If admin super-user mode is enabled, append sudo=1
+  if (store.getters.isAdminSuperUserModeActive) {
+    const urlObj = url instanceof URL ? url : new URL(url, window.location.origin);
+    urlObj.searchParams.set("sudo", "1");
+    url = urlObj.toString();
+  }
+
   const requestOptions = {
     method: "GET",
     headers: construct_headers(),
@@ -509,6 +523,7 @@ export async function getCurrentUser() {
   if (currentUserCache !== null) {
     store.commit("setDisplayName", currentUserCache.display_name);
     store.commit("setCurrentUserID", currentUserCache.immutable_id);
+    store.commit("setCurrentUserRole", currentUserCache.role);
     store.commit("setIsUnverified", currentUserCache.account_status === "unverified");
     return currentUserCache;
   }
@@ -525,6 +540,7 @@ export async function getCurrentUser() {
         currentUserCache = response;
         store.commit("setDisplayName", response.display_name);
         store.commit("setCurrentUserID", response.immutable_id);
+        store.commit("setCurrentUserRole", response.role);
         store.commit("setIsUnverified", response.account_status === "unverified");
         store.commit("setCurrentUserInfoLoading", false);
         store.state.currentUserInfoLoaded = true;
@@ -536,6 +552,7 @@ export async function getCurrentUser() {
       store.commit("setCurrentUserInfoLoading", false);
       store.state.currentUserInfoLoaded = true;
       currentUserPromise = null;
+      store.commit("setAdminSuperUserMode", false);
       return null;
     });
 
@@ -545,6 +562,7 @@ export async function getCurrentUser() {
 export function invalidateCurrentUserCache() {
   currentUserCache = null;
   currentUserPromise = null;
+  store.commit("setAdminSuperUserMode", false);
 }
 
 export async function requestMagicLink(email_address) {

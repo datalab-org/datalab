@@ -270,13 +270,13 @@ describe("Edit Page", () => {
     cy.get('[data-testid="search-input"]').type("editable_sample");
     cy.findByText("editable_sample").click();
 
-    cy.findByText("Upload files...").click();
+    cy.findByText("Upload files").click();
     cy.get(".uppy-Dashboard-AddFiles-title").should("contain.text", "Drop files here,");
     cy.get(".uppy-Dashboard-AddFiles-title").should("contain.text", "browse files");
     cy.get(".uppy-Dashboard-AddFiles-title").should("contain.text", "or import from:");
     cy.get("body").type("{esc}");
 
-    cy.findByText("Add files from server...").click();
+    cy.findByText("Add files from server").click();
     cy.findByText("Select files to add").should("exist");
   });
 
