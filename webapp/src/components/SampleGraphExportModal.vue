@@ -277,6 +277,12 @@ export default {
         if (this.exportOnlyThisItem) {
           const response = await startItemExport(this.itemId);
           const taskId = response.task_id;
+          DialogService.alert({
+            title: "Export in Progress",
+            message:
+              "Your item is being exported. This may take a few moments. You'll be notified when it's ready to download.",
+            type: "info",
+          });
           this.pollExportStatus(taskId);
           return;
         }
@@ -322,6 +328,13 @@ export default {
         });
         const taskId = response.task_id;
 
+        DialogService.alert({
+          title: "Export in Progress",
+          message:
+            "Your items are being exported. This may take a few moments. You'll be notified when it's ready to download.",
+          type: "info",
+        });
+
         this.pollExportStatus(taskId);
       } catch (error) {
         console.error("Export failed:", error);
@@ -343,11 +356,13 @@ export default {
             this.downloadExport(taskId);
             this.isExporting = false;
             this.isModalOpen = false;
+            DialogService.closeCurrentDialog(true);
+
             DialogService.alert({
               title: "Export Complete",
               message:
                 "Your items have been exported successfully and the download should begin shortly.",
-              type: "info",
+              type: "success",
             });
           } else if (status.status === "error") {
             clearInterval(this.pollInterval);

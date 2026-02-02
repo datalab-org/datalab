@@ -1,11 +1,9 @@
 <template>
   <Navbar />
 
-  <div id="tableContainer" class="container">
-    <div class="row">
-      <div class="col-sm-12 mx-auto">
-        <CollectionTable />
-      </div>
+  <div id="tableContainer" class="container-fluid">
+    <div class="w-100 px-5 mx-auto">
+      <CollectionTable />
     </div>
   </div>
 </template>

@@ -254,7 +254,8 @@ def test_item_regex_search(
     user, query, expected_result_ids, real_mongo_client, client, admin_client, insert_example_items
 ):
     if user == "admin":
-        response = admin_client.get(f"/search-items/?{query}")
+        # Admin needs ?sudo=1 to see all items (super-user mode)
+        response = admin_client.get(f"/search-items/?{query}&sudo=1")
     else:
         response = client.get(f"/search-items/?{query}")
 

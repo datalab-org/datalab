@@ -33,6 +33,7 @@ export default createStore({
     fileSelectModalIsOpen: false,
     currentUserDisplayName: null,
     currentUserID: null,
+    currentUserRole: null,
     currentUserInfoLoading: false,
     currentUserInfoLoaded: false,
     currentUserInfoPromise: null,
@@ -40,6 +41,7 @@ export default createStore({
     blocksInfos: {},
     currentUserIsUnverified: false,
     hasUnverifiedUser: false,
+    adminSuperUserMode: false,
     datatablePaginationSettings: {
       samples: {
         page: 0,
@@ -97,6 +99,9 @@ export default createStore({
     },
     setCurrentUserID(state, userID) {
       state.currentUserID = userID;
+    },
+    setCurrentUserRole(state, role) {
+      state.currentUserRole = role;
     },
     setIsUnverified(state, isUnverified) {
       state.currentUserIsUnverified = isUnverified;
@@ -372,6 +377,14 @@ export default createStore({
     updateHasUnverified(state, hasUnverified) {
       state.hasUnverifiedUser = hasUnverified;
     },
+    setAdminSuperUserMode(state, enabled) {
+      state.adminSuperUserMode = enabled;
+      if (enabled) {
+        sessionStorage.setItem("adminSuperUserMode", enabled);
+      } else {
+        sessionStorage.removeItem("adminSuperUserMode");
+      }
+    },
     setRows(state, { type, rows }) {
       state.datatablePaginationSettings[type].rows = rows;
     },
@@ -433,6 +446,10 @@ export default createStore({
       // userId can be a user ID string or null/undefined for combined activity
       const cacheKey = userId || "combined";
       return state.userActivityCache[cacheKey];
+    },
+    isAdminSuperUserModeActive() {
+      // Super-user mode is only active if: flag is set, user is logged in, and user is an admin
+      return sessionStorage.getItem("adminSuperUserMode");
     },
   },
   actions: {

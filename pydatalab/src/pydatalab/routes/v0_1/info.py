@@ -112,6 +112,7 @@ def get_info():
 
 
 @INFO.route("/info/stats", methods=["GET"])
+@active_users_or_get_only
 def get_stats():
     """Returns a dictionary of counts of each entry type in the deployment"""
 

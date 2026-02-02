@@ -18,10 +18,7 @@
           >.
         </p>
 
-        <h5>Deployment stats:</h5>
-        <div class="mx-auto" style="width: 80%">
-          <StatisticsTable />
-        </div>
+        <StatisticsTable :title="'Deployment stats:'" />
 
         <UserActivityGraph :combined="true" :title="'User activity:'" />
 
