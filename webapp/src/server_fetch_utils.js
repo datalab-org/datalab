@@ -502,8 +502,25 @@ export function getEquipmentList() {
     });
 }
 
-export function searchItems(query, nresults = 100, types = null, skip = 0) {
-  // construct a url with parameters:
+export function searchItems(query, nresults = 100, types = null) {
+  var url = new URL(`${API_URL}/search-items/`);
+  var params = { query: query, nresults: nresults, types: types };
+  Object.keys(params).forEach((key) => url.searchParams.append(key, params[key]));
+  return fetch_get(url).then(function (response_json) {
+    return response_json.items;
+  });
+}
+
+export function searchCollections(query, nresults = 100) {
+  var url = new URL(`${API_URL}/search-collections`);
+  var params = { query: query, nresults: nresults };
+  Object.keys(params).forEach((key) => url.searchParams.append(key, params[key]));
+  return fetch_get(url).then(function (response_json) {
+    return response_json.data;
+  });
+}
+
+export function searchItemsPaginated(query, nresults = 100, types = null, skip = 0) {
   var url = new URL(`${API_URL}/search-items/`);
   var params = { query: query, nresults: nresults, skip: skip };
   if (types) {
@@ -514,19 +531,14 @@ export function searchItems(query, nresults = 100, types = null, skip = 0) {
       url.searchParams.append(key, params[key]);
     }
   });
-  return fetch_get(url).then(function (response_json) {
-    return response_json;
-  });
+  return fetch_get(url);
 }
 
-export function searchCollections(query, nresults = 100, skip = 0) {
-  // construct a url with parameters:
+export function searchCollectionsPaginated(query, nresults = 100, skip = 0) {
   var url = new URL(`${API_URL}/search-collections`);
   var params = { query: query, nresults: nresults, skip: skip };
   Object.keys(params).forEach((key) => url.searchParams.append(key, params[key]));
-  return fetch_get(url).then(function (response_json) {
-    return response_json;
-  });
+  return fetch_get(url);
 }
 
 export function searchGroups(query, nresults = 100) {

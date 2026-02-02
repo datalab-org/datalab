@@ -49,8 +49,6 @@
           :is-loading-api-search="isLoadingApiSearch"
           :use-api-search="useApiSearch"
           @update:use-api-search="handleUseApiSearchChange"
-          @api-search="performApiSearch"
-          @clear-api-search="clearApiSearch"
           @update:selected-columns="selectedColumns = $event"
           @update:filters="filters = $event"
           @open-create-item-modal="createItemModalIsOpen = true"
@@ -388,7 +386,7 @@ import InputText from "primevue/inputtext";
 import DatePicker from "primevue/datepicker";
 import Select from "primevue/select";
 
-import { searchItems, searchCollections } from "@/server_fetch_utils.js";
+import { searchItemsPaginated, searchCollectionsPaginated } from "@/server_fetch_utils.js";
 
 export default {
   components: {
@@ -870,13 +868,17 @@ export default {
 
         const types = typesMap[this.dataType];
         const limit = this.rows || 50;
-
         if (this.dataType === "collections") {
-          const response = await searchCollections(query, limit, skip);
+          const response = await searchCollectionsPaginated(query, limit, skip);
           this.apiSearchResults = response.data;
           this.apiSearchTotalCount = response.total_count;
         } else {
-          const response = await searchItems(query, limit, types ? types.join(",") : null, skip);
+          const response = await searchItemsPaginated(
+            query,
+            limit,
+            types ? types.join(",") : null,
+            skip,
+          );
           this.apiSearchResults = response.items;
           this.apiSearchTotalCount = response.total_count;
         }

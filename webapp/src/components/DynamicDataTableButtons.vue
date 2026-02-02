@@ -88,12 +88,11 @@
           />
         </IconField>
 
-        <div class="btn-group ml-2" role="group" aria-label="Advanced search controls">
+        <div class="btn-group ml-2">
           <button
             data-testid="advanced-search-button"
             class="btn btn-default"
             aria-label="Advanced search"
-            title="Advanced search via API"
             @click="openAdvancedSearchModal"
           >
             <font-awesome-icon icon="search-plus" />
@@ -104,12 +103,21 @@
             data-testid="clear-api-search-button"
             class="btn btn-default"
             aria-label="Clear API search"
-            title="Clear API search and return to normal view"
             @click="clearApiSearch"
           >
             <font-awesome-icon icon="times" />
           </button>
         </div>
+
+        <button
+          data-testid="reset-table-button"
+          class="btn btn-default ml-2"
+          aria-label="Reset table"
+          title="Reset table"
+          @click="resetTable"
+        >
+          <font-awesome-icon icon="redo" />
+        </button>
       </div>
     </div>
 
@@ -177,7 +185,6 @@ import { DialogService } from "@/services/DialogService";
 import IconField from "primevue/iconfield";
 import InputIcon from "primevue/inputicon";
 import InputText from "primevue/inputtext";
-import MultiSelect from "primevue/multiselect";
 import "primeicons/primeicons.css";
 
 import AdvancedSearchModal from "@/components/AdvancedSearchModal";
@@ -195,7 +202,6 @@ export default {
     IconField,
     InputIcon,
     InputText,
-    MultiSelect,
     AdvancedSearchModal,
   },
   props: {
@@ -262,6 +268,7 @@ export default {
   data() {
     return {
       localFilters: { ...this.filters },
+      localUseApiSearch: this.useApiSearch,
       isSelectedDropdownVisible: false,
       isSettingsDropdownVisible: false,
       isDeletingItems: false,
@@ -275,6 +282,9 @@ export default {
     },
   },
   watch: {
+    useApiSearch(newValue) {
+      this.localUseApiSearch = newValue;
+    },
     itemsSelected(newVal) {
       if (newVal.length === 0) {
         this.isSelectedDropdownVisible = false;
