@@ -746,11 +746,9 @@ def create_samples():
     )  # 207: multi-status
 
 
-@ITEMS.route("/items/<refcode>/permissions", methods=["PATCH"])
-def update_item_permissions(refcode: str):
-    """Update the permissions of an item with the given refcode."""
-
-    request_json = request.get_json()
+def _process_item_permissions(
+    refcode: str, request_json: dict, append_mode: bool = False
+) -> tuple[dict, int]:
     creator_ids: list[ObjectId] = []
     group_ids: list[ObjectId] = []
 
@@ -760,20 +758,19 @@ def update_item_permissions(refcode: str):
     current_item = flask_mongo.db.items.find_one(
         {"refcode": refcode, **get_default_permissions(user_only=True)},
         {"_id": 1, "creator_ids": 1, "group_ids": 1},
-    )  # type: ignore
+    )
 
     if not current_item:
         return (
-            jsonify(
-                {
-                    "status": "error",
-                    "message": f"No valid item found with the given {refcode=}.",
-                }
-            ),
+            {
+                "status": "error",
+                "message": f"No valid item found with the given {refcode=}.",
+            },
             401,
         )
 
-    current_creator_ids = current_item["creator_ids"]
+    current_creator_ids = current_item.get("creator_ids", [])
+    current_group_ids = current_item.get("group_ids", [])
 
     creators_requested = False
     groups_requested = False
@@ -804,12 +801,10 @@ def update_item_permissions(refcode: str):
 
     if not groups_requested and not creators_requested:
         return (
-            jsonify(
-                {
-                    "status": "error",
-                    "message": "No valid creator or group IDs found in the request.",
-                }
-            ),
+            {
+                "status": "error",
+                "message": "No valid creator or group IDs found in the request.",
+            },
             400,
         )
 
@@ -817,15 +812,13 @@ def update_item_permissions(refcode: str):
     if creator_ids:
         found_creator_ids = [
             d for d in flask_mongo.db.users.find({"_id": {"$in": creator_ids}}, {"_id": 1})
-        ]  # type: ignore
+        ]
         if len(found_creator_ids) != len(creator_ids):
             return (
-                jsonify(
-                    {
-                        "status": "error",
-                        "message": "One or more creator IDs not found in the database.",
-                    }
-                ),
+                {
+                    "status": "error",
+                    "message": "One or more creator IDs not found in the database.",
+                },
                 400,
             )
 
@@ -833,17 +826,21 @@ def update_item_permissions(refcode: str):
         # Validate all group IDs are present in the database
         found_group_ids = [
             d for d in flask_mongo.db.groups.find({"_id": {"$in": group_ids}}, {"_id": 1})
-        ]  # type: ignore
+        ]
         if len(found_group_ids) != len(group_ids):
             return (
-                jsonify(
-                    {
-                        "status": "error",
-                        "message": "One or more group IDs not found in the database.",
-                    }
-                ),
+                {
+                    "status": "error",
+                    "message": "One or more group IDs not found in the database.",
+                },
                 400,
             )
+
+    if append_mode:
+        if creators_requested:
+            creator_ids = list(set(current_creator_ids + creator_ids))
+        if groups_requested:
+            group_ids = list(set(current_group_ids + group_ids))
 
     if creator_ids:
         # Make sure a user cannot remove their own access to an item
@@ -862,6 +859,22 @@ def update_item_permissions(refcode: str):
             except ValueError:
                 pass
             creator_ids.insert(0, base_owner)
+
+    no_changes = False
+    if creators_requested and not groups_requested:
+        if set(creator_ids) == set(current_creator_ids):
+            no_changes = True
+    elif groups_requested and not creators_requested:
+        if set(group_ids) == set(current_group_ids):
+            no_changes = True
+    elif creators_requested and groups_requested:
+        if set(creator_ids) == set(current_creator_ids) and set(group_ids) == set(
+            current_group_ids
+        ):
+            no_changes = True
+
+    if no_changes:
+        return {"status": "success", "message": "No changes needed"}, 200
 
     LOGGER.warning(
         "Setting permissions for item %s to %s (creators) / %s (groups)",
@@ -883,14 +896,31 @@ def update_item_permissions(refcode: str):
     )
 
     if result.modified_count != 1:
-        return jsonify(
+        return (
             {
                 "status": "error",
                 "message": "Failed to update permissions: you cannot remove yourself or the base owner as a creator.",
-            }
-        ), 400
+            },
+            400,
+        )
 
-    return jsonify({"status": "success"}), 200
+    return {"status": "success"}, 200
+
+
+@ITEMS.route("/items/<refcode>/permissions", methods=["PATCH"])
+def update_item_permissions(refcode: str):
+    """Update the permissions of an item with the given refcode."""
+    request_json = request.get_json()
+    response, status_code = _process_item_permissions(refcode, request_json, append_mode=False)
+    return jsonify(response), status_code
+
+
+@ITEMS.route("/items/<refcode>/permissions", methods=["PUT"])
+def append_item_permissions(refcode: str):
+    """Append permissions to an item with the given refcode."""
+    request_json = request.get_json()
+    response, status_code = _process_item_permissions(refcode, request_json, append_mode=True)
+    return jsonify(response), status_code
 
 
 @ITEMS.route("/items/<refcode>/issue-access-token", methods=["POST"])
@@ -1365,7 +1395,8 @@ def restore_version(refcode):
         "version": next_version_number,
         "timestamp": datetime.datetime.now(tz=datetime.timezone.utc),
         "action": VersionAction.RESTORED,  # Audit trail: this is a restored version
-        "restored_from_version": version_object_id,  # Track which version was restored from (ObjectId)
+        # Track which version was restored from (ObjectId)
+        "restored_from_version": version_object_id,
         "user_id": user_id,  # ObjectId for efficient querying
         "datalab_version": software_version,
         "data": restored_data,  # Store the complete snapshot of the restored state
