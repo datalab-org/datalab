@@ -275,6 +275,67 @@ def groups_lookup() -> dict:
     }
 
 
+def entry_reference_lookup(item_doc: dict) -> dict:
+    """Looks up any field that contains an entry reference and resolves it to the item data."""
+
+    # TODO (v0.8): We hard-code this for now but should extract this from pydantic v2 schemas instead
+    # Each field contains a reference like {"item": {"item_id": ..., "refcode": ..., "type": ...}},
+    # or simply an inlined {"item": {"name": ..., "chemform": ...}} object without reference fields.
+
+    # This function needs match refcode or item ID if present, and pull in the relevant item from another entry,
+    # projecting the most relevant fields, e.g., name, item_id to display to the user.
+    reference_fields = {
+        "samples": ["synthesis_constituents"],
+        "cells": ["positive_electrode", "negative_electrode", "electrolyte"],
+        "starting_materials": ["synthesis_constituents"],
+    }
+
+    item_type = item_doc.get("type", None)
+    if item_type not in reference_fields:
+        return item_doc
+
+    # Otherwise, we need to loop do the relevant lookup
+    dereferenced_fields: dict[str, list] = {}
+    for field in reference_fields[item_type]:
+        preferred_refs: list[dict | None] = []
+        dereferenced_fields[field] = []
+
+        for subitem in item_doc.get(field, []):
+            refcode = subitem.get("item", {}).get("refcode", None)
+            if refcode:
+                preferred_refs.append({"refcode": refcode})
+                continue
+            item_id = subitem.get("item", {}).get("item_id", None)
+            if item_id:
+                preferred_refs.append({"item_id": item_id})
+                continue
+
+            # If no refcode or item_id, this is an inlined item, so no lookup needed
+            preferred_refs.append(None)
+
+        for ind, ref in enumerate(preferred_refs):
+            if ref:
+                deref = flask_mongo.db.items.find_one(
+                    {**ref, **get_default_permissions()},
+                    projection={"name": 1, "item_id": 1, "refcode": 1, "chemform": 1, "type": 1},
+                )
+            # If the source item has been deleted, is inlined or is inaccessible, use the original subitem data
+            if not ref or not deref:
+                dereferenced_fields[field].append(item_doc[field][ind])
+                continue
+
+            dereferenced_fields[field].append(
+                {
+                    **item_doc[field][ind],
+                    "item": deref,
+                }
+            )
+
+    item_doc.update(dereferenced_fields)
+
+    return item_doc
+
+
 def files_lookup() -> dict:
     return {
         "from": "files",
@@ -641,37 +702,6 @@ def _create_sample(
             data_model.item_id,
             str(e),
         )
-
-    # sample_list_entry = {
-    #     "refcode": data_model.refcode,
-    #     "item_id": data_model.item_id,
-    #     "nblocks": 0,
-    #     "nfiles": 0,
-    #     "date": data_model.date,
-    #     "name": data_model.name,
-    #     "creator_ids": data_model.creator_ids,
-    #     # TODO: This workaround for creators & collections is still gross, need to figure this out properly
-    #     "creators": [json.loads(c.json(exclude_unset=True)) for c in data_model.creators]
-    #     if data_model.creators
-    #     else [],
-    #     "collections": [
-    #         json.loads(c.json(exclude_unset=True, exclude_none=True))
-    #         for c in data_model.collections
-    #     ],
-    #     "group_ids": data_model.group_ids,
-    #     "groups": [
-    #         json.loads(c.json(exclude_unset=True, exclude_none=True)) for c in data_model.groups
-    #     ]
-    #     if data_model.groups
-    #     else [],
-    #     "type": data_model.type,
-    #     "status": data_model.status,
-    # }
-
-    # hack to let us use _create_sample() for equipment too. We probably want to make
-    # a more general create_item() to more elegantly handle different returns.
-    # if data_model.type == "equipment":
-    #     sample_list_entry["location"] = data_model.location
 
     data = {
         "status": "success",
@@ -1086,6 +1116,8 @@ def get_item_data(
             404,
         )
 
+    doc = entry_reference_lookup(doc)
+
     # determine the item type and validate according to the appropriate schema
     try:
         ItemModel = ITEM_MODELS[doc["type"]]
@@ -1165,9 +1197,6 @@ def get_item_data(
             "parent_items": sorted(parents),
         }
     )
-
-
-# --- VERSION CONTROL ENDPOINTS ---
 
 
 @ITEMS.route("/items/<refcode>/versions/", methods=["GET"])
@@ -1470,9 +1499,6 @@ def save_version(refcode):
         permission_filter=get_default_permissions(user_only=False),
     )
     return jsonify(response), status_code
-
-
-# --- END VERSION CONTROL ENDPOINTS ---
 
 
 @ITEMS.route("/save-item/", methods=["POST"])
