@@ -38,6 +38,24 @@
             />
           </div>
         </div>
+        <div class="form-row">
+          <div class="col-md-6 form-group">
+            <label id="shareWithGroupsLabel">(Optional) Share with groups:</label>
+            <GroupSelect
+              v-model="shareWithGroups"
+              aria-labelledby="shareWithGroupsLabel"
+              multiple
+            />
+          </div>
+          <div class="col-md-6 form-group">
+            <label id="additionalCreatorsLabel">(Optional) Additional creators:</label>
+            <UserSelect
+              v-model="additionalCreators"
+              aria-labelledby="additionalCreatorsLabel"
+              multiple
+            />
+          </div>
+        </div>
       </template>
     </Modal>
   </form>
@@ -48,6 +66,8 @@ import { DialogService } from "@/services/DialogService";
 
 import Modal from "@/components/Modal.vue";
 import ItemSelect from "@/components/ItemSelect.vue";
+import GroupSelect from "@/components/GroupSelect.vue";
+import UserSelect from "@/components/UserSelect.vue";
 import { createNewCollection } from "@/server_fetch_utils.js";
 import { validateEntryID } from "@/field_utils.js";
 
@@ -56,6 +76,8 @@ export default {
   components: {
     Modal,
     ItemSelect,
+    GroupSelect,
+    UserSelect,
   },
   props: {
     modelValue: Boolean,
@@ -68,6 +90,8 @@ export default {
       selectedCollectionToCopy: null,
       startingMembers: [],
       takenCollectionIds: [],
+      shareWithGroups: [],
+      additionalCreators: [],
     };
   },
   computed: {
@@ -86,15 +110,27 @@ export default {
   },
   methods: {
     async submitForm() {
-      await createNewCollection(this.collection_id, this.title, {
-        starting_members: this.startingMembers,
-      })
+      console.log("new collection form submit triggered");
+
+      const groupsData = this.shareWithGroups.length > 0 ? this.shareWithGroups : null;
+      const additionalCreatorsData =
+        this.additionalCreators.length > 0 ? this.additionalCreators : null;
+
+      await createNewCollection(
+        this.collection_id,
+        this.title,
+        this.startingMembers,
+        groupsData,
+        additionalCreatorsData,
+      )
         .then(() => {
           this.$emit("update:modelValue", false); // close this modal
           // Disable scroll now that items are added to the top by default
           // document.getElementById(this.item_id).scrollIntoView({ behavior: "smooth" });
           this.collection_id = null;
           this.title = null;
+          this.shareWithGroups = [];
+          this.additionalCreators = [];
         })
         .catch((error) => {
           let id_error = false;
