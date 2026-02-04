@@ -24,7 +24,6 @@ class NMRBlock(DataBlock):
 
     accepted_file_extensions = BRUKER_FILE_EXTENSIONS + JCAMP_FILE_EXTENSIONS
     processed_data: dict | None = None
-    defaults = {"process number": 1}
     _supports_collections = False
 
     @property
@@ -66,18 +65,44 @@ class NMRBlock(DataBlock):
 
             extracted_directory_name = tmpdir_path
             root_directory: Path | None = None
-            # Check if `<name>.zip` has a matching root-level `<name>` directory.
-            for c in tmpdir_path.iterdir():
-                # If we already found a root directory, break and emit warning about which one will be used
-                if c.name == "__MACOSX":
-                    continue
-                if root_directory is not None:
-                    warnings.warn(
-                        f"Multiple Bruker projects found in the zip file {list(tmpdir_path.iterdir())}, using {root_directory}."
-                    )
-                    break
-                if c.is_dir():
-                    root_directory = c
+            project_dirs = []
+
+            # Descend into directories looking for any dirs that have a pdata subdirectory
+            def _find_pdata_parent_dir(base_dir: Path) -> list[Path] | None:
+                """Recursively search for directories containing a 'pdata' subdirectory."""
+                from pydatalab.logger import LOGGER
+
+                LOGGER.debug("Searching in directory: %s", base_dir)
+                results = []
+
+                if (base_dir / "pdata").is_dir():
+                    LOGGER.debug("Found pdata in directory: %s", base_dir)
+                    return [base_dir]
+
+                for d in base_dir.iterdir():
+                    if d.is_dir():
+                        parents = _find_pdata_parent_dir(d)
+                        if parents:
+                            results.extend(parents)
+
+                if results:
+                    return results
+
+                else:
+                    return None
+
+            project_dirs = _find_pdata_parent_dir(tmpdir_path)
+
+            if not project_dirs:
+                raise RuntimeError(
+                    f"No Bruker project directories found in the zip file {location!r}."
+                )
+
+            root_directory = project_dirs[2]
+            if len(project_dirs) > 1:
+                warnings.warn(
+                    f"Multiple Bruker project directories found in the zip file {location!r}, using the first: {root_directory.name!r}."
+                )
 
             if root_directory:
                 extracted_directory_name = root_directory
