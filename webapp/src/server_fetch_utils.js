@@ -305,14 +305,25 @@ export async function getInfo() {
     });
 }
 
-export function getSampleList() {
-  return fetch_get(`${API_URL}/samples/`)
+export function getSampleList(limit = null, skip = 0) {
+  let url = `${API_URL}/samples/`;
+  if (limit !== null) {
+    url += `?limit=${limit}&skip=${skip}`;
+  }
+
+  return fetch_get(url)
     .then(function (response_json) {
       store.commit("setSampleList", response_json.samples);
+      store.commit(
+        "setSampleListTotalCount",
+        response_json.total_count || response_json.samples.length,
+      );
+      return response_json;
     })
     .catch((error) => {
       if (error === "UNAUTHORIZED") {
         store.commit("setSampleList", []);
+        store.commit("setSampleListTotalCount", 0);
       } else {
         throw error;
       }
@@ -333,14 +344,25 @@ export function getCollectionSampleList(collection_id) {
     });
 }
 
-export function getCollectionList() {
-  return fetch_get(`${API_URL}/collections`)
+export function getCollectionList(limit = null, skip = 0) {
+  let url = `${API_URL}/collections`;
+  if (limit !== null) {
+    url += `?limit=${limit}&skip=${skip}`;
+  }
+
+  return fetch_get(url)
     .then(function (response_json) {
       store.commit("setCollectionList", response_json.data);
+      store.commit(
+        "setCollectionListTotalCount",
+        response_json.total_count || response_json.data.length,
+      );
+      return response_json;
     })
     .catch((error) => {
       if (error === "UNAUTHORIZED") {
         store.commit("setCollectionList", []);
+        store.commit("setCollectionListTotalCount", 0);
       } else {
         throw error;
       }
@@ -481,7 +503,6 @@ export function getEquipmentList() {
 }
 
 export function searchItems(query, nresults = 100, types = null) {
-  // construct a url with parameters:
   var url = new URL(`${API_URL}/search-items/`);
   var params = { query: query, nresults: nresults, types: types };
   Object.keys(params).forEach((key) => url.searchParams.append(key, params[key]));
@@ -491,13 +512,33 @@ export function searchItems(query, nresults = 100, types = null) {
 }
 
 export function searchCollections(query, nresults = 100) {
-  // construct a url with parameters:
   var url = new URL(`${API_URL}/search-collections`);
   var params = { query: query, nresults: nresults };
   Object.keys(params).forEach((key) => url.searchParams.append(key, params[key]));
   return fetch_get(url).then(function (response_json) {
     return response_json.data;
   });
+}
+
+export function searchItemsPaginated(query, nresults = 100, types = null, skip = 0) {
+  var url = new URL(`${API_URL}/search-items/`);
+  var params = { query: query, nresults: nresults, skip: skip };
+  if (types) {
+    params.types = types;
+  }
+  Object.keys(params).forEach((key) => {
+    if (params[key] !== null) {
+      url.searchParams.append(key, params[key]);
+    }
+  });
+  return fetch_get(url);
+}
+
+export function searchCollectionsPaginated(query, nresults = 100, skip = 0) {
+  var url = new URL(`${API_URL}/search-collections`);
+  var params = { query: query, nresults: nresults, skip: skip };
+  Object.keys(params).forEach((key) => url.searchParams.append(key, params[key]));
+  return fetch_get(url);
 }
 
 export function searchGroups(query, nresults = 100) {

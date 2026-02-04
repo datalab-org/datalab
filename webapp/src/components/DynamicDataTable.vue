@@ -9,13 +9,15 @@
       v-model:filters="filters"
       v-model:selection="itemsSelected"
       v-model:select-all="allSelected"
-      :value="data"
+      :value="displayedData"
       :data-testid="computedDataTestId"
       selection-mode="checkbox"
       paginator
       :first="page * rows"
       :rows="rows"
       :rows-per-page-options="[10, 20, 50, 100]"
+      :total-records="useApiSearch ? apiSearchTotalCount : displayedData ? displayedData.length : 0"
+      :lazy="useApiSearch"
       filter-display="menu"
       :global-filter-fields="globalFilterFields"
       removable-sort
@@ -24,7 +26,7 @@
       sort-mode="multiple"
       state-storage="local"
       :state-key="`datatable-state-${dataType}`"
-      :loading="data === null"
+      :loading="data === null || isLoadingApiSearch"
       @state-restore="onStateRestore"
       @state-save="onStateSave"
       @filter="onFilter"
@@ -39,25 +41,28 @@
       <template #header>
         <DynamicDataTableButtons
           :data-type="dataType"
-          :items-selected="itemsSelected"
-          :filters="filters"
-          :editable-inventory="editable_inventory"
-          :show-buttons="showButtons"
           :available-columns="availableColumns"
           :selected-columns="selectedColumns"
+          :filters="filters"
+          :items-selected="itemsSelected"
           :collection-id="collectionId"
-          @update:filters="updateFilters"
-          @update:selected-columns="onToggleColumns"
+          :is-loading-api-search="isLoadingApiSearch"
+          :use-api-search="useApiSearch"
+          @update:use-api-search="handleUseApiSearchChange"
+          @update:selected-columns="selectedColumns = $event"
+          @update:filters="filters = $event"
           @open-create-item-modal="createItemModalIsOpen = true"
           @open-batch-create-item-modal="batchCreateItemModalIsOpen = true"
           @open-qr-scanner-modal="qrScannerModalIsOpen = true"
           @open-create-collection-modal="createCollectionModalIsOpen = true"
           @open-create-equipment-modal="createEquipmentModalIsOpen = true"
           @open-add-to-collection-modal="addToCollectionModalIsOpen = true"
-          @open-batch-share-modal="batchShareModalIsOpen = true"
+          @reset-table="handleResetTable"
           @delete-selected-items="deleteSelectedItems"
           @remove-selected-items-from-collection="removeSelectedItemsFromCollection"
-          @reset-table="handleResetTable"
+          @open-batch-share-modal="batchShareModalIsOpen = true"
+          @api-search="handleApiSearch"
+          @clear-api-search="handleClearApiSearch"
         />
       </template>
       <template #loading>
@@ -381,6 +386,8 @@ import InputText from "primevue/inputtext";
 import DatePicker from "primevue/datepicker";
 import Select from "primevue/select";
 
+import { searchItemsPaginated, searchCollectionsPaginated } from "@/server_fetch_utils.js";
+
 export default {
   components: {
     DynamicDataTableButtons,
@@ -457,6 +464,11 @@ export default {
       isSampleFetchError: false,
       itemsSelected: [],
       allSelected: false,
+      useApiSearch: false,
+      apiSearchResults: null,
+      isLoadingApiSearch: false,
+      apiSearchTotalCount: 0,
+      currentApiSearchQuery: null,
       filters: {
         global: { value: null },
         item_id: {
@@ -606,6 +618,12 @@ export default {
     },
     availableColumns() {
       return this.columns.map((col) => ({ ...col }));
+    },
+    displayedData() {
+      if (this.useApiSearch && this.apiSearchResults !== null) {
+        return this.apiSearchResults;
+      }
+      return this.data;
     },
   },
   created() {
@@ -797,6 +815,81 @@ export default {
     });
   },
   methods: {
+    handleUseApiSearchChange(value) {
+      this.useApiSearch = value;
+      if (!value) {
+        this.apiSearchResults = null;
+        this.apiSearchTotalCount = 0;
+        this.currentApiSearchQuery = null;
+        this.filters.global.value = null;
+      }
+    },
+    clearApiSearch() {
+      this.useApiSearch = false;
+      this.apiSearchResults = null;
+      this.apiSearchTotalCount = 0;
+      this.currentApiSearchQuery = null;
+      this.filters.global.value = null;
+    },
+    async onPageChange(event) {
+      this.updatePage(event.page);
+      this.updateRows(event.rows);
+
+      if (this.useApiSearch && this.currentApiSearchQuery) {
+        const skip = event.page * event.rows;
+        await this.performApiSearch(this.currentApiSearchQuery, skip);
+      }
+
+      this.$nextTick(() => {
+        this.allSelected = this.checkAllSelected();
+      });
+    },
+    async performApiSearch(query, skip = 0) {
+      if (!query || query.trim() === "") {
+        this.apiSearchResults = null;
+        this.isLoadingApiSearch = false;
+        this.apiSearchTotalCount = 0;
+        this.useApiSearch = false;
+        this.currentApiSearchQuery = null;
+        return;
+      }
+
+      this.useApiSearch = true;
+      this.currentApiSearchQuery = query;
+      this.isLoadingApiSearch = true;
+
+      try {
+        const typesMap = {
+          samples: ["samples", "cells"],
+          startingMaterials: ["starting_materials"],
+          equipment: ["equipment"],
+          collections: null,
+        };
+
+        const types = typesMap[this.dataType];
+        const limit = this.rows || 50;
+        if (this.dataType === "collections") {
+          const response = await searchCollectionsPaginated(query, limit, skip);
+          this.apiSearchResults = response.data;
+          this.apiSearchTotalCount = response.total_count;
+        } else {
+          const response = await searchItemsPaginated(
+            query,
+            limit,
+            types ? types.join(",") : null,
+            skip,
+          );
+          this.apiSearchResults = response.items;
+          this.apiSearchTotalCount = response.total_count;
+        }
+      } catch (error) {
+        console.error("API search error:", error);
+        this.apiSearchResults = [];
+        this.apiSearchTotalCount = 0;
+      } finally {
+        this.isLoadingApiSearch = false;
+      }
+    },
     getColumnMinWidth(column) {
       const COLUMN_BASE_PADDING = 2.5;
       const CHAR_WIDTH_ESTIMATE = 0.75;
@@ -1042,13 +1135,6 @@ export default {
     updatePage(page) {
       this.$store.commit("setPage", { type: this.dataType, page });
     },
-    onPageChange(event) {
-      this.updatePage(event.page);
-      this.updateRows(event.rows);
-      this.$nextTick(() => {
-        this.allSelected = this.checkAllSelected();
-      });
-    },
     onToggleColumns(value) {
       this.$nextTick(() => {
         this.selectedColumns = [...value].sort((a, b) => {
@@ -1132,6 +1218,12 @@ export default {
       ) {
         return;
       }
+    },
+    handleApiSearch(query) {
+      this.performApiSearch(query);
+    },
+    handleClearApiSearch() {
+      this.clearApiSearch();
     },
   },
 };
