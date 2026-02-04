@@ -61,6 +61,10 @@ export default createStore({
         page: 0,
         rows: 20,
       },
+      users: {
+        page: 0,
+        rows: 20,
+      },
     },
     block_errors: {},
     apiConfig: {

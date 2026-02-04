@@ -28,7 +28,7 @@
       @state-restore="onStateRestore"
       @state-save="onStateSave"
       @filter="onFilter"
-      @row-click="goToEditPage"
+      @row-click="dataType !== 'users' ? goToEditPage : null"
       @row-select="null"
       @select-all-change="onSelectAllChange"
       @page="onPageChange"
@@ -373,6 +373,11 @@ import FormattedRefcode from "@/components/FormattedRefcode.vue";
 import FormattedGroupName from "./FormattedGroupName.vue";
 import GroupsIconCounter from "@/components/GroupsIconCounter";
 
+import UserStatusCell from "@/components/UserStatusCell.vue";
+import UserRoleCell from "@/components/UserRoleCell.vue";
+import UserManagersCell from "@/components/UserManagersCell.vue";
+import UserActionsCell from "@/components/UserActionsCell.vue";
+
 import { FilterMatchMode, FilterOperator, FilterService } from "@primevue/core/api";
 import DataTable from "primevue/datatable";
 import MultiSelect from "primevue/multiselect";
@@ -410,6 +415,10 @@ export default {
     GroupsIconCounter,
     DatePicker,
     Select,
+    UserStatusCell,
+    UserRoleCell,
+    UserManagersCell,
+    UserActionsCell,
   },
   props: {
     columns: {
@@ -933,6 +942,24 @@ export default {
         FilesIconCounter: {
           count: "nfiles",
         },
+        UserStatusCell: {
+          status: "account_status",
+        },
+        UserRoleCell: {
+          user: data,
+          allUsers: data.allUsers || [],
+        },
+        UserGroupsCell: {
+          groups: data.groups || [],
+        },
+        UserManagersCell: {
+          user: data,
+          allUsers: data.allUsers || [],
+        },
+        UserActionsCell: {
+          user: data,
+          allUsers: data.allUsers || [],
+        },
       };
 
       const config = propsConfig[componentName] || {};
@@ -948,6 +975,8 @@ export default {
           } else if (data[setting] !== undefined) {
             acc[prop] = data[setting];
           }
+        } else {
+          acc[prop] = setting;
         }
         return acc;
       }, {});

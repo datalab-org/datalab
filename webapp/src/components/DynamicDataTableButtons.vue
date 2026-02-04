@@ -153,7 +153,7 @@
           aria-labelledby="dropdownMenuButton"
         >
           <a
-            v-if="dataType !== 'collections' && dataType !== 'collectionItems'"
+            v-if="!['collections', 'collectionItems', 'users'].includes(dataType)"
             data-testid="add-to-collection-button"
             class="dropdown-item"
             @click="handleAddToCollection"
@@ -169,7 +169,7 @@
             Remove from collection
           </a>
           <a
-            v-if="dataType !== 'collections' && dataType !== 'collectionItems'"
+            v-if="!['collections', 'collectionItems', 'users'].includes(dataType)"
             data-testid="batch-share-button"
             class="dropdown-item"
             @click="handleBatchShare"
@@ -177,12 +177,28 @@
             Batch share
           </a>
           <a
-            v-if="dataType !== 'collectionItems'"
+            v-if="!['collectionItems', 'users'].includes(dataType)"
             data-testid="delete-selected-button"
             class="dropdown-item"
             @click="confirmDeletion"
           >
             Delete selected
+          </a>
+          <a
+            v-if="dataType === 'users'"
+            data-testid="bulk-activate-users-button"
+            class="dropdown-item"
+            @click="handleBulkActivateUsers"
+          >
+            Activate selected users
+          </a>
+          <a
+            v-if="dataType === 'users'"
+            data-testid="bulk-deactivate-users-button"
+            class="dropdown-item"
+            @click="handleBulkDeactivateUsers"
+          >
+            Deactivate selected users
           </a>
         </div>
       </div>
@@ -205,6 +221,7 @@ import {
   deleteStartingMaterial,
   deleteEquipment,
   removeItemsFromCollection,
+  saveUser,
 } from "@/server_fetch_utils.js";
 
 export default {
@@ -265,6 +282,8 @@ export default {
     "update:selected-columns",
     "reset-table",
     "remove-selected-items-from-collection",
+    "bulk-activate-users",
+    "bulk-deactivate-users",
   ],
   data() {
     return {
@@ -379,6 +398,103 @@ export default {
     handleBatchShare() {
       this.$emit("open-batch-share-modal");
       this.isSelectedDropdownVisible = false;
+    },
+    async handleBulkActivateUsers() {
+      const userIds = this.itemsSelected.map((u) => u.immutable_id);
+
+      const confirmed = await DialogService.confirm({
+        title: "Activate Users",
+        message: `Are you sure you want to activate ${userIds.length} user(s)?`,
+        type: "info",
+      });
+
+      if (!confirmed) {
+        this.isSelectedDropdownVisible = false;
+        return;
+      }
+
+      try {
+        this.itemCount = userIds.length;
+        this.isDeletingItems = true;
+
+        const promises = userIds.map((userId) => saveUser(userId, { account_status: "active" }));
+        await Promise.all(promises);
+
+        this.itemsSelected.forEach((user) => {
+          if (user.allUsers) {
+            const userInArray = user.allUsers.find((u) => u.immutable_id === user.immutable_id);
+            if (userInArray) {
+              userInArray.account_status = "active";
+            }
+          }
+        });
+
+        DialogService.alert({
+          title: "Success",
+          message: `${userIds.length} user(s) activated successfully.`,
+          type: "info",
+        });
+      } catch (error) {
+        console.error("Error activating users:", error);
+        DialogService.error({
+          title: "Error",
+          message: "Failed to activate some users.",
+        });
+      } finally {
+        this.isDeletingItems = false;
+        this.isSelectedDropdownVisible = false;
+        this.$emit("delete-selected-items");
+      }
+    },
+
+    async handleBulkDeactivateUsers() {
+      const userIds = this.itemsSelected.map((u) => u.immutable_id);
+
+      const confirmed = await DialogService.confirm({
+        title: "Deactivate Users",
+        message: `Are you sure you want to deactivate ${userIds.length} user(s)?`,
+        type: "warning",
+      });
+
+      if (!confirmed) {
+        this.isSelectedDropdownVisible = false;
+        return;
+      }
+
+      try {
+        this.itemCount = userIds.length;
+        this.isDeletingItems = true;
+
+        const promises = userIds.map((userId) =>
+          saveUser(userId, { account_status: "deactivated" }),
+        );
+        await Promise.all(promises);
+
+        this.itemsSelected.forEach((user) => {
+          if (user.allUsers) {
+            const userInArray = user.allUsers.find((u) => u.immutable_id === user.immutable_id);
+            if (userInArray) {
+              userInArray.account_status = "deactivated";
+            }
+          }
+        });
+
+        DialogService.alert({
+          title: "Success",
+          message: `${userIds.length} user(s) deactivated successfully.`,
+          type: "info",
+        });
+      } catch (error) {
+        console.error("Error deactivating users:", error);
+        DialogService.error({
+          title: "Error",
+          message: "Failed to deactivate some users.",
+        });
+      } finally {
+        this.isDeletingItems = false;
+        this.isSelectedDropdownVisible = false;
+        this.$emit("delete-selected-items");
+      }
     },
   },
 };
