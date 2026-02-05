@@ -1,27 +1,32 @@
 <template>
-  <vSelect
-    v-model="localManagers"
-    :options="potentialManagers"
-    label="display_name"
-    multiple
-    placeholder="No managers"
-    :clearable="false"
-    @update:model-value="handleManagersChange"
-  >
-    <template #option="option">
-      <div class="d-flex align-items-center">
-        <UserBubble :creator="option" :size="20" />
-        <span class="ml-2">{{ option.display_name }}</span>
-        <span class="ml-auto"><RoleBadge :role="option.role" /></span>
-      </div>
-    </template>
-    <template #selected-option="option">
-      <div class="d-flex align-items-center">
-        <UserBubble :creator="option" :size="18" />
-        <span class="ml-2 small">{{ option.display_name }}</span>
-      </div>
-    </template>
-  </vSelect>
+  <div class="managers-cell-wrapper">
+    <vSelect
+      v-model="localManagers"
+      :options="potentialManagers"
+      label="display_name"
+      multiple
+      placeholder="No managers"
+      :clearable="false"
+      :taggable="false"
+      @open="onDropdownOpen"
+      @close="onDropdownClose"
+      @update:model-value="handleManagersChange"
+    >
+      <template #option="option">
+        <div class="d-flex align-items-center">
+          <UserBubble :creator="option" :size="20" />
+          <span class="ml-2">{{ option.display_name }}</span>
+          <span class="ml-auto"><RoleBadge :role="option.role" /></span>
+        </div>
+      </template>
+      <template #selected-option="option">
+        <div class="d-flex align-items-center">
+          <UserBubble :creator="option" :size="18" />
+          <span class="ml-2 small">{{ option.display_name }}</span>
+        </div>
+      </template>
+    </vSelect>
+  </div>
 </template>
 
 <script>
@@ -51,6 +56,7 @@ export default {
   data() {
     return {
       localManagers: this.user?.managers ? [...this.user.managers] : [],
+      savedManagers: this.user?.managers ? [...this.user.managers] : [],
     };
   },
   computed: {
@@ -58,7 +64,10 @@ export default {
       if (!this.allUsers || !Array.isArray(this.allUsers)) {
         return [];
       }
-      return this.allUsers.filter((u) => u.immutable_id !== this.user.immutable_id);
+      return this.allUsers.filter(
+        (u) =>
+          u.immutable_id !== this.user.immutable_id && (u.role === "admin" || u.role === "manager"),
+      );
     },
   },
   watch: {
@@ -66,20 +75,50 @@ export default {
       handler(newVal) {
         if (newVal !== undefined) {
           this.localManagers = [...(newVal || [])];
+          this.savedManagers = [...(newVal || [])];
         }
       },
       deep: true,
     },
   },
   methods: {
+    onDropdownOpen() {
+      const cell = this.$el.closest("td");
+      const row = this.$el.closest("tr");
+      if (cell) {
+        cell.style.overflow = "visible";
+        cell.style.zIndex = "1000";
+        cell.style.position = "relative";
+      }
+      if (row) {
+        row.style.zIndex = "1000";
+      }
+    },
+    onDropdownClose() {
+      const cell = this.$el.closest("td");
+      const row = this.$el.closest("tr");
+      if (cell) {
+        cell.style.overflow = "";
+        cell.style.zIndex = "";
+        cell.style.position = "";
+      }
+      if (row) {
+        row.style.zIndex = "";
+      }
+    },
     async handleManagersChange(newManagers) {
+      console.log("handleManagersChange called", {
+        newManagers,
+        savedManagers: this.savedManagers,
+      });
+
       if (!newManagers) newManagers = [];
 
-      const originalManagers = [...this.localManagers];
       const managerIds = newManagers.map((m) => m.immutable_id);
-      const originalManagerIds = originalManagers.map((m) => m.immutable_id);
+      const savedManagerIds = this.savedManagers.map((m) => m.immutable_id);
 
-      if (JSON.stringify(managerIds.sort()) === JSON.stringify(originalManagerIds.sort())) {
+      if (JSON.stringify(managerIds.sort()) === JSON.stringify(savedManagerIds.sort())) {
+        console.log("No change detected, returning");
         return;
       }
 
@@ -90,20 +129,31 @@ export default {
       });
 
       if (!confirmed) {
-        this.localManagers = originalManagers;
+        console.log("User cancelled");
+        this.localManagers = [...this.savedManagers];
         return;
       }
 
       try {
-        await saveUserManagers(this.user.immutable_id, managerIds);
+        console.log("Calling saveUserManagers", { userId: this.user.immutable_id, managerIds });
+        const response = await saveUserManagers(this.user.immutable_id, managerIds);
+        console.log("saveUserManagers response", response);
 
         const userInArray = this.allUsers.find((u) => u.immutable_id === this.user.immutable_id);
         if (userInArray) {
           userInArray.managers = newManagers;
         }
         this.localManagers = newManagers;
+        this.savedManagers = [...newManagers];
+
+        DialogService.alert({
+          title: "Success",
+          message: "Managers updated successfully.",
+          type: "info",
+        });
       } catch (err) {
-        this.localManagers = originalManagers;
+        console.error("Error saving managers", err);
+        this.localManagers = [...this.savedManagers];
         DialogService.error({
           title: "Error",
           message: "Failed to update user managers.",
@@ -113,3 +163,19 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.managers-cell-wrapper {
+  position: relative;
+  z-index: auto;
+}
+
+.managers-cell-wrapper :deep(.vs--open) {
+  z-index: 1001;
+}
+
+.managers-cell-wrapper :deep(.vs__dropdown-menu) {
+  z-index: 1001;
+  position: absolute;
+}
+</style>

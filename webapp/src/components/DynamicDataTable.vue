@@ -46,6 +46,7 @@
           :available-columns="availableColumns"
           :selected-columns="selectedColumns"
           :collection-id="collectionId"
+          :all-users="allUsersForBulk"
           @update:filters="updateFilters"
           @update:selected-columns="onToggleColumns"
           @open-create-item-modal="createItemModalIsOpen = true"
@@ -615,6 +616,12 @@ export default {
     },
     availableColumns() {
       return this.columns.map((col) => ({ ...col }));
+    },
+    allUsersForBulk() {
+      if (this.dataType !== "users" || !this.data || this.data.length === 0) {
+        return [];
+      }
+      return this.data[0]?.allUsers || [];
     },
   },
   created() {
