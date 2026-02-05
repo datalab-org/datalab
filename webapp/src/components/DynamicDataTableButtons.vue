@@ -186,6 +186,17 @@
           </a>
           <a
             v-if="dataType === 'users'"
+            data-testid="bulk-change-role-button"
+            class="dropdown-item"
+            @click="
+              showBulkChangeRoleModal = true;
+              isSelectedDropdownVisible = false;
+            "
+          >
+            Change role
+          </a>
+          <a
+            v-if="dataType === 'users'"
             data-testid="bulk-activate-users-button"
             class="dropdown-item"
             @click="handleBulkActivateUsers"
@@ -203,6 +214,11 @@
         </div>
       </div>
     </div>
+    <BulkChangeRoleModal
+      v-model="showBulkChangeRoleModal"
+      :selected-users="itemsSelected"
+      @role-selected="handleBulkChangeRole"
+    />
   </div>
 </template>
 
@@ -215,6 +231,8 @@ import InputText from "primevue/inputtext";
 import MultiSelect from "primevue/multiselect";
 import "primeicons/primeicons.css";
 
+import BulkChangeRoleModal from "@/components/BulkChangeRoleModal.vue";
+
 import {
   deleteSample,
   deleteCollection,
@@ -222,6 +240,7 @@ import {
   deleteEquipment,
   removeItemsFromCollection,
   saveUser,
+  saveRole,
 } from "@/server_fetch_utils.js";
 
 export default {
@@ -230,6 +249,7 @@ export default {
     InputIcon,
     InputText,
     MultiSelect,
+    BulkChangeRoleModal,
   },
   props: {
     dataType: {
@@ -292,6 +312,7 @@ export default {
       isSettingsDropdownVisible: false,
       isDeletingItems: false,
       itemCount: 0,
+      showBulkChangeRoleModal: false,
     };
   },
   computed: {
@@ -493,6 +514,51 @@ export default {
       } finally {
         this.isDeletingItems = false;
         this.isSelectedDropdownVisible = false;
+        this.$emit("delete-selected-items");
+      }
+    },
+    async handleBulkChangeRole(newRole) {
+      const userIds = this.itemsSelected.map((u) => u.immutable_id);
+
+      const confirmed = await DialogService.confirm({
+        title: "Change User Roles",
+        message: `Are you sure you want to change the role of ${userIds.length} user(s) to "${newRole}"?`,
+        type: "warning",
+      });
+
+      if (!confirmed) {
+        return;
+      }
+
+      try {
+        this.itemCount = userIds.length;
+        this.isDeletingItems = true;
+
+        const promises = userIds.map((userId) => saveRole(userId, { role: newRole }));
+        await Promise.all(promises);
+
+        this.itemsSelected.forEach((user) => {
+          if (user.allUsers) {
+            const userInArray = user.allUsers.find((u) => u.immutable_id === user.immutable_id);
+            if (userInArray) {
+              userInArray.role = newRole;
+            }
+          }
+        });
+
+        DialogService.alert({
+          title: "Success",
+          message: `${userIds.length} user(s) role changed to "${newRole}" successfully.`,
+          type: "info",
+        });
+      } catch (error) {
+        console.error("Error changing user roles:", error);
+        DialogService.error({
+          title: "Error",
+          message: "Failed to change roles for some users.",
+        });
+      } finally {
+        this.isDeletingItems = false;
         this.$emit("delete-selected-items");
       }
     },

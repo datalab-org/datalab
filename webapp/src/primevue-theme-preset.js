@@ -85,6 +85,17 @@ const DatalabPreset = definePreset(Aura, {
           color: black;
           background: none;
         }
+        .p-datatable .v-select .vs__dropdown-menu {
+          border: 1px solid red;
+          z-index: 9999 !important;
+        }
+        .p-datatable td .v-select {
+          position: relative;
+          z-index: auto;
+        }
+        .p-datatable td .v-select.vs--open {
+          z-index: 10;
+        }
       `,
 });
 
