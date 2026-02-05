@@ -29,14 +29,14 @@ repos:
       - id: mixed-line-ending
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.7
+    rev: v0.14.14
     hooks:
       - id: ruff
         args: [--fix]
       - id: ruff-format
 
   - repo: https://github.com/pre-commit/mirrors-eslint
-    rev: v8.56.0
+    rev: v10.0.0-rc.2
     hooks:
       - id: eslint
         additional_dependencies:
@@ -63,7 +63,7 @@ repos:
         args: [--py310-plus]
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.19.0
+    rev: v1.19.1
     hooks:
       - id: mypy
         additional_dependencies:
