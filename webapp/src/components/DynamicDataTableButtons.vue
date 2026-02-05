@@ -199,6 +199,39 @@
           </a>
           <a
             v-if="dataType === 'users'"
+            data-testid="bulk-change-role-button"
+            class="dropdown-item"
+            @click="
+              showBulkChangeRoleModal = true;
+              isSelectedDropdownVisible = false;
+            "
+          >
+            Change role
+          </a>
+          <a
+            v-if="dataType === 'users'"
+            data-testid="bulk-add-to-group-button"
+            class="dropdown-item"
+            @click="
+              showBulkAddToGroupModal = true;
+              isSelectedDropdownVisible = false;
+            "
+          >
+            Add to group
+          </a>
+          <a
+            v-if="dataType === 'users'"
+            data-testid="bulk-change-managers-button"
+            class="dropdown-item"
+            @click="
+              showBulkChangeManagersModal = true;
+              isSelectedDropdownVisible = false;
+            "
+          >
+            Add manager(s)
+          </a>
+          <a
+            v-if="dataType === 'users'"
             data-testid="bulk-activate-users-button"
             class="dropdown-item"
             @click="handleBulkActivateUsers"
@@ -216,6 +249,22 @@
         </div>
       </div>
     </div>
+    <BulkChangeRoleModal
+      v-model="showBulkChangeRoleModal"
+      :selected-users="itemsSelected"
+      @role-selected="handleBulkChangeRole"
+    />
+    <BulkAddToGroupModal
+      v-model="showBulkAddToGroupModal"
+      :selected-users="itemsSelected"
+      @group-selected="handleBulkAddToGroup"
+    />
+    <BulkChangeManagersModal
+      v-model="showBulkChangeManagersModal"
+      :selected-users="itemsSelected"
+      :all-users="allUsers"
+      @managers-selected="handleBulkChangeManagers"
+    />
   </div>
 </template>
 
@@ -228,6 +277,10 @@ import InputText from "primevue/inputtext";
 import MultiSelect from "primevue/multiselect";
 import "primeicons/primeicons.css";
 
+import BulkChangeRoleModal from "@/components/BulkChangeRoleModal.vue";
+import BulkAddToGroupModal from "@/components/BulkAddToGroupModal.vue";
+import BulkChangeManagersModal from "@/components/BulkChangeManagersModal.vue";
+
 import {
   deleteSample,
   deleteCollection,
@@ -235,6 +288,9 @@ import {
   deleteEquipment,
   removeItemsFromCollection,
   saveUser,
+  saveRole,
+  addUserToGroup,
+  saveUserManagers,
 } from "@/server_fetch_utils.js";
 
 export default {
@@ -243,6 +299,9 @@ export default {
     InputIcon,
     InputText,
     MultiSelect,
+    BulkChangeRoleModal,
+    BulkAddToGroupModal,
+    BulkChangeManagersModal,
   },
   props: {
     dataType: {
@@ -281,6 +340,11 @@ export default {
       required: false,
       default: null,
     },
+    allUsers: {
+      type: Array,
+      required: false,
+      default: () => [],
+    },
   },
   emits: [
     "open-create-item-modal",
@@ -297,6 +361,7 @@ export default {
     "remove-selected-items-from-collection",
     "bulk-activate-users",
     "bulk-deactivate-users",
+    "users-data-changed",
   ],
   data() {
     return {
@@ -305,6 +370,9 @@ export default {
       isSettingsDropdownVisible: false,
       isDeletingItems: false,
       itemCount: 0,
+      showBulkChangeRoleModal: false,
+      showBulkAddToGroupModal: false,
+      showBulkChangeManagersModal: false,
     };
   },
   computed: {
@@ -459,6 +527,7 @@ export default {
       } finally {
         this.isDeletingItems = false;
         this.isSelectedDropdownVisible = false;
+        this.$emit("users-data-changed");
         this.$emit("delete-selected-items");
       }
     },
@@ -509,6 +578,228 @@ export default {
       } finally {
         this.isDeletingItems = false;
         this.isSelectedDropdownVisible = false;
+        this.$emit("users-data-changed");
+        this.$emit("delete-selected-items");
+      }
+    },
+    async handleBulkChangeRole(newRole) {
+      const adminUsers = this.itemsSelected.filter((u) => u.role === "admin");
+
+      if (adminUsers.length > 0 && newRole !== "admin") {
+        const confirmed = await DialogService.confirm({
+          title: "Remove Admin Privileges",
+          message: `You are about to remove admin privileges from ${adminUsers.length} admin user(s). This action will revoke their full system access. Are you sure?`,
+          type: "warning",
+        });
+        if (!confirmed) {
+          return;
+        }
+      }
+
+      const confirmed = await DialogService.confirm({
+        title: "Change User Roles",
+        message: `Are you sure you want to change the role of ${this.itemsSelected.length} user(s) to "${newRole}"?`,
+        type: "warning",
+      });
+
+      if (!confirmed) {
+        return;
+      }
+
+      try {
+        this.itemCount = this.itemsSelected.length;
+        this.isDeletingItems = true;
+
+        const results = await Promise.allSettled(
+          this.itemsSelected.map((user) => saveRole(user.immutable_id, { role: newRole })),
+        );
+
+        const successCount = results.filter((r) => r.status === "fulfilled").length;
+        const failureCount = results.filter((r) => r.status === "rejected").length;
+
+        results.forEach((result, index) => {
+          if (result.status === "fulfilled") {
+            const user = this.itemsSelected[index];
+            if (user.allUsers) {
+              const userInArray = user.allUsers.find((u) => u.immutable_id === user.immutable_id);
+              if (userInArray) {
+                userInArray.role = newRole;
+              }
+            }
+          }
+        });
+
+        let message = `${successCount} user(s) successfully updated to "${newRole}".`;
+        if (failureCount > 0) {
+          message += ` ${failureCount} user(s) failed to update.`;
+        }
+        if (adminUsers.length > 0 && newRole !== "admin") {
+          message += ` ${adminUsers.length} admin(s) had their privileges revoked.`;
+        }
+
+        DialogService.alert({
+          title: failureCount > 0 ? "Partially Successful" : "Success",
+          message: message,
+          type: failureCount > 0 ? "warning" : "info",
+        });
+      } catch (error) {
+        console.error("Error changing user roles:", error);
+        DialogService.error({
+          title: "Error",
+          message: "Failed to change roles for some users.",
+        });
+      } finally {
+        this.isDeletingItems = false;
+        this.isSelectedDropdownVisible = false;
+        this.$emit("users-data-changed");
+        this.$emit("delete-selected-items");
+      }
+    },
+    async handleBulkAddToGroup(selectedGroups) {
+      const groupNames = selectedGroups.map((g) => g.display_name).join(", ");
+      const confirmed = await DialogService.confirm({
+        title: "Add Users to Groups",
+        message: `Are you sure you want to add ${this.itemsSelected.length} user(s) to: ${groupNames}?`,
+        type: "info",
+      });
+
+      if (!confirmed) {
+        return;
+      }
+
+      try {
+        this.itemCount = this.itemsSelected.length;
+        this.isDeletingItems = true;
+
+        const promises = [];
+        for (const group of selectedGroups) {
+          for (const user of this.itemsSelected) {
+            promises.push(addUserToGroup(group.immutable_id, user.immutable_id));
+          }
+        }
+
+        const results = await Promise.allSettled(promises);
+
+        const successCount = results.filter((r) => r.status === "fulfilled").length;
+        const failureCount = results.filter((r) => r.status === "rejected").length;
+
+        results.forEach((result, index) => {
+          if (result.status === "fulfilled") {
+            const groupIndex = Math.floor(index / this.itemsSelected.length);
+            const userIndex = index % this.itemsSelected.length;
+            const group = selectedGroups[groupIndex];
+            const user = this.itemsSelected[userIndex];
+
+            if (user.allUsers) {
+              const userInArray = user.allUsers.find((u) => u.immutable_id === user.immutable_id);
+              if (userInArray) {
+                if (!userInArray.groups) {
+                  userInArray.groups = [];
+                }
+                const groupExists = userInArray.groups.some(
+                  (g) => g.immutable_id === group.immutable_id,
+                );
+                if (!groupExists) {
+                  userInArray.groups.push({
+                    immutable_id: group.immutable_id,
+                    display_name: group.display_name,
+                  });
+                }
+              }
+            }
+          }
+        });
+
+        let message = `Successfully processed ${successCount} operation(s).`;
+        if (failureCount > 0) {
+          message += ` ${failureCount} operation(s) failed (users may already be in groups).`;
+        }
+
+        DialogService.alert({
+          title: failureCount > 0 ? "Partially Successful" : "Success",
+          message: message,
+          type: failureCount > 0 ? "warning" : "info",
+        });
+      } catch (error) {
+        console.error("Error adding users to groups:", error);
+        DialogService.error({
+          title: "Error",
+          message: "Failed to add users to groups.",
+        });
+      } finally {
+        this.isDeletingItems = false;
+        this.isSelectedDropdownVisible = false;
+        console.log("Emitting users-data-changed");
+        this.$emit("users-data-changed");
+        this.$emit("delete-selected-items");
+      }
+    },
+    async handleBulkChangeManagers(newManagers) {
+      const confirmed = await DialogService.confirm({
+        title: "Add Managers",
+        message: `Are you sure you want to add these managers to ${this.itemsSelected.length} user(s)? Existing managers will be kept.`,
+        type: "warning",
+      });
+
+      if (!confirmed) {
+        return;
+      }
+
+      try {
+        this.itemCount = this.itemsSelected.length;
+        this.isDeletingItems = true;
+
+        const newManagerIds = newManagers.map((m) => m.immutable_id);
+
+        const results = await Promise.allSettled(
+          this.itemsSelected.map((user) => {
+            const existingManagerIds = (user.managers || []).map((m) => m.immutable_id);
+            const mergedManagerIds = [...new Set([...existingManagerIds, ...newManagerIds])];
+            return saveUserManagers(user.immutable_id, mergedManagerIds);
+          }),
+        );
+
+        const successCount = results.filter((r) => r.status === "fulfilled").length;
+        const failureCount = results.filter((r) => r.status === "rejected").length;
+
+        results.forEach((result, index) => {
+          if (result.status === "fulfilled") {
+            const user = this.itemsSelected[index];
+            if (user.allUsers) {
+              const userInArray = user.allUsers.find((u) => u.immutable_id === user.immutable_id);
+              if (userInArray) {
+                const existingManagers = userInArray.managers || [];
+                const allManagerIds = [
+                  ...new Set([...existingManagers.map((m) => m.immutable_id), ...newManagerIds]),
+                ];
+                userInArray.managers = this.allUsers.filter((u) =>
+                  allManagerIds.includes(u.immutable_id),
+                );
+              }
+            }
+          }
+        });
+
+        let message = `${successCount} user(s) successfully updated.`;
+        if (failureCount > 0) {
+          message += ` ${failureCount} user(s) failed to update.`;
+        }
+
+        DialogService.alert({
+          title: failureCount > 0 ? "Partially Successful" : "Success",
+          message: message,
+          type: failureCount > 0 ? "warning" : "info",
+        });
+      } catch (error) {
+        console.error("Error changing user managers:", error);
+        DialogService.error({
+          title: "Error",
+          message: "Failed to change managers for some users.",
+        });
+      } finally {
+        this.isDeletingItems = false;
+        this.isSelectedDropdownVisible = false;
+        this.$emit("users-data-changed");
         this.$emit("delete-selected-items");
       }
     },

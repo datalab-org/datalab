@@ -1,18 +1,22 @@
 <template>
-  <vSelect
-    v-model="localRole"
-    :options="roleOptions"
-    :clearable="false"
-    :searchable="false"
-    @update:model-value="handleRoleChange"
-  >
-    <template #option="option">
-      <RoleBadge :role="option.label" />
-    </template>
-    <template #selected-option="option">
-      <RoleBadge :role="option.label" />
-    </template>
-  </vSelect>
+  <div class="role-cell-wrapper">
+    <vSelect
+      v-model="localRole"
+      :options="roleOptions"
+      :clearable="false"
+      :searchable="false"
+      @open="onDropdownOpen"
+      @close="onDropdownClose"
+      @update:model-value="handleRoleChange"
+    >
+      <template #option="option">
+        <RoleBadge :role="option.label" />
+      </template>
+      <template #selected-option="option">
+        <RoleBadge :role="option.label" />
+      </template>
+    </vSelect>
+  </div>
 </template>
 
 <script>
@@ -51,6 +55,30 @@ export default {
     },
   },
   methods: {
+    onDropdownOpen() {
+      const cell = this.$el.closest("td");
+      const row = this.$el.closest("tr");
+      if (cell) {
+        cell.style.overflow = "visible";
+        cell.style.zIndex = "1000";
+        cell.style.position = "relative";
+      }
+      if (row) {
+        row.style.zIndex = "1000";
+      }
+    },
+    onDropdownClose() {
+      const cell = this.$el.closest("td");
+      const row = this.$el.closest("tr");
+      if (cell) {
+        cell.style.overflow = "";
+        cell.style.zIndex = "";
+        cell.style.position = "";
+      }
+      if (row) {
+        row.style.zIndex = "";
+      }
+    },
     async handleRoleChange(newRole) {
       const originalRole = this.localRole;
 
@@ -95,3 +123,19 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.role-cell-wrapper {
+  position: relative;
+  z-index: auto;
+}
+
+.role-cell-wrapper :deep(.vs--open) {
+  z-index: 1001;
+}
+
+.role-cell-wrapper :deep(.vs__dropdown-menu) {
+  z-index: 1001;
+  position: absolute;
+}
+</style>
