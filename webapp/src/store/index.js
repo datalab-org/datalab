@@ -18,6 +18,7 @@ export default createStore({
     equipment_list: null,
     starting_material_list: null,
     collection_list: null,
+    groups_list: null,
     saved_status_items: {},
     saved_status_blocks: {},
     saved_status_collections: {},
@@ -89,6 +90,9 @@ export default createStore({
     setCollectionList(state, collectionSummaries) {
       // collectionSummaries is an array of json objects summarizing the available collections
       state.collection_list = collectionSummaries || [];
+    },
+    setGroupsList(state, groups) {
+      state.groups_list = groups;
     },
     setDisplayName(state, displayName) {
       state.currentUserDisplayName = displayName;

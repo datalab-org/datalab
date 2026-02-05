@@ -85,11 +85,17 @@ def get_users():
             {
                 "$lookup": {
                     "from": "groups",
-                    "let": {"group_ids": "$group_ids"},
+                    "let": {
+                        "group_ids": {
+                            "$map": {
+                                "input": {"$ifNull": ["$groups", []]},
+                                "as": "g",
+                                "in": "$$g.immutable_id",
+                            }
+                        }
+                    },
                     "pipeline": [
-                        {"$match": {"$expr": {"$in": ["$_id", {"$ifNull": ["$$group_ids", []]}]}}},
-                        {"$addFields": {"__order": {"$indexOfArray": ["$$group_ids", "$_id"]}}},
-                        {"$sort": {"__order": 1}},
+                        {"$match": {"$expr": {"$in": ["$_id", "$$group_ids"]}}},
                         {"$project": {"_id": 1, "display_name": 1}},
                     ],
                     "as": "groups",

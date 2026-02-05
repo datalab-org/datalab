@@ -197,6 +197,17 @@
           </a>
           <a
             v-if="dataType === 'users'"
+            data-testid="bulk-add-to-group-button"
+            class="dropdown-item"
+            @click="
+              showBulkAddToGroupModal = true;
+              isSelectedDropdownVisible = false;
+            "
+          >
+            Add to group
+          </a>
+          <a
+            v-if="dataType === 'users'"
             data-testid="bulk-change-managers-button"
             class="dropdown-item"
             @click="
@@ -230,6 +241,11 @@
       :selected-users="itemsSelected"
       @role-selected="handleBulkChangeRole"
     />
+    <BulkAddToGroupModal
+      v-model="showBulkAddToGroupModal"
+      :selected-users="itemsSelected"
+      @group-selected="handleBulkAddToGroup"
+    />
     <BulkChangeManagersModal
       v-model="showBulkChangeManagersModal"
       :selected-users="itemsSelected"
@@ -249,6 +265,7 @@ import MultiSelect from "primevue/multiselect";
 import "primeicons/primeicons.css";
 
 import BulkChangeRoleModal from "@/components/BulkChangeRoleModal.vue";
+import BulkAddToGroupModal from "@/components/BulkAddToGroupModal.vue";
 import BulkChangeManagersModal from "@/components/BulkChangeManagersModal.vue";
 
 import {
@@ -259,6 +276,7 @@ import {
   removeItemsFromCollection,
   saveUser,
   saveRole,
+  addUserToGroup,
   saveUserManagers,
 } from "@/server_fetch_utils.js";
 
@@ -269,6 +287,7 @@ export default {
     InputText,
     MultiSelect,
     BulkChangeRoleModal,
+    BulkAddToGroupModal,
     BulkChangeManagersModal,
   },
   props: {
@@ -329,6 +348,7 @@ export default {
     "remove-selected-items-from-collection",
     "bulk-activate-users",
     "bulk-deactivate-users",
+    "users-data-changed",
   ],
   data() {
     return {
@@ -338,6 +358,7 @@ export default {
       isDeletingItems: false,
       itemCount: 0,
       showBulkChangeRoleModal: false,
+      showBulkAddToGroupModal: false,
       showBulkChangeManagersModal: false,
     };
   },
@@ -490,6 +511,7 @@ export default {
       } finally {
         this.isDeletingItems = false;
         this.isSelectedDropdownVisible = false;
+        this.$emit("users-data-changed");
         this.$emit("delete-selected-items");
       }
     },
@@ -540,6 +562,7 @@ export default {
       } finally {
         this.isDeletingItems = false;
         this.isSelectedDropdownVisible = false;
+        this.$emit("users-data-changed");
         this.$emit("delete-selected-items");
       }
     },
@@ -612,6 +635,86 @@ export default {
       } finally {
         this.isDeletingItems = false;
         this.isSelectedDropdownVisible = false;
+        this.$emit("users-data-changed");
+        this.$emit("delete-selected-items");
+      }
+    },
+    async handleBulkAddToGroup(selectedGroups) {
+      const groupNames = selectedGroups.map((g) => g.display_name).join(", ");
+      const confirmed = await DialogService.confirm({
+        title: "Add Users to Groups",
+        message: `Are you sure you want to add ${this.itemsSelected.length} user(s) to: ${groupNames}?`,
+        type: "info",
+      });
+
+      if (!confirmed) {
+        return;
+      }
+
+      try {
+        this.itemCount = this.itemsSelected.length;
+        this.isDeletingItems = true;
+
+        const promises = [];
+        for (const group of selectedGroups) {
+          for (const user of this.itemsSelected) {
+            promises.push(addUserToGroup(group.immutable_id, user.immutable_id));
+          }
+        }
+
+        const results = await Promise.allSettled(promises);
+
+        const successCount = results.filter((r) => r.status === "fulfilled").length;
+        const failureCount = results.filter((r) => r.status === "rejected").length;
+
+        results.forEach((result, index) => {
+          if (result.status === "fulfilled") {
+            const groupIndex = Math.floor(index / this.itemsSelected.length);
+            const userIndex = index % this.itemsSelected.length;
+            const group = selectedGroups[groupIndex];
+            const user = this.itemsSelected[userIndex];
+
+            if (user.allUsers) {
+              const userInArray = user.allUsers.find((u) => u.immutable_id === user.immutable_id);
+              if (userInArray) {
+                if (!userInArray.groups) {
+                  userInArray.groups = [];
+                }
+                const groupExists = userInArray.groups.some(
+                  (g) => g.immutable_id === group.immutable_id,
+                );
+                if (!groupExists) {
+                  userInArray.groups.push({
+                    immutable_id: group.immutable_id,
+                    display_name: group.display_name,
+                  });
+                }
+              }
+            }
+          }
+        });
+
+        let message = `Successfully processed ${successCount} operation(s).`;
+        if (failureCount > 0) {
+          message += ` ${failureCount} operation(s) failed (users may already be in groups).`;
+        }
+
+        DialogService.alert({
+          title: failureCount > 0 ? "Partially Successful" : "Success",
+          message: message,
+          type: failureCount > 0 ? "warning" : "info",
+        });
+      } catch (error) {
+        console.error("Error adding users to groups:", error);
+        DialogService.error({
+          title: "Error",
+          message: "Failed to add users to groups.",
+        });
+      } finally {
+        this.isDeletingItems = false;
+        this.isSelectedDropdownVisible = false;
+        console.log("Emitting users-data-changed");
+        this.$emit("users-data-changed");
         this.$emit("delete-selected-items");
       }
     },
@@ -680,6 +783,7 @@ export default {
       } finally {
         this.isDeletingItems = false;
         this.isSelectedDropdownVisible = false;
+        this.$emit("users-data-changed");
         this.$emit("delete-selected-items");
       }
     },
