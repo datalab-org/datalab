@@ -46,6 +46,7 @@
           :available-columns="availableColumns"
           :selected-columns="selectedColumns"
           :collection-id="collectionId"
+          :all-users="allUsersForBulk"
           @update:filters="updateFilters"
           @update:selected-columns="onToggleColumns"
           @open-create-item-modal="createItemModalIsOpen = true"
@@ -58,6 +59,7 @@
           @delete-selected-items="deleteSelectedItems"
           @remove-selected-items-from-collection="removeSelectedItemsFromCollection"
           @reset-table="handleResetTable"
+          @users-data-changed="$emit('users-data-changed')"
         />
       </template>
       <template #loading>
@@ -453,7 +455,7 @@ export default {
       default: null,
     },
   },
-  emits: ["remove-selected-items-from-collection"],
+  emits: ["remove-selected-items-from-collection", "users-data-changed"],
   data() {
     return {
       createItemModalIsOpen: false,
@@ -622,6 +624,18 @@ export default {
     },
     availableColumns() {
       return this.columns.map((col) => ({ ...col }));
+    },
+    allUsersForBulk() {
+      if (this.dataType !== "users" || !this.data || this.data.length === 0) {
+        return [];
+      }
+      return this.data[0]?.allUsers || [];
+    },
+    availableGroupsForBulk() {
+      if (this.dataType !== "users") {
+        return [];
+      }
+      return this.$store.state.groups_list || [];
     },
   },
   created() {

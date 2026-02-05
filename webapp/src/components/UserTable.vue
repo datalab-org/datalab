@@ -5,12 +5,13 @@
     data-type="users"
     :global-filter-fields="['display_name', 'role', 'groupsList']"
     :show-buttons="true"
+    @users-data-changed="getUsers"
   />
 </template>
 
 <script>
 import DynamicDataTable from "@/components/DynamicDataTable";
-import { getUsersList } from "@/server_fetch_utils.js";
+import { getUsersList, getAdminGroupsList } from "@/server_fetch_utils.js";
 
 export default {
   name: "UserTable",
@@ -41,6 +42,7 @@ export default {
           field: "groups",
           header: "Groups",
           body: "Creators",
+          bodyConfig: { groups: "groups", creators: [] },
           label: "Groups",
         },
         {
@@ -72,6 +74,7 @@ export default {
   },
   created() {
     this.getUsers();
+    this.getGroups();
   },
   methods: {
     async getUsers() {
@@ -96,6 +99,12 @@ export default {
         });
 
         this.usersList = data;
+      }
+    },
+    async getGroups() {
+      const groups = await getAdminGroupsList();
+      if (groups && !groups.message) {
+        this.$store.commit("setGroupsList", groups);
       }
     },
   },
