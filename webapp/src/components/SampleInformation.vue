@@ -35,7 +35,13 @@
               :possible-item-statuses="possibleItemStatuses"
             />
           </div>
-          <div class="form-group col-md-6 col-sm-6 col-6 pr-2">
+          <div class="form-group col-md-3 col-sm-3 col-3 pb-3">
+            <ToggleableItemAvailabilityFormGroup
+              v-model="Availability"
+              :possible-item-availabilities="possibleItemAvailabilities"
+            />
+          </div>
+          <div class="form-group col-md-3 col-sm-3 col-3 pr-2">
             <ToggleableCollectionFormGroup v-model="Collections" />
           </div>
         </div>
@@ -78,6 +84,7 @@ import ToggleableGroupsFormGroup from "@/components/ToggleableGroupsFormGroup";
 import SynthesisInformation from "@/components/SynthesisInformation";
 import TableOfContents from "@/components/TableOfContents";
 import ItemRelationshipVisualization from "@/components/ItemRelationshipVisualization";
+import ToggleableItemAvailabilityFormGroup from "@/components/ToggleableItemAvailabilityFormGroup";
 
 export default {
   components: {
@@ -91,6 +98,7 @@ export default {
     ToggleableCreatorsFormGroup,
     ToggleableItemStatusFormGroup,
     ToggleableGroupsFormGroup,
+    ToggleableItemAvailabilityFormGroup,
   },
   props: {
     item_id: { type: String, required: true },
@@ -127,6 +135,10 @@ export default {
     },
     possibleItemStatuses() {
       return this.schema?.attributes?.schema?.definitions?.ItemStatus?.enum;
+    },
+    Availability: createComputedSetterForItemField("availability"),
+    possibleItemAvailabilities() {
+      return this.schema?.attributes?.schema?.definitions?.ItemAvailability?.enum;
     },
   },
 };
