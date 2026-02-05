@@ -805,10 +805,16 @@ export async function updateBlockFromServer(item_id, block_id, block_data, event
     .catch((error) => {
       // The block component renders errors, so no need to make a dialog here.
       store.commit("setBlockNotUpdating", block_id);
-      if (error && !error.includes("Invalid block type")) {
+
+      const errorMessage = error?.message || String(error);
+
+      if (errorMessage.includes("Invalid block type")) {
         // Do not set any error message for NotImplemented as this will be handled elsewhere
-        store.commit("setBlockError", { block_id, error: error });
+        return;
       }
+
+      store.commit("setBlockError", { block_id, error: errorMessage });
+      throw error;
     });
 }
 
