@@ -43,7 +43,7 @@ export default {
 
       return this.$store.state.collection_list.map((collection) => ({
         ...collection,
-        creatorsAndGroups: [...(collection.creators || []).map((c) => ({ ...c, type: "creator" }))],
+        creatorsAndGroups: (collection.creators || []).map((c) => ({ ...c, type: "creator" })),
       }));
     },
   },

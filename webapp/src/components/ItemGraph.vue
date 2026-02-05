@@ -314,7 +314,7 @@ export default {
         );
         element.style("border-width", element.data("special") == 1 ? 2 : 0);
         element.style("border-color", "grey");
-        element.style("shape"), element.data("shape") == "triangle" ? "triangle" : "ellipse";
+        (element.style("shape"), element.data("shape") == "triangle" ? "triangle" : "ellipse");
       });
 
       this.cy.on("layoutstart", () => {

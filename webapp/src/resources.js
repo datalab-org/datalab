@@ -267,7 +267,7 @@ export function getPictogramsFromHazardCode(code) {
   }
   if (
     (code >= 304 && code <= 305) ||
-    (code >= 2 && code <= 2) ||
+    code == 2 ||
     code === 334 ||
     (code >= 340 && code <= 341) ||
     (code >= 350 && code <= 351) ||
