@@ -192,7 +192,7 @@ def search_users():
     if not query:
         return jsonify({"status": "error", "message": "No query provided."}), 400
 
-    pipeline = build_search_pipeline(query, USERS_FTS_FIELDS)
+    pipeline = build_search_pipeline(query, USERS_FTS_FIELDS, permissions=None)
     pipeline.append({"$limit": nresults})
     pipeline.append(
         {
