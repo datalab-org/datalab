@@ -85,7 +85,7 @@ def generate_heuristic_regex_search(
 def build_search_pipeline(
     query: str,
     fields: set[str],
-    permissions: dict | None = None,
+    permissions: dict | None,
 ) -> list[dict]:
     """Build a MongoDB aggregation pipeline for search with support for FTS, regex, and heuristic modes.
 
