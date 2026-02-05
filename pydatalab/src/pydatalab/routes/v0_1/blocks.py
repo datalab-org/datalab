@@ -1,13 +1,85 @@
-from flask import Blueprint, jsonify, request
+import uuid
+from datetime import datetime, timezone
+
+from flask import Blueprint, current_app, jsonify, request
+from flask_login import current_user
 from werkzeug.exceptions import BadRequest, NotImplemented
 
 from pydatalab.apps import BLOCK_TYPES
 from pydatalab.blocks.base import DataBlock
+from pydatalab.config import CONFIG
+from pydatalab.models.tasks import BlockProcessingTaskSpec, Task, TaskStage, TaskStatus, TaskType
 from pydatalab.mongo import flask_mongo
-from pydatalab.permissions import (
-    active_users_or_get_only,
-    get_default_permissions,
-)
+from pydatalab.permissions import active_users_or_get_only, get_default_permissions
+from pydatalab.scheduler import export_scheduler
+
+
+def _process_block_async_internal(task_id: str, block_data: dict, event_data: dict | None):
+    def add_stage(message: str, level: str = "info"):
+        stage = TaskStage(timestamp=datetime.now(tz=timezone.utc), message=message, level=level)
+        flask_mongo.db.tasks.update_one(
+            {"task_id": task_id}, {"$push": {"spec.stages": stage.dict()}}
+        )
+
+    try:
+        flask_mongo.db.tasks.update_one(
+            {"task_id": task_id}, {"$set": {"status": TaskStatus.PROCESSING}}
+        )
+        add_stage("Processing started")
+
+        block_type = block_data["blocktype"]
+        add_stage(f"Loading {block_type} block from database")
+
+        block = BLOCK_TYPES[block_type].from_web(block_data)
+
+        if event_data and not event_data.get("trigger_async", False):
+            add_stage("Processing block events")
+            try:
+                block.process_events(event_data)
+            except NotImplementedError:
+                pass
+
+        add_stage("Saving block state to database")
+        _save_block_to_db(block)
+
+        add_stage("Generating visualization data")
+        block.to_web()
+
+        add_stage("Saving final results to database")
+        _save_block_to_db(block)
+
+        add_stage("Processing completed successfully", level="info")
+        flask_mongo.db.tasks.update_one(
+            {"task_id": task_id},
+            {
+                "$set": {
+                    "status": TaskStatus.READY,
+                    "completed_at": datetime.now(tz=timezone.utc),
+                }
+            },
+        )
+
+    except Exception as e:
+        add_stage(f"Error during processing: {str(e)}", level="error")
+        flask_mongo.db.tasks.update_one(
+            {"task_id": task_id},
+            {
+                "$set": {
+                    "status": TaskStatus.ERROR,
+                    "error_message": str(e),
+                    "completed_at": datetime.now(tz=timezone.utc),
+                }
+            },
+        )
+
+
+def _process_block_async(task_id: str, block_data: dict, event_data: dict | None, app):
+    if app is not None:
+        with app.app_context():
+            _process_block_async_internal(task_id, block_data, event_data)
+    else:
+        _process_block_async_internal(task_id, block_data, event_data)
+
 
 BLOCKS = Blueprint("blocks", __name__)
 
@@ -154,16 +226,14 @@ def _save_block_to_db(block: DataBlock):
         match = {
             "collection_id": block.data["collection_id"],
             f"blocks_obj.{block.block_id}": {"$exists": True},
-            **get_default_permissions(user_only=False),
         }
+        result = flask_mongo.db.collections.update_one(match, update)
     else:
         match = {
             "item_id": block.data["item_id"],
             f"blocks_obj.{block.block_id}": {"$exists": True},
-            **get_default_permissions(user_only=False),
         }
-
-    result = flask_mongo.db.items.update_one(match, update)
+        result = flask_mongo.db.items.update_one(match, update)
 
     if result.matched_count != 1:
         raise BadRequest(
@@ -192,25 +262,70 @@ def update_block():
 
     block = BLOCK_TYPES[block_type].from_web(block_data)
 
-    if event_data:
+    prefers_async = getattr(BLOCK_TYPES[block_type], "prefers_async", False)
+    trigger_async = event_data and event_data.get("trigger_async", False) if event_data else False
+
+    if prefers_async and trigger_async:
+        task_id = str(uuid.uuid4())
+
+        if not CONFIG.TESTING:
+            creator_id = str(current_user.person.immutable_id)
+        else:
+            creator_id = "000000000000000000000000"
+
+        block_task = Task(
+            task_id=task_id,
+            type=TaskType.BLOCK_PROCESSING,
+            creator_id=creator_id,
+            status=TaskStatus.PENDING,
+            spec=BlockProcessingTaskSpec(
+                item_id=block_data["item_id"],
+                block_id=block_data["block_id"],
+            ),
+        )
+
+        flask_mongo.db.tasks.insert_one(block_task.dict())
+
         try:
-            block.process_events(event_data)
-        except NotImplementedError:
-            pass
+            app = current_app._get_current_object()
+        except RuntimeError:
+            app = None
 
-    # Save state from UI
-    _save_block_to_db(block)
+        export_scheduler.add_job(
+            func=_process_block_async,
+            args=[task_id, block_data, event_data, app],
+            job_id=task_id,
+        )
 
-    # Reload the block with new UI state
-    new_block_data = block.to_web()
+        return (
+            jsonify(
+                status="success",
+                processing_async=True,
+                task_id=task_id,
+                status_url=f"/blocks/{task_id}/status",
+            ),
+            202,
+        )
+    else:
+        if event_data and not event_data.get("trigger_async", False):
+            try:
+                block.process_events(event_data)
+            except NotImplementedError:
+                pass
 
-    # Save results to DB
-    _save_block_to_db(block)
+        # Save state from UI
+        _save_block_to_db(block)
 
-    return (
-        jsonify(status="success", saved_successfully=True, new_block_data=new_block_data),
-        200,
-    )
+        # Reload the block with new UI state
+        new_block_data = block.to_web()
+
+        # Save results to DB
+        _save_block_to_db(block)
+
+        return (
+            jsonify(status="success", saved_successfully=True, new_block_data=new_block_data),
+            200,
+        )
 
 
 @BLOCKS.route("/delete-block/", methods=["POST"])
@@ -286,3 +401,42 @@ def delete_collection_block():
         jsonify({"status": "success"}),
         200,
     )
+
+
+@BLOCKS.route("/blocks/<string:task_id>/status", methods=["GET"])
+def get_block_task_status(task_id: str):
+    task = flask_mongo.db.tasks.find_one({"task_id": task_id, "type": TaskType.BLOCK_PROCESSING})
+
+    if not task:
+        return jsonify({"status": "error", "message": "Task not found"}), 404
+
+    response = {
+        "status": task["status"],
+        "task_id": task_id,
+        "created_at": task["created_at"],
+    }
+
+    if task.get("spec", {}).get("stages"):
+        response["stages"] = task["spec"]["stages"]
+    if task.get("completed_at"):
+        response["completed_at"] = task["completed_at"]
+    if task.get("error_message"):
+        response["error_message"] = task["error_message"]
+
+    if task["status"] == TaskStatus.READY:
+        item_id = task["spec"]["item_id"]
+        block_id = task["spec"]["block_id"]
+
+        item = flask_mongo.db.items.find_one(
+            {"item_id": item_id, **get_default_permissions(user_only=False)},
+            {f"blocks_obj.{block_id}": 1},
+        )
+
+        if item and "blocks_obj" in item and block_id in item["blocks_obj"]:
+            block_data_from_db = item["blocks_obj"][block_id]
+            block_type = block_data_from_db["blocktype"]
+
+            block = BLOCK_TYPES[block_type].from_web(block_data_from_db)
+            response["block_data"] = block.to_web()
+
+    return jsonify(response), 200
