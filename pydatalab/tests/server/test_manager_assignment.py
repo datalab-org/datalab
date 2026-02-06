@@ -67,15 +67,20 @@ def test_manager_double_cycle(admin_client, real_mongo_client):
     db = real_mongo_client.get_database()
 
     user_1 = db.users.insert_one({"display_name": "User 1"})
+    db.roles.insert_one({"_id": user_1.inserted_id, "role": "manager"})
+
     user_1_id = user_1.inserted_id
 
     user_2 = db.users.insert_one({"display_name": "User 2"})
+    db.roles.insert_one({"_id": user_2.inserted_id, "role": "manager"})
     user_2_id = user_2.inserted_id
 
     user_3 = db.users.insert_one({"display_name": "User 3"})
+    db.roles.insert_one({"_id": user_3.inserted_id, "role": "manager"})
     user_3_id = user_3.inserted_id
 
     user_4 = db.users.insert_one({"display_name": "User 4"})
+    db.roles.insert_one({"_id": user_4.inserted_id, "role": "manager"})
     user_4_id = user_4.inserted_id
 
     # Check that the following hierarchy is forbidden:
@@ -114,24 +119,41 @@ def test_manager_double_cycle(admin_client, real_mongo_client):
             }
         }
     )
+    db.roles.delete_many(
+        {
+            "_id": {
+                "$in": [
+                    user_1.inserted_id,
+                    user_2.inserted_id,
+                    user_3.inserted_id,
+                    user_4.inserted_id,
+                ]
+            }
+        }
+    )
 
 
 def test_manager_double_cycle_inverse(admin_client, real_mongo_client):
     db = real_mongo_client.get_database()
 
     user_1 = db.users.insert_one({"display_name": "User 1"})
+    db.roles.insert_one({"_id": user_1.inserted_id, "role": "manager"})
     user_1_id = str(user_1.inserted_id)
 
     user_2 = db.users.insert_one({"display_name": "User 2"})
+    db.roles.insert_one({"_id": user_2.inserted_id, "role": "manager"})
     user_2_id = str(user_2.inserted_id)
 
     user_3 = db.users.insert_one({"display_name": "User 3"})
+    db.roles.insert_one({"_id": user_3.inserted_id, "role": "manager"})
     user_3_id = str(user_3.inserted_id)
 
     user_4 = db.users.insert_one({"display_name": "User 4"})
+    db.roles.insert_one({"_id": user_4.inserted_id, "role": "manager"})
     user_4_id = str(user_4.inserted_id)
 
     user_5 = db.users.insert_one({"display_name": "User 5"})
+    db.roles.insert_one({"_id": user_5.inserted_id, "role": "manager"})
     user_5_id = str(user_5.inserted_id)
 
     # Similar to the above, check that the following hierarchy is forbidden:
@@ -302,7 +324,10 @@ def test_manager_cycle_infinite_loop(admin_client, real_mongo_client):
     """Tests that a long linear chain of managers is impossible to create via the API after depth ~10."""
     db = real_mongo_client.get_database()
 
-    ids = db.users.insert_many([{"display_name": f"User {i}"} for i in range(1, 100)])
+    user_docs = [{"display_name": f"User {i}"} for i in range(1, 100)]
+    ids = db.users.insert_many(user_docs)
+    for inserted_id in ids.inserted_ids:
+        db.roles.insert_one({"_id": inserted_id, "role": "manager"})
     for i in range(len(ids.inserted_ids) - 1):
         resp = admin_client.patch(
             f"/users/{str(ids.inserted_ids[i + 1])}/managers",

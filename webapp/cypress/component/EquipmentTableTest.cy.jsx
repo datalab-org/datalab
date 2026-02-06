@@ -1,4 +1,6 @@
 import EquipmentTable from "@/components/EquipmentTable.vue";
+import UserBubble from "@/components/UserBubble.vue";
+import StyledTooltip from "@/components/StyledTooltip.vue";
 import PrimeVue from "primevue/config";
 import { createStore } from "vuex";
 
@@ -52,6 +54,10 @@ describe("EquipmentTable Component Tests", () => {
               IsoDatetimeToDate,
             },
           },
+        },
+        components: {
+          UserBubble,
+          StyledTooltip,
         },
       },
     });
