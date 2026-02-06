@@ -23,7 +23,14 @@
         <button
           data-testid="add-item-button"
           class="btn btn-default btn-action"
-          :title="adminSuperUserMode ? 'Disabled in super-user mode' : ''"
+          :disabled="!isLoggedIn || adminSuperUserMode"
+          :title="
+            !isLoggedIn
+              ? 'Log in to add items'
+              : adminSuperUserMode
+                ? 'Disabled in super-user mode'
+                : ''
+          "
           @click="$emit('open-create-item-modal')"
         >
           Add an item
@@ -31,8 +38,14 @@
         <button
           data-testid="batch-item-button"
           class="btn btn-default btn-action"
-          :disabled="adminSuperUserMode"
-          :title="adminSuperUserMode ? 'Disabled in super-user mode' : ''"
+          :disabled="!isLoggedIn || adminSuperUserMode"
+          :title="
+            !isLoggedIn
+              ? 'Log in to add items'
+              : adminSuperUserMode
+                ? 'Disabled in super-user mode'
+                : ''
+          "
           @click="$emit('open-batch-create-item-modal')"
         >
           Add batch of items
@@ -40,8 +53,9 @@
         <button
           data-testid="scan-qr-button"
           class="btn btn-default btn-action"
-          aria-label="Scan QR code"
-          title="Scan QR code"
+          :disabled="!isLoggedIn"
+          :aria-label="!isLoggedIn ? 'Log in to scan QR codes' : 'Scan QR code'"
+          :title="!isLoggedIn ? 'Log in to scan QR codes' : 'Scan QR code'"
           @click="$emit('open-qr-scanner-modal')"
         >
           <font-awesome-icon icon="qrcode" /> Scan QR code
@@ -278,6 +292,9 @@ export default {
   computed: {
     adminSuperUserMode() {
       return this.$store.getters.isAdminSuperUserModeActive;
+    },
+    isLoggedIn() {
+      return this.$store.state.currentUserID !== null;
     },
   },
   watch: {
