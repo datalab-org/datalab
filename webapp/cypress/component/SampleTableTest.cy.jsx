@@ -1,4 +1,6 @@
 import SampleTable from "@/components/SampleTable.vue";
+import UserBubble from "@/components/UserBubble.vue";
+import StyledTooltip from "@/components/StyledTooltip.vue";
 import PrimeVue from "primevue/config";
 import { createStore } from "vuex";
 
@@ -122,6 +124,10 @@ describe("SampleTable Component Tests", () => {
               IsoDatetimeToDate,
             },
           },
+        },
+        components: {
+          UserBubble,
+          StyledTooltip,
         },
       },
     });

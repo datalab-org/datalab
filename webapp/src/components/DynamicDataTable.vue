@@ -313,6 +313,81 @@
           </div>
         </template>
 
+        <template
+          v-else-if="dataType === 'users' && column.filter && column.field === 'account_status'"
+          #filter
+        >
+          <Select
+            v-model="filters[column.field].constraints[0].value"
+            :options="uniqueStatuses"
+            placeholder="Any"
+            class="p-column-filter"
+            show-clear
+          >
+            <template #option="slotProps">
+              <UserStatusCell :status="slotProps.option" />
+            </template>
+            <template #value="slotProps">
+              <UserStatusCell v-if="slotProps.value" :status="slotProps.value" />
+              <span v-else>Any</span>
+            </template>
+          </Select>
+        </template>
+
+        <template
+          v-else-if="dataType === 'users' && column.filter && column.field === 'role'"
+          #filter
+        >
+          <Select
+            v-model="filters[column.field].constraints[0].value"
+            :options="uniqueRoles"
+            placeholder="Any"
+            class="p-column-filter"
+            show-clear
+          >
+            <template #option="slotProps">
+              <RoleBadge :role="slotProps.option" />
+            </template>
+            <template #value="slotProps">
+              <RoleBadge v-if="slotProps.value" :role="slotProps.value" />
+              <span v-else>Any</span>
+            </template>
+          </Select>
+        </template>
+
+        <template
+          v-else-if="dataType === 'users' && column.filter && column.field === 'groups'"
+          #filter
+        >
+          <MultiSelect
+            v-model="filters[column.field].constraints[0].value"
+            :options="uniqueUserGroups"
+            option-label="display_name"
+            placeholder="Any"
+            class="p-column-filter"
+            :max-selected-labels="1"
+            :filter="true"
+          >
+            <template #option="slotProps">
+              <div class="flex items-center">
+                <Creators :groups="[slotProps.option]" :creators="[]" :show-names="true" />
+              </div>
+            </template>
+            <template #value="slotProps">
+              <div v-if="slotProps.value && slotProps.value.length" class="flex flex-wrap gap-1">
+                <Creators
+                  v-for="group in slotProps.value"
+                  :key="group.immutable_id"
+                  :groups="[group]"
+                  :creators="[]"
+                  :show-names="false"
+                />
+              </div>
+              <span v-else>Any</span>
+            </template>
+          </MultiSelect>
+        </template>
+
         <template v-else-if="column.filter" #filter="{ filterModel }">
           <InputText
             v-model="filterModel.value"
@@ -379,6 +454,7 @@ import UserStatusCell from "@/components/UserStatusCell.vue";
 import UserRoleCell from "@/components/UserRoleCell.vue";
 import UserManagersCell from "@/components/UserManagersCell.vue";
 import UserActionsCell from "@/components/UserActionsCell.vue";
+import RoleBadge from "@/components/RoleBadge.vue";
 
 import { FilterMatchMode, FilterOperator, FilterService } from "@primevue/core/api";
 import DataTable from "primevue/datatable";
@@ -421,6 +497,7 @@ export default {
     UserRoleCell,
     UserManagersCell,
     UserActionsCell,
+    RoleBadge,
   },
   props: {
     columns: {
@@ -474,7 +551,6 @@ export default {
           operator: FilterOperator.AND,
           constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
         },
-
         collection_id: {
           operator: FilterOperator.AND,
           constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
@@ -510,6 +586,22 @@ export default {
         date: {
           operator: FilterOperator.AND,
           constraints: [{ value: null, matchMode: "dateRange" }],
+        },
+        display_name: {
+          operator: FilterOperator.AND,
+          constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
+        },
+        account_status: {
+          operator: FilterOperator.OR,
+          constraints: [{ value: null, matchMode: "exactAccountStatusMatch" }],
+        },
+        role: {
+          operator: FilterOperator.OR,
+          constraints: [{ value: null, matchMode: "exactRoleMatch" }],
+        },
+        groups: {
+          operator: FilterOperator.AND,
+          constraints: [{ value: null, matchMode: "exactGroupMatch" }],
         },
       },
       filteredData: [],
@@ -598,6 +690,25 @@ export default {
       return Array.from(
         new Set(this.data.filter((item) => item.status).map((item) => item.status)),
       ).map((status) => ({ status }));
+    },
+    uniqueStatuses() {
+      if (this.dataType !== "users" || !this.data) return [];
+      return ["active", "unverified", "deactivated"];
+    },
+    uniqueRoles() {
+      if (this.dataType !== "users" || !this.data) return [];
+      return ["user", "admin", "manager"];
+    },
+    uniqueUserGroups() {
+      if (this.dataType !== "users" || !this.data) return [];
+      const allGroups = this.data.flatMap((user) => user.groups || []);
+      const uniqueGroupsMap = new Map();
+      allGroups.forEach((group) => {
+        if (group && group.immutable_id) {
+          uniqueGroupsMap.set(group.immutable_id, { ...group });
+        }
+      });
+      return Array.from(uniqueGroupsMap.values());
     },
     knownTypes() {
       // Grab the set of types stored under the item type key
@@ -818,6 +929,27 @@ export default {
       const endDate = new Date(filterValue[1]).setHours(0, 0, 0, 0);
       return itemDate >= startDate && itemDate <= endDate;
     });
+    FilterService.register("exactAccountStatusMatch", (value, filterValue) => {
+      if (!filterValue) return true;
+      return value === filterValue;
+    });
+
+    FilterService.register("exactRoleMatch", (value, filterValue) => {
+      if (!filterValue) return true;
+      return value === filterValue;
+    });
+    FilterService.register("exactGroupMatch", (value, filterValue) => {
+      if (!filterValue || (Array.isArray(filterValue) && filterValue.length === 0)) return true;
+      if (!value || !Array.isArray(value)) return false;
+
+      if (Array.isArray(filterValue)) {
+        return filterValue.some((f) =>
+          value.some((group) => String(group.immutable_id) === String(f.immutable_id)),
+        );
+      }
+
+      return value.some((group) => String(group.immutable_id) === String(filterValue.immutable_id));
+    });
   },
   methods: {
     getColumnMinWidth(column) {
@@ -942,9 +1074,10 @@ export default {
           collections: "collections",
         },
         Creators: {
-          creators: data.creators || [],
-          groups: data.groups || [],
-          showNames: data.creators?.length === 1,
+          showNames:
+            data.creators?.length === 1 ||
+            data.creatorsAndGroups?.filter((item) => item.type === "creator").length === 1,
+          showBubble: true,
         },
         FormattedItemStatus: {
           status: "status",
@@ -1002,8 +1135,14 @@ export default {
       });
 
       if (componentName === "Creators") {
-        props.creators = data.creators || [];
-        props.groups = data.groups || [];
+        if (data.creatorsAndGroups) {
+          props.creators = data.creatorsAndGroups.filter((item) => item.type === "creator");
+          props.groups = data.creatorsAndGroups.filter((item) => item.type === "group");
+        } else {
+          props.creators = data.creators || [];
+          props.groups = data.groups || [];
+        }
+        props.showBubble = props.showBubble !== undefined ? props.showBubble : true;
       }
 
       return props;
