@@ -25,11 +25,13 @@ export default {
           header: "Status",
           body: "UserStatusCell",
           label: "Status",
+          filter: true,
         },
         {
           field: "display_name",
           header: "Display Name",
           label: "Display Name",
+          filter: true,
         },
         {
           field: "role",
@@ -37,6 +39,7 @@ export default {
           body: "UserRoleCell",
           bodyConfig: { allUsers: "allUsers" },
           label: "Role",
+          filter: true,
         },
         {
           field: "groups",
@@ -44,6 +47,7 @@ export default {
           body: "Creators",
           bodyConfig: { groups: "groups", creators: [] },
           label: "Groups",
+          filter: true,
         },
         {
           field: "managers",

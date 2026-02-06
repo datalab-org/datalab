@@ -1,4 +1,6 @@
 import CollectionTable from "@/components/CollectionTable.vue";
+import UserBubble from "@/components/UserBubble.vue";
+import StyledTooltip from "@/components/StyledTooltip.vue";
 import PrimeVue from "primevue/config";
 import { createStore } from "vuex";
 
@@ -36,6 +38,10 @@ describe("CollectionTable Component Tests", () => {
     cy.mount(CollectionTable, {
       global: {
         plugins: [store, PrimeVue],
+        components: {
+          UserBubble,
+          StyledTooltip,
+        },
       },
     });
   });
