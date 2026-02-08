@@ -1,6 +1,5 @@
 import datetime
 import json
-import re
 import secrets
 from hashlib import sha512
 
@@ -26,7 +25,7 @@ from pydatalab.models.versions import (
     RestoreVersionRequest,
     VersionAction,
 )
-from pydatalab.mongo import ITEMS_FTS_FIELDS, flask_mongo
+from pydatalab.mongo import ITEMS_FTS_FIELDS, build_search_pipeline, flask_mongo
 from pydatalab.permissions import (
     PUBLIC_USER_ID,
     access_token_or_active_users,
@@ -146,6 +145,10 @@ def get_items_summary(match: dict | None = None, project: dict | None = None) ->
             "display_name": 1,
             "contact_email": 1,
         },
+        "groups": {
+            "display_name": 1,
+            "group_id": 1,
+        },
         "collections": {
             "collection_id": 1,
             "title": 1,
@@ -174,6 +177,7 @@ def get_items_summary(match: dict | None = None, project: dict | None = None) ->
         [
             {"$match": match},
             {"$lookup": creators_lookup()},
+            {"$lookup": groups_lookup()},
             {"$lookup": collections_lookup()},
             {"$project": _project},
             {"$sort": {"date": -1}},
@@ -202,6 +206,10 @@ def get_samples_summary(match: dict | None = None, project: dict | None = None) 
             "display_name": 1,
             "contact_email": 1,
         },
+        "groups": {
+            "display_name": 1,
+            "group_id": 1,
+        },
         "collections": {
             "collection_id": 1,
             "title": 1,
@@ -230,6 +238,7 @@ def get_samples_summary(match: dict | None = None, project: dict | None = None) 
         [
             {"$match": match},
             {"$lookup": creators_lookup()},
+            {"$lookup": groups_lookup()},
             {"$lookup": collections_lookup()},
             {"$project": _project},
             {"$sort": {"date": -1}},
@@ -263,6 +272,67 @@ def groups_lookup() -> dict:
         ],
         "as": "groups",
     }
+
+
+def entry_reference_lookup(item_doc: dict) -> dict:
+    """Looks up any field that contains an entry reference and resolves it to the item data."""
+
+    # TODO (v0.8): We hard-code this for now but should extract this from pydantic v2 schemas instead
+    # Each field contains a reference like {"item": {"item_id": ..., "refcode": ..., "type": ...}},
+    # or simply an inlined {"item": {"name": ..., "chemform": ...}} object without reference fields.
+
+    # This function needs match refcode or item ID if present, and pull in the relevant item from another entry,
+    # projecting the most relevant fields, e.g., name, item_id to display to the user.
+    reference_fields = {
+        "samples": ["synthesis_constituents"],
+        "cells": ["positive_electrode", "negative_electrode", "electrolyte"],
+        "starting_materials": ["synthesis_constituents"],
+    }
+
+    item_type = item_doc.get("type", None)
+    if item_type not in reference_fields:
+        return item_doc
+
+    # Otherwise, we need to loop do the relevant lookup
+    dereferenced_fields: dict[str, list] = {}
+    for field in reference_fields[item_type]:
+        preferred_refs: list[dict | None] = []
+        dereferenced_fields[field] = []
+
+        for subitem in item_doc.get(field, []):
+            refcode = subitem.get("item", {}).get("refcode", None)
+            if refcode:
+                preferred_refs.append({"refcode": refcode})
+                continue
+            item_id = subitem.get("item", {}).get("item_id", None)
+            if item_id:
+                preferred_refs.append({"item_id": item_id})
+                continue
+
+            # If no refcode or item_id, this is an inlined item, so no lookup needed
+            preferred_refs.append(None)
+
+        for ind, ref in enumerate(preferred_refs):
+            if ref:
+                deref = flask_mongo.db.items.find_one(
+                    {**ref, **get_default_permissions()},
+                    projection={"name": 1, "item_id": 1, "refcode": 1, "chemform": 1, "type": 1},
+                )
+            # If the source item has been deleted, is inlined or is inaccessible, use the original subitem data
+            if not ref or not deref:
+                dereferenced_fields[field].append(item_doc[field][ind])
+                continue
+
+            dereferenced_fields[field].append(
+                {
+                    **item_doc[field][ind],
+                    "item": deref,
+                }
+            )
+
+    item_doc.update(dereferenced_fields)
+
+    return item_doc
 
 
 def files_lookup() -> dict:
@@ -349,84 +419,22 @@ def search_items():
     nresults = request.args.get("nresults", default=100, type=int)
     types = request.args.get("types", default=None)
     if isinstance(types, str):
-        # should figure out how to parse as list automatically
         types = types.split(",")
 
-    pipeline = []
+    if not query:
+        return jsonify({"status": "error", "message": "No query provided."}), 400
 
-    if isinstance(query, str):
-        query = query.strip("'")
+    permissions = get_default_permissions(user_only=False)
+    pipeline = build_search_pipeline(query, ITEMS_FTS_FIELDS, permissions)
 
-    if isinstance(query, str) and query.startswith("%"):
-        # Old FTS query style, using MongoDB text indexes
-        query = query.lstrip("%")
-        query = query.strip("'")
-        match_obj = {
-            "$text": {"$search": query},
-            **get_default_permissions(user_only=False),
-        }
-        if types is not None:
-            match_obj["type"] = {"$in": types}
-
-        pipeline.append({"$match": match_obj})
-        pipeline.append({"$sort": {"score": {"$meta": "textScore"}}})
-    elif isinstance(query, str) and query.startswith("#"):
-        # Plain regex search, without word boundaries or splitting into parts
-        query = query.lstrip("#")
-        query = query.strip("'")
-
-        match_obj = {
-            "$or": [{field: {"$regex": query, "$options": "i"}} for field in ITEMS_FTS_FIELDS]
-        }
-        match_obj = {"$and": [get_default_permissions(user_only=False), match_obj]}
-        if types is not None:
-            match_obj["$and"].append({"type": {"$in": types}})
-
-        pipeline.append({"$match": match_obj})
-
-    else:
-        # Heuristic + regex search, splitting the query into parts and adding word boundaries
-        # depending on length
-        def _generate_heuristic_regex_search(query: str, part_length: int = 4) -> dict:
-            """Generate a heuristic regex search object for MongoDB that uses
-            word boundaries for short parts of the query, but allows matches anywhere.
-
-            Parameters:
-                query: The full search query string.
-                part_length: The length below which to add a word boundary to the start of the part.
-
-            Returns:
-                A MongoDB query object that can be used in a $match stage.
-
-            """
-            query_parts = [re.escape(part) for part in query.split(" ") if part.strip()]
-
-            # Add word boundary to short parts to avoid excessive matches, i.e., search start of string
-            # for short parts, but allow match anywhere in string for longer parts
-            query_parts = [
-                f"\\b{part}" if len(part) <= part_length else part for part in query_parts
-            ]
-            match_obj = {
-                "$or": [
-                    {"$and": [{field: {"$regex": query, "$options": "i"}} for query in query_parts]}
-                    for field in ITEMS_FTS_FIELDS
-                ]
-            }
-            LOGGER.debug(
-                "Performing regex search for %s with full search %s", query_parts, match_obj
-            )
-
-            return match_obj
-
-        if not query:
-            return jsonify({"status": "error", "message": "No query provided."}), 400
-
-        match_obj = _generate_heuristic_regex_search(query)
-        match_obj = {"$and": [get_default_permissions(user_only=False), match_obj]}
-        if types is not None:
-            match_obj["$and"].append({"type": {"$in": types}})
-
-        pipeline.append({"$match": match_obj})
+    if types is not None:
+        if pipeline and "$match" in pipeline[0]:
+            if "$and" in pipeline[0]["$match"]:
+                pipeline[0]["$match"]["$and"].append({"type": {"$in": types}})
+            else:
+                pipeline[0]["$match"] = {"$and": [pipeline[0]["$match"], {"type": {"$in": types}}]}
+        else:
+            pipeline.insert(0, {"$match": {"type": {"$in": types}}})
 
     pipeline.append({"$limit": nresults})
     pipeline.append(
@@ -438,12 +446,14 @@ def search_items():
                 "name": 1,
                 "chemform": 1,
                 "refcode": 1,
+                "status": 1,
+                "location": 1,
+                "date": 1,
             }
         }
     )
 
     cursor = flask_mongo.db.items.aggregate(pipeline)
-
     return jsonify({"status": "success", "items": list(cursor)}), 200
 
 
@@ -630,37 +640,6 @@ def _create_sample(
             str(e),
         )
 
-    # sample_list_entry = {
-    #     "refcode": data_model.refcode,
-    #     "item_id": data_model.item_id,
-    #     "nblocks": 0,
-    #     "nfiles": 0,
-    #     "date": data_model.date,
-    #     "name": data_model.name,
-    #     "creator_ids": data_model.creator_ids,
-    #     # TODO: This workaround for creators & collections is still gross, need to figure this out properly
-    #     "creators": [json.loads(c.json(exclude_unset=True)) for c in data_model.creators]
-    #     if data_model.creators
-    #     else [],
-    #     "collections": [
-    #         json.loads(c.json(exclude_unset=True, exclude_none=True))
-    #         for c in data_model.collections
-    #     ],
-    #     "group_ids": data_model.group_ids,
-    #     "groups": [
-    #         json.loads(c.json(exclude_unset=True, exclude_none=True)) for c in data_model.groups
-    #     ]
-    #     if data_model.groups
-    #     else [],
-    #     "type": data_model.type,
-    #     "status": data_model.status,
-    # }
-
-    # hack to let us use _create_sample() for equipment too. We probably want to make
-    # a more general create_item() to more elegantly handle different returns.
-    # if data_model.type == "equipment":
-    #     sample_list_entry["location"] = data_model.location
-
     data = {
         "status": "success",
         "item_id": data_model.item_id,
@@ -734,11 +713,9 @@ def create_samples():
     )  # 207: multi-status
 
 
-@ITEMS.route("/items/<refcode>/permissions", methods=["PATCH"])
-def update_item_permissions(refcode: str):
-    """Update the permissions of an item with the given refcode."""
-
-    request_json = request.get_json()
+def _process_item_permissions(
+    refcode: str, request_json: dict, append_mode: bool = False
+) -> tuple[dict, int]:
     creator_ids: list[ObjectId] = []
     group_ids: list[ObjectId] = []
 
@@ -748,20 +725,19 @@ def update_item_permissions(refcode: str):
     current_item = flask_mongo.db.items.find_one(
         {"refcode": refcode, **get_default_permissions(user_only=True)},
         {"_id": 1, "creator_ids": 1, "group_ids": 1},
-    )  # type: ignore
+    )
 
     if not current_item:
         return (
-            jsonify(
-                {
-                    "status": "error",
-                    "message": f"No valid item found with the given {refcode=}.",
-                }
-            ),
+            {
+                "status": "error",
+                "message": f"No valid item found with the given {refcode=}.",
+            },
             401,
         )
 
-    current_creator_ids = current_item["creator_ids"]
+    current_creator_ids = current_item.get("creator_ids", [])
+    current_group_ids = current_item.get("group_ids", [])
 
     creators_requested = False
     groups_requested = False
@@ -792,12 +768,10 @@ def update_item_permissions(refcode: str):
 
     if not groups_requested and not creators_requested:
         return (
-            jsonify(
-                {
-                    "status": "error",
-                    "message": "No valid creator or group IDs found in the request.",
-                }
-            ),
+            {
+                "status": "error",
+                "message": "No valid creator or group IDs found in the request.",
+            },
             400,
         )
 
@@ -805,15 +779,13 @@ def update_item_permissions(refcode: str):
     if creator_ids:
         found_creator_ids = [
             d for d in flask_mongo.db.users.find({"_id": {"$in": creator_ids}}, {"_id": 1})
-        ]  # type: ignore
+        ]
         if len(found_creator_ids) != len(creator_ids):
             return (
-                jsonify(
-                    {
-                        "status": "error",
-                        "message": "One or more creator IDs not found in the database.",
-                    }
-                ),
+                {
+                    "status": "error",
+                    "message": "One or more creator IDs not found in the database.",
+                },
                 400,
             )
 
@@ -821,17 +793,21 @@ def update_item_permissions(refcode: str):
         # Validate all group IDs are present in the database
         found_group_ids = [
             d for d in flask_mongo.db.groups.find({"_id": {"$in": group_ids}}, {"_id": 1})
-        ]  # type: ignore
+        ]
         if len(found_group_ids) != len(group_ids):
             return (
-                jsonify(
-                    {
-                        "status": "error",
-                        "message": "One or more group IDs not found in the database.",
-                    }
-                ),
+                {
+                    "status": "error",
+                    "message": "One or more group IDs not found in the database.",
+                },
                 400,
             )
+
+    if append_mode:
+        if creators_requested:
+            creator_ids = list(set(current_creator_ids + creator_ids))
+        if groups_requested:
+            group_ids = list(set(current_group_ids + group_ids))
 
     if creator_ids:
         # Make sure a user cannot remove their own access to an item
@@ -850,6 +826,22 @@ def update_item_permissions(refcode: str):
             except ValueError:
                 pass
             creator_ids.insert(0, base_owner)
+
+    no_changes = False
+    if creators_requested and not groups_requested:
+        if set(creator_ids) == set(current_creator_ids):
+            no_changes = True
+    elif groups_requested and not creators_requested:
+        if set(group_ids) == set(current_group_ids):
+            no_changes = True
+    elif creators_requested and groups_requested:
+        if set(creator_ids) == set(current_creator_ids) and set(group_ids) == set(
+            current_group_ids
+        ):
+            no_changes = True
+
+    if no_changes:
+        return {"status": "success", "message": "No changes needed"}, 200
 
     LOGGER.warning(
         "Setting permissions for item %s to %s (creators) / %s (groups)",
@@ -871,14 +863,31 @@ def update_item_permissions(refcode: str):
     )
 
     if result.modified_count != 1:
-        return jsonify(
+        return (
             {
                 "status": "error",
                 "message": "Failed to update permissions: you cannot remove yourself or the base owner as a creator.",
-            }
-        ), 400
+            },
+            400,
+        )
 
-    return jsonify({"status": "success"}), 200
+    return {"status": "success"}, 200
+
+
+@ITEMS.route("/items/<refcode>/permissions", methods=["PATCH"])
+def update_item_permissions(refcode: str):
+    """Update the permissions of an item with the given refcode."""
+    request_json = request.get_json()
+    response, status_code = _process_item_permissions(refcode, request_json, append_mode=False)
+    return jsonify(response), status_code
+
+
+@ITEMS.route("/items/<refcode>/permissions", methods=["PUT"])
+def append_item_permissions(refcode: str):
+    """Append permissions to an item with the given refcode."""
+    request_json = request.get_json()
+    response, status_code = _process_item_permissions(refcode, request_json, append_mode=True)
+    return jsonify(response), status_code
 
 
 @ITEMS.route("/items/<refcode>/issue-access-token", methods=["POST"])
@@ -1044,6 +1053,8 @@ def get_item_data(
             404,
         )
 
+    doc = entry_reference_lookup(doc)
+
     # determine the item type and validate according to the appropriate schema
     try:
         ItemModel = ITEM_MODELS[doc["type"]]
@@ -1123,9 +1134,6 @@ def get_item_data(
             "parent_items": sorted(parents),
         }
     )
-
-
-# --- VERSION CONTROL ENDPOINTS ---
 
 
 @ITEMS.route("/items/<refcode>/versions/", methods=["GET"])
@@ -1353,7 +1361,8 @@ def restore_version(refcode):
         "version": next_version_number,
         "timestamp": datetime.datetime.now(tz=datetime.timezone.utc),
         "action": VersionAction.RESTORED,  # Audit trail: this is a restored version
-        "restored_from_version": version_object_id,  # Track which version was restored from (ObjectId)
+        # Track which version was restored from (ObjectId)
+        "restored_from_version": version_object_id,
         "user_id": user_id,  # ObjectId for efficient querying
         "datalab_version": software_version,
         "data": restored_data,  # Store the complete snapshot of the restored state
@@ -1427,9 +1436,6 @@ def save_version(refcode):
         permission_filter=get_default_permissions(user_only=False),
     )
     return jsonify(response), status_code
-
-
-# --- END VERSION CONTROL ENDPOINTS ---
 
 
 @ITEMS.route("/save-item/", methods=["POST"])

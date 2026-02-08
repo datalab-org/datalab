@@ -18,78 +18,64 @@
       </div>
     </div>
 
-    <div class="d-flex justify-content-between align-items-center">
-      <div class="button-left">
+    <div class="button-bar">
+      <div v-if="dataType === 'samples'" class="btn-action-group">
         <button
-          v-if="dataType === 'samples'"
           data-testid="add-item-button"
-          class="btn btn-default ml-2"
+          class="btn btn-default btn-action"
+          :title="adminSuperUserMode ? 'Disabled in super-user mode' : ''"
           @click="$emit('open-create-item-modal')"
         >
           Add an item
         </button>
         <button
-          v-if="dataType === 'samples'"
           data-testid="batch-item-button"
-          class="btn btn-default ml-2"
+          class="btn btn-default btn-action"
+          :disabled="adminSuperUserMode"
+          :title="adminSuperUserMode ? 'Disabled in super-user mode' : ''"
           @click="$emit('open-batch-create-item-modal')"
         >
           Add batch of items
         </button>
         <button
-          v-if="dataType === 'samples'"
           data-testid="scan-qr-button"
-          class="btn btn-default ml-2"
+          class="btn btn-default btn-action"
           aria-label="Scan QR code"
           title="Scan QR code"
           @click="$emit('open-qr-scanner-modal')"
         >
-          <font-awesome-icon icon="qrcode" />
-        </button>
-        <button
-          v-if="dataType === 'collections'"
-          data-testid="add-collection-button"
-          class="btn btn-default ml-2"
-          @click="$emit('open-create-collection-modal')"
-        >
-          Create new collection
-        </button>
-        <button
-          v-if="dataType === 'startingMaterials' && editableInventory"
-          data-testid="add-starting-material-button"
-          class="btn btn-default ml-2"
-          @click="$emit('open-create-item-modal')"
-        >
-          Add a starting material
-        </button>
-        <button
-          v-if="dataType === 'equipment'"
-          data-testid="add-equipment-button"
-          class="btn btn-default ml-2"
-          @click="$emit('open-create-equipment-modal')"
-        >
-          Add an item
+          <font-awesome-icon icon="qrcode" /> Scan QR code
         </button>
       </div>
+      <button
+        v-if="dataType === 'collections'"
+        data-testid="add-collection-button"
+        class="btn btn-default"
+        @click="$emit('open-create-collection-modal')"
+      >
+        Create new collection
+      </button>
+      <button
+        v-if="dataType === 'startingMaterials' && editableInventory"
+        data-testid="add-starting-material-button"
+        class="btn btn-default"
+        @click="$emit('open-create-item-modal')"
+      >
+        Add a starting material
+      </button>
+      <button
+        v-if="dataType === 'equipment'"
+        data-testid="add-equipment-button"
+        class="btn btn-default"
+        @click="$emit('open-create-equipment-modal')"
+      >
+        Add an item
+      </button>
 
-      <div class="button-right d-flex">
-        <MultiSelect
-          :model-value="selectedColumns"
-          :options="availableColumns"
-          :option-label="columnLabel"
-          placeholder="Select column(s) to display"
-          display="chip"
-          @update:model-value="$emit('update:selected-columns', $event)"
-        >
-          <template #value="{ value }">
-            <span v-if="value && value.length == availableColumns.length" class="text-gray-400"
-              >All columns displayed</span
-            >
-            <span v-else>{{ value.length }} columns displayed</span>
-          </template>
-        </MultiSelect>
+      <div class="button-bar-spacer"></div>
 
-        <IconField class="ml-2">
+      <div class="search-settings-group">
+        <IconField class="search-field">
           <InputIcon>
             <font-awesome-icon icon="search" />
           </InputIcon>
@@ -101,15 +87,49 @@
           />
         </IconField>
 
-        <button
-          data-testid="reset-table-button"
-          class="btn btn-default ml-2"
-          aria-label="Reset table"
-          title="Reset table"
-          @click="resetTable"
-        >
-          <font-awesome-icon icon="redo" />
-        </button>
+        <div class="dropdown">
+          <button
+            data-testid="table-settings-button"
+            class="btn btn-default"
+            type="button"
+            aria-label="Table settings"
+            title="Table settings"
+            aria-haspopup="true"
+            :aria-expanded="isSettingsDropdownVisible"
+            @click="isSettingsDropdownVisible = !isSettingsDropdownVisible"
+          >
+            <font-awesome-icon icon="cog" />
+          </button>
+          <div
+            v-show="isSettingsDropdownVisible"
+            class="dropdown-menu dropdown-menu-right settings-dropdown"
+            style="display: block"
+          >
+            <div class="dropdown-item-text">
+              <label class="mb-1 font-weight-bold">Columns</label>
+              <MultiSelect
+                :model-value="selectedColumns"
+                :options="availableColumns"
+                :option-label="columnLabel"
+                placeholder="Select column(s) to display"
+                display="chip"
+                class="column-select-dropdown"
+                @update:model-value="$emit('update:selected-columns', $event)"
+              >
+                <template #value="{ value }">
+                  <span v-if="value && value.length == availableColumns.length" class="text-muted"
+                    >All columns</span
+                  >
+                  <span v-else>{{ value.length }} columns</span>
+                </template>
+              </MultiSelect>
+            </div>
+            <div class="dropdown-divider"></div>
+            <a data-testid="reset-table-button" class="dropdown-item" @click="resetTable">
+              <font-awesome-icon icon="redo" class="mr-2" /> Reset table settings
+            </a>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -147,6 +167,14 @@
             @click="confirmRemoveFromCollection"
           >
             Remove from collection
+          </a>
+          <a
+            v-if="dataType !== 'collections' && dataType !== 'collectionItems'"
+            data-testid="batch-share-button"
+            class="dropdown-item"
+            @click="handleBatchShare"
+          >
+            Batch share
           </a>
           <a
             v-if="dataType !== 'collectionItems'"
@@ -231,6 +259,7 @@ export default {
     "open-create-collection-modal",
     "open-create-equipment-modal",
     "open-add-to-collection-modal",
+    "open-batch-share-modal",
     "delete-selected-items",
     "update:filters",
     "update:selected-columns",
@@ -241,9 +270,15 @@ export default {
     return {
       localFilters: { ...this.filters },
       isSelectedDropdownVisible: false,
+      isSettingsDropdownVisible: false,
       isDeletingItems: false,
       itemCount: 0,
     };
+  },
+  computed: {
+    adminSuperUserMode() {
+      return this.$store.getters.isAdminSuperUserModeActive;
+    },
   },
   watch: {
     itemsSelected(newVal) {
@@ -330,6 +365,7 @@ export default {
       return option.label || option.header || option.field;
     },
     async resetTable() {
+      this.isSettingsDropdownVisible = false;
       const confirmed = await DialogService.confirm({
         title: "Confirm reset",
         message:
@@ -340,16 +376,77 @@ export default {
         this.$emit("reset-table");
       }
     },
+    handleBatchShare() {
+      this.$emit("open-batch-share-modal");
+      this.isSelectedDropdownVisible = false;
+    },
   },
 };
 </script>
 
 <style scoped>
+.button-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-action-group {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-action {
+  flex: 1;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.button-bar-spacer {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.search-settings-group {
+  display: flex;
+  gap: 0.5rem;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.search-field {
+  flex: 1 1 80px;
+  min-width: 80px;
+  max-width: 200px;
+}
+
+.search-field :deep(.p-inputtext) {
+  height: calc(1.5em + 0.75rem + 2px);
+  padding: 0.375rem 0.75rem;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
 .search-input {
   height: calc(1.5em + 0.75rem + 2px);
   padding: 0.375rem 0.75rem;
   font-size: 1rem;
   line-height: 1.5;
   border-radius: 0.25rem;
+  width: 100%;
+}
+
+.settings-dropdown {
+  min-width: 220px;
+  padding: 0.5rem 0;
+}
+
+.dropdown-item-text {
+  padding: 0.5rem 1rem;
+}
+
+.column-select-dropdown {
+  width: 100%;
 }
 </style>

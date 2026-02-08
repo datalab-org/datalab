@@ -54,6 +54,7 @@
           @open-create-collection-modal="createCollectionModalIsOpen = true"
           @open-create-equipment-modal="createEquipmentModalIsOpen = true"
           @open-add-to-collection-modal="addToCollectionModalIsOpen = true"
+          @open-batch-share-modal="batchShareModalIsOpen = true"
           @delete-selected-items="deleteSelectedItems"
           @remove-selected-items-from-collection="removeSelectedItemsFromCollection"
           @reset-table="handleResetTable"
@@ -114,10 +115,10 @@
         <template v-else #body="slotProps">
           {{ slotProps.data[column.field] }}
         </template>
-        <template v-if="column.filter && column.field === 'creators'" #filter>
+        <template v-if="column.filter && column.field === 'creatorsAndGroups'" #filter>
           <MultiSelect
             v-model="filters[column.field].constraints[0].value"
-            :options="uniqueCreators"
+            :options="uniqueCreatorsAndGroups"
             option-label="display_name"
             placeholder="Any"
             class="d-flex w-full"
@@ -126,8 +127,19 @@
           >
             <template #option="slotProps">
               <div class="flex items-center">
-                <UserBubble :creator="slotProps.option" :size="24" />
-                <span class="ml-1">{{ slotProps.option.display_name }}</span>
+                <UserBubble
+                  v-if="slotProps.option.type === 'creator'"
+                  :creator="slotProps.option"
+                  :size="24"
+                />
+                <FormattedGroupName
+                  v-if="slotProps.option.type === 'group'"
+                  :group="slotProps.option"
+                  :size="24"
+                />
+                <span v-if="slotProps.option.type === 'creator'" class="ml-1">{{
+                  slotProps.option.display_name
+                }}</span>
               </div>
             </template>
             <template #value="slotProps">
@@ -138,7 +150,11 @@
                     :key="index"
                     class="inline-flex items-center mr-2"
                   >
-                    <UserBubble :creator="option" :size="20" />
+                    <UserBubble v-if="option.type === 'creator'" :creator="option" :size="20" />
+                    <FormattedGroupName v-if="option.type === 'group'" :group="option" :size="20" />
+                    <span v-if="option.type === 'creator'" class="ml-1">{{
+                      option.display_name
+                    }}</span>
                   </span>
                 </template>
                 <span v-else class="text-gray-400">Any</span>
@@ -324,6 +340,11 @@
     :items-selected="itemsSelected"
     @items-updated="handleItemsUpdated"
   />
+  <BatchShareModal
+    v-model="batchShareModalIsOpen"
+    :items-selected="itemsSelected"
+    @items-updated="handleItemsUpdated"
+  />
 </template>
 
 <script>
@@ -334,6 +355,7 @@ import QRScannerModal from "@/components/QRScannerModal";
 import CreateCollectionModal from "@/components/CreateCollectionModal";
 import CreateEquipmentModal from "@/components/CreateEquipmentModal";
 import AddToCollectionModal from "@/components/AddToCollectionModal";
+import BatchShareModal from "@/components/BatchShareModal";
 
 import { INVENTORY_TABLE_TYPES, EDITABLE_INVENTORY } from "@/resources.js";
 
@@ -348,6 +370,8 @@ import UserBubble from "@/components/UserBubble.vue";
 import FormattedItemStatus from "@/components/FormattedItemStatus.vue";
 import FormattedBarcode from "@/components/FormattedBarcode.vue";
 import FormattedRefcode from "@/components/FormattedRefcode.vue";
+import FormattedGroupName from "./FormattedGroupName.vue";
+import GroupsIconCounter from "@/components/GroupsIconCounter";
 
 import { FilterMatchMode, FilterOperator, FilterService } from "@primevue/core/api";
 import DataTable from "primevue/datatable";
@@ -370,6 +394,7 @@ export default {
     CreateCollectionModal,
     CreateEquipmentModal,
     AddToCollectionModal,
+    BatchShareModal,
     DataTable,
     MultiSelect,
     Column,
@@ -377,10 +402,12 @@ export default {
     FormattedItemName,
     FormattedCollectionName,
     FormattedItemStatus,
+    FormattedGroupName,
     ChemicalFormula,
     CollectionList,
     Creators,
     UserBubble,
+    GroupsIconCounter,
     DatePicker,
     Select,
   },
@@ -426,6 +453,7 @@ export default {
       createCollectionModalIsOpen: false,
       createEquipmentModalIsOpen: false,
       addToCollectionModalIsOpen: false,
+      batchShareModalIsOpen: false,
       isSampleFetchError: false,
       itemsSelected: [],
       allSelected: false,
@@ -455,6 +483,10 @@ export default {
         creators: {
           operator: FilterOperator.AND,
           constraints: [{ value: null, matchMode: "exactCreatorMatch" }],
+        },
+        creatorsAndGroups: {
+          operator: FilterOperator.AND,
+          constraints: [{ value: null, matchMode: "exactCreatorAndGroupMatch" }],
         },
         blocks: {
           operator: FilterOperator.AND,
@@ -488,6 +520,9 @@ export default {
     page() {
       return this.$store.state.datatablePaginationSettings[this.dataType].page;
     },
+    adminSuperUserMode() {
+      return this.$store.getters.isAdminSuperUserModeActive;
+    },
     uniqueCreators() {
       return Array.from(
         new Map(
@@ -496,6 +531,35 @@ export default {
             .map((creator) => [JSON.stringify(creator), creator]),
         ).values(),
       );
+    },
+    uniqueGroups() {
+      if (!this.data) return [];
+      const allGroups = this.data.flatMap((item) => item.groups || []);
+      const uniqueGroupsMap = new Map();
+      allGroups.forEach((group) => {
+        if (group && group.group_id) {
+          uniqueGroupsMap.set(group.group_id, { ...group });
+        }
+      });
+      return Array.from(uniqueGroupsMap.values());
+    },
+    uniqueCreatorsAndGroups() {
+      const hasVirtualField = this.data && this.data[0] && this.data[0].creatorsAndGroups;
+
+      if (hasVirtualField) {
+        const allItems = this.data.flatMap((item) => item.creatorsAndGroups || []);
+        const uniqueMap = new Map();
+        allItems.forEach((item) => {
+          const key = `${item.type}-${item.display_name}`;
+          if (!uniqueMap.has(key)) {
+            uniqueMap.set(key, { ...item });
+          }
+        });
+        return Array.from(uniqueMap.values());
+      } else {
+        const creators = this.uniqueCreators.map((c) => ({ ...c, type: "creator" }));
+        return creators;
+      }
     },
     uniqueCollections() {
       return Array.from(
@@ -582,19 +646,65 @@ export default {
       const filter = this.filters.creators;
       const isAnd = filter.operator === FilterOperator.AND;
 
+      const currentItem = this.data.find((item) => {
+        if (item.creatorsAndGroups) {
+          return JSON.stringify(item.creators) === JSON.stringify(value);
+        } else {
+          return JSON.stringify(item.creators) === JSON.stringify(value);
+        }
+      });
+
+      if (!currentItem) return false;
+
+      const itemsToFilter =
+        currentItem.creatorsAndGroups ||
+        (currentItem.creators || []).map((c) => ({ ...c, type: "creator" }));
+
       if (Array.isArray(filterValue)) {
         if (isAnd) {
-          return filterValue.every((filterCreator) =>
-            value.some((itemCreator) => itemCreator.display_name === filterCreator.display_name),
+          return filterValue.every((filter) =>
+            itemsToFilter.some(
+              (item) => item.display_name === filter.display_name && item.type === filter.type,
+            ),
           );
         } else {
-          return filterValue.some((filterCreator) =>
-            value.some((itemCreator) => itemCreator.display_name === filterCreator.display_name),
+          return filterValue.some((filter) =>
+            itemsToFilter.some(
+              (item) => item.display_name === filter.display_name && item.type === filter.type,
+            ),
           );
         }
       }
 
-      return value.some((itemCreator) => itemCreator.display_name === filterValue.display_name);
+      return itemsToFilter.some(
+        (item) => item.display_name === filterValue.display_name && item.type === filterValue.type,
+      );
+    });
+    FilterService.register("exactCreatorAndGroupMatch", (value, filterValue) => {
+      if (!filterValue || !value) return true;
+
+      const filter = this.filters.creatorsAndGroups;
+      const isAnd = filter.operator === FilterOperator.AND;
+
+      if (Array.isArray(filterValue)) {
+        if (isAnd) {
+          return filterValue.every((filter) =>
+            value.some(
+              (item) => item.display_name === filter.display_name && item.type === filter.type,
+            ),
+          );
+        } else {
+          return filterValue.some((filter) =>
+            value.some(
+              (item) => item.display_name === filter.display_name && item.type === filter.type,
+            ),
+          );
+        }
+      }
+
+      return value.some(
+        (item) => item.display_name === filterValue.display_name && item.type === filterValue.type,
+      );
     });
     FilterService.register("exactTypeMatch", (value, filterValue) => {
       if (!filterValue || (Array.isArray(filterValue) && filterValue.length === 0)) {
@@ -809,7 +919,8 @@ export default {
           collections: "collections",
         },
         Creators: {
-          creators: "creators",
+          creators: data.creators || [],
+          groups: data.groups || [],
           showNames: data.creators?.length === 1,
         },
         FormattedItemStatus: {
@@ -846,6 +957,11 @@ export default {
           props[prop] = true;
         }
       });
+
+      if (componentName === "Creators") {
+        props.creators = data.creators || [];
+        props.groups = data.groups || [];
+      }
 
       return props;
     },

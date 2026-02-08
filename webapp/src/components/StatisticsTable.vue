@@ -1,5 +1,6 @@
 <template>
   <div v-if="counts" class="mx-auto">
+    <h5 v-if="title">{{ title }}</h5>
     <table>
       <tbody>
         <tr>
@@ -22,6 +23,13 @@ import { getStats } from "@/server_fetch_utils.js";
 import { itemTypes } from "@/resources.js";
 
 export default {
+  props: {
+    title: {
+      type: String,
+      default: null,
+      required: false,
+    },
+  },
   data() {
     return {
       counts: null,
@@ -29,9 +37,7 @@ export default {
     };
   },
   async mounted() {
-    console.log(this.counts);
     this.counts = await getStats();
-    console.log(this.counts);
   },
 };
 </script>

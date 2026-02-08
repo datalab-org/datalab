@@ -254,7 +254,8 @@ def test_item_regex_search(
     user, query, expected_result_ids, real_mongo_client, client, admin_client, insert_example_items
 ):
     if user == "admin":
-        response = admin_client.get(f"/search-items/?{query}")
+        # Admin needs ?sudo=1 to see all items (super-user mode)
+        response = admin_client.get(f"/search-items/?{query}&sudo=1")
     else:
         response = client.get(f"/search-items/?{query}")
 
@@ -268,7 +269,9 @@ def test_item_regex_search(
 
 
 @pytest.mark.dependency(depends=["test_delete_sample"])
-def test_new_sample_with_relationships(client, complicated_sample):
+def test_new_sample_with_relationships(
+    client, complicated_sample, insert_complicated_sample_constituents
+):
     complicated_sample_json = json.loads(complicated_sample.json())
     response = client.post("/new-sample/", json=complicated_sample_json)
     # Test that 201: Created is emitted
@@ -295,6 +298,19 @@ def test_new_sample_with_relationships(client, complicated_sample):
     ]
     assert len(response.json["item_data"]["relationships"]) == 3
     assert len(response.json["item_data"]["synthesis_constituents"]) == 3
+
+    # Verify that each constituent's quantity and unit are preserved correctly
+    # after entry_reference_lookup resolves item references from the database
+    constituents = response.json["item_data"]["synthesis_constituents"]
+    assert constituents[0]["quantity"] == 1
+    assert constituents[0]["unit"] == "g"
+    assert constituents[0]["item"]["item_id"] == "starting_material_1"
+    assert constituents[1]["quantity"] == 2
+    assert constituents[1]["unit"] == "kg"
+    assert constituents[1]["item"]["item_id"] == "starting_material_2"
+    assert constituents[2]["quantity"] == 3
+    assert constituents[2]["unit"] == "ml"
+    assert constituents[2]["item"]["item_id"] == "starting_material_3"
 
     # Create a derived sample with new relationships and make sure they are properly interleaved
     derived_sample = Sample(**response.json["item_data"])
@@ -347,11 +363,12 @@ def test_new_sample_with_relationships(client, complicated_sample):
         # i.e., "starting_material_3", has been removed
     ]
 
+    sm_refcodes = {sm.item_id: sm.refcode for sm in insert_complicated_sample_constituents}
     assert [d.get("refcode") for d in response.json["item_data"]["relationships"]] == [
-        None,
-        None,
+        sm_refcodes["starting_material_1"],
+        sm_refcodes["starting_material_2"],
         new_refcode,
-        None,
+        None,  # manually added OTHER relationship has no refcode
         # i.e., "starting_material_3", has been removed
     ]
 
@@ -508,10 +525,10 @@ def test_create_cell(client, default_cell):
         cell["positive_electrode"][0]["item"]["name"]
         == default_cell.positive_electrode[0].item.name
     )
-    assert (
-        cell["negative_electrode"][0]["item"]["name"]
-        == default_cell.negative_electrode[0].item.name
-    )
+    # The anode has a "real" entry in the db, so it should be looked up properly
+    # with dereferenced chemical formula and name, even if it was not provided at link time
+    assert cell["negative_electrode"][0]["item"]["name"] == "NaNiO2"
+    assert cell["negative_electrode"][0]["item"]["chemform"] == "NaNiO2"
 
 
 @pytest.mark.dependency(depends=["test_create_cell"])

@@ -16,14 +16,12 @@
     </template>
     <template #option="group">
       <div class="d-flex align-items-center">
-        <strong>{{ group.display_name }}</strong>
-        <small class="text-muted ml-2">({{ group.group_id }})</small>
+        <FormattedGroupName :group="group" />
       </div>
     </template>
     <template #selected-option="group">
       <div class="d-flex align-items-center">
-        <strong>{{ group.display_name }}</strong>
-        <small class="text-muted ml-2">({{ group.group_id }})</small>
+        <FormattedGroupName :group="group" />
       </div>
     </template>
   </vSelect>
@@ -33,10 +31,12 @@
 import vSelect from "vue-select";
 import { searchGroups } from "@/server_fetch_utils.js";
 import { debounceTime } from "@/resources.js";
+import FormattedGroupName from "@/components/FormattedGroupName.vue";
 
 export default {
   components: {
     vSelect,
+    FormattedGroupName,
   },
   props: {
     modelValue: {
