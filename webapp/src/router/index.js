@@ -12,6 +12,7 @@ import Admin from "@/views/Admin.vue";
 import Login from "../views/Login.vue";
 import Login2 from "../views/Login2.vue";
 import Login3 from "../views/Login3.vue";
+import { API_URL } from "@/resources.js";
 
 const routes = [
   {
@@ -86,6 +87,15 @@ const routes = [
     path: "/item-graph/",
     name: "item-graph",
     component: ItemGraphPage,
+  },
+  {
+    path: "/files/:pathMatch(.*)",
+    name: "files-redirect",
+    beforeEnter: (to) => {
+      window.open(API_URL + "/files/" + to.params.pathMatch, "_blank");
+      return false;
+    },
+    component: NotFound,
   },
   { path: "/404", name: "notfound", component: NotFound },
   { path: "/:pathMatch(.*)*", component: NotFound },
