@@ -10,6 +10,7 @@ import {
 } from "@/resources.js";
 
 import { DialogService } from "@/services/DialogService";
+import { LoginService } from "@/services/LoginService";
 
 let currentUserCache = null;
 let currentUserPromise = null;
@@ -715,10 +716,14 @@ export async function getItemData(item_id, accessToken = null) {
       return "success";
     })
     .catch((error) => {
-      DialogService.error({
-        title: "Unable to retrieve item",
-        message: "Error getting item data: " + error,
-      });
+      if (error === "UNAUTHORIZED" && store.getters.getCurrentUserID == null) {
+        LoginService.show();
+      } else {
+        DialogService.error({
+          title: "Unable to retrieve item",
+          message: "Error getting item data: " + error,
+        });
+      }
       throw error;
     });
 }
@@ -741,10 +746,14 @@ export async function getItemByRefcode(refcode, accessToken = null) {
       return "success";
     })
     .catch((error) => {
-      DialogService.error({
-        title: "Unable to retrieve item",
-        message: "Error getting item data: " + error,
-      });
+      if (error === "UNAUTHORIZED" && store.getters.getCurrentUserID == null) {
+        LoginService.show();
+      } else {
+        DialogService.error({
+          title: "Unable to retrieve item",
+          message: "Error getting item data: " + error,
+        });
+      }
       throw error;
     });
 }
@@ -761,10 +770,14 @@ export async function getCollectionData(collection_id) {
       return "success";
     })
     .catch((error) => {
-      DialogService.error({
-        title: "Unable to retrieve collection",
-        message: "Error getting collection data: " + error,
-      });
+      if (error === "UNAUTHORIZED" && store.getters.getCurrentUserID == null) {
+        LoginService.show();
+      } else {
+        DialogService.error({
+          title: "Unable to retrieve collection",
+          message: "Error getting collection data: " + error,
+        });
+      }
     });
 }
 
