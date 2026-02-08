@@ -544,9 +544,10 @@ dev = [
 [[package]]
 name = "datalab-app-plugin-profilometry"
 version = "0.0.0"
-source = { git = "https://github.com/datalab-industries/datalab-app-plugin-profilometry.git?rev=v0.1.0-rc.1#cbf621ea27c24bb62983531f6d2380ce661064ae" }
+source = { git = "https://github.com/datalab-industries/datalab-app-plugin-profilometry.git?rev=v0.1.0-rc.2#6812e3a8e46dd7fe3e0d00779eb8ff4982da1e43" }
 dependencies = [
     { name = "numpy" },
+    { name = "pillow" },
     { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "scipy", version = "1.16.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
 ]
@@ -673,7 +674,7 @@ requires-dist = [
     { name = "bokeh", specifier = "~=2.4,<3.0" },
     { name = "datalab-app-plugin-insitu", marker = "extra == 'app-plugins-git'", git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git?rev=v0.3.2" },
     { name = "datalab-app-plugin-printability", marker = "extra == 'dialup'", editable = "plugins/datalab-app-plugin-printability" },
-    { name = "datalab-app-plugin-profilometry", marker = "extra == 'dialup'", git = "https://github.com/datalab-industries/datalab-app-plugin-profilometry.git?rev=v0.1.0-rc.1" },
+    { name = "datalab-app-plugin-profilometry", marker = "extra == 'dialup'", git = "https://github.com/datalab-industries/datalab-app-plugin-profilometry.git?rev=v0.1.0-rc.2" },
     { name = "datalab-server", extras = ["apps", "chat", "server"], marker = "extra == 'all'" },
     { name = "deepdiff", specifier = "~=8.1" },
     { name = "flask", marker = "extra == 'server'", specifier = "~=3.0" },
