@@ -92,7 +92,7 @@ const routes = [
     path: "/files/:pathMatch(.*)",
     name: "files-redirect",
     beforeEnter: (to) => {
-      window.open(API_URL + "/files/" + to.params.pathMatch, "_blank");
+      window.location.href = API_URL + "/files/" + to.params.pathMatch;
       return false;
     },
     component: NotFound,
