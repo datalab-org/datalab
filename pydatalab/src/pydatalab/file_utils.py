@@ -1,4 +1,5 @@
 import datetime
+import hashlib
 import os
 import pathlib
 import re
@@ -33,6 +34,25 @@ def get_space_available_bytes() -> int:
         raise RuntimeError(f"{CONFIG.FILE_DIRECTORY=} was not safely initialised.")
 
     return stats.f_bsize * stats.f_bavail
+
+
+def compute_file_hashes(file_path: str) -> dict[str, str]:
+    """Compute MD5 and SHA-256 hashes of a file, reading in chunks.
+
+    Args:
+        file_path: The path to the file on disk.
+
+    Returns:
+        A dictionary with 'md5' and 'sha256' hex digest strings.
+
+    """
+    md5 = hashlib.md5()  # noqa: S324
+    sha256 = hashlib.sha256()
+    with open(file_path, "rb") as f:
+        for chunk in iter(lambda: f.read(65536), b""):
+            md5.update(chunk)
+            sha256.update(chunk)
+    return {"md5": md5.hexdigest(), "sha256": sha256.hexdigest()}
 
 
 def _escape_spaces_scp_path(remote_path: str) -> str:
@@ -203,6 +223,7 @@ def _check_and_sync_file(file_info: File, file_id: ObjectId) -> File:
         if datetime.datetime.now(tz=datetime.timezone.utc) - remote_timestamp > LIVE_FILE_CUTOFF:
             is_live = False
 
+        hashes = compute_file_hashes(file_info.location)
         updated_file_info = file_collection.find_one_and_update(
             {"_id": file_id, **get_default_permissions(user_only=False)},
             {
@@ -213,6 +234,7 @@ def _check_and_sync_file(file_info: File, file_id: ObjectId) -> File:
                     ),
                     "last_modified_remote": remote_timestamp,
                     "is_live": is_live,
+                    "checksums": hashes,
                 },
                 "$inc": {"revision": 1},
             },
@@ -334,9 +356,11 @@ def update_uploaded_file(file: FileStorage, file_id: ObjectId, size_bytes: int |
 
     file.save(updated_file_entry.location)
     size_bytes = os.path.getsize(updated_file_entry.location)  # type: ignore[arg-type]
+    hashes = compute_file_hashes(updated_file_entry.location)
 
     file_collection.update_one(
-        {"_id": file_id, **get_default_permissions(user_only=False)}, {"$set": {"size": size_bytes}}
+        {"_id": file_id, **get_default_permissions(user_only=False)},
+        {"$set": {"size": size_bytes, "checksums": hashes}},
     )
 
     ret = updated_file_entry.dict()
@@ -443,12 +467,14 @@ def save_uploaded_file(
         pathlib.Path(new_directory).mkdir(exist_ok=False)
         file.save(file_location)
 
+    hashes = compute_file_hashes(file_location)
     updated_file_entry = flask_mongo.db.files.find_one_and_update(
         {"_id": inserted_id, **get_default_permissions(user_only=False)},
         {
             "$set": {
                 "location": file_location,
                 "size": os.path.getsize(file_location),
+                "checksums": hashes,
             }
         },
         return_document=ReturnDocument.AFTER,
@@ -553,6 +579,7 @@ def add_file_from_remote_directory(
     new_file_location = os.path.join(new_directory, filename)
     pathlib.Path(new_directory).mkdir(exist_ok=True)
     _sync_file_with_remote(full_remote_path, new_file_location)
+    hashes = compute_file_hashes(new_file_location)
 
     updated_file_entry = file_collection.find_one_and_update(
         {"_id": inserted_id, **get_default_permissions(user_only=False)},
@@ -560,6 +587,7 @@ def add_file_from_remote_directory(
             "$set": {
                 "location": new_file_location,
                 "url_path": new_file_location,
+                "checksums": hashes,
             }
         },
         return_document=ReturnDocument.AFTER,
