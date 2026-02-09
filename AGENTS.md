@@ -137,6 +137,11 @@ docker compose up database
 - E2E testing with Cypress
 
 
+## Database and Test Guidelines
+
+- **Avoid database migrations** for new features or functionality unless absolutely necessary. New optional fields (with `None` defaults) are preferred so that existing documents remain valid without migration.
+- **Extend tests, don't modify existing assertions.** When adding new functionality, add new assertions or new test functions rather than changing existing expected values. If existing test values must change, do so deliberately and explain the reason.
+
 ## Environment Variables
 
 Key environment variables (can also be set in config.json):
