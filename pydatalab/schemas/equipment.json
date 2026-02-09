@@ -617,6 +617,25 @@
         }
       }
     },
+    "FileChecksums": {
+      "title": "FileChecksums",
+      "description": "Content checksums for a file.",
+      "type": "object",
+      "properties": {
+        "md5": {
+          "title": "Md5",
+          "type": "string"
+        },
+        "sha256": {
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "md5",
+        "sha256"
+      ]
+    },
     "File": {
       "title": "File",
       "description": "A model for representing a file that has been tracked or uploaded to datalab.",
@@ -760,6 +779,9 @@
         "is_live": {
           "title": "Is Live",
           "type": "boolean"
+        },
+        "checksums": {
+          "$ref": "#/definitions/FileChecksums"
         }
       },
       "required": [
