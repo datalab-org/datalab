@@ -11,7 +11,7 @@ from werkzeug.exceptions import BadRequest, Forbidden, Unauthorized
 from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER
 from pydatalab.models.people import AccountStatus, DisplayName, EmailStr, Person
-from pydatalab.mongo import flask_mongo
+from pydatalab.mongo import USERS_FTS_FIELDS, build_search_pipeline, flask_mongo
 from pydatalab.permissions import active_users_or_get_only
 from pydatalab.routes.v0_1.auth import _generate_and_store_token, _send_magic_link_email
 
@@ -179,32 +179,33 @@ def search_users():
     """Perform free text search on users and return the top results.
     GET parameters:
         query: String with the search terms.
-        nresults: Maximum number of  (default 100)
+        nresults: Maximum number of results (default 100)
 
     Returns:
-        response list of dictionaries containing the matching items in order of
+        response list of dictionaries containing the matching users in order of
         descending match score.
     """
 
     query = request.args.get("query", type=str)
     nresults = request.args.get("nresults", default=100, type=int)
-    match_obj = {"$text": {"$search": query}}
 
-    cursor = flask_mongo.db.users.aggregate(
-        [
-            {"$match": match_obj},
-            {"$sort": {"score": {"$meta": "textScore"}}},
-            {"$limit": nresults},
-            {
-                "$project": {
-                    "_id": 1,
-                    "identities": 1,
-                    "display_name": 1,
-                    "contact_email": 1,
-                }
-            },
-        ]
+    if not query:
+        return jsonify({"status": "error", "message": "No query provided."}), 400
+
+    pipeline = build_search_pipeline(query, USERS_FTS_FIELDS, permissions=None)
+    pipeline.append({"$limit": nresults})
+    pipeline.append(
+        {
+            "$project": {
+                "_id": 1,
+                "identities": 1,
+                "display_name": 1,
+                "contact_email": 1,
+            }
+        }
     )
+
+    cursor = flask_mongo.db.users.aggregate(pipeline)
     return jsonify(
         {"status": "success", "users": list(json.loads(Person(**d).json()) for d in cursor)}
     ), 200

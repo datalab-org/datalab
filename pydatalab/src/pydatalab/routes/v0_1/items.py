@@ -1,6 +1,5 @@
 import datetime
 import json
-import re
 import secrets
 from hashlib import sha512
 
@@ -26,7 +25,7 @@ from pydatalab.models.versions import (
     RestoreVersionRequest,
     VersionAction,
 )
-from pydatalab.mongo import ITEMS_FTS_FIELDS, flask_mongo
+from pydatalab.mongo import ITEMS_FTS_FIELDS, build_search_pipeline, flask_mongo
 from pydatalab.permissions import (
     PUBLIC_USER_ID,
     access_token_or_active_users,
@@ -275,6 +274,67 @@ def groups_lookup() -> dict:
     }
 
 
+def entry_reference_lookup(item_doc: dict) -> dict:
+    """Looks up any field that contains an entry reference and resolves it to the item data."""
+
+    # TODO (v0.8): We hard-code this for now but should extract this from pydantic v2 schemas instead
+    # Each field contains a reference like {"item": {"item_id": ..., "refcode": ..., "type": ...}},
+    # or simply an inlined {"item": {"name": ..., "chemform": ...}} object without reference fields.
+
+    # This function needs match refcode or item ID if present, and pull in the relevant item from another entry,
+    # projecting the most relevant fields, e.g., name, item_id to display to the user.
+    reference_fields = {
+        "samples": ["synthesis_constituents"],
+        "cells": ["positive_electrode", "negative_electrode", "electrolyte"],
+        "starting_materials": ["synthesis_constituents"],
+    }
+
+    item_type = item_doc.get("type", None)
+    if item_type not in reference_fields:
+        return item_doc
+
+    # Otherwise, we need to loop do the relevant lookup
+    dereferenced_fields: dict[str, list] = {}
+    for field in reference_fields[item_type]:
+        preferred_refs: list[dict | None] = []
+        dereferenced_fields[field] = []
+
+        for subitem in item_doc.get(field, []):
+            refcode = subitem.get("item", {}).get("refcode", None)
+            if refcode:
+                preferred_refs.append({"refcode": refcode})
+                continue
+            item_id = subitem.get("item", {}).get("item_id", None)
+            if item_id:
+                preferred_refs.append({"item_id": item_id})
+                continue
+
+            # If no refcode or item_id, this is an inlined item, so no lookup needed
+            preferred_refs.append(None)
+
+        for ind, ref in enumerate(preferred_refs):
+            if ref:
+                deref = flask_mongo.db.items.find_one(
+                    {**ref, **get_default_permissions()},
+                    projection={"name": 1, "item_id": 1, "refcode": 1, "chemform": 1, "type": 1},
+                )
+            # If the source item has been deleted, is inlined or is inaccessible, use the original subitem data
+            if not ref or not deref:
+                dereferenced_fields[field].append(item_doc[field][ind])
+                continue
+
+            dereferenced_fields[field].append(
+                {
+                    **item_doc[field][ind],
+                    "item": deref,
+                }
+            )
+
+    item_doc.update(dereferenced_fields)
+
+    return item_doc
+
+
 def files_lookup() -> dict:
     return {
         "from": "files",
@@ -359,84 +419,22 @@ def search_items():
     nresults = request.args.get("nresults", default=100, type=int)
     types = request.args.get("types", default=None)
     if isinstance(types, str):
-        # should figure out how to parse as list automatically
         types = types.split(",")
 
-    pipeline = []
+    if not query:
+        return jsonify({"status": "error", "message": "No query provided."}), 400
 
-    if isinstance(query, str):
-        query = query.strip("'")
+    permissions = get_default_permissions(user_only=False)
+    pipeline = build_search_pipeline(query, ITEMS_FTS_FIELDS, permissions)
 
-    if isinstance(query, str) and query.startswith("%"):
-        # Old FTS query style, using MongoDB text indexes
-        query = query.lstrip("%")
-        query = query.strip("'")
-        match_obj = {
-            "$text": {"$search": query},
-            **get_default_permissions(user_only=False),
-        }
-        if types is not None:
-            match_obj["type"] = {"$in": types}
-
-        pipeline.append({"$match": match_obj})
-        pipeline.append({"$sort": {"score": {"$meta": "textScore"}}})
-    elif isinstance(query, str) and query.startswith("#"):
-        # Plain regex search, without word boundaries or splitting into parts
-        query = query.lstrip("#")
-        query = query.strip("'")
-
-        match_obj = {
-            "$or": [{field: {"$regex": query, "$options": "i"}} for field in ITEMS_FTS_FIELDS]
-        }
-        match_obj = {"$and": [get_default_permissions(user_only=False), match_obj]}
-        if types is not None:
-            match_obj["$and"].append({"type": {"$in": types}})
-
-        pipeline.append({"$match": match_obj})
-
-    else:
-        # Heuristic + regex search, splitting the query into parts and adding word boundaries
-        # depending on length
-        def _generate_heuristic_regex_search(query: str, part_length: int = 4) -> dict:
-            """Generate a heuristic regex search object for MongoDB that uses
-            word boundaries for short parts of the query, but allows matches anywhere.
-
-            Parameters:
-                query: The full search query string.
-                part_length: The length below which to add a word boundary to the start of the part.
-
-            Returns:
-                A MongoDB query object that can be used in a $match stage.
-
-            """
-            query_parts = [re.escape(part) for part in query.split(" ") if part.strip()]
-
-            # Add word boundary to short parts to avoid excessive matches, i.e., search start of string
-            # for short parts, but allow match anywhere in string for longer parts
-            query_parts = [
-                f"\\b{part}" if len(part) <= part_length else part for part in query_parts
-            ]
-            match_obj = {
-                "$or": [
-                    {"$and": [{field: {"$regex": query, "$options": "i"}} for query in query_parts]}
-                    for field in ITEMS_FTS_FIELDS
-                ]
-            }
-            LOGGER.debug(
-                "Performing regex search for %s with full search %s", query_parts, match_obj
-            )
-
-            return match_obj
-
-        if not query:
-            return jsonify({"status": "error", "message": "No query provided."}), 400
-
-        match_obj = _generate_heuristic_regex_search(query)
-        match_obj = {"$and": [get_default_permissions(user_only=False), match_obj]}
-        if types is not None:
-            match_obj["$and"].append({"type": {"$in": types}})
-
-        pipeline.append({"$match": match_obj})
+    if types is not None:
+        if pipeline and "$match" in pipeline[0]:
+            if "$and" in pipeline[0]["$match"]:
+                pipeline[0]["$match"]["$and"].append({"type": {"$in": types}})
+            else:
+                pipeline[0]["$match"] = {"$and": [pipeline[0]["$match"], {"type": {"$in": types}}]}
+        else:
+            pipeline.insert(0, {"$match": {"type": {"$in": types}}})
 
     pipeline.append({"$limit": nresults})
     pipeline.append(
@@ -450,12 +448,12 @@ def search_items():
                 "refcode": 1,
                 "status": 1,
                 "location": 1,
+                "date": 1,
             }
         }
     )
 
     cursor = flask_mongo.db.items.aggregate(pipeline)
-
     return jsonify({"status": "success", "items": list(cursor)}), 200
 
 
@@ -641,37 +639,6 @@ def _create_sample(
             data_model.item_id,
             str(e),
         )
-
-    # sample_list_entry = {
-    #     "refcode": data_model.refcode,
-    #     "item_id": data_model.item_id,
-    #     "nblocks": 0,
-    #     "nfiles": 0,
-    #     "date": data_model.date,
-    #     "name": data_model.name,
-    #     "creator_ids": data_model.creator_ids,
-    #     # TODO: This workaround for creators & collections is still gross, need to figure this out properly
-    #     "creators": [json.loads(c.json(exclude_unset=True)) for c in data_model.creators]
-    #     if data_model.creators
-    #     else [],
-    #     "collections": [
-    #         json.loads(c.json(exclude_unset=True, exclude_none=True))
-    #         for c in data_model.collections
-    #     ],
-    #     "group_ids": data_model.group_ids,
-    #     "groups": [
-    #         json.loads(c.json(exclude_unset=True, exclude_none=True)) for c in data_model.groups
-    #     ]
-    #     if data_model.groups
-    #     else [],
-    #     "type": data_model.type,
-    #     "status": data_model.status,
-    # }
-
-    # hack to let us use _create_sample() for equipment too. We probably want to make
-    # a more general create_item() to more elegantly handle different returns.
-    # if data_model.type == "equipment":
-    #     sample_list_entry["location"] = data_model.location
 
     data = {
         "status": "success",
@@ -1086,6 +1053,8 @@ def get_item_data(
             404,
         )
 
+    doc = entry_reference_lookup(doc)
+
     # determine the item type and validate according to the appropriate schema
     try:
         ItemModel = ITEM_MODELS[doc["type"]]
@@ -1165,9 +1134,6 @@ def get_item_data(
             "parent_items": sorted(parents),
         }
     )
-
-
-# --- VERSION CONTROL ENDPOINTS ---
 
 
 @ITEMS.route("/items/<refcode>/versions/", methods=["GET"])
@@ -1470,9 +1436,6 @@ def save_version(refcode):
         permission_filter=get_default_permissions(user_only=False),
     )
     return jsonify(response), status_code
-
-
-# --- END VERSION CONTROL ENDPOINTS ---
 
 
 @ITEMS.route("/save-item/", methods=["POST"])
