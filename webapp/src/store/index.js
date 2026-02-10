@@ -66,6 +66,10 @@ export default createStore({
         page: 0,
         rows: 20,
       },
+      tokens: {
+        page: 0,
+        rows: 20,
+      },
     },
     block_errors: {},
     apiConfig: {

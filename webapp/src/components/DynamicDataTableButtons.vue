@@ -153,7 +153,7 @@
           aria-labelledby="dropdownMenuButton"
         >
           <a
-            v-if="!['collections', 'collectionItems', 'users'].includes(dataType)"
+            v-if="!['collections', 'collectionItems', 'users', 'tokens'].includes(dataType)"
             data-testid="add-to-collection-button"
             class="dropdown-item"
             @click="handleAddToCollection"
@@ -169,7 +169,7 @@
             Remove from collection
           </a>
           <a
-            v-if="!['collections', 'collectionItems', 'users'].includes(dataType)"
+            v-if="!['collections', 'collectionItems', 'users', 'tokens'].includes(dataType)"
             data-testid="batch-share-button"
             class="dropdown-item"
             @click="handleBatchShare"
@@ -177,7 +177,7 @@
             Batch share
           </a>
           <a
-            v-if="!['collectionItems', 'users'].includes(dataType)"
+            v-if="!['collectionItems', 'users', 'tokens'].includes(dataType)"
             data-testid="delete-selected-button"
             class="dropdown-item"
             @click="confirmDeletion"
@@ -233,6 +233,14 @@
           >
             Deactivate selected users
           </a>
+          <a
+            v-if="dataType === 'tokens'"
+            data-testid="bulk-invalidate-tokens-button"
+            class="dropdown-item"
+            @click="handleBulkInvalidateTokens"
+          >
+            Invalidate selected tokens
+          </a>
         </div>
       </div>
     </div>
@@ -278,6 +286,7 @@ import {
   saveRole,
   addUserToGroup,
   saveUserManagers,
+  invalidateToken,
 } from "@/server_fetch_utils.js";
 
 export default {
@@ -349,6 +358,7 @@ export default {
     "bulk-activate-users",
     "bulk-deactivate-users",
     "users-data-changed",
+    "bulk-invalidate-tokens",
   ],
   data() {
     return {
@@ -785,6 +795,76 @@ export default {
         this.isSelectedDropdownVisible = false;
         this.$emit("users-data-changed");
         this.$emit("delete-selected-items");
+      }
+    },
+    async handleBulkInvalidateTokens() {
+      const activeTokens = this.itemsSelected.filter((token) => token.active);
+
+      if (activeTokens.length === 0) {
+        await DialogService.alert({
+          title: "No Active Tokens",
+          message: "All selected tokens are already invalidated.",
+          type: "info",
+        });
+        return;
+      }
+
+      const confirmed = await DialogService.confirm({
+        title: "Invalidate Access Tokens",
+        message: `Are you sure you want to invalidate ${activeTokens.length} active token(s)?<br><br>This action cannot be undone and will immediately block access for anyone using these tokens.`,
+        type: "error",
+        confirmButtonText: "Invalidate Tokens",
+        cancelButtonText: "Cancel",
+      });
+
+      if (!confirmed) {
+        return;
+      }
+
+      this.isDeletingItems = true;
+      this.itemCount = activeTokens.length;
+
+      try {
+        const results = await Promise.allSettled(
+          activeTokens.map((token) => invalidateToken(token.refcode)),
+        );
+
+        const successCount = results.filter((r) => r.status === "fulfilled").length;
+        const failureCount = results.filter((r) => r.status === "rejected").length;
+
+        results.forEach((result, index) => {
+          if (result.status === "fulfilled") {
+            const token = activeTokens[index];
+            if (token.allTokens) {
+              const tokenInArray = token.allTokens.find((t) => t._id === token._id);
+              if (tokenInArray) {
+                tokenInArray.active = false;
+                tokenInArray.invalidated_at = new Date().toISOString();
+              }
+            }
+          }
+        });
+
+        let message = `${successCount} token(s) successfully invalidated.`;
+        if (failureCount > 0) {
+          message += ` ${failureCount} token(s) failed to invalidate.`;
+        }
+
+        await DialogService.alert({
+          title: failureCount > 0 ? "Partially Successful" : "Success",
+          message: message,
+          type: failureCount > 0 ? "warning" : "info",
+        });
+
+        this.$emit("bulk-invalidate-tokens");
+      } catch (error) {
+        console.error("Error invalidating tokens:", error);
+        await DialogService.error({
+          title: "Error",
+          message: "Failed to invalidate some tokens.",
+        });
+      } finally {
+        this.isDeletingItems = false;
       }
     },
   },

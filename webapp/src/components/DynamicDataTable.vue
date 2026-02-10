@@ -60,6 +60,7 @@
           @remove-selected-items-from-collection="removeSelectedItemsFromCollection"
           @reset-table="handleResetTable"
           @users-data-changed="$emit('users-data-changed')"
+          @bulk-invalidate-tokens="handleItemsUpdated"
         />
       </template>
       <template #loading>
@@ -93,7 +94,10 @@
         :class="{ 'filter-active': isFilterActive(column.field) }"
         :style="{ minWidth: getColumnMinWidth(column) }"
         :filter-menu-class="
-          column.field === 'type' || column.field === 'status' || column.field === 'date'
+          column.field === 'type' ||
+          column.field === 'status' ||
+          column.field === 'date' ||
+          column.field === 'created_at'
             ? 'no-operator'
             : ''
         "
@@ -111,7 +115,10 @@
         <template v-if="column.body" #body="slotProps">
           <component :is="column.body" v-bind="getComponentProps(column.body, slotProps.data)" />
         </template>
-        <template v-else-if="column.field === 'date'" #body="slotProps">
+        <template
+          v-else-if="column.field === 'date' || column.field === 'created_at'"
+          #body="slotProps"
+        >
           {{ $filters.IsoDatetimeToDate(slotProps.data[column.field]) }}
         </template>
         <template v-else #body="slotProps">
@@ -388,6 +395,107 @@
           </MultiSelect>
         </template>
 
+        <template
+          v-else-if="dataType === 'tokens' && column.filter && column.field === 'active'"
+          #filter
+        >
+          <Select
+            v-model="filters[column.field].constraints[0].value"
+            :options="uniqueTokenStatuses"
+            option-value="active"
+            placeholder="Any"
+            class="p-column-filter"
+            show-clear
+          >
+            <template #option="slotProps">
+              <TokenStatusCell :active="slotProps.option.active" />
+            </template>
+            <template #value="slotProps">
+              <TokenStatusCell
+                v-if="slotProps.value !== null && slotProps.value !== undefined"
+                :active="slotProps.value"
+              />
+              <span v-else>Any</span>
+            </template>
+          </Select>
+        </template>
+
+        <template
+          v-else-if="dataType === 'tokens' && column.filter && column.field === 'item_type'"
+          #filter
+        >
+          <MultiSelect
+            v-model="filters[column.field].constraints[0].value"
+            :options="uniqueItemTypes"
+            option-label="item_type"
+            placeholder="Select item types"
+            class="d-flex w-full"
+            :filter="true"
+            @click.stop
+          >
+          </MultiSelect>
+        </template>
+
+        <template v-else-if="column.filter && column.field === 'created_at'" #filter>
+          <div class="date-filter-container">
+            <Select
+              v-model="dateFilterMode"
+              :options="dateFilterOptions"
+              option-label="label"
+              option-value="value"
+              class="mb-2 w-full"
+              @change="handleDateFilterModeChange('created_at')"
+            />
+            <DatePicker
+              v-model="filters['created_at'].constraints[0].value"
+              :selection-mode="dateFilterMode === 'range' ? 'range' : 'single'"
+              :manual-input="false"
+              date-format="yy-mm-dd"
+              placeholder="Select date"
+              class="w-full"
+              show-button-bar
+              @date-select="onDateRangeSelect"
+            />
+          </div>
+        </template>
+
+        <template
+          v-else-if="dataType === 'tokens' && column.filter && column.field === 'created_by_info'"
+          #filter
+        >
+          <MultiSelect
+            v-model="filters[column.field].constraints[0].value"
+            :options="uniqueTokenCreators"
+            option-label="display_name"
+            placeholder="Any"
+            class="d-flex w-full"
+            :filter="true"
+            @click.stop
+          >
+            <template #option="slotProps">
+              <div class="d-flex align-items-center">
+                <UserBubble :creator="slotProps.option" :size="24" />
+                <span class="ml-2">{{ slotProps.option.display_name }}</span>
+              </div>
+            </template>
+            <template #value="slotProps">
+              <div class="flex flex-wrap gap-2 items-center">
+                <template v-if="slotProps.value && slotProps.value.length">
+                  <span
+                    v-for="(option, index) in slotProps.value"
+                    :key="index"
+                    class="inline-flex items-center mr-2"
+                  >
+                    <UserBubble :creator="option" :size="20" />
+                    <span class="ml-1">{{ option.display_name }}</span>
+                  </span>
+                </template>
+                <span v-else class="text-gray-400">Any</span>
+              </div>
+            </template>
+          </MultiSelect>
+        </template>
+
         <template v-else-if="column.filter" #filter="{ filterModel }">
           <InputText
             v-model="filterModel.value"
@@ -456,6 +564,10 @@ import UserManagersCell from "@/components/UserManagersCell.vue";
 import UserActionsCell from "@/components/UserActionsCell.vue";
 import RoleBadge from "@/components/RoleBadge.vue";
 
+import TokenStatusCell from "@/components/TokenStatusCell.vue";
+import TokenActionsCell from "@/components/TokenActionsCell.vue";
+import TokenCreatedByCell from "@/components/TokenCreatedByCell.vue";
+
 import { FilterMatchMode, FilterOperator, FilterService } from "@primevue/core/api";
 import DataTable from "primevue/datatable";
 import MultiSelect from "primevue/multiselect";
@@ -498,6 +610,9 @@ export default {
     UserManagersCell,
     UserActionsCell,
     RoleBadge,
+    TokenStatusCell,
+    TokenActionsCell,
+    TokenCreatedByCell,
   },
   props: {
     columns: {
@@ -602,6 +717,26 @@ export default {
         groups: {
           operator: FilterOperator.AND,
           constraints: [{ value: null, matchMode: "exactGroupMatch" }],
+        },
+        active: {
+          operator: FilterOperator.OR,
+          constraints: [{ value: null, matchMode: "exactActiveMatch" }],
+        },
+        refcode: {
+          operator: FilterOperator.AND,
+          constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
+        },
+        item_type: {
+          operator: FilterOperator.AND,
+          constraints: [{ value: null, matchMode: "exactItemTypeMatch" }],
+        },
+        created_at: {
+          operator: FilterOperator.AND,
+          constraints: [{ value: null, matchMode: "dateRange" }],
+        },
+        created_by_info: {
+          operator: FilterOperator.AND,
+          constraints: [{ value: null, matchMode: "exactCreatedByMatch" }],
         },
       },
       filteredData: [],
@@ -709,6 +844,30 @@ export default {
         }
       });
       return Array.from(uniqueGroupsMap.values());
+    },
+    uniqueTokenStatuses() {
+      if (this.dataType !== "tokens" || !this.data) return [];
+      return [
+        { active: true, label: "Active" },
+        { active: false, label: "Invalidated" },
+      ];
+    },
+    uniqueItemTypes() {
+      if (this.dataType !== "tokens" || !this.data) return [];
+      return Array.from(new Set(this.data.map((token) => token.item_type).filter(Boolean))).map(
+        (type) => ({ item_type: type }),
+      );
+    },
+    uniqueTokenCreators() {
+      if (this.dataType !== "tokens" || !this.data) return [];
+      return Array.from(
+        new Map(
+          this.data
+            .map((token) => token.created_by_info)
+            .filter(Boolean)
+            .map((creator) => [creator.immutable_id, creator]),
+        ).values(),
+      );
     },
     knownTypes() {
       // Grab the set of types stored under the item type key
@@ -950,6 +1109,34 @@ export default {
 
       return value.some((group) => String(group.immutable_id) === String(filterValue.immutable_id));
     });
+    FilterService.register("exactActiveMatch", (value, filterValue) => {
+      if (filterValue === null || filterValue === undefined) return true;
+      return value === filterValue;
+    });
+    FilterService.register("exactItemTypeMatch", (value, filterValue) => {
+      if (!filterValue || (Array.isArray(filterValue) && filterValue.length === 0)) {
+        return true;
+      }
+
+      if (Array.isArray(filterValue)) {
+        return filterValue.some((f) => f.item_type === value);
+      }
+
+      return filterValue.item_type === value;
+    });
+    FilterService.register("exactCreatedByMatch", (value, filterValue) => {
+      if (!filterValue || (Array.isArray(filterValue) && filterValue.length === 0)) {
+        return true;
+      }
+
+      if (!value) return false;
+
+      if (Array.isArray(filterValue)) {
+        return filterValue.some((f) => f.immutable_id === value.immutable_id);
+      }
+
+      return filterValue.immutable_id === value.immutable_id;
+    });
   },
   methods: {
     getColumnMinWidth(column) {
@@ -1106,6 +1293,16 @@ export default {
         UserActionsCell: {
           user: data,
           allUsers: data.allUsers || [],
+        },
+        TokenStatusCell: {
+          active: "active",
+        },
+        TokenActionsCell: {
+          token: data,
+          allTokens: data.allTokens || [],
+        },
+        TokenCreatedByCell: {
+          creator: "created_by_info",
         },
       };
 
