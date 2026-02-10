@@ -1,41 +1,14 @@
 <template>
-  <table class="table table-hover table-sm" data-testid="user-table">
-    <thead>
-      <tr>
-        <th scope="col">Group ID</th>
-        <th scope="col">Name</th>
-        <th scope="col">Description</th>
-        <th scope="col"># of members</th>
-        <th scope="col">Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr v-for="group in groups" :key="group.group_id">
-        <td align="left">
-          <span class="badge badge-light table-group-id">{{ group.group_id }}</span>
-        </td>
-        <td align="left">{{ group.display_name }}</td>
-        <td align="left">{{ group.description }}</td>
-        <td align="left">{{ group.members.length }}</td>
-        <td align="left">
-          <button
-            class="btn btn-outline-success btn-sm text-uppercase text-monospace mr-2"
-            title="Edit group"
-            @click="showEditModal(group)"
-          >
-            Edit
-          </button>
-          <button
-            class="btn btn-outline-danger btn-sm text-uppercase text-monospace"
-            title="Delete group"
-            @click="confirmDeleteGroup(group)"
-          >
-            Delete
-          </button>
-        </td>
-      </tr>
-    </tbody>
-  </table>
+  <DynamicDataTable
+    :columns="groupColumns"
+    :data="groups"
+    data-type="groups"
+    :global-filter-fields="['group_id', 'display_name', 'description']"
+    :show-buttons="true"
+    @groups-data-changed="getGroups"
+    @edit-group="showEditModal"
+    @group-deleted="onGroupDeleted"
+  />
   <EditGroupModal
     :model-value="showEditGroupModal"
     :group="selectedGroup"
@@ -45,81 +18,97 @@
 </template>
 
 <script>
-import { getAdminGroupsList, deleteGroup } from "@/server_fetch_utils.js";
+import DynamicDataTable from "@/components/DynamicDataTable";
 import EditGroupModal from "./EditGroupModal.vue";
+import { getAdminGroupsList } from "@/server_fetch_utils.js";
 
 export default {
-  components: {
-    EditGroupModal,
-  },
+  name: "GroupTable",
+  components: { DynamicDataTable, EditGroupModal },
   emits: ["group-updated"],
   data() {
     return {
-      groups: null,
-      original_groups: null,
+      groupsList: null,
       selectedGroup: null,
       showEditGroupModal: false,
+      groupColumns: [
+        {
+          field: "group_id",
+          header: "Group ID",
+          body: "GroupIdCell",
+          bodyConfig: {
+            groupId: "group_id",
+          },
+          label: "Group ID",
+          filter: true,
+        },
+        {
+          field: "display_name",
+          header: "Name",
+          label: "Name",
+          filter: true,
+        },
+        {
+          field: "description",
+          header: "Description",
+          label: "Description",
+          filter: true,
+        },
+        {
+          field: "members",
+          header: "# of members",
+          body: "GroupMembersCell",
+          bodyConfig: {
+            members: "members",
+          },
+          label: "Members",
+        },
+        {
+          field: "actions",
+          header: "Actions",
+          body: "GroupActionsCell",
+          bodyConfig: {
+            group: "group",
+            allGroups: "allGroups",
+          },
+        },
+      ],
     };
+  },
+  computed: {
+    groups() {
+      if (!this.groupsList) {
+        return null;
+      }
+      return this.groupsList.map((group) => ({
+        ...group,
+        group: group,
+        allGroups: this.groupsList,
+      }));
+    },
   },
   created() {
     this.getGroups();
   },
   methods: {
     async getGroups() {
-      let data = await getAdminGroupsList();
+      const data = await getAdminGroupsList();
       if (data != null) {
-        this.groups = JSON.parse(JSON.stringify(data));
-        this.original_groups = JSON.parse(JSON.stringify(data));
-      }
-    },
-
-    async confirmDeleteGroup(group) {
-      if (
-        window.confirm(
-          `Are you sure you want to delete the group "${group.display_name}"? This action cannot be undone.`,
-        )
-      ) {
-        try {
-          const groupId = group.immutable_id || group._id;
-          await deleteGroup({ immutable_id: groupId });
-          await this.getGroups();
-          this.$emit("group-updated");
-        } catch (error) {
-          console.error("Error deleting group:", error);
-          alert("Error deleting group: " + error);
-        }
+        this.groupsList = data;
       }
     },
     showEditModal(group) {
       this.selectedGroup = group;
       this.showEditGroupModal = true;
     },
-
     onGroupUpdated() {
       this.showEditGroupModal = false;
       this.getGroups();
       this.$emit("group-updated");
     },
+    onGroupDeleted() {
+      this.$emit("group-updated");
+    },
   },
 };
 </script>
-
-<style scoped>
-td {
-  vertical-align: middle;
-}
-
-.table-group-id {
-  border: 2px solid #ccc;
-}
-
-select {
-  border: 1px solid #ccc;
-  border-radius: 0.25rem;
-}
-
-.badge {
-  margin-left: 1em;
-  font-family: "Andalé Mono", monospace;
-}
-</style>
