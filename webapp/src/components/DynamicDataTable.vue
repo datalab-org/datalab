@@ -61,6 +61,7 @@
           @reset-table="handleResetTable"
           @users-data-changed="$emit('users-data-changed')"
           @bulk-invalidate-tokens="handleItemsUpdated"
+          @bulk-delete-groups="$emit('groups-data-changed')"
         />
       </template>
       <template #loading>
@@ -113,7 +114,12 @@
         </template>
 
         <template v-if="column.body" #body="slotProps">
-          <component :is="column.body" v-bind="getComponentProps(column.body, slotProps.data)" />
+          <component
+            :is="column.body"
+            v-bind="getComponentProps(column.body, slotProps.data)"
+            @edit-group="$emit('edit-group', $event)"
+            @group-deleted="$emit('group-deleted')"
+          />
         </template>
         <template
           v-else-if="column.field === 'date' || column.field === 'created_at'"
@@ -568,6 +574,10 @@ import TokenStatusCell from "@/components/TokenStatusCell.vue";
 import TokenActionsCell from "@/components/TokenActionsCell.vue";
 import TokenCreatedByCell from "@/components/TokenCreatedByCell.vue";
 
+import GroupIdCell from "@/components/GroupIdCell.vue";
+import GroupMembersCell from "@/components/GroupMembersCell.vue";
+import GroupActionsCell from "@/components/GroupActionsCell.vue";
+
 import { FilterMatchMode, FilterOperator, FilterService } from "@primevue/core/api";
 import DataTable from "primevue/datatable";
 import MultiSelect from "primevue/multiselect";
@@ -613,6 +623,9 @@ export default {
     TokenStatusCell,
     TokenActionsCell,
     TokenCreatedByCell,
+    GroupIdCell,
+    GroupMembersCell,
+    GroupActionsCell,
   },
   props: {
     columns: {
@@ -647,7 +660,13 @@ export default {
       default: null,
     },
   },
-  emits: ["remove-selected-items-from-collection", "users-data-changed"],
+  emits: [
+    "remove-selected-items-from-collection",
+    "users-data-changed",
+    "edit-group",
+    "group-deleted",
+    "groups-data-changed",
+  ],
   data() {
     return {
       createItemModalIsOpen: false,
@@ -737,6 +756,14 @@ export default {
         created_by_info: {
           operator: FilterOperator.AND,
           constraints: [{ value: null, matchMode: "exactCreatedByMatch" }],
+        },
+        group_id: {
+          operator: FilterOperator.AND,
+          constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
+        },
+        description: {
+          operator: FilterOperator.AND,
+          constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
         },
       },
       filteredData: [],
@@ -1303,6 +1330,16 @@ export default {
         },
         TokenCreatedByCell: {
           creator: "created_by_info",
+        },
+        GroupIdCell: {
+          groupId: "group_id",
+        },
+        GroupMembersCell: {
+          members: "members",
+        },
+        GroupActionsCell: {
+          group: data,
+          allGroups: data.allGroups || [],
         },
       };
 

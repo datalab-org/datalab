@@ -153,7 +153,9 @@
           aria-labelledby="dropdownMenuButton"
         >
           <a
-            v-if="!['collections', 'collectionItems', 'users', 'tokens'].includes(dataType)"
+            v-if="
+              !['collections', 'collectionItems', 'users', 'tokens', 'groups'].includes(dataType)
+            "
             data-testid="add-to-collection-button"
             class="dropdown-item"
             @click="handleAddToCollection"
@@ -169,7 +171,9 @@
             Remove from collection
           </a>
           <a
-            v-if="!['collections', 'collectionItems', 'users', 'tokens'].includes(dataType)"
+            v-if="
+              !['collections', 'collectionItems', 'users', 'tokens', 'groups'].includes(dataType)
+            "
             data-testid="batch-share-button"
             class="dropdown-item"
             @click="handleBatchShare"
@@ -177,7 +181,7 @@
             Batch share
           </a>
           <a
-            v-if="!['collectionItems', 'users', 'tokens'].includes(dataType)"
+            v-if="!['collectionItems', 'users', 'tokens', 'groups'].includes(dataType)"
             data-testid="delete-selected-button"
             class="dropdown-item"
             @click="confirmDeletion"
@@ -241,6 +245,14 @@
           >
             Invalidate selected tokens
           </a>
+          <a
+            v-if="dataType === 'groups'"
+            data-testid="bulk-delete-groups-button"
+            class="dropdown-item"
+            @click="handleBulkDeleteGroups"
+          >
+            Delete selected groups
+          </a>
         </div>
       </div>
     </div>
@@ -287,6 +299,7 @@ import {
   addUserToGroup,
   saveUserManagers,
   invalidateToken,
+  deleteGroup,
 } from "@/server_fetch_utils.js";
 
 export default {
@@ -359,6 +372,7 @@ export default {
     "bulk-deactivate-users",
     "users-data-changed",
     "bulk-invalidate-tokens",
+    "bulk-delete-groups",
   ],
   data() {
     return {
@@ -862,6 +876,52 @@ export default {
         await DialogService.error({
           title: "Error",
           message: "Failed to invalidate some tokens.",
+        });
+      } finally {
+        this.isDeletingItems = false;
+      }
+    },
+    async handleBulkDeleteGroups() {
+      const confirmed = await DialogService.confirm({
+        title: "Delete Groups",
+        message: `Are you sure you want to delete ${this.itemsSelected.length} group(s)?<br><br>This action cannot be undone.`,
+        type: "error",
+        confirmButtonText: "Delete Groups",
+        cancelButtonText: "Cancel",
+      });
+
+      if (!confirmed) {
+        return;
+      }
+
+      this.isDeletingItems = true;
+      this.itemCount = this.itemsSelected.length;
+
+      try {
+        const results = await Promise.allSettled(
+          this.itemsSelected.map((group) => deleteGroup(group.immutable_id || group._id)),
+        );
+
+        const successCount = results.filter((r) => r.status === "fulfilled").length;
+        const failureCount = results.filter((r) => r.status === "rejected").length;
+
+        let message = `${successCount} group(s) successfully deleted.`;
+        if (failureCount > 0) {
+          message += ` ${failureCount} group(s) failed to delete.`;
+        }
+
+        await DialogService.alert({
+          title: failureCount > 0 ? "Partially Successful" : "Success",
+          message: message,
+          type: failureCount > 0 ? "warning" : "info",
+        });
+
+        this.$emit("bulk-delete-groups");
+      } catch (error) {
+        console.error("Error deleting groups:", error);
+        await DialogService.error({
+          title: "Error",
+          message: "Failed to delete some groups.",
         });
       } finally {
         this.isDeletingItems = false;

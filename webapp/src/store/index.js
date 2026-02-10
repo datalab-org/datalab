@@ -70,6 +70,10 @@ export default createStore({
         page: 0,
         rows: 20,
       },
+      groups: {
+        page: 0,
+        rows: 10,
+      },
     },
     block_errors: {},
     apiConfig: {
