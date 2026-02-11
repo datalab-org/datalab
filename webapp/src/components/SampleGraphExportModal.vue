@@ -5,6 +5,21 @@
 
       <template #body>
         <div class="mb-4">
+          <div class="form-check">
+            <input
+              id="export-only-this"
+              v-model="exportOnlyThisItem"
+              type="checkbox"
+              class="form-check-input"
+            />
+            <label class="form-check-label" for="export-only-this">
+              <strong>Export only this item (without related items)</strong>
+            </label>
+          </div>
+          <hr />
+        </div>
+
+        <div v-if="!exportOnlyThisItem" class="mb-4">
           <h6>Relationship Graph</h6>
           <div class="form-group">
             <label for="graph-depth"> Graph Depth: {{ graphDepth }} </label>
@@ -40,14 +55,15 @@
           </div>
           <hr />
         </div>
-        <div v-if="isLoading" class="text-center">
+
+        <div v-if="!exportOnlyThisItem && isLoading" class="text-center">
           <i class="fa fa-spinner fa-spin fa-2x"></i>
           <p class="mt-2">Loading related items...</p>
         </div>
-        <div v-else-if="relatedSamples.length === 0">
+        <div v-else-if="!exportOnlyThisItem && relatedSamples.length === 0">
           <p>No related items found for this item.</p>
         </div>
-        <div v-else>
+        <div v-else-if="!exportOnlyThisItem">
           <p>Select the items you want to include in the export:</p>
           <div class="form-check">
             <input
@@ -120,13 +136,16 @@
           class="btn btn-primary"
           :disabled="
             isExporting ||
-            selectedSampleIds.length === 0 ||
-            (createCollection && (!collectionId || !collectionTitle))
+            (!exportOnlyThisItem && selectedSampleIds.length === 0) ||
+            (!exportOnlyThisItem && createCollection && (!collectionId || !collectionTitle))
           "
           @click="handleExport"
         >
           <span v-if="!isExporting">
-            <i class="fa fa-download"></i> Export Selected ({{ selectedSampleIds.length }})
+            <i class="fa fa-download"></i>
+            {{
+              exportOnlyThisItem ? "Export Item" : `Export Selected (${selectedSampleIds.length})`
+            }}
           </span>
           <span v-else> <i class="fa fa-spinner fa-spin"></i> Exporting... </span>
         </button>
@@ -176,6 +195,7 @@ export default {
       graphDepth: 1,
       graphData: { nodes: [], edges: [] },
       isGraphLoading: false,
+      exportOnlyThisItem: false,
     };
   },
   watch: {
@@ -185,6 +205,7 @@ export default {
       } else {
         this.relatedSamples = [];
         this.selectedSampleIds = [];
+        this.exportOnlyThisItem = false;
       }
     },
     graphDepth() {
@@ -253,6 +274,19 @@ export default {
       try {
         this.isExporting = true;
 
+        if (this.exportOnlyThisItem) {
+          const response = await startItemExport(this.itemId);
+          const taskId = response.task_id;
+          DialogService.alert({
+            title: "Export in Progress",
+            message:
+              "Your item is being exported. This may take a few moments. You'll be notified when it's ready to download.",
+            type: "info",
+          });
+          this.pollExportStatus(taskId);
+          return;
+        }
+
         if (this.createCollection) {
           if (!this.collectionId.trim() || !this.collectionTitle.trim()) {
             DialogService.error({
@@ -294,6 +328,13 @@ export default {
         });
         const taskId = response.task_id;
 
+        DialogService.alert({
+          title: "Export in Progress",
+          message:
+            "Your items are being exported. This may take a few moments. You'll be notified when it's ready to download.",
+          type: "info",
+        });
+
         this.pollExportStatus(taskId);
       } catch (error) {
         console.error("Export failed:", error);
@@ -315,11 +356,13 @@ export default {
             this.downloadExport(taskId);
             this.isExporting = false;
             this.isModalOpen = false;
+            DialogService.closeCurrentDialog(true);
+
             DialogService.alert({
               title: "Export Complete",
               message:
                 "Your items have been exported successfully and the download should begin shortly.",
-              type: "info",
+              type: "success",
             });
           } else if (status.status === "error") {
             clearInterval(this.pollInterval);

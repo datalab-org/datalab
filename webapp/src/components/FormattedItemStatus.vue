@@ -45,7 +45,7 @@ export default {
         other: "secondary",
       };
 
-      return `${statusStyleMap[this.status?.toLowerCase()] || ""}`;
+      return `${statusStyleMap[this.status?.toLowerCase()] || "secondary"}`;
     },
   },
 };

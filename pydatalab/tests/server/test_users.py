@@ -126,14 +126,9 @@ def test_user_update(client, unauthenticated_client, database, user_id, admin_us
 
     # Test that differing user auth can/cannot search for users
     endpoint = "/search-users/"
-    resp = client.get(endpoint + "?query='Test Person'")
+    resp = client.get(endpoint + "?query='Test'")
     assert resp.status_code == 200
-    assert len(resp.json["users"]) == 2
-
-    endpoint = "/search/users/"
-    resp = client.get(endpoint + "?query='Test Person'")
-    assert resp.status_code == 200
-    assert len(resp.json["users"]) == 2
+    assert len(resp.json["users"]) == 5
 
     # Test that differing user auth can/cannot search for users
     resp = unauthenticated_client.get(endpoint + "?query='Test Person'")

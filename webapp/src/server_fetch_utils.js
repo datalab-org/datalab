@@ -11,6 +11,9 @@ import {
 
 import { DialogService } from "@/services/DialogService";
 
+let currentUserCache = null;
+let currentUserPromise = null;
+
 /**
  * Waits for user info to finish loading and checks if user is authenticated.
  *
@@ -61,6 +64,13 @@ export function construct_headers(additional_headers = null) {
 
 // eslint-disable-next-line no-unused-vars
 function fetch_get(url) {
+  // If admin super-user mode is enabled, append sudo=1
+  if (store.getters.isAdminSuperUserModeActive) {
+    const urlObj = url instanceof URL ? url : new URL(url, window.location.origin);
+    urlObj.searchParams.set("sudo", "1");
+    url = urlObj.toString();
+  }
+
   const requestOptions = {
     method: "GET",
     headers: construct_headers(),
@@ -123,6 +133,13 @@ function fetch_delete(url, body) {
  * @throws {Error} If file exceeds size limit or fetch fails
  */
 export async function fetch_file(url, maxSizeBytes = 100 * 1024 * 1024) {
+  // If admin super-user mode is enabled, append sudo=1
+  if (store.getters.isAdminSuperUserModeActive) {
+    const urlObj = url instanceof URL ? url : new URL(url, window.location.origin);
+    urlObj.searchParams.set("sudo", "1");
+    url = urlObj.toString();
+  }
+
   const requestOptions = {
     method: "GET",
     headers: construct_headers(),
@@ -265,7 +282,11 @@ export async function getStats() {
       return response_json.counts;
     })
     .catch((error) => {
-      throw error;
+      if (error === "UNAUTHORIZED") {
+        return null;
+      } else {
+        throw error;
+      }
     });
 }
 
@@ -490,20 +511,58 @@ export function searchGroups(query, nresults = 100) {
 }
 
 export async function getUserInfo() {
+  return await getCurrentUser();
+}
+
+export async function isUserAuthenticated() {
+  const result = await getCurrentUser();
+  return result !== null && result.immutable_id !== undefined;
+}
+
+export async function getCurrentUser() {
+  if (currentUserCache !== null) {
+    store.commit("setDisplayName", currentUserCache.display_name);
+    store.commit("setCurrentUserID", currentUserCache.immutable_id);
+    store.commit("setCurrentUserRole", currentUserCache.role);
+    store.commit("setIsUnverified", currentUserCache.account_status === "unverified");
+    return currentUserCache;
+  }
+
+  if (currentUserPromise !== null) {
+    return currentUserPromise;
+  }
+
   store.commit("setCurrentUserInfoLoading", true);
-  return fetch_get(`${API_URL}/get-current-user/`)
-    .then((response_json) => {
-      store.commit("setDisplayName", response_json.display_name);
-      store.commit("setCurrentUserID", response_json.immutable_id);
-      store.commit("setIsUnverified", response_json.account_status == "unverified" ? true : false);
-      store.commit("setCurrentUserInfoLoading", false);
-      return response_json;
+
+  currentUserPromise = fetch_get(`${API_URL}/get-current-user/`)
+    .then((response) => {
+      if (response) {
+        currentUserCache = response;
+        store.commit("setDisplayName", response.display_name);
+        store.commit("setCurrentUserID", response.immutable_id);
+        store.commit("setCurrentUserRole", response.role);
+        store.commit("setIsUnverified", response.account_status === "unverified");
+        store.commit("setCurrentUserInfoLoading", false);
+        store.state.currentUserInfoLoaded = true;
+        currentUserPromise = null;
+        return response;
+      }
     })
     .catch(() => {
-      // If the user is not logged in, we return null.
       store.commit("setCurrentUserInfoLoading", false);
+      store.state.currentUserInfoLoaded = true;
+      currentUserPromise = null;
+      store.commit("setAdminSuperUserMode", false);
       return null;
     });
+
+  return currentUserPromise;
+}
+
+export function invalidateCurrentUserCache() {
+  currentUserCache = null;
+  currentUserPromise = null;
+  store.commit("setAdminSuperUserMode", false);
 }
 
 export async function requestMagicLink(email_address) {
@@ -792,6 +851,22 @@ export function updateItemPermissions(refcode, creators = null, groups = null) {
         throw new Error(response_json.message);
       }
       return response_json;
+    },
+  );
+}
+
+export function appendItemPermissions(refcode, creators = null, groups = null) {
+  console.log("appendItemPermissions called with", refcode, creators, groups);
+
+  const payload = { creators: creators, groups: groups };
+
+  return fetch_put(`${API_URL}/items/${refcode}/permissions`, payload).then(
+    function (response_json) {
+      if (response_json.status === "success") {
+        return response_json;
+      } else {
+        throw new Error(response_json.message);
+      }
     },
   );
 }

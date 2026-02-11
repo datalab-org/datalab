@@ -26,7 +26,7 @@ export default {
         },
         { field: "title", header: "Title", label: "Title" },
         {
-          field: "creators",
+          field: "creatorsAndGroups",
           header: "Creators",
           body: "Creators",
           filter: true,
@@ -41,9 +41,9 @@ export default {
         return null;
       }
 
-      return this.$store.state.collection_list.map((sample) => ({
-        ...sample,
-        creatorsList: sample.creators.map((creator) => creator.display_name).join(", "),
+      return this.$store.state.collection_list.map((collection) => ({
+        ...collection,
+        creatorsAndGroups: [...(collection.creators || []).map((c) => ({ ...c, type: "creator" }))],
       }));
     },
   },

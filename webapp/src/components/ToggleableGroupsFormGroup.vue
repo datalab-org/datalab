@@ -11,14 +11,8 @@
     <div>
       <div v-if="!isEditingGroups">
         <div v-if="value.length === 0" class="text-muted small">Not shared with any groups</div>
-        <div v-else class="d-flex flex-wrap">
-          <span
-            v-for="group in value"
-            :key="group.immutable_id"
-            class="badge badge-secondary mr-1 mb-1"
-          >
-            {{ group.display_name }}
-          </span>
+        <div v-else class="d-flex flex-wrap gap-2">
+          <FormattedGroupName v-for="group in value" :key="group.immutable_id" :group="group" />
         </div>
       </div>
       <OnClickOutside
@@ -35,6 +29,7 @@
 <script>
 import { DialogService } from "@/services/DialogService";
 import GroupSelect from "@/components/GroupSelect";
+import FormattedGroupName from "@/components/FormattedGroupName.vue";
 import { OnClickOutside } from "@vueuse/components";
 import { updateItemPermissions } from "@/server_fetch_utils.js";
 import { toRaw } from "vue";
@@ -42,6 +37,7 @@ import { toRaw } from "vue";
 export default {
   components: {
     GroupSelect,
+    FormattedGroupName,
     OnClickOutside,
   },
   props: {
@@ -77,10 +73,12 @@ export default {
         }
 
         try {
-          let answer = confirm(
-            "Are you sure you want to update the group permissions of this item?",
-          );
-          if (answer) {
+          const confirmed = await DialogService.confirm({
+            title: "Update Permissions",
+            message: "Are you sure you want to update the group permissions of this item?",
+            type: "warning",
+          });
+          if (confirmed) {
             await updateItemPermissions(this.refcode, null, this.shadowValue);
             this.$emit("update:modelValue", [...this.shadowValue]);
           } else {
@@ -108,3 +106,9 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+#edit-icon {
+  color: grey;
+}
+</style>

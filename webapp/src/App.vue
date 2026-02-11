@@ -12,6 +12,11 @@ export default {
     DialogContainer,
   },
   async created() {
+    // Wait for the router to resolve the initial route before loading schemas,
+    // so that redirect-only routes (e.g., /files/*) can navigate away
+    // without triggering unnecessary API requests.
+    await this.$router.isReady();
+    if (this.$route.name === "files-redirect") return;
     await loadItemSchemas();
     await getApiConfig();
   },

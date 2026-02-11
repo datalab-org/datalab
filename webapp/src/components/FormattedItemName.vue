@@ -11,7 +11,8 @@
       {{ item_id }}
     </span>
     {{ shortenedName }}
-    <span v-if="chemform && chemform != ' '"> [ <ChemicalFormula :formula="chemform" /> ] </span>
+    <span v-if="chemform && chemform != ''"> [ <ChemicalFormula :formula="chemform" /> ] </span>
+    <span v-if="location && location != ''"> ({{ location }}) </span>
   </span>
   <span v-else>
     <font-awesome-icon v-if="selecting" :icon="['far', 'plus-square']" />
@@ -39,6 +40,10 @@ export default {
       default: "",
     },
     chemform: {
+      type: String,
+      default: "",
+    },
+    location: {
       type: String,
       default: "",
     },

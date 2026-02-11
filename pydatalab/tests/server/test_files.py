@@ -212,3 +212,43 @@ def test_file_permissions(
     # Now check they still have access to the file
     response = another_client.get(f"/files/{file_id}/{filename}")
     assert response.status_code == 200
+
+
+def test_file_download_sudo_mode(
+    client,
+    admin_client,
+    default_filepath,
+):
+    """Test that admins need ?sudo=1 to access files owned by other users."""
+    # Create a sample as normal user and upload a file
+    response = client.post("/new-sample/", json={"type": "samples", "item_id": "user-file-sample"})
+    assert response.status_code == 201
+    item_id = response.json["sample_list_entry"]["item_id"]
+
+    filename = "user_owned_file.txt"
+    with open(default_filepath, "rb") as f:
+        response = client.post(
+            "/upload-file/",
+            buffered=True,
+            content_type="multipart/form-data",
+            data={
+                "item_id": item_id,
+                "file": [(f, filename)],
+                "type": "application/octet-stream",
+                "replace_file": "null",
+                "relativePath": "null",
+            },
+        )
+
+    assert response.status_code == 201
+    file_id = response.json["file_id"]
+
+    # Admin without ?sudo=1 cannot access the file
+    response = admin_client.get(f"/files/{file_id}/{filename}")
+    assert response.status_code == 401
+
+    # Admin with ?sudo=1 can access the file
+    response = admin_client.get(f"/files/{file_id}/{filename}?sudo=1")
+    assert response.status_code == 200
+    assert len(response.data) == 2465718
+    response.close()

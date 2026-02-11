@@ -5,10 +5,10 @@ def test_assign_manager_success(admin_client, real_mongo_client):
     db = real_mongo_client.get_database()
 
     user_1 = db.users.insert_one({"display_name": "User 1"})
-    user_1_id = str(user_1.inserted_id)
+    user_1_id = user_1.inserted_id
 
     user_2 = db.users.insert_one({"display_name": "User 2"})
-    user_2_id = str(user_2.inserted_id)
+    user_2_id = user_2.inserted_id
 
     db.roles.insert_one({"_id": user_1.inserted_id, "role": "manager"})
 
@@ -27,10 +27,10 @@ def test_assign_manager_requires_admin(client, real_mongo_client):
     db = real_mongo_client.get_database()
 
     user_1 = db.users.insert_one({"display_name": "User 1"})
-    user_1_id = str(user_1.inserted_id)
+    user_1_id = user_1.inserted_id
 
     user_2 = db.users.insert_one({"display_name": "User 2"})
-    user_2_id = str(user_2.inserted_id)
+    user_2_id = user_2.inserted_id
 
     response = client.patch(f"/users/{user_2_id}/managers", json={"managers": [user_1_id]})
 
@@ -43,10 +43,10 @@ def test_assign_manager_prevents_direct_cycle(admin_client, real_mongo_client):
     db = real_mongo_client.get_database()
 
     user_1 = db.users.insert_one({"display_name": "User 1"})
-    user_1_id = str(user_1.inserted_id)
+    user_1_id = user_1.inserted_id
 
     user_2 = db.users.insert_one({"display_name": "User 2"})
-    user_2_id = str(user_2.inserted_id)
+    user_2_id = user_2.inserted_id
 
     db.roles.insert_one({"_id": user_1.inserted_id, "role": "manager"})
     db.roles.insert_one({"_id": user_2.inserted_id, "role": "manager"})
@@ -61,6 +61,102 @@ def test_assign_manager_prevents_direct_cycle(admin_client, real_mongo_client):
 
     db.users.delete_many({"_id": {"$in": [user_1.inserted_id, user_2.inserted_id]}})
     db.roles.delete_many({"_id": {"$in": [user_1.inserted_id, user_2.inserted_id]}})
+
+
+def test_manager_double_cycle(admin_client, real_mongo_client):
+    db = real_mongo_client.get_database()
+
+    user_1 = db.users.insert_one({"display_name": "User 1"})
+    user_1_id = user_1.inserted_id
+
+    user_2 = db.users.insert_one({"display_name": "User 2"})
+    user_2_id = user_2.inserted_id
+
+    user_3 = db.users.insert_one({"display_name": "User 3"})
+    user_3_id = user_3.inserted_id
+
+    user_4 = db.users.insert_one({"display_name": "User 4"})
+    user_4_id = user_4.inserted_id
+
+    # Check that the following hierarchy is forbidden:
+    # I. 1 managers 3
+    # II. 2 and 3 manage 4
+    # III. 4 managers 1
+    # i.e., second manager of 4 blocks the final clause
+    admin_client.patch(f"/users/{user_3_id}/managers", json={"managers": [user_1_id]})
+    admin_client.patch(f"/users/{user_4_id}/managers", json={"managers": [user_2_id, user_3_id]})
+    resp = admin_client.patch(f"/users/{user_1_id}/managers", json={"managers": [user_4_id]})
+    assert resp.status_code != 200
+    assert "circular" in resp.json["message"].lower()
+
+    # In either direction
+    admin_client.patch(f"/users/{user_3_id}/managers", json={"managers": [user_1_id]})
+    admin_client.patch(f"/users/{user_4_id}/managers", json={"managers": [user_3_id, user_2_id]})
+    resp = admin_client.patch(f"/users/{user_1_id}/managers", json={"managers": [user_4_id]})
+    assert resp.status_code != 200
+    assert "circular" in resp.json["message"].lower()
+
+    # But instead,
+    # IIIb. 2 manages 1
+    # is allowed.
+    resp = admin_client.patch(f"/users/{user_1_id}/managers", json={"managers": [user_2_id]})
+    assert resp.status_code == 200
+
+    db.users.delete_many(
+        {
+            "_id": {
+                "$in": [
+                    user_1.inserted_id,
+                    user_2.inserted_id,
+                    user_3.inserted_id,
+                    user_4.inserted_id,
+                ]
+            }
+        }
+    )
+
+
+def test_manager_double_cycle_inverse(admin_client, real_mongo_client):
+    db = real_mongo_client.get_database()
+
+    user_1 = db.users.insert_one({"display_name": "User 1"})
+    user_1_id = str(user_1.inserted_id)
+
+    user_2 = db.users.insert_one({"display_name": "User 2"})
+    user_2_id = str(user_2.inserted_id)
+
+    user_3 = db.users.insert_one({"display_name": "User 3"})
+    user_3_id = str(user_3.inserted_id)
+
+    user_4 = db.users.insert_one({"display_name": "User 4"})
+    user_4_id = str(user_4.inserted_id)
+
+    user_5 = db.users.insert_one({"display_name": "User 5"})
+    user_5_id = str(user_5.inserted_id)
+
+    # Similar to the above, check that the following hierarchy is forbidden:
+    # I. 1 manages 2 and 3
+    # II. 3 manages 4
+    # III. 4 and 5 manages 1 (and then 5 and 4)
+    # i.e., second manager of 1 blocks the final clause
+    admin_client.patch(f"/users/{user_2_id}/managers", json={"managers": [user_1_id]})
+    admin_client.patch(f"/users/{user_3_id}/managers", json={"managers": [user_1_id]})
+    admin_client.patch(f"/users/{user_4_id}/managers", json={"managers": [user_3_id]})
+    resp = admin_client.patch(
+        f"/users/{user_1_id}/managers", json={"managers": [user_4_id, user_5_id]}
+    )
+    assert resp.status_code != 200
+    assert "circular" in resp.json["message"].lower()
+
+    # In either direction
+    admin_client.patch(f"/users/{user_2_id}/managers", json={"managers": [user_1_id]})
+    admin_client.patch(f"/users/{user_3_id}/managers", json={"managers": [user_1_id]})
+    admin_client.patch(f"/users/{user_4_id}/managers", json={"managers": [user_3_id]})
+    resp = admin_client.patch(
+        f"/users/{user_1_id}/managers", json={"managers": [user_5_id, user_4_id]}
+    )
+    assert resp.status_code != 200
+    assert "circular" in resp.json["message"].lower()
 
 
 def test_assign_manager_prevents_deep_cycle(admin_client, real_mongo_client):
@@ -200,3 +296,25 @@ def test_manager_can_see_managed_user_items(admin_client, real_mongo_client, use
 
     db.users.delete_one({"_id": user_1.inserted_id})
     db.roles.delete_one({"_id": user_1.inserted_id})
+
+
+def test_manager_cycle_infinite_loop(admin_client, real_mongo_client):
+    """Tests that a long linear chain of managers is impossible to create via the API after depth ~10."""
+    db = real_mongo_client.get_database()
+
+    ids = db.users.insert_many([{"display_name": f"User {i}"} for i in range(1, 100)])
+    for i in range(len(ids.inserted_ids) - 1):
+        resp = admin_client.patch(
+            f"/users/{str(ids.inserted_ids[i + 1])}/managers",
+            json={"managers": [str(ids.inserted_ids[i])]},
+        )
+
+        # Queryer will reject after depth 10 by default, in our case that corresponds to user 9 managing user 10
+        if i < 9:
+            assert resp.status_code == 200
+        else:
+            assert resp.status_code == 500
+            assert "maximum management hierarchy depth exceeded" in resp.json["message"].lower()
+            break
+    else:
+        assert False, "Expected to break from loop due to cycle detection"
