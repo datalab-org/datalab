@@ -70,10 +70,11 @@ def generate_ro_crate_metadata(collection_data: dict, child_items: list[dict]) -
             "@type": "Dataset",
             "name": item.get("name", item["item_id"]),
             "identifier": item["item_id"],
-            "dateCreated": item.get("date", datetime.now(tz=timezone.utc)).isoformat()
-            if isinstance(item.get("date"), datetime)
-            else item.get("date"),
         }
+
+        date_created = item.get("date")
+        if date_created:
+            item_metadata["dateCreated"] = date_created
 
         if item.get("file_ObjectIds"):
             files = []
