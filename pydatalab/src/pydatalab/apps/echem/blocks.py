@@ -184,6 +184,7 @@ class CycleBlock(DataBlock):
         if raw_df is not None:
             raw_df = raw_df.filter(required_keys)
             raw_df.rename(columns=keys_with_units, inplace=True)
+            raw_df["time (h)"] = raw_df["time (s)"] / 3600.0
         else:
             raise ValueError("Invalid raw_df value. Expected non-empty DataFrame.")
 
