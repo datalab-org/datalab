@@ -10,8 +10,7 @@ import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 
-from bson import ObjectId
-
+from pydatalab import __version__
 from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER
 from pydatalab.models import ITEM_MODELS
@@ -35,9 +34,11 @@ def generate_ro_crate_metadata(collection_data: dict, child_items: list[dict]) -
     for item in child_items:
         experiments.append(
             {
-                "@id": f"./{item['item_id']}/",
+                "@id": f"./{item['refcode']}/",
             }
         )
+
+    now = datetime.now(tz=timezone.utc).isoformat()
 
     graph: list[dict] = [
         {
@@ -45,10 +46,7 @@ def generate_ro_crate_metadata(collection_data: dict, child_items: list[dict]) -
             "@type": "CreativeWork",
             "about": {"@id": "./"},
             "conformsTo": {"@id": "https://w3id.org/ro/crate/1.1"},
-            "dateCreated": datetime.now(tz=timezone.utc).isoformat(),
-            "sdPublisher": {
-                "@id": CONFIG.IDENTIFIER_PREFIX or "https://github.com/datalab-org/datalab"
-            },
+            "dateCreated": now,
         },
         {
             "@id": "./",
@@ -56,64 +54,119 @@ def generate_ro_crate_metadata(collection_data: dict, child_items: list[dict]) -
             "name": collection_data.get("title", collection_data.get("collection_id")),
             "description": collection_data.get("description", ""),
             "hasPart": experiments,
+            "version": "1",
+            "license": {
+                "@id": "https://choosealicense.com/no-permission/",
+            },
+            "datePublished": now,
         },
     ]
+
+    if CONFIG.APP_URL:
+        graph[0]["sdPublisher"] = {"@id": CONFIG.APP_URL}
+        graph.append(
+            {
+                "@id": CONFIG.APP_URL,
+                "@type": "Organization",
+                "name": "datalab instance",
+                "description": f"datalab instance running at {CONFIG.APP_URL}",
+                "url": CONFIG.APP_URL,
+            }
+        )
 
     metadata = {
         "@context": "https://w3id.org/ro/crate/1.1/context",
         "@graph": graph,
     }
 
+    people = {}
+
     for item in child_items:
+        identifier = f"{CONFIG.IDENTIFIER_PREFIX}:{item['refcode']}"
+
         item_metadata = {
-            "@id": f"./{item['item_id']}/",
+            "@id": f"./{item['refcode']}/",
             "@type": "Dataset",
             "name": item.get("name", item["item_id"]),
-            "identifier": item["item_id"],
+            "identifier": identifier,
+            "url": f"https://purl.datalab-org.io/{identifier}",
         }
+
+        item_metadata["authors"] = [
+            {"@id": f"./people/{c['immutable_id']}"} for c in item.get("creators", [])
+        ]
+
+        for creator in item.get("creators", []):
+            # Need to refer to ORCID
+            people[creator["immutable_id"]] = {
+                "@id": f"./people/{creator['immutable_id']}",
+                "@type": "Person",
+                "name": creator.get("display_name"),
+            }
+        if not item_metadata["author"]:
+            del item_metadata["author"]
 
         date_created = item.get("date")
         if date_created:
             item_metadata["dateCreated"] = date_created.isoformat()
 
-        if item.get("file_ObjectIds"):
-            files = []
-            files_metadata: list[dict] = []
-            for file_id in item["file_ObjectIds"]:
-                file_data = flask_mongo.db.files.find_one({"_id": ObjectId(file_id)})
-                if file_data:
-                    file_id = f"./{item['item_id']}/{file_data['name']}"
-                    files.append({"@id": file_id})
+        files = []
+        files_metadata: list[dict] = []
+        for file in item.get("files", []):
+            file_id = f"./{item['refcode']}/{file['name']}"
+            files.append({"@id": file_id})
 
-                    file_metadata = {
-                        "@id": file_id,
-                        "@type": "File",
-                        "contentSize": file_data["size"],
-                        "name": file_data["name"],
-                    }
-
-                    if file_data.get("last_modified"):
-                        file_metadata["dateCreated"] = file_data.get("last_modified")
-
-                    files_metadata.append(file_metadata)
-
-            # Add file for datalab metadata
-            item_metadata_file = {
-                "@id": f"./{item['item_id']}/metadata.json",
+            file_metadata = {
+                "@id": file_id,
                 "@type": "File",
-                "name": "metadata.json",
-                "encodingFormat": "application/json",
-                "description": f"Metadata for item {item['item_id']}",
+                "contentSize": file["size"],
+                "name": file["name"],
             }
 
-            files.append({"@id": item_metadata_file["@id"]})
+            if file.get("last_modified"):
+                file_metadata["dateCreated"] = file["last_modified"].isoformat()
 
-            if files:
-                item_metadata["hasPart"] = files
+            files_metadata.append(file_metadata)
+
+        # Add file for datalab metadata
+        item_metadata_file = {
+            "@id": f"./{item['refcode']}/metadata.json",
+            "@type": "File",
+            "name": "metadata.json",
+            "encodingFormat": "application/json",
+            "description": f"Metadata for item {item['refcode']}",
+        }
+
+        files.append({"@id": item_metadata_file["@id"]})
+        files_metadata.append(item_metadata_file)
+
+        if files:
+            item_metadata["hasPart"] = files
 
         graph.append(item_metadata)
         if files_metadata:
             graph.extend(files_metadata)
+        if people:
+            graph.extend(people.values())
+
+        create_action = {
+            "@id": "#ro-crate-created",
+            "@type": "CreateAction",
+            "object": {"@id": "./"},
+            "endTime": datetime.now(tz=timezone.utc).isoformat(),
+            "instrument": {"@id": "https://datalab-org.io"},
+            "actionStatus": {"@id": "http://schema.org/CompletedActionStatus"},
+        }
+
+        software = {
+            "@id": "https://datalab-org.io",
+            "@type": "SoftwareApplication",
+            "name": "datalab",
+            "version": __version__,
+        }
+
+        graph.append(create_action)
+        graph.append(software)
 
     return metadata
 
@@ -161,15 +214,59 @@ def create_eln_file(
         root_folder_name = collection_id
 
     elif item_id:
-        # TODO: same comment about permissions as above
-        item_data = flask_mongo.db.items.find_one({"item_id": item_id})
+        from pydatalab.routes.v0_1.items import (
+            collections_lookup,
+            creators_lookup,
+            files_lookup,
+            groups_lookup,
+        )
+
+        match = {"item_id": item_id}
+        cursor = flask_mongo.db.items.aggregate(
+            [
+                {
+                    "$match": {
+                        **match,
+                    }
+                },
+                {"$lookup": creators_lookup()},
+                {"$lookup": groups_lookup()},
+                {"$lookup": collections_lookup()},
+                {"$lookup": files_lookup()},
+            ],
+        )
+
+        try:
+            item_data = list(cursor)[0]
+            ItemModel = ITEM_MODELS[item_data["type"]]
+            item_data = ItemModel(**item_data).dict()
+
+        except IndexError:
+            item_data = None
+
         if not item_data:
             raise ValueError(f"Item {item_id} not found")
 
         if related_item_ids:
-            child_items = list(
-                flask_mongo.db.items.find({"item_id": {"$in": [item_id] + related_item_ids}})
+            match = {"item_id": {"$in": [item_id] + related_item_ids}}  # type: ignore
+            _child_items = []
+            child_items = flask_mongo.db.items.aggregate(
+                [
+                    {
+                        "$match": {
+                            **match,
+                        }
+                    },
+                    {"$lookup": creators_lookup()},
+                    {"$lookup": groups_lookup()},
+                    {"$lookup": collections_lookup()},
+                    {"$lookup": files_lookup()},
+                ],
             )
+            for ind, item in enumerate(child_items):
+                ItemModel = ITEM_MODELS[item["type"]]
+                _child_items.append(ItemModel(**item).dict())
+            child_items = _child_items
         else:
             child_items = [item_data]
 
@@ -179,7 +276,7 @@ def create_eln_file(
             "description": f"Export of item {item_id}"
             + (" and related items" if related_item_ids else ""),
         }
-        root_folder_name = item_id
+        root_folder_name = item_data["refcode"]
 
     else:
         raise ValueError("Either collection_id or item_id must be provided")
@@ -192,10 +289,10 @@ def create_eln_file(
 
         ro_crate_metadata = generate_ro_crate_metadata(collection_data, child_items)
         with open(root_folder / "ro-crate-metadata.json", "w", encoding="utf-8") as f:
-            json.dump(ro_crate_metadata, f, indent=2, ensure_ascii=False)
+            json.dump(ro_crate_metadata, f, ensure_ascii=False)
 
         for item in child_items:
-            item_folder = root_folder / item["item_id"]
+            item_folder = root_folder / item["refcode"]
             item_folder.mkdir()
 
             item_metadata = ITEM_MODELS[item.get("type")](**item).json(indent=2)
@@ -203,24 +300,13 @@ def create_eln_file(
             with open(item_folder / "metadata.json", "w", encoding="utf-8") as f:
                 f.write(item_metadata)
 
-            if item.get("file_ObjectIds"):
-                for file_id in item.get("file_ObjectIds", []):
-                    file_id_obj = ObjectId(file_id) if isinstance(file_id, str) else file_id
-                    file_data = flask_mongo.db.files.find_one({"_id": file_id_obj})
-                    if file_data:
-                        source_path = Path(file_data["location"])
-                        if source_path.exists():
-                            dest_file = item_folder / file_data["name"]
-                            shutil.copy2(source_path, dest_file)
-                        else:
-                            LOGGER.warning(
-                                "ELN export: File not found on disk: %s", file_data["location"]
-                            )
-                    else:
-                        LOGGER.warning(
-                            "ELN export: File metadata not found in database for file_id: %s",
-                            file_id,
-                        )
+            for file in item.get("files", []):
+                source_path = Path(file["location"])
+                if source_path.exists():
+                    dest_file = item_folder / file["name"]
+                    shutil.copy2(source_path, dest_file)
+                else:
+                    LOGGER.warning("ELN export: File not found on disk: %s", file["location"])
 
         with zipfile.ZipFile(output_path, "w", zipfile.ZIP_DEFLATED) as zipf:
             for file_path in root_folder.rglob("*"):
