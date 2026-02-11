@@ -870,8 +870,8 @@ export function updateCollectionPermissions(collection_id, creators = null, grou
 
   const payload = { creators: creators, groups: groups };
 
-  return fetch_patch(`${API_URL}/collections/${collection_id}/permissions`, payload).then(
-    function (response_json) {
+  return fetch_patch(`${API_URL}/collections/${collection_id}/permissions`, payload)
+    .then(function (response_json) {
       if (response_json.status === "error") {
         DialogService.error({
           title: "Permission update failed",
@@ -880,7 +880,15 @@ export function updateCollectionPermissions(collection_id, creators = null, grou
         throw new Error(response_json.message);
       }
       return response_json;
-      
+    })
+    .catch((error) => {
+      DialogService.error({
+        title: "Collection Permissions Update Failed",
+        message: `Error updating collection permissions: ${error}`,
+      });
+      throw error;
+    });
+}
 export function appendItemPermissions(refcode, creators = null, groups = null) {
   console.log("appendItemPermissions called with", refcode, creators, groups);
 
