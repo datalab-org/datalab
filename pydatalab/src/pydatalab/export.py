@@ -78,14 +78,42 @@ def generate_ro_crate_metadata(collection_data: dict, child_items: list[dict]) -
 
         if item.get("file_ObjectIds"):
             files = []
+            files_metadata: list[dict] = []
             for file_id in item["file_ObjectIds"]:
                 file_data = flask_mongo.db.files.find_one({"_id": ObjectId(file_id)})
                 if file_data:
-                    files.append({"@id": f"./{item['item_id']}/{file_data['name']}"})
+                    file_id = f"./{item['item_id']}/{file_data['name']}"
+                    files.append({"@id": file_id})
+
+                    file_metadata = {
+                        "@id": file_id,
+                        "@type": "File",
+                        "contentSize": file_data["size"],
+                        "name": file_data["name"],
+                    }
+
+                    if file_data.get("last_modified"):
+                        file_metadata["dateCreated"] = file_data.get("last_modified")
+
+                    files_metadata.append(file_metadata)
+
+            # Add file for datalab metadata
+            item_metadata_file = {
+                "@id": f"./{item['item_id']}/metadata.json",
+                "@type": "File",
+                "name": "metadata.json",
+                "encodingFormat": "application/json",
+                "description": f"Metadata for item {item['item_id']}",
+            }
+
+            files.append({"@id": item_metadata_file["@id"]})
+
             if files:
                 item_metadata["hasPart"] = files
 
         graph.append(item_metadata)
+        if files_metadata:
+            graph.extend(files_metadata)
 
     return metadata
 
