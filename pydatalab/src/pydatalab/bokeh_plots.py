@@ -604,9 +604,9 @@ def double_axes_echem_plot(
 
     if not x_options:
         x_options = (
-            ["capacity (mAh/g)", "voltage (V)", "time (s)", "current (mA/g)"]
+            ["capacity (mAh/g)", "voltage (V)", "time (s)", "time (h)", "current (mA/g)"]
             if normalized
-            else ["capacity (mAh)", "voltage (V)", "time (s)", "current (mA)"]
+            else ["capacity (mAh)", "voltage (V)", "time (s)", "time (h)", "current (mA)"]
         )
 
     x_options = [opt for opt in x_options if opt in dfs[0].columns]
