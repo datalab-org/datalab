@@ -19,6 +19,7 @@
           data-toggle="dropdown"
           aria-haspopup="true"
           aria-expanded="false"
+          data-testid="add-block-button-top"
           @click="isMenuDropdownVisible = !isMenuDropdownVisible"
         >
           <font-awesome-icon icon="cubes" fixed-width />
@@ -32,11 +33,28 @@
           style="display: block"
           aria-labelledby="navbarDropdown"
         >
-          <template v-for="blockInfo in blocksInfos" :key="blockInfo.id">
-            <span v-if="blockInfo.id !== 'notsupported'" @click="newBlock($event, blockInfo.id)">
-              <BlockTooltip :block-info="blockInfo.attributes" />
-            </span>
-          </template>
+          <h6 v-if="suggestedBlockTypes.length > 0" class="dropdown-header">
+            Suggested based on your files
+          </h6>
+          <span
+            v-for="blockInfo in suggestedBlockTypes"
+            :key="'nav-suggested-' + blockInfo.id"
+            @click="newBlock($event, blockInfo.id)"
+          >
+            <BlockTooltip :block-info="blockInfo.attributes" />
+          </span>
+          <div
+            v-if="suggestedBlockTypes.length > 0 && allBlockTypes.length > 0"
+            class="dropdown-divider"
+          ></div>
+          <h6 v-if="allBlockTypes.length > 0" class="dropdown-header">All block types</h6>
+          <span
+            v-for="blockInfo in allBlockTypes"
+            :key="'nav-all-' + blockInfo.id"
+            @click="newBlock($event, blockInfo.id)"
+          >
+            <BlockTooltip :block-info="blockInfo.attributes" />
+          </span>
         </div>
       </div>
       <ExportDropdown
@@ -47,8 +65,6 @@
       <a class="nav-item nav-link" :href="itemApiUrl" target="_blank">
         <font-awesome-icon icon="code" fixed-width /> View JSON
       </a>
-      <!-- Version History UI - Hidden until temp version system is complete -->
-      <!-- TODO: Uncomment when ready to expose version history to users
       <a
         v-if="itemDataLoaded"
         class="nav-item nav-link"
@@ -57,7 +73,6 @@
       >
         <font-awesome-icon icon="history" fixed-width /> Versions
       </a>
-      -->
     </div>
     <div class="navbar-nav ml-auto">
       <span v-if="itemDataLoaded && !savedStatus" class="navbar-text unsaved-warning">
@@ -104,6 +119,52 @@
           style="color: gray"
           size="2x"
         />
+      </div>
+
+      <div class="mt-4 text-center">
+        <div class="dropup d-inline-block">
+          <button
+            id="bottomAddBlockDropdown"
+            class="btn btn-primary dropdown-toggle"
+            type="button"
+            data-toggle="dropdown"
+            aria-haspopup="true"
+            aria-expanded="false"
+            data-testid="add-block-button-bottom"
+            @click="isBottomDropdownVisible = !isBottomDropdownVisible"
+          >
+            <font-awesome-icon icon="cubes" fixed-width /> Add a block
+          </button>
+          <div
+            class="dropdown-menu"
+            :class="{ show: isBottomDropdownVisible }"
+            aria-labelledby="bottomAddBlockDropdown"
+            data-testid="add-block-dropdown-bottom"
+          >
+            <h6 v-if="suggestedBlockTypes.length > 0" class="dropdown-header">
+              Suggested based on your files
+            </h6>
+            <span
+              v-for="blockInfo in suggestedBlockTypes"
+              :key="'bottom-suggested-' + blockInfo.id"
+              @click="newBlock($event, blockInfo.id)"
+            >
+              <BlockTooltip :block-info="blockInfo.attributes" />
+            </span>
+            <div
+              v-if="suggestedBlockTypes.length > 0 && allBlockTypes.length > 0"
+              class="dropdown-divider"
+            ></div>
+            <h6 v-if="allBlockTypes.length > 0" class="dropdown-header">All block types</h6>
+            <span
+              v-for="blockInfo in allBlockTypes"
+              :key="'bottom-all-' + blockInfo.id"
+              @click="newBlock($event, blockInfo.id)"
+            >
+              <BlockTooltip :block-info="blockInfo.attributes" />
+            </span>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -187,6 +248,7 @@ export default {
       blockInfoLoaded: false,
       blocksLoaded: false,
       isMenuDropdownVisible: false,
+      isBottomDropdownVisible: false,
       selectedRemoteFiles: [],
       isLoadingRemoteTree: false,
       isLoadingRemoteFiles: false,
@@ -239,6 +301,42 @@ export default {
     itemApiUrl() {
       return API_URL + "/items/" + this.refcode;
     },
+    uploadedFileExtensions() {
+      if (!this.files || this.files.length === 0) {
+        return [];
+      }
+      const extensions = this.files.map((file) => file.extension).filter((ext) => ext);
+      return [...new Set(extensions)];
+    },
+    suggestedBlockTypes() {
+      if (this.uploadedFileExtensions.length === 0 || !this.blockInfoLoaded) {
+        return [];
+      }
+
+      return this.blocksInfos.filter((blockInfo) => {
+        if (blockInfo.id === "notsupported") {
+          return false;
+        }
+
+        const acceptedExtensions = blockInfo.attributes?.accepted_file_extensions;
+        if (!acceptedExtensions || acceptedExtensions.length === 0) {
+          return false;
+        }
+
+        return this.uploadedFileExtensions.some((uploadedExt) =>
+          acceptedExtensions.some(
+            (acceptedExt) => uploadedExt.toLowerCase() === acceptedExt.toLowerCase(),
+          ),
+        );
+      });
+    },
+    allBlockTypes() {
+      if (!this.blockInfoLoaded) {
+        return [];
+      }
+
+      return this.blocksInfos.filter((blockInfo) => blockInfo.id !== "notsupported");
+    },
   },
   watch: {
     // add a warning before leaving page if unsaved
@@ -281,6 +379,7 @@ export default {
   methods: {
     async newBlock(event, blockType, index = null) {
       this.isMenuDropdownVisible = false;
+      this.isBottomDropdownVisible = false;
       this.isLoadingNewBlock = true;
       this.$refs.blockLoadingIndicator.scrollIntoView({
         behavior: "smooth",
@@ -470,5 +569,26 @@ label,
 
 .dropdown-menu {
   cursor: pointer;
+}
+
+.dropdown-menu {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.dropdown-header {
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.dropdown-item {
+  cursor: pointer;
+}
+
+.dropdown-item:hover {
+  background-color: #f8f9fa;
 }
 </style>

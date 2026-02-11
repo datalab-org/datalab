@@ -278,6 +278,7 @@ class EntryReference(BaseModel):
     immutable_id: PyObjectId | None
     item_id: HumanReadableIdentifier | None
     refcode: Refcode | None
+    chemform: str | None
 
     @root_validator
     def check_id_fields(cls, values):

@@ -12,6 +12,7 @@ import Admin from "@/views/Admin.vue";
 import Login from "../views/Login.vue";
 import Login2 from "../views/Login2.vue";
 import Login3 from "../views/Login3.vue";
+import { API_URL } from "@/resources.js";
 
 const routes = [
   {
@@ -87,6 +88,15 @@ const routes = [
     name: "item-graph",
     component: ItemGraphPage,
   },
+  {
+    path: "/files/:pathMatch(.*)",
+    name: "files-redirect",
+    beforeEnter: (to) => {
+      window.location.href = API_URL + "/files/" + to.params.pathMatch;
+      return false;
+    },
+    component: NotFound,
+  },
   { path: "/404", name: "notfound", component: NotFound },
   { path: "/:pathMatch(.*)*", component: NotFound },
   {
@@ -102,7 +112,17 @@ const router = createRouter({
   routes,
 });
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
+  if (to.path === "/" || (to.name === "samples" && from.path === "/")) {
+    const { getUserInfo } = await import("@/server_fetch_utils.js");
+    const user = await getUserInfo();
+
+    if (!user) {
+      next("/about");
+      return;
+    }
+  }
+
   const websiteTitle = process.env.VUE_APP_WEBSITE_TITLE || "datalab";
 
   const capitalizeFirstLetter = (string) => {
