@@ -65,6 +65,7 @@ def test_create_eln_file_items(database, tmp_path, user_id):
         "refcode": "test:ABCDEF",
         "relationships": [{"type": "samples", "immutable_id": sample_id_2}],
         "creator_ids": [user_id],
+        "creators": [{"display_name": "Test User", "immutable_id": user_id}],
     }
 
     sample_data_2 = {
@@ -74,6 +75,7 @@ def test_create_eln_file_items(database, tmp_path, user_id):
         "type": "samples",
         "refcode": "test:ABCDEF2",
         "creator_ids": [user_id],
+        "creators": [{"display_name": "Test User", "immutable_id": user_id}],
     }
 
     database.items.insert_one(sample_data)
