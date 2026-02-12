@@ -11,16 +11,16 @@ from scipy import integrate
 
 
 def read_bruker_1d(
-    data: Path | pd.DataFrame,
+    data_dir: Path,
     process_number: int = 1,
     verbose: bool = False,
     sample_mass_mg: float | None = None,
 ) -> tuple[pd.DataFrame | None, dict, str | None, tuple[int, ...]]:
-    """Read a 1D bruker nmr spectrum and return it as a df.
+    """Read a 1D bruker nmr spectrum and return it as a df, optionally
+    converting the data to frequency domain if only time-domain data is found.
 
     Parameters:
-        data: The directory of the full bruker data file, or a pandas DataFrame which
-            will be returned without further processing.
+        data: The directory of the full Bruker project directory.
         process_number: The process number of the processed data you want to plot [default: 1].
         verbose: Whether to print information such as the spectrum title to stdout.
         sample_mass_mg: The (optional) sample mass. If provided, the resulting DataFrame will have a "intensity_per_scan_per_gram" column.
@@ -33,34 +33,48 @@ def read_bruker_1d(
 
     """
 
-    # if df is provided, just return it as-is. This functionality is provided to make functions calling read_bruker_1d flexible by default.
-    # Either the data directory or the already-processed df can always be provided with equivalent results.
-
-    if isinstance(data, pd.DataFrame):
-        if verbose:
-            print("data frame provided to read_bruker_1d(). Returning it as is.")
-        return data
-    else:
-        data_dir = Path(data)
+    data_dir = Path(data_dir)
 
     processed_data_dir = data_dir / "pdata" / str(process_number)
 
-    a_dic, a_data = ng.fileio.bruker.read(str(data_dir))  # aquisition_data
-    p_dic, p_data = ng.fileio.bruker.read_pdata(str(processed_data_dir))  # processing data
+    try:
+        a_dic, a_data = ng.fileio.bruker.read(str(data_dir))  # aquisition_data
+    except Exception as e:
+        raise RuntimeError(f"Failed to read Bruker acquisition data from {data_dir}: {e}") from e
+
+    try:
+        p_dic, p_data = ng.fileio.bruker.read_pdata(str(processed_data_dir))  # processing data
+    except Exception:
+        p_dic, p_data = None, None
 
     topspin_title = None
     title_file = processed_data_dir / "title"
     if title_file.exists():
         topspin_title = title_file.read_text()
 
-    if len(p_data.shape) > 1:
+    if p_data is not None and len(p_data.shape) > 1:
         return None, a_dic, topspin_title, p_data.shape
 
     nscans = a_dic["acqus"]["NS"]
 
-    # create a unit convertor to get the x-axis in ppm units
-    udic = ng.bruker.guess_udic(p_dic, p_data)
-    uc = ng.fileiobase.uc_from_udic(udic)
+    if p_dic is None:
+        # create a unit convertor to get the x-axis in ppm units
+        udic = ng.bruker.guess_udic(a_dic, a_data)
+        uc = ng.fileiobase.uc_from_udic(udic)
+        if udic[0]["time"]:
+            warnings.warn(
+                "No frequency-domain data found in Bruker project. Attempting best guess at processing time-domain data with FFT and ACME autophase."
+            )
+            p_data = ng.process.proc_base.fft(a_data)
+
+        p_data = ng.process.proc_base.rev(p_data)
+        p_data = ng.process.proc_autophase.autops(p_data, "acme")
+        p_data = ng.process.proc_base.di(p_data)
+
+    else:
+        # create a unit convertor to get the x-axis in ppm units
+        udic = ng.bruker.guess_udic(p_dic, p_data)
+        uc = ng.fileiobase.uc_from_udic(udic)
 
     ppm_scale = uc.ppm_scale()
     hz_scale = uc.hz_scale()
@@ -75,18 +89,6 @@ def read_bruker_1d(
     )
     if sample_mass_mg:
         df["intensity_per_scan_per_gram"] = df["intensity_per_scan"] / sample_mass_mg * 1000.0
-
-    if verbose:
-        print(f"reading bruker data file. {udic[0]['label']} 1D spectrum, {nscans} scans.")
-        if sample_mass_mg:
-            print(
-                f'sample mass was provided: {sample_mass_mg:f} mg. "intensity_per_scan_per_gram" column included. '
-            )
-        if topspin_title:
-            print("\nTitle:\n")
-            print(topspin_title)
-        else:
-            print("No title found in scan")
 
     return df, a_dic, topspin_title, a_data.shape
 

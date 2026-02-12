@@ -174,6 +174,7 @@ def test_read_jeol_proton_1d(nmr_1d_jeol_example):
         match=".*Attempting best guess at processing time-domain data with FFT and ACME autophase.*",
     ):
         df, dic, title, shape, udic, nscans = read_jeol_jdf_1d(nmr_1d_jeol_example)
+
     assert df is not None
 
     block = NMRBlock(item_id="nmr-block")
