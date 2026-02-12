@@ -65,10 +65,10 @@ class NMRBlock(DataBlock):
             with zipfile.ZipFile(location, "r") as zip_ref:
                 zip_ref.extractall(tmpdir_path)
 
-            extracted_directory_name = tmpdir_path
+            extracted_directory = tmpdir_path / Path(location).stem
             root_directory: Path | None = None
             # Check if `<name>.zip` has a matching root-level `<name>` directory.
-            for c in tmpdir_path.iterdir():
+            for c in extracted_directory.iterdir():
                 # If we already found a root directory, break and emit warning about which one will be used
                 if c.name == "__MACOSX":
                     continue
@@ -83,23 +83,44 @@ class NMRBlock(DataBlock):
             if root_directory:
                 extracted_directory_name = root_directory
 
-            available_processes = sorted(
-                os.listdir(os.path.join(extracted_directory_name, "pdata"))
-            )
+            experiments: list[str] = []
+            if (extracted_directory_name / "pdata").exists():
+                experiments = [str(extracted_directory_name)]
 
-            if self.data.get("selected_process") not in available_processes:
-                self.data["selected_process"] = available_processes[0]
+            else:
+                for exp in os.listdir(extracted_directory_name):
+                    if (extracted_directory_name / exp / "pdata").exists():
+                        experiments.append(str(extracted_directory_name / exp))
+
+            if not experiments:
+                raise RuntimeError(
+                    f"No Bruker experiments found in the zip file {location} - no 'pdata' folder found."
+                )
+
+            if (
+                self.data.get("selected_experiment") is None
+                or self.data["selected_experiment"] not in experiments
+            ):
+                self.data["selected_experiment"] = experiments[-1]
+                self.data["available_experiments"] = experiments
 
             try:
-                df, a_dic, topspin_title, processed_data_shape = read_bruker_1d(
-                    extracted_directory_name,
-                    process_number=self.data["selected_process"],
-                    verbose=False,
+                self.data["available_processes"] = sorted(
+                    os.listdir(os.path.join(self.data["selected_experiment"], "pdata"))
                 )
-            except Exception as error:
+            except FileNotFoundError:
                 raise RuntimeError(
-                    f"Unable to parse {extracted_directory_name!r} as Bruker project. Error: {error!r}"
+                    f"No 'pdata' directory found in the selected experiment {self.data['selected_experiment']}. Please check the structure of your Bruker project zip file."
                 )
+
+            if self.data.get("selected_process") not in self.data["available_processes"]:
+                self.data["selected_process"] = self.data["available_processes"][0]
+
+            df, a_dic, topspin_title, processed_data_shape = read_bruker_1d(
+                self.data["selected_experiment"],
+                process_number=self.data["selected_process"],
+                verbose=False,
+            )
 
         serialized_df = df.to_dict() if (df is not None) else None
 
@@ -107,7 +128,7 @@ class NMRBlock(DataBlock):
         metadata["acquisition_parameters"] = a_dic["acqus"]
         metadata["processing_parameters"] = a_dic["procs"]
         metadata["pulse_program"] = a_dic["pprog"]
-        metadata["available_processes"] = available_processes
+        metadata["available_processes"] = self.data["available_processes"]
         metadata["nucleus"] = a_dic["acqus"]["NUC1"]
         metadata["carrier_frequency_MHz"] = a_dic["acqus"]["SFO1"]
         metadata["carrier_offset_Hz"] = a_dic["acqus"]["O1"]
