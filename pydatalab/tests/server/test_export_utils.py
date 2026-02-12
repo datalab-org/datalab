@@ -99,12 +99,16 @@ def test_create_eln_file_items(database, tmp_path, user_id):
                 assert ro_crate["@context"] == "https://w3id.org/ro/crate/1.1/context"
 
             try:
-                with zf.open(f"{sample_data['refcode']}/{sample_data['refcode']}/metadata.json") as f:
+                with zf.open(
+                    f"{sample_data['refcode']}/{sample_data['refcode']}/metadata.json"
+                ) as f:
                     sample_metadata = json.load(f)
                     assert sample_metadata["item_id"] == sample_item_id
                     assert sample_metadata["name"] == "Test Sample"
 
-                with zf.open(f"{sample_data['refcode']}/{sample_data_2['refcode']}/metadata.json") as f:
+                with zf.open(
+                    f"{sample_data['refcode']}/{sample_data_2['refcode']}/metadata.json"
+                ) as f:
                     sample_metadata = json.load(f)
                     assert sample_metadata["item_id"] == sample_item_id_2
 

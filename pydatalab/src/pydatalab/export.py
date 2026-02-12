@@ -235,7 +235,7 @@ def create_eln_file(
             raise ValueError(f"Item {item_id} not found")
 
         if related_item_ids:
-            match = {"item_id": {"$in": [item_id] + related_item_ids}}
+            match = {"item_id": {"$in": [item_id] + related_item_ids}}  # type: ignore
             _child_items = []
             child_items = flask_mongo.db.items.aggregate(
                 [
