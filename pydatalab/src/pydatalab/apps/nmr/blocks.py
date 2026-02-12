@@ -362,7 +362,7 @@ class NMRBlock(DataBlock):
                 "Normalized intensity",
             ],
             plot_line=True,
-            point_size=3,
+            plot_points=False,
         )
         # flip x axis, per NMR convention. Note that the figure is the second element
         # of the layout in the current implementation, but this could be fragile.
