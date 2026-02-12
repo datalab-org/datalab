@@ -10,6 +10,7 @@ import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 
+from pydatalab import __version__
 from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER
 from pydatalab.models import ITEM_MODELS
@@ -33,7 +34,7 @@ def generate_ro_crate_metadata(collection_data: dict, child_items: list[dict]) -
     for item in child_items:
         experiments.append(
             {
-                "@id": f"./{item['item_id']}/",
+                "@id": f"./{item['refcode']}/",
             }
         )
 
@@ -43,10 +44,13 @@ def generate_ro_crate_metadata(collection_data: dict, child_items: list[dict]) -
             "@type": "CreativeWork",
             "about": {"@id": "./"},
             "conformsTo": {"@id": "https://w3id.org/ro/crate/1.1"},
+            "license": {
+                "@id": "https://choosealicense.com/no-permission/",
+                "name": "No license - all rights reserved",
+            },
             "dateCreated": datetime.now(tz=timezone.utc).isoformat(),
-            # TODO add datalab as a software provider with version here
             "sdPublisher": {
-                "@id": CONFIG.IDENTIFIER_PREFIX or "https://github.com/datalab-org/datalab"
+                "@id": CONFIG.APP_URL or "https://datalab-org.io",
             },
         },
         {
@@ -55,6 +59,7 @@ def generate_ro_crate_metadata(collection_data: dict, child_items: list[dict]) -
             "name": collection_data.get("title", collection_data.get("collection_id")),
             "description": collection_data.get("description", ""),
             "hasPart": experiments,
+            "version": "1",
         },
     ]
 
@@ -66,11 +71,14 @@ def generate_ro_crate_metadata(collection_data: dict, child_items: list[dict]) -
     people = {}
 
     for item in child_items:
+        identifier = f"{CONFIG.IDENTIFIER_PREFIX}:{item['refcode']}"
+
         item_metadata = {
-            "@id": f"./{item['item_id']}/",
+            "@id": f"./{item['refcode']}/",
             "@type": "Dataset",
             "name": item.get("name", item["item_id"]),
-            "identifier": item["item_id"],
+            "identifier": identifier,
+            "url": f"https://purl.datalab-org.io/{identifier}",
         }
 
         item_metadata["author"] = [
@@ -93,7 +101,7 @@ def generate_ro_crate_metadata(collection_data: dict, child_items: list[dict]) -
         files = []
         files_metadata: list[dict] = []
         for file in item.get("files", []):
-            file_id = f"./{item['item_id']}/{file['name']}"
+            file_id = f"./{item['refcode']}/{file['name']}"
             files.append({"@id": file_id})
 
             file_metadata = {
@@ -110,11 +118,11 @@ def generate_ro_crate_metadata(collection_data: dict, child_items: list[dict]) -
 
         # Add file for datalab metadata
         item_metadata_file = {
-            "@id": f"./{item['item_id']}/metadata.json",
+            "@id": f"./{item['refcode']}/metadata.json",
             "@type": "File",
             "name": "metadata.json",
             "encodingFormat": "application/json",
-            "description": f"Metadata for item {item['item_id']}",
+            "description": f"Metadata for item {item['refcode']}",
         }
 
         files.append({"@id": item_metadata_file["@id"]})
@@ -127,6 +135,25 @@ def generate_ro_crate_metadata(collection_data: dict, child_items: list[dict]) -
             graph.extend(files_metadata)
         if people:
             graph.extend(people.values())
+
+        create_action = {
+            "@id": "#ro-crate-created",
+            "@type": "CreateAction",
+            "object": {"@id": "./"},
+            "endTime": datetime.now(tz=timezone.utc).isoformat(),
+            "instrument": {"@id": "https://datalab-org.io"},
+            "actionStatus": {"@id": "http://schema.org/CompletedActionStatus"},
+        }
+
+        software = {
+            "@id": "https://datalab-org.io",
+            "@type": "SoftwareApplication",
+            "name": "datalab",
+            "version": __version__,
+        }
+
+        graph.append(create_action)
+        graph.append(software)
 
     return metadata
 
@@ -252,7 +279,7 @@ def create_eln_file(
             json.dump(ro_crate_metadata, f, indent=2, ensure_ascii=False)
 
         for item in child_items:
-            item_folder = root_folder / item["item_id"]
+            item_folder = root_folder / item["refcode"]
             item_folder.mkdir()
 
             item_metadata = ITEM_MODELS[item.get("type")](**item).json(indent=2)
