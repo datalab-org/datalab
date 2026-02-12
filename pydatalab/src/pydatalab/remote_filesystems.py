@@ -36,6 +36,7 @@ def get_directory_structures(
     if not directories:
         return []
 
+    LOGGER.debug("Retrieving directory structures for %s mounts", len(directories))
     if parallel:
         return multiprocessing.Pool(max(min(len(directories), 8), 1)).map(
             functools.partial(
@@ -45,7 +46,9 @@ def get_directory_structures(
             directories,
         )
     else:
-        return [get_directory_structure(d, invalidate_cache=invalidate_cache) for d in directories]
+        result = [get_directory_structure(d, invalidate_cache=invalidate_cache) for d in directories]
+        LOGGER.debug("Returning directory structures")
+        return result
 
 
 def get_directory_structure(
@@ -78,6 +81,8 @@ def get_directory_structure(
 
     LOGGER.debug("Accessing directory structure of %s", directory)
 
+    cache_age = datetime.timedelta()
+
     try:
         cached_dir_structure = _get_cached_directory_structure(directory)
         cache_last_updated = None
@@ -95,6 +100,18 @@ def get_directory_structure(
                     CONFIG.REMOTE_CACHE_MIN_AGE,
                 )
 
+        rescan = False
+        if not cached_dir_structure:
+            rescan = True
+            LOGGER.debug("No cache found for %s", directory.name)
+
+        elif cache_age > datetime.timedelta(minutes=CONFIG.REMOTE_CACHE_MAX_AGE):
+            rescan = True
+            LOGGER.debug("Dir should be invalidated as cache age is %s", cache_age)
+
+        elif cache_age > datetime.timedelta(minutes=CONFIG.REMOTE_CACHE_MIN_AGE) and invalidate_cache:
+            rescan = True
+            LOGGER.debug("Dir should be invalidated as cache age is %s", cache_age)
         # If either:
         #     1) no cache for this directory,
         #     2) the cache is older than the max cache age and
@@ -103,17 +120,12 @@ def get_directory_structure(
         #        is older than the min age,
         # AND, if no other processes is updating the cache,
         # then rebuild the cache.
-        if (
-            (not cached_dir_structure)
-            or (
-                invalidate_cache is not False
-                and cache_age > datetime.timedelta(minutes=CONFIG.REMOTE_CACHE_MAX_AGE)
+        if rescan:
+            LOGGER.debug(
+                "Remote filesystems cache miss for '%s': last updated %s",
+                directory.name,
+                cache_last_updated,
             )
-            or (
-                invalidate_cache
-                and cache_age > datetime.timedelta(minutes=CONFIG.REMOTE_CACHE_MIN_AGE)
-            )
-        ):
             owns_lock = _acquire_lock_dir_structure(directory)
             if owns_lock:
                 dir_structure = _get_latest_directory_structure(directory.path, directory.hostname)
@@ -121,11 +133,6 @@ def get_directory_structure(
                 last_updated = _save_directory_structure(
                     directory,
                     dir_structure,
-                )
-                LOGGER.debug(
-                    "Remote filesystems cache miss for '%s': last updated %s",
-                    directory.name,
-                    cache_last_updated,
                 )
                 status = "updated"
             else:
@@ -147,9 +154,10 @@ def get_directory_structure(
                 last_updated = last_updated.replace(tzinfo=datetime.timezone.utc)
             dir_structure = cached_dir_structure["contents"]
             LOGGER.debug(
-                "Remote filesystems cache hit for '%s': last updated %s",
+                "Remote filesystems cache hit for '%s': last updated %s, cache age %s",
                 directory.name,
                 last_updated,
+                cache_age,
             )
             status = "cached"
 
@@ -157,6 +165,7 @@ def get_directory_structure(
         dir_structure = [{"type": "error", "name": directory.name, "details": str(exc)}]
         last_updated = datetime.datetime.now(tz=datetime.timezone.utc)
         status = "error"
+        LOGGER.debug("Remote filesystems cache error for '%s': %s", directory.name, exc)
 
     finally:
         _release_lock_dir_structure(directory)
