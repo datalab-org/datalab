@@ -87,6 +87,9 @@ def generate_ro_crate_metadata(collection_data: dict, child_items: list[dict]) -
         item_metadata["author"] = [
             {"@id": f"./people/{c['immutable_id']}"} for c in item.get("creators", [])
         ]
+        if len(item_metadata["author"]) == 1:
+            item_metadata["author"] = item_metadata["author"][0]
+
         for creator in item.get("creators", []):
             # Need to refer to ORCID
             people[creator["immutable_id"]] = {
