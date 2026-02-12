@@ -300,6 +300,16 @@ export default {
               "curve-style": "bezier",
             },
           },
+          {
+            selector: 'edge[relation_type = "mentioned"]',
+            style: {
+              width: 2,
+              "line-style": "dashed",
+              "line-color": "#9dbaea",
+              "target-arrow-color": "#9dbaea",
+              "target-arrow-shape": "vee",
+            },
+          },
         ],
         layout: layoutOptions[this.graphStyle],
       });
