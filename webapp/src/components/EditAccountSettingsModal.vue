@@ -6,6 +6,7 @@
         Boolean(displayNameValidationMessage) || Boolean(contactEmailValidationMessage)
       "
       @update:model-value="resetForm"
+      @submit="submitForm"
     >
       <template #header> Account settings </template>
 

@@ -8,6 +8,7 @@
         isValidBatchSize
       "
       @update:model-value="$emit('update:modelValue', $event)"
+      @submit="submitForm"
     >
       <template #header>
         <template v-if="beforeSubmit">Add new items</template>
