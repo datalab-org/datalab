@@ -263,7 +263,7 @@ def create_eln_file(
             "description": f"Export of item {item_id}"
             + (" and related items" if related_item_ids else ""),
         }
-        root_folder_name = item_id
+        root_folder_name = item_data["refcode"]
 
     else:
         raise ValueError("Either collection_id or item_id must be provided")
