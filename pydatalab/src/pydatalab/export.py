@@ -38,6 +38,8 @@ def generate_ro_crate_metadata(collection_data: dict, child_items: list[dict]) -
             }
         )
 
+    now = datetime.now(tz=timezone.utc).isoformat()
+
     graph: list[dict] = [
         {
             "@id": "ro-crate-metadata.json",
@@ -48,7 +50,8 @@ def generate_ro_crate_metadata(collection_data: dict, child_items: list[dict]) -
                 "@id": "https://choosealicense.com/no-permission/",
                 "name": "No license - all rights reserved",
             },
-            "dateCreated": datetime.now(tz=timezone.utc).isoformat(),
+            "dateCreated": now, 
+            "datePublished": now,
             "sdPublisher": {
                 "@id": CONFIG.APP_URL or "https://datalab-org.io",
             },
@@ -126,6 +129,7 @@ def generate_ro_crate_metadata(collection_data: dict, child_items: list[dict]) -
         }
 
         files.append({"@id": item_metadata_file["@id"]})
+        files_metadata.append(item_metadata_file)
 
         if files:
             item_metadata["hasPart"] = files
