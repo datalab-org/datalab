@@ -169,8 +169,20 @@ def test_read_jcamp_13c_1d(nmr_jcamp_13c_path):
 
 
 def test_read_jeol_proton_1d(nmr_1d_jeol_example):
-    df, dic, title, shape, udic, nscans = read_jeol_jdf_1d(nmr_1d_jeol_example)
+    with pytest.warns(
+        UserWarning,
+        match=".*Attempting best guess at processing time-domain data with FFT and ACME autophase.*",
+    ):
+        df, dic, title, shape, udic, nscans = read_jeol_jdf_1d(nmr_1d_jeol_example)
     assert df is not None
 
     block = NMRBlock(item_id="nmr-block")
-    block.read_jeol_nmr_data(nmr_1d_jeol_example)
+    with pytest.warns(
+        UserWarning,
+        match=".*Attempting best guess at processing time-domain data with FFT and ACME autophase.*",
+    ):
+        block.processed_data, block.data["metadata"] = block.read_jeol_nmr_data(nmr_1d_jeol_example)
+
+    block.generate_nmr_plot(parse=False)
+    plot = block.data.get("bokeh_plot_data")
+    assert plot is not None
