@@ -204,24 +204,29 @@ jobs:
 
   e2e:
     name: e2e tests
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux]
     strategy:
       fail-fast: false
-      max-parallel: 3
+      max-parallel: 1
       matrix:
-        browser-backend: ["electron", "chrome"] # , "firefox"]  # Temporarily disable Firefox until migration to Cypress v14 (https://github.com/datalab-org/datalab/issues/1289)
+        browser-backend: ["electron", "chromium"] # , "firefox"]  # Temporarily disable Firefox until migration to Cypress v14 (https://github.com/datalab-org/datalab/issues/1289)
 
     steps:
       - uses: actions/checkout@v5
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          install: true
+          driver: docker
 
       - name: Set some environment variables for CI containers pre-build
         run: |
           cp webapp/.env.test_e2e .env
           echo "PYDATALAB_TESTING=true" >> .env
           echo "PYDATALAB_TESTING=true" >> pydatalab/.env
+          echo "WEB_CONCURRENCY=1" >> .env
+          echo "WEB_CONCURRENCY=1" >> pydatalab/.env
 
       - name: Build Docker images
         uses: docker/bake-action@v6
@@ -231,15 +236,6 @@ jobs:
           source: .
           targets: 'app,api,database'
           set: |
-            app.cache-from=type=gha,scope=${{ github.ref_name }}-${{ matrix.browser-backend }}-build-app
-            app.cache-from=type=gha,scope=main-${{ matrix.browser-backend }}-build-app
-            api.cache-from=type=gha,scope=${{ github.ref_name }}-${{ matrix.browser-backend }}-build-api
-            api.cache-from=type=gha,scope=main-${{ matrix.browser-backend }}-build-api
-            database.cache-from=type=gha,scope=${{ github.ref_name }}-${{ matrix.browser-backend }}-build-database
-            database.cache-from=type=gha,scope=main-${{ matrix.browser-backend }}-build-database
-            api.cache-to=type=gha,scope=${{ github.ref_name }}-${{ matrix.browser-backend }}-build-api,mode=max
-            app.cache-to=type=gha,scope=${{ github.ref_name }}-${{ matrix.browser-backend }}-build-app,mode=max
-            database.cache-to=type=gha,scope=${{ github.ref_name }}-${{ matrix.browser-backend }}-build-database,mode=max
             api.args.SETUPTOOLS_SCM_PRETEND_VERSION=0.11.11-rc.8
             app.tags=datalab-app:latest
             api.tags=datalab-api:latest
@@ -280,6 +276,16 @@ jobs:
           group: "Component tests (${{ matrix.browser-backend }})"
         env:
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
+
+      - name: Clean up containers and volumes
+        if: always()
+        run: |
+          docker compose down database app api
+          docker compose run --rm -v /data/:/data/ --entrypoint "rm -rf /data/db/* /data/files/* /data/logs/*" database
+          docker container prune -f
+          docker network prune -f
+          docker volume prune -f
+          docker image prune -f
 
   liccheck:
     name: Check OSS license compatibility for dependencies
