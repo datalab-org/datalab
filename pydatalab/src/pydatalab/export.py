@@ -46,12 +46,7 @@ def generate_ro_crate_metadata(collection_data: dict, child_items: list[dict]) -
             "@type": "CreativeWork",
             "about": {"@id": "./"},
             "conformsTo": {"@id": "https://w3id.org/ro/crate/1.1"},
-            "license": {
-                "@id": "https://choosealicense.com/no-permission/",
-                "name": "No license - all rights reserved",
-            },
-            "dateCreated": now, 
-            "datePublished": now,
+            "dateCreated": now,
             "sdPublisher": {
                 "@id": CONFIG.APP_URL or "https://datalab-org.io",
             },
@@ -63,6 +58,11 @@ def generate_ro_crate_metadata(collection_data: dict, child_items: list[dict]) -
             "description": collection_data.get("description", ""),
             "hasPart": experiments,
             "version": "1",
+            "license": {
+                "@id": "https://choosealicense.com/no-permission/",
+                "name": "No license - all rights reserved",
+            },
+            "datePublished": now,
         },
     ]
 
@@ -280,7 +280,7 @@ def create_eln_file(
 
         ro_crate_metadata = generate_ro_crate_metadata(collection_data, child_items)
         with open(root_folder / "ro-crate-metadata.json", "w", encoding="utf-8") as f:
-            json.dump(ro_crate_metadata, f, indent=2, ensure_ascii=False)
+            json.dump(ro_crate_metadata, f, ensure_ascii=False)
 
         for item in child_items:
             item_folder = root_folder / item["refcode"]
