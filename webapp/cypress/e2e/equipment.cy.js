@@ -146,7 +146,7 @@ describe("Equipment edit page", () => {
     cy.get('[data-testid="add-block-button-top"]').click();
     cy.get('[data-testid="add-block-dropdown"]').findByText("Comment").click();
 
-    cy.get(".datablock-content div").first().type("a comment is added here.");
+    cy.get(".datablock-content [contenteditable]").first().type("a comment is added here.");
 
     cy.get(".fa-save").click();
     cy.visit("/equipment");

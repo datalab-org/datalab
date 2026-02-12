@@ -209,7 +209,10 @@ class XRDBlock(DataBlock):
     def generate_xrd_plot(self, filenames: list[str | Path] | None = None) -> None:
         """Generate a Bokeh plot potentially containing multiple XRD patterns.
 
-        This function will first check whether a `file_id` is set in the block data.
+        This function will first check whether `file_ids` is set in the block data.
+        If so, it will load those specific files.
+
+        Otherwise, it will check whether a `file_id` is set in the block data.
         If not, it will interpret this as the "all compatible files" option, and will
         look into the item data to find all attached files, and attempt to read them as
         XRD patterns.
@@ -220,9 +223,38 @@ class XRDBlock(DataBlock):
         file_info = None
         all_files = None
         pattern_dfs = None
+        y_options: list[str] = []
+        peak_data: dict = {}
 
-        if self.data.get("file_id") is None and filenames is None:
-            # If no file set, try to plot them all
+        file_ids = self.data.get("file_ids")
+        if file_ids and len(file_ids) > 0 and filenames is None:
+            pattern_dfs = []
+            peak_information = {}
+
+            for ind, file_id in enumerate(self.data["file_ids"]):
+                try:
+                    file_info = get_file_info_by_id(file_id, update_if_live=True)
+                    peak_data = {}
+                    pattern_df, y_options, peak_data = self.load_pattern(
+                        file_info["location"],
+                        wavelength=float(self.data.get("wavelength", self.defaults["wavelength"])),
+                    )
+                    pattern_df.attrs["item_id"] = self.data.get("item_id", "unknown")
+                    pattern_df.attrs["original_filename"] = file_info.get("name", "unknown")
+                    pattern_df.attrs["wavelength"] = (
+                        f"{self.data.get('wavelength', self.defaults['wavelength'])} Å"
+                    )
+                    peak_information[str(file_id)] = PeakInformation(**peak_data).dict()
+                    pattern_df["normalized intensity (staggered)"] += ind
+                    pattern_dfs.append(pattern_df)
+                except Exception as exc:
+                    warnings.warn(f"Could not parse file {file_id} as XRD data. Error: {exc}")
+                    continue
+
+            self.data["computed"] = {}
+            self.data["computed"]["peak_data"] = peak_information
+
+        elif self.data.get("file_id") is None and filenames is None:
             item_info = flask_mongo.db.items.find_one(
                 {"item_id": self.data["item_id"]},
                 projection={"file_ObjectIds": 1},
@@ -247,10 +279,9 @@ class XRDBlock(DataBlock):
 
             pattern_dfs = []
             peak_information = {}
-            y_options: list[str] = []
             for ind, f in enumerate(all_files):
                 try:
-                    peak_data: dict = {}
+                    peak_data = {}
                     pattern_df, y_options, peak_data = self.load_pattern(
                         f["location"],
                         wavelength=float(self.data.get("wavelength", self.defaults["wavelength"])),
@@ -312,7 +343,6 @@ class XRDBlock(DataBlock):
                 if self.data.get("computed") is None:
                     self.data["computed"] = {"peak_data": {}}
                 self.data["computed"]["peak_data"][f] = peak_model.dict()
-                pattern_dfs = [pattern_df]
 
         if pattern_dfs:
             p = self._make_plots(pattern_dfs, y_options)

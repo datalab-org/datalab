@@ -2,17 +2,19 @@
   <!-- think about elegant two-way binding to DataBlockBase... or, just pass all the block data into
 DataBlockBase as a prop, and save from within DataBlockBase  -->
   <DataBlockBase :item_id="item_id" :block_id="block_id">
-    <FileSelectDropdown
-      v-model="file_id"
-      :item_id="item_id"
-      :block_id="block_id"
-      :extensions="blockInfo?.attributes?.accepted_file_extensions"
-      update-block-on-change
-    />
+    <template #controls>
+      <FileSelectDropdown
+        v-model="file_id"
+        :item_id="item_id"
+        :block_id="block_id"
+        :extensions="blockInfo?.attributes?.accepted_file_extensions"
+        update-block-on-change
+      />
+    </template>
 
-    <div id="bokehPlotContainer" class="limited-width">
+    <template #plot>
       <BokehPlot :bokeh-plot-data="bokehPlotData" />
-    </div>
+    </template>
   </DataBlockBase>
 </template>
 
