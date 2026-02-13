@@ -67,6 +67,7 @@ def read_bruker_1d(
             warnings.warn(
                 "No frequency-domain data found in Bruker project. Attempting best guess at processing time-domain data with FFT and ACME autophase."
             )
+            p_data = ng.bruker.remove_digital_filter(a_data, a_dic)
             p_data = ng.process.proc_base.fft(a_data)
 
         p_data = ng.process.proc_base.rev(p_data)

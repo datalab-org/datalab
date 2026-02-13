@@ -121,14 +121,14 @@ def test_nmr_block(
 ):
     block = NMRBlock(item_id="nmr-block")
     block.processed_data, block.data["metadata"] = block.read_bruker_nmr_data(nmr_1d_solid_path)
-    assert block.data["metadata"]["topspin_title"].split("\n")[0] == "7Li 40 kHz 40 C hahn-echo"
+    assert block.data["metadata"]["title"].split("\n")[0] == "7Li 40 kHz 40 C hahn-echo"
     block.generate_nmr_plot(parse=False)
     plot = block.data["bokeh_plot_data"]
     assert plot is not None
 
     block = NMRBlock(item_id="nmr-block")
     block.processed_data, block.data["metadata"] = block.read_bruker_nmr_data(nmr_1d_solution_path)
-    assert block.data["metadata"]["topspin_title"].split("\n")[0] == "31P reference, 85% H3PO4"
+    assert block.data["metadata"]["title"].split("\n")[0] == "31P reference, 85% H3PO4"
     block.generate_nmr_plot(parse=False)
     plot = block.data["bokeh_plot_data"]
     assert plot is not None
@@ -137,14 +137,14 @@ def test_nmr_block(
     block.processed_data, block.data["metadata"] = block.read_bruker_nmr_data(
         nmr_1d_solution_path_renamed
     )
-    assert block.data["metadata"]["topspin_title"].split("\n")[0] == "31P reference, 85% H3PO4"
+    assert block.data["metadata"]["title"].split("\n")[0] == "31P reference, 85% H3PO4"
     block.generate_nmr_plot(parse=False)
     plot = block.data["bokeh_plot_data"]
     assert plot is not None
 
     block = NMRBlock(item_id="nmr-block")
     block.processed_data, block.data["metadata"] = block.read_bruker_nmr_data(nmr_2d_matpass_path)
-    assert block.data["metadata"]["topspin_title"].split("\n")[0] == "7Li 40kHz 40 C MATPASS"
+    assert block.data["metadata"]["title"].split("\n")[0] == "7Li 40kHz 40 C MATPASS"
     # catch warning about processed data
     with pytest.warns(UserWarning, match="Only metadata"):
         block.generate_nmr_plot(parse=False)
@@ -159,9 +159,9 @@ def test_read_jcamp_1h_1d(nmr_jcamp_1h_path):
 
     block = NMRBlock(item_id="nmr-block")
     block.read_jcamp_nmr_data(nmr_jcamp_1h_path)
-    assert block.data["metadata"]["title"] == title
+    assert block.data["metadata"]["title"] == title[0]
     assert block.data["metadata"]["nucleus"] == "1H"
-    assert block.data["metadata"]["carrier_frequency_Hz"] == 400.4224e6
+    assert block.data["metadata"]["carrier_frequency_MHz"] == 400.4224
 
 
 def test_read_jcamp_13c_1d(nmr_jcamp_13c_path):
@@ -171,9 +171,9 @@ def test_read_jcamp_13c_1d(nmr_jcamp_13c_path):
 
     block = NMRBlock(item_id="nmr-block")
     block.read_jcamp_nmr_data(nmr_jcamp_13c_path)
-    assert block.data["metadata"]["title"] == title
+    assert block.data["metadata"]["title"] == title[0]
     assert block.data["metadata"]["nucleus"] == "13C"
-    assert block.data["metadata"]["carrier_frequency_Hz"] == 100.695689e6
+    assert block.data["metadata"]["carrier_frequency_MHz"] == 100.695689
 
 
 def test_read_jeol_proton_1d(nmr_1d_jeol_example):
