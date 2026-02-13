@@ -7,6 +7,7 @@ from typing import Any
 import bokeh.embed
 import pandas as pd
 
+from pydatalab.apps.nmr.models import NMRMetadata, NMRModel
 from pydatalab.apps.nmr.utils import (
     fish_for_bruker_data,
     read_bruker_1d,
@@ -25,11 +26,11 @@ JEOL_FILE_EXTENSIONS = (".jdf",)
 class NMRBlock(DataBlock):
     blocktype = "nmr"
     name = "NMR"
-    description = "A data block for loading and visualizing 1D NMR data from Bruker projects or JCAMP-DX files."
+    description = "A data block for loading and visualizing 1D NMR data from Bruker projects, JEOL files or JCAMP-DX files."
+    block_db_model = NMRModel
 
     accepted_file_extensions = BRUKER_FILE_EXTENSIONS + JCAMP_FILE_EXTENSIONS + JEOL_FILE_EXTENSIONS
     processed_data: dict | None = None
-    defaults = {"process number": 1}
     _supports_collections = False
 
     @property
@@ -97,10 +98,9 @@ class NMRBlock(DataBlock):
         serialized_df = df.to_dict() if (df is not None) else None
 
         metadata = {}
-        metadata["acquisition_parameters"] = a_dic["acqus"]
-        metadata["processing_parameters"] = a_dic["procs"]
-        metadata["pulse_program"] = a_dic["pprog"]
-        metadata["available_processes"] = self.data["available_processes"]
+        metadata["acquisition_parameters"] = a_dic.get("acqus")
+        metadata["processing_parameters"] = a_dic.get("procs")
+        metadata["pulse_program"] = a_dic.get("pprog", None)
         metadata["nucleus"] = a_dic["acqus"]["NUC1"]
         metadata["carrier_frequency_MHz"] = a_dic["acqus"]["SFO1"]
         metadata["carrier_offset_Hz"] = a_dic["acqus"]["O1"]
@@ -110,10 +110,9 @@ class NMRBlock(DataBlock):
         metadata["processed_data_shape"] = processed_data_shape
         metadata["probe_name"] = a_dic["acqus"]["PROBHD"]
         metadata["pulse_program_name"] = a_dic["acqus"]["PULPROG"]
-        metadata["topspin_title"] = topspin_title
         metadata["title"] = topspin_title
 
-        self.data["metadata"] = metadata
+        self.data["metadata"] = NMRMetadata(**metadata).dict()
 
         return serialized_df, metadata
 
@@ -164,11 +163,11 @@ class NMRBlock(DataBlock):
 
         metadata: dict[str, Any] = {}
         metadata["processed_data_shape"] = shape
-        metadata["title"] = title
+        metadata["title"] = " ".join(title)
 
         keys_to_scape = {
             "nucleus": ".OBSERVENUCLEUS",
-            "carrier_frequency_Hz": ".OBSERVEFREQUENCY",
+            "carrier_frequency_MHz": ".OBSERVEFREQUENCY",
             "pulse_program_name": ".PULSESEQUENCE",
         }
         for key, jcamp_key in keys_to_scape.items():
@@ -182,10 +181,6 @@ class NMRBlock(DataBlock):
                     f"Unable to parse {key} from {jcamp_key} in JCAMP file: {a_dic.get(jcamp_key)} - {e}"
                 )
 
-        if "carrier_frequency_Hz" in metadata:
-            # JCAMP field is standardized on MHz so need to convert
-            metadata["carrier_frequency_Hz"] = float(metadata["carrier_frequency_Hz"]) * 1e6
-
         if "nucleus" in metadata:
             metadata["nucleus"] = metadata["nucleus"].replace("^", "")
 
@@ -196,7 +191,7 @@ class NMRBlock(DataBlock):
             pass
 
         serialized_df = df.to_dict() if (df is not None) else None
-        self.data["metadata"] = metadata
+        self.data["metadata"] = NMRMetadata(**metadata).dict()
 
         return serialized_df, metadata
 
@@ -241,7 +236,7 @@ class NMRBlock(DataBlock):
             "carrier_frequency_Hz": "car",
             "nucleus": "x_domain",
             "carrier_offset_ppm": "x_offset",
-            "relaxation_delay": "relaxation_delay",
+            "recycle_delay": "relaxation_delay",
             "pulse_program_name": "experiment",
             "spectral_window_Hz": "x_sweep",
         }
@@ -260,7 +255,17 @@ class NMRBlock(DataBlock):
 
         if "carrier_frequency_Hz" in metadata and "carrier_frequency_MHz" not in metadata:
             # JEOL gives carrier frequency in Hz. Convert to MHz for display
-            metadata["carrier_frequency_MHz"] = float(metadata["carrier_frequency_Hz"]) * 1e-6
+            metadata["carrier_frequency_MHz"] = float(metadata.pop("carrier_frequency_Hz")) * 1e-6
+
+        if "carrier_offset_ppm" in metadata and "carrier_offset_Hz" not in metadata:
+            # Convert carrier offset from ppm to Hz for display, using the carrier frequency if available
+            import nmrglue as ng
+
+            uc = ng.fileiobase.uc_from_udic(a_udic)
+            metadata["carrier_offset_Hz"] = float(metadata.pop("carrier_offset_ppm")) * (
+                uc.ppm_scale()[0] / uc.hz_scale()[0]
+            )
+
         if metadata["nucleus"] == "Proton":
             # JEOL labels proton NMR as proton, convert to 1H
             metadata["nucleus"] = "1H"
@@ -271,7 +276,8 @@ class NMRBlock(DataBlock):
         metadata["nscans"] = nscans
 
         serialized_df = df.to_dict() if (df is not None) else None
-        self.data["metadata"] = metadata
+        self.data["metadata"] = NMRMetadata(**metadata).dict()
+
         return serialized_df, metadata
 
     def load_nmr_data(self, file_info: dict):
