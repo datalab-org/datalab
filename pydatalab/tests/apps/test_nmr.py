@@ -32,6 +32,9 @@ def nmr_1d_solution_path():
 
 @pytest.fixture(scope="function")
 def nmr_multi_nuclei_path():
+    """This example only contains the skeleton of a zip containing multiple Bruker NMR datasets,
+    to test whether the process finder can handle multiple datasets in one zip.
+    """
     yield Path(__file__).parent.parent.parent / "example_data" / "NMR" / "multi_nuclei.zip"
 
 
