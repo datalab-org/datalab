@@ -31,6 +31,11 @@ def nmr_1d_solution_path():
 
 
 @pytest.fixture(scope="function")
+def nmr_multi_nuclei_path():
+    yield Path(__file__).parent.parent.parent / "example_data" / "NMR" / "multi_nuclei.zip"
+
+
+@pytest.fixture(scope="function")
 def nmr_1d_solution_path_renamed(tmpdir, nmr_1d_solution_path):
     """A renamed version of the 1D solution example, to test whether
     the process finder can handle mismatched file names."""
@@ -187,3 +192,29 @@ def test_read_jeol_proton_1d(nmr_1d_jeol_example):
     block.generate_nmr_plot(parse=False)
     plot = block.data.get("bokeh_plot_data")
     assert plot is not None
+
+
+def test_scan_bruker_dir(
+    nmr_1d_solution_path,
+    nmr_1d_solution_path_renamed,
+    nmr_2d_matpass_path,
+    nmr_1d_solid_path,
+    nmr_multi_nuclei_path,
+):
+    from pydatalab.apps.nmr.utils import fish_for_bruker_data
+
+    result = fish_for_bruker_data(nmr_1d_solution_path)
+    assert len(result) == 1
+    assert result[0].name == "1"
+
+    result = fish_for_bruker_data(nmr_1d_solid_path)
+    assert len(result) == 1
+    assert result[0].name == "71"
+
+    result = fish_for_bruker_data(nmr_2d_matpass_path)
+    assert len(result) == 1
+    assert result[0].name == "72"
+
+    result = fish_for_bruker_data(nmr_multi_nuclei_path)
+    assert len(result) == 3
+    assert sorted([p.name for p in result]) == ["10", "11", "12"]

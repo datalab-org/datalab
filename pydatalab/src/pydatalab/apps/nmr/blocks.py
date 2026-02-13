@@ -1,14 +1,18 @@
 import os
 import tempfile
 import warnings
-import zipfile
 from pathlib import Path
 from typing import Any
 
 import bokeh.embed
 import pandas as pd
 
-from pydatalab.apps.nmr.utils import read_bruker_1d, read_jcamp_dx_1d, read_jeol_jdf_1d
+from pydatalab.apps.nmr.utils import (
+    fish_for_bruker_data,
+    read_bruker_1d,
+    read_jcamp_dx_1d,
+    read_jeol_jdf_1d,
+)
 from pydatalab.blocks.base import DataBlock
 from pydatalab.bokeh_plots import DATALAB_BOKEH_THEME, selectable_axes_plot
 from pydatalab.file_utils import get_file_info_by_id
@@ -58,39 +62,7 @@ class NMRBlock(DataBlock):
 
         # unzip to tmp directory
         with tempfile.TemporaryDirectory() as tmpdirname:
-            # Create a Path object for the temporary directory
-            tmpdir_path = Path(tmpdirname)
-
-            # Unzip the file to the temporary directory
-            with zipfile.ZipFile(location, "r") as zip_ref:
-                zip_ref.extractall(tmpdir_path)
-
-            extracted_directory = tmpdir_path / Path(location).stem
-            root_directory: Path | None = None
-            # Check if `<name>.zip` has a matching root-level `<name>` directory.
-            for c in extracted_directory.iterdir():
-                # If we already found a root directory, break and emit warning about which one will be used
-                if c.name == "__MACOSX":
-                    continue
-                if root_directory is not None:
-                    warnings.warn(
-                        f"Multiple Bruker projects found in the zip file {list(tmpdir_path.iterdir())}, using {root_directory}."
-                    )
-                    break
-                if c.is_dir():
-                    root_directory = c
-
-            if root_directory:
-                extracted_directory_name = root_directory
-
-            experiments: list[str] = []
-            if (extracted_directory_name / "pdata").exists():
-                experiments = [str(extracted_directory_name)]
-
-            else:
-                for exp in os.listdir(extracted_directory_name):
-                    if (extracted_directory_name / exp / "pdata").exists():
-                        experiments.append(str(extracted_directory_name / exp))
+            experiments = [str(e) for e in fish_for_bruker_data(location, tmpdirname)]
 
             if not experiments:
                 raise RuntimeError(
@@ -106,7 +78,7 @@ class NMRBlock(DataBlock):
 
             try:
                 self.data["available_processes"] = sorted(
-                    os.listdir(os.path.join(self.data["selected_experiment"], "pdata"))
+                    os.listdir(Path(self.data["selected_experiment"]) / "pdata")
                 )
             except FileNotFoundError:
                 raise RuntimeError(

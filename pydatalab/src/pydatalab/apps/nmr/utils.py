@@ -1,6 +1,8 @@
 import itertools
 import re
+import tempfile
 import warnings
+import zipfile
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -255,3 +257,54 @@ def integrate_1d(
         integrated_intensities[c] = -1 * integrate.trapz(df[c], df.ppm)
 
     return integrated_intensities
+
+
+def fish_for_bruker_data(
+    location: Path, tmpdirname: str | None = None, max_depth: int = 5
+) -> list[Path]:
+    """Given a zip file containing Bruker NMR data, descend into the zip
+    and find all possible Bruker data directories, returning a list of paths.
+
+    Parameters:
+        location: The path to the zip file containing the Bruker data.
+        tmpdirname: An optional path to a temporary directory where the zip file will be extracted.
+        max_depth: The maximum depth to recurse into the directory structure when looking for Bruker data directories.
+
+    Returns:
+        A list of paths to Bruker data directories found within the zip file.
+
+    """
+    if tmpdirname is None:
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            return fish_for_bruker_data(location, tmpdirname=tmpdirname, max_depth=max_depth)
+
+    # Create a Path object for the temporary directory
+    tmpdir_path = Path(tmpdirname)
+
+    # Unzip the file to the temporary directory
+    with zipfile.ZipFile(location, "r") as zip_ref:
+        zip_ref.extractall(tmpdir_path)
+
+    def _scan_dir(path: Path, depth: int = 0) -> list[Path] | None:
+        if depth > max_depth:
+            return None
+
+        if path.is_dir():
+            if path.name == "pdata":
+                return [path.parent]
+
+            if path.name == "__MACOSX":
+                return None
+
+            results = []
+            for p in path.iterdir():
+                result = _scan_dir(p, depth + 1)
+                if result:
+                    results.extend(result)
+
+            return results or None
+
+        return []
+
+    # Recurse to max_depth and find all pdata directories
+    return _scan_dir(tmpdir_path, depth=0) or []
