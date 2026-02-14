@@ -1,10 +1,20 @@
 from typing import Any
 
-from pydantic import Field
+from pydantic import BaseModel, Field
 
 from pydatalab.models.entries import Entry
 from pydatalab.models.traits import HasOwner, HasRevisionControl
 from pydatalab.models.utils import IsoformatDateTime
+
+
+class FileChecksums(BaseModel):
+    """Content checksums for a file."""
+
+    md5: str
+    """The MD5 hex digest of the file contents."""
+
+    sha256: str
+    """The SHA-256 hex digest of the file contents."""
 
 
 class File(Entry, HasOwner, HasRevisionControl):
@@ -58,3 +68,6 @@ class File(Entry, HasOwner, HasRevisionControl):
 
     is_live: bool
     """Whether or not the file should be watched for future updates."""
+
+    checksums: FileChecksums | None
+    """Content checksums (MD5 and SHA-256) of the file."""

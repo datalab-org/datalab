@@ -76,6 +76,11 @@ def test_get_file_and_delete(client, default_filepath, default_sample):
     assert response.json["item_data"]["files"][0]["name"] == default_filepath.name
     assert response.json["item_data"]["files"][0]["size"] == 2465718
 
+    checksums = response.json["item_data"]["files"][0]["checksums"]
+    assert checksums is not None
+    assert len(checksums["md5"]) == 32
+    assert len(checksums["sha256"]) == 64
+
     file_response = client.get(f"/files/{file_id}/{default_filepath.name}")
     assert file_response.json is None
     assert file_response.status_code == 200
