@@ -177,6 +177,9 @@ export default {
         .then(() => {
           this.prompt = "";
         })
+        .catch((error) => {
+          console.error("Error updating block:", error);
+        })
         .finally(() => {
           this.isLoading = false;
         });
