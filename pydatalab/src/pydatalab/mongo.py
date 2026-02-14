@@ -341,16 +341,19 @@ def create_default_indices(
         db.users.drop_index(group_fts_name)
         ret += create_group_fts()
 
-    ret += db.export_tasks.create_index(
+    ret += db.tasks.create_index(
         "task_id", unique=True, name="unique task ID", background=background
     )
-    ret += db.export_tasks.create_index(
-        "creator_id", name="export task creator", background=background
+
+    ret += db.tasks.create_index("type", name="task type", background=background)
+    ret += db.tasks.create_index("creator_id", name="task creator", background=background)
+    ret += db.tasks.create_index("created_at", name="task created at", background=background)
+    ret += db.tasks.create_index("status", name="task status", background=background)
+    ret += db.tasks.create_index(
+        [("type", pymongo.ASCENDING), ("creator_id", pymongo.ASCENDING)],
+        name="task type and creator",
+        background=background,
     )
-    ret += db.export_tasks.create_index(
-        "created_at", name="export task created at", background=background
-    )
-    ret += db.export_tasks.create_index("status", name="export task status", background=background)
 
     # Version control indexes
     ret += db.item_versions.create_index("refcode", name="version refcode", background=background)
