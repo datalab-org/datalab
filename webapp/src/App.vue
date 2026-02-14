@@ -1,15 +1,18 @@
 <template>
   <router-view />
   <DialogContainer />
+  <LoginModal />
 </template>
 
 <script>
 import DialogContainer from "@/components/DialogContainer.vue";
+import LoginModal from "@/components/LoginModal.vue";
 import { getApiConfig, loadItemSchemas } from "@/server_fetch_utils.js";
 
 export default {
   components: {
     DialogContainer,
+    LoginModal,
   },
   async created() {
     // Wait for the router to resolve the initial route before loading schemas,
