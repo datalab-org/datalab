@@ -1409,3 +1409,20 @@ export async function compareItemVersions(refcode, baseVersion, targetVersion) {
       throw error;
     });
 }
+
+export function invalidateToken(refcode) {
+  return fetch_post(`${API_URL}/items/${refcode}/invalidate-access-token`, {
+    token: "admin-invalidation",
+  })
+    .then(function (response_json) {
+      if (response_json.status !== "success") {
+        throw new Error(
+          "Failed to invalidate token: " + (response_json.detail || response_json.message),
+        );
+      }
+      return response_json;
+    })
+    .catch(function (error) {
+      throw error;
+    });
+}

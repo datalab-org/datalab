@@ -134,12 +134,17 @@ def test_access_token_permissions(client, unauthenticated_client, admin_client, 
     assert response.status_code == 401
 
 
-def test_manager_permissions(admin_client, client, another_client, user_id, another_user_id):
+def test_manager_permissions(
+    admin_client, client, another_client, user_id, another_user_id, real_mongo_client
+):
     response = client.post(
         "/new-sample/", json={"type": "samples", "item_id": "private-sample-with-manager"}
     )
     assert response.status_code == 201
     refcode = response.json["sample_list_entry"]["refcode"]
+
+    db = real_mongo_client.get_database()
+    db.roles.update_one({"_id": another_user_id}, {"$set": {"role": "manager"}}, upsert=True)
 
     # Add manager to the original user
     response = admin_client.patch(
@@ -168,6 +173,8 @@ def test_manager_permissions(admin_client, client, another_client, user_id, anot
 
     # Also removes read access
     assert another_client.get(f"/items/{refcode}").status_code == 404
+
+    db.roles.update_one({"_id": another_user_id}, {"$set": {"role": "user"}})
 
 
 def test_group_permissions(client, another_client, user_id, another_user_id, group_id):
