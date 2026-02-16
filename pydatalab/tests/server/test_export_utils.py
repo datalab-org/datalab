@@ -22,12 +22,14 @@ def test_generate_ro_crate_metadata():
         {
             "item_id": "sample1",
             "name": "Sample 1",
+            "refcode": "sample1",
             "date": datetime.now(tz=timezone.utc),
             "file_ObjectIds": ["507f1f77bcf86cd799439011"],
         },
         {
             "item_id": "sample2",
             "name": "Sample 2",
+            "refcode": "sample2",
         },
     ]
 
@@ -48,7 +50,7 @@ def test_generate_ro_crate_metadata():
     sample1 = next(item for item in metadata["@graph"] if item["@id"] == "./sample1/")
     assert sample1["@type"] == "Dataset"
     assert sample1["name"] == "Sample 1"
-    assert sample1["identifier"] == "sample1"
+    assert sample1["identifier"] == "test:sample1"
 
 
 def test_create_eln_file_items(database, tmp_path, user_id):
@@ -65,6 +67,7 @@ def test_create_eln_file_items(database, tmp_path, user_id):
         "refcode": "test:ABCDEF",
         "relationships": [{"type": "samples", "immutable_id": sample_id_2}],
         "creator_ids": [user_id],
+        "creators": [{"display_name": "Test User", "immutable_id": user_id}],
     }
 
     sample_data_2 = {
@@ -74,6 +77,7 @@ def test_create_eln_file_items(database, tmp_path, user_id):
         "type": "samples",
         "refcode": "test:ABCDEF2",
         "creator_ids": [user_id],
+        "creators": [{"display_name": "Test User", "immutable_id": user_id}],
     }
 
     database.items.insert_one(sample_data)
@@ -88,19 +92,23 @@ def test_create_eln_file_items(database, tmp_path, user_id):
         with zipfile.ZipFile(output_path, "r") as zf:
             files = zf.namelist()
 
-            assert f"{sample_item_id}/ro-crate-metadata.json" in files
+            assert f"{sample_data['refcode']}/ro-crate-metadata.json" in files
 
-            with zf.open(f"{sample_item_id}/ro-crate-metadata.json") as f:
+            with zf.open(f"{sample_data['refcode']}/ro-crate-metadata.json") as f:
                 ro_crate = json.load(f)
                 assert ro_crate["@context"] == "https://w3id.org/ro/crate/1.1/context"
 
             try:
-                with zf.open(f"{sample_item_id}/{sample_item_id}/metadata.json") as f:
+                with zf.open(
+                    f"{sample_data['refcode']}/{sample_data['refcode']}/metadata.json"
+                ) as f:
                     sample_metadata = json.load(f)
                     assert sample_metadata["item_id"] == sample_item_id
                     assert sample_metadata["name"] == "Test Sample"
 
-                with zf.open(f"{sample_item_id}/{sample_item_id_2}/metadata.json") as f:
+                with zf.open(
+                    f"{sample_data['refcode']}/{sample_data_2['refcode']}/metadata.json"
+                ) as f:
                     sample_metadata = json.load(f)
                     assert sample_metadata["item_id"] == sample_item_id_2
 
@@ -136,6 +144,7 @@ def test_create_eln_file_collection(database, tmp_path, user_id):
     cell_data = {
         "_id": cell_id,
         "item_id": "test_cell",
+        "refcode": "test:cell123",
         "name": "Test Cell",
         "type": "cells",
         "relationships": [{"type": "collections", "immutable_id": collection_data["_id"]}],
@@ -155,19 +164,19 @@ def test_create_eln_file_collection(database, tmp_path, user_id):
         with zipfile.ZipFile(output_path, "r") as zf:
             files = zf.namelist()
 
-            assert f"{collection_id}/ro-crate-metadata.json" in files, files
-            assert f"{collection_id}/test_sample/metadata.json" in files, files
+            assert f"{collection_id}/ro-crate-metadata.json" in files
+            assert f"{collection_id}/{sample_data['refcode']}/metadata.json" in files
 
             with zf.open(f"{collection_id}/ro-crate-metadata.json") as f:
                 ro_crate = json.load(f)
                 assert ro_crate["@context"] == "https://w3id.org/ro/crate/1.1/context"
 
-            with zf.open(f"{collection_id}/test_sample/metadata.json") as f:
+            with zf.open(f"{collection_id}/{sample_data['refcode']}/metadata.json") as f:
                 sample_metadata = json.load(f)
                 assert sample_metadata["item_id"] == "test_sample"
                 assert sample_metadata["name"] == "Test Sample"
 
-            with zf.open(f"{collection_id}/test_cell/metadata.json") as f:
+            with zf.open(f"{collection_id}/{cell_data['refcode']}/metadata.json") as f:
                 cell_metadata = json.load(f)
                 assert cell_metadata["item_id"] == "test_cell"
                 assert cell_metadata["name"] == "Test Cell"
