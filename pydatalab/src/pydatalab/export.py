@@ -15,8 +15,60 @@ from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER
 from pydatalab.models import ITEM_MODELS
 from pydatalab.mongo import flask_mongo
+from pydatalab.routes.v0_1.items import (
+    collections_lookup,
+    creators_lookup,
+    files_lookup,
+    groups_lookup,
+)
 
 __all__ = ("generate_ro_crate_metadata", "create_eln_file")
+
+
+def write_eln_file(root_folder_name, items, info, output_path) -> None:
+    """Write an ELN file to disk containing the given items and collection metadata.
+    Will first write to an intermediate temporary directory.
+
+    Parameters:
+        root_folder_name: The name of the root folder in the ELN file.
+        items: List of items to include in the ELN file, with all metadata and file info included.
+        info: Metadata for the collection (or item) being exported.
+        output_path: Path where the .eln file should be saved.
+
+    """
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_path = Path(temp_dir)
+
+        root_folder = temp_path / root_folder_name
+        root_folder.mkdir()
+
+        ro_crate_metadata = generate_ro_crate_metadata(info, items)
+        with open(root_folder / "ro-crate-metadata.json", "w", encoding="utf-8") as f:
+            json.dump(ro_crate_metadata, f, ensure_ascii=False)
+
+        for item in items:
+            item_folder = root_folder / item["refcode"]
+            item_folder.mkdir()
+
+            item_metadata = ITEM_MODELS[item.get("type")](**item).json(indent=2)
+
+            with open(item_folder / "metadata.json", "w", encoding="utf-8") as f:
+                f.write(item_metadata)
+
+            for file in item.get("files", []):
+                source_path = Path(file["location"])
+                if source_path.exists():
+                    dest_file = item_folder / file["name"]
+                    shutil.copy2(source_path, dest_file)
+                else:
+                    LOGGER.warning("ELN export: File not found on disk: %s", file["location"])
+
+        with zipfile.ZipFile(output_path, "w", zipfile.ZIP_DEFLATED) as zipf:
+            for file_path in root_folder.rglob("*"):
+                if file_path.is_file():
+                    arcname = file_path.relative_to(temp_path)
+                    zipf.write(file_path, arcname)
 
 
 def generate_ro_crate_metadata(collection_data: dict, child_items: list[dict]) -> dict:
@@ -103,8 +155,8 @@ def generate_ro_crate_metadata(collection_data: dict, child_items: list[dict]) -
                 "@type": "Person",
                 "name": creator.get("display_name"),
             }
-        if not item_metadata["author"]:
-            del item_metadata["author"]
+        if not item_metadata["authors"]:
+            del item_metadata["authors"]
 
         date_created = item.get("date")
         if date_created:
@@ -189,6 +241,8 @@ def create_eln_file(
     if not collection_id and not item_id:
         raise ValueError("Either collection_id or item_id must be provided")
 
+    match: dict = {}
+
     if collection_id:
         # We are outside the request context here, so cannot easily apply permissions baesd on the user.
         # TODO: Extra safeguards here -- refactor default permissions finder to be able to use
@@ -199,29 +253,21 @@ def create_eln_file(
             raise ValueError(f"Collection {collection_id} not found")
 
         collection_immutable_id = collection_data["_id"]
-        child_items = list(
-            flask_mongo.db.items.find(
-                {
-                    "relationships": {
-                        "$elemMatch": {
-                            "type": "collections",
-                            "immutable_id": collection_immutable_id,
-                        }
-                    }
+
+        match = {
+            "relationships": {
+                "$elemMatch": {
+                    "type": "collections",
+                    "immutable_id": collection_immutable_id,
                 }
-            )
-        )
+            }
+        }
+
         root_folder_name = collection_id
 
     elif item_id:
-        from pydatalab.routes.v0_1.items import (
-            collections_lookup,
-            creators_lookup,
-            files_lookup,
-            groups_lookup,
-        )
-
         match = {"item_id": item_id}
+        # Find main item info first; error out if missing
         cursor = flask_mongo.db.items.aggregate(
             [
                 {
@@ -247,28 +293,10 @@ def create_eln_file(
         if not item_data:
             raise ValueError(f"Item {item_id} not found")
 
+        root_folder_name = item_data["refcode"]
+
         if related_item_ids:
             match = {"item_id": {"$in": [item_id] + related_item_ids}}  # type: ignore
-            _child_items = []
-            child_items = flask_mongo.db.items.aggregate(
-                [
-                    {
-                        "$match": {
-                            **match,
-                        }
-                    },
-                    {"$lookup": creators_lookup()},
-                    {"$lookup": groups_lookup()},
-                    {"$lookup": collections_lookup()},
-                    {"$lookup": files_lookup()},
-                ],
-            )
-            for ind, item in enumerate(child_items):
-                ItemModel = ITEM_MODELS[item["type"]]
-                _child_items.append(ItemModel(**item).dict())
-            child_items = _child_items
-        else:
-            child_items = [item_data]
 
         collection_data = {
             "collection_id": item_id,
@@ -276,40 +304,30 @@ def create_eln_file(
             "description": f"Export of item {item_id}"
             + (" and related items" if related_item_ids else ""),
         }
-        root_folder_name = item_data["refcode"]
 
     else:
         raise ValueError("Either collection_id or item_id must be provided")
 
-    with tempfile.TemporaryDirectory() as temp_dir:
-        temp_path = Path(temp_dir)
+    all_items = flask_mongo.db.items.aggregate(
+        [
+            {
+                "$match": {
+                    **match,
+                }
+            },
+            {"$lookup": creators_lookup()},
+            {"$lookup": groups_lookup()},
+            {"$lookup": collections_lookup()},
+            {"$lookup": files_lookup()},
+        ],
+    )
 
-        root_folder = temp_path / root_folder_name
-        root_folder.mkdir()
+    _all_items = []
 
-        ro_crate_metadata = generate_ro_crate_metadata(collection_data, child_items)
-        with open(root_folder / "ro-crate-metadata.json", "w", encoding="utf-8") as f:
-            json.dump(ro_crate_metadata, f, ensure_ascii=False)
+    for ind, item in enumerate(all_items):
+        ItemModel = ITEM_MODELS[item["type"]]
+        _all_items.append(ItemModel(**item).dict())
 
-        for item in child_items:
-            item_folder = root_folder / item["refcode"]
-            item_folder.mkdir()
+    all_items = _all_items
 
-            item_metadata = ITEM_MODELS[item.get("type")](**item).json(indent=2)
-
-            with open(item_folder / "metadata.json", "w", encoding="utf-8") as f:
-                f.write(item_metadata)
-
-            for file in item.get("files", []):
-                source_path = Path(file["location"])
-                if source_path.exists():
-                    dest_file = item_folder / file["name"]
-                    shutil.copy2(source_path, dest_file)
-                else:
-                    LOGGER.warning("ELN export: File not found on disk: %s", file["location"])
-
-        with zipfile.ZipFile(output_path, "w", zipfile.ZIP_DEFLATED) as zipf:
-            for file_path in root_folder.rglob("*"):
-                if file_path.is_file():
-                    arcname = file_path.relative_to(temp_path)
-                    zipf.write(file_path, arcname)
+    write_eln_file(root_folder_name, all_items, collection_data, output_path)
