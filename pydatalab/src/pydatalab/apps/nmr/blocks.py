@@ -198,9 +198,8 @@ class NMRBlock(DataBlock):
     def read_jeol_nmr_data(
         self, filename: str | Path | None = None, file_info: dict | None = None
     ) -> tuple[dict | None, dict]:
-        """Loads a JEOL output file (.jdx)
-        and parses it into a serialized dataframe and metadata dictionary.
-        Based on the existing jcamp and Bruker readers
+        """Loads a JEOL output file (.jdx) and parses it into a
+        serialized dataframe and metadata dictionary.
 
         Parameters:
             filename: Optional local file to use instead of the database lookup.

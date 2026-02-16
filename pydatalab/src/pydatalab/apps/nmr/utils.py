@@ -18,7 +18,7 @@ def read_bruker_1d(
     verbose: bool = False,
     sample_mass_mg: float | None = None,
 ) -> tuple[pd.DataFrame | None, dict, str | None, tuple[int, ...]]:
-    """Read a 1D bruker nmr spectrum and return it as a df, optionally
+    """Read a 1D Bruker nmr spectrum and return it as a df, optionally
     converting the data to frequency domain if only time-domain data is found.
 
     Parameters:

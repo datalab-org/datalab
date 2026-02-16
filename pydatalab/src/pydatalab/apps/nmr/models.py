@@ -32,7 +32,7 @@ class NMRMetadata(BaseModel):
     """The number of scans used during the NMR experiment."""
 
     CNST31: float | None = None
-    """The CNST31 parameter used during the NMR experiment."""
+    """Bruker-specific constant (CNST31), typically the J-coupling constant in Hz used in experiments like DEPT or HSQC."""
 
     processed_data_shape: tuple[int, ...] | None = None
     """Tuple representing the shape of the processed NMR data array."""
