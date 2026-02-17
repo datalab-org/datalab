@@ -63,23 +63,41 @@ class NMRBlock(DataBlock):
 
         # unzip to tmp directory
         with tempfile.TemporaryDirectory() as tmpdirname:
-            experiments = [str(e) for e in fish_for_bruker_data(location, tmpdirname)]
+            experiment_paths = {e: str(e.name) for e in fish_for_bruker_data(location, tmpdirname)}
 
-            if not experiments:
+            if not experiment_paths:
                 raise RuntimeError(
                     f"No Bruker experiments found in the zip file {location} - no 'pdata' folder found."
                 )
 
+            # Sort numbers properly, e.g., "1", "2", "10" instead of "1", "10", "2",
+            # then defer to any non-numeric strings
+            self.data["available_experiments"] = sorted(
+                experiment_paths.values(), key=lambda x: ((0, int(x)) if x.isdigit() else (1, x))
+            )
+
+            selected_experiment_path = None
             if (
                 self.data.get("selected_experiment") is None
-                or self.data["selected_experiment"] not in experiments
+                or self.data["selected_experiment"] not in self.data["available_experiments"]
             ):
-                self.data["selected_experiment"] = experiments[-1]
-                self.data["available_experiments"] = experiments
+                selected_experiment_path = list(experiment_paths)[0]
+                self.data["selected_experiment"] = experiment_paths[selected_experiment_path]
+
+            else:
+                for k in experiment_paths:
+                    if experiment_paths[k] == self.data["selected_experiment"]:
+                        selected_experiment_path = k
+                        break
+
+            if selected_experiment_path is None:
+                raise RuntimeError(
+                    f"Selected experiment {self.data['selected_experiment']} not found in available experiments {self.data['available_experiments']}."
+                )
 
             try:
                 self.data["available_processes"] = sorted(
-                    os.listdir(Path(self.data["selected_experiment"]) / "pdata")
+                    os.listdir(selected_experiment_path / "pdata")
                 )
             except FileNotFoundError:
                 raise RuntimeError(
@@ -90,7 +108,7 @@ class NMRBlock(DataBlock):
                 self.data["selected_process"] = self.data["available_processes"][0]
 
             df, a_dic, topspin_title, processed_data_shape = read_bruker_1d(
-                self.data["selected_experiment"],
+                selected_experiment_path,
                 process_number=self.data["selected_process"],
                 verbose=False,
             )

@@ -19,6 +19,8 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
             </option>
           </select>
         </div>
+      </div>
+      <div class="form-inline mt-2">
         <div class="form-group">
           <label class="mr-2"><b>Experiment:</b></label>
           <select v-model="selected_experiment" class="form-control" @change="updateBlock">
@@ -174,6 +176,7 @@ export default {
     },
     file_id: createComputedSetterForBlockField("file_id"),
     selected_process: createComputedSetterForBlockField("selected_process"),
+    selected_experiment: createComputedSetterForBlockField("selected_experiment"),
   },
   methods: {
     updateBlock() {
