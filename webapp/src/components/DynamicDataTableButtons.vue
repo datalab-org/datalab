@@ -53,9 +53,8 @@
         <button
           data-testid="scan-qr-button"
           class="btn btn-default btn-action"
-          :disabled="!isLoggedIn"
-          :aria-label="!isLoggedIn ? 'Log in to scan QR codes' : 'Scan QR code'"
-          :title="!isLoggedIn ? 'Log in to scan QR codes' : 'Scan QR code'"
+          aria-label="Scan QR code"
+          title="Scan QR code"
           @click="$emit('open-qr-scanner-modal')"
         >
           <font-awesome-icon icon="qrcode" /> Scan QR code
