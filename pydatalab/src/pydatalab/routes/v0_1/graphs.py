@@ -178,11 +178,16 @@ def get_graph_cy_format(
 
         for relationship in document.get("relationships") or []:
             # only considering child-parent relationships:
-            if relationship.get("relation") not in ("parent", "is_part_of"):
+            relation_type = relationship.get("relation")
+            if relation_type not in ("parent", "is_part_of", "mentioned"):
                 continue
 
             target = document["item_id"]
             source = relationship["item_id"]
+
+            if relation_type == "mentioned":
+                source, target = target, source
+
             if source not in node_ids or target not in node_ids:
                 continue
             edge_id = f"{source}->{target}"
@@ -195,6 +200,7 @@ def get_graph_cy_format(
                             "source": source,
                             "target": target,
                             "value": 1,
+                            "relation_type": relation_type,
                         }
                     }
                 )
@@ -205,7 +211,7 @@ def get_graph_cy_format(
                 {
                     "data": {
                         "id": document["item_id"],
-                        "name": document["name"] if document["name"] else document["item_id"],
+                        "name": document.get("name") or document["item_id"],
                         "type": document["type"],
                         "special": document["item_id"] == item_id,
                     }

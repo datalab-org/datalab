@@ -908,6 +908,8 @@ export function saveItem(item_id) {
         store.state.all_item_data[item_id].display_order.forEach((block_id) => {
           store.commit("setBlockSaved", { block_id: block_id, isSaved: true });
         });
+
+        getItemGraph({ item_id: item_id });
       }
     })
     .catch(function (error) {
