@@ -31,6 +31,14 @@ def nmr_1d_solution_path():
 
 
 @pytest.fixture(scope="function")
+def nmr_multi_nuclei_path():
+    """This example only contains the skeleton of a zip containing multiple Bruker NMR datasets,
+    to test whether the process finder can handle multiple datasets in one zip.
+    """
+    yield Path(__file__).parent.parent.parent / "example_data" / "NMR" / "multi_nuclei.zip"
+
+
+@pytest.fixture(scope="function")
 def nmr_1d_solution_path_renamed(tmpdir, nmr_1d_solution_path):
     """A renamed version of the 1D solution example, to test whether
     the process finder can handle mismatched file names."""
@@ -113,14 +121,14 @@ def test_nmr_block(
 ):
     block = NMRBlock(item_id="nmr-block")
     block.processed_data, block.data["metadata"] = block.read_bruker_nmr_data(nmr_1d_solid_path)
-    assert block.data["metadata"]["topspin_title"].split("\n")[0] == "7Li 40 kHz 40 C hahn-echo"
+    assert block.data["metadata"]["title"].split("\n")[0] == "7Li 40 kHz 40 C hahn-echo"
     block.generate_nmr_plot(parse=False)
     plot = block.data["bokeh_plot_data"]
     assert plot is not None
 
     block = NMRBlock(item_id="nmr-block")
     block.processed_data, block.data["metadata"] = block.read_bruker_nmr_data(nmr_1d_solution_path)
-    assert block.data["metadata"]["topspin_title"].split("\n")[0] == "31P reference, 85% H3PO4"
+    assert block.data["metadata"]["title"].split("\n")[0] == "31P reference, 85% H3PO4"
     block.generate_nmr_plot(parse=False)
     plot = block.data["bokeh_plot_data"]
     assert plot is not None
@@ -129,14 +137,14 @@ def test_nmr_block(
     block.processed_data, block.data["metadata"] = block.read_bruker_nmr_data(
         nmr_1d_solution_path_renamed
     )
-    assert block.data["metadata"]["topspin_title"].split("\n")[0] == "31P reference, 85% H3PO4"
+    assert block.data["metadata"]["title"].split("\n")[0] == "31P reference, 85% H3PO4"
     block.generate_nmr_plot(parse=False)
     plot = block.data["bokeh_plot_data"]
     assert plot is not None
 
     block = NMRBlock(item_id="nmr-block")
     block.processed_data, block.data["metadata"] = block.read_bruker_nmr_data(nmr_2d_matpass_path)
-    assert block.data["metadata"]["topspin_title"].split("\n")[0] == "7Li 40kHz 40 C MATPASS"
+    assert block.data["metadata"]["title"].split("\n")[0] == "7Li 40kHz 40 C MATPASS"
     # catch warning about processed data
     with pytest.warns(UserWarning, match="Only metadata"):
         block.generate_nmr_plot(parse=False)
@@ -151,9 +159,9 @@ def test_read_jcamp_1h_1d(nmr_jcamp_1h_path):
 
     block = NMRBlock(item_id="nmr-block")
     block.read_jcamp_nmr_data(nmr_jcamp_1h_path)
-    assert block.data["metadata"]["title"] == title
+    assert block.data["metadata"]["title"] == title[0]
     assert block.data["metadata"]["nucleus"] == "1H"
-    assert block.data["metadata"]["carrier_frequency_Hz"] == 400.4224e6
+    assert block.data["metadata"]["carrier_frequency_MHz"] == 400.4224
 
 
 def test_read_jcamp_13c_1d(nmr_jcamp_13c_path):
@@ -163,9 +171,9 @@ def test_read_jcamp_13c_1d(nmr_jcamp_13c_path):
 
     block = NMRBlock(item_id="nmr-block")
     block.read_jcamp_nmr_data(nmr_jcamp_13c_path)
-    assert block.data["metadata"]["title"] == title
+    assert block.data["metadata"]["title"] == title[0]
     assert block.data["metadata"]["nucleus"] == "13C"
-    assert block.data["metadata"]["carrier_frequency_Hz"] == 100.695689e6
+    assert block.data["metadata"]["carrier_frequency_MHz"] == 100.695689
 
 
 def test_read_jeol_proton_1d(nmr_1d_jeol_example):
@@ -174,6 +182,7 @@ def test_read_jeol_proton_1d(nmr_1d_jeol_example):
         match=".*Attempting best guess at processing time-domain data with FFT and ACME autophase.*",
     ):
         df, dic, title, shape, udic, nscans = read_jeol_jdf_1d(nmr_1d_jeol_example)
+
     assert df is not None
 
     block = NMRBlock(item_id="nmr-block")
@@ -186,3 +195,29 @@ def test_read_jeol_proton_1d(nmr_1d_jeol_example):
     block.generate_nmr_plot(parse=False)
     plot = block.data.get("bokeh_plot_data")
     assert plot is not None
+
+
+def test_scan_bruker_dir(
+    nmr_1d_solution_path,
+    nmr_1d_solution_path_renamed,
+    nmr_2d_matpass_path,
+    nmr_1d_solid_path,
+    nmr_multi_nuclei_path,
+):
+    from pydatalab.apps.nmr.utils import fish_for_bruker_data
+
+    result = fish_for_bruker_data(nmr_1d_solution_path)
+    assert len(result) == 1
+    assert result[0].name == "1"
+
+    result = fish_for_bruker_data(nmr_1d_solid_path)
+    assert len(result) == 1
+    assert result[0].name == "71"
+
+    result = fish_for_bruker_data(nmr_2d_matpass_path)
+    assert len(result) == 1
+    assert result[0].name == "72"
+
+    result = fish_for_bruker_data(nmr_multi_nuclei_path)
+    assert len(result) == 3
+    assert sorted([p.name for p in result]) == ["10", "11", "12"]

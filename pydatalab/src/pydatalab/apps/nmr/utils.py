@@ -1,6 +1,8 @@
 import itertools
 import re
+import tempfile
 import warnings
+import zipfile
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -11,16 +13,16 @@ from scipy import integrate
 
 
 def read_bruker_1d(
-    data: Path | pd.DataFrame,
+    data_dir: Path,
     process_number: int = 1,
     verbose: bool = False,
     sample_mass_mg: float | None = None,
 ) -> tuple[pd.DataFrame | None, dict, str | None, tuple[int, ...]]:
-    """Read a 1D bruker nmr spectrum and return it as a df.
+    """Read a 1D Bruker nmr spectrum and return it as a df, optionally
+    converting the data to frequency domain if only time-domain data is found.
 
     Parameters:
-        data: The directory of the full bruker data file, or a pandas DataFrame which
-            will be returned without further processing.
+        data: The directory of the full Bruker project directory.
         process_number: The process number of the processed data you want to plot [default: 1].
         verbose: Whether to print information such as the spectrum title to stdout.
         sample_mass_mg: The (optional) sample mass. If provided, the resulting DataFrame will have a "intensity_per_scan_per_gram" column.
@@ -33,34 +35,54 @@ def read_bruker_1d(
 
     """
 
-    # if df is provided, just return it as-is. This functionality is provided to make functions calling read_bruker_1d flexible by default.
-    # Either the data directory or the already-processed df can always be provided with equivalent results.
-
-    if isinstance(data, pd.DataFrame):
-        if verbose:
-            print("data frame provided to read_bruker_1d(). Returning it as is.")
-        return data
-    else:
-        data_dir = Path(data)
+    data_dir = Path(data_dir)
 
     processed_data_dir = data_dir / "pdata" / str(process_number)
 
-    a_dic, a_data = ng.fileio.bruker.read(str(data_dir))  # aquisition_data
-    p_dic, p_data = ng.fileio.bruker.read_pdata(str(processed_data_dir))  # processing data
+    try:
+        a_dic, a_data = ng.fileio.bruker.read(str(data_dir))  # aquisition_data
+    except Exception as e:
+        raise RuntimeError(f"Failed to read Bruker acquisition data from {data_dir}: {e}") from e
+
+    try:
+        p_dic, p_data = ng.fileio.bruker.read_pdata(str(processed_data_dir))  # processing data
+    except Exception:
+        p_dic, p_data = None, None
 
     topspin_title = None
     title_file = processed_data_dir / "title"
     if title_file.exists():
         topspin_title = title_file.read_text()
 
-    if len(p_data.shape) > 1:
+    if p_data is not None and len(p_data.shape) > 1:
         return None, a_dic, topspin_title, p_data.shape
 
     nscans = a_dic["acqus"]["NS"]
 
-    # create a unit convertor to get the x-axis in ppm units
-    udic = ng.bruker.guess_udic(p_dic, p_data)
-    uc = ng.fileiobase.uc_from_udic(udic)
+    if p_dic is None:
+        # create a unit convertor to get the x-axis in ppm units
+        udic = ng.bruker.guess_udic(a_dic, a_data)
+        uc = ng.fileiobase.uc_from_udic(udic)
+        if udic[0]["time"]:
+            warnings.warn(
+                "No frequency-domain data found in Bruker project. Attempting best guess at processing time-domain data with FFT and ACME autophase."
+            )
+            try:
+                p_data = ng.bruker.remove_digital_filter(a_dic, a_data)
+            except Exception as e:
+                warnings.warn(
+                    f"Failed to remove digital filter from time-domain data: {e}. Proceeding with uncorrected data."
+                )
+            p_data = ng.process.proc_base.fft(a_data)
+
+        p_data = ng.process.proc_base.rev(p_data)
+        p_data = ng.process.proc_autophase.autops(p_data, "acme")
+        p_data = ng.process.proc_base.di(p_data)
+
+    else:
+        # create a unit convertor to get the x-axis in ppm units
+        udic = ng.bruker.guess_udic(p_dic, p_data)
+        uc = ng.fileiobase.uc_from_udic(udic)
 
     ppm_scale = uc.ppm_scale()
     hz_scale = uc.hz_scale()
@@ -75,18 +97,6 @@ def read_bruker_1d(
     )
     if sample_mass_mg:
         df["intensity_per_scan_per_gram"] = df["intensity_per_scan"] / sample_mass_mg * 1000.0
-
-    if verbose:
-        print(f"reading bruker data file. {udic[0]['label']} 1D spectrum, {nscans} scans.")
-        if sample_mass_mg:
-            print(
-                f'sample mass was provided: {sample_mass_mg:f} mg. "intensity_per_scan_per_gram" column included. '
-            )
-        if topspin_title:
-            print("\nTitle:\n")
-            print(topspin_title)
-        else:
-            print("No title found in scan")
 
     return df, a_dic, topspin_title, a_data.shape
 
@@ -253,3 +263,54 @@ def integrate_1d(
         integrated_intensities[c] = -1 * integrate.trapz(df[c], df.ppm)
 
     return integrated_intensities
+
+
+def fish_for_bruker_data(
+    location: Path, tmpdirname: str | None = None, max_depth: int = 5
+) -> list[Path]:
+    """Given a zip file containing Bruker NMR data, descend into the zip
+    and find all possible Bruker data directories, returning a list of paths.
+
+    Parameters:
+        location: The path to the zip file containing the Bruker data.
+        tmpdirname: An optional path to a temporary directory where the zip file will be extracted.
+        max_depth: The maximum depth to recurse into the directory structure when looking for Bruker data directories.
+
+    Returns:
+        A list of paths to Bruker data directories found within the zip file.
+
+    """
+    if tmpdirname is None:
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            return fish_for_bruker_data(location, tmpdirname=tmpdirname, max_depth=max_depth)
+
+    # Create a Path object for the temporary directory
+    tmpdir_path = Path(tmpdirname)
+
+    # Unzip the file to the temporary directory
+    with zipfile.ZipFile(location, "r") as zip_ref:
+        zip_ref.extractall(tmpdir_path)
+
+    def _scan_dir(path: Path, depth: int = 0) -> list[Path] | None:
+        if depth > max_depth:
+            return None
+
+        if path.is_dir():
+            if path.name == "pdata":
+                return [path.parent]
+
+            if path.name == "__MACOSX":
+                return None
+
+            results = []
+            for p in path.iterdir():
+                result = _scan_dir(p, depth + 1)
+                if result:
+                    results.extend(result)
+
+            return results or None
+
+        return []
+
+    # Recurse to max_depth and find all pdata directories
+    return _scan_dir(tmpdir_path, depth=0) or []

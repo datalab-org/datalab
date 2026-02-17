@@ -20,6 +20,16 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
           </select>
         </div>
       </div>
+      <div class="form-inline mt-2">
+        <div class="form-group">
+          <label class="mr-2"><b>Experiment:</b></label>
+          <select v-model="selected_experiment" class="form-control" @change="updateBlock">
+            <option v-for="experiment in block.available_experiments" :key="experiment">
+              {{ experiment }}
+            </option>
+          </select>
+        </div>
+      </div>
 
       <div class="mt-4">
         <span class="mr-2">
@@ -72,15 +82,11 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
                 <td>{{ metadata?.nscans }}</td>
               </tr>
 
-              <tr v-if="metadata?.relaxation_delay">
-                <th scope="row">relaxation delay</th>
-                <td>{{ metadata?.relaxation_delay }} s</td>
-              </tr>
-
-              <tr v-if="metadata?.recycle_delay || !metadata?.relaxation_delay">
+              <tr>
                 <th scope="row">recycle delay</th>
                 <td>{{ metadata?.recycle_delay }} s</td>
               </tr>
+
               <tr>
                 <th scope="row">carrier frequency</th>
                 <td>{{ metadata?.carrier_frequency_MHz.toPrecision(4) }} MHz</td>
@@ -170,6 +176,7 @@ export default {
     },
     file_id: createComputedSetterForBlockField("file_id"),
     selected_process: createComputedSetterForBlockField("selected_process"),
+    selected_experiment: createComputedSetterForBlockField("selected_experiment"),
   },
   methods: {
     updateBlock() {

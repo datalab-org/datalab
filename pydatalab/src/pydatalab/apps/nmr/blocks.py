@@ -1,14 +1,19 @@
 import os
 import tempfile
 import warnings
-import zipfile
 from pathlib import Path
 from typing import Any
 
 import bokeh.embed
 import pandas as pd
 
-from pydatalab.apps.nmr.utils import read_bruker_1d, read_jcamp_dx_1d, read_jeol_jdf_1d
+from pydatalab.apps.nmr.models import NMRMetadata, NMRModel
+from pydatalab.apps.nmr.utils import (
+    fish_for_bruker_data,
+    read_bruker_1d,
+    read_jcamp_dx_1d,
+    read_jeol_jdf_1d,
+)
 from pydatalab.blocks.base import DataBlock
 from pydatalab.bokeh_plots import DATALAB_BOKEH_THEME, selectable_axes_plot
 from pydatalab.file_utils import get_file_info_by_id
@@ -21,11 +26,11 @@ JEOL_FILE_EXTENSIONS = (".jdf",)
 class NMRBlock(DataBlock):
     blocktype = "nmr"
     name = "NMR"
-    description = "A data block for loading and visualizing 1D NMR data from Bruker projects or JCAMP-DX files."
+    description = "A data block for loading and visualizing 1D NMR data from Bruker projects, JEOL files or JCAMP-DX files."
+    block_db_model = NMRModel
 
     accepted_file_extensions = BRUKER_FILE_EXTENSIONS + JCAMP_FILE_EXTENSIONS + JEOL_FILE_EXTENSIONS
     processed_data: dict | None = None
-    defaults = {"process number": 1}
     _supports_collections = False
 
     @property
@@ -58,56 +63,62 @@ class NMRBlock(DataBlock):
 
         # unzip to tmp directory
         with tempfile.TemporaryDirectory() as tmpdirname:
-            # Create a Path object for the temporary directory
-            tmpdir_path = Path(tmpdirname)
+            experiment_paths = {e: str(e.name) for e in fish_for_bruker_data(location, tmpdirname)}
 
-            # Unzip the file to the temporary directory
-            with zipfile.ZipFile(location, "r") as zip_ref:
-                zip_ref.extractall(tmpdir_path)
+            if not experiment_paths:
+                raise RuntimeError(
+                    f"No Bruker experiments found in the zip file {location} - no 'pdata' folder found."
+                )
 
-            extracted_directory_name = tmpdir_path
-            root_directory: Path | None = None
-            # Check if `<name>.zip` has a matching root-level `<name>` directory.
-            for c in tmpdir_path.iterdir():
-                # If we already found a root directory, break and emit warning about which one will be used
-                if c.name == "__MACOSX":
-                    continue
-                if root_directory is not None:
-                    warnings.warn(
-                        f"Multiple Bruker projects found in the zip file {list(tmpdir_path.iterdir())}, using {root_directory}."
-                    )
-                    break
-                if c.is_dir():
-                    root_directory = c
-
-            if root_directory:
-                extracted_directory_name = root_directory
-
-            available_processes = sorted(
-                os.listdir(os.path.join(extracted_directory_name, "pdata"))
+            # Sort numbers properly, e.g., "1", "2", "10" instead of "1", "10", "2",
+            # then defer to any non-numeric strings
+            self.data["available_experiments"] = sorted(
+                experiment_paths.values(), key=lambda x: ((0, int(x)) if x.isdigit() else (1, x))
             )
 
-            if self.data.get("selected_process") not in available_processes:
-                self.data["selected_process"] = available_processes[0]
+            selected_experiment_path = None
+            if (
+                self.data.get("selected_experiment") is None
+                or self.data["selected_experiment"] not in self.data["available_experiments"]
+            ):
+                selected_experiment_path = list(experiment_paths)[0]
+                self.data["selected_experiment"] = experiment_paths[selected_experiment_path]
+
+            else:
+                for k in experiment_paths:
+                    if experiment_paths[k] == self.data["selected_experiment"]:
+                        selected_experiment_path = k
+                        break
+
+            if selected_experiment_path is None:
+                raise RuntimeError(
+                    f"Selected experiment {self.data['selected_experiment']} not found in available experiments {self.data['available_experiments']}."
+                )
 
             try:
-                df, a_dic, topspin_title, processed_data_shape = read_bruker_1d(
-                    extracted_directory_name,
-                    process_number=self.data["selected_process"],
-                    verbose=False,
+                self.data["available_processes"] = sorted(
+                    os.listdir(selected_experiment_path / "pdata")
                 )
-            except Exception as error:
+            except FileNotFoundError:
                 raise RuntimeError(
-                    f"Unable to parse {extracted_directory_name!r} as Bruker project. Error: {error!r}"
+                    f"No 'pdata' directory found in the selected experiment {self.data['selected_experiment']}. Please check the structure of your Bruker project zip file."
                 )
+
+            if self.data.get("selected_process") not in self.data["available_processes"]:
+                self.data["selected_process"] = self.data["available_processes"][0]
+
+            df, a_dic, topspin_title, processed_data_shape = read_bruker_1d(
+                selected_experiment_path,
+                process_number=self.data["selected_process"],
+                verbose=False,
+            )
 
         serialized_df = df.to_dict() if (df is not None) else None
 
         metadata = {}
-        metadata["acquisition_parameters"] = a_dic["acqus"]
-        metadata["processing_parameters"] = a_dic["procs"]
-        metadata["pulse_program"] = a_dic["pprog"]
-        metadata["available_processes"] = available_processes
+        metadata["acquisition_parameters"] = a_dic.get("acqus")
+        metadata["processing_parameters"] = a_dic.get("procs")
+        metadata["pulse_program"] = a_dic.get("pprog", None)
         metadata["nucleus"] = a_dic["acqus"]["NUC1"]
         metadata["carrier_frequency_MHz"] = a_dic["acqus"]["SFO1"]
         metadata["carrier_offset_Hz"] = a_dic["acqus"]["O1"]
@@ -117,10 +128,9 @@ class NMRBlock(DataBlock):
         metadata["processed_data_shape"] = processed_data_shape
         metadata["probe_name"] = a_dic["acqus"]["PROBHD"]
         metadata["pulse_program_name"] = a_dic["acqus"]["PULPROG"]
-        metadata["topspin_title"] = topspin_title
         metadata["title"] = topspin_title
 
-        self.data["metadata"] = metadata
+        self.data["metadata"] = NMRMetadata(**metadata).dict()
 
         return serialized_df, metadata
 
@@ -171,11 +181,11 @@ class NMRBlock(DataBlock):
 
         metadata: dict[str, Any] = {}
         metadata["processed_data_shape"] = shape
-        metadata["title"] = title
+        metadata["title"] = " ".join(title)
 
         keys_to_scape = {
             "nucleus": ".OBSERVENUCLEUS",
-            "carrier_frequency_Hz": ".OBSERVEFREQUENCY",
+            "carrier_frequency_MHz": ".OBSERVEFREQUENCY",
             "pulse_program_name": ".PULSESEQUENCE",
         }
         for key, jcamp_key in keys_to_scape.items():
@@ -189,10 +199,6 @@ class NMRBlock(DataBlock):
                     f"Unable to parse {key} from {jcamp_key} in JCAMP file: {a_dic.get(jcamp_key)} - {e}"
                 )
 
-        if "carrier_frequency_Hz" in metadata:
-            # JCAMP field is standardized on MHz so need to convert
-            metadata["carrier_frequency_Hz"] = float(metadata["carrier_frequency_Hz"]) * 1e6
-
         if "nucleus" in metadata:
             metadata["nucleus"] = metadata["nucleus"].replace("^", "")
 
@@ -203,16 +209,15 @@ class NMRBlock(DataBlock):
             pass
 
         serialized_df = df.to_dict() if (df is not None) else None
-        self.data["metadata"] = metadata
+        self.data["metadata"] = NMRMetadata(**metadata).dict()
 
         return serialized_df, metadata
 
     def read_jeol_nmr_data(
         self, filename: str | Path | None = None, file_info: dict | None = None
     ) -> tuple[dict | None, dict]:
-        """Loads a JEOL output file (.jdx)
-        and parses it into a serialized dataframe and metadata dictionary.
-        Based on the existing jcamp and Bruker readers
+        """Loads a JEOL output file (.jdx) and parses it into a
+        serialized dataframe and metadata dictionary.
 
         Parameters:
             filename: Optional local file to use instead of the database lookup.
@@ -248,7 +253,7 @@ class NMRBlock(DataBlock):
             "carrier_frequency_Hz": "car",
             "nucleus": "x_domain",
             "carrier_offset_ppm": "x_offset",
-            "relaxation_delay": "relaxation_delay",
+            "recycle_delay": "relaxation_delay",
             "pulse_program_name": "experiment",
             "spectral_window_Hz": "x_sweep",
         }
@@ -267,7 +272,17 @@ class NMRBlock(DataBlock):
 
         if "carrier_frequency_Hz" in metadata and "carrier_frequency_MHz" not in metadata:
             # JEOL gives carrier frequency in Hz. Convert to MHz for display
-            metadata["carrier_frequency_MHz"] = float(metadata["carrier_frequency_Hz"]) * 1e-6
+            metadata["carrier_frequency_MHz"] = float(metadata.pop("carrier_frequency_Hz")) * 1e-6
+
+        if "carrier_offset_ppm" in metadata and "carrier_offset_Hz" not in metadata:
+            # Convert carrier offset from ppm to Hz for display, using the carrier frequency if available
+            import nmrglue as ng
+
+            uc = ng.fileiobase.uc_from_udic(a_udic)
+            metadata["carrier_offset_Hz"] = float(metadata.pop("carrier_offset_ppm")) * (
+                uc.ppm_scale()[0] / uc.hz_scale()[0]
+            )
+
         if metadata["nucleus"] == "Proton":
             # JEOL labels proton NMR as proton, convert to 1H
             metadata["nucleus"] = "1H"
@@ -278,7 +293,8 @@ class NMRBlock(DataBlock):
         metadata["nscans"] = nscans
 
         serialized_df = df.to_dict() if (df is not None) else None
-        self.data["metadata"] = metadata
+        self.data["metadata"] = NMRMetadata(**metadata).dict()
+
         return serialized_df, metadata
 
     def load_nmr_data(self, file_info: dict):
