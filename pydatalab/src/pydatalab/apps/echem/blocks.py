@@ -1,3 +1,4 @@
+import hashlib
 import warnings
 from pathlib import Path
 from typing import Any
@@ -95,6 +96,11 @@ class CycleBlock(DataBlock):
             file_ids: The IDs of the files to load.
             reload: Whether to reload the data from the file, or use the cached version, if available.
 
+        Returns:
+            A tuple of (raw_df, cycle_summary_df, bdf_path, first_file_id) where bdf_path is the
+            path to the cached BDF file and first_file_id is the ObjectId used to construct the
+            download URL via /files/<first_file_id>/<bdf_path.name>.
+
         """
 
         required_keys = (
@@ -123,6 +129,8 @@ class CycleBlock(DataBlock):
 
         raw_df = None
         cycle_summary_df = None
+        bdf_path = None
+        first_file_id = file_ids[0]
 
         if len(file_ids) == 1:
             file_info = get_file_info_by_id(file_ids[0], update_if_live=True)
@@ -145,7 +153,14 @@ class CycleBlock(DataBlock):
                     f"Unrecognized filetype {ext}, must be one of {self.accepted_file_extensions}"
                 )
 
-            parsed_file_loc = Path(file_info["location"]).with_suffix(".RAW_PARSED.pkl")
+            location = Path(file_info["location"])
+            parsed_file_loc = location.with_suffix(".RAW_PARSED.pkl")
+            # Strip all suffixes to avoid e.g. file.bdf.csv -> file.bdf.csv.bdf
+            # If the source is already a BDF file, no export is needed
+            if ext.startswith(".bdf"):
+                bdf_path = None
+            else:
+                bdf_path = location.with_name(location.name.split(".")[0] + ".bdf")
 
             if not reload:
                 if parsed_file_loc.exists():
@@ -157,11 +172,27 @@ class CycleBlock(DataBlock):
                 except Exception as exc:
                     raise RuntimeError(f"Navani raised an error when parsing: {exc}") from exc
                 raw_df.to_pickle(parsed_file_loc)
+                # Only export to BDF if the source file is not already a BDF file, to avoid unnecessary duplication and confusion with multiple BDF files
+                if bdf_path is not None:
+                    try:
+                        ec.export_to_bdf(raw_df, save=True, filepath=bdf_path)
+                    except Exception as exc:
+                        LOGGER.warning("Failed to export BDF file: %s", exc)
+                        bdf_path = None
 
         elif isinstance(file_ids, list) and len(file_ids) > 1:
-            # Multi-file logic
+            # Multi-file logic: use a hash of the sorted file IDs for a stable cache path
             file_infos = [get_file_info_by_id(fid, update_if_live=True) for fid in file_ids]
             locations = [info["location"] for info in file_infos]
+            cache_key = hashlib.md5(  # noqa: S324
+                "|".join(sorted(str(fid) for fid in file_ids)).encode()
+            ).hexdigest()[:8]
+            cache_dir = Path(file_infos[0]["location"]).parent
+            parsed_file_loc = cache_dir / f"merged_{cache_key}.RAW_PARSED.pkl"
+            bdf_path = cache_dir / f"merged_{cache_key}.bdf"
+
+            if not reload and parsed_file_loc.exists():
+                raw_df = pd.read_pickle(parsed_file_loc)  # noqa: S301
 
             if raw_df is None:
                 try:
@@ -180,6 +211,12 @@ class CycleBlock(DataBlock):
                     raise RuntimeError(
                         f"Navani raised an error when parsing multiple files: {exc}"
                     ) from exc
+                raw_df.to_pickle(parsed_file_loc)
+                try:
+                    ec.export_to_bdf(raw_df, save=True, filepath=bdf_path)
+                except Exception as exc:
+                    LOGGER.warning("Failed to export BDF file: %s", exc)
+                    bdf_path = None
 
         elif not isinstance(file_ids, list):
             raise ValueError("Invalid file_ids type. Expected list of strings.")
@@ -205,7 +242,7 @@ class CycleBlock(DataBlock):
                 cycle_summary_df.index, downcast="integer"
             )
 
-        return raw_df, cycle_summary_df
+        return raw_df, cycle_summary_df, bdf_path, first_file_id
 
     def plot_cycle(self):
         """Plots the electrochemical cycling data from the file ID provided in the request."""
@@ -251,7 +288,14 @@ class CycleBlock(DataBlock):
         if self.data.get("mode") == "multi" or self.data.get("mode") == "single":
             file_info = get_file_info_by_id(file_ids[0], update_if_live=True)
             filename = file_info["name"]
-            raw_df, cycle_summary_df = self._load(file_ids=file_ids)
+            raw_df, cycle_summary_df, bdf_path, first_file_id = self._load(file_ids=file_ids)
+            if bdf_path is not None and bdf_path.exists():
+                self.data["bdf_url"] = f"/files/{first_file_id}/{bdf_path.name}"
+            elif bdf_path is None and len(file_ids) == 1:
+                # Source is already a BDF file - link directly to it
+                self.data["bdf_url"] = f"/files/{first_file_id}/{filename}"
+            else:
+                self.data["bdf_url"] = None
 
             characteristic_mass_g = self._get_characteristic_mass_g()
 
@@ -286,7 +330,7 @@ class CycleBlock(DataBlock):
                 try:
                     file_info = get_file_info_by_id(file, update_if_live=True)
                     filename = file_info["name"]
-                    comparison_raw_df, comparison_cycle_summary_df = self._load(
+                    comparison_raw_df, comparison_cycle_summary_df, _, _ = self._load(
                         file_ids=[file], reload=False
                     )
                     # Mark comparison files with a prefix to distinguish them
