@@ -1,4 +1,3 @@
-import os
 import warnings
 from pathlib import Path
 from typing import Any
@@ -51,6 +50,7 @@ class CycleBlock(DataBlock):
     - Ivium (.txt)
     - Lanhe/Lande (.xls, .xlsx)
     - Preprocessed (.csv) (previously extracted by navani or other tools)
+    - Battery Data Format (.bdf, .bdf.csv, .bdf.parquet, .bdf.gz) - a standardized format defined by the Battery Data Alliance project (
 
     """
 
@@ -63,6 +63,10 @@ class CycleBlock(DataBlock):
         ".nda",
         ".ndax",
         ".csv",
+        ".bdf",
+        ".bdf.csv",
+        ".bdf.parquet",
+        ".bdf.gz",
     )
 
     defaults: dict[str, Any] = {
@@ -127,7 +131,14 @@ class CycleBlock(DataBlock):
             if file_info.get("is_live"):
                 reload = True
 
-            ext = os.path.splitext(filename)[-1].lower()
+            # Determine file extension, accounting for multi-part extensions like .bdf.csv
+            # Should be robust against people putting . in their filenames
+            ext = None
+            suffixes = [s.lower() for s in Path(filename).suffixes]
+            if len(suffixes) >= 2 and "".join(suffixes[-2:]) in self.accepted_file_extensions:
+                ext = "".join(suffixes[-2:]).lower()
+            else:
+                ext = suffixes[-1].lower()
 
             if ext not in self.accepted_file_extensions:
                 raise RuntimeError(
