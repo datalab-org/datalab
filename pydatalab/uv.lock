@@ -642,7 +642,7 @@ requires-dist = [
     { name = "langchain-openai", marker = "extra == 'chat'", specifier = "~=0.1" },
     { name = "matador-db", marker = "extra == 'apps'", specifier = ">=0.11.2" },
     { name = "matplotlib", specifier = "~=3.8" },
-    { name = "navani", marker = "extra == 'apps'", specifier = ">=0.1.13" },
+    { name = "navani", marker = "extra == 'apps'", git = "https://github.com/be-smith/navani.git?rev=bes%2Fadding_bfd_support" },
     { name = "nmrglue", marker = "extra == 'apps'", git = "https://github.com/jjhelmus/nmrglue.git?rev=b6408751bf18801a0a4ce084acf4d31335e2b02a" },
     { name = "pandas", extras = ["excel"], specifier = "~=2.2" },
     { name = "periodictable", specifier = "~=1.7" },
@@ -1781,8 +1781,8 @@ wheels = [
 
 [[package]]
 name = "navani"
-version = "0.1.13"
-source = { registry = "https://pypi.org/simple" }
+version = "0.1.13.post11+gea72487"
+source = { git = "https://github.com/be-smith/navani.git?rev=bes%2Fadding_bfd_support#ea72487a1cc7b920af5e52cc19da67cb04ec3f98" }
 dependencies = [
     { name = "datalab-org-galvani" },
     { name = "matplotlib" },
@@ -1793,10 +1793,6 @@ dependencies = [
     { name = "requests" },
     { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "scipy", version = "1.16.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/ee/f5/32e81658448ab177074c185f0982cc39e2a7898214ebbf06a6b40918a0b8/navani-0.1.13.tar.gz", hash = "sha256:51efaacaddbf52d3f2df6834e3fa7bc5654957db7a375506efcce91bd40dedb2", size = 4700411, upload-time = "2025-11-04T09:53:43.113Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/1d/d5/139fc1f2681a587c1ae22e1f57b15138357f239f172ee5b48463b56856b5/navani-0.1.13-py3-none-any.whl", hash = "sha256:1092a943c1e4d1d492591645da94bc5d06555bf27f10170fe1bbfb04ef55eaea", size = 14952, upload-time = "2025-11-04T09:53:40.954Z" },
 ]
 
 [[package]]
