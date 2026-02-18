@@ -23,7 +23,14 @@
         <button
           data-testid="add-item-button"
           class="btn btn-default btn-action"
-          :title="adminSuperUserMode ? 'Disabled in super-user mode' : ''"
+          :disabled="!isLoggedIn || adminSuperUserMode"
+          :title="
+            !isLoggedIn
+              ? 'Log in to add items'
+              : adminSuperUserMode
+                ? 'Disabled in super-user mode'
+                : ''
+          "
           @click="$emit('open-create-item-modal')"
         >
           Add an item
@@ -31,8 +38,14 @@
         <button
           data-testid="batch-item-button"
           class="btn btn-default btn-action"
-          :disabled="adminSuperUserMode"
-          :title="adminSuperUserMode ? 'Disabled in super-user mode' : ''"
+          :disabled="!isLoggedIn || adminSuperUserMode"
+          :title="
+            !isLoggedIn
+              ? 'Log in to add items'
+              : adminSuperUserMode
+                ? 'Disabled in super-user mode'
+                : ''
+          "
           @click="$emit('open-batch-create-item-modal')"
         >
           Add batch of items
@@ -278,6 +291,9 @@ export default {
   computed: {
     adminSuperUserMode() {
       return this.$store.getters.isAdminSuperUserModeActive;
+    },
+    isLoggedIn() {
+      return this.$store.state.currentUserID !== null;
     },
   },
   watch: {
