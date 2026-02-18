@@ -67,7 +67,7 @@ apps = [
     # NMR
     "nmrglue ~= 0.12",
     # Electrochemistry
-    "navani @ git+https://github.com/datalab-org/navani.git@bes/adding_bfd_support",
+    "navani @ git+https://github.com/be-smith/navani.git@bes/adding_bfd_support",
     # Raman
     "pybaselines ~= 1.1",
     "renishawwire >= 0.1.16",
