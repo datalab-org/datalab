@@ -10,7 +10,9 @@
     </label>
     <div>
       <div v-if="!isEditingGroups">
-        <div v-if="value.length === 0" class="text-muted small">Not shared with any groups</div>
+        <div v-if="!value || value.length === 0" class="text-muted small">
+          Not shared with any groups
+        </div>
         <div v-else class="d-flex flex-wrap gap-2">
           <FormattedGroupName v-for="group in value" :key="group.immutable_id" :group="group" />
         </div>
@@ -31,7 +33,7 @@ import { DialogService } from "@/services/DialogService";
 import GroupSelect from "@/components/GroupSelect";
 import FormattedGroupName from "@/components/FormattedGroupName.vue";
 import { OnClickOutside } from "@vueuse/components";
-import { updateItemPermissions } from "@/server_fetch_utils.js";
+import { updateItemPermissions, updateCollectionPermissions } from "@/server_fetch_utils.js";
 import { toRaw } from "vue";
 
 export default {
@@ -41,7 +43,8 @@ export default {
     OnClickOutside,
   },
   props: {
-    refcode: { type: String, required: true },
+    refcode: { type: String, required: false, default: null },
+    collectionId: { type: String, required: false, default: null },
     modelValue: {
       type: Array,
       required: true,
@@ -68,18 +71,27 @@ export default {
   watch: {
     async isEditingGroups(newValue, oldValue) {
       if (newValue === false && oldValue === true) {
-        if (JSON.stringify(toRaw(this.value)) === JSON.stringify(toRaw(this.shadowValue))) {
+        const currentValue = Array.isArray(this.value) ? this.value : [];
+        const shadowValue = Array.isArray(this.shadowValue) ? this.shadowValue : [];
+        if (JSON.stringify(toRaw(currentValue)) === JSON.stringify(toRaw(shadowValue))) {
           return;
         }
 
         try {
           const confirmed = await DialogService.confirm({
             title: "Update Permissions",
-            message: "Are you sure you want to update the group permissions of this item?",
+            message: `Are you sure you want to update the group permissions of this ${
+              this.collectionId ? "collection" : "item"
+            }?`,
             type: "warning",
           });
           if (confirmed) {
-            await updateItemPermissions(this.refcode, null, this.shadowValue);
+            // Use the appropriate function based on whether it's a collection or item
+            if (this.collectionId) {
+              await updateCollectionPermissions(this.collectionId, null, this.shadowValue);
+            } else {
+              await updateItemPermissions(this.refcode, null, this.shadowValue);
+            }
             this.$emit("update:modelValue", [...this.shadowValue]);
           } else {
             this.shadowValue = [...this.value];
@@ -93,11 +105,15 @@ export default {
         }
       }
     },
-
     modelValue: {
       immediate: true,
       handler(newVal) {
-        this.shadowValue = [...newVal];
+        const newArray = Array.isArray(newVal) ? [...newVal] : [];
+        const currentArray = Array.isArray(this.shadowValue) ? this.shadowValue : [];
+
+        if (JSON.stringify(currentArray) !== JSON.stringify(newArray)) {
+          this.shadowValue = newArray;
+        }
       },
     },
   },
