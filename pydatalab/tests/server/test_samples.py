@@ -1102,3 +1102,50 @@ def test_copy_sample_without_copying_collections(client, default_sample_dict, de
     child_items = response.json["child_items"]
     assert not any(item["item_id"] == "copy_without_collection" for item in child_items)
     assert any(item["item_id"] == "original_in_collection" for item in child_items)
+
+
+@pytest.mark.dependency(depends=["test_copy_sample_without_copying_collections"])
+def test_collections_permissions(client, admin_client, default_sample_dict, default_collection):
+    new_sample = default_sample_dict.copy()
+    new_sample["item_id"] = "permissions_test_sample"
+    new_sample["collections"] = []
+
+    response = client.post("/new-sample/", json=new_sample)
+    assert response.status_code == 201
+    assert response.json["status"] == "success"
+    refcode = response.json["sample_list_entry"]["refcode"]
+
+    admin_collection = default_collection.dict().copy()
+    admin_collection["collection_id"] = "admin_only_collection"
+    response = admin_client.put("/collections", json={"data": admin_collection})
+
+    response = admin_client.post(
+        "/collections/admin_only_collection", json={"data": {"refcodes": [refcode]}}
+    )
+    assert response.status_code == 200, response.json
+
+    response = admin_client.get(f"/items/{refcode}?sudo=1")
+    assert response.status_code == 200
+    assert response.json["status"] == "success"
+    assert response.json["item_data"]["collections"][0]["collection_id"] == "admin_only_collection"
+    assert len(response.json["item_data"]["relationships"]) == 1
+
+    response = client.get(f"/items/{refcode}")
+    assert response.status_code == 200
+    assert response.json["status"] == "success"
+    assert response.json["item_data"]["collections"] == []
+
+    response = client.post(
+        "/save-item/",
+        json={"item_id": new_sample["item_id"], "data": {"description": "Updated description"}},
+    )
+    assert response.status_code == 200
+    assert response.json["status"] == "success"
+
+    response = client.get(f"/items/{refcode}")
+    assert response.json["item_data"]["description"] == "Updated description"
+    assert len(response.json["item_data"]["relationships"]) == 0
+
+    response = admin_client.get(f"/items/{refcode}?sudo=1")
+    assert response.json["item_data"]["description"] == "Updated description"
+    assert len(response.json["item_data"]["relationships"]) == 1
