@@ -4,7 +4,7 @@ from pydantic import Field, root_validator, validator
 
 from pydatalab.models.entries import EntryReference
 from pydatalab.models.items import Item
-from pydatalab.models.utils import CellStatus, Constituent
+from pydatalab.models.utils import CellStatus, Constituent, ItemAvailability
 
 # from pydatalab.logger import LOGGER
 
@@ -55,7 +55,10 @@ class Cell(Item):
     active_ion_charge: float = 1
 
     status: CellStatus = Field(default=CellStatus.ACTIVE)
-    """The status of the cells, indicating its current state."""
+    """The operational status of the cell (active, planned, cycled, shorted, dismantled, disposed, etc.)."""
+
+    availability: ItemAvailability | None = Field(default=None)
+    """The availability status of the cell (available, unavailable, etc.)."""
 
     @validator("characteristic_molar_mass", always=True, pre=True)
     def set_molar_mass(cls, v, values):

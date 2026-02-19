@@ -150,12 +150,7 @@
       }
     },
     "status": {
-      "default": "available",
-      "allOf": [
-        {
-          "$ref": "#/definitions/StartingMaterialsStatus"
-        }
-      ]
+      "$ref": "#/definitions/StartingMaterialsStatus"
     },
     "barcode": {
       "title": "Barcode",
@@ -217,6 +212,14 @@
     "comment": {
       "title": "Comments",
       "type": "string"
+    },
+    "availability": {
+      "default": "available",
+      "allOf": [
+        {
+          "$ref": "#/definitions/ItemAvailability"
+        }
+      ]
     }
   },
   "required": [
@@ -944,12 +947,19 @@
       "description": "An enumeration of the status of starting materials",
       "enum": [
         "ordered",
-        "disposed",
         "planned",
+        "disposed",
+        "other"
+      ],
+      "type": "string"
+    },
+    "ItemAvailability": {
+      "title": "ItemAvailability",
+      "description": "An enumeration of the availability status of items",
+      "enum": [
         "available",
         "unavailable",
-        "exhausted",
-        "other"
+        "exhausted"
       ],
       "type": "string"
     }

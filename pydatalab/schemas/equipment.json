@@ -160,6 +160,9 @@
     "contact": {
       "title": "Contact",
       "type": "string"
+    },
+    "availability": {
+      "$ref": "#/definitions/ItemAvailability"
     }
   },
   "required": [
@@ -803,6 +806,16 @@
         "defunct",
         "not_being_fixed",
         "other"
+      ],
+      "type": "string"
+    },
+    "ItemAvailability": {
+      "title": "ItemAvailability",
+      "description": "An enumeration of the availability status of items",
+      "enum": [
+        "available",
+        "unavailable",
+        "exhausted"
       ],
       "type": "string"
     }
