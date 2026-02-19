@@ -16,7 +16,6 @@ from pydatalab.logger import LOGGER
 from pydatalab.models import ITEM_MODELS
 from pydatalab.mongo import flask_mongo
 from pydatalab.routes.v0_1.items import (
-    collections_lookup,
     creators_lookup,
     files_lookup,
     groups_lookup,
@@ -277,13 +276,15 @@ def create_eln_file(
                 },
                 {"$lookup": creators_lookup()},
                 {"$lookup": groups_lookup()},
-                {"$lookup": collections_lookup()},
                 {"$lookup": files_lookup()},
+                # Need to remove relationships here; the user has already said which items to export
+                {"$project": {"relationships": 0}},
             ],
         )
 
         try:
             item_data = list(cursor)[0]
+
             ItemModel = ITEM_MODELS[item_data["type"]]
             item_data = ItemModel(**item_data).dict()
 
@@ -317,8 +318,9 @@ def create_eln_file(
             },
             {"$lookup": creators_lookup()},
             {"$lookup": groups_lookup()},
-            {"$lookup": collections_lookup()},
             {"$lookup": files_lookup()},
+            # Need to remove relationships here; the user has already said which items to export
+            {"$project": {"relationships": 0}},
         ],
     )
 
