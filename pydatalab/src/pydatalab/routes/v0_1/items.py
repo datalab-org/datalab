@@ -360,6 +360,7 @@ def collections_lookup() -> dict:
                         "$in": ["$_id", {"$ifNull": ["$$collection_ids", []]}],
                     },
                     "type": "collections",
+                    **get_default_permissions(user_only=False),
                 }
             },
             {"$project": {"_id": 1, "collection_id": 1}},
