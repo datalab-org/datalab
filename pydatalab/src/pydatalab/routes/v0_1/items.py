@@ -569,6 +569,10 @@ def _create_sample(
     if copy_from_item_id:
         sample_dict = _copy_sample_from_id(sample_dict, copy_from_item_id)
 
+        else:
+            copied_doc.update(sample_dict)
+            sample_dict = copied_doc
+
     try:
         # If passed collection data, dereference it and check if the collection exists
         sample_dict["collections"] = _check_collections(sample_dict)
