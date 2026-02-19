@@ -36,6 +36,7 @@ export default {
     FormattedGroupName,
     GroupsIconCounter,
   },
+
   props: {
     creators: {
       type: Array,
@@ -61,6 +62,7 @@ export default {
       default: () => [],
     },
   },
+
   data() {
     return {};
   },
@@ -69,6 +71,20 @@ export default {
       if (this.groups.length === 0) return "";
       if (this.groups.length === 1) return this.groups[0].display_name;
       return `${this.groups.length} groups`;
+    },
+  },
+  watch: {
+    groups: {
+      immediate: true,
+      handler(val) {
+        console.log("Creators component - groups prop:", val);
+      },
+    },
+    creators: {
+      immediate: true,
+      handler(val) {
+        console.log("Creators component - creators prop:", val);
+      },
     },
   },
 };

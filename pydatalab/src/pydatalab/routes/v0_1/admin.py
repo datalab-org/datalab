@@ -85,11 +85,17 @@ def get_users():
             {
                 "$lookup": {
                     "from": "groups",
-                    "let": {"group_ids": "$group_ids"},
+                    "let": {
+                        "group_ids": {
+                            "$map": {
+                                "input": {"$ifNull": ["$groups", []]},
+                                "as": "g",
+                                "in": "$$g.immutable_id",
+                            }
+                        }
+                    },
                     "pipeline": [
-                        {"$match": {"$expr": {"$in": ["$_id", {"$ifNull": ["$$group_ids", []]}]}}},
-                        {"$addFields": {"__order": {"$indexOfArray": ["$$group_ids", "$_id"]}}},
-                        {"$sort": {"__order": 1}},
+                        {"$match": {"$expr": {"$in": ["$_id", "$$group_ids"]}}},
                         {"$project": {"_id": 1, "display_name": 1}},
                     ],
                     "as": "groups",
@@ -203,6 +209,17 @@ def update_user_managers(user_id):
                 return jsonify(
                     {"status": "error", "message": f"Manager with ID {manager_id} not found"}
                 ), 404
+
+            manager_role = flask_mongo.db.roles.find_one({"_id": manager_oid})
+            actual_role = manager_role.get("role", "user") if manager_role else "user"
+
+            if actual_role not in ["admin", "manager"]:
+                return jsonify(
+                    {
+                        "status": "error",
+                        "message": f"User {manager_id} cannot be assigned as a manager: only users with 'admin' or 'manager' role can manage other users (current role: {actual_role})",
+                    }
+                ), 400
 
             if check_manager_cycle(user_id, manager_id):
                 return jsonify(
