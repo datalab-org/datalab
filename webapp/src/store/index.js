@@ -63,6 +63,7 @@ export default createStore({
       },
     },
     block_errors: {},
+    block_infos: {},
     apiConfig: {
       maxUploadBytes: null,
     },
@@ -334,10 +335,6 @@ export default createStore({
       }
       state.saved_status_items[payload.item_id] = false;
     },
-    setBlockUpdating(state, block_id) {
-      state.updating[block_id] = true;
-      state.updatingDelayed[block_id] = true;
-    },
     async setBlockNotUpdating(state, block_id) {
       state.updating[block_id] = false;
       await new Promise((resolve) => setTimeout(resolve, 500));
@@ -397,6 +394,13 @@ export default createStore({
         delete state.block_errors[block_id];
       }
     },
+    setBlockInfo(state, { block_id, info = null }) {
+      if (info) {
+        state.block_infos[block_id] = info;
+      } else {
+        delete state.block_infos[block_id];
+      }
+    },
     setApiConfig(state, config) {
       state.apiConfig = config;
     },
@@ -410,6 +414,12 @@ export default createStore({
         data,
         timestamp: Date.now(),
       };
+    },
+    setBlockProcessing(state, { block_id, task_id }) {
+      if (!state.blockProcessingTasks) {
+        state.blockProcessingTasks = {};
+      }
+      state.blockProcessingTasks[block_id] = task_id;
     },
   },
   getters: {
