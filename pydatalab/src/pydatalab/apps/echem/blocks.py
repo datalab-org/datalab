@@ -1,4 +1,4 @@
-import os
+import hashlib
 import warnings
 from pathlib import Path
 from typing import Any
@@ -7,6 +7,7 @@ import bokeh
 import pandas as pd
 from bson import ObjectId
 from navani import echem as ec
+from navani.bdf import export_to_bdf
 
 from pydatalab import bokeh_plots
 from pydatalab.blocks.base import DataBlock
@@ -51,6 +52,7 @@ class CycleBlock(DataBlock):
     - Ivium (.txt)
     - Lanhe/Lande (.xls, .xlsx)
     - Preprocessed (.csv) (previously extracted by navani or other tools)
+    - Battery Data Format (.bdf, .bdf.csv, .bdf.parquet, .bdf.gz) - a standardized format defined by the Battery Data Alliance project (https://battery-data-alliance.github.io/battery-data-format/)
 
     """
 
@@ -63,6 +65,10 @@ class CycleBlock(DataBlock):
         ".nda",
         ".ndax",
         ".csv",
+        ".bdf",
+        ".bdf.csv",
+        ".bdf.parquet",
+        ".bdf.gz",
     )
 
     defaults: dict[str, Any] = {
@@ -83,16 +89,158 @@ class CycleBlock(DataBlock):
             return characteristic_mass_mg / 1000.0
         return None
 
-    def _load(self, file_ids: list[ObjectId] | ObjectId, reload: bool = True):
-        """Loads the echem data using navani, summarises it, then caches the results
-        to disk with suffixed names.
+    def _get_file_extension(self, filename: str) -> str:
+        """Determine the file extension, handling multi-part extensions like .bdf.csv.
+
+        Raises RuntimeError if the extension is not in accepted_file_extensions.
+        """
+        suffixes = [s.lower() for s in Path(filename).suffixes]
+        if not suffixes:
+            raise RuntimeError(
+                f"File {filename!r} has no extension, unable to determine file type."
+            )
+        if len(suffixes) >= 2 and "".join(suffixes[-2:]) in self.accepted_file_extensions:
+            ext = "".join(suffixes[-2:]).lower()
+        else:
+            ext = suffixes[-1].lower()
+        if ext not in self.accepted_file_extensions:
+            raise RuntimeError(
+                f"Unrecognized filetype {ext!r}, must be one of {self.accepted_file_extensions}"
+            )
+        return ext
+
+    def _try_export_bdf(self, raw_df: pd.DataFrame, bdf_path: Path) -> Path | None:
+        """Attempt to export a navani DataFrame to BDF format, returning the path on success or
+        None on failure."""
+        try:
+            export_to_bdf(raw_df, save=True, filepath=bdf_path)
+            return bdf_path
+        except Exception as exc:
+            LOGGER.warning("Failed to export BDF file: %s", exc)
+            LOGGER.debug("Exception details for failed BDF export", exc_info=True)
+            return None
+
+    def _load_and_cache_echem(
+        self,
+        location: Path,
+        bdf_path: Path | None,
+        reload: bool,
+        locations: list[Path] | None = None,
+    ) -> tuple[pd.DataFrame, Path | None]:
+        """Load echem data from file(s) with pickle and BDF caching.
+
+        For a single file, `location` is the source file path and `locations` is None.
+        For multi-file stitching, `location` is the merged cache path (used to derive the
+        pickle path) and `locations` contains all source file paths to stitch.
 
         Parameters:
-            file_ids: The IDs of the files to load.
-            reload: Whether to reload the data from the file, or use the cached version, if available.
+            location: Path to the source file (single) or the merged cache base path (multi).
+            bdf_path: Desired path for the BDF export, or None to skip export.
+            reload: If True, bypass the pickle cache and re-parse from source.
+            locations: For multi-file mode, the list of all source file paths to stitch.
 
+        Returns:
+            A tuple of (raw_df, bdf_path) where bdf_path may be None if export was skipped
+            or failed.
         """
+        pickle_path = location.with_suffix(".RAW_PARSED.pkl")
 
+        if not reload and pickle_path.exists():
+            raw_df = pd.read_pickle(pickle_path)  # noqa: S301
+            # Regenerate BDF if it was deleted or previously failed
+            if bdf_path is not None and not bdf_path.exists():
+                bdf_path = self._try_export_bdf(raw_df, bdf_path)
+            return raw_df, bdf_path
+
+        if locations is not None:
+            # Multi-file: stitch all source files together
+            try:
+                LOGGER.debug("Loading multiple echem files with navani: %s", locations)
+                # Suppress the navani warning when stitching files with differing capacity columns
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore",
+                        message=(
+                            "Capacity columns are not equal, replacing with new capacity column"
+                            " calculated from current and time columns and renaming the old"
+                            " capacity column to Old Capacity"
+                        ),
+                        category=UserWarning,
+                    )
+
+                    raw_df = ec.multi_echem_file_loader([str(loc) for loc in locations])
+            except Exception as exc:
+                raise RuntimeError(
+                    f"Navani raised an error when parsing multiple files: {exc}"
+                ) from exc
+        else:
+            # Single file
+            try:
+                raw_df = ec.echem_file_loader(str(location))
+            except Exception as exc:
+                raise RuntimeError(f"Navani raised an error when parsing: {exc}") from exc
+
+        raw_df.to_pickle(pickle_path)
+        if bdf_path is not None:
+            bdf_path = self._try_export_bdf(raw_df, bdf_path)
+        return raw_df, bdf_path
+
+    def _load_single(self, file_id: ObjectId, reload: bool) -> tuple[pd.DataFrame, Path | None]:
+        """Parse a single echem file using navani, with pickle caching.
+
+        Returns the raw DataFrame and the BDF export path (or None if the source is already BDF
+        or export failed).
+        """
+        file_info = get_file_info_by_id(file_id, update_if_live=True)
+        filename = file_info["name"]
+
+        if file_info.get("is_live"):
+            reload = True
+
+        ext = self._get_file_extension(filename)
+        location = Path(file_info["location"])
+        # If the source is already BDF, no export needed (avoids e.g. file.bdf.csv -> file.bdf.csv.bdf.csv)
+        bdf_path = (
+            None
+            if ext.startswith(".bdf")
+            else location.with_name(f"{location.stem}.bdf.csv")
+        )
+        return self._load_and_cache_echem(location, bdf_path, reload)
+
+    def _load_multi(
+        self, file_ids: list[ObjectId], reload: bool
+    ) -> tuple[pd.DataFrame, Path | None]:
+        """Parse and stitch multiple echem files using navani, with pickle caching.
+
+        Cache paths are keyed by a hash of the file IDs so different combinations
+        don't collide. Cache files are saved in the same directory as the first file.
+        """
+        file_infos = [get_file_info_by_id(fid, update_if_live=True) for fid in file_ids]
+        for info in file_infos:
+            self._get_file_extension(info["name"])
+        locations = [Path(info["location"]) for info in file_infos]
+        # md5 to create a unique cache filename. Not security sensitive
+        cache_key = hashlib.md5(  # noqa: S324
+            "|".join(sorted(str(fid) for fid in file_ids)).encode()
+        ).hexdigest()[:8]
+        # Cache files sit alongside the first file, named by the hash of the file ID combination
+        cache_location = locations[0].parent / f"merged_{cache_key}"
+        bdf_path: Path | None = cache_location.with_name(cache_location.name + ".bdf.csv")
+        return self._load_and_cache_echem(cache_location, bdf_path, reload, locations=locations)
+
+    @staticmethod
+    def process_raw_echem_df(
+        raw_df: pd.DataFrame, cycle_summary_df: pd.DataFrame | None
+    ) -> tuple[pd.DataFrame, pd.DataFrame | None]:
+        """Filter and rename columns of a raw navani DataFrame to standardised unit-suffixed names.
+
+        Parameters:
+            raw_df: The raw DataFrame returned by navani.
+            cycle_summary_df: The cycle summary DataFrame, or None if unavailable.
+
+        Returns:
+            A tuple of (raw_df, cycle_summary_df) with standardised column names.
+        """
         required_keys = (
             "Time",
             "Voltage",
@@ -103,7 +251,6 @@ class CycleBlock(DataBlock):
             "half cycle",
             "full cycle",
         )
-
         keys_with_units = {
             "Time": "time (s)",
             "Voltage": "voltage (V)",
@@ -114,87 +261,58 @@ class CycleBlock(DataBlock):
             "dqdv": "dQ/dV (mA/V)",
             "dvdq": "dV/dQ (V/mA)",
         }
-        if isinstance(file_ids, ObjectId):
-            file_ids = [file_ids]
-
-        raw_df = None
-        cycle_summary_df = None
-
-        if len(file_ids) == 1:
-            file_info = get_file_info_by_id(file_ids[0], update_if_live=True)
-            filename = file_info["name"]
-
-            if file_info.get("is_live"):
-                reload = True
-
-            ext = os.path.splitext(filename)[-1].lower()
-
-            if ext not in self.accepted_file_extensions:
-                raise RuntimeError(
-                    f"Unrecognized filetype {ext}, must be one of {self.accepted_file_extensions}"
-                )
-
-            parsed_file_loc = Path(file_info["location"]).with_suffix(".RAW_PARSED.pkl")
-
-            if not reload:
-                if parsed_file_loc.exists():
-                    raw_df = pd.read_pickle(parsed_file_loc)  # noqa: S301
-
-            if raw_df is None:
-                try:
-                    raw_df = ec.echem_file_loader(file_info["location"])
-                except Exception as exc:
-                    raise RuntimeError(f"Navani raised an error when parsing: {exc}") from exc
-                raw_df.to_pickle(parsed_file_loc)
-
-        elif isinstance(file_ids, list) and len(file_ids) > 1:
-            # Multi-file logic
-            file_infos = [get_file_info_by_id(fid, update_if_live=True) for fid in file_ids]
-            locations = [info["location"] for info in file_infos]
-
-            if raw_df is None:
-                try:
-                    LOGGER.debug("Loading multiple echem files with navani: %s", locations)
-                    # Catch the navani warning when stitching multiple files together and calculating new capacity
-                    with warnings.catch_warnings():
-                        warnings.filterwarnings(
-                            "ignore",
-                            message=(
-                                "Capacity columns are not equal, replacing with new capacity column calculated from current and time columns and renaming the old capacity column to Old Capacity"
-                            ),
-                            category=UserWarning,
-                        )
-                        raw_df = ec.multi_echem_file_loader(locations)
-                except Exception as exc:
-                    raise RuntimeError(
-                        f"Navani raised an error when parsing multiple files: {exc}"
-                    ) from exc
-
-        elif not isinstance(file_ids, list):
-            raise ValueError("Invalid file_ids type. Expected list of strings.")
-        elif len(file_ids) == 0:
-            raise ValueError("Invalid file_ids value. Expected non-empty list of strings.")
-
-        if cycle_summary_df is None and raw_df is not None:
-            try:
-                cycle_summary_df = ec.cycle_summary(raw_df)
-            except Exception as exc:
-                warnings.warn(f"Cycle summary generation failed with error: {exc}")
-
-        if raw_df is not None:
-            raw_df = raw_df.filter(required_keys)
-            raw_df.rename(columns=keys_with_units, inplace=True)
-            raw_df["time (h)"] = raw_df["time (s)"] / 3600.0
-        else:
+        if raw_df is None:
             raise ValueError("Invalid raw_df value. Expected non-empty DataFrame.")
-
+        raw_df = raw_df.filter(required_keys)
+        raw_df.rename(columns=keys_with_units, inplace=True)
+        raw_df["time (h)"] = raw_df["time (s)"] / 3600.0
         if cycle_summary_df is not None:
             cycle_summary_df.rename(columns=keys_with_units, inplace=True)
             cycle_summary_df["cycle index"] = pd.to_numeric(
                 cycle_summary_df.index, downcast="integer"
             )
-
         return raw_df, cycle_summary_df
+
+    def _load(self, file_ids: list[ObjectId] | ObjectId, reload: bool = True):
+        """Loads the echem data using navani, summarises it, then caches the results
+        to disk with suffixed names.
+
+        Parameters:
+            file_ids: The IDs of the files to load.
+            reload: Whether to reload the data from the file, or use the cached version, if available.
+
+        Returns:
+            A tuple of (raw_df, cycle_summary_df, bdf_path, first_file_id) where:
+                raw_df: The processed raw DataFrame with standardised column names.
+                cycle_summary_df: The cycle summary DataFrame, or None if unavailable.
+                bdf_path: Path to the exported BDF file, or None if export was skipped or failed.
+                first_file_id: ObjectId of the first file in the file_ids list, used for constructing
+                    download URLs such as /files/<first_file_id>/<bdf_path.name>.
+
+        """
+
+        if isinstance(file_ids, ObjectId):
+            file_ids = [file_ids]
+
+        if not isinstance(file_ids, list) or len(file_ids) == 0:
+            raise ValueError("file_ids must be a non-empty list of ObjectIds.")
+
+        first_file_id = file_ids[0]
+
+        if len(file_ids) == 1:
+            raw_df, bdf_path = self._load_single(file_ids[0], reload)
+        else:
+            raw_df, bdf_path = self._load_multi(file_ids, reload)
+
+        cycle_summary_df = None
+        try:
+            cycle_summary_df = ec.cycle_summary(raw_df)
+        except Exception as exc:
+            warnings.warn(f"Cycle summary generation failed with error: {exc}")
+
+        raw_df, cycle_summary_df = self.process_raw_echem_df(raw_df, cycle_summary_df)
+
+        return raw_df, cycle_summary_df, bdf_path, first_file_id
 
     def plot_cycle(self):
         """Plots the electrochemical cycling data from the file ID provided in the request."""
@@ -240,7 +358,14 @@ class CycleBlock(DataBlock):
         if self.data.get("mode") == "multi" or self.data.get("mode") == "single":
             file_info = get_file_info_by_id(file_ids[0], update_if_live=True)
             filename = file_info["name"]
-            raw_df, cycle_summary_df = self._load(file_ids=file_ids)
+            raw_df, cycle_summary_df, bdf_path, first_file_id = self._load(file_ids=file_ids)
+            if bdf_path is not None and bdf_path.exists():
+                self.data["bdf_url"] = f"/files/{first_file_id}/{bdf_path.name}"
+            elif bdf_path is None and len(file_ids) == 1:
+                # Source is already a BDF file - link directly to it
+                self.data["bdf_url"] = f"/files/{first_file_id}/{filename}"
+            else:
+                self.data["bdf_url"] = None
 
             characteristic_mass_g = self._get_characteristic_mass_g()
 
@@ -275,7 +400,7 @@ class CycleBlock(DataBlock):
                 try:
                     file_info = get_file_info_by_id(file, update_if_live=True)
                     filename = file_info["name"]
-                    comparison_raw_df, comparison_cycle_summary_df = self._load(
+                    comparison_raw_df, comparison_cycle_summary_df, _, _ = self._load(
                         file_ids=[file], reload=False
                     )
                     # Mark comparison files with a prefix to distinguish them

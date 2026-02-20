@@ -67,7 +67,7 @@ apps = [
     # NMR
     "nmrglue ~= 0.12",
     # Electrochemistry
-    "navani >= 0.1.13",
+    "navani ~=0.1.14",
     # Raman
     "pybaselines ~= 1.1",
     "renishawwire >= 0.1.16",
@@ -142,6 +142,7 @@ nmrglue = { git = "https://github.com/jjhelmus/nmrglue.git", rev = "b6408751bf18
 filterwarnings = [
     "error",
     "ignore:.*Capacity columns are not equal, replacing with new capacity column calculated from current and time columns and renaming the old capacity column to Old Capacity:UserWarning",
+    "ignore:.*Time column for each file does not start at 0.*:UserWarning",
     "ignore:.*np.bool8*:DeprecationWarning",
     "ignore::pytest.PytestUnraisableExceptionWarning",
     "ignore:.*JCAMP-DX key without value*:UserWarning",
