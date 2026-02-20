@@ -166,6 +166,7 @@ class CycleBlock(DataBlock):
                         ),
                         category=UserWarning,
                     )
+
                     raw_df = ec.multi_echem_file_loader([str(loc) for loc in locations])
             except Exception as exc:
                 raise RuntimeError(
@@ -225,6 +226,51 @@ class CycleBlock(DataBlock):
         bdf_path: Path | None = cache_location.with_name(cache_location.name + ".bdf.csv")
         return self._load_and_cache_echem(cache_location, bdf_path, reload, locations=locations)
 
+    @staticmethod
+    def process_raw_echem_df(
+        raw_df: pd.DataFrame, cycle_summary_df: pd.DataFrame | None
+    ) -> tuple[pd.DataFrame, pd.DataFrame | None]:
+        """Filter and rename columns of a raw navani DataFrame to standardised unit-suffixed names.
+
+        Parameters:
+            raw_df: The raw DataFrame returned by navani.
+            cycle_summary_df: The cycle summary DataFrame, or None if unavailable.
+
+        Returns:
+            A tuple of (raw_df, cycle_summary_df) with standardised column names.
+        """
+        required_keys = (
+            "Time",
+            "Voltage",
+            "Capacity",
+            "Current",
+            "dqdv",
+            "dvdq",
+            "half cycle",
+            "full cycle",
+        )
+        keys_with_units = {
+            "Time": "time (s)",
+            "Voltage": "voltage (V)",
+            "Capacity": "capacity (mAh)",
+            "Current": "current (mA)",
+            "Charge Capacity": "charge capacity (mAh)",
+            "Discharge Capacity": "discharge capacity (mAh)",
+            "dqdv": "dQ/dV (mA/V)",
+            "dvdq": "dV/dQ (V/mA)",
+        }
+        if raw_df is None:
+            raise ValueError("Invalid raw_df value. Expected non-empty DataFrame.")
+        raw_df = raw_df.filter(required_keys)
+        raw_df.rename(columns=keys_with_units, inplace=True)
+        raw_df["time (h)"] = raw_df["time (s)"] / 3600.0
+        if cycle_summary_df is not None:
+            cycle_summary_df.rename(columns=keys_with_units, inplace=True)
+            cycle_summary_df["cycle index"] = pd.to_numeric(
+                cycle_summary_df.index, downcast="integer"
+            )
+        return raw_df, cycle_summary_df
+
     def _load(self, file_ids: list[ObjectId] | ObjectId, reload: bool = True):
         """Loads the echem data using navani, summarises it, then caches the results
         to disk with suffixed names.
@@ -239,28 +285,6 @@ class CycleBlock(DataBlock):
             download URL via /files/<first_file_id>/<bdf_path.name>.
 
         """
-
-        required_keys = (
-            "Time",
-            "Voltage",
-            "Capacity",
-            "Current",
-            "dqdv",
-            "dvdq",
-            "half cycle",
-            "full cycle",
-        )
-
-        keys_with_units = {
-            "Time": "time (s)",
-            "Voltage": "voltage (V)",
-            "Capacity": "capacity (mAh)",
-            "Current": "current (mA)",
-            "Charge Capacity": "charge capacity (mAh)",
-            "Discharge Capacity": "discharge capacity (mAh)",
-            "dqdv": "dQ/dV (mA/V)",
-            "dvdq": "dV/dQ (V/mA)",
-        }
 
         if isinstance(file_ids, ObjectId):
             file_ids = [file_ids]
@@ -281,18 +305,7 @@ class CycleBlock(DataBlock):
         except Exception as exc:
             warnings.warn(f"Cycle summary generation failed with error: {exc}")
 
-        if raw_df is not None:
-            raw_df = raw_df.filter(required_keys)
-            raw_df.rename(columns=keys_with_units, inplace=True)
-            raw_df["time (h)"] = raw_df["time (s)"] / 3600.0
-        else:
-            raise ValueError("Invalid raw_df value. Expected non-empty DataFrame.")
-
-        if cycle_summary_df is not None:
-            cycle_summary_df.rename(columns=keys_with_units, inplace=True)
-            cycle_summary_df["cycle index"] = pd.to_numeric(
-                cycle_summary_df.index, downcast="integer"
-            )
+        raw_df, cycle_summary_df = self.process_raw_echem_df(raw_df, cycle_summary_df)
 
         return raw_df, cycle_summary_df, bdf_path, first_file_id
 
