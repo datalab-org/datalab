@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import pytest
-from navani.echem import echem_file_loader
 
 from pydatalab.apps.echem.blocks import CycleBlock
 from pydatalab.apps.echem.utils import (
@@ -17,28 +16,14 @@ BDF_REQUIRED_COLUMNS = {"Test Time / s", "Voltage / V", "Current / A"}
 
 
 @pytest.fixture
-def echem_dataframe():
-    """Yields example echem data as a dataframe."""
-    df = echem_file_loader(
-        Path(__file__)
-        .parent.joinpath(
-            "../../example_data/echem/jdb11-1_c3_gcpl_5cycles_2V-3p8V_C-24_data_C09.mpr"
-        )
-        .resolve()
-    )
+def echem_dataframe(tmp_path):
+    """Yields example echem data as a dataframe, loaded via CycleBlock to mimic block behaviour."""
+    import shutil
 
-    keys_with_units = {
-        "Time": "time (s)",
-        "Voltage": "voltage (V)",
-        "Capacity": "capacity (mAh)",
-        "Current": "current (mA)",
-        "Charge Capacity": "charge capacity (mAh)",
-        "Discharge Capacity": "discharge capacity (mAh)",
-        "dqdv": "dQ/dV (mA/V)",
-        "dvdq": "dV/dQ (V/mA)",
-    }
-
-    df.rename(columns=keys_with_units, inplace=True)
+    src = Path(shutil.copy(MPR_FILE, tmp_path / MPR_FILE.name))
+    block = CycleBlock(item_id="test")
+    raw_df, _ = block._load_and_cache_echem(src, None, reload=True)
+    df, _ = CycleBlock.process_raw_echem_df(raw_df, None)
     return df
 
 
