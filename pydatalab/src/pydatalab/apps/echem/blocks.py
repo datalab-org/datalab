@@ -95,6 +95,10 @@ class CycleBlock(DataBlock):
         Raises RuntimeError if the extension is not in accepted_file_extensions.
         """
         suffixes = [s.lower() for s in Path(filename).suffixes]
+        if not suffixes:
+            raise RuntimeError(
+                f"File {filename!r} has no extension, unable to determine file type."
+            )
         if len(suffixes) >= 2 and "".join(suffixes[-2:]) in self.accepted_file_extensions:
             ext = "".join(suffixes[-2:]).lower()
         else:
