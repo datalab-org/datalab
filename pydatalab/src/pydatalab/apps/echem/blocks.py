@@ -119,6 +119,70 @@ class CycleBlock(DataBlock):
             LOGGER.warning("Failed to export BDF file: %s", exc)
             return None
 
+    def _load_and_cache_echem(
+        self,
+        location: Path,
+        bdf_path: Path | None,
+        reload: bool,
+        locations: list[Path] | None = None,
+    ) -> tuple[pd.DataFrame, Path | None]:
+        """Load echem data from file(s) with pickle and BDF caching.
+
+        For a single file, `location` is the source file path and `locations` is None.
+        For multi-file stitching, `location` is the merged cache path (used to derive the
+        pickle path) and `locations` contains all source file paths to stitch.
+
+        Parameters:
+            location: Path to the source file (single) or the merged cache base path (multi).
+            bdf_path: Desired path for the BDF export, or None to skip export.
+            reload: If True, bypass the pickle cache and re-parse from source.
+            locations: For multi-file mode, the list of all source file paths to stitch.
+
+        Returns:
+            A tuple of (raw_df, bdf_path) where bdf_path may be None if export was skipped
+            or failed.
+        """
+        pickle_path = location.with_suffix(".RAW_PARSED.pkl")
+
+        if not reload and pickle_path.exists():
+            raw_df = pd.read_pickle(pickle_path)  # noqa: S301
+            # Regenerate BDF if it was deleted or previously failed
+            if bdf_path is not None and not bdf_path.exists():
+                bdf_path = self._try_export_bdf(raw_df, bdf_path)
+            return raw_df, bdf_path
+
+        if locations is not None:
+            # Multi-file: stitch all source files together
+            try:
+                LOGGER.debug("Loading multiple echem files with navani: %s", locations)
+                # Suppress the navani warning when stitching files with differing capacity columns
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore",
+                        message=(
+                            "Capacity columns are not equal, replacing with new capacity column"
+                            " calculated from current and time columns and renaming the old"
+                            " capacity column to Old Capacity"
+                        ),
+                        category=UserWarning,
+                    )
+                    raw_df = ec.multi_echem_file_loader([str(loc) for loc in locations])
+            except Exception as exc:
+                raise RuntimeError(
+                    f"Navani raised an error when parsing multiple files: {exc}"
+                ) from exc
+        else:
+            # Single file
+            try:
+                raw_df = ec.echem_file_loader(str(location))
+            except Exception as exc:
+                raise RuntimeError(f"Navani raised an error when parsing: {exc}") from exc
+
+        raw_df.to_pickle(pickle_path)
+        if bdf_path is not None:
+            bdf_path = self._try_export_bdf(raw_df, bdf_path)
+        return raw_df, bdf_path
+
     def _load_single(self, file_id: ObjectId, reload: bool) -> tuple[pd.DataFrame, Path | None]:
         """Parse a single echem file using navani, with pickle caching.
 
@@ -132,32 +196,14 @@ class CycleBlock(DataBlock):
             reload = True
 
         ext = self._get_file_extension(filename)
-
         location = Path(file_info["location"])
-        pickle_path = location.with_suffix(".RAW_PARSED.pkl")
-        # If the source is already BDF, no export needed (avoids file.bdf -> file.bdf.bdf etc.)
+        # If the source is already BDF, no export needed (avoids e.g. file.bdf.csv -> file.bdf.csv.bdf.csv)
         bdf_path = (
             None
             if ext.startswith(".bdf")
-            else location.with_name(location.name.split(".")[0] + ".bdf")
+            else location.with_name(location.name.split(".")[0] + ".bdf.csv")
         )
-
-        # Loading from cache if available and reload not requested - regenerate BDF if missing or previously failed
-        if not reload and pickle_path.exists():
-            raw_df = pd.read_pickle(pickle_path)  # noqa: S301
-            # Regenerate BDF if it was deleted or previously failed
-            if bdf_path is not None and not bdf_path.exists():
-                bdf_path = self._try_export_bdf(raw_df, bdf_path)
-            return raw_df, bdf_path
-
-        try:
-            raw_df = ec.echem_file_loader(file_info["location"])
-        except Exception as exc:
-            raise RuntimeError(f"Navani raised an error when parsing: {exc}") from exc
-        raw_df.to_pickle(pickle_path)
-        if bdf_path is not None:
-            bdf_path = self._try_export_bdf(raw_df, bdf_path)
-        return raw_df, bdf_path
+        return self._load_and_cache_echem(location, bdf_path, reload)
 
     def _load_multi(
         self, file_ids: list[ObjectId], reload: bool
@@ -165,49 +211,19 @@ class CycleBlock(DataBlock):
         """Parse and stitch multiple echem files using navani, with pickle caching.
 
         Cache paths are keyed by a hash of the file IDs so different combinations
-        don't collide. Files are saved in the same location as the first file. Returns the merged raw DataFrame and the BDF export path.
+        don't collide. Cache files are saved in the same directory as the first file.
         """
         file_infos = [get_file_info_by_id(fid, update_if_live=True) for fid in file_ids]
         for info in file_infos:
             self._get_file_extension(info["name"])
-        locations = [info["location"] for info in file_infos]
+        locations = [Path(info["location"]) for info in file_infos]
         cache_key = hashlib.md5(  # noqa: S324
             "|".join(sorted(str(fid) for fid in file_ids)).encode()
         ).hexdigest()[:8]
-        # Saves in the same directory as the first file.
-        cache_dir = Path(file_infos[0]["location"]).parent
-        pickle_path = cache_dir / f"merged_{cache_key}.RAW_PARSED.pkl"
-        bdf_path: Path | None = cache_dir / f"merged_{cache_key}.bdf"
-
-        if not reload and pickle_path.exists():
-            raw_df = pd.read_pickle(pickle_path)  # noqa: S301
-            # Regenerate BDF if it was deleted or previously failed
-            if bdf_path is not None and not bdf_path.exists():
-                bdf_path = self._try_export_bdf(raw_df, bdf_path)
-            return raw_df, bdf_path
-
-        try:
-            LOGGER.debug("Loading multiple echem files with navani: %s", locations)
-            # Suppress the navani warning when stitching files with differing capacity columns
-            with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    "ignore",
-                    message=(
-                        "Capacity columns are not equal, replacing with new capacity column"
-                        " calculated from current and time columns and renaming the old capacity"
-                        " column to Old Capacity"
-                    ),
-                    category=UserWarning,
-                )
-                raw_df = ec.multi_echem_file_loader(locations)
-        except Exception as exc:
-            raise RuntimeError(
-                f"Navani raised an error when parsing multiple files: {exc}"
-            ) from exc
-        raw_df.to_pickle(pickle_path)
-        if bdf_path is not None:
-            bdf_path = self._try_export_bdf(raw_df, bdf_path)
-        return raw_df, bdf_path
+        # Cache files sit alongside the first file, named by the hash of the file ID combination
+        cache_location = locations[0].parent / f"merged_{cache_key}"
+        bdf_path: Path | None = cache_location.with_name(cache_location.name + ".bdf.csv")
+        return self._load_and_cache_echem(cache_location, bdf_path, reload, locations=locations)
 
     def _load(self, file_ids: list[ObjectId] | ObjectId, reload: bool = True):
         """Loads the echem data using navani, summarises it, then caches the results
