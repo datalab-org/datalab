@@ -117,6 +117,7 @@ class CycleBlock(DataBlock):
             return bdf_path
         except Exception as exc:
             LOGGER.warning("Failed to export BDF file: %s", exc)
+            LOGGER.debug("Exception details for failed BDF export", exc_info=True)
             return None
 
     def _load_and_cache_echem(
@@ -202,7 +203,7 @@ class CycleBlock(DataBlock):
         bdf_path = (
             None
             if ext.startswith(".bdf")
-            else location.with_name(location.name.split(".")[0] + ".bdf.csv")
+            else location.with_name(f"{location.stem}.bdf.csv")
         )
         return self._load_and_cache_echem(location, bdf_path, reload)
 
@@ -280,9 +281,12 @@ class CycleBlock(DataBlock):
             reload: Whether to reload the data from the file, or use the cached version, if available.
 
         Returns:
-            A tuple of (raw_df, cycle_summary_df, bdf_path, first_file_id) where bdf_path is the
-            path to the cached BDF file and first_file_id is the ObjectId used to construct the
-            download URL via /files/<first_file_id>/<bdf_path.name>.
+            A tuple of (raw_df, cycle_summary_df, bdf_path, first_file_id) where:
+                raw_df: The processed raw DataFrame with standardised column names.
+                cycle_summary_df: The cycle summary DataFrame, or None if unavailable.
+                bdf_path: Path to the exported BDF file, or None if export was skipped or failed.
+                first_file_id: ObjectId of the first file in the file_ids list, used for constructing
+                    download URLs such as /files/<first_file_id>/<bdf_path.name>.
 
         """
 
