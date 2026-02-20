@@ -219,6 +219,7 @@ class CycleBlock(DataBlock):
         for info in file_infos:
             self._get_file_extension(info["name"])
         locations = [Path(info["location"]) for info in file_infos]
+        # md5 to create a unique cache filename. Not security sensitive
         cache_key = hashlib.md5(  # noqa: S324
             "|".join(sorted(str(fid) for fid in file_ids)).encode()
         ).hexdigest()[:8]
