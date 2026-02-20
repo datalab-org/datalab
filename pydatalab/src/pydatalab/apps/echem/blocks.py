@@ -201,9 +201,7 @@ class CycleBlock(DataBlock):
         location = Path(file_info["location"])
         # If the source is already BDF, no export needed (avoids e.g. file.bdf.csv -> file.bdf.csv.bdf.csv)
         bdf_path = (
-            None
-            if ext.startswith(".bdf")
-            else location.with_name(f"{location.stem}.bdf.csv")
+            None if ext.startswith(".bdf") else location.with_name(f"{location.stem}.bdf.csv")
         )
         return self._load_and_cache_echem(location, bdf_path, reload)
 
