@@ -128,3 +128,38 @@ def test_load_and_cache_multi_file_stitch(tmp_path):
     assert len(raw_df) > 0
     # Pickle should also have been created
     assert cache_location.with_suffix(".RAW_PARSED.pkl").exists()
+
+
+def test_try_export_bdf_exception_logs_warning_and_returns_none(tmp_path, caplog):
+    """Test that _try_export_bdf catches export exceptions, logs a warning,
+    returns None, and does not write a file.
+    """
+    import logging
+    from unittest.mock import patch
+
+    import pandas as pd
+
+    from pydatalab.logger import LOGGER
+
+    block = CycleBlock(item_id="test")
+    bdf_path = tmp_path / "dummy.bdf.csv"
+    dummy_df = pd.DataFrame({"Time": [0, 1], "Voltage": [3.0, 3.5], "Current": [1.0, 1.0]})
+
+    # pydatalab's LOGGER has propagate=False, so caplog can't capture via root logger.
+    # Temporarily attach caplog's handler directly to the pydatalab logger.
+    LOGGER.addHandler(caplog.handler)
+    try:
+        with (
+            caplog.at_level(logging.WARNING, logger="pydatalab"),
+            patch(
+                "pydatalab.apps.echem.blocks.export_to_bdf",
+                side_effect=Exception("export failed"),
+            ),
+        ):
+            result = block._try_export_bdf(dummy_df, bdf_path)
+    finally:
+        LOGGER.removeHandler(caplog.handler)
+
+    assert result is None
+    assert not bdf_path.exists()
+    assert "Failed to export BDF file" in caplog.text
