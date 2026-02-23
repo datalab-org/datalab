@@ -43,7 +43,9 @@ def find_all_nxdata_groups(nxroot: nx.NXroot, skip_errors: bool = True) -> dict[
                 item_path = f"{path}/{key}" if path else key
                 try:
                     if isinstance(item, nx.NXdata):
-                        nxdata_groups[item_path] = item
+                        # Skip empty NXdata groups (no signal attribute and no datasets)
+                        if item.attrs.get("signal") is not None or len(list(item.items())) > 0:
+                            nxdata_groups[item_path] = item
                     elif isinstance(item, nx.NXgroup):
                         _recurse(item, item_path)
                 except Exception:
@@ -398,15 +400,18 @@ def load_nexus_file(
 
         # Otherwise, try plottable_data first (standard NeXus approach)
         if hasattr(nxroot, "plottable_data") and nxroot.plottable_data is not None:
-            df = extract_plottable_data(
-                nxroot.plottable_data,
-                reduce_method=reduce_method,
-                skip_broken_links=skip_errors,
-                column_mapping=column_mapping,
-            )
-            if validator:
-                validator(df)
-            return (df, metadata) if extract_metadata else df
+            plottable = nxroot.plottable_data
+            # Only use plottable_data if it has a signal attribute (i.e. is not empty)
+            if plottable.attrs.get("signal") is not None or len(list(plottable.items())) > 0:
+                df = extract_plottable_data(
+                    plottable,
+                    reduce_method=reduce_method,
+                    skip_broken_links=skip_errors,
+                    column_mapping=column_mapping,
+                )
+                if validator:
+                    validator(df)
+                return (df, metadata) if extract_metadata else df
 
         # Fall back to finding all NXdata groups
         nxdata_groups = find_all_nxdata_groups(nxroot, skip_errors=skip_errors)
