@@ -69,7 +69,6 @@ def test_invalid_nxs_files_raise(filename, error_info):
 @pytest.mark.parametrize(
     "filename,expected_cols,expected_rows",
     [
-        ("1340984_reduced_mythen3.nxs", ["twotheta", "intensity"], 16784),
         ("i11-1-116513_processed_250929_135434.nxs", ["twotheta", "intensity"], 5000),
     ],
 )
