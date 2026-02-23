@@ -43,7 +43,7 @@
     <div class="form-row mt-2 mb-3">
       <button class="btn btn-primary btn-sm" @click="applyAllSelections">Apply Changes</button>
       <a v-if="bdf_url" :href="api_url + bdf_url" class="btn btn-secondary btn-sm ml-2" download
-        >Download BDF</a
+        >Export CSV (BDF)</a
       >
     </div>
     <div>
