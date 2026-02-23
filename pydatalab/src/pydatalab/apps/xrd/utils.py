@@ -25,10 +25,12 @@ class XrdmlParseError(Exception):
 XRD_COLUMN_MAPPING: ColumnMapping = {
     "tth": "twotheta",
     "2theta": "twotheta",
+    "2-theta": "twotheta",
     "two_theta": "twotheta",
     "counts": "intensity",
     "intensities": "intensity",
     "count": "intensity",
+    "data": "intensity",
 }
 
 
