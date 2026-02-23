@@ -28,6 +28,7 @@ dependencies = [
     "pandas[excel] ~= 2.2",
     "pymongo ~= 4.7",
     "deepdiff ~= 8.1",
+    "nexusformat>=2.0.0",
 ]
 
 [project.urls]
@@ -76,6 +77,9 @@ apps = [
     # XRD
     "matador-db >= 0.11.2",
     "psutil>=7.0.0",
+    # Nexus file format
+    "nexusformat>=2.0.0",
+
 ]
 
 app-plugins-git = [
@@ -186,4 +190,5 @@ as_regex = true
 [tool.liccheck.authorized_packages]
 datalab-org-galvani = ">=0.5"
 flask-cors = ">=5,<7"
+hdf5plugin = ">=6"  # MIT licensed but doesn't expose license in package metadata
 regex = ">=2025"
