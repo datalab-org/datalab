@@ -189,31 +189,6 @@ def list_nexus_data_groups(filename: str, skip_errors: bool = True) -> dict[str,
         raise RuntimeError(f"Failed to list NXdata groups in {filename}: {e}")
 
 
-def validate_xrd_columns(df: pd.DataFrame) -> None:
-    """Validate that a DataFrame contains XRD-compatible columns.
-
-    Raises:
-        NeXusValidationError: If the DataFrame doesn't have appropriate XRD columns
-
-    Args:
-        df: DataFrame to validate
-    """
-    # Check if we have an angle column (twotheta is expected after renaming)
-    has_angle = "twotheta" in df.columns
-
-    # Check if we have an intensity column
-    has_intensity = "intensity" in df.columns
-
-    if not has_angle or not has_intensity:
-        available_cols = list(df.columns)
-        raise NeXusValidationError(
-            f"NeXus file does not contain XRD-compatible data. "
-            f"Expected columns 'twotheta' and 'intensity', but found: {available_cols}. "
-            f"This file may contain neutron TOF data or other non-XRD measurements. "
-            f"Consider using a generic NeXus viewer instead of XRDBlock."
-        )
-
-
 # Metadata field definitions: maps output key to (path, type)
 # Path is dot-separated from entry, e.g., "instrument.name" -> entry["instrument"]["name"]
 # Type is "str" or "float"
