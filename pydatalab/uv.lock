@@ -642,7 +642,7 @@ requires-dist = [
     { name = "langchain-openai", marker = "extra == 'chat'", specifier = "~=0.1" },
     { name = "matador-db", marker = "extra == 'apps'", specifier = ">=0.11.2" },
     { name = "matplotlib", specifier = "~=3.8" },
-    { name = "navani", marker = "extra == 'apps'", specifier = "~=0.1.15" },
+    { name = "navani", marker = "extra == 'apps'", specifier = "~=0.1.16" },
     { name = "nmrglue", marker = "extra == 'apps'", git = "https://github.com/jjhelmus/nmrglue.git?rev=b6408751bf18801a0a4ce084acf4d31335e2b02a" },
     { name = "pandas", extras = ["excel"], specifier = "~=2.2" },
     { name = "periodictable", specifier = "~=1.7" },
@@ -1781,22 +1781,21 @@ wheels = [
 
 [[package]]
 name = "navani"
-version = "0.1.15"
+version = "0.1.16"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "datalab-org-galvani" },
     { name = "matplotlib" },
     { name = "newarenda" },
     { name = "numpy" },
-    { name = "openpyxl" },
-    { name = "pandas" },
+    { name = "pandas", extra = ["excel"] },
     { name = "requests" },
     { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "scipy", version = "1.16.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/51/95/e57fb94822d45f6df5dd9ee657ac3e4c7f780b155b827e12c6daaf19cc85/navani-0.1.15.tar.gz", hash = "sha256:b51dd92974bdba27137f2241cace8e32b540ed22e2e73f5dbbb0c675b09b4e6c", size = 7042912, upload-time = "2026-02-23T15:16:48.542Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a2/46/222b40e617f5de74110c4fc71deabe891cdc140b806d32141a2d208a6801/navani-0.1.16.tar.gz", hash = "sha256:7b42f6db406fdbb15efa9021477afc0f8fd59142ff0dd1d56359c53d6f4ed2e9", size = 7054495, upload-time = "2026-02-25T13:06:20.175Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/0b/7e/2e3e237d75f5bca213eb25c8dce5a83fce57cf71b51831f07ec3661254bd/navani-0.1.15-py3-none-any.whl", hash = "sha256:bbebc49cafdec9791fed0dd55ab674401fc876fa8c52865e37a8eeec03554bdc", size = 18319, upload-time = "2026-02-23T15:16:46.917Z" },
+    { url = "https://files.pythonhosted.org/packages/4f/34/3b5dd4441a3c7eb86f9fa7c466131841ea8110b975ea73dc1b44693f65c8/navani-0.1.16-py3-none-any.whl", hash = "sha256:513e313cbaf49d1e9a0cc849a5c9657c0a74a01ca8e2774966506652163109c7", size = 18369, upload-time = "2026-02-25T13:06:18.586Z" },
 ]
 
 [[package]]
