@@ -89,7 +89,7 @@ chat = [
     "langchain-openai ~= 0.1",
     "langchain-anthropic ~= 0.1",
     "tiktoken ~= 0.7",
-    "transformers ~= 4.42",
+    "transformers ~= 5.2",
 ]
 deploy = ["gunicorn ~= 23.0"]
 all = ["datalab-server[apps,server,chat]"]
