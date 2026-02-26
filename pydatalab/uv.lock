@@ -495,8 +495,8 @@ wheels = [
 
 [[package]]
 name = "datalab-app-plugin-insitu"
-version = "0.3.2.post6+g8e9c57f"
-source = { git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git?rev=ml-evs%2Finsitu-xrd-fixes#8e9c57f58754701e7301421ac14e8b0bdceab822" }
+version = "0.3.2.post11+g7bd7499"
+source = { git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git?rev=ml-evs%2Finsitu-xrd-fixes#7bd74992979fa2e7b7f18ed5665d3ea0dbaa77ff" }
 dependencies = [
     { name = "datalab-server" },
     { name = "lmfit" },
