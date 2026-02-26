@@ -495,8 +495,8 @@ wheels = [
 
 [[package]]
 name = "datalab-app-plugin-insitu"
-version = "0.3.2.post11+g7bd7499"
-source = { git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git?rev=ml-evs%2Finsitu-xrd-fixes#7bd74992979fa2e7b7f18ed5665d3ea0dbaa77ff" }
+version = "0.3.2.post9+g4043d69"
+source = { git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git?rev=4043d69#4043d698206dfc62b9530ce2b392a77606b20c25" }
 dependencies = [
     { name = "datalab-server" },
     { name = "lmfit" },
@@ -625,7 +625,7 @@ dev = [
 requires-dist = [
     { name = "apscheduler", marker = "extra == 'server'", specifier = "~=3.10" },
     { name = "bokeh", specifier = "~=2.4,<3.0" },
-    { name = "datalab-app-plugin-insitu", marker = "extra == 'app-plugins-git'", git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git?rev=ml-evs%2Finsitu-xrd-fixes" },
+    { name = "datalab-app-plugin-insitu", marker = "extra == 'app-plugins-git'", git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git?rev=4043d69" },
     { name = "datalab-server", extras = ["apps", "chat", "server"], marker = "extra == 'all'" },
     { name = "deepdiff", specifier = "~=8.1" },
     { name = "flask", marker = "extra == 'server'", specifier = "~=3.0" },
