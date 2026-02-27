@@ -9,6 +9,7 @@ updates:
   target-branch: main
   labels:
   - dependency_updates
+  - Python
   versioning-strategy: "increase-if-necessary"
   ignore:
     - dependency-name: "pydantic"
@@ -26,12 +27,22 @@ updates:
     time: "05:33"
   target-branch: main
   labels:
-  - CI
   - dependency_updates
+  - CI
   groups:
     github-actions:
       applies-to: version-updates
       dependency-type: production
+- package-ecosystem: npm
+  directory: "./webapp"
+  schedule:
+    day: monday
+    interval: monthly
+    time: "05:33"
+  target-branch: main
+  labels:
+  - dependency_updates
+  - javascript
 - package-ecosystem: docker
   directory: "/"
   schedule:
@@ -40,6 +51,5 @@ updates:
     time: "05:33"
   target-branch: main
   labels:
-  - CI
   - dependency_updates
   - build
