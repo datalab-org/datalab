@@ -1,6 +1,6 @@
 version: 2
 updates:
-- package-ecosystem: pip
+- package-ecosystem: uv
   directory: "./pydatalab"
   schedule:
     interval: monthly
@@ -32,3 +32,14 @@ updates:
     github-actions:
       applies-to: version-updates
       dependency-type: production
+- package-ecosystem: docker
+  directory: "/"
+  schedule:
+    day: monday
+    interval: monthly
+    time: "05:33"
+  target-branch: main
+  labels:
+  - CI
+  - dependency_updates
+  - build
