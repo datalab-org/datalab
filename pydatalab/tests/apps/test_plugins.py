@@ -1,4 +1,5 @@
 # Load block types first to avoid circular dependency issues
+from pydatalab import __version__
 from pydatalab.apps import BLOCK_TYPES, BLOCKS, load_block_plugins
 
 
@@ -11,6 +12,7 @@ def test_load_insitu_nmr_plugin():
     assert isinstance(BLOCK_TYPES["insitu-nmr"], type)
     assert BLOCK_TYPES["insitu-nmr"] == InsituBlock
     assert InsituBlock in BLOCKS
+    assert InsituBlock.__version__ != __version__
 
 
 def test_load_insitu_uvvis_plugin():
@@ -22,6 +24,7 @@ def test_load_insitu_uvvis_plugin():
     assert isinstance(BLOCK_TYPES["insitu-uvvis"], type)
     assert BLOCK_TYPES["insitu-uvvis"] == UVVisInsituBlock
     assert UVVisInsituBlock in BLOCKS
+    assert UVVisInsituBlock.__version__ != __version__
 
 
 def test_load_app_blocks():
