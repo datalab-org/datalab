@@ -11,6 +11,19 @@ updates:
   - dependency_updates
   - Python
   versioning-strategy: "increase-if-necessary"
+  groups:
+    python-production:
+      applies-to: version-updates
+      dependency-type: production
+      update-types:
+        - minor
+        - patch
+    python-development:
+      applies-to: version-updates
+      dependency-type: development
+      update-types:
+        - minor
+        - patch
   ignore:
     - dependency-name: "pydantic"
       versions: [ ">=2" ]
@@ -43,6 +56,19 @@ updates:
   labels:
   - dependency_updates
   - javascript
+  groups:
+    js-production:
+      applies-to: version-updates
+      dependency-type: production
+      update-types:
+        - minor
+        - patch
+    js-development:
+      applies-to: version-updates
+      dependency-type: development
+      update-types:
+        - minor
+        - patch
 - package-ecosystem: docker
   directory: "/"
   schedule:
