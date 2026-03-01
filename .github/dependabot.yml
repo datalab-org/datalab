@@ -1,6 +1,6 @@
 version: 2
 updates:
-- package-ecosystem: pip
+- package-ecosystem: uv
   directory: "./pydatalab"
   schedule:
     interval: monthly
@@ -9,7 +9,21 @@ updates:
   target-branch: main
   labels:
   - dependency_updates
+  - Python
   versioning-strategy: "increase-if-necessary"
+  groups:
+    python-production:
+      applies-to: version-updates
+      dependency-type: production
+      update-types:
+        - minor
+        - patch
+    python-development:
+      applies-to: version-updates
+      dependency-type: development
+      update-types:
+        - minor
+        - patch
   ignore:
     - dependency-name: "pydantic"
       versions: [ ">=2" ]
@@ -26,9 +40,42 @@ updates:
     time: "05:33"
   target-branch: main
   labels:
-  - CI
   - dependency_updates
+  - CI
   groups:
     github-actions:
       applies-to: version-updates
       dependency-type: production
+- package-ecosystem: npm
+  directory: "./webapp"
+  schedule:
+    day: monday
+    interval: monthly
+    time: "05:33"
+  target-branch: main
+  labels:
+  - dependency_updates
+  - javascript
+  groups:
+    js-production:
+      applies-to: version-updates
+      dependency-type: production
+      update-types:
+        - minor
+        - patch
+    js-development:
+      applies-to: version-updates
+      dependency-type: development
+      update-types:
+        - minor
+        - patch
+- package-ecosystem: docker
+  directory: "/"
+  schedule:
+    day: monday
+    interval: monthly
+    time: "05:33"
+  target-branch: main
+  labels:
+  - dependency_updates
+  - build
