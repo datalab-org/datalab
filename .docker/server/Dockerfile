@@ -1,7 +1,7 @@
 ARG UV_VERSION="0.9.21"
 FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv_image
 
-FROM python:3.11-slim-trixie AS api
+FROM python:3.14-slim-trixie AS api
 ARG TARGETARCH
 SHELL ["/bin/bash", "--login", "-c"]
 
