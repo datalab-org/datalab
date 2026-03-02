@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM node:20-bullseye AS build
+FROM node:25-bullseye AS build
 SHELL ["/bin/bash", "--login", "-c"]
 
 WORKDIR /app
@@ -25,7 +25,7 @@ ARG VUE_APP_AUTOMATICALLY_GENERATE_ID_DEFAULT=magic-generate-id-setting
 COPY webapp ./
 RUN --mount=type=bind,target=/.git,src=./.git VUE_APP_GIT_VERSION=$(node scripts/get-version.js) /node_modules/.bin/vue-cli-service build
 
-FROM node:20-bullseye AS production
+FROM node:25-bullseye AS production
 
 ENV PATH=$PATH:/node_modules/.bin
 COPY ./.docker/app_entrypoint.sh /app/
