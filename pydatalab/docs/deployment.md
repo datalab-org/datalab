@@ -104,7 +104,7 @@ The process may look something like the following:
     profiles: ["prod"]
     build:
       context: ./datalab
-      dockerfile: .docker/server_dockerfile
+      dockerfile: .docker/server/Dockerfile
       target: production
       args:
         - WEB_CONCURRENCY=16  # increase number of web workers to 16

@@ -70,7 +70,10 @@ updates:
         - minor
         - patch
 - package-ecosystem: docker
-  directory: "/"
+  directories:
+    - ".docker/app"
+    - ".docker/server"
+    - ".docker/mongo"
   schedule:
     day: monday
     interval: monthly
