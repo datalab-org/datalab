@@ -8,14 +8,11 @@ from pydantic import ValidationError
 from pymongo.results import InsertOneResult, UpdateResult
 
 from pydatalab.config import CONFIG
-from pydatalab.logger import logged_route
+from pydatalab.logger import LOGGER, logged_route
 from pydatalab.models.collections import Collection
 from pydatalab.mongo import COLLECTIONS_FTS_FIELDS, build_search_pipeline, flask_mongo
 from pydatalab.permissions import active_users_or_get_only, get_default_permissions
-from pydatalab.routes.v0_1.items import (
-    creators_lookup,
-    get_items_summary,
-)
+from pydatalab.routes.v0_1.items import creators_lookup, get_items_summary, groups_lookup
 
 COLLECTIONS = Blueprint("collections", __name__)
 
@@ -31,6 +28,7 @@ def get_collections():
         [
             {"$match": get_default_permissions(user_only=True)},
             {"$lookup": creators_lookup()},
+            {"$lookup": groups_lookup()},
             {"$project": {"_id": 0}},
             {"$sort": {"_id": -1}},
         ]
@@ -50,6 +48,7 @@ def get_collection(collection_id):
                 }
             },
             {"$lookup": creators_lookup()},
+            {"$lookup": groups_lookup()},
             {"$sort": {"_id": -1}},
         ]
     )
@@ -125,6 +124,19 @@ def create_collection():
                 "contact_email": current_user.person.contact_email,
             }
         ]
+
+    if data.get("additional_creators"):
+        for c in data["additional_creators"]:
+            creator_id = c.get("_id") or c.get("immutable_id")
+            if creator_id:
+                data["creator_ids"].append(ObjectId(creator_id))
+
+    if data.get("groups"):
+        data["group_ids"] = []
+        for g in data["groups"]:
+            group_id = g.get("_id") or g.get("immutable_id")
+            if group_id:
+                data["group_ids"].append(ObjectId(group_id))
 
     # check to make sure that item_id isn't taken already
     if flask_mongo.db.collections.find_one({"collection_id": data["collection_id"]}):
@@ -285,6 +297,146 @@ def save_collection(collection_id):
         )
 
     return jsonify(status="success"), 200
+
+
+@COLLECTIONS.route("/collections/<collection_id>/permissions", methods=["PATCH"])
+def update_collection_permissions(collection_id: str):
+    """Update the permissions of a collection with the given collection_id."""
+    request_json = request.get_json()
+    creator_ids: list[ObjectId] = []
+    group_ids: list[ObjectId] = []
+
+    current_collection = flask_mongo.db.collections.find_one(
+        {"collection_id": collection_id, **get_default_permissions(user_only=True)},
+        {"_id": 1, "creator_ids": 1, "group_ids": 1},
+    )  # type: ignore
+
+    if not current_collection:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": f"No valid collection found with the given {collection_id=}.",
+                }
+            ),
+            401,
+        )
+
+    current_creator_ids = current_collection["creator_ids"]
+
+    creators_requested = False
+    groups_requested = False
+
+    if "creators" in request_json and request_json["creators"] is not None:
+        creators_requested = True
+        new_creators = request_json["creators"]
+        if not isinstance(new_creators, list):
+            raise RuntimeError("Invalid creators list provided in request.")
+
+        creator_ids = [
+            ObjectId(creator.get("immutable_id", None))
+            for creator in request_json["creators"]
+            if creator.get("immutable_id", None) is not None
+        ]
+
+    if "groups" in request_json and request_json["groups"] is not None:
+        groups_requested = True
+        new_groups = request_json["groups"]
+        if not isinstance(new_groups, list):
+            raise RuntimeError("Invalid groups list provided in request.")
+
+        group_ids = [
+            ObjectId(group.get("immutable_id", None))
+            for group in request_json["groups"]
+            if group.get("immutable_id", None) is not None
+        ]
+
+    if not groups_requested and not creators_requested:
+        return (
+            jsonify(
+                {
+                    "status": "error",
+                    "message": "No valid creator or group IDs found in the request.",
+                }
+            ),
+            400,
+        )
+
+    if creator_ids:
+        found_creator_ids = [
+            d for d in flask_mongo.db.users.find({"_id": {"$in": creator_ids}}, {"_id": 1})
+        ]  # type: ignore
+        if len(found_creator_ids) != len(creator_ids):
+            return (
+                jsonify(
+                    {
+                        "status": "error",
+                        "message": "One or more creator IDs not found in the database.",
+                    }
+                ),
+                400,
+            )
+
+    if group_ids:
+        found_group_ids = [
+            d for d in flask_mongo.db.groups.find({"_id": {"$in": group_ids}}, {"_id": 1})
+        ]  # type: ignore
+        if len(found_group_ids) != len(group_ids):
+            return (
+                jsonify(
+                    {
+                        "status": "error",
+                        "message": "One or more group IDs not found in the database.",
+                    }
+                ),
+                400,
+            )
+
+    if creator_ids and creators_requested:
+        current_user_id = current_user.person.immutable_id
+        try:
+            creator_ids.remove(current_user_id)
+        except ValueError:
+            pass
+        creator_ids.insert(0, current_user_id)
+
+        if current_creator_ids:
+            base_owner = current_creator_ids[0]
+            try:
+                creator_ids.remove(base_owner)
+            except ValueError:
+                pass
+            creator_ids.insert(0, base_owner)
+
+    LOGGER.warning(
+        "Setting permissions for collection %s to %s (creators) / %s (groups)",
+        collection_id,
+        creator_ids,
+        group_ids,
+    )
+
+    set_op = {}
+    if creators_requested:
+        set_op["creator_ids"] = creator_ids
+    if groups_requested:
+        set_op["group_ids"] = group_ids
+
+    LOGGER.debug("Updating collection %s with set op: %s", collection_id, set_op)
+
+    result = flask_mongo.db.collections.update_one(
+        {"collection_id": collection_id, **get_default_permissions(user_only=True)},
+        {"$set": set_op},
+    )
+
+    if result.matched_count != 1:
+        return jsonify(
+            {
+                "status": "error",
+                "message": "Failed to update permissions: collection not found or insufficient permissions.",
+            }
+        ), 400
+
+    return jsonify({"status": "success"}), 200
 
 
 @COLLECTIONS.route("/collections/<collection_id>", methods=["DELETE"])

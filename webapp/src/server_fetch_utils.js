@@ -261,18 +261,28 @@ export function createNewSamples(
   });
 }
 
-export function createNewCollection(collection_id, title = "", startingData = {}, copyFrom = null) {
+export async function createNewCollection(
+  collection_id,
+  title,
+  startingMembers,
+  groups = null,
+  additionalCreators = null,
+) {
+  const starting_members_json = startingMembers
+    ? startingMembers.map((x) => ({ item_id: x.item_id, type: x.type }))
+    : [];
+
   return fetch_put(`${API_URL}/collections`, {
-    copy_from_collection_id: copyFrom,
     data: {
       collection_id: collection_id,
       title: title,
-      type: "collections",
-      ...startingData,
+      starting_members: starting_members_json,
+      groups: groups,
+      additional_creators: additionalCreators,
     },
   }).then(function (response_json) {
-    store.commit("prependToCollectionList", response_json.data);
-    return "success";
+    store.commit("addCollectionToCollectionList", response_json.data);
+    return response_json;
   });
 }
 
@@ -875,6 +885,31 @@ export function appendItemPermissions(refcode, creators = null, groups = null) {
       }
     },
   );
+}
+
+export function updateCollectionPermissions(collection_id, creators = null, groups = null) {
+  console.log("updateCollectionPermissions called with", collection_id, creators, groups);
+
+  const payload = { creators: creators, groups: groups };
+
+  return fetch_patch(`${API_URL}/collections/${collection_id}/permissions`, payload)
+    .then(function (response_json) {
+      if (response_json.status === "error") {
+        DialogService.error({
+          title: "Permission update failed",
+          message: `Failed to update permissions for collection ${collection_id}: ${response_json.message}`,
+        });
+        throw new Error(response_json.message);
+      }
+      return response_json;
+    })
+    .catch((error) => {
+      DialogService.error({
+        title: "Collection Permissions Update Failed",
+        message: `Error updating collection permissions: ${error}`,
+      });
+      throw error;
+    });
 }
 
 export function saveItem(item_id) {
