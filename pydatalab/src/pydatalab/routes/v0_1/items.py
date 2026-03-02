@@ -71,6 +71,7 @@ def get_equipment_summary():
                 {
                     "$match": {
                         "type": "equipment",
+                        **get_default_permissions(user_only=False),
                     }
                 },
                 {"$project": _project},
@@ -463,6 +464,49 @@ def search_items():
         else:
             pipeline.insert(0, {"$match": {"type": {"$in": types}}})
 
+    if current_user.is_authenticated and current_user.person is not None:
+        user_group_ids = []
+        if current_user.person.groups:
+            user_group_ids = [group.immutable_id for group in current_user.person.groups]
+
+        if user_group_ids:
+            pipeline.append(
+                {
+                    "$addFields": {
+                        "group_priority": {
+                            "$cond": {
+                                "if": {
+                                    "$or": [
+                                        {"$eq": [{"$size": {"$ifNull": ["$group_ids", []]}}, 0]},
+                                        {
+                                            "$gt": [
+                                                {
+                                                    "$size": {
+                                                        "$setIntersection": [
+                                                            "$group_ids",
+                                                            user_group_ids,
+                                                        ]
+                                                    }
+                                                },
+                                                0,
+                                            ]
+                                        },
+                                    ]
+                                },
+                                "then": 1,
+                                "else": 0,
+                            }
+                        }
+                    }
+                }
+            )
+
+            if any(stage.get("$sort") for stage in pipeline):
+                pipeline = [stage for stage in pipeline if "$sort" not in stage]
+                pipeline.append({"$sort": {"group_priority": -1, "score": {"$meta": "textScore"}}})
+            else:
+                pipeline.append({"$sort": {"group_priority": -1}})
+
     pipeline.append({"$limit": nresults})
     pipeline.append(
         {
@@ -588,10 +632,13 @@ def _create_sample(
     new_sample = sample_dict.copy()
 
     if type_ in ACCESSIBLE_TYPES:
-        # starting_materials and equipment are open to all in the deploment at this point,
-        # so no creators are assigned
         new_sample["creator_ids"] = []
         new_sample["creators"] = []
+
+        if sample_dict.get("groups"):
+            new_sample["group_ids"] = []
+            for g in sample_dict["groups"]:
+                new_sample["group_ids"].append(ObjectId(g["immutable_id"]))
 
     elif CONFIG.TESTING and not current_user.is_authenticated:
         # Set fake ID to ObjectId("000000000000000000000000") so a dummy user can be created
@@ -603,6 +650,7 @@ def _create_sample(
             }
         ]
     else:
+        # For non-inventory items (samples, cells), handle creators and groups normally
         new_sample["creator_ids"] = [current_user.person.immutable_id]
         new_sample["creators"] = [
             {
@@ -610,6 +658,16 @@ def _create_sample(
                 "contact_email": current_user.person.contact_email,
             }
         ]
+
+        # Check for initialised sharing options, e.g., groups and other creators
+        if sample_dict.get("creators"):
+            for c in sample_dict["creators"]:
+                new_sample["creator_ids"].append(ObjectId(c["immutable_id"]))
+
+        if sample_dict.get("groups"):
+            new_sample["group_ids"] = []
+            for g in sample_dict["groups"]:
+                new_sample["group_ids"].append(ObjectId(g["immutable_id"]))
 
     # Check for initialised sharing options, e.g., groups and other creators
     if sample_dict.get("creators"):
