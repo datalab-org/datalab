@@ -586,6 +586,7 @@ dependencies = [
     { name = "pint" },
     { name = "pydantic", extra = ["dotenv", "email"] },
     { name = "pymongo" },
+    { name = "seppya" },
 ]
 
 [package.optional-dependencies]
@@ -710,6 +711,7 @@ requires-dist = [
     { name = "python-dotenv", marker = "extra == 'server'", specifier = "~=1.0" },
     { name = "renishawwire", marker = "extra == 'apps'", specifier = ">=0.1.16" },
     { name = "scipy", marker = "extra == 'apps'", specifier = "~=1.13" },
+    { name = "seppya", editable = "plugins/sepPya" },
     { name = "tiktoken", marker = "extra == 'chat'", specifier = "~=0.7" },
     { name = "transformers", marker = "extra == 'chat'", specifier = "~=4.42" },
     { name = "werkzeug", marker = "extra == 'server'", specifier = "~=3.0" },
@@ -2709,6 +2711,31 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/c3/b4/04eb9d39ec26a1b939689102da23d505ea16cdae3dbb18ffc53d1f831044/scipy-1.16.1-cp311-cp311-musllinux_1_2_aarch64.whl", hash = "sha256:18aca1646a29ee9a0625a1be5637fa798d4d81fdf426481f06d69af828f16958", size = 35698906, upload-time = "2025-07-27T16:27:14.943Z" },
     { url = "https://files.pythonhosted.org/packages/04/d6/bb5468da53321baeb001f6e4e0d9049eadd175a4a497709939128556e3ec/scipy-1.16.1-cp311-cp311-musllinux_1_2_x86_64.whl", hash = "sha256:d85495cef541729a70cdddbbf3e6b903421bc1af3e8e3a9a72a06751f33b7c39", size = 38129275, upload-time = "2025-07-27T16:27:23.873Z" },
     { url = "https://files.pythonhosted.org/packages/c4/94/994369978509f227cba7dfb9e623254d0d5559506fe994aef4bea3ed469c/scipy-1.16.1-cp311-cp311-win_amd64.whl", hash = "sha256:226652fca853008119c03a8ce71ffe1b3f6d2844cc1686e8f9806edafae68596", size = 38644572, upload-time = "2025-07-27T16:27:32.637Z" },
+]
+
+[[package]]
+name = "seppya"
+version = "0.0.1"
+source = { editable = "plugins/sepPya" }
+dependencies = [
+    { name = "numpy" },
+    { name = "pandas" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "datalab-server", extras = ["apps", "server"], marker = "extra == 'dev'", specifier = ">=0.5.3" },
+    { name = "numpy" },
+    { name = "pandas" },
+    { name = "pre-commit", marker = "extra == 'dev'" },
+    { name = "pytest", marker = "extra == 'test'" },
+]
+provides-extras = ["test", "docs", "dev"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = ">=8.4.1" },
+    { name = "pytest-cov", specifier = ">=7.0.0" },
 ]
 
 [[package]]
