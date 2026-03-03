@@ -49,6 +49,70 @@ SELECTABLE_CALLBACK_y = """
   source.change.emit();
   yaxis.axis_label = column;
 """
+SELECTABLE_CALLBACK_y_TRANSFORMED = """
+  var column = cb_obj.value;
+  var mode = mode_select.value;
+  var ydata = source.data[column] || [];
+  var transformed = new Array(ydata.length);
+
+  for (var i = 0; i < ydata.length; i++) {
+    var v = ydata[i];
+    if (mode === "linear") {
+      transformed[i] = v;
+    } else if (mode === "log") {
+      transformed[i] = v > 0 ? (Math.log(v) / Math.log(10.0)) : NaN;
+    } else if (mode === "inverse") {
+      transformed[i] = v > 0 ? (1.0 / v) : NaN;
+    } else {
+      transformed[i] = v;
+    }
+  }
+
+  source.data.__datalab_y_display = transformed;
+  if (circle1) {circle1.glyph.y.field = "__datalab_y_display";}
+  if (line1) {line1.glyph.y.field = "__datalab_y_display";}
+  source.change.emit();
+
+  if (mode === "linear") {
+    yaxis.axis_label = column;
+  } else if (mode === "log") {
+    yaxis.axis_label = "log(" + column + ")";
+  } else {
+    yaxis.axis_label = "1/" + column;
+  }
+"""
+SELECTABLE_CALLBACK_y_MODE = """
+  var mode = cb_obj.value;
+  var column = y_select.value;
+  var ydata = source.data[column] || [];
+  var transformed = new Array(ydata.length);
+
+  for (var i = 0; i < ydata.length; i++) {
+    var v = ydata[i];
+    if (mode === "linear") {
+      transformed[i] = v;
+    } else if (mode === "log") {
+      transformed[i] = v > 0 ? (Math.log(v) / Math.log(10.0)) : NaN;
+    } else if (mode === "inverse") {
+      transformed[i] = v > 0 ? (1.0 / v) : NaN;
+    } else {
+      transformed[i] = v;
+    }
+  }
+
+  source.data.__datalab_y_display = transformed;
+  if (circle1) {circle1.glyph.y.field = "__datalab_y_display";}
+  if (line1) {line1.glyph.y.field = "__datalab_y_display";}
+  source.change.emit();
+
+  if (mode === "linear") {
+    yaxis.axis_label = column;
+  } else if (mode === "log") {
+    yaxis.axis_label = "log(" + column + ")";
+  } else {
+    yaxis.axis_label = "1/" + column;
+  }
+"""
 GENERATE_CSV_CALLBACK = """
   let columns = Object.keys(source.data);
   console.log(columns);
@@ -225,6 +289,8 @@ def selectable_axes_plot(
     tools: list | None = None,
     show_table: bool = False,
     parameters: dict | None = None,
+    y_transform_options: list[str] | None = None,
+    y_transform_default: str = "linear",
     **kwargs,
 ):
     """
@@ -248,6 +314,9 @@ def selectable_axes_plot(
             value in the colour cycle.
         tools: A list of Bokeh tools to enable.
         show_table: Whether to render the data as a table above the plot.
+        y_transform_options: Optional list of y-mode transforms. Supported values are
+            ``"linear"``, ``"log"``, and ``"inverse"``.
+        y_transform_default: Default y-mode transform.
 
     Returns:
         Bokeh layout
@@ -290,9 +359,21 @@ def selectable_axes_plot(
             y_default = y_options[0]
 
     if isinstance(y_default, list):
-        y_label = y_options[0]
+        y_default_select = y_default[0]
+        y_label = y_default_select
     else:
+        y_default_select = y_default
         y_label = y_default
+
+    yaxis_select = Select(title="Y axis:", value=y_default_select, options=y_options)
+
+    y_transform_select = None
+    if y_transform_options is not None:
+        if y_transform_default not in y_transform_options:
+            raise ValueError(f"{y_transform_default=} is not present in {y_transform_options=}.")
+        y_transform_select = Select(
+            title="Y mode:", value=y_transform_default, options=y_transform_options
+        )
 
     x_axis_label = x_default if label_x else ""
     y_axis_label = y_label if label_y else ""
@@ -322,6 +403,7 @@ def selectable_axes_plot(
 
     callbacks_x = []
     callbacks_y = []
+    callbacks_y_mode = []
     source = ColumnDataSource(_df)
 
     if color_options:
@@ -446,10 +528,33 @@ def selectable_axes_plot(
         )
         callbacks_y.append(
             CustomJS(
-                args=dict(circle1=circles, line1=lines, source=source, yaxis=p.yaxis[0]),
-                code=SELECTABLE_CALLBACK_y,
+                args=dict(
+                    circle1=circles,
+                    line1=lines,
+                    source=source,
+                    yaxis=p.yaxis[0],
+                    mode_select=y_transform_select,
+                ),
+                code=(
+                    SELECTABLE_CALLBACK_y_TRANSFORMED
+                    if y_transform_select is not None
+                    else SELECTABLE_CALLBACK_y
+                ),
             )
         )
+        if y_transform_select is not None:
+            callbacks_y_mode.append(
+                CustomJS(
+                    args=dict(
+                        circle1=circles,
+                        line1=lines,
+                        source=source,
+                        yaxis=p.yaxis[0],
+                        y_select=yaxis_select,
+                    ),
+                    code=SELECTABLE_CALLBACK_y_MODE,
+                )
+            )
 
     if color_mapper and color_options:
         color_bar = ColorBar(color_mapper=color_mapper, title=color_options[0])  # type: ignore
@@ -461,8 +566,9 @@ def selectable_axes_plot(
         xaxis_select.js_on_change("value", *callbacks_x)
 
     if callbacks_y:
-        yaxis_select = Select(title="Y axis:", value=y_default, options=y_options)
         yaxis_select.js_on_change("value", *callbacks_y)
+    if y_transform_select is not None and callbacks_y_mode:
+        y_transform_select.js_on_change("value", *callbacks_y_mode)
 
     if p.legend:
         p.legend.click_policy = "hide"
@@ -504,6 +610,8 @@ def selectable_axes_plot(
         plot_columns.append(xaxis_select)
     if len(y_options) > 1:
         plot_columns.append(yaxis_select)
+    if y_transform_select is not None:
+        plot_columns.append(y_transform_select)
 
     # Only enable csv export for simple 'single dataframe' plots, for now
     if (
