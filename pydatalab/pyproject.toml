@@ -28,6 +28,7 @@ dependencies = [
     "pandas[excel] ~= 2.2",
     "pymongo ~= 4.7",
     "deepdiff ~= 8.1",
+    "seppya",
 ]
 
 [project.urls]
@@ -137,6 +138,7 @@ dev = [
 [tool.uv.sources]
 datalab-app-plugin-insitu = { git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git", rev = "v0.3.3" }
 nmrglue = { git = "https://github.com/jjhelmus/nmrglue.git", rev = "b6408751bf18801a0a4ce084acf4d31335e2b02a" }  # TODO: Update when new release is made
+seppya = { path = "./plugins/sepPya", editable = true }
 
 [tool.pytest.ini_options]
 filterwarnings = [
