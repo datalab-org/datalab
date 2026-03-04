@@ -368,7 +368,7 @@ def selectable_axes_plot(
         if y_transform_default not in y_transform_options:
             raise ValueError(f"{y_transform_default=} is not present in {y_transform_options=}.")
         y_transform_select = Select(
-            title="Y mode:", value=y_transform_default, options=y_transform_options
+            title="mode:", value=y_transform_default, options=y_transform_options
         )
 
     x_axis_label = x_default if label_x else ""
