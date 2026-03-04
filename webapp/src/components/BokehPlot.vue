@@ -74,7 +74,7 @@ export default {
           // add some bootrap styles to bokeh widgets. This is not very elegants
           var bokehSelectElements = document.querySelectorAll("div.bk-input-group>select");
           bokehSelectElements.forEach((element) => {
-            element.classList.add("form-control", "ml-2");
+            element.classList.add("form-control", "form-control-sm", "ml-2");
             element.classList.remove("bk-input", "bk");
           });
           var bokehSelectLabelElements = document.querySelectorAll("div.bk-input-group>label");
