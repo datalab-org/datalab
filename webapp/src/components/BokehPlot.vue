@@ -74,7 +74,7 @@ export default {
           // add some bootrap styles to bokeh widgets. This is not very elegants
           var bokehSelectElements = document.querySelectorAll("div.bk-input-group>select");
           bokehSelectElements.forEach((element) => {
-            element.classList.add("form-control", "ml-4");
+            element.classList.add("form-control", "form-control-sm", "ml-2");
             element.classList.remove("bk-input", "bk");
           });
           var bokehSelectLabelElements = document.querySelectorAll("div.bk-input-group>label");
@@ -83,7 +83,7 @@ export default {
           });
           var bokehInputGroups = document.querySelectorAll("div.bk-input-group");
           bokehInputGroups.forEach((element) => {
-            element.classList.add("input-group", "form-inline", "col-sm-6");
+            element.classList.add("input-group", "form-inline");
             element.classList.remove("bk-input-group", "bk");
           });
         } catch (error) {

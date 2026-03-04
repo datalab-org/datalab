@@ -49,6 +49,86 @@ SELECTABLE_CALLBACK_y = """
   source.change.emit();
   yaxis.axis_label = column;
 """
+SELECTABLE_CALLBACK_y_TRANSFORMED_TEMPLATE = """
+  var column = cb_obj.value;
+  var mode = mode_select ? mode_select.value : "linear";
+  var unit = unit_select ? unit_select.value : "native";
+  var ydata = source.data[column] || [];
+  var transform = function(v) { return v; };
+  var unit_transform = function(v, column, unit, source) {
+__UNIT_TRANSFORM__
+  };
+  var unit_label = function(column, unit, source) {
+__UNIT_LABEL__
+  };
+
+  if (mode === "log") {
+    transform = function(v) { return v > 0 ? (Math.log(v) / Math.log(10.0)) : NaN; };
+  } else if (mode === "sqrt") {
+    transform = function(v) { return v > 0 ? Math.sqrt(v) : NaN; };
+  } else if (mode === "inverse") {
+    transform = function(v) { return v > 0 ? (1.0 / v) : NaN; };
+  }
+  var transformed = ydata.map(function(v) {
+    return transform(unit_transform(v, column, unit, source));
+  });
+
+  source.data.__datalab_y_display = transformed;
+  if (circle1) {circle1.glyph.y.field = "__datalab_y_display";}
+  if (line1) {line1.glyph.y.field = "__datalab_y_display";}
+  source.change.emit();
+
+  var axis_label = unit_label(column, unit, source);
+  if (mode === "linear") {
+    yaxis.axis_label = axis_label;
+  } else if (mode === "log") {
+    yaxis.axis_label = "log(" + axis_label + ")";
+  } else if (mode === "sqrt") {
+    yaxis.axis_label = "sqrt(" + axis_label + ")";
+  } else {
+    yaxis.axis_label = "1/" + axis_label;
+  }
+"""
+SELECTABLE_CALLBACK_y_MODE_TEMPLATE = """
+  var mode = cb_obj.value;
+  var column = y_select.value;
+  var unit = unit_select ? unit_select.value : "native";
+  var ydata = source.data[column] || [];
+  var transform = function(v) { return v; };
+  var unit_transform = function(v, column, unit, source) {
+__UNIT_TRANSFORM__
+  };
+  var unit_label = function(column, unit, source) {
+__UNIT_LABEL__
+  };
+
+  if (mode === "log") {
+    transform = function(v) { return v > 0 ? (Math.log(v) / Math.log(10.0)) : NaN; };
+  } else if (mode === "sqrt") {
+    transform = function(v) { return v > 0 ? Math.sqrt(v) : NaN; };
+  } else if (mode === "inverse") {
+    transform = function(v) { return v > 0 ? (1.0 / v) : NaN; };
+  }
+  var transformed = ydata.map(function(v) {
+    return transform(unit_transform(v, column, unit, source));
+  });
+
+  source.data.__datalab_y_display = transformed;
+  if (circle1) {circle1.glyph.y.field = "__datalab_y_display";}
+  if (line1) {line1.glyph.y.field = "__datalab_y_display";}
+  source.change.emit();
+
+  var axis_label = unit_label(column, unit, source);
+  if (mode === "linear") {
+    yaxis.axis_label = axis_label;
+  } else if (mode === "log") {
+    yaxis.axis_label = "log(" + axis_label + ")";
+  } else if (mode === "sqrt") {
+    yaxis.axis_label = "sqrt(" + axis_label + ")";
+  } else {
+    yaxis.axis_label = "1/" + axis_label;
+  }
+"""
 GENERATE_CSV_CALLBACK = """
   let columns = Object.keys(source.data);
   console.log(columns);
@@ -225,6 +305,13 @@ def selectable_axes_plot(
     tools: list | None = None,
     show_table: bool = False,
     parameters: dict | None = None,
+    y_unit_options: list[str] | None = None,
+    y_unit_default: str = "native",
+    y_unit_title: str = "units:",
+    y_unit_transform_callback: str | None = None,
+    y_unit_label_callback: str | None = None,
+    y_transform_options: list[str] | None = None,
+    y_transform_default: str = "linear",
     **kwargs,
 ):
     """
@@ -248,6 +335,16 @@ def selectable_axes_plot(
             value in the colour cycle.
         tools: A list of Bokeh tools to enable.
         show_table: Whether to render the data as a table above the plot.
+        y_unit_options: Optional list of selectable y-axis unit modes.
+        y_unit_default: Default y-unit mode.
+        y_unit_title: Display title for the y-unit selector.
+        y_unit_transform_callback: JavaScript function body used to transform a single
+            value with signature ``(v, column, unit, source)``. Must return a scalar.
+        y_unit_label_callback: JavaScript function body used to generate axis labels with
+            signature ``(column, unit, source)``. Must return a string.
+        y_transform_options: Optional list of y-mode transforms. Supported values are
+            ``"linear"``, ``"log"``, ``"sqrt"``, and ``"inverse"``.
+        y_transform_default: Default y-mode transform.
 
     Returns:
         Bokeh layout
@@ -290,9 +387,26 @@ def selectable_axes_plot(
             y_default = y_options[0]
 
     if isinstance(y_default, list):
-        y_label = y_options[0]
+        y_default_select = y_default[0]
+        y_label = y_default_select
     else:
+        y_default_select = y_default
         y_label = y_default
+
+    yaxis_select = Select(title="Y axis:", value=y_default_select, options=y_options)
+
+    y_transform_select = None
+    if y_transform_options is not None:
+        if y_transform_default not in y_transform_options:
+            raise ValueError(f"{y_transform_default=} is not present in {y_transform_options=}.")
+        y_transform_select = Select(
+            title="mode:", value=y_transform_default, options=y_transform_options
+        )
+    y_unit_select = None
+    if y_unit_options is not None:
+        if y_unit_default not in y_unit_options:
+            raise ValueError(f"{y_unit_default=} is not present in {y_unit_options=}.")
+        y_unit_select = Select(title=y_unit_title, value=y_unit_default, options=y_unit_options)
 
     x_axis_label = x_default if label_x else ""
     y_axis_label = y_label if label_y else ""
@@ -322,7 +436,22 @@ def selectable_axes_plot(
 
     callbacks_x = []
     callbacks_y = []
+    callbacks_y_mode = []
+    callbacks_y_unit = []
     source = ColumnDataSource(_df)
+
+    unit_transform_code = (
+        y_unit_transform_callback if y_unit_transform_callback is not None else "return v;"
+    )
+    unit_label_code = (
+        y_unit_label_callback if y_unit_label_callback is not None else "return column;"
+    )
+    selectable_callback_y_transformed = SELECTABLE_CALLBACK_y_TRANSFORMED_TEMPLATE.replace(
+        "__UNIT_TRANSFORM__", unit_transform_code
+    ).replace("__UNIT_LABEL__", unit_label_code)
+    selectable_callback_y_mode = SELECTABLE_CALLBACK_y_MODE_TEMPLATE.replace(
+        "__UNIT_TRANSFORM__", unit_transform_code
+    ).replace("__UNIT_LABEL__", unit_label_code)
 
     if color_options:
         if color_mapper is None:
@@ -368,9 +497,9 @@ def selectable_axes_plot(
         label = legend_labels[ind] if legend_labels else ""
 
         if hasattr(df_, "attrs"):
-            for attr in ["item_id", "original_filename", "wavelength"]:
-                if attr in df_.attrs:
-                    df_[attr] = df_.attrs[attr]
+            for attr, value in df_.attrs.items():
+                if value is not None and np.isscalar(value):
+                    df_[attr] = value
 
         source = ColumnDataSource(df_)
 
@@ -446,23 +575,75 @@ def selectable_axes_plot(
         )
         callbacks_y.append(
             CustomJS(
-                args=dict(circle1=circles, line1=lines, source=source, yaxis=p.yaxis[0]),
-                code=SELECTABLE_CALLBACK_y,
+                args=dict(
+                    circle1=circles,
+                    line1=lines,
+                    source=source,
+                    yaxis=p.yaxis[0],
+                    mode_select=y_transform_select,
+                    unit_select=y_unit_select,
+                ),
+                code=(
+                    selectable_callback_y_transformed
+                    if (y_transform_select is not None or y_unit_select is not None)
+                    else SELECTABLE_CALLBACK_y
+                ),
             )
         )
+        if y_transform_select is not None:
+            callbacks_y_mode.append(
+                CustomJS(
+                    args=dict(
+                        circle1=circles,
+                        line1=lines,
+                        source=source,
+                        yaxis=p.yaxis[0],
+                        y_select=yaxis_select,
+                        unit_select=y_unit_select,
+                    ),
+                    code=selectable_callback_y_mode,
+                )
+            )
+        if y_unit_select is not None:
+            callbacks_y_unit.append(
+                CustomJS(
+                    args=dict(
+                        circle1=circles,
+                        line1=lines,
+                        source=source,
+                        yaxis=p.yaxis[0],
+                        y_select=yaxis_select,
+                        mode_select=y_transform_select,
+                        unit_select=y_unit_select,
+                    ),
+                    code=selectable_callback_y_mode.replace(
+                        "var mode = cb_obj.value;",
+                        'var mode = mode_select ? mode_select.value : "linear";',
+                    ),
+                )
+            )
 
     if color_mapper and color_options:
         color_bar = ColorBar(color_mapper=color_mapper, title=color_options[0])  # type: ignore
         p.add_layout(color_bar, "right")
 
     # Add list boxes for selecting which columns to plot on the x and y axis
+    xaxis_controls = None
     if callbacks_x:
+        from bokeh.layouts import row
+
         xaxis_select = Select(title="X axis:", value=x_default, options=x_options)
         xaxis_select.js_on_change("value", *callbacks_x)
+        xaxis_select.css_classes = ["col-12", "col-md-8", "col-lg-4"]
+        xaxis_controls = row(xaxis_select, sizing_mode="scale_width")
+        xaxis_controls.css_classes = ["row", "g-2", "align-items-end"]
 
     if callbacks_y:
-        yaxis_select = Select(title="Y axis:", value=y_default, options=y_options)
         yaxis_select.js_on_change("value", *callbacks_y)
+    if y_transform_select is not None and callbacks_y_mode:
+        y_transform_select.js_on_change("value", *callbacks_y_mode)
+    if y_unit_select is not None and callbacks_y_unit:
+        y_unit_select.js_on_change("value", *callbacks_y_unit)
 
     if p.legend:
         p.legend.click_policy = "hide"
@@ -485,6 +666,8 @@ def selectable_axes_plot(
 
     input_widgets = []
     if parameters:
+        from bokeh.layouts import row
+
         for parameter in parameters.values():
             input_widget = TextInput(title=parameter["label"], value=str(parameter["value"]))
             if parameter["event"]:
@@ -493,17 +676,44 @@ def selectable_axes_plot(
                     f"console.log('Dispatched event for {parameter['label']}', event.target.value)"
                 )
                 input_widget.js_on_change("value", *[CustomJS(code=code)])
+            input_widget.css_classes = ["col-12", "col-lg-3"]
             input_widgets.append(input_widget)
 
         if input_widgets:
-            plot_columns.extend(input_widgets)
+            input_controls = row(*input_widgets, sizing_mode="scale_width")
+            input_controls.css_classes = ["row", "g-2", "align-items-end"]
+            plot_columns.append(input_controls)
 
     if not skip_plot:
         plot_columns.append(p)
-    if len(x_options) > 1:
-        plot_columns.append(xaxis_select)
+    if len(x_options) > 1 and xaxis_controls is not None:
+        plot_columns.append(xaxis_controls)
     if len(y_options) > 1:
-        plot_columns.append(yaxis_select)
+        if y_transform_select is not None or y_unit_select is not None:
+            from bokeh.layouts import row
+
+            # Bootstrap-like responsive layout:
+            # lg: 4 + 3 + 2 columns, md/sm: 8 + 4 (+ optional), xs: stacked full width.
+            yaxis_select.css_classes = ["col-12", "col-md-8", "col-lg-4"]
+            y_controls_children = [yaxis_select]
+            if y_unit_select is not None:
+                y_unit_select.css_classes = ["col-12", "col-md-4", "col-lg-3"]
+                y_controls_children.append(y_unit_select)
+            if y_transform_select is not None:
+                y_transform_select.css_classes = ["col-12", "col-md-4", "col-lg-2"]
+                y_controls_children.append(y_transform_select)
+            y_controls = row(*y_controls_children, sizing_mode="scale_width")
+            y_controls.css_classes = ["row", "g-2", "align-items-end"]
+            plot_columns.append(y_controls)
+        else:
+            from bokeh.layouts import row
+
+            yaxis_select.css_classes = ["col-12", "col-md-8", "col-lg-4"]
+            yaxis_controls = row(yaxis_select, sizing_mode="scale_width")
+            yaxis_controls.css_classes = ["row", "g-2", "align-items-end"]
+            plot_columns.append(yaxis_controls)
+    elif y_transform_select is not None:
+        plot_columns.append(y_transform_select)
 
     # Only enable csv export for simple 'single dataframe' plots, for now
     if (
