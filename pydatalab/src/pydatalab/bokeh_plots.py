@@ -53,22 +53,16 @@ SELECTABLE_CALLBACK_y_TRANSFORMED = """
   var column = cb_obj.value;
   var mode = mode_select.value;
   var ydata = source.data[column] || [];
-  var transformed = new Array(ydata.length);
+  var transform = function(v) { return v; };
 
-  for (var i = 0; i < ydata.length; i++) {
-    var v = ydata[i];
-    if (mode === "linear") {
-      transformed[i] = v;
-    } else if (mode === "log") {
-      transformed[i] = v > 0 ? (Math.log(v) / Math.log(10.0)) : NaN;
-    } else if (mode === "sqrt") {
-      transformed[i] = v > 0 ? Math.sqrt(v) : NaN;
-    } else if (mode === "inverse") {
-      transformed[i] = v > 0 ? (1.0 / v) : NaN;
-    } else {
-      transformed[i] = v;
-    }
+  if (mode === "log") {
+    transform = function(v) { return v > 0 ? (Math.log(v) / Math.log(10.0)) : NaN; };
+  } else if (mode === "sqrt") {
+    transform = function(v) { return v > 0 ? Math.sqrt(v) : NaN; };
+  } else if (mode === "inverse") {
+    transform = function(v) { return v > 0 ? (1.0 / v) : NaN; };
   }
+  var transformed = ydata.map(transform);
 
   source.data.__datalab_y_display = transformed;
   if (circle1) {circle1.glyph.y.field = "__datalab_y_display";}
@@ -89,22 +83,16 @@ SELECTABLE_CALLBACK_y_MODE = """
   var mode = cb_obj.value;
   var column = y_select.value;
   var ydata = source.data[column] || [];
-  var transformed = new Array(ydata.length);
+  var transform = function(v) { return v; };
 
-  for (var i = 0; i < ydata.length; i++) {
-    var v = ydata[i];
-    if (mode === "linear") {
-      transformed[i] = v;
-    } else if (mode === "log") {
-      transformed[i] = v > 0 ? (Math.log(v) / Math.log(10.0)) : NaN;
-    } else if (mode === "sqrt") {
-      transformed[i] = v > 0 ? Math.sqrt(v) : NaN;
-    } else if (mode === "inverse") {
-      transformed[i] = v > 0 ? (1.0 / v) : NaN;
-    } else {
-      transformed[i] = v;
-    }
+  if (mode === "log") {
+    transform = function(v) { return v > 0 ? (Math.log(v) / Math.log(10.0)) : NaN; };
+  } else if (mode === "sqrt") {
+    transform = function(v) { return v > 0 ? Math.sqrt(v) : NaN; };
+  } else if (mode === "inverse") {
+    transform = function(v) { return v > 0 ? (1.0 / v) : NaN; };
   }
+  var transformed = ydata.map(transform);
 
   source.data.__datalab_y_display = transformed;
   if (circle1) {circle1.glyph.y.field = "__datalab_y_display";}
