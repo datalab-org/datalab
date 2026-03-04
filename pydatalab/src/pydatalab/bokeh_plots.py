@@ -61,6 +61,8 @@ SELECTABLE_CALLBACK_y_TRANSFORMED = """
       transformed[i] = v;
     } else if (mode === "log") {
       transformed[i] = v > 0 ? (Math.log(v) / Math.log(10.0)) : NaN;
+    } else if (mode === "sqrt") {
+      transformed[i] = v > 0 ? Math.sqrt(v) : NaN;
     } else if (mode === "inverse") {
       transformed[i] = v > 0 ? (1.0 / v) : NaN;
     } else {
@@ -77,6 +79,8 @@ SELECTABLE_CALLBACK_y_TRANSFORMED = """
     yaxis.axis_label = column;
   } else if (mode === "log") {
     yaxis.axis_label = "log(" + column + ")";
+  } else if (mode === "sqrt") {
+    yaxis.axis_label = "sqrt(" + column + ")";
   } else {
     yaxis.axis_label = "1/" + column;
   }
@@ -93,6 +97,8 @@ SELECTABLE_CALLBACK_y_MODE = """
       transformed[i] = v;
     } else if (mode === "log") {
       transformed[i] = v > 0 ? (Math.log(v) / Math.log(10.0)) : NaN;
+    } else if (mode === "sqrt") {
+      transformed[i] = v > 0 ? Math.sqrt(v) : NaN;
     } else if (mode === "inverse") {
       transformed[i] = v > 0 ? (1.0 / v) : NaN;
     } else {
@@ -109,6 +115,8 @@ SELECTABLE_CALLBACK_y_MODE = """
     yaxis.axis_label = column;
   } else if (mode === "log") {
     yaxis.axis_label = "log(" + column + ")";
+  } else if (mode === "sqrt") {
+    yaxis.axis_label = "sqrt(" + column + ")";
   } else {
     yaxis.axis_label = "1/" + column;
   }
@@ -315,7 +323,7 @@ def selectable_axes_plot(
         tools: A list of Bokeh tools to enable.
         show_table: Whether to render the data as a table above the plot.
         y_transform_options: Optional list of y-mode transforms. Supported values are
-            ``"linear"``, ``"log"``, and ``"inverse"``.
+            ``"linear"``, ``"log"``, ``"sqrt"``, and ``"inverse"``.
         y_transform_default: Default y-mode transform.
 
     Returns:
@@ -561,9 +569,15 @@ def selectable_axes_plot(
         p.add_layout(color_bar, "right")
 
     # Add list boxes for selecting which columns to plot on the x and y axis
+    xaxis_controls = None
     if callbacks_x:
+        from bokeh.layouts import row
+
         xaxis_select = Select(title="X axis:", value=x_default, options=x_options)
         xaxis_select.js_on_change("value", *callbacks_x)
+        xaxis_select.css_classes = ["col-12", "col-md-8", "col-lg-4"]
+        xaxis_controls = row(xaxis_select, sizing_mode="scale_width")
+        xaxis_controls.css_classes = ["row", "g-2", "align-items-end"]
 
     if callbacks_y:
         yaxis_select.js_on_change("value", *callbacks_y)
@@ -591,6 +605,8 @@ def selectable_axes_plot(
 
     input_widgets = []
     if parameters:
+        from bokeh.layouts import row
+
         for parameter in parameters.values():
             input_widget = TextInput(title=parameter["label"], value=str(parameter["value"]))
             if parameter["event"]:
@@ -599,18 +615,32 @@ def selectable_axes_plot(
                     f"console.log('Dispatched event for {parameter['label']}', event.target.value)"
                 )
                 input_widget.js_on_change("value", *[CustomJS(code=code)])
-            input_widgets.append(input_widget)
+            input_widget.css_classes = ["col-12", "col-md-8", "col-lg-4"]
+            input_widget_row = row(input_widget, sizing_mode="scale_width")
+            input_widget_row.css_classes = ["row", "g-2", "align-items-end"]
+            input_widgets.append(input_widget_row)
 
         if input_widgets:
             plot_columns.extend(input_widgets)
 
     if not skip_plot:
         plot_columns.append(p)
-    if len(x_options) > 1:
-        plot_columns.append(xaxis_select)
+    if len(x_options) > 1 and xaxis_controls is not None:
+        plot_columns.append(xaxis_controls)
     if len(y_options) > 1:
-        plot_columns.append(yaxis_select)
-    if y_transform_select is not None:
+        if y_transform_select is not None:
+            from bokeh.layouts import row
+
+            # Bootstrap-like responsive layout:
+            # lg: 4 + 3 columns, md/sm: 8 + 4 columns, xs: stacked full width.
+            yaxis_select.css_classes = ["col-12", "col-md-8", "col-lg-4"]
+            y_transform_select.css_classes = ["col-12", "col-md-4", "col-lg-3"]
+            y_controls = row(yaxis_select, y_transform_select, sizing_mode="scale_width")
+            y_controls.css_classes = ["row", "g-2", "align-items-end"]
+            plot_columns.append(y_controls)
+        else:
+            plot_columns.append(yaxis_select)
+    elif y_transform_select is not None:
         plot_columns.append(y_transform_select)
 
     # Only enable csv export for simple 'single dataframe' plots, for now
