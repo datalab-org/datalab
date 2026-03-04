@@ -627,7 +627,12 @@ def selectable_axes_plot(
             y_controls.css_classes = ["row", "g-2", "align-items-end"]
             plot_columns.append(y_controls)
         else:
-            plot_columns.append(yaxis_select)
+            from bokeh.layouts import row
+
+            yaxis_select.css_classes = ["col-12", "col-md-8", "col-lg-4"]
+            yaxis_controls = row(yaxis_select, sizing_mode="scale_width")
+            yaxis_controls.css_classes = ["row", "g-2", "align-items-end"]
+            plot_columns.append(yaxis_controls)
     elif y_transform_select is not None:
         plot_columns.append(y_transform_select)
 
