@@ -196,6 +196,46 @@ class DataBlock:
             collection_id,
         )
 
+    def set_optional_positive_float(
+        self,
+        *,
+        key: str,
+        value: float | str | None,
+        field_name: str | None = None,
+    ) -> None:
+        """Parse and store an optional positive float in ``self.data[key]``.
+
+        - Blank strings and ``None`` clear the value (set to ``None``).
+        - Invalid or non-positive numeric input raises ``ValueError``.
+        """
+        name = field_name or key
+
+        if isinstance(value, str):
+            if not value.strip():
+                LOGGER.debug("Clearing %s for block %s", name, self.block_id)
+                self.data[key] = None
+                return
+            try:
+                value = float(value)
+            except Exception as exc:
+                raise ValueError(f"Invalid value for {name}: {value}. Must be a float.") from exc
+
+        if value is None:
+            LOGGER.debug("Clearing %s for block %s", name, self.block_id)
+            self.data[key] = None
+            return
+
+        try:
+            parsed = float(value)
+        except Exception as exc:
+            raise ValueError(f"Invalid value for {name}: {value}. Must be a float.") from exc
+
+        if parsed <= 0:
+            raise ValueError(f"{name} must be a positive number")
+
+        LOGGER.debug("Setting %s to %s for block %s", name, parsed, self.block_id)
+        self.data[key] = parsed
+
     def to_db(self) -> dict:
         """returns a dictionary with the data for this
         block, ready to be input into mongodb"""
