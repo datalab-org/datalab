@@ -639,10 +639,8 @@ def email_logged_in():
             raise UserRegistrationForbidden
 
         create_account = AccountStatus.UNVERIFIED
-        if (
-            CONFIG.EMAIL_DOMAIN_ALLOW_LIST is None
-            or CONFIG.EMAIL_AUTO_ACTIVATE_ACCOUNTS
-            or CONFIG.AUTO_ACTIVATE_ACCOUNTS
+        if CONFIG.EMAIL_DOMAIN_ALLOW_LIST is None and (
+            CONFIG.EMAIL_AUTO_ACTIVATE_ACCOUNTS or CONFIG.AUTO_ACTIVATE_ACCOUNTS
         ):
             create_account = AccountStatus.ACTIVE
 
