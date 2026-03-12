@@ -583,3 +583,73 @@ def parse_bruker_raw(filename: str) -> pd.DataFrame:
         raise RuntimeError(f"Failed to read Bruker RAW file {filename}.")
 
     return pd.DataFrame({"twotheta": reader.powderdata[0], "intensity": reader.powderdata[1]})
+
+
+def parse_bruker_brml(filename: str) -> pd.DataFrame:
+    """Reads a Bruker BRML file (zipped XML) and returns a pandas DataFrame with columns
+    twotheta and intensity.
+
+    Parameters:
+        filename: The file to read.
+
+    Returns:
+        A DataFrame with columns "twotheta" and "intensity", among others.
+
+    """
+
+    from xml.etree import ElementTree as ET
+
+    with zipfile.ZipFile(filename, "r") as zip_ref:
+        # Find the first RawData XML file in the archive
+        raw_data_files = sorted(
+            f for f in zip_ref.namelist() if re.match(r"Experiment\d+/RawData\d+\.xml", f)
+        )
+        if not raw_data_files:
+            raise FileNotFoundError("No RawData XML file found in the .brml archive.")
+
+        with zip_ref.open(raw_data_files[0]) as f:
+            tree = ET.fromstring(f.read().decode("utf-8"))  # noqa: S314
+
+    # Find the DataRoute with measured data
+    data_route = tree.find(".//DataRoute[@RouteFlag='Measured']")
+    if data_route is None:
+        data_route = tree.find(".//DataRoute")
+    if data_route is None:
+        raise ValueError("No DataRoute element found in the BRML raw data file.")
+
+    # Datum CSV layout: time_per_step, unknown_flag, <axis1>, <axis2>, ..., intensity
+    # Column positions are determined from the ScanAxisInfo elements.
+    scan_axes = data_route.findall(".//ScanAxisInfo")
+    axis_names = [ax.get("AxisId") for ax in scan_axes]
+
+    twotheta_col = None
+    for i, name in enumerate(axis_names):
+        if name == "TwoTheta":
+            twotheta_col = i + 2  # offset past time_per_step and flag columns
+            break
+
+    if twotheta_col is None:
+        raise ValueError(f"No TwoTheta axis found in BRML scan axes (found: {axis_names}).")
+
+    intensity_col = 2 + len(axis_names)
+
+    eff_time = float(data_route.findtext(".//TimePerStepEffective", default="0"))
+
+    datums = data_route.findall("Datum")
+    if not datums:
+        raise ValueError("No Datum elements found in the BRML raw data file.")
+
+    twotheta = np.empty(len(datums))
+    intensity = np.empty(len(datums))
+    for i, datum in enumerate(datums):
+        parts = datum.text.split(",")  # type: ignore[union-attr]
+        twotheta[i] = float(parts[twotheta_col])
+        # Normalize intensity by actual/effective time ratio (as in GSAS-II)
+        time_per_step = float(parts[0])
+        intensity[i] = (
+            float(parts[intensity_col]) * time_per_step / eff_time
+            if eff_time
+            else float(parts[intensity_col])
+        )
+
+    return pd.DataFrame({"twotheta": twotheta, "intensity": intensity})
