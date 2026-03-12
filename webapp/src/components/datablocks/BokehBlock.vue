@@ -2,13 +2,25 @@
   <!-- think about elegant two-way binding to DataBlockBase... or, just pass all the block data into
 DataBlockBase as a prop, and save from within DataBlockBase  -->
   <DataBlockBase :item_id="item_id" :block_id="block_id">
-    <FileSelectDropdown
-      v-model="file_id"
-      :item_id="item_id"
-      :block_id="block_id"
-      :extensions="blockInfo?.attributes?.accepted_file_extensions"
-      update-block-on-change
-    />
+    <div v-if="multiFileBlock">
+      <MultiFileSelector
+        v-model="file_ids"
+        :item_id="item_id"
+        :block_id="block_id"
+        :extensions="blockInfo?.attributes?.accepted_file_extensions"
+        :main-label="'Select and order files'"
+        update-block-on-change
+      />
+    </div>
+    <div v-else>
+      <FileSelectDropdown
+        v-model="file_id"
+        :item_id="item_id"
+        :block_id="block_id"
+        :extensions="blockInfo?.attributes?.accepted_file_extensions"
+        update-block-on-change
+      />
+    </div>
 
     <div id="bokehPlotContainer" class="limited-width">
       <BokehPlot :bokeh-plot-data="bokehPlotData" />
@@ -19,6 +31,7 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
 <script>
 import DataBlockBase from "@/components/datablocks/DataBlockBase";
 import FileSelectDropdown from "@/components/FileSelectDropdown";
+import MultiFileSelector from "@/components/FileMultiSelectDropdown";
 import BokehPlot from "@/components/BokehPlot";
 
 import { createComputedSetterForBlockField } from "@/field_utils.js";
@@ -28,6 +41,7 @@ export default {
   components: {
     DataBlockBase,
     FileSelectDropdown,
+    MultiFileSelector,
     BokehPlot,
   },
   props: {
@@ -47,6 +61,12 @@ export default {
     block() {
       return this.$store.state.all_item_data[this.item_id]["blocks_obj"][this.block_id];
     },
+    multiFileBlock() {
+      if (this.blockInfo?.attributes?.multi_file) {
+        return true;
+      }
+      return false;
+    },
     blockInfo() {
       const blockType = this.blockType;
       if (!blockType) return null;
@@ -60,6 +80,7 @@ export default {
       }
     },
     file_id: createComputedSetterForBlockField("file_id"),
+    file_ids: createComputedSetterForBlockField("file_ids"),
   },
 
   methods: {

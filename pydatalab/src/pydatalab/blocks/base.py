@@ -131,6 +131,9 @@ class DataBlock:
     _supports_collections: bool = False
     """Whether this datablock can operate on collection data, or just individual items"""
 
+    multi_file: bool = False
+    """Whether this block can accept multiple files as input."""
+
     version: str = __version__
     """The implementation version of this particular block."""
 

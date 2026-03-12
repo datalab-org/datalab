@@ -143,6 +143,7 @@ def list_block_types():
                             "accepted_file_extensions": getattr(
                                 block, "accepted_file_extensions", []
                             ),
+                            "multi_file": getattr(block, "multi_file", False),
                         },
                     )
                     for block_type, block in BLOCK_TYPES.items()
