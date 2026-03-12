@@ -281,7 +281,11 @@ export default createStore({
       //requires the following fields in payload:
       // item_id, block_data
       Object.assign(state.all_collection_data[payload.collection_id], payload.block_data);
-      state.saved_status_collections[payload.collection_id] = false;
+      if (payload.block_data.creators || payload.block_data.groups) {
+        return;
+      } else {
+        state.saved_status_collections[payload.collection_id] = false;
+      }
     },
     setItemSaved(state, payload) {
       // requires the following fields in payload:

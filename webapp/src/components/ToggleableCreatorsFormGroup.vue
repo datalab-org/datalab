@@ -17,7 +17,7 @@
     <div>
       <Creators
         v-if="!isEditingCreators"
-        :show-names="value.length <= 1"
+        :show-names="!value || value.length <= 1"
         aria-labelledby="creators"
         :creators="shadowValue"
       />
@@ -38,7 +38,7 @@ import { DialogService } from "@/services/DialogService";
 import Creators from "@/components/Creators";
 import UserSelect from "@/components/UserSelect";
 import { OnClickOutside } from "@vueuse/components";
-import { updateItemPermissions } from "@/server_fetch_utils.js";
+import { updateItemPermissions, updateCollectionPermissions } from "@/server_fetch_utils.js";
 import { toRaw } from "vue";
 
 export default {
@@ -48,7 +48,8 @@ export default {
     OnClickOutside,
   },
   props: {
-    refcode: { type: String, required: true },
+    refcode: { type: String, required: false, default: null },
+    collectionId: { type: String, required: false, default: null },
     modelValue: {
       type: Array,
       required: true,
@@ -82,17 +83,22 @@ export default {
           return;
         }
         try {
-          // Check if the user has just removed all creators and reset if so
           if (this.shadowValue.length == 0) {
             throw new Error("You must have at least one creator.");
           }
           const confirmed = await DialogService.confirm({
             title: "Update Permissions",
-            message: "Are you sure you want to update the permissions of this item?",
+            message: `Are you sure you want to update the permissions of this ${
+              this.collectionId ? "collection" : "item"
+            }?`,
             type: "warning",
           });
           if (confirmed) {
-            await updateItemPermissions(this.refcode, this.shadowValue);
+            if (this.collectionId) {
+              await updateCollectionPermissions(this.collectionId, this.shadowValue);
+            } else {
+              await updateItemPermissions(this.refcode, this.shadowValue);
+            }
             this.$emit("update:modelValue", [...this.shadowValue]);
           } else {
             this.shadowValue = [...this.value];
@@ -110,8 +116,11 @@ export default {
     modelValue: {
       immediate: true,
       handler(newVal) {
-        if (this.shadowValue !== newVal) {
-          this.shadowValue = [...newVal];
+        const newArray = Array.isArray(newVal) ? [...newVal] : [];
+        const currentArray = Array.isArray(this.shadowValue) ? this.shadowValue : [];
+
+        if (JSON.stringify(currentArray) !== JSON.stringify(newArray)) {
+          this.shadowValue = newArray;
         }
       },
     },
