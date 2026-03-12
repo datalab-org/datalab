@@ -19,7 +19,7 @@
     >
       <div v-if="isExpanded" ref="contentContainer" class="comparison-content-container">
         <div class="form-row align-items-center mb-2">
-          <FileMultiSelectDropdown
+          <FileMultiSelect
             :model-value="modelValue"
             :item_id="item_id"
             :block_id="block_id"
@@ -40,14 +40,14 @@
 </template>
 
 <script>
-import FileMultiSelectDropdown from "@/components/FileMultiSelectDropdown";
+import FileMultiSelect from "@/components/FileMultiSelect";
 
 // Padding added to content height for smooth collapse animation
 const CONTENT_PADDING_HEIGHT = 18;
 
 export default {
   components: {
-    FileMultiSelectDropdown,
+    FileMultiSelect,
   },
   props: {
     item_id: {

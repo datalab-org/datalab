@@ -3,7 +3,7 @@
 DataBlockBase as a prop, and save from within DataBlockBase  -->
   <DataBlockBase :item_id="item_id" :block_id="block_id">
     <div v-if="multiFileBlock">
-      <MultiFileSelector
+      <FileMultiSelect
         v-model="file_ids"
         :item_id="item_id"
         :block_id="block_id"
@@ -31,7 +31,7 @@ DataBlockBase as a prop, and save from within DataBlockBase  -->
 <script>
 import DataBlockBase from "@/components/datablocks/DataBlockBase";
 import FileSelectDropdown from "@/components/FileSelectDropdown";
-import MultiFileSelector from "@/components/FileMultiSelectDropdown";
+import FileMultiSelect from "@/components/FileMultiSelect";
 import BokehPlot from "@/components/BokehPlot";
 
 import { createComputedSetterForBlockField } from "@/field_utils.js";
@@ -41,7 +41,7 @@ export default {
   components: {
     DataBlockBase,
     FileSelectDropdown,
-    MultiFileSelector,
+    FileMultiSelect,
     BokehPlot,
   },
   props: {
