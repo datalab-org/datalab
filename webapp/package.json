@@ -78,7 +78,7 @@
     "@vue/cli-plugin-e2e-cypress": "5.0.8",
     "@vue/cli-service": "~5.0.8",
     "@vue/compiler-sfc": "^3.2.4",
-    "@vue/eslint-config-prettier": "^8.0.0",
+    "@vue/eslint-config-prettier": "^10.2.0",
     "@vue/test-utils": "^2.4.5",
     "babel-plugin-transform-remove-console": "^6.9.4",
     "cypress": "^13.7.0",
