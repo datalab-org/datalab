@@ -196,6 +196,9 @@
       "title": "Active Ion Charge",
       "default": 1,
       "type": "number"
+    },
+    "availability": {
+      "$ref": "#/definitions/ItemAvailability"
     }
   },
   "required": [
@@ -947,6 +950,16 @@
         "item",
         "quantity"
       ]
+    },
+    "ItemAvailability": {
+      "title": "ItemAvailability",
+      "description": "An enumeration of the availability status of items",
+      "enum": [
+        "available",
+        "unavailable",
+        "exhausted"
+      ],
+      "type": "string"
     }
   }
 }
