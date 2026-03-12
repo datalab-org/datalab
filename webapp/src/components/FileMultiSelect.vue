@@ -131,7 +131,7 @@
 import { updateBlockFromServer } from "@/server_fetch_utils.js"; // Assuming this path is correct
 
 export default {
-  name: "MultiFileSelector",
+  name: "FileMultiSelect",
   props: {
     modelValue: {
       // Now expects an array of file IDs

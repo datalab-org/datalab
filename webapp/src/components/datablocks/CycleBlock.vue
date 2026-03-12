@@ -22,7 +22,7 @@
     </div>
     <div class="form-row mb-2">
       <component
-        :is="mode === FILE_MODE.MULTI ? 'FileMultiSelectDropdown' : 'FileSelectDropdown'"
+        :is="mode === FILE_MODE.MULTI ? 'FileMultiSelect' : 'FileSelectDropdown'"
         v-model="fileModel"
         :item_id="item_id"
         :block_id="block_id"
@@ -186,7 +186,7 @@
 <script>
 import DataBlockBase from "@/components/datablocks/DataBlockBase";
 import FileSelectDropdown from "@/components/FileSelectDropdown";
-import FileMultiSelectDropdown from "@/components/FileMultiSelectDropdown";
+import FileMultiSelect from "@/components/FileMultiSelect";
 import BokehPlot from "@/components/BokehPlot";
 import CollapsibleComparisonFileSelect from "@/components/CollapsibleComparisonFileSelect";
 
@@ -204,7 +204,7 @@ export default {
   components: {
     DataBlockBase,
     FileSelectDropdown,
-    FileMultiSelectDropdown,
+    FileMultiSelect,
     BokehPlot,
     CollapsibleComparisonFileSelect,
   },

@@ -1,7 +1,7 @@
 <template>
   <DataBlockBase :item_id="item_id" :block_id="block_id">
     <div>
-      <MultiFileSelector
+      <FileMultiSelect
         v-model="selectedFileOrder"
         :item_id="item_id"
         :block_id="block_id"
@@ -18,7 +18,7 @@
 
 <script>
 import DataBlockBase from "@/components/datablocks/DataBlockBase";
-import MultiFileSelector from "@/components/FileMultiSelectDropdown";
+import FileMultiSelect from "@/components/FileMultiSelect";
 import BokehPlot from "@/components/BokehPlot";
 
 import { createComputedSetterForBlockField } from "@/field_utils.js";
@@ -27,7 +27,7 @@ export default {
   components: {
     DataBlockBase,
     BokehPlot,
-    MultiFileSelector,
+    FileMultiSelect,
   },
   props: {
     item_id: {
