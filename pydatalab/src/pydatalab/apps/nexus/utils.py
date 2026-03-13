@@ -10,6 +10,8 @@ from collections.abc import Callable
 import nexusformat.nexus as nx
 import pandas as pd
 
+from pydatalab.logger import LOGGER
+
 
 class NeXusValidationError(ValueError):
     """Raised when a NeXus file doesn't contain the expected data structure."""
@@ -345,22 +347,29 @@ def load_nexus_file(
         if hasattr(nxroot, "plottable_data") and nxroot.plottable_data is not None:
             plottable = nxroot.plottable_data
             if plottable.attrs.get("signal") is not None or len(list(plottable.items())) > 0:
-                df = _extract_plottable_data(
-                    plottable,
-                    reduce_method=reduce_method,
-                    skip_broken_links=skip_errors,
-                    column_mapping=column_mapping,
-                )
-                if validator:
-                    validator(df)
-                return (df, metadata) if extract_metadata else df
+                try:
+                    df = _extract_plottable_data(
+                        plottable,
+                        reduce_method=reduce_method,
+                        skip_broken_links=skip_errors,
+                        column_mapping=column_mapping,
+                    )
+                    if validator:
+                        validator(df)
+                    return (df, metadata) if extract_metadata else df
+                except (ValueError, KeyError) as e:
+                    # plottable_data exists but extraction failed (e.g. missing/unreadable
+                    # @signal) — fall through to the recursive search rather than aborting.
+                    LOGGER.debug(
+                        "Tier 2 (plottable_data) failed for %s: %s. Falling back to recursive search.",
+                        filename,
+                        e,
+                    )
 
         # --- Tier 3: recursive search ---
         # Fallback for non-standard or older files that don't follow the
-        # plottable_data convention. Walks the entire file tree and takes the
-        # first NXdata group found.
-        # Note: if validation fails in tier 2, it raises immediately rather than
-        # falling through here — tier 3 is only reached if tier 2 finds no data.
+        # plottable_data convention, or where tier 2 extraction failed.
+        # Walks the entire file tree and tries each NXdata group in order.
         nxdata_groups = _find_all_nxdata_groups(nxroot, skip_errors=skip_errors)
 
         if not nxdata_groups:
