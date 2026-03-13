@@ -359,8 +359,8 @@ def load_nexus_file(
                         validator(df)
                     return (df, metadata) if extract_metadata else df
                 except (ValueError, KeyError) as e:
-                    # plottable_data exists but extraction failed (e.g. missing/unreadable
-                    # @signal) — fall through to the recursive search rather than aborting.
+                    # plottable_data exists but extraction/validation failed — fall
+                    # through to the recursive search rather than aborting.
                     LOGGER.debug(
                         "Tier 2 (plottable_data) failed for %s: %s. Falling back to recursive search.",
                         filename,
@@ -380,7 +380,11 @@ def load_nexus_file(
         # Try each candidate in order, returning the first one that extracts
         # and validates successfully. This handles files where some NXdata groups
         # are incomplete or non-plottable but a later group is valid.
+        # Track the last validation error separately — if every candidate loaded
+        # successfully but failed validation, that error is more informative than
+        # a generic "no usable groups" message.
         last_error: Exception | None = None
+        last_validation_error: NeXusValidationError | None = None
         for path, group in nxdata_groups.items():
             try:
                 df = _extract_plottable_data(
@@ -392,12 +396,20 @@ def load_nexus_file(
                 if validator:
                     validator(df)
                 return (df, metadata) if extract_metadata else df
+            except NeXusValidationError as e:
+                last_validation_error = e
+                continue
             except Exception as e:  # noqa: BLE001
                 last_error = e
                 continue
 
+        # If we only ever saw validation failures (data was found but wrong type),
+        # surface that error — it's more informative than a generic RuntimeError.
+        if last_validation_error and not last_error:
+            raise last_validation_error
+
         raise RuntimeError(
-            f"No usable NXdata groups found in the NeXus file. Last error: {last_error}"
+            f"No usable NXdata groups found in the NeXus file. Last error: {last_validation_error or last_error}"
         )
 
     except NeXusValidationError:
