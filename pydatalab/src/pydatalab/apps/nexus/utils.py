@@ -347,6 +347,7 @@ def load_nexus_file(
         if hasattr(nxroot, "plottable_data") and nxroot.plottable_data is not None:
             plottable = nxroot.plottable_data
             if plottable.attrs.get("signal") is not None or len(list(plottable.items())) > 0:
+                LOGGER.debug("Loading %s via tier 2 (plottable_data).", filename)
                 try:
                     df = _extract_plottable_data(
                         plottable,
@@ -370,6 +371,7 @@ def load_nexus_file(
         # Fallback for non-standard or older files that don't follow the
         # plottable_data convention, or where tier 2 extraction failed.
         # Walks the entire file tree and tries each NXdata group in order.
+        LOGGER.debug("Loading %s via tier 3 (recursive search).", filename)
         nxdata_groups = _find_all_nxdata_groups(nxroot, skip_errors=skip_errors)
 
         if not nxdata_groups:
