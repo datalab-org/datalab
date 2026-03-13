@@ -28,7 +28,6 @@ dependencies = [
     "pandas[excel] ~= 2.2",
     "pymongo ~= 4.7",
     "deepdiff ~= 8.1",
-    "nexusformat>=2.0.0",
 ]
 
 [project.urls]
