@@ -385,7 +385,7 @@ def load_nexus_file(
         # a generic "no usable groups" message.
         last_error: Exception | None = None
         last_validation_error: NeXusValidationError | None = None
-        for path, group in nxdata_groups.items():
+        for group in nxdata_groups.values():
             try:
                 df = _extract_plottable_data(
                     group,
