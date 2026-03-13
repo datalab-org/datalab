@@ -366,20 +366,28 @@ def load_nexus_file(
         if not nxdata_groups:
             raise RuntimeError("No NXdata groups found in the NeXus file")
 
-        first_path = list(nxdata_groups.keys())[0]
-        first_group = nxdata_groups[first_path]
+        # Try each candidate in order, returning the first one that extracts
+        # and validates successfully. This handles files where some NXdata groups
+        # are incomplete or non-plottable but a later group is valid.
+        last_error: Exception | None = None
+        for path, group in nxdata_groups.items():
+            try:
+                df = _extract_plottable_data(
+                    group,
+                    reduce_method=reduce_method,
+                    skip_broken_links=skip_errors,
+                    column_mapping=column_mapping,
+                )
+                if validator:
+                    validator(df)
+                return (df, metadata) if extract_metadata else df
+            except Exception as e:  # noqa: BLE001
+                last_error = e
+                continue
 
-        df = _extract_plottable_data(
-            first_group,
-            reduce_method=reduce_method,
-            skip_broken_links=skip_errors,
-            column_mapping=column_mapping,
+        raise RuntimeError(
+            f"No usable NXdata groups found in the NeXus file. Last error: {last_error}"
         )
-
-        if validator:
-            validator(df)
-
-        return (df, metadata) if extract_metadata else df
 
     except NeXusValidationError:
         # Re-raise validation errors unwrapped — they are meaningful to the caller
