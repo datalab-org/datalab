@@ -100,7 +100,8 @@ def _extract_plottable_data(
     data_dict = {}
 
     # Handle multi-dimensional signal data
-    # Note not currently used for XRD data, but some NeXus files have 2D+ data that needs to be reduced to 1D for plotting. For a future generic nexus block
+    # XRD data normally comes as a 1xN array, but some files have it as 2D (e.g., Nx1). Reduce to 1D by summing or averaging across extra dimensions.
+    # For XRD sum is used
     if signal_data.ndim > 1:
         # For 2D+ data, reduce to 1D
         if reduce_method == "sum":
