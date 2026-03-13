@@ -51,11 +51,14 @@ def validate_xrd_columns(df: pd.DataFrame) -> None:
 
     if not has_angle or not has_intensity:
         available_cols = list(df.columns)
+        accepted_angle_names = [k for k, v in XRD_COLUMN_MAPPING.items() if v == "twotheta"]
+        accepted_intensity_names = [k for k, v in XRD_COLUMN_MAPPING.items() if v == "intensity"]
         raise NeXusValidationError(
             f"NeXus file does not contain XRD-compatible data. "
-            f"Expected columns 'twotheta' and 'intensity', but found: {available_cols}. "
-            f"This file may contain neutron TOF data or other non-XRD measurements. "
-            f"Consider using a generic NeXus viewer instead of XRDBlock."
+            f"Expected a two-theta axis (accepted names: {accepted_angle_names}) "
+            f"and an intensity signal (accepted names: {accepted_intensity_names}), "
+            f"but found columns: {available_cols}. "
+            f"This file may contain neutron TOF data or other non-XRD measurements."
         )
 
 
