@@ -344,28 +344,33 @@ def load_nexus_file(
         # to the group intended for default plotting. This is the preferred approach
         # for compliant files. The emptiness check guards against files where
         # plottable_data exists but points to an empty group.
-        if hasattr(nxroot, "plottable_data") and nxroot.plottable_data is not None:
-            plottable = nxroot.plottable_data
-            if plottable.attrs.get("signal") is not None or len(list(plottable.items())) > 0:
+        # Note: accessing plottable_data via hasattr can invoke a property getter
+        # that raises non-AttributeError exceptions (e.g. from broken links), so
+        # the entire tier is wrapped to fall through to tier 3 on any such failure.
+        try:
+            plottable = getattr(nxroot, "plottable_data", None)
+            if plottable is not None and (
+                plottable.attrs.get("signal") is not None or len(list(plottable.items())) > 0
+            ):
                 LOGGER.debug("Loading %s via tier 2 (plottable_data).", filename)
-                try:
-                    df = _extract_plottable_data(
-                        plottable,
-                        reduce_method=reduce_method,
-                        skip_broken_links=skip_errors,
-                        column_mapping=column_mapping,
-                    )
-                    if validator:
-                        validator(df)
-                    return (df, metadata) if extract_metadata else df
-                except (ValueError, KeyError) as e:
-                    # plottable_data exists but extraction/validation failed — fall
-                    # through to the recursive search rather than aborting.
-                    LOGGER.debug(
-                        "Tier 2 (plottable_data) failed for %s: %s. Falling back to recursive search.",
-                        filename,
-                        e,
-                    )
+                df = _extract_plottable_data(
+                    plottable,
+                    reduce_method=reduce_method,
+                    skip_broken_links=skip_errors,
+                    column_mapping=column_mapping,
+                )
+                if validator:
+                    validator(df)
+                return (df, metadata) if extract_metadata else df
+        except Exception as e:  # noqa: BLE001
+            # plottable_data access, extraction, or validation failed — fall through
+            # to tier 3 rather than aborting. Tier 3 tracks validation errors
+            # separately and will surface them if all candidates fail.
+            LOGGER.debug(
+                "Tier 2 (plottable_data) failed for %s: %s. Falling back to recursive search.",
+                filename,
+                e,
+            )
 
         # --- Tier 3: recursive search ---
         # Fallback for non-standard or older files that don't follow the
