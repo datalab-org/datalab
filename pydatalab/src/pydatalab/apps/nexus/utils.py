@@ -38,21 +38,20 @@ def _find_all_nxdata_groups(nxroot: nx.NXroot, skip_errors: bool = True) -> dict
     nxdata_groups = {}
 
     def _recurse(group, path=""):
-        try:
+        try:  # noqa: S110, BLE001 — outer guard: iterating the group itself can fail if it has a broken external link at the top level; skip the whole group
             for key, item in group.items():
                 item_path = f"{path}/{key}" if path else key
-                try:
+                try:  # noqa: S110, BLE001 — inner guard: a single broken item should not abort the rest of the loop
                     if isinstance(item, nx.NXdata):
                         # Skip empty NXdata groups (no signal attribute and no datasets)
                         if item.attrs.get("signal") is not None or len(list(item.items())) > 0:
                             nxdata_groups[item_path] = item
                     elif isinstance(item, nx.NXgroup):
                         _recurse(item, item_path)
-                except Exception:
+                except Exception:  # noqa: BLE001
                     if not skip_errors:
                         raise
-                    # Skip this item if it has broken links or other issues
-        except Exception:
+        except Exception:  # noqa: BLE001
             if not skip_errors:
                 raise
 
@@ -132,10 +131,9 @@ def _extract_plottable_data(
 
                 if len(axis_data) == len(signal_data):
                     data_dict[axis_name] = axis_data
-            except Exception:
+            except Exception:  # noqa: S110, BLE001 — skip axes with broken links rather than aborting
                 if not skip_broken_links:
                     raise
-                # Skip this axis if it has broken links
 
     # Add signal data
     data_dict[signal_name] = signal_data
@@ -244,11 +242,10 @@ def _extract_nexus_metadata(nxroot: nx.NXroot) -> dict[str, str | float]:
                     raw_value = _get_nested_value(entry, path)
                     metadata[key] = _convert_value(raw_value, value_type)
                     break  # Stop trying paths once we find a value
-                except Exception:  # noqa: S112
-                    continue  # Try next path
+                except Exception:  # noqa: S112, BLE001 — try next fallback path
+                    continue
 
-    except Exception:  # noqa: S110
-        # If anything goes wrong, just return whatever metadata we collected
+    except Exception:  # noqa: S110, BLE001 — return whatever metadata was collected
         pass
 
     return metadata
