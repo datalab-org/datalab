@@ -25,7 +25,7 @@ NeXusValidator = Callable[[pd.DataFrame], None]
 ColumnMapping = dict[str, str]
 
 
-def find_all_nxdata_groups(nxroot: nx.NXroot, skip_errors: bool = True) -> dict[str, nx.NXdata]:
+def _find_all_nxdata_groups(nxroot: nx.NXroot, skip_errors: bool = True) -> dict[str, nx.NXdata]:
     """Recursively find all NXdata groups in a NeXus file.
 
     Args:
@@ -60,7 +60,7 @@ def find_all_nxdata_groups(nxroot: nx.NXroot, skip_errors: bool = True) -> dict[
     return nxdata_groups
 
 
-def extract_plottable_data(
+def _extract_plottable_data(
     nxdata_group: nx.NXdata,
     reduce_method: str = "sum",
     skip_broken_links: bool = True,
@@ -89,7 +89,9 @@ def extract_plottable_data(
     except Exception as e:
         raise ValueError(f"Cannot access signal data '{signal_name}': {e}")
 
-    # Get the axes (x-axis data)
+    # The @axes attribute lists the names of datasets used as axis coordinates.
+    # It can be a list (e.g. ["tth", "energy"]) or a bare string (e.g. "tth") in
+    # older/simpler files — normalise to a list so the loop below is uniform.
     axes_attr = nxdata_group.attrs.get("axes", [])
     if isinstance(axes_attr, str):
         axes_attr = [axes_attr]
@@ -98,6 +100,7 @@ def extract_plottable_data(
     data_dict = {}
 
     # Handle multi-dimensional signal data
+    # Note not currently used for XRD data, but some NeXus files have 2D+ data that needs to be reduced to 1D for plotting. For a future generic nexus block
     if signal_data.ndim > 1:
         # For 2D+ data, reduce to 1D
         if reduce_method == "sum":
@@ -113,13 +116,16 @@ def extract_plottable_data(
                 f"Unknown reduce_method '{reduce_method}'. Use 'sum', 'mean', 'first', or 'last'."
             )
 
-    # Extract axis data
+    # Extract axis data. A "." value is a NeXus placeholder meaning "no axis
+    # for this dimension" and should be skipped.
     for axis_name in axes_attr:
         if axis_name and axis_name != "." and axis_name in nxdata_group:
             try:
                 axis_data = nxdata_group[axis_name].nxdata
 
-                # Handle bin edges (convert to centers)
+                # Some instruments store axes as bin edges rather than bin centres,
+                # giving N+1 values for N signal points. Convert edges to centres
+                # by averaging adjacent pairs.
                 if len(axis_data) == len(signal_data) + 1:
                     axis_data = 0.5 * (axis_data[:-1] + axis_data[1:])
 
@@ -143,50 +149,6 @@ def extract_plottable_data(
             df = df.rename(columns=rename_dict)
 
     return df
-
-
-def list_nexus_data_groups(filename: str, skip_errors: bool = True) -> dict[str, dict]:
-    """List all available NXdata groups in a NeXus file with their metadata.
-
-    Args:
-        filename: Path to the .nxs file
-        skip_errors: If True, skip groups with broken links or errors
-
-    Returns:
-        Dictionary mapping group paths to metadata (signal name, axes names, dimensions)
-    """
-    try:
-        nxroot = nx.nxload(filename)
-        nxdata_groups = find_all_nxdata_groups(nxroot, skip_errors=skip_errors)
-
-        groups_info = {}
-        for path, group in nxdata_groups.items():
-            signal_name = group.attrs.get("signal", "unknown")
-            axes_attr = group.attrs.get("axes", [])
-            if isinstance(axes_attr, str):
-                axes_attr = [axes_attr]
-
-            # Get signal shape
-            try:
-                if signal_name in group:
-                    signal_shape = group[signal_name].shape
-                else:
-                    signal_shape = "unknown"
-            except Exception:
-                if skip_errors:
-                    signal_shape = "error"
-                else:
-                    raise
-
-            groups_info[path] = {
-                "signal": signal_name,
-                "axes": axes_attr,
-                "shape": signal_shape,
-            }
-
-        return groups_info
-    except Exception as e:
-        raise RuntimeError(f"Failed to list NXdata groups in {filename}: {e}")
 
 
 # Metadata field definitions: maps output key to (path, type)
@@ -250,7 +212,7 @@ def _convert_value(value, value_type: str) -> str | float:
         return str(value)
 
 
-def extract_nexus_metadata(nxroot: nx.NXroot) -> dict[str, str | float]:
+def _extract_nexus_metadata(nxroot: nx.NXroot) -> dict[str, str | float]:
     """Extract common metadata from a NeXus file.
 
     Args:
@@ -351,17 +313,21 @@ def load_nexus_file(
     try:
         nxroot = nx.nxload(filename)
 
-        # Extract metadata if requested
-        metadata = extract_nexus_metadata(nxroot) if extract_metadata else {}
+        # Extract metadata (wavelength, instrument name, etc.) upfront so it is
+        # available regardless of which data-discovery path succeeds below.
+        metadata = _extract_nexus_metadata(nxroot) if extract_metadata else {}
 
-        # Try to use preferred group if specified
+        # --- Tier 1: explicit group ---
+        # If the caller knows exactly which NXdata group they want, navigate
+        # directly to it by splitting the path on "/" and walking the tree.
+        # Fails hard if the path doesn't exist — the caller asked for it explicitly.
         if prefer_group:
             try:
                 parts = prefer_group.split("/")
                 nxdata_group = nxroot
                 for part in parts:
                     nxdata_group = nxdata_group[part]
-                df = extract_plottable_data(
+                df = _extract_plottable_data(
                     nxdata_group,
                     reduce_method=reduce_method,
                     skip_broken_links=skip_errors,
@@ -373,12 +339,15 @@ def load_nexus_file(
             except (KeyError, AttributeError) as e:
                 raise RuntimeError(f"Preferred group '{prefer_group}' not found: {e}")
 
-        # Otherwise, try plottable_data first (standard NeXus approach)
+        # --- Tier 2: standard NeXus plottable_data ---
+        # Well-formed NeXus files expose a .plottable_data property that points
+        # to the group intended for default plotting. This is the preferred approach
+        # for compliant files. The emptiness check guards against files where
+        # plottable_data exists but points to an empty group.
         if hasattr(nxroot, "plottable_data") and nxroot.plottable_data is not None:
             plottable = nxroot.plottable_data
-            # Only use plottable_data if it has a signal attribute (i.e. is not empty)
             if plottable.attrs.get("signal") is not None or len(list(plottable.items())) > 0:
-                df = extract_plottable_data(
+                df = _extract_plottable_data(
                     plottable,
                     reduce_method=reduce_method,
                     skip_broken_links=skip_errors,
@@ -388,31 +357,37 @@ def load_nexus_file(
                     validator(df)
                 return (df, metadata) if extract_metadata else df
 
-        # Fall back to finding all NXdata groups
-        nxdata_groups = find_all_nxdata_groups(nxroot, skip_errors=skip_errors)
+        # --- Tier 3: recursive search ---
+        # Fallback for non-standard or older files that don't follow the
+        # plottable_data convention. Walks the entire file tree and takes the
+        # first NXdata group found.
+        # Note: if validation fails in tier 2, it raises immediately rather than
+        # falling through here — tier 3 is only reached if tier 2 finds no data.
+        nxdata_groups = _find_all_nxdata_groups(nxroot, skip_errors=skip_errors)
 
         if not nxdata_groups:
             raise RuntimeError("No NXdata groups found in the NeXus file")
 
-        # Use the first available NXdata group
         first_path = list(nxdata_groups.keys())[0]
         first_group = nxdata_groups[first_path]
 
-        df = extract_plottable_data(
+        df = _extract_plottable_data(
             first_group,
             reduce_method=reduce_method,
             skip_broken_links=skip_errors,
             column_mapping=column_mapping,
         )
 
-        # Run validator if provided
         if validator:
             validator(df)
 
         return (df, metadata) if extract_metadata else df
 
     except NeXusValidationError:
-        # Re-raise validation errors without wrapping
+        # Re-raise validation errors unwrapped — they are meaningful to the caller
+        # and should not be obscured by a generic RuntimeError.
         raise
     except Exception as e:
+        # Wrap all other exceptions with the filename for context, since raw
+        # nexusformat exceptions can be cryptic.
         raise RuntimeError(f"Failed to load Nexus file {filename}: {e}")
