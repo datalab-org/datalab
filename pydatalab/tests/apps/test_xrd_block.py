@@ -2,7 +2,11 @@ from pathlib import Path
 
 import pytest
 
-from pydatalab.apps.nexus.utils import NeXusValidationError, load_nexus_file
+from pydatalab.apps.nexus.utils import (
+    NeXusValidationError,
+    _extract_nexus_metadata,
+    load_nexus_file,
+)
 from pydatalab.apps.xrd.blocks import XRDBlock
 from pydatalab.apps.xrd.utils import XRD_COLUMN_MAPPING, validate_xrd_columns
 
@@ -81,3 +85,20 @@ def test_valid_nxs_files_load(filename, expected_cols, expected_rows):
     )
     assert list(df.columns) == expected_cols
     assert len(df) == expected_rows
+
+
+def test_extract_metadata():
+    """Check metadata extraction from chopper.nxs, which has rich NeXus metadata."""
+    import nexusformat.nexus as nx
+
+    nxroot = nx.nxload(str(XRD_DATA_DIR / "chopper.nxs"))
+    metadata = _extract_nexus_metadata(nxroot)
+
+    assert metadata["instrument_name"] == "LRMECS"
+    assert metadata["sample_name"] == "Magnesium Diboride"
+    assert metadata["chemical_formula"] == "MgB2"
+    assert metadata["temperature"] == 8.0
+    assert metadata["start_time"] == "2001-02-07T08:54:21-0600"
+    assert metadata["end_time"] == "2001-02-09T14:12:53-0600"
+    # wavelength is not present in this file
+    assert "wavelength" not in metadata
