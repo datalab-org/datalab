@@ -14,14 +14,20 @@ from pydatalab.logger import LOGGER
 from pydatalab.mongo import flask_mongo
 
 from .models import PeakInformation
-from .utils import compute_cif_pxrd, parse_rasx_zip, parse_xrdml
+from .utils import (
+    compute_cif_pxrd,
+    parse_bruker_brml,
+    parse_bruker_raw,
+    parse_rasx_zip,
+    parse_xrdml,
+)
 
 
 class XRDBlock(DataBlock):
     blocktype = "xrd"
     name = "Powder XRD"
     description = "Visualize XRD patterns and perform simple baseline corrections."
-    accepted_file_extensions = (".xrdml", ".xy", ".dat", ".xye", ".rasx", ".cif")
+    accepted_file_extensions = (".xrdml", ".xy", ".dat", ".xye", ".rasx", ".cif", ".raw", ".brml")
 
     defaults = {"wavelength": 1.54060}
 
@@ -76,6 +82,12 @@ class XRDBlock(DataBlock):
             )
             # Track whether this is a computed PXRD that does not need background subtraction
             theoretical = True
+
+        elif ext == ".raw":
+            df = parse_bruker_raw(location)
+
+        elif ext == ".brml":
+            df = parse_bruker_brml(location)
 
         else:
             columns = ["twotheta", "intensity", "error"]
