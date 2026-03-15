@@ -1,23 +1,18 @@
 <template>
-  <div>
-    <h5>Deployment info:</h5>
-    <div class="p-3">
-      <table>
-        <tbody>
-          <tr>
-            <td>API version</td>
-            <td>
-              <code>{{ apiVersion }}</code>
-            </td>
-          </tr>
-          <tr>
-            <td>App version</td>
-            <td>
-              <code>{{ appVersion }}</code>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+  <div v-if="info" class="deployment-info">
+    <div class="info-grid">
+      <div class="info-card">
+        <div class="info-label">API version</div>
+        <div class="info-value">
+          <code>{{ info.server_version ?? "unknown" }}</code>
+        </div>
+      </div>
+      <div class="info-card">
+        <div class="info-label">App version</div>
+        <div class="info-value">
+          <code>{{ appVersion }}</code>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -29,26 +24,45 @@ import { APP_VERSION } from "@/resources.js";
 export default {
   data() {
     return {
-      apiVersion: "unknown",
+      info: null,
       appVersion: APP_VERSION,
     };
   },
   async mounted() {
-    const info = this.$store.state.serverInfo;
-    if (info) {
-      this.apiVersion = info.server_version ?? "unknown";
-    } else {
-      const fetched = await getInfo();
-      this.apiVersion = fetched?.server_version ?? "unknown";
+    this.info = this.$store.state.serverInfo;
+    if (!this.info) {
+      this.info = await getInfo();
     }
   },
 };
 </script>
 
 <style scoped>
-td,
-th {
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.info-card {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  padding: 12px;
   text-align: center;
-  border: 1px solid #ddd;
+}
+
+.info-label {
+  font-size: 0.75em;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #6c757d;
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+
+.info-value code {
+  font-size: 0.85em;
+  color: #212529;
 }
 </style>
