@@ -4,11 +4,19 @@
     <div class="row">
       <div class="col-sm-8 mx-auto">
         <h4 class="p-3 mx-auto" style="width: 90%">
-          datalab is a place to store experimental data and the connections between them.
+          <i>datalab</i> is a place to store experimental data and the connections between them.
         </h4>
 
+        <StatisticsTable :title="'Deployment stats:'" />
+
+        <UserActivityGraph :combined="true" :title="'User activity:'" />
+
+        <DeploymentInfo />
+
+        <h5>About <i>datalab</i></h5>
+
         <p>
-          datalab is open source (MIT license) and development occurs on GitHub at
+          <i>datalab</i> is open source (MIT license) and development occurs on GitHub at
           <a href="https://github.com/datalab-org/datalab"
             ><font-awesome-icon :icon="['fab', 'github']" />&nbsp;datalab-org/datalab</a
           >
@@ -17,32 +25,6 @@
             ><font-awesome-icon icon="book" />&nbsp;ReadTheDocs</a
           >.
         </p>
-
-        <StatisticsTable :title="'Deployment stats:'" />
-
-        <UserActivityGraph :combined="true" :title="'User activity:'" />
-
-        <h5>Deployment info:</h5>
-        <div class="p-3">
-          <table>
-            <tbody>
-              <tr>
-                <td>API version</td>
-                <td>
-                  <code>{{ apiInfo?.server_version ?? "unknown" }}</code>
-                </td>
-              </tr>
-              <tr>
-                <td>App version</td>
-                <td>
-                  <code>{{ appVersion }}</code>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <h5>Credits and acknowledgements</h5>
 
         <p><i>datalab</i> was initially conceived and developed by:</p>
         <ul>
@@ -123,8 +105,6 @@
             ><img class="funding-logo" src="/logos/faraday.png" width="250"
           /></a>
         </div>
-
-        <!-- <tiny-mce-inline /> -->
       </div>
     </div>
   </div>
@@ -132,25 +112,12 @@
 
 <script>
 import Navbar from "@/components/Navbar";
-import { getInfo } from "@/server_fetch_utils.js";
 import StatisticsTable from "@/components/StatisticsTable";
 import UserActivityGraph from "@/components/UserActivityGraph.vue";
-import { APP_VERSION } from "@/resources.js";
+import DeploymentInfo from "@/components/DeploymentInfo.vue";
 
 export default {
-  components: { Navbar, StatisticsTable, UserActivityGraph },
-  data() {
-    return {
-      apiInfo: { server_version: "unknown" },
-      appVersion: APP_VERSION,
-    };
-  },
-  async mounted() {
-    this.apiInfo = this.$store.state.serverInfo;
-    if (this.apiInfo == null) {
-      this.apiInfo = await getInfo();
-    }
-  },
+  components: { Navbar, StatisticsTable, UserActivityGraph, DeploymentInfo },
 };
 </script>
 
