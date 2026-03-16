@@ -10,9 +10,9 @@
       style="display: inline-block"
       target="_blank"
     >
-      <img class="logo-banner" :src="logo_url" />
+      <img class="logo-banner" :width="logo_width + 'px'" :src="logo_url" />
     </a>
-    <img v-else class="logo-banner" :src="logo_url" />
+    <img v-else class="logo-banner" :width="logo_width + 'px'" :src="logo_url" />
   </div>
 
   <div
@@ -53,7 +53,7 @@
 </template>
 
 <script>
-import { API_URL, LOGO_URL, HOMEPAGE_URL } from "@/resources.js";
+import { API_URL, LOGO_URL, LOGO_WIDTH, HOMEPAGE_URL } from "@/resources.js";
 import LoginDetails from "@/components/LoginDetails.vue";
 
 export default {
@@ -65,6 +65,7 @@ export default {
     return {
       apiUrl: API_URL,
       logo_url: LOGO_URL,
+      logo_width: LOGO_WIDTH,
       homepage_url: HOMEPAGE_URL,
       user: null,
     };
@@ -89,7 +90,6 @@ export default {
 <style scoped>
 .logo-banner {
   max-width: 200px;
-  width: 100px;
   display: block;
   margin-left: auto;
   margin-right: auto;

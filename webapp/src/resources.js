@@ -29,6 +29,7 @@ export const QR_CODE_RESOLVER_URL = process.env.VUE_APP_QR_CODE_RESOLVER_URL;
 export const FEDERATION_QR_CODE_RESOLVER_URL = "https://purl.datalab-org.io";
 
 export const LOGO_URL = process.env.VUE_APP_LOGO_URL;
+export const LOGO_WIDTH = process.env.VUE_APP_LOGO_WIDTH || "100";
 export const HOMEPAGE_URL = process.env.VUE_APP_HOMEPAGE_URL;
 export const APP_VERSION = process.env.VUE_APP_GIT_VERSION;
 
