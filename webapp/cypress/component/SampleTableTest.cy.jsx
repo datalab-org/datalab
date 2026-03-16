@@ -145,7 +145,7 @@ describe("SampleTable Component Tests", () => {
       "ID",
       "Type",
       "Status",
-      "Sample name",
+      "Name",
       "Formula",
       "Date",
       "Collections",
@@ -169,7 +169,7 @@ describe("SampleTable Component Tests", () => {
           .within(() => {
             cy.get("td").eq(columnIndices["ID"]).should("contain.text", "sample1");
             cy.get("td").eq(columnIndices["Type"]).should("contain.text", "samples");
-            cy.get("td").eq(columnIndices["Sample name"]).should("contain.text", "Sample 1");
+            cy.get("td").eq(columnIndices["Name"]).should("contain.text", "Sample 1");
             cy.get("td").eq(columnIndices["Date"]).should("contain.text", "2023");
             cy.get("td").eq(columnIndices["Collections"]).find(".badge").should("have.length", 1);
             cy.get("td").eq(columnIndices["Creators"]).find(".avatar").should("have.length", 1);
@@ -181,7 +181,7 @@ describe("SampleTable Component Tests", () => {
           .within(() => {
             cy.get("td").eq(columnIndices["ID"]).should("contain.text", "cell1");
             cy.get("td").eq(columnIndices["Type"]).should("contain.text", "cells");
-            cy.get("td").eq(columnIndices["Sample name"]).should("contain.text", "Cell 1");
+            cy.get("td").eq(columnIndices["Name"]).should("contain.text", "Cell 1");
             cy.get("td").eq(columnIndices["Date"]).should("contain.text", "2023");
             cy.get("td").eq(columnIndices["Collections"]).find(".badge").should("have.length", 1);
             cy.get("td").eq(columnIndices["Creators"]).find(".avatar").should("have.length", 2);
@@ -406,33 +406,33 @@ describe("SampleTable Component Tests", () => {
           .should("have.attr", "title", "ACTIVE");
 
         cy.get(".p-datatable-thead th")
-          .eq(columnIndices["Sample name"])
+          .eq(columnIndices["Name"])
           .find(".p-datatable-sort-icon")
           .click();
         cy.get(".p-datatable-tbody tr")
           .eq(0)
           .find("td")
-          .eq(columnIndices["Sample name"])
+          .eq(columnIndices["Name"])
           .should("contain.text", "Cell 1");
         cy.get(".p-datatable-tbody tr")
           .eq(1)
           .find("td")
-          .eq(columnIndices["Sample name"])
+          .eq(columnIndices["Name"])
           .should("contain.text", "Cell 2");
 
         cy.get(".p-datatable-thead th")
-          .eq(columnIndices["Sample name"])
+          .eq(columnIndices["Name"])
           .find(".p-datatable-sort-icon")
           .click();
         cy.get(".p-datatable-tbody tr")
           .eq(0)
           .find("td")
-          .eq(columnIndices["Sample name"])
+          .eq(columnIndices["Name"])
           .should("contain.text", "Sample 3");
         cy.get(".p-datatable-tbody tr")
           .eq(1)
           .find("td")
-          .eq(columnIndices["Sample name"])
+          .eq(columnIndices["Name"])
           .should("contain.text", "Sample 2");
 
         cy.get(".p-datatable-thead th")
