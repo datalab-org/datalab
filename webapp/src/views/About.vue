@@ -5,7 +5,7 @@
       <div class="col-lg-8 mx-auto">
         <details v-if="customAboutHasContent" class="about-panel" open>
           <summary>
-            <h5 class="d-inline">About this <i>datalab</i></h5>
+            <span class="h5 d-inline">About this <i>datalab</i></span>
           </summary>
           <div class="about-panel-content">
             <CustomAbout />
@@ -14,7 +14,7 @@
 
         <details class="about-panel" open>
           <summary>
-            <h5 class="d-inline">Deployment info</h5>
+            <span class="h5 d-inline">Deployment info</span>
           </summary>
           <div class="about-panel-content">
             <DeploymentInfo :title="'Software versions'" />
@@ -29,7 +29,7 @@
 
         <details class="about-panel">
           <summary>
-            <h5 class="d-inline">About <i>datalab</i></h5>
+            <span class="h5 d-inline">About <i>datalab</i></span>
           </summary>
           <div class="about-panel-content">
             <p>
@@ -207,7 +207,7 @@ th {
   background: #efefef;
 }
 
-.about-panel summary h5 {
+.about-panel summary .h5 {
   margin: 0;
 }
 
