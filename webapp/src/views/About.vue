@@ -3,9 +3,14 @@
   <div class="container">
     <div class="row">
       <div class="col-lg-8 mx-auto">
-        <h4 class="p-3 mx-auto" style="width: 90%">
-          <i>datalab</i> is a place to store experimental data and the connections between them.
-        </h4>
+        <details v-if="customAboutHasContent" class="about-panel" open>
+          <summary>
+            <h5 class="d-inline">About this <i>datalab</i></h5>
+          </summary>
+          <div class="about-panel-content">
+            <CustomAbout />
+          </div>
+        </details>
 
         <details class="about-panel" open>
           <summary>
@@ -112,13 +117,13 @@
 
             <div align="center" style="padding-top: 20px">
               <a href="https://www.big-map.eu" target="_blank"
-                ><img class="funding-logo" src="/logos/bigmap.png" width="100"
+                ><img class="funding-logo" src="/logos/bigmap.png" max-width="100px"
               /></a>
               <a href="https://www.leverhulme.ac.uk" target="_blank"
-                ><img class="funding-logo" src="/logos/leverhulme.png" width="250"
+                ><img class="funding-logo" src="/logos/leverhulme.png" max-width="200px"
               /></a>
               <a href="https://www.faraday.ac.uk" target="_blank"
-                ><img class="funding-logo" src="/logos/faraday.png" width="250"
+                ><img class="funding-logo" src="/logos/faraday.png" max-width="200px"
               /></a>
             </div>
           </div>
@@ -133,9 +138,15 @@ import Navbar from "@/components/Navbar";
 import StatisticsTable from "@/components/StatisticsTable";
 import UserActivityGraph from "@/components/UserActivityGraph.vue";
 import DeploymentInfo from "@/components/DeploymentInfo.vue";
+import CustomAbout from "@/components/CustomAbout.vue";
 
 export default {
-  components: { Navbar, StatisticsTable, UserActivityGraph, DeploymentInfo },
+  components: { Navbar, StatisticsTable, UserActivityGraph, DeploymentInfo, CustomAbout },
+  computed: {
+    customAboutHasContent() {
+      return CustomAbout.hasContent !== false;
+    },
+  },
 };
 </script>
 
