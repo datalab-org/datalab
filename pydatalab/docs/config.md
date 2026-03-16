@@ -94,6 +94,74 @@ Currently, there are two mechanisms for accessing remote files:
 1. You can mount the filesystem locally and provide the path in your datalab config file. For example, for Cambridge Chemistry users, you will have to (connect to the ChemNet VPN and) mount the Grey Group backup servers on your local machine, then define these folders in your config.
 2. Access over SSH: alternatively, you can set up passwordless `ssh` access to a machine (e.g., using `citadel` as a proxy jump), and paths on that remote machine can be configured as separate filesystems. The filesystem metadata will be synced periodically, and any files attached in `datalab` will be downloaded and stored locally on the `pydatalab` server (with the file being kept younger than 1 hour old on each access).
 
+## Customisation and branding
+
+Deployments can customise the look and feel of their *datalab* instance by providing files under a `public/custom/` directory in the web app.
+This directory can be a symlink to a folder in your deployment repository, or mounted as a volume in Docker.
+It should be made available at `webapp/public/custom/` relative to the *datalab* source tree.
+
+The following customisations are supported:
+
+### CSS overrides (`public/custom/override.css`)
+
+A CSS file that is loaded globally before the app styles, allowing you to override any default styling.
+Common uses include setting a custom font, accent colours, or other branding tweaks.
+If this file does not exist, it is silently ignored.
+
+For example, to set a custom font globally:
+
+```css
+@font-face {
+  font-family: "My Custom Font";
+  src: url("fonts/MyCustomFont-Regular.woff2") format("woff2");
+  font-weight: 400;
+}
+
+:root {
+  --custom-font-family: "My Custom Font";
+}
+
+#app {
+  font-family: var(--custom-font-family), sans-serif;
+}
+```
+
+### Custom fonts (`public/custom/fonts/`)
+
+Place font files (`.woff2`, `.ttf`, etc.) in this directory and reference them from `override.css` using relative paths (e.g., `url("fonts/MyFont.woff2")`).
+
+### Custom logos (`public/custom/logos/`)
+
+Place logo images in this directory.
+They can be referenced from custom components or CSS using absolute paths (e.g., `/custom/logos/mylogo.png`).
+
+The main instance logo can also be customised via the `VUE_APP_LOGO_URL` environment variable, which accepts a path relative to the `public/` directory.
+
+### Custom about page (`public/custom/components/CustomAbout.vue`)
+
+Deployments can provide a custom Vue component that will be displayed in a collapsible panel on the About page.
+Place a `CustomAbout.vue` file in `public/custom/components/` and it will automatically replace the default empty skeleton at build time (via webpack's `NormalModuleReplacementPlugin`).
+
+The component can contain any valid Vue template, script and scoped styles.
+No special configuration or flags are needed — if the file exists, it will be used.
+
+### Directory structure
+
+A typical deployment customisation directory looks like:
+
+```
+public/custom/
+├── override.css
+├── fonts/
+│   ├── MyFont-Regular.woff2
+│   └── MyFont-Bold.woff2
+├── logos/
+│   └── mylogo.png
+└── components/
+    └── CustomAbout.vue
+```
+
+
 
 ## Config API Reference
 
