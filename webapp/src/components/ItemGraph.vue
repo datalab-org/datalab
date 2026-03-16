@@ -110,7 +110,7 @@
       </div>
     </div>
   </div>
-  <div ref="cyContainer" v-bind="$attrs" />
+  <div id="cy" ref="cyContainer" v-bind="$attrs" />
 </template>
 
 <script>
