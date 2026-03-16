@@ -1,8 +1,14 @@
-const { ProvidePlugin } = require("webpack");
+const { ProvidePlugin, NormalModuleReplacementPlugin } = require("webpack");
+const fs = require("fs");
+const path = require("path");
+
+const customAboutPath = path.resolve(__dirname, "public/custom/components/CustomAbout.vue");
 
 module.exports = {
   transpileDependencies: ["mermaid"],
   configureWebpack: (config) => {
+    config.resolve.symlinks = false;
+
     config.resolve.fallback = {
       stream: false,
       process: require.resolve("process/browser"),
@@ -23,12 +29,20 @@ module.exports = {
       include: /node_modules/,
       type: "javascript/auto",
     });
-    config.plugins = [
-      ...(config.plugins || []),
+    const plugins = [
       new ProvidePlugin({
         process: "process/browser",
       }),
     ];
+
+    // If a deployment provides a custom CustomAbout.vue, use it instead of the skeleton
+    if (fs.existsSync(customAboutPath)) {
+      plugins.push(
+        new NormalModuleReplacementPlugin(/\/components\/CustomAbout\.vue$/, customAboutPath),
+      );
+    }
+
+    config.plugins = [...(config.plugins || []), ...plugins];
   },
   chainWebpack: (config) => {
     config.plugin("html").tap((args) => {
