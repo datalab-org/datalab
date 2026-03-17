@@ -261,9 +261,13 @@ export default {
         console.warn("Cytoscape container not ready");
         return;
       }
+      const nodeIds = new Set((this.graphData.nodes || []).map((n) => n.data.id));
+      const validEdges = (this.graphData.edges || []).filter(
+        (e) => nodeIds.has(e.data.source) && nodeIds.has(e.data.target),
+      );
       this.cy = cytoscape({
         container: this.$refs.cyContainer,
-        elements: this.graphData,
+        elements: { nodes: this.graphData.nodes || [], edges: validEdges },
         userPanningEnabled: true,
         minZoom: 0.5,
         maxZoom: 1,
