@@ -38,7 +38,7 @@ body {
 @import url("https://fonts.googleapis.com/css?family=Roboto+Mono");
 
 :root {
-  --font-primary: var(--custom-font-family), Figtree, Avenir, Arial, sans-serif;
+  --font-primary: var(--custom-font-family, Figtree), Figtree, Avenir, Arial, sans-serif;
   --font-monospace: "Roboto Mono", monospace;
 }
 
