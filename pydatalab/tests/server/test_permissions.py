@@ -143,9 +143,6 @@ def test_manager_permissions(
     assert response.status_code == 201
     refcode = response.json["sample_list_entry"]["refcode"]
 
-    db = real_mongo_client.get_database()
-    db.roles.update_one({"_id": another_user_id}, {"$set": {"role": "manager"}}, upsert=True)
-
     # Add manager to the original user
     response = admin_client.patch(
         f"/users/{user_id}/managers", json={"managers": [str(another_user_id)]}
@@ -173,8 +170,6 @@ def test_manager_permissions(
 
     # Also removes read access
     assert another_client.get(f"/items/{refcode}").status_code == 404
-
-    db.roles.update_one({"_id": another_user_id}, {"$set": {"role": "user"}})
 
 
 def test_group_permissions(client, another_client, user_id, another_user_id, group_id):
