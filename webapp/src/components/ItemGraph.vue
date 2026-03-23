@@ -135,7 +135,8 @@ cytoscape.use(fcose);
 const layoutOptions = {
   "elk-disco": {
     name: "elk",
-    animate: true,
+    animate: "end",
+    animationDuration: 1000,
     elk: {
       algorithm: "disco",
     },
@@ -145,23 +146,28 @@ const layoutOptions = {
   },
   "elk-stress": {
     name: "elk",
+    animate: "end",
+    animationDuration: 300,
     elk: {
       algorithm: "stress",
     },
   },
   cola: {
     name: "cola",
-    animate: true,
+    animate: "end",
+    animationDuration: 300,
     centerGraph: false,
   },
   euler: {
     name: "euler",
-    animate: true,
+    animate: "end",
+    animationDuration: 300,
     pull: 0.002,
   },
   fcose: {
     name: "fcose",
-    animate: true,
+    animate: "end",
+    animationDuration: 300,
     randomize: false,
     packComponents: true,
   },
@@ -415,7 +421,7 @@ export default {
 
 #cy {
   width: 100%;
-  height: 90vh;
+  height: 80vh;
   /* display: block;*/
 }
 </style>
