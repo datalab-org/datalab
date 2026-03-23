@@ -49,7 +49,7 @@ def get_graph_cy_format(
             query = {}
         all_documents = flask_mongo.db.items.find(
             {**query, **get_default_permissions(user_only=False)},
-            projection={"item_id": 1, "name": 1, "type": 1, "relationships": 1},
+            projection={"item_id": 1, "name": 1, "type": 1, "relationships": 1, "blocks_obj": 1},
         )
         node_ids: set[str] = {document["item_id"] for document in all_documents}
         all_documents.rewind()
@@ -60,7 +60,7 @@ def get_graph_cy_format(
                 "item_id": item_id,
                 **get_default_permissions(user_only=False),
             },
-            projection={"item_id": 1, "name": 1, "type": 1, "relationships": 1},
+            projection={"item_id": 1, "name": 1, "type": 1, "relationships": 1, "blocks_obj": 1},
         )
 
         if not main_item:
@@ -95,7 +95,13 @@ def get_graph_cy_format(
                             "item_id": relationship["item_id"],
                             **get_default_permissions(user_only=False),
                         },
-                        projection={"item_id": 1, "name": 1, "type": 1, "relationships": 1},
+                        projection={
+                            "item_id": 1,
+                            "name": 1,
+                            "type": 1,
+                            "relationships": 1,
+                            "blocks_obj": 1,
+                        },
                     )
                     if related_item:
                         all_documents.append(related_item)
@@ -111,7 +117,13 @@ def get_graph_cy_format(
                         },
                         **get_default_permissions(user_only=False),
                     },
-                    projection={"item_id": 1, "name": 1, "type": 1, "relationships": 1},
+                    projection={
+                        "item_id": 1,
+                        "name": 1,
+                        "type": 1,
+                        "relationships": 1,
+                        "blocks_obj": 1,
+                    },
                 )
             )
 
@@ -212,6 +224,36 @@ def get_graph_cy_format(
                 }
             )
 
+        # Add block nodes and edges for this item
+        for block_id, block_data in (document.get("blocks_obj") or {}).items():
+            if block_id not in drawn_elements:
+                drawn_elements.add(block_id)
+                blocktype = block_data.get("blocktype", "unknown")
+                nodes.append(
+                    {
+                        "data": {
+                            "id": block_id,
+                            "name": blocktype,
+                            "type": "blocks",
+                            "shape": "rectangle",
+                            "parent_item_id": document["item_id"],
+                        }
+                    }
+                )
+            edge_id = f"{document['item_id']}->{block_id}"
+            if edge_id not in drawn_elements:
+                drawn_elements.add(edge_id)
+                edges.append(
+                    {
+                        "data": {
+                            "id": edge_id,
+                            "source": document["item_id"],
+                            "target": block_id,
+                            "value": 1,
+                        }
+                    }
+                )
+
     whitelist = {edge["data"]["source"] for edge in edges} | {
         edge["data"]["target"] for edge in edges
     }
@@ -221,7 +263,7 @@ def get_graph_cy_format(
     nodes = [
         node
         for node in nodes
-        if node["data"]["type"] in ("samples", "cells")
+        if node["data"]["type"] in ("samples", "cells", "blocks")
         or node["data"]["id"] in whitelist
         or node["data"]["id"].startswith("Collection:")
     ]

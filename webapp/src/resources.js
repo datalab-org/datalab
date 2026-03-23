@@ -132,6 +132,13 @@ export const itemTypes = {
     labelColor: "#c77c02",
     display: "equipment",
   },
+  blocks: {
+    navbarColor: "#9C2007",
+    navbarName: "Block",
+    lightColor: "#9C2007",
+    labelColor: "#9C2007",
+    display: "block",
+  },
 };
 
 export const SAMPLE_TABLE_TYPES = ["samples", "cells"];
