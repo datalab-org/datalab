@@ -13,7 +13,7 @@ from pydatalab import bokeh_plots
 from pydatalab.blocks.base import DataBlock
 from pydatalab.file_utils import get_file_info_by_id
 from pydatalab.logger import LOGGER
-from pydatalab.mongo import flask_mongo
+from pydatalab.mongo import get_database
 
 from .utils import (
     compute_gpcl_differential,
@@ -81,7 +81,7 @@ class CycleBlock(DataBlock):
 
     def _get_characteristic_mass_g(self):
         # return {"characteristic_mass": 1000}
-        doc = flask_mongo.db.items.find_one(
+        doc = get_database().items.find_one(
             {"item_id": self.data["item_id"]}, {"characteristic_mass": 1}
         )
         characteristic_mass_mg = doc.get("characteristic_mass", None)

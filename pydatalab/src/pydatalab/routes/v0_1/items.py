@@ -25,7 +25,7 @@ from pydatalab.models.versions import (
     RestoreVersionRequest,
     VersionAction,
 )
-from pydatalab.mongo import ITEMS_FTS_FIELDS, build_search_pipeline, flask_mongo
+from pydatalab.mongo import ITEMS_FTS_FIELDS, build_search_pipeline, get_database
 from pydatalab.permissions import (
     PUBLIC_USER_ID,
     access_token_or_active_users,
@@ -66,7 +66,7 @@ def get_equipment_summary():
 
     items = [
         doc
-        for doc in flask_mongo.db.items.aggregate(
+        for doc in get_database().items.aggregate(
             [
                 {
                     "$match": {
@@ -84,7 +84,7 @@ def get_equipment_summary():
 def get_starting_materials():
     items = [
         doc
-        for doc in flask_mongo.db.items.aggregate(
+        for doc in get_database().items.aggregate(
             [
                 {
                     "$match": {
@@ -173,7 +173,7 @@ def get_items_summary(match: dict | None = None, project: dict | None = None) ->
             else:
                 _project[key] = 1
 
-    return flask_mongo.db.items.aggregate(
+    return get_database().items.aggregate(
         [
             {"$match": match},
             {"$lookup": creators_lookup()},
@@ -234,7 +234,7 @@ def get_samples_summary(match: dict | None = None, project: dict | None = None) 
             else:
                 _project[key] = 1
 
-    return flask_mongo.db.items.aggregate(
+    return get_database().items.aggregate(
         [
             {"$match": match},
             {"$lookup": creators_lookup()},
@@ -314,7 +314,7 @@ def entry_reference_lookup(item_doc: dict) -> dict:
 
         for ind, ref in enumerate(preferred_refs):
             if ref:
-                deref = flask_mongo.db.items.find_one(
+                deref = get_database().items.find_one(
                     {**ref, **get_default_permissions()},
                     projection={"name": 1, "item_id": 1, "refcode": 1, "chemform": 1, "type": 1},
                 )
@@ -389,7 +389,7 @@ def _check_collections(sample_dict: dict) -> list[dict[str, str]]:
             query.update(c)
             if "immutable_id" in c:
                 query["_id"] = ObjectId(query.pop("immutable_id"))
-            result = flask_mongo.db.collections.find_one({**query, **get_default_permissions()})
+            result = get_database().collections.find_one({**query, **get_default_permissions()})
             if not result:
                 raise ValueError(f"No collection found matching request: {c}")
             sample_dict["collections"][ind] = {"immutable_id": result["_id"]}
@@ -415,7 +415,7 @@ def _scrub_collections_for_save(sample_dict: dict) -> list[dict[str, str]]:
             if "immutable_id" in c:
                 query["_id"] = ObjectId(query.pop("immutable_id"))
 
-            result = flask_mongo.db.collections.find_one({**query, **get_default_permissions()})
+            result = get_database().collections.find_one({**query, **get_default_permissions()})
 
             if result:
                 accessible_collections.append({"immutable_id": result["_id"]})
@@ -480,12 +480,12 @@ def search_items():
         }
     )
 
-    cursor = flask_mongo.db.items.aggregate(pipeline)
+    cursor = get_database().items.aggregate(pipeline)
     return jsonify({"status": "success", "items": list(cursor)}), 200
 
 
 def _copy_sample_from_id(sample_dict: dict, copy_from_item_id: str) -> dict:
-    copied_doc = flask_mongo.db.items.find_one({"item_id": copy_from_item_id})
+    copied_doc = get_database().items.find_one({"item_id": copy_from_item_id})
 
     LOGGER.debug("Copying from pre-existing item %s with data:\n%s", copy_from_item_id, copied_doc)
     if not copied_doc:
@@ -627,7 +627,7 @@ def _create_sample(
         new_sample["item_id"] = new_sample["refcode"].split(":")[1]
 
     # Check to make sure that item_id isn't taken already
-    if flask_mongo.db.items.find_one({"item_id": str(sample_dict["item_id"])}):
+    if get_database().items.find_one({"item_id": str(sample_dict["item_id"])}):
         raise Conflict(f"Chosen {sample_dict['item_id']=} already exists in database.")
 
     # Set creation timestamp to now if not provided
@@ -647,7 +647,7 @@ def _create_sample(
     # TODO: encode this at the model level, via custom schema properties or hard-coded `.store()` methods
     # the `Entry` model.
     try:
-        result = flask_mongo.db.items.insert_one(
+        result = get_database().items.insert_one(
             data_model.dict(exclude={"creators", "collections", "groups"})
         )
     except DuplicateKeyError as error:
@@ -749,7 +749,7 @@ def _process_item_permissions(
     if len(refcode.split(":")) != 2:
         refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
 
-    current_item = flask_mongo.db.items.find_one(
+    current_item = get_database().items.find_one(
         {"refcode": refcode, **get_default_permissions(user_only=True)},
         {"_id": 1, "creator_ids": 1, "group_ids": 1},
     )
@@ -805,7 +805,7 @@ def _process_item_permissions(
     # Validate all creator IDs are present in the database
     if creator_ids:
         found_creator_ids = [
-            d for d in flask_mongo.db.users.find({"_id": {"$in": creator_ids}}, {"_id": 1})
+            d for d in get_database().users.find({"_id": {"$in": creator_ids}}, {"_id": 1})
         ]
         if len(found_creator_ids) != len(creator_ids):
             return (
@@ -819,7 +819,7 @@ def _process_item_permissions(
     if group_ids:
         # Validate all group IDs are present in the database
         found_group_ids = [
-            d for d in flask_mongo.db.groups.find({"_id": {"$in": group_ids}}, {"_id": 1})
+            d for d in get_database().groups.find({"_id": {"$in": group_ids}}, {"_id": 1})
         ]
         if len(found_group_ids) != len(group_ids):
             return (
@@ -885,7 +885,7 @@ def _process_item_permissions(
 
     LOGGER.debug("Updating item %s with set op: %s", refcode, set_op)
 
-    result = flask_mongo.db.items.update_one(
+    result = get_database().items.update_one(
         {"refcode": refcode, **get_default_permissions(user_only=True)}, {"$set": set_op}
     )
 
@@ -928,7 +928,7 @@ def issue_physical_token(refcode: str):
     if len(refcode.split(":")) != 2:
         refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
 
-    current_item = flask_mongo.db.items.find_one(
+    current_item = get_database().items.find_one(
         {"refcode": refcode, **get_default_permissions(user_only=True)},
         {"refcode": 1},
     )
@@ -954,7 +954,7 @@ def issue_physical_token(refcode: str):
     }
 
     try:
-        result = flask_mongo.db.api_keys.insert_one(access_document)
+        result = get_database().api_keys.insert_one(access_document)
         if not result.inserted_id:
             return jsonify(
                 {"status": "error", "message": "Unknown error generating token for item."}
@@ -973,7 +973,7 @@ def delete_sample():
     request_json = request.get_json()  # noqa: F821 pylint: disable=undefined-variable
     item_id = request_json["item_id"]
 
-    item = flask_mongo.db.items.find_one(
+    item = get_database().items.find_one(
         {"item_id": item_id, **get_default_permissions(user_only=True, deleting=True)},
         {"refcode": 1},
     )
@@ -989,7 +989,7 @@ def delete_sample():
             401,
         )
 
-    result = flask_mongo.db.items.delete_one(
+    result = get_database().items.delete_one(
         {"item_id": item_id, **get_default_permissions(user_only=True, deleting=True)}
     )
 
@@ -1004,7 +1004,7 @@ def delete_sample():
             400,
         )
 
-    flask_mongo.db.api_keys.delete_many({"refcode": item["refcode"], "type": "access_token"})
+    get_database().api_keys.delete_many({"refcode": item["refcode"], "type": "access_token"})
 
     return jsonify({"status": "success"}), 200
 
@@ -1047,7 +1047,7 @@ def get_item_data(
         raise BadRequest("No item_id or refcode provided.")
 
     # retrieve the entry from the database:
-    cursor = flask_mongo.db.items.aggregate(
+    cursor = get_database().items.aggregate(
         [
             {
                 "$match": {
@@ -1094,7 +1094,7 @@ def get_item_data(
     doc = ItemModel(**doc)
 
     # find any documents with relationships that mention this document
-    relationships_query_results = flask_mongo.db.items.find(
+    relationships_query_results = get_database().items.find(
         filter={
             "$or": [
                 {"relationships.item_id": doc.item_id},
@@ -1180,7 +1180,8 @@ def list_versions(refcode):
         refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
 
     versions = list(
-        flask_mongo.db.item_versions.find(
+        get_database()
+        .item_versions.find(
             {"refcode": refcode},
             {
                 "_id": 1,
@@ -1192,7 +1193,8 @@ def list_versions(refcode):
                 "restored_from_version": 1,
                 "data.version": 1,
             },
-        ).sort("version", -1)
+        )
+        .sort("version", -1)
     )
     for v in versions:
         v["_id"] = str(v["_id"])
@@ -1220,7 +1222,7 @@ def get_version(refcode, version_id):
     except (InvalidId, TypeError):
         return jsonify({"status": "error", "message": f"Invalid version_id: {version_id}"}), 400
 
-    version = flask_mongo.db.item_versions.find_one({"_id": version_object_id, "refcode": refcode})
+    version = get_database().item_versions.find_one({"_id": version_object_id, "refcode": refcode})
     if not version:
         return jsonify({"status": "error", "message": "Version not found"}), 404
     version["_id"] = str(version["_id"])
@@ -1259,8 +1261,8 @@ def compare_versions(refcode):
     except (InvalidId, TypeError) as e:
         return jsonify({"status": "error", "message": f"Invalid version ID format: {str(e)}"}), 400
 
-    v1 = flask_mongo.db.item_versions.find_one({"_id": v1_object_id, "refcode": refcode})
-    v2 = flask_mongo.db.item_versions.find_one({"_id": v2_object_id, "refcode": refcode})
+    v1 = get_database().item_versions.find_one({"_id": v1_object_id, "refcode": refcode})
+    v2 = get_database().item_versions.find_one({"_id": v2_object_id, "refcode": refcode})
     if not v1 or not v2:
         return jsonify({"status": "error", "message": "One or both versions not found"}), 404
 
@@ -1319,7 +1321,7 @@ def restore_version(refcode):
         ), 400
 
     # Check permissions - user must have write access
-    current_item = flask_mongo.db.items.find_one(
+    current_item = get_database().items.find_one(
         {"refcode": refcode, **get_default_permissions(user_only=True)}
     )
     if not current_item:
@@ -1327,7 +1329,7 @@ def restore_version(refcode):
             {"status": "error", "message": "Item not found or insufficient permissions"}
         ), 404
 
-    version = flask_mongo.db.item_versions.find_one({"_id": version_object_id, "refcode": refcode})
+    version = get_database().item_versions.find_one({"_id": version_object_id, "refcode": refcode})
     if not version:
         return jsonify({"status": "error", "message": "Version not found"}), 404
 
@@ -1370,7 +1372,7 @@ def restore_version(refcode):
         ), 400
 
     # Perform the restore first
-    flask_mongo.db.items.update_one({"refcode": refcode}, {"$set": restored_data})
+    get_database().items.update_one({"refcode": refcode}, {"$set": restored_data})
 
     # Extract user information for hybrid storage approach
     user_id = None
@@ -1413,7 +1415,7 @@ def restore_version(refcode):
         ), 400
 
     # Insert validated data
-    flask_mongo.db.item_versions.insert_one(
+    get_database().item_versions.insert_one(
         validated_restored_version.dict(by_alias=True, exclude_none=True)
     )
 
@@ -1447,7 +1449,7 @@ def delete_version(refcode, version_id):
     except (InvalidId, TypeError):
         return jsonify({"status": "error", "message": f"Invalid version_id: {version_id}"}), 400
 
-    result = flask_mongo.db.item_versions.delete_one({"_id": version_object_id, "refcode": refcode})
+    result = get_database().item_versions.delete_one({"_id": version_object_id, "refcode": refcode})
     if result.deleted_count == 1:
         return jsonify({"status": "success"}), 200
     else:
@@ -1509,7 +1511,7 @@ def save_item():
     # Bit of a hack for now: starting materials and equipment should be editable by anyone,
     # so we adjust the query above to be more permissive when the user is requesting such an item
     # but before returning we need to check that the actual item did indeed have that type
-    item = flask_mongo.db.items.find_one(
+    item = get_database().items.find_one(
         {"item_id": item_id, **get_default_permissions(user_only=False)}
     )
 
@@ -1538,7 +1540,7 @@ def save_item():
 
     user_only = item["type"] not in ("starting_materials", "equipment")
 
-    item = flask_mongo.db.items.find_one(
+    item = get_database().items.find_one(
         {"item_id": item_id, **get_default_permissions(user_only=user_only)}
     )
 
@@ -1623,7 +1625,7 @@ def save_item():
     item.pop("creators")
 
     # Update the item FIRST (transaction safety: item update before version save)
-    result = flask_mongo.db.items.update_one(
+    result = get_database().items.update_one(
         {"item_id": item_id, **get_default_permissions(user_only=True)},
         {"$set": item},
     )
@@ -1675,7 +1677,7 @@ def get_access_token_info(refcode: str):
     if len(refcode.split(":")) != 2:
         refcode = f"{CONFIG.IDENTIFIER_PREFIX}:{refcode}"
 
-    current_item = flask_mongo.db.items.find_one(
+    current_item = get_database().items.find_one(
         {"refcode": refcode, **get_default_permissions(user_only=True)},
         {"refcode": 1},
     )
@@ -1688,7 +1690,7 @@ def get_access_token_info(refcode: str):
             }
         ), 404
 
-    existing_token = flask_mongo.db.api_keys.find_one(
+    existing_token = get_database().api_keys.find_one(
         {"refcode": refcode, "active": True, "type": "access_token"},
         {"token": 1, "created_at": 1, "user": 1},
     )
@@ -1699,7 +1701,7 @@ def get_access_token_info(refcode: str):
 
         user_info = None
         if existing_token.get("user"):
-            user_doc = flask_mongo.db.users.find_one(
+            user_doc = get_database().users.find_one(
                 {"_id": existing_token["user"]}, {"display_name": 1, "contact_email": 1}
             )
             if user_doc:

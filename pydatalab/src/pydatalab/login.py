@@ -11,7 +11,7 @@ from flask_login import LoginManager, UserMixin
 from pydatalab.models import Person
 from pydatalab.models.people import AccountStatus, Group, Identity, IdentityType
 from pydatalab.models.utils import UserRole
-from pydatalab.mongo import flask_mongo
+from pydatalab.mongo import get_database
 
 __all__ = ("LOGIN_MANAGER",)
 
@@ -118,16 +118,20 @@ def get_by_id(user_id: str) -> LoginUser | None:
 
     """
 
-    user = flask_mongo.db.users.aggregate(
-        [
-            {"$match": {"_id": ObjectId(user_id)}},
-            {"$lookup": groups_lookup()},
-        ]
-    ).next()
+    user = (
+        get_database()
+        .users.aggregate(
+            [
+                {"$match": {"_id": ObjectId(user_id)}},
+                {"$lookup": groups_lookup()},
+            ]
+        )
+        .next()
+    )
     if not user:
         return None
 
-    role = flask_mongo.db.roles.find_one({"_id": ObjectId(user_id)})
+    role = get_database().roles.find_one({"_id": ObjectId(user_id)})
     if not role:
         role = "user"
     else:
@@ -143,7 +147,7 @@ def get_by_api_key(key: str):
     """
 
     hash = sha512(key.encode("utf-8")).hexdigest()
-    user = flask_mongo.db.api_keys.find_one({"hash": hash}, projection={"hash": 0})
+    user = get_database().api_keys.find_one({"hash": hash}, projection={"hash": 0})
     if user:
         return get_by_id_cached(str(user["_id"]))
 

@@ -9,7 +9,7 @@ def sample_with_version(client, user_id):
     """Create and insert a sample for version testing."""
     from pydatalab.models import Sample
     from pydatalab.models.utils import generate_unique_refcode
-    from pydatalab.mongo import flask_mongo
+    from pydatalab.mongo import get_database
 
     refcode = generate_unique_refcode()
     sample = Sample(
@@ -24,14 +24,14 @@ def sample_with_version(client, user_id):
             "synthesis_description": "Initial synthesis",
         }
     )
-    flask_mongo.db.items.insert_one(sample.dict(exclude_unset=False))
+    get_database().items.insert_one(sample.dict(exclude_unset=False))
 
     yield sample
 
     # Cleanup
-    flask_mongo.db.items.delete_one({"refcode": refcode})
-    flask_mongo.db.item_versions.delete_many({"refcode": refcode})
-    flask_mongo.db.version_counters.delete_one({"refcode": refcode})
+    get_database().items.delete_one({"refcode": refcode})
+    get_database().item_versions.delete_many({"refcode": refcode})
+    get_database().version_counters.delete_one({"refcode": refcode})
 
 
 class TestSaveVersion:
@@ -196,7 +196,7 @@ class TestCompareVersions:
 
     def test_compare_versions_success(self, client, sample_with_version):
         """Test successfully comparing two versions."""
-        from pydatalab.mongo import flask_mongo
+        from pydatalab.mongo import get_database
 
         refcode = sample_with_version.refcode.split(":")[1]
         full_refcode = sample_with_version.refcode
@@ -205,7 +205,7 @@ class TestCompareVersions:
         client.post(f"/items/{refcode}/save-version/")
 
         # Modify the item
-        flask_mongo.db.items.update_one(
+        get_database().items.update_one(
             {"refcode": full_refcode},
             {"$set": {"description": "Modified description", "version": 2}},
         )
@@ -274,7 +274,7 @@ class TestCompareVersions:
 
     def test_compare_versions_detects_changes(self, client, sample_with_version):
         """Test that compare_versions properly detects changes using DeepDiff."""
-        from pydatalab.mongo import flask_mongo
+        from pydatalab.mongo import get_database
 
         refcode = sample_with_version.refcode.split(":")[1]
         full_refcode = sample_with_version.refcode
@@ -283,7 +283,7 @@ class TestCompareVersions:
         client.post(f"/items/{refcode}/save-version/")
 
         # Make multiple types of changes
-        flask_mongo.db.items.update_one(
+        get_database().items.update_one(
             {"refcode": full_refcode},
             {
                 "$set": {
@@ -317,7 +317,7 @@ class TestRestoreVersion:
 
     def test_restore_version_success(self, client, sample_with_version):
         """Test successfully restoring to a previous version."""
-        from pydatalab.mongo import flask_mongo
+        from pydatalab.mongo import get_database
 
         refcode = sample_with_version.refcode.split(":")[1]
         full_refcode = sample_with_version.refcode
@@ -327,7 +327,7 @@ class TestRestoreVersion:
 
         # Modify the item
         original_description = sample_with_version.description
-        flask_mongo.db.items.update_one(
+        get_database().items.update_one(
             {"refcode": full_refcode},
             {"$set": {"description": "Modified description", "version": 2}},
         )
@@ -347,19 +347,19 @@ class TestRestoreVersion:
         assert "new_version_number" in response.json
 
         # Verify the item was restored
-        item = flask_mongo.db.items.find_one({"refcode": full_refcode})
+        item = get_database().items.find_one({"refcode": full_refcode})
         assert item["description"] == original_description
 
     def test_restore_version_creates_snapshot(self, client, sample_with_version):
         """Test that restore creates a version snapshot with restored data."""
-        from pydatalab.mongo import flask_mongo
+        from pydatalab.mongo import get_database
 
         refcode = sample_with_version.refcode.split(":")[1]
         full_refcode = sample_with_version.refcode
 
         # Save version and modify
         client.post(f"/items/{refcode}/save-version/")
-        flask_mongo.db.items.update_one(
+        get_database().items.update_one(
             {"refcode": full_refcode}, {"$set": {"description": "Modified", "version": 2}}
         )
 
@@ -379,13 +379,13 @@ class TestRestoreVersion:
 
     def test_restore_version_protects_fields(self, client, sample_with_version):
         """Test that protected fields are not overwritten during restore."""
-        from pydatalab.mongo import flask_mongo
+        from pydatalab.mongo import get_database
 
         refcode = sample_with_version.refcode.split(":")[1]
         full_refcode = sample_with_version.refcode
 
         # Get original protected field values
-        original_item = flask_mongo.db.items.find_one({"refcode": full_refcode})
+        original_item = get_database().items.find_one({"refcode": full_refcode})
         original_refcode = original_item["refcode"]
         original_id = original_item["_id"]
 
@@ -393,7 +393,7 @@ class TestRestoreVersion:
         client.post(f"/items/{refcode}/save-version/")
 
         # Modify non-protected field
-        flask_mongo.db.items.update_one(
+        get_database().items.update_one(
             {"refcode": full_refcode}, {"$set": {"description": "Modified", "version": 2}}
         )
 
@@ -403,13 +403,13 @@ class TestRestoreVersion:
         client.post(f"/items/{refcode}/restore-version/", json={"version_id": version_id})
 
         # Verify protected fields unchanged
-        restored_item = flask_mongo.db.items.find_one({"refcode": full_refcode})
+        restored_item = get_database().items.find_one({"refcode": full_refcode})
         assert restored_item["refcode"] == original_refcode
         assert restored_item["_id"] == original_id
 
     def test_restore_version_invalid_type_change(self, client, sample_with_version):
         """Test that restoring fails if type would change."""
-        from pydatalab.mongo import flask_mongo
+        from pydatalab.mongo import get_database
 
         refcode = sample_with_version.refcode.split(":")[1]
         full_refcode = sample_with_version.refcode
@@ -418,7 +418,7 @@ class TestRestoreVersion:
         client.post(f"/items/{refcode}/save-version/")
 
         # Manually change the type in the current item
-        flask_mongo.db.items.update_one(
+        get_database().items.update_one(
             {"refcode": full_refcode}, {"$set": {"type": "cells", "version": 2}}
         )
 
@@ -471,7 +471,7 @@ class TestRestoreVersion:
 
     def test_restore_version_increments_version_number(self, client, sample_with_version):
         """Test that restore increments the item version number."""
-        from pydatalab.mongo import flask_mongo
+        from pydatalab.mongo import get_database
 
         refcode = sample_with_version.refcode.split(":")[1]
         full_refcode = sample_with_version.refcode
@@ -480,7 +480,7 @@ class TestRestoreVersion:
         client.post(f"/items/{refcode}/save-version/")
 
         # Modify
-        flask_mongo.db.items.update_one(
+        get_database().items.update_one(
             {"refcode": full_refcode}, {"$set": {"description": "Modified", "version": 2}}
         )
 
@@ -494,7 +494,7 @@ class TestRestoreVersion:
         new_version = restore_response.json["new_version_number"]
 
         # Check that item version was updated
-        item = flask_mongo.db.items.find_one({"refcode": full_refcode})
+        item = get_database().items.find_one({"refcode": full_refcode})
         assert item["version"] == new_version
         assert item["version"] > 1
 
@@ -571,7 +571,7 @@ class TestAutoVersioning:
 
     def test_save_item_increments_version(self, client, sample_with_version):
         """Test that save_item increments the version field."""
-        from pydatalab.mongo import flask_mongo
+        from pydatalab.mongo import get_database
 
         refcode = sample_with_version.refcode
         original_version = sample_with_version.version
@@ -582,7 +582,7 @@ class TestAutoVersioning:
         client.post("/save-item/", json={"item_id": sample_with_version.item_id, "data": item_data})
 
         # Check that version incremented
-        item = flask_mongo.db.items.find_one({"refcode": refcode})
+        item = get_database().items.find_one({"refcode": refcode})
         assert item["version"] == original_version + 1
 
 
@@ -622,7 +622,7 @@ class TestActionFields:
 
     def test_restored_action_and_reference(self, client, sample_with_version):
         """Test that restore creates action='restored' with restored_from_version."""
-        from pydatalab.mongo import flask_mongo
+        from pydatalab.mongo import get_database
 
         refcode = sample_with_version.refcode.split(":")[1]
         full_refcode = sample_with_version.refcode
@@ -631,7 +631,7 @@ class TestActionFields:
         client.post(f"/items/{refcode}/save-version/")
 
         # Modify
-        flask_mongo.db.items.update_one(
+        get_database().items.update_one(
             {"refcode": full_refcode}, {"$set": {"description": "Modified", "version": 2}}
         )
 
@@ -653,7 +653,7 @@ class TestActionFields:
 
     def test_restored_version_snapshot_contains_restored_data(self, client, sample_with_version):
         """Test that the version snapshot created by restore contains the restored data, not pre-restore data."""
-        from pydatalab.mongo import flask_mongo
+        from pydatalab.mongo import get_database
 
         refcode = sample_with_version.refcode.split(":")[1]
         full_refcode = sample_with_version.refcode
@@ -664,7 +664,7 @@ class TestActionFields:
 
         # Modify the item
         modified_description = "Modified description"
-        flask_mongo.db.items.update_one(
+        get_database().items.update_one(
             {"refcode": full_refcode}, {"$set": {"description": modified_description, "version": 2}}
         )
 
@@ -690,7 +690,7 @@ class TestActionFields:
 
     def test_action_audit_trail_complete(self, client, sample_with_version):
         """Test complete audit trail with multiple saves and restore."""
-        from pydatalab.mongo import flask_mongo
+        from pydatalab.mongo import get_database
 
         refcode = sample_with_version.refcode.split(":")[1]
         full_refcode = sample_with_version.refcode
@@ -699,10 +699,10 @@ class TestActionFields:
         client.post(f"/items/{refcode}/save-version/")
 
         # Modify and save via save-item (v2)
-        flask_mongo.db.items.update_one(
+        get_database().items.update_one(
             {"refcode": full_refcode}, {"$set": {"description": "Second version", "version": 2}}
         )
-        item_data = flask_mongo.db.items.find_one({"refcode": full_refcode})
+        item_data = get_database().items.find_one({"refcode": full_refcode})
         # Convert ObjectId to string for JSON serialization
         item_data["_id"] = str(item_data["_id"])
         if "immutable_id" in item_data:
@@ -742,7 +742,7 @@ class TestVersionCounter:
 
     def test_version_counter_atomic_increment(self, client, sample_with_version):
         """Test that version counter increments atomically."""
-        from pydatalab.mongo import flask_mongo
+        from pydatalab.mongo import get_database
 
         refcode = sample_with_version.refcode.split(":")[1]
         full_refcode = sample_with_version.refcode
@@ -757,25 +757,25 @@ class TestVersionCounter:
         assert version_numbers == [1, 2, 3, 4, 5]
 
         # Check counter document
-        counter = flask_mongo.db.version_counters.find_one({"refcode": full_refcode})
+        counter = get_database().version_counters.find_one({"refcode": full_refcode})
         assert counter["counter"] == 5
 
     def test_version_counter_created_on_first_save(self, client, sample_with_version):
         """Test that version counter is created on first save."""
-        from pydatalab.mongo import flask_mongo
+        from pydatalab.mongo import get_database
 
         refcode = sample_with_version.refcode.split(":")[1]
         full_refcode = sample_with_version.refcode
 
         # Ensure no counter exists
-        flask_mongo.db.version_counters.delete_one({"refcode": full_refcode})
+        get_database().version_counters.delete_one({"refcode": full_refcode})
 
         # Save first version
         response = client.post(f"/items/{refcode}/save-version/")
         assert response.json["version"] == 1
 
         # Check counter was created
-        counter = flask_mongo.db.version_counters.find_one({"refcode": full_refcode})
+        counter = get_database().version_counters.find_one({"refcode": full_refcode})
         assert counter is not None
         assert counter["counter"] == 1
 
@@ -850,13 +850,13 @@ class TestEdgeCases:
 
     def test_version_snapshot_is_complete(self, client, sample_with_version):
         """Test that version snapshot contains complete item data."""
-        from pydatalab.mongo import flask_mongo
+        from pydatalab.mongo import get_database
 
         refcode = sample_with_version.refcode.split(":")[1]
         full_refcode = sample_with_version.refcode
 
         # Get current item
-        original_item = flask_mongo.db.items.find_one({"refcode": full_refcode})
+        original_item = get_database().items.find_one({"refcode": full_refcode})
 
         # Save version
         client.post(f"/items/{refcode}/save-version/")
@@ -880,7 +880,7 @@ class TestEdgeCases:
         This is a focused test to make debugging easier if software_version detection fails.
         If this test fails, it indicates a problem with the package version detection mechanism.
         """
-        from pydatalab.mongo import flask_mongo
+        from pydatalab.mongo import get_database
 
         refcode = sample_with_version.refcode.split(":")[1]
         full_refcode = sample_with_version.refcode
@@ -889,7 +889,7 @@ class TestEdgeCases:
         client.post(f"/items/{refcode}/save-version/")
 
         # Get version document directly from database
-        version_doc = flask_mongo.db.item_versions.find_one({"refcode": full_refcode})
+        version_doc = get_database().item_versions.find_one({"refcode": full_refcode})
 
         # software_version field must exist
         assert "datalab_version" in version_doc, (
@@ -919,7 +919,7 @@ class TestUserIdField:
 
     def test_version_includes_user_id_field(self, client, sample_with_version):
         """Test that saved versions include both user snapshot and user_id ObjectId."""
-        from pydatalab.mongo import flask_mongo
+        from pydatalab.mongo import get_database
 
         refcode = sample_with_version.refcode.split(":")[1]
 
@@ -927,7 +927,7 @@ class TestUserIdField:
         client.post(f"/items/{refcode}/save-version/")
 
         # Get the version document directly from database
-        version_doc = flask_mongo.db.item_versions.find_one(
+        version_doc = get_database().item_versions.find_one(
             {"refcode": sample_with_version.refcode}
         )
 
@@ -939,7 +939,7 @@ class TestUserIdField:
 
     def test_restored_version_includes_user_id(self, client, sample_with_version):
         """Test that restored versions also include user_id field."""
-        from pydatalab.mongo import flask_mongo
+        from pydatalab.mongo import get_database
 
         refcode = sample_with_version.refcode.split(":")[1]
         full_refcode = sample_with_version.refcode
@@ -948,7 +948,7 @@ class TestUserIdField:
         client.post(f"/items/{refcode}/save-version/")
 
         # Modify the item
-        flask_mongo.db.items.update_one(
+        get_database().items.update_one(
             {"refcode": full_refcode}, {"$set": {"description": "Modified", "version": 2}}
         )
 
@@ -960,7 +960,7 @@ class TestUserIdField:
         client.post(f"/items/{refcode}/restore-version/", json={"version_id": version_id})
 
         # Get the restored version document
-        restored_version = flask_mongo.db.item_versions.find_one(
+        restored_version = get_database().item_versions.find_one(
             {"refcode": full_refcode, "action": "restored"}
         )
 
@@ -970,7 +970,7 @@ class TestUserIdField:
 
     def test_query_versions_by_user_id(self, client, sample_with_version, user_id):
         """Test that we can efficiently query versions by user_id ObjectId."""
-        from pydatalab.mongo import flask_mongo
+        from pydatalab.mongo import get_database
 
         refcode = sample_with_version.refcode.split(":")[1]
 
@@ -980,7 +980,7 @@ class TestUserIdField:
         client.post(f"/items/{refcode}/save-version/")
 
         # Query by user_id ObjectId (this uses the index)
-        versions_by_user = list(flask_mongo.db.item_versions.find({"user_id": user_id}))
+        versions_by_user = list(get_database().item_versions.find({"user_id": user_id}))
 
         # Should find all 3 versions
         assert len(versions_by_user) >= 3
@@ -1009,7 +1009,7 @@ def test_sample_lifecycle(client, sample_with_version):
     dedicated test classes and are not duplicated here.
     """
     from pydatalab.models.utils import generate_unique_refcode
-    from pydatalab.mongo import flask_mongo
+    from pydatalab.mongo import get_database
 
     # Generate a unique item_id (refcode will be auto-generated by the endpoint)
     item_id = f"lifecycle_test_{generate_unique_refcode().split(':')[1]}"
@@ -1202,14 +1202,14 @@ def test_sample_lifecycle(client, sample_with_version):
 
     # Step 9: Verify item version field increments
     print("[TEST] Step 9: Verifying version field increments")
-    current_item = flask_mongo.db.items.find_one({"refcode": refcode})
+    current_item = get_database().items.find_one({"refcode": refcode})
     assert current_item["version"] == 4, (
         f"Item version field should be 4, got {current_item['version']}"
     )
 
     # Step 10: Verify all versions have proper user_id fields and software_version
     print("[TEST] Step 10: Verifying user_id fields and software_version")
-    all_version_docs = list(flask_mongo.db.item_versions.find({"refcode": refcode}))
+    all_version_docs = list(get_database().item_versions.find({"refcode": refcode}))
     assert len(all_version_docs) == 4, (
         "Should have 4 version documents in DB (1=created, 2=manual, 3=manual, 4=restored)"
     )
@@ -1225,8 +1225,8 @@ def test_sample_lifecycle(client, sample_with_version):
 
     # Cleanup
     print("[TEST] Cleaning up")
-    flask_mongo.db.items.delete_one({"refcode": refcode})
-    flask_mongo.db.item_versions.delete_many({"refcode": refcode})
-    flask_mongo.db.version_counters.delete_one({"refcode": refcode})
+    get_database().items.delete_one({"refcode": refcode})
+    get_database().item_versions.delete_many({"refcode": refcode})
+    get_database().version_counters.delete_one({"refcode": refcode})
 
     print("[TEST] ✓ Lifecycle test completed successfully")

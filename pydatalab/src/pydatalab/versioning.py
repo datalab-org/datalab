@@ -9,7 +9,7 @@ from werkzeug.exceptions import NotFound
 from pydatalab.logger import LOGGER
 from pydatalab.models import ItemVersion
 from pydatalab.models.versions import VersionAction, VersionCounter
-from pydatalab.mongo import flask_mongo
+from pydatalab.mongo import get_database
 
 
 def apply_protected_fields(restored_data: dict, current_item: dict) -> dict:
@@ -60,7 +60,7 @@ def get_next_version_number(refcode: str) -> int:
         The next version number (1-indexed)
 
     """
-    result = flask_mongo.db.version_counters.find_one_and_update(
+    result = get_database().version_counters.find_one_and_update(
         {"refcode": refcode},
         {"$inc": {"counter": 1}},
         upsert=True,
@@ -117,7 +117,7 @@ def save_version_snapshot(
     if permission_filter:
         query.update(permission_filter)
 
-    item = flask_mongo.db.items.find_one(query)
+    item = get_database().items.find_one(query)
     if not item:
         raise NotFound(f"Item {refcode} not found.")
 
@@ -160,7 +160,7 @@ def save_version_snapshot(
         )
 
     # Insert validated data (convert to dict and exclude None values)
-    flask_mongo.db.item_versions.insert_one(
+    get_database().item_versions.insert_one(
         validated_version.dict(by_alias=True, exclude_none=True)
     )
     return (
@@ -192,7 +192,7 @@ def check_version_access(refcode: str, user_only: bool = False) -> tuple[bool, d
     query = {"refcode": refcode}
     query.update(get_default_permissions(user_only=user_only))
 
-    item = flask_mongo.db.items.find_one(query, {"refcode": 1, "_id": 1})
+    item = get_database().items.find_one(query, {"refcode": 1, "_id": 1})
     if not item:
         return False, None
 

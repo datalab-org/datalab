@@ -26,7 +26,7 @@ from pydatalab.feature_flags import FEATURE_FLAGS
 from pydatalab.logger import LOGGER
 from pydatalab.login import get_by_id
 from pydatalab.models.people import AccountStatus, Identity, IdentityType, Person
-from pydatalab.mongo import flask_mongo, insert_pydantic_model_fork_safe
+from pydatalab.mongo import get_database, insert_pydantic_model_fork_safe
 from pydatalab.send_email import send_mail
 
 KEY_LENGTH: int = 32
@@ -286,7 +286,7 @@ def find_user_with_identity(
         verify: Whether to mark the identity as verified if it is found.
 
     """
-    user = flask_mongo.db.users.find_one(
+    user = get_database().users.find_one(
         {"identities.identifier": identifier, "identities.identity_type": identity_type},
     )
     if user:
@@ -302,7 +302,7 @@ def find_user_with_identity(
         identity_index = identity_indices[0]
 
         if verify and not person.identities[identity_index].verified:
-            flask_mongo.db.users.update_one(
+            get_database().users.update_one(
                 {"_id": person.immutable_id},
                 {"$set": {f"identities.{identity_index}.verified": True}},
             )
@@ -362,7 +362,7 @@ def find_create_or_modify_user(
         if use_contact_email and identity.identity_type is IdentityType.EMAIL and identity.verified:
             update["$set"] = {"contact_email": identity.identifier}
 
-        result = flask_mongo.db.users.update_one(
+        result = get_database().users.update_one(
             {"_id": ObjectId(user_id)},
             update,
         )
@@ -412,7 +412,7 @@ def find_create_or_modify_user(
             LOGGER.debug("Inserting new user model %s into database", user)
             insert_pydantic_model_fork_safe(user, "users")
             user_model = get_by_id(str(user.immutable_id))
-            if user is None:
+            if user_model is None:
                 raise RuntimeError("Failed to insert user into database")
 
             wrapped_login_user(user_model)
@@ -464,7 +464,7 @@ def _generate_and_store_token(email: str, intent: str = "register") -> str:
         algorithm="HS256",
     )
 
-    flask_mongo.db.magic_links.insert_one({"jwt": token})
+    get_database().magic_links.insert_one({"jwt": token})
 
     return token
 
@@ -490,7 +490,7 @@ def _send_admin_email_notification(user: Person) -> None:
         LOGGER.info("Email notifications are disabled; not sending unverified user notification.")
         return
 
-    admins = flask_mongo.db.users.aggregate(
+    admins = get_database().users.aggregate(
         [
             {
                 "$lookup": {
@@ -611,7 +611,7 @@ def email_logged_in():
     if not token:
         raise ValueError("Token not provided")
 
-    if not flask_mongo.db.magic_links.find_one({"jwt": token}):
+    if not get_database().magic_links.find_one({"jwt": token}):
         raise ValueError("Token not found, please request a new one.")
 
     data = jwt.decode(
@@ -767,7 +767,7 @@ def generate_user_api_key():
     """Returns metadata associated with the currently authenticated user."""
     if current_user.is_authenticated:
         new_key = "".join(random.choices(ascii_letters, k=KEY_LENGTH))  # noqa: S311
-        flask_mongo.db.api_keys.update_one(
+        get_database().api_keys.update_one(
             {"_id": ObjectId(current_user.id)},
             {"$set": {"hash": sha512(new_key.encode("utf-8")).hexdigest()}},
             upsert=True,

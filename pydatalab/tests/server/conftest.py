@@ -78,7 +78,7 @@ def app_config(tmp_path_factory, secret_key):
 def app(real_mongo_client, app_config):
     """Yields the test app."""
     from pydatalab.main import create_app
-    from pydatalab.mongo import flask_mongo
+    from pydatalab.mongo import _get_active_mongo_client, get_database
 
     mongo_cli = real_mongo_client
     if mongo_cli is None:
@@ -95,9 +95,14 @@ def app(real_mongo_client, app_config):
 
     yield app
 
-    # Explicitly close the flask-pymongo connection
-    if flask_mongo.cx:
-        flask_mongo.cx.close()
+    # Explicitly close the mongo connection and clear the lru_cache
+    try:
+        client = _get_active_mongo_client()
+        client.close()
+        _get_active_mongo_client.cache_clear()
+        get_database.cache_clear()
+    except RuntimeError:
+        pass
 
     if mongo_cli:
         mongo_cli.drop_database(TEST_DATABASE_NAME)
@@ -458,7 +463,7 @@ def fixture_insert_complicated_sample_constituents(user_id):
     """Insert the starting materials referenced by complicated_sample into the database
     so that entry_reference_lookup can resolve them."""
     from pydatalab.models.utils import generate_unique_refcode
-    from pydatalab.mongo import flask_mongo
+    from pydatalab.mongo import get_database
 
     items = []
     for sm_id, sm_name in [
@@ -474,13 +479,13 @@ def fixture_insert_complicated_sample_constituents(user_id):
             creator_ids=[user_id],
             refcode=generate_unique_refcode(),
         )
-        flask_mongo.db.items.insert_one(sm.dict(exclude_unset=False))
+        get_database().items.insert_one(sm.dict(exclude_unset=False))
         items.append(sm)
 
     yield items
 
     for item in items:
-        flask_mongo.db.items.delete_one({"refcode": item.refcode})
+        get_database().items.delete_one({"refcode": item.refcode})
 
 
 @pytest.fixture(scope="module")
@@ -595,13 +600,13 @@ def fixture_default_equipment_dict(default_equipment):
 
 def _insert_and_cleanup_item_from_model(model):
     from pydatalab.models.utils import generate_unique_refcode
-    from pydatalab.mongo import flask_mongo
+    from pydatalab.mongo import get_database
 
     refcode = generate_unique_refcode()
     model.refcode = refcode
-    flask_mongo.db.items.insert_one(model.dict(exclude_unset=False))
+    get_database().items.insert_one(model.dict(exclude_unset=False))
     yield model
-    flask_mongo.db.items.delete_one({"refcode": model.refcode})
+    get_database().items.delete_one({"refcode": model.refcode})
 
 
 @pytest.fixture(scope="module", name="insert_default_sample")

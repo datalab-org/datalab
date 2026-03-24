@@ -14,7 +14,7 @@ from pydatalab.blocks.base import DataBlock
 from pydatalab.logger import LOGGER
 from pydatalab.login import get_by_id
 from pydatalab.models.tasks import BlockProcessingTaskSpec, Task, TaskStage, TaskStatus, TaskType
-from pydatalab.mongo import flask_mongo, get_database
+from pydatalab.mongo import get_database
 from pydatalab.permissions import active_users_or_get_only, get_default_permissions
 from pydatalab.scheduler import task_scheduler
 from pydatalab.utils import CustomJSONEncoder
@@ -53,7 +53,7 @@ def _process_block_async(
         stage = TaskStage(
             timestamp=datetime.now(tz=timezone.utc), message=message, level=level, detail=traceback
         )
-        flask_mongo.db.tasks.update_one(
+        get_database().tasks.update_one(
             {"task_id": task_id}, {"$push": {"spec.stages": stage.dict()}}
         )
 
@@ -65,7 +65,7 @@ def _process_block_async(
 
         try:
             LOGGER.info("Task %s: starting processing", task_id)
-            flask_mongo.db.tasks.update_one(
+            get_database().tasks.update_one(
                 {"task_id": task_id}, {"$set": {"status": TaskStatus.PROCESSING}}
             )
             add_stage("Processing started")
@@ -97,7 +97,7 @@ def _process_block_async(
 
             LOGGER.info("Task %s: completed successfully", task_id)
             add_stage("Processing completed successfully", level="info")
-            flask_mongo.db.tasks.update_one(
+            get_database().tasks.update_one(
                 {"task_id": task_id},
                 {
                     "$set": {
@@ -114,7 +114,7 @@ def _process_block_async(
                 level="error",
                 traceback=traceback.format_exc(),
             )
-            flask_mongo.db.tasks.update_one(
+            get_database().tasks.update_one(
                 {"task_id": task_id},
                 {
                     "$set": {
@@ -146,7 +146,7 @@ def _cleanup_stale_tasks():
         age_cutoff = now - timedelta(hours=TASK_MAX_AGE_HOURS)
 
         # Mark timed-out tasks as errors
-        timed_out = flask_mongo.db.tasks.update_many(
+        timed_out = get_database().tasks.update_many(
             {
                 "type": TaskType.BLOCK_PROCESSING,
                 "status": {"$in": [TaskStatus.PENDING, TaskStatus.PROCESSING]},
@@ -164,7 +164,7 @@ def _cleanup_stale_tasks():
             LOGGER.warning("Marked %d timed-out block tasks as errored", timed_out.modified_count)
 
         # Find old completed/errored tasks to purge
-        old_tasks = flask_mongo.db.tasks.find(
+        old_tasks = get_database().tasks.find(
             {
                 "type": TaskType.BLOCK_PROCESSING,
                 "status": {"$in": [TaskStatus.READY, TaskStatus.ERROR]},
@@ -186,7 +186,7 @@ def _cleanup_stale_tasks():
                 deleted_files += 1
 
         # Delete the task documents
-        result = flask_mongo.db.tasks.delete_many(
+        result = get_database().tasks.delete_many(
             {"task_id": {"$in": task_ids}, "type": TaskType.BLOCK_PROCESSING}
         )
 
@@ -245,7 +245,7 @@ def add_data_block():
     else:
         display_order_update = block.block_id
 
-    result = flask_mongo.db.items.update_one(
+    result = get_database().items.update_one(
         {"item_id": item_id, **get_default_permissions(user_only=True)},
         {
             "$push": {"display_order": display_order_update},
@@ -263,7 +263,7 @@ def add_data_block():
         )
 
     # get the new display_order:
-    display_order_result = flask_mongo.db.items.find_one(
+    display_order_result = get_database().items.find_one(
         {"item_id": item_id, **get_default_permissions(user_only=True)}, {"display_order": 1}
     )
 
@@ -307,7 +307,7 @@ def add_collection_data_block():
     else:
         display_order_update = block.block_id
 
-    result = flask_mongo.db.collections.update_one(
+    result = get_database().collections.update_one(
         {"collection_id": collection_id, **get_default_permissions(user_only=True)},
         {
             "$push": {"blocks": data, "display_order": display_order_update},
@@ -325,7 +325,7 @@ def add_collection_data_block():
         )
 
     # get the new display_order:
-    display_order_result = flask_mongo.db.collections.find_one(
+    display_order_result = get_database().collections.find_one(
         {"collection_id": collection_id, **get_default_permissions(user_only=True)},
         {"display_order": 1},
     )
@@ -356,13 +356,13 @@ def _save_block_to_db(block: DataBlock):
             "collection_id": block.data["collection_id"],
             f"blocks_obj.{block.block_id}": {"$exists": True},
         }
-        result = flask_mongo.db.collections.update_one(match, update)
+        result = get_database().collections.update_one(match, update)
     else:
         match = {
             "item_id": block.data["item_id"],
             f"blocks_obj.{block.block_id}": {"$exists": True},
         }
-        result = flask_mongo.db.items.update_one(match, update)
+        result = get_database().items.update_one(match, update)
 
     if result.matched_count != 1:
         raise BadRequest(
@@ -426,7 +426,7 @@ def update_block():
             ),
         )
 
-        flask_mongo.db.tasks.insert_one(block_task.dict())
+        get_database().tasks.insert_one(block_task.dict())
 
         task_scheduler.add_job(
             func=_process_block_async,
@@ -475,7 +475,7 @@ def delete_block():
     item_id = request_json["item_id"]
     block_id = request_json["block_id"]
 
-    result = flask_mongo.db.items.update_one(
+    result = get_database().items.update_one(
         {"item_id": item_id, **get_default_permissions(user_only=True)},
         {
             "$pull": {
@@ -513,7 +513,7 @@ def delete_collection_block():
     collection_id = request_json["collection_id"]
     block_id = request_json["block_id"]
 
-    result = flask_mongo.db.collections.update_one(
+    result = get_database().collections.update_one(
         {"collection_id": collection_id, **get_default_permissions(user_only=True)},
         {
             "$pull": {
@@ -542,7 +542,7 @@ def delete_collection_block():
 
 @BLOCKS.route("/blocks/<string:task_id>/status", methods=["GET"])
 def get_block_task_status(task_id: str):
-    task = flask_mongo.db.tasks.find_one({"task_id": task_id, "type": TaskType.BLOCK_PROCESSING})
+    task = get_database().tasks.find_one({"task_id": task_id, "type": TaskType.BLOCK_PROCESSING})
 
     if not task:
         return jsonify({"status": "error", "message": "Task not found"}), 404
@@ -564,7 +564,7 @@ def get_block_task_status(task_id: str):
         item_id = task["spec"]["item_id"]
         block_id = task["spec"]["block_id"]
 
-        item = flask_mongo.db.items.find_one(
+        item = get_database().items.find_one(
             {"item_id": item_id, **get_default_permissions(user_only=False)},
             {f"blocks_obj.{block_id}": 1},
         )

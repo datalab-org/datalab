@@ -16,7 +16,7 @@ from pydatalab.config import CONFIG, RemoteFilesystem
 from pydatalab.logger import LOGGER
 from pydatalab.models import File
 from pydatalab.models.utils import PyObjectId
-from pydatalab.mongo import _get_active_mongo_client, flask_mongo
+from pydatalab.mongo import _get_active_mongo_client, get_database
 from pydatalab.permissions import get_default_permissions
 
 LIVE_FILE_CUTOFF = datetime.timedelta(days=31)
@@ -148,7 +148,7 @@ def _check_and_sync_file(file_info: File, file_id: ObjectId) -> File:
 
     """
     directories_dict = {fs.name: fs for fs in CONFIG.REMOTE_FILESYSTEMS}
-    file_collection = flask_mongo.db.files
+    file_collection = get_database().files
     if not file_info.source_server_name or not file_info.source_path:
         raise RuntimeError("Attempted to sync file %s with no known remote", file_info)
 
@@ -271,7 +271,8 @@ def get_file_info_by_id(file_id: str | ObjectId, update_if_live: bool = True) ->
             corresponding file does not exist on disk.
 
     """
-    item_collection = flask_mongo.db.items
+    LOGGER.debug("getting file for file_id: %s", file_id)
+    item_collection = get_database().items
     file_id = ObjectId(file_id)
 
     # Instead of directly querying for a file, we try to find it
@@ -324,7 +325,7 @@ def update_uploaded_file(file: FileStorage, file_id: ObjectId, size_bytes: int |
     """
 
     last_modified = datetime.datetime.now(tz=datetime.timezone.utc).isoformat()
-    file_collection = flask_mongo.db.files
+    file_collection = get_database().files
 
     updated_file_entry = file_collection.find_one_and_update(
         {"_id": file_id, **get_default_permissions(user_only=False)},
@@ -398,7 +399,7 @@ def save_uploaded_file(
         block_ids = []
 
     for item_id in item_ids:
-        if not flask_mongo.db.items.find_one(
+        if not get_database().items.find_one(
             {"item_id": item_id, **get_default_permissions(user_only=True)}
         ):
             raise ValueError(f"item_id is invalid: {item_id}")
@@ -461,7 +462,7 @@ def save_uploaded_file(
         file.save(file_location)
 
     hashes = compute_file_hashes(file_location)
-    updated_file_entry = flask_mongo.db.files.find_one_and_update(
+    updated_file_entry = get_database().files.find_one_and_update(
         {"_id": inserted_id, **get_default_permissions(user_only=False)},
         {
             "$set": {
@@ -477,7 +478,7 @@ def save_uploaded_file(
 
     # update any referenced item_ids
     for item_id in item_ids:
-        sample_update_result = flask_mongo.db.items.update_one(
+        sample_update_result = get_database().items.update_one(
             {"item_id": item_id, **get_default_permissions(user_only=True)},
             {"$push": {"file_ObjectIds": inserted_id}},
         )
@@ -500,8 +501,8 @@ def add_file_from_remote_directory(
     """Attaches the file `file_entry` to the item with ID `item_id`."""
     from pydatalab.permissions import get_default_permissions
 
-    file_collection = flask_mongo.db.files
-    sample_collection = flask_mongo.db.items
+    file_collection = get_database().files
+    sample_collection = get_database().items
     directories_dict = {fs.name: fs for fs in CONFIG.REMOTE_FILESYSTEMS}
 
     if not block_ids:
@@ -600,7 +601,7 @@ def add_file_from_remote_directory(
 
 def retrieve_file_path(immutable_id):
     """Retrieve the `location` of the file with ID `immutable_id`."""
-    file_collection = flask_mongo.db.files
+    file_collection = get_database().files
     result = file_collection.find_one(
         {"_id": ObjectId(immutable_id), **get_default_permissions(user_only=False)}
     )
@@ -625,8 +626,8 @@ def remove_file_from_sample(item_id: str | ObjectId, file_id: str | ObjectId) ->
     from pydatalab.permissions import get_default_permissions
 
     item_id, file_id = ObjectId(item_id), ObjectId(file_id)
-    sample_collection = flask_mongo.db.items
-    file_collection = flask_mongo.db.files
+    sample_collection = get_database().items
+    file_collection = get_database().files
     sample_result = sample_collection.update_one(
         {"item_id": item_id, **get_default_permissions(user_only=True)},
         {"$pull": {"file_ObjectIds": file_id}},

@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 
-from pydatalab.mongo import flask_mongo
+from pydatalab.mongo import get_database
 from pydatalab.permissions import active_users_or_get_only, get_default_permissions
 
 GRAPHS = Blueprint("graphs", __name__)
@@ -27,7 +27,7 @@ def get_graph_cy_format(
 
     if item_id is None:
         if collection_id is not None:
-            collection_immutable_id = flask_mongo.db.collections.find_one(
+            collection_immutable_id = get_database().collections.find_one(
                 {"collection_id": collection_id, **get_default_permissions(user_only=False)},
                 projection={"_id": 1},
             )
@@ -47,7 +47,7 @@ def get_graph_cy_format(
             }
         else:
             query = {}
-        all_documents = flask_mongo.db.items.find(
+        all_documents = get_database().items.find(
             {**query, **get_default_permissions(user_only=False)},
             projection={"item_id": 1, "name": 1, "type": 1, "relationships": 1},
         )
@@ -55,7 +55,7 @@ def get_graph_cy_format(
         all_documents.rewind()
 
     else:
-        main_item = flask_mongo.db.items.find_one(
+        main_item = get_database().items.find_one(
             {
                 "item_id": item_id,
                 **get_default_permissions(user_only=False),
@@ -76,7 +76,7 @@ def get_graph_cy_format(
             if current_depth > max_depth:
                 return
 
-            current_item = flask_mongo.db.items.find_one(
+            current_item = get_database().items.find_one(
                 {
                     "item_id": current_item_id,
                     **get_default_permissions(user_only=False),
@@ -90,7 +90,7 @@ def get_graph_cy_format(
             for relationship in current_item.get("relationships", []) or []:
                 if relationship.get("item_id") and relationship["item_id"] not in node_ids:
                     node_ids.add(relationship["item_id"])
-                    related_item = flask_mongo.db.items.find_one(
+                    related_item = get_database().items.find_one(
                         {
                             "item_id": relationship["item_id"],
                             **get_default_permissions(user_only=False),
@@ -102,7 +102,7 @@ def get_graph_cy_format(
                         add_related_items(relationship["item_id"], current_depth + 1)
 
             incoming_items = list(
-                flask_mongo.db.items.find(
+                get_database().items.find(
                     {
                         "relationships": {
                             "$elemMatch": {
@@ -137,7 +137,7 @@ def get_graph_cy_format(
             if relationship.get("type") == "collections" and not collection_id:
                 if hide_collections:
                     continue
-                collection_data = flask_mongo.db.collections.find_one(
+                collection_data = get_database().collections.find_one(
                     {
                         "_id": relationship["immutable_id"],
                         **get_default_permissions(user_only=False),
