@@ -84,7 +84,8 @@ class XRDBlock(DataBlock):
             theoretical = True
 
         elif ext == ".raw":
-            df = parse_bruker_raw(location)
+            df, metadata = parse_bruker_raw(location)
+            wavelength = metadata.get("wavelength", wavelength)
 
         elif ext == ".brml":
             df = parse_bruker_brml(location)
