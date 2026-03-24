@@ -222,7 +222,7 @@ def compute_cif_pxrd(filename: str, wavelength: float) -> tuple[pd.DataFrame, di
     return df, peak_data
 
 
-def parse_bruker_raw(filename: str) -> pd.DataFrame:
+def parse_bruker_raw(filename: str) -> tuple[pd.DataFrame, dict]:
     """Reads a Bruker RAW file and returns a pandas DataFrame with columns
     twotheta and intensity, vendored and adapted from GSAS-II.
 
@@ -230,7 +230,8 @@ def parse_bruker_raw(filename: str) -> pd.DataFrame:
         filename: The file to read.
 
     Returns:
-        A DataFrame with columns "twotheta" and "intensity", among others.
+        A DataFrame with columns "twotheta" and "intensity", among others, and a
+        dictionary of metadata extracted from the file.
 
     """
     import struct as st
@@ -288,6 +289,7 @@ def parse_bruker_raw(filename: str) -> pd.DataFrame:
         def Reader(self, filename, ParentFrame=None, **kwarg):
             "Read a Bruker RAW file"
             self.comments = []
+            self.meta = {}
             with open(filename, "rb") as fp:
                 if "ver. 1" in self.fmtVer:
                     raise Exception(
@@ -473,10 +475,9 @@ def parse_bruker_raw(filename: str) -> pd.DataFrame:
                                 fp.read(seglen - 8)
                         if segtype == 0 or segtype == 160:  # read data block
                             self.idstring = self.dnames[nBank]
-                            meta = {}
                             fp.read(28)
-                            meta["ScanType"] = self.Read(fp, 24).strip("\x00")
-                            if meta["ScanType"] not in [
+                            self.meta["ScanType"] = self.Read(fp, 24).strip("\x00")
+                            if self.meta["ScanType"] not in [
                                 "Locked Coupled",
                                 "Unlocked Coupled",
                                 "Detector Scan",
@@ -484,22 +485,22 @@ def parse_bruker_raw(filename: str) -> pd.DataFrame:
                                 return False
                             fp.read(16)
                             startAngle = st.unpack("<d", fp.read(8))[0]
-                            meta["startAngle"] = "%.4f" % startAngle
+                            self.meta["startAngle"] = "%.4f" % startAngle
                             stepSize = st.unpack("<d", fp.read(8))[0]
-                            meta["stepSize"] = "%.4f" % stepSize
+                            self.meta["stepSize"] = "%.4f" % stepSize
                             Nsteps = st.unpack("<I", fp.read(4))[0]
-                            meta["Nsteps"] = "%d" % Nsteps
-                            meta["stepTime(ms)"] = st.unpack("<f", fp.read(4))[0]
+                            self.meta["Nsteps"] = "%d" % Nsteps
+                            self.meta["stepTime(ms)"] = st.unpack("<f", fp.read(4))[0]
                             fp.read(4)
-                            meta["generatorVoltage(kV)"] = st.unpack("<f", fp.read(4))[0]
-                            meta["generatorCurrent(mA)"] = st.unpack("<f", fp.read(4))[0]
+                            self.meta["generatorVoltage(kV)"] = st.unpack("<f", fp.read(4))[0]
+                            self.meta["generatorCurrent(mA)"] = st.unpack("<f", fp.read(4))[0]
                             fp.read(4)
-                            meta["usedWave"] = st.unpack("<d", fp.read(8))[0]
+                            self.meta["usedWave"] = st.unpack("<d", fp.read(8))[0]
                             fp.read(16)
                             datumSize = st.unpack("<I", fp.read(4))[0]
                             hdrSize = st.unpack("<I", fp.read(4))[0]
                             fp.read(16)
-                            if meta["ScanType"] in [
+                            if self.meta["ScanType"] in [
                                 "Locked Coupled",
                                 "Unlocked Coupled",
                                 "Detector Scan",
@@ -520,7 +521,7 @@ def parse_bruker_raw(filename: str) -> pd.DataFrame:
                                             "Divergence Slit",
                                         ]:
                                             fp.read(20)
-                                            meta["start %s" % segName] = (
+                                            self.meta["start %s" % segName] = (
                                                 "%.4f" % (st.unpack("<d", fp.read(8))[0])
                                             )
                                             fp.read(seglen - 64)
@@ -532,13 +533,13 @@ def parse_bruker_raw(filename: str) -> pd.DataFrame:
                                 # end of reading scan header
                                 pos = fp.tell()
                                 fp.seek(pos - 16)
-                                meta["Temperature"] = st.unpack("<f", fp.read(4))[0]
+                                self.meta["Temperature"] = st.unpack("<f", fp.read(4))[0]
                                 if (
-                                    meta["Temperature"] > 7.0
+                                    self.meta["Temperature"] > 7.0
                                 ):  # one raw4 file had int4='9999' in this place & <7K unlikely for lab data
-                                    self.Sample["Temperature"] = meta["Temperature"]
+                                    self.Sample["Temperature"] = self.meta["Temperature"]
                                 try:
-                                    self.Sample["Omega"] = float(meta["start Theta"])
+                                    self.Sample["Omega"] = float(self.meta["start Theta"])
                                 except:  # noqa
                                     pass
                                 fp.read(12)
@@ -559,21 +560,20 @@ def parse_bruker_raw(filename: str) -> pd.DataFrame:
                                         np.zeros(Nsteps),
                                         np.zeros(Nsteps),
                                     ]
-                                    for item in meta:
-                                        self.comments.append(f"{item} = {str(meta[item])}")
+                                    for item in self.meta:
+                                        self.comments.append(f"{item} = {str(self.meta[item])}")
                                     self.repeat = True
                                     if nBank == self.numbanks - 1:
                                         self.repeat = False
                                     return True
                             else:
-                                meta["Unknown range/scan type"] = True
+                                self.meta["Unknown range/scan type"] = True
                                 fp.read(hdrSize)
                                 fp.read(datumSize * Nsteps)
                         nBank += 1
                 else:
                     return False
                 self.repeat = False
-                self.meta = meta
                 return True
 
     reader = raw_ReaderClass()
@@ -587,7 +587,16 @@ def parse_bruker_raw(filename: str) -> pd.DataFrame:
     if not read:
         raise RuntimeError(f"Failed to read Bruker RAW file {filename}.")
 
-    return pd.DataFrame({"twotheta": reader.powderdata[0], "intensity": reader.powderdata[1]})
+    metadata = reader.meta
+    if reader.meta.get("usedWave") is not None:
+        try:
+            metadata["wavelength"] = float(reader.meta["usedWave"])
+        except ValueError:
+            pass
+
+    return pd.DataFrame(
+        {"twotheta": reader.powderdata[0], "intensity": reader.powderdata[1]}
+    ), metadata
 
 
 def parse_bruker_brml(filename: str) -> pd.DataFrame:
