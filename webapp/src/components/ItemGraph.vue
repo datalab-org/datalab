@@ -194,7 +194,7 @@ export default {
     },
     defaultShowBlocks: {
       type: Boolean,
-      default: true,
+      default: false,
     },
   },
   data() {
