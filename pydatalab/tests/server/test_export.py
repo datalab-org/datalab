@@ -29,7 +29,7 @@ def sample_collection(database, user_id):
 
 @pytest.fixture
 def mock_scheduler():
-    with patch("pydatalab.routes.v0_1.export.export_scheduler") as mock_sched:
+    with patch("pydatalab.routes.v0_1.export.task_scheduler") as mock_sched:
         mock_sched.add_job = MagicMock(return_value=None)
         yield mock_sched
 

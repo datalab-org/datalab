@@ -11,7 +11,7 @@ from pydatalab.config import CONFIG
 from pydatalab.models.tasks import BlockProcessingTaskSpec, Task, TaskStage, TaskStatus, TaskType
 from pydatalab.mongo import flask_mongo
 from pydatalab.permissions import active_users_or_get_only, get_default_permissions
-from pydatalab.scheduler import export_scheduler
+from pydatalab.scheduler import task_scheduler
 
 
 def _process_block_async_internal(task_id: str, block_data: dict, event_data: dict | None):
@@ -232,6 +232,7 @@ def _save_block_to_db(block: DataBlock):
         match = {
             "item_id": block.data["item_id"],
             f"blocks_obj.{block.block_id}": {"$exists": True},
+            **get_default_permissions(user_only=False),
         }
         result = flask_mongo.db.items.update_one(match, update)
 
@@ -291,7 +292,7 @@ def update_block():
         except RuntimeError:
             app = None
 
-        export_scheduler.add_job(
+        task_scheduler.add_job(
             func=_process_block_async,
             args=[task_id, block_data, event_data, app],
             job_id=task_id,
