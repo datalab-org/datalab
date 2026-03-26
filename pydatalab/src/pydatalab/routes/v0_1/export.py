@@ -12,7 +12,7 @@ from pydatalab.export import create_eln_file
 from pydatalab.models.tasks import ExportTaskSpec, Task, TaskStatus, TaskType
 from pydatalab.mongo import flask_mongo
 from pydatalab.permissions import PUBLIC_USER_ID, active_users_or_get_only
-from pydatalab.scheduler import export_scheduler
+from pydatalab.scheduler import task_scheduler
 
 EXPORT = Blueprint("export", __name__)
 
@@ -118,7 +118,7 @@ def start_collection_export(collection_id: str):
     except RuntimeError:
         app = None
 
-    export_scheduler.add_job(
+    task_scheduler.add_job(
         func=_generate_export_in_background,
         args=[task_id, app, collection_id, None, "collection", None],
         job_id=f"export_{task_id}",
@@ -242,7 +242,7 @@ def start_item_export(item_id: str):
     except RuntimeError:
         app = None
 
-    export_scheduler.add_job(
+    task_scheduler.add_job(
         func=_generate_export_in_background,
         args=[task_id, app, None, item_id, export_type, related_item_ids],
         job_id=f"export_{task_id}",

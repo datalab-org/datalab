@@ -3,7 +3,7 @@ from apscheduler.jobstores.memory import MemoryJobStore
 from apscheduler.schedulers.background import BackgroundScheduler
 
 
-class ExportScheduler:
+class TaskScheduler:
     _instance = None
     _scheduler = None
 
@@ -43,4 +43,4 @@ class ExportScheduler:
             self._scheduler.shutdown()
 
 
-export_scheduler = ExportScheduler()
+task_scheduler = TaskScheduler()
