@@ -56,6 +56,8 @@ class CycleBlock(DataBlock):
 
     """
 
+    _prefers_async: bool = True
+
     accepted_file_extensions = (
         ".mpr",
         ".txt",
