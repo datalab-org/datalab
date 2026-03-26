@@ -6,6 +6,7 @@ for retrieving the authenticated user for a session and their identities.
 from hashlib import sha512
 
 from bson import ObjectId
+from flask import g
 from flask_login import LoginManager, UserMixin
 
 from pydatalab.models import Person
@@ -87,9 +88,12 @@ class LoginUser(UserMixin):
             self.role = user.role
 
 
-def get_by_id_cached(user_id):
-    """Cached version of get_by_id."""
-    return get_by_id(user_id)
+def _get_cached_user(user_id: str) -> LoginUser | None:
+    """Return the user for this ID, cached for the duration of the current request."""
+    cache = g.setdefault("_user_cache", {})
+    if user_id not in cache:
+        cache[user_id] = get_by_id(user_id)
+    return cache[user_id]
 
 
 def groups_lookup() -> dict:
@@ -149,7 +153,7 @@ def get_by_api_key(key: str):
     hash = sha512(key.encode("utf-8")).hexdigest()
     user = get_database().api_keys.find_one({"hash": hash}, projection={"hash": 0})
     if user:
-        return get_by_id_cached(str(user["_id"]))
+        return _get_cached_user(str(user["_id"]))
 
 
 LOGIN_MANAGER: LoginManager = LoginManager()
@@ -159,7 +163,7 @@ LOGIN_MANAGER: LoginManager = LoginManager()
 @LOGIN_MANAGER.user_loader
 def load_user(user_id: str) -> LoginUser | None:
     """Looks up the currently authenticated user and returns a `LoginUser` model."""
-    return get_by_id_cached(str(user_id))
+    return _get_cached_user(str(user_id))
 
 
 @LOGIN_MANAGER.request_loader
