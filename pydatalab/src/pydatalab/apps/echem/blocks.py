@@ -109,54 +109,16 @@ class CycleBlock(DataBlock):
             )
         return ext
 
-    def _try_export_bdf(self, raw_df: pd.DataFrame, bdf_path: Path) -> Path | None:
-        """Attempt to export a navani DataFrame to BDF format, returning the path on success or
-        None on failure."""
-        try:
-            export_to_bdf(raw_df, save=True, filepath=bdf_path)
-            return bdf_path
-        except Exception as exc:
-            LOGGER.warning("Failed to export BDF file: %s", exc)
-            LOGGER.debug("Exception details for failed BDF export", exc_info=True)
-            return None
-
-    def _load_and_cache_echem(
-        self,
-        location: Path,
-        bdf_path: Path | None,
-        reload: bool,
-        locations: list[Path] | None = None,
-    ) -> tuple[pd.DataFrame, Path | None]:
-        """Load echem data from file(s) with pickle and BDF caching.
-
-        For a single file, `location` is the source file path and `locations` is None.
-        For multi-file stitching, `location` is the merged cache path (used to derive the
-        pickle path) and `locations` contains all source file paths to stitch.
+    def _parse_echem_files(self, location: Path, locations: list[Path] | None) -> pd.DataFrame:
+        """Parse echem source file(s) via navani and return the raw DataFrame.
 
         Parameters:
-            location: Path to the source file (single) or the merged cache base path (multi).
-            bdf_path: Desired path for the BDF export, or None to skip export.
-            reload: If True, bypass the pickle cache and re-parse from source.
-            locations: For multi-file mode, the list of all source file paths to stitch.
-
-        Returns:
-            A tuple of (raw_df, bdf_path) where bdf_path may be None if export was skipped
-            or failed.
+            location: Path to the single source file.
+            locations: For multi-file mode, all source paths to stitch together.
         """
-        pickle_path = location.with_suffix(".RAW_PARSED.pkl")
-
-        if not reload and pickle_path.exists():
-            raw_df = pd.read_pickle(pickle_path)  # noqa: S301
-            # Regenerate BDF if it was deleted or previously failed
-            if bdf_path is not None and not bdf_path.exists():
-                bdf_path = self._try_export_bdf(raw_df, bdf_path)
-            return raw_df, bdf_path
-
         if locations is not None:
-            # Multi-file: stitch all source files together
             try:
                 LOGGER.debug("Loading multiple echem files with navani: %s", locations)
-                # Suppress the navani warning when stitching files with differing capacity columns
                 with warnings.catch_warnings():
                     warnings.filterwarnings(
                         "ignore",
@@ -167,23 +129,85 @@ class CycleBlock(DataBlock):
                         ),
                         category=UserWarning,
                     )
-
-                    raw_df = ec.multi_echem_file_loader([str(loc) for loc in locations])
+                    return ec.multi_echem_file_loader([str(loc) for loc in locations])
             except Exception as exc:
                 raise RuntimeError(
                     f"Navani raised an error when parsing multiple files: {exc}"
                 ) from exc
         else:
-            # Single file
             try:
-                raw_df = ec.echem_file_loader(str(location))
+                return ec.echem_file_loader(str(location))
             except Exception as exc:
                 raise RuntimeError(f"Navani raised an error when parsing: {exc}") from exc
 
-        raw_df.to_pickle(pickle_path)
-        if bdf_path is not None:
-            bdf_path = self._try_export_bdf(raw_df, bdf_path)
-        return raw_df, bdf_path
+    def _load_echem_from_cache(self, parquet_path: Path) -> pd.DataFrame:
+        """Load a previously cached echem DataFrame from a ``.bdf.parquet`` file."""
+        return ec.echem_file_loader(str(parquet_path))
+
+    def _save_bdf(
+        self, raw_df: pd.DataFrame, parquet_path: Path, csv_path: Path | None
+    ) -> Path | None:
+        """Save a navani DataFrame as ``.bdf.parquet`` (cache) and optionally ``.bdf.csv`` (download).
+
+        Parameters:
+            raw_df: The navani-parsed DataFrame to export.
+            parquet_path: Destination path for the parquet cache.
+            csv_path: Destination path for the CSV download, or None to skip writing CSV.
+
+        Returns the CSV path if written, or None otherwise.
+        """
+        try:
+            bdf_df = export_to_bdf(raw_df)
+            if csv_path is not None:
+                bdf_df.to_csv(csv_path, index=False)
+        except Exception as exc:
+            LOGGER.warning("Failed to export BDF file: %s", exc)
+            LOGGER.debug("Exception details for failed BDF export", exc_info=True)
+            return None
+        try:
+            # Parquet requires homogeneous column types; cast mixed-type object columns to str
+            for col in bdf_df.select_dtypes(include="object").columns:
+                bdf_df[col] = bdf_df[col].astype(str)
+            bdf_df.to_parquet(parquet_path, index=False)
+        except Exception as exc:
+            LOGGER.warning("Failed to export BDF parquet file: %s", exc)
+            LOGGER.debug("Exception details for failed BDF parquet export", exc_info=True)
+        return csv_path
+
+    def _load_and_cache_echem(
+        self,
+        location: Path,
+        parquet_path: Path | None,
+        csv_path: Path | None,
+        reload: bool,
+        locations: list[Path] | None = None,
+    ) -> tuple[pd.DataFrame, Path | None]:
+        """Load echem data, using the ``.bdf.parquet`` cache when available.
+
+        On a cache miss (or when ``reload=True``), parses the source file(s) via navani and
+        writes a ``.bdf.parquet`` cache and (when ``csv_path`` is provided) a ``.bdf.csv``
+        download file. Returns the ``.bdf.csv`` path for use as a download URL, or None if
+        no CSV path was given, caching was not requested, or export failed.
+
+        Parameters:
+            location: Path to the source file (single) or the merged cache base path (multi).
+            parquet_path: Path for the ``.bdf.parquet`` cache file, or None to skip caching.
+            csv_path: Path for the ``.bdf.csv`` download file, or None to skip writing CSV.
+            reload: If True, bypass the cache and re-parse from source.
+            locations: For multi-file mode, the list of all source file paths to stitch.
+        """
+        if not reload and parquet_path is not None and parquet_path.exists():
+            raw_df = self._load_echem_from_cache(parquet_path)
+            # Regenerate CSV if it was deleted
+            if csv_path is not None and not csv_path.exists():
+                self._save_bdf(raw_df, parquet_path, csv_path)
+            return raw_df, csv_path
+
+        raw_df = self._parse_echem_files(location, locations)
+
+        if parquet_path is not None:
+            csv_path = self._save_bdf(raw_df, parquet_path, csv_path)
+        return raw_df, csv_path
 
     def _load_single(self, file_id: ObjectId, reload: bool) -> tuple[pd.DataFrame, Path | None]:
         """Parse a single echem file using navani, with pickle caching.
@@ -199,11 +223,21 @@ class CycleBlock(DataBlock):
 
         ext = self._get_file_extension(filename)
         location = Path(file_info["location"])
-        # If the source is already BDF, no export needed (avoids e.g. file.bdf.csv -> file.bdf.csv.bdf.csv)
-        bdf_path = (
-            None if ext.startswith(".bdf") else location.with_name(f"{location.stem}.bdf.csv")
-        )
-        return self._load_and_cache_echem(location, bdf_path, reload)
+        bare_stem = Path(filename).stem.removesuffix(".bdf")
+        if ext == ".bdf.parquet":
+            # Source is already parquet: generate a .bdf.csv for download alongside it.
+            # The parquet cache uses a _cached suffix to avoid overwriting the source.
+            parquet_path = location.with_name(f"{bare_stem}_cached.bdf.parquet")
+            csv_path = location.with_name(f"{bare_stem}.bdf.csv")
+            return self._load_and_cache_echem(location, parquet_path, csv_path, reload)
+        if ext.startswith(".bdf"):
+            # Other BDF formats: cache to parquet but don't write a redundant .bdf.csv.
+            # bdf_url will fall back to linking the source file directly.
+            parquet_path = location.with_name(f"{bare_stem}_cached.bdf.parquet")
+            return self._load_and_cache_echem(location, parquet_path, None, reload)
+        parquet_path = location.with_name(f"{location.stem}_cached.bdf.parquet")
+        csv_path = location.with_name(f"{location.stem}.bdf.csv")
+        return self._load_and_cache_echem(location, parquet_path, csv_path, reload)
 
     def _load_multi(
         self, file_ids: list[ObjectId], reload: bool
@@ -223,8 +257,11 @@ class CycleBlock(DataBlock):
         ).hexdigest()[:8]
         # Cache files sit alongside the first file, named by the hash of the file ID combination
         cache_location = locations[0].parent / f"merged_{cache_key}"
-        bdf_path: Path | None = cache_location.with_name(cache_location.name + ".bdf.csv")
-        return self._load_and_cache_echem(cache_location, bdf_path, reload, locations=locations)
+        parquet_path = cache_location.with_name(cache_location.name + "_cached.bdf.parquet")
+        csv_path = cache_location.with_name(cache_location.name + ".bdf.csv")
+        return self._load_and_cache_echem(
+            cache_location, parquet_path, csv_path, reload, locations=locations
+        )
 
     @staticmethod
     def process_raw_echem_df(
