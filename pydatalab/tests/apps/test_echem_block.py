@@ -22,7 +22,7 @@ def echem_dataframe(tmp_path):
 
     src = Path(shutil.copy(MPR_FILE, tmp_path / MPR_FILE.name))
     block = CycleBlock(item_id="test")
-    raw_df, _ = block._load_and_cache_echem(src, None, reload=True)
+    raw_df, _ = block._load_and_cache_echem(src, None, None, reload=True)
     df, _ = CycleBlock.process_raw_echem_df(raw_df, None)
     return df
 
@@ -74,66 +74,105 @@ def test_plot(reduced_echem_dataframe):
     assert layout
 
 
-def test_load_and_cache_mpr_exports_bdf_csv(tmp_path):
-    """Test that loading an .mpr file generates a .bdf.csv export alongside the pickle cache."""
+def test_load_and_cache_mpr_exports_bdf_csv_and_parquet(tmp_path):
+    """Test that loading an .mpr file generates both a .bdf.csv download and .bdf.parquet cache."""
     import shutil
 
+    import pandas as pd
+
     block = CycleBlock(item_id="test")
-    # Copy the source file to tmp_path so cache files don't pollute the example_data directory
     src = shutil.copy(MPR_FILE, tmp_path / MPR_FILE.name)
     location = Path(src)
-    bdf_path = location.with_name(location.stem + ".bdf.csv")
+    parquet_path = location.with_name(location.stem + "_cached.bdf.parquet")
+    csv_path = location.with_name(location.stem + ".bdf.csv")
 
-    raw_df, returned_bdf_path = block._load_and_cache_echem(location, bdf_path, reload=True)
+    raw_df, returned_csv_path = block._load_and_cache_echem(
+        location, parquet_path, csv_path, reload=True
+    )
 
-    assert returned_bdf_path is not None
-    assert returned_bdf_path.exists()
-    assert BDF_REQUIRED_COLUMNS.issubset(set(returned_bdf_path.open().readline().split(",")))
-    assert location.with_suffix(".RAW_PARSED.pkl").exists()
+    assert returned_csv_path is not None
+    assert returned_csv_path.exists()
+    assert BDF_REQUIRED_COLUMNS.issubset(set(returned_csv_path.open().readline().split(",")))
+
+    assert parquet_path.exists()
+    cached = pd.read_parquet(parquet_path)
+    assert BDF_REQUIRED_COLUMNS.issubset(set(cached.columns))
+
+    assert not location.with_suffix(".RAW_PARSED.pkl").exists()
     assert len(raw_df) > 0
 
 
-def test_load_and_cache_bdf_csv_source_skips_export(tmp_path):
-    """Test that loading a .bdf.csv source file skips BDF export (bdf_path=None)."""
+def test_load_and_cache_reads_from_bdf_parquet(tmp_path):
+    """Test that a second load uses the .bdf.parquet cache instead of re-parsing."""
     import shutil
 
     block = CycleBlock(item_id="test")
-    src = shutil.copy(BDF_CSV_FILE, tmp_path / BDF_CSV_FILE.name)
+    src = shutil.copy(MPR_FILE, tmp_path / MPR_FILE.name)
     location = Path(src)
+    parquet_path = location.with_name(location.stem + "_cached.bdf.parquet")
+    csv_path = location.with_name(location.stem + ".bdf.csv")
 
-    # bdf_path=None signals that the source is already BDF - no export should be attempted
-    raw_df, returned_bdf_path = block._load_and_cache_echem(location, None, reload=True)
+    # First load: parse and cache
+    raw_df_first, _ = block._load_and_cache_echem(location, parquet_path, csv_path, reload=True)
 
-    assert returned_bdf_path is None
+    # Remove the source file to prove the second load uses the parquet cache
+    location.unlink()
+    raw_df_cached, returned_csv_path = block._load_and_cache_echem(
+        location, parquet_path, csv_path, reload=False
+    )
+
+    assert returned_csv_path is not None
+    assert len(raw_df_cached) == len(raw_df_first)
+
+
+def test_load_and_cache_bdf_csv_source_caches_parquet_but_skips_csv(tmp_path):
+    """Test that loading a .bdf.csv source writes a .bdf.parquet cache but no redundant .bdf.csv."""
+    import shutil
+
+    block = CycleBlock(item_id="test")
+    src = Path(shutil.copy(BDF_CSV_FILE, tmp_path / BDF_CSV_FILE.name))
+    bare_stem = Path(BDF_CSV_FILE.name).stem.removesuffix(".bdf")
+    parquet_path = src.with_name(f"{bare_stem}_cached.bdf.parquet")
+
+    raw_df, returned_csv_path = block._load_and_cache_echem(src, parquet_path, None, reload=True)
+
+    assert returned_csv_path is None
+    assert parquet_path.exists()
     assert len(raw_df) > 0
 
 
 def test_load_and_cache_multi_file_stitch(tmp_path):
-    """Test that stitching an .mpr and a .bdf.csv produces a merged pickle and .bdf.csv export."""
+    """Test that stitching an .mpr and a .bdf.csv produces a merged .bdf.csv and .bdf.parquet."""
     import shutil
+
+    import pandas as pd
 
     block = CycleBlock(item_id="test")
     mpr_src = Path(shutil.copy(MPR_FILE, tmp_path / MPR_FILE.name))
     bdf_src = Path(shutil.copy(BDF_CSV_FILE, tmp_path / BDF_CSV_FILE.name))
 
     cache_location = tmp_path / "merged_test"
-    bdf_path: Path | None = cache_location.with_name(cache_location.name + ".bdf.csv")
+    parquet_path = cache_location.with_name(cache_location.name + "_cached.bdf.parquet")
+    csv_path = cache_location.with_name(cache_location.name + ".bdf.csv")
 
-    raw_df, returned_bdf_path = block._load_and_cache_echem(
-        cache_location, bdf_path, reload=True, locations=[mpr_src, bdf_src]
+    raw_df, returned_csv_path = block._load_and_cache_echem(
+        cache_location, parquet_path, csv_path, reload=True, locations=[mpr_src, bdf_src]
     )
 
-    assert returned_bdf_path is not None
-    assert returned_bdf_path.exists()
+    assert returned_csv_path is not None
+    assert returned_csv_path.exists()
+    assert BDF_REQUIRED_COLUMNS.issubset(set(returned_csv_path.open().readline().split(",")))
+
+    assert parquet_path.exists()
+    cached = pd.read_parquet(parquet_path)
+    assert BDF_REQUIRED_COLUMNS.issubset(set(cached.columns))
+
     assert len(raw_df) > 0
-    # Pickle should also have been created
-    assert cache_location.with_suffix(".RAW_PARSED.pkl").exists()
+    assert not cache_location.with_suffix(".RAW_PARSED.pkl").exists()
 
 
-def test_try_export_bdf_exception_logs_warning_and_returns_none(tmp_path, caplog):
-    """Test that _try_export_bdf catches export exceptions, logs a warning,
-    returns None, and does not write a file.
-    """
+def test_save_bdf_exception_logs_warning_and_returns_none(tmp_path, caplog):
+    """Test that _save_bdf catches export exceptions, logs a warning, and returns None."""
     import logging
     from unittest.mock import patch
 
@@ -142,11 +181,10 @@ def test_try_export_bdf_exception_logs_warning_and_returns_none(tmp_path, caplog
     from pydatalab.logger import LOGGER
 
     block = CycleBlock(item_id="test")
-    bdf_path = tmp_path / "dummy.bdf.csv"
+    parquet_path = tmp_path / "dummy.bdf.parquet"
+    csv_path = tmp_path / "dummy.bdf.csv"
     dummy_df = pd.DataFrame({"Time": [0, 1], "Voltage": [3.0, 3.5], "Current": [1.0, 1.0]})
 
-    # pydatalab's LOGGER has propagate=False, so caplog can't capture via root logger.
-    # Temporarily attach caplog's handler directly to the pydatalab logger.
     LOGGER.addHandler(caplog.handler)
     try:
         with (
@@ -156,10 +194,11 @@ def test_try_export_bdf_exception_logs_warning_and_returns_none(tmp_path, caplog
                 side_effect=Exception("export failed"),
             ),
         ):
-            result = block._try_export_bdf(dummy_df, bdf_path)
+            result = block._save_bdf(dummy_df, parquet_path, csv_path)
     finally:
         LOGGER.removeHandler(caplog.handler)
 
     assert result is None
-    assert not bdf_path.exists()
+    assert not parquet_path.exists()
+    assert not csv_path.exists()
     assert "Failed to export BDF file" in caplog.text
