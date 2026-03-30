@@ -165,8 +165,10 @@ class CycleBlock(DataBlock):
             LOGGER.debug("Exception details for failed BDF export", exc_info=True)
             return None
         try:
-            # Parquet requires homogeneous column types; cast mixed-type object columns to str
-            for col in bdf_df.select_dtypes(include="object").columns:
+            # Parquet requires homogeneous column types; cast mixed-type object and category
+            # columns to str. The navani `state` column is category dtype with mixed int/str
+            # values (0, 1, 'R') which pyarrow cannot serialise directly.
+            for col in bdf_df.select_dtypes(include=["object", "category"]).columns:
                 bdf_df[col] = bdf_df[col].astype(str)
             bdf_df.to_parquet(parquet_path, index=False)
         except Exception as exc:
@@ -197,11 +199,22 @@ class CycleBlock(DataBlock):
             locations: For multi-file mode, the list of all source file paths to stitch.
         """
         if not reload and parquet_path is not None and parquet_path.exists():
+            LOGGER.debug("Cache hit: loading parsed data from parquet %s", parquet_path)
             raw_df = self._load_echem_from_cache(parquet_path)
             # Regenerate CSV if it was deleted
             if csv_path is not None and not csv_path.exists():
+                LOGGER.debug("CSV cache missing, regenerating at %s", csv_path)
                 csv_path = self._save_bdf(raw_df, parquet_path, csv_path)
             return raw_df, csv_path
+
+        if reload and parquet_path is not None and parquet_path.exists():
+            LOGGER.debug(
+                "Cache bypass: reload=True, re-parsing despite cache existing at %s", parquet_path
+            )
+        elif parquet_path is None or not parquet_path.exists():
+            LOGGER.debug(
+                "Cache miss: no parquet cache found at %s, parsing from source", parquet_path
+            )
 
         raw_df = self._parse_echem_files(location, locations)
 
@@ -219,6 +232,7 @@ class CycleBlock(DataBlock):
         filename = file_info["name"]
 
         if file_info.get("is_live"):
+            LOGGER.debug("File %s is live, forcing reload=True", filename)
             reload = True
 
         ext = self._get_file_extension(filename)
@@ -393,7 +407,9 @@ class CycleBlock(DataBlock):
         if self.data.get("mode") == "multi" or self.data.get("mode") == "single":
             file_info = get_file_info_by_id(file_ids[0], update_if_live=True)
             filename = file_info["name"]
-            raw_df, cycle_summary_df, bdf_path, first_file_id = self._load(file_ids=file_ids)
+            raw_df, cycle_summary_df, bdf_path, first_file_id = self._load(
+                file_ids=file_ids, reload=False
+            )
             if bdf_path is not None and bdf_path.exists():
                 self.data["bdf_url"] = f"/files/{first_file_id}/{bdf_path.name}"
             elif bdf_path is None and len(file_ids) == 1:
