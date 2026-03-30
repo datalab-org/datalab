@@ -200,7 +200,7 @@ class CycleBlock(DataBlock):
             raw_df = self._load_echem_from_cache(parquet_path)
             # Regenerate CSV if it was deleted
             if csv_path is not None and not csv_path.exists():
-                self._save_bdf(raw_df, parquet_path, csv_path)
+                csv_path = self._save_bdf(raw_df, parquet_path, csv_path)
             return raw_df, csv_path
 
         raw_df = self._parse_echem_files(location, locations)
