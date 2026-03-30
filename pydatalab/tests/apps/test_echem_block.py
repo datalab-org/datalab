@@ -202,3 +202,49 @@ def test_save_bdf_exception_logs_warning_and_returns_none(tmp_path, caplog):
     assert not parquet_path.exists()
     assert not csv_path.exists()
     assert "Failed to export BDF file" in caplog.text
+
+
+@pytest.mark.parametrize(
+    "state_dtype",
+    [
+        # object dtype: what most navani parsers (e.g. Biologic .mpr) actually produce
+        "object",
+        # category dtype: produced by some navani pathways; pyarrow rejects mixed-type categories
+        "category",
+    ],
+)
+def test_save_bdf_mixed_type_state_column(tmp_path, state_dtype):
+    """Test that _save_bdf handles a mixed int/str state column (0, 1, 'R') for both
+    object and category dtypes.
+
+    navani produces a `state` column with values 0 (charge), 1 (discharge), and 'R' (rest).
+    Most parsers (e.g. Biologic .mpr) produce object dtype; some pathways produce category dtype.
+    The category case has heterogeneous category values that pyarrow cannot serialise directly.
+    The fix casts both object and category columns to str before writing parquet.
+    """
+    import pandas as pd
+
+    block = CycleBlock(item_id="test")
+    parquet_path = tmp_path / "test_cached.bdf.parquet"
+    csv_path = tmp_path / "test.bdf.csv"
+
+    raw_values = [0, 1, "R", 0, 1]
+    state = pd.Categorical(raw_values) if state_dtype == "category" else raw_values
+    raw_df = pd.DataFrame(
+        {
+            "Time": [0.0, 1.0, 2.0, 3.0, 4.0],
+            "Voltage": [3.0, 3.5, 3.5, 3.5, 3.0],
+            "Current": [1.0, -1.0, 0.0, 1.0, -1.0],
+            "Capacity": [0.1, 0.1, 0.0, 0.1, 0.1],
+            "state": state,
+            "half cycle": [0, 1, 1, 2, 3],
+            "full cycle": [0, 0, 0, 1, 1],
+        }
+    )
+
+    result = block._save_bdf(raw_df, parquet_path, csv_path)
+
+    assert result == csv_path
+    assert parquet_path.exists(), "Parquet cache was not written"
+    cached = pd.read_parquet(parquet_path)
+    assert len(cached) == len(raw_df)
