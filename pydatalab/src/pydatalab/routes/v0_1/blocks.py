@@ -2,7 +2,7 @@ import contextlib
 import json
 import traceback
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import gridfs
 from flask import Blueprint, current_app, jsonify, request
@@ -58,6 +58,7 @@ def _process_block_async(
                 login_user(user)
 
         try:
+            LOGGER.info("Task %s: starting processing", task_id)
             flask_mongo.db.tasks.update_one(
                 {"task_id": task_id}, {"$set": {"status": TaskStatus.PROCESSING}}
             )
@@ -88,6 +89,7 @@ def _process_block_async(
             add_stage("Saving final results to database")
             _save_block_to_db(block)
 
+            LOGGER.info("Task %s: completed successfully", task_id)
             add_stage("Processing completed successfully", level="info")
             flask_mongo.db.tasks.update_one(
                 {"task_id": task_id},
@@ -100,6 +102,7 @@ def _process_block_async(
             )
 
         except Exception as e:
+            LOGGER.error("Task %s: failed with error: %s", task_id, e, exc_info=True)
             add_stage(
                 f"Error during processing: {str(e)}",
                 level="error",
