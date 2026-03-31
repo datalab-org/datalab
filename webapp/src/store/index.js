@@ -335,6 +335,10 @@ export default createStore({
       }
       state.saved_status_items[payload.item_id] = false;
     },
+    async setBlockUpdating(state, block_id) {
+      state.updating[block_id] = true;
+      state.updatingDelayed[block_id] = true;
+    },
     async setBlockNotUpdating(state, block_id) {
       state.updating[block_id] = false;
       await new Promise((resolve) => setTimeout(resolve, 500));
