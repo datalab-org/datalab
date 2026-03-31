@@ -120,7 +120,93 @@ def _process_block_async(
             )
 
 
+TASK_MAX_AGE_HOURS = 6
+TASK_TIMEOUT_HOURS = 1
+
+
+def _cleanup_stale_tasks(app):
+    """Periodic cleanup of stale block processing tasks and their GridFS data.
+
+    Runs on an interval via APScheduler. Handles two cases:
+    - Tasks stuck in PENDING/PROCESSING for longer than the timeout: marked as ERROR.
+    - Completed/errored tasks older than the max age: deleted along with any
+      associated GridFS transfer buffer data.
+    """
+    app_ctx = app.app_context() if app else contextlib.nullcontext()
+
+    with app_ctx:
+        now = datetime.now(tz=timezone.utc)
+        timeout_cutoff = now - timedelta(hours=TASK_TIMEOUT_HOURS)
+        age_cutoff = now - timedelta(hours=TASK_MAX_AGE_HOURS)
+
+        # Mark timed-out tasks as errors
+        timed_out = flask_mongo.db.tasks.update_many(
+            {
+                "type": TaskType.BLOCK_PROCESSING,
+                "status": {"$in": [TaskStatus.PENDING, TaskStatus.PROCESSING]},
+                "created_at": {"$lt": timeout_cutoff},
+            },
+            {
+                "$set": {
+                    "status": TaskStatus.ERROR,
+                    "error_message": f"Task timed out after {TASK_TIMEOUT_HOURS} hour(s)",
+                    "completed_at": now,
+                }
+            },
+        )
+        if timed_out.modified_count:
+            LOGGER.warning("Marked %d timed-out block tasks as errored", timed_out.modified_count)
+
+        # Find old completed/errored tasks to purge
+        old_tasks = flask_mongo.db.tasks.find(
+            {
+                "type": TaskType.BLOCK_PROCESSING,
+                "status": {"$in": [TaskStatus.READY, TaskStatus.ERROR]},
+                "created_at": {"$lt": age_cutoff},
+            },
+            {"task_id": 1},
+        )
+
+        task_ids = [t["task_id"] for t in old_tasks]
+        if not task_ids:
+            return
+
+        # Delete associated GridFS files
+        bucket = gridfs.GridFSBucket(get_database(), bucket_name="block_data")
+        deleted_files = 0
+        for task_id in task_ids:
+            for grid_file in bucket.find({"filename": task_id}):
+                bucket.delete(grid_file._id)
+                deleted_files += 1
+
+        # Delete the task documents
+        result = flask_mongo.db.tasks.delete_many(
+            {"task_id": {"$in": task_ids}, "type": TaskType.BLOCK_PROCESSING}
+        )
+
+        LOGGER.info(
+            "Cleaned up %d old block tasks and %d GridFS files",
+            result.deleted_count,
+            deleted_files,
+        )
+
+
 BLOCKS = Blueprint("blocks", __name__)
+
+
+@BLOCKS.record_once
+def _register_cleanup_job(state):
+    app = state.app
+    scheduler = task_scheduler.get_scheduler()
+    scheduler.add_job(
+        func=_cleanup_stale_tasks,
+        trigger="interval",
+        args=[app],
+        id="block_task_cleanup",
+        hours=TASK_MAX_AGE_HOURS,
+        replace_existing=True,
+    )
+    LOGGER.info("Registered block task cleanup job (every %d hours)", TASK_MAX_AGE_HOURS)
 
 
 @BLOCKS.before_request
