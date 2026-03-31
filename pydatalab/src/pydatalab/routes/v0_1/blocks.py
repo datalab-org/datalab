@@ -1,3 +1,4 @@
+import traceback
 import uuid
 from datetime import datetime, timezone
 
@@ -7,7 +8,7 @@ from werkzeug.exceptions import BadRequest, NotImplemented
 
 from pydatalab.apps import BLOCK_TYPES
 from pydatalab.blocks.base import DataBlock
-from pydatalab.config import CONFIG
+from pydatalab.logger import LOGGER
 from pydatalab.models.tasks import BlockProcessingTaskSpec, Task, TaskStage, TaskStatus, TaskType
 from pydatalab.mongo import flask_mongo
 from pydatalab.permissions import active_users_or_get_only, get_default_permissions
@@ -15,8 +16,14 @@ from pydatalab.scheduler import task_scheduler
 
 
 def _process_block_async_internal(task_id: str, block_data: dict, event_data: dict | None):
-    def add_stage(message: str, level: str = "info"):
-        stage = TaskStage(timestamp=datetime.now(tz=timezone.utc), message=message, level=level)
+    """Processes a block asynchronously, given the task id for tracking and any incoming
+    block and event data.
+    """
+
+    def add_stage(message: str, level: str = "info", traceback: str | None = None):
+        stage = TaskStage(
+            timestamp=datetime.now(tz=timezone.utc), message=message, level=level, detail=traceback
+        )
         flask_mongo.db.tasks.update_one(
             {"task_id": task_id}, {"$push": {"spec.stages": stage.dict()}}
         )
@@ -32,7 +39,7 @@ def _process_block_async_internal(task_id: str, block_data: dict, event_data: di
 
         block = BLOCK_TYPES[block_type].from_web(block_data)
 
-        if event_data and not event_data.get("trigger_async", False):
+        if event_data and not event_data.get("trigger_async", True):
             add_stage("Processing block events")
             try:
                 block.process_events(event_data)
@@ -44,6 +51,9 @@ def _process_block_async_internal(task_id: str, block_data: dict, event_data: di
 
         add_stage("Generating visualization data")
         block.to_web()
+        import time
+
+        time.sleep(50)
 
         add_stage("Saving final results to database")
         _save_block_to_db(block)
@@ -60,7 +70,9 @@ def _process_block_async_internal(task_id: str, block_data: dict, event_data: di
         )
 
     except Exception as e:
-        add_stage(f"Error during processing: {str(e)}", level="error")
+        add_stage(
+            f"Error during processing: {str(e)}", level="error", traceback=traceback.format_exc()
+        )
         flask_mongo.db.tasks.update_one(
             {"task_id": task_id},
             {
@@ -74,6 +86,10 @@ def _process_block_async_internal(task_id: str, block_data: dict, event_data: di
 
 
 def _process_block_async(task_id: str, block_data: dict, event_data: dict | None, app):
+    """Processes a block asynchronously, given the task id for tracking and any incoming
+    block and event data.
+
+    """
     if app is not None:
         with app.app_context():
             _process_block_async_internal(task_id, block_data, event_data)
@@ -232,7 +248,6 @@ def _save_block_to_db(block: DataBlock):
         match = {
             "item_id": block.data["item_id"],
             f"blocks_obj.{block.block_id}": {"$exists": True},
-            **get_default_permissions(user_only=False),
         }
         result = flask_mongo.db.items.update_one(match, update)
 
@@ -263,16 +278,19 @@ def update_block():
 
     block = BLOCK_TYPES[block_type].from_web(block_data)
 
-    prefers_async = getattr(BLOCK_TYPES[block_type], "prefers_async", False)
-    trigger_async = event_data and event_data.get("trigger_async", False) if event_data else False
+    prefers_async = getattr(BLOCK_TYPES[block_type], "_prefers_async", False)
+    trigger_async = event_data and event_data.get("trigger_async", True) if event_data else True
 
     if prefers_async and trigger_async:
         task_id = str(uuid.uuid4())
 
-        if not CONFIG.TESTING:
-            creator_id = str(current_user.person.immutable_id)
-        else:
-            creator_id = "000000000000000000000000"
+        creator_id = current_user.person.immutable_id
+
+        LOGGER.info(
+            "Scheduling asynchronous processing for block %s with task id %s",
+            block.block_id,
+            task_id,
+        )
 
         block_task = Task(
             task_id=task_id,
@@ -282,6 +300,12 @@ def update_block():
             spec=BlockProcessingTaskSpec(
                 item_id=block_data["item_id"],
                 block_id=block_data["block_id"],
+                stages=[
+                    TaskStage(
+                        timestamp=datetime.now(tz=timezone.utc),
+                        message="Task created and scheduled for asynchronous processing",
+                    )
+                ],
             ),
         )
 
@@ -308,7 +332,7 @@ def update_block():
             202,
         )
     else:
-        if event_data and not event_data.get("trigger_async", False):
+        if event_data and not event_data.get("trigger_async", True):
             try:
                 block.process_events(event_data)
             except NotImplementedError:
