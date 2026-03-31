@@ -25,6 +25,7 @@ class TaskStage(BaseModel):
     level: Literal["info", "warning", "error"] = Field(
         default="info", description="Severity level of this stage"
     )
+    detail: str | None = Field(None, description="Optional detailed information about this stage")
 
 
 class TaskSpec(BaseModel):
