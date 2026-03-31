@@ -13,7 +13,7 @@ from werkzeug.datastructures import FileStorage
 from werkzeug.utils import secure_filename
 
 from pydatalab.config import CONFIG, RemoteFilesystem
-from pydatalab.logger import LOGGER, logged_route
+from pydatalab.logger import LOGGER
 from pydatalab.models import File
 from pydatalab.models.utils import PyObjectId
 from pydatalab.mongo import _get_active_mongo_client, flask_mongo
@@ -74,7 +74,6 @@ def _escape_spaces_scp_path(remote_path: str) -> str:
     return f'{protocol}:{host}:"{path}"'
 
 
-@logged_route
 def _sync_file_with_remote(remote_path: str, src: str) -> None:
     """Copy a file from a mounted volume or ssh-able remote to the
     local file store.
@@ -106,7 +105,6 @@ def _sync_file_with_remote(remote_path: str, src: str) -> None:
         raise RuntimeError("Something went wrong copying {remote_path} to {src}.")
 
 
-@logged_route
 def _call_remote_stat(path: str):
     """Call `stat` on a remote file.
 
@@ -135,7 +133,6 @@ def _call_remote_stat(path: str):
     return datetime.datetime.fromtimestamp(timestamp, tz=datetime.timezone.utc)
 
 
-@logged_route
 def _check_and_sync_file(file_info: File, file_id: ObjectId) -> File:
     """For a given file, check if the remote version is newer
     than the stored version and sync them if so.
@@ -205,7 +202,7 @@ def _check_and_sync_file(file_info: File, file_id: ObjectId) -> File:
         LOGGER.debug("Updating file %s to latest version", file_info.source_path)
 
         try:
-            _sync_file_with_remote(full_remote_path, file_info.location)
+            _sync_file_with_remote(full_remote_path, file_info.location)  # type: ignore[arg-type]
         except RuntimeError:
             LOGGER.warning(
                 "Unable to sync file %s with %s on server.", file_info.location, full_remote_path
@@ -254,7 +251,6 @@ def _check_and_sync_file(file_info: File, file_id: ObjectId) -> File:
     return file_info
 
 
-@logged_route
 def get_file_info_by_id(file_id: str | ObjectId, update_if_live: bool = True) -> dict[str, Any]:
     """Query the files collection for the given ID.
 
@@ -275,7 +271,6 @@ def get_file_info_by_id(file_id: str | ObjectId, update_if_live: bool = True) ->
             corresponding file does not exist on disk.
 
     """
-    LOGGER.debug("getting file for file_id: %s", file_id)
     item_collection = flask_mongo.db.items
     file_id = ObjectId(file_id)
 
@@ -318,7 +313,6 @@ def get_file_info_by_id(file_id: str | ObjectId, update_if_live: bool = True) ->
     return file_info.dict()
 
 
-@logged_route
 def update_uploaded_file(file: FileStorage, file_id: ObjectId, size_bytes: int | None = None):
     """Replace the file with the given `file_id` with the new file object from the request.
 
@@ -368,7 +362,6 @@ def update_uploaded_file(file: FileStorage, file_id: ObjectId, size_bytes: int |
     return ret
 
 
-@logged_route
 def save_uploaded_file(
     file: FileStorage,
     item_ids: list[str] | None = None,
