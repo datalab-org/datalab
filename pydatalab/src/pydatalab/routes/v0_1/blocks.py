@@ -1,24 +1,47 @@
+import contextlib
+import json
 import traceback
 import uuid
 from datetime import datetime, timezone
 
+import gridfs
 from flask import Blueprint, current_app, jsonify, request
-from flask_login import current_user
+from flask_login import current_user, login_user
 from werkzeug.exceptions import BadRequest, NotImplemented
 
 from pydatalab.apps import BLOCK_TYPES
 from pydatalab.blocks.base import DataBlock
 from pydatalab.logger import LOGGER
+from pydatalab.login import get_by_id
 from pydatalab.models.tasks import BlockProcessingTaskSpec, Task, TaskStage, TaskStatus, TaskType
-from pydatalab.mongo import flask_mongo
+from pydatalab.mongo import flask_mongo, get_database
 from pydatalab.permissions import active_users_or_get_only, get_default_permissions
 from pydatalab.scheduler import task_scheduler
+from pydatalab.utils import CustomJSONEncoder
 
 
-def _process_block_async_internal(task_id: str, block_data: dict, event_data: dict | None):
-    """Processes a block asynchronously, given the task id for tracking and any incoming
-    block and event data.
+def _process_block_async(
+    task_id: str, block_data: dict, event_data: dict | None, app, creator_id: str | None = None
+):
+    """Processes a block asynchronously in a background thread.
+
+    This is the entry point for block processing jobs scheduled via APScheduler.
+    It sets up a Flask app and request context so that ``current_user`` (and
+    therefore ``get_default_permissions``) works within the block processing
+    pipeline, even though there is no real HTTP request.
+
+    The generated block data (which can be very large, e.g. full bokeh plots
+    with embedded datasets) is written to a GridFS transfer buffer keyed by
+    ``task_id``. The status endpoint reads this buffer once and deletes it on
+    delivery — the GridFS data is ephemeral and only exists to bridge the async
+    worker and the client's next status poll.
+
+    Block state is also persisted to the item's ``blocks_obj`` in the normal
+    way via ``_save_block_to_db``, so the GridFS data is not the source of
+    truth — just the transport mechanism for the immediate response.
     """
+    app_ctx = app.app_context() if app else contextlib.nullcontext()
+    req_ctx = app.test_request_context(method="POST") if app else contextlib.nullcontext()
 
     def add_stage(message: str, level: str = "info", traceback: str | None = None):
         stage = TaskStage(
@@ -28,73 +51,70 @@ def _process_block_async_internal(task_id: str, block_data: dict, event_data: di
             {"task_id": task_id}, {"$push": {"spec.stages": stage.dict()}}
         )
 
-    try:
-        flask_mongo.db.tasks.update_one(
-            {"task_id": task_id}, {"$set": {"status": TaskStatus.PROCESSING}}
-        )
-        add_stage("Processing started")
+    with app_ctx, req_ctx:
+        if creator_id:
+            user = get_by_id(str(creator_id))
+            if user:
+                login_user(user)
 
-        block_type = block_data["blocktype"]
-        add_stage(f"Loading {block_type} block from database")
+        try:
+            flask_mongo.db.tasks.update_one(
+                {"task_id": task_id}, {"$set": {"status": TaskStatus.PROCESSING}}
+            )
+            add_stage("Processing started")
 
-        block = BLOCK_TYPES[block_type].from_web(block_data)
+            block_type = block_data["blocktype"]
+            add_stage(f"Loading {block_type} block from database")
 
-        if event_data and not event_data.get("trigger_async", True):
-            add_stage("Processing block events")
-            try:
-                block.process_events(event_data)
-            except NotImplementedError:
-                pass
+            block = BLOCK_TYPES[block_type].from_web(block_data)
 
-        add_stage("Saving block state to database")
-        _save_block_to_db(block)
+            if event_data and not event_data.get("trigger_async", True):
+                add_stage("Processing block events")
+                try:
+                    block.process_events(event_data)
+                except NotImplementedError:
+                    pass
 
-        add_stage("Generating visualization data")
-        block.to_web()
-        import time
+            add_stage("Saving block state to database")
+            _save_block_to_db(block)
 
-        time.sleep(50)
+            add_stage("Generating visualization data")
+            web_data = block.to_web()
 
-        add_stage("Saving final results to database")
-        _save_block_to_db(block)
+            bucket = gridfs.GridFSBucket(get_database(), bucket_name="block_data")
+            block_data_bytes = json.dumps(web_data, cls=CustomJSONEncoder).encode("utf-8")
+            bucket.upload_from_stream(task_id, block_data_bytes)
 
-        add_stage("Processing completed successfully", level="info")
-        flask_mongo.db.tasks.update_one(
-            {"task_id": task_id},
-            {
-                "$set": {
-                    "status": TaskStatus.READY,
-                    "completed_at": datetime.now(tz=timezone.utc),
-                }
-            },
-        )
+            add_stage("Saving final results to database")
+            _save_block_to_db(block)
 
-    except Exception as e:
-        add_stage(
-            f"Error during processing: {str(e)}", level="error", traceback=traceback.format_exc()
-        )
-        flask_mongo.db.tasks.update_one(
-            {"task_id": task_id},
-            {
-                "$set": {
-                    "status": TaskStatus.ERROR,
-                    "error_message": str(e),
-                    "completed_at": datetime.now(tz=timezone.utc),
-                }
-            },
-        )
+            add_stage("Processing completed successfully", level="info")
+            flask_mongo.db.tasks.update_one(
+                {"task_id": task_id},
+                {
+                    "$set": {
+                        "status": TaskStatus.READY,
+                        "completed_at": datetime.now(tz=timezone.utc),
+                    }
+                },
+            )
 
-
-def _process_block_async(task_id: str, block_data: dict, event_data: dict | None, app):
-    """Processes a block asynchronously, given the task id for tracking and any incoming
-    block and event data.
-
-    """
-    if app is not None:
-        with app.app_context():
-            _process_block_async_internal(task_id, block_data, event_data)
-    else:
-        _process_block_async_internal(task_id, block_data, event_data)
+        except Exception as e:
+            add_stage(
+                f"Error during processing: {str(e)}",
+                level="error",
+                traceback=traceback.format_exc(),
+            )
+            flask_mongo.db.tasks.update_one(
+                {"task_id": task_id},
+                {
+                    "$set": {
+                        "status": TaskStatus.ERROR,
+                        "error_message": str(e),
+                        "completed_at": datetime.now(tz=timezone.utc),
+                    }
+                },
+            )
 
 
 BLOCKS = Blueprint("blocks", __name__)
@@ -318,7 +338,7 @@ def update_block():
 
         task_scheduler.add_job(
             func=_process_block_async,
-            args=[task_id, block_data, event_data, app],
+            args=[task_id, block_data, event_data, app, creator_id],
             job_id=task_id,
         )
 
@@ -458,10 +478,13 @@ def get_block_task_status(task_id: str):
         )
 
         if item and "blocks_obj" in item and block_id in item["blocks_obj"]:
-            block_data_from_db = item["blocks_obj"][block_id]
-            block_type = block_data_from_db["blocktype"]
-
-            block = BLOCK_TYPES[block_type].from_web(block_data_from_db)
-            response["block_data"] = block.to_web()
+            bucket = gridfs.GridFSBucket(get_database(), bucket_name="block_data")
+            try:
+                stream = bucket.open_download_stream_by_name(task_id)
+                response["block_data"] = json.loads(stream.read())
+                # Clean up: delete the GridFS file now that the client has the data
+                bucket.delete(stream._id)
+            except gridfs.errors.NoFile:
+                response["block_data"] = None
 
     return jsonify(response), 200
