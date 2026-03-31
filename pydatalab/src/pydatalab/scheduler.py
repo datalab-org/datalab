@@ -18,7 +18,10 @@ class TaskScheduler:
             # TODO: Make max_workers configurable via settings
             executors = {"default": ThreadPoolExecutor(1)}
             # max_instances: max concurrent instances of the same job
-            job_defaults = {"coalesce": False, "max_instances": 1}
+            # misfire_grace_time=None: never skip a queued job, even if the
+            # executor is busy when its scheduled time arrives (jobs queue
+            # behind the single worker thread and run in order)
+            job_defaults = {"coalesce": False, "max_instances": 1, "misfire_grace_time": None}
 
             self._scheduler = BackgroundScheduler(
                 jobstores=jobstores, executors=executors, job_defaults=job_defaults, timezone="UTC"
