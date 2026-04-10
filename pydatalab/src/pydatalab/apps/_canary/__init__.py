@@ -11,8 +11,8 @@ class CanaryBlock(DataBlock): ...
 class AsyncCanaryBlock(DataBlock):
     blocktype = "canary_async"
     description = "Async canary block for testing asynchronous processing"
-    accepted_file_extensions = []
     _prefers_async = True
+    accepted_file_extensions = []
 
     def to_web(self):
         time.sleep(2)

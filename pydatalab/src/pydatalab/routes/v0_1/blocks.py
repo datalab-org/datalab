@@ -102,7 +102,7 @@ def _process_block_async(
             )
 
         except Exception as e:
-            LOGGER.error("Task %s: failed with error: %s", task_id, e, exc_info=True)
+            LOGGER.exception("Task %s: failed with error: %s", task_id, e)
             add_stage(
                 f"Error during processing: {str(e)}",
                 level="error",
@@ -387,10 +387,14 @@ def update_block():
 
     block = BLOCK_TYPES[block_type].from_web(block_data)
 
-    prefers_async = getattr(BLOCK_TYPES[block_type], "_prefers_async", False)
+    from pydatalab.config import CONFIG
+
+    use_async = block_type in CONFIG.ASYNC_BLOCK_TYPES or getattr(
+        BLOCK_TYPES[block_type], "_prefers_async", False
+    )
     trigger_async = event_data and event_data.get("trigger_async", True) if event_data else True
 
-    if prefers_async and trigger_async:
+    if use_async and trigger_async:
         task_id = str(uuid.uuid4())
 
         creator_id = current_user.person.immutable_id
