@@ -251,6 +251,11 @@ its importance when deploying a datalab instance.""",
         description="Maximum number of items that can be created in a single batch operation.",
     )
 
+    ASYNC_BLOCK_TYPES: list[str] = Field(
+        [],
+        description="A list of block type slugs (e.g. ['cycle', 'xrd']) that should be processed asynchronously via the task queue. Defaults to no blocks.",
+    )
+
     BACKUP_STRATEGIES: dict[str, BackupStrategy] | None = Field(
         {
             "daily-snapshots": BackupStrategy(
