@@ -697,7 +697,7 @@ requires-dist = [
     { name = "langchain-openai", marker = "extra == 'chat'", specifier = "~=0.1" },
     { name = "matador-db", marker = "extra == 'apps'", specifier = ">=0.11.2" },
     { name = "matplotlib", specifier = "~=3.8" },
-    { name = "navani", marker = "extra == 'apps'", specifier = "~=0.1.17" },
+    { name = "navani", marker = "extra == 'apps'", git = "https://github.com/be-smith/navani.git?rev=ml-evs%2Fexcel-tweaks" },
     { name = "nmrglue", marker = "extra == 'apps'", git = "https://github.com/jjhelmus/nmrglue.git?rev=b6408751bf18801a0a4ce084acf4d31335e2b02a" },
     { name = "pandas", extras = ["excel"], specifier = "~=2.2" },
     { name = "periodictable", specifier = "~=1.7" },
@@ -1841,8 +1841,8 @@ wheels = [
 
 [[package]]
 name = "navani"
-version = "0.1.17"
-source = { registry = "https://pypi.org/simple" }
+version = "0.1.17.post2+g076eff5"
+source = { git = "https://github.com/be-smith/navani.git?rev=ml-evs%2Fexcel-tweaks#076eff54bfdba60fe77cd92c00e37b5645d5fe9f" }
 dependencies = [
     { name = "datalab-org-galvani" },
     { name = "matplotlib" },
@@ -1852,10 +1852,6 @@ dependencies = [
     { name = "requests" },
     { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "scipy", version = "1.16.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/f5/7d/c1bb8e9b9436a6214b590c3585bd50ff9ef26d062c71084924f7987555ec/navani-0.1.17.tar.gz", hash = "sha256:63a70cc754d1a23a437a82d211b43fdc61b8ece7ebb0c06e0c6097a31a7343d6", size = 7055911, upload-time = "2026-03-30T12:07:03.917Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/f7/4f/d472fbb51165a9d914adc468907135b092462c2e5761eaff4b946b8092e9/navani-0.1.17-py3-none-any.whl", hash = "sha256:2196dfff5e86574b1ff19e3ab63aa79e9d04e0818e59e4b64b45b6dc560f8f10", size = 20234, upload-time = "2026-03-30T12:07:02.49Z" },
 ]
 
 [[package]]
