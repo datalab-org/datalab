@@ -68,11 +68,9 @@ function pollBlockStatus(item_id, block_id, task_id) {
       const response = await fetch_get(`${API_URL}/blocks/${task_id}/status`);
 
       if (response.stages && response.stages.length > 0) {
-        const latestStage = response.stages[response.stages.length - 1];
-
         store.commit("setBlockInfo", {
           block_id,
-          info: latestStage.message,
+          info: response.stages,
         });
       }
 

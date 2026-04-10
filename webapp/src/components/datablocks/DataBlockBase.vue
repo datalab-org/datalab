@@ -108,13 +108,27 @@
           </li>
         </ul>
       </div>
-      <div
-        v-if="processingInfo"
-        class="alert alert-info d-flex align-items-center ml-3"
-        role="alert"
-      >
-        <font-awesome-icon icon="info-circle" class="mr-2" />
-        {{ processingInfo }}
+      <div v-if="processingStages" class="alert alert-info ml-3 py-2" role="alert">
+        <div
+          class="d-flex align-items-center"
+          style="cursor: pointer"
+          @click="isStagesExpanded = !isStagesExpanded"
+        >
+          <font-awesome-icon
+            :icon="['fas', 'chevron-right']"
+            fixed-width
+            class="collapse-arrow-sm mr-2"
+            :class="{ rotated: isStagesExpanded }"
+          />
+          <font-awesome-icon :icon="['fa', 'sync']" :spin="true" class="mr-2" />
+          <span class="fw-medium">{{ latestStageMessage }}</span>
+        </div>
+        <ul v-if="isStagesExpanded" class="list-unstyled mb-0 mt-2 ml-4">
+          <li v-for="(stage, index) in processingStages" :key="index" class="small text-muted">
+            <span class="font-monospace mr-2">{{ formatStageTime(stage.timestamp) }}</span>
+            {{ stage.message }}
+          </li>
+        </ul>
       </div>
       <div
         v-if="showOverlay"
@@ -178,6 +192,7 @@ export default {
       padding_height: 18,
       isErrorsExpanded: true,
       isWarningsExpanded: true,
+      isStagesExpanded: false,
     };
   },
   computed: {
@@ -209,8 +224,12 @@ export default {
     },
     BlockTitle: createComputedSetterForBlockField("title"),
     BlockDescription: createComputedSetterForBlockField("freeform_comment"),
-    processingInfo() {
+    processingStages() {
       return this.$store.state.block_infos[this.block_id];
+    },
+    latestStageMessage() {
+      if (!this.processingStages || this.processingStages.length === 0) return "";
+      return this.processingStages[this.processingStages.length - 1].message;
     },
   },
   mounted() {
@@ -228,6 +247,10 @@ export default {
     document.removeEventListener("block-event", this.handleBokehEvent);
   },
   methods: {
+    formatStageTime(timestamp) {
+      const d = new Date(timestamp);
+      return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    },
     async updateBlock() {
       await updateBlockFromServer(this.item_id, this.block_id, this.block).catch((error) => {
         console.error("Error updating block:", error);
@@ -407,6 +430,15 @@ ul {
 .expanded .collapse-arrow {
   -webkit-transform: rotate(90deg);
   -moz-transform: rotate(90deg);
+  transform: rotate(90deg);
+}
+
+.collapse-arrow-sm {
+  transition: transform 0.2s;
+  font-size: 0.8em;
+}
+
+.collapse-arrow-sm.rotated {
   transform: rotate(90deg);
 }
 
