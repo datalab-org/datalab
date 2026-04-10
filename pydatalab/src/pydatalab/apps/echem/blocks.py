@@ -367,8 +367,8 @@ class CycleBlock(DataBlock):
         """Plots the electrochemical cycling data from the file ID provided in the request."""
         # Legacy support for when file_id was used
         if self.data.get("file_id") is not None and not self.data.get("file_ids"):
-            LOGGER.info("Legacy file upload detected, using file_id")
             file_ids = [self.data["file_id"]]
+            self.data["file_ids"] = file_ids
 
         else:
             if "file_ids" not in self.data:
@@ -402,6 +402,9 @@ class CycleBlock(DataBlock):
 
         raw_dfs = {}
         cycle_summary_dfs = {}
+
+        if self.data.get("mode") is None:
+            self.data["mode"] = "single"
 
         # Single/multi mode gets a single dataframe - returned as a dict for consistency
         if self.data.get("mode") == "multi" or self.data.get("mode") == "single":
@@ -439,9 +442,6 @@ class CycleBlock(DataBlock):
             elif self.data.get("mode") == "single":
                 raw_dfs[filename] = raw_df
                 cycle_summary_dfs[filename] = cycle_summary_df
-
-        else:
-            raise ValueError(f"Invalid mode {self.data.get('mode')}")
 
         # Load comparison files if provided
         comparison_file_ids = self.data.get("comparison_file_ids", [])
