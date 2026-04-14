@@ -82,7 +82,55 @@ Currently, the event system allows:
   An example callback generator for an event consisting of a single parameter
   update can be found at [`generate_js_callback_single_float_parameter`][pydatalab.blocks.base.generate_js_callback_single_float_parameter].
 
-## Future Directions
+## Asynchronous processing (EXPERIMENTAL)
+
+!!! warning
+    This feature is experimental and may change in future releases.
+
+By default, block processing is synchronous: the `/update-block/` endpoint processes the block inline and returns the result in a single response.
+For blocks that handle large datasets (e.g., parsing multi-megabyte Excel files into Bokeh plots), this can tie up a server thread for a long time.
+
+The async processing backend moves this work to a background thread pool.
+When enabled, the `/update-block/` endpoint returns immediately with a `202 Accepted` response containing a `task_id` and `status_url`.
+The frontend then polls the status endpoint until the result is ready.
+
+### Enabling async processing
+
+Add the block type slugs you want to process asynchronously to the `ASYNC_BLOCK_TYPES` list in your server config (JSON config file or environment variable):
+
+```json
+{
+  "ASYNC_BLOCK_TYPES": ["cycle", "xrd"]
+}
+```
+
+Or via environment variable:
+
+```bash
+export PYDATALAB_ASYNC_BLOCK_TYPES='["cycle", "xrd"]'
+```
+
+Block types not in this list continue to be processed synchronously.
+Individual block classes can also opt in by setting `_prefers_async = True` as a class attribute.
+
+### How it works
+
+1. The client sends an `/update-block/` request as usual.
+2. If the block type is in `ASYNC_BLOCK_TYPES` (or has `_prefers_async = True`), the server creates a task record, schedules a background job, and returns `202` with `{"task_id": "...", "status_url": "/blocks/<task_id>/status"}`.
+3. The background worker processes the block, writing intermediate progress stages to the task record so the frontend can display them.
+4. The processed block data is written to a GridFS transfer buffer keyed by task ID. The block state is also persisted to the item's `blocks_obj` as usual.
+5. When the client polls the status endpoint and the task is `READY`, the response includes the full block data from GridFS.
+The GridFS entry is deleted on delivery.
+6. A periodic cleanup job handles timed-out tasks (default: 1 hour) and purges old completed tasks and any orphaned GridFS data (default: 6 hours).
+
+### Deployment considerations
+
+Each gunicorn worker runs its own single-thread executor, so jobs are processed by whichever worker received the request.
+CPU-bound block processing still contends with the GIL within a worker.
+For deployments with heavy processing loads, scaling via additional gunicorn workers (rather than threads) is recommended.
+A periodic cleanup job runs independently in each worker to purge stale tasks and orphaned GridFS data; the cleanup logic is idempotent so this is safe.
+
+## Future directions
 
 Future updates to the block system will focus on:
 
@@ -90,3 +138,4 @@ Future updates to the block system will focus on:
 - Enhanced automatic caching after block creation.
 - Improving the event system to enable richer UI interactions, e.g,. setting user parameters or controlling default plot styles.
 - Providing better support for custom user interfaces (i.e., allowing plugins to also specify custom Vue code).
+- Evolving the async backend so that each processing stage (file parsing, visualisation generation, database writes) runs as an independent task in a pipeline, enabling finer-grained progress reporting, per-stage retries, and better utilisation of multi-core servers via process-based workers.
