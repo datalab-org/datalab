@@ -5,7 +5,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 import gridfs
-from flask import Blueprint, current_app, jsonify, request
+from flask import Blueprint, jsonify, request
 from flask_login import current_user, login_user
 from werkzeug.exceptions import BadRequest, NotImplemented
 
@@ -19,9 +19,15 @@ from pydatalab.permissions import active_users_or_get_only, get_default_permissi
 from pydatalab.scheduler import task_scheduler
 from pydatalab.utils import CustomJSONEncoder
 
+_app = None
+"""Module-level reference to the Flask app, set once at blueprint registration.
+Used by background tasks that need an app/request context but run outside of
+a real HTTP request (e.g. APScheduler jobs).
+"""
+
 
 def _process_block_async(
-    task_id: str, block_data: dict, event_data: dict | None, app, creator_id: str | None = None
+    task_id: str, block_data: dict, event_data: dict | None, creator_id: str | None = None
 ):
     """Processes a block asynchronously in a background thread.
 
@@ -40,8 +46,8 @@ def _process_block_async(
     way via ``_save_block_to_db``, so the GridFS data is not the source of
     truth — just the transport mechanism for the immediate response.
     """
-    app_ctx = app.app_context() if app else contextlib.nullcontext()
-    req_ctx = app.test_request_context(method="POST") if app else contextlib.nullcontext()
+    app_ctx = _app.app_context() if _app else contextlib.nullcontext()
+    req_ctx = _app.test_request_context(method="POST") if _app else contextlib.nullcontext()
 
     def add_stage(message: str, level: str = "info", traceback: str | None = None):
         stage = TaskStage(
@@ -124,7 +130,7 @@ TASK_MAX_AGE_HOURS = 6
 TASK_TIMEOUT_HOURS = 1
 
 
-def _cleanup_stale_tasks(app):
+def _cleanup_stale_tasks():
     """Periodic cleanup of stale block processing tasks and their GridFS data.
 
     Runs on an interval via APScheduler. Handles two cases:
@@ -132,7 +138,7 @@ def _cleanup_stale_tasks(app):
     - Completed/errored tasks older than the max age: deleted along with any
       associated GridFS transfer buffer data.
     """
-    app_ctx = app.app_context() if app else contextlib.nullcontext()
+    app_ctx = _app.app_context() if _app else contextlib.nullcontext()
 
     with app_ctx:
         now = datetime.now(tz=timezone.utc)
@@ -196,15 +202,13 @@ BLOCKS = Blueprint("blocks", __name__)
 
 @BLOCKS.record_once
 def _register_cleanup_job(state):
-    app = state.app
-    scheduler = task_scheduler.get_scheduler()
-    scheduler.add_job(
+    global _app
+    _app = state.app
+
+    task_scheduler.add_periodic_job(
         func=_cleanup_stale_tasks,
-        trigger="interval",
-        args=[app],
-        id="block_task_cleanup",
+        job_id="block_task_cleanup",
         hours=TASK_MAX_AGE_HOURS,
-        replace_existing=True,
     )
     LOGGER.info("Registered block task cleanup job (every %d hours)", TASK_MAX_AGE_HOURS)
 
@@ -424,14 +428,9 @@ def update_block():
 
         flask_mongo.db.tasks.insert_one(block_task.dict())
 
-        try:
-            app = current_app._get_current_object()
-        except RuntimeError:
-            app = None
-
         task_scheduler.add_job(
             func=_process_block_async,
-            args=[task_id, block_data, event_data, app, creator_id],
+            args=[task_id, block_data, event_data, creator_id],
             job_id=task_id,
         )
 

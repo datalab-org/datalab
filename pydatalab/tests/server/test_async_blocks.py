@@ -14,6 +14,16 @@ import pytest
 from pydatalab.models.tasks import BlockProcessingTaskSpec, Task, TaskStage, TaskStatus, TaskType
 
 
+@pytest.fixture(autouse=True)
+def _set_app(app):
+    """Ensure the module-level _app reference is set for background tasks."""
+    import pydatalab.routes.v0_1.blocks as blocks_mod
+
+    blocks_mod._app = app
+    yield
+    blocks_mod._app = None
+
+
 @pytest.fixture
 def mock_scheduler():
     with patch("pydatalab.routes.v0_1.blocks.task_scheduler") as mock_sched:
@@ -426,7 +436,7 @@ class TestProcessBlockAsync:
             "item_id": item_id,
         }
 
-        _process_block_async(task_id, block_data, None, app, str(user_id))
+        _process_block_async(task_id, block_data, None, str(user_id))
 
         # Check final task state
         updated_task = database.tasks.find_one({"task_id": task_id})
@@ -469,7 +479,7 @@ class TestProcessBlockAsync:
             "item_id": "x",
         }
 
-        _process_block_async(task_id, block_data, None, app, str(user_id))
+        _process_block_async(task_id, block_data, None, str(user_id))
 
         updated_task = database.tasks.find_one({"task_id": task_id})
         assert updated_task["status"] == TaskStatus.ERROR
@@ -503,7 +513,7 @@ class TestCleanupStaleTasks:
         task_dict["created_at"] = old_time
         database.tasks.insert_one(task_dict)
 
-        _cleanup_stale_tasks(app)
+        _cleanup_stale_tasks()
 
         updated = database.tasks.find_one({"task_id": task_id})
         assert updated["status"] == TaskStatus.ERROR
@@ -526,7 +536,7 @@ class TestCleanupStaleTasks:
         )
         database.tasks.insert_one(task.dict())
 
-        _cleanup_stale_tasks(app)
+        _cleanup_stale_tasks()
 
         updated = database.tasks.find_one({"task_id": task_id})
         assert updated["status"] == TaskStatus.PROCESSING
@@ -556,7 +566,7 @@ class TestCleanupStaleTasks:
         bucket = gridfs.GridFSBucket(get_database(), bucket_name="block_data")
         bucket.upload_from_stream(task_id, b'{"test": true}')
 
-        _cleanup_stale_tasks(app)
+        _cleanup_stale_tasks()
 
         # Task should be deleted
         assert database.tasks.find_one({"task_id": task_id}) is None
@@ -578,8 +588,67 @@ class TestCleanupStaleTasks:
         )
         database.tasks.insert_one(task.dict())
 
-        _cleanup_stale_tasks(app)
+        _cleanup_stale_tasks()
 
         assert database.tasks.find_one({"task_id": task_id}) is not None
+
+        database.tasks.delete_one({"task_id": task_id})
+
+
+class TestEndToEndAsyncBlock:
+    """Integration tests that exercise the full async pipeline via HTTP:
+    submit → poll status → collect results, with no mocked scheduler."""
+
+    def test_async_block_full_lifecycle(self, admin_client, sample_with_block, database):
+        """Submit an update-block request that triggers async processing,
+        then poll the status URL until READY and verify the block data
+        is returned."""
+        import time
+
+        item_id, block_id, block_data = sample_with_block
+
+        with patch("pydatalab.config.CONFIG.ASYNC_BLOCK_TYPES", ["comment"]):
+            response = admin_client.post("/update-block/", json={"block_data": block_data})
+
+        assert response.status_code == 202
+        data = response.json
+        assert data["processing_async"] is True
+        task_id = data["task_id"]
+        status_url = data["status_url"]
+
+        # Poll the status endpoint until the task completes or we time out
+        deadline = time.monotonic() + 10
+        final_response = None
+        while time.monotonic() < deadline:
+            status_response = admin_client.get(status_url)
+            assert status_response.status_code == 200
+            status_data = status_response.json
+            assert status_data["task_id"] == task_id
+
+            if status_data["status"] in (TaskStatus.READY, TaskStatus.ERROR):
+                final_response = status_data
+                break
+            time.sleep(0.2)
+
+        assert final_response is not None, (
+            f"Task did not complete within 10s, last status: {status_data}"
+        )
+        assert final_response["status"] == TaskStatus.READY
+        assert final_response["completed_at"] is not None
+
+        # Block data should have been returned from the GridFS transfer buffer
+        assert "block_data" in final_response
+        assert final_response["block_data"] is not None
+        assert final_response["block_data"]["blocktype"] == "comment"
+
+        # Processing stages should be present
+        assert "stages" in final_response
+        assert len(final_response["stages"]) >= 4
+
+        # GridFS data should have been cleaned up on delivery
+        from pydatalab.mongo import get_database
+
+        bucket = gridfs.GridFSBucket(get_database(), bucket_name="block_data")
+        assert list(bucket.find({"filename": task_id})) == []
 
         database.tasks.delete_one({"task_id": task_id})

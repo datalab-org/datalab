@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
-from flask import Blueprint, current_app, jsonify, request, send_file
+from flask import Blueprint, jsonify, request, send_file
 from flask_login import current_user
 
 from pydatalab.config import CONFIG
@@ -15,6 +15,14 @@ from pydatalab.permissions import PUBLIC_USER_ID, active_users_or_get_only
 from pydatalab.scheduler import task_scheduler
 
 EXPORT = Blueprint("export", __name__)
+
+_app = None
+
+
+@EXPORT.record_once
+def _register_app(state):
+    global _app
+    _app = state.app
 
 
 @EXPORT.before_request
@@ -70,16 +78,15 @@ def _do_export(
 
 def _generate_export_in_background(
     task_id: str,
-    app,
     collection_id: str | None = None,
     item_id: str | None = None,
     export_type: str = "collection",
     related_item_ids: list[str] | None = None,
 ):
-    if app is not None:
-        with app.app_context():
-            _do_export(task_id, collection_id, item_id, export_type, related_item_ids)
-    else:
+    import contextlib
+
+    app_ctx = _app.app_context() if _app is not None else contextlib.nullcontext()
+    with app_ctx:
         _do_export(task_id, collection_id, item_id, export_type, related_item_ids)
 
 
@@ -113,14 +120,9 @@ def start_collection_export(collection_id: str):
 
     flask_mongo.db.tasks.insert_one(export_task.dict(exclude_none=False))
 
-    try:
-        app = current_app._get_current_object()
-    except RuntimeError:
-        app = None
-
     task_scheduler.add_job(
         func=_generate_export_in_background,
-        args=[task_id, app, collection_id, None, "collection", None],
+        args=[task_id, collection_id, None, "collection", None],
         job_id=f"export_{task_id}",
     )
 
@@ -237,14 +239,9 @@ def start_item_export(item_id: str):
 
     flask_mongo.db.tasks.insert_one(export_task.dict(exclude_none=False))
 
-    try:
-        app = current_app._get_current_object()
-    except RuntimeError:
-        app = None
-
     task_scheduler.add_job(
         func=_generate_export_in_background,
-        args=[task_id, app, None, item_id, export_type, related_item_ids],
+        args=[task_id, None, item_id, export_type, related_item_ids],
         job_id=f"export_{task_id}",
     )
 

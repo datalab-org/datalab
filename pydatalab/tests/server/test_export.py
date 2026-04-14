@@ -402,3 +402,116 @@ def test_start_item_export_with_related_items(
 
     database.tasks.delete_one({"task_id": data["task_id"]})
     database.items.delete_one({"item_id": related_item["item_id"]})
+
+
+@pytest.fixture(autouse=True)
+def _set_export_app(app):
+    """Ensure the module-level _app reference is set for background export tasks."""
+    import pydatalab.routes.v0_1.export as export_mod
+
+    export_mod._app = app
+    yield
+    export_mod._app = None
+
+
+class TestEndToEndExport:
+    """Integration tests that exercise the full export pipeline via HTTP:
+    start export → poll status → download file, with no mocked scheduler."""
+
+    def test_collection_export_full_lifecycle(
+        self, client, sample_collection, insert_default_sample, database
+    ):
+        """Start a collection export, poll status until READY, then download
+        the .eln file."""
+        import time
+
+        collection_id = sample_collection["collection_id"]
+
+        # Add the default sample to the collection
+        database.collections.update_one(
+            {"collection_id": collection_id},
+            {"$set": {"child_items": [insert_default_sample.item_id]}},
+        )
+
+        response = client.post(f"/collections/{collection_id}/export")
+        assert response.status_code == 202
+
+        data = json.loads(response.data)
+        assert data["status"] == "success"
+        task_id = data["task_id"]
+        status_url = data["status_url"]
+
+        # Poll the status endpoint until the task completes
+        deadline = time.monotonic() + 15
+        final_data = None
+        while time.monotonic() < deadline:
+            status_response = client.get(status_url)
+            assert status_response.status_code == 200
+            status_data = json.loads(status_response.data)
+
+            if status_data["status"] in (TaskStatus.READY, TaskStatus.ERROR):
+                final_data = status_data
+                break
+            time.sleep(0.2)
+
+        assert final_data is not None, (
+            f"Export did not complete within 15s, last status: {status_data}"
+        )
+        assert final_data["status"] == TaskStatus.READY
+        assert "download_url" in final_data
+        assert "completed_at" in final_data
+
+        # Download the exported file
+        download_response = client.get(final_data["download_url"])
+        assert download_response.status_code == 200
+        assert len(download_response.data) > 0
+        assert f"{collection_id}.eln" in download_response.headers.get("Content-Disposition", "")
+
+        # Clean up the generated file
+        task = database.tasks.find_one({"task_id": task_id})
+        file_path = task.get("spec", {}).get("file_path")
+        if file_path and os.path.exists(file_path):
+            os.remove(file_path)
+        database.tasks.delete_one({"task_id": task_id})
+
+    def test_item_export_full_lifecycle(self, client, insert_default_sample, database):
+        """Start an item export, poll status until READY, then download."""
+        import time
+
+        item_id = insert_default_sample.item_id
+
+        response = client.post(f"/items/{item_id}/export", json={})
+        assert response.status_code == 202
+
+        data = json.loads(response.data)
+        task_id = data["task_id"]
+        status_url = data["status_url"]
+
+        deadline = time.monotonic() + 15
+        final_data = None
+        while time.monotonic() < deadline:
+            status_response = client.get(status_url)
+            assert status_response.status_code == 200
+            status_data = json.loads(status_response.data)
+
+            if status_data["status"] in (TaskStatus.READY, TaskStatus.ERROR):
+                final_data = status_data
+                break
+            time.sleep(0.2)
+
+        assert final_data is not None, (
+            f"Export did not complete within 15s, last status: {status_data}"
+        )
+        assert final_data["status"] == TaskStatus.READY
+        assert "download_url" in final_data
+
+        download_response = client.get(final_data["download_url"])
+        assert download_response.status_code == 200
+        assert len(download_response.data) > 0
+        assert f"{item_id}.eln" in download_response.headers.get("Content-Disposition", "")
+
+        task = database.tasks.find_one({"task_id": task_id})
+        file_path = task.get("spec", {}).get("file_path")
+        if file_path and os.path.exists(file_path):
+            os.remove(file_path)
+        database.tasks.delete_one({"task_id": task_id})
