@@ -94,7 +94,7 @@ jobs:
 
       - name: Upload coverage to Codecov
         if: matrix.python-version == '3.10' && github.repository == 'datalab-org/datalab'
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: datalab-org/datalab
@@ -133,7 +133,7 @@ jobs:
           fetch-tags: true
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Set up uv
         uses: astral-sh/setup-uv@v7
@@ -173,7 +173,7 @@ jobs:
           echo "PYDATALAB_TESTING=true" >> pydatalab/.env
 
       - name: Build Docker images
-        uses: docker/bake-action@v6
+        uses: docker/bake-action@v7
         with:
           files: docker-compose.yml
           load: true
@@ -215,7 +215,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Set some environment variables for CI containers pre-build
         run: |
@@ -224,7 +224,7 @@ jobs:
           echo "PYDATALAB_TESTING=true" >> pydatalab/.env
 
       - name: Build Docker images
-        uses: docker/bake-action@v6
+        uses: docker/bake-action@v7
         with:
           files: docker-compose.yml
           load: true
