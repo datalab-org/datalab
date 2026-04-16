@@ -76,19 +76,28 @@ function pollBlockStatus(item_id, block_id, task_id) {
 
       if (response.status === "ready") {
         clearInterval(pollInterval);
-        store.commit("updateBlockData", {
-          item_id: item_id,
-          block_id: block_id,
-          block_data: response.block_data,
-        });
+        if (response.block_data) {
+          store.commit("updateBlockData", {
+            item_id: item_id,
+            block_id: block_id,
+            block_data: response.block_data,
+          });
+          store.commit("setBlockSaved", { block_id: block_id, isSaved: true });
+        } else {
+          store.commit("setBlockError", {
+            block_id,
+            error: "Block processing completed but no data was returned.",
+          });
+        }
         store.commit("setBlockNotUpdating", block_id);
-        store.commit("setBlockSaved", { block_id: block_id, isSaved: true });
         store.commit("setBlockInfo", { block_id, info: null });
       } else if (response.status === "error") {
         clearInterval(pollInterval);
         store.commit("setBlockNotUpdating", block_id);
-        store.commit("setBlockError", { block_id, error: response.error_message });
-        store.commit("setBlockInfo", { block_id, info: null });
+        store.commit("setBlockError", {
+          block_id,
+          error: response.error_message || "Block processing failed.",
+        });
       }
     } catch (error) {
       clearInterval(pollInterval);
