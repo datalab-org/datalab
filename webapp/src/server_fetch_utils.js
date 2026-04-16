@@ -63,7 +63,12 @@ export function construct_headers(additional_headers = null) {
 }
 
 function pollBlockStatus(item_id, block_id, task_id) {
-  const pollInterval = setInterval(async () => {
+  let attempt = 0;
+
+  async function poll() {
+    attempt++;
+    const delay = attempt <= 5 ? 1000 : 10000;
+
     try {
       const response = await fetch_get(`${API_URL}/blocks/${task_id}/status`);
 
@@ -75,7 +80,6 @@ function pollBlockStatus(item_id, block_id, task_id) {
       }
 
       if (response.status === "ready") {
-        clearInterval(pollInterval);
         if (response.block_data) {
           store.commit("updateBlockData", {
             item_id: item_id,
@@ -92,19 +96,21 @@ function pollBlockStatus(item_id, block_id, task_id) {
         store.commit("setBlockNotUpdating", block_id);
         store.commit("setBlockInfo", { block_id, info: null });
       } else if (response.status === "error") {
-        clearInterval(pollInterval);
         store.commit("setBlockNotUpdating", block_id);
         store.commit("setBlockError", {
           block_id,
           error: response.error_message || "Block processing failed.",
         });
+      } else {
+        setTimeout(poll, delay);
       }
     } catch (error) {
-      clearInterval(pollInterval);
       store.commit("setBlockNotUpdating", block_id);
       store.commit("setBlockError", { block_id, error: String(error) });
     }
-  }, 2000);
+  }
+
+  setTimeout(poll, 1000);
 }
 
 // eslint-disable-next-line no-unused-vars
