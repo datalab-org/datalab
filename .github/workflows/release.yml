@@ -69,10 +69,10 @@ jobs:
         ref: ${{ env.PUBLISH_UPDATE_BRANCH }}
 
     - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      uses: docker/setup-buildx-action@v4
 
     - name: Build Docker images
-      uses: docker/bake-action@v6
+      uses: docker/bake-action@v7
       with:
         files: docker-compose.yml
         load: true
