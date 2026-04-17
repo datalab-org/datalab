@@ -802,7 +802,10 @@ def double_axes_echem_plot(
         plt.get_cmap("spring"),
     ]
 
+    capacity_x_options = {"capacity (mAh/g)", "capacity (mAh)"}
+
     for file_idx, df in enumerate(dfs):
+        has_state = "state" in df.columns
         grouped_by_half_cycle = df.groupby("half cycle")
 
         # Pick a unique colormap for this file
@@ -833,6 +836,15 @@ def double_axes_echem_plot(
                     # Otherwise use the default colormap
                     color_idx = int(group["half cycle"].max()) - 1
                     line_color = matplotlib.colors.rgb2hex(cmap(color_space[color_idx]))
+
+                # Copy to avoid SettingWithCopyWarning when NaN-masking rest steps in capacity columns
+                group = group.copy()
+                if has_state:
+                    is_rest = group["state"] == "R"
+                    for cap_col in capacity_x_options:
+                        if cap_col in group.columns:
+                            group[cap_col] = group[cap_col].astype(float)
+                            group.loc[is_rest, cap_col] = np.nan
 
                 line = plot.line(
                     x=x,

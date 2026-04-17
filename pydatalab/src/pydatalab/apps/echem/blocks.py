@@ -299,6 +299,7 @@ class CycleBlock(DataBlock):
             "dvdq",
             "half cycle",
             "full cycle",
+            "state",
         )
         keys_with_units = {
             "Time": "time (s)",
