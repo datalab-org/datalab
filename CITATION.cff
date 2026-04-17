@@ -8,6 +8,8 @@ repository-code: https://github.com/datalab-org/datalab
 url: https://github.com/datalab-org/datalab
 type: software
 license: MIT
+authors:
+- given-names: The datalab development team
 identifiers:
   - type: doi
     value: 10.5281/zenodo.14719467
