@@ -98,10 +98,6 @@ def create_app(
     # Make the session permanent so that it doesn't expire on browser close, but instead adds a lifetime
     app.permanent_session_lifetime = datetime.timedelta(hours=CONFIG.SESSION_LIFETIME)
 
-    # Must use the full path so that this object can be mocked for testing
-    flask_mongo = pydatalab.mongo.flask_mongo
-    flask_mongo.init_app(app, connectTimeoutMS=100, serverSelectionTimeoutMS=100)
-
     for extension in (LOGIN_MANAGER, MAIL, COMPRESS):
         extension.init_app(app)
 

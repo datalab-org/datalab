@@ -10,7 +10,7 @@ from flask_login import current_user
 from pydatalab.config import CONFIG
 from pydatalab.export import create_eln_file
 from pydatalab.models.tasks import ExportTaskSpec, Task, TaskStatus, TaskType
-from pydatalab.mongo import flask_mongo
+from pydatalab.mongo import get_database
 from pydatalab.permissions import PUBLIC_USER_ID, active_users_or_get_only
 from pydatalab.scheduler import task_scheduler
 
@@ -38,7 +38,7 @@ def _do_export(
     related_item_ids: list[str] | None = None,
 ):
     try:
-        flask_mongo.db.tasks.update_one(
+        get_database().tasks.update_one(
             {"task_id": task_id}, {"$set": {"status": TaskStatus.PROCESSING}}
         )
 
@@ -52,7 +52,7 @@ def _do_export(
         elif export_type in ["item", "graph"]:
             create_eln_file(str(output_path), item_id=item_id, related_item_ids=related_item_ids)
 
-        flask_mongo.db.tasks.update_one(
+        get_database().tasks.update_one(
             {"task_id": task_id},
             {
                 "$set": {
@@ -64,7 +64,7 @@ def _do_export(
         )
 
     except Exception as e:
-        flask_mongo.db.tasks.update_one(
+        get_database().tasks.update_one(
             {"task_id": task_id},
             {
                 "$set": {
@@ -94,7 +94,7 @@ def _generate_export_in_background(
 def start_collection_export(collection_id: str):
     from pydatalab.permissions import get_default_permissions
 
-    collection_with_perms = flask_mongo.db.collections.find_one(
+    collection_with_perms = get_database().collections.find_one(
         {"collection_id": collection_id, **get_default_permissions(user_only=False)}
     )
     if not collection_with_perms:
@@ -118,7 +118,7 @@ def start_collection_export(collection_id: str):
         ),
     )
 
-    flask_mongo.db.tasks.insert_one(export_task.dict(exclude_none=False))
+    get_database().tasks.insert_one(export_task.dict(exclude_none=False))
 
     task_scheduler.add_job(
         func=_generate_export_in_background,
@@ -133,7 +133,7 @@ def start_collection_export(collection_id: str):
 
 @EXPORT.route("/exports/<string:task_id>/status", methods=["GET"])
 def get_export_status(task_id: str):
-    task = flask_mongo.db.tasks.find_one(
+    task = get_database().tasks.find_one(
         {
             "task_id": task_id,
             "creator_id": current_user.person.immutable_id,
@@ -168,11 +168,11 @@ def get_export_status(task_id: str):
 def download_export(task_id: str):
     if not CONFIG.TESTING:
         current_creator_id = current_user.person.immutable_id
-        task = flask_mongo.db.tasks.find_one(
+        task = get_database().tasks.find_one(
             {"task_id": task_id, "creator_id": current_creator_id, "type": TaskType.EXPORT}
         )
     else:
-        task = flask_mongo.db.tasks.find_one({"task_id": task_id, "type": TaskType.EXPORT})
+        task = get_database().tasks.find_one({"task_id": task_id, "type": TaskType.EXPORT})
 
     if not task:
         return jsonify({"status": "error", "message": "Export task not found"}), 404
@@ -198,7 +198,7 @@ def download_export(task_id: str):
 def start_item_export(item_id: str):
     from pydatalab.permissions import get_default_permissions
 
-    item_data = flask_mongo.db.items.find_one(
+    item_data = get_database().items.find_one(
         {"item_id": item_id, **get_default_permissions(user_only=False)}
     )
     if not item_data:
@@ -237,7 +237,7 @@ def start_item_export(item_id: str):
         ),
     )
 
-    flask_mongo.db.tasks.insert_one(export_task.dict(exclude_none=False))
+    get_database().tasks.insert_one(export_task.dict(exclude_none=False))
 
     task_scheduler.add_job(
         func=_generate_export_in_background,

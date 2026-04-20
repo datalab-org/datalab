@@ -14,7 +14,7 @@ from pydatalab import __version__
 from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER
 from pydatalab.models import ITEM_MODELS
-from pydatalab.mongo import flask_mongo
+from pydatalab.mongo import get_database
 from pydatalab.routes.v0_1.items import (
     creators_lookup,
     files_lookup,
@@ -247,7 +247,7 @@ def create_eln_file(
         # TODO: Extra safeguards here -- refactor default permissions finder to be able to use
         # an externally set user ID
 
-        collection_data = flask_mongo.db.collections.find_one({"collection_id": collection_id})
+        collection_data = get_database().collections.find_one({"collection_id": collection_id})
         if not collection_data:
             raise ValueError(f"Collection {collection_id} not found")
 
@@ -267,7 +267,7 @@ def create_eln_file(
     elif item_id:
         match = {"item_id": item_id}
         # Find main item info first; error out if missing
-        cursor = flask_mongo.db.items.aggregate(
+        cursor = get_database().items.aggregate(
             [
                 {
                     "$match": {
@@ -309,7 +309,7 @@ def create_eln_file(
     else:
         raise ValueError("Either collection_id or item_id must be provided")
 
-    all_items = flask_mongo.db.items.aggregate(
+    all_items = get_database().items.aggregate(
         [
             {
                 "$match": {

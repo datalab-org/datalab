@@ -11,7 +11,7 @@ from pydatalab.blocks.base import DataBlock, event, generate_js_callback_single_
 from pydatalab.bokeh_plots import DATALAB_BOKEH_THEME, selectable_axes_plot
 from pydatalab.file_utils import get_file_info_by_id
 from pydatalab.logger import LOGGER
-from pydatalab.mongo import flask_mongo
+from pydatalab.mongo import get_database
 
 from .models import PeakInformation
 from .utils import (
@@ -233,7 +233,7 @@ class XRDBlock(DataBlock):
 
         if self.data.get("file_id") is None and filenames is None:
             # If no file set, try to plot them all
-            item_info = flask_mongo.db.items.find_one(
+            item_info = get_database().items.find_one(
                 {"item_id": self.data["item_id"]},
                 projection={"file_ObjectIds": 1},
             )

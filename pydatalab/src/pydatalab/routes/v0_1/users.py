@@ -11,7 +11,7 @@ from werkzeug.exceptions import BadRequest, Forbidden, Unauthorized
 from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER
 from pydatalab.models.people import AccountStatus, DisplayName, EmailStr, Person
-from pydatalab.mongo import USERS_FTS_FIELDS, build_search_pipeline, flask_mongo
+from pydatalab.mongo import USERS_FTS_FIELDS, build_search_pipeline, get_database
 from pydatalab.permissions import active_users_or_get_only
 from pydatalab.routes.v0_1.auth import _generate_and_store_token, _send_magic_link_email
 
@@ -66,7 +66,7 @@ def save_user(user_id):
         # Check if this email identity already exists for this user
         existing_email_identity = False
         if update.get("contact_email") is not None:
-            existing_email_identity = flask_mongo.db.users.find_one(
+            existing_email_identity = get_database().users.find_one(
                 {
                     "_id": ObjectId(user_id),
                     "identities": {
@@ -76,7 +76,7 @@ def save_user(user_id):
             )
             if not existing_email_identity:
                 # If not, push it as a new unverified identity
-                flask_mongo.db.users.update_one(
+                get_database().users.update_one(
                     {"_id": ObjectId(user_id)},
                     {
                         "$push": {
@@ -120,7 +120,7 @@ def save_user(user_id):
     if not update:
         return jsonify({"status": "success", "message": "No update to perform."}), 200
 
-    update_result = flask_mongo.db.users.update_one({"_id": ObjectId(user_id)}, {"$set": update})
+    update_result = get_database().users.update_one({"_id": ObjectId(user_id)}, {"$set": update})
 
     if update_result.matched_count != 1:
         raise BadRequest("Unable to update user.")
@@ -166,7 +166,7 @@ def get_user_activity(user_id):
         {"$sort": {"_id": 1}},
     ]
 
-    activity_data = list(flask_mongo.db.items.aggregate(pipeline))
+    activity_data = list(get_database().items.aggregate(pipeline))
 
     result = {date_entry["_id"]: date_entry["count"] for date_entry in activity_data}
 
@@ -205,7 +205,7 @@ def search_users():
         }
     )
 
-    cursor = flask_mongo.db.users.aggregate(pipeline)
+    cursor = get_database().users.aggregate(pipeline)
     return jsonify(
         {"status": "success", "users": list(json.loads(Person(**d).json()) for d in cursor)}
     ), 200

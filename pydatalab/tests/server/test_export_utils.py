@@ -1,7 +1,6 @@
 import json
 import zipfile
 from datetime import datetime, timezone
-from unittest.mock import patch
 
 import pytest
 from bson import ObjectId
@@ -33,10 +32,7 @@ def test_generate_ro_crate_metadata():
         },
     ]
 
-    with patch("pydatalab.export.flask_mongo.db.files.find_one") as mock_find:
-        mock_find.return_value = {"name": "test_file.txt"}
-
-        metadata = generate_ro_crate_metadata(collection_data, child_items)
+    metadata = generate_ro_crate_metadata(collection_data, child_items)
 
     assert metadata["@context"] == "https://w3id.org/ro/crate/1.1/context"
     assert isinstance(metadata["@graph"], list)

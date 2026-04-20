@@ -10,7 +10,12 @@ from pymongo.results import InsertOneResult, UpdateResult
 from pydatalab.config import CONFIG
 from pydatalab.logger import logged_route
 from pydatalab.models.collections import Collection
-from pydatalab.mongo import COLLECTIONS_FTS_FIELDS, build_search_pipeline, flask_mongo
+from pydatalab.mongo import (
+    COLLECTIONS_FTS_FIELDS,
+    _get_active_mongo_client,
+    build_search_pipeline,
+    get_database,
+)
 from pydatalab.permissions import active_users_or_get_only, get_default_permissions
 from pydatalab.routes.v0_1.items import (
     creators_lookup,
@@ -27,7 +32,7 @@ def _(): ...
 
 @COLLECTIONS.route("/collections")
 def get_collections():
-    collections = flask_mongo.db.collections.aggregate(
+    collections = get_database().collections.aggregate(
         [
             {"$match": get_default_permissions(user_only=True)},
             {"$lookup": creators_lookup()},
@@ -41,7 +46,7 @@ def get_collections():
 
 @COLLECTIONS.route("/collections/<collection_id>", methods=["GET"])
 def get_collection(collection_id):
-    cursor = flask_mongo.db.collections.aggregate(
+    cursor = get_database().collections.aggregate(
         [
             {
                 "$match": {
@@ -127,7 +132,7 @@ def create_collection():
         ]
 
     # check to make sure that item_id isn't taken already
-    if flask_mongo.db.collections.find_one({"collection_id": data["collection_id"]}):
+    if get_database().collections.find_one({"collection_id": data["collection_id"]}):
         return (
             dict(
                 status="error",
@@ -155,7 +160,7 @@ def create_collection():
             400,
         )
 
-    result: InsertOneResult = flask_mongo.db.collections.insert_one(
+    result: InsertOneResult = get_database().collections.insert_one(
         data_model.dict(exclude={"creators"})
     )
     if not result.acknowledged:
@@ -177,7 +182,7 @@ def create_collection():
         if None in item_ids:
             item_ids.remove(None)
 
-        results: UpdateResult = flask_mongo.db.items.update_many(
+        results: UpdateResult = get_database().items.update_many(
             {
                 "item_id": {"$in": list(item_ids)},
                 **get_default_permissions(user_only=True),
@@ -242,7 +247,7 @@ def save_collection(collection_id):
 
     updated_data["last_modified"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
 
-    collection = flask_mongo.db.collections.find_one(
+    collection = get_database().collections.find_one(
         {"collection_id": collection_id, **get_default_permissions(user_only=True)}
     )
 
@@ -269,7 +274,7 @@ def save_collection(collection_id):
             400,
         )
 
-    result: UpdateResult = flask_mongo.db.collections.update_one(
+    result: UpdateResult = get_database().collections.update_one(
         {"collection_id": collection_id},
         {"$set": collection},
     )
@@ -289,13 +294,13 @@ def save_collection(collection_id):
 
 @COLLECTIONS.route("/collections/<collection_id>", methods=["DELETE"])
 def delete_collection(collection_id: str):
-    with flask_mongo.cx.start_session() as session:
+    with _get_active_mongo_client().start_session() as session:
         with session.start_transaction():
-            collection_immutable_id = flask_mongo.db.collections.find_one(
+            collection_immutable_id = get_database().collections.find_one(
                 {"collection_id": collection_id, **get_default_permissions(user_only=True)},
                 projection={"_id": 1},
             )["_id"]
-            result = flask_mongo.db.collections.delete_one(
+            result = get_database().collections.delete_one(
                 {
                     "collection_id": collection_id,
                     **get_default_permissions(user_only=True, deleting=True),
@@ -313,7 +318,7 @@ def delete_collection(collection_id: str):
                 )
 
             # If successful, remove collection from all matching items relationships
-            flask_mongo.db.items.update_many(
+            get_database().items.update_many(
                 {
                     "relationships": {
                         "$elemMatch": {
@@ -375,7 +380,7 @@ def search_collections():
 
     cursor = [
         json.loads(Collection(**doc).json(exclude_unset=True))
-        for doc in flask_mongo.db.collections.aggregate(pipeline)
+        for doc in get_database().collections.aggregate(pipeline)
     ]
 
     return jsonify({"status": "success", "data": list(cursor)}), 200
@@ -386,7 +391,7 @@ def add_items_to_collection(collection_id):
     data = request.get_json()
     refcodes = data.get("data", {}).get("refcodes", [])
 
-    collection = flask_mongo.db.collections.find_one(
+    collection = get_database().collections.find_one(
         {"collection_id": collection_id, **get_default_permissions()}
     )
 
@@ -396,14 +401,14 @@ def add_items_to_collection(collection_id):
     if not refcodes:
         return jsonify({"error": "No item provided"}), 400
 
-    item_count = flask_mongo.db.items.count_documents(
+    item_count = get_database().items.count_documents(
         {"refcode": {"$in": refcodes}, **get_default_permissions()}
     )
 
     if item_count == 0:
         return jsonify({"error": "No matching items found"}), 404
 
-    update_result = flask_mongo.db.items.update_many(
+    update_result = get_database().items.update_many(
         {"refcode": {"$in": refcodes}, **get_default_permissions()},
         {
             "$addToSet": {
@@ -441,7 +446,7 @@ def remove_items_from_collection(collection_id):
     data = request.get_json()
     refcodes = data.get("refcodes", [])
 
-    collection = flask_mongo.db.collections.find_one(
+    collection = get_database().collections.find_one(
         {"collection_id": collection_id, **get_default_permissions()}, projection={"_id": 1}
     )
 
@@ -451,7 +456,7 @@ def remove_items_from_collection(collection_id):
     if not refcodes:
         return jsonify({"error": "No refcodes provided"}), 400
 
-    update_result = flask_mongo.db.items.update_many(
+    update_result = get_database().items.update_many(
         {"refcode": {"$in": refcodes}, **get_default_permissions()},
         {
             "$pull": {

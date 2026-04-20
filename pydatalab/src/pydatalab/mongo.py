@@ -4,7 +4,6 @@ from functools import lru_cache
 from typing import Any
 
 import pymongo
-from flask_pymongo import PyMongo
 from pydantic import BaseModel
 from pymongo.errors import ConnectionFailure
 
@@ -12,10 +11,10 @@ from pydatalab.logger import LOGGER
 from pydatalab.models import ITEM_MODELS
 
 __all__ = (
-    "flask_mongo",
     "check_mongo_connection",
     "create_default_indices",
     "_get_active_mongo_client",
+    "get_database",
     "insert_pydantic_model_fork_safe",
     "ITEMS_FTS_FIELDS",
     "USERS_FTS_FIELDS",
@@ -23,9 +22,6 @@ __all__ = (
     "generate_heuristic_regex_search",
     "build_search_pipeline",
 )
-
-flask_mongo = PyMongo()
-"""This is the primary database interface used by the Flask app."""
 
 """One-liner that pulls all non-semantic string fields out of all item
 models implemented for this server.
@@ -167,6 +163,8 @@ def _get_active_mongo_client(timeoutMS: int = 1000) -> pymongo.MongoClient:
             CONFIG.MONGO_URI,
             connectTimeoutMS=timeoutMS,
             serverSelectionTimeoutMS=timeoutMS,
+            socketTimeoutMS=30000,
+            maxIdleTimeMS=45000,
             connect=True,
         )
 

@@ -15,7 +15,7 @@ from pydatalab.config import CONFIG
 from pydatalab.feature_flags import FEATURE_FLAGS, FeatureFlags
 from pydatalab.models import Collection, Person
 from pydatalab.models.items import Item
-from pydatalab.mongo import flask_mongo
+from pydatalab.mongo import get_database
 from pydatalab.permissions import active_users_or_get_only
 
 from ._version import __api_version__
@@ -116,9 +116,9 @@ def get_info():
 def get_stats():
     """Returns a dictionary of counts of each entry type in the deployment"""
 
-    user_count = flask_mongo.db.users.count_documents({})
-    sample_count = flask_mongo.db.items.count_documents({"type": "samples"})
-    cell_count = flask_mongo.db.items.count_documents({"type": "cells"})
+    user_count = get_database().users.count_documents({})
+    sample_count = get_database().items.count_documents({"type": "samples"})
+    cell_count = get_database().items.count_documents({"type": "cells"})
 
     return (
         jsonify({"counts": {"users": user_count, "samples": sample_count, "cells": cell_count}}),
@@ -241,7 +241,7 @@ def _fetch_activity_data(months: int, cache_date: str):
         {"$sort": {"_id": 1}},
     ]
 
-    activity_data = list(flask_mongo.db.items.aggregate(pipeline))
+    activity_data = list(get_database().items.aggregate(pipeline))
 
     return {date_entry["_id"]: date_entry["count"] for date_entry in activity_data}
 

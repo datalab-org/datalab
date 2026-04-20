@@ -3,7 +3,7 @@ import json
 from flask import Blueprint, jsonify, request
 
 from pydatalab.models.people import Group
-from pydatalab.mongo import flask_mongo
+from pydatalab.mongo import get_database
 from pydatalab.permissions import active_users_or_get_only
 
 GROUPS = Blueprint("groups", __name__)
@@ -30,7 +30,7 @@ def search_groups():
     nresults = request.args.get("nresults", default=100, type=int)
     match_obj = {"$text": {"$search": query}}
 
-    cursor = flask_mongo.db.groups.aggregate(
+    cursor = get_database().groups.aggregate(
         [
             {"$match": match_obj},
             {"$sort": {"score": {"$meta": "textScore"}}},

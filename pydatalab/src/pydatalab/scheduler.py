@@ -48,9 +48,9 @@ class TaskScheduler:
         executor = self._get_executor()
 
         try:
-            from pydatalab.mongo import flask_mongo
+            from pydatalab.mongo import get_database
 
-            pending = flask_mongo.db.tasks.count_documents(
+            pending = get_database().tasks.count_documents(
                 {"status": {"$in": ["pending", "processing"]}}
             )
             LOGGER.info(

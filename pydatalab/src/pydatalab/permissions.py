@@ -10,7 +10,7 @@ from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER
 from pydatalab.login import UserRole
 from pydatalab.models.people import AccountStatus
-from pydatalab.mongo import flask_mongo, get_database
+from pydatalab.mongo import get_database
 
 PUBLIC_USER_ID = ObjectId(24 * "0")
 
@@ -131,7 +131,7 @@ def check_access_token(refcode: str, token: str | None = None) -> bool:
 
         token_hash = sha512(token.encode("utf-8")).hexdigest()
 
-        access_token_doc = flask_mongo.db.api_keys.find_one(
+        access_token_doc = get_database().api_keys.find_one(
             {"token": token_hash, "refcode": refcode, "active": True, "type": "access_token"}
         )
 
