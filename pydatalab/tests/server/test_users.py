@@ -130,6 +130,13 @@ def test_user_update(client, unauthenticated_client, database, user_id, admin_us
     assert resp.status_code == 200
     assert len(resp.json["users"]) == 5
 
+    # Search responses must not leak contact emails or identities of other users,
+    # and should instead expose a gravatar_hash for avatar rendering.
+    for returned_user in resp.json["users"]:
+        assert "contact_email" not in returned_user or returned_user["contact_email"] is None
+        assert "identities" not in returned_user or returned_user["identities"] == []
+        assert "gravatar_hash" in returned_user
+
     # Test that differing user auth can/cannot search for users
     resp = unauthenticated_client.get(endpoint + "?query='Test Person'")
     assert resp.status_code == 401

@@ -9,7 +9,6 @@ from deepdiff import DeepDiff
 from flask import Blueprint, jsonify, redirect, request
 from flask_login import current_user
 from pydantic import ValidationError
-from pymongo.command_cursor import CommandCursor
 from pymongo.errors import DuplicateKeyError
 from werkzeug.exceptions import BadRequest, Conflict, NotFound
 
@@ -125,7 +124,7 @@ def get_starting_materials():
 get_starting_materials.methods = ("GET",)  # type: ignore
 
 
-def get_items_summary(match: dict | None = None, project: dict | None = None) -> CommandCursor:
+def get_items_summary(match: dict | None = None, project: dict | None = None) -> list[dict]:
     """Return a summary of item entries that match some criteria.
 
     Parameters:
@@ -143,7 +142,7 @@ def get_items_summary(match: dict | None = None, project: dict | None = None) ->
         "blocks": {"blocktype": 1, "title": 1},
         "creators": {
             "display_name": 1,
-            "contact_email": 1,
+            "gravatar_hash": 1,
         },
         "groups": {
             "display_name": 1,
@@ -173,19 +172,21 @@ def get_items_summary(match: dict | None = None, project: dict | None = None) ->
             else:
                 _project[key] = 1
 
-    return flask_mongo.db.items.aggregate(
-        [
-            {"$match": match},
-            {"$lookup": creators_lookup()},
-            {"$lookup": groups_lookup()},
-            {"$lookup": collections_lookup()},
-            {"$project": _project},
-            {"$sort": {"date": -1}},
-        ]
+    return list(
+        flask_mongo.db.items.aggregate(
+            [
+                {"$match": match},
+                {"$lookup": creators_lookup()},
+                {"$lookup": groups_lookup()},
+                {"$lookup": collections_lookup()},
+                {"$project": _project},
+                {"$sort": {"date": -1}},
+            ]
+        )
     )
 
 
-def get_samples_summary(match: dict | None = None, project: dict | None = None) -> CommandCursor:
+def get_samples_summary(match: dict | None = None, project: dict | None = None) -> list[dict]:
     """Return a summary of samples/cells entries that match some criteria.
 
     Parameters:
@@ -204,7 +205,7 @@ def get_samples_summary(match: dict | None = None, project: dict | None = None) 
         "blocks": {"blocktype": 1, "title": 1},
         "creators": {
             "display_name": 1,
-            "contact_email": 1,
+            "gravatar_hash": 1,
         },
         "groups": {
             "display_name": 1,
@@ -234,15 +235,17 @@ def get_samples_summary(match: dict | None = None, project: dict | None = None) 
             else:
                 _project[key] = 1
 
-    return flask_mongo.db.items.aggregate(
-        [
-            {"$match": match},
-            {"$lookup": creators_lookup()},
-            {"$lookup": groups_lookup()},
-            {"$lookup": collections_lookup()},
-            {"$project": _project},
-            {"$sort": {"date": -1}},
-        ]
+    return list(
+        flask_mongo.db.items.aggregate(
+            [
+                {"$match": match},
+                {"$lookup": creators_lookup()},
+                {"$lookup": groups_lookup()},
+                {"$lookup": collections_lookup()},
+                {"$project": _project},
+                {"$sort": {"date": -1}},
+            ]
+        )
     )
 
 
@@ -254,7 +257,7 @@ def creators_lookup() -> dict:
             {"$match": {"$expr": {"$in": ["$_id", {"$ifNull": ["$$creator_ids", []]}]}}},
             {"$addFields": {"__order": {"$indexOfArray": ["$$creator_ids", "$_id"]}}},
             {"$sort": {"__order": 1}},
-            {"$project": {"_id": 1, "display_name": 1, "contact_email": 1}},
+            {"$project": {"_id": 1, "display_name": 1, "gravatar_hash": 1}},
         ],
         "as": "creators",
     }

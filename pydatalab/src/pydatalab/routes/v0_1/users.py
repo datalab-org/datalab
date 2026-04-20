@@ -11,7 +11,12 @@ from werkzeug.exceptions import BadRequest, Forbidden, Unauthorized
 from pydatalab.config import CONFIG
 from pydatalab.logger import LOGGER
 from pydatalab.models.people import AccountStatus, DisplayName, EmailStr, Person
-from pydatalab.mongo import USERS_FTS_FIELDS, build_search_pipeline, flask_mongo
+from pydatalab.mongo import (
+    USERS_FTS_FIELDS,
+    build_search_pipeline,
+    flask_mongo,
+    gravatar_hash_for,
+)
 from pydatalab.permissions import active_users_or_get_only
 from pydatalab.routes.v0_1.auth import _generate_and_store_token, _send_magic_link_email
 
@@ -60,6 +65,18 @@ def save_user(user_id):
 
     except ValueError:
         raise BadRequest(f"Invalid email address {contact_email!r} was passed")
+
+    if "contact_email" in update or "display_name" in update:
+        existing = (
+            flask_mongo.db.users.find_one(
+                {"_id": ObjectId(user_id)}, {"contact_email": 1, "display_name": 1}
+            )
+            or {}
+        )
+        update["gravatar_hash"] = gravatar_hash_for(
+            update.get("contact_email", existing.get("contact_email")),
+            update.get("display_name", existing.get("display_name")),
+        )
 
     trigger_email_verification = False
     if update.get("contact_email"):
@@ -198,14 +215,13 @@ def search_users():
         {
             "$project": {
                 "_id": 1,
-                "identities": 1,
                 "display_name": 1,
-                "contact_email": 1,
+                "gravatar_hash": 1,
             }
         }
     )
 
     cursor = flask_mongo.db.users.aggregate(pipeline)
     return jsonify(
-        {"status": "success", "users": list(json.loads(Person(**d).json()) for d in cursor)}
+        {"status": "success", "users": [json.loads(Person(**d).json()) for d in cursor]}
     ), 200
