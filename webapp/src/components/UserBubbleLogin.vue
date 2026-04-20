@@ -6,7 +6,7 @@
         <img
           :src="
             'https://www.gravatar.com/avatar/' +
-            md5(creator.contact_email || creator.display_name) +
+            (creator.gravatar_hash || '') +
             '?d=' +
             gravatar_style
           "
@@ -27,7 +27,6 @@ import { GRAVATAR_STYLE } from "@/resources.js";
 import NotificationDot from "./NotificationDot.vue";
 import StyledTooltip from "@/components/StyledTooltip";
 import { getUsersList } from "@/server_fetch_utils.js";
-import { md5 } from "js-md5";
 
 export default {
   components: {
@@ -59,11 +58,6 @@ export default {
     if (this.creator.role == "admin") {
       getUsersList();
     }
-  },
-  methods: {
-    md5(value) {
-      return md5(value);
-    },
   },
 };
 </script>

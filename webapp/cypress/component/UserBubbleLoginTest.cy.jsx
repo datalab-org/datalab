@@ -1,11 +1,9 @@
 import { createStore } from "vuex";
 import UserBubbleLogin from "@/components/UserBubbleLogin.vue";
 import NotificationDot from "@/components/NotificationDot.vue";
-import { md5 } from "js-md5";
-
 describe("UserBubbleLogin", () => {
   const creator = {
-    contact_email: "test@contact.email",
+    gravatar_hash: "0123456789abcdef0123456789abcdef",
     display_name: "Test User",
   };
 
@@ -41,7 +39,7 @@ describe("UserBubbleLogin", () => {
         });
       });
 
-      it("renders the avatar image with correct gravatar URL based on contact_email", () => {
+      it("renders the avatar image with the server-provided gravatar_hash", () => {
         cy.mount(UserBubbleLogin, {
           global: {
             plugins: [store],
@@ -50,30 +48,9 @@ describe("UserBubbleLogin", () => {
             creator,
           },
         });
-        const expectedHash = md5(creator.contact_email);
         cy.get("img.avatar")
           .should("have.attr", "src")
-          .and("include", `https://www.gravatar.com/avatar/${expectedHash}`);
-      });
-
-      it("renders the avatar image with correct gravatar URL based on display_name when contact_email is not provided", () => {
-        const creatorWithoutEmail = {
-          display_name: "Test User",
-        };
-
-        cy.mount(UserBubbleLogin, {
-          global: {
-            plugins: [store],
-          },
-          props: {
-            creator: creatorWithoutEmail,
-          },
-        });
-
-        const expectedHash = md5(creatorWithoutEmail.display_name);
-        cy.get("img.avatar")
-          .should("have.attr", "src")
-          .and("include", `https://www.gravatar.com/avatar/${expectedHash}`);
+          .and("include", `https://www.gravatar.com/avatar/${creator.gravatar_hash}`);
       });
 
       it("uses the default size if not provided", () => {
@@ -219,11 +196,10 @@ describe("UserBubbleLogin", () => {
           },
         });
 
-        const expectedMd5 = md5(creator.contact_email || creator.display_name);
         cy.get("img.avatar")
           .should("have.attr", "src")
           .then((src) => {
-            const expectedUrl = `https://www.gravatar.com/avatar/${expectedMd5}?d=${
+            const expectedUrl = `https://www.gravatar.com/avatar/${creator.gravatar_hash}?d=${
               UserBubbleLogin.data().gravatar_style
             }`;
             expect(src).to.include(expectedUrl);
