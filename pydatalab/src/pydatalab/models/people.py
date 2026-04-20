@@ -164,6 +164,9 @@ class Person(Entry):
     contact_email: EmailStr | None = Field(None)
     """In the case of multiple *verified* email identities, this email will be used as the primary contact."""
 
+    gravatar_hash: str | None = Field(None)
+    """MD5 hash used by the frontend to fetch a Gravatar avatar without exposing the raw email."""
+
     managers: list[PyObjectId] | None = Field(None)
     """A list of user IDs that can manage this person's items."""
 
@@ -219,10 +222,13 @@ class Person(Entry):
         if use_contact_email and identity.identity_type is IdentityType.EMAIL:
             contact_email = identity.identifier
 
+        from pydatalab.mongo import gravatar_hash_for
+
         return Person(
             immutable_id=user_id,
             identities=[identity],
             display_name=display_name,
             contact_email=contact_email,
             account_status=account_status,
+            gravatar_hash=gravatar_hash_for(contact_email, display_name),
         )
