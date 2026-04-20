@@ -4,7 +4,7 @@
       <img
         :src="
           'https://www.gravatar.com/avatar/' +
-          md5(creator.contact_email || creator.display_name) +
+          (creator.gravatar_hash || '') +
           '?d=' +
           gravatar_style +
           '&s=' +
@@ -22,7 +22,6 @@
 </template>
 
 <script>
-import { md5 } from "js-md5";
 import { GRAVATAR_STYLE } from "@/resources.js";
 import StyledTooltip from "@/components/StyledTooltip";
 
@@ -45,11 +44,6 @@ export default {
     return {
       gravatar_style: GRAVATAR_STYLE,
     };
-  },
-  methods: {
-    md5(value) {
-      return md5(value);
-    },
   },
 };
 </script>
