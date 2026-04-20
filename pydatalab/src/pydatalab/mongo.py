@@ -1,4 +1,5 @@
 import atexit
+import hashlib
 import re
 from functools import lru_cache
 from typing import Any
@@ -17,6 +18,8 @@ __all__ = (
     "create_default_indices",
     "_get_active_mongo_client",
     "insert_pydantic_model_fork_safe",
+    "gravatar_hash_for",
+    "run_startup_migrations",
     "ITEMS_FTS_FIELDS",
     "USERS_FTS_FIELDS",
     "COLLECTIONS_FTS_FIELDS",
@@ -368,3 +371,64 @@ def create_default_indices(
     )
 
     return ret
+
+
+def gravatar_hash_for(email: str | None, display_name: str | None = None) -> str | None:
+    """Return the MD5 hash used by the frontend to look up a Gravatar avatar.
+
+    Prefers the trimmed, lowercased contact email (which Gravatar indexes); falls
+    back to hashing the display name so a deterministic identicon can still be
+    rendered when no email is available. Returns ``None`` if neither is set.
+    """
+    payload = (str(email) if email else "").strip().lower() or (
+        str(display_name) if display_name else ""
+    ).strip()
+    if not payload:
+        return None
+    return hashlib.md5(payload.encode("utf-8"), usedforsecurity=False).hexdigest()
+
+
+def _backfill_user_gravatar_hashes(db) -> int:
+    """Populate `gravatar_hash` on any user doc that lacks it."""
+    updates: list[pymongo.UpdateOne] = []
+    for user in db.users.find(
+        {"gravatar_hash": {"$exists": False}},
+        {"_id": 1, "contact_email": 1, "display_name": 1},
+    ):
+        updates.append(
+            pymongo.UpdateOne(
+                {"_id": user["_id"]},
+                {
+                    "$set": {
+                        "gravatar_hash": gravatar_hash_for(
+                            user.get("contact_email"), user.get("display_name")
+                        )
+                    }
+                },
+            )
+        )
+    if updates:
+        db.users.bulk_write(updates, ordered=False)
+    return len(updates)
+
+
+STARTUP_MIGRATIONS = (_backfill_user_gravatar_hashes,)
+"""Idempotent one-shot DB fixups run at app startup, after index creation.
+
+Each entry takes a pymongo database handle and returns the number of documents
+updated. Keep migrations idempotent and cheap — they run on every boot.
+"""
+
+
+def run_startup_migrations(client: pymongo.MongoClient | None = None) -> dict[str, int]:
+    """Run each migration in :data:`STARTUP_MIGRATIONS` against the configured DB."""
+    if client is None:
+        client = _get_active_mongo_client()
+    db = client.get_database()
+    results: dict[str, int] = {}
+    for migration in STARTUP_MIGRATIONS:
+        count = migration(db)
+        results[migration.__name__] = count
+        if count:
+            LOGGER.info("Startup migration %s updated %d document(s)", migration.__name__, count)
+    return results

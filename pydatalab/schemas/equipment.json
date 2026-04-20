@@ -489,6 +489,10 @@
           "type": "string",
           "format": "email"
         },
+        "gravatar_hash": {
+          "title": "Gravatar Hash",
+          "type": "string"
+        },
         "managers": {
           "title": "Managers",
           "type": "array",
