@@ -347,6 +347,14 @@ export default {
         window.removeEventListener("beforeunload", this.leavePageWarningListener, true);
       }
     },
+    // Re-load when the user navigates between edit pages via router.push.
+    // Without this, a route param change would leave stale item data on screen.
+    "$route.params.id"(newId, oldId) {
+      if (newId && newId !== oldId) this.reloadForRoute();
+    },
+    "$route.params.refcode"(newRefcode, oldRefcode) {
+      if (newRefcode && newRefcode !== oldRefcode) this.reloadForRoute();
+    },
   },
   created() {
     this.getBlocksInfo();
@@ -473,6 +481,13 @@ export default {
         await getBlocksInfos();
       }
       this.blockInfoLoaded = true;
+    },
+    reloadForRoute() {
+      this.item_id = this.$route.params?.id || null;
+      this.refcode = this.$route.params?.refcode || null;
+      this.itemDataLoaded = false;
+      this.blocksLoaded = false;
+      this.getSampleData();
     },
     leavePageWarningListener(event) {
       event.preventDefault;
