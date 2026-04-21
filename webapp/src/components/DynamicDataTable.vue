@@ -1259,12 +1259,12 @@ export default {
       }
 
       if (window.Cypress) {
-        window.location.href = `/${this.editPageRoutePrefix}/${row_id}`;
+        this.$router.push(`/${this.editPageRoutePrefix}/${row_id}`);
       } else {
         if (event.originalEvent.ctrlKey || event.originalEvent.metaKey) {
           window.open(`/${this.editPageRoutePrefix}/${row_id}`, "_blank");
         } else {
-          window.location.href = `/${this.editPageRoutePrefix}/${row_id}`;
+          this.$router.push(`/${this.editPageRoutePrefix}/${row_id}`);
         }
       }
     },
