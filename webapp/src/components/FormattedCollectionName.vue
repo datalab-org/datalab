@@ -6,6 +6,7 @@
     @click.exact="enableClick ? openEditPageInSameTab() : null"
     @click.meta.stop="enableModifiedClick ? openEditPageInNewTab() : null"
     @click.ctrl.stop="enableModifiedClick ? openEditPageInNewTab() : null"
+    @auxclick.middle.stop="enableModifiedClick ? openEditPageInNewTab() : null"
   >
     {{ collection_id }}
   </span>
