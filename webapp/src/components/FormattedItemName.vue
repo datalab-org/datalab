@@ -7,6 +7,7 @@
       @click.exact="enableClick ? openEditPageInSameTab() : null"
       @click.meta.stop="enableModifiedClick ? openEditPageInNewTab() : null"
       @click.ctrl.stop="enableModifiedClick ? openEditPageInNewTab() : null"
+      @auxclick.middle.stop="enableModifiedClick ? openEditPageInNewTab() : null"
     >
       {{ item_id }}
     </span>
@@ -79,7 +80,7 @@ export default {
       if (window.Cypress && window.location.href.includes("__cypress")) {
         return;
       }
-      window.location.href = `/edit/${this.item_id}`;
+      this.$router.push(`/edit/${this.item_id}`);
     },
     openEditPageInNewTab() {
       this.$emit("itemIdClicked");

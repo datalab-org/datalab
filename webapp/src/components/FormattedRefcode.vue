@@ -13,6 +13,7 @@
     @click.exact="enableClick ? openEditPageInNewTab() : null"
     @click.meta.stop="enableModifiedClick ? openEditPageInNewTab() : null"
     @click.ctrl.stop="enableModifiedClick ? openEditPageInNewTab() : null"
+    @auxclick.middle.stop="enableModifiedClick ? openEditPageInNewTab() : null"
   >
     {{ refcode }}
   </span>
