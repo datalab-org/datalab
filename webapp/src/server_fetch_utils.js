@@ -1290,19 +1290,24 @@ export async function getSchema(type) {
     });
 }
 
+export async function ensureItemSchema(type) {
+  // Fetch the schema for a given item type only if it isn't already in the
+  // Vuex store.
+  if (!type || store.state.schemas[type]) return;
+  try {
+    const schema = await getSchema(type);
+    store.commit("setSchema", { type, schema });
+  } catch (error) {
+    console.error(`Failed to load schema for ${type}:`, error);
+  }
+}
+
 export async function loadItemSchemas() {
-  // Load schemas for all item types and store them in the Vuex store
+  // Load schemas for every supported item type, skipping any already cached
+  // in the Vuex store.
   try {
     const supportedTypes = await getSupportedSchemasList();
-
-    for (const typeInfo of supportedTypes) {
-      try {
-        const schema = await getSchema(typeInfo.id);
-        store.commit("setSchema", { type: typeInfo.id, schema });
-      } catch (error) {
-        console.error(`Failed to load schema for ${typeInfo.id}:`, error);
-      }
-    }
+    await Promise.all(supportedTypes.map((typeInfo) => ensureItemSchema(typeInfo.id)));
   } catch (error) {
     console.error("Failed to get supported schemas list:", error);
   }
