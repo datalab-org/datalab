@@ -4,6 +4,7 @@ from pathlib import Path
 import bokeh.embed
 import pandas as pd
 from bokeh.models import HoverTool, LogColorMapper
+from galvani import MPRfile
 
 from pydatalab.blocks.base import DataBlock
 from pydatalab.bokeh_plots import DATALAB_BOKEH_THEME, selectable_axes_plot
@@ -64,7 +65,7 @@ def parse_pstrace_eis_txt(filename: Path):
 
 
 class EISBlock(DataBlock):
-    accepted_file_extensions = (".txt",)
+    accepted_file_extensions = (".txt", ".mpr")
     blocktype = "eis"
     name = "EIS"
     description = """
@@ -72,6 +73,7 @@ This block can plot electrochemical impedance spectroscopy (EIS) data from:
 
 - exported  Ivium .txt files
 - exported .txt files from PSTrace.
+- .mpr files from biologic.
     """
 
     @property
@@ -99,15 +101,30 @@ This block can plot electrochemical impedance spectroscopy (EIS) data from:
 
             errors = []
             eis_data = None
-            try:
-                eis_data = parse_ivium_eis_txt(Path(file_info["location"]))
-            except RuntimeError as exc:
-                errors = [exc]
 
-            try:
-                eis_data = parse_pstrace_eis_txt(Path(file_info["location"]))
-            except RuntimeError as exc:
-                errors.append(exc)
+            if ext == ".mpr":
+                try:
+                    mpr_file = MPRfile(file_info["location"])
+                    eis_data = pd.DataFrame(
+                        {
+                            "Frequency [Hz]": mpr_file.data["freq/Hz"],
+                            "Re(Z) [Ω]": mpr_file.data["Re(Z)/Ohm"],
+                            "-Im(Z) [Ω]": mpr_file.data["-Im(Z)/Ohm"],
+                        }
+                    )
+
+                except RuntimeError as exc:
+                    errors = [exc]
+            elif ext == ".txt":
+                try:
+                    eis_data = parse_ivium_eis_txt(Path(file_info["location"]))
+                except RuntimeError as exc:
+                    errors = [exc]
+
+                try:
+                    eis_data = parse_pstrace_eis_txt(Path(file_info["location"]))
+                except RuntimeError as exc:
+                    errors.append(exc)
 
             if eis_data is None:
                 raise RuntimeError(
