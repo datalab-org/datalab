@@ -13,6 +13,8 @@
           :search-term="searchTerm"
           @set-selected-entry="setSelectedEntry($event, toplevel.name)"
           @append-to-selected-entries="appendToSelectedEntries($event, toplevel.name)"
+          @toplevel-expand="handleToplevelExpand(toplevel.name)"
+          @toplevel-refresh="handleToplevelRefresh(toplevel.name)"
         />
       </div>
 
@@ -55,6 +57,7 @@
 
 <script>
 import TreeMenu from "@/components/TreeMenu.vue";
+import { fetchRemoteTree } from "@/server_fetch_utils";
 
 export default {
   components: {
@@ -75,7 +78,26 @@ export default {
   },
   computed: {
     remoteTree() {
-      return this.$store.state.remoteDirectoryTree;
+      const remotes = this.$store.state.remoteFilesystems || [];
+      const dirs = this.$store.state.remoteDirectories || {};
+      return remotes.map((remote) => {
+        const state = dirs[remote.name];
+        if (state && state.data) {
+          return {
+            ...state.data,
+            isLoading: !!state.isLoading,
+            error: state.error || null,
+          };
+        }
+        return {
+          name: remote.name,
+          type: "toplevel",
+          contents: [],
+          isLoading: !!(state && state.isLoading),
+          error: (state && state.error) || null,
+          isUnloaded: !(state && state.data),
+        };
+      });
     },
   },
   watch: {
@@ -116,6 +138,17 @@ export default {
         entry.toplevel_name = toplevel_name;
         this.selectedEntries.push(entry);
       } else this.selectedEntries.splice(index, 1);
+    },
+    handleToplevelExpand(remoteName) {
+      const state = this.$store.state.remoteDirectories[remoteName];
+      if (!state || (!state.data && !state.isLoading)) {
+        fetchRemoteTree(remoteName, false);
+      }
+    },
+    handleToplevelRefresh(remoteName) {
+      const state = this.$store.state.remoteDirectories[remoteName];
+      if (state && state.isLoading) return;
+      fetchRemoteTree(remoteName, true);
     },
     unselectEntry(event, entry) {
       console.log("calling unselectEntry with");
