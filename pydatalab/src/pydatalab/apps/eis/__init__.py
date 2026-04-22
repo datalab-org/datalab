@@ -4,7 +4,13 @@ from pathlib import Path
 import bokeh.embed
 from bokeh.models import HoverTool, LogColorMapper
 
-from pydatalab.apps.eis.utils import parse_biologic_mpr, parse_ivium_eis_txt, parse_pstrace_eis_txt
+from pydatalab.apps.eis.utils import (
+    parse_biologic_mpr,
+    parse_ivium_eis_txt,
+    parse_ivium_eis_txt_no_header,
+    parse_palmsens_pssession,
+    parse_pstrace_eis_txt,
+)
 from pydatalab.blocks.base import DataBlock
 from pydatalab.bokeh_plots import DATALAB_BOKEH_THEME, selectable_axes_plot
 from pydatalab.file_utils import get_file_info_by_id
@@ -12,7 +18,7 @@ from pydatalab.logger import LOGGER
 
 
 class EISBlock(DataBlock):
-    accepted_file_extensions = (".txt", ".mpr")
+    accepted_file_extensions = (".txt", ".mpr", ".pssession")
     blocktype = "eis"
     name = "EIS"
     description = """
@@ -20,7 +26,8 @@ This block can plot electrochemical impedance spectroscopy (EIS) data from:
 
 - exported  Ivium .txt files
 - exported .txt files from PSTrace.
-- .mpr files from biologic.
+- .mpr files from Biologic.
+- .pssession files from PalmSens.
     """
 
     @property
@@ -50,8 +57,17 @@ This block can plot electrochemical impedance spectroscopy (EIS) data from:
                 eis_data = parse_biologic_mpr(Path(file_info["location"]))
             except RuntimeError as exc:
                 errors = [exc]
+        elif ext == ".pssession":
+            try:
+                eis_data = parse_palmsens_pssession(Path(file_info["location"]))
+            except RuntimeError as exc:
+                errors = [exc]
         elif ext == ".txt":
-            for parser in (parse_ivium_eis_txt, parse_pstrace_eis_txt):
+            for parser in (
+                parse_ivium_eis_txt,
+                parse_pstrace_eis_txt,
+                parse_ivium_eis_txt_no_header,
+            ):
                 try:
                     eis_data = parser(Path(file_info["location"]))
                     break

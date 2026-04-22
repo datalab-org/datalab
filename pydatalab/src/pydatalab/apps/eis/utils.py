@@ -23,6 +23,22 @@ _PSTRACE_COLUMN_MAP = {
     "Cdashdash": "Im(C) [F]",
 }
 
+_PALMSENS_PSSESSION_COLUMN_MAP = {
+    "Frequency": "Frequency [Hz]",
+    "ZRe": "Re(Z) [Ω]",
+    "ZIm": "-Im(Z) [Ω]",
+    "Z": "|Z| [Ω]",
+    "Phase": "θ [°]",
+    "potential": "Edc [V]",
+    "Idc": "Idc [A]",
+    "Y": "|Y| [S]",
+    "YRe": "Re(Y) [S]",
+    "YIm": "Im(Y) [S]",
+    "Capacitance": "|C| [F]",
+    "Capacitance'": "Re(C) [F]",
+    "Capacitance''": "Im(C) [F]",
+}
+
 _BIOLOGIC_MPR_COLUMN_MAP = {
     "freq/Hz": "Frequency [Hz]",
     "Re(Z)/Ohm": "Re(Z) [Ω]",
@@ -63,6 +79,24 @@ def parse_ivium_eis_txt(filename: Path):
     return add_derived_eis_columns(eis)
 
 
+def parse_ivium_eis_txt_no_header(filename: Path):
+    eis = pd.read_csv(
+        filename, sep="\t", header=None, names=["Frequency [Hz]", "Re(Z) [Ω]", "-Im(Z) [Ω]"]
+    )
+
+    if len(eis.columns) != 3:
+        raise RuntimeError(
+            f"File does not appear to be a headerless Ivium EIS export, expected 3 columns, found {len(eis.columns)}"
+        )
+
+    if not all(pd.api.types.is_numeric_dtype(eis[c]) for c in eis.columns):
+        raise RuntimeError(
+            "File does not appear to be a headerless Ivium EIS export, expected all numeric columns"
+        )
+
+    return add_derived_eis_columns(eis)
+
+
 def parse_pstrace_eis_txt(filename: Path):
     eis = pd.read_csv(filename, sep="\t")
 
@@ -80,4 +114,29 @@ def parse_biologic_mpr(filename: Path):
     df = pd.DataFrame(data=mpr_file.data)
     cols = {k: v for k, v in _BIOLOGIC_MPR_COLUMN_MAP.items() if k in df.columns}
     df = df[list(cols.keys())].rename(columns=cols)
+    return add_derived_eis_columns(df)
+
+
+def parse_palmsens_pssession(filename: Path):
+    import json
+
+    raw = filename.read_bytes().decode("utf-16")
+    # PSTrace appends a UTF-16 BOM (U+FEFF) after the closing }, so slice to the last } exactly
+    data = json.loads(raw[: raw.rfind("}") + 1])
+
+    arrays = data["measurements"][0]["dataset"]["values"]
+    by_description = {a["description"]: a for a in arrays}
+
+    required = {"Frequency", "ZRe", "ZIm"}
+    if not required.issubset(by_description):
+        raise RuntimeError(
+            f"File does not appear to be a valid PalmSens EIS session, expected arrays {required}, found {set(by_description)}"
+        )
+
+    rows = {
+        new_name: [pt["v"] for pt in by_description[old_name]["datavalues"]]
+        for old_name, new_name in _PALMSENS_PSSESSION_COLUMN_MAP.items()
+        if old_name in by_description
+    }
+    df = pd.DataFrame(rows)
     return add_derived_eis_columns(df)
