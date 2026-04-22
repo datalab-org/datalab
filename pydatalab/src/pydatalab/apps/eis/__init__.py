@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 
 import bokeh.embed
+import numpy as np
 import pandas as pd
 from bokeh.models import HoverTool, LogColorMapper
 from galvani import MPRfile
@@ -64,15 +65,30 @@ def parse_pstrace_eis_txt(filename: Path):
     return eis
 
 
+_BIOLOGIC_MPR_COLUMN_MAP = {
+    "freq/Hz": "Frequency [Hz]",
+    "Re(Z)/Ohm": "Re(Z) [Ω]",
+    "-Im(Z)/Ohm": "-Im(Z) [Ω]",
+    "|Z|/Ohm": "|Z| [Ω]",
+    "Phase(Z)/deg": "θ [°]",
+    "time/s": "Time [s]",
+    "<Ewe>/V": "Ewe [V]",
+    "<I>/mA": "I [mA]",
+    "Cs/µF": "Cs [µF]",
+    "Cp/µF": "Cp [µF]",
+}
+
+
 def parse_biologic_mpr(filename: Path):
     mpr_file = MPRfile(str(filename))
-    return pd.DataFrame(
-        {
-            "Frequency [Hz]": mpr_file.data["freq/Hz"],
-            "Re(Z) [Ω]": mpr_file.data["Re(Z)/Ohm"],
-            "-Im(Z) [Ω]": mpr_file.data["-Im(Z)/Ohm"],
-        }
-    )
+    df = pd.DataFrame(data=mpr_file.data)
+    cols = {k: v for k, v in _BIOLOGIC_MPR_COLUMN_MAP.items() if k in df.columns}
+    df = df[list(cols.keys())].rename(columns=cols)
+    if "Frequency [Hz]" in df.columns:
+        df["log(Frequency) [Hz]"] = np.log10(df["Frequency [Hz]"])
+    if "|Z| [Ω]" in df.columns:
+        df["log(|Z|) [Ω]"] = np.log10(df["|Z| [Ω]"])
+    return df
 
 
 class EISBlock(DataBlock):
