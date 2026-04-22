@@ -1083,26 +1083,53 @@ export function deleteFileFromSample(item_id, file_id) {
     });
 }
 
-export async function fetchRemoteTree(invalidate_cache) {
+export async function fetchRemotesList() {
   if (!(await waitForUserAuth())) return;
 
-  var invalidate_cache_param = invalidate_cache ? "1" : "0";
-  var url = new URL(
-    `${API_URL}/list-remote-directories?invalidate_cache=${invalidate_cache_param}`,
-  );
-  store.commit("setRemoteDirectoryTreeIsLoading", true);
+  var url = new URL(`${API_URL}/list-remote-directories?meta_only=1`);
+  store.commit("setRemoteFilesystemsIsLoading", true);
   return fetch_get(url)
     .then(function (response_json) {
-      store.commit("setRemoteDirectoryTree", response_json);
-      store.commit("setRemoteDirectoryTreeIsLoading", false);
+      var remotes = (response_json && response_json.meta && response_json.meta.remotes) || [];
+      store.commit("setRemoteFilesystems", remotes);
+      store.commit("setRemoteFilesystemsIsLoading", false);
       return response_json;
     })
     .catch((error) => {
       DialogService.error({
-        title: "Remote directory retrieval failed",
-        message: `Error retrieving remote directory tree from API: ${error}`,
+        title: "Remote filesystems retrieval failed",
+        message: `Error retrieving remote filesystems list from API: ${error}`,
       });
-      store.commit("setRemoteDirectoryTreeIsLoading", false);
+      store.commit("setRemoteFilesystemsIsLoading", false);
+      throw error;
+    });
+}
+
+export async function fetchRemoteTree(remoteName, invalidate_cache) {
+  if (!(await waitForUserAuth())) return;
+
+  var invalidate_cache_param = invalidate_cache ? "1" : "0";
+  var url = new URL(
+    `${API_URL}/remotes/${encodeURIComponent(remoteName)}?invalidate_cache=${invalidate_cache_param}`,
+  );
+  store.commit("setRemoteDirectoryLoading", { name: remoteName, isLoading: true });
+  return fetch_get(url)
+    .then(function (response_json) {
+      var data = response_json && response_json.data;
+      var lastUpdated = data && data.last_updated ? data.last_updated : null;
+      store.commit("setRemoteDirectoryData", {
+        name: remoteName,
+        data: data,
+        lastUpdated: lastUpdated,
+      });
+      return response_json;
+    })
+    .catch((error) => {
+      store.commit("setRemoteDirectoryError", { name: remoteName, error: String(error) });
+      DialogService.error({
+        title: "Remote directory retrieval failed",
+        message: `Error retrieving remote directory ${remoteName}: ${error}`,
+      });
       throw error;
     });
 }
