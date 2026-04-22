@@ -5,6 +5,19 @@ import pandas as pd
 from galvani import MPRfile
 
 
+def add_derived_eis_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Compute |Z|, θ, and log columns from Re(Z) and -Im(Z) if not already present."""
+    if "|Z| [Ω]" not in df.columns and {"Re(Z) [Ω]", "-Im(Z) [Ω]"}.issubset(df.columns):
+        df["|Z| [Ω]"] = np.sqrt(df["Re(Z) [Ω]"] ** 2 + df["-Im(Z) [Ω]"] ** 2)
+    if "θ [°]" not in df.columns and {"Re(Z) [Ω]", "-Im(Z) [Ω]"}.issubset(df.columns):
+        df["θ [°]"] = np.degrees(np.arctan2(-df["-Im(Z) [Ω]"], df["Re(Z) [Ω]"]))
+    if "Frequency [Hz]" in df.columns:
+        df["log(Frequency) [Hz]"] = np.log10(df["Frequency [Hz]"])
+    if "|Z| [Ω]" in df.columns:
+        df["log(|Z|) [Ω]"] = np.log10(df["|Z| [Ω]"])
+    return df
+
+
 def parse_ivium_eis_txt(filename: Path):
     eis = pd.read_csv(filename, sep="\t")
 
@@ -20,12 +33,8 @@ def parse_ivium_eis_txt(filename: Path):
         )
 
     eis["Z2 /ohm"] *= -1
-    eis.rename(
-        column_map,
-        inplace=True,
-        axis="columns",
-    )
-    return eis
+    eis.rename(column_map, inplace=True, axis="columns")
+    return add_derived_eis_columns(eis)
 
 
 def parse_pstrace_eis_txt(filename: Path):
@@ -49,12 +58,8 @@ def parse_pstrace_eis_txt(filename: Path):
             f"File does not appear to be a valid PSTrace EIS export, expected columns {column_map.keys()}, found {eis.columns}"
         )
 
-    eis.rename(
-        column_map,
-        inplace=True,
-        axis="columns",
-    )
-    return eis
+    eis.rename(column_map, inplace=True, axis="columns")
+    return add_derived_eis_columns(eis)
 
 
 _BIOLOGIC_MPR_COLUMN_MAP = {
@@ -76,8 +81,4 @@ def parse_biologic_mpr(filename: Path):
     df = pd.DataFrame(data=mpr_file.data)
     cols = {k: v for k, v in _BIOLOGIC_MPR_COLUMN_MAP.items() if k in df.columns}
     df = df[list(cols.keys())].rename(columns=cols)
-    if "Frequency [Hz]" in df.columns:
-        df["log(Frequency) [Hz]"] = np.log10(df["Frequency [Hz]"])
-    if "|Z| [Ω]" in df.columns:
-        df["log(|Z|) [Ω]"] = np.log10(df["|Z| [Ω]"])
-    return df
+    return add_derived_eis_columns(df)
