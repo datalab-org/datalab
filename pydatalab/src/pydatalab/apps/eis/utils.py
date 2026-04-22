@@ -94,6 +94,11 @@ def parse_ivium_eis_txt_no_header(filename: Path):
             "File does not appear to be a headerless Ivium EIS export, expected all numeric columns"
         )
 
+    if eis.isnull().any(axis=None):
+        raise RuntimeError(
+            "File does not appear to be a headerless Ivium EIS export, found null values (file may have fewer than 3 tab-separated columns)"
+        )
+
     return add_derived_eis_columns(eis)
 
 
@@ -109,22 +114,42 @@ def parse_pstrace_eis_txt(filename: Path):
     return add_derived_eis_columns(eis)
 
 
+_BIOLOGIC_MPR_REQUIRED_COLUMNS = {"Frequency [Hz]", "Re(Z) [Ω]", "-Im(Z) [Ω]"}
+
+
 def parse_biologic_mpr(filename: Path):
-    mpr_file = MPRfile(str(filename))
-    df = pd.DataFrame(data=mpr_file.data)
+    try:
+        mpr_file = MPRfile(str(filename))
+        df = pd.DataFrame(data=mpr_file.data)
+    except Exception as exc:
+        raise RuntimeError(f"Failed to read Biologic .mpr file: {exc}") from exc
     cols = {k: v for k, v in _BIOLOGIC_MPR_COLUMN_MAP.items() if k in df.columns}
     df = df[list(cols.keys())].rename(columns=cols)
+    missing = _BIOLOGIC_MPR_REQUIRED_COLUMNS - set(df.columns)
+    if missing:
+        raise RuntimeError(
+            f"File does not appear to be a valid Biologic EIS export, missing required columns: {missing}"
+        )
     return add_derived_eis_columns(df)
 
 
 def parse_palmsens_pssession(filename: Path):
     import json
 
-    raw = filename.read_bytes().decode("utf-16")
-    # PSTrace appends a UTF-16 BOM (U+FEFF) after the closing }, so slice to the last } exactly
-    data = json.loads(raw[: raw.rfind("}") + 1])
+    try:
+        raw = filename.read_bytes().decode("utf-16")
+        # PSTrace appends a UTF-16 BOM (U+FEFF) after the closing }, so slice to the last } exactly
+        data = json.loads(raw[: raw.rfind("}") + 1])
+        arrays = data["measurements"][0]["dataset"]["values"]
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise RuntimeError(
+            f"File does not appear to be a valid PalmSens .pssession file: {exc}"
+        ) from exc
+    except (KeyError, IndexError) as exc:
+        raise RuntimeError(
+            f"File does not appear to be a valid PalmSens EIS session, unexpected structure: {exc}"
+        ) from exc
 
-    arrays = data["measurements"][0]["dataset"]["values"]
     by_description = {a["description"]: a for a in arrays}
 
     required = {"Frequency", "ZRe", "ZIm"}
