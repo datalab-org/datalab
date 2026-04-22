@@ -4,6 +4,38 @@ import numpy as np
 import pandas as pd
 from galvani import MPRfile
 
+_IVIUM_COLUMN_MAP = {
+    "Z1 /ohm": "Re(Z) [Ω]",
+    "Z2 /ohm": "-Im(Z) [Ω]",
+    "freq. /Hz": "Frequency [Hz]",
+}
+
+_PSTRACE_COLUMN_MAP = {
+    "Frequency": "Frequency [Hz]",
+    "Zdash": "Re(Z) [Ω]",
+    "Zdashneg": "-Im(Z) [Ω]",
+    "Z": "|Z| [Ω]",
+    "Phase": "θ [°]",
+    "Y": "|Y| [S]",
+    "YRe": "Re(Y) [S]",
+    "YIm": "Im(Y) [S]",
+    "Cdash": "Re(C) [F]",
+    "Cdashdash": "Im(C) [F]",
+}
+
+_BIOLOGIC_MPR_COLUMN_MAP = {
+    "freq/Hz": "Frequency [Hz]",
+    "Re(Z)/Ohm": "Re(Z) [Ω]",
+    "-Im(Z)/Ohm": "-Im(Z) [Ω]",
+    "|Z|/Ohm": "|Z| [Ω]",
+    "Phase(Z)/deg": "θ [°]",
+    "time/s": "Time [s]",
+    "<Ewe>/V": "Ewe [V]",
+    "<I>/mA": "I [mA]",
+    "Cs/µF": "Cs [µF]",
+    "Cp/µF": "Cp [µF]",
+}
+
 
 def add_derived_eis_columns(df: pd.DataFrame) -> pd.DataFrame:
     """Compute |Z|, θ, and log columns from Re(Z) and -Im(Z) if not already present."""
@@ -21,59 +53,26 @@ def add_derived_eis_columns(df: pd.DataFrame) -> pd.DataFrame:
 def parse_ivium_eis_txt(filename: Path):
     eis = pd.read_csv(filename, sep="\t")
 
-    column_map = {
-        "Z1 /ohm": "Re(Z) [Ω]",
-        "Z2 /ohm": "-Im(Z) [Ω]",
-        "freq. /Hz": "Frequency [Hz]",
-    }
-
-    if not all(k in eis.columns for k in column_map):
+    if not all(k in eis.columns for k in _IVIUM_COLUMN_MAP):
         raise RuntimeError(
-            f"File does not appear to be a valid Ivium EIS export, expected columns {column_map.keys()}, found {eis.columns}"
+            f"File does not appear to be a valid Ivium EIS export, expected columns {_IVIUM_COLUMN_MAP.keys()}, found {eis.columns}"
         )
 
     eis["Z2 /ohm"] *= -1
-    eis.rename(column_map, inplace=True, axis="columns")
+    eis.rename(_IVIUM_COLUMN_MAP, inplace=True, axis="columns")
     return add_derived_eis_columns(eis)
 
 
 def parse_pstrace_eis_txt(filename: Path):
     eis = pd.read_csv(filename, sep="\t")
 
-    column_map = {
-        "Frequency": "Frequency [Hz]",
-        "Zdash": "Re(Z) [Ω]",
-        "Zdashneg": "-Im(Z) [Ω]",
-        "Z": "|Z| [Ω]",
-        "Phase": "θ [°]",
-        "Y": "|Y| [S]",
-        "YRe": "Re(Y) [S]",
-        "YIm": "Im(Y) [S]",
-        "Cdash": "Re(C) [F]",
-        "Cdashdash": "Im(C) [F]",
-    }
-
-    if not all(k in eis.columns for k in column_map):
+    if not all(k in eis.columns for k in _PSTRACE_COLUMN_MAP):
         raise RuntimeError(
-            f"File does not appear to be a valid PSTrace EIS export, expected columns {column_map.keys()}, found {eis.columns}"
+            f"File does not appear to be a valid PSTrace EIS export, expected columns {_PSTRACE_COLUMN_MAP.keys()}, found {eis.columns}"
         )
 
-    eis.rename(column_map, inplace=True, axis="columns")
+    eis.rename(_PSTRACE_COLUMN_MAP, inplace=True, axis="columns")
     return add_derived_eis_columns(eis)
-
-
-_BIOLOGIC_MPR_COLUMN_MAP = {
-    "freq/Hz": "Frequency [Hz]",
-    "Re(Z)/Ohm": "Re(Z) [Ω]",
-    "-Im(Z)/Ohm": "-Im(Z) [Ω]",
-    "|Z|/Ohm": "|Z| [Ω]",
-    "Phase(Z)/deg": "θ [°]",
-    "time/s": "Time [s]",
-    "<Ewe>/V": "Ewe [V]",
-    "<I>/mA": "I [mA]",
-    "Cs/µF": "Cs [µF]",
-    "Cp/µF": "Cp [µF]",
-}
 
 
 def parse_biologic_mpr(filename: Path):
