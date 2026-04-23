@@ -96,53 +96,41 @@
             v-model="localFilters.global.value"
             data-testid="search-input"
             class="search-input"
-            placeholder="Search"
+            :placeholder="localUseApiSearch ? 'Search via API...' : 'Search'"
+            :disabled="isLoadingApiSearch"
           />
         </IconField>
 
-        <div class="dropdown">
+        <div class="btn-group ml-2">
           <button
-            data-testid="table-settings-button"
+            data-testid="advanced-search-button"
             class="btn btn-default"
-            type="button"
-            aria-label="Table settings"
-            title="Table settings"
-            aria-haspopup="true"
-            :aria-expanded="isSettingsDropdownVisible"
-            @click="isSettingsDropdownVisible = !isSettingsDropdownVisible"
+            aria-label="Advanced search"
+            @click="openAdvancedSearchModal"
           >
-            <font-awesome-icon icon="cog" />
+            <font-awesome-icon icon="search-plus" />
           </button>
-          <div
-            v-show="isSettingsDropdownVisible"
-            class="dropdown-menu dropdown-menu-right settings-dropdown"
-            style="display: block"
+
+          <button
+            v-if="useApiSearch"
+            data-testid="clear-api-search-button"
+            class="btn btn-default"
+            aria-label="Clear API search"
+            @click="clearApiSearch"
           >
-            <div class="dropdown-item-text">
-              <label class="mb-1 font-weight-bold">Columns</label>
-              <MultiSelect
-                :model-value="selectedColumns"
-                :options="availableColumns"
-                :option-label="columnLabel"
-                placeholder="Select column(s) to display"
-                display="chip"
-                class="column-select-dropdown"
-                @update:model-value="$emit('update:selected-columns', $event)"
-              >
-                <template #value="{ value }">
-                  <span v-if="value && value.length == availableColumns.length" class="text-muted"
-                    >All columns</span
-                  >
-                  <span v-else>{{ value.length }} columns</span>
-                </template>
-              </MultiSelect>
-            </div>
-            <div class="dropdown-divider"></div>
-            <a data-testid="reset-table-button" class="dropdown-item" @click="resetTable">
-              <font-awesome-icon icon="redo" class="mr-2" /> Reset table settings
-            </a>
-          </div>
+            <font-awesome-icon icon="times" />
+          </button>
         </div>
+
+        <button
+          data-testid="reset-table-button"
+          class="btn btn-default ml-2"
+          aria-label="Reset table"
+          title="Reset table"
+          @click="resetTable"
+        >
+          <font-awesome-icon icon="redo" />
+        </button>
       </div>
     </div>
 
@@ -201,6 +189,7 @@
       </div>
     </div>
   </div>
+  <AdvancedSearchModal v-model="isAdvancedSearchModalVisible" @search="handleAdvancedSearch" />
 </template>
 
 <script>
@@ -209,8 +198,9 @@ import { DialogService } from "@/services/DialogService";
 import IconField from "primevue/iconfield";
 import InputIcon from "primevue/inputicon";
 import InputText from "primevue/inputtext";
-import MultiSelect from "primevue/multiselect";
 import "primeicons/primeicons.css";
+
+import AdvancedSearchModal from "@/components/AdvancedSearchModal";
 
 import {
   deleteSample,
@@ -225,7 +215,7 @@ export default {
     IconField,
     InputIcon,
     InputText,
-    MultiSelect,
+    AdvancedSearchModal,
   },
   props: {
     dataType: {
@@ -264,6 +254,12 @@ export default {
       required: false,
       default: null,
     },
+    isLoadingApiSearch: {
+      type: Boolean,
+      required: false,
+      default: false,
+    },
+    useApiSearch: { type: Boolean, default: false },
   },
   emits: [
     "open-create-item-modal",
@@ -278,14 +274,19 @@ export default {
     "update:selected-columns",
     "reset-table",
     "remove-selected-items-from-collection",
+    "update:use-api-search",
+    "api-search",
+    "clear-api-search",
   ],
   data() {
     return {
       localFilters: { ...this.filters },
+      localUseApiSearch: this.useApiSearch,
       isSelectedDropdownVisible: false,
       isSettingsDropdownVisible: false,
       isDeletingItems: false,
       itemCount: 0,
+      isAdvancedSearchModalVisible: false,
     };
   },
   computed: {
@@ -297,14 +298,35 @@ export default {
     },
   },
   watch: {
+    useApiSearch(newValue) {
+      this.localUseApiSearch = newValue;
+    },
     itemsSelected(newVal) {
       if (newVal.length === 0) {
         this.isSelectedDropdownVisible = false;
       }
     },
-    "localFilters.global.value"(newValue) {
-      this.$emit("update:filters", { ...this.filters, global: { value: newValue } });
+    localUseApiSearch(newValue) {
+      this.$emit("update:use-api-search", newValue);
+      if (!newValue) {
+        this.localFilters.global.value = "";
+      }
     },
+    "localFilters.global.value"(newValue) {
+      if (this.localUseApiSearch) {
+        clearTimeout(this.searchDebounceTimer);
+        this.searchDebounceTimer = setTimeout(() => {
+          this.$emit("api-search", newValue);
+        }, 1000);
+      } else {
+        this.$emit("update:filters", { ...this.filters, global: { value: newValue } });
+      }
+    },
+  },
+  beforeUnmount() {
+    if (this.searchDebounceTimer) {
+      clearTimeout(this.searchDebounceTimer);
+    }
   },
   methods: {
     async confirmDeletion() {
@@ -391,6 +413,15 @@ export default {
       if (confirmed) {
         this.$emit("reset-table");
       }
+    },
+    openAdvancedSearchModal() {
+      this.isAdvancedSearchModalVisible = true;
+    },
+    handleAdvancedSearch(query) {
+      this.$emit("api-search", query);
+    },
+    clearApiSearch() {
+      this.$emit("clear-api-search");
     },
     handleBatchShare() {
       this.$emit("open-batch-share-modal");

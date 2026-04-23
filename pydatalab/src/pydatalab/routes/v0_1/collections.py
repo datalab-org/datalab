@@ -25,18 +25,35 @@ COLLECTIONS = Blueprint("collections", __name__)
 def _(): ...
 
 
-@COLLECTIONS.route("/collections")
+@COLLECTIONS.route("/collections", methods=["GET"])
 def get_collections():
-    collections = flask_mongo.db.collections.aggregate(
-        [
-            {"$match": get_default_permissions(user_only=True)},
-            {"$lookup": creators_lookup()},
-            {"$project": {"_id": 0}},
-            {"$sort": {"_id": -1}},
-        ]
-    )
+    limit = request.args.get("limit", default=None, type=int)
+    skip = request.args.get("skip", default=0, type=int)
 
-    return jsonify({"status": "success", "data": list(collections)})
+    match_obj = get_default_permissions(user_only=True)
+
+    total_count = flask_mongo.db.collections.count_documents(match_obj)
+
+    pipeline = [{"$match": match_obj}, {"$sort": {"last_modified": -1}}]
+
+    if skip > 0:
+        pipeline.append({"$skip": skip})
+
+    if limit is not None:
+        pipeline.append({"$limit": limit})
+
+    cursor = flask_mongo.db.collections.aggregate(pipeline)
+    collections_list = [json.loads(Collection(**doc).json(exclude_unset=True)) for doc in cursor]
+
+    return jsonify(
+        {
+            "status": "success",
+            "data": collections_list,
+            "total_count": total_count,
+            "limit": limit,
+            "skip": skip,
+        }
+    ), 200
 
 
 @COLLECTIONS.route("/collections/<collection_id>", methods=["GET"])
@@ -356,14 +373,23 @@ def search_collections():
     """
     query = request.args.get("query", type=str)
     nresults = request.args.get("nresults", default=100, type=int)
+    skip = request.args.get("skip", default=0, type=int)
 
     if not query:
         return jsonify({"status": "error", "message": "No query provided."}), 400
 
     permissions = get_default_permissions(user_only=True)
     pipeline = build_search_pipeline(query, COLLECTIONS_FTS_FIELDS, permissions)
-    pipeline.append({"$limit": nresults})
 
+    count_pipeline = pipeline.copy()
+    count_pipeline.append({"$count": "total"})
+    count_result = list(flask_mongo.db.collections.aggregate(count_pipeline))
+    total_count = count_result[0]["total"] if count_result else 0
+
+    if skip > 0:
+        pipeline.append({"$skip": skip})
+
+    pipeline.append({"$limit": nresults})
     pipeline.append(
         {
             "$project": {
@@ -378,7 +404,15 @@ def search_collections():
         for doc in flask_mongo.db.collections.aggregate(pipeline)
     ]
 
-    return jsonify({"status": "success", "data": list(cursor)}), 200
+    return jsonify(
+        {
+            "status": "success",
+            "data": cursor,
+            "total_count": total_count,
+            "limit": nresults,
+            "skip": skip,
+        }
+    ), 200
 
 
 @COLLECTIONS.route("/collections/<collection_id>", methods=["POST"])
