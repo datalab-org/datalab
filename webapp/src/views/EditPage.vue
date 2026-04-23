@@ -1,101 +1,128 @@
 <template>
   <div id="topScrollPoint"></div>
   <nav
-    class="navbar navbar-expand sticky-top navbar-dark py-0 editor-navbar"
+    class="navbar navbar-expand-md sticky-top navbar-dark py-0 editor-navbar"
     :style="{ backgroundColor: navbarColor }"
   >
     <div v-show="false" class="navbar-nav"><LoginDetails /></div>
-    <span class="navbar-brand clickable" @click="scrollToID($event, 'topScrollPoint')"
+    <span
+      class="navbar-brand clickable flex-shrink-1 text-truncate"
+      @click="scrollToID($event, 'topScrollPoint')"
       >{{ itemTypeEntry?.navbarName || "loading..." }}&nbsp;&nbsp;|&nbsp;&nbsp;
       <FormattedItemName :item_id="item_id" :item-type="itemType" />
     </span>
-    <div class="navbar-nav">
-      <router-link class="nav-item nav-link" to="/">Home</router-link>
-      <div class="nav-item dropdown">
-        <a
-          id="navbarDropdown"
-          class="nav-link dropdown-toggle ml-2"
-          role="button"
-          data-toggle="dropdown"
-          aria-haspopup="true"
-          aria-expanded="false"
-          data-testid="add-block-button-top"
-          @click="isMenuDropdownVisible = !isMenuDropdownVisible"
-        >
-          <font-awesome-icon icon="cubes" fixed-width />
-          Add a block
-        </a>
-        <div
-          v-if="blockInfoLoaded"
-          v-show="isMenuDropdownVisible"
-          class="dropdown-menu"
-          data-testid="add-block-dropdown"
-          style="display: block"
-          aria-labelledby="navbarDropdown"
-        >
-          <h6 v-if="suggestedBlockTypes.length > 0" class="dropdown-header">
-            Suggested based on your files
-          </h6>
-          <span
-            v-for="blockInfo in suggestedBlockTypes"
-            :key="'nav-suggested-' + blockInfo.id"
-            @click="newBlock($event, blockInfo.id)"
-          >
-            <BlockTooltip :block-info="blockInfo.attributes" />
-          </span>
-          <div
-            v-if="suggestedBlockTypes.length > 0 && allBlockTypes.length > 0"
-            class="dropdown-divider"
-          ></div>
-          <h6 v-if="allBlockTypes.length > 0" class="dropdown-header">All block types</h6>
-          <span
-            v-for="blockInfo in allBlockTypes"
-            :key="'nav-all-' + blockInfo.id"
-            @click="newBlock($event, blockInfo.id)"
-          >
-            <BlockTooltip :block-info="blockInfo.attributes" />
-          </span>
-        </div>
-      </div>
-      <ExportDropdown
-        :item-id="item_id"
-        :collection-id="itemType === 'collections' ? item_id : null"
-        :item-type="itemType"
-      />
-      <a
-        v-if="itemDataLoaded && refcode"
-        class="nav-item nav-link"
-        href="#"
-        title="Share this item"
-        @click.prevent="isSharingModalVisible = true"
+
+    <!-- Always-visible right-side cluster: status + save + hamburger (hamburger only shows below md) -->
+    <div class="navbar-right-cluster order-md-last">
+      <span
+        v-if="itemDataLoaded && !savedStatus"
+        class="navbar-text unsaved-warning d-none d-sm-inline"
       >
-        <font-awesome-icon icon="share-alt" fixed-width /> Share
-      </a>
-      <a class="nav-item nav-link" :href="itemApiUrl" target="_blank">
-        <font-awesome-icon icon="code" fixed-width /> View JSON
-      </a>
-      <a
-        v-if="itemDataLoaded"
-        class="nav-item nav-link"
-        title="Version History"
-        @click="showVersionHistory"
-      >
-        <font-awesome-icon icon="history" fixed-width /> Versions
-      </a>
-    </div>
-    <div class="navbar-nav ml-auto">
-      <span v-if="itemDataLoaded && !savedStatus" class="navbar-text unsaved-warning">
         Unsaved changes
       </span>
-      <span v-if="itemDataLoaded && lastModified" class="navbar-text small mx-2"
+      <span
+        v-if="itemDataLoaded && !savedStatus"
+        class="unsaved-dot d-sm-none"
+        title="Unsaved changes"
+      ></span>
+      <span v-if="itemDataLoaded && lastModified" class="navbar-text small d-none d-md-inline"
         ><i>Last saved: {{ lastModified }}</i></span
       >
       <font-awesome-icon
         icon="save"
         fixed-width
-        class="nav-item nav-link navbar-icon"
+        class="nav-link navbar-icon"
+        title="Save"
         @click="saveSample"
       />
+      <button
+        class="navbar-toggler border-0 d-md-none"
+        type="button"
+        aria-label="Toggle navigation"
+        @click="isNavCollapsed = !isNavCollapsed"
+      >
+        <font-awesome-icon icon="bars" />
+      </button>
+    </div>
+
+    <div class="collapse navbar-collapse" :class="{ show: !isNavCollapsed }">
+      <div class="navbar-nav">
+        <router-link class="nav-item nav-link" to="/">Home</router-link>
+        <div class="nav-item dropdown">
+          <a
+            id="navbarDropdown"
+            class="nav-link dropdown-toggle ml-2"
+            role="button"
+            data-toggle="dropdown"
+            aria-haspopup="true"
+            aria-expanded="false"
+            data-testid="add-block-button-top"
+            @click="isMenuDropdownVisible = !isMenuDropdownVisible"
+          >
+            <font-awesome-icon icon="cubes" fixed-width />
+            Add a block
+          </a>
+          <div
+            v-if="blockInfoLoaded"
+            v-show="isMenuDropdownVisible"
+            class="dropdown-menu"
+            data-testid="add-block-dropdown"
+            style="display: block"
+            aria-labelledby="navbarDropdown"
+          >
+            <h6 v-if="suggestedBlockTypes.length > 0" class="dropdown-header">
+              Suggested based on your files
+            </h6>
+            <span
+              v-for="blockInfo in suggestedBlockTypes"
+              :key="'nav-suggested-' + blockInfo.id"
+              @click="newBlock($event, blockInfo.id)"
+            >
+              <BlockTooltip :block-info="blockInfo.attributes" />
+            </span>
+            <div
+              v-if="suggestedBlockTypes.length > 0 && allBlockTypes.length > 0"
+              class="dropdown-divider"
+            ></div>
+            <h6 v-if="allBlockTypes.length > 0" class="dropdown-header">All block types</h6>
+            <span
+              v-for="blockInfo in allBlockTypes"
+              :key="'nav-all-' + blockInfo.id"
+              @click="newBlock($event, blockInfo.id)"
+            >
+              <BlockTooltip :block-info="blockInfo.attributes" />
+            </span>
+          </div>
+        </div>
+        <ExportDropdown
+          :item-id="item_id"
+          :collection-id="itemType === 'collections' ? item_id : null"
+          :item-type="itemType"
+        />
+        <a
+          v-if="itemDataLoaded && refcode"
+          class="nav-item nav-link"
+          href="#"
+          title="Share this item"
+          @click.prevent="isSharingModalVisible = true"
+        >
+          <font-awesome-icon icon="share-alt" fixed-width /> Share
+        </a>
+        <a class="nav-item nav-link" :href="itemApiUrl" target="_blank">
+          <font-awesome-icon icon="code" fixed-width /> View JSON
+        </a>
+        <a
+          v-if="itemDataLoaded"
+          class="nav-item nav-link"
+          title="Version History"
+          @click="showVersionHistory"
+        >
+          <font-awesome-icon icon="history" fixed-width /> Versions
+        </a>
+        <span v-if="itemDataLoaded && lastModified" class="navbar-text small mx-2 d-md-none"
+          ><i>Last saved: {{ lastModified }}</i></span
+        >
+      </div>
     </div>
   </nav>
 
@@ -273,6 +300,7 @@ export default {
       blocksLoaded: false,
       isMenuDropdownVisible: false,
       isBottomDropdownVisible: false,
+      isNavCollapsed: true,
       selectedRemoteFiles: [],
       isLoadingRemoteTree: false,
       isLoadingRemoteFiles: false,
@@ -634,5 +662,65 @@ label,
 
 .dropdown-item:hover {
   background-color: #f8f9fa;
+}
+
+.navbar-right-cluster {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.unsaved-dot {
+  display: inline-block;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  background-color: #ffc845;
+  box-shadow: 0 0 0 2px rgba(255, 200, 69, 0.3);
+}
+
+.navbar-toggler {
+  color: white;
+  background: transparent;
+  padding: 0.25rem 0.5rem;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.navbar-right-cluster .navbar-icon {
+  /* keep save icon visually aligned with toggler & text */
+  margin: 0;
+}
+
+@media (max-width: 767.98px) {
+  .editor-navbar {
+    flex-wrap: wrap;
+  }
+  .editor-navbar .navbar-brand {
+    max-width: calc(100% - 8rem);
+    font-size: 1rem;
+    margin-right: 0;
+  }
+  .editor-navbar .navbar-collapse {
+    width: 100%;
+    flex-basis: 100%;
+  }
+  .editor-navbar .navbar-collapse .navbar-nav {
+    flex-direction: column;
+    width: 100%;
+    padding: 0.25rem 0;
+  }
+  .editor-navbar .navbar-collapse .nav-link {
+    padding: 0.5rem 0.75rem;
+  }
+  /* Let dropdown menus size themselves sensibly inside the collapsed nav */
+  .editor-navbar .navbar-collapse .dropdown-menu {
+    position: static;
+    float: none;
+    width: 100%;
+    border: 0;
+    background-color: rgba(0, 0, 0, 0.15);
+  }
 }
 </style>
