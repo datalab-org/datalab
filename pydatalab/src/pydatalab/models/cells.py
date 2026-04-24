@@ -40,6 +40,9 @@ class Cell(Item):
     characteristic_mass: float | None
     """The characteristic mass of the cell in milligrams. Can be used to normalize capacities."""
 
+    electrode_area: float | None = None
+    """The electrode area in cm². Can be used to normalize capacities and currents."""
+
     characteristic_chemical_formula: str | None
     """The chemical formula of the active material. Can be used to calculated molar mass in g/mol for normalizing capacities."""
 

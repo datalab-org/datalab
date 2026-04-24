@@ -160,6 +160,10 @@
       "title": "Characteristic Mass",
       "type": "number"
     },
+    "electrode_area": {
+      "title": "Electrode Area",
+      "type": "number"
+    },
     "characteristic_chemical_formula": {
       "title": "Characteristic Chemical Formula",
       "type": "string"
