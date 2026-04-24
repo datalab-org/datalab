@@ -82,7 +82,6 @@ class CycleBlock(DataBlock):
     }
 
     def _get_characteristic_mass_g(self):
-        # return {"characteristic_mass": 1000}
         doc = flask_mongo.db.items.find_one(
             {"item_id": self.data["item_id"]}, {"characteristic_mass": 1}
         )
@@ -90,6 +89,12 @@ class CycleBlock(DataBlock):
         if characteristic_mass_mg:
             return characteristic_mass_mg / 1000.0
         return None
+
+    def _get_electrode_area_cm2(self):
+        doc = flask_mongo.db.items.find_one(
+            {"item_id": self.data["item_id"]}, {"electrode_area": 1}
+        )
+        return doc.get("electrode_area", None) or None
 
     def _get_file_extension(self, filename: str) -> str:
         """Determine the file extension, handling multi-part extensions like .bdf.csv.
@@ -425,6 +430,7 @@ class CycleBlock(DataBlock):
                 self.data["bdf_url"] = None
 
             characteristic_mass_g = self._get_characteristic_mass_g()
+            electrode_area_cm2 = self._get_electrode_area_cm2()
 
             if characteristic_mass_g:
                 raw_df["capacity (mAh/g)"] = raw_df["capacity (mAh)"] / characteristic_mass_g
@@ -437,7 +443,20 @@ class CycleBlock(DataBlock):
                         cycle_summary_df["discharge capacity (mAh)"] / characteristic_mass_g
                     )
 
-            self._extract_cycle_parameters(cycle_summary_df, characteristic_mass_g)
+            if electrode_area_cm2:
+                raw_df["capacity (mAh/cm2)"] = raw_df["capacity (mAh)"] / electrode_area_cm2
+                raw_df["current (mA/cm2)"] = raw_df["current (mA)"] / electrode_area_cm2
+                if cycle_summary_df is not None:
+                    cycle_summary_df["charge capacity (mAh/cm2)"] = (
+                        cycle_summary_df["charge capacity (mAh)"] / electrode_area_cm2
+                    )
+                    cycle_summary_df["discharge capacity (mAh/cm2)"] = (
+                        cycle_summary_df["discharge capacity (mAh)"] / electrode_area_cm2
+                    )
+
+            self._extract_cycle_parameters(
+                cycle_summary_df, characteristic_mass_g, electrode_area_cm2
+            )
 
             if self.data.get("mode") == "multi":
                 p = Path(filename)
@@ -515,17 +534,21 @@ class CycleBlock(DataBlock):
         return
 
     def _extract_cycle_parameters(
-        self, cycle_summary_df: pd.DataFrame, characteristic_mass_g: float | None
+        self,
+        cycle_summary_df: pd.DataFrame,
+        characteristic_mass_g: float | None,
+        electrode_area_cm2: float | None,
     ) -> None:
         """Extract summary parameters from the cycle summary DataFrame and store in self.data["computed"].
 
         Parameters:
             cycle_summary_df: The cycle summary DataFrame with standardised column names.
             characteristic_mass_g: The characteristic mass in grams, or None if unavailable.
+            electrode_area_cm2: The electrode area in cm², or None if unavailable.
         """
         if cycle_summary_df is None or len(cycle_summary_df) == 0:
             return
-        # Often the first row is 0 for a rest step at the begining of cycling
+        # Often index 0 is a rest step with no capacity — use index 1 as the first real cycle
         if 1 not in cycle_summary_df.index:
             return
 
@@ -535,19 +558,20 @@ class CycleBlock(DataBlock):
 
         last_cycle = cycle_summary_df.iloc[-1]
 
-        cap_mAh_val = last_cycle.get("discharge capacity (mAh)")
-        final_capacity_mAh = float(cap_mAh_val) if pd.notna(cap_mAh_val) else None
-
-        final_capacity_mAh_g = None
-        if characteristic_mass_g:
-            cap_mAh_g_val = last_cycle.get("discharge capacity (mAh/g)")
-            final_capacity_mAh_g = float(cap_mAh_g_val) if pd.notna(cap_mAh_g_val) else None
+        def _get(col):
+            val = last_cycle.get(col)
+            return float(val) if pd.notna(val) else None
 
         self.data["computed"] = CycleBlockComputed(
             num_cycles=int(cycle_summary_df.index.max()),
             initial_ce=initial_ce,
-            final_capacity_mAh=final_capacity_mAh,
-            final_capacity_mAh_g=final_capacity_mAh_g,
+            final_capacity_mAh=_get("discharge capacity (mAh)"),
+            final_capacity_mAh_g=_get("discharge capacity (mAh/g)")
+            if characteristic_mass_g
+            else None,
+            final_capacity_mAh_cm2=_get("discharge capacity (mAh/cm2)")
+            if electrode_area_cm2
+            else None,
         ).dict()
 
     @property

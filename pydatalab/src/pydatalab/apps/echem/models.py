@@ -18,6 +18,9 @@ class CycleBlockComputed(BaseModel):
     final_capacity_mAh_g: float | None = None
     """Discharge capacity of the last cycle in mAh/g (only set when characteristic mass is available)."""
 
+    final_capacity_mAh_cm2: float | None = None
+    """Discharge capacity of the last cycle in mAh/cm² (only set when electrode area is available)."""
+
     class Config:
         extra = "forbid"
 
