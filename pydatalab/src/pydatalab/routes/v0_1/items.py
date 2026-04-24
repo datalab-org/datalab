@@ -108,7 +108,6 @@ def get_starting_materials():
                         },
                         "collections": {
                             "collection_id": 1,
-                            "title": 1,
                         },
                         "nblocks": {"$size": "$display_order"},
                         "nfiles": {"$size": "$file_ObjectIds"},

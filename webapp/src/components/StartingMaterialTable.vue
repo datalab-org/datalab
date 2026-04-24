@@ -75,12 +75,7 @@ export default {
         return null;
       }
 
-      return this.$store.state.starting_material_list.map((item) => ({
-        ...item,
-        collectionsList: (item.collections || [])
-          .map((collection) => collection.collection_id)
-          .join(", "),
-      }));
+      return this.$store.state.starting_material_list;
     },
   },
   mounted() {
