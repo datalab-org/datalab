@@ -91,6 +91,7 @@ def get_starting_materials():
                         **get_default_permissions(user_only=False, inherit_from_collections=False),
                     }
                 },
+                {"$lookup": collections_lookup()},
                 {
                     "$project": {
                         "_id": 0,
@@ -104,6 +105,10 @@ def get_starting_materials():
                                     "title": "$$b.v.title",
                                 },
                             }
+                        },
+                        "collections": {
+                            "collection_id": 1,
+                            "title": 1,
                         },
                         "nblocks": {"$size": "$display_order"},
                         "nfiles": {"$size": "$file_ObjectIds"},
