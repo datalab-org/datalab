@@ -78,7 +78,17 @@
               :class="{ 'red-border': isNaN(CharacteristicMass) }"
             />
           </div>
-          <div class="form-group col-lg-4 col-md-4 pr-3">
+          <div class="form-group col-lg-3 col-md-4 pr-3">
+            <label for="cell-electrode-area">Electrode area (cm²)</label>
+            <input
+              id="cell-electrode-area"
+              v-model="ElectrodeArea"
+              class="form-control"
+              type="text"
+              :class="{ 'red-border': isNaN(ElectrodeArea) }"
+            />
+          </div>
+          <div class="form-group col-lg-3 col-md-4 pr-3">
             <label for="cell-chemform">Active formula</label>
             <ChemFormulaInput id="cell-chemform" v-model="ChemForm" />
           </div>
@@ -173,6 +183,7 @@ export default {
     CellFormat: createComputedSetterForItemField("cell_format"),
     CellFormatDescription: createComputedSetterForItemField("cell_format_description"),
     CharacteristicMass: createComputedSetterForItemField("characteristic_mass"),
+    ElectrodeArea: createComputedSetterForItemField("electrode_area"),
     Collections: createComputedSetterForItemField("collections"),
     Status: createComputedSetterForItemField("status"),
     schema() {
