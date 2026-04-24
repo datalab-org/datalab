@@ -15,6 +15,7 @@ from pydatalab.file_utils import get_file_info_by_id
 from pydatalab.logger import LOGGER
 from pydatalab.mongo import flask_mongo
 
+from .models import CycleBlockComputed, CycleBlockModel
 from .utils import (
     compute_gpcl_differential,
     filter_df_by_cycle_index,
@@ -42,6 +43,7 @@ class CycleBlock(DataBlock):
     """
 
     blocktype = "cycle"
+    block_db_model = CycleBlockModel
     name = "Electrochemical cycling"
     description = """This block can plot data from electrochemical cycling experiments from many different cycler's file formats.
     The file formats currently supported are:
@@ -435,6 +437,8 @@ class CycleBlock(DataBlock):
                         cycle_summary_df["discharge capacity (mAh)"] / characteristic_mass_g
                     )
 
+            self._extract_cycle_parameters(cycle_summary_df, characteristic_mass_g)
+
             if self.data.get("mode") == "multi":
                 p = Path(filename)
                 filename = f"{p.stem}_merged{p.suffix}"
@@ -509,6 +513,42 @@ class CycleBlock(DataBlock):
                 layout, theme=bokeh_plots.DATALAB_BOKEH_THEME
             )
         return
+
+    def _extract_cycle_parameters(
+        self, cycle_summary_df: pd.DataFrame, characteristic_mass_g: float | None
+    ) -> None:
+        """Extract summary parameters from the cycle summary DataFrame and store in self.data["computed"].
+
+        Parameters:
+            cycle_summary_df: The cycle summary DataFrame with standardised column names.
+            characteristic_mass_g: The characteristic mass in grams, or None if unavailable.
+        """
+        if cycle_summary_df is None or len(cycle_summary_df) == 0:
+            return
+        # Often the first row is 0 for a rest step at the begining of cycling
+        if 1 not in cycle_summary_df.index:
+            return
+
+        first_cycle = cycle_summary_df.loc[1]
+        ce_val = first_cycle.get("CE")
+        initial_ce = float(ce_val) if pd.notna(ce_val) else None
+
+        last_cycle = cycle_summary_df.iloc[-1]
+
+        cap_mAh_val = last_cycle.get("discharge capacity (mAh)")
+        final_capacity_mAh = float(cap_mAh_val) if pd.notna(cap_mAh_val) else None
+
+        final_capacity_mAh_g = None
+        if characteristic_mass_g:
+            cap_mAh_g_val = last_cycle.get("discharge capacity (mAh/g)")
+            final_capacity_mAh_g = float(cap_mAh_g_val) if pd.notna(cap_mAh_g_val) else None
+
+        self.data["computed"] = CycleBlockComputed(
+            num_cycles=int(cycle_summary_df.index.max()),
+            initial_ce=initial_ce,
+            final_capacity_mAh=final_capacity_mAh,
+            final_capacity_mAh_g=final_capacity_mAh_g,
+        ).dict()
 
     @property
     def plot_functions(self):
