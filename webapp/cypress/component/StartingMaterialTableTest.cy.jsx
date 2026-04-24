@@ -84,6 +84,7 @@ describe("StartingMaterialTable Component Tests", () => {
       "Name",
       "Formula",
       "Date",
+      "Collections",
       "Location",
       "", // nblocks
       "", //nfiles
