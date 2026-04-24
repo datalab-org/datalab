@@ -215,7 +215,7 @@
           <MultiSelect
             v-model="filters[column.field].constraints[0].value"
             :options="uniqueBlockTypes"
-            option-label="type"
+            option-label="label"
             placeholder="Select block types"
             class="d-flex w-full"
             :filter="true"
@@ -223,7 +223,7 @@
           >
             <template #option="slotProps">
               <div class="flex items-center">
-                <span>{{ slotProps.option.title }}</span>
+                <span>{{ slotProps.option.label || slotProps.option.blocktype }}</span>
               </div>
             </template>
             <template #value="slotProps">
@@ -234,7 +234,7 @@
                     :key="index"
                     class="inline-flex items-center mr-2"
                   >
-                    {{ option.title }}
+                    {{ option.label || option.blocktype }}
                   </span>
                 </template>
                 <span v-else class="text-gray-400">Any</span>
@@ -572,14 +572,21 @@ export default {
     },
     uniqueBlockTypes() {
       const itemsWithBlocks = this.data.filter((item) => item.blocks && item.blocks.length > 0);
+      const blocksInfos = this.$store.state.blocksInfos || {};
 
       const blockTypesMap = new Map(
         itemsWithBlocks
           .flatMap((item) => item.blocks)
-          .map((block) => [block.title, { title: block.title }]),
+          .map((block) => [
+            block.blocktype,
+            {
+              blocktype: block.blocktype,
+              label: blocksInfos[block.blocktype]?.attributes?.name || block.blocktype,
+            },
+          ]),
       );
 
-      blockTypesMap.set("No blocks", { title: "No blocks" });
+      blockTypesMap.set("__no_blocks__", { blocktype: "__no_blocks__", label: "No blocks" });
 
       return Array.from(blockTypesMap.values());
     },
@@ -728,7 +735,7 @@ export default {
 
       if (
         Array.isArray(filterValue) &&
-        filterValue.some((filter) => filter.title === "No blocks")
+        filterValue.some((filter) => filter.blocktype === "__no_blocks__")
       ) {
         if (!value || !Array.isArray(value) || value.length === 0) {
           return true;
@@ -745,20 +752,20 @@ export default {
       if (Array.isArray(filterValue)) {
         if (isAnd) {
           return filterValue.every((filterBlock) =>
-            filterBlock.title === "No blocks"
+            filterBlock.blocktype === "__no_blocks__"
               ? !value || value.length === 0
-              : value.some((itemBlock) => itemBlock.title === filterBlock.title),
+              : value.some((itemBlock) => itemBlock.blocktype === filterBlock.blocktype),
           );
         } else {
           return filterValue.some((filterBlock) =>
-            filterBlock.title === "No blocks"
+            filterBlock.blocktype === "__no_blocks__"
               ? !value || value.length === 0
-              : value.some((itemBlock) => itemBlock.title === filterBlock.title),
+              : value.some((itemBlock) => itemBlock.blocktype === filterBlock.blocktype),
           );
         }
       }
 
-      return value.some((itemBlock) => itemBlock.title === filterValue.title);
+      return value.some((itemBlock) => itemBlock.blocktype === filterValue.blocktype);
     });
 
     FilterService.register("exactStatusMatch", (value, filterValue) => {

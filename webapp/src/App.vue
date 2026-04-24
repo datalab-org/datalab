@@ -5,7 +5,7 @@
 
 <script>
 import DialogContainer from "@/components/DialogContainer.vue";
-import { getApiConfig, loadItemSchemas } from "@/server_fetch_utils.js";
+import { getApiConfig, loadItemSchemas, getBlocksInfos } from "@/server_fetch_utils.js";
 
 export default {
   components: {
@@ -19,6 +19,7 @@ export default {
     if (this.$route.name === "files-redirect") return;
     await loadItemSchemas();
     await getApiConfig();
+    await getBlocksInfos();
   },
 };
 </script>

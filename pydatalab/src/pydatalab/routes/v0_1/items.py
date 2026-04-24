@@ -95,7 +95,16 @@ def get_starting_materials():
                     "$project": {
                         "_id": 0,
                         "item_id": 1,
-                        "blocks": {"blocktype": 1, "title": 1},
+                        "blocks": {
+                            "$map": {
+                                "input": {"$objectToArray": {"$ifNull": ["$blocks_obj", {}]}},
+                                "as": "b",
+                                "in": {
+                                    "blocktype": "$$b.v.blocktype",
+                                    "title": "$$b.v.title",
+                                },
+                            }
+                        },
                         "nblocks": {"$size": "$display_order"},
                         "nfiles": {"$size": "$file_ObjectIds"},
                         "date": 1,
@@ -139,7 +148,16 @@ def get_items_summary(match: dict | None = None, project: dict | None = None) ->
 
     _project = {
         "_id": 0,
-        "blocks": {"blocktype": 1, "title": 1},
+        "blocks": {
+            "$map": {
+                "input": {"$objectToArray": {"$ifNull": ["$blocks_obj", {}]}},
+                "as": "b",
+                "in": {
+                    "blocktype": "$$b.v.blocktype",
+                    "title": "$$b.v.title",
+                },
+            }
+        },
         "creators": {
             "display_name": 1,
             "gravatar_hash": 1,
@@ -202,7 +220,16 @@ def get_samples_summary(match: dict | None = None, project: dict | None = None) 
 
     _project = {
         "_id": 0,
-        "blocks": {"blocktype": 1, "title": 1},
+        "blocks": {
+            "$map": {
+                "input": {"$objectToArray": {"$ifNull": ["$blocks_obj", {}]}},
+                "as": "b",
+                "in": {
+                    "blocktype": "$$b.v.blocktype",
+                    "title": "$$b.v.title",
+                },
+            }
+        },
         "creators": {
             "display_name": 1,
             "gravatar_hash": 1,
