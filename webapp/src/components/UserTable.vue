@@ -44,8 +44,7 @@ export default {
         {
           field: "groups",
           header: "Groups",
-          body: "Creators",
-          bodyConfig: { groups: "groups", creators: [] },
+          body: "UserGroupsCell",
           label: "Groups",
           filter: true,
         },
@@ -72,6 +71,7 @@ export default {
       return this.usersList.map((user) => ({
         ...user,
         allUsers: this.usersList,
+        allGroups: this.$store.state.groups_list || [],
         groupsList: (user.groups || []).map((g) => g.display_name).join(", "),
       }));
     },

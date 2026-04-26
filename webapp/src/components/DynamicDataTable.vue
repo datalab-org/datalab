@@ -566,6 +566,7 @@ import GroupsIconCounter from "@/components/GroupsIconCounter";
 
 import UserStatusCell from "@/components/UserStatusCell.vue";
 import UserRoleCell from "@/components/UserRoleCell.vue";
+import UserGroupsCell from "@/components/UserGroupsCell.vue";
 import UserManagersCell from "@/components/UserManagersCell.vue";
 import UserActionsCell from "@/components/UserActionsCell.vue";
 import RoleBadge from "@/components/RoleBadge.vue";
@@ -617,6 +618,7 @@ export default {
     Select,
     UserStatusCell,
     UserRoleCell,
+    UserGroupsCell,
     UserManagersCell,
     UserActionsCell,
     RoleBadge,
@@ -1318,7 +1320,8 @@ export default {
           allUsers: data.allUsers || [],
         },
         UserGroupsCell: {
-          groups: data.groups || [],
+          user: data,
+          allGroups: data.allGroups || [],
         },
         UserManagersCell: {
           user: data,
