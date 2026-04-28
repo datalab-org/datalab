@@ -637,7 +637,7 @@ def _create_sample(
         new_sample["creators"] = [
             {
                 "display_name": current_user.person.display_name,
-                "contact_email": current_user.person.contact_email,
+                "gravatar_hash": current_user.person.gravatar_hash,
             }
         ]
 
@@ -1730,12 +1730,12 @@ def get_access_token_info(refcode: str):
         user_info = None
         if existing_token.get("user"):
             user_doc = flask_mongo.db.users.find_one(
-                {"_id": existing_token["user"]}, {"display_name": 1, "contact_email": 1}
+                {"_id": existing_token["user"]}, {"display_name": 1, "gravatar_hash": 1}
             )
             if user_doc:
                 user_info = {
                     "display_name": user_doc.get("display_name"),
-                    "contact_email": user_doc.get("contact_email"),
+                    "gravatar_hash": user_doc.get("gravatar_hash"),
                 }
 
         return jsonify(

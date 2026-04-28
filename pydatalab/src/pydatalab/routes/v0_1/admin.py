@@ -329,7 +329,7 @@ def get_groups():
                 "$project": {
                     "_id": 1,
                     "display_name": 1,
-                    "contact_email": 1,
+                    "gravatar_hash": 1,
                 }
             },
         ],
@@ -346,7 +346,7 @@ def get_groups():
                 "$project": {
                     "_id": 1,
                     "display_name": 1,
-                    "contact_email": 1,
+                    "gravatar_hash": 1,
                 }
             },
         ],

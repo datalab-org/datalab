@@ -122,7 +122,7 @@ def create_collection():
         data["creators"] = [
             {
                 "display_name": current_user.person.display_name,
-                "contact_email": current_user.person.contact_email,
+                "gravatar_hash": current_user.person.gravatar_hash,
             }
         ]
 
