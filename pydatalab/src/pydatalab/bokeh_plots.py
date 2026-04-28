@@ -507,7 +507,7 @@ def selectable_axes_plot(
         yaxis_select.js_on_change("value", *callbacks_y)
 
     if p.legend:
-        p.legend.click_policy = "hide"
+        p.legend.click_policy = "none"
         if len(df) <= 1:
             p.legend.visible = False
         else:
