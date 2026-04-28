@@ -518,7 +518,7 @@ def selectable_axes_plot(
 
             external_legend = Legend(
                 items=legend_items,
-                click_policy="none",
+                click_policy="hide",
                 background_fill_alpha=0.8,
                 spacing=1,
                 margin=2,
