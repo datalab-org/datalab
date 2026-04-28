@@ -88,15 +88,6 @@ const DatalabPreset = definePreset(Aura, {
         .p-datatable .v-select .vs__dropdown-menu {
           z-index: 9999 !important;
         }
-        .p-datatable tbody {
-          overflow: visible !important;
-        }
-        .p-datatable tbody tr {
-          overflow: visible !important;
-        }
-        .p-datatable tbody td {
-          overflow: visible !important;
-        }
         .p-datatable td .v-select {
           position: static;
         }
