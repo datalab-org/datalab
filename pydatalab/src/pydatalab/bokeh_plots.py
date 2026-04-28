@@ -23,7 +23,7 @@ from bokeh.models import (
 )
 from bokeh.models.widgets import Dropdown, Select
 from bokeh.models.widgets.inputs import TextInput
-from bokeh.palettes import Category10, Dark2
+from bokeh.palettes import Category10, Dark2, Viridis256
 from bokeh.plotting import figure
 from bokeh.themes import Theme
 from scipy.signal import find_peaks
@@ -213,6 +213,8 @@ def selectable_axes_plot(
     y_options: list[str] | None = None,
     color_options: list[str] | None = None,
     color_mapper: ColorMapper | None = None,
+    series_color_values: list[float] | None = None,
+    series_color_label: str | None = None,
     x_default: str | None = None,
     y_default: str | list[str] | None = None,
     label_x: bool = True,
@@ -224,19 +226,35 @@ def selectable_axes_plot(
     plot_index: int | None = None,
     tools: list | None = None,
     show_table: bool = False,
+    use_unique_labels: bool = True,
     parameters: dict | None = None,
     **kwargs,
 ):
     """
-    Creates bokeh layout with selectable axis.
+    Creates a Bokeh layout with selectable axes and one of three coloring modes:
+
+    - Mode A (default): each series gets a fixed color from the Dark2 palette, cycled by index.
+      Use this when df is a list or dict of DataFrames representing distinct datasets (e.g. files).
+      A labeled legend is shown on the right when there is more than one series.
+
+    - Mode B (color_options): each *point* within a single DataFrame is colored by the value of a
+      numeric column, via a ColorMapper. Use this for data where a continuous quantity varies
+      per-point (e.g. EIS colored by frequency). Produces a colorbar; no legend.
+
+    - Mode C (series_color_values): each *series* gets a single color sampled from Viridis256
+      based on a numeric value associated with that series as a whole (e.g. cycle number,
+      temperature). Use this when multiple DataFrames should be colored on a continuous scale
+      rather than the discrete Dark2 palette. Produces a colorbar; no legend.
 
     Args:
         df: Dataframe, or list/dict of dataframes from data block.
-        x_options: Selectable fields to use for the x-values
-        y_options: Selectable fields to use for the y-values
-        color_options: Selectable fields to colour lines/points by.
-        color_mapper: Optional colour mapper to pass to switch between log and linear scales.
-        x_default: Default x-axis that is plotted at start, defaults to first value of `x_options`
+        x_options: Selectable fields to use for the x-values.
+        y_options: Selectable fields to use for the y-values.
+        color_options: (Mode B) Column name to color each point by, using a ColorMapper.
+        color_mapper: (Mode B) ColorMapper instance; defaults to LinearColorMapper(Cividis256).
+        series_color_values: (Mode C) Numeric value per series; length must match number of series.
+        series_color_label: (Mode C) Label for the colorbar.
+        x_default: Default x-axis that is plotted at start, defaults to first value of `x_options`.
         y_default: Default y-axis that is plotted at start, defaults to first value of `y_options`.
             If provided a list, the first entry will be plotted as solid line, and all others will
             be transparent lines.
@@ -248,6 +266,9 @@ def selectable_axes_plot(
             value in the colour cycle.
         tools: A list of Bokeh tools to enable.
         show_table: Whether to render the data as a table above the plot.
+        use_unique_labels: Whether to shorten labels via generate_unique_labels. Set to False
+            when dict keys are already clean human-readable labels (e.g. "Cycle 0") and should
+            be used verbatim. Defaults to True for backwards compatibility with filename-based labels.
 
     Returns:
         Bokeh layout
@@ -324,9 +345,20 @@ def selectable_axes_plot(
     callbacks_y = []
     source = ColumnDataSource(_df)
 
+    # Mode B setup: ensure a mapper exists for per-point coloring
     if color_options:
         if color_mapper is None:
             color_mapper = LinearColorMapper(palette="Cividis256")
+
+    # Mode C: sample one color per series from Viridis256 based on numeric values
+    series_colors: list[str] | None = None
+    series_colorbar: ColorBar | None = None
+    if series_color_values is not None:
+        lo, hi = min(series_color_values), max(series_color_values)
+        span = hi - lo if hi != lo else 1
+        series_colors = [Viridis256[int((v - lo) / span * 255)] for v in series_color_values]
+        _series_mapper = LinearColorMapper(palette="Viridis256", low=lo, high=hi)
+        series_colorbar = ColorBar(color_mapper=_series_mapper, title=series_color_label or "")
 
     hatch_patterns = [None, ".", "/", "x"]
 
@@ -354,7 +386,9 @@ def selectable_axes_plot(
         original_labels_list.append(orig)
 
     legend_labels = (
-        generate_unique_labels(original_labels_list) if len(df) > 1 else original_labels_list
+        generate_unique_labels(original_labels_list)
+        if len(df) > 1 and use_unique_labels
+        else original_labels_list
     )
     plot_columns = []
 
@@ -374,20 +408,24 @@ def selectable_axes_plot(
 
         source = ColumnDataSource(df_)
 
-        if color_options:
-            color = {"field": color_options[0], "transform": color_mapper}
+        if series_colors is not None:
+            # Mode C: fixed color per series sampled from Viridis256 by numeric value
+            line_color = series_colors[ind]
+            point_color: str | dict = line_color
+            point_fill_color: str | dict | None = line_color
+        elif color_options:
+            # Mode B: per-point color driven by a data column via ColorMapper.
+            # Lines cannot use a per-point transform so fall back to black.
             line_color = "black"
-            fill_color = None
+            point_color = {"field": color_options[0], "transform": color_mapper}
+            point_fill_color = None
             if hatch_patterns[ind % len(hatch_patterns)] is None:
-                fill_color = color
-        elif plot_index is not None:
-            color = COLORS[plot_index % len(COLORS)]
-            line_color = COLORS[plot_index % len(COLORS)]
-            fill_color = COLORS[plot_index % len(COLORS)]
+                point_fill_color = point_color
         else:
-            color = COLORS[ind % len(COLORS)]
-            line_color = COLORS[ind % len(COLORS)]
-            fill_color = COLORS[ind % len(COLORS)]
+            # Mode A: fixed color per series from the Dark2 palette, cycled by index
+            line_color = COLORS[(plot_index if plot_index is not None else ind) % len(COLORS)]
+            point_color = line_color
+            point_fill_color = line_color
 
         # If y_default is a list, plot the first one as a solid line, and the rest as transparent "auxiliary" lines
         y_aux = None
@@ -402,10 +440,11 @@ def selectable_axes_plot(
                 y=y_default,
                 source=source,
                 size=point_size,
-                line_color=color,
-                fill_color=fill_color,
+                # Here line color is the line around the circle, so making them the same color
+                line_color=point_color,
+                fill_color=point_fill_color,
                 hatch_pattern=hatch_patterns[ind % len(hatch_patterns)],
-                hatch_color=color,
+                hatch_color=point_color,
             )
             if plot_points
             else None
@@ -417,7 +456,7 @@ def selectable_axes_plot(
                 y=y_default,
                 source=source,
                 color=line_color,
-                legend_label=label,
+                legend_label=label if series_colors is None else None,
                 line_width=2,
             )
             if plot_line
@@ -431,7 +470,7 @@ def selectable_axes_plot(
                         x=x_default,
                         y=y,
                         source=source,
-                        color=color,
+                        color=line_color,
                         alpha=0.3,
                     )
                     if plot_line
@@ -454,6 +493,9 @@ def selectable_axes_plot(
     if color_mapper and color_options:
         color_bar = ColorBar(color_mapper=color_mapper, title=color_options[0])  # type: ignore
         p.add_layout(color_bar, "right")
+
+    if series_colorbar:
+        p.add_layout(series_colorbar, "right")
 
     # Add list boxes for selecting which columns to plot on the x and y axis
     if callbacks_x:
