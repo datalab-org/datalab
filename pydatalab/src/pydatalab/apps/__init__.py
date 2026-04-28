@@ -37,6 +37,13 @@ def load_app_blocks():
         _check_error(e)
 
     try:
+        from pydatalab.apps.cv import CVBlock
+
+        app_blocks.append(CVBlock)
+    except ImportError as e:
+        _check_error(e)
+
+    try:
         from pydatalab.apps.echem import CycleBlock
 
         app_blocks.append(CycleBlock)
