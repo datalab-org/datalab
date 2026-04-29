@@ -5,6 +5,9 @@ import bokeh.embed
 from bokeh.models import HoverTool
 
 from pydatalab.apps.cv.utils import _split_by_cycle, parse_chi_cv_txt, parse_cv_mpr
+
+# Number of cycles above which continuous Viridis coloring is used instead of discrete Dark2
+CONTINUOUS_COLORMAP_THRESHOLD = 8
 from pydatalab.blocks.base import DataBlock
 from pydatalab.bokeh_plots import DATALAB_BOKEH_THEME, selectable_axes_plot
 from pydatalab.file_utils import get_file_info_by_id
@@ -25,6 +28,33 @@ class CVBlock(DataBlock):
     def plot_functions(self):
         return (self.generate_cv_plot,)
 
+    @classmethod
+    def _format_cv_plot(cls, cv_data: dict, tools=None):
+        """Build and return a selectable_axes_plot layout for CV data.
+
+        Args:
+            cv_data: Dict mapping cycle labels to per-cycle DataFrames, each with
+                columns "Potential (V)", "Current (mA)", and "Cycle".
+            tools: Optional extra Bokeh tool(s) to pass to selectable_axes_plot.
+
+        Returns:
+            A Bokeh layout as returned by selectable_axes_plot.
+        """
+        n_cycles = len(cv_data)
+        cycle_numbers = [df["Cycle"].iloc[0] for df in cv_data.values()]
+        use_continuous = n_cycles > CONTINUOUS_COLORMAP_THRESHOLD
+        return selectable_axes_plot(
+            cv_data,
+            x_options=["Potential (V)"],
+            y_options=["Current (mA)"],
+            series_color_values=cycle_numbers if use_continuous else None,
+            series_color_label="Cycle" if use_continuous else None,
+            plot_points=False,
+            plot_line=True,
+            use_unique_labels=False,
+            tools=tools,
+        )
+
     def generate_cv_plot(self):
         if "file_id" not in self.data:
             return
@@ -43,8 +73,9 @@ class CVBlock(DataBlock):
             cv_data = _split_by_cycle(parse_cv_mpr(Path(file_info["location"])))
         elif ext == ".txt":
             cv_data = _split_by_cycle(parse_chi_cv_txt(Path(file_info["location"])))
+        else:
+            return
 
-        n_cycles = len(cv_data)
         hover = HoverTool(
             tooltips=[
                 ("Potential", "@{Potential (V)}{0.00} V"),
@@ -54,18 +85,5 @@ class CVBlock(DataBlock):
             mode="mouse",
         )
 
-        cycle_numbers = [df["Cycle"].iloc[0] for df in cv_data.values()]
-
-        layout = selectable_axes_plot(
-            cv_data,
-            x_options=["Potential (V)"],
-            y_options=["Current (mA)"],
-            series_color_values=cycle_numbers if n_cycles > 8 else None,
-            series_color_label="Cycle" if n_cycles > 8 else None,
-            plot_points=False,
-            plot_line=True,
-            use_unique_labels=False,
-            tools=hover,
-        )
-
+        layout = self._format_cv_plot(cv_data, tools=hover)
         self.data["bokeh_plot_data"] = bokeh.embed.json_item(layout, theme=DATALAB_BOKEH_THEME)
