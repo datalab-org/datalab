@@ -70,7 +70,6 @@
 </template>
 
 <script>
-import { API_URL } from "@/resources.js";
 import UserBubbleLogin from "@/components/UserBubbleLogin.vue";
 import { getUserInfo, getInfo } from "@/server_fetch_utils.js";
 import UserDropdown from "@/components/UserDropdown.vue";
@@ -89,7 +88,6 @@ export default {
     return {
       isLoginDropdownVisible: false,
       isUserDropdownVisible: false,
-      apiUrl: API_URL,
       user: null,
       isUserLoaded: false,
     };
@@ -125,12 +123,6 @@ export default {
   },
   methods: {
     async getUser() {
-      // Need to reload the page if this is a magic-link login
-      let token = this.$route.query.token;
-      if (token != null) {
-        window.location.href = this.apiUrl + "/login/email?token=" + token;
-      }
-
       this.user = await getUserInfo();
       this.isUserLoaded = true;
       if (this.user != null) {
