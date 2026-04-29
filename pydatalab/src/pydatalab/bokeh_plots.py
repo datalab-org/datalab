@@ -23,7 +23,7 @@ from bokeh.models import (
 )
 from bokeh.models.widgets import Dropdown, Select
 from bokeh.models.widgets.inputs import TextInput
-from bokeh.palettes import Category10, Dark2, Viridis256
+from bokeh.palettes import Category10, Cividis256, Dark2, Viridis256
 from bokeh.plotting import figure
 from bokeh.themes import Theme
 from scipy.signal import find_peaks
@@ -344,6 +344,11 @@ def selectable_axes_plot(
     if isinstance(df, pd.DataFrame):
         df = [df]
 
+    if series_color_values is not None and color_options:
+        raise ValueError(
+            "color_options (Mode B) and series_color_values (Mode C) are mutually exclusive"
+        )
+
     if series_color_values is not None:
         n_series = len(df)
         if len(series_color_values) != n_series:
@@ -360,7 +365,7 @@ def selectable_axes_plot(
     # Mode B setup: ensure a mapper exists for per-point coloring
     if color_options:
         if color_mapper is None:
-            color_mapper = LinearColorMapper(palette="Cividis256")
+            color_mapper = LinearColorMapper(palette=Cividis256)
 
     # Mode C: sample one color per series from Viridis256 based on numeric values
     series_colors: list[str] | None = None
@@ -369,7 +374,7 @@ def selectable_axes_plot(
         lo, hi = min(series_color_values), max(series_color_values)
         span = hi - lo if hi != lo else 1
         series_colors = [Viridis256[int((v - lo) / span * 255)] for v in series_color_values]
-        _series_mapper = LinearColorMapper(palette="Viridis256", low=lo, high=hi)
+        _series_mapper = LinearColorMapper(palette=Viridis256, low=lo, high=hi)
         series_colorbar = ColorBar(color_mapper=_series_mapper, title=series_color_label or "")
 
     hatch_patterns = [None, ".", "/", "x"]
