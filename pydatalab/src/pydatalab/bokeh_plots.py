@@ -468,8 +468,8 @@ def selectable_axes_plot(
                 y=y_default,
                 source=source,
                 color=line_color,
-                legend_label=label if series_colors is None else None,
                 line_width=2,
+                **{"legend_label": label} if series_colors is None else {},
             )
             if plot_line
             else None
