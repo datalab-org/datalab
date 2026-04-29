@@ -471,8 +471,8 @@ def selectable_axes_plot(
                 line_width=2,
                 **{"legend_label": label} if series_colors is None else {},
             )
-            if plot_line
-            else None
+            if plot_line  # Modes A and C
+            else None  # Mode B
         )
 
         if y_aux:
