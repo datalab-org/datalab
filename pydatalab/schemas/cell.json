@@ -158,10 +158,12 @@
     },
     "characteristic_mass": {
       "title": "Characteristic Mass",
+      "exclusiveMinimum": 0,
       "type": "number"
     },
     "electrode_area": {
       "title": "Electrode Area",
+      "exclusiveMinimum": 0,
       "type": "number"
     },
     "characteristic_chemical_formula": {
