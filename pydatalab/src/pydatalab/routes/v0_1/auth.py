@@ -110,6 +110,199 @@ def make_github_blueprint(
 github = LocalProxy(lambda: g.flask_dance_github)
 
 
+def make_google_blueprint(
+    client_id=None,
+    client_secret=None,
+    *,
+    scope=None,
+    offline=False,
+    reprompt_consent=False,
+    reprompt_select_account=False,
+    redirect_url=None,
+    redirect_to=None,
+    login_url=None,
+    authorized_url=None,
+    session_class=None,
+    storage=None,
+    hosted_domain=None,
+    rule_kwargs=None,
+):
+    """
+    Make a blueprint for authenticating with Google using OAuth 2. This requires
+    a client ID and client secret from Google. You should either pass them to
+    this constructor, or make sure that your Flask application config defines
+    them, using the variables :envvar:`GOOGLE_OAUTH_CLIENT_ID` and
+    :envvar:`GOOGLE_OAUTH_CLIENT_SECRET`.
+
+    Args:
+        client_id (str): The client ID for your application on Google
+        client_secret (str): The client secret for your application on Google
+        scope (str, optional): comma-separated list of scopes for the OAuth token.
+            Defaults to the "https://www.googleapis.com/auth/userinfo.profile" scope.
+        offline (bool): Whether to request `offline access
+            <https://developers.google.com/accounts/docs/OAuth2WebServer#offline>`_
+            for the OAuth token. Defaults to False
+        reprompt_consent (bool): If True, force Google to re-prompt the user
+            for their consent, even if the user has already given their
+            consent. Defaults to False
+        reprompt_select_account (bool): If True, force Google to re-prompt the select account page,
+            even if there is a single logged-in user. Defaults to False
+        redirect_url (str): the URL to redirect to after the authentication
+            dance is complete
+        redirect_to (str): if ``redirect_url`` is not defined, the name of the
+            view to redirect to after the authentication dance is complete.
+            The actual URL will be determined by :func:`flask.url_for`
+        login_url (str, optional): the URL path for the ``login`` view.
+            Defaults to ``/google``
+        authorized_url (str, optional): the URL path for the ``authorized`` view.
+            Defaults to ``/google/authorized``.
+        session_class (class, optional): The class to use for creating a
+            Requests session. Defaults to
+            :class:`~flask_dance.consumer.requests.OAuth2Session`.
+        storage: A token storage class, or an instance of a token storage
+                class, to use for this blueprint. Defaults to
+                :class:`~flask_dance.consumer.storage.session.SessionStorage`.
+        hosted_domain (str, optional): The domain of the G Suite user. Used to indicate that the account selection UI
+            should be optimized for accounts at this domain. Note that this only provides UI optimization, and requires
+            response validation (see warning).
+        rule_kwargs (dict, optional): Additional arguments that should be passed when adding
+            the login and authorized routes. Defaults to ``None``.
+
+    .. _google_hosted_domain_warning:
+    .. warning::
+       The ``hosted_domain`` argument **only provides UI optimization**. Don't rely on this argument to control
+       who can access your application. You must verify that the ``hd`` claim of the response ID token matches the
+       ``hosted_domain`` argument passed to ``make_google_blueprint``.
+
+    :rtype: :class:`~flask_dance.consumer.OAuth2ConsumerBlueprint`
+    :returns: A :doc:`blueprint <flask:blueprints>` to attach to your Flask app.
+    """
+    scope = scope or ["https://www.googleapis.com/auth/userinfo.profile"]
+    authorization_url_params = {}
+    prompt_params = []
+    auto_refresh_url = None
+    if offline:
+        authorization_url_params["access_type"] = "offline"
+        auto_refresh_url = "https://accounts.google.com/o/oauth2/token"
+    if reprompt_consent:
+        prompt_params.append("consent")
+    if reprompt_select_account:
+        prompt_params.append("select_account")
+    if prompt_params:
+        prompt_params = " ".join(prompt_params)
+        authorization_url_params["prompt"] = prompt_params
+    if hosted_domain:
+        authorization_url_params["hd"] = hosted_domain
+    google_bp = OAuth2ConsumerBlueprint(
+        "google",
+        __name__,
+        client_id=client_id,
+        client_secret=client_secret,
+        scope=scope,
+        base_url="https://www.googleapis.com/",
+        authorization_url="https://accounts.google.com/o/oauth2/auth",
+        token_url="https://accounts.google.com/o/oauth2/token",  # noqa: S106
+        auto_refresh_url=auto_refresh_url,
+        redirect_url=redirect_url,
+        redirect_to=redirect_to,
+        login_url=login_url,
+        authorized_url=authorized_url,
+        authorization_url_params=authorization_url_params,
+        session_class=session_class,
+        storage=storage,
+        rule_kwargs=rule_kwargs,
+    )
+    google_bp.from_config["client_id"] = "GOOGLE_OAUTH_CLIENT_ID"
+    google_bp.from_config["client_secret"] = "GOOGLE_OAUTH_CLIENT_SECRET"  # noqa: S105
+
+    @google_bp.before_app_request
+    def set_applocal_session():
+        g.flask_dance_google = google_bp.session
+
+    return google_bp
+
+
+google = LocalProxy(lambda: g.flask_dance_google)
+
+
+def make_microsoft_blueprint(
+    client_id=None,
+    client_secret=None,
+    *,
+    scope=None,
+    redirect_url=None,
+    redirect_to=None,
+    login_url=None,
+    authorized_url=None,
+    session_class=None,
+    storage=None,
+    rule_kwargs=None,
+):
+    """
+    Make a blueprint for authenticating with Microsoft using OAuth 2. This requires
+    a client ID and client secret from Microsoft. You should either pass them to
+    this constructor, or make sure that your Flask application config defines
+    them, using the variables :envvar:`MICROSOFT_OAUTH_CLIENT_ID` and
+    :envvar:`MICROSOFT_OAUTH_CLIENT_SECRET`.
+
+    Args:
+        client_id (str): The client ID for your application on Microsoft.
+        client_secret (str): The client secret for your application on Microsoft.
+        scope (str, optional): comma-separated list of scopes for the OAuth token.
+            Defaults to ``["openid", "email", "profile"]``.
+        redirect_url (str): the URL to redirect to after the authentication
+            dance is complete.
+        redirect_to (str): if ``redirect_url`` is not defined, the name of the
+            view to redirect to after the authentication dance is complete.
+            The actual URL will be determined by :func:`flask.url_for`
+        login_url (str, optional): the URL path for the ``login`` view.
+            Defaults to ``/microsoft``
+        authorized_url (str, optional): the URL path for the ``authorized`` view.
+            Defaults to ``/microsoft/authorized``.
+        session_class (class, optional): The class to use for creating a
+            Requests session. Defaults to
+            :class:`~flask_dance.consumer.requests.OAuth2Session`.
+        storage: A token storage class, or an instance of a token storage
+                class, to use for this blueprint. Defaults to
+                :class:`~flask_dance.consumer.storage.session.SessionStorage`.
+        rule_kwargs (dict, optional): Additional arguments that should be passed when adding
+            the login and authorized routes. Defaults to ``None``.
+
+    :rtype: :class:`~flask_dance.consumer.OAuth2ConsumerBlueprint`
+    :returns: A :doc:`blueprint <flask:blueprints>` to attach to your Flask app.
+    """
+    scope = scope or ["openid", "email", "profile"]
+
+    microsoft_bp = OAuth2ConsumerBlueprint(
+        "microsoft",
+        __name__,
+        client_id=client_id,
+        client_secret=client_secret,
+        scope=scope,
+        base_url="https://graph.microsoft.com/",
+        authorization_url="https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
+        token_url="https://login.microsoftonline.com/common/oauth2/v2.0/token",  # noqa: S106
+        redirect_url=redirect_url,
+        redirect_to=redirect_to,
+        login_url=login_url,
+        authorized_url=authorized_url,
+        session_class=session_class,
+        storage=storage,
+        rule_kwargs=rule_kwargs,
+    )
+    microsoft_bp.from_config["client_id"] = "MICROSOFT_OAUTH_CLIENT_ID"
+    microsoft_bp.from_config["client_secret"] = "MICROSOFT_OAUTH_CLIENT_SECRET"  # noqa: S105
+
+    @microsoft_bp.before_app_request
+    def set_applocal_session():
+        g.flask_dance_microsoft = microsoft_bp.session
+
+    return microsoft_bp
+
+
+microsoft = LocalProxy(lambda: g.flask_dance_microsoft)
+
+
 def make_orcid_blueprint(
     client_id=None,
     client_secret=None,
@@ -223,12 +416,21 @@ OAUTH: dict[IdentityType, Blueprint] = {
         scope="read:org,read:user",
     ),
     IdentityType.EMAIL: EMAIL_BLUEPRINT,
+    IdentityType.GOOGLE: make_google_blueprint(
+        scope=["openid", "email", "https://www.googleapis.com/auth/userinfo.profile"],
+        reprompt_select_account=True,
+    ),
+    IdentityType.MICROSOFT: make_microsoft_blueprint(
+        scope=["openid", "email", "profile", "User.Read"],
+    ),
 }
 """A dictionary of Flask blueprints corresponding to the supported OAuth providers."""
 
 OAUTH_PROXIES: dict[IdentityType, LocalProxy] = {
     IdentityType.ORCID: orcid,
     IdentityType.GITHUB: github,
+    IdentityType.GOOGLE: google,
+    IdentityType.MICROSOFT: microsoft,
 }
 """A dictionary of proxy objects (c.f. Flask context locals) corresponding
 to the supported OAuth2 providers, and can be used to make further authenticated
@@ -704,6 +906,97 @@ def github_logged_in(blueprint, token):
         github_user_id,
         IdentityType.GITHUB,
         username,
+        display_name=name,
+        verified=True,
+        create_account=create_account,
+    )
+
+    # Return false to prevent Flask-dance from trying to store the token elsewhere
+    return False
+
+
+@oauth_authorized.connect_via(OAUTH[IdentityType.GOOGLE])
+def google_logged_in(blueprint, token):
+    """This Flask signal hooks into any attempt to use the Google blueprint, and will
+    make a user account with this identity if not already present in the database.
+
+    Makes one authorized request to the Google API to get the user's Google ID,
+    username and display name, without storing the OAuth token.
+
+    """
+    if not token:
+        return False
+
+    resp = blueprint.session.get("https://www.googleapis.com/oauth2/v2/userinfo")
+    if not resp.ok:
+        return False
+
+    google_info = resp.json()
+    google_user_id = str(google_info["id"])
+    email = str(google_info.get("email", google_user_id))
+    name = str(google_info.get("name", email))
+
+    create_account: bool | AccountStatus = False
+    if CONFIG.GOOGLE_DOMAIN_ALLOW_LIST:
+        if _check_email_domain(email, CONFIG.GOOGLE_DOMAIN_ALLOW_LIST):
+            create_account = AccountStatus.ACTIVE
+
+    elif CONFIG.GOOGLE_DOMAIN_ALLOW_LIST is None:
+        create_account = AccountStatus.UNVERIFIED
+
+    if CONFIG.GOOGLE_AUTO_ACTIVATE_ACCOUNTS or CONFIG.AUTO_ACTIVATE_ACCOUNTS:
+        create_account = AccountStatus.ACTIVE
+
+    find_create_or_modify_user(
+        google_user_id,
+        IdentityType.GOOGLE,
+        email,
+        display_name=name,
+        verified=True,
+        create_account=create_account,
+    )
+
+    # Return false to prevent Flask-dance from trying to store the token elsewhere
+    return False
+
+
+@oauth_authorized.connect_via(OAUTH[IdentityType.MICROSOFT])
+def microsoft_logged_in(blueprint, token):
+    """This Flask signal hooks into any attempt to use the Microsoft blueprint, and will
+    make a user account with this identity if not already present in the database.
+
+    Makes one authorized request to the Microsoft Graph API to get the user's ID,
+    username and display name, without storing the OAuth token.
+
+    """
+    if not token:
+        return False
+
+    resp = blueprint.session.get("https://graph.microsoft.com/v1.0/me")
+    if not resp.ok:
+        return False
+
+    ms_info = resp.json()
+    ms_user_id = str(ms_info["id"])
+    # Microsoft can return email as "mail" or "userPrincipalName"
+    email = str(ms_info.get("mail") or ms_info.get("userPrincipalName", ms_user_id))
+    name = str(ms_info.get("displayName", email))
+
+    create_account: bool | AccountStatus = False
+    if CONFIG.MICROSOFT_DOMAIN_ALLOW_LIST:
+        if _check_email_domain(email, CONFIG.MICROSOFT_DOMAIN_ALLOW_LIST):
+            create_account = AccountStatus.ACTIVE
+
+    elif CONFIG.MICROSOFT_DOMAIN_ALLOW_LIST is None:
+        create_account = AccountStatus.UNVERIFIED
+
+    if CONFIG.MICROSOFT_AUTO_ACTIVATE_ACCOUNTS or CONFIG.AUTO_ACTIVATE_ACCOUNTS:
+        create_account = AccountStatus.ACTIVE
+
+    find_create_or_modify_user(
+        ms_user_id,
+        IdentityType.MICROSOFT,
+        email,
         display_name=name,
         verified=True,
         create_account=create_account,

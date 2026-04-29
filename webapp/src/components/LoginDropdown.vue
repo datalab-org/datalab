@@ -16,6 +16,22 @@
     :href="apiUrl + '/login/orcid'"
     ><font-awesome-icon class="orcid-icon" :icon="['fab', 'orcid']" /> Login via ORCID</a
   >
+  <a
+    type="button"
+    :class="{ disabled: !showGoogle }"
+    class="dropdown-item btn login btn-link"
+    aria-label="Login via Google"
+    :href="apiUrl + '/login/google'"
+    ><font-awesome-icon :icon="['fab', 'google']" /> Login via Google</a
+  >
+  <a
+    type="button"
+    :class="{ disabled: !showMicrosoft }"
+    class="dropdown-item btn login btn-link"
+    aria-label="Login via Microsoft"
+    :href="apiUrl + '/login/microsoft'"
+    ><font-awesome-icon :icon="['fab', 'microsoft']" /> Login via Microsoft</a
+  >
   <button
     type="button"
     :class="{ disabled: !showEmail }"
@@ -50,6 +66,12 @@ export default {
     },
     showORCID() {
       return this.$store.state.serverInfo?.features?.auth_mechanisms?.orcid ?? false;
+    },
+    showGoogle() {
+      return this.$store.state.serverInfo?.features?.auth_mechanisms?.google ?? false;
+    },
+    showMicrosoft() {
+      return this.$store.state.serverInfo?.features?.auth_mechanisms?.microsoft ?? false;
     },
     showEmail() {
       return this.$store.state.serverInfo?.features?.auth_mechanisms?.email ?? false;

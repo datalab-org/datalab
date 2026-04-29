@@ -71,7 +71,7 @@ import {
   faSquareRootAlt,
 } from "@fortawesome/free-solid-svg-icons";
 import { faPlusSquare } from "@fortawesome/free-regular-svg-icons";
-import { faGithub, faOrcid } from "@fortawesome/free-brands-svg-icons";
+import { faGithub, faOrcid, faGoogle, faMicrosoft } from "@fortawesome/free-brands-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 library.add(
   faBarcode,
@@ -103,6 +103,8 @@ library.add(
   faVial,
   faGithub,
   faOrcid,
+  faGoogle,
+  faMicrosoft,
   faVials,
   faSync,
   faFolder,

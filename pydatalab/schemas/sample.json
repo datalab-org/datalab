@@ -412,7 +412,9 @@
       "enum": [
         "email",
         "orcid",
-        "github"
+        "github",
+        "google",
+        "microsoft"
       ],
       "type": "string"
     },

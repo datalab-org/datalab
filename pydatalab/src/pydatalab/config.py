@@ -231,6 +231,25 @@ class ServerConfig(BaseSettings):
         [],
         description="A list of domains for which users will be able to register accounts if they have a matching verified email address, which still need to be verified by an admin. Setting the value to `None` will allow any email addresses at any domain to register *and activate* an account, otherwise the default `[]` will not allow any email addresses registration.",
     )
+    GOOGLE_DOMAIN_ALLOW_LIST: list[str] | None = Field(
+        [],
+        description="A list of domains for which users will be able to register accounts via Google OAuth, e.g., ['gmail.com', 'university.ac.uk']. Setting the value to `None` will allow any Google account to register.",
+    )
+
+    GOOGLE_AUTO_ACTIVATE_ACCOUNTS: bool = Field(
+        False,
+        description="Whether to automatically activate accounts created via Google registration.",
+    )
+
+    MICROSOFT_DOMAIN_ALLOW_LIST: list[str] | None = Field(
+        [],
+        description="A list of domains for which users will be able to register accounts via Microsoft OAuth, e.g., ['university.ac.uk']. Setting the value to `None` will allow any Microsoft account to register.",
+    )
+
+    MICROSOFT_AUTO_ACTIVATE_ACCOUNTS: bool = Field(
+        False,
+        description="Whether to automatically activate accounts created via Microsoft registration.",
+    )
 
     EMAIL_AUTH_SMTP_SETTINGS: SMTPSettings | None = Field(
         None,
