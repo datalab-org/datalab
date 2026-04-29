@@ -6,7 +6,7 @@ import pytest
 from bokeh.models import ColorBar, Legend, LinearColorMapper, Plot
 
 from pydatalab.apps.cv import CONTINUOUS_COLORMAP_THRESHOLD, CVBlock
-from pydatalab.apps.cv.utils import _split_by_cycle, parse_chi_cv_txt
+from pydatalab.apps.cv.utils import _infer_half_cycles, _split_by_cycle, parse_chi_cv_txt
 from pydatalab.bokeh_plots import selectable_axes_plot
 
 
@@ -77,6 +77,17 @@ def test_split_by_cycle():
     assert list(result.keys()) == ["Cycle 0", "Cycle 1"]
     assert len(result["Cycle 0"]) == 2
     assert len(result["Cycle 1"]) == 2
+
+
+def test_infer_half_cycles_leading_flat():
+    """A hold at the start (zero diffs) must not create a spurious half-cycle boundary."""
+    # Three flat points then a down-sweep then an up-sweep → 2 half-cycles (0 and 1)
+    potential = np.array([1.0, 1.0, 1.0, 0.5, 0.0, -0.5, -1.0, -0.5, 0.0, 0.5, 1.0])
+    hc = _infer_half_cycles(potential)
+    # All flat points should be assigned to the same half-cycle as the first sweep
+    assert hc[0] == hc[2] == hc[3], "leading hold should share half-cycle with first sweep"
+    # There should be exactly one direction reversal → two distinct half-cycle values
+    assert len(np.unique(hc)) == 2
 
 
 # --- Mode A: discrete colors, at or below threshold ---
