@@ -81,20 +81,20 @@ class CycleBlock(DataBlock):
         "derivative_mode": None,
     }
 
-    def _get_characteristic_mass_g(self):
-        doc = flask_mongo.db.items.find_one(
-            {"item_id": self.data["item_id"]}, {"characteristic_mass": 1}
-        )
-        characteristic_mass_mg = doc.get("characteristic_mass", None)
-        if characteristic_mass_mg:
-            return characteristic_mass_mg / 1000.0
-        return None
+    def _get_cell_normalisation_factors(self) -> tuple[float | None, float | None]:
+        """Return (characteristic_mass_g, electrode_area_cm2) for the attached cell item.
 
-    def _get_electrode_area_cm2(self):
+        Fetches both fields in a single MongoDB query. Returns None for either value if
+        the item has no such field or the value is falsy (zero, null, missing).
+        """
         doc = flask_mongo.db.items.find_one(
-            {"item_id": self.data["item_id"]}, {"electrode_area": 1}
+            {"item_id": self.data["item_id"]},
+            {"characteristic_mass": 1, "electrode_area": 1},
         )
-        return doc.get("electrode_area", None) or None
+        characteristic_mass_mg = doc.get("characteristic_mass") or None
+        characteristic_mass_g = characteristic_mass_mg / 1000.0 if characteristic_mass_mg else None
+        electrode_area_cm2 = doc.get("electrode_area") or None
+        return characteristic_mass_g, electrode_area_cm2
 
     def _get_file_extension(self, filename: str) -> str:
         """Determine the file extension, handling multi-part extensions like .bdf.csv.
@@ -429,8 +429,7 @@ class CycleBlock(DataBlock):
             else:
                 self.data["bdf_url"] = None
 
-            characteristic_mass_g = self._get_characteristic_mass_g()
-            electrode_area_cm2 = self._get_electrode_area_cm2()
+            characteristic_mass_g, electrode_area_cm2 = self._get_cell_normalisation_factors()
 
             if characteristic_mass_g:
                 raw_df["capacity (mAh/g)"] = raw_df["capacity (mAh)"] / characteristic_mass_g
@@ -547,9 +546,11 @@ class CycleBlock(DataBlock):
             electrode_area_cm2: The electrode area in cm², or None if unavailable.
         """
         if cycle_summary_df is None or len(cycle_summary_df) == 0:
+            self.data["computed"] = None
             return
         # Often index 0 is a rest step with no capacity — use index 1 as the first real cycle
         if 1 not in cycle_summary_df.index:
+            self.data["computed"] = None
             return
 
         first_cycle = cycle_summary_df.loc[1]
