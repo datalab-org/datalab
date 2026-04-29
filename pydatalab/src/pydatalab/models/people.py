@@ -17,6 +17,8 @@ class IdentityType(str, Enum):
     EMAIL = "email"
     ORCID = "orcid"
     GITHUB = "github"
+    GOOGLE = "google"
+    MICROSOFT = "microsoft"
 
 
 class Identity(BaseModel):
