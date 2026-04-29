@@ -239,7 +239,9 @@ def selectable_axes_plot(
 
     - Mode B (color_options): each *point* within a single DataFrame is colored by the value of a
       numeric column, via a ColorMapper. Use this for data where a continuous quantity varies
-      per-point (e.g. EIS colored by frequency). Produces a colorbar; no legend.
+      per-point (e.g. EIS colored by frequency). Produces a colorbar. In practice this mode is
+      only used with a single DataFrame so the legend is never shown, but it is not explicitly
+      suppressed if multiple series are passed.
 
     - Mode C (series_color_values): each *series* gets a single color sampled from Viridis256
       based on a numeric value associated with that series as a whole (e.g. cycle number,
@@ -250,7 +252,8 @@ def selectable_axes_plot(
         df: Dataframe, or list/dict of dataframes from data block.
         x_options: Selectable fields to use for the x-values.
         y_options: Selectable fields to use for the y-values.
-        color_options: (Mode B) Column name to color each point by, using a ColorMapper.
+        color_options: (Mode B) List of column names for point coloring; the first entry is used
+            to color each point via a ColorMapper.
         color_mapper: (Mode B) ColorMapper instance; defaults to LinearColorMapper(Cividis256).
         series_color_values: (Mode C) Numeric value per series; length must match number of series.
         series_color_label: (Mode C) Label for the colorbar.
@@ -340,6 +343,15 @@ def selectable_axes_plot(
 
     if isinstance(df, pd.DataFrame):
         df = [df]
+
+    if series_color_values is not None:
+        n_series = len(df)
+        if len(series_color_values) != n_series:
+            raise ValueError(
+                f"series_color_values has {len(series_color_values)} entries but df has {n_series} series"
+            )
+        if n_series == 0:
+            raise ValueError("series_color_values is set but df contains no series")
 
     callbacks_x = []
     callbacks_y = []

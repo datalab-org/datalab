@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 import bokeh.embed
 from bokeh.models import HoverTool
@@ -39,9 +40,9 @@ class CVBlock(DataBlock):
             return
 
         if ext == ".mpr":
-            cv_data = parse_cv_mpr(self, file_info["location"])
+            cv_data = _split_by_cycle(parse_cv_mpr(Path(file_info["location"])))
         elif ext == ".txt":
-            cv_data = _split_by_cycle(parse_chi_cv_txt(file_info["location"]))
+            cv_data = _split_by_cycle(parse_chi_cv_txt(Path(file_info["location"])))
 
         n_cycles = len(cv_data)
         hover = HoverTool(
