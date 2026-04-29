@@ -113,6 +113,11 @@ const router = createRouter({
 });
 
 router.beforeEach(async (to, from, next) => {
+  if (to.query.token) {
+    window.location.href = API_URL + "/login/email?token=" + to.query.token;
+    return;
+  }
+
   if (to.path === "/" || (to.name === "samples" && from.path === "/")) {
     const { getUserInfo } = await import("@/server_fetch_utils.js");
     const user = await getUserInfo();
