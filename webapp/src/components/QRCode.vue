@@ -1,21 +1,23 @@
 <template>
   <div class="text-center">
-    <QRCodeVue3
-      :key="currentQRCodeUrl"
-      :value="currentQRCodeUrl"
-      :width="width"
-      :height="width"
-      :qr-options="{ typeNumber: 0, mode: 'Byte', errorCorrectionLevel: 'Q' }"
-      :image-options="{ hideBackgroundDots: false, imageSize: 0, margin: 0 }"
-      :dots-options="{
-        type: 'square',
-        color: 'black',
-      }"
-      :background-options="{ color: '#ffffff' }"
-      :corners-square-options="{ type: 'square', color: 'black' }"
-      :corners-dot-options="{ type: 'square', color: 'black' }"
-      file-ext="png"
-    />
+    <a :href="currentQRCodeUrl" target="_blank" rel="noopener noreferrer">
+      <QRCodeVue3
+        :key="currentQRCodeUrl"
+        :value="currentQRCodeUrl"
+        :width="width"
+        :height="width"
+        :qr-options="{ typeNumber: 0, mode: 'Byte', errorCorrectionLevel: 'Q' }"
+        :image-options="{ hideBackgroundDots: false, imageSize: 0, margin: 0 }"
+        :dots-options="{
+          type: 'square',
+          color: 'black',
+        }"
+        :background-options="{ color: '#ffffff' }"
+        :corners-square-options="{ type: 'square', color: 'black' }"
+        :corners-dot-options="{ type: 'square', color: 'black' }"
+        file-ext="png"
+      />
+    </a>
 
     <div
       id="qrcode-text-label"
