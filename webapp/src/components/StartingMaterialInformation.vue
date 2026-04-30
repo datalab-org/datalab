@@ -48,30 +48,28 @@
           <div class="form-group col-lg-12 col-sm-12">
             <label for="startmat-location">Location</label>
             <AutoComplete
-              v-if="isEditable"
               v-model="Location"
               input-id="startmat-location"
               :suggestions="filteredLocations"
+              :disabled="!isEditable"
               class="form-control p-0 border-0"
               input-class="form-control"
               @complete="filterLocations"
             />
-            <StyledInput v-else id="startmat-location" v-model="Location" :readonly="true" />
           </div>
         </div>
         <div class="form-row">
           <div class="form-group col-lg-3 col-sm-4">
             <label for="startmat-supplier">Supplier</label>
             <AutoComplete
-              v-if="isEditable"
               v-model="Supplier"
               input-id="startmat-supplier"
               :suggestions="filteredSuppliers"
+              :disabled="!isEditable"
               class="form-control p-0 border-0"
               input-class="form-control"
               @complete="filterSuppliers"
             />
-            <StyledInput v-else id="startmat-supplier" v-model="Supplier" :readonly="true" />
           </div>
           <div class="form-group col-lg-3 col-sm-4">
             <label for="startmat-purity">Chemical purity</label>
