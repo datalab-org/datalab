@@ -290,35 +290,13 @@
           </MultiSelect>
         </template>
 
-        <template v-else-if="column.filter && column.field === 'location'" #filter="">
+        <template
+          v-else-if="column.filter && ['location', 'supplier'].includes(column.field)"
+          #filter=""
+        >
           <MultiSelect
             v-model="filters[column.field].constraints[0].value"
-            :options="uniqueLocations"
-            placeholder="Any"
-            class="d-flex w-full"
-            :filter="true"
-            @click.stop
-          >
-            <template #value="slotProps">
-              <div class="flex flex-wrap gap-1 items-center">
-                <template v-if="slotProps.value && slotProps.value.length">
-                  <span
-                    v-for="(option, index) in slotProps.value"
-                    :key="index"
-                    class="inline-flex items-center mr-2"
-                    >{{ option }}</span
-                  >
-                </template>
-                <span v-else class="text-gray-400">Any</span>
-              </div>
-            </template>
-          </MultiSelect>
-        </template>
-
-        <template v-else-if="column.filter && column.field === 'supplier'" #filter="">
-          <MultiSelect
-            v-model="filters[column.field].constraints[0].value"
-            :options="uniqueSuppliers"
+            :options="uniqueStringValues[column.field]"
             placeholder="Any"
             class="d-flex w-full"
             :filter="true"
@@ -911,15 +889,16 @@ export default {
 
       return Array.from(blockTypesMap.values());
     },
-    uniqueLocations() {
-      return Array.from(
-        new Set(this.data.filter((item) => item.location).map((item) => item.location)),
-      ).sort();
-    },
-    uniqueSuppliers() {
-      return Array.from(
-        new Set(this.data.filter((item) => item.supplier).map((item) => item.supplier)),
-      ).sort();
+    uniqueStringValues() {
+      const fields = ["location", "supplier"];
+      return Object.fromEntries(
+        fields.map((field) => [
+          field,
+          Array.from(
+            new Set(this.data.filter((item) => item[field]).map((item) => item[field])),
+          ).sort(),
+        ]),
+      );
     },
     uniqueStatus() {
       return Array.from(
@@ -1154,25 +1133,14 @@ export default {
       return value.some((itemBlock) => itemBlock.blocktype === filterValue.blocktype);
     });
 
-    FilterService.register("exactLocationMatch", (value, filterValue) => {
+    const exactStringMatch = (value, filterValue) => {
       if (!filterValue || (Array.isArray(filterValue) && filterValue.length === 0)) {
         return true;
       }
-      if (Array.isArray(filterValue)) {
-        return filterValue.includes(value);
-      }
-      return filterValue === value;
-    });
-
-    FilterService.register("exactSupplierMatch", (value, filterValue) => {
-      if (!filterValue || (Array.isArray(filterValue) && filterValue.length === 0)) {
-        return true;
-      }
-      if (Array.isArray(filterValue)) {
-        return filterValue.includes(value);
-      }
-      return filterValue === value;
-    });
+      return Array.isArray(filterValue) ? filterValue.includes(value) : filterValue === value;
+    };
+    FilterService.register("exactLocationMatch", exactStringMatch);
+    FilterService.register("exactSupplierMatch", exactStringMatch);
 
     FilterService.register("exactStatusMatch", (value, filterValue) => {
       if (!filterValue || (Array.isArray(filterValue) && filterValue.length === 0)) {
