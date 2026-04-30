@@ -600,3 +600,128 @@ def test_collection_permissions_update_via_group(admin_client, client, another_c
 
         listing = c.get("/collections").json["data"]
         assert any(entry["collection_id"] == collection_id for entry in listing)
+
+
+def test_item_inherits_collection_read_access(admin_client, client, another_client, group_id):
+    """An item that is a member of a collection should be readable by anyone
+    who can read the collection, even if they are not directly named on the
+    item's `creator_ids` / `group_ids`. Write access does NOT inherit."""
+
+    item_id = "inherited-access-sample"
+    collection_id = "collection-with-inherited-item"
+
+    response = admin_client.post("/new-sample/", json={"type": "samples", "item_id": item_id})
+    assert response.status_code == 201, response.json
+    refcode = response.json["sample_list_entry"]["refcode"]
+
+    # Normal users cannot see it before the collection share
+    assert client.get(f"/items/{refcode}").status_code == 404
+    assert another_client.get(f"/items/{refcode}").status_code == 404
+
+    response = admin_client.put(
+        "/collections",
+        json={
+            "data": {
+                "collection_id": collection_id,
+                "title": "Collection that grants access",
+                "type": "collections",
+                "groups": [{"immutable_id": str(group_id)}],
+                "starting_members": [{"item_id": item_id}],
+            }
+        },
+    )
+    assert response.status_code == 201, response.json
+
+    # Group members can now read the item via inherited access
+    for c in (client, another_client):
+        response = c.get(f"/items/{refcode}")
+        assert response.status_code == 200, response.json
+        assert response.json["item_data"]["item_id"] == item_id
+
+    # But the item does NOT show up in their default /samples/ listing —
+    # that view is intentionally restricted to items the user directly owns
+    # or has been shared on. Collection-shared items are discoverable by
+    # navigating into the collection itself.
+    for c in (client, another_client):
+        listing = c.get("/samples/").json["samples"]
+        assert all(entry["item_id"] != item_id for entry in listing), (
+            f"inherited item should not appear in default /samples/ listing for {c}"
+        )
+
+    # But write access is NOT inherited
+    response = client.post(
+        "/save-item/", json={"item_id": item_id, "data": {"description": "hijack"}}
+    )
+    assert response.status_code != 200, response.json
+
+    response = client.post("/delete-sample/", json={"item_id": item_id})
+    assert response.status_code != 200, response.json
+
+
+def test_item_loses_inherited_access_when_removed_from_collection(
+    admin_client, client, group_id, database
+):
+    """Removing an item from a collection should revoke the inherited read access."""
+
+    item_id = "soon-to-be-removed-item"
+    collection_id = "collection-revoking-access"
+
+    response = admin_client.post("/new-sample/", json={"type": "samples", "item_id": item_id})
+    assert response.status_code == 201
+    refcode = response.json["sample_list_entry"]["refcode"]
+
+    response = admin_client.put(
+        "/collections",
+        json={
+            "data": {
+                "collection_id": collection_id,
+                "title": "Revoking collection",
+                "type": "collections",
+                "groups": [{"immutable_id": str(group_id)}],
+                "starting_members": [{"item_id": item_id}],
+            }
+        },
+    )
+    assert response.status_code == 201
+
+    assert client.get(f"/items/{refcode}").status_code == 200
+
+    database.items.update_one(
+        {"item_id": item_id},
+        {"$pull": {"relationships": {"type": "collections"}}},
+    )
+
+    assert client.get(f"/items/{refcode}").status_code == 404
+
+
+def test_item_loses_inherited_access_when_collection_unshared(admin_client, client, group_id):
+    """Revoking the group share on the collection should revoke inherited
+    access to its member items."""
+
+    item_id = "item-via-unshared-collection"
+    collection_id = "collection-to-unshare"
+
+    response = admin_client.post("/new-sample/", json={"type": "samples", "item_id": item_id})
+    assert response.status_code == 201
+    refcode = response.json["sample_list_entry"]["refcode"]
+
+    response = admin_client.put(
+        "/collections",
+        json={
+            "data": {
+                "collection_id": collection_id,
+                "title": "About to be unshared",
+                "type": "collections",
+                "groups": [{"immutable_id": str(group_id)}],
+                "starting_members": [{"item_id": item_id}],
+            }
+        },
+    )
+    assert response.status_code == 201
+
+    assert client.get(f"/items/{refcode}").status_code == 200
+
+    response = admin_client.patch(f"/collections/{collection_id}/permissions", json={"groups": []})
+    assert response.status_code == 200
+
+    assert client.get(f"/items/{refcode}").status_code == 404

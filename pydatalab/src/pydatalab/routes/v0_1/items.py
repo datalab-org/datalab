@@ -88,7 +88,7 @@ def get_starting_materials():
                 {
                     "$match": {
                         "type": "starting_materials",
-                        **get_default_permissions(user_only=False),
+                        **get_default_permissions(user_only=False, inherit_from_collections=False),
                     }
                 },
                 {
@@ -215,7 +215,7 @@ def get_samples_summary(match: dict | None = None, project: dict | None = None) 
     """
     if not match:
         match = {}
-    match.update(get_default_permissions(user_only=False))
+    match.update(get_default_permissions(user_only=False, inherit_from_collections=False))
     match["type"] = {"$in": ["samples", "cells"]}
 
     _project = {
