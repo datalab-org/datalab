@@ -445,3 +445,158 @@ def test_admin_super_user_mode(admin_client, client):
     # Admin can still PATCH/DELETE user's item without ?sudo=1 (non-GET methods unaffected)
     response = admin_client.patch(f"/items/{user_refcode}/permissions", json={"creators": []})
     assert response.status_code == 200
+
+
+def test_collection_permissions_update(admin_client, client, user_id, another_client):
+    """Admin creates a collection, shares it with a normal user via the
+    `/collections/<id>/permissions` endpoint, and verifies that the user can
+    then access it (whilst a third user still cannot)."""
+
+    collection_id = "shared-collection"
+    response = admin_client.put(
+        "/collections",
+        json={
+            "data": {
+                "collection_id": collection_id,
+                "title": "Shared collection",
+                "type": "collections",
+            }
+        },
+    )
+    assert response.status_code == 201, response.json
+
+    # Normal user cannot see it yet
+    assert client.get(f"/collections/{collection_id}").status_code == 404
+    # And it does not show up in their listing
+    listing = client.get("/collections").json["data"]
+    assert all(c["collection_id"] != collection_id for c in listing)
+
+    # Admin shares the collection with the normal user
+    response = admin_client.patch(
+        f"/collections/{collection_id}/permissions",
+        json={"creators": [{"immutable_id": str(user_id)}]},
+    )
+    assert response.status_code == 200, response.json
+
+    # Normal user can now access it
+    response = client.get(f"/collections/{collection_id}")
+    assert response.status_code == 200, response.json
+    assert response.json["data"]["collection_id"] == collection_id
+
+    # And it now appears in their listing
+    listing = client.get("/collections").json["data"]
+    assert any(c["collection_id"] == collection_id for c in listing)
+
+    # A third user without permission still cannot see it, nor does it show
+    # up in their listing
+    assert another_client.get(f"/collections/{collection_id}").status_code == 404
+    listing = another_client.get("/collections").json["data"]
+    assert all(c["collection_id"] != collection_id for c in listing)
+
+    # A non-permitted user cannot grant themselves access
+    response = another_client.patch(
+        f"/collections/{collection_id}/permissions",
+        json={"creators": [{"immutable_id": str(user_id)}]},
+    )
+    assert response.status_code != 200
+
+
+def test_collection_create_with_inlined_groups(admin_client, database, group_id):
+    """Creating a collection with an inlined `groups` payload (as the frontend
+    sends) should populate `group_ids` in the stored document, but should NOT
+    persist the inlined `groups` field — that is reserved for the read-time
+    `$lookup` join."""
+
+    collection_id = "collection-with-inlined-groups"
+    response = admin_client.put(
+        "/collections",
+        json={
+            "data": {
+                "collection_id": collection_id,
+                "title": "Collection with inlined groups",
+                "type": "collections",
+                "groups": [{"immutable_id": str(group_id)}],
+            }
+        },
+    )
+    assert response.status_code == 201, response.json
+
+    stored = database.collections.find_one({"collection_id": collection_id})
+    assert stored is not None
+    assert stored.get("group_ids") == [group_id]
+    # The inlined `groups` payload from the request must not be persisted —
+    # otherwise the read-time $lookup is shadowed by stale data.
+    assert "groups" not in stored or stored["groups"] is None
+
+
+def test_collection_visible_via_group_membership(admin_client, client, another_client, group_id):
+    """A collection shared with a group should be visible (both via the
+    listing and the detail endpoint) to all members of that group, not just
+    direct creators."""
+
+    collection_id = "group-shared-collection"
+    response = admin_client.put(
+        "/collections",
+        json={
+            "data": {
+                "collection_id": collection_id,
+                "title": "Group-shared collection",
+                "type": "collections",
+                "groups": [{"immutable_id": str(group_id)}],
+            }
+        },
+    )
+    assert response.status_code == 201, response.json
+
+    # Both group members can see it on the detail endpoint
+    assert client.get(f"/collections/{collection_id}").status_code == 200
+    assert another_client.get(f"/collections/{collection_id}").status_code == 200
+
+    # And, crucially, it must show up on the listing endpoint — the listing
+    # match must not be constrained to user_only permissions, otherwise
+    # group-shared collections never appear.
+    for c in (client, another_client):
+        listing = c.get("/collections").json["data"]
+        assert any(entry["collection_id"] == collection_id for entry in listing), (
+            f"group-shared collection missing from /collections listing for {c}"
+        )
+
+
+def test_collection_permissions_update_via_group(admin_client, client, another_client, group_id):
+    """Admin creates a collection, then shares it with a group via the
+    `/collections/<id>/permissions` endpoint, and verifies that members of
+    that group can access it (both detail and listing)."""
+
+    collection_id = "group-shared-via-patch"
+    response = admin_client.put(
+        "/collections",
+        json={
+            "data": {
+                "collection_id": collection_id,
+                "title": "Group-shared via PATCH",
+                "type": "collections",
+            }
+        },
+    )
+    assert response.status_code == 201, response.json
+
+    # Group members cannot see it yet
+    assert client.get(f"/collections/{collection_id}").status_code == 404
+    listing = client.get("/collections").json["data"]
+    assert all(c["collection_id"] != collection_id for c in listing)
+
+    # Admin shares the collection with the group
+    response = admin_client.patch(
+        f"/collections/{collection_id}/permissions",
+        json={"groups": [{"immutable_id": str(group_id)}]},
+    )
+    assert response.status_code == 200, response.json
+
+    # Both group members now have access via detail and listing
+    for c in (client, another_client):
+        response = c.get(f"/collections/{collection_id}")
+        assert response.status_code == 200, response.json
+        assert response.json["data"]["collection_id"] == collection_id
+
+        listing = c.get("/collections").json["data"]
+        assert any(entry["collection_id"] == collection_id for entry in listing)
