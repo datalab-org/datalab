@@ -290,6 +290,56 @@
           </MultiSelect>
         </template>
 
+        <template v-else-if="column.filter && column.field === 'location'" #filter="">
+          <MultiSelect
+            v-model="filters[column.field].constraints[0].value"
+            :options="uniqueLocations"
+            placeholder="Any"
+            class="d-flex w-full"
+            :filter="true"
+            @click.stop
+          >
+            <template #value="slotProps">
+              <div class="flex flex-wrap gap-1 items-center">
+                <template v-if="slotProps.value && slotProps.value.length">
+                  <span
+                    v-for="(option, index) in slotProps.value"
+                    :key="index"
+                    class="inline-flex items-center mr-2"
+                    >{{ option }}</span
+                  >
+                </template>
+                <span v-else class="text-gray-400">Any</span>
+              </div>
+            </template>
+          </MultiSelect>
+        </template>
+
+        <template v-else-if="column.filter && column.field === 'supplier'" #filter="">
+          <MultiSelect
+            v-model="filters[column.field].constraints[0].value"
+            :options="uniqueSuppliers"
+            placeholder="Any"
+            class="d-flex w-full"
+            :filter="true"
+            @click.stop
+          >
+            <template #value="slotProps">
+              <div class="flex flex-wrap gap-1 items-center">
+                <template v-if="slotProps.value && slotProps.value.length">
+                  <span
+                    v-for="(option, index) in slotProps.value"
+                    :key="index"
+                    class="inline-flex items-center mr-2"
+                    >{{ option }}</span
+                  >
+                </template>
+                <span v-else class="text-gray-400">Any</span>
+              </div>
+            </template>
+          </MultiSelect>
+        </template>
+
         <template v-else-if="column.filter && column.field === 'date'" #filter="{ filterModel }">
           <div style="display: flex; flex-direction: column; gap: 0.5rem" @click.stop>
             <Select
@@ -697,7 +747,11 @@ export default {
         },
         location: {
           operator: FilterOperator.AND,
-          constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
+          constraints: [{ value: null, matchMode: "exactLocationMatch" }],
+        },
+        supplier: {
+          operator: FilterOperator.AND,
+          constraints: [{ value: null, matchMode: "exactSupplierMatch" }],
         },
         collections: {
           operator: FilterOperator.AND,
@@ -856,6 +910,16 @@ export default {
       blockTypesMap.set("__no_blocks__", { blocktype: "__no_blocks__", label: "No blocks" });
 
       return Array.from(blockTypesMap.values());
+    },
+    uniqueLocations() {
+      return Array.from(
+        new Set(this.data.filter((item) => item.location).map((item) => item.location)),
+      ).sort();
+    },
+    uniqueSuppliers() {
+      return Array.from(
+        new Set(this.data.filter((item) => item.supplier).map((item) => item.supplier)),
+      ).sort();
     },
     uniqueStatus() {
       return Array.from(
@@ -1088,6 +1152,26 @@ export default {
       }
 
       return value.some((itemBlock) => itemBlock.blocktype === filterValue.blocktype);
+    });
+
+    FilterService.register("exactLocationMatch", (value, filterValue) => {
+      if (!filterValue || (Array.isArray(filterValue) && filterValue.length === 0)) {
+        return true;
+      }
+      if (Array.isArray(filterValue)) {
+        return filterValue.includes(value);
+      }
+      return filterValue === value;
+    });
+
+    FilterService.register("exactSupplierMatch", (value, filterValue) => {
+      if (!filterValue || (Array.isArray(filterValue) && filterValue.length === 0)) {
+        return true;
+      }
+      if (Array.isArray(filterValue)) {
+        return filterValue.includes(value);
+      }
+      return filterValue === value;
     });
 
     FilterService.register("exactStatusMatch", (value, filterValue) => {
