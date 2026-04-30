@@ -50,6 +50,7 @@ export default {
           filter: true,
           label: "Collections",
         },
+        { field: "supplier", header: "Supplier", label: "Supplier", filter: true },
         { field: "location", header: "Location", label: "Location", filter: true },
         {
           field: "blocks",
