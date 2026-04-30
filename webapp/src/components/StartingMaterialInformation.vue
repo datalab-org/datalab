@@ -50,6 +50,7 @@
             <AutoComplete
               v-if="isEditable"
               v-model="Location"
+              input-id="startmat-location"
               :suggestions="filteredLocations"
               class="form-control p-0 border-0"
               input-class="form-control"
@@ -64,6 +65,7 @@
             <AutoComplete
               v-if="isEditable"
               v-model="Supplier"
+              input-id="startmat-supplier"
               :suggestions="filteredSuppliers"
               class="form-control p-0 border-0"
               input-class="form-control"
