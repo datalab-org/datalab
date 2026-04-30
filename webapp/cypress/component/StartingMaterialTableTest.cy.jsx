@@ -97,7 +97,7 @@ describe("StartingMaterialTable Component Tests", () => {
   });
 
   it("displays data from the Vuex store", () => {
-    cy.getColumnIndices({ checkbox: 0, barcode: 3, nblocks: 8, nfiles: 9 }).then(
+    cy.getColumnIndices({ checkbox: 0, barcode: 3, nblocks: 9, nfiles: 10 }).then(
       (columnIndices) => {
         // First row - material1
         cy.get(".p-datatable-tbody")
@@ -127,7 +127,7 @@ describe("StartingMaterialTable Component Tests", () => {
   });
 
   it("renders the component FormattedItemName", () => {
-    cy.getColumnIndices({ checkbox: 0, barcode: 3, nblocks: 8, nfiles: 9 }).then(
+    cy.getColumnIndices({ checkbox: 0, barcode: 3, nblocks: 9, nfiles: 10 }).then(
       (columnIndices) => {
         cy.get(".p-datatable-tbody tr")
           .eq(0)
@@ -144,7 +144,7 @@ describe("StartingMaterialTable Component Tests", () => {
   });
 
   it("renders the component FormattedBarcode", () => {
-    cy.getColumnIndices({ checkbox: 0, barcode: 3, nblocks: 8, nfiles: 9 }).then(
+    cy.getColumnIndices({ checkbox: 0, barcode: 3, nblocks: 9, nfiles: 10 }).then(
       (columnIndices) => {
         cy.get(".p-datatable-tbody tr")
           .eq(0)
