@@ -26,7 +26,7 @@ def _(): ...
 def get_collections():
     collections = flask_mongo.db.collections.aggregate(
         [
-            {"$match": get_default_permissions(user_only=True)},
+            {"$match": get_default_permissions(user_only=False)},
             {"$lookup": creators_lookup()},
             {"$lookup": groups_lookup()},
             {"$project": {"_id": 0}},
@@ -44,7 +44,7 @@ def get_collection(collection_id):
             {
                 "$match": {
                     "collection_id": collection_id,
-                    **get_default_permissions(user_only=True),
+                    **get_default_permissions(user_only=False),
                 }
             },
             {"$lookup": creators_lookup()},
@@ -168,7 +168,7 @@ def create_collection():
         )
 
     result: InsertOneResult = flask_mongo.db.collections.insert_one(
-        data_model.dict(exclude={"creators"})
+        data_model.dict(exclude={"creators", "groups"})
     )
     if not result.acknowledged:
         return (
@@ -248,7 +248,15 @@ def save_collection(collection_id):
         )
 
     # These keys should not be updated here and cannot be modified by the user through this endpoint
-    for k in ("_id", "file_ObjectIds", "creators", "creator_ids", "collection_id"):
+    for k in (
+        "_id",
+        "file_ObjectIds",
+        "creators",
+        "creator_ids",
+        "collection_id",
+        "groups",
+        "group_ids",
+    ):
         if k in updated_data:
             del updated_data[k]
 
@@ -512,7 +520,7 @@ def search_collections():
     if not query:
         return jsonify({"status": "error", "message": "No query provided."}), 400
 
-    permissions = get_default_permissions(user_only=True)
+    permissions = get_default_permissions(user_only=False)
     pipeline = build_search_pipeline(query, COLLECTIONS_FTS_FIELDS, permissions)
     pipeline.append({"$limit": nresults})
 
