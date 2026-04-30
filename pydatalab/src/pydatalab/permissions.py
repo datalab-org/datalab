@@ -144,24 +144,13 @@ def check_access_token(refcode: str, token: str | None = None) -> bool:
         return False
 
 
-def get_default_permissions(
+def _get_base_permissions(
     user_only: bool = True, deleting: bool = False, elevate_permissions: bool = False
 ) -> dict[str, Any]:
-    """Return the MongoDB query terms corresponding to the current user.
-
-    Will return open permissions if a) the `CONFIG.TESTING` parameter is `True`,
-    or b) if the current user is registered as an admin and has opted into super-user
-    mode via `?sudo=1` (for GET requests) or is performing a write operation.
-
-    Parameters:
-        user_only: Whether to exclude items that also have no attached user (`False`),
-            i.e., public items. This should be set to `False` when reading (and wanting
-            to return public items), but left as `True` when modifying or removing items.
-        elevate_permissions: Whether to elevate this query's permissions, i.e., in the case
-            that an item-specific access token has been provided elsewhere.
-
+    """Build the MongoDB permission filter without collection-inheritance —
+    i.e., based purely on `creator_ids`/`group_ids` and the various admin/
+    testing/access-token short-circuits.
     """
-
     if CONFIG.TESTING:
         return {}
 
@@ -240,3 +229,63 @@ def get_default_permissions(
         return {"_id": -1}
 
     return null_perm
+
+
+def get_default_permissions(
+    user_only: bool = True,
+    deleting: bool = False,
+    elevate_permissions: bool = False,
+    inherit_from_collections: bool = True,
+) -> dict[str, Any]:
+    """Return the MongoDB query terms corresponding to the current user.
+
+    Will return open permissions if a) the `CONFIG.TESTING` parameter is `True`,
+    or b) if the current user is registered as an admin and has opted into super-user
+    mode via `?sudo=1` (for GET requests) or is performing a write operation.
+
+    For read paths (`user_only=False`), the filter is by default widened to
+    include any document whose `relationships` link it to a collection the
+    current user can read — i.e., items inherit read access from collections
+    they are members of. Write paths (`user_only=True`) never inherit;
+    collection membership grants read but not edit/delete on member items.
+
+    Parameters:
+        user_only: Whether to exclude items that also have no attached user (`False`),
+            i.e., public items. This should be set to `False` when reading (and wanting
+            to return public items), but left as `True` when modifying or removing items.
+        elevate_permissions: Whether to elevate this query's permissions, i.e., in the case
+            that an item-specific access token has been provided elsewhere.
+        inherit_from_collections: Whether read access should be inherited from
+            collections the user can read. Set this to `False` for endpoints
+            that should only show items the user directly owns or is a member
+            of (e.g., a "My samples" listing) — the user can still discover
+            collection-shared items by navigating into the collection. Has
+            no effect when `user_only=True`.
+
+    """
+    base = _get_base_permissions(
+        user_only=user_only, deleting=deleting, elevate_permissions=elevate_permissions
+    )
+    # Inheritance is read-only, and unnecessary when the base already
+    # short-circuits to a fully-open or fully-closed filter.
+    if user_only or not inherit_from_collections or base == {} or base == {"_id": -1}:
+        return base
+
+    collection_ids = [
+        doc["_id"]
+        for doc in flask_mongo.db.collections.find(
+            _get_base_permissions(user_only=False), {"_id": 1}
+        )
+    ]
+    if not collection_ids:
+        return base
+
+    inheritance = {
+        "relationships": {
+            "$elemMatch": {"type": "collections", "immutable_id": {"$in": collection_ids}}
+        }
+    }
+
+    if "$or" in base and len(base) == 1:
+        return {"$or": [*base["$or"], inheritance]}
+    return {"$or": [base, inheritance]}
