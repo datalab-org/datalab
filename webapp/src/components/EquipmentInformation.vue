@@ -36,6 +36,7 @@
         <label for="equip-location" class="mr-2">Location</label>
         <AutoComplete
           v-model="Location"
+          input-id="equip-location"
           :suggestions="filteredLocations"
           class="form-control p-0 border-0"
           input-class="form-control"
