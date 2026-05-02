@@ -19,19 +19,25 @@
           </div>
         </div>
         <div class="form-row">
-          <div class="form-group col-md-3 col-sm-3 col-3 pr-2">
+          <div class="form-group col-md-3 col-sm-3 col-3">
             <label for="cell-refcode">Refcode</label>
             <div id="cell-refcode">
               <FormattedRefcode :refcode="Refcode" />
             </div>
           </div>
-          <div class="form-group col-md-3 col-sm-3 col-3 pr-2">
+          <div class="form-group col-md-3 col-sm-3 col-3 pb-3">
             <ToggleableItemStatusFormGroup
               v-model="Status"
               :possible-item-statuses="possibleItemStatuses"
             />
           </div>
-          <div class="col-md-6 col-6 col-sm-6 pr-2">
+          <div class="form-group col-md-3 col-sm-3 col-3 pb-3">
+            <ToggleableItemAvailabilityFormGroup
+              v-model="Availability"
+              :possible-item-availabilities="possibleItemAvailabilities"
+            />
+          </div>
+          <div class="form-group col-md-3 col-sm-3 col-3 pr-2">
             <ToggleableCollectionFormGroup v-model="Collections" />
           </div>
         </div>
@@ -126,6 +132,7 @@ import ToggleableCollectionFormGroup from "@/components/ToggleableCollectionForm
 import ToggleableCreatorsFormGroup from "@/components/ToggleableCreatorsFormGroup";
 import ToggleableItemStatusFormGroup from "@/components/ToggleableItemStatusFormGroup";
 import ToggleableGroupsFormGroup from "@/components/ToggleableGroupsFormGroup";
+import ToggleableItemAvailabilityFormGroup from "@/components/ToggleableItemAvailabilityFormGroup";
 import { cellFormats } from "@/resources.js";
 
 export default {
@@ -140,6 +147,7 @@ export default {
     ToggleableCreatorsFormGroup,
     ToggleableItemStatusFormGroup,
     ToggleableGroupsFormGroup,
+    ToggleableItemAvailabilityFormGroup,
   },
   props: {
     item_id: {
@@ -180,6 +188,10 @@ export default {
     },
     possibleItemStatuses() {
       return this.schema?.attributes?.schema?.definitions?.CellStatus?.enum;
+    },
+    Availability: createComputedSetterForItemField("availability"),
+    possibleItemAvailabilities() {
+      return this.schema?.attributes?.schema?.definitions?.ItemAvailability?.enum;
     },
   },
 };

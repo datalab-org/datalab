@@ -1,8 +1,8 @@
-from pydantic import Field, validator
+from pydantic import Field, root_validator, validator
 
 from pydatalab.models.items import Item
 from pydatalab.models.traits import HasSynthesisInfo
-from pydatalab.models.utils import IsoformatDateTime, StartingMaterialsStatus
+from pydatalab.models.utils import IsoformatDateTime, ItemAvailability, StartingMaterialsStatus
 
 
 class StartingMaterial(Item, HasSynthesisInfo):
@@ -69,8 +69,29 @@ class StartingMaterial(Item, HasSynthesisInfo):
     comment: str | None = Field(alias="Comments")
     """Any additional comments or notes about the container."""
 
-    status: StartingMaterialsStatus = Field(default=StartingMaterialsStatus.AVAILABLE)
-    """The status of the starting materials, indicating its current state."""
+    status: StartingMaterialsStatus | None = Field(default=None)
+    """The operational status of the starting material (ordered, planned, disposed, etc.)."""
+
+    availability: ItemAvailability = Field(default=ItemAvailability.AVAILABLE)
+    """The availability status of the starting material (available, unavailable, exhausted)."""
+
+    @root_validator(pre=True)
+    def split_legacy_status(cls, values):
+        """Map legacy 'status' field to new 'status' and 'availability' fields"""
+        if "status" in values and values["status"] is not None:
+            legacy_status = values["status"]
+
+            availability_values = ["available", "unavailable", "exhausted"]
+            if legacy_status in availability_values:
+                values.setdefault("availability", legacy_status)
+                if "status" in values:
+                    del values["status"]
+
+            operational_values = ["ordered", "planned", "disposed", "other"]
+            if legacy_status in operational_values:
+                values.setdefault("status", legacy_status)
+
+        return values
 
     @validator("molar_mass")
     def add_molar_mass(cls, v, values):
