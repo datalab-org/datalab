@@ -22,6 +22,15 @@ from pydatalab.permissions import get_default_permissions
 LIVE_FILE_CUTOFF = datetime.timedelta(days=31)
 
 
+class NotModified(RuntimeError):
+    """Raised when an update operation is attempted on a file,
+    but the content of the file is the same as the existing version
+    (as determined by matching hashes).
+    """
+
+    ...
+
+
 def get_space_available_bytes() -> int:
     """For the configured file location, return the number of available bytes, as
     ascertained from the filesystem blocksize and available block count (via Unix-specific
@@ -36,11 +45,13 @@ def get_space_available_bytes() -> int:
     return stats.f_bsize * stats.f_bavail
 
 
-def compute_file_hashes(file_path: str) -> dict[str, str]:
-    """Compute MD5 and SHA-256 hashes of a file, reading in chunks.
+def compute_file_hashes_and_sizes(
+    file_path: str | pathlib.Path | FileStorage,
+) -> tuple[dict[str, str], int]:
+    """Compute MD5 and SHA-256 hashes of a file, reading in chunks, as well as the file size in bytes.
 
     Args:
-        file_path: The path to the file on disk.
+        file_path: The path to the file on disk, or a byte stream.
 
     Returns:
         A dictionary with 'md5' and 'sha256' hex digest strings.
@@ -48,11 +59,26 @@ def compute_file_hashes(file_path: str) -> dict[str, str]:
     """
     md5 = hashlib.md5()  # noqa: S324
     sha256 = hashlib.sha256()
-    with open(file_path, "rb") as f:
-        for chunk in iter(lambda: f.read(65536), b""):
+
+    try:
+        if isinstance(file_path, FileStorage):
+            fp = file_path
+
+        else:
+            file_path = pathlib.Path(file_path)
+            fp = open(file_path, "rb")
+        for chunk in iter(lambda: fp.read(65536), b""):
             md5.update(chunk)
             sha256.update(chunk)
-    return {"md5": md5.hexdigest(), "sha256": sha256.hexdigest()}
+
+        size = fp.tell()
+        fp.seek(0)
+
+    finally:
+        if isinstance(file_path, pathlib.Path):
+            fp.close()
+
+    return ({"md5": md5.hexdigest(), "sha256": sha256.hexdigest()}, size)
 
 
 def _escape_spaces_scp_path(remote_path: str) -> str:
@@ -220,12 +246,12 @@ def _check_and_sync_file(file_info: File, file_id: ObjectId) -> File:
         if datetime.datetime.now(tz=datetime.timezone.utc) - remote_timestamp > LIVE_FILE_CUTOFF:
             is_live = False
 
-        hashes = compute_file_hashes(file_info.location)
+        hashes, size_bytes = compute_file_hashes_and_sizes(file_info.location)
         updated_file_info = file_collection.find_one_and_update(
             {"_id": file_id, **get_default_permissions(user_only=False)},
             {
                 "$set": {
-                    "size": local_stat_results.st_size,
+                    "size": size_bytes,
                     "last_modified": datetime.datetime.fromtimestamp(
                         local_stat_results.st_mtime, tz=datetime.timezone.utc
                     ),
@@ -321,10 +347,23 @@ def update_uploaded_file(file: FileStorage, file_id: ObjectId, size_bytes: int |
         file_id: The database ID of the file to update.
         size_bytes: A hint for the file size in bytes, will be used to verify ahead of time whether
 
+    Raises:
+        NotModified: If the file content is the same as the existing file (as determined by matching hashes).
+
     """
 
     last_modified = datetime.datetime.now(tz=datetime.timezone.utc).isoformat()
     file_collection = flask_mongo.db.files
+
+    hashes, size_bytes = compute_file_hashes_and_sizes(file)
+
+    if file_collection.find_one(
+        {"_id": file_id, **get_default_permissions(user_only=False), "checksums": hashes}
+    ):
+        # Hashes already match, return no-op
+        raise NotModified(
+            f"File with id {file_id} has not been modified, hashes match existing version."
+        )
 
     updated_file_entry = file_collection.find_one_and_update(
         {"_id": file_id, **get_default_permissions(user_only=False)},
@@ -333,10 +372,26 @@ def update_uploaded_file(file: FileStorage, file_id: ObjectId, size_bytes: int |
                 "last_modified": last_modified,
                 "source": "remote",
                 "is_live": False,
+                "size": size_bytes,
+                "checksums": hashes,
             },
             "$inc": {"revision": 1},
         },
         return_document=ReturnDocument.AFTER,
+    )
+
+    # Also update any items and blocks that have this file attached
+    item_collection = flask_mongo.db.items
+    item_collection.update_many(
+        {
+            "file_ObjectIds": {"$in": [file_id]},
+            **get_default_permissions(user_only=False),
+        },
+        {
+            "$set": {
+                "last_modified": last_modified,
+            }
+        },
     )
 
     if not updated_file_entry:
@@ -349,13 +404,6 @@ def update_uploaded_file(file: FileStorage, file_id: ObjectId, size_bytes: int |
         raise RuntimeError("Cannot update file with no location set: %s", updated_file_entry)
 
     file.save(updated_file_entry.location)
-    size_bytes = os.path.getsize(updated_file_entry.location)  # type: ignore[arg-type]
-    hashes = compute_file_hashes(updated_file_entry.location)
-
-    file_collection.update_one(
-        {"_id": file_id, **get_default_permissions(user_only=False)},
-        {"$set": {"size": size_bytes, "checksums": hashes}},
-    )
 
     ret = updated_file_entry.dict()
     ret.update({"_id": file_id})
@@ -415,9 +463,12 @@ def save_uploaded_file(
     if not last_modified:
         last_modified = datetime.datetime.now(tz=datetime.timezone.utc).isoformat()
 
+    hashes, size_bytes = compute_file_hashes_and_sizes(file)
+
     new_file_document = File(
         name=filename,
         original_name=file.filename,  # not escaped
+        checksums=hashes,
         location=None,  # file storage location in datalab. Important! will be filled in below
         url_path=None,  # the url used to access this file. Important! will be filled in below
         extension=extension,
@@ -460,14 +511,11 @@ def save_uploaded_file(
         pathlib.Path(new_directory).mkdir(exist_ok=False)
         file.save(file_location)
 
-    hashes = compute_file_hashes(file_location)
     updated_file_entry = flask_mongo.db.files.find_one_and_update(
         {"_id": inserted_id, **get_default_permissions(user_only=False)},
         {
             "$set": {
                 "location": file_location,
-                "size": os.path.getsize(file_location),
-                "checksums": hashes,
             }
         },
         return_document=ReturnDocument.AFTER,
@@ -479,7 +527,7 @@ def save_uploaded_file(
     for item_id in item_ids:
         sample_update_result = flask_mongo.db.items.update_one(
             {"item_id": item_id, **get_default_permissions(user_only=True)},
-            {"$push": {"file_ObjectIds": inserted_id}},
+            {"$push": {"file_ObjectIds": inserted_id}, "$set": {"last_modified": last_modified}},
         )
         if sample_update_result.modified_count != 1:
             raise OSError(
@@ -572,7 +620,7 @@ def add_file_from_remote_directory(
     new_file_location = os.path.join(new_directory, filename)
     pathlib.Path(new_directory).mkdir(exist_ok=True)
     _sync_file_with_remote(full_remote_path, new_file_location)
-    hashes = compute_file_hashes(new_file_location)
+    hashes, size_bytes = compute_file_hashes_and_sizes(new_file_location)
 
     updated_file_entry = file_collection.find_one_and_update(
         {"_id": inserted_id, **get_default_permissions(user_only=False)},
@@ -581,6 +629,7 @@ def add_file_from_remote_directory(
                 "location": new_file_location,
                 "url_path": new_file_location,
                 "checksums": hashes,
+                "size": size_bytes,
             }
         },
         return_document=ReturnDocument.AFTER,
@@ -588,7 +637,10 @@ def add_file_from_remote_directory(
 
     sample_update_result = sample_collection.update_one(
         {"item_id": item_id, **get_default_permissions(user_only=True)},
-        {"$push": {"file_ObjectIds": inserted_id}},
+        {
+            "$push": {"file_ObjectIds": inserted_id},
+            "$set": {"last_modified": new_file_document.last_modified},
+        },
     )
     if sample_update_result.modified_count != 1:
         raise OSError(
@@ -629,7 +681,10 @@ def remove_file_from_sample(item_id: str | ObjectId, file_id: str | ObjectId) ->
     file_collection = flask_mongo.db.files
     sample_result = sample_collection.update_one(
         {"item_id": item_id, **get_default_permissions(user_only=True)},
-        {"$pull": {"file_ObjectIds": file_id}},
+        {
+            "$pull": {"file_ObjectIds": file_id},
+            "$set": {"last_modified": datetime.datetime.now(tz=datetime.timezone.utc).isoformat()},
+        },
     )
 
     if sample_result.modified_count < 1:

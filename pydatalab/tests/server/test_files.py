@@ -37,6 +37,9 @@ def test_too_large_upload(client, tmpdir, insert_default_sample, default_sample)
 
 @pytest.mark.dependency()
 def test_upload(client, default_filepath, insert_default_sample, default_sample):  # pylint: disable=unused-argument
+
+    item_before = client.get(f"/get-item-data/{default_sample.item_id}").json["item_data"]
+
     with open(default_filepath, "rb") as f:
         response = client.post(
             "/upload-file/",
@@ -50,10 +53,13 @@ def test_upload(client, default_filepath, insert_default_sample, default_sample)
                 "relativePath": "null",
             },
         )
+
+    item_after = client.get(f"/get-item-data/{default_sample.item_id}").json["item_data"]
     assert isinstance(response.json["file_id"], str)
     assert response.json["file_information"]
     assert response.json["status"] == "success"
     assert response.status_code == 201
+    assert item_before["last_modified"] != item_after["last_modified"]
 
 
 @pytest.mark.dependency(depends=["test_upload"])
@@ -108,7 +114,11 @@ def test_get_file_and_delete(client, default_filepath, default_sample):
 def test_upload_new_version(
     client, default_filepath, insert_default_sample, default_sample, tmpdir
 ):  # pylint: disable=unused-argument
-    """Upload a file, then upload a new version of the same file."""
+    """Upload a file, then upload a new version of the same file.
+
+    Updating the file should also bump the `last_modified` timestamp of any
+    item the file is attached to.
+    """
     with open(default_filepath, "rb") as f:
         response = client.post(
             "/upload-file/",
@@ -129,9 +139,17 @@ def test_upload_new_version(
     assert response.json["status"] == "success"
     assert response.status_code == 201
 
-    # Copy the file to a new temp directory so its fs metadata changes
+    # Record the attached item's last_modified before the file is updated
+    item_response = client.get(f"/get-item-data/{default_sample.item_id}")
+    assert item_response.status_code == 200
+    last_modified_before = item_response.json["item_data"]["last_modified"]
+
+    # Copy the file and modify it so the re-upload is a genuinely new version
+    # (identical content would be deduplicated and rejected as unmodified)
     tmp_filepath = tmpdir / default_filepath.name
     shutil.copy(default_filepath, tmp_filepath)
+    with open(tmp_filepath, "ab") as f:
+        f.write(b"\nnew version content")
 
     with open(tmp_filepath, "rb") as f:
         response_reup = client.post(
@@ -155,6 +173,13 @@ def test_upload_new_version(
         == response.json["file_information"]["location"]
     )
     assert response_reup.json["file_id"] == response.json["file_id"]
+
+    # Updating the file should have bumped the attached item's last_modified
+    item_response = client.get(f"/get-item-data/{default_sample.item_id}")
+    assert item_response.status_code == 200
+    last_modified_after = item_response.json["item_data"]["last_modified"]
+    assert last_modified_after is not None
+    assert last_modified_after != last_modified_before
 
 
 @pytest.mark.dependency(depends=["test_upload_new_version"])
@@ -257,3 +282,37 @@ def test_file_download_sudo_mode(
     assert response.status_code == 200
     assert len(response.data) == 2465718
     response.close()
+
+
+def test_upload_identical_file(client, default_filepath, insert_default_sample, default_sample):  # pylint: disable=unused-argument
+    """Test that re-uploading the same file (same content and filename) returns 304 no-op."""
+    with open(default_filepath, "rb") as f:
+        response = client.post(
+            "/upload-file/",
+            buffered=True,
+            content_type="multipart/form-data",
+            data={
+                "item_id": default_sample.item_id,
+                "file": [(f, default_filepath.name)],
+                "type": "application/octet-stream",
+                "replace_file": "null",
+                "relativePath": "null",
+            },
+        )
+    assert response.status_code == 201
+    file_id_1 = response.json["file_id"]
+
+    with open(default_filepath, "rb") as f:
+        response = client.post(
+            "/upload-file/",
+            buffered=True,
+            content_type="multipart/form-data",
+            data={
+                "item_id": default_sample.item_id,
+                "file": [(f, default_filepath.name)],
+                "type": "application/octet-stream",
+                "replace_file": file_id_1,
+                "relativePath": "null",
+            },
+        )
+    assert response.status_code == 304
