@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM node:20-bullseye AS build
+FROM node:22.22-bullseye-slim AS build
 SHELL ["/bin/bash", "--login", "-c"]
 
 WORKDIR /app
@@ -25,7 +25,7 @@ ARG VUE_APP_AUTOMATICALLY_GENERATE_ID_DEFAULT=magic-generate-id-setting
 COPY webapp ./
 RUN --mount=type=bind,target=/.git,src=./.git VUE_APP_GIT_VERSION=$(node scripts/get-version.js) /node_modules/.bin/vue-cli-service build
 
-FROM node:20-bullseye AS production
+FROM node:22.22-bullseye-slim AS production
 
 ENV PATH=$PATH:/node_modules/.bin
 COPY ./.docker/app_entrypoint.sh /app/
@@ -37,4 +37,4 @@ RUN --mount=type=cache,target=/root/.cache/yarn yarn install --frozen-lockfile -
 
 CMD [ "/bin/bash", "-c", "/app/app_entrypoint.sh" ]
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 CMD curl --fail http://localhost:8081 || exit 1
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 CMD node -e "fetch('http://localhost:8081').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
