@@ -1,4 +1,5 @@
 import datetime
+import json
 
 import pytest
 
@@ -128,6 +129,33 @@ def test_save_good_starting_material(client, default_starting_material_dict):
 
 
 @pytest.mark.dependency(depends=["test_save_good_starting_material"])
+def test_starting_materials_list_includes_collections(
+    client, default_starting_material_dict, default_collection
+):
+    """GET /starting-materials/ should include a collections array with collection_id for each item."""
+    collection_data = json.loads(default_collection.json())
+    collection_data["starting_members"] = [{"item_id": default_starting_material_dict["item_id"]}]
+    response = client.put("/collections", json={"data": collection_data})
+    assert response.status_code == 201, response.json
+
+    response = client.get("/starting-materials/")
+    assert response.status_code == 200
+    items = response.json["items"]
+    matching = [
+        item for item in items if item["item_id"] == default_starting_material_dict["item_id"]
+    ]
+    assert len(matching) == 1
+    item = matching[0]
+
+    assert "collections" in item, "collections key missing from /starting-materials/ response"
+    assert len(item["collections"]) == 1
+    assert item["collections"][0]["collection_id"] == default_collection.collection_id
+
+    # Clean up the collection so later tests are unaffected
+    client.delete(f"/collections/{default_collection.collection_id}")
+
+
+@pytest.mark.dependency(depends=["test_starting_materials_list_includes_collections"])
 def test_delete_starting_material(admin_client, default_starting_material_dict):
     response = admin_client.post(
         "/delete-sample/",

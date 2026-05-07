@@ -47,13 +47,29 @@
         <div class="form-row">
           <div class="form-group col-lg-12 col-sm-12">
             <label for="startmat-location">Location</label>
-            <StyledInput id="startmat-location" v-model="Location" :readonly="!isEditable" />
+            <AutoComplete
+              v-model="Location"
+              input-id="startmat-location"
+              :suggestions="filteredLocations"
+              :disabled="!isEditable"
+              class="form-control p-0 border-0"
+              input-class="form-control"
+              @complete="filterLocations"
+            />
           </div>
         </div>
         <div class="form-row">
           <div class="form-group col-lg-3 col-sm-4">
             <label for="startmat-supplier">Supplier</label>
-            <StyledInput id="startmat-supplier" v-model="Supplier" :readonly="!isEditable" />
+            <AutoComplete
+              v-model="Supplier"
+              input-id="startmat-supplier"
+              :suggestions="filteredSuppliers"
+              :disabled="!isEditable"
+              class="form-control p-0 border-0"
+              input-class="form-control"
+              @complete="filterSuppliers"
+            />
           </div>
           <div class="form-group col-lg-3 col-sm-4">
             <label for="startmat-purity">Chemical purity</label>
@@ -117,10 +133,13 @@ import SynthesisInformation from "@/components/SynthesisInformation";
 import ItemRelationshipVisualization from "@/components/ItemRelationshipVisualization";
 import GHSHazardInformation from "@/components/GHSHazardInformation";
 
+import AutoComplete from "primevue/autocomplete";
+import { getStartingMaterialList, getEquipmentList } from "@/server_fetch_utils.js";
 import { EDITABLE_INVENTORY } from "@/resources.js";
 
 export default {
   components: {
+    AutoComplete,
     StyledInput,
     ChemicalFormula,
     ChemFormulaInput,
@@ -139,6 +158,8 @@ export default {
   },
   data() {
     return {
+      filteredSuppliers: [],
+      filteredLocations: [],
       tableOfContentsSections: [
         { title: "Starting Material Information", targetID: "starting-material-information" },
         { title: "Table of Contents", targetID: "table-of-contents" },
@@ -171,9 +192,46 @@ export default {
       return this.schema?.attributes?.schema?.definitions?.StartingMaterialsStatus?.enum;
     },
     Barcode: createComputedSetterForItemField("barcode"),
+    uniqueSuppliers() {
+      return [
+        ...new Set(
+          (this.$store.state.starting_material_list || [])
+            .map((item) => item.supplier)
+            .filter(Boolean),
+        ),
+      ].sort();
+    },
+    uniqueLocations() {
+      return [
+        ...new Set(
+          [
+            ...(this.$store.state.starting_material_list || []),
+            ...(this.$store.state.equipment_list || []),
+          ]
+            .map((item) => item.location)
+            .filter(Boolean),
+        ),
+      ].sort();
+    },
   },
   created() {
     this.isEditable = EDITABLE_INVENTORY;
+    if (this.$store.state.starting_material_list === null) {
+      getStartingMaterialList();
+    }
+    if (this.$store.state.equipment_list === null) {
+      getEquipmentList();
+    }
+  },
+  methods: {
+    filterSuppliers(event) {
+      const query = event.query.toLowerCase();
+      this.filteredSuppliers = this.uniqueSuppliers.filter((s) => s.toLowerCase().includes(query));
+    },
+    filterLocations(event) {
+      const query = event.query.toLowerCase();
+      this.filteredLocations = this.uniqueLocations.filter((l) => l.toLowerCase().includes(query));
+    },
   },
 };
 </script>

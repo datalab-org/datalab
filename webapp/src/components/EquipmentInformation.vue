@@ -34,7 +34,14 @@
       </div>
       <div class="form-group col-md-5">
         <label for="equip-location" class="mr-2">Location</label>
-        <input id="equip-location" v-model="Location" class="form-control" />
+        <AutoComplete
+          v-model="Location"
+          input-id="equip-location"
+          :suggestions="filteredLocations"
+          class="form-control p-0 border-0"
+          input-class="form-control"
+          @complete="filterLocations"
+        />
       </div>
     </div>
     <div class="form-row">
@@ -73,6 +80,8 @@
 </template>
 
 <script>
+import AutoComplete from "primevue/autocomplete";
+import { getStartingMaterialList, getEquipmentList } from "@/server_fetch_utils.js";
 import { createComputedSetterForItemField } from "@/field_utils.js";
 import TiptapInline from "@/components/TiptapInline";
 import TableOfContents from "@/components/TableOfContents";
@@ -83,6 +92,7 @@ import ToggleableItemStatusFormGroup from "@/components/ToggleableItemStatusForm
 
 export default {
   components: {
+    AutoComplete,
     TiptapInline,
     CollectionList,
     TableOfContents,
@@ -95,6 +105,7 @@ export default {
   },
   data() {
     return {
+      filteredLocations: [],
       tableOfContentsSections: [
         { title: "Equipment Information", targetID: "equipment-information" },
         { title: "Table of Contents", targetID: "table-of-contents" },
@@ -121,6 +132,32 @@ export default {
     },
     possibleItemStatuses() {
       return this.schema?.attributes?.schema?.definitions?.EquipmentStatus?.enum;
+    },
+    uniqueLocations() {
+      return [
+        ...new Set(
+          [
+            ...(this.$store.state.starting_material_list || []),
+            ...(this.$store.state.equipment_list || []),
+          ]
+            .map((item) => item.location)
+            .filter(Boolean),
+        ),
+      ].sort();
+    },
+  },
+  created() {
+    if (this.$store.state.starting_material_list === null) {
+      getStartingMaterialList();
+    }
+    if (this.$store.state.equipment_list === null) {
+      getEquipmentList();
+    }
+  },
+  methods: {
+    filterLocations(event) {
+      const query = event.query.toLowerCase();
+      this.filteredLocations = this.uniqueLocations.filter((l) => l.toLowerCase().includes(query));
     },
   },
 };
