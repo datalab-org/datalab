@@ -28,7 +28,7 @@
       @state-restore="onStateRestore"
       @state-save="onStateSave"
       @filter="onFilter"
-      @row-click="dataType !== 'users' ? goToEditPage : null"
+      @row-click="goToEditPage"
       @row-select="null"
       @select-all-change="onSelectAllChange"
       @page="onPageChange"
@@ -1278,6 +1278,9 @@ export default {
       });
     },
     goToEditPage(event) {
+      if (this.dataType === "users") {
+        return;
+      }
       const row = event.data;
       let row_id = null;
 

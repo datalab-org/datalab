@@ -1,6 +1,6 @@
 default_language_version:
   python: python3.10
-  node: "20.17.0"
+  node: "22.19.0"
 
 ci:
   skip:
@@ -29,7 +29,7 @@ repos:
       - id: mixed-line-ending
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.7
+    rev: v0.15.12
     hooks:
       - id: ruff
         args: [--fix]
@@ -40,18 +40,18 @@ repos:
     hooks:
       - id: eslint
         additional_dependencies:
-          - prettier@3.1.0
+          - prettier@3.8.3
           - eslint@8.57.1
           - eslint-config-prettier@8.10.0
-          - eslint-plugin-prettier@5.1.3
+          - eslint-plugin-prettier@5.5.5
           - eslint-plugin-vue@8.0.3
           - "@vue/cli-plugin-babel@5.0.8"
           - "@vue/eslint-config-prettier@8.0.0"
           - eslint-plugin-cypress@3.3.0
-          - "@babel/core@7.24.8"
-          - "@babel/eslint-parser@7.24.8"
-          - "@babel/plugin-transform-export-namespace-from@7.24.7"
-          - "@babel/plugin-transform-class-static-block@7.26.0"
+          - "@babel/core@7.29.0"
+          - "@babel/eslint-parser@7.28.6"
+          - "@babel/plugin-transform-export-namespace-from@7.27.1"
+          - "@babel/plugin-transform-class-static-block@7.28.6"
         types: [file]
         files: \.(js|jsx|ts|tsx|vue)$
         args: [--fix]
@@ -63,7 +63,7 @@ repos:
         args: [--py310-plus]
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.19.0
+    rev: v1.20.2
     hooks:
       - id: mypy
         additional_dependencies:
