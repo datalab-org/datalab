@@ -73,7 +73,7 @@ class NMRBlock(DataBlock):
             # Sort numbers properly, e.g., "1", "2", "10" instead of "1", "10", "2",
             # then defer to any non-numeric strings
             self.data["available_experiments"] = sorted(
-                experiment_paths.values(), key=lambda x: ((0, int(x)) if x.isdigit() else (1, x))
+                experiment_paths.values(), key=lambda x: (0, int(x)) if x.isdigit() else (1, x)
             )
 
             selected_experiment_path = None

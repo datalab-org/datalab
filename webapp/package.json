@@ -3,7 +3,7 @@
   "version": "0.0.0-git",
   "private": true,
   "engines": {
-    "node": ">=22, <23"
+    "node": ">=22 <23"
   },
   "scripts": {
     "serve": "VUE_APP_GIT_VERSION=$(node scripts/get-version.js) vue-cli-service serve",

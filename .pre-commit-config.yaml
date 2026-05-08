@@ -1,6 +1,6 @@
 default_language_version:
   python: python3.10
-  node: "20.17.0"
+  node: "22.19.0"
 
 ci:
   skip:
