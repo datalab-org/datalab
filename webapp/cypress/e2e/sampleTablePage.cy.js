@@ -74,6 +74,14 @@ describe("Sample table page", () => {
     cy.verifySample("12345678910", "This is a sample name", "1990-01-07T00:00");
   });
 
+  it("Navigates to the edit page when clicking on a row body", () => {
+    // Click on the sample's name cell (not the item_id badge, which has its
+    // own click handler) to confirm the table-level @row-click navigation works.
+    cy.contains("tr", "12345678910").findByText("This is a sample name").click();
+    cy.url().should("include", "/edit/12345678910");
+    cy.go("back");
+  });
+
   it("Checks if the sample is in the database", () => {
     cy.request({ url: `${API_URL}/get-item-data/12345678910`, failOnStatusCode: true })
       .its("body")
