@@ -11,6 +11,7 @@ module.exports = {
     "@vue/prettier",
     "plugin:cypress/recommended",
   ],
+  plugins: ["import"],
   parserOptions: {
     parser: "@babel/eslint-parser",
     requireConfigFile: false,
@@ -36,5 +37,14 @@ module.exports = {
     "cypress/no-unnecessary-waiting": "warn",
     "cypress/unsafe-to-chain-command": "warn",
     "prettier/prettier": process.env.NODE_ENV === "production" ? "error" : "warn",
+    "import/named": "error",
+  },
+  settings: {
+    "import/resolver": {
+      alias: {
+        map: [["@", "./src"]],
+        extensions: [".js", ".vue", ".json"],
+      },
+    },
   },
 };
