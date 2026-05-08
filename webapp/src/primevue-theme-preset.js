@@ -19,8 +19,12 @@ const DatalabPreset = definePreset(Aura, {
         divCheckboxCheckedHover: "#5A6268",
         dropdownDisplay: "none",
       },
-      bodyCellPadding: "0.4rem",
-      headerCellPadding: "0.4rem",
+      bodyCell: {
+        padding: "0.4rem",
+      },
+      headerCell: {
+        padding: "0.4rem",
+      },
       sortIconColor: "transparent",
     },
     checkbox: {
