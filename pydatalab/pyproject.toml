@@ -92,7 +92,7 @@ chat = [
     "tiktoken ~= 0.7",
     "transformers ~= 5.5",
 ]
-deploy = ["gunicorn>=23,<26"]
+deploy = ["gunicorn ~= 25.3"]
 all = ["datalab-server[apps,server,chat]"]
 
 [tool.mypy]
