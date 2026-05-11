@@ -6,6 +6,8 @@ WORKDIR /app
 
 EXPOSE 8081
 
+RUN apt update && apt install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*
+
 COPY webapp/package.json webapp/yarn.lock ./
 
 # Using a custom node_modules location to avoid mounting it outside of docker
