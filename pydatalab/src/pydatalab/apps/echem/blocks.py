@@ -294,18 +294,21 @@ class CycleBlock(DataBlock):
             "Time",
             "Voltage",
             "Capacity",
-            "Current",
+            "Current(mA)",
             "dqdv",
             "dvdq",
             "half cycle",
             "full cycle",
             "state",
         )
+        if "Current(mA)" not in raw_df.columns:
+            raw_df["Current(mA)"] = raw_df["Current"]
+
         keys_with_units = {
             "Time": "time (s)",
             "Voltage": "voltage (V)",
             "Capacity": "capacity (mAh)",
-            "Current": "current (mA)",
+            "Current(mA)": "current (mA)",
             "Charge Capacity": "charge capacity (mAh)",
             "Discharge Capacity": "discharge capacity (mAh)",
             "dqdv": "dQ/dV (mA/V)",
