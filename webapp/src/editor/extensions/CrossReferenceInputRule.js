@@ -171,8 +171,16 @@ function setupGlobalListeners() {
     }
   };
 
-  const onScrollOrResize = () => {
-    if (suggestionEl) hideSuggestions();
+  const onScrollOrResize = (event) => {
+    if (!suggestionEl) return;
+    if (
+      event.type === "scroll" &&
+      event.target instanceof Node &&
+      suggestionEl.contains(event.target)
+    ) {
+      return;
+    }
+    hideSuggestions();
   };
 
   window.addEventListener("mousedown", onClickOutside);
