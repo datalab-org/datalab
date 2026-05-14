@@ -398,6 +398,13 @@ def update_block():
     )
     trigger_async = event_data and event_data.get("trigger_async", True) if event_data else True
 
+    if block.data.get("cached"):
+        use_async = False
+        LOGGER.info(
+            "Using synchronous processing for block %s because it is marked as cached",
+            block.block_id,
+        )
+
     if use_async and trigger_async:
         task_id = str(uuid.uuid4())
 

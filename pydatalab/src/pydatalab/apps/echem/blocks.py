@@ -79,6 +79,8 @@ class CycleBlock(DataBlock):
         "derivative_mode": None,
     }
 
+    cached: bool = False
+
     def _get_characteristic_mass_g(self):
         # return {"characteristic_mass": 1000}
         doc = flask_mongo.db.items.find_one(
@@ -220,6 +222,8 @@ class CycleBlock(DataBlock):
 
         if parquet_path is not None:
             csv_path = self._save_bdf(raw_df, parquet_path, csv_path)
+
+        self.data["cached"] = True
         return raw_df, csv_path
 
     def _load_single(self, file_id: ObjectId, reload: bool) -> tuple[pd.DataFrame, Path | None]:
