@@ -4,7 +4,7 @@ on:
   workflow_call:
 
 env:
-  UV_VERSION: "0.8.4"
+  UV_VERSION: "0.11.8"
 
 jobs:
   licensing-checks:
