@@ -135,6 +135,12 @@ dev = [
     "markdown-callouts ~= 0.4",
 ]
 
+[tool.uv]
+# Do not allow installing third-party deps that are very young
+exclude-newer = "1 week"
+# But allow deps we manage ourselves to be newer
+exclude-newer-package = { "navani" = false, "datalab-org-galvani" = false, "datalab-app-plugin-insitu" = false, "datalab-app-plugin-xps" = false }
+
 [tool.uv.sources]
 datalab-app-plugin-insitu = { git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git", rev = "v0.4.1" }
 nmrglue = { git = "https://github.com/jjhelmus/nmrglue.git", rev = "b6408751bf18801a0a4ce084acf4d31335e2b02a" }  # TODO: Update when new release is made
@@ -180,9 +186,7 @@ authorized_licenses = [
     "cmu license (MIT-CMU)",
     "Mozilla Public License 2.0",
 ]
-unauthorized_licenses = [
-    "\bgpl",
-]
+unauthorized_licenses = ["\bgpl"]
 as_regex = true
 
 [tool.liccheck.authorized_packages]
