@@ -3,6 +3,49 @@
   "description": "A model for representing an experimental sample.",
   "type": "object",
   "properties": {
+    "chemform": {
+      "title": "Chemform",
+      "example": [
+        "Na3P",
+        "Na<sub>3</sub>P",
+        "LiNiO2@C",
+        "Na3+xP",
+        "LiNi1/3Co0.1Mn0.1O2"
+      ],
+      "type": "string"
+    },
+    "smiles": {
+      "title": "Smiles",
+      "aliases": [
+        "SMILES",
+        "smiles_representation"
+      ],
+      "type": "string"
+    },
+    "inchi": {
+      "title": "Inchi",
+      "type": "string"
+    },
+    "inchi_key": {
+      "title": "Inchi Key",
+      "type": "string"
+    },
+    "GHS_codes": {
+      "title": "Ghs H-Codes",
+      "examples": [
+        "H224",
+        "H303, H316, H319"
+      ],
+      "type": "string"
+    },
+    "molar_mass": {
+      "title": "Molecular Weight",
+      "type": "number"
+    },
+    "CAS": {
+      "title": "Substance Cas",
+      "type": "string"
+    },
     "synthesis_constituents": {
       "title": "Synthesis Constituents",
       "default": [],
@@ -156,14 +199,6 @@
           "$ref": "#/definitions/ItemStatus"
         }
       ]
-    },
-    "chemform": {
-      "title": "Chemform",
-      "example": [
-        "Na3P",
-        "LiNiO2@C"
-      ],
-      "type": "string"
     }
   },
   "required": [

@@ -65,6 +65,9 @@ def test_new_sample_with_automatically_generated_id(client, user_id):
         "type": "samples",
         "synthesis_description": "2 parts hydrogen were added to 1 part oxygen",
         "creator_ids": [user_id],
+        "CAS": "7732-18-5",
+        "inchi_key": "XLYOFNOQVPJJNP-UHFFFAOYSA-N",
+        "smiles": "O",
     }
 
     request_json = dict(
@@ -83,6 +86,7 @@ def test_new_sample_with_automatically_generated_id(client, user_id):
     assert response.status_code == 200
     assert response.json["status"] == "success"
     assert response.json["item_data"]["refcode"].split(":")[1] == created_item_id
+    assert response.json["item_data"]["molar_mass"] == 18.01528
 
     for key in new_sample_data:
         if isinstance(v := new_sample_data[key], datetime.datetime):
