@@ -6,6 +6,16 @@ resolution-markers = [
     "python_full_version < '3.11'",
 ]
 
+[options]
+exclude-newer = "0001-01-01T00:00:00Z" # This has no effect and is included for backwards compatibility when using relative exclude-newer values.
+exclude-newer-span = "P1W"
+
+[options.exclude-newer-package]
+datalab-org-galvani = false
+navani = false
+datalab-app-plugin-insitu = false
+datalab-app-plugin-xps = false
+
 [[package]]
 name = "aiohappyeyeballs"
 version = "2.6.1"
@@ -580,6 +590,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "datalab-app-plugin-xps"
+version = "0.2.0"
+source = { git = "https://github.com/datalab-industries/datalab-app-plugin-xps.git?rev=v0.2.0#57a719f6da2eba406cd5ddb2acb1b50c46bf77f0" }
+dependencies = [
+    { name = "lmfit" },
+    { name = "numpy" },
+    { name = "vgd-reader" },
+]
+
+[[package]]
 name = "datalab-org-galvani"
 version = "0.5.2"
 source = { registry = "https://pypi.org/simple" }
@@ -638,6 +658,7 @@ all = [
 ]
 app-plugins-git = [
     { name = "datalab-app-plugin-insitu" },
+    { name = "datalab-app-plugin-xps" },
 ]
 apps = [
     { name = "matador-db" },
@@ -698,6 +719,7 @@ requires-dist = [
     { name = "apscheduler", marker = "extra == 'server'", specifier = "~=3.10" },
     { name = "bokeh", specifier = "~=2.4,<3.0" },
     { name = "datalab-app-plugin-insitu", marker = "extra == 'app-plugins-git'", git = "https://github.com/datalab-org/datalab-app-plugin-insitu.git?rev=v0.4.1" },
+    { name = "datalab-app-plugin-xps", marker = "extra == 'app-plugins-git'", git = "https://github.com/datalab-industries/datalab-app-plugin-xps.git?rev=v0.2.0" },
     { name = "datalab-server", extras = ["apps", "chat", "server"], marker = "extra == 'all'" },
     { name = "deepdiff", specifier = "~=8.1" },
     { name = "flask", marker = "extra == 'server'", specifier = "~=3.0" },
@@ -1867,7 +1889,7 @@ wheels = [
 
 [[package]]
 name = "navani"
-version = "0.1.18"
+version = "0.1.19"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "datalab-org-galvani" },
@@ -1879,9 +1901,9 @@ dependencies = [
     { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "scipy", version = "1.16.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/2d/21/209be51e355c069f5d90eb39f770f1bf81058e90fcfa4e0c2bb68dbfee74/navani-0.1.18.tar.gz", hash = "sha256:4542b105262244cca8b01f9a44a0adc3398a9e2355c0d4f5087618011e8c438e", size = 7055986, upload-time = "2026-04-15T12:21:24.787Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a9/67/1aeff64498396bacddfebffce6caf471d71dc74720e7dd263dca5a4cdee8/navani-0.1.19.tar.gz", hash = "sha256:1835276c30ec80416d0f074759b67eba80b8acc9b8308c30db1c66e872e04158", size = 7057699, upload-time = "2026-05-14T17:43:07.219Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ea/cd/62523d426a0f601d9127de37f773753e18997d757aa5e3873aa78f89ccca/navani-0.1.18-py3-none-any.whl", hash = "sha256:265008fed5b976845f378ae9d70bbe35f5911c0a2bf3e190dbce4bed0a2c68d7", size = 20256, upload-time = "2026-04-15T12:21:23.264Z" },
+    { url = "https://files.pythonhosted.org/packages/84/10/01e25bef7aecb02142ad47d4d10c3965ab48d8fb63b8666e38ed79631eb1/navani-0.1.19-py3-none-any.whl", hash = "sha256:9fb2332b1d50fd7ecfb7b64a999fad5ec33a00a6794eae6b9d20b67ddcbb2868", size = 21412, upload-time = "2026-05-14T17:43:05.14Z" },
 ]
 
 [[package]]
@@ -1956,6 +1978,15 @@ dependencies = [
     { name = "defusedxml" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/97/73/8ade73f6749177003f7ce3304f524774adda96e6aaab30ea79fd8fda7934/odfpy-1.4.1.tar.gz", hash = "sha256:db766a6e59c5103212f3cc92ec8dd50a0f3a02790233ed0b52148b70d3c438ec", size = 717045, upload-time = "2020-01-18T16:55:48.852Z" }
+
+[[package]]
+name = "olefile"
+version = "0.47"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/69/1b/077b508e3e500e1629d366249c3ccb32f95e50258b231705c09e3c7a4366/olefile-0.47.zip", hash = "sha256:599383381a0bf3dfbd932ca0ca6515acd174ed48870cbf7fee123d698c192c1c", size = 112240, upload-time = "2023-12-01T16:22:53.025Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/17/d3/b64c356a907242d719fc668b71befd73324e47ab46c8ebbbede252c154b2/olefile-0.47-py2.py3-none-any.whl", hash = "sha256:543c7da2a7adadf21214938bb79c83ea12b473a4b6ee4ad4bf854e7715e13d1f", size = 114565, upload-time = "2023-12-01T16:22:51.518Z" },
+]
 
 [[package]]
 name = "openai"
@@ -3078,6 +3109,19 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/2a/fd/163e6b835b9fabf9c3999f71c5f224daa9d68a38012cccd7ab2a2f861af9/urlobject-3.0.0.tar.gz", hash = "sha256:bfdfe70746d92a039a33e964959bb12cecd9807a434fdb7fef5f38e70a295818", size = 28237, upload-time = "2025-07-11T17:53:22.877Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ee/38/18c4bbe751a7357b3f6a33352e3af3305ad78f3e72ab7e3d667de4663ed9/urlobject-3.0.0-py3-none-any.whl", hash = "sha256:fd2465520d0a8c5ed983aa47518a2c5bcde0c276a4fd0eb28b0de5dcefd93b1e", size = 16261, upload-time = "2025-07-11T17:53:21.989Z" },
+]
+
+[[package]]
+name = "vgd-reader"
+version = "0.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+    { name = "olefile" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/50/a3/8af14d4dc6f0a8941f59d40b90eaddae482f3b27064c2e2ac4fbab3575e7/vgd_reader-0.1.0.tar.gz", hash = "sha256:8ea11d2f5aabd25fcaa5609a71aa2a915a01896c26e0c478d4caa1f5907aea54", size = 13887, upload-time = "2025-12-30T21:54:35.06Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/89/16/e389c382afecd9402e85f1ef6a3332ad547963bbbb656e8d8076837b0cfd/vgd_reader-0.1.0-py3-none-any.whl", hash = "sha256:b7ee6246ae6af79be609eb9c4ec9aac976b9cedb86ccc56c911b182b643005bf", size = 11037, upload-time = "2025-12-30T21:54:34.019Z" },
 ]
 
 [[package]]
