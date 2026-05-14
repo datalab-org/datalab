@@ -7,7 +7,7 @@ import bokeh
 import pandas as pd
 from bson import ObjectId
 from navani import echem as ec
-from navani.bdf import export_to_bdf
+from navani.bdf import bdf_col_map, export_to_bdf
 
 from pydatalab import bokeh_plots
 from pydatalab.blocks.base import DataBlock
@@ -144,10 +144,55 @@ class CycleBlock(DataBlock):
         """Load a previously cached echem DataFrame from a ``.bdf.parquet`` file."""
         return ec.echem_file_loader(str(parquet_path))
 
+    # BDF canonical column names (values of bdf_col_map) plus the required set.
+    # Used to filter out navani-convention columns before writing parquet/CSV.
+    _BDF_COLUMNS: frozenset[str] = frozenset(bdf_col_map.values()) | {
+        "Test Time / s",
+        "Voltage / V",
+        "Current / A",
+    }
+
+    # float32 is sufficient for all measured echem quantities (~7 sig. figures).
+    # int32 covers cycle/step counts up to ~2 billion.
+    _BDF_FLOAT_COLS: frozenset[str] = frozenset(
+        {
+            "Test Time / s",
+            "Unix Time / s",
+            "Voltage / V",
+            "Current / A",
+            "Charging Capacity / Ah",
+            "Discharging Capacity / Ah",
+            "Step Capacity / Ah",
+            "Net Capacity / Ah",
+            "Cumulative Capacity / Ah",
+            "Charging Energy / Wh",
+            "Discharging Energy / Wh",
+            "Step Energy / Wh",
+            "Net Energy / Wh",
+            "Cumulative Energy / Wh",
+            "Power / W",
+            "Internal Resistance / Ohm",
+            "Ambient Pressure / Pa",
+            "Applied Pressure / Pa",
+            "Ambient Temperature / degC",
+            "Surface Temperature T1 / degC",
+            "Surface Temperature T2 / degC",
+            "Surface Temperature T3 / degC",
+            "Surface Temperature T4 / degC",
+            "Surface Temperature T5 / degC",
+        }
+    )
+    _BDF_INT_COLS: frozenset[str] = frozenset(
+        {"Cycle Count / 1", "Step Index / 1", "Step Count / 1"}
+    )
+
     def _save_bdf(
         self, raw_df: pd.DataFrame, parquet_path: Path, csv_path: Path | None
     ) -> Path | None:
         """Save a navani DataFrame as ``.bdf.parquet`` (cache) and optionally ``.bdf.csv`` (download).
+
+        Only BDF-standard columns are written; navani-convention duplicates are dropped to
+        reduce file size. Numeric columns are downcast to float32/int32 before writing parquet.
 
         Parameters:
             raw_df: The navani-parsed DataFrame to export.
@@ -158,6 +203,9 @@ class CycleBlock(DataBlock):
         """
         try:
             bdf_df = export_to_bdf(raw_df)
+            # Keep only BDF-standard columns; drop navani-convention duplicates.
+            bdf_cols = [c for c in bdf_df.columns if c in self._BDF_COLUMNS]
+            bdf_df = bdf_df[bdf_cols]
             if csv_path is not None:
                 bdf_df.to_csv(csv_path, index=False)
         except Exception as exc:
@@ -165,12 +213,16 @@ class CycleBlock(DataBlock):
             LOGGER.debug("Exception details for failed BDF export", exc_info=True)
             return None
         try:
-            # Parquet requires homogeneous column types; cast mixed-type object and category
-            # columns to str. The navani `state` column is category dtype with mixed int/str
-            # values (0, 1, 'R') which pyarrow cannot serialise directly.
+            # Downcast numeric columns before writing parquet.
+            for col in bdf_df.columns:
+                if col in self._BDF_FLOAT_COLS and pd.api.types.is_float_dtype(bdf_df[col]):
+                    bdf_df[col] = bdf_df[col].astype("float32")
+                elif col in self._BDF_INT_COLS and pd.api.types.is_integer_dtype(bdf_df[col]):
+                    bdf_df[col] = bdf_df[col].astype("int32")
+            # Cast any remaining object/category columns to str (e.g. navani `state` remnants).
             for col in bdf_df.select_dtypes(include=["object", "category"]).columns:
                 bdf_df[col] = bdf_df[col].astype(str)
-            bdf_df.to_parquet(parquet_path, index=False)
+            bdf_df.to_parquet(parquet_path, index=False, compression="zstd")
         except Exception as exc:
             LOGGER.warning("Failed to export BDF parquet file: %s", exc)
             LOGGER.debug("Exception details for failed BDF parquet export", exc_info=True)

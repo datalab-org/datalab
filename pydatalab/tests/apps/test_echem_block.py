@@ -215,12 +215,8 @@ def test_save_bdf_exception_logs_warning_and_returns_none(tmp_path, caplog):
 )
 def test_save_bdf_mixed_type_state_column(tmp_path, state_dtype):
     """Test that _save_bdf handles a mixed int/str state column (0, 1, 'R') for both
-    object and category dtypes.
-
-    navani produces a `state` column with values 0 (charge), 1 (discharge), and 'R' (rest).
-    Most parsers (e.g. Biologic .mpr) produce object dtype; some pathways produce category dtype.
-    The category case has heterogeneous category values that pyarrow cannot serialise directly.
-    The fix casts both object and category columns to str before writing parquet.
+    object and category dtypes without raising, and that only BDF-standard columns appear
+    in the output (navani-convention columns like 'state', 'Time', 'Capacity' are stripped).
     """
     import pandas as pd
 
@@ -248,3 +244,6 @@ def test_save_bdf_mixed_type_state_column(tmp_path, state_dtype):
     assert parquet_path.exists(), "Parquet cache was not written"
     cached = pd.read_parquet(parquet_path)
     assert len(cached) == len(raw_df)
+    # Only BDF-standard columns should be present; navani-convention columns are stripped.
+    assert BDF_REQUIRED_COLUMNS.issubset(set(cached.columns))
+    assert not {"Time", "Voltage", "Current", "Capacity", "state"}.intersection(cached.columns)
