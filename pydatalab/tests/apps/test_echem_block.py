@@ -92,11 +92,14 @@ def test_load_and_cache_mpr_exports_bdf_csv_and_parquet(tmp_path):
 
     assert returned_csv_path is not None
     assert returned_csv_path.exists()
-    assert BDF_REQUIRED_COLUMNS.issubset(set(returned_csv_path.open().readline().split(",")))
+    csv_columns = set(returned_csv_path.open().readline().strip().split(","))
+    assert BDF_REQUIRED_COLUMNS.issubset(csv_columns)
+    assert not {"Time", "Voltage", "Current", "Capacity", "state"}.intersection(csv_columns)
 
     assert parquet_path.exists()
     cached = pd.read_parquet(parquet_path)
     assert BDF_REQUIRED_COLUMNS.issubset(set(cached.columns))
+    assert not {"Time", "Voltage", "Current", "Capacity", "state"}.intersection(cached.columns)
 
     assert not location.with_suffix(".RAW_PARSED.pkl").exists()
     assert len(raw_df) > 0
@@ -161,11 +164,14 @@ def test_load_and_cache_multi_file_stitch(tmp_path):
 
     assert returned_csv_path is not None
     assert returned_csv_path.exists()
-    assert BDF_REQUIRED_COLUMNS.issubset(set(returned_csv_path.open().readline().split(",")))
+    csv_columns = set(returned_csv_path.open().readline().strip().split(","))
+    assert BDF_REQUIRED_COLUMNS.issubset(csv_columns)
+    assert not {"Time", "Voltage", "Current", "Capacity", "state"}.intersection(csv_columns)
 
     assert parquet_path.exists()
     cached = pd.read_parquet(parquet_path)
     assert BDF_REQUIRED_COLUMNS.issubset(set(cached.columns))
+    assert not {"Time", "Voltage", "Current", "Capacity", "state"}.intersection(cached.columns)
 
     assert len(raw_df) > 0
     assert not cache_location.with_suffix(".RAW_PARSED.pkl").exists()
@@ -201,7 +207,7 @@ def test_save_bdf_exception_logs_warning_and_returns_none(tmp_path, caplog):
     assert result is None
     assert not parquet_path.exists()
     assert not csv_path.exists()
-    assert "Failed to export BDF file" in caplog.text
+    assert "Failed to export BDF csv file" in caplog.text
 
 
 @pytest.mark.parametrize(
@@ -245,6 +251,15 @@ def test_save_bdf_mixed_type_state_column(tmp_path, state_dtype):
     result = block._save_bdf(raw_df, parquet_path, csv_path)
 
     assert result == csv_path
+    navani_cols = {"Time", "Voltage", "Current", "Capacity", "state"}
+
+    assert csv_path.exists(), "CSV export was not written"
+    csv_columns = set(csv_path.open().readline().strip().split(","))
+    assert BDF_REQUIRED_COLUMNS.issubset(csv_columns)
+    assert not navani_cols.intersection(csv_columns)
+
     assert parquet_path.exists(), "Parquet cache was not written"
     cached = pd.read_parquet(parquet_path)
     assert len(cached) == len(raw_df)
+    assert BDF_REQUIRED_COLUMNS.issubset(set(cached.columns))
+    assert not navani_cols.intersection(cached.columns)
