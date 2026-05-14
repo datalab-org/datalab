@@ -77,30 +77,43 @@ class Cell(Item):
         """Add any missing sample synthesis constituents to parent relationships"""
         from pydatalab.models.relationships import RelationshipType, TypedRelationship
 
-        existing_parthood_relationship_ids = set()
+        existing_parthood_relationships = {}
         if values.get("relationships") is not None:
-            existing_parthood_relationship_ids = {
-                relationship.refcode or relationship.item_id
+            # Index by refcode *and* item_id so a stored relationship carrying an
+            # item_id still matches a refcode-enriched constituent (and vice-versa).
+            existing_parthood_relationships = {
+                identifier: relationship
                 for relationship in values["relationships"]
                 if relationship.relation == RelationshipType.PARTHOOD
+                for identifier in (relationship.refcode, relationship.item_id)
+                if identifier
             }
         else:
             values["relationships"] = []
 
         for component in ("positive_electrode", "negative_electrode", "electrolyte"):
             for constituent in values.get(component, []):
-                if (
-                    isinstance(constituent.item, EntryReference)
-                    and (constituent.item.refcode or constituent.item.item_id)
-                    not in existing_parthood_relationship_ids
-                ):
+                if not isinstance(constituent.item, EntryReference):
+                    continue
+
+                refcode = constituent.item.refcode
+                item_id = constituent.item.item_id
+
+                relationship = existing_parthood_relationships.get(
+                    refcode
+                ) or existing_parthood_relationships.get(item_id)
+                if relationship is None:
                     relationship = TypedRelationship(
                         relation=RelationshipType.PARTHOOD,
-                        refcode=constituent.item.refcode,
-                        item_id=constituent.item.item_id,
+                        refcode=refcode,
+                        item_id=item_id,
                         type=constituent.item.type,
                         description="Is a constituent of",
                     )
                     values["relationships"].append(relationship)
+                else:
+                    # Back-fill any identifier missing from the stored relationship
+                    relationship.refcode = relationship.refcode or refcode
+                    relationship.item_id = relationship.item_id or item_id
 
         return values

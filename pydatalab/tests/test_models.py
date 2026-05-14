@@ -324,6 +324,76 @@ def test_cell_with_inlined_reference():
     assert len(cell.relationships) == 1
 
 
+def test_cell_relationship_deduplication():
+    """Regression test for duplicated parthood relationships.
+
+    `entry_reference_lookup` enriches electrode constituents with their refcode
+    at read time but does not back-fill the stored `relationships` rows. The
+    dedup logic must therefore match a stored relationship that carries only an
+    item_id against a constituent enriched with a refcode (and vice-versa),
+    rather than appending a duplicate, and back-fill the missing identifier so
+    the surviving relationship carries both.
+    """
+    from pydatalab.models.cells import Cell
+
+    # Stored relationship has item_id only; constituent enriched with refcode.
+    cell = Cell(
+        item_id="abcd-1-2-3",
+        positive_electrode=[
+            {
+                "item": {
+                    "type": "samples",
+                    "item_id": "test_cathode",
+                    "refcode": "grey:ABCDEF",
+                },
+                "quantity": 1,
+            }
+        ],
+        relationships=[
+            {
+                "relation": "is_part_of",
+                "type": "samples",
+                "item_id": "test_cathode",
+                "description": "Is a constituent of",
+            }
+        ],
+    )
+    parthood = [r for r in cell.relationships if r.relation == RelationshipType.PARTHOOD]
+    assert len(parthood) == 1
+    # The refcode from the constituent is back-filled onto the stored relationship.
+    assert parthood[0].refcode == "grey:ABCDEF"
+    assert parthood[0].item_id == "test_cathode"
+
+    # Reverse asymmetry: stored relationship has refcode, constituent item_id only.
+    cell = Cell(
+        item_id="abcd-1-2-3",
+        positive_electrode=[
+            {"item": {"type": "samples", "item_id": "test_cathode"}, "quantity": 1}
+        ],
+        relationships=[
+            {
+                "relation": "is_part_of",
+                "type": "samples",
+                "item_id": "test_cathode",
+                "refcode": "grey:ABCDEF",
+                "description": "Is a constituent of",
+            }
+        ],
+    )
+    parthood = [r for r in cell.relationships if r.relation == RelationshipType.PARTHOOD]
+    assert len(parthood) == 1
+    # The item_id from the constituent is back-filled onto the stored relationship.
+    assert parthood[0].refcode == "grey:ABCDEF"
+    assert parthood[0].item_id == "test_cathode"
+
+    # Re-validating an already-clean cell must not grow the relationships list.
+    cell = Cell(**json.loads(cell.json()))
+    parthood = [r for r in cell.relationships if r.relation == RelationshipType.PARTHOOD]
+    assert len(parthood) == 1
+    assert parthood[0].refcode == "grey:ABCDEF"
+    assert parthood[0].item_id == "test_cathode"
+
+
 def test_molar_mass():
     import math
 
