@@ -121,6 +121,10 @@ def get_starting_materials():
                         "supplier": 1,
                         "location": 1,
                         "status": 1,
+                        "GHS_codes": 1,
+                        "smiles": 1,
+                        "molar_mass": 1,
+                        "CAS": 1,
                     }
                 },
                 {
@@ -249,6 +253,10 @@ def get_samples_summary(match: dict | None = None, project: dict | None = None) 
         "item_id": 1,
         "name": 1,
         "chemform": 1,
+        "GHS_codes": 1,
+        "smiles": 1,
+        "molar_mass": 1,
+        "CAS": 1,
         "nblocks": {"$size": "$display_order"},
         "nfiles": {"$size": "$file_ObjectIds"},
         "characteristic_chemical_formula": 1,
