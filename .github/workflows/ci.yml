@@ -8,7 +8,7 @@ on:
 
 env:
   FORCE_COLOR: true
-  UV_VERSION: "0.9.21"
+  UV_VERSION: "0.11.8"
   NODE_VERSION: "22.22"
 
 concurrency:
