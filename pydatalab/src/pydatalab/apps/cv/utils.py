@@ -101,7 +101,7 @@ def parse_cv_mpr(filename: Path) -> pd.DataFrame:
     """
 
     required_columns = {"Ewe/V", "<I>/mA", "cycle number"}
-    df = pd.DataFrame(MPRfile(filename).data)
+    df = pd.DataFrame(MPRfile(str(filename)).data)
     if not required_columns.issubset(df.columns):
         raise RuntimeError(
             f"Missing required columns in {filename}: expected {required_columns}, got {set(df.columns)}"
