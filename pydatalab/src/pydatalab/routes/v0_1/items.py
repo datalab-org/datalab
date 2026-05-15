@@ -687,6 +687,9 @@ def _create_sample(
     # Set creation timestamp to now if not provided
     new_sample["date"] = new_sample.get("date", datetime.datetime.now(tz=datetime.timezone.utc))
 
+    # Check on relationship fields and prefill
+    new_sample = entry_reference_lookup(new_sample)
+
     # Try to deserialize the item data into the appropriate model
     try:
         data_model: Item = model(**new_sample)
@@ -1656,6 +1659,7 @@ def save_item():
     original_relationships = item.get("relationships", []) if preserve_relationships else None
 
     item.update(updated_data)
+    item = entry_reference_lookup(item)
 
     try:
         item = ITEM_MODELS[item_type](**item).dict()
