@@ -76,6 +76,10 @@ class CVBlock(DataBlock):
         else:
             return
 
+        if len(cv_data) == 0:
+            LOGGER.warning("Parsed CV data contains no rows")
+            return
+
         hover = HoverTool(
             tooltips=[
                 ("Potential", "@{Potential (V)}{0.00} V"),
