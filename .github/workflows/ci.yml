@@ -175,6 +175,7 @@ jobs:
             api.cache-from=type=gha,scope=${{ github.ref_name }}-build-api
             api.cache-from=type=gha,scope=main-build-api
             api.cache-to=type=gha,scope=${{ github.ref_name }}-build-api,mode=max
+            api.args.SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0+ci
             api.args.WEB_CONCURRENCY=1
             api.tags=datalab-api:latest
 
@@ -245,7 +246,9 @@ jobs:
             api.cache-to=type=gha,scope=${{ github.ref_name }}-build-api,mode=max
             app.cache-to=type=gha,scope=${{ github.ref_name }}-build-app,mode=max
             database.cache-to=type=gha,scope=${{ github.ref_name }}-build-database,mode=max
+            api.args.SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0+ci
             api.args.WEB_CONCURRENCY=1
+            app.args.VUE_APP_GIT_VERSION=0.0.0+ci
             app.tags=datalab-app:latest
             api.tags=datalab-api:latest
             database.tags=datalab-database:latest

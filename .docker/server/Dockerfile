@@ -62,8 +62,10 @@ WORKDIR /app
 COPY ./pydatalab/ ./
 RUN git config --global --add safe.directory /
 
-# Install editable mode so that the server runs from a sensible place where we can stuff .env files
-RUN --mount=type=bind,target=/.git,source=./.git uv pip install --python /opt/.venv/bin/python --no-deps --editable .
+# Install editable mode so that the server runs from a sensible place where we can stuff .env files.
+# setuptools-scm gets its version from SETUPTOOLS_SCM_PRETEND_VERSION (build arg above) rather than
+# a `.git` bind mount, so this layer doesn't invalidate on every commit.
+RUN uv pip install --python /opt/.venv/bin/python --no-deps --editable .
 
 # Define some default gunicorn runtime args
 ENV WEB_CONCURRENCY=4
