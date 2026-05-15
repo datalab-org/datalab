@@ -77,7 +77,7 @@ class CVBlock(DataBlock):
             return
 
         if len(cv_data) == 0:
-            LOGGER.warning("Parsed CV data contains no rows")
+            raise RuntimeError("Parsed CV data contains no rows")
             return
 
         hover = HoverTool(
