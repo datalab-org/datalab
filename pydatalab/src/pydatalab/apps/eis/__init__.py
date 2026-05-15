@@ -84,6 +84,9 @@ This block can plot electrochemical impedance spectroscopy (EIS) data from:
         if missing:
             raise RuntimeError(f"Parsed EIS data is missing required numeric columns: {missing}")
 
+        if len(eis_data) == 0:
+            raise RuntimeError("Parsed EIS data contains no rows")
+
         numeric_cols = list(eis_data.select_dtypes("number").columns)
         plot = selectable_axes_plot(
             eis_data,
