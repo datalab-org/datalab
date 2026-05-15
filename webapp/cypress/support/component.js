@@ -23,5 +23,16 @@ import { mount } from "cypress/vue";
 
 Cypress.Commands.add("mount", mount);
 
+// Component tests run in isolation without the datalab API stack, so any
+// `fetch` a component fires on mount (e.g. LoginDetails -> /get-current-user,
+// SampleTable -> /samples/) rejects with "Failed to fetch". Tests seed the
+// Vuex store directly and don't depend on the fetched data, so swallow these
+// rejections instead of letting them fail unrelated assertions.
+Cypress.on("uncaught:exception", (err) => {
+  if (err?.message?.includes("Failed to fetch")) {
+    return false;
+  }
+});
+
 // Example use:
 // cy.mount(MyComponent)

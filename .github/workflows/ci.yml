@@ -276,12 +276,35 @@ jobs:
         env:
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
 
+  component:
+    # Cypress component tests don't need the datalab stack — they exercise Vue
+    # components in isolation. Splitting them out means they run in parallel
+    # with the e2e job instead of serially after it.
+    name: Component tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        browser-backend: ["electron", "chrome"]
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        env:
+          FORCE_COLOR: 0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "yarn"
+          cache-dependency-path: ./webapp/yarn.lock
+
       - name: Run component tests
         uses: cypress-io/github-action@v7
         with:
           working-directory: ./webapp
           record: ${{ github.repository == 'datalab-org/datalab' }}
-          install: false
           component: true
           publish-summary: false
           browser: ${{ matrix.browser-backend }}
