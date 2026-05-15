@@ -368,6 +368,12 @@
           "datalab_exclude_from_load": true,
           "type": "object"
         },
+        "processed": {
+          "title": "Processed",
+          "datalab_exclude_from_load": true,
+          "datalab_exclude_from_db": true,
+          "type": "object"
+        },
         "metadata": {
           "title": "Metadata",
           "datalab_exclude_from_load": true,
