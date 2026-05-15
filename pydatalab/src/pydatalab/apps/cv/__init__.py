@@ -78,7 +78,6 @@ class CVBlock(DataBlock):
 
         if len(cv_data) == 0:
             raise RuntimeError("Parsed CV data contains no rows")
-            return
 
         hover = HoverTool(
             tooltips=[
