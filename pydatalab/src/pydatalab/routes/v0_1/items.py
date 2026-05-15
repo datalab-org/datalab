@@ -363,7 +363,14 @@ def entry_reference_lookup(item_doc: dict) -> dict:
             if ref:
                 deref = flask_mongo.db.items.find_one(
                     {**ref, **get_default_permissions()},
-                    projection={"name": 1, "item_id": 1, "refcode": 1, "chemform": 1, "type": 1},
+                    projection={
+                        "name": 1,
+                        "item_id": 1,
+                        "refcode": 1,
+                        "chemform": 1,
+                        "type": 1,
+                        "_id": 0,
+                    },
                 )
             # If the source item has been deleted, is inlined or is inaccessible, use the original subitem data
             if not ref or not deref:
