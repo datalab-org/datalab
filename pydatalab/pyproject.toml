@@ -26,6 +26,7 @@ dependencies = [
     "pandas[excel] ~= 2.2",
     "pymongo ~= 4.7",
     "deepdiff ~= 8.1",
+    "tomlkit ~= 0.14",
 ]
 
 [project.urls]

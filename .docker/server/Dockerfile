@@ -39,11 +39,18 @@ ARG SETUPTOOLS_SCM_PRETEND_VERSION
 ENV SETUPTOOLS_SCM_PRETEND_VERSION=${SETUPTOOLS_SCM_PRETEND_VERSION}
 
 WORKDIR /app
+COPY ./pydatalab/tasks.py .
 COPY ./pydatalab/pyproject.toml .
 COPY ./pydatalab/uv.lock .
+
+
+COPY ./pydatalab/plugins.tom[l] .
 COPY ./pydatalab/plugins/ ./plugins
 
-RUN uv sync --locked --no-dev --all-extras
+# Install the base datalab venv with dev dependencies (to include invoke)
+# then run the datalab custom install script to pick up any plugins and install
+# them in the base venv
+RUN uv sync --extra server --locked && uv run invoke dev.install --no-dev
 
 WORKDIR /app
 

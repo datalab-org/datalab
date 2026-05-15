@@ -158,15 +158,7 @@ jobs:
             plugins/datalab-app-plugin-template
 
           # Temporarily add plugin as an extra dev dep to the pyproject.toml
-          # Find the pyproject line that says "dev-dependencies" and append after it
-          sed -i '/app-plugins-git/a\ \ \ \ "datalab-app-plugin-template",' pyproject.toml
-          sed -i '/\[tool\.uv\.sources\]/a\datalab-app-plugin-template = { path = "./plugins/datalab-app-plugin-template"}' pyproject.toml
-          cat pyproject.toml
-
-      - name: Relock uv.lock file with extra plugin
-        working-directory: ./pydatalab
-        run: |
-          uv lock -P datalab-app-plugin-template
+          cp plugins.toml.template plugins.toml
 
       - name: Set some environment variables for CI containers pre-build
         run: |

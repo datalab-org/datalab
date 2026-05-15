@@ -2,12 +2,16 @@ import json
 import os
 import pathlib
 import re
+import shutil
+import subprocess
 import time
+import typing
 
+import tomlkit
 from invoke import Collection, task
 
-from pydatalab.logger import setup_log
-from pydatalab.models.utils import UserRole
+if typing.TYPE_CHECKING:
+    from pydatalab.models.utils import UserRole
 
 ns = Collection()
 dev = Collection("dev")
@@ -46,6 +50,101 @@ dev.add_task(generate_schemas)
 
 
 @task
+def install(_, dev=True):
+    """This task looks for a plugins.toml and attempts to
+    do an isolated build in `./build` with its own lock
+    and pyproject.toml.
+
+    """
+
+    # look for a custom plugins.toml file in the pydatalab root dir
+    plugin_cfg = pathlib.Path(__file__).parent / "plugins.toml"
+
+    deps: list[str] = []
+    sources: dict[str, dict[str, str]] = {}
+
+    if not plugin_cfg.is_file():
+        print("No plugins.toml found; installing with base pyproject.toml")
+
+    else:
+        with open(plugin_cfg) as f:
+            plugin_data = tomlkit.load(f)
+
+        # search through plugin.toml for depedencies and sources blocks
+        # and interleave them with the usual pyproject.toml
+        deps = plugin_data.get("dependencies", [])
+        sources = plugin_data.get("tool", {}).get("uv", {}).get("sources", {})
+
+        print(f"Found plugins: {deps}")
+
+        for name, source in sources.items():
+            # Set absolute paths for any local sources, assuming they are relative to the pydatalab root directory
+            if name not in deps:
+                print(
+                    "Warning: Found source configuration for {name!r} in plugins.toml but no corresponding dependency; skipping."
+                )
+                continue
+
+            if source.get("path") is not None:
+                sources[name]["path"] = str(
+                    (pathlib.Path(__file__).parent / source["path"]).resolve()
+                )
+
+    with open(pathlib.Path(__file__).parent / "pyproject.toml") as f:
+        pyproject_data = dict(tomlkit.load(f))
+
+    pyproject_data["tool"]["setuptools_scm"]["root"] = "../.."
+
+    if deps:
+        pyproject_data["project"] = pyproject_data.get("project", {})
+        pyproject_data["project"]["optional-dependencies"] = pyproject_data["project"].get(
+            "optional-dependencies", {}
+        )
+
+        if "plugins" in pyproject_data["project"]["optional-dependencies"]:
+            raise SystemExit(
+                "The pyproject.toml already has a plugins optional-dependencies block, cannot continue."
+            )
+
+        pyproject_data["project"]["optional-dependencies"]["plugins"] = deps
+
+        original_sources = pyproject_data.get("tool", {}).get("uv", {}).get("sources", {})
+        original_sources.update(sources)
+
+    build_dir = pathlib.Path(__file__).parent / "build"
+    build_dir.mkdir(exist_ok=True)
+
+    print(f"Installing datalab into {build_dir} with custom pyproject.toml and uv.lock...")
+
+    new_pyproject_path = build_dir / "pyproject.toml"
+    if new_pyproject_path.is_file():
+        new_pyproject_path.unlink()
+
+    # dump to ./build/pyproject.toml
+    with open(new_pyproject_path, "w") as f:
+        tomlkit.dump(pyproject_data, f)
+
+    # copy existing lock then rerun uv lock to create ./build/uv.lock
+    shutil.copy(pathlib.Path(__file__).parent / "uv.lock", build_dir / "uv.lock")
+    subprocess.run(["uv", "lock"], cwd=build_dir, check=True)  # noqa: S607
+
+    print(
+        "Combining environment with plugins and installing into base datalab virtual environment `./.venv"
+    )
+
+    sync_cmd = ["uv", "sync", "--locked", "--all-extras", "--active", "--project", "./build"]
+    if not dev:
+        sync_cmd.append("--no-dev")
+
+    subprocess.run(sync_cmd, check=True)  # noqa: S607, S603
+
+    print("Done! To revert to locked core dependencies, run `uv sync --all-extras --dev`.")
+
+
+dev.add_task(install)
+
+
+@task
 def create_mongo_indices(_):
     """This task creates the default MongoDB indices defined in the main code."""
     from pydatalab.mongo import create_default_indices
@@ -57,10 +156,11 @@ admin.add_task(create_mongo_indices)
 
 
 @task
-def change_user_role(_, display_name: str, role: UserRole):
+def change_user_role(_, display_name: str, role: "UserRole"):
     """This task takes a user's name and gives them the desired role."""
     from bson import ObjectId
 
+    from pydatalab.models.utils import UserRole
     from pydatalab.mongo import _get_active_mongo_client
 
     try:
@@ -197,6 +297,8 @@ migration.add_task(add_missing_refcodes)
 
 
 def _check_id(id=None, base_url=None, api_key=None):
+    from pydatalab.logger import setup_log
+
     """Checks the given item ID served at the base URL and logs the result."""
     import requests
 
@@ -227,6 +329,8 @@ def check_item_validity(_, base_url: str | None = None, starting_materials: bool
     import os
 
     import requests
+
+    from pydatalab.logger import setup_log
 
     api_key = os.environ.get("DATALAB_API_KEY")
     if not api_key:
@@ -286,6 +390,8 @@ def check_remotes(_, base_url: str | None = None, invalidate_cache: bool = False
     import os
 
     import requests
+
+    from pydatalab.logger import setup_log
 
     api_key = os.environ.get("DATALAB_API_KEY")
     if not api_key:
